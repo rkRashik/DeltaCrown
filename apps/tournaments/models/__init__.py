@@ -170,6 +170,9 @@ from .match_player_stats import (
     MatchPlayerStat,      # Per-player aggregated match stats (kills, ACS, etc.)
     MatchMapPlayerStat,   # Per-player per-map stats within a series
 )
+from .fan_prediction_vote import (
+    TournamentFanPredictionVote,  # Detail widgets: fan prediction votes
+)
 from .result_ingestion import (
     MatchIntegrityCheck,  # Phase 5: Automated API vs manual score comparison
 )
@@ -263,6 +266,8 @@ __all__ = [
     # Match Player Statistics
     'MatchPlayerStat',
     'MatchMapPlayerStat',
+    # Detail fan prediction voting
+    'TournamentFanPredictionVote',
     # Phase 5: Automated Result Ingestion
     'MatchIntegrityCheck',
 ]

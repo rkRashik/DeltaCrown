@@ -12,15 +12,16 @@
                     return;
                 }
 
+                if (widgetKey === 'poll') {
+                    return;
+                }
+
                 var shouldOpen = !this.widgetUi[widgetKey].isEditing;
                 this.closeAllWidgetEditors();
 
                 if (shouldOpen) {
                     if (widgetKey === 'sponsor') {
                         this.ensureSponsorDraft();
-                    }
-                    if (widgetKey === 'poll') {
-                        this.ensureFanPollOptions();
                     }
                     this.widgetUi[widgetKey].isEditing = true;
                 }
@@ -100,7 +101,9 @@
                 this.normalizeBottomBoard();
 
                 var sponsor = this.primarySponsor() || {};
-                var pollOptions = this.fanPollOptions();
+                var pollQuestions = this.fanPollQuestions();
+                var primaryQuestion = pollQuestions.length ? pollQuestions[0] : null;
+                var primaryOptions = primaryQuestion && Array.isArray(primaryQuestion.options) ? primaryQuestion.options : [];
 
                 return {
                     sponsor: {
@@ -131,23 +134,41 @@
                     poll: {
                         enabled: Boolean(this.widgetUi.poll && this.widgetUi.poll.show),
                         active: Boolean(this.tData.fanPoll && this.tData.fanPoll.enabled),
-                        question: String((this.tData.fanPoll && this.tData.fanPoll.question) || '').trim(),
+                        theme: this.normalizeFanPollTheme(this.tData.fanPoll && this.tData.fanPoll.theme),
+                        question: String((primaryQuestion && primaryQuestion.question) || 'Who will win?').trim(),
                         options: [
                             {
-                                name: String((pollOptions[0] && pollOptions[0].name) || '').trim(),
-                                percent: Number((pollOptions[0] && pollOptions[0].percent) || 0)
+                                id: String((primaryOptions[0] && primaryOptions[0].id) || 'option-a').trim(),
+                                name: String((primaryOptions[0] && primaryOptions[0].name) || 'Option A').trim(),
+                                percent: Number((primaryOptions[0] && primaryOptions[0].percent) || 0)
                             },
                             {
-                                name: String((pollOptions[1] && pollOptions[1].name) || '').trim(),
-                                percent: Number((pollOptions[1] && pollOptions[1].percent) || 0)
+                                id: String((primaryOptions[1] && primaryOptions[1].id) || 'option-b').trim(),
+                                name: String((primaryOptions[1] && primaryOptions[1].name) || 'Option B').trim(),
+                                percent: Number((primaryOptions[1] && primaryOptions[1].percent) || 0)
                             }
-                        ]
+                        ],
+                        questions: pollQuestions.map(function (question, questionIndex) {
+                            var qid = String((question && question.id) || ('poll-' + (questionIndex + 1))).trim();
+                            var questionOptions = Array.isArray(question && question.options) ? question.options : [];
+                            return {
+                                id: qid,
+                                question: String((question && question.question) || ('Prediction ' + (questionIndex + 1))).trim(),
+                                options: questionOptions.map(function (option, optionIndex) {
+                                    return {
+                                        id: String((option && option.id) || ('option-' + (optionIndex + 1))).trim(),
+                                        name: String((option && option.name) || ('Option ' + String.fromCharCode(65 + optionIndex))).trim()
+                                    };
+                                })
+                            };
+                        })
                     },
                     socials: {
                         enabled: Boolean(this.widgetUi.socials && this.widgetUi.socials.show),
                         discord: String((this.tData.socials && this.tData.socials.discord) || '').trim(),
                         facebook: String((this.tData.socials && this.tData.socials.facebook) || '').trim(),
-                        youtube: String((this.tData.socials && this.tData.socials.youtube) || '').trim()
+                        youtube: String((this.tData.socials && this.tData.socials.youtube) || '').trim(),
+                        instagram: String((this.tData.socials && this.tData.socials.instagram) || '').trim()
                     },
                     bottom_board: {
                         enabled: Boolean(this.widgetUi.bottomBoard && this.widgetUi.bottomBoard.show),
@@ -212,30 +233,15 @@
                 this.widgetUi.bounty.show = Boolean(bounty.enabled);
 
                 var poll = persisted.poll && typeof persisted.poll === 'object' ? persisted.poll : {};
-                var pollOptions = Array.isArray(poll.options) ? poll.options : [];
-                this.tData.fanPoll = {
-                    enabled: Boolean(poll.active),
-                    question: String(poll.question || '').trim() || 'Who will win?',
-                    options: [
-                        {
-                            name: String((pollOptions[0] && pollOptions[0].name) || 'Option A').trim(),
-                            percent: Number((pollOptions[0] && pollOptions[0].percent) || 50),
-                            color: 'from-cyan-400/80 to-cyan-600/80'
-                        },
-                        {
-                            name: String((pollOptions[1] && pollOptions[1].name) || 'Option B').trim(),
-                            percent: Number((pollOptions[1] && pollOptions[1].percent) || 50),
-                            color: 'from-fuchsia-400/80 to-fuchsia-600/80'
-                        }
-                    ]
-                };
+                this.hydrateFanPollFromPersisted(poll);
                 this.widgetUi.poll.show = Boolean(poll.enabled);
 
                 var socials = persisted.socials && typeof persisted.socials === 'object' ? persisted.socials : {};
                 this.tData.socials = {
                     discord: String(socials.discord || '').trim(),
                     facebook: String(socials.facebook || '').trim(),
-                    youtube: String(socials.youtube || '').trim()
+                    youtube: String(socials.youtube || '').trim(),
+                    instagram: String(socials.instagram || '').trim()
                 };
                 this.widgetUi.socials.show = Boolean(socials.enabled);
 
@@ -369,44 +375,147 @@
                 this.tData.bounty[field] = this.eventInputValue(event);
             },
 
-            setFanPollQuestionFromEvent: function (event) {
-                if (!this.canManageWidgets) {
-                    return;
-                }
-
-                this.ensureFanPollOptions();
-                this.tData.fanPoll.question = this.eventInputValue(event);
-            },
-
-            setFanPollOptionFieldFromEvent: function (index, field, event) {
-                if (!this.canManageWidgets) {
-                    return;
-                }
-
-                this.ensureFanPollOptions();
-                if (!Array.isArray(this.tData.fanPoll.options) || index < 0 || index >= this.tData.fanPoll.options.length) {
-                    return;
-                }
-
-                if (field === 'percent') {
-                    var numeric = parseInt(this.eventInputValue(event), 10);
-                    if (!isFinite(numeric)) {
-                        numeric = 0;
-                    }
-                    this.tData.fanPoll.options[index].percent = this.clampPercent(numeric, 0);
-                    return;
-                }
-
-                this.tData.fanPoll.options[index][field] = this.eventInputValue(event);
-            },
-
             setFanPollEnabledFromEvent: function (event) {
                 if (!this.canManageWidgets) {
                     return;
                 }
 
-                this.ensureFanPollOptions();
+                this.ensureFanPollState();
                 this.tData.fanPoll.enabled = this.eventCheckedValue(event);
+            },
+
+            setFanPollQuestionFieldFromEvent: function (questionIndex, field, event) {
+                if (!this.canManageWidgets) {
+                    return;
+                }
+
+                this.ensureFanPollState();
+                var questions = this.tData.fanPoll.questions;
+                if (!Array.isArray(questions) || questionIndex < 0 || questionIndex >= questions.length) {
+                    return;
+                }
+
+                if (field === 'question') {
+                    questions[questionIndex].question = this.eventInputValue(event);
+                }
+            },
+
+            setFanPollOptionFieldFromEvent: function (questionIndex, optionIndex, field, event) {
+                if (!this.canManageWidgets) {
+                    return;
+                }
+
+                this.ensureFanPollState();
+                var questions = this.tData.fanPoll.questions;
+                if (!Array.isArray(questions) || questionIndex < 0 || questionIndex >= questions.length) {
+                    return;
+                }
+
+                var options = questions[questionIndex].options;
+                if (!Array.isArray(options) || optionIndex < 0 || optionIndex >= options.length) {
+                    return;
+                }
+
+                if (field === 'name') {
+                    options[optionIndex].name = this.eventInputValue(event);
+                }
+            },
+
+            addFanPollQuestion: function () {
+                if (!this.canManageWidgets) {
+                    return;
+                }
+
+                this.ensureFanPollState();
+                if (!Array.isArray(this.tData.fanPoll.questions)) {
+                    this.tData.fanPoll.questions = [];
+                }
+                if (this.tData.fanPoll.questions.length >= 8) {
+                    return;
+                }
+
+                var questionNumber = this.tData.fanPoll.questions.length + 1;
+                this.tData.fanPoll.questions.push(this.buildFanPollQuestion('poll-' + questionNumber, 'Prediction ' + questionNumber));
+            },
+
+            removeFanPollQuestion: function (questionIndex) {
+                if (!this.canManageWidgets) {
+                    return;
+                }
+
+                this.ensureFanPollState();
+                if (!Array.isArray(this.tData.fanPoll.questions) || this.tData.fanPoll.questions.length <= 1) {
+                    return;
+                }
+                if (questionIndex < 0 || questionIndex >= this.tData.fanPoll.questions.length) {
+                    return;
+                }
+
+                var removed = this.tData.fanPoll.questions.splice(questionIndex, 1);
+                var removedId = removed.length ? String(removed[0].id || '') : '';
+                if (removedId && this.tData.fanPoll.activeQuestionId === removedId) {
+                    this.tData.fanPoll.activeQuestionId = this.tData.fanPoll.questions.length ? String(this.tData.fanPoll.questions[0].id || '') : '';
+                }
+            },
+
+            addFanPollOption: function (questionIndex) {
+                if (!this.canManageWidgets) {
+                    return;
+                }
+
+                this.ensureFanPollState();
+                var questions = this.tData.fanPoll.questions;
+                if (!Array.isArray(questions) || questionIndex < 0 || questionIndex >= questions.length) {
+                    return;
+                }
+
+                var question = questions[questionIndex];
+                if (!Array.isArray(question.options)) {
+                    question.options = [];
+                }
+                if (question.options.length >= 6) {
+                    return;
+                }
+
+                var optionIndex = question.options.length;
+                question.options.push({
+                    id: this.slugToken('option-' + (optionIndex + 1), 'option-' + (optionIndex + 1)),
+                    name: 'Option ' + String.fromCharCode(65 + optionIndex),
+                    votes: 0,
+                    percent: 0,
+                    color: this.pollOptionColorClass(optionIndex)
+                });
+            },
+
+            removeFanPollOption: function (questionIndex, optionIndex) {
+                if (!this.canManageWidgets) {
+                    return;
+                }
+
+                this.ensureFanPollState();
+                var questions = this.tData.fanPoll.questions;
+                if (!Array.isArray(questions) || questionIndex < 0 || questionIndex >= questions.length) {
+                    return;
+                }
+
+                var question = questions[questionIndex];
+                if (!Array.isArray(question.options) || question.options.length <= 2) {
+                    return;
+                }
+                if (optionIndex < 0 || optionIndex >= question.options.length) {
+                    return;
+                }
+
+                question.options.splice(optionIndex, 1);
+                question.options = question.options.map(function (option, idx) {
+                    return {
+                        id: String((option && option.id) || ('option-' + (idx + 1))).trim(),
+                        name: String((option && option.name) || ('Option ' + String.fromCharCode(65 + idx))).trim(),
+                        votes: Math.max(0, Math.round(Number((option && option.votes) || 0))),
+                        percent: Math.max(0, Math.min(100, Math.round(Number((option && option.percent) || 0)))),
+                        color: option && option.color ? option.color : this.pollOptionColorClass(idx)
+                    };
+                }, this);
             },
 
             setSocialFieldFromEvent: function (field, event) {
@@ -451,26 +560,166 @@
                 }
             },
 
-            ensureFanPollOptions: function () {
+            ensureFanPollState: function () {
                 if (!this.tData.fanPoll || typeof this.tData.fanPoll !== 'object') {
                     this.tData.fanPoll = {
                         enabled: false,
-                        question: 'Who will win?',
-                        options: []
+                        theme: 'cyber',
+                        activeQuestionId: '',
+                        questions: []
                     };
                 }
 
-                if (!Array.isArray(this.tData.fanPoll.options)) {
-                    this.tData.fanPoll.options = [];
+                this.tData.fanPoll.theme = this.normalizeFanPollTheme(this.tData.fanPoll.theme);
+
+                if (!Array.isArray(this.tData.fanPoll.questions)) {
+                    this.tData.fanPoll.questions = [];
                 }
 
-                while (this.tData.fanPoll.options.length < 2) {
-                    this.tData.fanPoll.options.push({
-                        name: this.tData.fanPoll.options.length === 0 ? 'Option A' : 'Option B',
-                        percent: 50,
-                        color: this.tData.fanPoll.options.length === 0 ? 'from-cyan-400/80 to-cyan-600/80' : 'from-fuchsia-400/80 to-fuchsia-600/80'
-                    });
+                if (!this.tData.fanPoll.questions.length) {
+                    this.tData.fanPoll.questions = [this.buildFanPollQuestion('poll-1', 'Who will win?')];
                 }
+
+                this.tData.fanPoll.questions = this.tData.fanPoll.questions.map(function (question, questionIndex) {
+                    var normalizedQuestion = question && typeof question === 'object' ? question : {};
+                    var normalizedId = String(normalizedQuestion.id || ('poll-' + (questionIndex + 1))).trim();
+                    var normalizedText = String(normalizedQuestion.question || ('Prediction ' + (questionIndex + 1))).trim();
+                    var options = Array.isArray(normalizedQuestion.options) ? normalizedQuestion.options : [];
+                    options = options
+                        .filter(function (option) {
+                            return option && typeof option === 'object';
+                        })
+                        .map(function (option, optionIndex) {
+                            return {
+                                id: String(option.id || ('option-' + (optionIndex + 1))).trim(),
+                                name: String(option.name || ('Option ' + String.fromCharCode(65 + optionIndex))).trim(),
+                                votes: Math.max(0, Math.round(Number(option.votes || 0))),
+                                percent: Math.max(0, Math.min(100, Math.round(Number(option.percent || 0)))),
+                                color: option.color || this.pollOptionColorClass(optionIndex)
+                            };
+                        }, this)
+                        .slice(0, 6);
+
+                    while (options.length < 2) {
+                        var optionIndex = options.length;
+                        options.push({
+                            id: this.slugToken('option-' + (optionIndex + 1), 'option-' + (optionIndex + 1)),
+                            name: 'Option ' + String.fromCharCode(65 + optionIndex),
+                            votes: 0,
+                            percent: 0,
+                            color: this.pollOptionColorClass(optionIndex)
+                        });
+                    }
+
+                    return {
+                        id: normalizedId,
+                        question: normalizedText || ('Prediction ' + (questionIndex + 1)),
+                        options: options,
+                        total_votes: Math.max(0, Math.round(Number(normalizedQuestion.total_votes || 0))),
+                        user_choice_id: String(normalizedQuestion.user_choice_id || '').trim(),
+                        has_user_voted: Boolean(normalizedQuestion.has_user_voted || normalizedQuestion.user_choice_id)
+                    };
+                }, this);
+
+                var activeId = String(this.tData.fanPoll.activeQuestionId || '').trim();
+                var hasActive = this.tData.fanPoll.questions.some(function (question) {
+                    return String(question.id || '').trim() === activeId;
+                });
+                if (!hasActive) {
+                    this.tData.fanPoll.activeQuestionId = String(this.tData.fanPoll.questions[0].id || '').trim();
+                }
+            },
+
+            hydrateFanPollFromPersisted: function (poll) {
+                var source = poll && typeof poll === 'object' ? poll : {};
+                var rawQuestions = Array.isArray(source.questions) ? source.questions : [];
+                if (!rawQuestions.length) {
+                    rawQuestions = [{
+                        id: source.id || 'poll-1',
+                        question: String(source.question || '').trim() || 'Who will win?',
+                        options: Array.isArray(source.options) ? source.options : []
+                    }];
+                }
+
+                this.tData.fanPoll = {
+                    enabled: Boolean(source.active),
+                    theme: this.normalizeFanPollTheme(source.theme),
+                    activeQuestionId: String((source.active_question_id || (rawQuestions[0] && rawQuestions[0].id) || '')).trim(),
+                    questions: rawQuestions
+                };
+
+                this.normalizeFanPoll();
+            },
+
+            buildFanPollQuestion: function (questionId, questionText) {
+                return {
+                    id: this.slugToken(questionId || questionText || 'poll-1', 'poll-1'),
+                    question: String(questionText || 'Who will win?').trim(),
+                    options: [
+                        {
+                            id: 'option-a',
+                            name: 'Option A',
+                            votes: 0,
+                            percent: 0,
+                            color: this.pollOptionColorClass(0)
+                        },
+                        {
+                            id: 'option-b',
+                            name: 'Option B',
+                            votes: 0,
+                            percent: 0,
+                            color: this.pollOptionColorClass(1)
+                        }
+                    ],
+                    total_votes: 0,
+                    user_choice_id: '',
+                    has_user_voted: false
+                };
+            },
+
+            pollOptionColorClass: function (index) {
+                var palette = [
+                    'from-cyan-400/80 to-cyan-600/80',
+                    'from-fuchsia-400/80 to-fuchsia-600/80',
+                    'from-emerald-400/80 to-emerald-600/80',
+                    'from-amber-400/80 to-amber-600/80',
+                    'from-blue-400/80 to-indigo-600/80',
+                    'from-rose-400/80 to-rose-600/80'
+                ];
+                return palette[index % palette.length];
+            },
+
+            normalizeFanPollTheme: function (value) {
+                var allowed = {
+                    cyber: true,
+                    tactical: true,
+                    glass: true,
+                    sport: true,
+                    native: true
+                };
+                var token = String(value || '').trim().toLowerCase();
+                if (allowed[token]) {
+                    return token;
+                }
+                return 'cyber';
+            },
+
+            fanPollTheme: function () {
+                this.ensureFanPollState();
+                this.tData.fanPoll.theme = this.normalizeFanPollTheme(this.tData.fanPoll.theme);
+                return this.tData.fanPoll.theme;
+            },
+
+            isFanPollTheme: function (themeId) {
+                return this.fanPollTheme() === this.normalizeFanPollTheme(themeId);
+            },
+
+            slugToken: function (value, fallback) {
+                var token = String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+                if (!token) {
+                    token = String(fallback || 'token').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+                }
+                return token || 'token';
             },
 
             clampPercent: function (value, fallback) {
@@ -533,38 +782,105 @@
             },
 
             normalizeFanPoll: function () {
-                this.ensureFanPollOptions();
+                this.ensureFanPollState();
 
-                var first = this.tData.fanPoll.options[0] || {};
-                var second = this.tData.fanPoll.options[1] || {};
-                var firstPct = this.clampPercent(first.percent, 50);
-                var secondPct = this.clampPercent(second.percent, 50);
-                var sum = firstPct + secondPct;
+                this.tData.fanPoll.enabled = Boolean(this.tData.fanPoll.enabled);
+                this.tData.fanPoll.theme = this.normalizeFanPollTheme(this.tData.fanPoll.theme);
+                this.tData.fanPoll.questions = this.tData.fanPoll.questions
+                    .slice(0, 8)
+                    .map(function (question, questionIndex) {
+                        var normalizedId = this.slugToken(question && question.id, 'poll-' + (questionIndex + 1));
+                        var normalizedText = String((question && question.question) || ('Prediction ' + (questionIndex + 1))).trim();
+                        var options = Array.isArray(question && question.options) ? question.options : [];
 
-                if (sum <= 0) {
-                    firstPct = 50;
-                    secondPct = 50;
-                } else if (sum !== 100) {
-                    firstPct = Math.round((firstPct / sum) * 100);
-                    secondPct = 100 - firstPct;
+                        options = options
+                            .slice(0, 6)
+                            .map(function (option, optionIndex) {
+                                var name = String((option && option.name) || ('Option ' + String.fromCharCode(65 + optionIndex))).trim();
+                                return {
+                                    id: this.slugToken(option && option.id, 'option-' + (optionIndex + 1)),
+                                    name: name || ('Option ' + String.fromCharCode(65 + optionIndex)),
+                                    votes: Math.max(0, Math.round(Number((option && option.votes) || 0))),
+                                    percent: this.clampPercent((option && option.percent) || 0, 0),
+                                    color: option && option.color ? option.color : this.pollOptionColorClass(optionIndex)
+                                };
+                            }, this);
+
+                        while (options.length < 2) {
+                            var optionIndex = options.length;
+                            options.push({
+                                id: this.slugToken('option-' + (optionIndex + 1), 'option-' + (optionIndex + 1)),
+                                name: 'Option ' + String.fromCharCode(65 + optionIndex),
+                                votes: 0,
+                                percent: 0,
+                                color: this.pollOptionColorClass(optionIndex)
+                            });
+                        }
+
+                        var totalVotes = options.reduce(function (sum, option) {
+                            return sum + Math.max(0, Math.round(Number(option.votes || 0)));
+                        }, 0);
+
+                        if (totalVotes > 0) {
+                            var runningPercent = 0;
+                            options = options.map(function (option, optionIndex) {
+                                var votes = Math.max(0, Math.round(Number(option.votes || 0)));
+                                var percent = 0;
+                                if (optionIndex === options.length - 1) {
+                                    percent = Math.max(0, 100 - runningPercent);
+                                } else {
+                                    percent = this.clampPercent(Math.round((votes / totalVotes) * 100), 0);
+                                    runningPercent += percent;
+                                }
+                                return {
+                                    id: option.id,
+                                    name: option.name,
+                                    votes: votes,
+                                    percent: percent,
+                                    color: option.color
+                                };
+                            }, this);
+                        } else {
+                            options = options.map(function (option) {
+                                return {
+                                    id: option.id,
+                                    name: option.name,
+                                    votes: 0,
+                                    percent: 0,
+                                    color: option.color
+                                };
+                            });
+                        }
+
+                        var userChoiceId = String((question && question.user_choice_id) || '').trim();
+                        var validChoice = options.some(function (option) {
+                            return option.id === userChoiceId;
+                        });
+                        if (!validChoice) {
+                            userChoiceId = '';
+                        }
+
+                        return {
+                            id: normalizedId,
+                            question: normalizedText || ('Prediction ' + (questionIndex + 1)),
+                            options: options,
+                            total_votes: totalVotes,
+                            user_choice_id: userChoiceId,
+                            has_user_voted: Boolean(userChoiceId)
+                        };
+                    }, this);
+
+                if (!this.tData.fanPoll.questions.length) {
+                    this.tData.fanPoll.questions = [this.buildFanPollQuestion('poll-1', 'Who will win?')];
                 }
 
-                this.tData.fanPoll = {
-                    enabled: Boolean(this.tData.fanPoll.enabled),
-                    question: String(this.tData.fanPoll.question || '').trim() || 'Who will win?',
-                    options: [
-                        {
-                            name: String(first.name || 'Option A').trim() || 'Option A',
-                            percent: firstPct,
-                            color: 'from-cyan-400/80 to-cyan-600/80'
-                        },
-                        {
-                            name: String(second.name || 'Option B').trim() || 'Option B',
-                            percent: secondPct,
-                            color: 'from-fuchsia-400/80 to-fuchsia-600/80'
-                        }
-                    ]
-                };
+                var activeId = String(this.tData.fanPoll.activeQuestionId || '').trim();
+                var hasActive = this.tData.fanPoll.questions.some(function (question) {
+                    return String(question.id || '').trim() === activeId;
+                });
+                if (!hasActive) {
+                    this.tData.fanPoll.activeQuestionId = String(this.tData.fanPoll.questions[0].id || '').trim();
+                }
             },
 
             normalizeBottomBoard: function () {
@@ -741,17 +1057,203 @@
             },
 
             shouldShowFanPoll: function () {
-                if (this.canManageWidgets) {
-                    return true;
-                }
-                return this.widgetUi.poll.show && this.tData.fanPoll && this.tData.fanPoll.enabled;
+                return this.widgetUi.poll.show && this.fanPollQuestionCount() > 0;
             },
 
-            fanPollOptions: function () {
-                if (this.tData.fanPoll && Array.isArray(this.tData.fanPoll.options)) {
-                    return this.tData.fanPoll.options;
+            fanPollQuestions: function () {
+                if (this.tData.fanPoll && Array.isArray(this.tData.fanPoll.questions)) {
+                    return this.tData.fanPoll.questions;
                 }
                 return [];
+            },
+
+            fanPollEditorQuestions: function () {
+                this.ensureFanPollState();
+                return this.fanPollQuestions();
+            },
+
+            fanPollQuestionCount: function () {
+                return this.fanPollQuestions().length;
+            },
+
+            activeFanPollQuestion: function () {
+                this.ensureFanPollState();
+                var activeId = String((this.tData.fanPoll && this.tData.fanPoll.activeQuestionId) || '').trim();
+                var questions = this.fanPollQuestions();
+                for (var index = 0; index < questions.length; index += 1) {
+                    if (String((questions[index] && questions[index].id) || '').trim() === activeId) {
+                        return questions[index];
+                    }
+                }
+                return questions.length ? questions[0] : null;
+            },
+
+            setActiveFanPollQuestion: function (questionId) {
+                this.ensureFanPollState();
+                var normalizedId = String(questionId || '').trim();
+                if (!normalizedId) {
+                    return;
+                }
+                var exists = this.fanPollQuestions().some(function (question) {
+                    return String((question && question.id) || '').trim() === normalizedId;
+                });
+                if (exists) {
+                    this.tData.fanPoll.activeQuestionId = normalizedId;
+                }
+            },
+
+            isActiveFanPollQuestion: function (questionId) {
+                return String((this.tData.fanPoll && this.tData.fanPoll.activeQuestionId) || '').trim() === String(questionId || '').trim();
+            },
+
+            isFanPollChoiceSelected: function (question, choice) {
+                if (!question || !choice) {
+                    return false;
+                }
+                var userChoice = String(question.user_choice_id || '').trim();
+                var optionId = String(choice.id || '').trim();
+                return Boolean(userChoice) && userChoice === optionId;
+            },
+
+            canSubmitFanPrediction: function (question, choice) {
+                if (!question || !choice) {
+                    return false;
+                }
+                if (!this.tData.fanPoll || !this.tData.fanPoll.enabled) {
+                    return false;
+                }
+                if (!this.viewerCanVote || !this.fanPredictionVoteUrl) {
+                    return false;
+                }
+                if (this.fanPredictionBusyQuestion) {
+                    return false;
+                }
+                return true;
+            },
+
+            submitFanPrediction: async function (questionId, optionId) {
+                var normalizedQuestionId = String(questionId || '').trim();
+                var normalizedOptionId = String(optionId || '').trim();
+                if (!normalizedQuestionId || !normalizedOptionId) {
+                    return;
+                }
+
+                if (!this.viewerCanVote) {
+                    if (this.viewerLoginUrl) {
+                        window.location.href = this.viewerLoginUrl;
+                    }
+                    return;
+                }
+
+                var question = null;
+                var questions = this.fanPollQuestions();
+                for (var index = 0; index < questions.length; index += 1) {
+                    if (String((questions[index] && questions[index].id) || '').trim() === normalizedQuestionId) {
+                        question = questions[index];
+                        break;
+                    }
+                }
+                if (!question) {
+                    return;
+                }
+
+                var option = null;
+                var options = Array.isArray(question.options) ? question.options : [];
+                for (var optionIndex = 0; optionIndex < options.length; optionIndex += 1) {
+                    if (String((options[optionIndex] && options[optionIndex].id) || '').trim() === normalizedOptionId) {
+                        option = options[optionIndex];
+                        break;
+                    }
+                }
+
+                if (!this.canSubmitFanPrediction(question, option)) {
+                    return;
+                }
+
+                this.fanPredictionBusyQuestion = normalizedQuestionId;
+
+                try {
+                    var response = await fetch(this.fanPredictionVoteUrl, {
+                        method: 'POST',
+                        credentials: 'same-origin',
+                        headers: {
+                            'Accept': 'application/json',
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': this.getCsrfToken(),
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: JSON.stringify({
+                            poll_id: normalizedQuestionId,
+                            option_id: normalizedOptionId
+                        })
+                    });
+
+                    var responseData = {};
+                    try {
+                        responseData = await response.json();
+                    } catch (parseError) {
+                        responseData = {};
+                    }
+
+                    if (!response.ok || !responseData.success) {
+                        throw new Error(responseData.error || 'Unable to save fan prediction right now.');
+                    }
+
+                    this.applyFanPollVoteResponse(responseData);
+                } catch (error) {
+                    // Keep silent for transient errors; poll remains interactive.
+                } finally {
+                    this.fanPredictionBusyQuestion = '';
+                }
+            },
+
+            applyFanPollVoteResponse: function (responseData) {
+                if (!responseData || typeof responseData !== 'object') {
+                    return;
+                }
+
+                if (responseData.poll_widget && typeof responseData.poll_widget === 'object') {
+                    this.hydrateFanPollFromPersisted(responseData.poll_widget);
+                    return;
+                }
+
+                if (responseData.poll && typeof responseData.poll === 'object') {
+                    this.upsertFanPollQuestion(responseData.poll);
+                }
+            },
+
+            upsertFanPollQuestion: function (questionPayload) {
+                if (!questionPayload || typeof questionPayload !== 'object') {
+                    return;
+                }
+
+                this.ensureFanPollState();
+                var normalizedQuestionId = String(questionPayload.id || '').trim();
+                if (!normalizedQuestionId) {
+                    return;
+                }
+
+                var questions = this.fanPollQuestions();
+                var nextQuestions = [];
+                var replaced = false;
+
+                for (var index = 0; index < questions.length; index += 1) {
+                    var current = questions[index];
+                    if (String((current && current.id) || '').trim() === normalizedQuestionId) {
+                        nextQuestions.push(questionPayload);
+                        replaced = true;
+                    } else {
+                        nextQuestions.push(current);
+                    }
+                }
+
+                if (!replaced) {
+                    nextQuestions.push(questionPayload);
+                }
+
+                this.tData.fanPoll.questions = nextQuestions;
+                this.tData.fanPoll.activeQuestionId = normalizedQuestionId;
+                this.normalizeFanPoll();
             },
 
             resolvedSocials: function () {
@@ -759,7 +1261,8 @@
                 return {
                     discord: String(base.discord || '').trim(),
                     facebook: String(base.facebook || '').trim(),
-                    youtube: String(base.youtube || '').trim()
+                    youtube: String(base.youtube || '').trim(),
+                    instagram: String(base.instagram || '').trim()
                 };
             },
 
@@ -775,6 +1278,9 @@
                 }
                 if (resolved.youtube) {
                     links.push({ key: 'youtube', label: 'YouTube', url: resolved.youtube });
+                }
+                if (resolved.instagram) {
+                    links.push({ key: 'instagram', label: 'Instagram', url: resolved.instagram });
                 }
 
                 return links;

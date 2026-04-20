@@ -741,6 +741,7 @@
     data-state-url="{{ mobile_state_url|default:'' }}"
     data-detail-bracket-api-url="{% url 'tournaments:hub_bracket_api' slug=tournament.slug %}"
     data-widget-save-url="{{ detail_widgets_save_url|default:'' }}"
+    data-fan-prediction-vote-url="{{ fan_prediction_vote_url|default:'' }}"
 >
     <div class="fixed inset-0 bg-grid-pattern opacity-[0.03] pointer-events-none z-[-2]"></div>
     <div class="fixed top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[800px] rounded-full blur-[150px] opacity-[0.14] animate-pulse-slow pointer-events-none z-[-1] theme-bg"></div>
@@ -819,13 +820,13 @@
 
                     <h1 class="font-display font-black text-white tracking-tighter mb-6 drop-shadow-[0_12px_36px_rgba(0,0,0,0.75)] uppercase leading-[0.92]">
                         <span class="block text-4xl md:text-6xl lg:text-7xl">{{ tournament.name }}</span>
-                        <span class="block mt-2 font-gaming text-sm md:text-base tracking-[0.38em] theme-text theme-glow-text">{{ game_spec.display_name }} Championship Circuit</span>
+                        <span class="block mt-2 font-gaming text-sm md:text-base tracking-[0.38em] theme-text theme-glow-text">{{ game_spec.display_name }}</span>
                     </h1>
 
                     <div class="flex flex-wrap items-center gap-4 mb-8 bg-black/35 w-max pr-6 pl-2 py-2 rounded-full border border-white/10 backdrop-blur-md">
-                        <div class="w-9 h-9 rounded-full border-2 border-white overflow-hidden">
+                        <div class="w-9 h-9 rounded-full border-2 border-white overflow-hidden bg-white">
                             {% if tournament.is_official %}
-                            <img src="https://ui-avatars.com/api/?name=DC&background=fff&color=000" alt="Organizer" class="w-full h-full object-cover">
+                            <img src="{% static 'img/deltacrown-logo.svg' %}" alt="DeltaCrown" class="w-full h-full object-cover rounded-full">
                             {% elif tournament.organizer.profile.avatar %}
                             <img src="{{ tournament.organizer.profile.avatar.url }}" alt="Organizer" class="w-full h-full object-cover">
                             {% else %}
@@ -1216,7 +1217,11 @@
                         <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
                             <div class="flex items-center gap-4">
                                 <div class="w-16 h-16 rounded-full bg-gradient-to-br from-gray-800 to-black border border-white/10 flex items-center justify-center">
-                                    <span class="font-display font-bold text-xl text-white">{% if tournament.is_official %}DC{% else %}{{ tournament.organizer.username|slice:":2"|upper }}{% endif %}</span>
+                                    {% if tournament.is_official %}
+                                    <img src="{% static 'img/deltacrown-logo.svg' %}" alt="DeltaCrown" class="w-10 h-10 object-contain rounded-full p-1.5 bg-gradient-to-br from-black/80 to-slate-900/80 border border-white/10">
+                                    {% else %}
+                                    <span class="font-display font-bold text-xl text-white">{{ tournament.organizer.username|slice:":2"|upper }}</span>
+                                    {% endif %}
                                 </div>
                                 <div>
                                     <h4 class="font-bold text-white text-lg">{% if tournament.is_official %}DeltaCrown Official{% else %}{{ tournament.organizer.username }}{% endif %}</h4>
@@ -2292,7 +2297,7 @@
 
             <div x-show="activeTab !== 'bracket'" x-transition.opacity class="xl:col-span-4 relative" x-cloak>
                 <div class="sticky top-40 space-y-6">
-                    <div class="glass-extreme rounded-[2.5rem] overflow-hidden border-t-[8px] transition-all duration-500 shadow-[0_30px_60px_rgba(0,0,0,0.6)] {% if is_organizer %}border-t-dc-gold shadow-[0_20px_50px_rgba(255,215,0,0.15)]{% elif detail_cta_state == 'register' %}border-t-green-500 shadow-[0_20px_50px_rgba(34,197,94,0.15)]{% elif tournament_phase == 'registration_closed' and detail_cta_state == 'hub' %}border-t-yellow-500 shadow-[0_20px_50px_rgba(234,179,8,0.15)]{% elif detail_cta_state == 'lobby_open' %}theme-border theme-glow{% elif is_completed_phase %}border-t-gray-600{% else %}border-t-gray-600{% endif %}">
+                    <div class="glass-extreme rounded-[2.5rem] overflow-hidden border-t-[8px] transition-all duration-500 shadow-[0_30px_60px_rgba(0,0,0,0.6)] {% if is_organizer %}border-t-dc-gold shadow-[0_20px_50px_rgba(255,215,0,0.15)]{% elif detail_cta_state == 'register' %}border-t-green-500 shadow-[0_20px_50px_rgba(34,197,94,0.15)]{% elif tournament_phase == 'registration_closed' and detail_cta_state == 'hub' %}border-t-yellow-500 shadow-[0_20px_50px_rgba(234,179,8,0.15)]{% elif detail_cta_state == 'hub' %}border-t-cyan-400 shadow-[0_20px_50px_rgba(34,211,238,0.2)]{% elif detail_cta_state == 'lobby_open' %}theme-border theme-glow{% elif is_completed_phase %}border-t-gray-600{% else %}border-t-gray-600{% endif %}">
                         <div class="p-8 md:p-10 relative z-10">
                             <div class="flex justify-between items-start mb-8 pb-6 border-b border-white/10">
                                 <div>
@@ -2304,6 +2309,8 @@
                                         <i data-lucide="unlock" class="w-6 h-6 text-green-500"></i>
                                         {% elif tournament_phase == 'registration_closed' and detail_cta_state == 'hub' %}
                                         <i data-lucide="clock" class="w-6 h-6 text-yellow-500 animate-pulse"></i>
+                                        {% elif detail_cta_state == 'hub' %}
+                                        <i data-lucide="layout-dashboard" class="w-6 h-6 text-cyan-300"></i>
                                         {% elif detail_cta_state == 'lobby_open' %}
                                         <i data-lucide="radio" class="w-6 h-6 theme-text animate-pulse"></i>
                                         {% elif is_completed_phase %}
@@ -2352,6 +2359,14 @@
                                 </div>
                                 {% endif %}
 
+                                {% if detail_cta_state == 'hub' %}
+                                <div class="bg-cyan-400/10 border border-cyan-300/30 rounded-xl p-6 text-center shadow-[0_12px_30px_rgba(34,211,238,0.1)]">
+                                    <p class="text-[10px] font-bold text-cyan-300 uppercase tracking-widest mb-2">Participant Portal</p>
+                                    <p class="font-mono font-bold text-2xl text-white">HUB Access</p>
+                                    <p class="text-[10px] text-gray-300 mt-2">Realtime match room access, roster checks, and check-in status.</p>
+                                </div>
+                                {% endif %}
+
                                 {% if is_completed_phase and podium %}
                                 <div class="text-center p-6 bg-dc-gold/5 rounded-2xl border border-dc-gold/30">
                                     <i data-lucide="crown" class="w-12 h-12 mx-auto text-dc-gold mb-3"></i>
@@ -2365,7 +2380,7 @@
                             <a
                                 id="nd-primary-cta"
                                 {% if not detail_cta_primary.disabled and detail_cta_primary.url %}href="{{ detail_cta_primary.url }}"{% endif %}
-                                class="w-full py-5 font-black uppercase tracking-[0.15em] rounded-2xl transition-all flex items-center justify-center gap-3 relative overflow-hidden text-sm group {% if detail_cta_primary.disabled %}bg-white/5 text-gray-500 cursor-not-allowed border border-white/5{% elif detail_cta_state == 'organizer' %}bg-dc-gold hover:bg-yellow-400 text-black shadow-[0_0_20px_rgba(255,215,0,0.3)]{% elif detail_cta_state == 'register' %}bg-green-500 hover:bg-green-400 text-black shadow-[0_0_25px_rgba(34,197,94,0.4)]{% elif tournament_phase == 'registration_closed' and detail_cta_state == 'hub' %}bg-yellow-500 hover:bg-yellow-400 text-black shadow-[0_0_25px_rgba(234,179,8,0.4)]{% elif detail_cta_state == 'hub' %}bg-gradient-to-r from-cyan-300 via-cyan-400 to-blue-500 hover:from-cyan-200 hover:to-blue-400 text-black shadow-[0_0_28px_rgba(34,211,238,0.45)]{% elif detail_cta_state == 'lobby_open' %}theme-bg text-black theme-glow{% else %}bg-white/10 hover:bg-white/20 text-white{% endif %}"
+                                class="w-full py-5 font-black uppercase tracking-[0.15em] rounded-2xl transition-all duration-300 ease-out transform-gpu flex items-center justify-center gap-3 relative overflow-hidden text-sm group {% if detail_cta_primary.disabled %}bg-white/5 text-gray-500 cursor-not-allowed border border-white/5{% elif detail_cta_state == 'organizer' %}bg-dc-gold hover:bg-yellow-400 text-black shadow-[0_0_20px_rgba(255,215,0,0.3)]{% elif detail_cta_state == 'register' %}bg-green-500 hover:bg-green-400 text-black shadow-[0_0_25px_rgba(34,197,94,0.4)]{% elif tournament_phase == 'registration_closed' and detail_cta_state == 'hub' %}bg-yellow-500 hover:bg-yellow-400 text-black shadow-[0_0_25px_rgba(234,179,8,0.4)]{% elif detail_cta_state == 'hub' %}bg-[linear-gradient(110deg,rgba(165,243,252,0.95)_0%,rgba(125,211,252,0.9)_45%,rgba(96,165,250,0.9)_100%)] bg-[length:200%_100%] bg-[position:0%_50%] hover:bg-[position:100%_50%] border border-cyan-100/70 text-slate-900 shadow-[0_0_34px_rgba(125,211,252,0.48)] hover:shadow-[0_0_42px_rgba(125,211,252,0.72)] hover:scale-[1.04]{% elif detail_cta_state == 'lobby_open' %}theme-bg text-black theme-glow{% else %}bg-white/10 hover:bg-white/20 text-white{% endif %}"
                                 {% if detail_cta_primary.disabled %}aria-disabled="true"{% endif %}
                             >
                                 {% if not detail_cta_primary.disabled and detail_cta_state == 'register' or detail_cta_state == 'lobby_open' %}
@@ -2453,6 +2468,10 @@ document.addEventListener('alpine:init', function () {
             widgetSaveSuccess: '',
             widgetSaveInFlight: false,
             widgetSaveFlashTimer: null,
+            fanPredictionVoteUrl: '',
+            fanPredictionBusyQuestion: '',
+            viewerCanVote: {% if user.is_authenticated %}true{% else %}false{% endif %},
+            viewerLoginUrl: '/accounts/login/?next={{ request.path|urlencode }}',
             canManageWidgets: {% if can_manage_detail_widgets %}true{% else %}false{% endif %},
             phase: '{% if tournament_phase == "registration_open" %}registration{% elif is_live_phase %}live{% elif tournament_phase == "registration_closed" %}checkin{% elif is_completed_phase %}completed{% elif is_cancelled %}cancelled{% else %}upcoming{% endif %}',
             timeFormat: '{{ detail_time_format|escapejs }}',
@@ -2460,18 +2479,21 @@ document.addEventListener('alpine:init', function () {
             tData: {
                 ticker: {
                     registration: [
-                        'User QuantumPulse just registered.',
-                        'Slots filled: {{ slots_filled }} / {{ slots_total }}.',
-                        '{% if tournament.registration_end %}Registration closes {{ tournament.registration_end|date:detail_ticker_datetime_format|escapejs }}.{% else %}Registration window is currently open.{% endif %}'
+                        'Registration progress: {{ slots_filled }} of {{ slots_total }} slots are filled.',
+                        '{% if tournament.registration_end %}Registration closes {{ tournament.registration_end|date:detail_ticker_datetime_format|escapejs }}.{% elif tournament.tournament_start %}Tournament starts {{ tournament.tournament_start|date:detail_ticker_datetime_format|escapejs }}.{% else %}Registration window is open and runtime sync is active.{% endif %}',
+                        '{% if tournament.check_in_minutes_before %}Check-in opens {{ tournament.check_in_minutes_before }} minutes before each scheduled match.{% else %}Check-in timing follows organizer runtime policy.{% endif %}',
+                        '{% if announcements %}Latest announcement: {{ announcements.0.title|escapejs }}.{% else %}No new announcements at this moment.{% endif %}'
                     ],
                     live: [
-                        '{% if user_next_match and user_next_match.scheduled_time %}Upcoming match: {{ user_next_match.stage_label|default:"Match"|escapejs }} at {{ user_next_match.scheduled_time|date:detail_time_only_format|escapejs }}.{% else %}Upcoming match windows are being synchronized.{% endif %}',
-                        'Recent map result verified: 2-1 final.',
-                        'Live bracket execution and score sync active.'
+                        '{% if is_live_phase %}Live matches currently running: {{ live_match_count|default:0 }}.{% else %}Live execution feed activates when the tournament starts.{% endif %}',
+                        '{% if user_next_match and user_next_match.scheduled_time %}Your next matchup: {{ user_next_match.stage_label|default:"Match"|escapejs }} at {{ user_next_match.scheduled_time|date:detail_ticker_datetime_format|escapejs }}.{% elif matches and matches.0.starts_at_display %}Next scheduled fixture: {{ matches.0.starts_at_display|escapejs }}.{% else %}Next fixture timing is being synchronized.{% endif %}',
+                        '{% if show_standings and standings_primary %}Current standings leader: {{ standings_primary.0.name|default:"TBD"|escapejs }}.{% else %}Standings will appear after official result sync.{% endif %}',
+                        '{% if announcements %}Control alert: {{ announcements.0.title|escapejs }}.{% else %}No active operations alerts right now.{% endif %}'
                     ],
                     fallback: [
                         'Tournament runtime telemetry online.',
-                        'Announcements and standings sync automatically.'
+                        '{% if tournament.tournament_start %}Tournament start target: {{ tournament.tournament_start|date:detail_ticker_datetime_format|escapejs }}.{% else %}Tournament start timing will be published soon.{% endif %}',
+                        'Announcements and standings synchronize automatically.'
                     ]
                 },
                 sponsors: [],
@@ -2483,16 +2505,27 @@ document.addEventListener('alpine:init', function () {
                 },
                 fanPoll: {
                     enabled: false,
-                    question: 'Who will win?',
-                    options: [
-                        { name: 'Option A', percent: 50, color: 'from-cyan-400/80 to-cyan-600/80' },
-                        { name: 'Option B', percent: 50, color: 'from-fuchsia-400/80 to-fuchsia-600/80' }
+                    theme: 'cyber',
+                    activeQuestionId: '',
+                    questions: [
+                        {
+                            id: 'poll-1',
+                            question: 'Who will win?',
+                            options: [
+                                { id: 'option-a', name: 'Option A', votes: 0, percent: 0, color: 'from-cyan-400/80 to-cyan-600/80' },
+                                { id: 'option-b', name: 'Option B', votes: 0, percent: 0, color: 'from-fuchsia-400/80 to-fuchsia-600/80' }
+                            ],
+                            total_votes: 0,
+                            user_choice_id: '',
+                            has_user_voted: false
+                        }
                     ]
                 },
                 socials: {
                     discord: '{{ tournament.social_discord|default_if_none:""|escapejs }}',
                     facebook: '{{ tournament.social_facebook|default_if_none:""|escapejs }}',
-                    youtube: '{{ tournament.social_youtube|default_if_none:""|escapejs }}'
+                    youtube: '{{ tournament.social_youtube|default_if_none:""|escapejs }}',
+                    instagram: '{{ tournament.social_instagram|default_if_none:""|escapejs }}'
                 },
                 bottomBoard: {
                     title: '',
@@ -2505,7 +2538,9 @@ document.addEventListener('alpine:init', function () {
                 var self = this;
                 self.applyHashTab();
                 self.widgetSaveUrl = self.$root.getAttribute('data-widget-save-url') || '';
+                self.fanPredictionVoteUrl = self.$root.getAttribute('data-fan-prediction-vote-url') || '';
                 self.hydrateWidgetData();
+                self.applyFocusTargetFromQuery();
 
                 window.addEventListener('hashchange', function () {
                     self.applyHashTab();
@@ -3016,6 +3051,52 @@ document.addEventListener('alpine:init', function () {
                 if (hash && this.tabExists(hash)) {
                     this.activeTab = hash;
                 }
+            },
+
+            applyFocusTargetFromQuery: function () {
+                if (typeof window.URLSearchParams !== 'function') {
+                    return;
+                }
+
+                var params = new window.URLSearchParams(window.location.search || '');
+                var focusTarget = String(params.get('focus') || '').trim().toLowerCase();
+                var allowedTargets = {
+                    'widget-editor': true,
+                    'fan-predictions': true,
+                    'page-layout': true
+                };
+
+                if (!allowedTargets[focusTarget]) {
+                    return;
+                }
+
+                if (this.tabExists('overview')) {
+                    this.activeTab = 'overview';
+                }
+
+                var self = this;
+                window.setTimeout(function () {
+                    self.$nextTick(function () {
+                        self.scrollToDetailAnchor(focusTarget);
+                        if (window.lucide && typeof window.lucide.createIcons === 'function') {
+                            window.lucide.createIcons();
+                        }
+                    });
+                }, 160);
+            },
+
+            scrollToDetailAnchor: function (anchorId) {
+                var normalized = String(anchorId || '').trim().replace(/[^a-z0-9\-_]/gi, '');
+                if (!normalized) {
+                    return;
+                }
+
+                var target = this.$root.querySelector('#' + normalized);
+                if (!target || typeof target.scrollIntoView !== 'function') {
+                    return;
+                }
+
+                target.scrollIntoView({ behavior: 'smooth', block: 'start' });
             },
 
             tabExists: function (tab) {

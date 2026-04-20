@@ -14,6 +14,7 @@ import json
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.serializers.json import DjangoJSONEncoder
 from django.http import Http404
+from django.urls import reverse
 from django.views.generic import TemplateView
 
 from apps.tournaments.api.toc.settings_service import TOCSettingsService
@@ -167,6 +168,8 @@ class TOCView(LoginRequiredMixin, TemplateView):
         base_tabs.extend([
             {'id': 'rules', 'label': 'Rules & Info', 'icon': 'book-open', 'group': 'Platform'},
             {'id': 'settings', 'label': 'Settings', 'icon': 'settings', 'group': 'Platform'},
+            {'id': 'public-hub-config', 'label': 'Public Hub Config', 'icon': 'monitor-smartphone', 'group': 'Engagement'},
+            {'id': 'fan-predictions', 'label': 'Fan Predictions', 'icon': 'pie-chart', 'group': 'Engagement'},
         ])
 
         ctx['toc_tabs'] = base_tabs
@@ -184,6 +187,13 @@ class TOCView(LoginRequiredMixin, TemplateView):
         except Exception:
             initial_settings = {}
         ctx['toc_initial_settings_json'] = json.dumps(initial_settings, cls=DjangoJSONEncoder)
+
+        config = t.config if isinstance(t.config, dict) else {}
+        detail_widgets = config.get('detail_widgets') if isinstance(config.get('detail_widgets'), dict) else {}
+        ctx['toc_initial_detail_widgets_json'] = json.dumps(detail_widgets, cls=DjangoJSONEncoder)
+        ctx['toc_detail_page_url'] = reverse('tournaments:detail', kwargs={'slug': t.slug})
+        ctx['toc_tournament_hub_url'] = reverse('tournaments:tournament_hub', kwargs={'slug': t.slug})
+        ctx['toc_detail_widgets_save_url'] = reverse('tournaments:detail_widgets_save', kwargs={'slug': t.slug})
 
         return ctx
 

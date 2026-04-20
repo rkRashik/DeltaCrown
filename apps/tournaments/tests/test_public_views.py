@@ -392,3 +392,98 @@ class TestTournamentDetailWidgets:
         ok_body = ok_response.json()
         assert ok_body.get('success') is True
         assert ok_body['detail_widgets']['sponsor']['title'] == 'Secure Save Sponsor'
+
+    def test_official_tournament_uses_vanguard_default_socials_when_missing(self, client, published_tournament):
+        published_tournament.is_official = True
+        published_tournament.social_discord = ''
+        published_tournament.social_facebook = ''
+        published_tournament.social_youtube = ''
+        published_tournament.social_instagram = ''
+        published_tournament.save(
+            update_fields=['is_official', 'social_discord', 'social_facebook', 'social_youtube', 'social_instagram']
+        )
+
+        response = client.get(reverse('tournaments:detail', kwargs={'slug': published_tournament.slug}))
+
+        assert response.status_code == 200
+        socials = response.context['detail_widgets']['socials']
+        assert socials['enabled'] is True
+        assert socials['discord'] == 'https://discord.gg/UaHRC8Cd'
+        assert socials['facebook'] == 'https://www.facebook.com/DeltaCrownGG'
+        assert socials['youtube'] == 'https://www.youtube.com/@DeltaCrownGG'
+        assert socials['instagram'] == 'https://instagram.com/deltacrowngg'
+
+    def test_authenticated_user_can_vote_on_fan_prediction_question(self, client, published_tournament):
+        voter = User.objects.create_user(
+            username='poll-voter',
+            email='poll-voter@example.com',
+            password='testpass123',
+        )
+        client.force_login(voter)
+
+        published_tournament.enable_fan_voting = True
+        published_tournament.config = {
+            'detail_widgets': {
+                'poll': {
+                    'enabled': True,
+                    'active': True,
+                    'questions': [
+                        {
+                            'id': 'grand-final-winner',
+                            'question': 'Who wins the grand final?',
+                            'options': [
+                                {'id': 'alpha', 'name': 'Team Alpha'},
+                                {'id': 'bravo', 'name': 'Team Bravo'},
+                            ],
+                        }
+                    ],
+                }
+            }
+        }
+        published_tournament.save(update_fields=['enable_fan_voting', 'config'])
+
+        vote_url = reverse('tournaments:fan_prediction_vote', kwargs={'slug': published_tournament.slug})
+
+        first_response = client.post(
+            vote_url,
+            data=json.dumps({'poll_id': 'grand-final-winner', 'option_id': 'alpha'}),
+            content_type='application/json',
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+        )
+        assert first_response.status_code == 200
+        first_body = first_response.json()
+        assert first_body.get('success') is True
+        assert first_body['poll']['id'] == 'grand-final-winner'
+        assert first_body['poll']['user_choice_id'] == 'alpha'
+
+        alpha_option = next(opt for opt in first_body['poll']['options'] if opt['id'] == 'alpha')
+        bravo_option = next(opt for opt in first_body['poll']['options'] if opt['id'] == 'bravo')
+        assert alpha_option['votes'] == 1
+        assert bravo_option['votes'] == 0
+
+        second_response = client.post(
+            vote_url,
+            data=json.dumps({'poll_id': 'grand-final-winner', 'option_id': 'bravo'}),
+            content_type='application/json',
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+        )
+        assert second_response.status_code == 200
+        second_body = second_response.json()
+        assert second_body.get('success') is True
+        assert second_body['poll']['user_choice_id'] == 'bravo'
+
+        alpha_option_after = next(opt for opt in second_body['poll']['options'] if opt['id'] == 'alpha')
+        bravo_option_after = next(opt for opt in second_body['poll']['options'] if opt['id'] == 'bravo')
+        assert alpha_option_after['votes'] == 0
+        assert bravo_option_after['votes'] == 1
+
+    def test_fan_prediction_vote_requires_login(self, client, published_tournament):
+        vote_url = reverse('tournaments:fan_prediction_vote', kwargs={'slug': published_tournament.slug})
+        response = client.post(
+            vote_url,
+            data=json.dumps({'poll_id': 'poll-1', 'option_id': 'option-a'}),
+            content_type='application/json',
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+        )
+
+        assert response.status_code == 302

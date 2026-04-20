@@ -7,6 +7,8 @@ Extracted from main.py during Phase 3 restructure.
 """
 
 import json
+import re
+from collections import defaultdict
 
 from django.views.generic import DetailView
 from django.shortcuts import get_object_or_404
@@ -18,10 +20,12 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.core.cache import cache
+from django.db import DatabaseError
+from django.db.models import Count
 from datetime import timedelta
 from typing import Dict, Any, List
 
-from apps.tournaments.models import Tournament, TournamentAnnouncement
+from apps.tournaments.models import Tournament, TournamentAnnouncement, TournamentFanPredictionVote
 from apps.tournaments.services.registration_service import RegistrationService
 from apps.games.services import game_service
 
@@ -231,10 +235,11 @@ class TournamentDetailView(DetailView):
             context['coin_policy'] = None
 
         # Social links presence flag (avoids empty card rendering)
+        resolved_vanguard_socials = _resolve_default_vanguard_socials(tournament)
         context['has_social_links'] = any([
-            tournament.social_discord, tournament.social_twitter,
-            tournament.social_instagram, tournament.social_youtube,
-            tournament.social_facebook, tournament.social_tiktok,
+            resolved_vanguard_socials.get('discord'), tournament.social_twitter,
+            resolved_vanguard_socials.get('instagram'), resolved_vanguard_socials.get('youtube'),
+            resolved_vanguard_socials.get('facebook'), tournament.social_tiktok,
             tournament.social_website, tournament.contact_email,
         ])
 
@@ -279,10 +284,19 @@ class TournamentDetailView(DetailView):
             tournament,
             game_spec=game_spec,
         )
+        detail_widgets = _with_poll_vote_snapshot(
+            detail_widgets,
+            tournament=tournament,
+            viewer=user,
+        )
         context['detail_widgets'] = detail_widgets
         context['can_manage_detail_widgets'] = _viewer_can_manage_tournament(tournament, user)
         context['detail_widgets_save_url'] = reverse(
             'tournaments:detail_widgets_save',
+            kwargs={'slug': tournament.slug},
+        )
+        context['fan_prediction_vote_url'] = reverse(
+            'tournaments:fan_prediction_vote',
             kwargs={'slug': tournament.slug},
         )
 
@@ -1579,6 +1593,313 @@ _DETAIL_STATUS_LABELS = {
 MATCH_LOBBY_OPEN_LEAD_MINUTES = 30
 MATCH_LOBBY_CLOSE_GRACE_MINUTES = 15
 DETAIL_WIDGETS_CONFIG_KEY = 'detail_widgets'
+MAX_FAN_POLL_QUESTIONS = 8
+MAX_FAN_POLL_OPTIONS = 6
+FAN_POLL_THEME_IDS = {'cyber', 'tactical', 'glass', 'sport', 'native'}
+OFFICIAL_VANGUARD_SOCIAL_DEFAULTS = {
+    'facebook': 'https://www.facebook.com/DeltaCrownGG',
+    'discord': 'https://discord.gg/UaHRC8Cd',
+    'youtube': 'https://www.youtube.com/@DeltaCrownGG',
+    'instagram': 'https://instagram.com/deltacrowngg',
+}
+
+
+def _slug_token(value, *, fallback='token', max_length=56):
+    token = re.sub(r'[^a-z0-9]+', '-', str(value or '').strip().lower()).strip('-')
+    if not token:
+        token = str(fallback or 'token').strip().lower() or 'token'
+    return token[:max_length]
+
+
+def _normalize_poll_theme(value, *, fallback='cyber'):
+    fallback_value = str(fallback or 'cyber').strip().lower() or 'cyber'
+    if fallback_value not in FAN_POLL_THEME_IDS:
+        fallback_value = 'cyber'
+
+    theme = str(value or '').strip().lower()
+    if theme in FAN_POLL_THEME_IDS:
+        return theme
+
+    return fallback_value
+
+
+def _resolve_default_vanguard_socials(tournament):
+    resolved = {
+        'discord': str(getattr(tournament, 'social_discord', '') or '').strip(),
+        'facebook': str(getattr(tournament, 'social_facebook', '') or '').strip(),
+        'youtube': str(getattr(tournament, 'social_youtube', '') or '').strip(),
+        'instagram': str(getattr(tournament, 'social_instagram', '') or '').strip(),
+    }
+
+    if getattr(tournament, 'is_official', False):
+        for key, default_value in OFFICIAL_VANGUARD_SOCIAL_DEFAULTS.items():
+            if not resolved.get(key):
+                resolved[key] = default_value
+
+    return resolved
+
+
+def _normalize_poll_questions(poll_source, *, fallback_questions):
+    normalized_questions = []
+    question_ids = set()
+
+    raw_questions = poll_source.get('questions') if isinstance(poll_source.get('questions'), list) else []
+    if not raw_questions:
+        raw_questions = [{
+            'id': poll_source.get('id', 'poll-1'),
+            'question': poll_source.get('question'),
+            'options': poll_source.get('options'),
+        }]
+
+    for index, question_source in enumerate(raw_questions[:MAX_FAN_POLL_QUESTIONS]):
+        if not isinstance(question_source, dict):
+            continue
+
+        fallback_question = fallback_questions[index] if index < len(fallback_questions) else {
+            'id': f'poll-{index + 1}',
+            'question': f'Prediction {index + 1}',
+            'options': [{'id': 'option-a', 'name': 'Option A'}, {'id': 'option-b', 'name': 'Option B'}],
+        }
+
+        question_text = _widget_text(
+            question_source.get('question', question_source.get('title')),
+            fallback=fallback_question.get('question', f'Prediction {index + 1}'),
+            max_length=180,
+        )
+        question_id = _slug_token(
+            question_source.get('id') or question_text or f'poll-{index + 1}',
+            fallback=f'poll-{index + 1}',
+        )
+        if question_id in question_ids:
+            suffix = 2
+            while f'{question_id}-{suffix}' in question_ids:
+                suffix += 1
+            question_id = f'{question_id}-{suffix}'
+        question_ids.add(question_id)
+
+        raw_options = question_source.get('options') if isinstance(question_source.get('options'), list) else []
+        if not raw_options and index == 0 and isinstance(poll_source.get('options'), list):
+            raw_options = poll_source.get('options')
+        if not raw_options and isinstance(fallback_question.get('options'), list):
+            raw_options = fallback_question.get('options')
+
+        normalized_options = []
+        option_ids = set()
+        for option_index, option_source in enumerate(raw_options[:MAX_FAN_POLL_OPTIONS]):
+            source = option_source if isinstance(option_source, dict) else {'name': option_source}
+            option_name = _widget_text(
+                source.get('name'),
+                fallback=f'Option {chr(65 + option_index)}',
+                max_length=80,
+            )
+            option_id = _slug_token(
+                source.get('id') or option_name or f'option-{option_index + 1}',
+                fallback=f'option-{option_index + 1}',
+            )
+            if option_id in option_ids:
+                suffix = 2
+                while f'{option_id}-{suffix}' in option_ids:
+                    suffix += 1
+                option_id = f'{option_id}-{suffix}'
+            option_ids.add(option_id)
+
+            normalized_options.append({
+                'id': option_id,
+                'name': option_name,
+            })
+
+        while len(normalized_options) < 2:
+            option_index = len(normalized_options)
+            option_name = f'Option {chr(65 + option_index)}'
+            option_id = _slug_token(option_name, fallback=f'option-{option_index + 1}')
+            if option_id in option_ids:
+                option_id = f'{option_id}-{option_index + 1}'
+            option_ids.add(option_id)
+            normalized_options.append({
+                'id': option_id,
+                'name': option_name,
+            })
+
+        normalized_questions.append({
+            'id': question_id,
+            'question': question_text,
+            'options': normalized_options,
+        })
+
+    if not normalized_questions:
+        fallback = fallback_questions[0] if fallback_questions else {
+            'id': 'poll-1',
+            'question': 'Who will win?',
+            'options': [{'id': 'option-a', 'name': 'Option A'}, {'id': 'option-b', 'name': 'Option B'}],
+        }
+        fallback_options = fallback.get('options') if isinstance(fallback.get('options'), list) else []
+        first_option = fallback_options[0] if len(fallback_options) > 0 and isinstance(fallback_options[0], dict) else {}
+        second_option = fallback_options[1] if len(fallback_options) > 1 and isinstance(fallback_options[1], dict) else {}
+        normalized_questions = [{
+            'id': _slug_token(fallback.get('id') or 'poll-1', fallback='poll-1'),
+            'question': _widget_text(fallback.get('question'), fallback='Who will win?', max_length=180),
+            'options': [
+                {
+                    'id': _slug_token(
+                        first_option.get('id', 'option-a'),
+                        fallback='option-a',
+                    ),
+                    'name': _widget_text(
+                        first_option.get('name', 'Option A'),
+                        fallback='Option A',
+                        max_length=80,
+                    ),
+                },
+                {
+                    'id': _slug_token(
+                        second_option.get('id', 'option-b'),
+                        fallback='option-b',
+                    ),
+                    'name': _widget_text(
+                        second_option.get('name', 'Option B'),
+                        fallback='Option B',
+                        max_length=80,
+                    ),
+                },
+            ],
+        }]
+
+    return normalized_questions
+
+
+def _with_poll_vote_snapshot(detail_widgets, *, tournament, viewer):
+    if not isinstance(detail_widgets, dict):
+        return detail_widgets
+
+    poll_widget = detail_widgets.get('poll')
+    if not isinstance(poll_widget, dict):
+        return detail_widgets
+
+    questions = poll_widget.get('questions') if isinstance(poll_widget.get('questions'), list) else []
+    poll_ids = [
+        str(question.get('id') or '').strip()
+        for question in questions
+        if isinstance(question, dict) and str(question.get('id') or '').strip()
+    ]
+    if not poll_ids:
+        return detail_widgets
+
+    option_counts = defaultdict(dict)
+    viewer_votes = {}
+    try:
+        aggregate_rows = (
+            TournamentFanPredictionVote.objects.filter(
+                tournament=tournament,
+                poll_id__in=poll_ids,
+            )
+            .values('poll_id', 'option_id')
+            .annotate(total=Count('id'))
+        )
+        for row in aggregate_rows:
+            poll_id = str(row.get('poll_id') or '').strip()
+            option_id = str(row.get('option_id') or '').strip()
+            if not poll_id or not option_id:
+                continue
+            option_counts[poll_id][option_id] = int(row.get('total') or 0)
+
+        if viewer and getattr(viewer, 'is_authenticated', False):
+            for row in TournamentFanPredictionVote.objects.filter(
+                tournament=tournament,
+                user=viewer,
+                poll_id__in=poll_ids,
+            ).values('poll_id', 'option_id'):
+                poll_id = str(row.get('poll_id') or '').strip()
+                option_id = str(row.get('option_id') or '').strip()
+                if poll_id and option_id:
+                    viewer_votes[poll_id] = option_id
+    except DatabaseError:
+        # Keep the page renderable if schema and code are briefly out of sync.
+        return detail_widgets
+
+    enriched_questions = []
+    for question in questions:
+        if not isinstance(question, dict):
+            continue
+
+        poll_id = str(question.get('id') or '').strip()
+        option_map = option_counts.get(poll_id, {})
+        raw_options = question.get('options') if isinstance(question.get('options'), list) else []
+        total_votes = sum(int(option_map.get(str(option.get('id') or '').strip(), 0)) for option in raw_options if isinstance(option, dict))
+
+        normalized_options = []
+        accumulated_percent = 0
+        for option_index, option in enumerate(raw_options):
+            if not isinstance(option, dict):
+                continue
+            option_id = str(option.get('id') or '').strip()
+            votes = int(option_map.get(option_id, 0))
+            if total_votes > 0:
+                if option_index == len(raw_options) - 1:
+                    percent = max(0, 100 - accumulated_percent)
+                else:
+                    percent = int(round((votes / total_votes) * 100))
+                    percent = max(0, min(100, percent))
+                    accumulated_percent += percent
+            else:
+                percent = 0
+
+            normalized_options.append({
+                'id': option_id,
+                'name': _widget_text(option.get('name'), fallback='Option', max_length=80),
+                'votes': votes,
+                'percent': percent,
+            })
+
+        user_choice_id = viewer_votes.get(poll_id, '')
+        enriched_questions.append({
+            'id': poll_id,
+            'question': _widget_text(question.get('question'), fallback='Who will win?', max_length=180),
+            'options': normalized_options,
+            'total_votes': total_votes,
+            'user_choice_id': user_choice_id,
+            'has_user_voted': bool(user_choice_id),
+        })
+
+    normalized_poll = dict(poll_widget)
+    normalized_poll['theme'] = _normalize_poll_theme(
+        normalized_poll.get('theme'),
+        fallback='cyber',
+    )
+    normalized_poll['questions'] = enriched_questions
+    if enriched_questions:
+        primary = enriched_questions[0]
+        normalized_poll['question'] = primary.get('question', 'Who will win?')
+        preview_options = []
+        for option in primary.get('options', [])[:2]:
+            preview_options.append({
+                'name': option.get('name', 'Option'),
+                'percent': int(option.get('percent', 0) or 0),
+            })
+        while len(preview_options) < 2:
+            preview_options.append({
+                'name': f'Option {chr(65 + len(preview_options))}',
+                'percent': 0,
+            })
+        normalized_poll['options'] = preview_options
+
+    merged = dict(detail_widgets)
+    merged['poll'] = normalized_poll
+    return merged
+
+
+def _find_poll_question(poll_widget, poll_id):
+    questions = poll_widget.get('questions') if isinstance(poll_widget.get('questions'), list) else []
+    target_id = str(poll_id or '').strip()
+    if not target_id:
+        return None
+
+    for question in questions:
+        if not isinstance(question, dict):
+            continue
+        if str(question.get('id') or '').strip() == target_id:
+            return question
+
+    return None
 
 
 def _normalize_time_format_preference(value):
@@ -1647,12 +1968,20 @@ def _widget_int(value, *, fallback=0, minimum=None, maximum=None):
 
 
 def _build_default_detail_widgets(tournament, *, game_spec=None):
-    has_social_links = bool(
-        str(getattr(tournament, 'social_discord', '') or '').strip()
-        or str(getattr(tournament, 'social_facebook', '') or '').strip()
-        or str(getattr(tournament, 'social_youtube', '') or '').strip()
+    resolved_socials = _resolve_default_vanguard_socials(tournament)
+    has_social_links = any(
+        str(value or '').strip() for value in resolved_socials.values()
     )
     fan_voting_enabled = bool(getattr(tournament, 'enable_fan_voting', False))
+
+    default_poll_questions = [{
+        'id': 'poll-1',
+        'question': 'Who will win?',
+        'options': [
+            {'id': 'option-a', 'name': 'Option A'},
+            {'id': 'option-b', 'name': 'Option B'},
+        ],
+    }]
 
     return {
         'sponsor': {
@@ -1675,17 +2004,20 @@ def _build_default_detail_widgets(tournament, *, game_spec=None):
         'poll': {
             'enabled': fan_voting_enabled,
             'active': fan_voting_enabled,
-            'question': 'Who will win?',
+            'theme': 'cyber',
+            'question': default_poll_questions[0]['question'],
             'options': [
                 {'name': 'Option A', 'percent': 50},
                 {'name': 'Option B', 'percent': 50},
             ],
+            'questions': default_poll_questions,
         },
         'socials': {
             'enabled': has_social_links,
-            'discord': str(getattr(tournament, 'social_discord', '') or ''),
-            'facebook': str(getattr(tournament, 'social_facebook', '') or ''),
-            'youtube': str(getattr(tournament, 'social_youtube', '') or ''),
+            'discord': resolved_socials['discord'],
+            'facebook': resolved_socials['facebook'],
+            'youtube': resolved_socials['youtube'],
+            'instagram': resolved_socials['instagram'],
         },
         'bottom_board': {
             'enabled': False,
@@ -1782,33 +2114,59 @@ def _normalize_detail_widgets_config(raw_widgets, *, tournament, game_spec=None)
     }
 
     poll_source = payload.get('poll') if isinstance(payload.get('poll'), dict) else {}
-    raw_poll_options = poll_source.get('options') if isinstance(poll_source.get('options'), list) else []
-    poll_options = []
-    for idx in range(2):
-        source_option = raw_poll_options[idx] if idx < len(raw_poll_options) and isinstance(raw_poll_options[idx], dict) else {}
-        default_option = defaults['poll']['options'][idx]
-        poll_options.append({
-            'name': _widget_text(
-                source_option.get('name'),
-                fallback=default_option['name'],
-                max_length=80,
-            ),
-            'percent': _widget_int(
-                source_option.get('percent'),
-                fallback=default_option['percent'],
-                minimum=0,
-                maximum=100,
-            ),
-        })
+    poll_questions = _normalize_poll_questions(
+        poll_source,
+        fallback_questions=defaults['poll']['questions'],
+    )
 
-    poll_total = poll_options[0]['percent'] + poll_options[1]['percent']
-    if poll_total <= 0:
-        poll_options[0]['percent'] = 50
-        poll_options[1]['percent'] = 50
-    elif poll_total != 100:
-        option_a = int(round((poll_options[0]['percent'] / poll_total) * 100))
-        poll_options[0]['percent'] = option_a
-        poll_options[1]['percent'] = 100 - option_a
+    raw_poll_options = poll_source.get('options') if isinstance(poll_source.get('options'), list) else []
+    poll_preview_options = []
+    if raw_poll_options:
+        for idx in range(2):
+            source_option = raw_poll_options[idx] if idx < len(raw_poll_options) and isinstance(raw_poll_options[idx], dict) else {}
+            default_option = defaults['poll']['options'][idx]
+            poll_preview_options.append({
+                'name': _widget_text(
+                    source_option.get('name'),
+                    fallback=default_option['name'],
+                    max_length=80,
+                ),
+                'percent': _widget_int(
+                    source_option.get('percent'),
+                    fallback=default_option['percent'],
+                    minimum=0,
+                    maximum=100,
+                ),
+            })
+
+        poll_total = poll_preview_options[0]['percent'] + poll_preview_options[1]['percent']
+        if poll_total <= 0:
+            poll_preview_options[0]['percent'] = 50
+            poll_preview_options[1]['percent'] = 50
+        elif poll_total != 100:
+            option_a = int(round((poll_preview_options[0]['percent'] / poll_total) * 100))
+            poll_preview_options[0]['percent'] = option_a
+            poll_preview_options[1]['percent'] = 100 - option_a
+    else:
+        primary_options = poll_questions[0]['options'] if poll_questions else defaults['poll']['questions'][0]['options']
+        poll_preview_options = [
+            {
+                'name': _widget_text(
+                    (primary_options[0] if len(primary_options) > 0 else {}).get('name'),
+                    fallback='Option A',
+                    max_length=80,
+                ),
+                'percent': 50,
+            },
+            {
+                'name': _widget_text(
+                    (primary_options[1] if len(primary_options) > 1 else {}).get('name'),
+                    fallback='Option B',
+                    max_length=80,
+                ),
+                'percent': 50,
+            },
+        ]
 
     poll = {
         'enabled': _widget_bool(
@@ -1819,12 +2177,17 @@ def _normalize_detail_widgets_config(raw_widgets, *, tournament, game_spec=None)
             poll_source.get('active', poll_source.get('poll_enabled')),
             fallback=defaults['poll']['active'],
         ),
+        'theme': _normalize_poll_theme(
+            poll_source.get('theme'),
+            fallback=defaults['poll'].get('theme', 'cyber'),
+        ),
         'question': _widget_text(
-            poll_source.get('question'),
+            poll_source.get('question', (poll_questions[0] if poll_questions else {}).get('question')),
             fallback=defaults['poll']['question'],
             max_length=180,
         ),
-        'options': poll_options,
+        'options': poll_preview_options,
+        'questions': poll_questions,
     }
 
     socials_source = payload.get('socials') if isinstance(payload.get('socials'), dict) else {}
@@ -1846,6 +2209,11 @@ def _normalize_detail_widgets_config(raw_widgets, *, tournament, game_spec=None)
         'youtube': _widget_url(
             socials_source.get('youtube'),
             fallback=defaults['socials']['youtube'],
+            max_length=500,
+        ),
+        'instagram': _widget_url(
+            socials_source.get('instagram'),
+            fallback=defaults['socials']['instagram'],
             max_length=500,
         ),
     }
@@ -2527,6 +2895,76 @@ def participant_checkin(request, slug):
 
 @login_required
 @require_POST
+def tournament_fan_prediction_vote(request, slug):
+    """Persist a viewer fan prediction for a poll question."""
+    tournament = get_object_or_404(Tournament.objects.only('id', 'slug', 'config'), slug=slug)
+
+    try:
+        body = request.body.decode('utf-8') if request.body else '{}'
+        payload = json.loads(body or '{}')
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        return JsonResponse({'success': False, 'error': 'Invalid JSON payload.'}, status=400)
+
+    if not isinstance(payload, dict):
+        return JsonResponse({'success': False, 'error': 'Request body must be a JSON object.'}, status=400)
+
+    poll_id = _widget_text(payload.get('poll_id'), max_length=64)
+    option_id = _widget_text(payload.get('option_id'), max_length=64)
+    if not poll_id or not option_id:
+        return JsonResponse({'success': False, 'error': 'poll_id and option_id are required.'}, status=400)
+
+    detail_widgets = _get_tournament_detail_widgets(tournament)
+    poll_widget = detail_widgets.get('poll') if isinstance(detail_widgets.get('poll'), dict) else {}
+
+    if not _widget_bool(poll_widget.get('enabled'), fallback=False) or not _widget_bool(poll_widget.get('active'), fallback=False):
+        return JsonResponse({'success': False, 'error': 'Fan predictions are currently disabled.'}, status=400)
+
+    question = _find_poll_question(poll_widget, poll_id)
+    if not question:
+        return JsonResponse({'success': False, 'error': 'Poll question not found.'}, status=404)
+
+    option_ids = {
+        str(option.get('id') or '').strip()
+        for option in (question.get('options') if isinstance(question.get('options'), list) else [])
+        if isinstance(option, dict)
+    }
+    if option_id not in option_ids:
+        return JsonResponse({'success': False, 'error': 'Poll option is invalid.'}, status=400)
+
+    try:
+        TournamentFanPredictionVote.objects.update_or_create(
+            tournament=tournament,
+            user=request.user,
+            poll_id=poll_id,
+            defaults={'option_id': option_id},
+        )
+
+        enriched_widgets = _with_poll_vote_snapshot(
+            detail_widgets,
+            tournament=tournament,
+            viewer=request.user,
+        )
+    except DatabaseError:
+        return JsonResponse(
+            {
+                'success': False,
+                'error': 'Fan predictions are temporarily unavailable. Please try again shortly.',
+            },
+            status=503,
+        )
+    enriched_poll = enriched_widgets.get('poll', {})
+    enriched_question = _find_poll_question(enriched_poll, poll_id)
+
+    return JsonResponse({
+        'success': True,
+        'message': 'Prediction saved.',
+        'poll': enriched_question,
+        'poll_widget': enriched_poll,
+    })
+
+
+@login_required
+@require_POST
 def tournament_detail_widgets_save(request, slug):
     """Persist organizer-managed detail-page widget configuration."""
     tournament = get_object_or_404(Tournament.objects.select_related('game', 'organizer'), slug=slug)
@@ -2561,6 +2999,12 @@ def tournament_detail_widgets_save(request, slug):
     tournament.config = config
     tournament.save(update_fields=['config'])
 
+    response_widgets = _with_poll_vote_snapshot(
+        normalized_widgets,
+        tournament=tournament,
+        viewer=request.user,
+    )
+
     # Keep detail polling cache fresh for organizer/public viewers.
     cache.delete(f'detail_mobile_state_v2_{tournament.id}_anon')
     cache.delete(f'detail_mobile_state_v2_{tournament.id}_{request.user.id}')
@@ -2568,5 +3012,5 @@ def tournament_detail_widgets_save(request, slug):
     return JsonResponse({
         'success': True,
         'message': 'Detail widgets saved.',
-        'detail_widgets': normalized_widgets,
+        'detail_widgets': response_widgets,
     })

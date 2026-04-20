@@ -1,3 +1,6 @@
+<div id="page-layout" class="sr-only" aria-hidden="true"></div>
+<div id="widget-editor" class="sr-only" aria-hidden="true"></div>
+
 <div x-show="canManageWidgets && (widgetSaveError || widgetSaveSuccess)" class="rounded-xl border px-3 py-2 text-xs" :class="widgetSaveError ? 'border-red-500/40 bg-red-500/10 text-red-200' : 'border-emerald-500/40 bg-emerald-500/10 text-emerald-200'" x-cloak>
     <p x-show="widgetSaveError" x-text="widgetSaveError"></p>
     <p x-show="!widgetSaveError" x-text="widgetSaveSuccess"></p>
@@ -103,44 +106,145 @@
     </div>
 </section>
 
-<section x-show="shouldShowFanPoll()" class="glass-panel p-5 rounded-2xl editable-widget" :class="canManageWidgets ? 'is-organizer' : ''" x-cloak>
-    <button x-show="canManageWidgets" @click.prevent="toggleWidgetEditor('poll')" type="button" class="widget-quick-edit-btn absolute top-3 right-3" title="Edit fan poll"><i data-lucide="pencil" class="w-3.5 h-3.5"></i></button>
+<section id="fan-predictions" x-show="shouldShowFanPoll()" class="editable-widget rounded-3xl p-6 relative overflow-hidden bg-[#0b0b11] border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.5)] transition-all duration-200" :class="canManageWidgets ? 'is-organizer' : ''" :style="isFanPollTheme('sport') ? 'padding:0;background:transparent;border:none;box-shadow:none;' : ''" x-cloak>
 
-    <div x-show="!widgetUi.poll.isEditing">
-        <p class="text-[10px] font-bold uppercase tracking-widest text-gray-300 flex items-center gap-2"><i data-lucide="pie-chart" class="w-3.5 h-3.5 theme-text"></i> Fan Predictions</p>
-        <p class="text-sm font-semibold text-white mt-2" x-text="tData.fanPoll.question"></p>
-        <div class="space-y-3 mt-3">
-            <template x-for="choice in fanPollOptions()" :key="choice.name">
-                <div>
-                    <div class="flex items-center justify-between mb-1.5">
-                        <span class="text-xs font-bold text-gray-200" x-text="choice.name"></span>
-                        <span class="text-[10px] font-mono text-gray-300" x-text="choice.percent + '%' "></span>
-                    </div>
-                    <div class="poll-track">
-                        <div class="poll-fill bg-gradient-to-r" :class="choice.color" :style="'width:' + choice.percent + '%' "></div>
+    <div class="relative z-10 mt-2 flex flex-wrap gap-2 mb-5" x-show="!isFanPollTheme('sport') && fanPollQuestionCount() > 1">
+        <template x-for="question in fanPollQuestions()" :key="question.id">
+            <button type="button" class="poll-question-chip"
+                    :class="isActiveFanPollQuestion(question.id) ? 'is-active' : ''"
+                    @click.prevent="setActiveFanPollQuestion(question.id)" x-text="question.question"></button>
+        </template>
+    </div>
+
+    <template x-if="activeFanPollQuestion()">
+        <div class="relative z-10 space-y-4">
+            <div x-show="isFanPollTheme('cyber')" class="relative">
+                <div class="absolute -inset-0.5 bg-gradient-to-br from-theme to-fuchsia-500 rounded-2xl blur opacity-30"></div>
+                <div class="relative bg-[#09090b] border border-white/10 rounded-2xl p-5 overflow-hidden">
+                    <div class="absolute top-0 right-0 w-32 h-32 bg-theme/10 blur-[50px] rounded-full"></div>
+                    <div class="relative z-10">
+                        <p class="text-[15px] font-semibold text-gray-100 leading-snug" x-text="activeFanPollQuestion().question"></p>
+                        <div class="space-y-3 mt-4">
+                            <template x-for="choice in activeFanPollQuestion().options" :key="'cyber-' + activeFanPollQuestion().id + '-' + choice.id">
+                                <button type="button"
+                                        @click.prevent="submitFanPrediction(activeFanPollQuestion().id, choice.id)"
+                                        :disabled="!canSubmitFanPrediction(activeFanPollQuestion(), choice)"
+                                        class="w-full relative block">
+                                    <div class="bg-white/5 border border-white/10 p-3 relative overflow-hidden rounded-xl"
+                                         :class="isFanPollChoiceSelected(activeFanPollQuestion(), choice) ? 'ring-1 ring-white/50' : ''">
+                                        <div class="absolute top-0 left-0 bottom-0 bg-gradient-to-r from-theme/80 to-blue-500/80 transition-all duration-700 ease-out"
+                                             :style="activeFanPollQuestion().has_user_voted ? 'width:' + choice.percent + '%' : 'width:0%'"></div>
+                                        <div class="relative flex justify-between items-center text-sm font-medium">
+                                            <span class="text-white drop-shadow-md" x-text="choice.name"></span>
+                                            <span x-show="activeFanPollQuestion().has_user_voted" class="font-display text-white font-black text-lg" x-text="choice.percent + '%'"></span>
+                                        </div>
+                                    </div>
+                                </button>
+                            </template>
+                        </div>
                     </div>
                 </div>
-            </template>
-        </div>
-    </div>
+            </div>
 
-    <div x-show="canManageWidgets && widgetUi.poll.isEditing" class="bg-black/60 p-4 rounded-xl border border-white/10 mt-3" x-cloak>
-        <label class="text-[9px] text-dc-cyan uppercase tracking-widest mb-1 block">Poll Question</label>
-        <input type="text" :value="tData.fanPoll.question" @input="setFanPollQuestionFromEvent($event)" class="edit-input" placeholder="Who will take the crown?">
-        <div class="grid grid-cols-2 gap-2">
-            <input type="text" :value="(tData.fanPoll.options[0] && tData.fanPoll.options[0].name) || ''" @input="setFanPollOptionFieldFromEvent(0, 'name', $event)" class="edit-input" placeholder="Option A">
-            <input type="number" :value="(tData.fanPoll.options[0] && tData.fanPoll.options[0].percent) || 0" @input="setFanPollOptionFieldFromEvent(0, 'percent', $event)" min="0" max="100" step="1" class="edit-input" placeholder="A %">
+            <div x-show="isFanPollTheme('tactical')" class="bg-[#0f1923] border border-white/10 relative p-5 rounded-lg overflow-hidden">
+                <div class="absolute top-0 left-0 w-3 h-3 border-l-2 border-t-2 border-[#ff4655]"></div>
+                <div class="absolute top-0 right-0 w-3 h-3 border-r-2 border-t-2 border-[#ff4655]"></div>
+                <div class="absolute bottom-0 left-0 w-3 h-3 border-l-2 border-b-2 border-[#ff4655]"></div>
+                <div class="absolute bottom-0 right-0 w-3 h-3 border-r-2 border-b-2 border-[#ff4655]"></div>
+                <p class="text-[15px] font-bold text-[#ece8e1] uppercase tracking-wide leading-tight mb-4" x-text="activeFanPollQuestion().question"></p>
+                <div class="space-y-3">
+                    <template x-for="choice in activeFanPollQuestion().options" :key="'tactical-' + activeFanPollQuestion().id + '-' + choice.id">
+                        <button type="button"
+                                @click.prevent="submitFanPrediction(activeFanPollQuestion().id, choice.id)"
+                                :disabled="!canSubmitFanPrediction(activeFanPollQuestion(), choice)"
+                                class="w-full relative bg-black/60 border border-white/10 p-3 text-left"
+                                :class="isFanPollChoiceSelected(activeFanPollQuestion(), choice) ? 'ring-1 ring-[#ff4655]/70' : ''">
+                            <div class="flex justify-between items-center text-sm uppercase">
+                                <span class="text-[#ece8e1]/80 font-semibold" x-text="choice.name"></span>
+                                <span x-show="activeFanPollQuestion().has_user_voted" class="text-[#ff4655] font-bold" x-text="choice.percent + '%'"></span>
+                            </div>
+                            <div class="mt-2 h-1 w-full bg-white/5 relative overflow-hidden">
+                                <div class="absolute left-0 top-0 bottom-0 bg-[#ff4655] transition-all duration-700"
+                                     :style="activeFanPollQuestion().has_user_voted ? 'width:' + choice.percent + '%' : 'width:0%'"></div>
+                            </div>
+                        </button>
+                    </template>
+                </div>
+            </div>
+
+            <div x-show="isFanPollTheme('glass')" class="bg-white/5 backdrop-blur-xl border border-white/10 rounded-[1.5rem] p-5 relative overflow-hidden">
+                <div class="absolute top-[-30px] left-[-30px] w-32 h-32 bg-blue-500/20 rounded-full blur-[40px]"></div>
+                <div class="absolute bottom-[-30px] right-[-30px] w-32 h-32 bg-purple-500/20 rounded-full blur-[40px]"></div>
+                <div class="relative z-10">
+                    <h4 class="text-[16px] font-medium text-white leading-snug" x-text="activeFanPollQuestion().question"></h4>
+                    <div class="space-y-2.5 mt-4">
+                        <template x-for="choice in activeFanPollQuestion().options" :key="'glass-' + activeFanPollQuestion().id + '-' + choice.id">
+                            <button type="button"
+                                    @click.prevent="submitFanPrediction(activeFanPollQuestion().id, choice.id)"
+                                    :disabled="!canSubmitFanPrediction(activeFanPollQuestion(), choice)"
+                                    class="w-full relative rounded-xl overflow-hidden border border-white/10 bg-black/20 p-3"
+                                    :class="isFanPollChoiceSelected(activeFanPollQuestion(), choice) ? 'ring-1 ring-white/50 bg-white/10' : ''">
+                                <div class="absolute left-0 top-0 bottom-0 bg-white/10 transition-all duration-700 z-0"
+                                     :style="activeFanPollQuestion().has_user_voted ? 'width:' + choice.percent + '%' : 'width:0%'"></div>
+                                <div class="relative z-10 flex justify-between items-center">
+                                    <span class="font-medium text-gray-200 text-sm" x-text="choice.name"></span>
+                                    <span x-show="activeFanPollQuestion().has_user_voted" class="font-bold text-white text-sm" x-text="choice.percent + '%'"></span>
+                                </div>
+                            </button>
+                        </template>
+                    </div>
+                </div>
+            </div>
+
+            <div x-show="isFanPollTheme('sport')" class="bg-gradient-to-b from-gray-800 to-black border border-gray-700 rounded-2xl p-5 relative overflow-hidden">
+                <p class="text-[15px] font-bold text-gray-100 mb-4 leading-tight" x-text="activeFanPollQuestion().question"></p>
+                <div class="space-y-3">
+                    <template x-for="choice in activeFanPollQuestion().options" :key="'sport-' + activeFanPollQuestion().id + '-' + choice.id">
+                        <button type="button"
+                                @click.prevent="submitFanPrediction(activeFanPollQuestion().id, choice.id)"
+                                :disabled="!canSubmitFanPrediction(activeFanPollQuestion(), choice)"
+                                class="w-full relative rounded-lg bg-black border border-gray-700 p-1 text-left"
+                                :class="isFanPollChoiceSelected(activeFanPollQuestion(), choice) ? 'ring-1 ring-yellow-400/60' : ''">
+                            <div class="absolute inset-y-0 left-0 bg-gradient-to-r from-yellow-500 to-yellow-400 transition-all duration-700"
+                                 :style="activeFanPollQuestion().has_user_voted ? 'width:' + choice.percent + '%' : 'width:0%'"></div>
+                            <div class="relative z-10 flex justify-between items-center p-2">
+                                <span class="font-bold text-sm text-white drop-shadow-md" x-text="choice.name"></span>
+                                <span x-show="activeFanPollQuestion().has_user_voted" class="text-yellow-400 font-black text-sm" x-text="choice.percent + '%'"></span>
+                            </div>
+                        </button>
+                    </template>
+                </div>
+            </div>
+
+            <div x-show="isFanPollTheme('native')" class="bg-[#111113] border border-white/10 rounded-2xl p-5">
+                <h2 class="text-[16px] font-bold text-white mb-5" x-text="activeFanPollQuestion().question"></h2>
+                <div class="space-y-4">
+                    <template x-for="choice in activeFanPollQuestion().options" :key="'native-' + activeFanPollQuestion().id + '-' + choice.id">
+                        <button type="button"
+                                @click.prevent="submitFanPrediction(activeFanPollQuestion().id, choice.id)"
+                                :disabled="!canSubmitFanPrediction(activeFanPollQuestion(), choice)"
+                                class="w-full text-left"
+                                :class="isFanPollChoiceSelected(activeFanPollQuestion(), choice) ? 'opacity-100' : 'opacity-90'">
+                            <div class="flex justify-between text-sm mb-2">
+                                <span class="text-dc-textBright font-medium" x-text="choice.name"></span>
+                                <span x-show="activeFanPollQuestion().has_user_voted" class="text-white font-bold text-xs" x-text="choice.percent + '%'"></span>
+                            </div>
+                            <div class="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
+                                <div class="h-full rounded-full transition-all duration-700 bg-theme"
+                                     :style="activeFanPollQuestion().has_user_voted ? 'width:' + choice.percent + '%' : 'width:0%'"></div>
+                            </div>
+                        </button>
+                    </template>
+                </div>
+            </div>
         </div>
-        <div class="grid grid-cols-2 gap-2">
-            <input type="text" :value="(tData.fanPoll.options[1] && tData.fanPoll.options[1].name) || ''" @input="setFanPollOptionFieldFromEvent(1, 'name', $event)" class="edit-input" placeholder="Option B">
-            <input type="number" :value="(tData.fanPoll.options[1] && tData.fanPoll.options[1].percent) || 0" @input="setFanPollOptionFieldFromEvent(1, 'percent', $event)" min="0" max="100" step="1" class="edit-input" placeholder="B %">
-        </div>
-        <div class="flex items-center gap-3 mt-2">
-            <label class="text-xs text-gray-300 inline-flex items-center gap-1.5"><input type="checkbox" :checked="tData.fanPoll.enabled" @change="setFanPollEnabledFromEvent($event)" class="rounded border-white/30 bg-black/60"> Enable poll</label>
-            <label class="text-xs text-gray-400 inline-flex items-center gap-1.5"><input type="checkbox" :checked="widgetUi.poll.show" @change="setWidgetVisibilityFromEvent('poll', $event)" class="rounded border-white/30 bg-black/60"> Visible</label>
-            <button type="button" @click.prevent="saveWidgetSection('poll')" class="ml-auto px-4 py-1.5 rounded bg-white/20 text-white text-xs font-bold uppercase tracking-widest">Update</button>
-        </div>
-    </div>
+    </template>
+
+    <p x-show="!viewerCanVote && !canManageWidgets" class="text-[11px] text-gray-400 mt-3">Sign in to cast predictions. <a :href="viewerLoginUrl" class="text-blue-400 hover:text-white transition-colors">Login now</a>.</p>
+    <p x-show="fanPredictionBusyQuestion && activeFanPollQuestion() && activeFanPollQuestion().id === fanPredictionBusyQuestion" class="text-[11px] text-blue-300 animate-pulse mt-3">Transmitting signal...</p>
+
+    <p x-show="!fanPollQuestionCount()" class="rounded-2xl border border-dashed border-white/10 bg-black/20 px-4 py-4 text-sm text-gray-400 mt-3 text-center">No active pulses detected.</p>
+    <p x-show="fanPollQuestionCount() && !tData.fanPoll.enabled" class="rounded-xl border border-dashed border-amber-500/20 bg-amber-500/10 px-3 py-2 text-xs text-amber-200/80 mt-3">Voting is currently locked by the organizer.</p>
 </section>
 
 {% if tournament.enable_fee_waiver %}
@@ -161,7 +265,7 @@
 
     <div x-show="!widgetUi.socials.isEditing">
         <p class="text-[10px] font-bold uppercase tracking-widest text-gray-300 flex items-center gap-2"><i data-lucide="network" class="w-3.5 h-3.5 theme-text"></i> The Vanguard Network</p>
-        <p class="text-xs text-gray-400 mt-1">Discord, Facebook and YouTube channels</p>
+        <p class="text-xs text-gray-400 mt-1">Discord, Facebook, YouTube and Instagram channels</p>
         <div class="mt-3 flex items-center gap-2.5">
             <template x-for="channel in socialLinksList()" :key="channel.key">
                 <a :href="channel.url" target="_blank" rel="noopener" class="social-orb" :title="channel.label">
@@ -173,6 +277,9 @@
                     </template>
                     <template x-if="channel.key === 'youtube'">
                         <svg class="social-icon-svg text-[#FF0000]" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M23.498 6.186a2.997 2.997 0 0 0-2.11-2.121C19.505 3.5 12 3.5 12 3.5s-7.505 0-9.388.565A2.997 2.997 0 0 0 .502 6.186 31.04 31.04 0 0 0 0 12a31.04 31.04 0 0 0 .502 5.814 2.997 2.997 0 0 0 2.11 2.121C4.495 20.5 12 20.5 12 20.5s7.505 0 9.388-.565a2.997 2.997 0 0 0 2.11-2.121A31.04 31.04 0 0 0 24 12a31.04 31.04 0 0 0-.502-5.814zM9.75 15.568V8.432L15.818 12 9.75 15.568z"/></svg>
+                    </template>
+                    <template x-if="channel.key === 'instagram'">
+                        <svg class="social-icon-svg text-[#E1306C]" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7.5 2h9A5.5 5.5 0 0 1 22 7.5v9a5.5 5.5 0 0 1-5.5 5.5h-9A5.5 5.5 0 0 1 2 16.5v-9A5.5 5.5 0 0 1 7.5 2zm0 1.8A3.7 3.7 0 0 0 3.8 7.5v9a3.7 3.7 0 0 0 3.7 3.7h9a3.7 3.7 0 0 0 3.7-3.7v-9a3.7 3.7 0 0 0-3.7-3.7h-9zm9.55 1.35a1.15 1.15 0 1 1 0 2.3 1.15 1.15 0 0 1 0-2.3zM12 7a5 5 0 1 1 0 10 5 5 0 0 1 0-10zm0 1.8a3.2 3.2 0 1 0 0 6.4 3.2 3.2 0 0 0 0-6.4z"/></svg>
                     </template>
                 </a>
             </template>
@@ -187,6 +294,8 @@
         <input type="url" :value="tData.socials.facebook" @input="setSocialFieldFromEvent('facebook', $event)" class="edit-input" placeholder="https://facebook.com/...">
         <label class="text-[9px] text-dc-cyan uppercase tracking-widest mb-1 block">YouTube URL</label>
         <input type="url" :value="tData.socials.youtube" @input="setSocialFieldFromEvent('youtube', $event)" class="edit-input" placeholder="https://youtube.com/...">
+        <label class="text-[9px] text-dc-cyan uppercase tracking-widest mb-1 block">Instagram URL</label>
+        <input type="url" :value="tData.socials.instagram" @input="setSocialFieldFromEvent('instagram', $event)" class="edit-input" placeholder="https://instagram.com/...">
         <div class="flex items-center gap-2 mt-2">
             <label class="text-xs text-gray-400 inline-flex items-center gap-1.5 mr-auto"><input type="checkbox" :checked="widgetUi.socials.show" @change="setWidgetVisibilityFromEvent('socials', $event)" class="rounded border-white/30 bg-black/60"> Visible</label>
             <button type="button" @click.prevent="saveWidgetSection('socials')" class="px-4 py-1.5 rounded bg-white/20 text-white text-xs font-bold uppercase tracking-widest">Save</button>
