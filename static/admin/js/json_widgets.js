@@ -29,7 +29,7 @@ function prizeAddRow(textareaId) {
     tr.innerHTML = `
         <td><input type="text" value="${nextPlace}" class="jw-input jw-prize-placement" placeholder="e.g. ${nextPlace}"></td>
         <td><input type="number" value="" class="jw-input jw-prize-amount" placeholder="e.g. 500"></td>
-        <td><button type="button" class="jw-btn-remove" data-click="__removeRowAndSync" data-click-pass-el data-click-args='["prizeSync", "${textareaId}"]'>✕</button></td>
+        <td><button type="button" class="jw-btn-remove" data-widget-action="remove-row" data-sync-fn="prizeSync" data-target-id="${textareaId}">✕</button></td>
     `;
     tbody.appendChild(tr);
     // Attach change listeners
@@ -49,7 +49,7 @@ function prizePreset(textareaId, count) {
         tr.innerHTML = `
             <td><input type="text" value="${place}" class="jw-input jw-prize-placement"></td>
             <td><input type="number" value="${amount}" class="jw-input jw-prize-amount"></td>
-            <td><button type="button" class="jw-btn-remove" data-click="__removeRowAndSync" data-click-pass-el data-click-args='["prizeSync", "${textareaId}"]'>✕</button></td>
+            <td><button type="button" class="jw-btn-remove" data-widget-action="remove-row" data-sync-fn="prizeSync" data-target-id="${textareaId}">✕</button></td>
         `;
         tbody.appendChild(tr);
         tr.querySelectorAll('input').forEach(inp => inp.addEventListener('input', () => prizeSync(textareaId)));
@@ -83,7 +83,7 @@ function rolesAddRow(textareaId) {
         <td><input type="text" value="" class="jw-input jw-role-key" placeholder="role_key"></td>
         <td><input type="text" value="" class="jw-input jw-role-label" placeholder="Role Label"></td>
         <td><input type="text" value="" class="jw-input jw-role-desc" placeholder="Description"></td>
-        <td><button type="button" class="jw-btn-remove" data-click="__removeRowAndSync" data-click-pass-el data-click-args='["rolesSync", "${textareaId}"]'>✕</button></td>
+        <td><button type="button" class="jw-btn-remove" data-widget-action="remove-row" data-sync-fn="rolesSync" data-target-id="${textareaId}">✕</button></td>
     `;
     table.querySelector('tbody').appendChild(tr);
     tr.querySelectorAll('input').forEach(inp => inp.addEventListener('input', () => rolesSync(textareaId)));
@@ -106,7 +106,7 @@ function rolesPresetDefaults(textareaId) {
             <td><input type="text" value="${role.key}" class="jw-input jw-role-key"></td>
             <td><input type="text" value="${role.label}" class="jw-input jw-role-label"></td>
             <td><input type="text" value="${role.description}" class="jw-input jw-role-desc"></td>
-            <td><button type="button" class="jw-btn-remove" data-click="__removeRowAndSync" data-click-pass-el data-click-args='["rolesSync", "${textareaId}"]'>✕</button></td>
+            <td><button type="button" class="jw-btn-remove" data-widget-action="remove-row" data-sync-fn="rolesSync" data-target-id="${textareaId}">✕</button></td>
         `;
         tbody.appendChild(tr);
         tr.querySelectorAll('input').forEach(inp => inp.addEventListener('input', () => rolesSync(textareaId)));
@@ -144,7 +144,7 @@ function channelsAddRow(textareaId) {
         <td><input type="text" value="" class="jw-input jw-ch-placeholder" placeholder="placeholder"></td>
         <td><select class="jw-input jw-ch-type"><option value="text">Text</option><option value="url">URL</option><option value="tel">Phone</option></select></td>
         <td class="jw-center"><input type="checkbox" class="jw-ch-required"></td>
-        <td><button type="button" class="jw-btn-remove" data-click="__removeRowAndSync" data-click-pass-el data-click-args='["channelsSync", "${textareaId}"]'>✕</button></td>
+        <td><button type="button" class="jw-btn-remove" data-widget-action="remove-row" data-sync-fn="channelsSync" data-target-id="${textareaId}">✕</button></td>
     `;
     table.querySelector('tbody').appendChild(tr);
     tr.querySelectorAll('input, select').forEach(inp => inp.addEventListener('input', () => channelsSync(textareaId)));
@@ -172,7 +172,7 @@ function channelsPresetDefaults(textareaId) {
                 <option value="tel" ${ch.type === 'tel' ? 'selected' : ''}>Phone</option>
             </select></td>
             <td class="jw-center"><input type="checkbox" class="jw-ch-required" ${ch.required ? 'checked' : ''}></td>
-            <td><button type="button" class="jw-btn-remove" data-click="__removeRowAndSync" data-click-pass-el data-click-args='["channelsSync", "${textareaId}"]'>✕</button></td>
+            <td><button type="button" class="jw-btn-remove" data-widget-action="remove-row" data-sync-fn="channelsSync" data-target-id="${textareaId}">✕</button></td>
         `;
         tbody.appendChild(tr);
         tr.querySelectorAll('input, select').forEach(inp => inp.addEventListener('input', () => channelsSync(textareaId)));
@@ -212,7 +212,7 @@ function mcfAddRow(textareaId) {
             <option value="email">Email</option><option value="url">URL</option><option value="date">Date</option>
         </select></td>
         <td class="jw-center"><input type="checkbox" class="jw-mcf-required"></td>
-        <td><button type="button" class="jw-btn-remove" data-click="__removeRowAndSync" data-click-pass-el data-click-args='["mcfSync", "${textareaId}"]'>✕</button></td>
+        <td><button type="button" class="jw-btn-remove" data-widget-action="remove-row" data-sync-fn="mcfSync" data-target-id="${textareaId}">✕</button></td>
     `;
     table.querySelector('tbody').appendChild(tr);
     tr.querySelectorAll('input, select').forEach(inp => inp.addEventListener('input', () => mcfSync(textareaId)));
@@ -220,10 +220,87 @@ function mcfAddRow(textareaId) {
 }
 
 /* ═══════════════════════════════════════════════
+   CLICK ACTIONS (CSP-safe, no inline handlers)
+   ═══════════════════════════════════════════════ */
+
+function handleJsonWidgetActionClick(event) {
+    const button = event.target.closest('button[data-widget-action]');
+    if (!button) return;
+
+    const action = button.dataset.widgetAction;
+    const textareaId = button.dataset.targetId || '';
+
+    switch (action) {
+        case 'remove-row': {
+            const row = button.closest('tr');
+            if (row) {
+                row.remove();
+            }
+
+            const syncFnName = button.dataset.syncFn;
+            const syncFn = syncFnName ? window[syncFnName] : null;
+            if (typeof syncFn === 'function' && textareaId) {
+                syncFn(textareaId);
+            }
+            break;
+        }
+        case 'prize-preset': {
+            if (textareaId) {
+                prizePreset(textareaId, Number(button.dataset.count || 3));
+            }
+            break;
+        }
+        case 'prize-add-row': {
+            if (textareaId) {
+                prizeAddRow(textareaId);
+            }
+            break;
+        }
+        case 'roles-preset-defaults': {
+            if (textareaId) {
+                rolesPresetDefaults(textareaId);
+            }
+            break;
+        }
+        case 'roles-add-row': {
+            if (textareaId) {
+                rolesAddRow(textareaId);
+            }
+            break;
+        }
+        case 'channels-preset-defaults': {
+            if (textareaId) {
+                channelsPresetDefaults(textareaId);
+            }
+            break;
+        }
+        case 'channels-add-row': {
+            if (textareaId) {
+                channelsAddRow(textareaId);
+            }
+            break;
+        }
+        case 'mcf-add-row': {
+            if (textareaId) {
+                mcfAddRow(textareaId);
+            }
+            break;
+        }
+        default:
+            break;
+    }
+}
+
+/* ═══════════════════════════════════════════════
    AUTO-INIT: attach change listeners to existing rows
    ═══════════════════════════════════════════════ */
 
 document.addEventListener('DOMContentLoaded', () => {
+    if (!window.__jsonWidgetActionHandlersBound) {
+        document.addEventListener('click', handleJsonWidgetActionClick);
+        window.__jsonWidgetActionHandlersBound = true;
+    }
+
     // For each widget type, attach input listeners on existing rows
     document.querySelectorAll('.jw-prize-widget').forEach(widget => {
         const tid = widget.dataset.target;

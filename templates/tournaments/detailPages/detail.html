@@ -745,47 +745,7 @@
     <div class="fixed inset-0 bg-grid-pattern opacity-[0.03] pointer-events-none z-[-2]"></div>
     <div class="fixed top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[800px] rounded-full blur-[150px] opacity-[0.14] animate-pulse-slow pointer-events-none z-[-1] theme-bg"></div>
 
-    <nav class="fixed top-0 w-full z-50 glass-extreme border-b border-white/5">
-        <div class="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-            <div class="flex items-center gap-6">
-                <a href="{% url 'tournaments:list' %}" class="flex items-center gap-3 group">
-                    <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-dc-cyan to-dc-purple flex items-center justify-center font-display font-black text-white shadow-[0_0_15px_rgba(0,229,255,0.3)]">D</div>
-                    <span class="font-display font-bold text-xl tracking-widest text-white hidden md:block">DELTACROWN</span>
-                </a>
-                <div class="h-5 w-px bg-white/10 hidden md:block"></div>
-                <div class="hidden md:flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-gray-500">
-                    <a href="{% url 'tournaments:list' %}" class="hover:text-white transition-colors">Tournaments</a>
-                    <i data-lucide="chevron-right" class="w-3 h-3"></i>
-                    <span class="theme-text">{{ game_spec.display_name }}</span>
-                </div>
-            </div>
-
-            <div class="flex items-center gap-5">
-                <span class="text-[10px] font-mono text-gray-400 border border-white/10 px-3 py-1.5 rounded-full hidden sm:flex items-center gap-2 bg-black/50">
-                    <span class="w-2 h-2 rounded-full animate-pulse {% if is_live_phase %}theme-bg{% elif tournament_phase == 'registration_open' %}bg-green-500{% elif tournament_phase == 'registration_closed' %}bg-yellow-500{% elif is_completed_phase %}bg-blue-300{% elif is_cancelled %}bg-red-500{% else %}bg-gray-500{% endif %}"></span>
-                    <span id="nd-status-label" class="text-white font-bold uppercase tracking-wider">{{ effective_status_display }}</span>
-                </span>
-
-                <div class="pl-5 border-l border-white/10 flex items-center gap-3">
-                    {% if not user.is_authenticated %}
-                    <a href="/accounts/login/" class="px-5 py-2 bg-white text-black text-xs font-bold rounded-lg hover:bg-gray-200 uppercase tracking-wider">Login</a>
-                    {% else %}
-                    <div class="flex items-center gap-3 cursor-pointer group">
-                        <div class="text-right hidden sm:block">
-                            <p class="text-xs font-bold text-white transition-colors group-hover:theme-text">{{ user.username }}</p>
-                            <p class="text-[9px] text-gray-500 uppercase tracking-widest">{% if is_organizer %}Organizer{% elif is_registered %}Participant{% else %}Member{% endif %}</p>
-                        </div>
-                        <div class="w-9 h-9 rounded-full border-2 theme-border overflow-hidden">
-                            <img src="https://ui-avatars.com/api/?name={{ user.username|urlencode }}&background=101217&color=ffffff" alt="{{ user.username }}" class="w-full h-full object-cover">
-                        </div>
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-    </nav>
-
-    <div class="relative w-full min-h-[600px] lg:min-h-[760px] flex flex-col justify-end pt-24 border-b border-white/5">
+    <div class="relative w-full aspect-[16/9] xl:aspect-[3/1] min-h-[360px] lg:min-h-[460px] flex flex-col justify-end pt-24 border-b border-white/5">
         <div class="absolute inset-0 z-0 overflow-hidden bg-black">
             {% if tournament.promo_video_url and is_registration_phase %}
             <a href="{{ tournament.promo_video_url }}" target="_blank" rel="noopener" class="absolute inset-0 w-full h-full opacity-45 block">
@@ -1006,9 +966,9 @@
                         </p>
                         <p id="nd-tab-runtime-secondary" class="text-[10px] font-mono text-gray-200 mt-1" {% if user_next_match or countdown_target %}data-runtime-locked="true"{% endif %}>
                             {% if user_next_match and user_next_match_lobby_open and user_next_match_lobby_closes_at %}
-                            Lobby open | closes {{ user_next_match_lobby_closes_at|date:'g:i A' }}
+                            Lobby open | closes {{ user_next_match_lobby_closes_at|date:detail_time_only_format }}
                             {% elif user_next_match and user_next_match_lobby_opens_at %}
-                            Lobby opens {{ user_next_match_lobby_opens_at|date:'g:i A' }}
+                            Lobby opens {{ user_next_match_lobby_opens_at|date:detail_time_only_format }}
                             {% elif countdown_target and countdown_label %}
                             <span data-runtime-countdown data-target="{{ countdown_target }}">--:--:--</span>
                             {% elif effective_status == 'live' %}
@@ -1065,7 +1025,7 @@
                                             {% if user_next_match and user_next_match_lobby_open %}
                                             Lobby is currently open for your next match.
                                             {% elif user_next_match and user_next_match_lobby_opens_at %}
-                                            Lobby opens at {{ user_next_match_lobby_opens_at|date:"g:i A" }}.
+                                            Lobby opens at {{ user_next_match_lobby_opens_at|date:detail_time_only_format }}.
                                             {% elif effective_status == 'live' %}
                                             Tournament execution is in progress.
                                             {% elif effective_status == 'registration_open' %}
@@ -1079,11 +1039,11 @@
                                         <p class="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1">Phase Timing</p>
                                         <p class="text-sm font-semibold text-white">
                                             {% if user_next_match and user_next_match.scheduled_time %}
-                                            Next match {{ user_next_match.scheduled_time|date:"M d, Y • H:i" }}
+                                            Next match {{ user_next_match.scheduled_time|date:detail_datetime_format }}
                                             {% elif tournament_phase == 'registration_open' and tournament.registration_end %}
-                                            Registration closes {{ tournament.registration_end|date:"M d, Y • H:i" }}
+                                            Registration closes {{ tournament.registration_end|date:detail_datetime_format }}
                                             {% elif tournament.tournament_start %}
-                                            Tournament starts {{ tournament.tournament_start|date:"M d, Y • H:i" }}
+                                            Tournament starts {{ tournament.tournament_start|date:detail_datetime_format }}
                                             {% else %}
                                             Schedule pending organizer publish
                                             {% endif %}
@@ -1157,7 +1117,7 @@
                                     <p class="text-xs font-bold uppercase tracking-widest text-gray-300">Registration</p>
                                     <span class="status-dot"></span>
                                 </div>
-                                <p class="text-xs text-gray-400">{% if tournament.registration_end %}Closes {{ tournament.registration_end|date:"M d, H:i" }}{% else %}Window TBD{% endif %}</p>
+                                <p class="text-xs text-gray-400">{% if tournament.registration_end %}Closes {{ tournament.registration_end|date:detail_short_datetime_format }}{% else %}Window TBD{% endif %}</p>
                             </div>
                             <div class="status-step rounded-xl p-4 {% if tournament_phase == 'registration_closed' %}is-active{% elif is_live_phase or is_completed_phase or is_cancelled %}is-complete{% endif %}">
                                 <div class="flex items-center justify-between mb-2">
@@ -1362,7 +1322,117 @@
                             {% endfor %}
                         </div>
                         {% else %}
-                        <div class="rounded-2xl border border-white/10 bg-black/35 p-5 text-sm text-gray-300">Match schedule will appear after fixtures are generated.</div>
+                        <div class="space-y-6">
+                            <div class="glass-extreme p-6 md:p-8 rounded-[2rem] border-white/10">
+                                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+                                    <h4 class="font-display font-bold text-xl text-white flex items-center gap-2">
+                                        <i data-lucide="activity" class="w-5 h-5 theme-text"></i>
+                                        Event Status
+                                    </h4>
+                                    <span class="text-[10px] uppercase tracking-widest text-gray-400">Fixtures pending generation</span>
+                                </div>
+
+                                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+                                    <div class="status-step rounded-xl p-4 {% if tournament_phase == 'registration_open' %}is-active{% elif tournament_phase == 'registration_closed' or is_live_phase or is_completed_phase or is_cancelled %}is-complete{% endif %}">
+                                        <div class="flex items-center justify-between mb-2">
+                                            <p class="text-xs font-bold uppercase tracking-widest text-gray-300">Registration</p>
+                                            <span class="status-dot"></span>
+                                        </div>
+                                        <p class="text-xs text-gray-400">{% if tournament.registration_end %}Closes {{ tournament.registration_end|date:detail_short_datetime_format }}{% else %}Window TBD{% endif %}</p>
+                                    </div>
+
+                                    <div class="status-step rounded-xl p-4 {% if tournament_phase == 'registration_closed' %}is-active{% elif is_live_phase or is_completed_phase or is_cancelled %}is-complete{% endif %}">
+                                        <div class="flex items-center justify-between mb-2">
+                                            <p class="text-xs font-bold uppercase tracking-widest text-gray-300">Check-In</p>
+                                            <span class="status-dot"></span>
+                                        </div>
+                                        <p class="text-xs text-gray-400">{% if tournament.check_in_minutes_before %}{{ tournament.check_in_minutes_before }} min pre-match{% else %}Policy managed by organizer{% endif %}</p>
+                                    </div>
+
+                                    <div class="status-step rounded-xl p-4 {% if is_live_phase %}is-active{% elif is_completed_phase %}is-complete{% endif %}">
+                                        <div class="flex items-center justify-between mb-2">
+                                            <p class="text-xs font-bold uppercase tracking-widest text-gray-300">Live Bracket</p>
+                                            <span class="status-dot"></span>
+                                        </div>
+                                        <p class="text-xs text-gray-400">{% if is_live_phase %}Execution in progress{% elif is_completed_phase %}Run completed{% else %}Awaiting fixture generation{% endif %}</p>
+                                    </div>
+
+                                    <div class="status-step rounded-xl p-4 {% if is_completed_phase %}is-active is-complete{% endif %}">
+                                        <div class="flex items-center justify-between mb-2">
+                                            <p class="text-xs font-bold uppercase tracking-widest text-gray-300">Finalization</p>
+                                            <span class="status-dot"></span>
+                                        </div>
+                                        <p class="text-xs text-gray-400">{% if is_completed_phase %}Results published{% else %}Pending closure{% endif %}</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="glass-extreme p-6 md:p-8 rounded-[2rem] border-white/10">
+                                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+                                    <h4 class="font-display font-bold text-xl text-white flex items-center gap-2">
+                                        <i data-lucide="calendar-days" class="w-5 h-5 theme-text"></i>
+                                        Operations Schedule
+                                    </h4>
+                                    <span class="text-[10px] uppercase tracking-widest text-gray-400">Pre-fixture timeline</span>
+                                </div>
+
+                                <div class="relative pl-6 space-y-4">
+                                    <div class="absolute left-2 top-2 bottom-2 w-px bg-gradient-to-b from-white/25 via-white/10 to-transparent"></div>
+
+                                    <article class="relative rounded-xl border border-white/10 bg-black/35 p-4">
+                                        <span class="absolute -left-[1.05rem] top-5 w-3 h-3 rounded-full bg-green-400 border border-black"></span>
+                                        <p class="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1">Registration Window</p>
+                                        <p class="text-sm font-semibold text-white">
+                                            {% if tournament.registration_start or tournament.registration_end %}
+                                            {{ tournament.registration_start|date:detail_datetime_format|default:"Start TBD" }} to {{ tournament.registration_end|date:detail_datetime_format|default:"End TBD" }}
+                                            {% else %}
+                                            Organizer has not set registration timing yet.
+                                            {% endif %}
+                                        </p>
+                                    </article>
+
+                                    <article class="relative rounded-xl border border-white/10 bg-black/35 p-4">
+                                        <span class="absolute -left-[1.05rem] top-5 w-3 h-3 rounded-full bg-amber-400 border border-black"></span>
+                                        <p class="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1">Check-In Protocol</p>
+                                        <p class="text-sm font-semibold text-white">
+                                            {% if tournament.check_in_minutes_before %}
+                                            Opens {{ tournament.check_in_minutes_before }} minutes before each match start.
+                                            {% else %}
+                                            Check-in policy will be published by organizer.
+                                            {% endif %}
+                                        </p>
+                                    </article>
+
+                                    <article class="relative rounded-xl border border-white/10 bg-black/35 p-4">
+                                        <span class="absolute -left-[1.05rem] top-5 w-3 h-3 rounded-full bg-cyan-400 border border-black"></span>
+                                        <p class="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1">Tournament Kickoff</p>
+                                        <p class="text-sm font-semibold text-white">
+                                            {% if tournament.tournament_start %}
+                                            Starts {{ tournament.tournament_start|date:detail_datetime_format }}
+                                            {% else %}
+                                            Kickoff time is not published yet.
+                                            {% endif %}
+                                        </p>
+                                    </article>
+
+                                    <article class="relative rounded-xl border border-white/10 bg-black/35 p-4">
+                                        <span class="absolute -left-[1.05rem] top-5 w-3 h-3 rounded-full bg-purple-400 border border-black"></span>
+                                        <p class="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1">Fixture Generation</p>
+                                        <p class="text-sm font-semibold text-white">
+                                            {% if is_live_phase %}
+                                            Fixtures are generated and running live.
+                                            {% elif tournament_phase == 'registration_closed' %}
+                                            Fixtures are queued for generation after check-in.
+                                            {% else %}
+                                            Fixtures will be generated once registration and readiness checks are complete.
+                                            {% endif %}
+                                        </p>
+                                    </article>
+                                </div>
+                            </div>
+
+                            <div class="rounded-2xl border border-white/10 bg-black/35 p-5 text-sm text-gray-300">Match schedule will appear after fixtures are generated.</div>
+                        </div>
                         {% endif %}
                     </div>
                 </div>
@@ -2278,7 +2348,7 @@
                                 <div class="bg-black/60 rounded-xl p-6 border theme-border theme-glow text-center">
                                     <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Next Match Ready</p>
                                     <h4 class="font-display font-bold text-2xl text-white mb-1">{{ user_next_match.stage_label|default:'Match Lobby' }}</h4>
-                                    <p class="text-sm font-mono text-gray-400">Lobby closes {{ user_next_match_lobby_closes_at|date:'g:i A' }}</p>
+                                    <p class="text-sm font-mono text-gray-400">Lobby closes {{ user_next_match_lobby_closes_at|date:detail_time_only_format }}</p>
                                 </div>
                                 {% endif %}
 
@@ -2385,15 +2455,17 @@ document.addEventListener('alpine:init', function () {
             widgetSaveFlashTimer: null,
             canManageWidgets: {% if can_manage_detail_widgets %}true{% else %}false{% endif %},
             phase: '{% if tournament_phase == "registration_open" %}registration{% elif is_live_phase %}live{% elif tournament_phase == "registration_closed" %}checkin{% elif is_completed_phase %}completed{% elif is_cancelled %}cancelled{% else %}upcoming{% endif %}',
+            timeFormat: '{{ detail_time_format|escapejs }}',
+            timeZone: '{{ detail_time_zone|escapejs }}',
             tData: {
                 ticker: {
                     registration: [
                         'User QuantumPulse just registered.',
                         'Slots filled: {{ slots_filled }} / {{ slots_total }}.',
-                        '{% if tournament.registration_end %}Registration closes {{ tournament.registration_end|date:"M d • g:i A"|escapejs }}.{% else %}Registration window is currently open.{% endif %}'
+                        '{% if tournament.registration_end %}Registration closes {{ tournament.registration_end|date:detail_ticker_datetime_format|escapejs }}.{% else %}Registration window is currently open.{% endif %}'
                     ],
                     live: [
-                        '{% if user_next_match and user_next_match.scheduled_time %}Upcoming match: {{ user_next_match.stage_label|default:"Match"|escapejs }} at {{ user_next_match.scheduled_time|date:"g:i A"|escapejs }}.{% else %}Upcoming match windows are being synchronized.{% endif %}',
+                        '{% if user_next_match and user_next_match.scheduled_time %}Upcoming match: {{ user_next_match.stage_label|default:"Match"|escapejs }} at {{ user_next_match.scheduled_time|date:detail_time_only_format|escapejs }}.{% else %}Upcoming match windows are being synchronized.{% endif %}',
                         'Recent map result verified: 2-1 final.',
                         'Live bracket execution and score sync active.'
                     ],
@@ -2593,8 +2665,13 @@ document.addEventListener('alpine:init', function () {
                     day: 'numeric',
                     month: 'short',
                     hour: 'numeric',
-                    minute: '2-digit'
+                    minute: '2-digit',
+                    hour12: this.timeFormat !== '24h'
                 };
+
+                if (this.timeZone) {
+                    options.timeZone = this.timeZone;
+                }
 
                 try {
                     return parsed.toLocaleString([], options);

@@ -39,7 +39,7 @@ class PrizeDistributionWidget(forms.Textarea):
                     '<tr>'
                     '<td><input type="text" value="{}" class="jw-input jw-prize-placement" placeholder="e.g. 1"></td>'
                     '<td><input type="number" value="{}" class="jw-input jw-prize-amount" placeholder="e.g. 500"></td>'
-                    '<td><button type="button" class="jw-btn-remove" onclick="this.closest(\'tr\').remove();prizeSync(\'{}\')">✕</button></td>'
+                    '<td><button type="button" class="jw-btn-remove" data-widget-action="remove-row" data-sync-fn="prizeSync" data-target-id="{}">✕</button></td>'
                     '</tr>'
                 ).format(escape(str(placement)), escape(str(amount)), escapejs(textarea_id))
 
@@ -48,9 +48,9 @@ class PrizeDistributionWidget(forms.Textarea):
             <div class="jw-header">
                 <span class="jw-title">💰 Prize Distribution</span>
                 <div class="jw-actions">
-                    <button type="button" class="jw-btn" onclick="prizePreset('{}', 3)">Preset: Top 3</button>
-                    <button type="button" class="jw-btn" onclick="prizePreset('{}', 4)">Preset: Top 4</button>
-                    <button type="button" class="jw-btn jw-btn-add" onclick="prizeAddRow('{}')">+ Add Place</button>
+                    <button type="button" class="jw-btn" data-widget-action="prize-preset" data-target-id="{}" data-count="3">Preset: Top 3</button>
+                    <button type="button" class="jw-btn" data-widget-action="prize-preset" data-target-id="{}" data-count="4">Preset: Top 4</button>
+                    <button type="button" class="jw-btn jw-btn-add" data-widget-action="prize-add-row" data-target-id="{}">+ Add Place</button>
                 </div>
             </div>
             <table class="jw-table" id="{}_table">
@@ -98,7 +98,7 @@ class CoordinatorRolesWidget(forms.Textarea):
                     '<td><input type="text" value="{}" class="jw-input jw-role-key" placeholder="captain_igl"></td>'
                     '<td><input type="text" value="{}" class="jw-input jw-role-label" placeholder="Captain / IGL"></td>'
                     '<td><input type="text" value="{}" class="jw-input jw-role-desc" placeholder="Team leader"></td>'
-                    '<td><button type="button" class="jw-btn-remove" onclick="this.closest(\'tr\').remove();rolesSync(\'{}\')">✕</button></td>'
+                    '<td><button type="button" class="jw-btn-remove" data-widget-action="remove-row" data-sync-fn="rolesSync" data-target-id="{}">✕</button></td>'
                     '</tr>'
                 ).format(key, label, desc, escapejs(textarea_id))
 
@@ -107,8 +107,8 @@ class CoordinatorRolesWidget(forms.Textarea):
             <div class="jw-header">
                 <span class="jw-title">🎖️ Coordinator Roles</span>
                 <div class="jw-actions">
-                    <button type="button" class="jw-btn" onclick="rolesPresetDefaults('{}')">Load Defaults</button>
-                    <button type="button" class="jw-btn jw-btn-add" onclick="rolesAddRow('{}')">+ Add Role</button>
+                    <button type="button" class="jw-btn" data-widget-action="roles-preset-defaults" data-target-id="{}">Load Defaults</button>
+                    <button type="button" class="jw-btn jw-btn-add" data-widget-action="roles-add-row" data-target-id="{}">+ Add Role</button>
                 </div>
             </div>
             <table class="jw-table" id="{}_table">
@@ -164,7 +164,7 @@ class CommunicationChannelsWidget(forms.Textarea):
                     '<option value="tel" {sel_tel}>Phone</option>'
                     '</select></td>'
                     '<td class="jw-center"><input type="checkbox" class="jw-ch-required" {required}></td>'
-                    '<td><button type="button" class="jw-btn-remove" onclick="this.closest(\'tr\').remove();channelsSync(\'{tid}\')">✕</button></td>'
+                    '<td><button type="button" class="jw-btn-remove" data-widget-action="remove-row" data-sync-fn="channelsSync" data-target-id="{tid}">✕</button></td>'
                     '</tr>'
                 ).format(
                     key=key, label=label, placeholder=placeholder, required=required,
@@ -179,8 +179,8 @@ class CommunicationChannelsWidget(forms.Textarea):
             <div class="jw-header">
                 <span class="jw-title">📡 Communication Channels</span>
                 <div class="jw-actions">
-                    <button type="button" class="jw-btn" onclick="channelsPresetDefaults('{}')">Load Defaults</button>
-                    <button type="button" class="jw-btn jw-btn-add" onclick="channelsAddRow('{}')">+ Add Channel</button>
+                    <button type="button" class="jw-btn" data-widget-action="channels-preset-defaults" data-target-id="{}">Load Defaults</button>
+                    <button type="button" class="jw-btn jw-btn-add" data-widget-action="channels-add-row" data-target-id="{}">+ Add Channel</button>
                 </div>
             </div>
             <table class="jw-table" id="{}_table">
@@ -236,7 +236,7 @@ class MemberCustomFieldsWidget(forms.Textarea):
                     '<option value="date" {sel_date}>Date</option>'
                     '</select></td>'
                     '<td class="jw-center"><input type="checkbox" class="jw-mcf-required" {required}></td>'
-                    '<td><button type="button" class="jw-btn-remove" onclick="this.closest(\'tr\').remove();mcfSync(\'{tid}\')">✕</button></td>'
+                    '<td><button type="button" class="jw-btn-remove" data-widget-action="remove-row" data-sync-fn="mcfSync" data-target-id="{tid}">✕</button></td>'
                     '</tr>'
                 ).format(
                     fname=fname, label=label, required=required,
@@ -253,7 +253,7 @@ class MemberCustomFieldsWidget(forms.Textarea):
             <div class="jw-header">
                 <span class="jw-title">📝 Custom Member Fields</span>
                 <div class="jw-actions">
-                    <button type="button" class="jw-btn jw-btn-add" onclick="mcfAddRow('{}')">+ Add Field</button>
+                    <button type="button" class="jw-btn jw-btn-add" data-widget-action="mcf-add-row" data-target-id="{}">+ Add Field</button>
                 </div>
             </div>
             <table class="jw-table" id="{}_table">

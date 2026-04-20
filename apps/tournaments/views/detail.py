@@ -74,6 +74,13 @@ class TournamentDetailView(DetailView):
         tournament = self.object
         user = self.request.user
 
+        user_prefs = getattr(self.request, 'user_platform_prefs', {}) or {}
+        detail_time_format = _normalize_time_format_preference(user_prefs.get('time_format', '12h'))
+        context.update(_build_detail_time_context(detail_time_format))
+        context['detail_time_zone'] = str(
+            user_prefs.get('timezone') or timezone.get_current_timezone_name()
+        )
+
         # GameService integration
         canonical_slug = game_service.normalize_slug(tournament.game.slug)
         game_spec = game_service.get_game(canonical_slug)
@@ -530,7 +537,11 @@ class TournamentDetailView(DetailView):
         }
 
         now = timezone.now()
-        _tf = getattr(getattr(self, 'request', None), 'user_platform_prefs', {}).get('time_format', '12h') if hasattr(self, 'request') else '12h'
+        _tf = _normalize_time_format_preference(
+            getattr(getattr(self, 'request', None), 'user_platform_prefs', {}).get('time_format', '12h')
+            if hasattr(self, 'request')
+            else '12h'
+        )
 
         if registration.checked_in:
             return {
@@ -768,7 +779,11 @@ class TournamentDetailView(DetailView):
 
         matches_list = []
         now = timezone.now()
-        _tf = getattr(getattr(self, 'request', None), 'user_platform_prefs', {}).get('time_format', '12h') if hasattr(self, 'request') else '12h'
+        _tf = _normalize_time_format_preference(
+            getattr(getattr(self, 'request', None), 'user_platform_prefs', {}).get('time_format', '12h')
+            if hasattr(self, 'request')
+            else '12h'
+        )
 
         # Resolve the latest knockout round once so single-elimination labels
         # can be derived correctly (Final/Semi/Quarter) instead of hard-coding.
@@ -1566,6 +1581,27 @@ MATCH_LOBBY_CLOSE_GRACE_MINUTES = 15
 DETAIL_WIDGETS_CONFIG_KEY = 'detail_widgets'
 
 
+def _normalize_time_format_preference(value):
+    normalized = str(value or '').strip().lower()
+    if normalized in {'24', '24h', '24hr', '24-hour', '24hours'}:
+        return '24h'
+    if normalized in {'12', '12h', '12hr', '12-hour', '12hours'}:
+        return '12h'
+    return '12h'
+
+
+def _build_detail_time_context(time_format='12h'):
+    normalized = _normalize_time_format_preference(time_format)
+    is_24h = normalized == '24h'
+    return {
+        'detail_time_format': normalized,
+        'detail_time_only_format': 'H:i' if is_24h else 'g:i A',
+        'detail_datetime_format': 'M d, Y • H:i' if is_24h else 'M d, Y • g:i A',
+        'detail_short_datetime_format': 'M d, H:i' if is_24h else 'M d, g:i A',
+        'detail_ticker_datetime_format': 'M d • H:i' if is_24h else 'M d • g:i A',
+    }
+
+
 def _widget_text(value, *, fallback='', max_length=240):
     text_value = str(value or '').strip()
     if not text_value:
@@ -1867,6 +1903,7 @@ def _format_display_datetime(value, time_format='12h'):
         value = timezone.localtime(value)
     except Exception:
         pass
+    time_format = _normalize_time_format_preference(time_format)
     if time_format == '24h':
         return value.strftime('%b %d · %H:%M')
     return value.strftime('%b %d · %I:%M %p')
@@ -2372,7 +2409,9 @@ def tournament_detail_mobile_state(request, slug):
         'scheduled_time',
     )[:30]
 
-    _tf = getattr(request, 'user_platform_prefs', {}).get('time_format', '12h')
+    _tf = _normalize_time_format_preference(
+        getattr(request, 'user_platform_prefs', {}).get('time_format', '12h')
+    )
 
     matches_payload = []
     for row in match_rows:
@@ -2456,13 +2495,16 @@ def participant_checkin(request, slug):
 
     if tournament.enable_check_in:
         now = timezone.now()
+        _tf = _normalize_time_format_preference(
+            getattr(request, 'user_platform_prefs', {}).get('time_format', '12h')
+        )
         check_in_opens = tournament.tournament_start - timezone.timedelta(minutes=tournament.check_in_minutes_before or 60)
         check_in_closes = tournament.tournament_start - timezone.timedelta(minutes=tournament.check_in_closes_minutes_before or 0)
 
         if now < check_in_opens:
             return JsonResponse({
                 'success': False,
-                'error': f'Check-in opens at {_format_display_datetime(check_in_opens, getattr(request, "user_platform_prefs", {}).get("time_format", "12h"))}'
+                'error': f'Check-in opens at {_format_display_datetime(check_in_opens, _tf)}'
             }, status=400)
 
         if now > check_in_closes:
