@@ -374,7 +374,7 @@ INSTALLED_APPS = [
     "apps.ecommerce",
     "apps.economy",
     "apps.shop",
-    "apps.siteui",
+    "apps.siteui.apps.SiteUIConfig",
     "apps.accounts",
     "apps.moderation",  # Phase 8: Admin & Moderation (sanctions, audit, reports)
     "apps.leaderboards",  # Phase E/F: Leaderboards Service + Engine V2
@@ -2193,6 +2193,33 @@ if _HAS_UNFOLD:
                         "title": "Testimonials",
                         "icon": "format_quote",
                         "link": reverse_lazy("admin:support_testimonial_changelist"),
+                    },
+                ],
+            },
+            # ── Arena Management ──
+            {
+                "title": "Arena Management",
+                "separator": True,
+                "items": [
+                    {
+                        "title": "Arena Highlights",
+                        "icon": "movie",
+                        "link": reverse_lazy("admin:siteui_arenahighlight_changelist"),
+                    },
+                    {
+                        "title": "Arena Streams",
+                        "icon": "live_tv",
+                        "link": reverse_lazy("admin:siteui_arenastream_changelist"),
+                    },
+                    {
+                        "title": "Arena Widgets (Polls)",
+                        "icon": "poll",
+                        "link": reverse_lazy("admin:siteui_arenaglobalwidget_changelist"),
+                    },
+                    {
+                        "title": "Arena Votes",
+                        "icon": "how_to_vote",
+                        "link": reverse_lazy("admin:siteui_arenaglobalwidgetvote_changelist"),
                     },
                 ],
             },

@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>DeltaCrown Arena | Live Matches</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Rajdhani:wght@500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        tech: ['Rajdhani', 'sans-serif'],
+                        mono: ['Space Mono', 'monospace'],
+                    },
+                    colors: {
+                        dc: {
+                            cyan: '#00f0ff',
+                            magenta: '#ff003c',
+                            dark: '#030305',
+                            surface: '#0a0a0f',
+                            panel: 'rgba(255, 255, 255, 0.03)',
+                            border: 'rgba(255, 255, 255, 0.08)'
+                        }
+                    },
+                    animation: {
+                        'live-pulse': 'livePulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    },
+                    keyframes: {
+                        livePulse: {
+                            '0%, 100%': { opacity: 1 },
+                            '50%': { opacity: .5 }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.3/dist/cdn.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        body {
+            background-color: #030305;
+            color: #fff;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .hide-scroll::-webkit-scrollbar { display: none; }
+        .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+
+        @media (min-width: 1024px) {
+            ::-webkit-scrollbar { width: 6px; }
+            ::-webkit-scrollbar-track { background: transparent; }
+            ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+            ::-webkit-scrollbar-thumb:hover { background: rgba(0, 240, 255, 0.5); }
+        }
+
+        .glass-card {
+            background: rgba(15, 15, 20, 0.6);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+    </style>
+</head>
+<body x-data="arenaMultiplex()" x-init="initApp()" class="flex flex-col min-h-screen pb-16 md:pb-0 font-sans antialiased">
+
+    <header class="hidden md:flex h-16 border-b border-dc-border bg-dc-surface/90 backdrop-blur-xl items-center px-6 sticky top-0 z-50 shrink-0">
+        <div class="flex items-center gap-2 text-white font-tech font-bold text-xl tracking-widest mr-8">
+            <i data-lucide="triangle" class="w-6 h-6 text-dc-cyan fill-dc-cyan/20"></i> DELTACROWN
+        </div>
+        <nav class="flex items-center gap-6 text-sm font-semibold">
+            <a href="#" class="text-gray-400 hover:text-white transition-colors">Home</a>
+            <a href="#" class="text-dc-cyan border-b-2 border-dc-cyan py-5">Arena</a>
+            <a href="#" class="text-gray-400 hover:text-white transition-colors">Tournaments</a>
+            <a href="#" class="text-gray-400 hover:text-white transition-colors">Teams</a>
+        </nav>
+        <div class="ml-auto flex items-center gap-4">
+            <div class="relative">
+                <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500"></i>
+                <input type="text" placeholder="Search matches, teams..." class="bg-black/50 border border-white/10 text-sm rounded-full pl-9 pr-4 py-1.5 focus:outline-none focus:border-dc-cyan text-white w-64">
+            </div>
+            <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-dc-cyan to-dc-magenta p-[1px] cursor-pointer">
+                <img src="https://ui-avatars.com/api/?name=Admin&background=000&color=fff" class="w-full h-full rounded-full">
+            </div>
+        </div>
+    </header>
+
+    <header class="md:hidden flex items-center justify-between h-14 px-4 sticky top-0 z-50 bg-dc-surface/95 backdrop-blur-md border-b border-dc-border">
+        <div class="flex items-center gap-2 font-tech font-bold text-lg tracking-widest">
+            <i data-lucide="triangle" class="w-5 h-5 text-dc-cyan fill-dc-cyan/20"></i> ARENA
+        </div>
+        <button class="text-gray-300 p-2"><i data-lucide="search" class="w-5 h-5"></i></button>
+    </header>
+
+    <div class="bg-dc-surface/90 backdrop-blur-md border-b border-dc-border sticky top-14 md:top-16 z-40 shadow-xl">
+        <div class="max-w-[1600px] mx-auto flex overflow-x-auto hide-scroll snap-x items-center px-4 py-3 gap-2">
+            <button @click="setGame('all')" class="snap-start shrink-0 px-4 py-1.5 rounded-full text-xs font-bold transition-all border whitespace-nowrap" :class="activeGame === 'all' ? 'bg-white text-black border-white shadow-[0_0_10px_rgba(255,255,255,0.3)]' : 'bg-black border-white/10 text-gray-400 hover:text-white'">All Games</button>
+            <template x-for="game in gamesList" :key="game.id">
+                <button @click="setGame(game.id)" class="snap-start shrink-0 px-4 py-1.5 rounded-full text-xs font-bold transition-all border flex items-center gap-2 whitespace-nowrap" :class="activeGame === game.id ? 'bg-dc-panel border-dc-cyan text-white shadow-[0_0_15px_rgba(0,240,255,0.15)]' : 'bg-black border-white/10 text-gray-400 hover:border-white/30 hover:text-white'">
+                    <span class="w-2 h-2 rounded-full" :class="game.colorClass"></span>
+                    <span x-text="game.name"></span>
+                </button>
+            </template>
+        </div>
+    </div>
+
+    <main class="flex-1 max-w-[1600px] w-full mx-auto p-4 md:p-6 lg:p-8 grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
+
+        <div class="lg:col-span-8 space-y-6 md:space-y-8">
+
+            <section x-show="liveStreams.length > 0">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-sm font-bold uppercase tracking-widest text-white flex items-center gap-2"><div class="w-2 h-2 bg-dc-magenta rounded-full animate-live-pulse shadow-[0_0_8px_#ff003c]"></div> Top Broadcasts</h2>
+                    <span class="text-[10px] text-gray-500 font-mono" x-text="liveStreams.length + ' Active Streams'"></span>
+                </div>
+
+                <div class="flex overflow-x-auto hide-scroll snap-x gap-4 pb-4 md:grid md:grid-cols-2 lg:grid-cols-2">
+                    <template x-for="stream in liveStreams" :key="stream.id">
+
+                        <div class="snap-start shrink-0 w-[85vw] md:w-full relative rounded-2xl overflow-hidden glass-card group border border-white/5 hover:border-white/20 transition-all shadow-xl flex flex-col">
+
+                            <div class="aspect-video w-full relative bg-black shrink-0">
+
+                                <template x-if="!stream.playing">
+                                    <div class="w-full h-full relative cursor-pointer" @click="stream.playing = true">
+                                        <img :src="stream.thumb" class="w-full h-full object-cover opacity-75 group-hover:scale-105 transition-transform duration-700">
+                                        <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
+
+                                        <div class="absolute top-3 left-3 flex gap-2 z-10">
+                                            <span class="bg-dc-magenta text-white text-[9px] font-black px-2 py-1 rounded uppercase animate-pulse">Live</span>
+                                            <span class="bg-black/60 backdrop-blur text-white text-[9px] font-bold px-2 py-1 rounded flex items-center gap-1"><i data-lucide="users" class="w-3 h-3"></i> <span x-text="stream.viewers"></span></span>
+                                        </div>
+
+                                        <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-[2px] bg-black/20">
+                                            <div class="w-14 h-14 rounded-full bg-dc-cyan/90 text-black flex items-center justify-center shadow-[0_0_30px_#00f0ff] transform group-hover:scale-110 transition-transform"><i data-lucide="play" class="w-6 h-6 fill-black ml-1"></i></div>
+                                        </div>
+                                    </div>
+                                </template>
+
+                                <template x-if="stream.playing">
+                                    <iframe :src="`https://www.youtube.com/embed/${stream.videoId}?autoplay=1&rel=0`" class="w-full h-full border-0 absolute inset-0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                                </template>
+                            </div>
+
+                            <div class="p-4 bg-gradient-to-b from-white/[0.02] to-transparent flex-1 flex flex-col justify-between">
+                                <p class="text-[10px] font-bold text-dc-cyan uppercase tracking-wider mb-2 line-clamp-1" x-text="stream.tournament"></p>
+                                <div class="flex justify-between items-center w-full">
+                                    <div class="flex items-center gap-3 w-2/5">
+                                        <div class="w-7 h-7 bg-white/10 border border-white/10 rounded flex items-center justify-center text-[10px] font-black text-white" x-text="stream.teamA_tag"></div>
+                                        <span class="text-sm font-bold text-white truncate" x-text="stream.teamA"></span>
+                                    </div>
+                                    <div class="text-xl font-tech font-black text-white px-2 tracking-widest"><span x-text="stream.scoreA"></span> - <span x-text="stream.scoreB"></span></div>
+                                    <div class="flex items-center gap-3 w-2/5 justify-end">
+                                        <span class="text-sm font-bold text-white truncate text-right" x-text="stream.teamB"></span>
+                                        <div class="w-7 h-7 bg-white/10 border border-white/10 rounded flex items-center justify-center text-[10px] font-black text-white" x-text="stream.teamB_tag"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </template>
+                </div>
+            </section>
+
+            <section>
+                <div class="flex items-center justify-between border-b border-white/10 mb-4 sticky top-[100px] md:top-[116px] bg-dc-dark/95 backdrop-blur-md z-30 pt-2">
+                    <div class="flex gap-6">
+                        <button @click="matchTab = 'live'" class="pb-3 text-xs md:text-sm font-bold uppercase tracking-widest transition-colors relative" :class="matchTab === 'live' ? 'text-white' : 'text-gray-500 hover:text-gray-300'">
+                            Live Data
+                            <div x-show="matchTab === 'live'" class="absolute bottom-0 left-0 w-full h-0.5 bg-dc-cyan shadow-[0_0_8px_#00f0ff]"></div>
+                        </button>
+                        <button @click="matchTab = 'upcoming'" class="pb-3 text-xs md:text-sm font-bold uppercase tracking-widest transition-colors relative" :class="matchTab === 'upcoming' ? 'text-white' : 'text-gray-500 hover:text-gray-300'">
+                            Upcoming
+                            <div x-show="matchTab === 'upcoming'" class="absolute bottom-0 left-0 w-full h-0.5 bg-dc-cyan shadow-[0_0_8px_#00f0ff]"></div>
+                        </button>
+                        <button @click="matchTab = 'results'" class="pb-3 text-xs md:text-sm font-bold uppercase tracking-widest transition-colors relative" :class="matchTab === 'results' ? 'text-white' : 'text-gray-500 hover:text-gray-300'">
+                            Results
+                            <div x-show="matchTab === 'results'" class="absolute bottom-0 left-0 w-full h-0.5 bg-dc-cyan shadow-[0_0_8px_#00f0ff]"></div>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="space-y-3">
+                    <template x-for="match in filteredMatches" :key="match.id">
+
+                        <div x-show="match.type === 'vs'" class="glass-card rounded-xl p-4 flex flex-col md:flex-row md:items-center gap-4 hover:border-white/20 transition-colors cursor-pointer group">
+
+                            <div class="flex items-center md:flex-col md:items-start md:w-32 shrink-0 border-b md:border-b-0 md:border-r border-white/5 pb-3 md:pb-0 md:pr-4">
+                                <span class="text-[9px] font-bold text-gray-400 uppercase tracking-widest bg-black/50 px-2 py-0.5 rounded border border-white/5" x-text="getGameName(match.gameId)"></span>
+                                <div class="ml-auto md:ml-0 md:mt-2 text-xs font-semibold" :class="match.status === 'LIVE' ? 'text-dc-magenta animate-live-pulse' : 'text-gray-500'" x-text="match.status === 'LIVE' ? 'LIVE NOW' : match.time"></div>
+                            </div>
+
+                            <div class="flex-1 flex items-center justify-between py-2 md:py-0">
+                                <div class="flex items-center gap-3 w-2/5">
+                                    <div class="w-8 h-8 rounded-lg bg-black border border-white/10 flex items-center justify-center text-[10px] font-black" x-text="match.teamA_tag"></div>
+                                    <span class="text-sm font-bold text-white truncate group-hover:text-dc-cyan transition-colors" x-text="match.teamA"></span>
+                                </div>
+
+                                <div class="w-1/5 flex flex-col items-center">
+                                    <span x-show="match.status === 'LIVE' || matchTab === 'results'" class="text-xl font-tech font-black tracking-widest text-white whitespace-nowrap"><span x-text="match.scoreA"></span> - <span x-text="match.scoreB"></span></span>
+                                    <span x-show="match.status === 'UPCOMING'" class="text-sm font-bold text-gray-500">VS</span>
+                                    <span class="text-[9px] text-gray-500 uppercase tracking-widest mt-1 text-center truncate w-full" x-text="match.details"></span>
+                                </div>
+
+                                <div class="flex items-center justify-end gap-3 w-2/5">
+                                    <span class="text-sm font-bold text-white truncate group-hover:text-dc-cyan transition-colors text-right" x-text="match.teamB"></span>
+                                    <div class="w-8 h-8 rounded-lg bg-black border border-white/10 flex items-center justify-center text-[10px] font-black" x-text="match.teamB_tag"></div>
+                                </div>
+                            </div>
+
+                            <div class="md:w-24 shrink-0 flex justify-end items-center border-t md:border-t-0 md:border-l border-white/5 pt-3 md:pt-0 md:pl-4">
+                                <button class="text-[10px] font-bold uppercase tracking-widest text-gray-400 group-hover:text-white flex items-center gap-1 transition-colors">
+                                    <span x-text="match.status === 'LIVE' ? 'Tracker' : 'Details'"></span> <i data-lucide="chevron-right" class="w-3 h-3"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                    </template>
+
+                    <template x-for="match in filteredBrMatches" :key="match.id">
+                        <div class="glass-card rounded-xl p-4 flex flex-col md:flex-row items-center gap-4 hover:border-[#facc15]/30 transition-colors cursor-pointer group border-l-2 border-l-[#facc15]/50">
+                            <div class="w-full md:w-32 flex flex-row md:flex-col justify-between md:justify-center items-center md:items-start shrink-0 border-b md:border-b-0 md:border-r border-white/5 pb-3 md:pb-0 md:pr-4">
+                                <span class="text-[9px] font-bold text-[#facc15] uppercase tracking-widest bg-[#facc15]/10 px-2 py-0.5 rounded border border-[#facc15]/20 flex items-center gap-1"><i data-lucide="crosshair" class="w-3 h-3"></i> BR</span>
+                                <div class="text-xs font-semibold md:mt-2" :class="match.status === 'LIVE' ? 'text-dc-magenta animate-live-pulse' : 'text-gray-500'" x-text="match.status === 'LIVE' ? 'LIVE DROP' : match.time"></div>
+                            </div>
+                            <div class="flex-1 w-full text-center md:text-left py-2 md:py-0">
+                                <h4 class="text-sm font-bold text-white" x-text="match.tournament"></h4>
+                                <p class="text-xs text-gray-400 mt-1"><span x-text="match.phase"></span> • <span class="text-white font-bold" x-text="match.alive"></span> Teams <span x-text="match.status === 'LIVE' ? 'Alive' : 'Registered'"></span></p>
+                            </div>
+                            <div class="w-full md:w-auto mt-2 md:mt-0 flex justify-end">
+                                <button class="w-full md:w-auto bg-black/50 border border-white/10 hover:border-white/30 text-xs font-bold text-white px-4 py-2 rounded-lg transition-colors flex items-center justify-center gap-2">View Board <i data-lucide="bar-chart-2" class="w-4 h-4"></i></button>
+                            </div>
+                        </div>
+                    </template>
+
+                    <div x-show="filteredMatches.length === 0 && filteredBrMatches.length === 0" class="text-center py-12 glass-card rounded-xl border-dashed">
+                        <i data-lucide="ghost" class="w-8 h-8 text-gray-600 mx-auto mb-3"></i>
+                        <p class="text-sm font-bold text-gray-400">No matches found in this category.</p>
+                    </div>
+                </div>
+
+            </section>
+        </div>
+
+        <aside class="hidden lg:block lg:col-span-4 space-y-8">
+
+            <div class="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-[1.5rem] p-6 relative overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
+                <div class="absolute top-[-50px] left-[-50px] w-48 h-48 bg-dc-cyan/10 rounded-full blur-[60px] pointer-events-none"></div>
+                <div class="absolute bottom-[-50px] right-[-50px] w-48 h-48 bg-dc-magenta/10 rounded-full blur-[60px] pointer-events-none"></div>
+
+                <div class="flex items-center justify-between mb-6 relative z-10">
+                    <div class="bg-white/10 rounded-full px-3 py-1 flex items-center gap-2 border border-white/5 backdrop-blur-md">
+                        <div class="w-2 h-2 rounded-full bg-dc-cyan animate-pulse shadow-[0_0_8px_#00f0ff]"></div>
+                        <span class="text-[9px] font-bold text-white uppercase tracking-wider">Fan Pulse</span>
+                    </div>
+                    <span class="text-[10px] text-gray-400 font-mono tracking-widest uppercase">Global Widget</span>
+                </div>
+
+                <div class="space-y-5 relative z-10">
+                    <div class="border-l-2 border-dc-cyan pl-3">
+                        <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Valorant Premier S1</p>
+                        <h4 class="text-[15px] font-bold text-white leading-snug">Who wins the Grand Final?</h4>
+                    </div>
+
+                    <div class="space-y-3">
+                        <button @click="hasVoted = true; selectedOpt = 'A'" class="w-full relative rounded-xl overflow-hidden border border-white/10 bg-black/40 hover:bg-black/60 transition-all p-3 text-left group" :class="selectedOpt === 'A' ? 'ring-1 ring-dc-cyan shadow-[0_0_15px_rgba(0,240,255,0.15)]' : ''">
+                            <div class="absolute left-0 top-0 bottom-0 bg-dc-cyan/20 transition-all duration-1000 ease-out z-0" :style="hasVoted ? 'width: 62%' : 'width: 0%'"></div>
+                            <div class="relative z-10 flex justify-between items-center">
+                                <span class="font-bold text-gray-200 group-hover:text-white transition-colors text-sm">Phoenix Syndicate</span>
+                                <span x-show="hasVoted" class="font-black text-dc-cyan text-sm">62%</span>
+                            </div>
+                        </button>
+                        <button @click="hasVoted = true; selectedOpt = 'B'" class="w-full relative rounded-xl overflow-hidden border border-white/10 bg-black/40 hover:bg-black/60 transition-all p-3 text-left group" :class="selectedOpt === 'B' ? 'ring-1 ring-dc-magenta shadow-[0_0_15px_rgba(255,0,60,0.15)]' : ''">
+                            <div class="absolute left-0 top-0 bottom-0 bg-dc-magenta/20 transition-all duration-1000 ease-out z-0" :style="hasVoted ? 'width: 38%' : 'width: 0%'"></div>
+                            <div class="relative z-10 flex justify-between items-center">
+                                <span class="font-bold text-gray-200 group-hover:text-white transition-colors text-sm">Viper Kings</span>
+                                <span x-show="hasVoted" class="font-black text-dc-magenta text-sm">38%</span>
+                            </div>
+                        </button>
+                    </div>
+                    <p x-show="hasVoted" class="text-center text-[10px] text-gray-500 font-mono mt-2">1,424 Signals Intercepted</p>
+                </div>
+            </div>
+
+            <div>
+                <div class="flex justify-between items-end mb-4 border-b border-white/10 pb-2">
+                    <h3 class="text-xs font-bold text-white uppercase tracking-widest flex items-center gap-2"><i data-lucide="clapperboard" class="w-4 h-4 text-dc-cyan"></i> Arena Highlights</h3>
+                    <a href="#" class="text-[10px] text-gray-400 hover:text-white uppercase tracking-widest">View All</a>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="aspect-[9/16] bg-black rounded-xl overflow-hidden relative group cursor-pointer border border-white/10">
+                        <img src="https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=400&auto=format&fit=crop" class="w-full h-full object-cover opacity-70 group-hover:scale-105 transition-transform duration-700">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent"></div>
+                        <div class="absolute top-2 right-2 bg-black/60 backdrop-blur px-1.5 py-0.5 rounded text-[8px] font-mono text-white">0:15</div>
+                        <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div class="w-10 h-10 rounded-full bg-white/20 backdrop-blur flex items-center justify-center"><i data-lucide="play" class="w-4 h-4 fill-white text-white ml-0.5"></i></div>
+                        </div>
+                        <div class="absolute bottom-3 left-3 right-3">
+                            <p class="text-[10px] font-bold text-white line-clamp-2 leading-snug">Insane 1v4 Clutch by NadiaFire 🔥</p>
+                            <p class="text-[8px] text-gray-400 mt-1 flex items-center gap-1"><i data-lucide="eye" class="w-3 h-3"></i> 2.4k views</p>
+                        </div>
+                    </div>
+                    <div class="aspect-[9/16] bg-black rounded-xl overflow-hidden relative group cursor-pointer border border-white/10">
+                        <img src="https://images.unsplash.com/photo-1511512578047-dfb367046420?q=80&w=400&auto=format&fit=crop" class="w-full h-full object-cover opacity-70 group-hover:scale-105 transition-transform duration-700">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent"></div>
+                        <div class="absolute top-2 right-2 bg-black/60 backdrop-blur px-1.5 py-0.5 rounded text-[8px] font-mono text-white">0:32</div>
+                        <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div class="w-10 h-10 rounded-full bg-white/20 backdrop-blur flex items-center justify-center"><i data-lucide="play" class="w-4 h-4 fill-white text-white ml-0.5"></i></div>
+                        </div>
+                        <div class="absolute bottom-3 left-3 right-3">
+                            <p class="text-[10px] font-bold text-white line-clamp-2 leading-snug">Final Zone Chaos - Genesis Cup</p>
+                            <p class="text-[8px] text-gray-400 mt-1 flex items-center gap-1"><i data-lucide="eye" class="w-3 h-3"></i> 1.1k views</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </aside>
+    </main>
+
+    <nav class="md:hidden fixed bottom-0 w-full h-16 bg-dc-surface/95 backdrop-blur-xl border-t border-dc-border flex items-center justify-around px-2 pb-safe z-50">
+        <a href="#" class="flex flex-col items-center gap-1 w-16 text-gray-500 hover:text-white transition-colors">
+            <i data-lucide="home" class="w-5 h-5"></i>
+            <span class="text-[8px] font-bold uppercase tracking-wider">Home</span>
+        </a>
+        <a href="#" class="flex flex-col items-center gap-1 w-16 text-dc-cyan">
+            <i data-lucide="radio" class="w-5 h-5 drop-shadow-[0_0_8px_rgba(0,240,255,0.8)]"></i>
+            <span class="text-[8px] font-bold uppercase tracking-wider">Arena</span>
+        </a>
+        <a href="#" class="flex flex-col items-center gap-1 w-16 text-gray-500 hover:text-white transition-colors">
+            <i data-lucide="trophy" class="w-5 h-5"></i>
+            <span class="text-[8px] font-bold uppercase tracking-wider">Events</span>
+        </a>
+        <a href="#" class="flex flex-col items-center gap-1 w-16 text-gray-500 hover:text-white transition-colors">
+            <i data-lucide="user" class="w-5 h-5"></i>
+            <span class="text-[8px] font-bold uppercase tracking-wider">Profile</span>
+        </a>
+    </nav>
+
+    <script>
+        function arenaMultiplex() {
+            return {
+                activeGame: 'all',
+                matchTab: 'live',
+                hasVoted: false,
+                selectedOpt: null,
+
+                // Game Master List
+                gamesList: [
+                    { id: 'val', name: 'VALORANT', colorClass: 'bg-[#ff4655]' },
+                    { id: 'pubgm', name: 'PUBG Mobile', colorClass: 'bg-[#facc15]' },
+                    { id: 'efootball', name: 'eFootball', colorClass: 'bg-blue-500' },
+                    { id: 'cs2', name: 'CS2', colorClass: 'bg-orange-500' },
+                    { id: 'mlbb', name: 'MLBB', colorClass: 'bg-indigo-400' },
+                    { id: 'ff', name: 'Free Fire', colorClass: 'bg-red-600' },
+                    { id: 'codm', name: 'CODM', colorClass: 'bg-gray-400' },
+                    { id: 'dota2', name: 'Dota 2', colorClass: 'bg-red-500' },
+                    { id: 'apex', name: 'Apex Legends', colorClass: 'bg-red-500' },
+                    { id: 'r6', name: 'Rainbow Six', colorClass: 'bg-blue-600' },
+                    { id: 'lol', name: 'League of Legends', colorClass: 'bg-[#C89B3C]' }
+                ],
+
+                getGameName(id) {
+                    const game = this.gamesList.find(g => g.id === id);
+                    return game ? game.name : id;
+                },
+
+                setGame(id) {
+                    this.activeGame = id;
+                    // Auto-pause streams when changing filters
+                    this.allLiveStreams.forEach(s => s.playing = false);
+                },
+
+                // Embedded YouTube Streams (Actual VCT & Coachella Videos)
+                allLiveStreams: [
+                    { id: 's1', gameId: 'val', tournament: 'VCT Americas Stage 1', teamA: 'MIBR', teamA_tag: 'MIBR', teamB: 'LOUD', teamB_tag: 'LOUD', scoreA: 1, scoreB: 1, viewers: '142k', videoId: 'lkUArRyUtdQ', thumb: 'https://i.ytimg.com/vi/lkUArRyUtdQ/maxresdefault.jpg', playing: false },
+                    { id: 's2', gameId: 'efootball', tournament: 'Genesis Main Stage', teamA: 'Festival', teamA_tag: 'FST', teamB: 'Live', teamB_tag: 'LVE', scoreA: '-', scoreB: '-', viewers: '85k', videoId: 'xIiSaqq10Yw', thumb: 'https://i.ytimg.com/vi/xIiSaqq10Yw/maxresdefault_live.jpg', playing: false }
+                ],
+
+                // Expansive Dummy Data for Data-Only Matches
+                allMatches: [
+                    // Live
+                    { id: 'm1', gameId: 'val', type: 'vs', status: 'LIVE', time: '', teamA: 'Nova Esports', teamA_tag: 'NVA', teamB: 'Team Quantum', teamB_tag: 'QTM', scoreA: 11, scoreB: 9, details: 'Map 2 - Ascent' },
+                    { id: 'm2', gameId: 'cs2', type: 'vs', status: 'LIVE', time: '', teamA: 'Dark Riders', teamA_tag: 'DR', teamB: 'Ignite Gaming', teamB_tag: 'IG', scoreA: 15, scoreB: 15, details: 'Overtime' },
+                    { id: 'm3', gameId: 'efootball', type: 'vs', status: 'LIVE', time: '', teamA: 'Dhaka Kings', teamA_tag: 'DK', teamB: 'Chittagong Pros', teamB_tag: 'CTG', scoreA: 2, scoreB: 1, details: '2nd Half - 75\'' },
+                    { id: 'm4', gameId: 'dota2', type: 'vs', status: 'LIVE', time: '', teamA: 'Team Secret', teamA_tag: 'SEC', teamB: 'OG Esports', teamB_tag: 'OG', scoreA: 1, scoreB: 0, details: 'Game 2 - 35:12' },
+
+                    // Upcoming
+                    { id: 'm5', gameId: 'mlbb', type: 'vs', status: 'UPCOMING', time: 'Today, 8:00 PM', teamA: 'Blacklist', teamA_tag: 'BLK', teamB: 'Echo', teamB_tag: 'ECO', scoreA: '-', scoreB: '-', details: 'BO3 Series' },
+                    { id: 'm6', gameId: 'val', type: 'vs', status: 'UPCOMING', time: 'Tomorrow, 2:00 PM', teamA: 'Sentinels', teamA_tag: 'SEN', teamB: 'Paper Rex', teamB_tag: 'PRX', scoreA: '-', scoreB: '-', details: 'Grand Final' },
+                    { id: 'm7', gameId: 'cs2', type: 'vs', status: 'UPCOMING', time: 'Tomorrow, 6:00 PM', teamA: 'Navi', teamA_tag: 'NAV', teamB: 'Faze Clan', teamB_tag: 'FAZ', scoreA: '-', scoreB: '-', details: 'Group A' },
+
+                    // Results
+                    { id: 'm8', gameId: 'cs2', type: 'vs', status: 'COMPLETED', time: 'Yesterday', teamA: 'Team Vitality', teamA_tag: 'VIT', teamB: 'G2 Esports', teamB_tag: 'G2', scoreA: 2, scoreB: 0, details: 'Final' },
+                    { id: 'm9', gameId: 'efootball', type: 'vs', status: 'COMPLETED', time: '2 Days Ago', teamA: 'Redwan', teamA_tag: 'RDW', teamB: 'Alex', teamB_tag: 'ALX', scoreA: 3, scoreB: 1, details: 'Quarterfinal' },
+                    { id: 'm10', gameId: 'lol', type: 'vs', status: 'COMPLETED', time: 'Last Week', teamA: 'T1', teamA_tag: 'T1', teamB: 'JDG', teamB_tag: 'JDG', scoreA: 3, scoreB: 2, details: 'Worlds Semifinal' }
+                ],
+
+                allBrMatches: [
+                    { id: 'br1', gameId: 'pubgm', type: 'br', status: 'LIVE', time: '', tournament: 'PUBGM Pro Series', phase: 'Map 3 - Miramar', alive: 12 },
+                    { id: 'br2', gameId: 'ff', type: 'br', status: 'LIVE', time: '', tournament: 'Free Fire World Cup', phase: 'Match 5 - Bermuda', alive: 8 },
+                    { id: 'br3', gameId: 'codm', type: 'br', status: 'UPCOMING', time: 'Today, 9:00 PM', tournament: 'CODM Championship', phase: 'Group A - Match 1', alive: 16 },
+                    { id: 'br4', gameId: 'apex', type: 'br', status: 'COMPLETED', time: 'Yesterday', tournament: 'ALGS Split 1', phase: 'Finals', alive: 0 }
+                ],
+
+                get liveStreams() {
+                    if (this.activeGame === 'all') return this.allLiveStreams;
+                    return this.allLiveStreams.filter(s => s.gameId === this.activeGame);
+                },
+
+                get filteredMatches() {
+                    let matches = this.allMatches.filter(m => m.status === (this.matchTab === 'results' ? 'COMPLETED' : this.matchTab.toUpperCase()));
+                    if (this.activeGame !== 'all') {
+                        matches = matches.filter(m => m.gameId === this.activeGame);
+                    }
+                    return matches;
+                },
+
+                get filteredBrMatches() {
+                    let matches = this.allBrMatches.filter(m => m.status === (this.matchTab === 'results' ? 'COMPLETED' : this.matchTab.toUpperCase()));
+                    if (this.activeGame !== 'all') {
+                        matches = matches.filter(m => m.gameId === this.activeGame);
+                    }
+                    return matches;
+                },
+
+                initApp() {
+                    setTimeout(() => { if (window.lucide) lucide.createIcons(); }, 50);
+                }
+            }
+        }
+    </script>
+</body>
+</html>

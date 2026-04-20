@@ -31,6 +31,13 @@ class CSPMiddleware:
         "https://www.googletagmanager.com",
         "https://www.google-analytics.com",
     )
+    FRAME_SOURCES = (
+        "https://www.youtube.com",
+        "https://www.youtube-nocookie.com",
+        "https://player.twitch.tv",
+        "https://clips.twitch.tv",
+        "https://www.facebook.com",
+    )
 
     def __init__(self, get_response):
         self.get_response = get_response
@@ -54,6 +61,7 @@ class CSPMiddleware:
         cdn = " ".join(self.CDN_SOURCES)
         fonts = " ".join(self.FONT_SOURCES)
         analytics = " ".join(self.ANALYTICS_SOURCES)
+        frames = " ".join(self.FRAME_SOURCES)
 
         eval_token = " 'unsafe-eval'" if unsafe_eval else ""
         directives = [
@@ -65,7 +73,7 @@ class CSPMiddleware:
             f"img-src 'self' data: blob: https:",
             "media-src 'self' data: blob:",
             f"connect-src 'self' {analytics} {cdn} ws: wss:",
-            "frame-src 'none'",
+            f"frame-src 'self' {frames}",
             "object-src 'none'",
             "base-uri 'self'",
             "form-action 'self'",

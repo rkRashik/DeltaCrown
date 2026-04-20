@@ -1,636 +1,782 @@
 {% extends "base.html" %}
-{% load static %}
-{% load humanize %}
+{% load static humanize %}
 
-{% block title %}Arena — DeltaCrown{% endblock %}
-{% block og_title %}Arena — Live Esports Watch Hub{% endblock %}
+{% block title %}Arena | DeltaCrown{% endblock %}
+{% block og_title %}Arena | DeltaCrown Live Esports{% endblock %}
+{% block og_description %}Watch live DeltaCrown broadcasts, follow active matches, explore upcoming fixtures, and review final results in one Arena experience.{% endblock %}
 
 {% block extra_head %}
-<meta name="description" content="Watch live esports streams, VODs and upcoming broadcasts on DeltaCrown Arena. Your front-row seat to Bangladesh's premier competitive gaming.">
+<meta name="description" content="DeltaCrown Arena brings live broadcasts, match tracking, highlights, and fan pulse predictions into one esports command surface.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Rajdhani:wght@500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/lucide@latest"></script>
-<script nonce="{{ request.csp_nonce }}">
-tailwind.config = {
-    darkMode: 'class',
-    theme: {
-        extend: {
-            colors: {
-                'dc-cyan': '#06b6d4',
-                'dc-purple': '#8b5cf6',
-                'dc-gold': '#facc15',
-                'dc-red': '#ef4444',
-                'dc-dark': '#050505',
-                'dc-surface': '#0d0d0d'
-            },
-            fontFamily: {
-                'sans': ['Inter', 'system-ui', 'sans-serif'],
-                'display': ['Space Grotesk', 'sans-serif']
-            }
-        }
-    }
-};
-</script>
 {% endblock %}
 
 {% block extra_css %}
 <style>
-/* ===== BASE ===== */
-body {
-    background: #050505;
-    color: #fff;
-    font-family: 'Inter', sans-serif;
-    overflow-x: hidden;
-    text-rendering: optimizeLegibility;
-    -webkit-font-smoothing: antialiased;
-}
-h1,h2,h3,h4,h5,h6 { font-family: 'Space Grotesk', sans-serif; line-height: 1.15; }
+  /* --- GLOBAL ESPORTS VIBE --- */
+  .arena-root {
+    --arena-cyan: #00f0ff;
+    --arena-magenta: #ff003c;
+    --arena-gold: #fbbf24;
+    --arena-bg: #030406;
+    background-color: var(--arena-bg);
+    background-image: 
+      radial-gradient(circle at 15% 0%, rgba(0, 240, 255, 0.06) 0%, transparent 40%),
+      radial-gradient(circle at 85% 100%, rgba(255, 0, 60, 0.05) 0%, transparent 40%);
+    background-attachment: fixed;
+    color: #f8fafc;
+    min-height: calc(100vh - 4rem);
+    padding-bottom: 3rem;
+    font-family: "Inter", sans-serif;
+  }
 
-/* Film grain */
-body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    z-index: 9999;
-    pointer-events: none;
-    opacity: .03;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-}
+  .arena-font-tech { font-family: "Rajdhani", sans-serif; }
+  .arena-font-mono { font-family: "Space Mono", monospace; }
 
-/* ===== GLASS ===== */
-.glass-panel {
-    background: rgba(255,255,255,0.025);
-    backdrop-filter: blur(16px) saturate(1.3);
-    border: 1px solid rgba(255,255,255,0.06);
-    border-radius: 16px;
-    transition: all .35s cubic-bezier(.22,1,.36,1);
-}
-.glass-panel:hover {
-    background: rgba(255,255,255,0.045);
-    border-color: rgba(6,182,212,0.25);
-}
+  .hide-scroll::-webkit-scrollbar { display: none; }
+  .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
 
-/* ===== LIVE ===== */
-.live-dot {
-    width: 8px; height: 8px;
-    background: #ef4444;
-    border-radius: 50%;
-    animation: pulseLive 1.5s ease-in-out infinite;
-    box-shadow: 0 0 8px rgba(239,68,68,0.6);
-}
-@keyframes pulseLive {
-    0%,100% { opacity:1; transform:scale(1); box-shadow: 0 0 8px rgba(239,68,68,0.6); }
-    50% { opacity:.5; transform:scale(1.4); box-shadow: 0 0 16px rgba(239,68,68,0.8); }
-}
-.badge-live {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 3px 10px;
-    background: rgba(239,68,68,0.15);
-    border: 1px solid rgba(239,68,68,0.3);
-    border-radius: 9999px;
-    font-size: 11px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: .06em;
-    color: #ef4444;
-}
+  /* --- PREMIUM GLASSMORPHISM --- */
+  .arena-glass {
+    background: rgba(15, 17, 22, 0.65);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  }
 
-/* ===== FILTER CHIPS ===== */
-.filter-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 14px;
-    border-radius: 9999px;
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: .02em;
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.08);
-    color: #94a3b8;
-    transition: all .2s ease;
-    text-decoration: none;
-    cursor: pointer;
-}
-.filter-chip:hover, .filter-chip.active {
-    background: rgba(6,182,212,0.1);
-    border-color: rgba(6,182,212,0.3);
-    color: #06b6d4;
-}
-
-/* ===== VOD CARDS ===== */
-.vod-card {
-    background: rgba(255,255,255,0.02);
-    border: 1px solid rgba(255,255,255,0.05);
-    border-radius: 14px;
+  /* --- HERO BANNER --- */
+  .arena-hero {
+    position: relative;
+    border-radius: 1.5rem;
     overflow: hidden;
-    transition: all .35s cubic-bezier(.22,1,.36,1);
-}
-.vod-card:hover {
-    transform: translateY(-4px);
-    border-color: rgba(6,182,212,0.3);
-    box-shadow: 0 12px 40px rgba(6,182,212,0.08);
-}
-.vod-card .thumb-wrap { position: relative; overflow: hidden; }
-.vod-card .thumb-wrap img { transition: transform .5s ease; }
-.vod-card:hover .thumb-wrap img { transform: scale(1.06); }
-.vod-card .play-overlay {
-    position: absolute; inset: 0;
-    display: grid; place-items: center;
-    background: rgba(0,0,0,0.4);
-    opacity: 0; transition: opacity .3s ease;
-}
-.vod-card:hover .play-overlay { opacity: 1; }
+    background: linear-gradient(135deg, #0a0c10 0%, #111318 100%);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    padding: 2.5rem 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 2rem;
+    box-shadow: 0 20px 40px -10px rgba(0,0,0,0.5);
+  }
+  .arena-hero::before {
+    content: ''; position: absolute; inset: 0;
+    background: radial-gradient(circle at top right, rgba(0, 240, 255, 0.1), transparent 50%),
+                radial-gradient(circle at bottom left, rgba(255, 0, 60, 0.1), transparent 50%);
+    pointer-events: none;
+  }
 
-/* ===== SIDEBAR ===== */
-.stream-item {
-    display: flex; gap: 12px; padding: 12px;
-    border-radius: 12px;
-    background: rgba(255,255,255,0.02);
-    border: 1px solid rgba(255,255,255,0.04);
-    transition: all .3s ease;
+  /* --- SEARCH BAR --- */
+  .arena-search-shell {
+    border-radius: 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(0, 0, 0, 0.4);
+    display: flex; align-items: center; gap: 0.75rem;
+    transition: all 0.3s ease;
+    padding: 0 1rem;
+    height: 3rem;
+  }
+  .arena-search-shell:focus-within {
+    border-color: rgba(0, 240, 255, 0.4);
+    background: rgba(0, 0, 0, 0.6);
+    box-shadow: 0 0 20px rgba(0, 240, 255, 0.1);
+  }
+  .arena-search-input {
+    border: 0; outline: 0; background: transparent; width: 100%;
+    color: #fff; font-size: 0.9rem;
+  }
+
+  /* --- GAME CHIPS --- */
+  .arena-sticky-rail {
+    position: sticky; top: 64px; z-index: 40;
+    background: rgba(3, 4, 6, 0.85);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+  .arena-chip {
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255,255,255,0.03);
+    color: #9ca3af;
+    display: inline-flex; align-items: center; gap: 0.5rem;
+    font-size: 0.75rem; font-weight: 700;
+    padding: 0.5rem 1rem;
+    transition: all 0.3s ease;
+    white-space: nowrap; text-decoration: none; cursor: pointer;
+  }
+  .arena-chip img {
+    width: 16px; height: 16px; border-radius: 4px; object-fit: cover;
+  }
+  .arena-chip:hover, .arena-chip.active {
+    border-color: rgba(0, 240, 255, 0.4); color: #fff;
+    background: rgba(0, 240, 255, 0.1);
+    box-shadow: 0 0 15px rgba(0, 240, 255, 0.15);
+  }
+
+  /* --- FOTMOB STYLE MATCH GROUPING --- */
+  .match-group-header {
+    display: flex; align-items: center; gap: 0.75rem;
+    padding: 1rem 1.25rem;
+    background: linear-gradient(90deg, rgba(255,255,255,0.03) 0%, transparent 100%);
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+  }
+  .match-group-container {
+    background: rgba(10, 12, 16, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    border-radius: 1rem;
+    overflow: hidden;
+    margin-bottom: 1.5rem;
+    transition: opacity 0.3s ease;
+  }
+  .compact-match-row {
+    display: grid;
+    grid-template-columns: 80px 1fr 70px 1fr 80px;
+    align-items: center; gap: 1rem;
+    padding: 0.85rem 1.25rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    transition: background 0.2s ease;
     text-decoration: none; color: inherit;
-}
-.stream-item:hover {
-    background: rgba(255,255,255,0.05);
-    border-color: rgba(6,182,212,0.25);
-    transform: translateX(4px);
-}
+  }
+  .compact-match-row:last-child { border-bottom: none; }
+  .compact-match-row:hover { background: rgba(255, 255, 255, 0.02); }
+  
+  /* Team Presentation */
+  .team-display {
+    display: flex; align-items: center; gap: 0.75rem; min-width: 0;
+  }
+  .team-display.right { justify-content: flex-end; text-align: right; }
+  .team-logo {
+    width: 24px; height: 24px; border-radius: 6px;
+    background: #1a1c23; border: 1px solid rgba(255,255,255,0.1);
+    display: flex; align-items: center; justify-content: center;
+    overflow: hidden; flex-shrink: 0;
+  }
+  .team-logo img { width: 100%; height: 100%; object-fit: cover; }
+  .team-logo span { font-size: 10px; font-weight: 900; color: #fff; }
+  .team-name { font-size: 0.85rem; font-weight: 700; color: #e2e8f0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-/* ===== SCHEDULE ===== */
-.schedule-row {
-    display: flex; align-items: center; gap: 16px; padding: 16px;
-    border-bottom: 1px solid rgba(255,255,255,0.04);
-    transition: background .2s ease;
-}
-.schedule-row:hover { background: rgba(255,255,255,0.02); }
-.schedule-row:last-child { border-bottom: none; }
+  /* Scores & Time */
+  .match-time-status { font-size: 0.7rem; font-weight: 600; color: #94a3b8; text-align: center; }
+  .match-time-status.live-text { color: var(--arena-magenta); animation: pulse 2s infinite; font-weight: 800; }
+  .score-box {
+    display: flex; justify-content: center; align-items: center; gap: 0.5rem;
+    font-family: "Rajdhani", sans-serif; font-size: 1.25rem; font-weight: 800; color: #fff;
+  }
+  .score-dash { color: #475569; font-size: 1rem; }
+  
+  /* Actions */
+  .match-action {
+    display: flex; justify-content: flex-end;
+  }
+  .play-action-btn {
+    width: 28px; height: 28px; border-radius: 8px;
+    background: rgba(0, 240, 255, 0.1); color: var(--arena-cyan);
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s ease; border: 1px solid rgba(0, 240, 255, 0.2);
+  }
+  .play-action-btn:hover { background: var(--arena-cyan); color: #000; transform: scale(1.1); }
 
-/* ===== HERO ===== */
-.hero-mesh { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
-.hero-mesh .orb { position: absolute; border-radius: 50%; filter: blur(80px); opacity: .3; }
-.hero-mesh .orb-1 { width: 600px; height: 600px; top: -200px; left: -100px; background: radial-gradient(circle, rgba(6,182,212,0.4), transparent 70%); }
-.hero-mesh .orb-2 { width: 500px; height: 500px; bottom: -150px; right: -80px; background: radial-gradient(circle, rgba(139,92,246,0.3), transparent 70%); }
-.hero-mesh .orb-3 { width: 300px; height: 300px; top: 50%; left: 50%; transform: translate(-50%,-50%); background: radial-gradient(circle, rgba(250,204,21,0.15), transparent 70%); }
+  /* --- INLINE THEATER PLAYER --- */
+  .arena-theater {
+    width: 100%;
+    background: #000;
+    border-radius: 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.75);
+    overflow: hidden;
+    margin-bottom: 2rem;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .theater-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0.75rem 1.25rem; background: #0a0c10;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+  .theater-video-wrapper {
+    position: relative; width: 100%; padding-top: 56.25%;
+  }
+  .theater-video-wrapper iframe {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0;
+  }
+  
+  .live-pulse-dot {
+    width: 6px; height: 6px; background: var(--arena-magenta); border-radius: 50%;
+    box-shadow: 0 0 10px rgba(255, 0, 60, 0.8); animation: pulse 2s infinite;
+  }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
 
-/* ===== SECTION LABEL ===== */
-.section-label {
-    display: flex; align-items: center; gap: 12px;
-    font-family: 'Space Grotesk', sans-serif;
-    font-size: 11px; font-weight: 700;
-    text-transform: uppercase; letter-spacing: .12em; color: #64748b;
-}
-.section-label::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, rgba(255,255,255,0.06), transparent); }
-
-/* ===== FEATURED PLAYER ===== */
-.featured-player {
-    border-radius: 16px; overflow: hidden; position: relative;
-    border: 1px solid rgba(255,255,255,0.06);
-}
-.featured-player iframe { width: 100%; height: 100%; display: block; }
-
-/* ===== SEARCH ===== */
-.arena-search {
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 12px; overflow: hidden; transition: border-color .2s ease;
-}
-.arena-search:focus-within { border-color: rgba(6,182,212,0.4); box-shadow: 0 0 0 3px rgba(6,182,212,0.08); }
-.arena-search input { background: transparent; border: none; outline: none; color: #e2e8f0; font-size: 14px; padding: 12px 16px; width: 100%; }
-.arena-search input::placeholder { color: #475569; }
-
-/* ===== EMPTY STATE ===== */
-.empty-state { text-align: center; padding: 48px 24px; color: #475569; }
-
-/* ===== PAGINATION ===== */
-.arena-pagination a, .arena-pagination span {
-    display: inline-flex; align-items: center; gap: 6px;
-    padding: 8px 16px; border-radius: 10px; font-size: 13px; font-weight: 600; transition: all .2s ease;
-}
-.arena-pagination a {
-    background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
-    color: #94a3b8; text-decoration: none;
-}
-.arena-pagination a:hover { background: rgba(6,182,212,0.1); border-color: rgba(6,182,212,0.3); color: #06b6d4; }
+  .arena-loading { opacity: 0.4; pointer-events: none; filter: blur(3px) grayscale(50%); transition: all 0.3s; }
 </style>
 {% endblock %}
 
 {% block content %}
-<main class="min-h-screen pb-24">
-
-    <!-- ===== HERO ===== -->
-    <section class="relative py-16 md:py-20">
-        <div class="hero-mesh">
-            <div class="orb orb-1"></div>
-            <div class="orb orb-2"></div>
-            <div class="orb orb-3"></div>
+<div class="arena-root">
+  
+  {# ── 1. CINEMATIC HERO SECTION ── #}
+  <section class="max-w-[1600px] mx-auto px-4 md:px-6 lg:px-8 pt-8 pb-6">
+    <div class="arena-hero">
+      <div class="relative z-10 flex-1">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-[10px] font-bold text-cyan-400 uppercase tracking-widest mb-4">
+          <i data-lucide="radio" class="w-3.5 h-3.5"></i> Global Command Center
         </div>
+        <h1 class="arena-font-tech text-5xl md:text-6xl font-black text-white leading-none tracking-tight uppercase">
+          DeltaCrown <span class="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">Arena</span>
+        </h1>
+        <p class="mt-4 text-sm md:text-base text-slate-400 max-w-xl leading-relaxed">
+          The central hub for live esports broadcasts, real-time match tracking, verified results, and community predictions. Experience the ecosystem in motion.
+        </p>
+      </div>
+      
+      <div class="hidden lg:block w-[350px] relative z-10">
+        <div class="arena-search-shell">
+          <i data-lucide="search" class="w-4 h-4 text-slate-400"></i>
+          <input id="arena-search-input" class="arena-search-input" type="search" placeholder="Search matches, teams..." value="{{ search_query }}">
+        </div>
+      </div>
+    </div>
+  </section>
 
-        <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <!-- Breadcrumb -->
-            <div class="flex items-center gap-2 text-xs text-slate-500 mb-6">
-                <a href="/" class="hover:text-dc-cyan transition no-underline text-slate-500">Home</a>
-                <i data-lucide="chevron-right" class="w-3 h-3"></i>
-                <span class="text-slate-400">Arena</span>
-            </div>
-
-            <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
-                <div>
-                    <div class="flex items-center gap-3 mb-3">
-                        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-dc-cyan/20 to-dc-purple/20 border border-dc-cyan/20 flex items-center justify-center">
-                            <i data-lucide="tv" class="w-5 h-5 text-dc-cyan"></i>
-                        </div>
-                        {% if live_streams %}
-                            <div class="badge-live">
-                                <span class="live-dot"></span>
-                                {{ live_streams|length }} Live Now
-                            </div>
-                        {% endif %}
-                    </div>
-                    <h1 class="text-4xl md:text-5xl font-extrabold tracking-tight text-white">Arena</h1>
-                    <p class="mt-3 text-slate-400 max-w-xl leading-relaxed">
-                        Your front-row seat to live tournaments, community broadcasts, and match replays across the DeltaCrown ecosystem.
-                    </p>
-                </div>
-
-                <!-- Search -->
-                <form method="get" action="" class="w-full lg:w-[380px] shrink-0">
-                    <div class="arena-search flex items-center">
-                        <i data-lucide="search" class="w-4 h-4 text-slate-500 ml-4 shrink-0"></i>
-                        <input name="q" type="search" placeholder="Search streams, games, channels..."
-                               value="{{ request.GET.q|default:'' }}" autocomplete="off">
-                        {% if request.GET.q %}
-                            <a href="{{ request.path }}" class="mr-3 text-slate-500 hover:text-dc-cyan transition">
-                                <i data-lucide="x" class="w-4 h-4"></i>
-                            </a>
-                        {% endif %}
-                    </div>
-                </form>
-            </div>
-
-            <!-- Game Filters -->
-            {% if games %}
-            <div class="mt-6 flex flex-wrap gap-2">
-                <a class="filter-chip {% if not request.GET.game %}active{% endif %}" href="{{ request.path }}{% if request.GET.q %}?q={{ request.GET.q|urlencode }}{% endif %}">
-                    <i data-lucide="layers" class="w-3.5 h-3.5"></i> All Games
-                </a>
-                {% for g in games %}
-                    <a class="filter-chip {% if request.GET.game == g.slug %}active{% endif %}"
-                       href="?game={{ g.slug|urlencode }}{% if request.GET.q %}&q={{ request.GET.q|urlencode }}{% endif %}">
-                        {{ g.name|default:g }}
-                    </a>
-                {% endfor %}
-            </div>
+  {# ── 2. DYNAMIC GAME FILTER CHIPS ── #}
+  <div class="arena-sticky-rail">
+    <div class="max-w-[1600px] mx-auto px-4 md:px-6 lg:px-8 py-3 overflow-x-auto hide-scroll">
+      <div class="flex items-center gap-2.5 min-w-max" id="game-chip-container">
+        <button data-arena-game="" class="arena-chip {% if not selected_game %}active{% endif %}">
+          <i data-lucide="layout-grid" class="w-4 h-4"></i> All Events
+        </button>
+        {% for g in games %}
+          <button data-arena-game="{{ g.slug }}" class="arena-chip {% if selected_game == g.slug %}active{% endif %}">
+            {% if g.icon %}
+              <img src="{{ g.icon.url }}" alt="{{ g.name }}">
+            {% else %}
+              <div class="w-4 h-4 rounded-[4px] bg-slate-700 flex items-center justify-center text-[8px] text-white">{{ g.name|slice:":2" }}</div>
             {% endif %}
-        </div>
-    </section>
+            {{ g.name }}
+          </button>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
 
-    <!-- ===== LIVE SCOREBOARD ===== -->
-    {% if arena_live_matches %}
-    <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-12">
-        <div class="section-label mb-4">
-            <i data-lucide="trophy" class="w-4 h-4 text-dc-gold"></i>
-            Live Scoreboard
-        </div>
+  <main class="max-w-[1600px] mx-auto px-4 md:px-6 lg:px-8 pt-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
+    
+    {# ── LEFT COLUMN (Matches & Broadcasts) ── #}
+    <section class="lg:col-span-8 space-y-10 relative">
 
-        <!-- Live Tournament Tabs -->
-        {% if arena_live_tournaments %}
-        <div class="flex flex-wrap gap-2 mb-4">
-            {% for t in arena_live_tournaments %}
-            <a href="/tournaments/{{ t.slug }}/"
-               class="filter-chip hover:border-red-500/30 hover:text-red-400 hover:bg-red-500/10" style="text-decoration:none;">
-                <span class="live-dot" style="width:6px;height:6px;"></span>
-                {{ t.name|truncatechars:24 }}
-                {% if t.game_name %}<span class="text-slate-600 ml-1 text-[10px]">{{ t.game_name }}</span>{% endif %}
-            </a>
-            {% endfor %}
+      {# --- INLINE THEATER MODE PLAYER (Hidden by default) --- #}
+      <div id="arena-theater-mode" class="arena-theater hidden">
+        <div class="theater-header">
+          <div class="flex items-center gap-3">
+            <div class="w-2 h-2 rounded-full bg-red-600 animate-pulse"></div>
+            <h3 id="theater-title" class="font-display font-bold text-base md:text-lg text-white line-clamp-1">Media Player</h3>
+          </div>
+          <div class="flex items-center gap-2">
+            <a id="theater-open-source" href="#" target="_blank" rel="noopener" class="px-2.5 py-1.5 rounded-md bg-white/5 hover:bg-white/10 border border-white/10 text-[10px] font-bold uppercase tracking-widest text-slate-300 hover:text-white transition-colors hidden sm:flex">Open External</a>
+            <button id="theater-close-btn" class="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors text-slate-400 hover:text-white">
+              <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+          </div>
         </div>
-        {% endif %}
-
-        <!-- Match Score Cards -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {% for m in arena_live_matches %}
-            <a href="/tournaments/{{ m.tournament_slug }}/matches/{{ m.id }}/"
-               class="glass-panel p-4 block no-underline group {% if m.is_live %}border-red-500/20{% endif %}"
-               style="text-decoration:none;">
-                <div class="flex items-center justify-between mb-2">
-                    <span class="text-[10px] text-slate-500 truncate flex-1 mr-2">{{ m.tournament_name|truncatechars:24 }}</span>
-                    {% if m.is_live %}
-                    <span class="badge-live" style="font-size:9px;padding:2px 6px;">
-                        <span class="live-dot" style="width:5px;height:5px;"></span> LIVE
-                    </span>
+        <div class="theater-video-wrapper">
+          <iframe id="theater-iframe" src="" frameborder="0" referrerpolicy="origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+        </div>
+      </div>
+      
+      {# --- TOP BROADCASTS --- #}
+      {% if top_live_streams %}
+      <section>
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-sm font-black uppercase tracking-widest text-white flex items-center gap-2">
+            <span class="live-pulse-dot"></span> Featured Broadcasts
+          </h2>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+          {% for stream in top_live_streams %}
+            <article class="arena-glass rounded-2xl overflow-hidden group border border-white/5 hover:border-cyan-500/30 transition-all cursor-pointer"
+                     data-arena-open-stream
+                     data-stream-title="{{ stream.display_title|default:stream.title|escape }}"
+                     data-stream-embed="{{ stream.safe_embed_url|default:stream.embed_url|default:stream.stream_url|escape }}"
+                     data-raw-url="{{ stream.source_url|default:stream.stream_url|escape }}">
+              <div class="aspect-video relative bg-black overflow-hidden">
+                <img src="{% if stream.display_thumbnail %}{{ stream.display_thumbnail }}{% elif stream.thumbnail_url %}{{ stream.thumbnail_url }}{% else %}https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=800&auto=format&fit=crop{% endif %}" 
+                     class="w-full h-full object-cover opacity-70 group-hover:scale-105 group-hover:opacity-90 transition-all duration-500 fall-img">
+                <div class="absolute inset-0 bg-gradient-to-t from-black/90 to-transparent"></div>
+                <div class="absolute top-3 left-3 flex gap-2">
+                  <span class="bg-red-600/90 backdrop-blur text-white text-[10px] font-black px-2 py-1 rounded shadow-lg uppercase flex items-center gap-1.5"><span class="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span> Live</span>
+                </div>
+                <div class="absolute inset-0 m-auto w-12 h-12 rounded-full bg-cyan-400/20 backdrop-blur-sm border border-cyan-400/50 flex items-center justify-center opacity-0 group-hover:opacity-100 group-hover:scale-110 transition-all">
+                  <i data-lucide="play" class="w-5 h-5 fill-cyan-400 text-cyan-400 ml-1"></i>
+                </div>
+              </div>
+              <div class="p-4">
+                <h3 class="text-sm font-bold text-white line-clamp-1 mb-1">
+                  {% if stream.display_title %}{{ stream.display_title }}{% else %}{{ stream.title }}{% endif %}
+                </h3>
+                <div class="flex items-center gap-2 text-[11px] text-slate-400 font-medium">
+                  <span>
+                    {% if stream.game_name %}
+                      {{ stream.game_name }}
+                    {% elif stream.game %}
+                      {{ stream.game.name }}
                     {% else %}
-                    <span class="text-[9px] text-slate-600 uppercase font-bold">{{ m.state }}</span>
+                      Esports
                     {% endif %}
+                  </span>
                 </div>
-                <div class="flex items-center justify-between">
-                    <div class="flex-1 min-w-0">
-                        <p class="text-sm font-bold text-white truncate {% if m.p1_score > m.p2_score %}text-emerald-300{% endif %}">{{ m.p1_name|default:"TBD" }}</p>
-                    </div>
-                    <div class="flex items-center gap-2 mx-3 flex-shrink-0">
-                        <span class="text-xl font-extrabold {% if m.p1_score > m.p2_score %}text-white{% else %}text-slate-600{% endif %}">{{ m.p1_score }}</span>
-                        <span class="text-xs text-slate-700">-</span>
-                        <span class="text-xl font-extrabold {% if m.p2_score > m.p1_score %}text-white{% else %}text-slate-600{% endif %}">{{ m.p2_score }}</span>
-                    </div>
-                    <div class="flex-1 min-w-0 text-right">
-                        <p class="text-sm font-bold text-white truncate {% if m.p2_score > m.p1_score %}text-emerald-300{% endif %}">{{ m.p2_name|default:"TBD" }}</p>
-                    </div>
-                </div>
-                <div class="flex items-center justify-between mt-2 text-[10px] text-slate-600">
-                    <span>R{{ m.round_number }} · M{{ m.match_number }}</span>
-                    {% if m.game_name %}<span>{{ m.game_name }}</span>{% endif %}
-                    {% if m.stream_url %}<span class="text-dc-cyan">📺 Stream</span>{% endif %}
-                </div>
-            </a>
-            {% endfor %}
+              </div>
+            </article>
+          {% endfor %}
         </div>
-    </section>
-    {% endif %}
+      </section>
+      {% endif %}
 
-    <!-- ===== FEATURED + LIVE SIDEBAR ===== -->
-    <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-12">
-        <div class="grid lg:grid-cols-3 gap-6">
+      {# --- DYNAMIC MATCH CENTER --- #}
+      <section>
+        <div class="flex items-center gap-6 border-b border-white/10 mb-6 pb-2" id="arena-tabs">
+          <button data-arena-tab="live" class="text-xs font-black uppercase tracking-widest pb-3 border-b-2 transition-colors {% if selected_tab == 'live' or not selected_tab %}text-cyan-400 border-cyan-400{% else %}text-slate-500 border-transparent hover:text-slate-300{% endif %}">Live Data</button>
+          <button data-arena-tab="upcoming" class="text-xs font-black uppercase tracking-widest pb-3 border-b-2 transition-colors {% if selected_tab == 'upcoming' %}text-white border-white{% else %}text-slate-500 border-transparent hover:text-slate-300{% endif %}">Fixtures</button>
+          <button data-arena-tab="results" class="text-xs font-black uppercase tracking-widest pb-3 border-b-2 transition-colors {% if selected_tab == 'results' %}text-white border-white{% else %}text-slate-500 border-transparent hover:text-slate-300{% endif %}">Results</button>
+        </div>
 
-            <!-- Featured Player -->
-            <div class="lg:col-span-2">
-                <div class="section-label mb-4">
-                    <i data-lucide="play-circle" class="w-4 h-4 text-dc-cyan"></i>
-                    Now Playing
-                </div>
+        {# The Container where AJAX pushes HTML & Initial Django Render Lives #}
+        <div id="arena-match-container" class="transition-opacity duration-300 min-h-[300px]">
+            
+            {# Render the initial data from the updated payload #}
+            {% if selected_tab == 'upcoming' %}
+                {% regroup upcoming_matches by tournament_name as current_groups %}
+            {% elif selected_tab == 'results' %}
+                {% regroup result_matches by tournament_name as current_groups %}
+            {% else %}
+                {% regroup live_matches by tournament_name as current_groups %}
+            {% endif %}
 
-                {% with featured=featured_stream %}
-                {% if featured %}
-                    <div class="featured-player">
-                        {% if featured.embed_url %}
-                            <div class="aspect-video bg-black">
-                                <iframe title="{{ featured.title|default:'Stream' }}"
-                                    src="{{ featured.embed_url }}{% if '?' in featured.embed_url %}&{% else %}?{% endif %}autoplay=1&mute=1"
-                                    allow="autoplay; encrypted-media; picture-in-picture"
-                                    allowfullscreen loading="lazy"></iframe>
-                            </div>
-                        {% else %}
-                            <button class="group w-full relative aspect-video bg-dc-dark grid place-items-center cursor-pointer"
-                                    data-open-watch data-embed-url="{{ featured.watch_url|default:'#' }}">
-                                {% if featured.thumbnail_url %}
-                                    <img src="{{ featured.thumbnail_url }}" alt="" class="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-80 transition-opacity">
+            {% for group in current_groups %}
+                <div class="match-group-container {% if selected_tab == 'results' %}opacity-80 hover:opacity-100 transition-opacity{% endif %}">
+                    <div class="match-group-header">
+                        <i data-lucide="{% if selected_tab == 'live' or not selected_tab %}trophy{% elif selected_tab == 'upcoming' %}calendar{% else %}history{% endif %}" 
+                           class="w-4 h-4 {% if selected_tab == 'live' or not selected_tab %}text-cyan-400{% else %}text-slate-400{% endif %}"></i>
+                        <span class="text-sm font-bold text-white">{{ group.grouper }}</span>
+                    </div>
+                    <div class="flex flex-col">
+                        {% for m in group.list %}
+                            <a href="{{ m.match_url|default:'#' }}" class="compact-match-row">
+                                
+                                {% if selected_tab == 'live' or not selected_tab %}
+                                    <div class="match-time-status live-text">LIVE <span class="animate-pulse">'</span></div>
+                                {% elif selected_tab == 'upcoming' %}
+                                    <div class="match-time-status">{{ m.scheduled_time|default:"TBD" }}</div>
+                                {% else %}
+                                    <div class="match-time-status text-slate-500">FT</div>
                                 {% endif %}
-                                <div class="relative z-10 w-16 h-16 rounded-full bg-dc-cyan/20 border border-dc-cyan/40 flex items-center justify-center group-hover:scale-110 transition-transform">
-                                    <i data-lucide="play" class="w-7 h-7 text-dc-cyan ml-1"></i>
-                                </div>
-                            </button>
-                        {% endif %}
-                    </div>
 
-                    <div class="glass-panel p-5 mt-3">
-                        <div class="flex items-start justify-between gap-4">
-                            <div class="min-w-0">
-                                <h2 class="text-lg font-bold text-white leading-snug truncate">{{ featured.title|default:"Untitled broadcast" }}</h2>
-                                <div class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2 text-sm text-slate-400">
-                                    {% if featured.channel %}<span class="flex items-center gap-1.5"><i data-lucide="user" class="w-3.5 h-3.5"></i> {{ featured.channel }}</span>{% endif %}
-                                    {% if featured.game %}<span class="flex items-center gap-1.5"><i data-lucide="gamepad-2" class="w-3.5 h-3.5"></i> {{ featured.game }}</span>{% endif %}
-                                    {% if featured.viewers %}<span class="flex items-center gap-1.5"><i data-lucide="eye" class="w-3.5 h-3.5"></i> {{ featured.viewers|intcomma }} watching</span>{% endif %}
-                                    {% if featured.start_time %}<span class="flex items-center gap-1.5"><i data-lucide="clock" class="w-3.5 h-3.5"></i> <time datetime="{{ featured.start_time|date:'c' }}">{{ featured.start_time|timesince }} ago</time></span>{% endif %}
-                                </div>
-                            </div>
-                            <div class="flex items-center gap-2 shrink-0">
-                                {% if featured.platform %}<span class="px-3 py-1 rounded-full text-xs font-semibold bg-white/5 border border-white/10 text-slate-300">{{ featured.platform }}</span>{% endif %}
-                                {% if featured.is_live %}<div class="badge-live"><span class="live-dot"></span> Live</div>{% endif %}
-                            </div>
-                        </div>
-                        {% if featured.tags %}
-                            <div class="mt-3 flex flex-wrap gap-2">
-                                {% for tg in featured.tags %}<span class="px-2.5 py-1 rounded-full text-xs font-medium bg-dc-cyan/10 text-dc-cyan border border-dc-cyan/15">#{{ tg }}</span>{% endfor %}
-                            </div>
-                        {% endif %}
-                    </div>
-                {% else %}
-                    <div class="glass-panel p-8">
-                        <div class="aspect-video flex flex-col items-center justify-center text-center">
-                            <div class="w-16 h-16 rounded-2xl bg-slate-800/50 flex items-center justify-center mb-4">
-                                <i data-lucide="tv-2" class="w-8 h-8 text-slate-600"></i>
-                            </div>
-                            <p class="text-slate-400 font-medium">No live streams or videos right now</p>
-                            <p class="text-slate-500 text-sm mt-1">Check back soon for upcoming broadcasts</p>
-                        </div>
-                    </div>
-                {% endif %}
-                {% endwith %}
-            </div>
-
-            <!-- Live Now Sidebar -->
-            <div class="flex flex-col">
-                <div class="section-label mb-4">
-                    <span class="live-dot"></span>
-                    Live Streams
-                </div>
-
-                <div class="flex-1 space-y-3 overflow-y-auto max-h-[600px] pr-1" style="scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.08) transparent;">
-                    {% if live_streams %}
-                        {% for s in live_streams|slice:":8" %}
-                            <a href="{{ s.watch_url|default:'#' }}" target="_blank" rel="noopener" class="stream-item group">
-                                <div class="relative w-24 h-16 rounded-lg overflow-hidden shrink-0">
-                                    <img src="{{ s.thumbnail_url|default:'/static/siteui/svg/community.svg' }}" alt="" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300">
-                                    <div class="absolute top-1 left-1 badge-live" style="font-size:9px; padding:2px 6px;">
-                                        <span class="live-dot" style="width:5px;height:5px;"></span> LIVE
+                                <div class="team-display right {% if selected_tab == 'results' and m.score_a < m.score_b %}text-slate-500{% else %}text-white{% endif %}">
+                                    <span class="team-name">{{ m.team_a }}</span>
+                                    <div class="team-logo">
+                                        {% if m.team_a_logo %}<img src="{{ m.team_a_logo }}" class="fall-img">{% else %}<span>{{ m.team_a_tag|default:"A" }}</span>{% endif %}
                                     </div>
                                 </div>
-                                <div class="min-w-0 flex-1 py-0.5">
-                                    <p class="text-sm font-semibold text-white truncate leading-snug">{{ s.title|default:"Live stream" }}</p>
-                                    <p class="text-xs text-slate-500 truncate mt-1">
-                                        {% if s.channel %}{{ s.channel }}{% endif %}{% if s.game %} · {{ s.game }}{% endif %}
-                                    </p>
-                                    {% if s.viewers %}<p class="text-xs text-slate-500 mt-1 flex items-center gap-1"><i data-lucide="eye" class="w-3 h-3"></i> {{ s.viewers|intcomma }}</p>{% endif %}
+                                
+                                <div class="score-box">
+                                    {% if selected_tab == 'upcoming' %}
+                                        <span class="score-dash">v</span>
+                                    {% else %}
+                                        <span class="{% if selected_tab == 'live' or not selected_tab %}text-cyan-400{% elif m.score_a > m.score_b %}text-white{% else %}text-slate-500{% endif %}">{{ m.score_a|default:"-" }}</span>
+                                        <span class="score-dash">-</span>
+                                        <span class="{% if selected_tab == 'live' or not selected_tab %}text-cyan-400{% elif m.score_b > m.score_a %}text-white{% else %}text-slate-500{% endif %}">{{ m.score_b|default:"-" }}</span>
+                                    {% endif %}
+                                </div>
+
+                                <div class="team-display {% if selected_tab == 'results' and m.score_b < m.score_a %}text-slate-500{% else %}text-white{% endif %}">
+                                    <div class="team-logo">
+                                        {% if m.team_b_logo %}<img src="{{ m.team_b_logo }}" class="fall-img">{% else %}<span>{{ m.team_b_tag|default:"B" }}</span>{% endif %}
+                                    </div>
+                                    <span class="team-name">{{ m.team_b }}</span>
+                                </div>
+
+                                <div class="match-action">
+                                    {% if m.stream_url or m.embed_url %}
+                                        <button class="play-action-btn" data-arena-open-stream data-stream-embed="{{ m.embed_url|default:m.stream_url }}" data-raw-url="{{ m.stream_url }}"><i data-lucide="play" class="w-3.5 h-3.5 fill-current"></i></button>
+                                    {% else %}
+                                        <i data-lucide="chevron-right" class="w-4 h-4 text-slate-500"></i>
+                                    {% endif %}
                                 </div>
                             </a>
                         {% endfor %}
-                    {% else %}
-                        <div class="glass-panel p-6 text-center">
-                            <div class="w-10 h-10 rounded-xl bg-slate-800/50 flex items-center justify-center mx-auto mb-3">
-                                <i data-lucide="radio" class="w-5 h-5 text-slate-600"></i>
-                            </div>
-                            <p class="text-sm text-slate-500">No live streams right now</p>
-                            <p class="text-xs text-slate-600 mt-1">Streams appear here automatically</p>
-                        </div>
-                    {% endif %}
-                </div>
-
-                <a href="#vods" class="mt-4 flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-white/[0.03] border border-white/[0.06] text-sm font-semibold text-slate-400 hover:text-dc-cyan hover:border-dc-cyan/30 transition-all no-underline">
-                    <i data-lucide="film" class="w-4 h-4"></i> Jump to VODs
-                </a>
-            </div>
-        </div>
-    </section>
-
-
-    <!-- ===== UPCOMING SCHEDULE ===== -->
-    <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-12">
-        <div class="section-label mb-5">
-            <i data-lucide="calendar" class="w-4 h-4 text-dc-gold"></i>
-            Upcoming Broadcasts
-        </div>
-
-        <div class="glass-panel overflow-hidden">
-            {% if upcoming_streams %}
-                {% for e in upcoming_streams %}
-                    <div class="schedule-row group">
-                        <div class="shrink-0 w-28 text-center">
-                            {% if e.scheduled_for %}
-                                <div class="text-lg font-bold text-white leading-none">{{ e.scheduled_for|date:"M j" }}</div>
-                                <div class="text-xs text-slate-500 mt-1 font-medium">{{ e.scheduled_for|date:"g:i A" }}</div>
-                            {% else %}
-                                <div class="text-sm text-slate-600">TBD</div>
-                            {% endif %}
-                        </div>
-                        <div class="w-px h-10 bg-white/[0.06]"></div>
-                        {% if e.game %}<span class="px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider bg-dc-purple/10 text-dc-purple border border-dc-purple/20 shrink-0">{{ e.game }}</span>{% endif %}
-                        <div class="min-w-0 flex-1">
-                            <p class="font-semibold text-white truncate">{{ e.title|default:"Upcoming broadcast" }}</p>
-                            <p class="text-xs text-slate-500 mt-0.5">{% if e.channel %}{{ e.channel }}{% endif %}{% if e.platform %} · {{ e.platform }}{% endif %}</p>
-                        </div>
-                        {% if e.cta_url %}
-                            <a href="{{ e.cta_url }}" class="shrink-0 px-4 py-2 rounded-lg text-xs font-bold bg-dc-cyan/10 text-dc-cyan border border-dc-cyan/20 hover:bg-dc-cyan/20 hover:border-dc-cyan/40 transition-all no-underline flex items-center gap-2">
-                                <i data-lucide="bell" class="w-3.5 h-3.5"></i> Notify me
-                            </a>
-                        {% endif %}
                     </div>
-                {% endfor %}
-            {% else %}
-                <div class="empty-state">
-                    <i data-lucide="calendar-x" class="w-8 h-8 text-slate-600 mx-auto mb-3"></i>
-                    <p class="text-sm text-slate-500 font-medium">No scheduled broadcasts</p>
-                    <p class="text-xs text-slate-600 mt-1">Upcoming events will appear here</p>
                 </div>
-            {% endif %}
-
-            <div class="px-4 py-3 border-t border-white/[0.04] flex justify-between items-center">
-                <span class="text-xs text-slate-600">Times shown in your local timezone</span>
-                <a href="/tournaments/" class="text-xs font-semibold text-dc-cyan hover:text-dc-cyan/80 no-underline flex items-center gap-1 transition">
-                    View all tournaments <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
-                </a>
-            </div>
+            {% empty %}
+                <div class="text-center py-16 arena-glass rounded-2xl w-full">
+                    <i data-lucide="{% if selected_tab == 'live' or not selected_tab %}crosshair{% elif selected_tab == 'upcoming' %}calendar-x{% else %}history{% endif %}" class="w-8 h-8 mx-auto mb-3 text-slate-600"></i>
+                    <p class="text-base font-bold text-slate-300">
+                        {% if selected_tab == 'live' or not selected_tab %}No Live Matches{% elif selected_tab == 'upcoming' %}No Fixtures Found{% else %}No Finalized Results{% endif %}
+                    </p>
+                </div>
+            {% endfor %}
         </div>
+      </section>
     </section>
 
-
-    <!-- ===== RECENT VODS ===== -->
-    <section id="vods" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-12">
-        <div class="flex items-center justify-between mb-5">
-            <div class="section-label flex-1">
-                <i data-lucide="film" class="w-4 h-4 text-dc-purple"></i>
-                Recent VODs &amp; Replays
-            </div>
-            {% if request.GET.q or request.GET.game %}
-                <a href="{{ request.path }}" class="text-xs font-semibold text-slate-400 hover:text-dc-cyan no-underline flex items-center gap-1.5 transition">
-                    <i data-lucide="x-circle" class="w-3.5 h-3.5"></i> Clear filters
-                </a>
-            {% endif %}
+    {# ── RIGHT COLUMN (Polls & Highlights) ── #}
+    <aside class="lg:col-span-4 space-y-8">
+      
+      {# --- FAN PULSE --- #}
+      {% if arena_poll_widget %}
+      <section class="arena-glass rounded-2xl p-6 relative overflow-hidden">
+        <div class="absolute top-[-50px] left-[-50px] w-40 h-40 bg-cyan-500/10 rounded-full blur-[50px] pointer-events-none"></div>
+        <div class="flex items-center justify-between mb-6 relative z-10">
+          <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+            <span class="text-xs font-black text-white uppercase tracking-widest">{{ arena_poll_widget.badge_label|default:'Fan Pulse' }}</span>
+          </div>
         </div>
-
-        {% if vods %}
-            <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-                {% for v in vods %}
-                    <a href="{{ v.watch_url|default:'#' }}" target="_blank" rel="noopener" class="vod-card group block no-underline">
-                        <div class="thumb-wrap">
-                            <img src="{{ v.thumbnail_url|default:'/static/siteui/svg/community.svg' }}" class="w-full aspect-video object-cover" alt="" loading="lazy">
-                            <div class="play-overlay">
-                                <div class="w-12 h-12 rounded-full bg-white/15 backdrop-blur-sm flex items-center justify-center border border-white/20">
-                                    <i data-lucide="play" class="w-5 h-5 text-white ml-0.5"></i>
-                                </div>
-                            </div>
-                            {% if v.duration %}<span class="absolute bottom-2 right-2 px-2 py-0.5 rounded-md text-[11px] font-bold bg-black/75 text-white backdrop-blur-sm border border-white/10">{{ v.duration }}</span>{% endif %}
-                        </div>
-                        <div class="p-4">
-                            <h3 class="text-sm font-semibold text-white line-clamp-2 leading-snug group-hover:text-dc-cyan transition-colors">{{ v.title|default:"Replay" }}</h3>
-                            <div class="flex items-center gap-x-2 mt-2 text-xs text-slate-500">
-                                {% if v.channel %}<span class="flex items-center gap-1"><i data-lucide="user" class="w-3 h-3"></i> {{ v.channel }}</span>{% endif %}
-                                {% if v.published_at %}<span>·</span><time datetime="{{ v.published_at|date:'c' }}">{{ v.published_at|timesince }} ago</time>{% endif %}
-                            </div>
-                        </div>
-                    </a>
-                {% endfor %}
+        <div class="relative z-10">
+          <h3 class="text-base font-bold text-white leading-snug mb-5">{{ arena_poll_widget.prompt_text }}</h3>
+          <form method="post" action="{{ arena_poll_widget.vote_url }}" data-arena-vote-form>
+            {% csrf_token %}
+            <div class="space-y-3">
+              <button type="submit" name="option" value="A" class="w-full relative overflow-hidden rounded-xl bg-white/5 border border-white/10 p-4 text-left hover:border-cyan-500/50 transition-colors">
+                <div class="absolute left-0 top-0 bottom-0 bg-cyan-500/20" style="width: {{ arena_poll_widget.option_a_percent }}%;"></div>
+                <div class="relative flex justify-between items-center z-10">
+                  <span class="text-sm font-bold text-white">{{ arena_poll_widget.option_a_label }}</span>
+                  <span class="text-sm font-black text-cyan-400">{{ arena_poll_widget.option_a_percent }}%</span>
+                </div>
+              </button>
+              <button type="submit" name="option" value="B" class="w-full relative overflow-hidden rounded-xl bg-white/5 border border-white/10 p-4 text-left hover:border-red-500/50 transition-colors">
+                <div class="absolute left-0 top-0 bottom-0 bg-red-500/20" style="width: {{ arena_poll_widget.option_b_percent }}%;"></div>
+                <div class="relative flex justify-between items-center z-10">
+                  <span class="text-sm font-bold text-white">{{ arena_poll_widget.option_b_label }}</span>
+                  <span class="text-sm font-black text-red-400">{{ arena_poll_widget.option_b_percent }}%</span>
+                </div>
+              </button>
             </div>
-
-            {% if page_obj %}
-                <nav class="mt-8 flex items-center justify-between arena-pagination" aria-label="VOD pagination">
-                    <div>{% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}{% if request.GET.q %}&q={{ request.GET.q|urlencode }}{% endif %}{% if request.GET.game %}&game={{ request.GET.game|urlencode }}{% endif %}"><i data-lucide="chevron-left" class="w-4 h-4"></i> Previous</a>{% endif %}</div>
-                    <span class="text-xs text-slate-500 font-medium">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
-                    <div>{% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}{% if request.GET.q %}&q={{ request.GET.q|urlencode }}{% endif %}{% if request.GET.game %}&game={{ request.GET.game|urlencode }}{% endif %}">Next <i data-lucide="chevron-right" class="w-4 h-4"></i></a>{% endif %}</div>
-                </nav>
-            {% endif %}
-        {% else %}
-            <div class="glass-panel">
-                <div class="empty-state">
-                    <i data-lucide="video-off" class="w-8 h-8 text-slate-600 mx-auto mb-3"></i>
-                    <p class="text-sm text-slate-500 font-medium">No VODs available yet</p>
-                    <p class="text-xs text-slate-600 mt-1">Recorded matches and highlights will appear here</p>
-                </div>
-            </div>
-        {% endif %}
-    </section>
-
-
-    <!-- ===== QUICK STATS ===== -->
-    <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-12">
-        <div class="glass-panel p-6">
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
-                <div>
-                    <div class="text-2xl font-extrabold text-white">{{ live_streams|length|default:"0" }}</div>
-                    <div class="text-xs text-slate-500 mt-1 font-medium uppercase tracking-wider">Live Now</div>
-                </div>
-                <div>
-                    <div class="text-2xl font-extrabold text-white">{{ upcoming_streams|length|default:"0" }}</div>
-                    <div class="text-xs text-slate-500 mt-1 font-medium uppercase tracking-wider">Upcoming</div>
-                </div>
-                <div>
-                    <div class="text-2xl font-extrabold text-white">
-                        {% if page_obj %}{{ page_obj.paginator.count }}{% elif vods %}{{ vods|length }}{% else %}0{% endif %}
-                    </div>
-                    <div class="text-xs text-slate-500 mt-1 font-medium uppercase tracking-wider">Total VODs</div>
-                </div>
-                <div>
-                    <div class="text-2xl font-extrabold text-white">{{ games|length|default:"0" }}</div>
-                    <div class="text-xs text-slate-500 mt-1 font-medium uppercase tracking-wider">Games</div>
-                </div>
-            </div>
+          </form>
+          <p class="text-center text-[10px] text-slate-500 uppercase tracking-widest mt-4">{{ arena_poll_widget.vote_count|intcomma }} {{ arena_poll_widget.vote_count_label }}</p>
         </div>
-    </section>
+      </section>
+      {% endif %}
 
-
-    <!-- ===== FOOTER CTA ===== -->
-    <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="glass-panel p-8 md:p-12 text-center relative overflow-hidden">
-            <div class="absolute -top-20 -left-20 w-64 h-64 rounded-full bg-dc-cyan/5 blur-3xl pointer-events-none"></div>
-            <div class="absolute -bottom-20 -right-20 w-64 h-64 rounded-full bg-dc-purple/5 blur-3xl pointer-events-none"></div>
-            <div class="relative">
-                <h2 class="text-2xl md:text-3xl font-extrabold text-white">Want to broadcast on DeltaCrown?</h2>
-                <p class="mt-3 text-slate-400 max-w-lg mx-auto">Stream your tournaments and scrims directly to the Arena. Reach thousands of competitive gaming fans in Bangladesh.</p>
-                <div class="mt-6 flex flex-col sm:flex-row items-center justify-center gap-3">
-                    <a href="/tournaments/" class="px-6 py-3 rounded-xl bg-gradient-to-r from-dc-cyan to-cyan-400 text-dc-dark font-bold text-sm hover:shadow-lg hover:shadow-dc-cyan/25 transition-all no-underline flex items-center gap-2">
-                        <i data-lucide="trophy" class="w-4 h-4"></i> Browse Tournaments
-                    </a>
-                    <a href="/support/" class="px-6 py-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-slate-300 font-semibold text-sm hover:bg-white/[0.07] hover:border-dc-cyan/30 hover:text-dc-cyan transition-all no-underline flex items-center gap-2">
-                        <i data-lucide="message-circle" class="w-4 h-4"></i> Contact Us
-                    </a>
-                </div>
-            </div>
+      {# --- IN-PAGE HIGHLIGHTS --- #}
+      <section>
+        <div class="flex items-center justify-between border-b border-white/10 pb-3 mb-4">
+          <h3 class="text-xs font-black text-white uppercase tracking-widest flex items-center gap-2">
+            <i data-lucide="clapperboard" class="w-4 h-4 text-cyan-400"></i> Highlights
+          </h3>
         </div>
-    </section>
+        
+        <div class="grid grid-cols-2 gap-3">
+          {% for highlight in arena_highlights %}
+            <article class="relative rounded-xl overflow-hidden aspect-[4/5] border border-white/10 group cursor-pointer"
+                     data-arena-open-stream
+                     data-stream-title="{{ highlight.display_title|default:highlight.title|escape }}"
+                     data-stream-embed="{{ highlight.safe_embed_url|default:highlight.video_url|escape }}"
+                     data-raw-url="{{ highlight.source_url|default:highlight.video_url|escape }}">
+              <img src="{% if highlight.display_thumbnail %}{{ highlight.display_thumbnail }}{% elif highlight.thumbnail_url %}{{ highlight.thumbnail_url }}{% else %}https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=800&auto=format&fit=crop{% endif %}" 
+                   class="w-full h-full object-cover opacity-80 group-hover:scale-110 group-hover:opacity-100 transition-all duration-500 fall-img">
+              <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent flex flex-col justify-between p-3">
+                <div class="self-end">
+                  {% if highlight.duration_label %}<span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-black/80 text-white">{{ highlight.duration_label }}</span>{% endif %}
+                </div>
+                <div class="absolute inset-0 m-auto w-10 h-10 rounded-full bg-white/20 backdrop-blur border border-white/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all">
+                  <i data-lucide="play" class="w-4 h-4 fill-white text-white ml-0.5"></i>
+                </div>
+                <div>
+                  <p class="text-[11px] font-bold text-white line-clamp-2 leading-tight">
+                    {% if highlight.display_title %}{{ highlight.display_title }}{% else %}{{ highlight.title }}{% endif %}
+                  </p>
+                </div>
+              </div>
+            </article>
+          {% empty %}
+             <div class="col-span-2 text-center py-10 arena-glass rounded-2xl">
+               <p class="text-xs text-slate-500 uppercase tracking-widest">No Highlights Available</p>
+             </div>
+          {% endfor %}
+        </div>
+      </section>
 
-</main>
+    </aside>
+  </main>
+</div>
+{% endblock %}
 
-<!-- ===== Inline player modal ===== -->
-<dialog id="watch-modal" class="rounded-2xl p-0 w-[min(90vw,1000px)] bg-black border border-white/10 backdrop-blur-xl">
-    <div class="aspect-video bg-black">
-        <iframe id="watch-iframe" class="w-full h-full" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>
-    </div>
-    <form method="dialog" class="flex justify-end p-3 bg-dc-dark border-t border-white/[0.06]">
-        <button class="px-4 py-2 rounded-lg text-sm font-semibold text-slate-400 bg-white/[0.04] border border-white/[0.08] hover:text-white hover:bg-white/[0.08] transition-all">Close</button>
-    </form>
-</dialog>
+{% block extra_js %}
+<script nonce="{{ request.csp_nonce }}">
+// Global Image Error Fallback (CSP Safe)
+document.addEventListener('error', function(event) {
+    if (event.target.tagName.toLowerCase() === 'img' && event.target.classList.contains('fall-img')) {
+        event.target.src = 'https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=800&auto=format&fit=crop';
+    }
+}, true);
 
-<script src="{% static 'siteui/js/arena-watch.js' %}"></script>
-<script nonce="{{ request.csp_nonce }}">if (typeof lucide !== 'undefined') lucide.createIcons();</script>
+document.addEventListener("DOMContentLoaded", () => {
+  if (typeof lucide !== "undefined") { lucide.createIcons(); }
+
+  // === 1. DYNAMIC AJAX ENGINE ===
+  const matchContainer = document.getElementById("arena-match-container");
+  const searchInput = document.getElementById("arena-search-input");
+  const tabButtons = document.querySelectorAll("[data-arena-tab]");
+  const gameChips = document.querySelectorAll("[data-arena-game]");
+  
+  let state = {
+      tab: new URLSearchParams(window.location.search).get('tab') || 'live',
+      game: new URLSearchParams(window.location.search).get('game') || '',
+      q: new URLSearchParams(window.location.search).get('q') || ''
+  };
+
+  function syncUI() {
+      tabButtons.forEach(btn => {
+          const isLive = btn.dataset.arenaTab === 'live';
+          const isActive = btn.dataset.arenaTab === state.tab;
+          btn.className = `text-xs font-black uppercase tracking-widest pb-3 border-b-2 transition-colors ${
+              isActive ? (isLive ? 'text-cyan-400 border-cyan-400' : 'text-white border-white') : 'text-slate-500 border-transparent hover:text-slate-300'
+          }`;
+      });
+
+      gameChips.forEach(chip => {
+          if (chip.dataset.arenaGame === state.game) {
+              chip.classList.add("active");
+          } else {
+              chip.classList.remove("active");
+          }
+      });
+  }
+
+  function escapeHtml(str) {
+      if (!str) return '';
+      return String(str).replace(/[&<>'"]/g, 
+          tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
+      );
+  }
+
+  async function fetchArenaData(showLoading = true) {
+      if (!matchContainer) return;
+      if (showLoading) matchContainer.classList.add("arena-loading");
+      
+      const url = new URL(window.location.origin + '/arena/data/');
+      url.searchParams.set('tab', state.tab);
+      if (state.game) url.searchParams.set('game', state.game);
+      if (state.q) url.searchParams.set('q', state.q);
+
+      try {
+          const response = await fetch(url, {
+              headers: { "X-Requested-With": "XMLHttpRequest", "Accept": "application/json" }
+          });
+          const data = await response.json();
+          
+          let safeGroups = [];
+          if (data.groups && Array.isArray(data.groups)) {
+              safeGroups = data.groups;
+          } else if (data.groups && typeof data.groups === 'object') {
+              safeGroups = Object.keys(data.groups).map(k => ({ grouper: k, list: data.groups[k] }));
+          }
+          
+          renderMatches(safeGroups, state.tab);
+          
+          const newUrl = new URL(window.location.href);
+          newUrl.searchParams.set('tab', state.tab);
+          if (state.game) newUrl.searchParams.set('game', state.game); else newUrl.searchParams.delete('game');
+          if (state.q) newUrl.searchParams.set('q', state.q); else newUrl.searchParams.delete('q');
+          window.history.pushState(state, '', newUrl);
+
+      } catch (error) {
+          console.error("Error fetching arena data:", error);
+      } finally {
+          matchContainer.classList.remove("arena-loading");
+      }
+  }
+
+  function renderMatches(groups, tab) {
+      if (!groups || groups.length === 0) {
+          let icon = tab === 'live' ? 'crosshair' : (tab === 'upcoming' ? 'calendar-x' : 'history');
+          let text = tab === 'live' ? 'No Live Matches' : (tab === 'upcoming' ? 'No Fixtures Found' : 'No Finalized Results');
+          matchContainer.innerHTML = `
+              <div class="text-center py-16 arena-glass rounded-2xl w-full">
+                  <i data-lucide="${icon}" class="w-8 h-8 mx-auto mb-3 text-slate-600"></i>
+                  <p class="text-base font-bold text-slate-300">${text}</p>
+              </div>`;
+          if (typeof lucide !== 'undefined') lucide.createIcons();
+          return;
+      }
+
+      let html = '';
+      groups.forEach(group => {
+          let opacityClass = tab === 'results' ? 'opacity-80 hover:opacity-100 transition-opacity' : '';
+          let headerIcon = tab === 'live' ? 'trophy' : (tab === 'upcoming' ? 'calendar' : 'history');
+          let headerColor = tab === 'live' ? 'text-cyan-400' : 'text-slate-400';
+
+          html += `
+          <div class="match-group-container ${opacityClass} w-full">
+              <div class="match-group-header">
+                  <i data-lucide="${headerIcon}" class="w-4 h-4 ${headerColor}"></i>
+                  <span class="text-sm font-bold text-white">${escapeHtml(group.grouper)}</span>
+              </div>
+              <div class="flex flex-col">`;
+
+          group.list.forEach(m => {
+              let status = '', scores = '', action = '';
+              let isRes = tab === 'results';
+
+              if (tab === 'live') {
+                  status = `<div class="match-time-status live-text">LIVE <span class="animate-pulse">'</span></div>`;
+                  scores = `<span class="text-cyan-400">${m.score_a != null ? m.score_a : '-'}</span><span class="score-dash">-</span><span class="text-cyan-400">${m.score_b != null ? m.score_b : '-'}</span>`;
+              } else if (tab === 'upcoming') {
+                  status = `<div class="match-time-status">${m.scheduled_time || 'TBD'}</div>`;
+                  scores = `<span class="score-dash">v</span>`;
+              } else {
+                  status = `<div class="match-time-status text-slate-500">FT</div>`;
+                  let aColor = m.score_a > m.score_b ? 'text-white' : 'text-slate-500';
+                  let bColor = m.score_b > m.score_a ? 'text-white' : 'text-slate-500';
+                  scores = `<span class="${aColor}">${m.score_a != null ? m.score_a : '-'}</span><span class="score-dash">-</span><span class="${bColor}">${m.score_b != null ? m.score_b : '-'}</span>`;
+              }
+
+              if (m.stream_url || m.embed_url) {
+                  let streamToUse = m.embed_url || m.stream_url;
+                  action = `<button class="play-action-btn" data-arena-open-stream data-stream-embed="${escapeHtml(streamToUse)}" data-raw-url="${escapeHtml(m.stream_url)}"><i data-lucide="play" class="w-3.5 h-3.5 fill-current"></i></button>`;
+              } else {
+                  action = `<i data-lucide="chevron-right" class="w-4 h-4 text-slate-500"></i>`;
+              }
+
+              let logoA = m.team_a_logo ? `<img src="${escapeHtml(m.team_a_logo)}" class="fall-img">` : `<span>${escapeHtml(m.team_a_tag || 'A')}</span>`;
+              let logoB = m.team_b_logo ? `<img src="${escapeHtml(m.team_b_logo)}" class="fall-img">` : `<span>${escapeHtml(m.team_b_tag || 'B')}</span>`;
+
+              html += `
+              <a href="${m.match_url || '#'}" class="compact-match-row">
+                  ${status}
+                  <div class="team-display right ${isRes && m.score_a < m.score_b ? 'text-slate-500' : 'text-white'}">
+                      <span class="team-name">${escapeHtml(m.team_a)}</span>
+                      <div class="team-logo">${logoA}</div>
+                  </div>
+                  <div class="score-box">${scores}</div>
+                  <div class="team-display ${isRes && m.score_b < m.score_a ? 'text-slate-500' : 'text-white'}">
+                      <div class="team-logo">${logoB}</div>
+                      <span class="team-name">${escapeHtml(m.team_b)}</span>
+                  </div>
+                  <div class="match-action">${action}</div>
+              </a>`;
+          });
+          html += `</div></div>`;
+      });
+
+      matchContainer.innerHTML = html;
+      if (typeof lucide !== 'undefined') lucide.createIcons();
+  }
+
+  tabButtons.forEach(btn => {
+      btn.addEventListener("click", () => {
+          state.tab = btn.dataset.arenaTab;
+          syncUI();
+          fetchArenaData();
+      });
+  });
+
+  gameChips.forEach(chip => {
+      chip.addEventListener("click", () => {
+          state.game = chip.dataset.arenaGame;
+          syncUI();
+          fetchArenaData();
+      });
+  });
+
+  let searchTimeout;
+  if (searchInput) {
+      searchInput.addEventListener("input", (e) => {
+          clearTimeout(searchTimeout);
+          state.q = e.target.value;
+          searchTimeout = setTimeout(() => {
+              fetchArenaData();
+          }, 500); 
+      });
+  }
+
+  setInterval(() => { fetchArenaData(false); }, 30000); 
+  syncUI();
+
+  // === 2. INLINE THEATER MODE MEDIA PLAYER ===
+  const theaterMode = document.getElementById("arena-theater-mode");
+  const theaterIframe = document.getElementById("theater-iframe");
+  const theaterTitle = document.getElementById("theater-title");
+  const theaterOpenSource = document.getElementById("theater-open-source");
+  const theaterCloseBtn = document.getElementById("theater-close-btn");
+
+  function getEmbedUrl(url) {
+      if (!url || url === "None") return "";
+      let cleanUrl = url.trim();
+      if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
+          cleanUrl = 'https://' + cleanUrl;
+      }
+      try {
+          const hostname = window.location.hostname;
+          const origin = window.location.origin;
+          
+            // YouTube: normalize all watch/embed/short links into a single embed format with origin metadata.
+            const ytRegex = /(?:youtube(?:-nocookie)?\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?|live|shorts)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i;
+          const ytMatch = cleanUrl.match(ytRegex);
+          if (ytMatch && ytMatch[1]) {
+              const encodedOrigin = encodeURIComponent(origin);
+              return `https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1&mute=1&rel=0&enablejsapi=1&origin=${origin}&widget_referrer=${encodedOrigin}`;
+          }
+          
+          // Twitch
+          const twitchChannelMatch = cleanUrl.match(/twitch\.tv\/([a-zA-Z0-9_]+)\/?$/);
+          const twitchVideoMatch = cleanUrl.match(/twitch\.tv\/videos\/([0-9]+)/);
+          
+          if (cleanUrl.includes("player.twitch.tv")) {
+              if (!cleanUrl.includes("parent=")) {
+                  return cleanUrl + (cleanUrl.includes('?') ? '&' : '?') + `parent=${hostname}`;
+              }
+              return cleanUrl;
+          } else if (twitchVideoMatch && twitchVideoMatch[1]) {
+              return `https://player.twitch.tv/?video=${twitchVideoMatch[1]}&parent=${hostname}&autoplay=true`;
+          } else if (twitchChannelMatch && twitchChannelMatch[1]) {
+              return `https://player.twitch.tv/?channel=${twitchChannelMatch[1]}&parent=${hostname}&autoplay=true`;
+          }
+          
+          // Facebook
+          if (cleanUrl.includes("facebook.com") && cleanUrl.includes("/videos/")) {
+              return `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(cleanUrl)}&show_text=0&autoplay=1`;
+          }
+      } catch (e) { console.error("Media Parser Error:", e); }
+      return cleanUrl;
+  }
+
+  document.body.addEventListener("click", e => {
+      const btn = e.target.closest("[data-arena-open-stream]");
+      if (!btn) return;
+      
+      e.preventDefault();
+      e.stopPropagation();
+
+      const title = btn.getAttribute("data-stream-title") || "DeltaCrown Media";
+      const providedEmbed = btn.getAttribute("data-stream-embed");
+      const rawUrl = btn.getAttribute("data-raw-url") || btn.getAttribute("href") || btn.href || providedEmbed;
+
+      if (rawUrl && theaterMode && theaterIframe) {
+          theaterTitle.textContent = title;
+          
+          // Always run through normalizer: backend-provided values can still be raw or missing origin params.
+          const candidateUrl = (providedEmbed && providedEmbed !== 'None') ? providedEmbed : rawUrl;
+          const finalEmbedUrl = getEmbedUrl(candidateUrl) || getEmbedUrl(rawUrl) || candidateUrl;
+          
+          if (theaterOpenSource) {
+              theaterOpenSource.href = rawUrl.startsWith('http') ? rawUrl : 'https://' + rawUrl;
+          }
+
+          theaterIframe.src = finalEmbedUrl;
+          theaterMode.classList.remove("hidden");
+          theaterMode.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+  });
+
+  if (theaterCloseBtn) {
+      theaterCloseBtn.addEventListener("click", e => {
+          e.preventDefault();
+          theaterMode.classList.add("hidden");
+          theaterIframe.src = ""; 
+      });
+  }
+});
+</script>
 {% endblock %}

@@ -22,6 +22,8 @@ urlpatterns = [
     path("community/api/user-teams/", views.community_api_user_teams, name="community_api_user_teams"),
 
     path("arena/", views.watch, name="arena"),
+    path("arena/data/", views.arena_async_data, name="arena_data"),
+    path("arena/widget/<int:widget_id>/vote/", views.arena_widget_vote, name="arena_widget_vote"),
     path("watch/", views.watch, name="watch"),  # Backward compat redirect
     path("newsletter/subscribe/", views.newsletter_subscribe, name="newsletter_subscribe"),
 ]

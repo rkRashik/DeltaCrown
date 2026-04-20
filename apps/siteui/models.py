@@ -2,12 +2,16 @@
 Community and User Social Models
 """
 from django.db import models
+from django.db.models import Q
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 from django.utils import timezone
 from django.core.exceptions import ValidationError
+from django.core.validators import MinValueValidator, MaxValueValidator
 from apps.user_profile.models import UserProfile
 from apps.common.validators import validate_image_upload
+from .utils.embeds import detect_platform
+from .utils.media_parser import parse_media_url
 
 User = get_user_model()
 
@@ -570,6 +574,450 @@ class HomePageContent(models.Model):
                 "description": "YouTube, Twitch, Facebook Gaming"
             }
         ]
+
+
+class ArenaGlobalWidget(models.Model):
+    """Admin-managed global fan pulse widget for Arena."""
+
+    badge_label = models.CharField(
+        max_length=60,
+        default="Fan Pulse",
+        help_text="Small badge label shown at the top of the widget",
+    )
+    meta_label = models.CharField(
+        max_length=60,
+        default="Global Widget",
+        help_text="Meta label on the top-right of the widget",
+    )
+    tournament_label = models.CharField(
+        max_length=120,
+        blank=True,
+        default="",
+        help_text="Tournament or context label above the question",
+    )
+    prompt_text = models.CharField(
+        max_length=220,
+        default="Who wins the Grand Final?",
+        help_text="Primary prediction question shown to users",
+    )
+    option_a_label = models.CharField(max_length=120, default="Team A")
+    option_a_percent = models.PositiveSmallIntegerField(
+        default=50,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+        help_text="Displayed percentage for option A",
+    )
+    option_b_label = models.CharField(max_length=120, default="Team B")
+    option_b_percent = models.PositiveSmallIntegerField(
+        default=50,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+        help_text="Displayed percentage for option B",
+    )
+    vote_count = models.PositiveIntegerField(
+        default=0,
+        help_text="Signal/vote count displayed below options",
+    )
+    vote_count_label = models.CharField(
+        max_length=80,
+        default="Signals Intercepted",
+        help_text="Suffix shown after vote count",
+    )
+    is_active = models.BooleanField(default=True, db_index=True)
+    display_order = models.IntegerField(default=0, db_index=True)
+    starts_at = models.DateTimeField(null=True, blank=True)
+    ends_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Arena Global Widget"
+        verbose_name_plural = "Arena Global Widgets"
+        ordering = ["display_order", "-updated_at", "id"]
+        indexes = [
+            models.Index(
+                fields=["is_active", "display_order"],
+                name="siteui_aren_is_acti_8368e8_idx",
+            ),
+            models.Index(
+                fields=["starts_at", "ends_at"],
+                name="siteui_aren_starts__1f194f_idx",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.badge_label}: {self.prompt_text[:80]}"
+
+    def clean(self):
+        super().clean()
+        if self.starts_at and self.ends_at and self.ends_at <= self.starts_at:
+            raise ValidationError("End time must be after start time.")
+        if (self.option_a_percent + self.option_b_percent) != 100:
+            raise ValidationError("Option percentages must add up to 100.")
+        if self.option_a_label.strip().lower() == self.option_b_label.strip().lower():
+            raise ValidationError("Option labels must be different.")
+
+    def is_visible_now(self, now=None):
+        now = now or timezone.now()
+        if not self.is_active:
+            return False
+        if self.starts_at and now < self.starts_at:
+            return False
+        if self.ends_at and now > self.ends_at:
+            return False
+        return True
+
+
+class ArenaHighlight(models.Model):
+    """Short-form highlight cards shown in the Arena sidebar/rail."""
+
+    PROVIDER_YOUTUBE = "youtube"
+    PROVIDER_TWITCH = "twitch"
+    PROVIDER_FACEBOOK = "facebook"
+    PROVIDER_OTHER = "other"
+
+    PROVIDER_CHOICES = [
+        (PROVIDER_YOUTUBE, "YouTube"),
+        (PROVIDER_TWITCH, "Twitch"),
+        (PROVIDER_FACEBOOK, "Facebook"),
+        (PROVIDER_OTHER, "Other"),
+    ]
+
+    source_url = models.URLField(
+        help_text="Primary media source URL (YouTube/Twitch/Facebook/other)",
+    )
+    game = models.ForeignKey(
+        "games.Game",
+        on_delete=models.SET_NULL,
+        related_name="arena_highlights",
+        null=True,
+        blank=True,
+    )
+    fetched_title = models.CharField(max_length=200, blank=True, default="")
+    fetched_thumbnail_url = models.URLField(blank=True, default="")
+    embed_url = models.URLField(blank=True, default="")
+    provider = models.CharField(
+        max_length=20,
+        choices=PROVIDER_CHOICES,
+        default=PROVIDER_OTHER,
+        blank=True,
+    )
+    custom_title = models.CharField(max_length=200, blank=True, default="")
+    custom_thumbnail = models.ImageField(
+        upload_to="arena/highlights/%Y/%m/%d/",
+        validators=[validate_image_upload],
+        null=True,
+        blank=True,
+    )
+    subtitle = models.CharField(max_length=180, blank=True, default="")
+    duration_label = models.CharField(
+        max_length=20,
+        blank=True,
+        default="",
+        help_text="Short duration label (e.g. 0:32)",
+    )
+    views_label = models.CharField(
+        max_length=60,
+        blank=True,
+        default="",
+        help_text="Short view counter text (e.g. 2.4k views)",
+    )
+    is_active = models.BooleanField(default=True, db_index=True)
+    display_order = models.IntegerField(default=0, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Arena Highlight"
+        verbose_name_plural = "Arena Highlights"
+        ordering = ["display_order", "-updated_at", "id"]
+        indexes = [
+            models.Index(
+                fields=["is_active", "display_order"],
+                name="siteui_aren_is_acti_08fd94_idx",
+            )
+        ]
+
+    def __str__(self):
+        return self.display_title or self.source_url
+
+    def _source_url_has_changed(self) -> bool:
+        if not self.pk:
+            return True
+        try:
+            previous = type(self).objects.only("source_url").get(pk=self.pk)
+        except type(self).DoesNotExist:
+            return True
+        return (previous.source_url or "").strip() != (self.source_url or "").strip()
+
+    def save(self, *args, **kwargs):
+        should_parse = self._source_url_has_changed()
+        if should_parse:
+            try:
+                parsed = parse_media_url(self.source_url)
+            except Exception:
+                parsed = {}
+
+            self.provider = (parsed.get("provider") or self.PROVIDER_OTHER).lower()
+            self.fetched_title = (parsed.get("title") or "").strip()
+            self.fetched_thumbnail_url = (parsed.get("thumbnail_url") or "").strip()
+            self.embed_url = (parsed.get("embed_url") or "").strip()
+
+        super().save(*args, **kwargs)
+
+    @property
+    def display_title(self):
+        return (self.custom_title or "").strip() or (self.fetched_title or "").strip()
+
+    @property
+    def display_thumbnail(self):
+        if self.custom_thumbnail:
+            try:
+                return self.custom_thumbnail.url
+            except Exception:
+                pass
+        return (self.fetched_thumbnail_url or "").strip()
+
+    @property
+    def safe_embed_url(self):
+        return (self.embed_url or "").strip()
+
+    @property
+    def resolved_thumbnail_url(self):
+        return self.display_thumbnail
+
+    # Backward-compatible aliases used by older code paths.
+    @property
+    def title(self):
+        return self.display_title
+
+    @property
+    def video_url(self):
+        return self.source_url
+
+    @property
+    def thumbnail_url(self):
+        return self.display_thumbnail
+
+    @property
+    def thumbnail_image(self):
+        return self.custom_thumbnail
+
+
+class ArenaStream(models.Model):
+    """Admin-managed streams surfaced in Arena top broadcasts."""
+
+    PROVIDER_YOUTUBE = "youtube"
+    PROVIDER_TWITCH = "twitch"
+    PROVIDER_FACEBOOK = "facebook"
+    PROVIDER_OTHER = "other"
+
+    PROVIDER_CHOICES = [
+        (PROVIDER_YOUTUBE, "YouTube"),
+        (PROVIDER_TWITCH, "Twitch"),
+        (PROVIDER_FACEBOOK, "Facebook"),
+        (PROVIDER_OTHER, "Other"),
+    ]
+
+    source_url = models.URLField(help_text="Primary media source URL")
+    fetched_title = models.CharField(max_length=200, blank=True, default="")
+    fetched_thumbnail_url = models.URLField(blank=True, default="")
+    embed_url = models.URLField(blank=True, default="")
+    provider = models.CharField(max_length=20, choices=PROVIDER_CHOICES, default=PROVIDER_OTHER, blank=True)
+    custom_title = models.CharField(max_length=200, blank=True, default="")
+    custom_thumbnail = models.ImageField(
+        upload_to="arena/streams/%Y/%m/%d/",
+        validators=[validate_image_upload],
+        null=True,
+        blank=True,
+    )
+    subtitle = models.CharField(max_length=180, blank=True, default="")
+    channel_name = models.CharField(max_length=120, blank=True, default="")
+    game = models.ForeignKey(
+        "games.Game",
+        on_delete=models.SET_NULL,
+        related_name="arena_streams",
+        null=True,
+        blank=True,
+    )
+    game_label = models.CharField(max_length=100, blank=True, default="")
+    is_live = models.BooleanField(default=True, db_index=True)
+    is_active = models.BooleanField(default=True, db_index=True)
+    featured = models.BooleanField(default=False, db_index=True)
+    viewers_label = models.CharField(max_length=60, blank=True, default="")
+    viewer_count = models.PositiveIntegerField(null=True, blank=True)
+    display_order = models.IntegerField(default=0, db_index=True)
+    starts_at = models.DateTimeField(null=True, blank=True)
+    ends_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Arena Stream"
+        verbose_name_plural = "Arena Streams"
+        ordering = ["-featured", "display_order", "-updated_at", "id"]
+        indexes = [
+            models.Index(fields=["is_active", "is_live", "featured", "display_order"]),
+            models.Index(fields=["starts_at", "ends_at"]),
+        ]
+
+    def __str__(self):
+        return self.display_title or self.source_url
+
+    def _source_url_has_changed(self) -> bool:
+        if not self.pk:
+            return True
+        try:
+            previous = type(self).objects.only("source_url").get(pk=self.pk)
+        except type(self).DoesNotExist:
+            return True
+        return (previous.source_url or "").strip() != (self.source_url or "").strip()
+
+    def save(self, *args, **kwargs):
+        should_parse = self._source_url_has_changed()
+        if should_parse:
+            try:
+                parsed = parse_media_url(self.source_url)
+            except Exception:
+                parsed = {}
+
+            self.provider = (parsed.get("provider") or self.PROVIDER_OTHER).lower()
+            self.fetched_title = (parsed.get("title") or "").strip()
+            self.fetched_thumbnail_url = (parsed.get("thumbnail_url") or "").strip()
+            self.embed_url = (parsed.get("embed_url") or "").strip()
+
+        super().save(*args, **kwargs)
+
+    def clean(self):
+        super().clean()
+        if self.starts_at and self.ends_at and self.ends_at <= self.starts_at:
+            raise ValidationError("End time must be after start time.")
+
+    @property
+    def display_title(self):
+        return (self.custom_title or "").strip() or (self.fetched_title or "").strip()
+
+    @property
+    def display_thumbnail(self):
+        if self.custom_thumbnail:
+            try:
+                return self.custom_thumbnail.url
+            except Exception:
+                pass
+        return (self.fetched_thumbnail_url or "").strip()
+
+    @property
+    def safe_embed_url(self):
+        return (self.embed_url or "").strip()
+
+    @property
+    def effective_game_label(self):
+        if self.game:
+            return self.game.display_name or self.game.name
+        return self.game_label
+
+    @property
+    def effective_thumbnail_url(self):
+        return self.display_thumbnail
+
+    @property
+    def effective_platform(self):
+        if self.provider and self.provider != self.PROVIDER_OTHER:
+            return dict(self.PROVIDER_CHOICES).get(self.provider, "")
+        detected = detect_platform(self.source_url)
+        return detected or "Other"
+
+    def is_currently_live(self, now=None):
+        now = now or timezone.now()
+        if not self.is_active or not self.is_live:
+            return False
+        if self.starts_at and now < self.starts_at:
+            return False
+        if self.ends_at and now > self.ends_at:
+            return False
+        return True
+
+    # Backward-compatible aliases used by older code paths.
+    @property
+    def title(self):
+        return self.display_title
+
+    @property
+    def stream_url(self):
+        return self.source_url
+
+    @property
+    def thumbnail_url(self):
+        return self.display_thumbnail
+
+    @property
+    def thumbnail_image(self):
+        return self.custom_thumbnail
+
+    @property
+    def platform(self):
+        return self.provider
+
+
+class ArenaGlobalWidgetVote(models.Model):
+    """Stored vote records for ArenaGlobalWidget prediction polls."""
+
+    OPTION_A = "A"
+    OPTION_B = "B"
+    OPTION_CHOICES = [
+        (OPTION_A, "Option A"),
+        (OPTION_B, "Option B"),
+    ]
+
+    widget = models.ForeignKey(
+        ArenaGlobalWidget,
+        on_delete=models.CASCADE,
+        related_name="votes",
+    )
+    user = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="arena_widget_votes",
+    )
+    voter_key = models.CharField(
+        max_length=64,
+        blank=True,
+        default="",
+        db_index=True,
+        help_text="Anonymous/session voter fingerprint for one-vote enforcement",
+    )
+    selected_option = models.CharField(max_length=1, choices=OPTION_CHOICES)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Arena Vote"
+        verbose_name_plural = "Arena Votes"
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["widget", "selected_option"]),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["widget", "user"],
+                condition=Q(user__isnull=False),
+                name="siteui_arena_vote_unique_user",
+            ),
+            models.UniqueConstraint(
+                fields=["widget", "voter_key"],
+                condition=Q(voter_key__gt=""),
+                name="siteui_arena_vote_unique_key",
+            ),
+        ]
+
+    def __str__(self):
+        label = "Option A" if self.selected_option == self.OPTION_A else "Option B"
+        return f"Widget {self.widget_id}: {label}"
+
+    def clean(self):
+        super().clean()
+        if not self.user and not self.voter_key:
+            raise ValidationError("Vote must include either a user or a voter key.")
 
 
 class CommunityPost(models.Model):

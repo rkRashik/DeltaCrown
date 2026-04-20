@@ -1,13 +1,21 @@
 from __future__ import annotations
-from django.shortcuts import render
+import hashlib
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
+
+from django.shortcuts import render, redirect
 from django.utils import timezone
 from django.apps import apps
+from django.contrib.auth import get_user_model
 from .services import compute_stats, get_spotlight, get_timeline
 from django.apps import apps as django_apps
 from typing import Any, Iterable
-from django.conf import settings
-from django.core.paginator import Paginator, EmptyPage
-from django.db.models import Q
+from django.http import JsonResponse
+from django.db import transaction
+from django.db.models import Q, Count
+from django.db.utils import OperationalError, ProgrammingError
+from django.urls import reverse
+from django.utils.http import url_has_allowed_host_and_scheme
+from django.utils.text import slugify
 from .utils.embeds import build_embed_url
 
 
@@ -667,179 +675,912 @@ def try_get_model(app_label: str, model_name: str):
     except Exception:
         return None
 
-# ---- Data sources (try a few common patterns, choose whatever exists) --------
+# ---- Arena selectors ---------------------------------------------------------
 
-def query_streams_and_vods(q: str | None, game: str | None):
-    """
-    Try multiple potential models; return (live_streams, vods).
-    Adjust/extend the SOURCES list to match your schema.
-    """
-    filters = Q()
-    if q:
-        filters &= Q(title__icontains=q) | Q(name__icontains=q) | Q(channel__icontains=q)
-    if game:
-        filters &= Q(game__iexact=game) | Q(game_name__iexact=game) | Q(category__iexact=game)
+ARENA_LIVE_STATES = ("live", "pending_result")
+ARENA_UPCOMING_STATES = ("scheduled", "check_in", "ready")
+ARENA_RESULT_STATES = ("completed", "disputed", "forfeit", "cancelled")
+ARENA_AJAX_TRUE_VALUES = {"1", "true", "yes", "on"}
 
-    SOURCES = [
-        # (app_label, model_name, live_filter, vod_filter, order_field_desc)
-        ("media", "Broadcast", Q(is_live=True), Q(is_live=False), "-start_time"),
-        ("streams", "Stream", Q(is_live=True), Q(is_live=False), "-created_at"),
-        ("siteui", "Broadcast", Q(is_live=True), Q(is_live=False), "-start_time"),
-        ("tournaments", "MatchStream", Q(is_live=True), Q(is_live=False), "-created_at"),
-        ("videos", "Vod", None, Q(), "-published_at"),
-    ]
 
-    live = []
-    vods = []
-    for app_label, model_name, live_q, vod_q, order in SOURCES:
-        Model = try_get_model(app_label, model_name)
-        if not Model:
+def _is_arena_async_request(request) -> bool:
+    ajax_hint = (request.GET.get("ajax") or "").strip().lower()
+    if ajax_hint in ARENA_AJAX_TRUE_VALUES:
+        return True
+
+    requested_with = (request.headers.get("x-requested-with") or "").strip().lower()
+    return requested_with == "xmlhttprequest"
+
+
+def _group_matches_by_tournament(matches):
+    grouped = []
+    for match in matches:
+        grouper = (match.get("tournament_name") or "").strip() or "Tournament"
+        if grouped and grouped[-1]["grouper"] == grouper:
+            grouped[-1]["list"].append(_to_arena_match_contract(match))
             continue
-        try:
-            if live_q is not None:
-                qs_live = Model.objects.filter(live_q).filter(filters).order_by(order)[:12]
-                live.extend(list(qs_live))
-            if vod_q is not None:
-                qs_vod = Model.objects.filter(vod_q).filter(filters).order_by(order)[:60]
-                vods.extend(list(qs_vod))
-        except Exception:
-            # Model exists but fields differ; skip silently
-            continue
+        grouped.append({
+            "grouper": grouper,
+            "list": [_to_arena_match_contract(match)],
+        })
+    return grouped
 
-    return live, vods
 
-def query_upcoming(q: str | None, game: str | None):
-    filters = Q()
-    now = timezone.now()
-    if q:
-        filters &= Q(title__icontains=q) | Q(name__icontains=q) | Q(channel__icontains=q)
-    if game:
-        filters &= Q(game__iexact=game) | Q(game_name__iexact=game) | Q(category__iexact=game)
-
-    CANDIDATES = [
-        ("media", "Broadcast", Q(scheduled_for__gte=now), "-scheduled_for"),
-        # ("tournaments", "Tournament", Q(start_at__gte=now), "-start_at"),  # Tournament system moved to legacy
-        ("events", "Event", Q(start_time__gte=now), "-start_time"),
-    ]
-    items = []
-    for app_label, model_name, cond, order in CANDIDATES:
-        Model = try_get_model(app_label, model_name)
-        if not Model:
-            continue
-        try:
-            items.extend(list(Model.objects.filter(cond).filter(filters).order_by(order)[:20]))
-        except Exception:
-            continue
-    return items
-
-def derive_games(*lists):
-    """Collect unique game labels from normalized items."""
-    seen = {}
-    for lst in lists:
-        for it in lst:
-            g = it.get("game")
-            if g and g not in seen:
-                seen[g] = {"name": g, "slug": g.lower().replace(" ", "-")}
-    return list(seen.values())[:24]
-
-# ---- View -------------------------------------------------------------------
-
-def watch(request):
-    q = request.GET.get("q") or ""
-    game = request.GET.get("game") or ""
-
-    # Query raw objects
-    raw_live, raw_vods = query_streams_and_vods(q, game)
-    raw_upcoming = query_upcoming(q, game)
-
-    # Normalize
-    live_streams = [normalize_stream(o, request) for o in raw_live]
-    vods_all = [normalize_vod(o, request) for o in raw_vods]
-    upcoming = [normalize_upcoming(o) for o in raw_upcoming]
-
-    # Featured: prefer live, else newest vod
-    featured_stream = live_streams[0] if live_streams else (vods_all[0] if vods_all else None)
-
-    # Games list (for filter chips)
-    games = derive_games(live_streams, vods_all, upcoming)
-
-    # Paginate VODs
-    paginator = Paginator(vods_all, 12)
-    page = request.GET.get("page") or 1
-    try:
-        page_obj = paginator.page(page)
-        vods = page_obj.object_list
-    except EmptyPage:
-        page_obj = paginator.page(1)
-        vods = page_obj.object_list
-
-    # ── Arena Scoreboard: live matches across all tournaments ──
-    arena_live_matches = []
-    arena_live_tournaments = []
-    try:
-        from apps.tournaments.models import Tournament, Match
-        live_t = Tournament.objects.filter(
-            status='live', is_deleted=False
-        ).select_related('game').order_by('-tournament_start')[:8]
-        for t in live_t:
-            arena_live_tournaments.append({
-                'id': t.id, 'name': t.name, 'slug': t.slug,
-                'game_name': t.game.name if t.game else '',
-            })
-        live_m = Match.objects.filter(
-            tournament__status='live', state__in=['live', 'check_in', 'ready'],
-            is_deleted=False,
-        ).select_related('tournament', 'tournament__game').order_by(
-            '-state', 'scheduled_time', 'round_number',
-        )[:12]
-        for m in live_m:
-            arena_live_matches.append({
-                'id': m.id, 'tournament_slug': m.tournament.slug,
-                'tournament_name': m.tournament.name,
-                'game_name': m.tournament.game.name if m.tournament.game else '',
-                'p1_name': m.participant1_name, 'p2_name': m.participant2_name,
-                'p1_score': m.participant1_score, 'p2_score': m.participant2_score,
-                'state': m.state, 'is_live': m.state == 'live',
-                'round_number': m.round_number, 'match_number': m.match_number,
-                'stream_url': m.stream_url,
-            })
-    except Exception:
-        pass
-
-    context = {
-        "live_streams": live_streams[:8],
-        "featured_stream": featured_stream,
-        "upcoming_streams": upcoming[:10],
-        "vods": vods,
-        "page_obj": page_obj if paginator.num_pages > 1 else None,
-        "games": games,
-        "arena_live_matches": arena_live_matches,
-        "arena_live_tournaments": arena_live_tournaments,
+def _to_arena_match_contract(match):
+    return {
+        "team_a": match.get("team_a") or "TBD",
+        "team_b": match.get("team_b") or "TBD",
+        "team_a_logo": match.get("team_a_logo") or "",
+        "team_b_logo": match.get("team_b_logo") or "",
+        "team_a_tag": match.get("team_a_tag") or "A",
+        "team_b_tag": match.get("team_b_tag") or "B",
+        "score_a": match.get("score_a"),
+        "score_b": match.get("score_b"),
+        "scheduled_time": match.get("scheduled_time"),
+        "match_url": match.get("match_url") or "",
+        "stream_url": match.get("stream_url") or "",
+        "embed_url": match.get("embed_url") or "",
     }
 
-    # Optional: small sample content in DEBUG so the page doesn't look empty
-    if settings.DEBUG and not (live_streams or vods_all or upcoming):
-        host = request.get_host().split(":")[0]
-        ytembed, _ = build_embed_url("https://www.youtube.com/watch?v=dQw4w9WgXcQ")
-        tt, _ = build_embed_url(f"https://www.twitch.tv/esl_csgo", host_for_twitch_parent=host)
-        fb, _ = build_embed_url("https://www.facebook.com/facebookapp/videos/10153231379946729/")
 
-        context["live_streams"] = [
-            {"title":"Sample Twitch Live","embed_url":tt,"watch_url":"https://www.twitch.tv/esl_csgo","thumbnail_url":"","channel":"ESL","game":"CS2","viewers":4200,"tags":["english"],"is_live":True,"start_time":timezone.now(),"platform":"Twitch"},
-        ]
-        context["featured_stream"] = {"title":"Sample YouTube","embed_url":ytembed,"watch_url":"https://youtu.be/dQw4w9WgXcQ","thumbnail_url":"","channel":"DeltaCrown","game":"eFootball","viewers":1200,"tags":["finals"],"is_live":False,"start_time":timezone.now(),"platform":"YouTube"}
-        context["upcoming_streams"] = [
-            {"title":"Open Qualifiers Day 1","game":"Valorant","scheduled_for":timezone.now()+timezone.timedelta(days=1),"channel":"DC Events","platform":"YouTube","cta_url":"#"}
-        ]
-        context["vods"] = [
-            {"title":"Grand Final Highlights","thumbnail_url":"","duration":"12:34","published_at":timezone.now()-timezone.timedelta(days=1),"channel":"DeltaCrown","watch_url":"https://youtu.be/dQw4w9WgXcQ"},
-        ]
-        context["games"] = [{"name":"Valorant","slug":"valorant"},{"name":"eFootball","slug":"efootball"}]
+def _build_arena_async_payload(request, *, selected_game: str, selected_tab: str, search_query: str):
+    match_payload = _fetch_arena_matches(
+        request,
+        selected_game=selected_game,
+        search_query=search_query,
+        include_logos=True,
+        only_tab=selected_tab,
+    )
 
-    # Navbar flag (you can also move this to a context processor below)
-    context["nav_live"] = bool(live_streams)
+    if selected_tab == "upcoming":
+        tab_matches = match_payload["upcoming_matches"]
+    elif selected_tab == "results":
+        tab_matches = match_payload["result_matches"]
+    else:
+        tab_matches = match_payload["live_matches"]
 
+    return {
+        "groups": _group_matches_by_tournament(tab_matches),
+    }
+
+
+def _safe_queryset_list(queryset, limit=None):
+    try:
+        if limit is not None:
+            queryset = queryset[:limit]
+        return list(queryset)
+    except (ProgrammingError, OperationalError):
+        return []
+
+
+def _safe_reverse(url_name, **kwargs):
+    try:
+        return reverse(url_name, kwargs=kwargs)
+    except Exception:
+        return "#"
+
+
+def _with_twitch_parent(embed_url: str, provider: str, host: str) -> str:
+    clean_embed = (embed_url or "").strip()
+    if not clean_embed:
+        return ""
+
+    normalized_provider = str(provider or "").strip().lower()
+    if normalized_provider != "twitch" and "player.twitch.tv" not in clean_embed:
+        return clean_embed
+
+    parent_host = (host or "").split(":")[0] or "localhost"
+    if "__PARENT_HOST__" in clean_embed:
+        return clean_embed.replace("__PARENT_HOST__", parent_host)
+    if "parent=" in clean_embed:
+        return clean_embed
+    separator = "&" if "?" in clean_embed else "?"
+    return f"{clean_embed}{separator}parent={parent_host}"
+
+
+def _with_youtube_origin(embed_url: str, request) -> str:
+    clean_embed = (embed_url or "").strip()
+    if not clean_embed:
+        return ""
+
+    lower_embed = clean_embed.lower()
+    is_youtube_embed = (
+        "youtube.com/embed/" in lower_embed
+        or "youtube-nocookie.com/embed/" in lower_embed
+    )
+    if not is_youtube_embed:
+        return clean_embed
+
+    origin = f"{request.scheme}://{request.get_host()}"
+    parts = urlsplit(clean_embed)
+    query = dict(parse_qsl(parts.query, keep_blank_values=True))
+
+    query.setdefault("autoplay", "1")
+    query.setdefault("mute", "1")
+    query.setdefault("rel", "0")
+    query.setdefault("enablejsapi", "1")
+    query["origin"] = origin
+    query["widget_referrer"] = origin
+
+    normalized_query = urlencode(query)
+    return urlunsplit((parts.scheme, parts.netloc, parts.path, normalized_query, parts.fragment))
+
+
+def _derive_team_tag(name: str) -> str:
+    if not name:
+        return "TBD"
+    compact = "".join(ch for ch in name.upper() if ch.isalnum())
+    if len(compact) >= 3:
+        return compact[:3]
+    words = [part for part in name.split() if part]
+    if len(words) >= 2:
+        return (words[0][0] + words[1][0]).upper()
+    return compact[:3] or "TBD"
+
+
+def _resolve_tournament_stream_url(tournament) -> str:
+    return (
+        (tournament.stream_youtube_url or "").strip()
+        or (tournament.stream_twitch_url or "").strip()
+    )
+
+
+def _resolve_match_stream_url(match) -> str:
+    return (match.stream_url or "").strip() or _resolve_tournament_stream_url(match.tournament)
+
+
+def _resolve_participant_logo(match, participant_id, team_logo_map, user_avatar_map, team_avatar_fallback_map):
+    if not participant_id:
+        return None
+
+    participation_type = str(getattr(match.tournament, "participation_type", "") or "").lower()
+    if participation_type == "team":
+        logo = team_logo_map.get(participant_id)
+        if logo:
+            return logo
+        return team_avatar_fallback_map.get((match.tournament_id, participant_id))
+    return user_avatar_map.get(participant_id)
+
+
+def _media_field_url(value) -> str:
+    if not value:
+        return ""
+    if isinstance(value, str):
+        return value
+    try:
+        return value.url
+    except Exception:
+        return ""
+
+
+def _build_arena_match_logo_payload(matches):
+    team_ids = set()
+    solo_user_ids = set()
+    team_tournament_ids = set()
+
+    for match in matches:
+        participation_type = str(getattr(match.tournament, "participation_type", "") or "").lower()
+        for participant_id in (match.participant1_id, match.participant2_id):
+            if not participant_id:
+                continue
+            if participation_type == "team":
+                team_ids.add(participant_id)
+                team_tournament_ids.add(match.tournament_id)
+            else:
+                solo_user_ids.add(participant_id)
+
+    team_logo_map = {}
+    if team_ids:
+        try:
+            from apps.organizations.models import Team
+
+            teams = Team.objects.filter(id__in=team_ids).only("id", "logo")
+            for team in teams:
+                if getattr(team, "logo", None):
+                    team_logo_map[int(team.id)] = team.logo
+        except Exception:
+            team_logo_map = {}
+
+    team_avatar_fallback_map = {}
+    missing_team_ids = team_ids.difference(team_logo_map.keys())
+    if missing_team_ids and team_tournament_ids:
+        try:
+            from apps.tournaments.models.registration import Registration
+
+            fallback_regs = (
+                Registration.objects.filter(
+                    tournament_id__in=team_tournament_ids,
+                    team_id__in=missing_team_ids,
+                    is_deleted=False,
+                )
+                .select_related("user", "user__profile")
+                .order_by("id")
+            )
+            for reg in fallback_regs:
+                if not reg.team_id:
+                    continue
+                key = (int(reg.tournament_id), int(reg.team_id))
+                if key in team_avatar_fallback_map:
+                    continue
+                profile = getattr(reg.user, "profile", None)
+                avatar = getattr(profile, "avatar", None) if profile else None
+                if avatar:
+                    team_avatar_fallback_map[key] = avatar
+        except Exception:
+            team_avatar_fallback_map = {}
+
+    user_avatar_map = {}
+    if solo_user_ids:
+        try:
+            users = get_user_model().objects.filter(id__in=solo_user_ids).select_related("profile")
+            for user in users:
+                profile = getattr(user, "profile", None)
+                avatar = getattr(profile, "avatar", None) if profile else None
+                if avatar:
+                    user_avatar_map[int(user.id)] = avatar
+        except Exception:
+            user_avatar_map = {}
+
+    payload = {}
+    for match in matches:
+        participant1_id = int(match.participant1_id) if match.participant1_id else None
+        participant2_id = int(match.participant2_id) if match.participant2_id else None
+
+        payload[match.id] = {
+            "team_a_logo": _resolve_participant_logo(
+                match,
+                participant1_id,
+                team_logo_map,
+                user_avatar_map,
+                team_avatar_fallback_map,
+            ),
+            "team_b_logo": _resolve_participant_logo(
+                match,
+                participant2_id,
+                team_logo_map,
+                user_avatar_map,
+                team_avatar_fallback_map,
+            ),
+        }
+
+    return payload
+
+
+def _serialize_match_for_arena(match, request, logo_payload=None):
+    logo_payload = logo_payload or {}
+    stream_url = _resolve_match_stream_url(match)
+    embed_url, platform = build_embed_url(
+        stream_url,
+        host_for_twitch_parent=request.get_host(),
+    ) if stream_url else ("", "")
+    embed_url = _with_youtube_origin(embed_url, request)
+    game = getattr(match.tournament, "game", None)
+    game_name = ""
+    game_slug = ""
+    if game:
+        game_name = getattr(game, "display_name", "") or getattr(game, "name", "")
+        game_slug = getattr(game, "slug", "") or ""
+
+    has_score = match.state in ARENA_LIVE_STATES or match.state in ARENA_RESULT_STATES
+    tournament_url = _safe_reverse("tournaments:detail", slug=match.tournament.slug)
+    match_url = _safe_reverse("tournaments:match_detail", slug=match.tournament.slug, match_id=match.id)
+
+    return {
+        "id": match.id,
+        "tournament_name": match.tournament.name,
+        "tournament_slug": match.tournament.slug,
+        "tournament_url": tournament_url,
+        "match_url": match_url,
+        "game_name": game_name,
+        "game_slug": game_slug,
+        "team_a": match.participant1_name or "TBD",
+        "team_b": match.participant2_name or "TBD",
+        "team_a_tag": _derive_team_tag(match.participant1_name or "TBD"),
+        "team_b_tag": _derive_team_tag(match.participant2_name or "TBD"),
+        "team_a_logo": _media_field_url(logo_payload.get("team_a_logo")),
+        "team_b_logo": _media_field_url(logo_payload.get("team_b_logo")),
+        "score_a": match.participant1_score,
+        "score_b": match.participant2_score,
+        "has_score": has_score,
+        "state": match.state,
+        "state_label": match.get_state_display(),
+        "is_live": match.state == "live",
+        "scheduled_time": match.scheduled_time,
+        "round_number": match.round_number,
+        "match_number": match.match_number,
+        "best_of": match.best_of,
+        "stream_url": stream_url,
+        "embed_url": embed_url,
+        "stream_embed_url": embed_url,
+        "stream_platform": platform,
+        "thumbnail_url": (
+            first_attr(match.tournament, ("banner_image", "thumbnail_image"))
+            or first_attr(game, ("banner", "card_image", "icon"))
+            or ""
+        ),
+    }
+
+
+def _fetch_arena_matches(
+    request,
+    selected_game: str,
+    search_query: str,
+    *,
+    include_logos: bool = True,
+    only_tab: str | None = None,
+):
+    from apps.tournaments.models import Match, Tournament
+
+    base_qs = Match.objects.filter(
+        is_deleted=False,
+        tournament__is_deleted=False,
+        tournament__status__in=[
+            Tournament.REGISTRATION_OPEN,
+            Tournament.REGISTRATION_CLOSED,
+            Tournament.LIVE,
+            Tournament.COMPLETED,
+            Tournament.ARCHIVED,
+        ],
+    ).select_related("tournament", "tournament__game")
+
+    if selected_game:
+        base_qs = base_qs.filter(tournament__game__slug=selected_game)
+
+    if search_query:
+        base_qs = base_qs.filter(
+            Q(tournament__name__icontains=search_query)
+            | Q(participant1_name__icontains=search_query)
+            | Q(participant2_name__icontains=search_query)
+            | Q(tournament__game__name__icontains=search_query)
+            | Q(tournament__game__display_name__icontains=search_query)
+        )
+
+    ordered_by_tournament_then_time = ("tournament__name", "scheduled_time", "id")
+    live_raw = []
+    upcoming_raw = []
+    result_raw = []
+
+    normalized_tab = (only_tab or "").strip().lower()
+    tab_config = {
+        "live": (ARENA_LIVE_STATES, 18, "live"),
+        "upcoming": (ARENA_UPCOMING_STATES, 24, "upcoming"),
+        "results": (ARENA_RESULT_STATES, 24, "result"),
+    }
+
+    if normalized_tab in tab_config:
+        states, limit, destination = tab_config[normalized_tab]
+        rows = _safe_queryset_list(
+            base_qs.filter(state__in=states).order_by(*ordered_by_tournament_then_time),
+            limit=limit,
+        )
+        if destination == "live":
+            live_raw = rows
+        elif destination == "upcoming":
+            upcoming_raw = rows
+        else:
+            result_raw = rows
+    else:
+        live_raw = _safe_queryset_list(
+            base_qs.filter(state__in=ARENA_LIVE_STATES).order_by(*ordered_by_tournament_then_time),
+            limit=18,
+        )
+        upcoming_raw = _safe_queryset_list(
+            base_qs.filter(state__in=ARENA_UPCOMING_STATES).order_by(*ordered_by_tournament_then_time),
+            limit=24,
+        )
+        result_raw = _safe_queryset_list(
+            base_qs.filter(state__in=ARENA_RESULT_STATES).order_by(*ordered_by_tournament_then_time),
+            limit=24,
+        )
+
+    logo_payload_by_match_id = {}
+    if include_logos:
+        all_matches = [*live_raw, *upcoming_raw, *result_raw]
+        logo_payload_by_match_id = _build_arena_match_logo_payload(all_matches)
+
+    return {
+        "live_matches": [
+            _serialize_match_for_arena(match, request, logo_payload=logo_payload_by_match_id.get(match.id))
+            for match in live_raw
+        ],
+        "upcoming_matches": [
+            _serialize_match_for_arena(match, request, logo_payload=logo_payload_by_match_id.get(match.id))
+            for match in upcoming_raw
+        ],
+        "result_matches": [
+            _serialize_match_for_arena(match, request, logo_payload=logo_payload_by_match_id.get(match.id))
+            for match in result_raw
+        ],
+    }
+
+
+def _fetch_top_live_streams(request, live_matches, selected_game: str, search_query: str):
+    from apps.siteui.models import ArenaStream
+    from apps.tournaments.models import Tournament
+
+    seen_urls = set()
+    top_streams = []
+    host = request.get_host()
+    now = timezone.now()
+
+    for match in live_matches:
+        stream_url = (match.get("stream_url") or "").strip()
+        if not stream_url or stream_url in seen_urls:
+            continue
+        seen_urls.add(stream_url)
+        top_streams.append({
+            "id": f"match-{match['id']}",
+            "title": f"{match['team_a']} vs {match['team_b']}",
+            "subtitle": match["tournament_name"],
+            "stream_url": stream_url,
+            "embed_url": match.get("stream_embed_url") or "",
+            "thumbnail_url": match.get("thumbnail_url") or "",
+            "platform": match.get("stream_platform") or "",
+            "channel_name": match["tournament_name"],
+            "viewers_label": "",
+            "game_name": match.get("game_name") or "",
+            "game_slug": match.get("game_slug") or "",
+            "team_a": match["team_a"],
+            "team_b": match["team_b"],
+            "team_a_tag": match["team_a_tag"],
+            "team_b_tag": match["team_b_tag"],
+            "score_a": match["score_a"],
+            "score_b": match["score_b"],
+            "has_score": match["has_score"],
+            "details": f"R{match['round_number']} · M{match['match_number']}",
+            "is_live": True,
+            "source": "match",
+            "target_url": match.get("match_url") or stream_url,
+        })
+        if len(top_streams) >= 8:
+            return top_streams
+
+    admin_stream_qs = ArenaStream.objects.filter(is_active=True, is_live=True).select_related("game").order_by(
+        "-featured",
+        "display_order",
+        "-updated_at",
+        "id",
+    )
+    admin_streams = _safe_queryset_list(admin_stream_qs, limit=18)
+    for stream in admin_streams:
+        if not stream.is_currently_live(now):
+            continue
+
+        stream_url = (stream.source_url or "").strip()
+        if not stream_url or stream_url in seen_urls:
+            continue
+
+        game_slug = ""
+        game_name = stream.effective_game_label or ""
+        if stream.game_id:
+            game_slug = stream.game.slug
+        elif stream.game_label:
+            game_slug = slugify(stream.game_label)
+
+        if selected_game and game_slug != selected_game:
+            continue
+        if search_query:
+            searchable = " ".join([
+                stream.display_title,
+                stream.subtitle,
+                stream.channel_name,
+                stream.game_label,
+                game_name,
+            ]).lower()
+            if search_query.lower() not in searchable:
+                continue
+
+        embed_url = _with_twitch_parent(stream.safe_embed_url, stream.provider, host)
+        if not embed_url:
+            fallback_embed_url, _ = build_embed_url(stream_url, host_for_twitch_parent=host)
+            embed_url = fallback_embed_url or stream_url
+        embed_url = _with_youtube_origin(embed_url, request)
+        seen_urls.add(stream_url)
+        top_streams.append({
+            "id": f"admin-{stream.id}",
+            "title": stream.display_title,
+            "subtitle": stream.subtitle,
+            "stream_url": stream_url,
+            "embed_url": embed_url,
+            "thumbnail_url": stream.display_thumbnail,
+            "platform": stream.effective_platform,
+            "channel_name": stream.channel_name,
+            "viewers_label": stream.viewers_label or (f"{stream.viewer_count:,}" if stream.viewer_count else ""),
+            "game_name": game_name,
+            "game_slug": game_slug,
+            "team_a": "",
+            "team_b": "",
+            "team_a_tag": "",
+            "team_b_tag": "",
+            "score_a": None,
+            "score_b": None,
+            "has_score": False,
+            "details": "",
+            "is_live": True,
+            "source": "admin",
+            "target_url": stream_url,
+        })
+        if len(top_streams) >= 8:
+            return top_streams
+
+    tournament_qs = Tournament.objects.filter(
+        is_deleted=False,
+        status=Tournament.LIVE,
+    ).select_related("game").order_by("-tournament_start", "id")
+
+    if selected_game:
+        tournament_qs = tournament_qs.filter(game__slug=selected_game)
+    if search_query:
+        tournament_qs = tournament_qs.filter(
+            Q(name__icontains=search_query)
+            | Q(game__name__icontains=search_query)
+            | Q(game__display_name__icontains=search_query)
+        )
+
+    for tournament in _safe_queryset_list(tournament_qs, limit=18):
+        stream_url = _resolve_tournament_stream_url(tournament)
+        if not stream_url or stream_url in seen_urls:
+            continue
+        embed_url, platform = build_embed_url(stream_url, host_for_twitch_parent=host)
+        embed_url = _with_youtube_origin(embed_url, request)
+        game = tournament.game
+        seen_urls.add(stream_url)
+        top_streams.append({
+            "id": f"tournament-{tournament.id}",
+            "title": tournament.name,
+            "subtitle": "Official tournament broadcast",
+            "stream_url": stream_url,
+            "embed_url": embed_url,
+            "thumbnail_url": (
+                first_attr(tournament, ("banner_image", "thumbnail_image"))
+                or first_attr(game, ("banner", "card_image", "icon"))
+                or ""
+            ),
+            "platform": platform,
+            "channel_name": "DeltaCrown",
+            "viewers_label": "",
+            "game_name": (game.display_name or game.name) if game else "",
+            "game_slug": game.slug if game else "",
+            "team_a": "",
+            "team_b": "",
+            "team_a_tag": "",
+            "team_b_tag": "",
+            "score_a": None,
+            "score_b": None,
+            "has_score": False,
+            "details": "",
+            "is_live": True,
+            "source": "tournament",
+            "target_url": _safe_reverse("tournaments:detail", slug=tournament.slug),
+        })
+        if len(top_streams) >= 8:
+            break
+
+    return top_streams
+
+
+def _fetch_arena_highlights(request):
+    from apps.siteui.models import ArenaHighlight
+
+    host = request.get_host()
+    highlight_qs = ArenaHighlight.objects.filter(is_active=True).order_by("display_order", "-updated_at", "id")
+    highlights = []
+    for item in _safe_queryset_list(highlight_qs, limit=12):
+        raw_video_url = (item.source_url or "").strip()
+        final_embed_url = _with_twitch_parent(item.safe_embed_url, item.provider, host)
+        if not final_embed_url:
+            fallback_embed_url, _ = build_embed_url(raw_video_url, host_for_twitch_parent=host)
+            final_embed_url = fallback_embed_url or raw_video_url
+        final_embed_url = _with_youtube_origin(final_embed_url, request)
+        highlights.append({
+            "id": item.id,
+            "title": item.display_title,
+            "subtitle": item.subtitle,
+            "watch_url": raw_video_url,
+            "video_url": final_embed_url,
+            "embed_url": final_embed_url,
+            "platform": item.provider,
+            "duration_label": item.duration_label,
+            "views_label": item.views_label,
+            "thumbnail_url": item.display_thumbnail,
+        })
+    return highlights
+
+
+def _get_arena_voter_key(request, ensure_session: bool):
+    if ensure_session and not request.session.session_key:
+        request.session.create()
+
+    session_key = request.session.session_key or ""
+    if not session_key and not request.user.is_authenticated:
+        return ""
+
+    fingerprint = "|".join([
+        session_key,
+        request.META.get("REMOTE_ADDR", ""),
+        request.META.get("HTTP_USER_AGENT", "")[:180],
+    ])
+    return hashlib.sha256(fingerprint.encode("utf-8")).hexdigest()
+
+
+def _get_widget_vote_summary(widget):
+    from apps.siteui.models import ArenaGlobalWidgetVote
+
+    try:
+        rows = list(
+            ArenaGlobalWidgetVote.objects.filter(widget=widget)
+            .values("selected_option")
+            .annotate(total=Count("id"))
+        )
+    except (ProgrammingError, OperationalError):
+        return {
+            "a_votes": None,
+            "b_votes": None,
+            "total_votes": widget.vote_count,
+            "a_percent": widget.option_a_percent,
+            "b_percent": widget.option_b_percent,
+        }
+
+    if not rows:
+        return {
+            "a_votes": 0,
+            "b_votes": 0,
+            "total_votes": widget.vote_count,
+            "a_percent": widget.option_a_percent,
+            "b_percent": widget.option_b_percent,
+        }
+
+    a_votes = sum(row["total"] for row in rows if row["selected_option"] == "A")
+    b_votes = sum(row["total"] for row in rows if row["selected_option"] == "B")
+    total_votes = a_votes + b_votes
+    if total_votes <= 0:
+        return {
+            "a_votes": 0,
+            "b_votes": 0,
+            "total_votes": widget.vote_count,
+            "a_percent": widget.option_a_percent,
+            "b_percent": widget.option_b_percent,
+        }
+
+    a_percent = round((a_votes * 100) / total_votes)
+    b_percent = 100 - a_percent
+    return {
+        "a_votes": a_votes,
+        "b_votes": b_votes,
+        "total_votes": total_votes,
+        "a_percent": a_percent,
+        "b_percent": b_percent,
+    }
+
+
+def _resolve_user_widget_vote(widget, request):
+    from apps.siteui.models import ArenaGlobalWidgetVote
+
+    try:
+        if request.user.is_authenticated:
+            vote = ArenaGlobalWidgetVote.objects.filter(widget=widget, user=request.user).first()
+            return vote.selected_option if vote else ""
+
+        voter_key = _get_arena_voter_key(request, ensure_session=False)
+        if not voter_key:
+            return ""
+        vote = ArenaGlobalWidgetVote.objects.filter(widget=widget, voter_key=voter_key).first()
+        return vote.selected_option if vote else ""
+    except (ProgrammingError, OperationalError):
+        return ""
+
+
+def _active_arena_widget_context(request):
+    from apps.siteui.models import ArenaGlobalWidget
+
+    now = timezone.now()
+    widgets = _safe_queryset_list(
+        ArenaGlobalWidget.objects.filter(is_active=True).order_by("display_order", "-updated_at", "id"),
+        limit=10,
+    )
+    widget = None
+    for candidate in widgets:
+        if candidate.is_visible_now(now):
+            widget = candidate
+            break
+    if not widget:
+        return None
+
+    summary = _get_widget_vote_summary(widget)
+    return {
+        "id": widget.id,
+        "badge_label": widget.badge_label,
+        "meta_label": widget.meta_label,
+        "tournament_label": widget.tournament_label,
+        "prompt_text": widget.prompt_text,
+        "option_a_label": widget.option_a_label,
+        "option_b_label": widget.option_b_label,
+        "option_a_percent": summary["a_percent"],
+        "option_b_percent": summary["b_percent"],
+        "vote_count": summary["total_votes"],
+        "vote_count_label": widget.vote_count_label,
+        "selected_option": _resolve_user_widget_vote(widget, request),
+        "vote_url": _safe_reverse("siteui:arena_widget_vote", widget_id=widget.id),
+    }
+
+
+def _refresh_widget_cached_vote_fields(widget):
+    from apps.siteui.models import ArenaGlobalWidget
+
+    summary = _get_widget_vote_summary(widget)
+    if summary["a_votes"] is None:
+        return
+    ArenaGlobalWidget.objects.filter(pk=widget.pk).update(
+        vote_count=summary["total_votes"],
+        option_a_percent=summary["a_percent"],
+        option_b_percent=summary["b_percent"],
+    )
+
+
+def _arena_games_payload():
+    from apps.games.models.game import Game
+
+    try:
+        qs = Game.objects.filter(is_active=True).filter(
+            Q(tournaments__is_deleted=False, tournaments__matches__is_deleted=False)
+            | Q(arena_streams__is_active=True)
+        ).distinct().order_by("display_name", "name")
+        games = _safe_queryset_list(qs, limit=24)
+        if not games:
+            fallback_qs = Game.objects.filter(
+                is_active=True,
+                tournaments__is_deleted=False,
+                tournaments__matches__is_deleted=False,
+            ).distinct().order_by("display_name", "name")
+            games = _safe_queryset_list(fallback_qs, limit=24)
+    except Exception:
+        qs = Game.objects.filter(
+            is_active=True,
+            tournaments__is_deleted=False,
+            tournaments__matches__is_deleted=False,
+        ).distinct().order_by("display_name", "name")
+        games = _safe_queryset_list(qs, limit=24)
+
+    return [
+        {
+            "slug": g.slug,
+            "name": g.display_name or g.name,
+            "primary_color": g.primary_color,
+            "icon": g.icon,
+        }
+        for g in games
+    ]
+
+
+# ---- Arena views -------------------------------------------------------------
+
+def watch(request):
+    selected_game = (request.GET.get("game") or "").strip().lower()
+    search_query = (request.GET.get("q") or "").strip()
+    selected_tab = (request.GET.get("tab") or "live").strip().lower()
+    if selected_tab not in {"live", "upcoming", "results"}:
+        selected_tab = "live"
+
+    if _is_arena_async_request(request):
+        payload = _build_arena_async_payload(
+            request,
+            selected_game=selected_game,
+            selected_tab=selected_tab,
+            search_query=search_query,
+        )
+        response = JsonResponse(payload)
+        response["Cache-Control"] = "no-store, max-age=0"
+        return response
+
+    games = _arena_games_payload()
+    if selected_game and not any(g["slug"] == selected_game for g in games):
+        selected_game = ""
+
+    match_payload = _fetch_arena_matches(request, selected_game=selected_game, search_query=search_query)
+    live_matches = match_payload["live_matches"]
+    upcoming_matches = match_payload["upcoming_matches"]
+    result_matches = match_payload["result_matches"]
+
+    top_live_streams = _fetch_top_live_streams(
+        request,
+        live_matches=live_matches,
+        selected_game=selected_game,
+        search_query=search_query,
+    )
+
+    context = {
+        "top_live_streams": top_live_streams,
+        "live_matches": live_matches,
+        "upcoming_matches": upcoming_matches,
+        "result_matches": result_matches,
+        "arena_highlights": _fetch_arena_highlights(request),
+        "arena_poll_widget": _active_arena_widget_context(request),
+        "games": games,
+        "selected_game": selected_game,
+        "selected_tab": selected_tab,
+        "search_query": search_query,
+        "arena_stats": {
+            "live_streams": len(top_live_streams),
+            "live_matches": len(live_matches),
+            "upcoming_matches": len(upcoming_matches),
+            "result_matches": len(result_matches),
+        },
+        "nav_live": bool(top_live_streams),
+    }
     return render(request, "Arena.html", context)
+
+
+def arena_async_data(request):
+    selected_game = (request.GET.get("game") or "").strip().lower()
+    search_query = (request.GET.get("q") or "").strip()
+    selected_tab = (request.GET.get("tab") or "live").strip().lower()
+    if selected_tab not in {"live", "upcoming", "results"}:
+        selected_tab = "live"
+
+    payload = _build_arena_async_payload(
+        request,
+        selected_game=selected_game,
+        selected_tab=selected_tab,
+        search_query=search_query,
+    )
+    response = JsonResponse(payload)
+    response["Cache-Control"] = "no-store, max-age=0"
+    return response
+
+
+def arena_widget_vote(request, widget_id: int):
+    from apps.siteui.models import ArenaGlobalWidget, ArenaGlobalWidgetVote
+
+    if request.method != "POST":
+        return JsonResponse({"ok": False, "error": "Method not allowed"}, status=405)
+
+    selected_option = (request.POST.get("option") or "").strip().upper()
+    if selected_option not in {"A", "B"}:
+        return JsonResponse({"ok": False, "error": "Invalid option"}, status=400)
+
+    try:
+        widget = ArenaGlobalWidget.objects.get(pk=widget_id, is_active=True)
+    except (ArenaGlobalWidget.DoesNotExist, ProgrammingError, OperationalError):
+        return JsonResponse({"ok": False, "error": "Widget unavailable"}, status=404)
+
+    if not widget.is_visible_now():
+        return JsonResponse({"ok": False, "error": "Voting is not currently open"}, status=400)
+
+    voter_key = _get_arena_voter_key(request, ensure_session=not request.user.is_authenticated)
+
+    try:
+        with transaction.atomic():
+            if request.user.is_authenticated:
+                ArenaGlobalWidgetVote.objects.update_or_create(
+                    widget=widget,
+                    user=request.user,
+                    defaults={
+                        "selected_option": selected_option,
+                        "voter_key": voter_key,
+                    },
+                )
+            else:
+                if not voter_key:
+                    return JsonResponse({"ok": False, "error": "Session unavailable"}, status=400)
+                ArenaGlobalWidgetVote.objects.update_or_create(
+                    widget=widget,
+                    voter_key=voter_key,
+                    defaults={"selected_option": selected_option},
+                )
+            _refresh_widget_cached_vote_fields(widget)
+    except (ProgrammingError, OperationalError):
+        return JsonResponse({"ok": False, "error": "Voting table is not ready yet"}, status=503)
+
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+        return JsonResponse({
+            "ok": True,
+            "widget": _active_arena_widget_context(request),
+        })
+
+    next_url = request.POST.get("next") or _safe_reverse("siteui:arena")
+    if not url_has_allowed_host_and_scheme(next_url, {request.get_host()}):
+        next_url = _safe_reverse("siteui:arena")
+    return redirect(next_url)
 
 
 def newsletter_subscribe(request):

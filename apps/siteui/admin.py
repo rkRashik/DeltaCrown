@@ -5,14 +5,27 @@ Provides admin interface for managing homepage content and other site-wide conte
 """
 
 from django.contrib import admin
-from unfold.admin import ModelAdmin
 from django.utils.html import format_html
 from django.core.exceptions import ValidationError
-from .models import HomePageContent
+
+try:
+    # Preferred modern admin shell when django-unfold is installed.
+    from unfold.admin import ModelAdmin as BaseModelAdmin
+except Exception:
+    # Fallback keeps admin registration working even if unfold is unavailable.
+    from django.contrib.admin import ModelAdmin as BaseModelAdmin
+
+from .models import (
+    HomePageContent,
+    ArenaGlobalWidget,
+    ArenaHighlight,
+    ArenaStream,
+    ArenaGlobalWidgetVote,
+)
 
 
 @admin.register(HomePageContent)
-class HomePageContentAdmin(ModelAdmin):
+class HomePageContentAdmin(BaseModelAdmin):
     """
     Admin interface for managing homepage content.
     
@@ -232,3 +245,282 @@ class HomePageContentAdmin(ModelAdmin):
             '</div>'
         )
         return super().change_view(request, object_id, form_url, extra_context)
+
+
+@admin.register(ArenaHighlight)
+class ArenaHighlightAdmin(BaseModelAdmin):
+    list_display = (
+        "display_title",
+        "provider",
+        "game",
+        "thumbnail_preview",
+        "duration_label",
+        "views_label",
+        "is_active",
+        "display_order",
+        "updated_at",
+    )
+    list_filter = ("provider", "is_active", "game")
+    search_fields = ("custom_title", "fetched_title", "subtitle", "source_url")
+    list_editable = ("is_active", "display_order")
+    ordering = ("display_order", "-updated_at", "id")
+    readonly_fields = (
+        "fetched_title",
+        "fetched_thumbnail_url",
+        "embed_url",
+        "provider",
+        "thumbnail_preview",
+        "created_at",
+        "updated_at",
+    )
+    autocomplete_fields = ("game",)
+    actions = ("activate_selected", "deactivate_selected")
+    list_per_page = 25
+
+    fieldsets = (
+        ("Main", {
+            "fields": (
+                "source_url",
+                "game",
+                "subtitle",
+                "is_active",
+                "display_order",
+                ("duration_label", "views_label"),
+            )
+        }),
+        ("Overrides", {
+            "fields": (
+                "custom_title",
+                "custom_thumbnail",
+                "thumbnail_preview",
+            ),
+            "classes": ("collapse",),
+        }),
+        ("Auto-Fetched Data", {
+            "fields": (
+                "fetched_title",
+                "fetched_thumbnail_url",
+                "embed_url",
+                "provider",
+            ),
+        }),
+        ("Meta", {
+            "fields": ("created_at", "updated_at"),
+            "classes": ("collapse",),
+        }),
+    )
+
+    @admin.display(description="Title")
+    def display_title(self, obj):
+        return obj.display_title or "-"
+
+    @admin.display(description="Thumbnail")
+    def thumbnail_preview(self, obj):
+        url = obj.display_thumbnail
+        if not url:
+            return "-"
+        return format_html(
+            '<img src="{}" alt="{}" style="height:48px;width:72px;object-fit:cover;border-radius:8px;border:1px solid #ddd;" />',
+            url,
+            obj.display_title,
+        )
+
+    @admin.action(description="Activate selected highlights")
+    def activate_selected(self, request, queryset):
+        queryset.update(is_active=True)
+
+    @admin.action(description="Deactivate selected highlights")
+    def deactivate_selected(self, request, queryset):
+        queryset.update(is_active=False)
+
+
+@admin.register(ArenaGlobalWidget)
+class ArenaGlobalWidgetAdmin(BaseModelAdmin):
+    list_display = (
+        "prompt_text",
+        "tournament_label",
+        "is_active",
+        "display_order",
+        "starts_at",
+        "ends_at",
+        "vote_count",
+        "active_window_status",
+        "updated_at",
+    )
+    list_filter = ("is_active",)
+    search_fields = ("prompt_text", "tournament_label", "option_a_label", "option_b_label")
+    list_editable = ("is_active", "display_order")
+    ordering = ("display_order", "-updated_at", "id")
+    readonly_fields = ("created_at", "updated_at")
+    actions = ("activate_selected", "deactivate_selected")
+    list_per_page = 25
+
+    fieldsets = (
+        ("Widget Labels", {
+            "fields": (
+                ("badge_label", "meta_label"),
+                "tournament_label",
+                "prompt_text",
+            )
+        }),
+        ("Poll Options", {
+            "fields": (
+                ("option_a_label", "option_a_percent"),
+                ("option_b_label", "option_b_percent"),
+                ("vote_count", "vote_count_label"),
+            )
+        }),
+        ("Publishing", {
+            "fields": (
+                "is_active",
+                "display_order",
+                ("starts_at", "ends_at"),
+            )
+        }),
+        ("Meta", {
+            "fields": ("created_at", "updated_at"),
+            "classes": ("collapse",),
+        }),
+    )
+
+    @admin.display(description="Window")
+    def active_window_status(self, obj):
+        return "Live" if obj.is_visible_now() else "Scheduled/Inactive"
+
+    @admin.action(description="Activate selected widgets")
+    def activate_selected(self, request, queryset):
+        queryset.update(is_active=True)
+
+    @admin.action(description="Deactivate selected widgets")
+    def deactivate_selected(self, request, queryset):
+        queryset.update(is_active=False)
+
+
+@admin.register(ArenaStream)
+class ArenaStreamAdmin(BaseModelAdmin):
+    list_display = (
+        "display_title",
+        "provider",
+        "channel_name",
+        "game_display",
+        "is_live",
+        "featured",
+        "is_active",
+        "display_order",
+        "viewer_count",
+        "active_window_status",
+    )
+    list_filter = ("provider", "is_live", "featured", "is_active")
+    search_fields = ("custom_title", "fetched_title", "subtitle", "channel_name", "game_label", "source_url")
+    list_editable = ("is_live", "featured", "is_active", "display_order")
+    ordering = ("-featured", "display_order", "-updated_at", "id")
+    readonly_fields = (
+        "fetched_title",
+        "fetched_thumbnail_url",
+        "embed_url",
+        "provider",
+        "thumbnail_preview",
+        "created_at",
+        "updated_at",
+    )
+    autocomplete_fields = ("game",)
+    actions = ("mark_live", "mark_not_live", "activate_selected", "deactivate_selected")
+    list_per_page = 25
+
+    fieldsets = (
+        ("Main", {
+            "fields": (
+                "source_url",
+                "game",
+                "subtitle",
+                "channel_name",
+                "game_label",
+                ("is_live", "is_active", "featured"),
+                "display_order",
+            )
+        }),
+        ("Overrides", {
+            "fields": (
+                "custom_title",
+                "custom_thumbnail",
+                "thumbnail_preview",
+            ),
+            "classes": ("collapse",),
+        }),
+        ("Auto-Fetched Data", {
+            "fields": (
+                "fetched_title",
+                "fetched_thumbnail_url",
+                "embed_url",
+                "provider",
+            )
+        }),
+        ("Audience & Schedule", {
+            "fields": (
+                ("viewer_count", "viewers_label"),
+                ("starts_at", "ends_at"),
+            )
+        }),
+        ("Meta", {
+            "fields": ("created_at", "updated_at"),
+            "classes": ("collapse",),
+        }),
+    )
+
+    @admin.display(description="Title")
+    def display_title(self, obj):
+        return obj.display_title or "-"
+
+    @admin.display(description="Game")
+    def game_display(self, obj):
+        return obj.effective_game_label or "-"
+
+    @admin.display(description="Window")
+    def active_window_status(self, obj):
+        return "Live" if obj.is_currently_live() else "Scheduled/Inactive"
+
+    @admin.display(description="Thumbnail")
+    def thumbnail_preview(self, obj):
+        url = obj.display_thumbnail
+        if not url:
+            return "-"
+        return format_html(
+            '<img src="{}" alt="{}" style="height:48px;width:84px;object-fit:cover;border-radius:8px;border:1px solid #ddd;" />',
+            url,
+            obj.display_title,
+        )
+
+    @admin.action(description="Mark selected as live")
+    def mark_live(self, request, queryset):
+        queryset.update(is_live=True)
+
+    @admin.action(description="Mark selected as not live")
+    def mark_not_live(self, request, queryset):
+        queryset.update(is_live=False)
+
+    @admin.action(description="Activate selected streams")
+    def activate_selected(self, request, queryset):
+        queryset.update(is_active=True)
+
+    @admin.action(description="Deactivate selected streams")
+    def deactivate_selected(self, request, queryset):
+        queryset.update(is_active=False)
+
+
+@admin.register(ArenaGlobalWidgetVote)
+class ArenaGlobalWidgetVoteAdmin(BaseModelAdmin):
+    list_display = ("widget", "selected_option", "user", "voter_key", "created_at")
+    list_filter = ("selected_option", "created_at")
+    search_fields = ("widget__prompt_text", "voter_key", "user__username", "user__email")
+    readonly_fields = ("widget", "selected_option", "user", "voter_key", "created_at", "updated_at")
+    ordering = ("-created_at",)
+    list_per_page = 50
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
