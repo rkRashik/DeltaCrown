@@ -1,4 +1,5 @@
 from __future__ import annotations
+from datetime import datetime, time, timedelta
 import hashlib
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
@@ -14,6 +15,7 @@ from django.db import transaction
 from django.db.models import Q, Count
 from django.db.utils import OperationalError, ProgrammingError
 from django.urls import reverse
+from django.utils.dateparse import parse_date
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.text import slugify
 from .utils.embeds import build_embed_url
@@ -695,13 +697,17 @@ def _is_arena_async_request(request) -> bool:
 def _group_matches_by_tournament(matches):
     grouped = []
     for match in matches:
+        contract = _to_arena_match_contract(match)
         grouper = (match.get("tournament_name") or "").strip() or "Tournament"
         if grouped and grouped[-1]["grouper"] == grouper:
-            grouped[-1]["list"].append(_to_arena_match_contract(match))
+            grouped[-1]["list"].append(contract)
+            if not grouped[-1].get("game_icon_url") and contract.get("game_icon_url"):
+                grouped[-1]["game_icon_url"] = contract.get("game_icon_url")
             continue
         grouped.append({
             "grouper": grouper,
-            "list": [_to_arena_match_contract(match)],
+            "game_icon_url": contract.get("game_icon_url") or "",
+            "list": [contract],
         })
     return grouped
 
@@ -710,24 +716,37 @@ def _to_arena_match_contract(match):
     return {
         "team_a": match.get("team_a") or "TBD",
         "team_b": match.get("team_b") or "TBD",
+        "game_name": match.get("game_name") or "",
         "team_a_logo": match.get("team_a_logo") or "",
         "team_b_logo": match.get("team_b_logo") or "",
         "team_a_tag": match.get("team_a_tag") or "A",
         "team_b_tag": match.get("team_b_tag") or "B",
         "score_a": match.get("score_a"),
         "score_b": match.get("score_b"),
+        "is_live": bool(match.get("is_live")),
         "scheduled_time": match.get("scheduled_time"),
         "match_url": match.get("match_url") or "",
         "stream_url": match.get("stream_url") or "",
         "embed_url": match.get("embed_url") or "",
+        "game_icon_url": match.get("game_icon_url") or "",
+        "details": match.get("details") or "",
+        "subtext": match.get("details") or "",
     }
 
 
-def _build_arena_async_payload(request, *, selected_game: str, selected_tab: str, search_query: str):
+def _build_arena_async_payload(
+    request,
+    *,
+    selected_game: str,
+    selected_tab: str,
+    search_query: str,
+    selected_date=None,
+):
     match_payload = _fetch_arena_matches(
         request,
         selected_game=selected_game,
         search_query=search_query,
+        selected_date=selected_date,
         include_logos=True,
         only_tab=selected_tab,
     )
@@ -829,6 +848,38 @@ def _resolve_match_stream_url(match) -> str:
     return (match.stream_url or "").strip() or _resolve_tournament_stream_url(match.tournament)
 
 
+def _resolve_arena_match_details(match) -> str:
+    explicit = ""
+    for attr in ("details", "subtext", "subtitle", "round_label"):
+        value = getattr(match, attr, None)
+        if not value:
+            continue
+        explicit = str(value).strip()
+        if explicit:
+            return explicit
+
+    bo_text = ""
+    best_of = getattr(match, "best_of", None)
+    if isinstance(best_of, int) and best_of > 1:
+        bo_text = f"BO{best_of} Series"
+
+    round_text = ""
+    round_number = getattr(match, "round_number", None)
+    bracket = getattr(match, "bracket", None)
+    if bracket and round_number:
+        try:
+            round_name = bracket.get_round_name(round_number)
+            if round_name:
+                round_text = str(round_name).strip()
+        except Exception:
+            round_text = ""
+    if not round_text and round_number:
+        round_text = f"Round {round_number}"
+
+    parts = [part for part in (bo_text, round_text) if part]
+    return " · ".join(parts)
+
+
 def _resolve_participant_logo(match, participant_id, team_logo_map, user_avatar_map, team_avatar_fallback_map):
     if not participant_id:
         return None
@@ -851,6 +902,20 @@ def _media_field_url(value) -> str:
         return value.url
     except Exception:
         return ""
+
+
+def _absolute_media_url(request, value) -> str:
+    raw = _media_field_url(value)
+    if not raw:
+        return ""
+
+    if raw.startswith(("http://", "https://")):
+        return raw
+
+    try:
+        return request.build_absolute_uri(raw)
+    except Exception:
+        return raw
 
 
 def _build_arena_match_logo_payload(matches):
@@ -958,12 +1023,16 @@ def _serialize_match_for_arena(match, request, logo_payload=None):
     game_name = ""
     game_slug = ""
     if game:
-        game_name = getattr(game, "display_name", "") or getattr(game, "name", "")
+        game_name = getattr(game, "name", "") or getattr(game, "display_name", "")
         game_slug = getattr(game, "slug", "") or ""
+    if not game_name:
+        game_name = "Esports"
+    game_icon_url = _absolute_media_url(request, getattr(game, "icon", None)) if game else ""
 
     has_score = match.state in ARENA_LIVE_STATES or match.state in ARENA_RESULT_STATES
     tournament_url = _safe_reverse("tournaments:detail", slug=match.tournament.slug)
     match_url = _safe_reverse("tournaments:match_detail", slug=match.tournament.slug, match_id=match.id)
+    details = _resolve_arena_match_details(match)
 
     return {
         "id": match.id,
@@ -973,12 +1042,13 @@ def _serialize_match_for_arena(match, request, logo_payload=None):
         "match_url": match_url,
         "game_name": game_name,
         "game_slug": game_slug,
+        "game_icon_url": game_icon_url,
         "team_a": match.participant1_name or "TBD",
         "team_b": match.participant2_name or "TBD",
         "team_a_tag": _derive_team_tag(match.participant1_name or "TBD"),
         "team_b_tag": _derive_team_tag(match.participant2_name or "TBD"),
-        "team_a_logo": _media_field_url(logo_payload.get("team_a_logo")),
-        "team_b_logo": _media_field_url(logo_payload.get("team_b_logo")),
+        "team_a_logo": _absolute_media_url(request, logo_payload.get("team_a_logo")),
+        "team_b_logo": _absolute_media_url(request, logo_payload.get("team_b_logo")),
         "score_a": match.participant1_score,
         "score_b": match.participant2_score,
         "has_score": has_score,
@@ -993,6 +1063,7 @@ def _serialize_match_for_arena(match, request, logo_payload=None):
         "embed_url": embed_url,
         "stream_embed_url": embed_url,
         "stream_platform": platform,
+        "details": details,
         "thumbnail_url": (
             first_attr(match.tournament, ("banner_image", "thumbnail_image"))
             or first_attr(game, ("banner", "card_image", "icon"))
@@ -1006,6 +1077,7 @@ def _fetch_arena_matches(
     selected_game: str,
     search_query: str,
     *,
+    selected_date=None,
     include_logos: bool = True,
     only_tab: str | None = None,
 ):
@@ -1040,6 +1112,23 @@ def _fetch_arena_matches(
     upcoming_raw = []
     result_raw = []
 
+    def _with_optional_arena_date_filter(queryset, destination: str):
+        # Live tab intentionally ignores date filtering and always shows currently live matches.
+        if not selected_date or destination == "live":
+            return queryset
+
+        local_tz = timezone.get_current_timezone()
+        start_local = datetime.combine(selected_date, time.min)
+        end_local = start_local + timedelta(days=1)
+        start_dt = timezone.make_aware(start_local, local_tz)
+        end_dt = timezone.make_aware(end_local, local_tz)
+
+        return queryset.filter(
+            scheduled_time__isnull=False,
+            scheduled_time__gte=start_dt,
+            scheduled_time__lt=end_dt,
+        )
+
     normalized_tab = (only_tab or "").strip().lower()
     tab_config = {
         "live": (ARENA_LIVE_STATES, 18, "live"),
@@ -1049,8 +1138,9 @@ def _fetch_arena_matches(
 
     if normalized_tab in tab_config:
         states, limit, destination = tab_config[normalized_tab]
+        filtered_qs = _with_optional_arena_date_filter(base_qs.filter(state__in=states), destination)
         rows = _safe_queryset_list(
-            base_qs.filter(state__in=states).order_by(*ordered_by_tournament_then_time),
+            filtered_qs.order_by(*ordered_by_tournament_then_time),
             limit=limit,
         )
         if destination == "live":
@@ -1065,11 +1155,11 @@ def _fetch_arena_matches(
             limit=18,
         )
         upcoming_raw = _safe_queryset_list(
-            base_qs.filter(state__in=ARENA_UPCOMING_STATES).order_by(*ordered_by_tournament_then_time),
+            _with_optional_arena_date_filter(base_qs.filter(state__in=ARENA_UPCOMING_STATES), "upcoming").order_by(*ordered_by_tournament_then_time),
             limit=24,
         )
         result_raw = _safe_queryset_list(
-            base_qs.filter(state__in=ARENA_RESULT_STATES).order_by(*ordered_by_tournament_then_time),
+            _with_optional_arena_date_filter(base_qs.filter(state__in=ARENA_RESULT_STATES), "result").order_by(*ordered_by_tournament_then_time),
             limit=24,
         )
 
@@ -1457,6 +1547,7 @@ def _arena_games_payload():
 def watch(request):
     selected_game = (request.GET.get("game") or "").strip().lower()
     search_query = (request.GET.get("q") or "").strip()
+    selected_date = parse_date((request.GET.get("date") or "").strip())
     selected_tab = (request.GET.get("tab") or "live").strip().lower()
     if selected_tab not in {"live", "upcoming", "results"}:
         selected_tab = "live"
@@ -1467,6 +1558,7 @@ def watch(request):
             selected_game=selected_game,
             selected_tab=selected_tab,
             search_query=search_query,
+            selected_date=selected_date,
         )
         response = JsonResponse(payload)
         response["Cache-Control"] = "no-store, max-age=0"
@@ -1476,10 +1568,22 @@ def watch(request):
     if selected_game and not any(g["slug"] == selected_game for g in games):
         selected_game = ""
 
-    match_payload = _fetch_arena_matches(request, selected_game=selected_game, search_query=search_query)
+    match_payload = _fetch_arena_matches(
+        request,
+        selected_game=selected_game,
+        search_query=search_query,
+        selected_date=selected_date,
+    )
     live_matches = match_payload["live_matches"]
     upcoming_matches = match_payload["upcoming_matches"]
     result_matches = match_payload["result_matches"]
+
+    if selected_tab == "upcoming":
+        selected_tab_matches = upcoming_matches
+    elif selected_tab == "results":
+        selected_tab_matches = result_matches
+    else:
+        selected_tab_matches = live_matches
 
     top_live_streams = _fetch_top_live_streams(
         request,
@@ -1498,7 +1602,9 @@ def watch(request):
         "games": games,
         "selected_game": selected_game,
         "selected_tab": selected_tab,
+        "selected_tab_matches": selected_tab_matches,
         "search_query": search_query,
+        "selected_date": selected_date,
         "arena_stats": {
             "live_streams": len(top_live_streams),
             "live_matches": len(live_matches),
@@ -1513,6 +1619,7 @@ def watch(request):
 def arena_async_data(request):
     selected_game = (request.GET.get("game") or "").strip().lower()
     search_query = (request.GET.get("q") or "").strip()
+    selected_date = parse_date((request.GET.get("date") or "").strip())
     selected_tab = (request.GET.get("tab") or "live").strip().lower()
     if selected_tab not in {"live", "upcoming", "results"}:
         selected_tab = "live"
@@ -1522,6 +1629,7 @@ def arena_async_data(request):
         selected_game=selected_game,
         selected_tab=selected_tab,
         search_query=search_query,
+        selected_date=selected_date,
     )
     response = JsonResponse(payload)
     response["Cache-Control"] = "no-store, max-age=0"
