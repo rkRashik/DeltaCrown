@@ -1,4 +1,4 @@
-from django.shortcuts import render, redirect, get_object_or_404
+﻿from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse, Http404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
@@ -19,6 +19,14 @@ from apps.user_profile.models import UserProfile
 
 def store_home(request):
     """CrownStore homepage with featured collections"""
+    if request.method == 'POST':
+        email = request.POST.get('email')
+        if email:
+            # For now, just print or log the email
+            print(f"Email signup: {email}")
+            # You can save to a model or send email here
+        return redirect('ecommerce:store_home')
+    
     # Featured products
     featured_products = Product.objects.filter(
         is_featured=True, is_active=True
@@ -577,3 +585,5 @@ def validate_coupon(request):
         
     except Coupon.DoesNotExist:
         return JsonResponse({'success': False, 'message': 'Invalid coupon code'})
+
+
