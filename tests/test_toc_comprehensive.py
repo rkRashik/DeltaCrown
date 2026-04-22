@@ -196,6 +196,11 @@ class TestTOCURLRouting:
         url = reverse('toc_api:alerts', kwargs={'slug': 'test-slug'})
         assert '/api/toc/test-slug/alerts/' in url
 
+    def test_toc_api_match_center_config_url(self):
+        """TOC API match center config endpoint resolves."""
+        url = reverse('toc_api:match-center-config', kwargs={'slug': 'test-slug'})
+        assert '/api/toc/test-slug/match-center/config/' in url
+
     def test_toc_api_participants_url(self):
         """TOC API participants endpoint resolves."""
         url = reverse('toc_api:participants', kwargs={'slug': 'test-slug'})
@@ -289,6 +294,7 @@ class TestTOCView:
         assert 'matches' in tab_ids
         assert 'disputes' in tab_ids
         assert 'settings' in tab_ids
+        assert 'match-center' in tab_ids
 
     def test_context_status_matches_tournament(self, organizer_client, tournament):
         """Context status reflects tournament's actual status."""
@@ -335,6 +341,12 @@ class TestTOCAPIPermissions:
         url = reverse('toc_api:overview', kwargs={'slug': tournament.slug})
         response = staff_client.get(url)
         assert response.status_code in (200, 500)
+
+    def test_organizer_can_call_match_center_config(self, organizer_client, tournament):
+        """Organizer can access match center config API."""
+        url = reverse('toc_api:match-center-config', kwargs={'slug': tournament.slug})
+        response = organizer_client.get(url)
+        assert response.status_code == 200
 
     def test_outsider_gets_403(self, outsider_client, tournament):
         """Non-organizer gets 403 PermissionDenied."""

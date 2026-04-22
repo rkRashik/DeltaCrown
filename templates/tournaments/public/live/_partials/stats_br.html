@@ -1,0 +1,35 @@
+{% with squads=match_stats.squads %}
+<div class="overflow-x-auto no-scrollbar">
+    <table class="w-full mc-stat-table min-w-[500px]">
+        <thead class="bg-black/40">
+            <tr>
+                <th># Rank</th>
+                <th>Squad Name</th>
+                <th>Match Kills</th>
+                <th>Placement Pts</th>
+                <th>Total Score</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for s in squads %}
+            <tr class="{% if forloop.counter == 1 %}bg-yellow-300/10{% endif %}">
+                <td class="{% if forloop.counter == 1 %}text-yellow-300 font-black text-lg{% else %}text-gray-400 font-black text-lg{% endif %}">{{ forloop.counter }}</td>
+                <td>
+                    <div class="flex items-center gap-3">
+                        <div class="w-6 h-6 rounded-md bg-black border border-white/10 flex items-center justify-center text-[10px]">{{ s.display_name|truncatechars:3|upper }}</div>
+                        <span class="font-bold {% if forloop.counter == 1 %}text-white{% else %}text-gray-300{% endif %}">{{ s.display_name }}</span>
+                    </div>
+                </td>
+                <td class="text-white">{{ s.kills|default_if_none:0 }}</td>
+                <td class="text-white">{{ s.placement_points|default_if_none:0 }}</td>
+                <td class="{% if forloop.counter == 1 %}text-yellow-300 font-black text-lg{% else %}text-cyan-300 font-bold{% endif %}">{{ s.total_score|default_if_none:0 }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="5" class="text-center text-gray-500 py-8">No squad standings uploaded yet.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endwith %}

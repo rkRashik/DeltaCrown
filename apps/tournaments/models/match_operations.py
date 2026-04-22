@@ -11,6 +11,7 @@ PRD: §6.4, §6.8–§6.10
 
 import uuid
 
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
@@ -166,3 +167,51 @@ class MatchServerSelection(models.Model):
 
     def __str__(self):
         return f"{self.region} — Match {self.match_id}"
+
+
+class MatchCenterConfig(models.Model):
+    """Public Match Center presentation controls authored from TOC."""
+
+    THEME_CYBER = 'cyber'
+    THEME_TACTICAL = 'tactical'
+    THEME_ARENA = 'arena'
+
+    THEME_CHOICES = [
+        (THEME_CYBER, _('Cyber')),
+        (THEME_TACTICAL, _('Tactical')),
+        (THEME_ARENA, _('Arena')),
+    ]
+
+    tournament = models.OneToOneField(
+        'tournaments.Tournament',
+        on_delete=models.CASCADE,
+        related_name='match_center_config',
+    )
+    enabled = models.BooleanField(default=True)
+    show_timeline = models.BooleanField(default=True)
+    show_media = models.BooleanField(default=True)
+    show_stats = models.BooleanField(default=True)
+    show_fan_pulse = models.BooleanField(default=True)
+    theme = models.CharField(max_length=24, choices=THEME_CHOICES, default=THEME_CYBER)
+    poll_question = models.CharField(max_length=180, default='Who takes the series?')
+    poll_option_a = models.CharField(max_length=80, default='Team A')
+    poll_option_b = models.CharField(max_length=80, default='Team B')
+    auto_refresh_seconds = models.PositiveSmallIntegerField(
+        default=20,
+        validators=[MinValueValidator(10), MaxValueValidator(120)],
+    )
+    match_overrides = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text=_('Per-match overrides keyed by match id as string.'),
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'toc_match_center_config'
+        verbose_name = 'Match Center Configuration'
+        verbose_name_plural = 'Match Center Configurations'
+
+    def __str__(self):
+        return f"Match Center Config - {self.tournament_id}"

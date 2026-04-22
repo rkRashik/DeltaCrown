@@ -1,0 +1,57 @@
+<div class="overflow-x-auto no-scrollbar">
+    <table class="w-full mc-stat-table min-w-[700px]">
+        <thead class="bg-black/40">
+            <tr>
+                <th>Player</th>
+                <th>ACS</th>
+                <th>K</th>
+                <th>D</th>
+                <th>A</th>
+                <th>K/D</th>
+                <th>HS%</th>
+                <th>FK</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for s in match_stats.team1 %}
+            <tr>
+                <td>
+                    <div class="flex items-center gap-3">
+                        <div class="w-6 h-6 rounded bg-white/10 border border-white/10 flex items-center justify-center text-[8px]">{{ s.display_name|truncatechars:1|upper }}</div>
+                        <span class="font-bold {% if s.is_mvp %}text-yellow-300{% else %}text-white{% endif %}">{{ s.display_name }}{% if s.is_mvp %} <span class="text-[10px]">MVP</span>{% endif %}</span>
+                    </div>
+                </td>
+                <td class="text-white font-bold">{{ s.acs|floatformat:0 }}</td>
+                <td class="text-cyan-300">{{ s.kills }}</td>
+                <td class="text-red-300">{{ s.deaths }}</td>
+                <td>{{ s.assists }}</td>
+                <td class="{% if s.kd_ratio >= 1.0 %}text-emerald-300{% else %}text-red-300{% endif %}">{{ s.kd_ratio|floatformat:2 }}</td>
+                <td>{{ s.hs_pct|floatformat:0 }}%</td>
+                <td>{{ s.first_kills }}</td>
+            </tr>
+            {% endfor %}
+            {% for s in match_stats.team2 %}
+            <tr>
+                <td>
+                    <div class="flex items-center gap-3">
+                        <div class="w-6 h-6 rounded bg-white/10 border border-white/10 flex items-center justify-center text-[8px]">{{ s.display_name|truncatechars:1|upper }}</div>
+                        <span class="font-bold {% if s.is_mvp %}text-yellow-300{% else %}text-white{% endif %}">{{ s.display_name }}{% if s.is_mvp %} <span class="text-[10px]">MVP</span>{% endif %}</span>
+                    </div>
+                </td>
+                <td class="text-white font-bold">{{ s.acs|floatformat:0 }}</td>
+                <td class="text-cyan-300">{{ s.kills }}</td>
+                <td class="text-red-300">{{ s.deaths }}</td>
+                <td>{{ s.assists }}</td>
+                <td class="{% if s.kd_ratio >= 1.0 %}text-emerald-300{% else %}text-red-300{% endif %}">{{ s.kd_ratio|floatformat:2 }}</td>
+                <td>{{ s.hs_pct|floatformat:0 }}%</td>
+                <td>{{ s.first_kills }}</td>
+            </tr>
+            {% endfor %}
+            {% if not match_stats.team1 and not match_stats.team2 %}
+            <tr>
+                <td colspan="8" class="text-center text-gray-500 py-8">No player analytics uploaded yet.</td>
+            </tr>
+            {% endif %}
+        </tbody>
+    </table>
+</div>

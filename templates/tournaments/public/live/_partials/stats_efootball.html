@@ -1,0 +1,25 @@
+{% with t1=match_stats.team1|first t2=match_stats.team2|first %}
+{% if t1 or t2 %}
+<div class="overflow-x-auto no-scrollbar">
+    <div class="grid grid-cols-3 p-4 md:p-6 gap-y-6 gap-x-2 md:gap-4 min-w-[300px]">
+        <div class="text-center font-black text-lg md:text-xl text-white truncate px-1">{{ t1.display_name|default:match_core.team1_name|default:"Team A" }}</div>
+        <div class="text-center text-[10px] md:text-xs font-bold text-gray-500 uppercase tracking-widest pt-2">Team Stats</div>
+        <div class="text-center font-black text-lg md:text-xl text-white truncate px-1">{{ t2.display_name|default:match_core.team2_name|default:"Team B" }}</div>
+
+        <div class="text-center text-cyan-300 font-bold text-base md:text-lg bg-black/30 py-2 rounded">{{ t1.possession_pct|default_if_none:0|floatformat:0 }}%</div>
+        <div class="text-center text-[9px] md:text-[10px] text-gray-400 uppercase tracking-widest flex items-center justify-center">Possession</div>
+        <div class="text-center text-white font-bold text-base md:text-lg bg-black/30 py-2 rounded">{{ t2.possession_pct|default_if_none:0|floatformat:0 }}%</div>
+
+        <div class="text-center text-cyan-300 font-bold text-base md:text-lg bg-black/30 py-2 rounded">{{ t1.shots|default_if_none:0 }} ({{ t1.shots_on_target|default_if_none:0 }})</div>
+        <div class="text-center text-[9px] md:text-[10px] text-gray-400 uppercase tracking-widest flex items-center justify-center">Shots (On Target)</div>
+        <div class="text-center text-white font-bold text-base md:text-lg bg-black/30 py-2 rounded">{{ t2.shots|default_if_none:0 }} ({{ t2.shots_on_target|default_if_none:0 }})</div>
+
+        <div class="text-center text-cyan-300 font-bold text-base md:text-lg bg-black/30 py-2 rounded">{{ t1.passes_completed|default_if_none:0 }}</div>
+        <div class="text-center text-[9px] md:text-[10px] text-gray-400 uppercase tracking-widest flex items-center justify-center">Passes Completed</div>
+        <div class="text-center text-white font-bold text-base md:text-lg bg-black/30 py-2 rounded">{{ t2.passes_completed|default_if_none:0 }}</div>
+    </div>
+</div>
+{% else %}
+<div class="p-8 text-center text-gray-500 text-sm">No team analytics uploaded yet.</div>
+{% endif %}
+{% endwith %}

@@ -450,3 +450,8 @@ class Match(SoftDeleteModel, TimestampedModel):
     def clean(self):
         super().clean()
         self.validate_participants()
+
+
+# Backwards-compatibility: some modules import `Dispute` from this module.
+# Provide an alias to the canonical `DisputeRecord` model.
+from .dispute import DisputeRecord as Dispute

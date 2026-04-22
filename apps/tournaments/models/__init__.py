@@ -59,6 +59,9 @@ from .dispute import (
     DisputeRecord,  # Phase 6, Epic 6.2: Dispute records
     DisputeEvidence,  # Phase 6, Epic 6.2: Evidence attached to disputes
 )
+# Backwards-compatibility: older code/tests import `Dispute`.
+# Provide an alias to the newer `DisputeRecord` model.
+from .dispute import DisputeRecord as Dispute
 from .payment_config import (
     TournamentPaymentMethod,  # Detailed payment method configuration
 )
@@ -143,6 +146,7 @@ from .match_operations import (
     MatchMedia,             # TOC Sprint 6: Match media/evidence uploads
     BroadcastStation,       # TOC Sprint 6: Broadcast station assignment
     MatchServerSelection,   # TOC Sprint 6: Server selection for matches
+    MatchCenterConfig,      # TOC Sprint 29: Public Match Center presentation config
 )
 from .game_config import (
     GameMatchConfig,    # TOC Sprint 8: Game match format & scoring config
@@ -220,6 +224,7 @@ __all__ = [
     'ResultVerificationLog',
     'DisputeRecord',
     'DisputeEvidence',
+    'Dispute',
     # Phase 7 Epic 7.3: Staff & Referee System
     'StaffRole',
     'TournamentStaffAssignment',
@@ -245,6 +250,7 @@ __all__ = [
     'MatchMedia',
     'BroadcastStation',
     'MatchServerSelection',
+    'MatchCenterConfig',
     # TOC Sprint 8: Configuration & Communications
     'GameMatchConfig',
     'MapPoolEntry',

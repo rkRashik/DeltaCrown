@@ -24,7 +24,7 @@ from apps.tournaments.api.toc import (
     participants_advanced, payments, brackets, matches, disputes,
     settings, announcements, stats, rbac, audit,
     standings, checkin, streams, analytics, lobby, rules, rosters,
-    notifications as notif_views, performance,
+    notifications as notif_views, performance, match_center,
 )
 
 app_name = 'toc_api'
@@ -285,6 +285,9 @@ urlpatterns = [
     path('<slug:slug>/analytics/engagement/', analytics.AnalyticsEngagementView.as_view(), name='analytics-engagement'),
     path('<slug:slug>/analytics/timeline/', analytics.AnalyticsTimelineView.as_view(), name='analytics-timeline'),
     path('<slug:slug>/analytics/export/', analytics.AnalyticsExportView.as_view(), name='analytics-export'),
+
+    # ── Match Center Presentation (Sprint 29) ──
+    path('<slug:slug>/match-center/config/', match_center.MatchCenterConfigView.as_view(), name='match-center-config'),
 
     # ── Lobby / Server Management (Sprint 28) ──
     path('<slug:slug>/lobby/', lobby.LobbyDashboardView.as_view(), name='lobby'),

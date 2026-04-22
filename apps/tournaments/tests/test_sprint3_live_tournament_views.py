@@ -19,8 +19,9 @@ from django.utils import timezone
 from django.db import connection
 from django.test.utils import CaptureQueriesContext
 from datetime import timedelta
+import json
 
-from apps.tournaments.models import Tournament, Match, Registration, Game
+from apps.tournaments.models import Tournament, Match, Registration, Game, TournamentFanPredictionVote
 from apps.tournaments.models.bracket import Bracket
 from apps.tournaments.models.result import TournamentResult
 
@@ -401,6 +402,82 @@ class MatchDetailViewTests(TestCase):
         self.assertTrue(response.context['is_participant'])
         self.assertFalse(response.context['lobby_open_for_participant'])
         self.assertFalse(response.context['show_lobby_info'])
+
+    def test_match_detail_exposes_match_center_grouped_context(self):
+        """Match detail context should expose grouped payloads for the rebuilt match center template."""
+        url = reverse('tournaments:match_detail', kwargs={
+            'slug': self.tournament.slug,
+            'match_id': self.match.id,
+        })
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('match_core', response.context)
+        self.assertIn('match_presentation', response.context)
+        self.assertIn('match_media', response.context)
+        self.assertIn('match_stats', response.context)
+        self.assertIn('match_poll', response.context)
+        self.assertIn('match_assets', response.context)
+        self.assertIn('match_state_api_url', response.context)
+        self.assertIn('match_fan_pulse_vote_url', response.context)
+
+    def test_match_center_state_endpoint_returns_public_payload(self):
+        """Public state endpoint should return live-refresh payload."""
+        url = reverse('tournaments:match_center_state', kwargs={
+            'slug': self.tournament.slug,
+            'match_id': self.match.id,
+        })
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertTrue(payload.get('success'))
+        self.assertIn('match', payload)
+        self.assertIn('poll', payload)
+
+    def test_match_center_fan_pulse_vote_requires_login(self):
+        """Fan pulse vote endpoint should require authenticated user."""
+        url = reverse('tournaments:match_center_fan_pulse_vote', kwargs={
+            'slug': self.tournament.slug,
+            'match_id': self.match.id,
+        })
+        response = self.client.post(
+            url,
+            data=json.dumps({'option_id': f'match-{self.match.id}-winner:a'}),
+            content_type='application/json',
+        )
+        self.assertIn(response.status_code, (302, 401, 403))
+
+    def test_match_center_fan_pulse_vote_persists_vote(self):
+        """Authenticated users can submit a fan pulse vote."""
+        detail_url = reverse('tournaments:match_detail', kwargs={
+            'slug': self.tournament.slug,
+            'match_id': self.match.id,
+        })
+        self.client.login(username='spectator', password='pass123')
+        detail_response = self.client.get(detail_url)
+        option_id = detail_response.context['match_poll']['options'][0]['id']
+
+        vote_url = reverse('tournaments:match_center_fan_pulse_vote', kwargs={
+            'slug': self.tournament.slug,
+            'match_id': self.match.id,
+        })
+        response = self.client.post(
+            vote_url,
+            data=json.dumps({'option_id': option_id}),
+            content_type='application/json',
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertTrue(payload.get('success'))
+        self.assertTrue(
+            TournamentFanPredictionVote.objects.filter(
+                tournament=self.tournament,
+                user=self.spectator,
+                poll_id=f'match-{self.match.id}-winner',
+            ).exists()
+        )
 
 
 class TournamentResultsViewTests(TestCase):

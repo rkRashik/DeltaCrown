@@ -84,6 +84,8 @@ from apps.tournaments.views.player import (
 from apps.tournaments.views.live import (
     TournamentBracketView,
     MatchDetailView,
+    match_center_fan_pulse_vote,
+    match_center_state,
     TournamentResultsView,
 )
 from apps.tournaments.views.leaderboard import (
@@ -272,6 +274,8 @@ urlpatterns = [
     path('<slug:slug>/bracket/', TournamentBracketView.as_view(), name='bracket'),
     # FE-T-009: Match Watch / Match Detail Page
     path('<slug:slug>/matches/<int:match_id>/', MatchDetailView.as_view(), name='match_detail'),
+    path('<slug:slug>/matches/<int:match_id>/state/', match_center_state, name='match_center_state'),
+    path('<slug:slug>/matches/<int:match_id>/fan-pulse/vote/', match_center_fan_pulse_vote, name='match_center_fan_pulse_vote'),
     # Match Room / Battlefield (Participant-only interactive room)
     path('<slug:slug>/matches/<int:match_id>/room/', MatchRoomView.as_view(), name='match_room'),
     path('<slug:slug>/matches/<int:match_id>/room/check-in/', MatchCheckInView.as_view(), name='match_room_checkin'),

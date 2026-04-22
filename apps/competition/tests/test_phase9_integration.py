@@ -25,11 +25,15 @@ User = get_user_model()
 class TestCompetitionService:
     """Test CompetitionService methods."""
     
-    def setup_method(self):
+    def setup_method(self, method=None):
         """Setup test data."""
         # Create users
-        self.user1 = User.objects.create_user('user1', 'user1@test.com', 'pass')
-        self.user2 = User.objects.create_user('user2', 'user2@test.com', 'pass')
+        self.user1, _ = User.objects.get_or_create(username='user1', defaults={'email': 'user1@test.com'})
+        self.user1.set_password('pass')
+        self.user1.save()
+        self.user2, _ = User.objects.get_or_create(username='user2', defaults={'email': 'user2@test.com'})
+        self.user2.set_password('pass')
+        self.user2.save()
         
         # Create independent team
         self.indie_team = Team.objects.create(
@@ -191,46 +195,44 @@ class TestCompetitionService:
 
 
 @pytest.mark.django_db
-class TestRankingsEndpoints:
+class TestRankingsEndpoints(TestCase):
     """Test ranking URL endpoints."""
     
-    def setup_method(self):
+    def setup_method(self, method=None):
         """Setup test data and client."""
         self.client = Client()
-        self.user = User.objects.create_user('testuser', 'test@test.com', 'pass')
+        # Ensure idempotent creation across test runs
+        self.user, _ = User.objects.get_or_create(username='testuser', defaults={'email': 'test@test.com'})
+        self.user.set_password('pass')
+        self.user.save()
         
-        # Create team
-        self.team = Team.objects.create(
-            name='Test Team',
+        # Create team (idempotent)
+        self.team, _ = Team.objects.get_or_create(
             slug='test-team',
-            game_id=1,
-            created_by=self.user,
-            status='ACTIVE'
+            defaults={
+                'name': 'Test Team',
+                'game_id': 1,
+                'created_by': self.user,
+                'status': 'ACTIVE',
+            }
         )
         
-        # Create game config
-        self.game_config = GameRankingConfig.objects.create(
+        # Create game config (idempotent)
+        self.game_config, _ = GameRankingConfig.objects.get_or_create(
             game_id='valorant',
-            game_name='Valorant',
-            is_active=True
+            defaults={'game_name': 'Valorant', 'is_active': True}
         )
-        
-        # Create snapshots
-        TeamGlobalRankingSnapshot.objects.create(
+
+        # Create snapshots (idempotent)
+        TeamGlobalRankingSnapshot.objects.update_or_create(
             team=self.team,
-            global_rank=5,
-            global_score=500,
-            global_tier='GOLD',
-            confidence_level='STABLE'
+            defaults={'global_rank': 5, 'global_score': 500, 'global_tier': 'GOLD'}
         )
-        
-        TeamGameRankingSnapshot.objects.create(
+
+        TeamGameRankingSnapshot.objects.update_or_create(
             team=self.team,
             game_id='valorant',
-            rank=3,
-            score=300,
-            tier='GOLD',
-            confidence_level='STABLE'
+            defaults={'rank': 3, 'score': 300, 'tier': 'GOLD', 'confidence_level': 'STABLE'}
         )
     
     def test_global_rankings_endpoint(self):
@@ -295,30 +297,28 @@ class TestRankingsEndpoints:
 
 
 @pytest.mark.django_db
-class TestQueryBudgets:
+class TestQueryBudgets(TestCase):
     """Test query count enforcement for rankings endpoints."""
     
-    def setup_method(self):
+    def setup_method(self, method=None):
         """Setup test data."""
         self.client = Client()
-        self.user = User.objects.create_user('testuser', 'test@test.com', 'pass')
-        
-        # Create 10 teams with rankings
+        # Idempotent user creation
+        self.user, _ = User.objects.get_or_create(username='testuser', defaults={'email': 'test@test.com'})
+        self.user.set_password('pass')
+        self.user.save()
+
+        # Create 10 teams with rankings (idempotent)
         for i in range(10):
-            team = Team.objects.create(
-                name=f'Team {i}',
-                slug=f'team-{i}',
-                game_id=1,
-                created_by=self.user,
-                status='ACTIVE'
+            slug = f'team-{i}'
+            team, _ = Team.objects.get_or_create(
+                slug=slug,
+                defaults={'name': f'Team {i}', 'game_id': 1, 'created_by': self.user, 'status': 'ACTIVE'}
             )
-            
-            TeamGlobalRankingSnapshot.objects.create(
+
+            TeamGlobalRankingSnapshot.objects.update_or_create(
                 team=team,
-                global_rank=i + 1,
-                global_score=1000 - (i * 50),
-                global_tier='GOLD',
-                confidence_level='STABLE'
+                defaults={'global_rank': i + 1, 'global_score': 1000 - (i * 50), 'global_tier': 'GOLD'}
             )
     
     def test_global_rankings_query_budget(self):
@@ -389,10 +389,10 @@ class TestAdminIntegration:
 
 
 @pytest.mark.django_db
-class TestFeatureFlagBehavior:
+class TestFeatureFlagBehavior(TestCase):
     """Test behavior with COMPETITION_APP_ENABLED flag."""
     
-    def setup_method(self):
+    def setup_method(self, method=None):
         """Setup client."""
         self.client = Client()
     
@@ -419,55 +419,50 @@ class TestFeatureFlagBehavior:
 
 
 @pytest.mark.django_db
-class TestIndependentAndOrgTeams:
+class TestIndependentAndOrgTeams(TestCase):
     """Test rankings correctly handle both team types."""
     
-    def setup_method(self):
+    def setup_method(self, method=None):
         """Setup both team types."""
-        self.user1 = User.objects.create_user('user1', 'user1@test.com', 'pass')
-        self.user2 = User.objects.create_user('user2', 'user2@test.com', 'pass')
+        # Clear competition cache to avoid cross-test pollution
+        try:
+            from django.core.cache import cache
+            cache.clear()
+        except Exception:
+            pass
+        self.user1, _ = User.objects.get_or_create(username='user1', defaults={'email': 'user1@test.com'})
+        self.user1.set_password('pass')
+        self.user1.save()
+        self.user2, _ = User.objects.get_or_create(username='user2', defaults={'email': 'user2@test.com'})
+        self.user2.set_password('pass')
+        self.user2.save()
         
         # Independent team
-        self.indie = Team.objects.create(
-            name='Independent',
+        self.indie, _ = Team.objects.get_or_create(
             slug='independent',
-            game_id=1,
-            created_by=self.user1,
-            organization=None,
-            status='ACTIVE'
+            defaults={'name': 'Independent', 'game_id': 1, 'created_by': self.user1, 'organization': None, 'status': 'ACTIVE', 'visibility': 'PUBLIC'}
         )
         
         # Org team
-        self.org = Organization.objects.create(
-            name='Pro Org',
+        self.org, _ = Organization.objects.get_or_create(
             slug='pro-org',
-            owner=self.user2
+            defaults={'name': 'Pro Org', 'ceo': self.user2}
         )
         
-        self.org_team = Team.objects.create(
-            name='Pro Team',
+        self.org_team, _ = Team.objects.get_or_create(
             slug='pro-team',
-            game_id=1,
-            created_by=self.user2,
-            organization=self.org,
-            status='ACTIVE'
+            defaults={'name': 'Pro Team', 'game_id': 1, 'created_by': self.user2, 'organization': self.org, 'status': 'ACTIVE', 'visibility': 'PUBLIC'}
         )
         
         # Create rankings
-        TeamGlobalRankingSnapshot.objects.create(
+        TeamGlobalRankingSnapshot.objects.update_or_create(
             team=self.indie,
-            global_rank=1,
-            global_score=1000,
-            global_tier='DIAMOND',
-            confidence_level='STABLE'
+            defaults={'global_rank': 1, 'global_score': 1000, 'global_tier': 'DIAMOND'}
         )
         
-        TeamGlobalRankingSnapshot.objects.create(
+        TeamGlobalRankingSnapshot.objects.update_or_create(
             team=self.org_team,
-            global_rank=2,
-            global_score=900,
-            global_tier='DIAMOND',
-            confidence_level='STABLE'
+            defaults={'global_rank': 2, 'global_score': 900, 'global_tier': 'DIAMOND'}
         )
     
     def test_both_team_types_in_rankings(self):
@@ -482,8 +477,13 @@ class TestIndependentAndOrgTeams:
         """Test URLs generated correctly for both team types."""
         response = CompetitionService.get_global_rankings(limit=10)
         
+        # Find entries by slug (order not guaranteed across test runs)
+        entries_by_slug = {e.team_slug: e for e in response.entries}
+        assert 'independent' in entries_by_slug
+        assert 'pro-team' in entries_by_slug
+
         # Independent team uses /teams/<slug>/
-        assert '/teams/independent/' in response.entries[0].team_url
+        assert '/teams/independent/' in entries_by_slug['independent'].team_url
         
         # Org team uses /teams/<slug>/ (for now)
-        assert '/teams/pro-team/' in response.entries[1].team_url
+        assert '/teams/pro-team/' in entries_by_slug['pro-team'].team_url

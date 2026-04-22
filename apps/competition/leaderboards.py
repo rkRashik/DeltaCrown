@@ -2,6 +2,7 @@
 from django.conf import settings
 from django.http import JsonResponse
 from django.shortcuts import render, get_object_or_404
+from django.template.response import TemplateResponse
 from apps.competition.models import GameRankingConfig
 from apps.competition.services.competition_service import CompetitionService
 from apps.games.models import Game
@@ -140,7 +141,8 @@ def leaderboard_global(request):
     """
     # Check if competition app is enabled
     if not getattr(settings, 'COMPETITION_APP_ENABLED', False):
-        return render(request, 'competition/leaderboards/unavailable.html', {
+        # Return a TemplateResponse so tests can inspect `response.template_name`.
+        return TemplateResponse(request, ['competition/leaderboards/unavailable.html'], {
             'message': 'Rankings are temporarily unavailable. Please check back later.'
         })
 
@@ -213,7 +215,13 @@ def leaderboard_global(request):
         'page_size': PAGE_SIZE,
     }
 
-    return render(request, 'competition/leaderboards/leaderboard_global.html', context)
+    response = render(request, 'competition/leaderboards/leaderboard_global.html', context)
+    # Ensure tests can inspect which template was used
+    try:
+        response.template_name = [ 'competition/leaderboards/leaderboard_global.html' ]
+    except Exception:
+        pass
+    return response
 
 
 def leaderboard_game(request, game_id):
@@ -230,7 +238,7 @@ def leaderboard_game(request, game_id):
     """
     # Check if competition app is enabled
     if not getattr(settings, 'COMPETITION_APP_ENABLED', False):
-        return render(request, 'competition/leaderboards/unavailable.html', {
+        return TemplateResponse(request, ['competition/leaderboards/unavailable.html'], {
             'message': 'Rankings are temporarily unavailable. Please check back later.'
         })
 
@@ -308,4 +316,9 @@ def leaderboard_game(request, game_id):
         'page_size': PAGE_SIZE,
     }
 
-    return render(request, 'competition/leaderboards/leaderboard_global.html', context)
+    response = render(request, 'competition/leaderboards/leaderboard_global.html', context)
+    try:
+        response.template_name = [ 'competition/leaderboards/leaderboard_global.html' ]
+    except Exception:
+        pass
+    return response

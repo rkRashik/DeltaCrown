@@ -56,6 +56,16 @@ class Organization(models.Model):
         blank=True,
         help_text="Human-readable public identifier (e.g., ORG_A7K2N9Q5B3)"
     )
+
+    def __init__(self, *args, **kwargs):
+        # Accept legacy keyword names used across the codebase/tests
+        # and map them to the canonical `ceo` field for backward
+        # compatibility (e.g., `owner`, `created_by`).
+        if 'owner' in kwargs:
+            kwargs['ceo'] = kwargs.pop('owner')
+        if 'created_by' in kwargs:
+            kwargs['ceo'] = kwargs.pop('created_by')
+        super().__init__(*args, **kwargs)
     
     # Identity fields
     name = models.CharField(

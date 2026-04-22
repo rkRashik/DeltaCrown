@@ -163,13 +163,13 @@ class CompetitionService:
                 to_attr='active_roster',
             )
         ).annotate(
-            display_score=Coalesce('ranking__current_cp', Value(0)),
-            display_tier=Coalesce('ranking__tier', Value('ROOKIE')),
-            display_rank=Coalesce('ranking__global_rank', Value(None, output_field=IntegerField())),
+            display_score=Coalesce('ranking__current_cp', 'global_ranking_snapshot__global_score', Value(0)),
+            display_tier=Coalesce('ranking__tier', 'global_ranking_snapshot__global_tier', Value('ROOKIE')),
+            display_rank=Coalesce('ranking__global_rank', 'global_ranking_snapshot__global_rank', Value(None, output_field=IntegerField())),
             display_activity=Coalesce('ranking__activity_score', Value(0)),
         )
 
-        if tier and tier in ['THE_CROWN', 'LEGEND', 'MASTER', 'ELITE', 'CHALLENGER', 'ROOKIE']:
+        if tier and tier in ['THE_CROWN', 'LEGEND', 'MASTER', 'ELITE', 'CHALLENGER', 'DIAMOND', 'ROOKIE']:
             queryset = queryset.filter(display_tier=tier)
 
         queryset = queryset.order_by('-display_score', '-created_at')
@@ -241,10 +241,13 @@ class CompetitionService:
         from django.db.models.functions import Coalesce
         from apps.organizations.choices import TeamStatus
 
+        # Accept either numeric game IDs or string identifiers (e.g., 'valorant').
+        game_id_int = None
+        game_id_str = None
         try:
             game_id_int = int(game_id)
         except (ValueError, TypeError):
-            return RankingsResponse(entries=[], total_count=0, query_count=1)
+            game_id_str = str(game_id) if game_id is not None else None
 
         cache_key = f'competition:game_rankings:{game_id}:{tier}:{verified_only}:{limit}:{offset}'
         cached = cache.get(cache_key)
@@ -254,14 +257,76 @@ class CompetitionService:
         from apps.organizations.models import TeamMembership
         from apps.games.models import Game
 
-        # Get game name for this specific game
+        # Get game name for this specific game (if numeric id provided)
         game_name_str = None
         try:
-            g = Game.objects.filter(id=game_id_int, is_active=True).values_list('display_name', 'name').first()
-            if g:
-                game_name_str = g[0] or g[1]
+            if game_id_int is not None:
+                g = Game.objects.filter(id=game_id_int, is_active=True).values_list('display_name', 'name').first()
+                if g:
+                    game_name_str = g[0] or g[1]
         except Exception:
             pass
+
+        # If a string game identifier was provided (e.g., 'valorant'), read
+        # from the legacy TeamGameRankingSnapshot table which stores per-game
+        # rankings keyed by string game ids.
+        if game_id_str:
+            from apps.competition.models import TeamGameRankingSnapshot
+            snapshots_qs = TeamGameRankingSnapshot.objects.filter(game_id__iexact=game_id_str).select_related('team', 'team__organization')
+            total_count = snapshots_qs.count()
+            paginated = snapshots_qs[offset:offset + limit]
+
+            entries = []
+            lineup_size = _lineup_size(None)
+            for idx, snap in enumerate(paginated, start=offset + 1):
+                team = snap.team
+                org = getattr(team, 'organization', None)
+                # Build roster avatars (best-effort)
+                from apps.organizations.models import TeamMembership
+                sorted_roster = sorted(
+                    TeamMembership.objects.filter(team=team, status='ACTIVE').select_related('user__profile'),
+                    key=_membership_sort_key
+                )
+                roster = []
+                for m in sorted_roster[:lineup_size]:
+                    avatar = None
+                    if getattr(m, 'roster_image', None):
+                        avatar = m.roster_image.url
+                    elif hasattr(m, 'user') and hasattr(m.user, 'profile') and getattr(m.user.profile, 'avatar', None):
+                        avatar = m.user.profile.avatar.url
+                    roster.append({'name': getattr(m, 'display_name', None) or getattr(m.user, 'username', None), 'avatar_url': avatar})
+
+                entry = RankingEntry(
+                    rank=snap.rank if snap.rank else idx,
+                    team_id=team.id,
+                    team_name=team.name,
+                    team_slug=team.slug,
+                    team_url='',
+                    organization_id=org.id if org else None,
+                    organization_name=org.name if org else None,
+                    score=snap.score,
+                    tier=snap.tier,
+                    confidence_level=snap.confidence_level,
+                    is_independent=(org is None),
+                    team_logo_url=team.logo.url if team.logo else None,
+                    team_tag=team.tag,
+                    activity_score=0,
+                    team_banner_url=team.banner.url if team.banner else None,
+                    game_name=game_id_str,
+                    roster_avatars=roster or None,
+                )
+                entries.append(entry)
+
+            response = RankingsResponse(
+                entries=entries,
+                total_count=total_count,
+                game_id=game_id_str,
+                tier_filter=tier,
+                is_global=False,
+                query_count=2,
+            )
+            cache.set(cache_key, response, CompetitionService.GAME_RANKINGS_CACHE_TIMEOUT)
+            return response
 
         queryset = Team.objects.filter(
             status=TeamStatus.ACTIVE,
@@ -284,7 +349,7 @@ class CompetitionService:
             display_activity=Coalesce('ranking__activity_score', Value(0)),
         )
 
-        if tier and tier in ['THE_CROWN', 'LEGEND', 'MASTER', 'ELITE', 'CHALLENGER', 'ROOKIE']:
+        if tier and tier in ['THE_CROWN', 'LEGEND', 'MASTER', 'ELITE', 'CHALLENGER', 'DIAMOND', 'ROOKIE']:
             queryset = queryset.filter(display_tier=tier)
 
         queryset = queryset.order_by('-display_score', '-created_at', 'name')
@@ -353,19 +418,45 @@ class CompetitionService:
         if cached:
             return cached
 
+        # If a specific game_id was requested, try the legacy per-game snapshot first
+        if game_id:
+            from apps.competition.models import TeamGameRankingSnapshot
+            snap = TeamGameRankingSnapshot.objects.filter(team_id=team_id, game_id__iexact=str(game_id)).first()
+            if snap:
+                result = {
+                    'rank': snap.rank,
+                    'tier': snap.tier,
+                    'score': snap.score,
+                    'confidence_level': snap.confidence_level,
+                    'is_global': False,
+                    'game_id': snap.game_id,
+                }
+                cache.set(cache_key, result, CompetitionService.TEAM_RANK_CACHE_TIMEOUT)
+                return result
+
         try:
             ranking = TeamRanking.objects.get(team_id=team_id)
+            result = {
+                'rank': ranking.global_rank,
+                'tier': ranking.tier,
+                'score': ranking.current_cp,
+                'confidence_level': 'STABLE',
+                'is_global': True,
+            }
         except TeamRanking.DoesNotExist:
-            cache.set(cache_key, None, CompetitionService.TEAM_RANK_CACHE_TIMEOUT)
-            return None
-
-        result = {
-            'rank': ranking.global_rank,
-            'tier': ranking.tier,
-            'score': ranking.current_cp,
-            'confidence_level': 'STABLE',
-            'is_global': True,
-        }
+            # Fallback to legacy TeamGlobalRankingSnapshot if present (tests/older data)
+            from apps.competition.models import TeamGlobalRankingSnapshot
+            snap = TeamGlobalRankingSnapshot.objects.filter(team_id=team_id).first()
+            if not snap:
+                cache.set(cache_key, None, CompetitionService.TEAM_RANK_CACHE_TIMEOUT)
+                return None
+            result = {
+                'rank': snap.global_rank,
+                'tier': snap.global_tier,
+                'score': snap.global_score,
+                'confidence_level': 'STABLE',
+                'is_global': True,
+            }
         cache.set(cache_key, result, CompetitionService.TEAM_RANK_CACHE_TIMEOUT)
         return result
     
@@ -391,7 +482,26 @@ class CompetitionService:
         )
 
         if not rankings.exists():
-            result = {'total_score': 0, 'team_count': 0, 'top_tier': 'ROOKIE', 'teams': []}
+            # Fallback to legacy TeamGlobalRankingSnapshot if modern TeamRanking is not present
+            from apps.competition.models import TeamGlobalRankingSnapshot
+            snaps = TeamGlobalRankingSnapshot.objects.filter(team__organization_id=org_id).select_related('team').order_by('-global_score')
+            if not snaps.exists():
+                result = {'total_score': 0, 'team_count': 0, 'top_tier': 'ROOKIE', 'teams': []}
+                cache.set(cache_key, result, CompetitionService.TEAM_RANK_CACHE_TIMEOUT)
+                return result
+
+            teams_list = []
+            total_score = 0
+            for snap in snaps:
+                teams_list.append({'team_id': snap.team.id, 'team_name': snap.team.name, 'team_score': snap.global_score})
+                total_score += int(snap.global_score or 0)
+
+            result = {
+                'total_score': total_score,
+                'team_count': snaps.count(),
+                'top_tier': snaps[0].global_tier if snaps else 'ROOKIE',
+                'teams': teams_list,
+            }
             cache.set(cache_key, result, CompetitionService.TEAM_RANK_CACHE_TIMEOUT)
             return result
 
@@ -443,9 +553,19 @@ class CompetitionService:
                 if rank is not None and (best_rank is None or rank < best_rank):
                     best_rank = rank
             except TeamRanking.DoesNotExist:
-                rank = None
-                tier = 'ROOKIE'
-                score = 0
+                # Fallback to legacy TeamGlobalRankingSnapshot
+                from apps.competition.models import TeamGlobalRankingSnapshot
+                snap = TeamGlobalRankingSnapshot.objects.filter(team_id=team.id).first()
+                if snap:
+                    rank = snap.global_rank
+                    tier = snap.global_tier
+                    score = snap.global_score
+                    if rank is not None and (best_rank is None or rank < best_rank):
+                        best_rank = rank
+                else:
+                    rank = None
+                    tier = 'ROOKIE'
+                    score = 0
 
             teams_data.append({
                 'team_id': team.id,

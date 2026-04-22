@@ -1,405 +1,648 @@
 {% extends "tournaments/base.html" %}
 {% load static humanize %}
 
-{# ─────────────────────────────────────────────────────────
-   Match Detail — FE-T-009 (Team + 1v1 Support)
-   Context: match, tournament, team1, team2, team1_stats, team2_stats,
-            maps, map_player_stats, mvp, round_label, is_team_tournament,
-        is_participant, show_lobby_info, lobby_open_for_participant,
-        lobby_window_opens_at, timeline
-   ───────────────────────────────────────────────────────── #}
-
-{% block title %}{{ match.participant1_name }} vs {{ match.participant2_name }} — {{ tournament.name }} | DeltaCrown{% endblock %}
+{% block title %}{{ match_core.participant1_name }} vs {{ match_core.participant2_name }} - {{ tournament.name }} | DeltaCrown{% endblock %}
 
 {% block extra_css %}
+{{ block.super }}
 <style>
-    .stat-table th { text-align: center; }
-    .stat-table td { text-align: center; }
-    .stat-table td:first-child, .stat-table th:first-child { text-align: left; }
-    .map-chip { transition: all 0.2s; }
-    .map-chip:hover { background: rgba(255,255,255,0.06); }
-
-    .match-cta-btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.45rem;
-      min-width: 170px;
-      border-radius: 0.85rem;
-      padding: 0.7rem 1.05rem;
-      font-size: 11px;
-      font-weight: 800;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+    .match-center-shell {
+        background: radial-gradient(circle at 12% 10%, rgba(0, 240, 255, 0.06), transparent 34%),
+                    radial-gradient(circle at 88% 8%, rgba(255, 0, 60, 0.05), transparent 28%),
+                    #030305;
     }
-    .match-cta-btn:hover { transform: translateY(-1px); }
-    .match-cta-primary {
-      color: #041018;
-      background: linear-gradient(135deg, rgba(99, 102, 241, 0.96), rgba(56, 189, 248, 0.94));
-      box-shadow: 0 10px 24px rgba(79, 70, 229, 0.28);
+    .match-glass {
+        background: rgba(15, 15, 20, 0.62);
+        backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        box-shadow: 0 12px 36px rgba(0, 0, 0, 0.35);
     }
-    .match-cta-secondary {
-      color: #d8f6ff;
-      border: 1px solid rgba(56, 189, 248, 0.42);
-      background: linear-gradient(135deg, rgba(16, 37, 53, 0.82), rgba(7, 25, 38, 0.9));
+    .match-glass-header {
+        background: linear-gradient(90deg, rgba(255, 255, 255, 0.04) 0%, transparent 100%);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
     }
-    .match-cta-disabled {
-      color: #9fb0bf;
-      border: 1px dashed rgba(148, 163, 184, 0.45);
-      background: rgba(15, 23, 42, 0.55);
-      cursor: not-allowed;
+    .mc-live-glow {
+        box-shadow: 0 0 24px rgba(255, 0, 60, 0.35);
+    }
+    .mc-tabs button.is-active {
+        color: #00f0ff;
+        border-color: #00f0ff;
+    }
+    .mc-tabs button {
+        border-bottom: 2px solid transparent;
+        color: #64748b;
+    }
+    .mc-tab-panel {
+        display: none;
+    }
+    .mc-tab-panel.is-active {
+        display: block;
+    }
+    .mc-stat-table th {
+        text-align: center;
+        font-size: 10px;
+        font-weight: 800;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        padding: 10px 8px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        white-space: nowrap;
+    }
+    .mc-stat-table td {
+        text-align: center;
+        font-size: 12px;
+        font-weight: 600;
+        color: #e2e8f0;
+        padding: 10px 8px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+        white-space: nowrap;
+    }
+    .mc-stat-table th:first-child,
+    .mc-stat-table td:first-child {
+        text-align: left;
+        padding-left: 16px;
+    }
+    .mc-vote-option {
+        position: relative;
+        overflow: hidden;
+    }
+    .mc-vote-option-fill {
+        position: absolute;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        z-index: 0;
+    }
+    .mc-vote-option-body {
+        position: relative;
+        z-index: 1;
+    }
+    .mc-kv dt {
+        color: #64748b;
+    }
+    .mc-kv dd {
+        color: #f8fafc;
+        font-weight: 700;
+    }
+    .mc-stream-frame {
+        width: 100%;
+        min-height: 280px;
+        border: 0;
+        background: #000;
+    }
+    @media (min-width: 1024px) {
+        .mc-stream-frame {
+            min-height: 460px;
+        }
     }
 </style>
 {% endblock %}
 
 {% block tournament_content %}
-
-<div class="max-w-5xl mx-auto px-4 sm:px-6 py-8">
-
-  {# ── Breadcrumb ── #}
-  <div class="mb-6 flex items-center gap-1.5 text-[11px]">
-    <a href="{% url 'tournaments:detail' tournament.slug %}" class="text-gray-500 hover:text-white transition">{{ tournament.name|truncatechars:30 }}</a>
-    <span class="text-gray-700">›</span>
-    <span class="text-gray-400">{{ round_label }}</span>
-    <span class="text-gray-700">›</span>
-    <span class="text-gray-300 font-bold">Match #{{ match.match_number }}</span>
-  </div>
-
-  {# ── Match Header Card ── #}
-  <div class="rounded-2xl overflow-hidden border {% if match.state == 'completed' %}border-emerald-500/15{% elif match.state == 'live' %}border-red-500/30{% else %}border-white/[0.06]{% endif %} bg-white/[0.02] mb-8">
-
-    {# Round label + status bar #}
-    <div class="px-6 py-3 border-b border-white/[0.04] flex items-center justify-between">
-      <div class="flex items-center gap-3">
-        <span class="text-[10px] font-black uppercase tracking-[0.2em] {% if 'Grand Final' in round_label %}text-dc-gold{% else %}text-gray-500{% endif %}">{{ round_label }}</span>
-        {% if best_of > 1 %}<span class="text-[9px] text-gray-600 font-bold">BO{{ best_of }}</span>{% endif %}
-      </div>
-      <div>
-        {% if match.state == 'completed' %}
-        <span class="px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/20">Final</span>
-        {% elif match.state == 'live' %}
-        <span class="px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider rounded-full bg-red-500/15 text-red-400 border border-red-500/20 animate-pulse">LIVE</span>
-        {% else %}
-        <span class="px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider rounded-full bg-white/[0.06] text-gray-500 border border-white/[0.08]">{{ match.get_state_display|default:match.state|title }}</span>
-        {% endif %}
-      </div>
-    </div>
-
-    {# ── VS Display ── #}
-    <div class="grid grid-cols-3 items-center gap-4 px-6 py-8 sm:py-10">
-      {# Team/Player 1 #}
-      <div class="text-center">
-        {% if is_team_tournament and team1 %}
-          {% if team1.logo_url %}
-          <img src="{{ team1.logo_url }}" alt="{{ team1.name }}" class="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-3 rounded-xl object-cover border-2 {% if match.winner_id == match.participant1_id %}border-dc-gold shadow-[0_0_20px_rgba(250,204,21,0.2)]{% else %}border-white/10{% endif %}">
-          {% else %}
-          <div class="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-3 rounded-xl bg-white/[0.06] border-2 {% if match.winner_id == match.participant1_id %}border-dc-gold{% else %}border-white/10{% endif %} flex items-center justify-center">
-            <span class="text-xl font-black text-gray-400">{{ team1.tag|default:team1.name|truncatechars:3 }}</span>
-          </div>
-          {% endif %}
-          <p class="text-sm sm:text-base font-display font-bold text-white">{{ team1.name }}</p>
-          {% if team1.tag %}<p class="text-[9px] text-gray-500 font-bold">[{{ team1.tag }}]</p>{% endif %}
-        {% else %}
-          <div class="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-3 rounded-full bg-white/[0.06] border-2 {% if match.winner_id == match.participant1_id %}border-dc-gold{% else %}border-white/10{% endif %} flex items-center justify-center">
-            <span class="text-xl font-black text-white">{{ match.participant1_name|truncatechars:2|upper }}</span>
-          </div>
-          <p class="text-sm font-display font-bold text-white">{{ match.participant1_name|default:"TBD" }}</p>
-        {% endif %}
-        {% if match.winner_id == match.participant1_id %}
-          <span class="text-[10px] text-dc-gold font-bold mt-1 inline-block">🏆 Winner</span>
-        {% endif %}
-      </div>
-
-      {# Score center #}
-      <div class="text-center">
-        {% if match.participant1_score is not None and match.participant2_score is not None %}
-        <div class="flex items-center justify-center gap-3 sm:gap-5">
-          <span class="text-4xl sm:text-5xl font-display font-black {% if match.winner_id == match.participant1_id %}text-dc-gold{% else %}text-white{% endif %}">{{ match.participant1_score }}</span>
-          <span class="text-lg text-gray-700 font-bold">:</span>
-          <span class="text-4xl sm:text-5xl font-display font-black {% if match.winner_id == match.participant2_id %}text-dc-gold{% else %}text-white{% endif %}">{{ match.participant2_score }}</span>
-        </div>
-        {% else %}
-        <span class="text-3xl font-display font-bold text-gray-600">VS</span>
-        {% endif %}
-        {% if match.scheduled_time %}
-        <p class="text-[10px] text-gray-500 mt-2">{{ match.scheduled_time|date:"M d, Y · g:i A" }}</p>
-        {% endif %}
-      </div>
-
-      {# Team/Player 2 #}
-      <div class="text-center">
-        {% if is_team_tournament and team2 %}
-          {% if team2.logo_url %}
-          <img src="{{ team2.logo_url }}" alt="{{ team2.name }}" class="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-3 rounded-xl object-cover border-2 {% if match.winner_id == match.participant2_id %}border-dc-gold shadow-[0_0_20px_rgba(250,204,21,0.2)]{% else %}border-white/10{% endif %}">
-          {% else %}
-          <div class="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-3 rounded-xl bg-white/[0.06] border-2 {% if match.winner_id == match.participant2_id %}border-dc-gold{% else %}border-white/10{% endif %} flex items-center justify-center">
-            <span class="text-xl font-black text-gray-400">{{ team2.tag|default:team2.name|truncatechars:3 }}</span>
-          </div>
-          {% endif %}
-          <p class="text-sm sm:text-base font-display font-bold text-white">{{ team2.name }}</p>
-          {% if team2.tag %}<p class="text-[9px] text-gray-500 font-bold">[{{ team2.tag }}]</p>{% endif %}
-        {% else %}
-          <div class="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-3 rounded-full bg-white/[0.06] border-2 {% if match.winner_id == match.participant2_id %}border-dc-gold{% else %}border-white/10{% endif %} flex items-center justify-center">
-            <span class="text-xl font-black text-white">{{ match.participant2_name|truncatechars:2|upper }}</span>
-          </div>
-          <p class="text-sm font-display font-bold text-white">{{ match.participant2_name|default:"TBD" }}</p>
-        {% endif %}
-        {% if match.winner_id == match.participant2_id %}
-          <span class="text-[10px] text-dc-gold font-bold mt-1 inline-block">🏆 Winner</span>
-        {% endif %}
-      </div>
-    </div>
-
-    {# ── Map scores bar ── #}
-    {% if maps %}
-    <div class="px-6 pb-6">
-      <div class="flex items-center justify-center gap-3 flex-wrap">
-        {% for map in maps %}
-        <div class="rounded-lg border {% if map.winner_side == 1 %}border-emerald-500/20 bg-emerald-500/[0.04]{% elif map.winner_side == 2 %}border-orange-500/20 bg-orange-500/[0.04]{% else %}border-white/[0.06] bg-white/[0.02]{% endif %} px-4 py-2.5 text-center map-chip">
-          <p class="text-[9px] font-bold text-gray-500 uppercase tracking-wider mb-1">{{ map.map_name }}</p>
-          <div class="flex items-center justify-center gap-2">
-            <span class="text-sm font-display font-black {% if map.winner_side == 1 %}text-emerald-400{% else %}text-gray-500{% endif %}">{{ map.team1_rounds }}</span>
-            <span class="text-[10px] text-gray-700">-</span>
-            <span class="text-sm font-display font-black {% if map.winner_side == 2 %}text-emerald-400{% else %}text-gray-500{% endif %}">{{ map.team2_rounds }}</span>
-          </div>
-        </div>
-        {% endfor %}
-      </div>
-    </div>
-    {% endif %}
-
-    {# ── MVP Highlight ── #}
-    {% if mvp %}
-    <div class="px-6 pb-5 flex items-center justify-center gap-2">
-      <span class="text-[9px] font-bold text-dc-gold uppercase tracking-wider">★ MVP</span>
-      <span class="text-xs font-bold text-gray-300">{{ mvp.display_name }}</span>
-      {% if mvp.agent %}<span class="text-[9px] text-gray-600">({{ mvp.agent }})</span>{% endif %}
-      <span class="text-[10px] text-gray-500">{{ mvp.kills }}/{{ mvp.deaths }}/{{ mvp.assists }} · {{ mvp.acs|floatformat:0 }} ACS</span>
-    </div>
-    {% endif %}
-  </div>
-
-  {# ── PLAYER SCOREBOARD ── #}
-  {% if team1_stats or team2_stats %}
-  <div class="rounded-2xl border border-white/[0.06] bg-white/[0.02] mb-8 overflow-hidden">
-    <div class="px-6 py-4 border-b border-white/[0.04] flex items-center gap-2">
-      <i data-lucide="bar-chart-3" class="w-4 h-4 game-accent"></i>
-      <h3 class="text-sm font-display font-bold text-white">Player Scoreboard</h3>
-    </div>
-
-    {# Team 1 #}
-    {% if team1_stats %}
-    <div class="border-b border-white/[0.04]">
-      <div class="px-6 py-2.5 bg-white/[0.01] flex items-center gap-2 border-b border-white/[0.03]">
-        {% if team1.logo_url %}<img src="{{ team1.logo_url }}" class="w-4 h-4 rounded" alt="">{% endif %}
-        <span class="text-[10px] font-black text-white uppercase tracking-wider">{{ team1.name|default:match.participant1_name }}</span>
-        {% if match.winner_id == match.participant1_id %}<span class="text-[8px] text-dc-gold font-bold ml-1">W</span>{% endif %}
-      </div>
-      <div class="overflow-x-auto">
-        <table class="w-full text-[11px] stat-table">
-          <thead>
-            <tr class="text-gray-600 uppercase tracking-wider">
-              <th class="py-2.5 px-4 font-bold text-left">Player</th>
-              <th class="py-2.5 px-2 font-bold">Agent</th>
-              <th class="py-2.5 px-2 font-bold">ACS</th>
-              <th class="py-2.5 px-2 font-bold">K</th>
-              <th class="py-2.5 px-2 font-bold">D</th>
-              <th class="py-2.5 px-2 font-bold">A</th>
-              <th class="py-2.5 px-2 font-bold">K/D</th>
-              <th class="py-2.5 px-2 font-bold hidden sm:table-cell">ADR</th>
-              <th class="py-2.5 px-2 font-bold hidden sm:table-cell">HS%</th>
-              <th class="py-2.5 px-2 font-bold hidden md:table-cell">FK</th>
-              <th class="py-2.5 px-2 font-bold hidden md:table-cell">FD</th>
-              <th class="py-2.5 px-2 font-bold hidden lg:table-cell">CL</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for s in team1_stats %}
-            <tr class="border-t border-white/[0.03] hover:bg-white/[0.02] {% if s.is_mvp %}bg-dc-gold/[0.06]{% endif %}">
-              <td class="py-2 px-4 font-bold {% if s.is_mvp %}text-dc-gold{% else %}text-gray-200{% endif %} text-left whitespace-nowrap">{{ s.display_name }}{% if s.is_mvp %} <span class="text-[8px]">★</span>{% endif %}</td>
-              <td class="py-2 px-2 text-gray-500">{{ s.agent }}</td>
-              <td class="py-2 px-2 text-white font-bold">{{ s.acs|floatformat:0 }}</td>
-              <td class="py-2 px-2 text-emerald-400 font-bold">{{ s.kills }}</td>
-              <td class="py-2 px-2 text-red-400/80">{{ s.deaths }}</td>
-              <td class="py-2 px-2 text-gray-400">{{ s.assists }}</td>
-              <td class="py-2 px-2 font-bold {% if s.kd_ratio >= 1.0 %}text-emerald-400{% else %}text-red-400/80{% endif %}">{{ s.kd_ratio|floatformat:2 }}</td>
-              <td class="py-2 px-2 text-gray-300 hidden sm:table-cell">{{ s.adr|floatformat:0 }}</td>
-              <td class="py-2 px-2 text-gray-400 hidden sm:table-cell">{{ s.hs_pct|floatformat:0 }}%</td>
-              <td class="py-2 px-2 text-gray-400 hidden md:table-cell">{{ s.first_kills }}</td>
-              <td class="py-2 px-2 text-gray-400 hidden md:table-cell">{{ s.first_deaths }}</td>
-              <td class="py-2 px-2 text-gray-400 hidden lg:table-cell">{{ s.clutches }}</td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </div>
-    {% endif %}
-
-    {# Team 2 #}
-    {% if team2_stats %}
-    <div>
-      <div class="px-6 py-2.5 bg-white/[0.01] flex items-center gap-2 border-b border-white/[0.03]">
-        {% if team2.logo_url %}<img src="{{ team2.logo_url }}" class="w-4 h-4 rounded" alt="">{% endif %}
-        <span class="text-[10px] font-black text-white uppercase tracking-wider">{{ team2.name|default:match.participant2_name }}</span>
-        {% if match.winner_id == match.participant2_id %}<span class="text-[8px] text-dc-gold font-bold ml-1">W</span>{% endif %}
-      </div>
-      <div class="overflow-x-auto">
-        <table class="w-full text-[11px] stat-table">
-          <thead>
-            <tr class="text-gray-600 uppercase tracking-wider">
-              <th class="py-2.5 px-4 font-bold text-left">Player</th>
-              <th class="py-2.5 px-2 font-bold">Agent</th>
-              <th class="py-2.5 px-2 font-bold">ACS</th>
-              <th class="py-2.5 px-2 font-bold">K</th>
-              <th class="py-2.5 px-2 font-bold">D</th>
-              <th class="py-2.5 px-2 font-bold">A</th>
-              <th class="py-2.5 px-2 font-bold">K/D</th>
-              <th class="py-2.5 px-2 font-bold hidden sm:table-cell">ADR</th>
-              <th class="py-2.5 px-2 font-bold hidden sm:table-cell">HS%</th>
-              <th class="py-2.5 px-2 font-bold hidden md:table-cell">FK</th>
-              <th class="py-2.5 px-2 font-bold hidden md:table-cell">FD</th>
-              <th class="py-2.5 px-2 font-bold hidden lg:table-cell">CL</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for s in team2_stats %}
-            <tr class="border-t border-white/[0.03] hover:bg-white/[0.02] {% if s.is_mvp %}bg-dc-gold/[0.06]{% endif %}">
-              <td class="py-2 px-4 font-bold {% if s.is_mvp %}text-dc-gold{% else %}text-gray-200{% endif %} text-left whitespace-nowrap">{{ s.display_name }}{% if s.is_mvp %} <span class="text-[8px]">★</span>{% endif %}</td>
-              <td class="py-2 px-2 text-gray-500">{{ s.agent }}</td>
-              <td class="py-2 px-2 text-white font-bold">{{ s.acs|floatformat:0 }}</td>
-              <td class="py-2 px-2 text-emerald-400 font-bold">{{ s.kills }}</td>
-              <td class="py-2 px-2 text-red-400/80">{{ s.deaths }}</td>
-              <td class="py-2 px-2 text-gray-400">{{ s.assists }}</td>
-              <td class="py-2 px-2 font-bold {% if s.kd_ratio >= 1.0 %}text-emerald-400{% else %}text-red-400/80{% endif %}">{{ s.kd_ratio|floatformat:2 }}</td>
-              <td class="py-2 px-2 text-gray-300 hidden sm:table-cell">{{ s.adr|floatformat:0 }}</td>
-              <td class="py-2 px-2 text-gray-400 hidden sm:table-cell">{{ s.hs_pct|floatformat:0 }}%</td>
-              <td class="py-2 px-2 text-gray-400 hidden md:table-cell">{{ s.first_kills }}</td>
-              <td class="py-2 px-2 text-gray-400 hidden md:table-cell">{{ s.first_deaths }}</td>
-              <td class="py-2 px-2 text-gray-400 hidden lg:table-cell">{{ s.clutches }}</td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </div>
-    {% endif %}
-  </div>
-  {% endif %}
-
-  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-    {# ── Timeline (2/3 width) ── #}
-    <div class="lg:col-span-2 rounded-2xl border border-white/[0.06] bg-white/[0.02] overflow-hidden">
-      <div class="px-6 py-4 border-b border-white/[0.04] flex items-center gap-2">
-        <i data-lucide="clock" class="w-4 h-4 game-accent"></i>
-        <h3 class="text-sm font-display font-bold text-white">Match Timeline</h3>
-      </div>
-      <div class="p-6">
-        {% if timeline %}
-        <div class="relative pl-6 space-y-5">
-          <div class="absolute left-2 top-2 bottom-2 w-px bg-white/[0.06]"></div>
-          {% for event in timeline %}
-          <div class="relative">
-            <div class="absolute -left-4 w-4 h-4 rounded-full bg-dc-surface border-2 border-white/20 flex items-center justify-center">
-              <div class="w-1.5 h-1.5 rounded-full game-accent-bg"></div>
+<div class="match-center-shell pb-16">
+    <main class="max-w-[1400px] mx-auto px-3 md:px-6 lg:px-8 pt-6 grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8">
+        <section class="lg:col-span-8 space-y-6 md:space-y-8">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div class="flex flex-wrap items-center gap-2 text-[10px] md:text-xs font-bold text-gray-500 uppercase tracking-widest">
+                    <a href="{% url 'tournaments:detail' tournament.slug %}" class="hover:text-white transition">Tournaments</a>
+                    <span>&gt;</span>
+                    <a href="{% url 'tournaments:detail' tournament.slug %}" class="hover:text-white transition">{{ tournament.name|truncatechars:32 }}</a>
+                    <span>&gt;</span>
+                    <span class="text-[#00f0ff]">Match Center</span>
+                </div>
+                <div class="flex flex-wrap items-center gap-2">
+                    <a href="{% url 'tournaments:bracket' tournament.slug %}" class="px-3 py-2 rounded-md border border-white/10 text-[10px] font-black uppercase tracking-widest text-gray-300 hover:text-white hover:border-white/20 transition">Bracket</a>
+                    <a href="{% url 'tournaments:tournament_hub' tournament.slug %}" class="px-3 py-2 rounded-md border border-white/10 text-[10px] font-black uppercase tracking-widest text-gray-300 hover:text-white hover:border-white/20 transition">Player Hub</a>
+                </div>
             </div>
-            <div>
-              <p class="text-xs font-bold text-white">{{ event.event }}</p>
-              <p class="text-[11px] text-gray-400 mt-0.5">{{ event.description }}</p>
-              {% if event.timestamp %}
-              <p class="text-[10px] text-gray-600 mt-1">{{ event.timestamp|date:"M d, Y · g:i A" }}</p>
-              {% endif %}
+
+            <div class="match-glass rounded-2xl overflow-hidden border-t border-t-white/10 relative">
+                <div data-mc-stream-wrap class="{% if not match_media.stream.has_stream or not match_presentation.show_media %}hidden{% endif %}">
+                    {% if match_media.stream.has_stream and match_presentation.show_media %}
+                    <div class="w-full aspect-video relative bg-black">
+                        <div class="absolute top-3 left-3 md:top-4 md:left-4 z-10 flex gap-2">
+                            {% if match_core.state == 'live' %}
+                            <span class="bg-[#ff003c]/90 backdrop-blur text-white text-[9px] md:text-[10px] font-black px-2.5 py-1 rounded uppercase tracking-widest inline-flex items-center gap-1.5 mc-live-glow"><span class="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span> Live Now</span>
+                            {% elif match_core.state == 'completed' %}
+                            <span class="bg-white/10 backdrop-blur text-white text-[9px] md:text-[10px] font-black px-2.5 py-1 rounded border border-white/20 uppercase tracking-widest">VOD Recording</span>
+                            {% else %}
+                            <span class="bg-white/10 backdrop-blur text-white text-[9px] md:text-[10px] font-black px-2.5 py-1 rounded border border-white/20 uppercase tracking-widest">Stream Feed</span>
+                            {% endif %}
+                        </div>
+                        <iframe
+                            id="mc-main-stream"
+                            class="mc-stream-frame"
+                            src="{{ match_media.stream.embed_url }}"
+                            allowfullscreen
+                            referrerpolicy="{{ match_media.stream.iframe_referrer_policy|default:'strict-origin-when-cross-origin' }}"
+                        ></iframe>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div data-mc-scoreboard-wrap class="w-full py-10 md:py-14 px-4 md:px-8 relative overflow-hidden bg-gradient-to-b from-[#0a0c10] to-[#030305]">
+                    <div class="absolute top-0 left-0 w-1/2 h-full bg-[#00f0ff]/5 blur-[100px]"></div>
+                    <div class="absolute top-0 right-0 w-1/2 h-full bg-[#ff003c]/5 blur-[100px]"></div>
+                    <div class="flex flex-col items-center relative z-10 w-full">
+                        <div class="mb-5">
+                            {% if match_core.state == 'live' %}
+                            <span id="mc-state-pill" class="px-3 py-1 text-[10px] font-black uppercase tracking-widest rounded-full bg-[#ff003c]/10 text-[#ff5a83] border border-[#ff003c]/30 mc-live-glow">Live Operation</span>
+                            {% elif match_core.state == 'completed' %}
+                            <span id="mc-state-pill" class="px-3 py-1 text-[10px] font-black uppercase tracking-widest rounded-full bg-emerald-500/12 text-emerald-300 border border-emerald-500/30">Final Result</span>
+                            {% else %}
+                            <span id="mc-state-pill" class="px-3 py-1 text-[10px] font-black uppercase tracking-widest rounded-full bg-white/8 text-gray-300 border border-white/20">{{ match_core.state_display }}</span>
+                            {% endif %}
+                        </div>
+
+                        {% if is_br_layout %}
+                        {% include hero_br_partial %}
+                        {% else %}
+                        <div class="flex flex-col md:flex-row items-center justify-center gap-6 md:gap-14 w-full max-w-4xl" data-mc-vs-hero>
+                            <div class="flex flex-col items-center gap-2.5 w-full md:w-1/3">
+                                <div class="w-20 h-20 md:w-24 md:h-24 rounded-xl bg-[#111] border-2 border-white/10 overflow-hidden shadow-xl flex items-center justify-center">
+                                    {% if match_assets.team1_logo_url %}
+                                    <img src="{{ match_assets.team1_logo_url }}" class="w-full h-full object-cover opacity-90" alt="{{ match_core.participant1_name }}">
+                                    {% else %}
+                                    <span class="text-xl font-black text-white">{{ match_core.participant1_name|truncatechars:2|upper }}</span>
+                                    {% endif %}
+                                </div>
+                                <h3 id="mc-team1-name" data-mc-team1-name class="font-display font-black text-lg md:text-xl text-white text-center">{{ match_core.participant1_name }}</h3>
+                            </div>
+
+                            <div class="flex flex-col items-center justify-center my-2 md:my-0">
+                                <div class="font-tech font-black text-5xl md:text-6xl text-white tracking-widest flex items-center gap-3 md:gap-4 bg-white/5 md:bg-transparent px-6 py-2 rounded-xl border border-white/5 md:border-none">
+                                    <span id="mc-score1" class="{% if match_core.winner_id and match_core.winner_id == match_core.participant1_id %}text-[#00f0ff]{% endif %}">{{ match_core.participant1_score }}</span>
+                                    <span class="text-2xl text-gray-600">-</span>
+                                    <span id="mc-score2" class="{% if match_core.winner_id and match_core.winner_id == match_core.participant2_id %}text-[#00f0ff]{% endif %}">{{ match_core.participant2_score }}</span>
+                                </div>
+                                <p id="mc-subline" data-mc-subline class="text-[10px] md:text-xs text-gray-500 font-bold uppercase tracking-widest mt-3">{{ match_presentation.subline }}</p>
+                            </div>
+
+                            <div class="flex flex-col items-center gap-2.5 w-full md:w-1/3">
+                                <div class="w-20 h-20 md:w-24 md:h-24 rounded-xl bg-[#111] border-2 border-white/10 overflow-hidden shadow-xl flex items-center justify-center">
+                                    {% if match_assets.team2_logo_url %}
+                                    <img src="{{ match_assets.team2_logo_url }}" class="w-full h-full object-cover opacity-90" alt="{{ match_core.participant2_name }}">
+                                    {% else %}
+                                    <span class="text-xl font-black text-white">{{ match_core.participant2_name|truncatechars:2|upper }}</span>
+                                    {% endif %}
+                                </div>
+                                <h3 id="mc-team2-name" data-mc-team2-name class="font-display font-black text-lg md:text-xl text-white text-center">{{ match_core.participant2_name }}</h3>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
             </div>
-          </div>
-          {% endfor %}
-        </div>
-        {% else %}
-        <div class="text-center py-6">
-          <i data-lucide="clock" class="w-6 h-6 text-gray-700 mx-auto mb-1"></i>
-          <p class="text-[11px] text-gray-600">No events recorded</p>
-        </div>
-        {% endif %}
-      </div>
-    </div>
 
-    {# ── Match Info sidebar ── #}
-    <div class="space-y-4">
-      <div class="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
-        <h3 class="text-xs font-display font-bold text-white mb-4 flex items-center gap-1.5">
-          <i data-lucide="info" class="w-3.5 h-3.5 game-accent"></i> Match Info
-        </h3>
-        <dl class="space-y-3 text-[11px]">
-          <div class="flex justify-between">
-            <dt class="text-gray-500">State</dt>
-            <dd><span class="px-2 py-0.5 text-[10px] rounded-full {% if match.state == 'completed' %}bg-emerald-500/15 text-emerald-400{% elif match.state == 'live' %}bg-red-500/15 text-red-400{% else %}bg-white/[0.06] text-gray-400{% endif %} font-bold">{{ match.get_state_display|default:match.state|title }}</span></dd>
-          </div>
-          <div class="flex justify-between">
-            <dt class="text-gray-500">Round</dt>
-            <dd class="text-white font-bold">{{ round_label }}</dd>
-          </div>
-          <div class="flex justify-between">
-            <dt class="text-gray-500">Match #</dt>
-            <dd class="text-white font-mono">{{ match.match_number }}</dd>
-          </div>
-          {% if best_of > 1 %}
-          <div class="flex justify-between">
-            <dt class="text-gray-500">Best Of</dt>
-            <dd class="text-white">{{ best_of }}</dd>
-          </div>
-          {% endif %}
-          {% if match.scheduled_time %}
-          <div class="flex justify-between">
-            <dt class="text-gray-500">Scheduled</dt>
-            <dd class="text-gray-300">{{ match.scheduled_time|date:"M d, g:i A" }}</dd>
-          </div>
-          {% endif %}
-        </dl>
-      </div>
+            <div class="mc-tabs flex items-center gap-6 md:gap-8 border-b border-white/10 overflow-x-auto no-scrollbar px-2 md:px-0">
+                <button type="button" data-mc-tab="overview" class="is-active pb-3 text-xs md:text-sm font-black uppercase tracking-widest whitespace-nowrap">Overview & Stats</button>
+                <button type="button" data-mc-tab="timeline" class="pb-3 text-xs md:text-sm font-black uppercase tracking-widest whitespace-nowrap">Timeline</button>
+                <button type="button" data-mc-tab="media" class="pb-3 text-xs md:text-sm font-black uppercase tracking-widest whitespace-nowrap">Media</button>
+            </div>
 
-      {# Lobby Info (participants only) #}
-      {% if is_participant %}
-      <div class="rounded-2xl border border-indigo-500/20 bg-indigo-500/[0.04] p-5">
-        <div class="flex flex-col gap-4">
-          <div>
-            <h3 class="text-xs font-display font-bold text-indigo-400 mb-1 flex items-center gap-1.5">
-              <i data-lucide="crosshair" class="w-3.5 h-3.5"></i> Private Match Lobby
-            </h3>
-            {% if lobby_open_for_participant %}
-            <p class="text-[10px] text-gray-500">Access the lobby to chat, submit results, or escalate issues.</p>
-            {% else %}
-            <p class="text-[10px] text-gray-500">
-              Lobby access unlocks 30 minutes before kickoff.
-              {% if lobby_window_opens_at %}Opens at {{ lobby_window_opens_at|date:"M d, g:i A" }}.{% endif %}
-            </p>
+            <div id="mc-tab-overview" class="mc-tab-panel is-active match-glass rounded-2xl overflow-hidden border-t border-t-white/10">
+                <div class="match-glass-header px-4 md:px-6 py-4 flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <i data-lucide="bar-chart-2" class="w-4 h-4 text-gray-400"></i>
+                        <h3 class="text-xs md:text-sm font-black text-white uppercase tracking-widest">Match Analytics</h3>
+                        <span data-mc-source-badge class="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full {% if match_stats.source == 'api' %}bg-emerald-500/15 text-emerald-300 border border-emerald-500/30{% else %}bg-white/5 text-gray-400 border border-white/10{% endif %}">{{ match_stats.source|default:'manual' }}</span>
+                    </div>
+                    <span class="text-[10px] text-gray-500 font-mono uppercase">{{ match_presentation.theme }}</span>
+                </div>
+
+                {% if match_presentation.show_stats %}
+                {% include match_stats.partial %}
+                {% else %}
+                <div class="p-6 text-sm text-gray-400">Stats are hidden for this match by Match Center settings.</div>
+                {% endif %}
+
+                {% if maps %}
+                <div class="px-4 md:px-6 pb-5 border-t border-white/6">
+                    <p class="text-[10px] uppercase tracking-widest text-gray-500 font-bold mt-4 mb-2">Series Maps</p>
+                    <div class="flex flex-wrap gap-2">
+                        {% for map in maps %}
+                        <div class="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-xs">
+                            <span class="text-gray-300 font-bold">{{ map.map_name|default:'Map' }}</span>
+                            <span class="text-gray-500 ml-2">{{ map.team1_rounds }} - {{ map.team2_rounds }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <div id="mc-tab-timeline" class="mc-tab-panel match-glass rounded-2xl overflow-hidden border-t border-t-white/10">
+                <div class="match-glass-header px-4 md:px-6 py-4 flex items-center gap-3">
+                    <i data-lucide="clock-3" class="w-4 h-4 text-gray-400"></i>
+                    <h3 class="text-xs md:text-sm font-black text-white uppercase tracking-widest">Timeline Intel</h3>
+                </div>
+                {% if match_presentation.show_timeline %}
+                <div class="p-5 md:p-6 space-y-4" id="mc-timeline-list">
+                    {% for event in timeline %}
+                    <div class="rounded-xl border border-white/10 bg-black/30 px-4 py-3">
+                        <div class="flex items-center justify-between gap-4">
+                            <p class="text-sm font-bold text-white">{{ event.event }}</p>
+                            {% if event.timestamp %}
+                            <span class="text-[10px] text-gray-500 font-mono">{{ event.timestamp|date:'M d, g:i A' }}</span>
+                            {% endif %}
+                        </div>
+                        <p class="text-xs text-gray-400 mt-1">{{ event.description }}</p>
+                    </div>
+                    {% empty %}
+                    <p class="text-sm text-gray-500">No timeline events yet.</p>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="p-6 text-sm text-gray-400">Timeline is hidden for this match by Match Center settings.</div>
+                {% endif %}
+            </div>
+
+            <div id="mc-tab-media" class="mc-tab-panel match-glass rounded-2xl overflow-hidden border-t border-t-white/10">
+                <div class="match-glass-header px-4 md:px-6 py-4 flex items-center gap-3">
+                    <i data-lucide="film" class="w-4 h-4 text-gray-400"></i>
+                    <h3 class="text-xs md:text-sm font-black text-white uppercase tracking-widest">Media Deck</h3>
+                </div>
+                {% if match_presentation.show_media %}
+                <div class="p-5 md:p-6 space-y-3">
+                    {% if match_media.stream.source_url %}
+                    <a href="{{ match_media.stream.source_url }}" target="_blank" rel="noopener" class="flex items-center justify-between rounded-xl border border-cyan-500/25 bg-cyan-500/10 px-4 py-3 text-sm text-cyan-200 hover:border-cyan-400/50 transition-colors">
+                        <span class="inline-flex items-center gap-2"><i data-lucide="tv" class="w-4 h-4"></i> Stream Source</span>
+                        <i data-lucide="arrow-up-right" class="w-4 h-4"></i>
+                    </a>
+                    {% endif %}
+                    {% for item in match_media.items %}
+                    <a href="{{ item.url }}" target="_blank" rel="noopener" class="flex items-center justify-between rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-sm text-gray-200 hover:border-white/20 transition-colors">
+                        <span class="inline-flex items-center gap-2">
+                            <i data-lucide="paperclip" class="w-4 h-4 text-gray-400"></i>
+                            {{ item.description|default:item.media_type|title }}
+                        </span>
+                        <i data-lucide="arrow-up-right" class="w-4 h-4"></i>
+                    </a>
+                    {% empty %}
+                    <p class="text-sm text-gray-500">No media entries have been attached yet.</p>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="p-6 text-sm text-gray-400">Media is hidden for this match by Match Center settings.</div>
+                {% endif %}
+            </div>
+        </section>
+
+        <aside class="lg:col-span-4 space-y-6">
+            <div class="match-glass rounded-2xl p-5 md:p-6 border-t border-t-white/10">
+                <h3 class="text-xs font-black text-white uppercase tracking-widest mb-4 flex items-center gap-2">
+                    <i data-lucide="info" class="w-4 h-4 text-[#00f0ff]"></i> Operation Intel
+                </h3>
+                <dl class="space-y-3 text-xs md:text-sm mc-kv">
+                    <div class="flex justify-between border-b border-white/5 pb-2">
+                        <dt>Tournament</dt>
+                        <dd class="text-right max-w-[65%] truncate">{{ tournament.name }}</dd>
+                    </div>
+                    <div class="flex justify-between border-b border-white/5 pb-2">
+                        <dt>Round</dt>
+                        <dd>{{ match_core.round_label }}</dd>
+                    </div>
+                    <div class="flex justify-between border-b border-white/5 pb-2">
+                        <dt>Format</dt>
+                        <dd>Best of {{ match_core.best_of }}</dd>
+                    </div>
+                    <div class="flex justify-between border-b border-white/5 pb-2">
+                        <dt>Status</dt>
+                        <dd id="mc-state-display">{{ match_core.state_display }}</dd>
+                    </div>
+                    <div class="flex justify-between">
+                        <dt>Time</dt>
+                        <dd>{% if match_core.scheduled_time %}{{ match_core.scheduled_time|date:'M d, g:i A' }}{% else %}TBD{% endif %}</dd>
+                    </div>
+                </dl>
+            </div>
+
+            <div id="mc-fan-pulse-card" class="{% if not match_poll.enabled or not match_presentation.show_fan_pulse %}hidden {% endif %}match-glass rounded-2xl p-5 md:p-6 relative overflow-hidden border-t border-t-white/10">
+                <div class="absolute top-[-50px] left-[-50px] w-40 h-40 bg-[#00f0ff]/10 rounded-full blur-[50px] pointer-events-none"></div>
+                <div class="flex items-center justify-between mb-5 relative z-10">
+                    <div class="flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-[#00f0ff] animate-pulse"></span>
+                        <span class="text-xs font-black text-white uppercase tracking-widest">Fan Pulse</span>
+                    </div>
+                    <span id="mc-poll-total" class="text-[10px] text-gray-400 font-mono">{{ match_poll.total_votes }} votes</span>
+                </div>
+                <div class="relative z-10">
+                    <h3 id="mc-poll-question" class="text-sm font-bold text-white leading-snug mb-4">{{ match_poll.question }}</h3>
+                    <div id="mc-poll-options" class="space-y-3">
+                        {% for option in match_poll.options %}
+                        <button
+                            type="button"
+                            class="mc-vote-option w-full rounded-xl bg-white/5 border {% if option.is_user_choice %}border-[#00f0ff]/55{% else %}border-white/10{% endif %} p-3 text-left hover:border-[#00f0ff]/40 transition-colors"
+                            data-fan-pulse-vote="{{ option.id }}"
+                            data-mc-poll-index="{{ forloop.counter0 }}"
+                            {% if not match_poll.viewer_can_vote %}disabled{% endif %}
+                        >
+                            <div data-mc-poll-fill class="mc-vote-option-fill {% if forloop.first %}bg-[#00f0ff]/20{% else %}bg-[#ff003c]/20{% endif %}" style="width: {{ option.percent }}%"></div>
+                            <div class="mc-vote-option-body flex justify-between items-center gap-3">
+                                <span data-mc-poll-label class="text-sm font-bold text-white truncate pr-2">{{ option.label }}</span>
+                                <span data-mc-poll-percent class="text-sm font-black {% if forloop.first %}text-[#00f0ff]{% else %}text-[#ff5a83]{% endif %}">{{ option.percent }}%</span>
+                            </div>
+                        </button>
+                        {% endfor %}
+                    </div>
+                    {% if not match_poll.viewer_can_vote %}
+                    <p class="text-[11px] text-gray-400 mt-3">Sign in to cast your vote. <a href="{{ viewer_login_url }}" class="text-[#00f0ff] hover:text-white transition-colors">Login</a></p>
+                    {% endif %}
+                </div>
+            </div>
+
+            {% if is_participant %}
+            <div class="match-glass rounded-2xl p-5 border border-indigo-500/30 bg-indigo-500/10">
+                <h3 class="text-xs font-display font-bold text-indigo-300 mb-2 flex items-center gap-2">
+                    <i data-lucide="shield-check" class="w-4 h-4"></i> Participant Access
+                </h3>
+                {% if lobby_open_for_participant %}
+                <p class="text-[11px] text-gray-300 mb-4">Lobby access is open. Enter the match room for check-in, result submission, and official coordination.</p>
+                <a href="{% url 'tournaments:match_room' tournament.slug match.id %}" class="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-[#00f0ff] text-black text-[11px] font-black uppercase tracking-widest hover:opacity-90 transition-opacity">Enter Match Room <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i></a>
+                {% else %}
+                <p class="text-[11px] text-gray-300">Lobby unlocks 30 minutes before kickoff.
+                    {% if lobby_window_opens_at %}Opens at {{ lobby_window_opens_at|date:'M d, g:i A' }}.{% endif %}
+                </p>
+                {% endif %}
+            </div>
             {% endif %}
-          </div>
-          <div class="flex flex-wrap items-center gap-2">
-            {% if lobby_open_for_participant %}
-            <a href="{% url 'tournaments:match_room' tournament.slug match.id %}" class="match-cta-btn match-cta-primary">
-              Enter Lobby <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
-            </a>
-            {% else %}
-            <span class="match-cta-btn match-cta-disabled">
-              Lobby Opens {% if lobby_window_opens_at %}{{ lobby_window_opens_at|date:"g:i A" }}{% else %}Soon{% endif %}
-            </span>
-            {% endif %}
-            <a href="{% url 'tournaments:tournament_hub' tournament.slug %}" class="match-cta-btn match-cta-secondary">
-              Open HUB <i data-lucide="layout-dashboard" class="w-3.5 h-3.5"></i>
-            </a>
-          </div>
-        </div>
-      </div>
-      {% endif %}
 
-      {# Back to tournament #}
-      <a href="{% url 'tournaments:detail' tournament.slug %}" class="block w-full text-center px-4 py-2.5 rounded-xl border border-white/[0.06] bg-white/[0.02] text-xs text-gray-400 hover:text-white hover:bg-white/[0.04] transition">
-        <i data-lucide="arrow-left" class="w-3 h-3 inline mr-1"></i> Back to Tournament
-      </a>
-    </div>
-
-  </div>
+            <a href="{% url 'tournaments:detail' tournament.slug %}" class="block w-full text-center px-4 py-2.5 rounded-xl border border-white/10 bg-white/5 text-xs text-gray-400 hover:text-white hover:bg-white/10 transition">
+                <i data-lucide="arrow-left" class="w-3 h-3 inline mr-1"></i> Back to Tournament
+            </a>
+        </aside>
+    </main>
 </div>
 
+{{ match_poll|json_script:"mc-poll-payload" }}
+{% endblock %}
+
+{% block tournament_js %}
+<script nonce="{{ request.csp_nonce }}">
+    (function () {
+        'use strict';
+
+        const stateUrl = '{{ match_state_api_url }}';
+        const voteUrl = '{{ match_fan_pulse_vote_url }}';
+        const autoRefreshSeconds = {{ match_presentation.auto_refresh_seconds|default:20 }};
+        const canVote = {{ match_poll.viewer_can_vote|yesno:'true,false' }};
+        const viewerLoginUrl = '{{ viewer_login_url }}';
+
+        function getCsrfToken() {
+            const name = 'csrftoken=';
+            const pieces = String(document.cookie || '').split(';');
+            for (const piece of pieces) {
+                const trimmed = piece.trim();
+                if (trimmed.indexOf(name) === 0) {
+                    return decodeURIComponent(trimmed.slice(name.length));
+                }
+            }
+            return '';
+        }
+
+        function setActiveTab(tabName) {
+            document.querySelectorAll('[data-mc-tab]').forEach((button) => {
+                const active = button.getAttribute('data-mc-tab') === tabName;
+                button.classList.toggle('is-active', active);
+            });
+            document.querySelectorAll('.mc-tab-panel').forEach((panel) => {
+                const active = panel.id === 'mc-tab-' + tabName;
+                panel.classList.toggle('is-active', active);
+            });
+        }
+
+        document.querySelectorAll('[data-mc-tab]').forEach((button) => {
+            button.addEventListener('click', () => {
+                setActiveTab(button.getAttribute('data-mc-tab') || 'overview');
+            });
+        });
+
+        function applyMatchState(match) {
+            if (!match || typeof match !== 'object') return;
+
+            const score1 = document.getElementById('mc-score1');
+            const score2 = document.getElementById('mc-score2');
+            const stateDisplay = document.getElementById('mc-state-display');
+            if (score1) score1.textContent = String(match.participant1_score ?? 0);
+            if (score2) score2.textContent = String(match.participant2_score ?? 0);
+            if (stateDisplay) stateDisplay.textContent = String(match.state_display || match.state || 'Unknown');
+
+            const team1NameEl = document.querySelector('[data-mc-team1-name]');
+            const team2NameEl = document.querySelector('[data-mc-team2-name]');
+            if (team1NameEl && match.participant1_name) team1NameEl.textContent = String(match.participant1_name);
+            if (team2NameEl && match.participant2_name) team2NameEl.textContent = String(match.participant2_name);
+
+            const statePill = document.getElementById('mc-state-pill');
+            if (statePill) {
+                if (match.state === 'live') {
+                    statePill.className = 'px-3 py-1 text-[10px] font-black uppercase tracking-widest rounded-full bg-[#ff003c]/10 text-[#ff5a83] border border-[#ff003c]/30 mc-live-glow';
+                    statePill.textContent = 'Live Operation';
+                } else if (match.state === 'completed') {
+                    statePill.className = 'px-3 py-1 text-[10px] font-black uppercase tracking-widest rounded-full bg-emerald-500/12 text-emerald-300 border border-emerald-500/30';
+                    statePill.textContent = 'Final Result';
+                } else {
+                    statePill.className = 'px-3 py-1 text-[10px] font-black uppercase tracking-widest rounded-full bg-white/8 text-gray-300 border border-white/20';
+                    statePill.textContent = String(match.state_display || match.state || 'Pending');
+                }
+            }
+        }
+
+        function buildPollOption(option, index) {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'mc-vote-option w-full rounded-xl bg-white/5 border p-3 text-left hover:border-[#00f0ff]/40 transition-colors';
+            button.classList.add(option.is_user_choice ? 'border-[#00f0ff]/55' : 'border-white/10');
+            button.setAttribute('data-fan-pulse-vote', String(option.id || ''));
+            button.setAttribute('data-mc-poll-index', String(index));
+            if (!canVote) button.disabled = true;
+
+            const percent = Math.max(0, Math.min(100, Number(option.percent || 0)));
+            const fillColor = index === 0 ? 'bg-[#00f0ff]/20' : 'bg-[#ff003c]/20';
+            const accent = index === 0 ? 'text-[#00f0ff]' : 'text-[#ff5a83]';
+
+            const fill = document.createElement('div');
+            fill.className = 'mc-vote-option-fill ' + fillColor;
+            fill.setAttribute('data-mc-poll-fill', '');
+            fill.style.width = percent + '%';
+            button.appendChild(fill);
+
+            const body = document.createElement('div');
+            body.className = 'mc-vote-option-body flex justify-between items-center gap-3';
+            const labelEl = document.createElement('span');
+            labelEl.className = 'text-sm font-bold text-white truncate pr-2';
+            labelEl.setAttribute('data-mc-poll-label', '');
+            labelEl.textContent = String(option.label || 'Option');
+            const pctEl = document.createElement('span');
+            pctEl.className = 'text-sm font-black ' + accent;
+            pctEl.setAttribute('data-mc-poll-percent', '');
+            pctEl.textContent = String(percent) + '%';
+            body.appendChild(labelEl);
+            body.appendChild(pctEl);
+            button.appendChild(body);
+            return button;
+        }
+
+        function renderPoll(poll) {
+            const card = document.getElementById('mc-fan-pulse-card');
+            if (!card) return;
+
+            if (!poll || !poll.enabled) {
+                card.classList.add('hidden');
+                return;
+            }
+
+            card.classList.remove('hidden');
+            const questionEl = document.getElementById('mc-poll-question');
+            const totalEl = document.getElementById('mc-poll-total');
+            const optionsWrap = document.getElementById('mc-poll-options');
+
+            if (questionEl) questionEl.textContent = String(poll.question || 'Who takes the series?');
+            if (totalEl) totalEl.textContent = String(poll.total_votes || 0) + ' votes';
+            if (!optionsWrap) return;
+
+            const options = Array.isArray(poll.options) ? poll.options : [];
+            const existing = optionsWrap.querySelectorAll('[data-fan-pulse-vote]');
+
+            let canMutate = existing.length === options.length && options.length > 0;
+            if (canMutate) {
+                for (let i = 0; i < options.length; i++) {
+                    if (String(existing[i].getAttribute('data-fan-pulse-vote')) !== String(options[i].id || '')) {
+                        canMutate = false;
+                        break;
+                    }
+                }
+            }
+
+            if (!canMutate) {
+                optionsWrap.innerHTML = '';
+                options.forEach((option, index) => {
+                    optionsWrap.appendChild(buildPollOption(option, index));
+                });
+                bindVoteButtons();
+                return;
+            }
+
+            options.forEach((option, index) => {
+                const button = existing[index];
+                if (!button) return;
+                const percent = Math.max(0, Math.min(100, Number(option.percent || 0)));
+                button.classList.toggle('border-[#00f0ff]/55', !!option.is_user_choice);
+                button.classList.toggle('border-white/10', !option.is_user_choice);
+                const fill = button.querySelector('[data-mc-poll-fill]');
+                if (fill) fill.style.width = percent + '%';
+                const labelEl = button.querySelector('[data-mc-poll-label]');
+                const pctEl = button.querySelector('[data-mc-poll-percent]');
+                if (labelEl) labelEl.textContent = String(option.label || 'Option');
+                if (pctEl) pctEl.textContent = String(percent) + '%';
+            });
+        }
+
+        async function submitVote(optionId) {
+            if (!optionId) return;
+            if (!canVote) {
+                if (viewerLoginUrl) {
+                    window.location.href = viewerLoginUrl;
+                }
+                return;
+            }
+
+            try {
+                const response = await fetch(voteUrl, {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRFToken': getCsrfToken(),
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    body: JSON.stringify({ option_id: optionId }),
+                });
+                const payload = await response.json().catch(() => ({}));
+                if (!response.ok || !payload.success) {
+                    return;
+                }
+                renderPoll(payload.poll || null);
+            } catch (error) {
+                // Keep voting surface resilient during transient network interruptions.
+            }
+        }
+
+        function bindVoteButtons() {
+            document.querySelectorAll('[data-fan-pulse-vote]').forEach((button) => {
+                button.addEventListener('click', function () {
+                    const optionId = button.getAttribute('data-fan-pulse-vote') || '';
+                    submitVote(optionId);
+                });
+            });
+        }
+
+        function applyPresentation(presentation) {
+            if (!presentation || typeof presentation !== 'object') return;
+            const subline = document.querySelector('[data-mc-subline]');
+            if (subline && typeof presentation.subline === 'string') {
+                subline.textContent = presentation.subline;
+            }
+            const streamWrap = document.querySelector('[data-mc-stream-wrap]');
+            if (streamWrap) {
+                const showStream = !!(presentation.has_stream && presentation.show_media);
+                streamWrap.classList.toggle('hidden', !showStream);
+            }
+        }
+
+        function applySourceBadge(meta) {
+            const badge = document.querySelector('[data-mc-source-badge]');
+            if (!badge || !meta || typeof meta !== 'object') return;
+            const source = String(meta.source || 'manual').toLowerCase();
+            badge.textContent = source;
+            const isApi = source === 'api';
+            badge.classList.toggle('bg-emerald-500/15', isApi);
+            badge.classList.toggle('text-emerald-300', isApi);
+            badge.classList.toggle('border-emerald-500/30', isApi);
+            badge.classList.toggle('bg-white/5', !isApi);
+            badge.classList.toggle('text-gray-400', !isApi);
+            badge.classList.toggle('border-white/10', !isApi);
+        }
+
+        async function refreshState() {
+            if (!stateUrl) return;
+            try {
+                const response = await fetch(stateUrl, {
+                    method: 'GET',
+                    credentials: 'same-origin',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                });
+                if (!response.ok) return;
+                const payload = await response.json().catch(() => null);
+                if (!payload || !payload.success) return;
+                applyMatchState(payload.match || null);
+                applyPresentation(payload.presentation || null);
+                applySourceBadge(payload.stats_meta || null);
+                renderPoll(payload.poll || null);
+            } catch (error) {
+                // Polling failures should never break the static render.
+            }
+        }
+
+        bindVoteButtons();
+
+        try {
+            const initialPollNode = document.getElementById('mc-poll-payload');
+            if (initialPollNode) {
+                const parsed = JSON.parse(initialPollNode.textContent || '{}');
+                renderPoll(parsed);
+            }
+        } catch (error) {
+            // Ignore malformed snapshot and continue with static payload.
+        }
+
+        if (Number.isFinite(autoRefreshSeconds) && autoRefreshSeconds >= 10) {
+            window.setInterval(refreshState, autoRefreshSeconds * 1000);
+        }
+    })();
+</script>
 {% endblock %}

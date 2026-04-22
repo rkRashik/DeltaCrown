@@ -3789,6 +3789,223 @@
             </div>
 
             {# ════════════════════════════════════════════════════════════════ #}
+            {# ██  ENGAGEMENT: MATCH CENTER TAB                              ██ #}
+            {# ════════════════════════════════════════════════════════════════ #}
+            <div id="view-match-center" data-tab-content="match-center" class="hidden-view p-6 lg:p-8 max-w-[1700px] mx-auto space-y-6">
+                <div class="flex items-center gap-3 text-dc-text">
+                    <i data-lucide="monitor-play" class="w-5 h-5 opacity-20"></i>
+                    <span class="text-xs uppercase tracking-widest opacity-40 font-display">Engagement</span>
+                </div>
+
+                <div class="rounded-2xl border border-theme/25 bg-[radial-gradient(circle_at_8%_18%,rgba(var(--color-primary-r),var(--color-primary-g),var(--color-primary-b),0.16),transparent_38%),linear-gradient(155deg,rgba(15,15,25,0.96)_0%,rgba(9,9,16,0.98)_65%,rgba(7,7,11,0.99)_100%)] p-5 lg:p-6 shadow-[0_22px_55px_rgba(0,0,0,0.5)]">
+                    <div class="flex flex-col xl:flex-row xl:items-end xl:justify-between gap-5">
+                        <div>
+                            <div class="inline-flex items-center gap-2 rounded-full px-3 py-1 border border-theme/25 bg-theme/10 text-[10px] font-bold tracking-[0.2em] uppercase text-theme">
+                                <i data-lucide="monitor-play" class="w-3.5 h-3.5"></i>
+                                Match Center
+                            </div>
+                            <h2 class="mt-3 text-2xl lg:text-3xl font-display font-black text-white tracking-tight">Public Match Center Controls</h2>
+                            <p class="text-xs text-dc-text mt-1">Control match-page presentation only. Operational match-room workflow is untouched.</p>
+                            <p id="matchcenter-sync-status" class="text-[10px] font-mono text-dc-text mt-2">Not synced yet</p>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-2">
+                            <button id="matchcenter-refresh-btn" class="px-3 py-2 rounded-lg border border-dc-borderLight bg-dc-surface/50 text-dc-textBright text-xs font-bold hover:border-theme/40 hover:text-white transition-all flex items-center gap-1.5">
+                                <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Refresh
+                            </button>
+                            <button id="matchcenter-save-btn" class="px-3 py-2 rounded-lg bg-theme text-black text-xs font-black uppercase tracking-wider hover:opacity-90 transition-opacity flex items-center gap-1.5">
+                                <i data-lucide="save" class="w-3.5 h-3.5"></i> Save Match Center
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="matchcenter-error-banner" class="hidden rounded-lg border border-dc-danger/30 bg-dc-dangerBg px-4 py-3"></div>
+
+                <div class="grid grid-cols-1 xl:grid-cols-12 gap-6">
+                    <div class="xl:col-span-7 space-y-6 min-w-0">
+                        <div class="glass-box rounded-xl p-5 space-y-4">
+                            <h3 class="text-[10px] font-bold text-theme uppercase tracking-widest flex items-center gap-2">
+                                <i data-lucide="sliders-horizontal" class="w-4 h-4"></i>
+                                Global Presentation
+                            </h3>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                                <label class="rounded-lg border border-dc-border bg-dc-surface/50 px-3 py-2 flex items-center justify-between gap-3">
+                                    <span class="text-dc-textBright">Enable Match Center</span>
+                                    <input id="matchcenter-enabled" type="checkbox" class="h-4 w-4 rounded border-dc-border bg-dc-panel text-theme focus:ring-theme/30">
+                                </label>
+                                <label class="rounded-lg border border-dc-border bg-dc-surface/50 px-3 py-2 flex items-center justify-between gap-3">
+                                    <span class="text-dc-textBright">Show Stats</span>
+                                    <input id="matchcenter-show-stats" type="checkbox" class="h-4 w-4 rounded border-dc-border bg-dc-panel text-theme focus:ring-theme/30">
+                                </label>
+                                <label class="rounded-lg border border-dc-border bg-dc-surface/50 px-3 py-2 flex items-center justify-between gap-3">
+                                    <span class="text-dc-textBright">Show Timeline</span>
+                                    <input id="matchcenter-show-timeline" type="checkbox" class="h-4 w-4 rounded border-dc-border bg-dc-panel text-theme focus:ring-theme/30">
+                                </label>
+                                <label class="rounded-lg border border-dc-border bg-dc-surface/50 px-3 py-2 flex items-center justify-between gap-3">
+                                    <span class="text-dc-textBright">Show Media</span>
+                                    <input id="matchcenter-show-media" type="checkbox" class="h-4 w-4 rounded border-dc-border bg-dc-panel text-theme focus:ring-theme/30">
+                                </label>
+                                <label class="rounded-lg border border-dc-border bg-dc-surface/50 px-3 py-2 flex items-center justify-between gap-3">
+                                    <span class="text-dc-textBright">Show Fan Pulse</span>
+                                    <input id="matchcenter-show-fan-pulse" type="checkbox" class="h-4 w-4 rounded border-dc-border bg-dc-panel text-theme focus:ring-theme/30">
+                                </label>
+                                <label class="rounded-lg border border-dc-border bg-dc-surface/50 px-3 py-2 flex items-center justify-between gap-3">
+                                    <span class="text-dc-textBright">Auto Refresh (sec)</span>
+                                    <input id="matchcenter-auto-refresh" type="number" min="10" max="120" class="w-20 bg-dc-panel border border-dc-border rounded px-2 py-1 text-right text-dc-textBright text-xs focus:outline-none focus:border-theme/40">
+                                </label>
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                <label class="space-y-1 sm:col-span-1">
+                                    <span class="text-[10px] uppercase tracking-wider text-dc-text">Theme</span>
+                                    <select id="matchcenter-theme" class="w-full bg-dc-panel border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50">
+                                        <option value="cyber">Cyber</option>
+                                        <option value="tactical">Tactical</option>
+                                        <option value="arena">Arena</option>
+                                    </select>
+                                </label>
+                                <label class="space-y-1 sm:col-span-2">
+                                    <span class="text-[10px] uppercase tracking-wider text-dc-text">Fan Pulse Question</span>
+                                    <input id="matchcenter-poll-question" type="text" maxlength="180" class="w-full bg-dc-panel border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50" placeholder="Who takes the series?">
+                                </label>
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <label class="space-y-1">
+                                    <span class="text-[10px] uppercase tracking-wider text-dc-text">Option A</span>
+                                    <input id="matchcenter-poll-option-a" type="text" maxlength="80" class="w-full bg-dc-panel border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50" placeholder="Team A">
+                                </label>
+                                <label class="space-y-1">
+                                    <span class="text-[10px] uppercase tracking-wider text-dc-text">Option B</span>
+                                    <input id="matchcenter-poll-option-b" type="text" maxlength="80" class="w-full bg-dc-panel border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50" placeholder="Team B">
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="glass-box rounded-xl p-5 space-y-4">
+                            <div class="flex flex-wrap items-center justify-between gap-3">
+                                <h3 class="text-[10px] font-bold text-white uppercase tracking-widest flex items-center gap-2">
+                                    <i data-lucide="crosshair" class="w-4 h-4"></i>
+                                    Match-Specific Override
+                                </h3>
+                                <button id="matchcenter-clear-override-btn" class="px-3 py-1.5 rounded-lg border border-dc-border text-dc-text text-[10px] font-bold uppercase tracking-widest hover:border-dc-danger/50 hover:text-dc-danger transition-colors">
+                                    Clear Selected Override
+                                </button>
+                            </div>
+
+                            <label class="space-y-1 block">
+                                <span class="text-[10px] uppercase tracking-wider text-dc-text">Target Match</span>
+                                <select id="matchcenter-match-select" class="w-full bg-dc-panel border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50"></select>
+                            </label>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <label class="space-y-1">
+                                    <span class="text-[10px] uppercase tracking-wider text-dc-text">Headline</span>
+                                    <input id="matchcenter-headline" type="text" maxlength="120" class="w-full bg-dc-panel border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50" placeholder="Upper Bracket Final">
+                                </label>
+                                <label class="space-y-1">
+                                    <span class="text-[10px] uppercase tracking-wider text-dc-text">Subline</span>
+                                    <input id="matchcenter-subline" type="text" maxlength="120" class="w-full bg-dc-panel border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50" placeholder="Map 3 - Decider">
+                                </label>
+                                <label class="space-y-1 sm:col-span-2">
+                                    <span class="text-[10px] uppercase tracking-wider text-dc-text">Stream / VOD URL</span>
+                                    <input id="matchcenter-stream-url" type="url" maxlength="500" class="w-full bg-dc-panel border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50" placeholder="https://www.youtube.com/watch?v=...">
+                                </label>
+                                <label class="space-y-1 sm:col-span-2">
+                                    <span class="text-[10px] uppercase tracking-wider text-dc-text">Featured Media URL</span>
+                                    <input id="matchcenter-media-url" type="url" maxlength="500" class="w-full bg-dc-panel border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50" placeholder="https://...">
+                                </label>
+                                <label class="space-y-1 sm:col-span-2">
+                                    <span class="text-[10px] uppercase tracking-wider text-dc-text">Poll Question Override</span>
+                                    <input id="matchcenter-override-poll-question" type="text" maxlength="180" class="w-full bg-dc-panel border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50" placeholder="Leave blank to use tournament default">
+                                </label>
+                                <label class="space-y-1">
+                                    <span class="text-[10px] uppercase tracking-wider text-dc-text">Poll Option A Override</span>
+                                    <input id="matchcenter-override-poll-a" type="text" maxlength="80" class="w-full bg-dc-panel border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50" placeholder="Leave blank to inherit">
+                                </label>
+                                <label class="space-y-1">
+                                    <span class="text-[10px] uppercase tracking-wider text-dc-text">Poll Option B Override</span>
+                                    <input id="matchcenter-override-poll-b" type="text" maxlength="80" class="w-full bg-dc-panel border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50" placeholder="Leave blank to inherit">
+                                </label>
+                            </div>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                                <label class="rounded-lg border border-dc-border bg-dc-surface/50 px-3 py-2 flex items-center justify-between gap-3">
+                                    <span class="text-dc-textBright">Override: Show Stats</span>
+                                    <input id="matchcenter-override-show-stats" type="checkbox" class="h-4 w-4 rounded border-dc-border bg-dc-panel text-theme focus:ring-theme/30">
+                                </label>
+                                <label class="rounded-lg border border-dc-border bg-dc-surface/50 px-3 py-2 flex items-center justify-between gap-3">
+                                    <span class="text-dc-textBright">Override: Show Timeline</span>
+                                    <input id="matchcenter-override-show-timeline" type="checkbox" class="h-4 w-4 rounded border-dc-border bg-dc-panel text-theme focus:ring-theme/30">
+                                </label>
+                                <label class="rounded-lg border border-dc-border bg-dc-surface/50 px-3 py-2 flex items-center justify-between gap-3">
+                                    <span class="text-dc-textBright">Override: Show Media</span>
+                                    <input id="matchcenter-override-show-media" type="checkbox" class="h-4 w-4 rounded border-dc-border bg-dc-panel text-theme focus:ring-theme/30">
+                                </label>
+                                <label class="rounded-lg border border-dc-border bg-dc-surface/50 px-3 py-2 flex items-center justify-between gap-3">
+                                    <span class="text-dc-textBright">Override: Show Fan Pulse</span>
+                                    <input id="matchcenter-override-show-fan-pulse" type="checkbox" class="h-4 w-4 rounded border-dc-border bg-dc-panel text-theme focus:ring-theme/30">
+                                </label>
+                            </div>
+
+                            <div class="flex flex-wrap gap-2">
+                                <button id="matchcenter-open-public-btn" class="px-3 py-2 rounded-lg border border-theme/30 text-theme text-xs font-bold hover:bg-theme/10 transition-colors inline-flex items-center gap-1.5">
+                                    <i data-lucide="external-link" class="w-3.5 h-3.5"></i> Open Selected Public Match
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="xl:col-span-5 min-w-0">
+                        <div class="glass-box rounded-xl p-5 space-y-4 sticky top-6">
+                            <h3 class="text-[10px] font-bold text-white uppercase tracking-widest flex items-center gap-2">
+                                <i data-lucide="monitor" class="w-4 h-4"></i>
+                                Snapshot Preview
+                            </h3>
+                            <div class="rounded-xl border border-dc-border bg-black/40 p-4">
+                                <div class="flex items-center justify-between gap-3">
+                                    <p id="matchcenter-preview-title" class="text-sm font-display font-black text-white">Match Center Preview</p>
+                                    <div class="flex items-center gap-1.5">
+                                        <span id="matchcenter-preview-variant" class="hidden text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-white/10 text-dc-textBright border border-white/15">VS</span>
+                                        <span id="matchcenter-preview-source" class="hidden text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-white/5 text-dc-text border border-white/10">manual</span>
+                                    </div>
+                                </div>
+                                <p id="matchcenter-preview-subline" class="text-xs text-dc-text mt-1">Select a match to preview overrides.</p>
+                                <div class="mt-4 space-y-2 text-[11px]">
+                                    <div class="flex items-center justify-between border-b border-dc-border/50 pb-1">
+                                        <span class="text-dc-text">Theme</span>
+                                        <span id="matchcenter-preview-theme" class="text-dc-textBright font-bold uppercase">Cyber</span>
+                                    </div>
+                                    <div class="flex items-center justify-between border-b border-dc-border/50 pb-1">
+                                        <span class="text-dc-text">Stats</span>
+                                        <span id="matchcenter-preview-stats" class="text-dc-textBright font-bold">On</span>
+                                    </div>
+                                    <div class="flex items-center justify-between border-b border-dc-border/50 pb-1">
+                                        <span class="text-dc-text">Timeline</span>
+                                        <span id="matchcenter-preview-timeline" class="text-dc-textBright font-bold">On</span>
+                                    </div>
+                                    <div class="flex items-center justify-between border-b border-dc-border/50 pb-1">
+                                        <span class="text-dc-text">Media</span>
+                                        <span id="matchcenter-preview-media" class="text-dc-textBright font-bold">On</span>
+                                    </div>
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-dc-text">Fan Pulse</span>
+                                        <span id="matchcenter-preview-fan-pulse" class="text-dc-textBright font-bold">On</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="rounded-lg border border-dc-border bg-dc-surface/60 p-3">
+                                <p class="text-[10px] text-dc-text uppercase tracking-widest">Poll Prompt</p>
+                                <p id="matchcenter-preview-question" class="text-xs text-white font-semibold mt-1">Who takes the series?</p>
+                                <div class="mt-2 flex items-center gap-2 text-[11px]">
+                                    <span id="matchcenter-preview-option-a" class="px-2 py-1 rounded bg-theme/20 text-theme">Team A</span>
+                                    <span id="matchcenter-preview-option-b" class="px-2 py-1 rounded bg-white/10 text-dc-textBright">Team B</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {# ════════════════════════════════════════════════════════════════ #}
             {# ██  LOBBY / SERVER MANAGEMENT TAB (Sprint 28)                 ██ #}
             {# ════════════════════════════════════════════════════════════════ #}
             <div id="view-lobby" data-tab-content="lobby" class="hidden-view p-6 lg:p-8 max-w-[1600px] mx-auto space-y-6">
@@ -4544,6 +4761,8 @@
             detailPageUrl: '{{ toc_detail_page_url }}',
             tournamentHubUrl: '{{ toc_tournament_hub_url }}',
             detailWidgetsSaveUrl: '{{ toc_detail_widgets_save_url }}',
+            matchCenterApiUrl: '{{ toc_match_center_api_url }}',
+            matchCenterPublicUrlTemplate: '{{ toc_match_center_public_url_template }}',
             status: '{{ status }}',
             tournamentFormat: '{{ tournament.format }}',
             gameSlug: '{{ game_slug }}',
@@ -4588,6 +4807,7 @@
     <script defer src="{% static 'tournaments/toc/js/toc-streams.js' %}"></script>
     <script defer src="{% static 'tournaments/toc/js/toc-analytics.js' %}"></script>
     <script defer src="{% static 'tournaments/toc/js/toc-fan-predictions.js' %}?v=20260420a"></script>
+    <script defer src="{% static 'tournaments/toc/js/toc-match-center.js' %}?v=20260421a"></script>
     <script defer src="{% static 'tournaments/toc/js/toc-lobby.js' %}"></script>
     <script defer src="{% static 'tournaments/toc/js/toc-rules.js' %}"></script>
     <script defer src="{% static 'tournaments/toc/js/toc-rosters.js' %}"></script>

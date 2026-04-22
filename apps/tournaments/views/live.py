@@ -9,19 +9,538 @@ Public-facing views for spectators and participants to view live tournaments,
 watch matches, and view final results.
 """
 
-from django.views.generic import DetailView
-from django.db.models import Prefetch
-from django.shortcuts import get_object_or_404
-from django.http import Http404
-from django.utils import timezone
-from django.utils.safestring import mark_safe
+from collections import defaultdict
 from datetime import timedelta
 import json
-from decimal import Decimal
+import logging
+from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
-from apps.tournaments.models import Tournament, Match, Registration
+from django.conf import settings
+from django.contrib.auth.decorators import login_required
+from django.db import DatabaseError
+from django.db.models import Count, Prefetch
+from django.http import Http404, JsonResponse
+from django.shortcuts import get_object_or_404
+from django.urls import reverse
+from django.utils import timezone
+from django.utils.safestring import mark_safe
+from django.views.decorators.http import require_GET, require_POST
+from django.views.generic import DetailView
+
+from apps.tournaments.models import (
+    Match,
+    MatchCenterConfig,
+    MatchMedia,
+    Registration,
+    Tournament,
+    TournamentFanPredictionVote,
+)
 from apps.tournaments.models.bracket import BracketNode
 from apps.tournaments.models.result import TournamentResult
+from apps.user_profile.services.url_validator import validate_highlight_url, validate_stream_url
+
+
+logger = logging.getLogger(__name__)
+
+
+# Game-family routing for the public Match Center.
+_BR_GAME_SLUGS = frozenset({
+    'pubg', 'pubgm', 'pubg-mobile', 'pubgmobile',
+    'freefire', 'free-fire', 'free_fire', 'ff',
+    'apex-legends', 'apex',
+})
+_EFOOTBALL_GAME_SLUGS = frozenset({
+    'efootball', 'fifa', 'pes', 'football',
+})
+_VS_GAME_SLUGS = frozenset({
+    'valorant', 'val', 'cs2', 'csgo', 'cs:go',
+    'counter-strike', 'counterstrike',
+    'dota2', 'dota-2', 'lol', 'league-of-legends',
+})
+
+_STATS_PARTIAL_VS = 'tournaments/public/live/_partials/stats_valorant.html'
+_STATS_PARTIAL_BR = 'tournaments/public/live/_partials/stats_br.html'
+_STATS_PARTIAL_EFOOTBALL = 'tournaments/public/live/_partials/stats_efootball.html'
+
+_HERO_PARTIAL_BR = 'tournaments/public/live/_partials/hero_br.html'
+
+
+def _detect_game_family(game):
+    """Return one of {'br', 'efootball', 'vs'} for the given game.
+
+    Drives both hero layout selection and stats partial routing.
+    Falls back to 'vs' when the game is unknown — that matches the
+    pre-existing visual contract.
+    """
+    if game is None:
+        return 'vs'
+
+    slug = (getattr(game, 'slug', '') or '').lower().strip()
+    if slug in _BR_GAME_SLUGS:
+        return 'br'
+    if slug in _EFOOTBALL_GAME_SLUGS:
+        return 'efootball'
+    if slug in _VS_GAME_SLUGS:
+        return 'vs'
+
+    category = (getattr(game, 'category', '') or '').upper().strip()
+    game_type = (getattr(game, 'game_type', '') or '').upper().strip()
+    if category == 'BR' or game_type == 'BATTLE_ROYALE':
+        return 'br'
+    if category == 'SPORTS':
+        return 'efootball'
+    return 'vs'
+
+
+def _resolve_stats_partial(family):
+    return {
+        'br': _STATS_PARTIAL_BR,
+        'efootball': _STATS_PARTIAL_EFOOTBALL,
+        'vs': _STATS_PARTIAL_VS,
+    }.get(family, _STATS_PARTIAL_VS)
+
+
+def _resolve_match_stats_source(match):
+    """Return 'api' or 'manual' for the stats badge.
+
+    Derived from MatchIntegrityCheck: if the API was actually fetched
+    and matched/mismatched, treat stats as API-sourced. Otherwise the
+    operator entered them manually.
+    """
+    try:
+        check = getattr(match, 'integrity_check', None)
+    except (AttributeError, DatabaseError):
+        return 'manual'
+    if check is None:
+        return 'manual'
+
+    try:
+        api_payload = check.api_payload if isinstance(check.api_payload, dict) else {}
+        status = (check.status or '').lower()
+    except (AttributeError, DatabaseError):
+        return 'manual'
+
+    if api_payload and status in {'match', 'mismatch'}:
+        return 'api'
+    return 'manual'
+
+
+DOUBLE_ELIM_LABELS = {
+    1: 'UB Round 1',
+    2: 'UB Quarterfinals',
+    3: 'UB Semifinals',
+    4: 'UB Final',
+    5: 'LB Round 1',
+    6: 'LB Round 2',
+    7: 'LB Round 3',
+    8: 'LB Round 4',
+    9: 'LB Semifinal',
+    10: 'LB Final',
+    11: 'Grand Final',
+}
+
+
+def _safe_text(value, *, fallback='', max_length=240):
+    text_value = str(value or '').strip()
+    if not text_value:
+        return str(fallback or '')[:max_length]
+    return text_value[:max_length]
+
+
+def _safe_bool(value, *, fallback=False):
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return bool(value)
+    if isinstance(value, str):
+        token = value.strip().lower()
+        if token in {'1', 'true', 'yes', 'on'}:
+            return True
+        if token in {'0', 'false', 'no', 'off'}:
+            return False
+    return bool(fallback)
+
+
+def _safe_int(value, *, fallback=0, minimum=None, maximum=None):
+    try:
+        parsed = int(float(value))
+    except (TypeError, ValueError):
+        parsed = int(fallback)
+
+    if minimum is not None:
+        parsed = max(minimum, parsed)
+    if maximum is not None:
+        parsed = min(maximum, parsed)
+    return parsed
+
+
+def _safe_poll_option(value, *, fallback='', max_length=80, placeholders=None):
+    option = _safe_text(value, fallback=fallback, max_length=max_length)
+    normalized = option.strip().lower()
+    if placeholders and normalized in placeholders:
+        return _safe_text(fallback, fallback='', max_length=max_length)
+    return option
+
+
+def _slug_token(value, *, fallback='token'):
+    token = ''.join(ch.lower() if ch.isalnum() else '-' for ch in str(value or ''))
+    token = '-'.join(part for part in token.split('-') if part)
+    if token:
+        return token
+    token = ''.join(ch.lower() if ch.isalnum() else '-' for ch in str(fallback or 'token'))
+    token = '-'.join(part for part in token.split('-') if part)
+    return token or 'token'
+
+
+def _build_round_label(match, tournament):
+    if tournament.format == 'double_elimination' and match.round_number:
+        return DOUBLE_ELIM_LABELS.get(match.round_number, f'Round {match.round_number}')
+
+    if getattr(match, 'bracket_id', None) and getattr(match, 'bracket', None):
+        try:
+            return match.bracket.get_round_name(match.round_number)
+        except (AttributeError, DatabaseError):
+            pass
+
+    return f'Round {match.round_number}'
+
+
+def _with_youtube_origin(embed_url, request=None):
+    url = str(embed_url or '').strip()
+    if not url:
+        return ''
+
+    parsed = urlparse(url)
+    host = (parsed.netloc or '').lower()
+    if 'youtube.com' not in host and 'youtu.be' not in host:
+        return url
+
+    query_items = parse_qsl(parsed.query, keep_blank_values=True)
+    query = defaultdict(list)
+    for key, value in query_items:
+        query[key].append(value)
+
+    if 'enablejsapi' not in query:
+        query['enablejsapi'] = ['1']
+    if 'rel' not in query:
+        query['rel'] = ['0']
+
+    if request is not None:
+        origin = f'{request.scheme}://{request.get_host()}'
+        query['origin'] = [origin]
+        query['widget_referrer'] = [origin]
+
+    rebuilt_query = urlencode(
+        [(key, value) for key, values in query.items() for value in values],
+        doseq=True,
+    )
+    return urlunparse((parsed.scheme, parsed.netloc, parsed.path, parsed.params, rebuilt_query, parsed.fragment))
+
+
+def _resolve_embed_stream(raw_url, request=None):
+    source_url = _safe_text(raw_url, fallback='', max_length=500)
+    if not source_url:
+        return {
+            'source_url': '',
+            'embed_url': '',
+            'platform': '',
+            'has_stream': False,
+            'iframe_referrer_policy': 'strict-origin-when-cross-origin',
+        }
+
+    highlight_result = validate_highlight_url(source_url)
+    if highlight_result.get('valid'):
+        embed_url = _safe_text(highlight_result.get('embed_url'), fallback='', max_length=1000)
+        platform = _safe_text(highlight_result.get('platform'), fallback='', max_length=32)
+    else:
+        stream_result = validate_stream_url(source_url)
+        if stream_result.get('valid'):
+            embed_url = _safe_text(stream_result.get('embed_url'), fallback='', max_length=1000)
+            platform = _safe_text(stream_result.get('platform'), fallback='', max_length=32)
+        else:
+            embed_url = ''
+            platform = ''
+
+    if platform == 'youtube' and embed_url:
+        embed_url = _with_youtube_origin(embed_url, request=request)
+
+    iframe_referrer_policy = 'origin' if platform == 'youtube' else 'strict-origin-when-cross-origin'
+    return {
+        'source_url': source_url,
+        'embed_url': embed_url,
+        'platform': platform,
+        'has_stream': bool(embed_url),
+        'iframe_referrer_policy': iframe_referrer_policy,
+    }
+
+
+def _resolve_match_center_presentation(match, request=None):
+    tournament = match.tournament
+    round_label = _build_round_label(match, tournament)
+    team_a_name = _safe_text(match.participant1_name, fallback='Team A', max_length=100)
+    team_b_name = _safe_text(match.participant2_name, fallback='Team B', max_length=100)
+
+    base = {
+        'enabled': True,
+        'show_timeline': True,
+        'show_media': True,
+        'show_stats': True,
+        'show_fan_pulse': True,
+        'theme': 'cyber',
+        'poll_question': 'Who takes the series?',
+        'poll_option_a': team_a_name,
+        'poll_option_b': team_b_name,
+        'auto_refresh_seconds': 20,
+        'headline': f'{team_a_name} vs {team_b_name}',
+        'subline': f'{round_label} • Match {match.match_number}',
+        'stream_url': _safe_text(match.stream_url, fallback='', max_length=500),
+        'featured_media_url': '',
+    }
+
+    try:
+        config = MatchCenterConfig.objects.filter(tournament=tournament).first()
+    except DatabaseError:
+        logger.exception('MatchCenterConfig lookup failed for tournament %s', tournament.pk)
+        config = None
+
+    if not config:
+        base['stream'] = _resolve_embed_stream(base.get('stream_url') or match.stream_url, request=request)
+        return base
+
+    merged = dict(base)
+    merged.update({
+        'enabled': bool(config.enabled),
+        'show_timeline': bool(config.show_timeline),
+        'show_media': bool(config.show_media),
+        'show_stats': bool(config.show_stats),
+        'show_fan_pulse': bool(config.show_fan_pulse),
+        'theme': _safe_text(config.theme, fallback='cyber', max_length=24).lower(),
+        'poll_question': _safe_text(config.poll_question, fallback=base['poll_question'], max_length=180),
+        'poll_option_a': _safe_poll_option(
+            config.poll_option_a,
+            fallback=team_a_name,
+            max_length=80,
+            placeholders={'team a', 'option a'},
+        ),
+        'poll_option_b': _safe_poll_option(
+            config.poll_option_b,
+            fallback=team_b_name,
+            max_length=80,
+            placeholders={'team b', 'option b'},
+        ),
+        'auto_refresh_seconds': _safe_int(config.auto_refresh_seconds, fallback=20, minimum=10, maximum=120),
+    })
+
+    overrides = config.match_overrides if isinstance(config.match_overrides, dict) else {}
+    override = overrides.get(str(match.id)) if isinstance(overrides.get(str(match.id)), dict) else {}
+
+    if override:
+        text_limits = {
+            'headline': 120,
+            'subline': 120,
+            'poll_question': 180,
+            'poll_option_a': 80,
+            'poll_option_b': 80,
+            'stream_url': 500,
+            'featured_media_url': 500,
+        }
+        for key in ('headline', 'subline', 'poll_question', 'poll_option_a', 'poll_option_b', 'stream_url', 'featured_media_url'):
+            if key in override:
+                merged[key] = _safe_text(
+                    override.get(key),
+                    fallback=merged.get(key),
+                    max_length=text_limits.get(key, 120),
+                )
+        for key in ('show_timeline', 'show_media', 'show_stats', 'show_fan_pulse'):
+            if key in override:
+                merged[key] = _safe_bool(override.get(key), fallback=merged.get(key, True))
+
+    merged['poll_option_a'] = _safe_poll_option(
+        merged.get('poll_option_a'),
+        fallback=team_a_name,
+        max_length=80,
+        placeholders={'team a', 'option a'},
+    )
+    merged['poll_option_b'] = _safe_poll_option(
+        merged.get('poll_option_b'),
+        fallback=team_b_name,
+        max_length=80,
+        placeholders={'team b', 'option b'},
+    )
+
+    stream_source = merged.get('stream_url') or match.stream_url
+    merged['stream'] = _resolve_embed_stream(stream_source, request=request)
+    return merged
+
+
+def _collect_match_media(match, presentation):
+    entries = []
+
+    featured = _safe_text(presentation.get('featured_media_url'), fallback='', max_length=500)
+    if featured:
+        entries.append({
+            'id': 'featured',
+            'media_type': 'featured',
+            'url': featured,
+            'description': 'Featured media',
+            'created_at': None,
+        })
+
+    try:
+        media_rows = MatchMedia.objects.filter(match=match).order_by('-created_at')[:8]
+    except DatabaseError:
+        logger.exception('MatchMedia lookup failed for match %s', match.pk)
+        media_rows = []
+
+    for row in media_rows:
+        file_url = ''
+        try:
+            file_url = row.file.url if row.file else ''
+        except (AttributeError, ValueError):
+            file_url = ''
+
+        url = _safe_text(row.url, fallback=file_url, max_length=500)
+        if not url:
+            continue
+
+        entries.append({
+            'id': str(row.id),
+            'media_type': _safe_text(row.media_type, fallback='media', max_length=32),
+            'url': url,
+            'description': _safe_text(row.description, fallback='', max_length=180),
+            'created_at': row.created_at,
+        })
+
+    return entries
+
+
+def _build_fan_pulse_payload(match, presentation, viewer=None):
+    poll_id = f'match-{match.id}-winner'
+    option_a_id = f'{poll_id}:a'
+    option_b_id = f'{poll_id}:b'
+    option_a_name = _safe_text(presentation.get('poll_option_a'), fallback='Team A', max_length=80)
+    option_b_name = _safe_text(presentation.get('poll_option_b'), fallback='Team B', max_length=80)
+
+    enabled = bool(presentation.get('enabled') and presentation.get('show_fan_pulse'))
+
+    option_counts = {option_a_id: 0, option_b_id: 0}
+    viewer_choice = ''
+    if enabled:
+        try:
+            rows = (
+                TournamentFanPredictionVote.objects.filter(
+                    tournament=match.tournament,
+                    poll_id=poll_id,
+                )
+                .values('option_id')
+                .annotate(total=Count('id'))
+            )
+            for row in rows:
+                option_id = _safe_text(row.get('option_id'), fallback='', max_length=120)
+                if option_id in option_counts:
+                    option_counts[option_id] = int(row.get('total') or 0)
+
+            if viewer and getattr(viewer, 'is_authenticated', False):
+                vote = TournamentFanPredictionVote.objects.filter(
+                    tournament=match.tournament,
+                    user=viewer,
+                    poll_id=poll_id,
+                ).values_list('option_id', flat=True).first()
+                viewer_choice = _safe_text(vote, fallback='', max_length=120)
+        except DatabaseError:
+            enabled = False
+
+    total_votes = int(option_counts[option_a_id] + option_counts[option_b_id])
+    if total_votes > 0:
+        a_percent = int(round((option_counts[option_a_id] / total_votes) * 100))
+        a_percent = max(0, min(100, a_percent))
+        b_percent = max(0, 100 - a_percent)
+    else:
+        a_percent = 0
+        b_percent = 0
+
+    options = [
+        {
+            'id': option_a_id,
+            'label': option_a_name,
+            'votes': int(option_counts[option_a_id]),
+            'percent': a_percent,
+            'is_user_choice': viewer_choice == option_a_id,
+        },
+        {
+            'id': option_b_id,
+            'label': option_b_name,
+            'votes': int(option_counts[option_b_id]),
+            'percent': b_percent,
+            'is_user_choice': viewer_choice == option_b_id,
+        },
+    ]
+
+    return {
+        'enabled': enabled,
+        'poll_id': poll_id,
+        'question': _safe_text(presentation.get('poll_question'), fallback='Who takes the series?', max_length=180),
+        'options': options,
+        'total_votes': total_votes,
+        'has_user_voted': bool(viewer_choice),
+        'user_choice_id': viewer_choice,
+    }
+
+
+def _build_match_timeline_rows(match, participant_resolver=None):
+    timeline = []
+
+    if match.scheduled_time:
+        timeline.append({
+            'timestamp': match.scheduled_time,
+            'event': 'Match Scheduled',
+            'icon': 'calendar',
+            'description': f'Match scheduled for {match.scheduled_time.strftime("%B %d, %Y at %I:%M %p")}',
+        })
+
+    if match.state in [Match.LIVE, Match.COMPLETED, Match.PENDING_RESULT]:
+        timeline.append({
+            'timestamp': match.updated_at,
+            'event': 'Match Started',
+            'icon': 'play',
+            'description': 'Match is now live',
+        })
+
+    if match.state == Match.COMPLETED and match.winner_id:
+        winner_name = 'Unknown'
+        if match.winner_id == match.participant1_id:
+            winner_name = _safe_text(match.participant1_name, fallback='Participant 1', max_length=100)
+        elif match.winner_id == match.participant2_id:
+            winner_name = _safe_text(match.participant2_name, fallback='Participant 2', max_length=100)
+
+        if participant_resolver is not None:
+            try:
+                winner_obj = participant_resolver(match.winner_id)
+            except (AttributeError, DatabaseError):
+                winner_obj = None
+            if winner_obj is not None:
+                winner_name = _safe_text(
+                    getattr(winner_obj, 'username', ''),
+                    fallback=winner_name,
+                    max_length=100,
+                )
+
+        timeline.append({
+            'timestamp': match.updated_at,
+            'event': 'Match Completed',
+            'icon': 'check',
+            'description': f'{winner_name} won the match',
+        })
+
+    if match.state == Match.FORFEIT:
+        timeline.append({
+            'timestamp': match.updated_at,
+            'event': 'Match Forfeit',
+            'icon': 'alert',
+            'description': 'Match ended by forfeit',
+        })
+
+    return timeline
 
 
 class TournamentBracketView(DetailView):
@@ -501,21 +1020,7 @@ class MatchDetailView(DetailView):
         context['tournament'] = tournament
 
         # ── Round label ──
-        DOUBLE_ELIM_LABELS = {
-            1: 'UB Round 1', 2: 'UB Quarterfinals', 3: 'UB Semifinals', 4: 'UB Final',
-            5: 'LB Round 1', 6: 'LB Round 2', 7: 'LB Round 3', 8: 'LB Round 4',
-            9: 'LB Semifinal', 10: 'LB Final', 11: 'Grand Final',
-        }
-        if tournament.format == 'double_elimination' and match.round_number:
-            context['round_label'] = DOUBLE_ELIM_LABELS.get(match.round_number, f'Round {match.round_number}')
-        else:
-            round_label = None
-            if getattr(match, 'bracket_id', None) and getattr(match, 'bracket', None):
-                try:
-                    round_label = match.bracket.get_round_name(match.round_number)
-                except Exception:
-                    round_label = None
-            context['round_label'] = round_label or f'Round {match.round_number}'
+        context['round_label'] = _build_round_label(match, tournament)
 
         # ── Team info (for team tournaments) ──
         team1 = self._get_team(match.participant1_id)
@@ -532,15 +1037,27 @@ class MatchDetailView(DetailView):
         # ── Map scores from game_scores JSON ──
         maps = []
         game_scores = match.game_scores or {}
-        for m in game_scores.get('maps', []):
+        if isinstance(game_scores, dict):
+            raw_maps = game_scores.get('maps', []) if isinstance(game_scores.get('maps'), list) else []
+            best_of_value = game_scores.get('best_of', match.best_of or 1)
+        elif isinstance(game_scores, list):
+            raw_maps = game_scores
+            best_of_value = match.best_of or 1
+        else:
+            raw_maps = []
+            best_of_value = match.best_of or 1
+
+        for m in raw_maps:
+            if not isinstance(m, dict):
+                continue
             maps.append({
-                'map_name': m.get('map_name', ''),
-                'team1_rounds': m.get('team1_rounds', 0),
-                'team2_rounds': m.get('team2_rounds', 0),
-                'winner_side': m.get('winner_side'),
+                'map_name': m.get('map_name') or m.get('map') or '',
+                'team1_rounds': _safe_int(m.get('team1_rounds', m.get('p1', 0)), fallback=0, minimum=0),
+                'team2_rounds': _safe_int(m.get('team2_rounds', m.get('p2', 0)), fallback=0, minimum=0),
+                'winner_side': m.get('winner_side', m.get('winner_slot')),
             })
         context['maps'] = maps
-        context['best_of'] = game_scores.get('best_of', match.best_of or 1)
+        context['best_of'] = _safe_int(best_of_value, fallback=match.best_of or 1, minimum=1, maximum=9)
 
         # ── Per-player stats (MatchPlayerStat + MatchMapPlayerStat) ──
         try:
@@ -689,6 +1206,124 @@ class MatchDetailView(DetailView):
         # Timeline
         context['timeline'] = self._build_match_timeline(match)
 
+        # Match Center presentation and fan pulse state
+        viewer = self.request.user if self.request.user.is_authenticated else None
+        presentation = _resolve_match_center_presentation(match, request=self.request)
+        poll_payload = _build_fan_pulse_payload(match, presentation, viewer=viewer)
+        media_items = _collect_match_media(match, presentation)
+
+        team1_name = (
+            (context.get('team1') or {}).get('name')
+            if isinstance(context.get('team1'), dict)
+            else _safe_text(match.participant1_name, fallback='Team A', max_length=100)
+        )
+        team2_name = (
+            (context.get('team2') or {}).get('name')
+            if isinstance(context.get('team2'), dict)
+            else _safe_text(match.participant2_name, fallback='Team B', max_length=100)
+        )
+
+        team1_logo = ''
+        team2_logo = ''
+        if isinstance(context.get('team1'), dict):
+            team1_logo = _safe_text((context.get('team1') or {}).get('logo_url'), fallback='', max_length=500)
+        if isinstance(context.get('team2'), dict):
+            team2_logo = _safe_text((context.get('team2') or {}).get('logo_url'), fallback='', max_length=500)
+
+        participant1 = context.get('participant1')
+        participant2 = context.get('participant2')
+        if not team1_logo and participant1 is not None:
+            try:
+                team1_logo = participant1.profile.avatar.url if participant1.profile.avatar else ''
+            except (AttributeError, ValueError):
+                team1_logo = ''
+        if not team2_logo and participant2 is not None:
+            try:
+                team2_logo = participant2.profile.avatar.url if participant2.profile.avatar else ''
+            except (AttributeError, ValueError):
+                team2_logo = ''
+
+        context['match_state_api_url'] = reverse(
+            'tournaments:match_center_state',
+            kwargs={'slug': tournament.slug, 'match_id': match.id},
+        )
+        context['match_fan_pulse_vote_url'] = reverse(
+            'tournaments:match_center_fan_pulse_vote',
+            kwargs={'slug': tournament.slug, 'match_id': match.id},
+        )
+
+        game_family = _detect_game_family(getattr(tournament, 'game', None))
+        is_br_layout = game_family == 'br'
+        stats_partial = _resolve_stats_partial(game_family)
+        stats_source = _resolve_match_stats_source(match)
+
+        context['game_family'] = game_family
+        context['is_br_layout'] = is_br_layout
+        context['hero_br_partial'] = _HERO_PARTIAL_BR
+
+        context['match_core'] = {
+            'id': match.id,
+            'state': match.state,
+            'state_display': match.get_state_display() if hasattr(match, 'get_state_display') else _safe_text(match.state, fallback='Unknown', max_length=32),
+            'round_label': context['round_label'],
+            'match_number': match.match_number,
+            'best_of': context['best_of'],
+            'scheduled_time': match.scheduled_time,
+            'participant1_id': match.participant1_id,
+            'participant2_id': match.participant2_id,
+            'participant1_name': _safe_text(team1_name, fallback='Team A', max_length=100),
+            'participant2_name': _safe_text(team2_name, fallback='Team B', max_length=100),
+            'participant1_score': int(match.participant1_score or 0),
+            'participant2_score': int(match.participant2_score or 0),
+            'winner_id': match.winner_id,
+            'updated_at': match.updated_at,
+            'game_family': game_family,
+            'is_br_layout': is_br_layout,
+        }
+
+        context['match_presentation'] = {
+            'enabled': bool(presentation.get('enabled')),
+            'theme': _safe_text(presentation.get('theme'), fallback='cyber', max_length=24),
+            'headline': _safe_text(presentation.get('headline'), fallback=f'{team1_name} vs {team2_name}', max_length=120),
+            'subline': _safe_text(presentation.get('subline'), fallback=f"{context['round_label']} • Match {match.match_number}", max_length=120),
+            'show_timeline': bool(presentation.get('show_timeline')),
+            'show_media': bool(presentation.get('show_media')),
+            'show_stats': bool(presentation.get('show_stats')),
+            'show_fan_pulse': bool(presentation.get('show_fan_pulse')),
+            'auto_refresh_seconds': _safe_int(presentation.get('auto_refresh_seconds'), fallback=20, minimum=10, maximum=120),
+        }
+
+        context['match_media'] = {
+            'stream': presentation.get('stream') if isinstance(presentation.get('stream'), dict) else _resolve_embed_stream(match.stream_url, request=self.request),
+            'items': media_items,
+            'has_items': bool(media_items),
+        }
+
+        context['match_stats'] = {
+            'team1': context.get('team1_stats', []),
+            'team2': context.get('team2_stats', []),
+            'maps': context.get('map_player_stats', []),
+            'mvp': context.get('mvp'),
+            'partial': stats_partial,
+            'source': stats_source,
+            'game_family': game_family,
+        }
+
+        context['match_poll'] = {
+            **poll_payload,
+            'vote_url': context['match_fan_pulse_vote_url'],
+            'viewer_can_vote': bool(self.request.user.is_authenticated),
+        }
+
+        context['match_assets'] = {
+            'team1_logo_url': team1_logo,
+            'team2_logo_url': team2_logo,
+            'team1_tag': _safe_text((context.get('team1') or {}).get('tag') if isinstance(context.get('team1'), dict) else '', fallback='', max_length=24),
+            'team2_tag': _safe_text((context.get('team2') or {}).get('tag') if isinstance(context.get('team2'), dict) else '', fallback='', max_length=24),
+        }
+
+        context['viewer_login_url'] = f"{settings.LOGIN_URL}?next={self.request.path}"
+
         return context
 
     def _get_team(self, participant_id):
@@ -724,47 +1359,128 @@ class MatchDetailView(DetailView):
     
     def _build_match_timeline(self, match):
         """Build timeline of match events."""
-        timeline = []
-        
-        # Match scheduled
-        if match.scheduled_time:
-            timeline.append({
-                'timestamp': match.scheduled_time,
-                'event': 'Match Scheduled',
-                'icon': 'calendar',
-                'description': f'Match scheduled for {match.scheduled_time.strftime("%B %d, %Y at %I:%M %p")}'
-            })
-        
-        # Match started (if live or completed)
-        if match.state in [Match.LIVE, Match.COMPLETED, Match.PENDING_RESULT]:
-            timeline.append({
-                'timestamp': match.updated_at,  # Approximate
-                'event': 'Match Started',
-                'icon': 'play',
-                'description': 'Match is now live'
-            })
-        
-        # Match completed
-        if match.state == Match.COMPLETED and match.winner_id:
-            winner = self._get_participant_details(match.winner_id)
-            winner_name = winner.username if winner else 'Unknown'
-            timeline.append({
-                'timestamp': match.updated_at,
-                'event': 'Match Completed',
-                'icon': 'check',
-                'description': f'{winner_name} won the match'
-            })
-        
-        # Match forfeit
-        if match.state == Match.FORFEIT:
-            timeline.append({
-                'timestamp': match.updated_at,
-                'event': 'Match Forfeit',
-                'icon': 'alert',
-                'description': 'Match ended by forfeit'
-            })
-        
-        return timeline
+        return _build_match_timeline_rows(match, participant_resolver=self._get_participant_details)
+
+
+@require_GET
+def match_center_state(request, slug, match_id):
+    """Lightweight public state endpoint for match center live refresh."""
+    match = get_object_or_404(
+        Match.objects.select_related('tournament').filter(is_deleted=False),
+        tournament__slug=slug,
+        pk=match_id,
+    )
+
+    viewer = request.user if getattr(request, 'user', None) and request.user.is_authenticated else None
+    presentation = _resolve_match_center_presentation(match, request=request)
+    poll_payload = _build_fan_pulse_payload(match, presentation, viewer=viewer)
+    game_family = _detect_game_family(getattr(match.tournament, 'game', None))
+    stats_source = _resolve_match_stats_source(match)
+
+    return JsonResponse({
+        'success': True,
+        'match': {
+            'id': match.id,
+            'state': match.state,
+            'state_display': match.get_state_display() if hasattr(match, 'get_state_display') else _safe_text(match.state, fallback='Unknown', max_length=32),
+            'participant1_name': _safe_text(match.participant1_name, fallback='Team A', max_length=100),
+            'participant2_name': _safe_text(match.participant2_name, fallback='Team B', max_length=100),
+            'participant1_score': int(match.participant1_score or 0),
+            'participant2_score': int(match.participant2_score or 0),
+            'winner_id': match.winner_id,
+            'updated_at': match.updated_at.isoformat() if match.updated_at else None,
+            'game_family': game_family,
+            'is_br_layout': game_family == 'br',
+        },
+        'presentation': {
+            'headline': _safe_text(presentation.get('headline'), fallback='', max_length=120),
+            'subline': _safe_text(presentation.get('subline'), fallback='', max_length=120),
+            'show_timeline': bool(presentation.get('show_timeline')),
+            'show_media': bool(presentation.get('show_media')),
+            'show_stats': bool(presentation.get('show_stats')),
+            'show_fan_pulse': bool(presentation.get('show_fan_pulse')),
+            'has_stream': bool((presentation.get('stream') or {}).get('has_stream')) if isinstance(presentation.get('stream'), dict) else bool(_resolve_embed_stream(match.stream_url, request=request).get('has_stream')),
+        },
+        'stream': presentation.get('stream') if isinstance(presentation.get('stream'), dict) else _resolve_embed_stream(match.stream_url, request=request),
+        'stats_meta': {
+            'source': stats_source,
+            'game_family': game_family,
+        },
+        'poll': poll_payload,
+    })
+
+
+@login_required
+@require_POST
+def match_center_fan_pulse_vote(request, slug, match_id):
+    """Persist a fan pulse vote for the public match center page."""
+    match = get_object_or_404(
+        Match.objects.select_related('tournament').filter(is_deleted=False),
+        tournament__slug=slug,
+        pk=match_id,
+    )
+
+    try:
+        body = request.body.decode('utf-8') if request.body else '{}'
+        payload = json.loads(body or '{}')
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        return JsonResponse({'success': False, 'error': 'Invalid JSON payload.'}, status=400)
+
+    if not isinstance(payload, dict):
+        return JsonResponse({'success': False, 'error': 'Request body must be a JSON object.'}, status=400)
+
+    presentation = _resolve_match_center_presentation(match, request=request)
+    poll_payload = _build_fan_pulse_payload(match, presentation, viewer=request.user)
+    if not poll_payload.get('enabled'):
+        return JsonResponse({'success': False, 'error': 'Fan Pulse is currently disabled.'}, status=400)
+
+    submitted_option_id = _safe_text(payload.get('option_id'), fallback='', max_length=120)
+    if not submitted_option_id:
+        return JsonResponse({'success': False, 'error': 'option_id is required.'}, status=400)
+
+    option_ids = {
+        str(option.get('id') or '').strip()
+        for option in (poll_payload.get('options') if isinstance(poll_payload.get('options'), list) else [])
+        if isinstance(option, dict)
+    }
+
+    shorthand_map = {}
+    options = poll_payload.get('options') if isinstance(poll_payload.get('options'), list) else []
+    if len(options) >= 2:
+        shorthand_map = {
+            'a': _safe_text(options[0].get('id'), fallback='', max_length=120),
+            'b': _safe_text(options[1].get('id'), fallback='', max_length=120),
+        }
+    normalized_option_id = shorthand_map.get(submitted_option_id.lower(), submitted_option_id)
+
+    if normalized_option_id not in option_ids:
+        return JsonResponse({'success': False, 'error': 'Poll option is invalid.'}, status=400)
+
+    try:
+        TournamentFanPredictionVote.objects.update_or_create(
+            tournament=match.tournament,
+            user=request.user,
+            poll_id=_safe_text(poll_payload.get('poll_id'), fallback=f'match-{match.id}-winner', max_length=64),
+            defaults={'option_id': normalized_option_id},
+        )
+    except DatabaseError:
+        return JsonResponse(
+            {
+                'success': False,
+                'error': 'Fan Pulse is temporarily unavailable. Please try again shortly.',
+            },
+            status=503,
+        )
+
+    refreshed_poll = _build_fan_pulse_payload(match, presentation, viewer=request.user)
+    return JsonResponse(
+        {
+            'success': True,
+            'message': 'Fan Pulse vote saved.',
+            'poll': refreshed_poll,
+        },
+        status=200,
+    )
 
 
 class TournamentResultsView(DetailView):

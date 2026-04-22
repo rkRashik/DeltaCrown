@@ -170,6 +170,7 @@ class TOCView(LoginRequiredMixin, TemplateView):
             {'id': 'settings', 'label': 'Settings', 'icon': 'settings', 'group': 'Platform'},
             {'id': 'public-hub-config', 'label': 'Public Hub Config', 'icon': 'monitor-smartphone', 'group': 'Engagement'},
             {'id': 'fan-predictions', 'label': 'Fan Predictions', 'icon': 'pie-chart', 'group': 'Engagement'},
+            {'id': 'match-center', 'label': 'Match Center', 'icon': 'monitor-play', 'group': 'Engagement'},
         ])
 
         ctx['toc_tabs'] = base_tabs
@@ -194,6 +195,11 @@ class TOCView(LoginRequiredMixin, TemplateView):
         ctx['toc_detail_page_url'] = reverse('tournaments:detail', kwargs={'slug': t.slug})
         ctx['toc_tournament_hub_url'] = reverse('tournaments:tournament_hub', kwargs={'slug': t.slug})
         ctx['toc_detail_widgets_save_url'] = reverse('tournaments:detail_widgets_save', kwargs={'slug': t.slug})
+        ctx['toc_match_center_api_url'] = reverse('toc_api:match-center-config', kwargs={'slug': t.slug})
+        ctx['toc_match_center_public_url_template'] = reverse(
+            'tournaments:match_detail',
+            kwargs={'slug': t.slug, 'match_id': 0},
+        ).replace('/0/', '/__MATCH_ID__/')
 
         return ctx
 
