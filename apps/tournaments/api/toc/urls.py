@@ -24,7 +24,7 @@ from apps.tournaments.api.toc import (
     participants_advanced, payments, brackets, matches, disputes,
     settings, announcements, stats, rbac, audit,
     standings, checkin, streams, analytics, lobby, rules, rosters,
-    notifications as notif_views, performance, match_center,
+    notifications as notif_views, performance, match_center, prizes,
 )
 
 app_name = 'toc_api'
@@ -38,6 +38,7 @@ urlpatterns = [
     path('<slug:slug>/lifecycle/transition/', lifecycle.LifecycleTransitionView.as_view(), name='lifecycle-transition'),
     path('<slug:slug>/lifecycle/freeze/', lifecycle.FreezeView.as_view(), name='lifecycle-freeze'),
     path('<slug:slug>/lifecycle/unfreeze/', lifecycle.UnfreezeView.as_view(), name='lifecycle-unfreeze'),
+    path('<slug:slug>/lifecycle/finalize/', lifecycle.FinalizeView.as_view(), name='lifecycle-finalize'),
 
     # ── Alerts (S1-B6/B7) ──
     path('<slug:slug>/alerts/', alerts.AlertListView.as_view(), name='alerts'),
@@ -92,6 +93,11 @@ urlpatterns = [
     # ── Prize Pool (S4-B8/B9) ──
     path('<slug:slug>/prize-pool/', payments.PrizePoolView.as_view(), name='prize-pool'),
     path('<slug:slug>/prize-pool/distribute/', payments.PrizeDistributeView.as_view(), name='prize-distribute'),
+
+    # ── Modern Prize Tab (config + placement publish) ──
+    path('<slug:slug>/prizes/', prizes.PrizeConfigView.as_view(), name='prizes-config'),
+    path('<slug:slug>/prizes/save/', prizes.PrizeConfigSaveView.as_view(), name='prizes-config-save'),
+    path('<slug:slug>/prizes/publish/', prizes.PrizePublishView.as_view(), name='prizes-publish'),
 
     # ── Bounties (S4-B10) ──
     path('<slug:slug>/bounties/', payments.BountyListCreateView.as_view(), name='bounties'),

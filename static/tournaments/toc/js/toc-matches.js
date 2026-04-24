@@ -1107,8 +1107,92 @@
       inputB.oninput = function () { syncWinnerSelectForMatch(m); };
     }
 
+    // Football stats sub-form (eFootball / SPORTS only)
+    renderFootballStatsEditor(m);
+
     // Render series UI
     renderSeriesPanel(m);
+  }
+
+  /* -- Football Stats Editor (eFootball / SPORTS games) -- */
+  function isFootballGame() {
+    var cfg = window.TOC_CONFIG || {};
+    var slug = String(cfg.gameSlug || '').toLowerCase();
+    if (['efootball', 'fifa', 'pes', 'football'].indexOf(slug) !== -1) return true;
+    var cat = String(cfg.gameCategory || '').toUpperCase();
+    return cat === 'SPORTS';
+  }
+
+  function renderFootballStatsEditor(m) {
+    var section = document.getElementById('score-football-stats');
+    if (!section) return;
+    if (!isFootballGame()) { section.classList.add('hidden'); return; }
+    section.classList.remove('hidden');
+
+    var t1Name = m.participant1_name || 'Team A';
+    var t2Name = m.participant2_name || 'Team B';
+    ['pens', 'poss', 'shots', 'sot', 'passes', 'pass-acc'].forEach(function (key) {
+      var l1 = document.getElementById('score-football-t1-label-' + key);
+      var l2 = document.getElementById('score-football-t2-label-' + key);
+      if (l1) l1.textContent = t1Name;
+      if (l2) l2.textContent = t2Name;
+    });
+
+    var existing = ((m.lobby_info || {}).football_stats) || {};
+    if (typeof existing !== 'object') existing = {};
+    var et1 = (existing.team1 && typeof existing.team1 === 'object') ? existing.team1 : {};
+    var et2 = (existing.team2 && typeof existing.team2 === 'object') ? existing.team2 : {};
+
+    function setVal(id, value) {
+      var el = document.getElementById(id);
+      if (el) el.value = (value == null) ? '' : String(value);
+    }
+    setVal('score-football-t1-pens', et1.penalties);
+    setVal('score-football-t2-pens', et2.penalties);
+    setVal('score-football-t1-poss', et1.possession_pct);
+    setVal('score-football-t2-poss', et2.possession_pct);
+    setVal('score-football-t1-shots', et1.shots);
+    setVal('score-football-t2-shots', et2.shots);
+    setVal('score-football-t1-sot', et1.shots_on_target);
+    setVal('score-football-t2-sot', et2.shots_on_target);
+    setVal('score-football-t1-passes', et1.passes_completed);
+    setVal('score-football-t2-passes', et2.passes_completed);
+    setVal('score-football-t1-pass-acc', et1.pass_accuracy_pct);
+    setVal('score-football-t2-pass-acc', et2.pass_accuracy_pct);
+
+    var pensCheckbox = document.getElementById('score-football-has-pens');
+    if (pensCheckbox) {
+      pensCheckbox.checked = !!existing.has_penalties;
+    }
+  }
+
+  function collectFootballStats(m) {
+    if (!isFootballGame()) return null;
+    function readInt(id) {
+      var el = document.getElementById(id);
+      if (!el || el.value === '' || el.value == null) return null;
+      var n = parseInt(el.value, 10);
+      return Number.isFinite(n) ? n : null;
+    }
+    function maybe(obj, key, value) { if (value !== null) obj[key] = value; }
+
+    var t1 = { display_name: m.participant1_name || 'Team A' };
+    var t2 = { display_name: m.participant2_name || 'Team B' };
+    maybe(t1, 'penalties', readInt('score-football-t1-pens'));
+    maybe(t2, 'penalties', readInt('score-football-t2-pens'));
+    maybe(t1, 'possession_pct', readInt('score-football-t1-poss'));
+    maybe(t2, 'possession_pct', readInt('score-football-t2-poss'));
+    maybe(t1, 'shots', readInt('score-football-t1-shots'));
+    maybe(t2, 'shots', readInt('score-football-t2-shots'));
+    maybe(t1, 'shots_on_target', readInt('score-football-t1-sot'));
+    maybe(t2, 'shots_on_target', readInt('score-football-t2-sot'));
+    maybe(t1, 'passes_completed', readInt('score-football-t1-passes'));
+    maybe(t2, 'passes_completed', readInt('score-football-t2-passes'));
+    maybe(t1, 'pass_accuracy_pct', readInt('score-football-t1-pass-acc'));
+    maybe(t2, 'pass_accuracy_pct', readInt('score-football-t2-pass-acc'));
+    var pensCheckbox = document.getElementById('score-football-has-pens');
+    var hasPens = pensCheckbox ? !!pensCheckbox.checked : false;
+    return { team1: t1, team2: t2, has_penalties: hasPens };
   }
 
   /* -- Series Panel (BO3/BO5) -- */
@@ -1458,6 +1542,12 @@
     var body = { participant1_score: p1, participant2_score: p2 };
     if (winnerSide) body.winner_side = winnerSide;
     if (note) body.admin_note = note;
+
+    var football = collectFootballStats(selected || {
+      participant1_name: $('#score-label-a')?.textContent || 'Team A',
+      participant2_name: $('#score-label-b')?.textContent || 'Team B',
+    });
+    if (football) body.football_stats = football;
 
     try {
       await API.post('matches/' + selectedMatchId + '/score/', body);

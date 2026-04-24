@@ -272,13 +272,30 @@
                     </a>
                     {% endif %}
                     {% for item in match_media.items %}
-                    <a href="{{ item.url }}" target="_blank" rel="noopener" class="flex items-center justify-between rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-sm text-gray-200 hover:border-white/20 transition-colors">
-                        <span class="inline-flex items-center gap-2">
-                            <i data-lucide="paperclip" class="w-4 h-4 text-gray-400"></i>
-                            {{ item.description|default:item.media_type|title }}
-                        </span>
-                        <i data-lucide="arrow-up-right" class="w-4 h-4"></i>
-                    </a>
+                        {% if item.is_image %}
+                        <a href="{{ item.url }}" target="_blank" rel="noopener" class="block rounded-xl border border-white/10 bg-black/30 overflow-hidden hover:border-white/20 transition-colors group">
+                            <div class="relative aspect-video bg-black/40">
+                                <img src="{{ item.url }}" alt="{{ item.description|default:item.media_type }}" loading="lazy" class="w-full h-full object-contain bg-black">
+                                {% if item.is_evidence %}
+                                <span class="absolute top-2 left-2 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest bg-amber-300/90 text-black">Evidence</span>
+                                {% endif %}
+                                <span class="absolute top-2 right-2 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-widest bg-black/70 text-gray-200 border border-white/10">{{ item.media_type|title }}</span>
+                            </div>
+                            <div class="px-3 py-2 flex items-center justify-between text-xs">
+                                <span class="text-gray-200 truncate">{{ item.description|default:item.media_type|title }}{% if item.submitter %} <span class="text-gray-500">· {{ item.submitter }}</span>{% endif %}</span>
+                                <i data-lucide="arrow-up-right" class="w-3.5 h-3.5 text-gray-500 group-hover:text-white"></i>
+                            </div>
+                        </a>
+                        {% else %}
+                        <a href="{{ item.url }}" target="_blank" rel="noopener" class="flex items-center justify-between rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-sm text-gray-200 hover:border-white/20 transition-colors">
+                            <span class="inline-flex items-center gap-2">
+                                <i data-lucide="paperclip" class="w-4 h-4 text-gray-400"></i>
+                                {{ item.description|default:item.media_type|title }}{% if item.submitter %} <span class="text-gray-500">· {{ item.submitter }}</span>{% endif %}
+                                {% if item.is_evidence %}<span class="ml-1 px-1.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest bg-amber-300/90 text-black">Evidence</span>{% endif %}
+                            </span>
+                            <i data-lucide="arrow-up-right" class="w-4 h-4"></i>
+                        </a>
+                        {% endif %}
                     {% empty %}
                     <p class="text-sm text-gray-500">No media entries have been attached yet.</p>
                     {% endfor %}

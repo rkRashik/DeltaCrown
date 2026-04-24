@@ -975,6 +975,54 @@
   }
 
   // ═══════════════════════════════════════════════════════════════
+  //  Finalize (organizer recovery path for LIVE-stuck tournaments)
+  // ═══════════════════════════════════════════════════════════════
+
+  function openFinalizeModal() {
+    const modal = $('#modal-finalize');
+    if (!modal) return;
+    const forceCb = $('#finalize-force');
+    if (forceCb) forceCb.checked = false;
+    const btnConfirm = $('#btn-confirm-finalize');
+    if (btnConfirm) {
+      btnConfirm.disabled = false;
+      btnConfirm.textContent = 'Confirm Finalize';
+      btnConfirm.onclick = () => executeFinalize();
+    }
+    modal.classList.remove('hidden');
+    _reinitIcons();
+  }
+
+  async function executeFinalize() {
+    const forceCb = $('#finalize-force');
+    const force = !!(forceCb && forceCb.checked);
+    const btnConfirm = $('#btn-confirm-finalize');
+    if (btnConfirm) { btnConfirm.disabled = true; btnConfirm.textContent = 'Processing…'; }
+
+    try {
+      const result = await TOC.fetch(`${API}/lifecycle/finalize/`, {
+        method: 'POST',
+        body: { force },
+      });
+
+      const modal = $('#modal-finalize');
+      if (modal) modal.classList.add('hidden');
+      TOC.toast(result.message || 'Tournament finalized.', 'success');
+      load(); // Refresh overview + lifecycle
+    } catch (e) {
+      // API returns {finalized: false, reason} on guard block (400), {error} on 403/validation.
+      // tocFetch picks up error/detail/message; reason lives on payload.
+      const msg =
+        (e && e.payload && e.payload.reason)
+        || (e && e.message)
+        || 'Finalize failed';
+      TOC.toast(msg, 'error');
+    } finally {
+      if (btnConfirm) { btnConfirm.disabled = false; btnConfirm.textContent = 'Confirm Finalize'; }
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════
   //  S1-F5: Freeze / Unfreeze
   // ═══════════════════════════════════════════════════════════════
 
@@ -1025,6 +1073,16 @@
 
     const banner = $('#toc-freeze-banner');
     if (banner) banner.classList.toggle('hidden', !data.is_frozen);
+
+    // Finalize button — only visible when tournament is LIVE and not frozen.
+    // Non-superusers still see it; API enforces the guard. Force checkbox is
+    // only rendered in the modal when request.user.is_superuser.
+    const btnFinalize = $('#btn-finalize');
+    if (btnFinalize) {
+      const showFinalize = data.status === 'live' && !data.is_frozen;
+      btnFinalize.classList.toggle('hidden', !showFinalize);
+      btnFinalize.onclick = () => openFinalizeModal();
+    }
 
     // ── Dynamic status pill styling ──
     const pill = $('#toc-status-pill');
@@ -1275,6 +1333,8 @@
     stopAutoRefresh,
     executeFreeze,
     executeUnfreeze,
+    executeFinalize,
+    openFinalizeModal,
     dismissAlert,
     refreshActionQueue: function () { load(); },
     refreshActivityLog: loadActivityLog,

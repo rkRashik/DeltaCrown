@@ -104,6 +104,74 @@ def _clear_pending(session):
         session.pop(key, None)
 
 
+def _bind_pending_to_session(session, subject):
+    """Persist subject identity into the session for verify/resend recovery."""
+    if isinstance(subject, PendingSignup):
+        session["pending_signup_id"] = subject.id
+        session["pending_email"] = subject.email
+        session.pop("pending_user_id", None)
+        session.pop("pending_user_email", None)
+    elif isinstance(subject, User):
+        session["pending_user_id"] = subject.id
+        session["pending_email"] = subject.email
+        session.pop("pending_signup_id", None)
+        session.pop("pending_signup_email", None)
+
+
+def _resolve_pending_subject(request, *, email_hint=None):
+    """Find the pending signup or unverified user for the current verify flow.
+
+    Resolution order:
+      1. Session-stored ``pending_signup_id`` / ``pending_user_id``.
+      2. Caller-supplied ``email_hint`` (typically from form or query string).
+      3. ``pending_email`` left over in the session.
+
+    When email-based recovery succeeds, the session is rebound so subsequent
+    requests behave as if the user never lost it.
+    """
+    session = request.session
+    signup_id = session.get("pending_signup_id")
+    if signup_id:
+        pending = PendingSignup.objects.filter(id=signup_id).first()
+        if pending:
+            return pending
+        session.pop("pending_signup_id", None)
+
+    user_id = session.get("pending_user_id")
+    if user_id:
+        user = User.objects.filter(id=user_id).first()
+        if user:
+            return user
+        session.pop("pending_user_id", None)
+
+    candidate_emails = []
+    if email_hint:
+        candidate_emails.append(email_hint)
+    fallback_email = (
+        session.get("pending_email")
+        or session.get("pending_signup_email")
+        or session.get("pending_user_email")
+    )
+    if fallback_email and fallback_email not in candidate_emails:
+        candidate_emails.append(fallback_email)
+
+    for raw in candidate_emails:
+        email = (raw or "").strip().lower()
+        if not email:
+            continue
+        pending = PendingSignup.objects.filter(email__iexact=email).first()
+        if pending:
+            _bind_pending_to_session(session, pending)
+            return pending
+        user = User.objects.filter(
+            email__iexact=email, is_verified=False,
+        ).first()
+        if user:
+            _bind_pending_to_session(session, user)
+            return user
+    return None
+
+
 # ---------- Classic auth ----------
 
 
@@ -155,7 +223,6 @@ class SignUpView(FormView):
         return ctx
 
     def form_valid(self, form):
-        EmailOTP.prune_stale_unverified()
         pending = form.save()
         try:
             otp = EmailOTP.issue(pending_signup=pending)
@@ -172,12 +239,8 @@ class SignUpView(FormView):
         send_otp_email(pending, otp.code, expires_in_minutes=EmailOTP.EXPIRATION_MINUTES)
 
         session = self.request.session
-        session["pending_signup_id"] = pending.id
-        session["pending_email"] = pending.email
+        _bind_pending_to_session(session, pending)
         session["pending_otp_purpose"] = otp.purpose
-        session.pop("pending_user_id", None)
-        session.pop("pending_user_email", None)
-        session.pop("pending_signup_email", None)
         messages.info(self.request, "We sent a 6-digit code to your email.")
         return super().form_valid(form)
 
@@ -199,38 +262,61 @@ class VerifyEmailView(FormView):
     success_url = None
 
     def dispatch(self, request, *args, **kwargs):
-        pending_subject = self._get_pending_subject()
-        if not pending_subject:
-            messages.info(request, "Nothing to verify. Please sign in or sign up.")
-            return redirect("account:login")
+        # Cheap opportunistic cleanup so a stale row never confuses lookup.
+        try:
+            EmailOTP.prune_stale_unverified()
+        except Exception:
+            pass
+
+        email_hint = (
+            (request.POST.get("email") if request.method == "POST" else None)
+            or request.GET.get("email")
+        )
+        pending_subject = _resolve_pending_subject(
+            request, email_hint=email_hint,
+        )
         if isinstance(pending_subject, User) and pending_subject.is_verified:
             _clear_pending(request.session)
             messages.success(request, "Email already verified. You can sign in now.")
             return redirect("account:login")
+        # If no subject is resolvable we still render the page so the user
+        # can recover by typing their email — only a POST without any email
+        # at all bounces back to signup.
+        if pending_subject is None and request.method == "POST" and not email_hint:
+            messages.error(
+                request,
+                "Your verification session ended. Enter the email you signed "
+                "up with so we can find your code.",
+            )
         return super().dispatch(request, *args, **kwargs)
-
-    def _get_pending_subject(self):
-        session = self.request.session
-        signup_id = session.get("pending_signup_id")
-        if signup_id:
-            pending = PendingSignup.objects.filter(id=signup_id).first()
-            if pending:
-                return pending
-        user_id = session.get("pending_user_id")
-        if user_id:
-            return User.objects.filter(id=user_id).first()
-        return None
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        email = self.request.session.get("pending_email") or self.request.session.get("pending_user_email") or self.request.session.get("pending_signup_email")
+        session = self.request.session
+        email = (
+            session.get("pending_email")
+            or session.get("pending_user_email")
+            or session.get("pending_signup_email")
+            or self.request.GET.get("email")
+            or ""
+        )
         ctx["pending_email"] = email
+        ctx["recovery_mode"] = not bool(
+            session.get("pending_signup_id") or session.get("pending_user_id"),
+        )
         return ctx
 
     def form_valid(self, form):
-        subject = self._get_pending_subject()
+        email_hint = form.cleaned_data.get("email") or self.request.POST.get("email")
+        subject = _resolve_pending_subject(
+            self.request, email_hint=email_hint,
+        )
         if not subject:
-            messages.error(self.request, "No pending verification found.")
+            messages.error(
+                self.request,
+                "We couldn't find a pending signup for that email. "
+                "Please sign up again.",
+            )
             _clear_pending(self.request.session)
             return redirect("account:signup")
 
@@ -273,23 +359,25 @@ class VerifyEmailView(FormView):
 
 class ResendOTPView(View):
     def post(self, request):
-        pending = None
-        subject = None
-        signup_id = request.session.get("pending_signup_id")
-        if signup_id:
-            pending = PendingSignup.objects.filter(id=signup_id).first()
-            subject = pending
-        if not subject:
-            user_id = request.session.get("pending_user_id")
-            if user_id:
-                subject = User.objects.filter(id=user_id).first()
+        try:
+            EmailOTP.prune_stale_unverified()
+        except Exception:
+            pass
 
+        email_hint = request.POST.get("email") or request.GET.get("email")
+        subject = _resolve_pending_subject(request, email_hint=email_hint)
         if not subject:
-            messages.error(request, "No pending verification found.")
+            messages.error(
+                request,
+                "Could not find a pending signup. Please sign up again.",
+            )
             return redirect("account:signup")
 
         try:
-            otp = EmailOTP.issue(user=subject if isinstance(subject, User) else None, pending_signup=pending if pending else None)
+            otp = EmailOTP.issue(
+                user=subject if isinstance(subject, User) else None,
+                pending_signup=subject if isinstance(subject, PendingSignup) else None,
+            )
         except EmailOTP.RequestThrottled as exc:
             wait_seconds = max(exc.retry_after, 1)
             minutes = (wait_seconds + 59) // 60

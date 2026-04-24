@@ -438,7 +438,10 @@
                     <div class="flex items-center gap-2 mb-4">
                         <i data-lucide="git-branch" class="w-4 h-4 text-theme"></i>
                         <h3 class="text-sm font-bold text-white uppercase tracking-widest">Lifecycle Pipeline</h3>
-                        <div class="ml-auto">
+                        <div class="ml-auto flex items-center gap-2">
+                            <button id="btn-finalize" data-cap-require="edit_settings" class="px-3 py-1.5 bg-dc-panel border border-dc-warning/40 text-dc-warning text-[10px] font-black uppercase tracking-widest rounded-lg hover:bg-dc-warning hover:text-dc-bg transition-all hidden" title="Manually finalize a LIVE tournament whose final match has completed.">
+                                <i data-lucide="trophy" class="w-3.5 h-3.5 inline-block mr-1"></i> Finalize
+                            </button>
                             <button id="btn-transition" data-cap-require="edit_settings" class="px-3 py-1.5 bg-theme-surface border border-theme text-theme text-[10px] font-black uppercase tracking-widest rounded-lg hover:bg-theme hover:text-dc-bg transition-all shadow-[0_0_15px_var(--color-primary-muted)] hidden">
                                 <i data-lucide="arrow-right" class="w-3.5 h-3.5 inline-block mr-1"></i> Advance
                             </button>
@@ -692,6 +695,37 @@
                             <div class="flex gap-3">
                                 <button class="flex-1 py-2.5 bg-dc-panel border border-dc-border text-white text-xs font-bold rounded-lg hover:bg-white/5 transition-colors"  data-click-hide="modal-transition">Cancel</button>
                                 <button id="btn-confirm-transition" class="flex-1 py-2.5 bg-theme text-dc-bg text-xs font-black uppercase tracking-widest rounded-lg hover:brightness-110 transition-all shadow-[0_0_15px_var(--color-primary-muted)] disabled:opacity-30 disabled:cursor-not-allowed" disabled>Confirm Transition</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {# ── Finalize tournament modal (hidden by default) ── #}
+                <div id="modal-finalize" class="fixed inset-0 z-[110] hidden flex items-center justify-center">
+                    <div class="absolute inset-0 bg-black/80 backdrop-blur-md" data-click-hide="modal-finalize"></div>
+                    <div class="bg-dc-surface border border-dc-borderLight shadow-[0_20px_60px_rgba(0,0,0,0.8)] rounded-xl w-full max-w-md relative z-10 overflow-hidden">
+                        <div class="h-1 w-full bg-dc-warning"></div>
+                        <div class="p-6">
+                            <h2 class="font-display font-black text-xl text-white mb-2">Finalize Tournament</h2>
+                            <p class="text-sm text-dc-text mb-5">
+                                Mark this LIVE tournament as <span class="text-dc-warning font-bold">COMPLETED</span>. Use this only when the final match is over and the tournament did not auto-complete (e.g. legacy data, missed signal).
+                            </p>
+
+                            <div class="bg-dc-panel border border-dc-borderLight rounded-lg p-3 mb-5 text-[11px] text-dc-text leading-relaxed">
+                                <i data-lucide="info" class="w-3.5 h-3.5 inline-block mr-1 text-dc-info"></i>
+                                The standard guard will block this if active matches remain. Superusers may override below.
+                            </div>
+
+                            {% if request.user.is_superuser %}
+                            <label for="finalize-force" class="flex items-center gap-2 mb-5 cursor-pointer text-xs text-dc-text">
+                                <input id="finalize-force" type="checkbox" class="accent-dc-warning">
+                                <span><span class="text-dc-warning font-bold">Force finalize</span> (superuser only — bypasses the "all matches completed" guard)</span>
+                            </label>
+                            {% endif %}
+
+                            <div class="flex gap-3">
+                                <button class="flex-1 py-2.5 bg-dc-panel border border-dc-border text-white text-xs font-bold rounded-lg hover:bg-white/5 transition-colors" data-click-hide="modal-finalize">Cancel</button>
+                                <button id="btn-confirm-finalize" class="flex-1 py-2.5 bg-dc-warning text-dc-bg text-xs font-black uppercase tracking-widest rounded-lg hover:brightness-110 transition-all disabled:opacity-30 disabled:cursor-not-allowed">Confirm Finalize</button>
                             </div>
                         </div>
                     </div>
@@ -1597,6 +1631,68 @@
                                     <div>
                                         <label for="score-note" class="text-xs font-bold text-dc-text uppercase tracking-widest block mb-2">Admin Note</label>
                                         <textarea id="score-note" rows="2" class="w-full bg-dc-bg border border-dc-border text-dc-textBright text-sm rounded-lg px-3 py-2.5 focus:border-theme outline-none resize-none" placeholder="Optional note..."></textarea>
+                                    </div>
+
+                                    {# Football stats — only shown for eFootball / SPORTS games. Driven by toc-matches.js. #}
+                                    <div id="score-football-stats" class="hidden space-y-3 border-t border-dc-border pt-4">
+                                        <div class="flex items-center justify-between">
+                                            <p class="text-xs font-bold text-dc-text uppercase tracking-widest">Football Stats (Optional)</p>
+                                            <label class="flex items-center gap-2 text-[11px] text-dc-text">
+                                                <input id="score-football-has-pens" type="checkbox" class="h-3.5 w-3.5 rounded border-dc-border bg-dc-panel text-theme focus:ring-theme/30">
+                                                Penalty Shootout
+                                            </label>
+                                        </div>
+                                        <div class="grid grid-cols-2 gap-3 text-xs">
+                                            <div>
+                                                <label for="score-football-t1-pens" class="text-[10px] font-bold text-dc-text uppercase tracking-widest block mb-1"><span id="score-football-t1-label-pens">Team A</span> Penalties</label>
+                                                <input id="score-football-t1-pens" type="number" min="0" max="99" class="w-full bg-dc-bg border border-dc-border text-white text-sm font-mono text-center rounded px-2 py-1.5 focus:border-theme outline-none">
+                                            </div>
+                                            <div>
+                                                <label for="score-football-t2-pens" class="text-[10px] font-bold text-dc-text uppercase tracking-widest block mb-1"><span id="score-football-t2-label-pens">Team B</span> Penalties</label>
+                                                <input id="score-football-t2-pens" type="number" min="0" max="99" class="w-full bg-dc-bg border border-dc-border text-white text-sm font-mono text-center rounded px-2 py-1.5 focus:border-theme outline-none">
+                                            </div>
+                                            <div>
+                                                <label for="score-football-t1-poss" class="text-[10px] font-bold text-dc-text uppercase tracking-widest block mb-1"><span id="score-football-t1-label-poss">Team A</span> Possession %</label>
+                                                <input id="score-football-t1-poss" type="number" min="0" max="100" class="w-full bg-dc-bg border border-dc-border text-white text-sm font-mono text-center rounded px-2 py-1.5 focus:border-theme outline-none">
+                                            </div>
+                                            <div>
+                                                <label for="score-football-t2-poss" class="text-[10px] font-bold text-dc-text uppercase tracking-widest block mb-1"><span id="score-football-t2-label-poss">Team B</span> Possession %</label>
+                                                <input id="score-football-t2-poss" type="number" min="0" max="100" class="w-full bg-dc-bg border border-dc-border text-white text-sm font-mono text-center rounded px-2 py-1.5 focus:border-theme outline-none">
+                                            </div>
+                                            <div>
+                                                <label for="score-football-t1-shots" class="text-[10px] font-bold text-dc-text uppercase tracking-widest block mb-1"><span id="score-football-t1-label-shots">Team A</span> Shots</label>
+                                                <input id="score-football-t1-shots" type="number" min="0" max="99" class="w-full bg-dc-bg border border-dc-border text-white text-sm font-mono text-center rounded px-2 py-1.5 focus:border-theme outline-none">
+                                            </div>
+                                            <div>
+                                                <label for="score-football-t2-shots" class="text-[10px] font-bold text-dc-text uppercase tracking-widest block mb-1"><span id="score-football-t2-label-shots">Team B</span> Shots</label>
+                                                <input id="score-football-t2-shots" type="number" min="0" max="99" class="w-full bg-dc-bg border border-dc-border text-white text-sm font-mono text-center rounded px-2 py-1.5 focus:border-theme outline-none">
+                                            </div>
+                                            <div>
+                                                <label for="score-football-t1-sot" class="text-[10px] font-bold text-dc-text uppercase tracking-widest block mb-1"><span id="score-football-t1-label-sot">Team A</span> Shots on Target</label>
+                                                <input id="score-football-t1-sot" type="number" min="0" max="99" class="w-full bg-dc-bg border border-dc-border text-white text-sm font-mono text-center rounded px-2 py-1.5 focus:border-theme outline-none">
+                                            </div>
+                                            <div>
+                                                <label for="score-football-t2-sot" class="text-[10px] font-bold text-dc-text uppercase tracking-widest block mb-1"><span id="score-football-t2-label-sot">Team B</span> Shots on Target</label>
+                                                <input id="score-football-t2-sot" type="number" min="0" max="99" class="w-full bg-dc-bg border border-dc-border text-white text-sm font-mono text-center rounded px-2 py-1.5 focus:border-theme outline-none">
+                                            </div>
+                                            <div>
+                                                <label for="score-football-t1-passes" class="text-[10px] font-bold text-dc-text uppercase tracking-widest block mb-1"><span id="score-football-t1-label-passes">Team A</span> Passes Completed</label>
+                                                <input id="score-football-t1-passes" type="number" min="0" max="9999" class="w-full bg-dc-bg border border-dc-border text-white text-sm font-mono text-center rounded px-2 py-1.5 focus:border-theme outline-none">
+                                            </div>
+                                            <div>
+                                                <label for="score-football-t2-passes" class="text-[10px] font-bold text-dc-text uppercase tracking-widest block mb-1"><span id="score-football-t2-label-passes">Team B</span> Passes Completed</label>
+                                                <input id="score-football-t2-passes" type="number" min="0" max="9999" class="w-full bg-dc-bg border border-dc-border text-white text-sm font-mono text-center rounded px-2 py-1.5 focus:border-theme outline-none">
+                                            </div>
+                                            <div>
+                                                <label for="score-football-t1-pass-acc" class="text-[10px] font-bold text-dc-text uppercase tracking-widest block mb-1"><span id="score-football-t1-label-pass-acc">Team A</span> Pass Accuracy %</label>
+                                                <input id="score-football-t1-pass-acc" type="number" min="0" max="100" class="w-full bg-dc-bg border border-dc-border text-white text-sm font-mono text-center rounded px-2 py-1.5 focus:border-theme outline-none">
+                                            </div>
+                                            <div>
+                                                <label for="score-football-t2-pass-acc" class="text-[10px] font-bold text-dc-text uppercase tracking-widest block mb-1"><span id="score-football-t2-label-pass-acc">Team B</span> Pass Accuracy %</label>
+                                                <input id="score-football-t2-pass-acc" type="number" min="0" max="100" class="w-full bg-dc-bg border border-dc-border text-white text-sm font-mono text-center rounded px-2 py-1.5 focus:border-theme outline-none">
+                                            </div>
+                                        </div>
+                                        <p class="text-[10px] text-dc-text/60">Possession adds to ~100% across both teams. Penalties only apply when a knockout match goes to a shootout.</p>
                                     </div>
                                 </div>
 
@@ -3838,10 +3934,6 @@
                                     <input id="matchcenter-show-stats" type="checkbox" class="h-4 w-4 rounded border-dc-border bg-dc-panel text-theme focus:ring-theme/30">
                                 </label>
                                 <label class="rounded-lg border border-dc-border bg-dc-surface/50 px-3 py-2 flex items-center justify-between gap-3">
-                                    <span class="text-dc-textBright">Show Timeline</span>
-                                    <input id="matchcenter-show-timeline" type="checkbox" class="h-4 w-4 rounded border-dc-border bg-dc-panel text-theme focus:ring-theme/30">
-                                </label>
-                                <label class="rounded-lg border border-dc-border bg-dc-surface/50 px-3 py-2 flex items-center justify-between gap-3">
                                     <span class="text-dc-textBright">Show Media</span>
                                     <input id="matchcenter-show-media" type="checkbox" class="h-4 w-4 rounded border-dc-border bg-dc-panel text-theme focus:ring-theme/30">
                                 </label>
@@ -3933,10 +4025,6 @@
                                     <input id="matchcenter-override-show-stats" type="checkbox" class="h-4 w-4 rounded border-dc-border bg-dc-panel text-theme focus:ring-theme/30">
                                 </label>
                                 <label class="rounded-lg border border-dc-border bg-dc-surface/50 px-3 py-2 flex items-center justify-between gap-3">
-                                    <span class="text-dc-textBright">Override: Show Timeline</span>
-                                    <input id="matchcenter-override-show-timeline" type="checkbox" class="h-4 w-4 rounded border-dc-border bg-dc-panel text-theme focus:ring-theme/30">
-                                </label>
-                                <label class="rounded-lg border border-dc-border bg-dc-surface/50 px-3 py-2 flex items-center justify-between gap-3">
                                     <span class="text-dc-textBright">Override: Show Media</span>
                                     <input id="matchcenter-override-show-media" type="checkbox" class="h-4 w-4 rounded border-dc-border bg-dc-panel text-theme focus:ring-theme/30">
                                 </label>
@@ -3979,10 +4067,6 @@
                                         <span id="matchcenter-preview-stats" class="text-dc-textBright font-bold">On</span>
                                     </div>
                                     <div class="flex items-center justify-between border-b border-dc-border/50 pb-1">
-                                        <span class="text-dc-text">Timeline</span>
-                                        <span id="matchcenter-preview-timeline" class="text-dc-textBright font-bold">On</span>
-                                    </div>
-                                    <div class="flex items-center justify-between border-b border-dc-border/50 pb-1">
                                         <span class="text-dc-text">Media</span>
                                         <span id="matchcenter-preview-media" class="text-dc-textBright font-bold">On</span>
                                     </div>
@@ -4000,6 +4084,123 @@
                                     <span id="matchcenter-preview-option-b" class="px-2 py-1 rounded bg-white/10 text-dc-textBright">Team B</span>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {# ════════════════════════════════════════════════════════════════ #}
+            {# ██  PRIZES & AWARDS TAB                                        ██ #}
+            {# ════════════════════════════════════════════════════════════════ #}
+            <div id="view-prizes" data-tab-content="prizes" class="hidden-view p-6 lg:p-8 max-w-[1700px] mx-auto space-y-6">
+                <div class="flex items-center gap-3 text-dc-text">
+                    <i data-lucide="trophy" class="w-5 h-5 opacity-20"></i>
+                    <span class="text-xs uppercase tracking-widest opacity-40 font-display">Engagement</span>
+                </div>
+
+                <div class="rounded-2xl border border-theme/25 bg-[radial-gradient(circle_at_8%_18%,rgba(var(--color-primary-r),var(--color-primary-g),var(--color-primary-b),0.16),transparent_38%),linear-gradient(155deg,rgba(15,15,25,0.96)_0%,rgba(9,9,16,0.98)_65%,rgba(7,7,11,0.99)_100%)] p-5 lg:p-6 shadow-[0_22px_55px_rgba(0,0,0,0.5)]">
+                    <div class="flex flex-col xl:flex-row xl:items-end xl:justify-between gap-5">
+                        <div>
+                            <div class="inline-flex items-center gap-2 rounded-full px-3 py-1 border border-theme/25 bg-theme/10 text-[10px] font-bold tracking-[0.2em] uppercase text-theme">
+                                <i data-lucide="trophy" class="w-3.5 h-3.5"></i>
+                                Prizes & Awards
+                            </div>
+                            <h2 class="mt-3 text-2xl lg:text-3xl font-display font-black text-white tracking-tight">Prize Engine</h2>
+                            <p class="text-xs text-dc-text mt-1">Configure placement payouts, special accolades, and certificate handling. Publishing recomputes the public prize panel and pushes Top-4 placements to certificates and payouts.</p>
+                            <p id="prizes-sync-status" class="text-[10px] font-mono text-dc-text mt-2">Not synced yet</p>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-2">
+                            <button id="prizes-refresh-btn" class="px-3 py-2 rounded-lg border border-dc-borderLight bg-dc-surface/50 text-dc-textBright text-xs font-bold hover:border-theme/40 hover:text-white transition-all flex items-center gap-1.5">
+                                <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Refresh
+                            </button>
+                            <button id="prizes-publish-btn" data-cap-require="full_access" class="px-3 py-2 rounded-lg border border-dc-warning/40 bg-dc-warning/10 text-dc-warning text-xs font-bold hover:bg-dc-warning hover:text-dc-bg transition-all flex items-center gap-1.5" title="Recompute placements (Top 4) and publish prize standings.">
+                                <i data-lucide="megaphone" class="w-3.5 h-3.5"></i> Publish Placements
+                            </button>
+                            <button id="prizes-save-btn" data-cap-require="full_access" class="px-3 py-2 rounded-lg bg-theme text-black text-xs font-black uppercase tracking-wider hover:opacity-90 transition-opacity flex items-center gap-1.5">
+                                <i data-lucide="save" class="w-3.5 h-3.5"></i> Save Prizes
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="prizes-error-banner" class="hidden rounded-lg border border-dc-danger/30 bg-dc-dangerBg px-4 py-3"></div>
+
+                <div class="grid grid-cols-1 xl:grid-cols-12 gap-6">
+                    <div class="xl:col-span-7 space-y-6 min-w-0">
+                        <div class="glass-box rounded-xl p-5 space-y-4">
+                            <h3 class="text-[10px] font-bold text-theme uppercase tracking-widest flex items-center gap-2">
+                                <i data-lucide="banknote" class="w-4 h-4"></i>
+                                Global Pool
+                            </h3>
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                                <label class="space-y-1">
+                                    <span class="text-[10px] uppercase tracking-wider text-dc-text">Currency</span>
+                                    <input id="prizes-currency" type="text" maxlength="10" class="w-full bg-dc-panel border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50" placeholder="BDT">
+                                </label>
+                                <label class="space-y-1">
+                                    <span class="text-[10px] uppercase tracking-wider text-dc-text">Fiat Pool</span>
+                                    <input id="prizes-fiat-pool" type="number" min="0" step="1" class="w-full bg-dc-panel border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50" placeholder="0">
+                                </label>
+                                <label class="space-y-1">
+                                    <span class="text-[10px] uppercase tracking-wider text-dc-text">DeltaCoin Pool</span>
+                                    <input id="prizes-coin-pool" type="number" min="0" step="1" class="w-full bg-dc-panel border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50" placeholder="0">
+                                </label>
+                            </div>
+                            <label class="flex items-center justify-between rounded-lg border border-dc-border bg-dc-surface/40 px-3 py-2 text-xs">
+                                <span class="text-dc-textBright">Enable Certificates for Top Placements</span>
+                                <input id="prizes-certificates-enabled" type="checkbox" class="h-4 w-4 rounded border-dc-border bg-dc-panel text-theme focus:ring-theme/30">
+                            </label>
+                        </div>
+
+                        <div class="glass-box rounded-xl p-5 space-y-3">
+                            <div class="flex items-center justify-between">
+                                <h3 class="text-[10px] font-bold text-theme uppercase tracking-widest flex items-center gap-2">
+                                    <i data-lucide="medal" class="w-4 h-4"></i>
+                                    Placement Tiers
+                                </h3>
+                                <div class="flex items-center gap-3">
+                                    <span class="text-[10px] uppercase tracking-wider text-dc-text">Allocated</span>
+                                    <span id="prizes-pct-total" class="text-xs font-mono text-white px-2 py-0.5 rounded border border-dc-border">0%</span>
+                                    <button id="prizes-add-tier-btn" class="px-2 py-1 rounded border border-dashed border-dc-border text-[10px] font-bold text-dc-text hover:text-white hover:border-white/40 transition-colors flex items-center gap-1">
+                                        <i data-lucide="plus" class="w-3 h-3"></i> Add Tier
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-12 gap-2 px-1 text-[10px] uppercase tracking-widest text-dc-text">
+                                <div class="col-span-1">Rank</div>
+                                <div class="col-span-4">Title</div>
+                                <div class="col-span-2 text-center">Split %</div>
+                                <div class="col-span-2 text-right">Fiat</div>
+                                <div class="col-span-2 text-right">Coins</div>
+                                <div class="col-span-1"></div>
+                            </div>
+                            <div id="prizes-tier-list" class="space-y-2"></div>
+                        </div>
+
+                        <div class="glass-box rounded-xl p-5 space-y-3">
+                            <div class="flex items-center justify-between">
+                                <h3 class="text-[10px] font-bold text-theme uppercase tracking-widest flex items-center gap-2">
+                                    <i data-lucide="award" class="w-4 h-4"></i>
+                                    Special Awards
+                                </h3>
+                                <button id="prizes-add-award-btn" class="px-2 py-1 rounded border border-dashed border-dc-border text-[10px] font-bold text-dc-text hover:text-white hover:border-white/40 transition-colors flex items-center gap-1">
+                                    <i data-lucide="plus" class="w-3 h-3"></i> Add Award
+                                </button>
+                            </div>
+                            <div id="prizes-award-list" class="space-y-2"></div>
+                            <p id="prizes-award-empty" class="hidden text-xs text-dc-text italic">No special awards yet — add MVPs, hardware drops, or sponsor prizes that aren't tied to bracket placement.</p>
+                        </div>
+                    </div>
+
+                    <div class="xl:col-span-5 space-y-6">
+                        <div class="glass-box rounded-xl p-5 space-y-4">
+                            <h3 class="text-[10px] font-bold text-theme uppercase tracking-widest flex items-center gap-2">
+                                <i data-lucide="eye" class="w-4 h-4"></i>
+                                Public Preview
+                            </h3>
+                            <div id="prizes-preview-status" class="text-[10px] font-mono text-dc-text">Loading…</div>
+                            <div id="prizes-preview-podium" class="grid grid-cols-3 gap-2"></div>
+                            <div id="prizes-preview-list" class="space-y-1"></div>
                         </div>
                     </div>
                 </div>
@@ -4808,6 +5009,7 @@
     <script defer src="{% static 'tournaments/toc/js/toc-analytics.js' %}"></script>
     <script defer src="{% static 'tournaments/toc/js/toc-fan-predictions.js' %}?v=20260420a"></script>
     <script defer src="{% static 'tournaments/toc/js/toc-match-center.js' %}?v=20260421a"></script>
+    <script defer src="{% static 'tournaments/toc/js/toc-prizes.js' %}?v=20260424a"></script>
     <script defer src="{% static 'tournaments/toc/js/toc-lobby.js' %}"></script>
     <script defer src="{% static 'tournaments/toc/js/toc-rules.js' %}"></script>
     <script defer src="{% static 'tournaments/toc/js/toc-rosters.js' %}"></script>

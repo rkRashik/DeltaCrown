@@ -341,8 +341,16 @@ class TournamentAdmin(SafeUploadMixin, ModelAdmin):
                 'max_guest_teams', 'allow_display_name_override',
             ),
             'description': (
-                'Tournament format (Single/Double Elim, Round Robin, Swiss, Group+Playoffs), '
-                'Solo vs Team, and participant limits. Guest teams allow unregistered squads to join.'
+                'Tournament format, solo vs team, and participant limits. '
+                '<strong>Format guidance:</strong> '
+                '<em>Single Elimination</em> — 1 loss = out; best at power-of-2 sizes (4/8/16/32). '
+                '<em>Double Elimination</em> — needs at least 4 participants; small DE brackets (4–7) '
+                'generate heavy bye rounds. '
+                '<em>Round Robin</em> — everyone plays everyone; ideal for 3–8 participants. '
+                '<em>Swiss</em> — paired by record; non-tree format. '
+                '<em>Group + Playoffs</em> — group stage then knockout; needs 4+. '
+                'Non-power-of-2 bracket sizes produce byes in round 1. '
+                'Guest teams allow unregistered squads to join.'
             ),
         }),
         ('Schedule & Check-In', {

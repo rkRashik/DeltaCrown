@@ -345,6 +345,76 @@ class TournamentLifecycleService:
 
         return tournament
 
+    # ── completion finalization ────────────────────────────────────────
+
+    @classmethod
+    def maybe_finalize_tournament(
+        cls,
+        tournament_id: int,
+        *,
+        actor=None,
+        force: bool = False,
+    ) -> Tuple[bool, Optional[str]]:
+        """
+        Idempotent finalize: transition LIVE → COMPLETED when all matches are
+        done, then run CompletionPipeline. Safe to call multiple times.
+
+        - Returns (True, None) when the tournament was finalized in this call.
+        - Returns (False, reason) when nothing was done (already completed,
+          guard blocked, or wrong status).
+
+        force=True bypasses the guard (staff/superuser emergency only).
+        Pipeline failures are logged but do not raise — the tournament is
+        already COMPLETED at that point.
+        """
+        try:
+            tournament = Tournament.objects.get(id=tournament_id)
+        except Tournament.DoesNotExist:
+            return False, "Tournament not found"
+
+        if tournament.status == Tournament.COMPLETED:
+            return False, "Already completed"
+        if tournament.status != Tournament.LIVE:
+            return False, f"Not LIVE (current: {tournament.status})"
+
+        if not force:
+            ok, reason = cls.can_transition(tournament, Tournament.COMPLETED)
+            if not ok:
+                return False, reason
+
+        reason_text = (
+            "Manual organizer finalize"
+            if actor is not None and not getattr(actor, 'is_anonymous', False)
+            else "Auto-finalize after final match"
+        )
+        try:
+            cls.transition(
+                tournament_id,
+                Tournament.COMPLETED,
+                actor=actor,
+                reason=reason_text,
+                force=force,
+            )
+        except ValidationError as e:
+            logger.warning(
+                "maybe_finalize_tournament transition failed for %s: %s",
+                tournament_id, e,
+            )
+            return False, str(e)
+
+        try:
+            from apps.tournaments.services.completion_pipeline import (
+                CompletionPipeline,
+            )
+            CompletionPipeline.run(tournament_id, actor=actor)
+        except Exception:
+            logger.exception(
+                "CompletionPipeline failed after transition for tournament %s",
+                tournament_id,
+            )
+
+        return True, None
+
     # ── auto-advance (date-driven) ─────────────────────────────────────
 
     @classmethod

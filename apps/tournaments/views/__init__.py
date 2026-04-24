@@ -20,6 +20,7 @@ from apps.tournaments.views.detail import (  # noqa: F401
     tournament_fan_prediction_vote,
     tournament_detail_widgets_save,
     tournament_detail_mobile_state,
+    tournament_prize_overview,
 )
 
 from apps.tournaments.views.registration import (
@@ -34,6 +35,7 @@ __all__ = [
     'tournament_fan_prediction_vote',
     'tournament_detail_widgets_save',
     'tournament_detail_mobile_state',
+    'tournament_prize_overview',
     
     # Registration views (FE-T-004)
     'TournamentRegistrationSuccessView',

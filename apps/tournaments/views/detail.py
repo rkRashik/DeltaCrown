@@ -3014,3 +3014,26 @@ def tournament_detail_widgets_save(request, slug):
         'message': 'Detail widgets saved.',
         'detail_widgets': response_widgets,
     })
+
+
+def tournament_prize_overview(request, slug):
+    """
+    Public read-only prize overview for the tournament detail page.
+
+    Returns the merged prize configuration + live placements payload from
+    PrizeConfigService.public_payload(). No auth required — this is the same
+    data shown to spectators on the public detail page.
+    """
+    tournament = get_object_or_404(
+        Tournament.objects.select_related('game', 'organizer'),
+        slug=slug,
+    )
+
+    cache_key = f'public_prize_overview_v1_{tournament.id}'
+    payload = cache.get(cache_key)
+    if payload is None:
+        from apps.tournaments.services.prize_config_service import PrizeConfigService
+        payload = PrizeConfigService.public_payload(tournament)
+        cache.set(cache_key, payload, timeout=30)
+
+    return JsonResponse(payload)

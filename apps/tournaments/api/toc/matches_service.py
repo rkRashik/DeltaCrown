@@ -43,6 +43,17 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 
+_PURE_KNOCKOUT_FORMATS = frozenset({
+    'single_elimination',
+    'double_elimination',
+})
+
+
+from apps.tournaments.services.round_naming import (
+    knockout_round_label as _knockout_round_label,
+)
+
+
 class TOCMatchesService:
     """Match operations for the TOC Matches tab."""
 
@@ -132,15 +143,52 @@ class TOCMatchesService:
         group_cache = cls._build_group_cache(tournament, participant_ids=participant_ids)
         participant_media_map = cls._build_participant_media_map(tournament, participant_ids=participant_ids)
 
-        # Pre-load bracket round names for knockout matches
+        # Pre-load bracket round names for knockout matches.
+        # Derive total_rounds for the tournament so we can label knockout
+        # matches as Quarterfinal/Semifinal/Final even when bracket linkage
+        # is missing (single_elim/double_elim tournaments where matches
+        # were generated without bracket_id assignment).
+        tournament_format = (getattr(tournament, 'format', '') or '').lower()
+        max_round_in_page = max(
+            (int(m.round_number or 0) for m in page_matches),
+            default=0,
+        )
+        try:
+            total_rounds = max(
+                int(r or 0)
+                for r in Match.objects.filter(
+                    tournament=tournament, is_deleted=False,
+                ).values_list('round_number', flat=True)
+            ) if page_matches else 0
+        except (ValueError, TypeError):
+            total_rounds = max_round_in_page
+
         bracket_round_names = {}
+        bracket = None
         if any(m.bracket_id for m in page_matches):
             from apps.brackets.models import Bracket as _Bracket
             bracket = _Bracket.objects.filter(tournament=tournament).first()
             if bracket:
+                # Prefer bracket.total_rounds when set — it's authoritative.
+                bracket_total = int(getattr(bracket, 'total_rounds', 0) or 0)
+                if bracket_total > 0:
+                    total_rounds = bracket_total
                 for m in page_matches:
                     if m.bracket_id:
-                        bracket_round_names[m.id] = bracket.get_round_name(m.round_number)
+                        try:
+                            bracket_round_names[m.id] = bracket.get_round_name(m.round_number)
+                        except (AttributeError, ValueError):
+                            bracket_round_names[m.id] = ''
+
+        # Fallback labels for matches without a bracket row but inside a
+        # PURE knockout tournament — keeps Quarterfinal/Semifinal/Final
+        # working even when generators didn't populate bracket_id.
+        if tournament_format in _PURE_KNOCKOUT_FORMATS:
+            for m in page_matches:
+                if not bracket_round_names.get(m.id):
+                    bracket_round_names[m.id] = _knockout_round_label(
+                        m.round_number, total_rounds,
+                    )
 
         matches = [
             cls._serialize_match(
@@ -149,6 +197,7 @@ class TOCMatchesService:
                 group_cache=group_cache,
                 participant_media_map=participant_media_map,
                 bracket_round_label=bracket_round_names.get(m.id, ''),
+                tournament_format=tournament_format,
             )
             for m in page_matches
         ]
@@ -189,6 +238,7 @@ class TOCMatchesService:
         p2_score: int,
         user_id: int,
         winner_side: Optional[Any] = None,
+        football_stats: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         match = Match.objects.get(pk=match_id, tournament=tournament)
         previous_state = match.state
@@ -243,7 +293,58 @@ class TOCMatchesService:
             previous_state=previous_state,
             previous_winner_id=previous_winner_id,
         )
+        if football_stats is not None:
+            cls._persist_football_stats(updated, football_stats, user_id=user_id)
         return cls._serialize_match(updated)
+
+    @staticmethod
+    def _persist_football_stats(match: Match, payload: Any, *, user_id: int) -> None:
+        """Write organizer-entered football stats into ``match.lobby_info``.
+
+        ``payload`` is dropped silently if not a mapping. Per-team values are
+        clamped to safe ranges so a bad form post can't poison the JSON
+        column. ``goals`` mirrors ``participantN_score`` so the stats card
+        stays in sync with the headline score.
+        """
+        if not isinstance(payload, dict):
+            return
+
+        def _team(side_payload, score_fallback):
+            if not isinstance(side_payload, dict):
+                side_payload = {}
+
+            def _int_clamped(value, *, fallback=0, minimum=0, maximum=999):
+                try:
+                    parsed = int(float(value))
+                except (TypeError, ValueError):
+                    parsed = int(fallback)
+                return max(minimum, min(maximum, parsed))
+
+            return {
+                'display_name': str(side_payload.get('display_name') or '').strip()[:80],
+                'goals': _int_clamped(side_payload.get('goals'), fallback=score_fallback, maximum=99),
+                'penalties': _int_clamped(side_payload.get('penalties'), fallback=0, maximum=99),
+                'possession_pct': _int_clamped(side_payload.get('possession_pct'), maximum=100),
+                'shots': _int_clamped(side_payload.get('shots'), maximum=99),
+                'shots_on_target': _int_clamped(side_payload.get('shots_on_target'), maximum=99),
+                'passes_completed': _int_clamped(side_payload.get('passes_completed'), maximum=9999),
+                'pass_accuracy_pct': _int_clamped(side_payload.get('pass_accuracy_pct'), maximum=100),
+            }
+
+        team1 = _team(payload.get('team1'), match.participant1_score or 0)
+        team2 = _team(payload.get('team2'), match.participant2_score or 0)
+
+        lobby_info = dict(match.lobby_info or {})
+        lobby_info['football_stats'] = {
+            'team1': team1,
+            'team2': team2,
+            'has_penalties': bool(payload.get('has_penalties'))
+                or team1['penalties'] > 0 or team2['penalties'] > 0,
+            'updated_at': timezone.now().isoformat(),
+            'updated_by': int(user_id) if user_id else None,
+        }
+        match.lobby_info = lobby_info
+        match.save(update_fields=['lobby_info'])
 
     # ── S6-B3: Mark live ──────────────────────────────────────
 
@@ -922,6 +1023,23 @@ class TOCMatchesService:
             label = group_cache.get(m.participant1_id) or group_cache.get(m.participant2_id) or ''
         return label
 
+    @staticmethod
+    def _resolve_stage(m: Match, tournament_format: str) -> str:
+        """Classify a match as 'knockout' or 'group_stage'.
+
+        Tournament format wins over the bracket_id heuristic so that
+        single_elim/double_elim matches generated without a bracket row
+        still surface as knockout in the TOC list and don't get the
+        "Group Stage" pill misapplied.
+        """
+        fmt = (tournament_format or '').lower()
+        if fmt == 'round_robin':
+            return 'group_stage'
+        if fmt in _PURE_KNOCKOUT_FORMATS:
+            return 'knockout'
+        # group_playoff and unknown formats: bracket_id is the source of truth.
+        return 'knockout' if m.bracket_id else 'group_stage'
+
     # ── Private helpers ──────────────────────────────────────
 
     @staticmethod
@@ -1162,10 +1280,13 @@ class TOCMatchesService:
         group_cache: Optional[Dict[int, str]] = None,
         participant_media_map: Optional[Dict[int, str]] = None,
         bracket_round_label: str = '',
+        tournament_format: str = '',
     ) -> Dict[str, Any]:
-        lobby = m.lobby_info or {}
+        lobby = m.lobby_info if isinstance(m.lobby_info, dict) else {}
         if tournament is None:
             tournament = getattr(m, 'tournament', None)
+        if not tournament_format and tournament is not None:
+            tournament_format = (getattr(tournament, 'format', '') or '').lower()
         if participant_media_map is None:
             participant_media_map = cls._build_participant_media_map(
                 tournament,
@@ -1219,7 +1340,7 @@ class TOCMatchesService:
             # Sprint 26 additions
             'bracket_id': m.bracket_id,
             'group_label': cls._resolve_group_label(m, group_cache),
-            'stage': 'knockout' if m.bracket_id else 'group_stage',
+            'stage': cls._resolve_stage(m, tournament_format),
             'bracket_round_label': bracket_round_label or '',
             'lobby_info': {
                 'lobby_code': lobby.get('lobby_code', ''),
@@ -1227,6 +1348,11 @@ class TOCMatchesService:
                 'map': lobby.get('map', ''),
                 'server': lobby.get('server', ''),
                 'game_mode': lobby.get('game_mode', ''),
+                'football_stats': (
+                    lobby.get('football_stats')
+                    if isinstance(lobby.get('football_stats'), dict)
+                    else None
+                ),
             },
             'participant1_checked_in': getattr(m, 'participant1_checked_in', False),
             'participant2_checked_in': getattr(m, 'participant2_checked_in', False),

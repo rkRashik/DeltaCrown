@@ -105,6 +105,13 @@ class MatchScoreView(TOCBaseView):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
+        football_stats = request.data.get('football_stats')
+        if football_stats is not None and not isinstance(football_stats, dict):
+            return Response(
+                {'error': 'football_stats must be an object.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         try:
             data = TOCMatchesService.submit_score(
                 match_id=pk,
@@ -113,6 +120,7 @@ class MatchScoreView(TOCBaseView):
                 p2_score=p2_score,
                 user_id=request.user.id,
                 winner_side=winner_side,
+                football_stats=football_stats,
             )
         except ValueError as exc:
             return Response({'error': str(exc)}, status=status.HTTP_400_BAD_REQUEST)

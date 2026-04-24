@@ -100,6 +100,39 @@ def _resolve_stats_partial(family):
     }.get(family, _STATS_PARTIAL_VS)
 
 
+def _football_team_rows(match, *, team1_label, team2_label):
+    """Build per-team rows for the eFootball stats partial from ``lobby_info``.
+
+    Falls back to score-only rows when no football stats have been entered
+    yet so the partial still renders the team names rather than the empty
+    state. Returns ``(team1_rows, team2_rows)`` — each a single-element list
+    matching the existing ``match_stats.team1|first`` template contract.
+    """
+    lobby = match.lobby_info if isinstance(match.lobby_info, dict) else {}
+    raw = lobby.get('football_stats') if isinstance(lobby.get('football_stats'), dict) else {}
+    raw_t1 = raw.get('team1') if isinstance(raw.get('team1'), dict) else {}
+    raw_t2 = raw.get('team2') if isinstance(raw.get('team2'), dict) else {}
+
+    def _row(side_payload, fallback_name, fallback_score):
+        return {
+            'display_name': _safe_text(side_payload.get('display_name'), fallback=fallback_name, max_length=80),
+            'goals': _safe_int(side_payload.get('goals'), fallback=fallback_score, minimum=0, maximum=99),
+            'penalties': _safe_int(side_payload.get('penalties'), fallback=0, minimum=0, maximum=99),
+            'possession_pct': _safe_int(side_payload.get('possession_pct'), fallback=0, minimum=0, maximum=100),
+            'shots': _safe_int(side_payload.get('shots'), fallback=0, minimum=0, maximum=99),
+            'shots_on_target': _safe_int(side_payload.get('shots_on_target'), fallback=0, minimum=0, maximum=99),
+            'passes_completed': _safe_int(side_payload.get('passes_completed'), fallback=0, minimum=0, maximum=9999),
+            'pass_accuracy_pct': _safe_int(side_payload.get('pass_accuracy_pct'), fallback=0, minimum=0, maximum=100),
+        }
+
+    if not raw:
+        return [], []
+
+    team1_row = _row(raw_t1, team1_label, int(match.participant1_score or 0))
+    team2_row = _row(raw_t2, team2_label, int(match.participant2_score or 0))
+    return [team1_row], [team2_row]
+
+
 def _resolve_match_stats_source(match):
     """Return 'api' or 'manual' for the stats badge.
 
@@ -192,15 +225,62 @@ def _slug_token(value, *, fallback='token'):
     return token or 'token'
 
 
-def _build_round_label(match, tournament):
-    if tournament.format == 'double_elimination' and match.round_number:
-        return DOUBLE_ELIM_LABELS.get(match.round_number, f'Round {match.round_number}')
+_KNOCKOUT_FORMATS = frozenset({
+    'single_elimination',
+    'double_elimination',
+})
 
+
+def _tournament_total_rounds(tournament):
+    """Return max round_number among non-deleted matches for the tournament.
+
+    Cached per-request via attribute on the tournament instance so the per-match
+    label calls don't re-query.
+    """
+    if tournament is None:
+        return 0
+    cached = getattr(tournament, '_dc_total_rounds_cache', None)
+    if cached is not None:
+        return cached
+    try:
+        rows = Match.objects.filter(
+            tournament=tournament,
+            is_deleted=False,
+        ).values_list('round_number', flat=True)
+        total = max((int(r or 0) for r in rows), default=0)
+    except (DatabaseError, ValueError, TypeError):
+        total = 0
+    try:
+        setattr(tournament, '_dc_total_rounds_cache', total)
+    except (AttributeError, TypeError):
+        pass
+    return total
+
+
+from apps.tournaments.services.round_naming import (
+    knockout_round_label as _knockout_round_label,
+)
+
+
+def _build_round_label(match, tournament):
+    fmt = (getattr(tournament, 'format', '') or '').lower()
+
+    # Prefer the bracket-persisted label (canonical, set during generation).
+    # This handles DE (WB R3 / LB R2 / Grand Final / Reset) at any size.
     if getattr(match, 'bracket_id', None) and getattr(match, 'bracket', None):
         try:
             return match.bracket.get_round_name(match.round_number)
         except (AttributeError, DatabaseError):
             pass
+
+    if fmt == 'double_elimination' and match.round_number:
+        return DOUBLE_ELIM_LABELS.get(
+            match.round_number, f'Round {match.round_number}'
+        )
+
+    if fmt in _KNOCKOUT_FORMATS and match.round_number:
+        total_rounds = _tournament_total_rounds(tournament)
+        return _knockout_round_label(match.round_number, total_rounds)
 
     return f'Round {match.round_number}'
 
@@ -373,6 +453,16 @@ def _resolve_match_center_presentation(match, request=None):
     return merged
 
 
+_IMAGE_EXTENSIONS = ('.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp', '.heic', '.heif')
+
+
+def _looks_like_image(url, media_type):
+    if media_type in {'screenshot', 'evidence', 'image'}:
+        return True
+    lowered = (url or '').lower().split('?', 1)[0]
+    return any(lowered.endswith(ext) for ext in _IMAGE_EXTENSIONS)
+
+
 def _collect_match_media(match, presentation):
     entries = []
 
@@ -383,11 +473,14 @@ def _collect_match_media(match, presentation):
             'media_type': 'featured',
             'url': featured,
             'description': 'Featured media',
+            'is_image': _looks_like_image(featured, 'featured'),
+            'is_evidence': False,
+            'submitter': '',
             'created_at': None,
         })
 
     try:
-        media_rows = MatchMedia.objects.filter(match=match).order_by('-created_at')[:8]
+        media_rows = MatchMedia.objects.filter(match=match).order_by('-created_at')[:12]
     except DatabaseError:
         logger.exception('MatchMedia lookup failed for match %s', match.pk)
         media_rows = []
@@ -403,12 +496,71 @@ def _collect_match_media(match, presentation):
         if not url:
             continue
 
+        media_type = _safe_text(row.media_type, fallback='media', max_length=32)
+        submitter_name = ''
+        try:
+            uploader = getattr(row, 'uploaded_by', None)
+            submitter_name = _safe_text(getattr(uploader, 'username', '') if uploader else '', fallback='', max_length=64)
+        except (AttributeError, DatabaseError):
+            submitter_name = ''
+
         entries.append({
             'id': str(row.id),
-            'media_type': _safe_text(row.media_type, fallback='media', max_length=32),
+            'media_type': media_type,
             'url': url,
             'description': _safe_text(row.description, fallback='', max_length=180),
+            'is_image': _looks_like_image(url, media_type),
+            'is_evidence': bool(getattr(row, 'is_evidence', False)) or media_type in {'screenshot', 'evidence'},
+            'submitter': submitter_name,
             'created_at': row.created_at,
+        })
+
+    # Always surface the latest captain-submitted screenshot as evidence — even
+    # if a screenshot already exists in MatchMedia, the result-submission proof
+    # is the source of truth for "what the team reported" and is what manual
+    # review needs side-by-side. Dedupe by URL to avoid showing the same proof
+    # twice when an organizer also pinned it as MatchMedia.
+    try:
+        from apps.tournaments.models import MatchResultSubmission
+        submissions = list(
+            MatchResultSubmission.objects
+            .filter(match=match)
+            .order_by('-submitted_at')[:4]
+        )
+    except (ImportError, DatabaseError):
+        submissions = []
+
+    seen_urls = {entry['url'] for entry in entries}
+    for sub in submissions:
+        proof_url = _safe_text(getattr(sub, 'proof_screenshot_url', ''), fallback='', max_length=500)
+        if not proof_url:
+            try:
+                proof_field = getattr(sub, 'proof_screenshot', None)
+                proof_url = proof_field.url if proof_field else ''
+            except (AttributeError, ValueError):
+                proof_url = ''
+        if not proof_url or proof_url in seen_urls:
+            continue
+        seen_urls.add(proof_url)
+
+        submitter_name = ''
+        try:
+            submitter_name = _safe_text(
+                getattr(getattr(sub, 'submitted_by_user', None), 'username', ''),
+                fallback='', max_length=64,
+            )
+        except (AttributeError, DatabaseError):
+            submitter_name = ''
+
+        entries.append({
+            'id': f'submission-{sub.pk}',
+            'media_type': 'evidence',
+            'url': proof_url,
+            'description': f"Captain proof — {submitter_name}" if submitter_name else 'Result submission evidence',
+            'is_image': _looks_like_image(proof_url, 'evidence'),
+            'is_evidence': True,
+            'submitter': submitter_name,
+            'created_at': getattr(sub, 'submitted_at', None),
         })
 
     return entries
@@ -665,12 +817,29 @@ class TournamentBracketView(DetailView):
                     teams_map[u.id] = {'name': u.username, 'logo': logo, 'tag': ''}
 
             # Organize matches by round with enriched data
-            # Pre-build round name lookup to avoid O(n) scan per match
+            # Pre-build round name lookup to avoid O(n) scan per match.
+            # Falls back to Final/Semifinal/Quarterfinal for single_elim
+            # tournaments when bracket_structure rounds[] omits round_name.
             _round_name_map = {}
+            _bracket_total_rounds = 0
             if hasattr(tournament, 'bracket') and tournament.bracket:
+                _bracket_total_rounds = int(getattr(tournament.bracket, 'total_rounds', 0) or 0)
                 for rd in (tournament.bracket.bracket_structure or {}).get('rounds', []):
                     if isinstance(rd, dict) and rd.get('round_number') is not None:
-                        _round_name_map[rd['round_number']] = rd.get('round_name', f"Round {rd['round_number']}")
+                        _round_name_map[rd['round_number']] = rd.get('round_name') or ''
+            if _bracket_total_rounds <= 0:
+                _bracket_total_rounds = _tournament_total_rounds(tournament)
+
+            def _round_name_for(round_num):
+                name = _round_name_map.get(round_num)
+                if name:
+                    return name
+                fmt = (getattr(tournament, 'format', '') or '').lower()
+                if fmt == 'single_elimination':
+                    return _knockout_round_label(round_num, _bracket_total_rounds) or f'Round {round_num}'
+                if fmt == 'double_elimination':
+                    return DOUBLE_ELIM_LABELS.get(round_num, f'Round {round_num}')
+                return f'Round {round_num}'
 
             matches_by_round = {}
             for match in all_matches:
@@ -678,7 +847,7 @@ class TournamentBracketView(DetailView):
                 if round_num not in matches_by_round:
                     matches_by_round[round_num] = {
                         'round_number': round_num,
-                        'round_name': _round_name_map.get(round_num, f'Round {round_num}'),
+                        'round_name': _round_name_for(round_num),
                         'matches': []
                     }
 
@@ -719,7 +888,7 @@ class TournamentBracketView(DetailView):
                     'round_number': match.round_number,
                     'state': match.state,
                     'bracket_type': bracket_type,
-                    'round_label': _round_name_map.get(round_num, f'Round {round_num}'),
+                    'round_label': _round_name_for(round_num),
                     'team1_name': t1.get('name') or match.participant1_name or 'TBD',
                     'team2_name': t2.get('name') or match.participant2_name or 'TBD',
                     'team1_logo': t1.get('logo', ''),
@@ -793,7 +962,7 @@ class TournamentBracketView(DetailView):
                     rn = int(sr.get('round_number', 0) or 0)
                 except (TypeError, ValueError):
                     rn = 0
-                round_name = sr.get('round_name') or _round_name_map.get(rn) or f'Round {rn}'
+                round_name = sr.get('round_name') or _round_name_for(rn)
                 round_payload = matches_by_round.get(rn)
                 if round_payload is None:
                     round_payload = {
@@ -955,17 +1124,14 @@ class TournamentBracketView(DetailView):
         return "Bracket is not available at this time."
     
     def _get_round_name(self, round_number, tournament):
-        """Get friendly name for round (e.g., 'Quarter Finals', 'Semi Finals')."""
+        """Get canonical round name. Prefers persisted bracket_structure label."""
         if hasattr(tournament, 'bracket') and tournament.bracket:
-            bracket_structure = tournament.bracket.bracket_structure or {}
-            rounds = bracket_structure.get('rounds', [])
-            
-            for round_data in rounds:
-                if isinstance(round_data, dict) and round_data.get('round_number') == round_number:
-                    return round_data.get('round_name', f'Round {round_number}')
-        
-        # Fallback naming
-        return f'Round {round_number}'
+            try:
+                return tournament.bracket.get_round_name(round_number)
+            except (AttributeError, DatabaseError):
+                pass
+        total_rounds = _tournament_total_rounds(tournament)
+        return _knockout_round_label(round_number, total_rounds) or f'Round {round_number}'
 
 
 class MatchDetailView(DetailView):
@@ -1257,6 +1423,16 @@ class MatchDetailView(DetailView):
         stats_partial = _resolve_stats_partial(game_family)
         stats_source = _resolve_match_stats_source(match)
 
+        if game_family == 'efootball':
+            football_team1, football_team2 = _football_team_rows(
+                match,
+                team1_label=_safe_text(team1_name, fallback='Team A', max_length=80),
+                team2_label=_safe_text(team2_name, fallback='Team B', max_length=80),
+            )
+            context['team1_stats'] = football_team1
+            context['team2_stats'] = football_team2
+            context['map_player_stats'] = []
+
         context['game_family'] = game_family
         context['is_br_layout'] = is_br_layout
         context['hero_br_partial'] = _HERO_PARTIAL_BR
@@ -1376,6 +1552,11 @@ def match_center_state(request, slug, match_id):
     poll_payload = _build_fan_pulse_payload(match, presentation, viewer=viewer)
     game_family = _detect_game_family(getattr(match.tournament, 'game', None))
     stats_source = _resolve_match_stats_source(match)
+    media_items = _collect_match_media(match, presentation)
+    has_evidence = any(
+        (item.get('media_type') in ('evidence', 'screenshot'))
+        for item in media_items
+    )
 
     return JsonResponse({
         'success': True,
@@ -1405,6 +1586,7 @@ def match_center_state(request, slug, match_id):
         'stats_meta': {
             'source': stats_source,
             'game_family': game_family,
+            'has_evidence': has_evidence,
         },
         'poll': poll_payload,
     })

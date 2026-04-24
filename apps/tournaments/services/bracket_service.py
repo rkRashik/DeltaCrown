@@ -86,7 +86,25 @@ class BracketService:
     """
     
     # Participant data structure: {"id": str, "name": str, "seed": int}
-    
+
+    @staticmethod
+    def _maybe_finalize_tournament(tournament_id: int) -> None:
+        """
+        Idempotent post-match hook: try to transition LIVE → COMPLETED + run
+        the completion pipeline. Never raises — bracket updates must commit
+        independently of finalize success/failure.
+        """
+        try:
+            from apps.tournaments.services.lifecycle_service import (
+                TournamentLifecycleService,
+            )
+            TournamentLifecycleService.maybe_finalize_tournament(tournament_id)
+        except Exception:
+            logger.exception(
+                "Auto-finalize trigger failed for tournament %s",
+                tournament_id,
+            )
+
     @staticmethod
     @transaction.atomic
     def generate_bracket_universal_safe(
@@ -1119,23 +1137,34 @@ class BracketService:
             "rounds": [],
         }
 
-        # Summarise rounds for metadata
+        # Summarise rounds for metadata using canonical labels.
+        from apps.tournaments.services.round_naming import double_elim_round_label
         for r in range(1, wb_rounds + 1):
             bracket_structure["rounds"].append({
                 "bracket_type": "main",
                 "round_number": r,
-                "round_name": f"WB Round {r}",
+                "round_name": double_elim_round_label("main", r, wb_rounds, lb_rounds),
                 "matches": wb_size // (2 ** r),
             })
         for r in range(1, lb_rounds + 1):
             bracket_structure["rounds"].append({
                 "bracket_type": "losers",
                 "round_number": r,
-                "round_name": f"LB Round {r}",
+                "round_name": double_elim_round_label("lower", r, wb_rounds, lb_rounds),
                 "matches": max(1, (wb_size // 4) // (((r + 1) // 2))),
             })
-        bracket_structure["rounds"].append({"bracket_type": "main", "round_number": wb_rounds + 1, "round_name": "Grand Finals", "matches": 1})
-        bracket_structure["rounds"].append({"bracket_type": "main", "round_number": wb_rounds + 2, "round_name": "Grand Finals Reset", "matches": 1})
+        bracket_structure["rounds"].append({
+            "bracket_type": "grand_final",
+            "round_number": wb_rounds + 1,
+            "round_name": "Grand Final",
+            "matches": 1,
+        })
+        bracket_structure["rounds"].append({
+            "bracket_type": "grand_final_reset",
+            "round_number": wb_rounds + 2,
+            "round_name": "Grand Final Reset",
+            "matches": 1,
+        })
 
         # ── WB→LB loser-drop routing table ───────────────────────────
         # Maps "main_Rk_Mm" → {lb_round, lb_match, lb_slot} so that
@@ -1402,36 +1431,9 @@ class BracketService:
     
     @staticmethod
     def _get_round_name(round_number: int, total_rounds: int) -> str:
-        """
-        Get human-readable round name based on position.
-        
-        Args:
-            round_number: Current round number (1-indexed)
-            total_rounds: Total number of rounds in bracket
-        
-        Returns:
-            Round name (e.g., "Finals", "Semi Finals", "Quarter Finals", "Round 1")
-        
-        Example:
-            >>> BracketService._get_round_name(3, 3)
-            "Finals"
-            >>> BracketService._get_round_name(2, 3)
-            "Semi Finals"
-        """
-        rounds_from_end = total_rounds - round_number
-        
-        if rounds_from_end == 0:
-            return "Finals"
-        elif rounds_from_end == 1:
-            return "Semi Finals"
-        elif rounds_from_end == 2:
-            return "Quarter Finals"
-        elif rounds_from_end == 3:
-            return "Round of 16"
-        elif rounds_from_end == 4:
-            return f"Round of 32"
-        else:
-            return f"Round {round_number}"
+        """Canonical knockout round label (delegates to round_naming service)."""
+        from apps.tournaments.services.round_naming import knockout_round_label
+        return knockout_round_label(round_number, total_rounds)
     
     @staticmethod
     @transaction.atomic
@@ -1558,8 +1560,11 @@ class BracketService:
         try:
             node = BracketNode.objects.select_related('parent_node', 'bracket').get(match=match)
         except BracketNode.DoesNotExist:
-            # Match not linked to bracket (might be manual match)
+            # Match not linked to bracket (manual, RR, or Swiss). The bracket
+            # tree has nothing to advance, but a non-tree format may now be
+            # complete — opportunistically check the lifecycle.
             logger.info(f"Match {match.id} not linked to bracket - skipping bracket update")
+            BracketService._maybe_finalize_tournament(match.tournament_id)
             return None
         
         # Track updated nodes for broadcast
@@ -1596,7 +1601,9 @@ class BracketService:
                     f"Failed to broadcast bracket_updated for completed bracket {node.bracket.id}: {e}",
                     exc_info=True
                 )
-            
+
+            # Finals reached — transition LIVE → COMPLETED if all matches done.
+            BracketService._maybe_finalize_tournament(match.tournament_id)
             return None
         
         # Determine winner name from node participants
@@ -1616,34 +1623,61 @@ class BracketService:
             )
 
         # ── GF Reset activation (Double Elimination) ─────────────────────
-        # If the parent node is flagged as a conditional bye match (is_bye=True),
-        # this is the Grand Finals → GF Reset transition.  The GF loser must be
-        # seeded into the opposite slot so the reset match can be scheduled.
+        # If the parent node is flagged as a conditional bye (is_bye=True), we
+        # just advanced the GF winner into it. Whether to actually schedule the
+        # reset match depends on who won:
+        #   - WB finalist (undefeated) wins GF → championship decided, no reset.
+        #     Revert the auto-seeding we did above and leave the GFR as a bye
+        #     so no match is scheduled and the tournament finalizes cleanly.
+        #   - LB finalist wins GF → both sides now have one loss; reset match
+        #     is required. Seed the GF loser (WB finalist) into the empty slot
+        #     and clear is_bye so the match is created.
+        # WB vs LB sides are identified via child1_node (WB) / child2_node (LB)
+        # — wired at generation time. We fall back to participant1/participant2
+        # if child links are missing.
         gfr_activated = False
         if parent_node.is_bye:
-            loser_id = (
-                node.participant2_id
-                if match.winner_id == node.participant1_id
-                else node.participant1_id
-            )
-            loser_name = (
-                node.participant2_name
-                if match.winner_id == node.participant1_id
-                else node.participant1_name
-            ) or ""
-            # Place loser in the slot NOT already taken by the winner
-            if node.parent_slot == 1:
-                parent_node.participant2_id = loser_id
-                parent_node.participant2_name = loser_name
+            child1 = getattr(node, 'child1_node', None)
+            child2 = getattr(node, 'child2_node', None)
+            wb_side_id = (child1.winner_id if child1 and child1.winner_id else node.participant1_id)
+            lb_side_id = (child2.winner_id if child2 and child2.winner_id else node.participant2_id)
+
+            if lb_side_id and match.winner_id == lb_side_id:
+                # LB winner upset WB winner → schedule reset match.
+                # The WB finalist (GF loser) fills the still-empty slot.
+                wb_name = (
+                    node.participant1_name
+                    if node.participant1_id == wb_side_id
+                    else node.participant2_name
+                ) or ""
+                if node.parent_slot == 1:
+                    parent_node.participant2_id = wb_side_id
+                    parent_node.participant2_name = wb_name
+                else:
+                    parent_node.participant1_id = wb_side_id
+                    parent_node.participant1_name = wb_name
+                parent_node.is_bye = False
+                gfr_activated = True
+                logger.info(
+                    "GFR activated: LB finalist %s beat WB finalist %s in GF "
+                    "(bracket node %s)",
+                    lb_side_id, wb_side_id, parent_node.id,
+                )
             else:
-                parent_node.participant1_id = loser_id
-                parent_node.participant1_name = loser_name
-            parent_node.is_bye = False
-            gfr_activated = True
-            logger.info(
-                "GFR activated for bracket node %s: GF winner=%s, GFR loser=%s",
-                parent_node.id, match.winner_id, loser_id,
-            )
+                # WB finalist won the GF (or we cannot confidently identify LB
+                # side) → tournament is decided. Revert the auto-advancement so
+                # the GFR stays as a bye and no match is created.
+                if node.parent_slot == 1:
+                    parent_node.participant1_id = None
+                    parent_node.participant1_name = ""
+                else:
+                    parent_node.participant2_id = None
+                    parent_node.participant2_name = ""
+                logger.info(
+                    "DE Grand Finals won by WB finalist %s — no reset match "
+                    "scheduled (bracket node %s kept as bye)",
+                    match.winner_id, parent_node.id,
+                )
 
         save_fields = ['participant1_id', 'participant1_name',
                        'participant2_id', 'participant2_name']
@@ -1793,7 +1827,10 @@ class BracketService:
                 exc_info=True,
                 extra={'match_id': match.id, 'tournament_id': match.tournament_id}
             )
-        
+
+        # Even with a parent advanced, a DE Grand-Final-Reset may have been
+        # the last outstanding match — re-check completion.
+        BracketService._maybe_finalize_tournament(match.tournament_id)
         return parent_node
     
     @staticmethod

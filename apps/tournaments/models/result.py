@@ -64,6 +64,27 @@ class TournamentResult(TimestampedModel, SoftDeleteModel):
         blank=True,
         help_text="Third place participant (if applicable)"
     )
+    fourth_place = models.ForeignKey(
+        'tournaments.Registration',
+        on_delete=models.PROTECT,
+        related_name='fourth_place_tournaments',
+        null=True,
+        blank=True,
+        help_text="Fourth place participant (if derivable from bracket)"
+    )
+
+    # Full ordered standings for prize distribution + public display.
+    # Each entry: {"placement": 1, "registration_id": 42, "source": "wb_winner",
+    #              "team_name": "Phoenix", "is_tied": false, "tied_with": []}
+    final_standings = models.JSONField(
+        default=list,
+        blank=True,
+        help_text=(
+            'Ordered list of all derivable placements (1..N). '
+            'Each entry includes placement, registration_id, derivation source, '
+            'optional team_name snapshot, and tie metadata.'
+        ),
+    )
     
     # Determination Metadata
     DETERMINATION_METHOD_CHOICES = [
@@ -249,6 +270,18 @@ class TournamentResult(TimestampedModel, SoftDeleteModel):
             raise ValidationError({
                 'third_place': 'Third place must be participant in this tournament'
             })
+
+        if self.fourth_place:
+            if self.fourth_place == self.winner:
+                raise ValidationError({'fourth_place': 'Fourth place cannot equal winner'})
+            if self.runner_up and self.fourth_place == self.runner_up:
+                raise ValidationError({'fourth_place': 'Fourth place cannot equal runner-up'})
+            if self.third_place and self.fourth_place == self.third_place:
+                raise ValidationError({'fourth_place': 'Fourth place cannot equal third place'})
+            if self.fourth_place.tournament_id != self.tournament_id:
+                raise ValidationError({
+                    'fourth_place': 'Fourth place must be participant in this tournament'
+                })
     
     def save(self, *args, **kwargs):
         """

@@ -31,6 +31,19 @@
             {% csrf_token %}
 
             <div class="form-group">
+                <label for="id_email" class="form-label">Email</label>
+                <input type="email" name="email" id="id_email"
+                       class="form-input" autocomplete="email"
+                       placeholder="you@example.com"
+                       value="{{ pending_email|default:'' }}"
+                       {% if recovery_mode %}required{% endif %}>
+                {% if recovery_mode %}
+                    <div class="form-help">Lost your session? Re-enter the email you signed up with.</div>
+                {% endif %}
+                {% if form.email.errors %}<div class="form-error">{{ form.email.errors|join:', ' }}</div>{% endif %}
+            </div>
+
+            <div class="form-group">
                 <label for="id_code" class="form-label">Verification Code</label>
                 <input type="text" name="code" id="id_code" required class="form-input"
                        placeholder="Enter 6-digit code" pattern="[0-9]{6}" maxlength="6">
@@ -43,8 +56,10 @@
         <div class="auth-links">
             <form method="post" action="{% url 'account:resend_otp' %}">
                 {% csrf_token %}
+                <input type="hidden" name="email" value="{{ pending_email|default:'' }}">
                 <button type="submit" class="auth-link">Resend Code</button>
             </form>
+            <a href="{% url 'account:signup' %}" class="auth-link">Start a new signup</a>
             <a href="{% url 'account:login' %}" class="auth-link">Back to Sign In</a>
         </div>
     </div>

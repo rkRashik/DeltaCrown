@@ -129,8 +129,12 @@ class TOCView(LoginRequiredMixin, TemplateView):
         participation = getattr(t, 'participation_type', 'team')
         is_solo = participation == 'solo'
         fmt = getattr(t, 'format', '')
-        has_brackets = fmt in ('single_elimination', 'double_elimination', 'group_playoff', 'swiss')
-        has_groups = fmt in ('group_playoff', 'round_robin', 'swiss')
+        # Tree-style brackets only — Swiss has rounds + standings, no bracket tree.
+        has_brackets = fmt in ('single_elimination', 'double_elimination', 'group_playoff')
+        # Standings tab applies to any non-tree format (RR, Swiss, group play).
+        has_standings = fmt in ('group_playoff', 'round_robin', 'swiss')
+        # Backwards compatibility for templates/JS that still read has_groups.
+        has_groups = has_standings
         game_has_servers = getattr(game, 'has_servers', False) if game else False
 
         base_tabs = [
@@ -150,7 +154,7 @@ class TOCView(LoginRequiredMixin, TemplateView):
             {'id': 'matches', 'label': 'Matches', 'icon': 'swords', 'group': 'Competition'},
             {'id': 'schedule', 'label': 'Schedule', 'icon': 'calendar', 'group': 'Competition'},
         ])
-        if has_groups:
+        if has_standings:
             base_tabs.append({'id': 'standings', 'label': 'Standings', 'icon': 'trophy', 'group': 'Competition'})
         base_tabs.append({'id': 'streams', 'label': 'Streams', 'icon': 'tv', 'group': 'Competition'})
         # Show Lobbies for multiplayer/team games or when game has dedicated servers
@@ -168,6 +172,7 @@ class TOCView(LoginRequiredMixin, TemplateView):
         base_tabs.extend([
             {'id': 'rules', 'label': 'Rules & Info', 'icon': 'book-open', 'group': 'Platform'},
             {'id': 'settings', 'label': 'Settings', 'icon': 'settings', 'group': 'Platform'},
+            {'id': 'prizes', 'label': 'Prizes & Awards', 'icon': 'trophy', 'group': 'Engagement'},
             {'id': 'public-hub-config', 'label': 'Public Hub Config', 'icon': 'monitor-smartphone', 'group': 'Engagement'},
             {'id': 'fan-predictions', 'label': 'Fan Predictions', 'icon': 'pie-chart', 'group': 'Engagement'},
             {'id': 'match-center', 'label': 'Match Center', 'icon': 'monitor-play', 'group': 'Engagement'},
@@ -178,6 +183,7 @@ class TOCView(LoginRequiredMixin, TemplateView):
         ctx['is_solo'] = is_solo
         ctx['has_brackets'] = has_brackets
         ctx['has_groups'] = has_groups
+        ctx['has_standings'] = has_standings
         ctx['tournament_format'] = fmt
         ctx['current_stage'] = t.get_current_stage() if hasattr(t, 'get_current_stage') else ''
 

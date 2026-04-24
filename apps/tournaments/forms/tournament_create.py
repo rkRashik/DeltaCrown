@@ -6,6 +6,7 @@ from django import forms
 from apps.tournaments.models import Tournament, Game
 from apps.tournaments.models.form_template import RegistrationFormTemplate
 from apps.tournaments.models.form_configuration import TournamentFormConfiguration
+from apps.tournaments.services.format_advisor import validate_format_participants
 from apps.games.services import game_service
 from apps.games.models import Game
 
@@ -111,6 +112,20 @@ class TournamentCreateForm(forms.ModelForm):
             ],
             attrs={'class': 'form-select'}
         )
+        self.fields['format'].help_text = (
+            'Single Elim: 1 loss = out. Double Elim: 2 losses = out (needs 4+). '
+            'Round Robin: everyone plays everyone (best for 3-8). '
+            'Swiss: paired by record over a fixed round count. '
+            'Group + Knockout: group stage followed by elimination playoffs.'
+        )
+        self.fields['max_participants'].help_text = (
+            'Bracket sizes that are powers of two (4, 8, 16, 32, 64, 128, 256) '
+            'avoid bye rounds in Single/Double Elimination.'
+        )
+        self.fields['min_participants'].help_text = (
+            'Minimum needed to start. Double Elimination needs at least 4 to '
+            'avoid a degenerate bracket.'
+        )
         
         # Participation type
         self.fields['participation_type'].widget = forms.Select(
@@ -168,31 +183,44 @@ class TournamentCreateForm(forms.ModelForm):
         reg_start = cleaned_data.get('registration_start')
         reg_end = cleaned_data.get('registration_end')
         tournament_start = cleaned_data.get('tournament_start')
-        
+
         if reg_start and reg_end and reg_start >= reg_end:
             raise forms.ValidationError('Registration end must be after registration start.')
-        
+
         if reg_end and tournament_start and reg_end >= tournament_start:
             raise forms.ValidationError('Tournament start must be after registration end.')
-        
+
+        min_p = cleaned_data.get('min_participants')
+        max_p = cleaned_data.get('max_participants')
+        if min_p and max_p and min_p > max_p:
+            raise forms.ValidationError('Minimum participants cannot exceed maximum participants.')
+
+        fmt = cleaned_data.get('format')
+        format_errors, format_warnings = validate_format_participants(fmt, min_p, max_p)
+        for msg in format_errors:
+            self.add_error('format', msg)
+        # Stash warnings on the form instance so the view layer can surface
+        # them as non-blocking guidance via messages framework.
+        self.format_warnings = format_warnings
+
         # Validate form configuration
         use_default = cleaned_data.get('use_default_form')
         use_custom = cleaned_data.get('use_custom_form')
         custom_form = cleaned_data.get('custom_form_template')
-        
+
         # Must select at least one form type
         if not use_default and not use_custom:
             raise forms.ValidationError('Please select at least one registration form type (Default or Custom).')
-        
+
         # Cannot select both
         if use_default and use_custom:
             raise forms.ValidationError('Please select only one registration form type.')
-        
+
         # If custom form selected, must provide template or redirect to builder
         if use_custom and not custom_form:
             # This will be handled by redirect to form builder in the view
             cleaned_data['redirect_to_form_builder'] = True
-        
+
         return cleaned_data
     
     def save(self, commit=True):

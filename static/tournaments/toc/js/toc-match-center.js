@@ -20,7 +20,6 @@
         lastLoadedAt: 0,
         config: {
             enabled: true,
-            show_timeline: true,
             show_media: true,
             show_stats: true,
             show_fan_pulse: true,
@@ -134,7 +133,6 @@
 
     function setGlobalFormValues() {
         $('#matchcenter-enabled').checked = asBool(state.config.enabled, true);
-        $('#matchcenter-show-timeline').checked = asBool(state.config.show_timeline, true);
         $('#matchcenter-show-media').checked = asBool(state.config.show_media, true);
         $('#matchcenter-show-stats').checked = asBool(state.config.show_stats, true);
         $('#matchcenter-show-fan-pulse').checked = asBool(state.config.show_fan_pulse, true);
@@ -181,7 +179,6 @@
         if (pollA) pollA.value = asText(override.poll_option_a, '', 80);
         if (pollB) pollB.value = asText(override.poll_option_b, '', 80);
 
-        $('#matchcenter-override-show-timeline').checked = asBool(override.show_timeline, state.config.show_timeline);
         $('#matchcenter-override-show-media').checked = asBool(override.show_media, state.config.show_media);
         $('#matchcenter-override-show-stats').checked = asBool(override.show_stats, state.config.show_stats);
         $('#matchcenter-override-show-fan-pulse').checked = asBool(override.show_fan_pulse, state.config.show_fan_pulse);
@@ -207,7 +204,6 @@
             poll_question: pollQ ? asText(pollQ.value, '', 180) : '',
             poll_option_a: pollA ? asText(pollA.value, '', 80) : '',
             poll_option_b: pollB ? asText(pollB.value, '', 80) : '',
-            show_timeline: asBool($('#matchcenter-override-show-timeline').checked, true),
             show_media: asBool($('#matchcenter-override-show-media').checked, true),
             show_stats: asBool($('#matchcenter-override-show-stats').checked, true),
             show_fan_pulse: asBool($('#matchcenter-override-show-fan-pulse').checked, true),
@@ -266,10 +262,6 @@
             override.show_stats,
             asBool(state.config.show_stats, true),
         );
-        const showTimeline = asBool(
-            override.show_timeline,
-            asBool(state.config.show_timeline, true),
-        );
         const showMedia = asBool(
             override.show_media,
             asBool(state.config.show_media, true),
@@ -280,7 +272,6 @@
         );
 
         $('#matchcenter-preview-stats').textContent = boolLabel(showStats);
-        $('#matchcenter-preview-timeline').textContent = boolLabel(showTimeline);
         $('#matchcenter-preview-media').textContent = boolLabel(showMedia);
         $('#matchcenter-preview-fan-pulse').textContent = boolLabel(showFanPulse);
 
@@ -315,7 +306,6 @@
 
     function formToConfig() {
         state.config.enabled = asBool($('#matchcenter-enabled').checked, true);
-        state.config.show_timeline = asBool($('#matchcenter-show-timeline').checked, true);
         state.config.show_media = asBool($('#matchcenter-show-media').checked, true);
         state.config.show_stats = asBool($('#matchcenter-show-stats').checked, true);
         state.config.show_fan_pulse = asBool($('#matchcenter-show-fan-pulse').checked, true);
@@ -329,7 +319,6 @@
 
         return {
             enabled: state.config.enabled,
-            show_timeline: state.config.show_timeline,
             show_media: state.config.show_media,
             show_stats: state.config.show_stats,
             show_fan_pulse: state.config.show_fan_pulse,
@@ -416,6 +405,18 @@
                 throw new Error('TOC API helper unavailable.');
             }
             const response = await NS.api.post('match-center/config/', payload);
+
+            // Backend returns 200 + {success: false, error: ...} when the DB is in a
+            // bad state (e.g. migration 0053 not applied). Surface the error and do
+            // NOT overwrite the user's typed values with default fallbacks.
+            if (response && response.success === false) {
+                const message = String(response.error || 'Match Center storage is not available.');
+                setError(message);
+                setSyncStatus(message, 'error');
+                toast(message, 'error');
+                return;
+            }
+
             const nextConfig = response && typeof response.config === 'object' ? response.config : payload;
             const nextMatches = Array.isArray(response && response.matches) ? response.matches : state.matches;
 
@@ -516,7 +517,6 @@
 
         const liveInputs = [
             '#matchcenter-enabled',
-            '#matchcenter-show-timeline',
             '#matchcenter-show-media',
             '#matchcenter-show-stats',
             '#matchcenter-show-fan-pulse',
@@ -532,7 +532,6 @@
             '#matchcenter-override-poll-question',
             '#matchcenter-override-poll-a',
             '#matchcenter-override-poll-b',
-            '#matchcenter-override-show-timeline',
             '#matchcenter-override-show-media',
             '#matchcenter-override-show-stats',
             '#matchcenter-override-show-fan-pulse',

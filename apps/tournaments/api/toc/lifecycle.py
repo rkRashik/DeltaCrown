@@ -1,9 +1,10 @@
 """
-TOC API — Lifecycle Endpoints (Transition, Freeze, Unfreeze).
+TOC API — Lifecycle Endpoints (Transition, Freeze, Unfreeze, Finalize).
 
 POST /api/toc/<slug>/lifecycle/transition/
 POST /api/toc/<slug>/lifecycle/freeze/
 POST /api/toc/<slug>/lifecycle/unfreeze/
+POST /api/toc/<slug>/lifecycle/finalize/
 
 Sprint 1: S1-B3, S1-B4, S1-B5
 PRD: §2.2, §2.7
@@ -21,6 +22,7 @@ from apps.tournaments.api.toc.serializers import (
     UnfreezeInputSerializer,
 )
 from apps.tournaments.api.toc.service import TOCService
+from apps.tournaments.services.lifecycle_service import TournamentLifecycleService
 
 
 class LifecycleTransitionView(TOCBaseView):
@@ -141,4 +143,57 @@ class UnfreezeView(TOCBaseView):
 
         return Response({
             'message': 'Tournament unfrozen. Operations resumed.',
+        })
+
+
+class FinalizeView(TOCBaseView):
+    """
+    POST — Recovery action: finalize a LIVE tournament whose final match
+    completed without auto-finalize firing (legacy data, signal failure,
+    bracket structure missing, etc.).
+
+    Body: {force?: bool}
+        force=true bypasses the "all matches completed" guard. Superuser only.
+
+    Returns: {finalized, status, status_display, message}
+    """
+
+    def post(self, request, slug):
+        force = bool(request.data.get('force', False))
+
+        if force and not request.user.is_superuser:
+            return Response(
+                {'error': 'Force finalize requires superuser permissions.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        finalized, reason = TournamentLifecycleService.maybe_finalize_tournament(
+            self.tournament.id,
+            actor=request.user,
+            force=force,
+        )
+
+        if not finalized:
+            return Response(
+                {
+                    'finalized': False,
+                    'status': self.tournament.status,
+                    'reason': reason or 'Could not finalize.',
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        bump_toc_scopes(
+            self.tournament.id,
+            'overview', 'analytics', 'brackets', 'matches',
+            'participants', 'participants_adv', 'payments',
+            'disputes', 'rosters',
+        )
+
+        self.tournament.refresh_from_db()
+        return Response({
+            'finalized': True,
+            'status': self.tournament.status,
+            'status_display': self.tournament.get_status_display(),
+            'message': f'Tournament finalized: {self.tournament.get_status_display()}.',
         })

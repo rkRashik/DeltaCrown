@@ -214,6 +214,7 @@ urlpatterns = [
     path('<slug:slug>/', views.TournamentDetailView.as_view(), name='detail'),
     path('<slug:slug>/state/', views.tournament_detail_mobile_state, name='detail_mobile_state'),
     path('<slug:slug>/widgets/save/', views.tournament_detail_widgets_save, name='detail_widgets_save'),
+    path('<slug:slug>/api/prizes/', views.tournament_prize_overview, name='detail_prize_overview'),
     path('<slug:slug>/fan-predictions/vote/', views.tournament_fan_prediction_vote, name='fan_prediction_vote'),
     
     # Participant check-in

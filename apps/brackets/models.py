@@ -188,22 +188,9 @@ class Bracket(TimestampedModel):
 
     @staticmethod
     def _compute_round_name(round_number: int, total_rounds: int = 0) -> str:
-        """Compute round name from position relative to finals."""
-        if total_rounds <= 0:
-            return f"Round {round_number}"
-        rounds_from_end = total_rounds - round_number
-        if rounds_from_end == 0:
-            return "Finals"
-        elif rounds_from_end == 1:
-            return "Semi Finals"
-        elif rounds_from_end == 2:
-            return "Quarter Finals"
-        elif rounds_from_end == 3:
-            return "Round of 16"
-        elif rounds_from_end == 4:
-            return "Round of 32"
-        else:
-            return f"Round {round_number}"
+        """Compute round name from position relative to finals (canonical)."""
+        from apps.tournaments.services.round_naming import knockout_round_label
+        return knockout_round_label(round_number, total_rounds)
 
     @property
     def has_third_place_match(self) -> bool:

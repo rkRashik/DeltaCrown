@@ -164,21 +164,22 @@ class CompletionPipeline:
 
     @classmethod
     def _step_winners(cls, tournament: Tournament, report: CompletionReport) -> None:
-        """Determine and persist tournament winners."""
+        """Determine winners (top 4) and persist a full final standings list."""
         try:
-            from apps.tournaments.services.winner_service import WinnerDeterminationService
+            from apps.tournaments.services.placement_service import PlacementService
 
-            winners = WinnerDeterminationService.determine_winners(tournament.id)
+            result = PlacementService.persist_standings(tournament)
             report.winners = [
                 {
-                    'place': w.get('place', idx + 1),
-                    'name': w.get('name', 'Unknown'),
-                    'prize': str(w.get('prize', '')),
+                    'place': entry.get('placement'),
+                    'name': entry.get('team_name') or 'Unknown',
+                    'registration_id': entry.get('registration_id'),
+                    'source': entry.get('source'),
                 }
-                for idx, w in enumerate(winners if isinstance(winners, list) else [])
+                for entry in (result.final_standings or [])
             ]
             logger.info(
-                "[completion] %d winner(s) determined for %s",
+                "[completion] %d placement(s) persisted for %s",
                 len(report.winners), tournament.name,
             )
         except Exception as e:

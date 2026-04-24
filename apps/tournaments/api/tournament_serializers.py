@@ -22,6 +22,7 @@ from django.contrib.postgres.fields import ArrayField
 from apps.tournaments.models.tournament import Tournament
 from apps.games.models.game import Game
 from apps.tournaments.services.tournament_service import TournamentService
+from apps.tournaments.services.format_advisor import validate_format_participants
 
 
 class GameSerializer(serializers.ModelSerializer):
@@ -331,9 +332,23 @@ class TournamentCreateSerializer(serializers.Serializer):
             raise serializers.ValidationError({
                 'game_id': f"Game with ID {attrs['game_id']} not found or is inactive"
             })
-        
+
+        # Format-aware participant sanity (hard errors block; warnings are
+        # exposed via context for the view layer to surface in responses).
+        format_errors, format_warnings = validate_format_participants(
+            attrs.get('format'), min_parts, max_parts,
+        )
+        if format_errors:
+            raise serializers.ValidationError({'format': format_errors})
+        if format_warnings:
+            self._format_warnings = format_warnings
+
         return attrs
-    
+
+    @property
+    def format_warnings(self):
+        return getattr(self, '_format_warnings', [])
+
     def create(self, validated_data):
         """
         Create tournament via TournamentService.
@@ -427,8 +442,10 @@ class TournamentUpdateSerializer(serializers.Serializer):
     def validate(self, attrs):
         """
         Cross-field validation for updates.
-        
-        Only validates fields that are present in the update.
+
+        Only validates fields that are present in the update. For format/
+        participant validation, fall back to the existing instance values when
+        the partial update doesn't include all three keys.
         """
         # Validate game if provided
         if 'game_id' in attrs:
@@ -438,12 +455,34 @@ class TournamentUpdateSerializer(serializers.Serializer):
                 raise serializers.ValidationError({
                     'game_id': f"Game with ID {attrs['game_id']} not found or is inactive"
                 })
-        
-        # Note: Date and participant validation will be done in the service layer
-        # where we have access to the existing tournament object
-        
+
+        # min <= max sanity for partial updates that touch either bound.
+        instance = getattr(self, 'instance', None)
+        eff_min = attrs.get('min_participants', getattr(instance, 'min_participants', None))
+        eff_max = attrs.get('max_participants', getattr(instance, 'max_participants', None))
+        if eff_min is not None and eff_max is not None and eff_min > eff_max:
+            raise serializers.ValidationError({
+                'min_participants': 'Minimum participants cannot exceed maximum'
+            })
+
+        # Format-aware sanity, only run when the partial actually changes
+        # format or participant counts.
+        if any(k in attrs for k in ('format', 'min_participants', 'max_participants')):
+            eff_format = attrs.get('format', getattr(instance, 'format', None))
+            format_errors, format_warnings = validate_format_participants(
+                eff_format, eff_min, eff_max,
+            )
+            if format_errors:
+                raise serializers.ValidationError({'format': format_errors})
+            if format_warnings:
+                self._format_warnings = format_warnings
+
         return attrs
-    
+
+    @property
+    def format_warnings(self):
+        return getattr(self, '_format_warnings', [])
+
     def update(self, instance, validated_data):
         """
         Update tournament via TournamentService.
