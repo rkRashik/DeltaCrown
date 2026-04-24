@@ -29,20 +29,6 @@
     </div>
   </button>
 
-  <a href="{% url 'tournaments:detail' slug=tournament.slug %}#overview" class="hub-nav-btn group">
-    <div class="flex items-center gap-3">
-      <i data-lucide="sparkles" class="w-4 h-4 group-hover:text-[#00F0FF] transition-colors"></i>
-      <span class="hub-nav-label">Engagement Hub</span>
-    </div>
-    <i data-lucide="external-link" class="w-3 h-3 opacity-50"></i>
-  </a>
-
-  <div class="pl-10 pr-3 py-1 space-y-1">
-    <a href="{% url 'tournaments:detail' slug=tournament.slug %}?focus=widget-editor#overview" class="block text-xs text-gray-500 hover:text-gray-300 transition-colors py-1">Widget Editor</a>
-    <a href="{% url 'tournaments:detail' slug=tournament.slug %}?focus=fan-predictions#overview" class="block text-xs text-gray-500 hover:text-gray-300 transition-colors py-1">Fan Predictions</a>
-    <a href="{% url 'tournaments:detail' slug=tournament.slug %}?focus=page-layout#overview" class="block text-xs text-gray-500 hover:text-gray-300 transition-colors py-1">Page Layout</a>
-  </div>
-
   <button class="hub-nav-btn" data-hub-tab="announcements" data-click="HubEngine.switchTab" data-click-args='["announcements"]'>
     <div class="flex items-center gap-3">
       <i data-lucide="megaphone" class="w-4 h-4"></i>

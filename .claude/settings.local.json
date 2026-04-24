@@ -4,7 +4,9 @@
       "Bash(python manage.py check)",
       "Bash(python -m pytest apps/tournaments/tests/test_round_naming.py apps/tournaments/tests/test_prize_config_service.py apps/tournaments/tests/test_format_advisor.py --tb=short)",
       "Bash(python -c ' *)",
-      "Bash(DJANGO_SETTINGS_MODULE=deltacrown.settings_test python manage.py makemigrations tournaments --check --dry-run)"
+      "Bash(DJANGO_SETTINGS_MODULE=deltacrown.settings_test python manage.py makemigrations tournaments --check --dry-run)",
+      "Bash(python -m pytest apps/tournaments/tests/test_round_naming.py apps/tournaments/tests/test_prize_config_service.py apps/tournaments/tests/test_format_advisor.py apps/tournaments/tests/test_truth_consistency.py --tb=short)",
+      "Bash(python -m pytest apps/tournaments/tests/test_round_naming.py apps/tournaments/tests/test_truth_consistency.py apps/tournaments/tests/test_prize_config_service.py apps/tournaments/tests/test_format_advisor.py apps/tournaments/tests/test_hub_prize_template_csp.py --tb=short)"
     ]
   }
 }

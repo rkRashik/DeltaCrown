@@ -48,6 +48,13 @@ _PURE_KNOCKOUT_FORMATS = frozenset({
     'double_elimination',
 })
 
+# Formats whose later phase becomes a knockout bracket. Group-stage matches
+# in these formats still need to read as 'group_stage' — bracket_id linkage
+# decides per-match.
+_HYBRID_KNOCKOUT_FORMATS = frozenset({
+    'group_playoff',
+})
+
 
 from apps.tournaments.services.round_naming import (
     knockout_round_label as _knockout_round_label,
@@ -163,32 +170,39 @@ class TOCMatchesService:
         except (ValueError, TypeError):
             total_rounds = max_round_in_page
 
+        # Canonical round label resolution — single source of truth.
+        # Prior implementation read `bracket.get_round_name()` first, which
+        # returns the persisted `bracket_structure.rounds[].round_name`.
+        # Older tournaments (e.g. efootball-genesis-cup) carry stale labels
+        # like "Quarter Finals" / "Semi Finals" / "Finals" — those disagree
+        # with the canonical `Quarterfinal / Semifinal / Final` produced by
+        # `knockout_round_label`. We now use the canonical helper as the
+        # primary source for ALL knockout-shaped matches and fall back to the
+        # bracket-stored label only when the format isn't pure knockout AND
+        # the match has a bracket FK (group_playoff playoffs etc.).
         bracket_round_names = {}
         bracket = None
         if any(m.bracket_id for m in page_matches):
             from apps.brackets.models import Bracket as _Bracket
             bracket = _Bracket.objects.filter(tournament=tournament).first()
             if bracket:
-                # Prefer bracket.total_rounds when set — it's authoritative.
                 bracket_total = int(getattr(bracket, 'total_rounds', 0) or 0)
                 if bracket_total > 0:
                     total_rounds = bracket_total
-                for m in page_matches:
-                    if m.bracket_id:
-                        try:
-                            bracket_round_names[m.id] = bracket.get_round_name(m.round_number)
-                        except (AttributeError, ValueError):
-                            bracket_round_names[m.id] = ''
 
-        # Fallback labels for matches without a bracket row but inside a
-        # PURE knockout tournament — keeps Quarterfinal/Semifinal/Final
-        # working even when generators didn't populate bracket_id.
-        if tournament_format in _PURE_KNOCKOUT_FORMATS:
-            for m in page_matches:
-                if not bracket_round_names.get(m.id):
-                    bracket_round_names[m.id] = _knockout_round_label(
-                        m.round_number, total_rounds,
-                    )
+        is_pure_knockout = tournament_format in _PURE_KNOCKOUT_FORMATS
+        for m in page_matches:
+            label = ''
+            if is_pure_knockout and m.round_number:
+                # Canonical labels override stale bracket_structure.
+                label = _knockout_round_label(m.round_number, total_rounds)
+            elif m.bracket_id and bracket:
+                # group_playoff playoffs / unknown formats: read the bracket.
+                try:
+                    label = bracket.get_round_name(m.round_number) or ''
+                except (AttributeError, ValueError):
+                    label = ''
+            bracket_round_names[m.id] = label
 
         matches = [
             cls._serialize_match(
@@ -211,11 +225,22 @@ class TOCMatchesService:
         has_next = page < total_pages
         has_prev = page > 1
 
+        # Build a stable round filter list across the whole tournament so the
+        # dropdown shows Quarterfinals/Semifinals/Final consistently — not
+        # just rounds that happen to be on the current page.
+        round_options = cls._build_round_options(
+            tournament=tournament,
+            tournament_format=tournament_format,
+            bracket=bracket,
+            total_rounds=total_rounds,
+        )
+
         return {
             'matches': matches,
             'total_count': total,
             'state_counts': state_counts,
             'current_stage': current_stage,
+            'round_options': round_options,
             'pagination': {
                 'page': page,
                 'page_size': page_size,
@@ -225,6 +250,90 @@ class TOCMatchesService:
                 'has_prev': has_prev,
             },
         }
+
+    @classmethod
+    def _build_round_options(
+        cls,
+        *,
+        tournament: Tournament,
+        tournament_format: str,
+        bracket,
+        total_rounds: int,
+    ) -> List[Dict[str, Any]]:
+        """
+        Build [{value, label, stage}] entries for the round filter dropdown.
+
+        Pulls every distinct (round_number, bracket_id is null/not null) pair
+        from the tournament's matches, then asks the canonical labeller for
+        a label. Stage tags follow the same rules as `_resolve_stage`.
+        """
+        from apps.brackets.models import Bracket as _Bracket  # local to keep import scope tight
+
+        rows = (
+            Match.objects.filter(tournament=tournament, is_deleted=False)
+            .exclude(round_number__isnull=True)
+            .values_list('round_number', 'bracket_id')
+            .distinct()
+        )
+        if not rows:
+            return []
+
+        if bracket is None:
+            try:
+                bracket = _Bracket.objects.filter(tournament=tournament).first()
+            except Exception:
+                bracket = None
+
+        # Recompute total_rounds from the full match set so the labeller
+        # produces correct distance-from-final values (the page-scoped value
+        # passed in may be too small).
+        full_total_rounds = total_rounds
+        try:
+            full_total_rounds = max(
+                full_total_rounds,
+                max((int(rn or 0) for rn, _ in rows), default=0),
+            )
+        except (TypeError, ValueError):
+            pass
+        if bracket is not None:
+            bracket_total = int(getattr(bracket, 'total_rounds', 0) or 0)
+            if bracket_total > 0:
+                full_total_rounds = bracket_total
+
+        seen = set()
+        options: List[Dict[str, Any]] = []
+        fmt = (tournament_format or '').lower()
+        is_pure_knockout = fmt in _PURE_KNOCKOUT_FORMATS
+        for round_number, bracket_id in rows:
+            if not round_number or round_number in seen:
+                continue
+            seen.add(round_number)
+            label = ''
+            # Canonical labeller has priority for knockout-shaped tournaments.
+            if is_pure_knockout:
+                label = _knockout_round_label(round_number, full_total_rounds)
+            elif bracket and bracket_id:
+                try:
+                    label = bracket.get_round_name(round_number) or ''
+                except Exception:
+                    label = ''
+            if not label:
+                label = f'Round {round_number}'
+            if is_pure_knockout:
+                stage = 'knockout'
+            elif fmt == 'round_robin':
+                stage = 'group_stage'
+            elif fmt == 'swiss':
+                stage = 'swiss'
+            else:
+                stage = 'knockout' if bracket_id else 'group_stage'
+            options.append({
+                'value': int(round_number),
+                'label': label,
+                'stage': stage,
+            })
+        options.sort(key=lambda o: o['value'])
+        return options
 
     # ── S6-B2: Score submission ───────────────────────────────
 
@@ -1025,16 +1134,23 @@ class TOCMatchesService:
 
     @staticmethod
     def _resolve_stage(m: Match, tournament_format: str) -> str:
-        """Classify a match as 'knockout' or 'group_stage'.
+        """Classify a match as 'knockout', 'group_stage', or 'swiss'.
 
-        Tournament format wins over the bracket_id heuristic so that
-        single_elim/double_elim matches generated without a bracket row
-        still surface as knockout in the TOC list and don't get the
-        "Group Stage" pill misapplied.
+        Truth contract:
+          * single_elimination / double_elimination → always 'knockout'
+            (regardless of whether bracket_id was attached during generation).
+          * round_robin → always 'group_stage' (RR has no bracket).
+          * swiss → always 'swiss' (Swiss has no bracket tree).
+          * group_playoff → bracket_id presence is the source of truth: a
+            playoff match attached to a bracket is knockout; a group-phase
+            match without bracket_id is group_stage.
+          * Unknown formats fall back to bracket_id heuristic.
         """
         fmt = (tournament_format or '').lower()
         if fmt == 'round_robin':
             return 'group_stage'
+        if fmt == 'swiss':
+            return 'swiss'
         if fmt in _PURE_KNOCKOUT_FORMATS:
             return 'knockout'
         # group_playoff and unknown formats: bracket_id is the source of truth.

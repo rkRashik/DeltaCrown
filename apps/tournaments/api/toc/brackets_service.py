@@ -953,6 +953,19 @@ class TOCBracketsService:
             except Exception:
                 pass
 
+        # Canonical knockout labels: same source of truth as TOC matches +
+        # public bracket. Pull the bracket's authoritative total_rounds.
+        from apps.tournaments.services.round_naming import knockout_round_label
+        fmt = (getattr(tournament, 'format', '') or '').lower()
+        is_pure_knockout = fmt in ('single_elimination', 'double_elimination')
+        bracket_total_rounds = 0
+        if bracket_obj is not None:
+            bracket_total_rounds = int(getattr(bracket_obj, 'total_rounds', 0) or 0)
+        if not bracket_total_rounds:
+            bracket_total_rounds = max(
+                (int(m.round_number or 0) for m in matches), default=0,
+            )
+
         rounds = {}
         all_serialized = []
         for m in matches:
@@ -965,16 +978,28 @@ class TOCBracketsService:
             # Attach group name from participant lookup
             gname = group_lookup.get(m.participant1_id) or group_lookup.get(m.participant2_id) or ""
             serialized["group_name"] = gname
-            # Stage awareness: group_stage matches have no bracket, knockout matches do
-            serialized["stage"] = "knockout" if m.bracket_id else "group_stage"
-            # Bracket round label for knockout matches
-            if m.bracket_id and bracket_obj and hasattr(bracket_obj, 'get_round_name'):
-                try:
-                    serialized["bracket_round_label"] = bracket_obj.get_round_name(rn)
-                except Exception:
-                    serialized["bracket_round_label"] = ""
+            # Stage awareness — keep parity with TOC matches truth contract:
+            # pure-knockout formats are always knockout regardless of bracket_id.
+            if is_pure_knockout:
+                serialized["stage"] = "knockout"
+            elif fmt == 'round_robin':
+                serialized["stage"] = "group_stage"
+            elif fmt == 'swiss':
+                serialized["stage"] = "swiss"
             else:
-                serialized["bracket_round_label"] = ""
+                serialized["stage"] = "knockout" if m.bracket_id else "group_stage"
+            # Canonical round label — same source-of-truth contract as TOC
+            # matches. For pure-knockout formats the canonical labeller wins
+            # over any persisted (potentially stale) bracket_structure label.
+            label = ""
+            if is_pure_knockout and rn:
+                label = knockout_round_label(rn, bracket_total_rounds)
+            elif m.bracket_id and bracket_obj and hasattr(bracket_obj, 'get_round_name'):
+                try:
+                    label = bracket_obj.get_round_name(rn) or ""
+                except Exception:
+                    label = ""
+            serialized["bracket_round_label"] = label
             rounds[rn].append(serialized)
             all_serialized.append(serialized)
 
@@ -1010,13 +1035,42 @@ class TOCBracketsService:
         if hasattr(tournament, 'get_current_stage'):
             current_stage = tournament.get_current_stage()
 
+        # Compute one canonical label per round so the frontend dropdown +
+        # timeline header stay in lockstep with TOC matches/cards.
+        def _round_label_for(rn: int, sample_matches) -> str:
+            if not rn:
+                return ""
+            if is_pure_knockout:
+                return knockout_round_label(rn, bracket_total_rounds) or f"Round {rn}"
+            sample = sample_matches[0] if sample_matches else None
+            if sample and getattr(sample, 'bracket_id', None) and bracket_obj is not None:
+                try:
+                    name = bracket_obj.get_round_name(rn) or ""
+                    if name:
+                        return name
+                except Exception:
+                    pass
+            return f"Round {rn}"
+
+        rounds_payload = []
+        for rn, ms in sorted(rounds.items()):
+            # `ms` is a list of serialized dicts; pull the source match list
+            # for the same round to determine bracket_id.
+            srcs = [m for m in matches if (m.round_number or 0) == rn]
+            rounds_payload.append({
+                "round": rn,
+                "round_label": _round_label_for(rn, srcs),
+                "stage": "knockout" if (
+                    is_pure_knockout
+                    or (srcs and getattr(srcs[0], 'bracket_id', None))
+                ) else ("swiss" if fmt == 'swiss' else "group_stage"),
+                "matches": ms,
+            })
+
         return {
             "total_matches": total,
             "matches": all_serialized,
-            "rounds": [
-                {"round": rn, "matches": ms}
-                for rn, ms in sorted(rounds.items())
-            ],
+            "rounds": rounds_payload,
             "summary": {
                 "total": total,
                 "total_matches": total,
@@ -1568,21 +1622,48 @@ class TOCBracketsService:
 
     @staticmethod
     def _serialize_node(node, team_map=None, is_team=False) -> Dict:
+        # Canonical Match resolution: prefer the linked node.match, then fall
+        # back to a coordinate lookup so older data where the FK was never
+        # set still surfaces real scores/state. Order: (bracket, round, mNo)
+        # → (tournament, round, mNo).
+        match_obj = getattr(node, 'match', None)
+        if not match_obj and node.bracket_id and node.match_number_in_round:
+            try:
+                from apps.tournaments.models.match import Match as _Match
+                match_obj = _Match.objects.filter(
+                    bracket_id=node.bracket_id,
+                    round_number=node.round_number,
+                    match_number=node.match_number_in_round,
+                    is_deleted=False,
+                ).first()
+                if not match_obj:
+                    bracket = getattr(node, 'bracket', None)
+                    tournament_id = getattr(bracket, 'tournament_id', None) if bracket else None
+                    if tournament_id:
+                        match_obj = _Match.objects.filter(
+                            tournament_id=tournament_id,
+                            round_number=node.round_number,
+                            match_number=node.match_number_in_round,
+                            is_deleted=False,
+                        ).first()
+            except Exception:
+                match_obj = None
+
         match_data = None
-        if node.match:
+        if match_obj:
             match_data = {
-                "id": node.match.id,
-                "state": node.match.state,
-                "participant1_score": node.match.participant1_score,
-                "participant2_score": node.match.participant2_score,
-                "winner_id": node.match.winner_id,
+                "id": match_obj.id,
+                "state": match_obj.state,
+                "participant1_score": match_obj.participant1_score,
+                "participant2_score": match_obj.participant2_score,
+                "winner_id": match_obj.winner_id,
                 "scheduled_time": (
-                    node.match.scheduled_time.isoformat()
-                    if node.match.scheduled_time
+                    match_obj.scheduled_time.isoformat()
+                    if match_obj.scheduled_time
                     else None
                 ),
-                "best_of": getattr(node.match, "best_of", 1) or 1,
-                "game_scores": TOCBracketsService._safe_game_scores(node.match),
+                "best_of": getattr(match_obj, "best_of", 1) or 1,
+                "game_scores": TOCBracketsService._safe_game_scores(match_obj),
             }
 
         # Resolve participant names & logos from team_map (overrides denormalized names)

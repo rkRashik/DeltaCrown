@@ -459,7 +459,12 @@ class TournamentLifecycleService:
                     logger.warning("Auto-advance REG_CLOSED→LIVE failed for %s: %s", tournament.id, e)
             return None
 
-        # LIVE → COMPLETED  (when tournament_end is past)
+        # LIVE → COMPLETED  — completion-driven, not just date-driven.
+        # Date-based finalize happens when tournament_end has passed; otherwise
+        # rely on `maybe_finalize_tournament` (called by the wrapup job + match
+        # completion hook) so we don't spin up that pipeline on every overview
+        # poll. We DO try date-based here so an end-of-event header refresh
+        # still corrects a stuck LIVE display.
         if status == Tournament.LIVE:
             if tournament.tournament_end and now >= tournament.tournament_end:
                 try:

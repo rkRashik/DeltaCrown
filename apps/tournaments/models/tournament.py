@@ -854,22 +854,62 @@ class Tournament(SoftDeleteModel, TimestampedModel):
         """
         Return the effective operational status considering inner-stage state.
 
-        For GROUP_PLAYOFF tournaments, if config says knockout is 'live' but
-        the model-level status drifted to 'completed', this returns 'live'
-        because the tournament still has active knockout matches.
+        Truth contract (single source of truth across TOC + HUB + Finalize):
+
+          * A non-deleted `TournamentResult` is the strongest signal that the
+            tournament is finished. If one exists with a winner, the surface
+            status is **always** COMPLETED — even if `self.status` is still
+            `live` (auto-finalize hasn't run yet) and even if stale
+            `config.stages[].status == 'live'` would otherwise mask it.
+
+          * If `status == COMPLETED` AND a TournamentResult exists, the
+            persisted COMPLETED is also authoritative — same rationale.
+
+          * For GROUP_PLAYOFF tournaments WITHOUT a TournamentResult: if the
+            model-level status drifted to COMPLETED but the knockout stage is
+            still marked live in config, surface LIVE so the UI keeps the
+            operational controls visible.
+
+          * Otherwise return the persisted status as-is.
         """
         status = self.status
-        if self.format == self.GROUP_PLAYOFF and status == self.COMPLETED:
+
+        # Step 1: TournamentResult presence trumps everything else.
+        result_with_winner = False
+        try:
+            cache = getattr(self, '_prefetched_objects_cache', None) or {}
+            if 'result' in cache:
+                cached_results = list(cache['result'])
+                if cached_results and getattr(cached_results[0], 'winner_id', None):
+                    result_with_winner = True
+        except (AttributeError, TypeError):
+            pass
+        if not result_with_winner:
+            try:
+                from apps.tournaments.models.result import TournamentResult
+                result_with_winner = TournamentResult.objects.filter(
+                    tournament_id=self.pk, is_deleted=False,
+                ).exclude(winner_id__isnull=True).exists()
+            except Exception:
+                # Defensive: never let this helper raise.
+                result_with_winner = False
+
+        if result_with_winner:
+            return self.COMPLETED
+
+        # Step 2: legacy COMPLETED override — only relevant for group_playoff
+        # when a TournamentResult was never created and stale config still
+        # marks knockout as live.
+        if status == self.COMPLETED and self.format == self.GROUP_PLAYOFF:
             config = self.config or {}
             stage = config.get("current_stage")
             stages = config.get("stages", [])
-            # If knockout stage is marked live in config, tournament is not truly completed
             for s in stages:
                 if s.get("name") == self.STAGE_KNOCKOUT and s.get("status") == "live":
                     return self.LIVE
-            # If current_stage is knockout and bracket is not finalized
             if stage == self.STAGE_KNOCKOUT:
                 return self.LIVE
+
         return status
 
     def get_current_stage(self) -> Optional[str]:

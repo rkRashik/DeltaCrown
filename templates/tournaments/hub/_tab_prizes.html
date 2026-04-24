@@ -25,55 +25,59 @@
     <span class="hub-badge hub-badge-warning" id="prize-tournament-status"></span>
   </div>
 
-  {% comment %}── Prize Pool Showcase ─────────────────────────{% endcomment %}
-  <div id="prize-pool-card" class="relative overflow-hidden rounded-2xl hub-glass border border-white/5 p-6 lg:p-8">
-    <div class="absolute inset-0 bg-gradient-to-br from-[#FFB800]/5 via-transparent to-[#7000FF]/5 pointer-events-none"></div>
-    <div class="relative z-10">
-
-      {# Skeleton #}
-      <div id="prize-pool-skeleton" class="space-y-4 animate-pulse">
-        <div class="h-4 w-24 bg-white/10 rounded"></div>
-        <div class="h-10 w-48 bg-white/10 rounded"></div>
-        <div class="flex gap-6 mt-4">
-          <div class="h-6 w-32 bg-white/10 rounded"></div>
-          <div class="h-6 w-32 bg-white/10 rounded"></div>
-        </div>
+  {% comment %}── Prize Engine: pool + placement tiers + special awards (loaded from /api/prizes/) ───{% endcomment %}
+  <div id="hub-prize-engine"
+       data-prize-overview-url="{% url 'tournaments:detail_prize_overview' slug=tournament.slug %}"
+       class="space-y-6">
+    <div id="prize-engine-loading" class="rounded-2xl hub-glass border border-white/5 p-6 animate-pulse">
+      <div class="h-4 w-24 bg-white/10 rounded mb-3"></div>
+      <div class="h-10 w-48 bg-white/10 rounded mb-4"></div>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="h-28 bg-white/5 rounded-xl"></div>
+        <div class="h-28 bg-white/5 rounded-xl"></div>
+        <div class="h-28 bg-white/5 rounded-xl"></div>
       </div>
+    </div>
 
-      {# Real Content (hidden until JS populates) #}
-      <div id="prize-pool-content" class="hidden">
-        <p class="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">Total Prize Pool</p>
-        <div class="flex items-baseline gap-3 flex-wrap">
-          <span id="prize-pool-amount" class="text-4xl lg:text-5xl font-black text-[#FFB800]"
-                style="font-family:Outfit,sans-serif; text-shadow:0 0 40px rgba(255,184,0,0.3);">—</span>
-          <span id="prize-pool-currency" class="text-lg font-bold text-gray-400">BDT</span>
-        </div>
-        <div class="flex items-center gap-6 mt-4 flex-wrap">
-          <div class="flex items-center gap-2">
+    <div id="prize-engine-pool" class="hidden relative overflow-hidden rounded-2xl hub-glass border border-white/5 p-6 lg:p-8">
+      <div class="absolute inset-0 bg-gradient-to-br from-[#FFB800]/5 via-transparent to-[#7000FF]/5 pointer-events-none"></div>
+      <div class="relative z-10 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+        <div>
+          <p class="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">Total Prize Pool</p>
+          <div class="flex items-baseline gap-3 flex-wrap">
+            <span id="prize-engine-fiat" class="text-4xl lg:text-5xl font-black text-[#FFB800]"
+                  style="font-family:Outfit,sans-serif; text-shadow:0 0 40px rgba(255,184,0,0.3);">—</span>
+            <span id="prize-engine-currency" class="text-lg font-bold text-gray-400">BDT</span>
+          </div>
+          <div class="flex items-center gap-2 mt-3">
             <i data-lucide="coins" class="w-4 h-4 text-[#00F0FF]"></i>
-            <span class="text-sm text-gray-300"><span id="prize-deltacoin" class="font-bold text-[#00F0FF]">0</span> DeltaCoin</span>
+            <span class="text-sm text-gray-300"><span id="prize-engine-coins" class="font-bold text-[#00F0FF]">0</span> DeltaCoin</span>
           </div>
         </div>
+        <div class="flex items-center gap-2">
+          <span id="prize-engine-finalized" class="hidden hub-badge hub-badge-success">Finalized</span>
+          <span id="prize-engine-certs" class="hidden hub-badge hub-badge-info">
+            <i data-lucide="award" class="w-3 h-3 mr-1"></i> Certificates Enabled
+          </span>
+        </div>
       </div>
     </div>
-  </div>
 
-  {% comment %}── Prize Distribution Breakdown ─────────────────{% endcomment %}
-  <div>
-    <p class="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-4">Distribution Breakdown</p>
-
-    {# Skeleton #}
-    <div id="prize-dist-skeleton" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 animate-pulse">
-      <div class="h-24 bg-white/5 rounded-xl border border-white/5"></div>
-      <div class="h-24 bg-white/5 rounded-xl border border-white/5"></div>
-      <div class="h-24 bg-white/5 rounded-xl border border-white/5"></div>
+    <div id="prize-engine-tiers-wrap" class="hidden">
+      <p class="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-4">Placement Tiers</p>
+      <div id="prize-engine-tiers" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
     </div>
 
-    {# Real #}
-    <div id="prize-dist-content" class="hidden grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-      {# JS injects placement cards here #}
+    <div id="prize-engine-awards-wrap" class="hidden">
+      <p class="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-4">
+        <i data-lucide="award" class="w-3 h-3 inline-block text-[#FFB800] mr-1 align-text-bottom"></i>
+        Special Awards
+      </p>
+      <div id="prize-engine-awards" class="grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
     </div>
   </div>
+
+  {# Renderer logic lives in static/tournaments/js/hub-prize-engine.js (loaded by hub.html). #}
 
   {% comment %}── Your Prizes (if any) ─────────────────────────{% endcomment %}
   <div id="your-prizes-section" class="hidden">

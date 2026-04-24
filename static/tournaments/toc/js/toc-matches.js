@@ -257,6 +257,7 @@
   let allMatches = [];
   let filteredMatches = [];
   let selectedMatchId = null;
+  let _lastRoundOptions = [];
   let selectedMatchDetail = null;
   let activeGroupFilter = '';
   let activeStageFilter = '';
@@ -403,7 +404,7 @@
     if (!force && hasFreshCache(queryKey)) {
       applyGroupFilter();
       renderStats(allMatches, _matchesStateCounts, matchesPagination.total_count);
-      populateRoundFilter(allMatches);
+      populateRoundFilter(allMatches, _lastRoundOptions);
       populateGroupPills(allMatches);
       renderPaginationControls();
       setMatchesSyncStatus('ok');
@@ -435,6 +436,7 @@
         allMatches = data.matches || [];
         _currentStage = data.current_stage || null;
         _matchesStateCounts = (data && typeof data.state_counts === 'object' && data.state_counts) ? data.state_counts : {};
+        _lastRoundOptions = Array.isArray(data.round_options) ? data.round_options : [];
 
         const meta = (data && data.pagination && typeof data.pagination === 'object') ? data.pagination : {};
         matchesPagination.page = Number(meta.page || matchesPagination.page || 1);
@@ -452,7 +454,7 @@
 
         applyGroupFilter();
         renderStats(allMatches, _matchesStateCounts, matchesPagination.total_count);
-        populateRoundFilter(allMatches);
+        populateRoundFilter(allMatches, _lastRoundOptions);
         populateGroupPills(allMatches);
         renderStageTabs();
         renderPaginationControls();
@@ -637,16 +639,43 @@
     el('disputed', counts.disputed != null ? counts.disputed : fallback.disputed);
   }
 
-  /* --- Round filter ---------------------------------------- */
-  function populateRoundFilter(matches) {
+  /* --- Round filter ----------------------------------------
+     Prefers the canonical `round_options` payload from the matches API
+     (which carries Quarterfinals/Semifinals/Final labels) and falls back
+     to deriving labels from the loaded match cards on the current page.
+  ---------------------------------------------------------- */
+  function populateRoundFilter(matches, roundOptions) {
     var sel = $('#match-filter-round');
     if (!sel) return;
-    var roundSet = {};
-    matches.forEach(function (m) { roundSet[m.round_number] = true; });
-    var rounds = Object.keys(roundSet).map(Number).sort(function (a, b) { return a - b; });
+
+    var options = [];
+    if (Array.isArray(roundOptions) && roundOptions.length) {
+      options = roundOptions.map(function (o) {
+        return { value: o.value, label: o.label || ('Round ' + o.value) };
+      });
+    } else {
+      // Fallback: derive from loaded matches, prefer bracket_round_label.
+      var labelByRound = {};
+      (matches || []).forEach(function (m) {
+        var rn = Number(m.round_number) || 0;
+        if (!rn) return;
+        if (!labelByRound[rn] && m.bracket_round_label) {
+          labelByRound[rn] = m.bracket_round_label;
+        } else if (!labelByRound[rn]) {
+          labelByRound[rn] = 'Round ' + rn;
+        }
+      });
+      Object.keys(labelByRound).map(Number).sort(function (a, b) { return a - b; })
+        .forEach(function (r) { options.push({ value: r, label: labelByRound[r] }); });
+    }
+
     var current = sel.value;
     sel.innerHTML = '<option value="">All Rounds</option>' +
-      rounds.map(function (r) { return '<option value="' + r + '"' + (String(r) === current ? ' selected' : '') + '>Round ' + r + '</option>'; }).join('');
+      options.map(function (o) {
+        return '<option value="' + o.value + '"'
+          + (String(o.value) === current ? ' selected' : '')
+          + '>' + o.label + '</option>';
+      }).join('');
   }
 
   /* ============================================================
@@ -927,7 +956,8 @@
 
     var roundEl = $('#detail-round');
     if (roundEl) {
-      roundEl.textContent = 'Round ' + m.round_number + (m.scheduled_time ? ' | ' + formatDateTime(m.scheduled_time) : '');
+      var detailRoundLabel = m.bracket_round_label || ('Round ' + m.round_number);
+      roundEl.textContent = detailRoundLabel + (m.scheduled_time ? ' | ' + formatDateTime(m.scheduled_time) : '');
     }
 
     renderAvatar('detail-avatar-a', m.participant1_avatar_url || m.p1_logo_url || m.participant1_logo_url);

@@ -360,14 +360,17 @@
    * ═══════════════════════════════════════════════════════════════ */
 
   function renderFilters() {
-    // Populate round dropdown from data
+    // Populate round dropdown from data — prefer canonical round_label
+    // (Quarterfinal / Semifinal / Final) emitted by the schedule API.
     const roundSelect = $('#sched-filter-round');
     if (roundSelect && roundSelect.options.length <= 1) {
-      const rounds = (state.data?.rounds || []).map(r => r.round).sort((a, b) => a - b);
-      rounds.forEach(rn => {
+      const rounds = (state.data?.rounds || [])
+        .slice()
+        .sort((a, b) => (a.round || 0) - (b.round || 0));
+      rounds.forEach(r => {
         const opt = document.createElement('option');
-        opt.value = rn;
-        opt.textContent = `Round ${rn}`;
+        opt.value = r.round;
+        opt.textContent = r.round_label || `Round ${r.round}`;
         roundSelect.appendChild(opt);
       });
     }
@@ -449,22 +452,37 @@
       return;
     }
 
+    // Map round_number → canonical label (Quarterfinal/Semifinal/Final).
+    const labelByRound = {};
+    (state.data?.rounds || []).forEach(r => {
+      if (r && r.round != null) labelByRound[String(r.round)] = r.round_label || '';
+    });
+    // Secondary: pull from any match that already has bracket_round_label.
+    matches.forEach(m => {
+      const k = String(m.round_number || '');
+      if (k && !labelByRound[k] && m.bracket_round_label) {
+        labelByRound[k] = m.bracket_round_label;
+      }
+    });
+
     container.innerHTML = roundKeys.map(rn => {
       const roundMatches = rounds[rn];
       const scheduled = roundMatches.filter(m => m.scheduled_time).length;
       const completed = roundMatches.filter(m => m.state === 'completed' || m.state === 'forfeit').length;
       const live = roundMatches.filter(m => m.state === 'live').length;
       const pct = roundMatches.length > 0 ? Math.round((completed / roundMatches.length) * 100) : 0;
+      const label = labelByRound[String(rn)] || `Round ${rn}`;
+      const badge = label && label !== `Round ${rn}` ? label.split(' ').map(s => s[0] || '').join('').slice(0, 3).toUpperCase() : `R${rn}`;
 
       return `
         <div class="mb-8">
           <div class="flex items-center gap-4 mb-4">
             <div class="w-10 h-10 rounded-xl bg-theme/10 border border-theme/20 flex items-center justify-center shrink-0">
-              <span class="text-xs font-mono font-black text-theme">R${rn}</span>
+              <span class="text-xs font-mono font-black text-theme">${_esc(badge)}</span>
             </div>
             <div class="flex-1">
               <div class="flex items-center gap-3">
-                <h4 class="text-sm font-bold text-white uppercase tracking-widest">Round ${rn}</h4>
+                <h4 class="text-sm font-bold text-white uppercase tracking-widest">${_esc(label)}</h4>
                 <span class="text-[10px] font-mono text-dc-text">${roundMatches.length} match${roundMatches.length !== 1 ? 'es' : ''}</span>
                 ${live > 0 ? '<span class="text-[9px] font-bold text-dc-success bg-dc-success/15 px-2 py-0.5 rounded-full border border-dc-success/30 animate-pulse">' + live + ' LIVE</span>' : ''}
               </div>

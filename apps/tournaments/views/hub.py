@@ -18,6 +18,7 @@ from urllib.parse import urlencode
 
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db import models
+from django.db.models import Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -3077,13 +3078,25 @@ class HubBracketAPIView(LoginRequiredMixin, View):
         if tournament.format == Tournament.GROUP_PLAYOFF and has_groups:
             projected_pairs = _build_projected_cross_match_pairs(group_rows)
 
-        # Build rounds data from matches
+        # Build rounds data from matches.
+        # When a bracket exists we want matches LINKED to it, but legacy
+        # generators sometimes left bracket_id NULL for SE/DE matches. To
+        # stay consistent with the TOC bracket (which iterates BracketNodes
+        # and falls back to coordinate lookup), include unlinked matches in
+        # the same round_numbers when the format is pure-knockout.
+        fmt_initial = (getattr(tournament, 'format', '') or '').lower()
+        is_pure_knockout_initial = fmt_initial in ('single_elimination', 'double_elimination')
         matches_qs = Match.objects.filter(
             tournament=tournament,
             is_deleted=False,
         )
         if bracket is not None:
-            matches_qs = matches_qs.filter(bracket=bracket)
+            if is_pure_knockout_initial:
+                matches_qs = matches_qs.filter(
+                    Q(bracket=bracket) | Q(bracket__isnull=True)
+                )
+            else:
+                matches_qs = matches_qs.filter(bracket=bracket)
         else:
             # Round-robin/group-derived schedules may not have a Bracket row.
             matches_qs = matches_qs.filter(bracket__isnull=True)
@@ -3162,6 +3175,18 @@ class HubBracketAPIView(LoginRequiredMixin, View):
                 group_name = group_name_by_id[group_id]
             return group_id, group_name
 
+        # Canonical round-name source — same contract as TOC matches/schedule.
+        from apps.tournaments.services.round_naming import knockout_round_label
+        fmt = (getattr(tournament, 'format', '') or '').lower()
+        is_pure_knockout = fmt in ('single_elimination', 'double_elimination')
+        bracket_total_rounds = 0
+        if bracket is not None:
+            bracket_total_rounds = int(getattr(bracket, 'total_rounds', 0) or 0)
+        if not bracket_total_rounds:
+            bracket_total_rounds = max(
+                (int(m.round_number or 0) for m in matches), default=0,
+            )
+
         rounds = {}
         group_sections = {}
         for m in matches:
@@ -3169,9 +3194,21 @@ class HubBracketAPIView(LoginRequiredMixin, View):
             group_id = None
             group_name = ''
 
-            if bracket is not None:
+            # Treat pure-knockout formats as single bracket-keyed stream
+            # even if individual matches lack bracket_id linkage — keeps
+            # HUB labels aligned with TOC matches/schedule for SE/DE.
+            if bracket is not None or is_pure_knockout:
                 round_key = f'bracket:{rn}'
-                round_name = bracket.get_round_name(rn)
+                round_name = ''
+                if bracket is not None and m.bracket_id:
+                    try:
+                        round_name = bracket.get_round_name(rn) or ''
+                    except Exception:
+                        round_name = ''
+                if not round_name and is_pure_knockout and rn:
+                    round_name = knockout_round_label(rn, bracket_total_rounds)
+                if not round_name:
+                    round_name = f'Round {rn}' if rn else 'Round'
             else:
                 group_id, group_name = _extract_group_meta(m)
                 group_key = group_id if group_id is not None else (group_name.lower() if group_name else 'ungrouped')
@@ -3193,12 +3230,22 @@ class HubBracketAPIView(LoginRequiredMixin, View):
                 }
 
             _lobby = _rls_bracket(m, now=_bracket_now)
+            # Phase classification mirrors TOC truth contract:
+            # pure-knockout formats are always knockout regardless of bracket_id.
+            if is_pure_knockout:
+                phase_value = 'knockout_stage'
+            elif fmt == 'round_robin':
+                phase_value = 'group_stage'
+            elif fmt == 'swiss':
+                phase_value = 'swiss'
+            else:
+                phase_value = 'knockout_stage' if m.bracket_id else 'group_stage'
             serialized_match = {
                 'id': m.id,
                 'match_number': m.match_number,
                 'state': m.state,
                 'state_display': m.get_state_display(),
-                'phase': 'group_stage' if m.bracket_id is None else 'knockout_stage',
+                'phase': phase_value,
                 'participant1': {
                     'id': m.participant1_id,
                     'name': m.participant1_name or 'TBD',
@@ -3925,8 +3972,22 @@ class HubMatchesAPIView(LoginRequiredMixin, View):
                 opponent_score = m.participant2_score if is_p1 else m.participant1_score
                 is_winner = inferred_winner_id == participant_id if inferred_winner_id else None
 
-            is_knockout_match = bool(m.bracket_id)
-            if is_knockout_match and bracket:
+            # Canonical stage classifier — same contract as TOC matches.
+            from apps.tournaments.services.round_naming import knockout_round_label as _knockout_label
+            _fmt = (getattr(tournament, 'format', '') or '').lower()
+            _is_pure_knockout = _fmt in ('single_elimination', 'double_elimination')
+            if _is_pure_knockout:
+                is_knockout_match = True
+            elif _fmt == 'round_robin':
+                is_knockout_match = False
+            elif _fmt == 'swiss':
+                is_knockout_match = False
+            else:
+                is_knockout_match = bool(m.bracket_id)
+            if _is_pure_knockout and m.round_number:
+                _total = int(getattr(bracket, 'total_rounds', 0) or 0)
+                round_name = _knockout_label(m.round_number, _total) or f'Round {m.round_number}'
+            elif is_knockout_match and bracket and m.bracket_id:
                 round_name = bracket.get_round_name(m.round_number)
             elif is_knockout_match:
                 round_name = f'Round {m.round_number}'
