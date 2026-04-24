@@ -953,18 +953,19 @@ class TOCBracketsService:
             except Exception:
                 pass
 
-        # Canonical knockout labels: same source of truth as TOC matches +
-        # public bracket. Pull the bracket's authoritative total_rounds.
+        # Canonical knockout labels: route ALL via match_classification so the
+        # schedule, TOC matches, HUB schedule, and public detail Matches stay
+        # in lockstep.
         from apps.tournaments.services.round_naming import knockout_round_label
+        from apps.tournaments.services.match_classification import (
+            compute_round_label as _canonical_round_label,
+            classify_stage as _canonical_classify_stage,
+            tournament_total_rounds as _canonical_total_rounds,
+            is_pure_knockout as _is_pure_knockout,
+        )
         fmt = (getattr(tournament, 'format', '') or '').lower()
-        is_pure_knockout = fmt in ('single_elimination', 'double_elimination')
-        bracket_total_rounds = 0
-        if bracket_obj is not None:
-            bracket_total_rounds = int(getattr(bracket_obj, 'total_rounds', 0) or 0)
-        if not bracket_total_rounds:
-            bracket_total_rounds = max(
-                (int(m.round_number or 0) for m in matches), default=0,
-            )
+        is_pure_knockout = _is_pure_knockout(fmt)
+        bracket_total_rounds = _canonical_total_rounds(tournament, bracket=bracket_obj)
 
         rounds = {}
         all_serialized = []
@@ -978,28 +979,11 @@ class TOCBracketsService:
             # Attach group name from participant lookup
             gname = group_lookup.get(m.participant1_id) or group_lookup.get(m.participant2_id) or ""
             serialized["group_name"] = gname
-            # Stage awareness — keep parity with TOC matches truth contract:
-            # pure-knockout formats are always knockout regardless of bracket_id.
-            if is_pure_knockout:
-                serialized["stage"] = "knockout"
-            elif fmt == 'round_robin':
-                serialized["stage"] = "group_stage"
-            elif fmt == 'swiss':
-                serialized["stage"] = "swiss"
-            else:
-                serialized["stage"] = "knockout" if m.bracket_id else "group_stage"
-            # Canonical round label — same source-of-truth contract as TOC
-            # matches. For pure-knockout formats the canonical labeller wins
-            # over any persisted (potentially stale) bracket_structure label.
-            label = ""
-            if is_pure_knockout and rn:
-                label = knockout_round_label(rn, bracket_total_rounds)
-            elif m.bracket_id and bracket_obj and hasattr(bracket_obj, 'get_round_name'):
-                try:
-                    label = bracket_obj.get_round_name(rn) or ""
-                except Exception:
-                    label = ""
-            serialized["bracket_round_label"] = label
+            serialized["stage"] = _canonical_classify_stage(tournament, m)
+            serialized["bracket_round_label"] = _canonical_round_label(
+                tournament, m, bracket=bracket_obj,
+                total_rounds=bracket_total_rounds,
+            )
             rounds[rn].append(serialized)
             all_serialized.append(serialized)
 

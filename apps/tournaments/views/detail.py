@@ -832,11 +832,18 @@ class TournamentDetailView(DetailView):
                 value = value.replace(source, target)
             return value
 
+        # Canonical classifier — single source of truth shared with TOC + HUB.
+        from apps.tournaments.services.match_classification import (
+            classify_stage as _classify_stage,
+            compute_round_label as _compute_round_label,
+            tournament_total_rounds as _tournament_total_rounds,
+        )
+        _canonical_total_rounds = _tournament_total_rounds(tournament)
         for match in matches_qs:
-            if tournament.format == tournament.GROUP_PLAYOFF:
-                phase = 'group_stage' if match.bracket is None else 'knockout_stage'
-            else:
-                phase = 'knockout_stage'
+            stage_value = _classify_stage(tournament, match)
+            phase = 'knockout_stage' if stage_value == 'knockout' else (
+                'swiss' if stage_value == 'swiss' else 'group_stage'
+            )
 
             if match.state == 'live':
                 ui_status = 'live'
@@ -869,48 +876,10 @@ class TournamentDetailView(DetailView):
                     group_name = groups_map.get(gid, '')
 
             if phase == 'knockout_stage' and match.round_number:
-                # For double-elimination, round_number maps sequentially:
-                # UB-R1=1, UB-QF=2, UB-SF=3, UB-F=4, LB-R1=5..LB-F=10, GF=11
-                # For single-elimination: round 1=R1, last=Final
-                if tournament.format == 'double_elimination':
-                    de_round_labels = {
-                        1: 'UB Round 1', 2: 'UB Quarter-Final', 3: 'UB Semi-Final', 4: 'UB Final',
-                        5: 'LB Round 1', 6: 'LB Round 2', 7: 'LB Round 3', 8: 'LB Round 4',
-                        9: 'LB Semi-Final', 10: 'LB Final', 11: 'Grand Final',
-                    }
-                    round_label = de_round_labels.get(match.round_number, f'Round {match.round_number}')
-                else:
-                    bracket_round_label = ''
-                    if getattr(match, 'bracket_id', None) and getattr(match, 'bracket', None):
-                        try:
-                            bracket_round_label = _normalize_round_label(
-                                match.bracket.get_round_name(match.round_number)
-                            )
-                        except Exception:
-                            bracket_round_label = ''
-
-                    if bracket_round_label:
-                        round_label = bracket_round_label
-                    else:
-                        # Single-elim: highest round_number is final, lower rounds
-                        # step backwards through semi/quarter/round-of labels.
-                        if knockout_round_max is not None:
-                            steps_from_final = knockout_round_max - match.round_number
-                            if steps_from_final == 0:
-                                round_label = 'Final'
-                            elif steps_from_final == 1:
-                                round_label = 'Semi Final'
-                            elif steps_from_final == 2:
-                                round_label = 'Quarter Final'
-                            elif steps_from_final == 3:
-                                round_label = 'Round of 16'
-                            elif steps_from_final == 4:
-                                round_label = 'Round of 32'
-                            else:
-                                round_size = 2 ** (steps_from_final + 1)
-                                round_label = f'Round of {round_size}'
-                        else:
-                            round_label = f'Round {match.round_number}'
+                round_label = _compute_round_label(
+                    tournament, match,
+                    total_rounds=_canonical_total_rounds,
+                ) or f'Round {match.round_number}'
 
             round_label = _normalize_round_label(round_label)
 

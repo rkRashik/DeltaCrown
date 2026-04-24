@@ -3367,7 +3367,17 @@ class HubBracketAPIView(LoginRequiredMixin, View):
                 except (TypeError, ValueError):
                     match_count = 0
 
-                round_name = sr.get('round_name') or bracket.get_round_name(rn) or f'Round {rn}'
+                # Canonical labeller wins for pure-knockout — overrides any
+                # stale plural names persisted in bracket_structure.
+                from apps.tournaments.services.match_classification import (
+                    compute_round_label as _crl,
+                )
+                from types import SimpleNamespace as _SN
+                round_name = _crl(
+                    tournament,
+                    _SN(round_number=rn, bracket_id=getattr(bracket, 'id', None)),
+                    bracket=bracket,
+                ) or sr.get('round_name') or f'Round {rn}'
                 round_payload = rounds_by_number.get(rn)
                 if round_payload is None:
                     round_payload = {
@@ -3405,6 +3415,60 @@ class HubBracketAPIView(LoginRequiredMixin, View):
                             slot_payload.get('participant2_id'),
                             slot_payload.get('participant2_name'),
                         )
+                        continue
+
+                    # Before emitting a synthetic TBD placeholder, try to
+                    # resolve a real Match by coordinate. Older bracket
+                    # generators sometimes leave Match.bracket_id NULL but
+                    # the Match still exists with the same round / match_no.
+                    resolved = None
+                    try:
+                        from apps.tournaments.services.match_classification import (
+                            resolve_match_for_node,
+                        )
+                        from types import SimpleNamespace as _SN
+                        resolved = resolve_match_for_node(
+                            _SN(
+                                match=None,
+                                bracket=bracket,
+                                bracket_id=getattr(bracket, 'id', None),
+                                round_number=rn,
+                                match_number_in_round=mi,
+                            ),
+                            tournament=tournament,
+                        )
+                    except Exception:
+                        resolved = None
+
+                    if resolved is not None:
+                        winner_id = getattr(resolved, 'winner_id', None)
+                        p1_id = resolved.participant1_id or slot_payload.get('participant1_id')
+                        p2_id = resolved.participant2_id or slot_payload.get('participant2_id')
+                        p1_name = resolved.participant1_name or slot_payload.get('participant1_name', '')
+                        p2_name = resolved.participant2_name or slot_payload.get('participant2_name', '')
+                        placeholder_matches.append({
+                            'id': resolved.id,
+                            'match_number': mi,
+                            'state': resolved.state,
+                            'state_display': resolved.get_state_display(),
+                            'phase': 'knockout_stage',
+                            'participant1': {
+                                'id': p1_id,
+                                'name': p1_name or 'TBD',
+                                'score': resolved.participant1_score,
+                                'is_winner': bool(winner_id and winner_id == p1_id),
+                                'logo_url': slot_media_map.get(p1_id, '') if p1_id else '',
+                            },
+                            'participant2': {
+                                'id': p2_id,
+                                'name': p2_name or 'TBD',
+                                'score': resolved.participant2_score,
+                                'is_winner': bool(winner_id and winner_id == p2_id),
+                                'logo_url': slot_media_map.get(p2_id, '') if p2_id else '',
+                            },
+                            'scheduled_at': resolved.scheduled_time.isoformat() if resolved.scheduled_time else None,
+                            'lobby_state': 'completed' if resolved.state in ('completed', 'forfeit') else 'upcoming_not_open',
+                        })
                         continue
 
                     placeholder_matches.append({
@@ -3972,24 +4036,18 @@ class HubMatchesAPIView(LoginRequiredMixin, View):
                 opponent_score = m.participant2_score if is_p1 else m.participant1_score
                 is_winner = inferred_winner_id == participant_id if inferred_winner_id else None
 
-            # Canonical stage classifier — same contract as TOC matches.
-            from apps.tournaments.services.round_naming import knockout_round_label as _knockout_label
-            _fmt = (getattr(tournament, 'format', '') or '').lower()
-            _is_pure_knockout = _fmt in ('single_elimination', 'double_elimination')
-            if _is_pure_knockout:
-                is_knockout_match = True
-            elif _fmt == 'round_robin':
-                is_knockout_match = False
-            elif _fmt == 'swiss':
-                is_knockout_match = False
-            else:
-                is_knockout_match = bool(m.bracket_id)
-            if _is_pure_knockout and m.round_number:
-                _total = int(getattr(bracket, 'total_rounds', 0) or 0)
-                round_name = _knockout_label(m.round_number, _total) or f'Round {m.round_number}'
-            elif is_knockout_match and bracket and m.bracket_id:
-                round_name = bracket.get_round_name(m.round_number)
-            elif is_knockout_match:
+            # Canonical stage + label — single source of truth.
+            from apps.tournaments.services.match_classification import (
+                classify_stage as _classify_stage,
+                compute_round_label as _compute_round_label,
+            )
+            stage_value = _classify_stage(tournament, m)
+            is_knockout_match = stage_value == 'knockout'
+            if is_knockout_match:
+                round_name = _compute_round_label(
+                    tournament, m, bracket=bracket,
+                ) or f'Round {m.round_number}'
+            elif stage_value == 'swiss':
                 round_name = f'Round {m.round_number}'
             else:
                 round_name = 'Group Stage'

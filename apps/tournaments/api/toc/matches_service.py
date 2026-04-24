@@ -98,11 +98,20 @@ class TOCMatchesService:
             )
         if group:
             qs = qs.filter(lobby_info__group_label=group)
-        # Stage filter: group_stage = bracket is NULL, knockout = bracket is NOT NULL
-        if stage == 'group_stage':
-            qs = qs.filter(bracket__isnull=True)
-        elif stage in ('knockout', 'knockout_stage'):
-            qs = qs.filter(bracket__isnull=False)
+        # Canonical stage filter — same truth contract as match cards.
+        # For pure-knockout formats, bracket FK presence is NOT a discriminator
+        # (legacy generators left bracket_id null). Use the canonical helper
+        # so `stage=knockout` doesn't accidentally drop semifinal/final
+        # matches that lack the FK.
+        if stage:
+            from apps.tournaments.services.match_classification import (
+                stage_filter_q,
+            )
+            stage_q = stage_filter_q(
+                getattr(tournament, 'format', ''), stage,
+            )
+            if stage_q is not None:
+                qs = qs.filter(stage_q)
 
         state_counts = {
             str(row.get('state') or ''): int(row.get('count') or 0)
@@ -190,19 +199,13 @@ class TOCMatchesService:
                 if bracket_total > 0:
                     total_rounds = bracket_total
 
-        is_pure_knockout = tournament_format in _PURE_KNOCKOUT_FORMATS
+        from apps.tournaments.services.match_classification import (
+            compute_round_label as _canonical_round_label,
+        )
         for m in page_matches:
-            label = ''
-            if is_pure_knockout and m.round_number:
-                # Canonical labels override stale bracket_structure.
-                label = _knockout_round_label(m.round_number, total_rounds)
-            elif m.bracket_id and bracket:
-                # group_playoff playoffs / unknown formats: read the bracket.
-                try:
-                    label = bracket.get_round_name(m.round_number) or ''
-                except (AttributeError, ValueError):
-                    label = ''
-            bracket_round_names[m.id] = label
+            bracket_round_names[m.id] = _canonical_round_label(
+                tournament, m, bracket=bracket, total_rounds=total_rounds,
+            )
 
         matches = [
             cls._serialize_match(
@@ -261,13 +264,17 @@ class TOCMatchesService:
         total_rounds: int,
     ) -> List[Dict[str, Any]]:
         """
-        Build [{value, label, stage}] entries for the round filter dropdown.
+        Build `[{value, label, stage}]` for the round filter dropdown.
 
-        Pulls every distinct (round_number, bracket_id is null/not null) pair
-        from the tournament's matches, then asks the canonical labeller for
-        a label. Stage tags follow the same rules as `_resolve_stage`.
+        Routes ALL labels through the canonical helper so the dropdown
+        always agrees with match cards.
         """
-        from apps.brackets.models import Bracket as _Bracket  # local to keep import scope tight
+        from types import SimpleNamespace
+        from apps.tournaments.services.match_classification import (
+            compute_round_label,
+            classify_stage,
+            tournament_total_rounds,
+        )
 
         rows = (
             Match.objects.filter(tournament=tournament, is_deleted=False)
@@ -279,54 +286,30 @@ class TOCMatchesService:
             return []
 
         if bracket is None:
+            from apps.brackets.models import Bracket as _Bracket
             try:
                 bracket = _Bracket.objects.filter(tournament=tournament).first()
             except Exception:
                 bracket = None
 
-        # Recompute total_rounds from the full match set so the labeller
-        # produces correct distance-from-final values (the page-scoped value
-        # passed in may be too small).
-        full_total_rounds = total_rounds
-        try:
-            full_total_rounds = max(
-                full_total_rounds,
-                max((int(rn or 0) for rn, _ in rows), default=0),
-            )
-        except (TypeError, ValueError):
-            pass
-        if bracket is not None:
-            bracket_total = int(getattr(bracket, 'total_rounds', 0) or 0)
-            if bracket_total > 0:
-                full_total_rounds = bracket_total
+        full_total_rounds = tournament_total_rounds(tournament, bracket=bracket)
 
         seen = set()
         options: List[Dict[str, Any]] = []
-        fmt = (tournament_format or '').lower()
-        is_pure_knockout = fmt in _PURE_KNOCKOUT_FORMATS
         for round_number, bracket_id in rows:
             if not round_number or round_number in seen:
                 continue
             seen.add(round_number)
-            label = ''
-            # Canonical labeller has priority for knockout-shaped tournaments.
-            if is_pure_knockout:
-                label = _knockout_round_label(round_number, full_total_rounds)
-            elif bracket and bracket_id:
-                try:
-                    label = bracket.get_round_name(round_number) or ''
-                except Exception:
-                    label = ''
-            if not label:
-                label = f'Round {round_number}'
-            if is_pure_knockout:
-                stage = 'knockout'
-            elif fmt == 'round_robin':
-                stage = 'group_stage'
-            elif fmt == 'swiss':
-                stage = 'swiss'
-            else:
-                stage = 'knockout' if bracket_id else 'group_stage'
+            shim = SimpleNamespace(
+                round_number=round_number,
+                bracket_id=bracket_id,
+            )
+            label = compute_round_label(
+                tournament, shim,
+                bracket=bracket,
+                total_rounds=full_total_rounds,
+            ) or f'Round {round_number}'
+            stage = classify_stage(tournament, shim)
             options.append({
                 'value': int(round_number),
                 'label': label,
@@ -1134,27 +1117,12 @@ class TOCMatchesService:
 
     @staticmethod
     def _resolve_stage(m: Match, tournament_format: str) -> str:
-        """Classify a match as 'knockout', 'group_stage', or 'swiss'.
-
-        Truth contract:
-          * single_elimination / double_elimination → always 'knockout'
-            (regardless of whether bracket_id was attached during generation).
-          * round_robin → always 'group_stage' (RR has no bracket).
-          * swiss → always 'swiss' (Swiss has no bracket tree).
-          * group_playoff → bracket_id presence is the source of truth: a
-            playoff match attached to a bracket is knockout; a group-phase
-            match without bracket_id is group_stage.
-          * Unknown formats fall back to bracket_id heuristic.
-        """
-        fmt = (tournament_format or '').lower()
-        if fmt == 'round_robin':
-            return 'group_stage'
-        if fmt == 'swiss':
-            return 'swiss'
-        if fmt in _PURE_KNOCKOUT_FORMATS:
-            return 'knockout'
-        # group_playoff and unknown formats: bracket_id is the source of truth.
-        return 'knockout' if m.bracket_id else 'group_stage'
+        """Delegate to the canonical classifier (single source of truth)."""
+        from apps.tournaments.services.match_classification import classify_stage
+        # `tournament_format` may not carry a tournament object; build a
+        # minimal shim so we don't need a DB roundtrip.
+        from types import SimpleNamespace
+        return classify_stage(SimpleNamespace(format=tournament_format), m)
 
     # ── Private helpers ──────────────────────────────────────
 
