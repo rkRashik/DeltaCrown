@@ -538,6 +538,20 @@ class TOCService:
         """Build organizer guidance for lifecycle progression in the Overview tab."""
         status = str(getattr(tournament, 'get_effective_status', lambda: tournament.status)() or '').lower()
         fmt = str(tournament.format or '').lower().replace('-', '_')
+
+        # Secondary completed check: TournamentResult with winner is the
+        # strongest proof the event is over, regardless of persisted status.
+        # This catches the case where status is still 'live' but the bracket
+        # is done (auto_advance hasn't fired yet in the current request cycle).
+        if status not in ('completed', 'archived'):
+            try:
+                from apps.tournaments.models.result import TournamentResult as _TR
+                if _TR.objects.filter(
+                    tournament_id=tournament.pk, is_deleted=False,
+                ).exclude(winner_id__isnull=True).exists():
+                    status = 'completed'
+            except Exception:
+                pass
         is_group_flow = fmt in ('group_playoff', 'group_stage')
 
         groups_drawn = False

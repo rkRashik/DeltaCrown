@@ -2673,18 +2673,16 @@
                         <span class="font-display font-bold text-white text-sm flex items-center gap-2"><i data-lucide="trophy" class="w-4 h-4 text-theme"></i> Prizes</span>
                         <i data-lucide="chevron-down" class="w-4 h-4 text-dc-text group-open:rotate-180 transition-transform"></i>
                     </summary>
-                    <div class="px-5 pb-5 grid grid-cols-1 md:grid-cols-3 gap-4" id="settings-prizes">
-                        <div>
-                            <label class="block text-xs text-dc-text mb-1">Prize Pool</label>
-                            <input data-field="prize_pool" type="text" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50">
-                        </div>
-                        <div>
-                            <label class="block text-xs text-dc-text mb-1">Currency</label>
-                            <input data-field="prize_currency" type="text" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50">
-                        </div>
-                        <div>
-                            <label class="block text-xs text-dc-text mb-1">DeltaCoin Prize</label>
-                            <input data-field="prize_deltacoin" type="text" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50">
+                    <div class="px-5 pb-5">
+                        <div class="rounded-xl border border-theme/20 bg-theme/5 p-4 flex items-center justify-between gap-4">
+                            <div>
+                                <p class="text-sm font-bold text-white">Prizes &amp; Awards are managed in the dedicated Prizes tab</p>
+                                <p class="text-xs text-dc-text mt-1">Configure placement tiers, DC rewards, special accolades, and publish standings from the Prizes &amp; Awards tab.</p>
+                            </div>
+                            <button data-click="TOC.navigate" data-click-args='["prizes"]'
+                                    class="flex-shrink-0 px-4 py-2 rounded-lg bg-theme text-black text-xs font-black uppercase tracking-wider hover:opacity-90 transition-opacity flex items-center gap-1.5">
+                                <i data-lucide="trophy" class="w-3.5 h-3.5"></i> Go to Prizes
+                            </button>
                         </div>
                     </div>
                 </details>

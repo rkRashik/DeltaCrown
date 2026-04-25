@@ -198,19 +198,26 @@ class FinalizeView(TOCBaseView):
                         'Finalize sync transition failed for %s: %s',
                         self.tournament.id, e,
                     )
-            # Make sure standings exist even if the original finalize never ran.
+            # Re-run the full post-finalization pipeline so standings,
+            # achievements, announcement, and caches converge — even if the
+            # original finalize fired but its downstream steps were partial.
             try:
-                from apps.tournaments.services.placement_service import (
-                    PlacementService,
+                from apps.tournaments.services.post_finalization_service import (
+                    PostFinalizationService,
                 )
-                PlacementService.persist_standings(
+                PostFinalizationService.run(
                     self.tournament, actor=request.user,
                 )
             except Exception:
-                pass
+                import logging
+                logging.getLogger(__name__).exception(
+                    'Idempotent post-finalization failed for %s',
+                    self.tournament.id,
+                )
             bump_toc_scopes(
                 self.tournament.id,
                 'overview', 'analytics', 'brackets', 'matches',
+                'prizes', 'announcements',
             )
             self.tournament.refresh_from_db()
             return Response({

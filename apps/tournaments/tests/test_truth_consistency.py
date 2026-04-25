@@ -1,16 +1,12 @@
 """
-Truth-consistency unit tests for the consistency repair pass.
-
-These cover the pure-function paths only (so they don't need a live DB):
-  * Stage classification rules in `TOCMatchesService._resolve_stage`
-  * Round-label fallback logic via the round_naming canonical helpers
-  * Format-aware classification matrix shared by TOC matches/schedule/HUB
-
-Integration tests that exercise the matches API end-to-end live in
-test_toc_matches_*.py (require DB).
+Truth-consistency unit tests — status, round labels, stage classification.
 """
 
 from types import SimpleNamespace
+import pytest
+
+
+# ── Stage classifier ──────────────────────────────────────────────────────
 
 from apps.tournaments.api.toc.matches_service import (
     TOCMatchesService,
@@ -21,92 +17,75 @@ from apps.tournaments.services.round_naming import knockout_round_label
 
 
 class TestStageClassificationContract:
-    """The single contract every TOC surface must follow."""
 
     def _match(self, *, bracket_id=None):
         return SimpleNamespace(bracket_id=bracket_id)
 
     def test_single_elim_always_knockout(self):
-        m_with = self._match(bracket_id=42)
-        m_without = self._match(bracket_id=None)
-        assert TOCMatchesService._resolve_stage(m_with, 'single_elimination') == 'knockout'
-        assert TOCMatchesService._resolve_stage(m_without, 'single_elimination') == 'knockout'
+        for bid in (None, 42):
+            assert TOCMatchesService._resolve_stage(
+                self._match(bracket_id=bid), 'single_elimination'
+            ) == 'knockout'
 
     def test_double_elim_always_knockout(self):
-        m_with = self._match(bracket_id=42)
-        m_without = self._match(bracket_id=None)
-        assert TOCMatchesService._resolve_stage(m_with, 'double_elimination') == 'knockout'
-        assert TOCMatchesService._resolve_stage(m_without, 'double_elimination') == 'knockout'
+        for bid in (None, 42):
+            assert TOCMatchesService._resolve_stage(
+                self._match(bracket_id=bid), 'double_elimination'
+            ) == 'knockout'
 
     def test_round_robin_is_group_stage(self):
-        assert TOCMatchesService._resolve_stage(
-            self._match(bracket_id=None), 'round_robin'
-        ) == 'group_stage'
-        # Even if some legacy data attached a bracket_id, RR stays group.
-        assert TOCMatchesService._resolve_stage(
-            self._match(bracket_id=99), 'round_robin'
-        ) == 'group_stage'
+        for bid in (None, 99):
+            assert TOCMatchesService._resolve_stage(
+                self._match(bracket_id=bid), 'round_robin'
+            ) == 'group_stage'
 
-    def test_swiss_is_swiss_not_group(self):
+    def test_swiss_is_swiss(self):
         assert TOCMatchesService._resolve_stage(
             self._match(bracket_id=None), 'swiss'
         ) == 'swiss'
 
     def test_group_playoff_uses_bracket_id(self):
-        # Group phase: no bracket_id → group_stage.
         assert TOCMatchesService._resolve_stage(
             self._match(bracket_id=None), 'group_playoff'
         ) == 'group_stage'
-        # Playoff phase: bracket_id present → knockout.
         assert TOCMatchesService._resolve_stage(
             self._match(bracket_id=7), 'group_playoff'
         ) == 'knockout'
 
-    def test_format_constants_are_consistent(self):
-        # The two sets are documented + relied on by _resolve_stage.
+    def test_format_constants_consistent(self):
         assert 'single_elimination' in _PURE_KNOCKOUT_FORMATS
         assert 'double_elimination' in _PURE_KNOCKOUT_FORMATS
         assert 'group_playoff' in _HYBRID_KNOCKOUT_FORMATS
         assert _PURE_KNOCKOUT_FORMATS.isdisjoint(_HYBRID_KNOCKOUT_FORMATS)
 
 
-class TestKnockoutLabelsCanonicalForRoundOptions:
-    """
-    The round_options dropdown should surface canonical labels for an
-    8-team SE bracket: Quarterfinal/Semifinal/Final (not just "Round N").
-    """
+class TestKnockoutLabels:
 
     def test_8_team_se_labels(self):
-        # 8 teams → 3 rounds. Round 1 = Quarterfinal, 2 = Semifinal, 3 = Final.
         assert knockout_round_label(1, 3) == 'Quarterfinal'
         assert knockout_round_label(2, 3) == 'Semifinal'
         assert knockout_round_label(3, 3) == 'Final'
 
     def test_16_team_se_labels(self):
-        # 16 teams → 4 rounds. R1 = Round of 16, R2 = QF, R3 = SF, R4 = Final.
         assert knockout_round_label(1, 4) == 'Round of 16'
         assert knockout_round_label(2, 4) == 'Quarterfinal'
         assert knockout_round_label(3, 4) == 'Semifinal'
         assert knockout_round_label(4, 4) == 'Final'
 
-    def test_32_team_se_labels(self):
+    def test_32_team_labels(self):
         assert knockout_round_label(1, 5) == 'Round of 32'
         assert knockout_round_label(5, 5) == 'Final'
 
-    def test_unknown_total_rounds_falls_back(self):
-        # Unknown total → "Round N" so dropdown still shows something useful.
+    def test_unknown_total_falls_back(self):
         assert knockout_round_label(2, 0) == 'Round 2'
 
 
 class TestRoundOptionsBuilderShape:
-    """`_build_round_options` output is the contract the JS depends on."""
 
     def test_signature_present(self):
-        from apps.tournaments.api.toc.matches_service import TOCMatchesService
         assert callable(getattr(TOCMatchesService, '_build_round_options', None))
 
     def test_pure_knockout_uses_canonical_labels(self, monkeypatch):
-        """8-team SE: dropdown should list Quarterfinal/Semifinal/Final, not Round 1/2/3."""
         from apps.tournaments.api.toc import matches_service as ms
         from apps.tournaments.services import match_classification as mc
 
@@ -129,8 +108,6 @@ class TestRoundOptionsBuilderShape:
                 def filter(**kw): return fake
 
         monkeypatch.setattr(ms, 'Match', _FakeMatchModel)
-        # The canonical helper also looks up total_rounds via Match —
-        # patch it directly to a fixed value so the test stays hermetic.
         monkeypatch.setattr(mc, 'tournament_total_rounds', lambda t, bracket=None: 3)
 
         options = ms.TOCMatchesService._build_round_options(
@@ -169,3 +146,67 @@ class TestRoundOptionsBuilderShape:
             total_rounds=2,
         )
         assert all(o['stage'] == 'group_stage' for o in options)
+
+
+class TestEffectiveStatusWithTournamentResult:
+    """
+    Tournament.get_effective_status() must return COMPLETED when a
+    TournamentResult with winner_id exists, even if persisted status is LIVE.
+    """
+
+    def test_completed_when_result_winner_exists(self, monkeypatch):
+        from apps.tournaments.models.tournament import Tournament
+
+        t = Tournament.__new__(Tournament)
+        t.pk = 99
+        t.status = Tournament.LIVE
+        t.format = Tournament.SINGLE_ELIM
+
+        # Monkeypatch the TournamentResult query to return True.
+        import apps.tournaments.models.tournament as t_mod
+        class _FakeTR:
+            class objects:
+                @staticmethod
+                def filter(**kw):
+                    class _QS:
+                        def exclude(self, **kw2): return self
+                        def exists(self): return True
+                    return _QS()
+        monkeypatch.setattr(t_mod, 'TournamentResult', _FakeTR, raising=False)
+
+        # Patch the import inside get_effective_status.
+        import sys
+        import types as _types
+        fake_result_mod = _types.ModuleType('apps.tournaments.models.result')
+        fake_result_mod.TournamentResult = _FakeTR
+        monkeypatch.setitem(sys.modules, 'apps.tournaments.models.result',
+                            fake_result_mod)
+
+        effective = t.get_effective_status()
+        assert effective == Tournament.COMPLETED
+
+    def test_live_when_no_result(self, monkeypatch):
+        from apps.tournaments.models.tournament import Tournament
+        import sys, types as _types
+
+        t = Tournament.__new__(Tournament)
+        t.pk = 99
+        t.status = Tournament.LIVE
+        t.format = Tournament.SINGLE_ELIM
+        t.config = {}
+
+        class _FakeTR:
+            class objects:
+                @staticmethod
+                def filter(**kw):
+                    class _QS:
+                        def exclude(self, **kw2): return self
+                        def exists(self): return False
+                    return _QS()
+        fake_result_mod = _types.ModuleType('apps.tournaments.models.result')
+        fake_result_mod.TournamentResult = _FakeTR
+        monkeypatch.setitem(sys.modules, 'apps.tournaments.models.result',
+                            fake_result_mod)
+
+        effective = t.get_effective_status()
+        assert effective == Tournament.LIVE

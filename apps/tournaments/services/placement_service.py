@@ -251,8 +251,25 @@ class PlacementService:
             tournament=tournament, is_deleted=False,
         ).first()
         if not result:
-            service = WinnerDeterminationService(tournament, created_by=actor)
-            result = service.determine_winner()
+            try:
+                service = WinnerDeterminationService(tournament, created_by=actor)
+                result = service.determine_winner()
+            except Exception as det_err:
+                # Determination can fail if bracket matches aren't all resolved
+                # (e.g. legacy tournaments with disputed/skipped matches). In
+                # that case, try to build standings from whatever bracket data
+                # exists WITHOUT creating a TournamentResult.
+                import logging as _log
+                _log.getLogger(__name__).warning(
+                    'WinnerDetermination failed for %s: %s — falling back to'
+                    ' bracket-only standings derivation', tournament.pk, det_err,
+                )
+                result = TournamentResult.objects.filter(
+                    tournament=tournament, is_deleted=False,
+                ).first()
+                if not result:
+                    # Still no result — nothing to save standings onto.
+                    raise
 
         ordered = cls.build_final_standings(tournament)
         result.final_standings = ordered

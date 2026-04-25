@@ -357,11 +357,15 @@ class TournamentLifecycleService:
     ) -> Tuple[bool, Optional[str]]:
         """
         Idempotent finalize: transition LIVE → COMPLETED when all matches are
-        done, then run CompletionPipeline. Safe to call multiple times.
+        done, then run the PostFinalizationService pipeline. Safe to call
+        multiple times.
 
         - Returns (True, None) when the tournament was finalized in this call.
         - Returns (False, reason) when nothing was done (already completed,
-          guard blocked, or wrong status).
+          guard blocked, or wrong status). When the tournament is already
+          COMPLETED, post-finalization is still re-run idempotently so
+          downstream effects (achievements, announcement, cache invalidation)
+          converge if any prior run was partial.
 
         force=True bypasses the guard (staff/superuser emergency only).
         Pipeline failures are logged but do not raise — the tournament is
@@ -373,6 +377,12 @@ class TournamentLifecycleService:
             return False, "Tournament not found"
 
         if tournament.status == Tournament.COMPLETED:
+            # Idempotent re-run of post-finalization. The orchestrator is
+            # designed to be safe on COMPLETED tournaments; this catches the
+            # case where the original transition fired but the downstream
+            # pipeline (achievements / announcement / caches) failed or was
+            # skipped.
+            cls._run_post_finalization(tournament_id, actor=actor)
             return False, "Already completed"
         if tournament.status != Tournament.LIVE:
             return False, f"Not LIVE (current: {tournament.status})"
@@ -402,18 +412,28 @@ class TournamentLifecycleService:
             )
             return False, str(e)
 
+        cls._run_post_finalization(tournament_id, actor=actor)
+        return True, None
+
+    # ── post-finalization wrapper ─────────────────────────────────────
+
+    @staticmethod
+    def _run_post_finalization(tournament_id: int, *, actor=None) -> None:
+        """
+        Invoke the PostFinalizationService. Errors are logged but never
+        propagate — the tournament is already COMPLETED, downstream
+        problems are observability concerns.
+        """
         try:
-            from apps.tournaments.services.completion_pipeline import (
-                CompletionPipeline,
+            from apps.tournaments.services.post_finalization_service import (
+                PostFinalizationService,
             )
-            CompletionPipeline.run(tournament_id, actor=actor)
+            PostFinalizationService.run(tournament_id, actor=actor)
         except Exception:
             logger.exception(
-                "CompletionPipeline failed after transition for tournament %s",
+                "PostFinalizationService failed for tournament %s",
                 tournament_id,
             )
-
-        return True, None
 
     # ── auto-advance (date-driven) ─────────────────────────────────────
 
@@ -486,7 +506,15 @@ class TournamentLifecycleService:
 
             if should_finalize:
                 try:
-                    ok, reason = cls.maybe_finalize_tournament(tournament.id)
+                    # When a TournamentResult with winner already exists, bypass
+                    # all match-completion guards — the bracket is done and we
+                    # just need to persist the status.  Use force=True so the
+                    # state machine doesn't block on e.g. a disputed match that
+                    # was never resolved.
+                    use_force = has_winner
+                    ok, reason = cls.maybe_finalize_tournament(
+                        tournament.id, force=use_force,
+                    )
                     if ok:
                         return Tournament.COMPLETED
                     logger.info(

@@ -176,12 +176,30 @@ class PrizeConfigService:
                 } if standing else None,
             })
 
+        # Annotate special awards with awaiting-recipient state for public UI.
+        raw_awards = list(cfg.get('special_awards') or [])
+        public_awards = []
+        for a in raw_awards:
+            public_awards.append({
+                'id': a.get('id', ''),
+                'title': a.get('title', ''),
+                'description': a.get('description', ''),
+                'type': a.get('type', 'cash'),
+                'icon': a.get('icon', 'medal'),
+                'fiat': int(a.get('fiat') or 0),
+                'coins': int(a.get('coins') or 0),
+                'reward_text': a.get('reward_text', ''),
+                'recipient_id': a.get('recipient_id'),
+                'recipient_name': a.get('recipient_name') or None,
+                'awaiting_recipient': not bool(a.get('recipient_name') or a.get('recipient_id')),
+            })
+
         return {
             'currency': cfg.get('currency') or 'BDT',
             'fiat_pool': int(cfg.get('fiat_pool') or 0),
             'coin_pool': int(cfg.get('coin_pool') or 0),
             'placements': merged_placements,
-            'special_awards': list(cfg.get('special_awards') or []),
+            'special_awards': public_awards,
             'certificates_enabled': bool(cfg.get('certificates_enabled', True)),
             'finalized': finalized,
             'top4': placements_payload.get('top4') or [],
@@ -271,6 +289,9 @@ class PrizeConfigService:
             if atype not in _VALID_AWARD_TYPES:
                 atype = 'cash'
             aid = str(raw.get('id') or '').strip()[:60] or _slugify(title)
+            # Recipient fields — manual assignment by organizer.
+            recipient_id = _to_int(raw.get('recipient_id'), 0) or None
+            recipient_name = str(raw.get('recipient_name') or '').strip()[:120]
             special_awards.append({
                 'id': aid,
                 'title': title,
@@ -280,6 +301,8 @@ class PrizeConfigService:
                 'fiat': _to_int(raw.get('fiat'), 0),
                 'coins': _to_int(raw.get('coins'), 0),
                 'reward_text': str(raw.get('reward_text') or '').strip()[:240],
+                'recipient_id': recipient_id,
+                'recipient_name': recipient_name,
             })
 
         return {

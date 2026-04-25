@@ -134,6 +134,10 @@
         </div>
         <input data-prize-award-text="${idx}" type="text" maxlength="240" value="${escapeAttr(a.reward_text || '')}"
           class="w-full bg-dc-panel border border-dc-border rounded px-2 py-1 text-xs text-white outline-none" placeholder="Reward detail (e.g. 'Logitech G Pro X')">
+        <label class="text-[10px] text-dc-text block mt-1">Recipient (name or team — optional)
+          <input data-prize-award-recipient="${idx}" type="text" maxlength="120" value="${escapeAttr(a.recipient_name || '')}"
+            class="mt-1 w-full bg-dc-panel border border-dc-border rounded px-2 py-1 text-xs text-white outline-none" placeholder="Awaiting assignment">
+        </label>
       `;
       list.appendChild(card);
     });
@@ -305,6 +309,7 @@
       else if (t.hasAttribute('data-prize-award-fiat')) state.special_awards[i('data-prize-award-fiat')].fiat = Math.max(0, Number(t.value) || 0);
       else if (t.hasAttribute('data-prize-award-coins')) state.special_awards[i('data-prize-award-coins')].coins = Math.max(0, Number(t.value) || 0);
       else if (t.hasAttribute('data-prize-award-text')) state.special_awards[i('data-prize-award-text')].reward_text = t.value;
+      else if (t.hasAttribute('data-prize-award-recipient')) state.special_awards[i('data-prize-award-recipient')].recipient_name = t.value;
     });
     $('#prizes-award-list')?.addEventListener('change', (e) => {
       const t = e.target;

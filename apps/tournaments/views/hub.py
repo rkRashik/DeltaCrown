@@ -602,6 +602,141 @@ def _build_hub_outcome_experience(
     }
 
 
+def _is_tournament_post_completion(tournament):
+    """
+    Single source of truth for HUB post-completion gating.
+
+    Returns True when:
+      * Tournament.status is COMPLETED or ARCHIVED, OR
+      * a non-deleted TournamentResult with a winner exists (auto-finalize
+        may not have fired yet, but the event is over).
+
+    Mirrors the rule used by ``Tournament.get_effective_status``.
+    """
+    raw_status = (getattr(tournament, 'status', '') or '').lower()
+    if raw_status in ('completed', 'archived'):
+        return True
+    try:
+        from apps.tournaments.models.result import TournamentResult as _TR
+        return _TR.objects.filter(
+            tournament_id=tournament.pk, is_deleted=False,
+        ).exclude(winner_id__isnull=True).exists()
+    except Exception:
+        return False
+
+
+def _build_hub_completed_command_center(
+    tournament, registration, participant_ids, *, is_staff_view=False,
+):
+    """
+    Build the Command Center payload for a COMPLETED tournament.
+
+    Replaces the legacy "Awaiting opponent assignment" / "Live phase" output
+    with an authoritative Champion card. Idempotent + safe to call when no
+    TournamentResult exists yet (returns a generic "Tournament Completed"
+    payload).
+    """
+    from apps.tournaments.services.placement_service import PlacementService
+
+    snapshot = PlacementService.standings_payload(tournament) or {}
+    finalized = bool(snapshot.get('finalized'))
+    winner = snapshot.get('winner') or {}
+    runner_up = snapshot.get('runner_up') or {}
+    third = snapshot.get('third_place') or {}
+
+    winner_name = (winner.get('team_name') or '').strip()
+    winner_reg_id = winner.get('registration_id')
+
+    is_my_win = bool(
+        winner_reg_id and participant_ids and winner_reg_id in participant_ids
+    )
+    is_runner_up = bool(
+        runner_up.get('registration_id')
+        and participant_ids
+        and runner_up.get('registration_id') in participant_ids
+    )
+    is_third = bool(
+        third.get('registration_id')
+        and participant_ids
+        and third.get('registration_id') in participant_ids
+    )
+
+    if is_my_win:
+        badge_label = 'Champion'
+        badge_tone = 'success'
+        title = '🏆 Tournament Champion'
+        subtitle = f'You won {tournament.name}. Final standings and prizes are now available.'
+        outcome_state = 'champion'
+    elif is_runner_up:
+        badge_label = 'Runner-Up'
+        badge_tone = 'success'
+        title = '🥈 Runner-Up Finish'
+        subtitle = f'Top-2 finish in {tournament.name}. Strong run — review final standings and prizes below.'
+        outcome_state = 'runner_up'
+    elif is_third:
+        badge_label = 'Third Place'
+        badge_tone = 'success'
+        title = '🥉 Third-Place Finish'
+        subtitle = f'Bronze medal in {tournament.name}. Review your placement and prizes below.'
+        outcome_state = 'third_place'
+    elif finalized and winner_name:
+        badge_label = 'Completed'
+        badge_tone = 'info'
+        title = f'🏆 Champion: {winner_name}'
+        subtitle = (
+            f'{tournament.name} is over. Final standings, prizes, and achievements '
+            f'are now available on the Hub.'
+        )
+        outcome_state = 'completed'
+    else:
+        badge_label = 'Completed'
+        badge_tone = 'info'
+        title = 'Tournament Completed'
+        subtitle = (
+            f'{tournament.name} has concluded. Final standings and rewards are being finalized.'
+        )
+        outcome_state = 'completed'
+
+    standings_url = reverse(
+        'tournaments:bracket', kwargs={'slug': tournament.slug},
+    )
+
+    return {
+        'show': True,
+        'badge_label': badge_label,
+        'badge_tone': badge_tone,
+        'title': title,
+        'subtitle': subtitle,
+        'countdown_label': 'Status',
+        'countdown_target': '',
+        'countdown_mode': 'static',
+        'countdown_text': 'COMPLETED',
+        'hint': 'View final standings and prizes for this tournament.',
+        'cta_label': 'View Final Standings',
+        'cta_action': 'open_bracket',
+        'cta_url': standings_url,
+        'cta_disabled': False,
+        'match_id': None,
+        'match_number': None,
+        'match_round_name': '',
+        'match_stage_label': '',
+        'match_room_url': '',
+        'opponent_name': '',
+        'match_state': '',
+        'scheduled_at': None,
+        'lobby_window_open': False,
+        'lobby_state': 'completed',
+        'outcome_state': outcome_state,
+        'outcome_experience': {},
+        'within_priority_window': False,
+        'champion_name': winner_name,
+        'champion_registration_id': winner_reg_id,
+        'runner_up_name': (runner_up.get('team_name') or '').strip() if runner_up else '',
+        'third_place_name': (third.get('team_name') or '').strip() if third else '',
+        'finalized': finalized,
+    }
+
+
 def _resolve_hub_command_center(
     tournament,
     registration,
@@ -643,6 +778,20 @@ def _resolve_hub_command_center(
     }
 
     participant_ids = _resolve_hub_participant_ids(tournament, registration, user)
+
+    # Post-completion short-circuit: once the tournament is done, the Command
+    # Center must render the Champion / Standings card — never an opponent
+    # assignment or "Live phase" prompt. This catches the case where the
+    # persisted status hasn't synced yet (TournamentResult exists but
+    # auto-finalize hasn't fired this request cycle).
+    if _is_tournament_post_completion(tournament):
+        return _build_hub_completed_command_center(
+            tournament,
+            registration,
+            participant_ids,
+            is_staff_view=is_staff_view,
+        )
+
     if not participant_ids and not is_staff_view:
         return payload
 
@@ -1117,6 +1266,16 @@ def _build_hub_lifecycle_pipeline(tournament, *, command_center=None):
         (tournament.get_effective_status() if hasattr(tournament, 'get_effective_status') else tournament.status)
         or ''
     ).lower()
+    # TournamentResult with winner is authoritative — override stale LIVE status.
+    if status not in ('completed', 'archived', 'cancelled'):
+        try:
+            from apps.tournaments.models.result import TournamentResult as _TR
+            if _TR.objects.filter(
+                tournament_id=tournament.pk, is_deleted=False,
+            ).exclude(winner_id__isnull=True).exists():
+                status = 'completed'
+        except Exception:
+            pass
     active_key = 'registered'
 
     if status == Tournament.COMPLETED:
@@ -1656,8 +1815,19 @@ def _build_hub_context(request, tournament, registration, query_suffix='', is_st
         hub_critical_locked=hub_critical_locked,
     )
 
-    # Derive effective status so SSR templates show stage-aware truth
+    # Derive effective status so SSR templates show stage-aware truth.
+    # TournamentResult with winner is authoritative: even if persisted status
+    # is still LIVE, the event is complete.
     effective_status = getattr(tournament, 'get_effective_status', lambda: tournament.status)()
+    if effective_status not in ('completed', 'archived', 'cancelled'):
+        try:
+            from apps.tournaments.models.result import TournamentResult as _TR
+            if _TR.objects.filter(
+                tournament_id=tournament.pk, is_deleted=False,
+            ).exclude(winner_id__isnull=True).exists():
+                effective_status = 'completed'
+        except Exception:
+            pass
     effective_status_display = dict(Tournament.STATUS_CHOICES).get(
         effective_status, tournament.get_status_display()
     )

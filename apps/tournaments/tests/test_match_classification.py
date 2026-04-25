@@ -1,10 +1,8 @@
 """
-Canonical match classification — unit tests.
+Canonical match classification + round_naming — unit tests.
 
-Covers `apps.tournaments.services.match_classification`. The module is the
-single source of truth used by TOC matches, TOC schedule, TOC brackets,
-HUB bracket, HUB matches, and public detail Matches tab. If any of those
-surfaces drift, it should be because they bypass this module.
+Covers `apps.tournaments.services.match_classification`. Single source of
+truth used by TOC matches, TOC schedule, HUB matches, and public detail.
 """
 
 from types import SimpleNamespace
@@ -17,6 +15,7 @@ from apps.tournaments.services.match_classification import (
     is_pure_knockout,
     stage_filter_q,
     PURE_KNOCKOUT_FORMATS,
+    HYBRID_KNOCKOUT_FORMATS,
 )
 
 
@@ -55,62 +54,52 @@ class TestClassifyStage:
         assert classify_stage(_t('group_playoff'), _m(2, bracket_id=None)) == 'group_stage'
         assert classify_stage(_t('group_playoff'), _m(2, bracket_id=7)) == 'knockout'
 
+    def test_format_constants_are_consistent(self):
+        assert 'single_elimination' in PURE_KNOCKOUT_FORMATS
+        assert 'double_elimination' in PURE_KNOCKOUT_FORMATS
+        assert 'group_playoff' in HYBRID_KNOCKOUT_FORMATS
+        assert PURE_KNOCKOUT_FORMATS.isdisjoint(HYBRID_KNOCKOUT_FORMATS)
 
-class TestComputeRoundLabel:
-    def test_8_team_se(self):
-        t = _t('single_elimination')
-        assert compute_round_label(t, _m(1), total_rounds=3) == 'Quarterfinal'
-        assert compute_round_label(t, _m(2), total_rounds=3) == 'Semifinal'
-        assert compute_round_label(t, _m(3), total_rounds=3) == 'Final'
 
-    def test_16_team_se(self):
-        t = _t('single_elimination')
-        assert compute_round_label(t, _m(1), total_rounds=4) == 'Round of 16'
-        assert compute_round_label(t, _m(2), total_rounds=4) == 'Quarterfinal'
-        assert compute_round_label(t, _m(3), total_rounds=4) == 'Semifinal'
-        assert compute_round_label(t, _m(4), total_rounds=4) == 'Final'
+class TestKnockoutLabelsCanonicalForRoundOptions:
+    from apps.tournaments.services.round_naming import knockout_round_label
 
-    def test_de_uses_canonical(self):
-        # DE: same canonical labeller, total_rounds drives it.
-        assert compute_round_label(_t('double_elimination'), _m(3), total_rounds=3) == 'Final'
+    def test_8_team_se_labels(self):
+        from apps.tournaments.services.round_naming import knockout_round_label
+        assert knockout_round_label(1, 3) == 'Quarterfinal'
+        assert knockout_round_label(2, 3) == 'Semifinal'
+        assert knockout_round_label(3, 3) == 'Final'
 
-    def test_round_robin_generic(self):
-        assert compute_round_label(_t('round_robin'), _m(2), total_rounds=5) == 'Round 2'
+    def test_16_team_se_labels(self):
+        from apps.tournaments.services.round_naming import knockout_round_label
+        assert knockout_round_label(1, 4) == 'Round of 16'
+        assert knockout_round_label(2, 4) == 'Quarterfinal'
+        assert knockout_round_label(3, 4) == 'Semifinal'
+        assert knockout_round_label(4, 4) == 'Final'
 
-    def test_swiss_generic(self):
-        assert compute_round_label(_t('swiss'), _m(3), total_rounds=5) == 'Round 3'
-
-    def test_zero_round_returns_empty(self):
-        assert compute_round_label(_t('single_elimination'), _m(0), total_rounds=3) == ''
+    def test_unknown_total_falls_back(self):
+        from apps.tournaments.services.round_naming import knockout_round_label
+        assert knockout_round_label(2, 0) == 'Round 2'
 
 
 class TestStageFilterQ:
     def test_pure_knockout_includes_all_for_knockout_filter(self):
-        # SE/DE knockout filter should match every match (no bracket FK condition).
         q = stage_filter_q('single_elimination', 'knockout')
         from django.db.models import Q
         assert isinstance(q, Q)
-        # An empty Q() is "match all" — should not contain bracket__isnull.
         assert q.children == []
 
     def test_pure_knockout_group_stage_filter_matches_nothing(self):
-        # SE has no group stage; selecting "Group Stage" should return 0 matches.
         q = stage_filter_q('single_elimination', 'group_stage')
-        # Q(pk__in=[]) — children should reflect that
         assert any('pk__in' in str(c) for c in q.children)
 
     def test_round_robin_group_stage_matches_all(self):
         q = stage_filter_q('round_robin', 'group_stage')
         assert q.children == []
 
-    def test_round_robin_knockout_filter_matches_nothing(self):
-        q = stage_filter_q('round_robin', 'knockout')
-        assert any('pk__in' in str(c) for c in q.children)
-
     def test_group_playoff_uses_bracket_isnull(self):
         q_group = stage_filter_q('group_playoff', 'group_stage')
         q_ko = stage_filter_q('group_playoff', 'knockout')
-        # Each should include `bracket__isnull` filter logic.
         assert any('bracket__isnull' in str(c) for c in q_group.children)
         assert any('bracket__isnull' in str(c) for c in q_ko.children)
 

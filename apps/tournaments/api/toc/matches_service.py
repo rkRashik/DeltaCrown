@@ -712,6 +712,14 @@ class TOCMatchesService:
         """Return enriched match data with submissions, media, disputes, notes."""
         match = Match.objects.get(pk=match_id, tournament=tournament)
 
+        # Canonical participant resolution — bracket node beats raw TBA Match.
+        try:
+            from apps.tournaments.services.match_read_model import MatchReadModel
+            _detail_rm = MatchReadModel.for_tournament(tournament)
+            _detail_canonical_view = _detail_rm.by_id(match.id)
+        except Exception:
+            _detail_canonical_view = None
+
         # Submissions (both captains)
         submissions = list(
             MatchResultSubmission.objects.filter(match=match)
@@ -781,7 +789,11 @@ class TOCMatchesService:
         verification_status = cls._compute_verification_status(match, submissions)
 
         return {
-            'match': cls._serialize_match(match),
+            'match': cls._serialize_match(
+                match,
+                canonical_view=_detail_canonical_view,
+                tournament=tournament,
+            ),
             'submissions': subs_data,
             'media': media_data,
             'disputes': disputes,

@@ -1579,83 +1579,7 @@
                         <div id="prize-engine-special-list" class="grid grid-cols-1 md:grid-cols-2 gap-4 p-6"></div>
                     </div>
 
-                    <script>
-                    (function () {
-                        const panel = document.getElementById('prize-distribution-panel');
-                        if (!panel) return;
-                        const url = panel.getAttribute('data-prize-overview-url');
-                        if (!url) return;
-
-                        const ordinal = (n) => {
-                            const v = n % 100;
-                            if (v >= 11 && v <= 13) return n + 'th';
-                            return n + (({ 1: 'st', 2: 'nd', 3: 'rd' })[n % 10] || 'th');
-                        };
-                        const fmt = (n) => (Number(n) || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-                        const esc = (s) => String(s == null ? '' : s)
-                            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-
-                        fetch(url, { credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
-                            .then(r => r.ok ? r.json() : null)
-                            .then(data => {
-                                if (!data || !Array.isArray(data.placements) || !data.placements.length) return;
-                                const list = document.getElementById('prize-engine-placements');
-                                if (list) {
-                                    list.innerHTML = '';
-                                    data.placements.forEach((tier) => {
-                                        const winnerName = tier.winner ? esc(tier.winner.team_name || '') : '';
-                                        const fiat = tier.fiat ? ((data.currency || '৳') === 'BDT' ? '৳' : (data.currency + ' ')) + fmt(tier.fiat) : 'TBA';
-                                        const coins = tier.coins ? ` <span class="text-xs text-dc-cyan ml-2">+ ${fmt(tier.coins)} DC</span>` : '';
-                                        const row = document.createElement('div');
-                                        row.className = 'flex items-center justify-between p-6 hover:bg-white/[0.02] transition-colors group';
-                                        row.innerHTML = `
-                                            <div class="flex items-center gap-6">
-                                                <div class="w-12 h-12 rounded-xl bg-black/50 border border-white/5 flex items-center justify-center font-display font-bold text-gray-400 text-lg">${ordinal(tier.rank)}</div>
-                                                <div>
-                                                    <div class="font-bold text-white text-base">${esc(tier.title || '')}</div>
-                                                    ${winnerName ? `<div class="text-xs text-dc-gold mt-1">${winnerName}</div>` : ''}
-                                                </div>
-                                            </div>
-                                            <div class="flex items-center gap-8">
-                                                <span class="font-display font-bold text-2xl text-white">${fiat}${coins}</span>
-                                            </div>`;
-                                        list.appendChild(row);
-                                    });
-                                }
-                                if (data.finalized) {
-                                    const badge = document.getElementById('prize-engine-finalized-badge');
-                                    if (badge) badge.classList.remove('hidden');
-                                }
-                                const awardsBlock = document.getElementById('prize-engine-special-awards');
-                                const awardsList = document.getElementById('prize-engine-special-list');
-                                if (awardsBlock && awardsList && Array.isArray(data.special_awards) && data.special_awards.length) {
-                                    awardsList.innerHTML = '';
-                                    data.special_awards.forEach((a) => {
-                                        const fiat = a.fiat ? '৳' + fmt(a.fiat) : '';
-                                        const coins = a.coins ? `${fmt(a.coins)} DC` : '';
-                                        const reward = a.reward_text ? esc(a.reward_text) : (fiat || coins || 'Award');
-                                        const card = document.createElement('div');
-                                        card.className = 'rounded-xl border border-white/10 bg-black/40 p-4';
-                                        card.innerHTML = `
-                                            <div class="flex items-start gap-3">
-                                                <div class="w-10 h-10 rounded-lg bg-dc-gold/10 border border-dc-gold/20 flex items-center justify-center text-dc-gold">
-                                                    <i data-lucide="${esc(a.icon || 'medal')}" class="w-5 h-5"></i>
-                                                </div>
-                                                <div class="min-w-0 flex-1">
-                                                    <div class="text-sm font-bold text-white">${esc(a.title || '')}</div>
-                                                    <div class="text-xs text-gray-400 mt-1">${esc(a.description || '')}</div>
-                                                    <div class="text-xs font-mono text-dc-gold mt-2">${reward}${fiat && coins ? ` · ${coins}` : ''}</div>
-                                                </div>
-                                            </div>`;
-                                        awardsList.appendChild(card);
-                                    });
-                                    awardsBlock.classList.remove('hidden');
-                                    if (window.lucide) window.lucide.createIcons();
-                                }
-                            })
-                            .catch(() => { /* fall back to static markup */ });
-                    })();
-                    </script>
+                    {# Renderer: static/tournaments/js/detail-prize-engine.js — no inline script #}
                 </div>
                 {% endif %}
 
@@ -3434,4 +3358,5 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 });
 </script>
+<script src="{% static 'tournaments/js/detail-prize-engine.js' %}?v=20260425a"></script>
 {% endblock %}
