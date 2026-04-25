@@ -108,8 +108,8 @@ class TestRoundOptionsBuilderShape:
     def test_pure_knockout_uses_canonical_labels(self, monkeypatch):
         """8-team SE: dropdown should list Quarterfinal/Semifinal/Final, not Round 1/2/3."""
         from apps.tournaments.api.toc import matches_service as ms
+        from apps.tournaments.services import match_classification as mc
 
-        # Stub the Match queryset .values_list lookup with a deterministic set.
         class _FakeQS:
             def __init__(self, rows): self._rows = rows
             def filter(self, **kw): return self
@@ -120,20 +120,21 @@ class TestRoundOptionsBuilderShape:
             def __bool__(self): return bool(self._rows)
             def __len__(self): return len(self._rows)
 
-        rows = [(1, None), (2, None), (3, None)]  # 8-team SE w/o bracket FK
+        rows = [(1, None), (2, None), (3, None)]
         fake = _FakeQS(rows)
 
         class _FakeMatchModel:
-            objects = None
-        class _FakeManager:
-            def filter(self, **kw): return fake
-        _FakeMatchModel.objects = _FakeManager()
+            class objects:
+                @staticmethod
+                def filter(**kw): return fake
 
         monkeypatch.setattr(ms, 'Match', _FakeMatchModel)
+        # The canonical helper also looks up total_rounds via Match —
+        # patch it directly to a fixed value so the test stays hermetic.
+        monkeypatch.setattr(mc, 'tournament_total_rounds', lambda t, bracket=None: 3)
 
-        # No bracket present.
         options = ms.TOCMatchesService._build_round_options(
-            tournament=type('T', (), {'pk': 1})(),
+            tournament=type('T', (), {'pk': 1, 'format': 'single_elimination'})(),
             tournament_format='single_elimination',
             bracket=None,
             total_rounds=3,
@@ -145,6 +146,7 @@ class TestRoundOptionsBuilderShape:
 
     def test_round_robin_marks_group_stage(self, monkeypatch):
         from apps.tournaments.api.toc import matches_service as ms
+        from apps.tournaments.services import match_classification as mc
 
         class _FakeQS(list):
             def filter(self, **kw): return self
@@ -158,9 +160,10 @@ class TestRoundOptionsBuilderShape:
                 @staticmethod
                 def filter(**kw): return rows
         monkeypatch.setattr(ms, 'Match', _FakeMatchModel)
+        monkeypatch.setattr(mc, 'tournament_total_rounds', lambda t, bracket=None: 2)
 
         options = ms.TOCMatchesService._build_round_options(
-            tournament=type('T', (), {'pk': 1})(),
+            tournament=type('T', (), {'pk': 1, 'format': 'round_robin'})(),
             tournament_format='round_robin',
             bracket=None,
             total_rounds=2,

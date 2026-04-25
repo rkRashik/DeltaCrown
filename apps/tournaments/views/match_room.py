@@ -1537,28 +1537,52 @@ def _build_room_payload(
     if admin_query:
         websocket_path = f"{websocket_path}?{urlencode(admin_query)}"
 
+    # Canonical participant resolution — bracket node wins over TBA Match row.
+    try:
+        from apps.tournaments.services.match_read_model import MatchReadModel
+        _room_read_model = MatchReadModel.for_tournament(match.tournament)
+        _room_view = _room_read_model.by_id(match.id) or {}
+    except Exception:
+        _room_view = {}
+
+    _c_p1_id = _room_view.get('participant1_id') if _room_view else None
+    _c_p2_id = _room_view.get('participant2_id') if _room_view else None
+    _c_p1_name = _room_view.get('participant1_name') if _room_view else ''
+    _c_p2_name = _room_view.get('participant2_name') if _room_view else ''
+    canon_p1_id = _c_p1_id or match.participant1_id
+    canon_p2_id = _c_p2_id or match.participant2_id
+    canon_p1_name = (_c_p1_name or match.participant1_name or 'TBD')
+    canon_p2_name = (_c_p2_name or match.participant2_name or 'TBD')
+    canon_round_number = (
+        _room_view.get('round_number') if _room_view else None
+    ) or match.round_number
+    canon_winner_id = (
+        _room_view.get('winner_id') if _room_view else None
+    ) or match.winner_id
+
     return {
         "match": {
             "id": match.id,
             "state": match.state,
             "state_display": match.get_state_display(),
-            "round_number": match.round_number,
+            "round_number": canon_round_number,
+            "round_label": _room_view.get('round_label') if _room_view else '',
             "match_number": match.match_number,
             "participant1": {
-                "id": match.participant1_id,
-                "name": match.participant1_name or "TBD",
+                "id": canon_p1_id,
+                "name": canon_p1_name,
                 "score": match.participant1_score,
                 "checked_in": bool(match.participant1_checked_in),
-                "logo_url": participant_media.get(match.participant1_id, ""),
+                "logo_url": participant_media.get(canon_p1_id, ""),
             },
             "participant2": {
-                "id": match.participant2_id,
-                "name": match.participant2_name or "TBD",
+                "id": canon_p2_id,
+                "name": canon_p2_name,
                 "score": match.participant2_score,
                 "checked_in": bool(match.participant2_checked_in),
-                "logo_url": participant_media.get(match.participant2_id, ""),
+                "logo_url": participant_media.get(canon_p2_id, ""),
             },
-            "winner_id": match.winner_id,
+            "winner_id": canon_winner_id,
             "best_of": runtime["best_of"],
             "scheduled_time": match.scheduled_time.isoformat() if match.scheduled_time else None,
             "started_at": match.started_at.isoformat() if match.started_at else None,

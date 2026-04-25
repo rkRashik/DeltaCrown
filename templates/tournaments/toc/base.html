@@ -4127,6 +4127,33 @@
 
                 <div class="grid grid-cols-1 xl:grid-cols-12 gap-6">
                     <div class="xl:col-span-7 space-y-6 min-w-0">
+
+                        {# Smart Engine — game-template starter awards #}
+                        <div class="glass-box rounded-xl p-5 space-y-3 border border-theme/25">
+                            <div class="flex items-center gap-3">
+                                <div class="w-9 h-9 rounded-lg bg-theme/10 border border-theme/20 flex items-center justify-center">
+                                    <i data-lucide="cpu" class="w-4 h-4 text-theme"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <h3 class="text-sm font-bold text-white">Smart Engine</h3>
+                                    <p class="text-[10px] text-dc-text">Load game-specific special awards as a starting point.</p>
+                                </div>
+                            </div>
+                            <div class="flex flex-col sm:flex-row gap-2">
+                                <select id="prizes-smart-template" class="flex-1 bg-dc-panel border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50">
+                                    <option value="">Custom (start from scratch)</option>
+                                    <option value="valorant">Valorant — Match MVP / Headshot Machine / Clutch Minister</option>
+                                    <option value="efootball">eFootball — Golden Boot / Golden Glove / Goal of the Tournament</option>
+                                    <option value="pubgm">PUBG Mobile — Terminator / Lone Survivor</option>
+                                    <option value="dota2">Dota 2 — Aegis MVP / Master Support</option>
+                                    <option value="generic">Generic — MVP / Fan Favorite</option>
+                                </select>
+                                <button id="prizes-apply-template-btn" class="px-4 py-2 rounded-lg bg-theme text-black text-xs font-black uppercase tracking-wider hover:opacity-90 transition-opacity flex items-center gap-1.5">
+                                    <i data-lucide="wand-2" class="w-3.5 h-3.5"></i> Apply
+                                </button>
+                            </div>
+                        </div>
+
                         <div class="glass-box rounded-xl p-5 space-y-4">
                             <h3 class="text-[10px] font-bold text-theme uppercase tracking-widest flex items-center gap-2">
                                 <i data-lucide="banknote" class="w-4 h-4"></i>

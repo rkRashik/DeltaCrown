@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c ' *)",
+      "Bash(python -m pytest apps/tournaments/tests/test_round_naming.py apps/tournaments/tests/test_truth_consistency.py apps/tournaments/tests/test_prize_config_service.py apps/tournaments/tests/test_format_advisor.py apps/tournaments/tests/test_hub_prize_template_csp.py apps/tournaments/tests/test_match_classification.py apps/tournaments/tests/test_match_read_model.py --tb=short)",
+      "Bash(node -c static/tournaments/js/hub-prize-engine.js)",
+      "Bash(python -m pytest apps/tournaments/tests/test_match_read_model.py apps/tournaments/tests/test_hub_prize_template_csp.py apps/tournaments/tests/test_truth_consistency.py apps/tournaments/tests/test_round_naming.py apps/tournaments/tests/test_prize_config_service.py apps/tournaments/tests/test_match_classification.py apps/tournaments/tests/test_format_advisor.py apps/tournaments/tests/test_bracket_repair.py --tb=short)",
+      "Bash(python -m pytest apps/tournaments/tests/test_bracket_repair.py --tb=short)",
+      "Bash(python -m pytest apps/tournaments/tests/test_bracket_repair.py::TestParticipantBackfill::test_dry_run_reports_without_writing --tb=long)"
+    ]
+  }
+}

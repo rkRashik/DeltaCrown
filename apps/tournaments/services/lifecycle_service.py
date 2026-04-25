@@ -459,19 +459,45 @@ class TournamentLifecycleService:
                     logger.warning("Auto-advance REG_CLOSED→LIVE failed for %s: %s", tournament.id, e)
             return None
 
-        # LIVE → COMPLETED  — completion-driven, not just date-driven.
-        # Date-based finalize happens when tournament_end has passed; otherwise
-        # rely on `maybe_finalize_tournament` (called by the wrapup job + match
-        # completion hook) so we don't spin up that pipeline on every overview
-        # poll. We DO try date-based here so an end-of-event header refresh
-        # still corrects a stuck LIVE display.
+        # LIVE → COMPLETED — two code paths, both safe-guarded:
+        #   (a) the tournament_end date has passed, or
+        #   (b) a TournamentResult with a winner already exists (the bracket
+        #       is done but maybe_finalize_tournament hasn't fired yet).
+        # Both go through `maybe_finalize_tournament` so the completion
+        # pipeline + audit trail run consistently.
         if status == Tournament.LIVE:
+            should_finalize = False
+            reason_suffix = ''
             if tournament.tournament_end and now >= tournament.tournament_end:
+                should_finalize = True
+                reason_suffix = 'tournament_end passed'
+            else:
                 try:
-                    cls.transition(tournament.id, Tournament.COMPLETED, reason='Auto: tournament ended')
-                    return Tournament.COMPLETED
-                except ValidationError as e:
-                    logger.warning("Auto-advance LIVE→COMPLETED failed for %s: %s", tournament.id, e)
+                    from apps.tournaments.models.result import TournamentResult
+                    has_winner = TournamentResult.objects.filter(
+                        tournament_id=tournament.id,
+                        is_deleted=False,
+                    ).exclude(winner_id__isnull=True).exists()
+                except Exception:
+                    has_winner = False
+                if has_winner:
+                    should_finalize = True
+                    reason_suffix = 'TournamentResult winner exists'
+
+            if should_finalize:
+                try:
+                    ok, reason = cls.maybe_finalize_tournament(tournament.id)
+                    if ok:
+                        return Tournament.COMPLETED
+                    logger.info(
+                        "Auto-advance LIVE→COMPLETED skipped for %s (%s): %s",
+                        tournament.id, reason_suffix, reason,
+                    )
+                except Exception as e:
+                    logger.warning(
+                        "Auto-advance LIVE→COMPLETED failed for %s (%s): %s",
+                        tournament.id, reason_suffix, e,
+                    )
             return None
 
         return None

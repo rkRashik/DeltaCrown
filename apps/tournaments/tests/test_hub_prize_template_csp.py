@@ -33,13 +33,17 @@ def _read(path):
 class TestHubPrizesPartialIsCSPSafe:
     def test_no_inline_script_block(self):
         body = _read(HUB_PRIZES_PARTIAL)
-        # Allow `<script src=...>` but never a raw inline `<script>` body.
-        # We catch both `<script>` and `<script ` (no src attribute follows).
-        # Accept `<script src=...>` though by requiring `src=` between
-        # `<script` and `>`.
         import re
-        # Find every <script ... > tag start.
-        opens = re.findall(r'<script(\s[^>]*)?>', body, flags=re.IGNORECASE)
+        # Strip Django comments ({# ... #} and {% comment %}...{% endcomment %})
+        # so the test can't be tripped by references to "<script>" in docs.
+        stripped = re.sub(r'\{#.*?#\}', '', body, flags=re.DOTALL)
+        stripped = re.sub(
+            r'\{%\s*comment\s*%\}.*?\{%\s*endcomment\s*%\}',
+            '',
+            stripped,
+            flags=re.DOTALL | re.IGNORECASE,
+        )
+        opens = re.findall(r'<script(\s[^>]*)?>', stripped, flags=re.IGNORECASE)
         for tag in opens:
             attrs = (tag or '').strip()
             assert 'src=' in attrs.lower(), (
@@ -59,6 +63,35 @@ class TestHubPrizesPartialIsCSPSafe:
         body = _read(STATIC_HUB_PRIZE_JS)
         assert 'hub-prize-engine' in body
         assert 'fetch(' in body
+
+    def test_renderer_uses_es5_compatible_syntax(self):
+        """
+        The project's CSP doesn't transpile. Optional chaining (`?.`) and
+        nullish coalescing (`??`) crash older browsers AND Esprima ES5 parser.
+        Keep the file ES5-safe.
+        """
+        body = _read(STATIC_HUB_PRIZE_JS)
+        import re
+        # Strip string literals so '?.' inside a quoted string doesn't trip the test.
+        no_strings = re.sub(r"'([^'\\]|\\.)*'", "''", body)
+        no_strings = re.sub(r'"([^"\\]|\\.)*"', '""', no_strings)
+        assert '?.' not in no_strings, 'optional chaining (?.) is not ES5-safe'
+        assert '??' not in no_strings, 'nullish coalescing (??) is not ES5-safe'
+
+    def test_renderer_parses_as_es5_script(self):
+        """
+        Final guard: the JS must parse with esprima's ES5 strict parser.
+        Catches multi-line ternary mistakes that produce 'Unexpected token ?'.
+        """
+        try:
+            import esprima
+        except ImportError:
+            pytest.skip('esprima not installed')
+        body = _read(STATIC_HUB_PRIZE_JS)
+        try:
+            esprima.parseScript(body, tolerant=False)
+        except esprima.Error as e:
+            pytest.fail(f'hub-prize-engine.js failed ES5 parse: {e}')
 
     def test_hub_html_includes_prize_engine_static(self):
         body = _read(HUB_BASE_TEMPLATE)

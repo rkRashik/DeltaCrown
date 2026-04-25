@@ -167,6 +167,60 @@ class FinalizeView(TOCBaseView):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
+        # Idempotent path #1: if a TournamentResult with winner already exists
+        # OR the tournament is already COMPLETED, this becomes a sync-and-return
+        # (rather than an error). Run PlacementService once so standings are
+        # populated even on the legacy path.
+        from apps.tournaments.models.tournament import Tournament as _T
+        from apps.tournaments.models.result import TournamentResult as _TR
+
+        try:
+            already_has_winner = _TR.objects.filter(
+                tournament_id=self.tournament.id, is_deleted=False,
+            ).exclude(winner_id__isnull=True).exists()
+        except Exception:
+            already_has_winner = False
+
+        if self.tournament.status == _T.COMPLETED or already_has_winner:
+            # Sync persisted status if it drifted from effective.
+            if self.tournament.status != _T.COMPLETED and already_has_winner:
+                try:
+                    TournamentLifecycleService.transition(
+                        self.tournament.id, _T.COMPLETED,
+                        actor=request.user,
+                        reason='Idempotent finalize sync — TournamentResult winner present',
+                        force=True,
+                    )
+                except Exception as e:
+                    # Non-blocking — we still report idempotent success below.
+                    import logging
+                    logging.getLogger(__name__).warning(
+                        'Finalize sync transition failed for %s: %s',
+                        self.tournament.id, e,
+                    )
+            # Make sure standings exist even if the original finalize never ran.
+            try:
+                from apps.tournaments.services.placement_service import (
+                    PlacementService,
+                )
+                PlacementService.persist_standings(
+                    self.tournament, actor=request.user,
+                )
+            except Exception:
+                pass
+            bump_toc_scopes(
+                self.tournament.id,
+                'overview', 'analytics', 'brackets', 'matches',
+            )
+            self.tournament.refresh_from_db()
+            return Response({
+                'finalized': True,
+                'idempotent': True,
+                'status': self.tournament.status,
+                'status_display': self.tournament.get_status_display(),
+                'message': 'Tournament already finalized.',
+            })
+
         finalized, reason = TournamentLifecycleService.maybe_finalize_tournament(
             self.tournament.id,
             actor=request.user,

@@ -83,35 +83,29 @@ class TOCMatchesService:
         page_size = int(page_size or 60)
         page_size = min(120, max(10, page_size))
 
+        # Canonical read model — authoritative source for stage/round_number.
+        # We filter on the canonical (BracketNode-backed) round_number and
+        # stage, then pull the corresponding Match rows for full serialisation.
+        from apps.tournaments.services.match_read_model import MatchReadModel
+        read_model = MatchReadModel.for_tournament(tournament)
+        canonical_views = read_model.filter(
+            state=state if state else None,
+            stage=stage if stage else None,
+            round_number=int(round_number) if round_number else None,
+            search=search if search else None,
+        )
+        # Build an id → view map so the serialization path can overlay
+        # canonical stage/round_label onto each Match.
+        view_by_id = {v['match_id']: v for v in canonical_views}
+        visible_match_ids = list(view_by_id.keys())
+
         qs = Match.objects.filter(
             tournament=tournament,
             is_deleted=False,
+            pk__in=visible_match_ids,
         ).order_by('round_number', 'match_number')
-        if round_number:
-            qs = qs.filter(round_number=round_number)
-        if state:
-            qs = qs.filter(state=state)
-        if search:
-            qs = qs.filter(
-                Q(participant1_name__icontains=search)
-                | Q(participant2_name__icontains=search)
-            )
         if group:
             qs = qs.filter(lobby_info__group_label=group)
-        # Canonical stage filter — same truth contract as match cards.
-        # For pure-knockout formats, bracket FK presence is NOT a discriminator
-        # (legacy generators left bracket_id null). Use the canonical helper
-        # so `stage=knockout` doesn't accidentally drop semifinal/final
-        # matches that lack the FK.
-        if stage:
-            from apps.tournaments.services.match_classification import (
-                stage_filter_q,
-            )
-            stage_q = stage_filter_q(
-                getattr(tournament, 'format', ''), stage,
-            )
-            if stage_q is not None:
-                qs = qs.filter(stage_q)
 
         state_counts = {
             str(row.get('state') or ''): int(row.get('count') or 0)
@@ -179,33 +173,13 @@ class TOCMatchesService:
         except (ValueError, TypeError):
             total_rounds = max_round_in_page
 
-        # Canonical round label resolution — single source of truth.
-        # Prior implementation read `bracket.get_round_name()` first, which
-        # returns the persisted `bracket_structure.rounds[].round_name`.
-        # Older tournaments (e.g. efootball-genesis-cup) carry stale labels
-        # like "Quarter Finals" / "Semi Finals" / "Finals" — those disagree
-        # with the canonical `Quarterfinal / Semifinal / Final` produced by
-        # `knockout_round_label`. We now use the canonical helper as the
-        # primary source for ALL knockout-shaped matches and fall back to the
-        # bracket-stored label only when the format isn't pure knockout AND
-        # the match has a bracket FK (group_playoff playoffs etc.).
-        bracket_round_names = {}
-        bracket = None
-        if any(m.bracket_id for m in page_matches):
-            from apps.brackets.models import Bracket as _Bracket
-            bracket = _Bracket.objects.filter(tournament=tournament).first()
-            if bracket:
-                bracket_total = int(getattr(bracket, 'total_rounds', 0) or 0)
-                if bracket_total > 0:
-                    total_rounds = bracket_total
-
-        from apps.tournaments.services.match_classification import (
-            compute_round_label as _canonical_round_label,
-        )
-        for m in page_matches:
-            bracket_round_names[m.id] = _canonical_round_label(
-                tournament, m, bracket=bracket, total_rounds=total_rounds,
-            )
+        # Canonical labels/stage come from the read_model built above.
+        bracket = read_model.bracket
+        total_rounds = read_model.total_rounds
+        bracket_round_names = {
+            m.id: (view_by_id.get(m.id, {}).get('round_label') or '')
+            for m in page_matches
+        }
 
         matches = [
             cls._serialize_match(
@@ -215,6 +189,7 @@ class TOCMatchesService:
                 participant_media_map=participant_media_map,
                 bracket_round_label=bracket_round_names.get(m.id, ''),
                 tournament_format=tournament_format,
+                canonical_view=view_by_id.get(m.id),
             )
             for m in page_matches
         ]
@@ -228,15 +203,12 @@ class TOCMatchesService:
         has_next = page < total_pages
         has_prev = page > 1
 
-        # Build a stable round filter list across the whole tournament so the
-        # dropdown shows Quarterfinals/Semifinals/Final consistently — not
-        # just rounds that happen to be on the current page.
-        round_options = cls._build_round_options(
-            tournament=tournament,
-            tournament_format=tournament_format,
-            bracket=bracket,
-            total_rounds=total_rounds,
-        )
+        # Build a stable round filter list from the canonical read model so
+        # the dropdown shows Quarterfinals/Semifinals/Final consistently and
+        # selecting a round routes to the canonical round_number (which may
+        # differ from Match.round_number when bracket node coordinates are
+        # authoritative).
+        round_options = read_model.round_options()
 
         return {
             'matches': matches,
@@ -1365,6 +1337,7 @@ class TOCMatchesService:
         participant_media_map: Optional[Dict[int, str]] = None,
         bracket_round_label: str = '',
         tournament_format: str = '',
+        canonical_view: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         lobby = m.lobby_info if isinstance(m.lobby_info, dict) else {}
         if tournament is None:
@@ -1394,26 +1367,85 @@ class TOCMatchesService:
 
         draw_allowed = cls._draws_allowed_for_match(m, tournament=tournament)
 
+        # Overlay canonical stage/round/participant fields from the read model.
+        # The bracket tree is authoritative for knockout matches — a TBA
+        # match row should never win over a node that knows the real team.
+        canonical_stage = canonical_view.get('stage') if canonical_view else None
+        canonical_round_number = (
+            canonical_view.get('round_number') if canonical_view else None
+        )
+        canonical_match_number = (
+            canonical_view.get('match_number') if canonical_view else None
+        )
+        resolved_stage = canonical_stage or cls._resolve_stage(m, tournament_format)
+        resolved_round_number = (
+            canonical_round_number if canonical_round_number is not None
+            else m.round_number
+        )
+        resolved_match_number = (
+            canonical_match_number if canonical_match_number is not None
+            else m.match_number
+        )
+        resolved_round_label = (
+            (canonical_view.get('round_label') if canonical_view else '')
+            or bracket_round_label or ''
+        )
+        # Canonical participant slots (node-first).
+        if canonical_view:
+            c_p1_id = canonical_view.get('participant1_id')
+            c_p1_name = canonical_view.get('participant1_name') or ''
+            c_p2_id = canonical_view.get('participant2_id')
+            c_p2_name = canonical_view.get('participant2_name') or ''
+            c_winner_id = canonical_view.get('winner_id') or m.winner_id
+            c_winner_name = canonical_view.get('winner_name') or ''
+            c_winner_side = canonical_view.get('winner_side') or 0
+        else:
+            c_p1_id = m.participant1_id
+            c_p1_name = m.participant1_name or ''
+            c_p2_id = m.participant2_id
+            c_p2_name = m.participant2_name or ''
+            c_winner_id = m.winner_id
+            c_winner_name = ''
+            c_winner_side = 0
+
+        # Re-derive winner display when canonical_view didn't fill it.
+        if not c_winner_name and c_winner_id:
+            if c_winner_id == c_p1_id:
+                c_winner_name = c_p1_name
+                c_winner_side = 1
+            elif c_winner_id == c_p2_id:
+                c_winner_name = c_p2_name
+                c_winner_side = 2
+
+        # Recompute logos based on canonical participant IDs (not raw).
+        c_p1_logo_url = str(participant_media_map.get(c_p1_id, '') or '') if c_p1_id else ''
+        c_p2_logo_url = str(participant_media_map.get(c_p2_id, '') or '') if c_p2_id else ''
+        c_winner_logo_url = ''
+        if c_winner_side == 1:
+            c_winner_logo_url = c_p1_logo_url
+        elif c_winner_side == 2:
+            c_winner_logo_url = c_p2_logo_url
+
         return {
             'id': m.id,
-            'round_number': m.round_number,
-            'match_number': m.match_number,
-            'participant1_id': m.participant1_id,
-            'participant1_name': m.participant1_name,
-            'participant1_logo_url': p1_logo_url,
-            'p1_logo_url': p1_logo_url,
-            'participant2_id': m.participant2_id,
-            'participant2_name': m.participant2_name,
-            'participant2_logo_url': p2_logo_url,
-            'p2_logo_url': p2_logo_url,
+            'round_number': resolved_round_number,
+            'match_number': resolved_match_number,
+            'participant1_id': c_p1_id,
+            'participant1_name': c_p1_name,
+            'participant1_logo_url': c_p1_logo_url,
+            'p1_logo_url': c_p1_logo_url,
+            'participant2_id': c_p2_id,
+            'participant2_name': c_p2_name,
+            'participant2_logo_url': c_p2_logo_url,
+            'p2_logo_url': c_p2_logo_url,
             'participant1_score': m.participant1_score,
             'participant2_score': m.participant2_score,
             'state': m.state,
-            'winner_id': m.winner_id,
+            'winner_id': c_winner_id,
             'loser_id': m.loser_id,
-            'winner_side': winner_side,
-            'winner_name': winner_name,
-            'winner_logo_url': winner_logo_url,
+            'winner_side': c_winner_side,
+            'winner_name': c_winner_name,
+            'winner_logo_url': c_winner_logo_url,
             'draw_allowed': draw_allowed,
             'scheduled_time': m.scheduled_time.isoformat() if m.scheduled_time else None,
             'started_at': m.started_at.isoformat() if m.started_at else None,
@@ -1423,9 +1455,18 @@ class TOCMatchesService:
             'notes_count': len(lobby.get('notes', [])),
             # Sprint 26 additions
             'bracket_id': m.bracket_id,
+            'bracket_node_id': canonical_view.get('bracket_node_id') if canonical_view else None,
+            'source': canonical_view.get('source', 'match') if canonical_view else 'match',
             'group_label': cls._resolve_group_label(m, group_cache),
-            'stage': cls._resolve_stage(m, tournament_format),
-            'bracket_round_label': bracket_round_label or '',
+            'stage': resolved_stage,
+            'bracket_round_label': resolved_round_label,
+            # Raw fields preserved for debugging / repair tooling.
+            'raw_round_number': m.round_number,
+            'raw_match_number': m.match_number,
+            'raw_participant1_id': m.participant1_id,
+            'raw_participant1_name': m.participant1_name or '',
+            'raw_participant2_id': m.participant2_id,
+            'raw_participant2_name': m.participant2_name or '',
             'lobby_info': {
                 'lobby_code': lobby.get('lobby_code', ''),
                 'password': lobby.get('password', ''),

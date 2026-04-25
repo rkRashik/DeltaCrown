@@ -967,23 +967,67 @@ class TOCBracketsService:
         is_pure_knockout = _is_pure_knockout(fmt)
         bracket_total_rounds = _canonical_total_rounds(tournament, bracket=bracket_obj)
 
+        # Canonical read model — stage/round_number sourced from BracketNode
+        # when linked, so knockout semifinal/final matches never leak as
+        # group_stage rows.
+        from apps.tournaments.services.match_read_model import MatchReadModel
+        schedule_read_model = MatchReadModel.for_tournament(tournament)
+        schedule_view_by_id = {v['match_id']: v for v in schedule_read_model.list()}
+
         rounds = {}
         all_serialized = []
         for m in matches:
-            rn = m.round_number or 0
+            canonical_view = schedule_view_by_id.get(m.id) or {}
+            rn = canonical_view.get('round_number') or m.round_number or 0
             if rn not in rounds:
                 rounds[rn] = []
             serialized = TOCBracketsService._serialize_match_schedule(
                 m, team_map=team_map, is_team=is_team
             )
-            # Attach group name from participant lookup
-            gname = group_lookup.get(m.participant1_id) or group_lookup.get(m.participant2_id) or ""
+            # Overlay canonical values so schedule/TOC matches/HUB agree.
+            serialized["round_number"] = rn
+            if canonical_view.get('match_number') is not None:
+                serialized["match_number"] = canonical_view['match_number']
+            # Canonical participants — node-first. Preserve any team_map
+            # display-name enrichment that already ran in _serialize_match_schedule
+            # by only overriding when the canonical id differs from the raw id.
+            if canonical_view:
+                c_p1_id = canonical_view.get('participant1_id')
+                c_p2_id = canonical_view.get('participant2_id')
+                c_p1_name = canonical_view.get('participant1_name') or ''
+                c_p2_name = canonical_view.get('participant2_name') or ''
+                # Only overlay when canonical differs from raw — keeps team_map
+                # enrichment (logos/display_name_override) intact.
+                if c_p1_id != m.participant1_id or not serialized.get('participant1_name'):
+                    serialized["participant1_id"] = c_p1_id
+                    if c_p1_name:
+                        serialized["participant1_name"] = c_p1_name
+                    # Refresh logo for new id
+                    if is_team and team_map and c_p1_id in team_map:
+                        serialized["participant1_logo"] = team_map[c_p1_id]['logo_url']
+                        serialized["participant1_name"] = team_map[c_p1_id]['name']
+                if c_p2_id != m.participant2_id or not serialized.get('participant2_name'):
+                    serialized["participant2_id"] = c_p2_id
+                    if c_p2_name:
+                        serialized["participant2_name"] = c_p2_name
+                    if is_team and team_map and c_p2_id in team_map:
+                        serialized["participant2_logo"] = team_map[c_p2_id]['logo_url']
+                        serialized["participant2_name"] = team_map[c_p2_id]['name']
+                if canonical_view.get('winner_id'):
+                    serialized["winner_id"] = canonical_view['winner_id']
+            gname = group_lookup.get(serialized.get('participant1_id')) or group_lookup.get(serialized.get('participant2_id')) or ""
             serialized["group_name"] = gname
-            serialized["stage"] = _canonical_classify_stage(tournament, m)
-            serialized["bracket_round_label"] = _canonical_round_label(
-                tournament, m, bracket=bracket_obj,
-                total_rounds=bracket_total_rounds,
+            serialized["stage"] = canonical_view.get('stage') or _canonical_classify_stage(tournament, m)
+            serialized["bracket_round_label"] = (
+                canonical_view.get('round_label')
+                or _canonical_round_label(
+                    tournament, m, bracket=bracket_obj,
+                    total_rounds=bracket_total_rounds,
+                )
+                or ''
             )
+            serialized["bracket_node_id"] = canonical_view.get('bracket_node_id')
+            serialized["source"] = canonical_view.get('source', 'match')
             rounds[rn].append(serialized)
             all_serialized.append(serialized)
 
@@ -1038,16 +1082,21 @@ class TOCBracketsService:
 
         rounds_payload = []
         for rn, ms in sorted(rounds.items()):
-            # `ms` is a list of serialized dicts; pull the source match list
-            # for the same round to determine bracket_id.
-            srcs = [m for m in matches if (m.round_number or 0) == rn]
+            # Prefer the canonical label/stage already attached to the
+            # serialized matches — falls back to _round_label_for only if the
+            # bucket is empty (shouldn't happen, but safe).
+            if ms:
+                round_label = ms[0].get('bracket_round_label') or _round_label_for(rn, [])
+                stage_value = ms[0].get('stage') or 'knockout'
+            else:
+                round_label = _round_label_for(rn, [])
+                stage_value = 'knockout' if is_pure_knockout else (
+                    'swiss' if fmt == 'swiss' else 'group_stage'
+                )
             rounds_payload.append({
                 "round": rn,
-                "round_label": _round_label_for(rn, srcs),
-                "stage": "knockout" if (
-                    is_pure_knockout
-                    or (srcs and getattr(srcs[0], 'bracket_id', None))
-                ) else ("swiss" if fmt == 'swiss' else "group_stage"),
+                "round_label": round_label,
+                "stage": stage_value,
                 "matches": ms,
             })
 

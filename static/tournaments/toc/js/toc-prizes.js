@@ -331,7 +331,62 @@
     $('#prizes-refresh-btn')?.addEventListener('click', load);
     $('#prizes-save-btn')?.addEventListener('click', save);
     $('#prizes-publish-btn')?.addEventListener('click', publish);
+
+    $('#prizes-apply-template-btn')?.addEventListener('click', () => {
+      const sel = $('#prizes-smart-template');
+      if (!sel) return;
+      const key = sel.value;
+      const tpl = SMART_TEMPLATES[key];
+      if (!tpl) {
+        TOC.toast('Pick a template from the dropdown first.', 'info');
+        return;
+      }
+      state.special_awards = tpl.map((a, i) => Object.assign({
+        id: '', title: '', description: '', type: 'cash', icon: 'medal',
+        fiat: 0, coins: 0, reward_text: '',
+      }, a, { id: `tpl-${key}-${i}` }));
+      renderAwards();
+      TOC.toast(`Loaded ${tpl.length} award template(s). Remember to Save.`, 'success');
+    });
   }
+
+  // Smart Engine templates — seed awards only, never overwrites placements.
+  const SMART_TEMPLATES = {
+    valorant: [
+      { title: 'Match MVP', description: 'Highest ACS in the Grand Final series.',
+        type: 'cash', icon: 'medal', fiat: 1500, coins: 1000 },
+      { title: 'Headshot Machine', description: 'Highest overall HS% (min 50 kills total).',
+        type: 'digital', icon: 'crosshair', reward_text: '1000 VP Riot Code' },
+      { title: 'Clutch Minister', description: 'Most 1vX rounds won.',
+        type: 'cash', icon: 'shield', coins: 1500 },
+    ],
+    efootball: [
+      { title: 'Golden Boot', description: 'Top scorer of the tournament.',
+        type: 'cash', icon: 'crosshair', fiat: 2000, coins: 500 },
+      { title: 'Golden Glove', description: 'Most clean sheets kept.',
+        type: 'cash', icon: 'shield', fiat: 1000, coins: 500 },
+      { title: 'Goal of the Tournament', description: 'Community voted best goal.',
+        type: 'digital', icon: 'zap', coins: 2000, reward_text: 'Premium Pack' },
+    ],
+    pubgm: [
+      { title: 'Terminator', description: 'Player with the highest total frags.',
+        type: 'cash', icon: 'crosshair', fiat: 3000 },
+      { title: 'Lone Survivor', description: 'Highest average survival time.',
+        type: 'cash', icon: 'shield', coins: 2000 },
+    ],
+    dota2: [
+      { title: 'The Aegis MVP', description: 'Overall most impactful player.',
+        type: 'cash', icon: 'medal', fiat: 5000 },
+      { title: 'Master Support', description: 'Highest average assists + healing.',
+        type: 'cash', icon: 'shield', fiat: 1500, coins: 1500 },
+    ],
+    generic: [
+      { title: 'Tournament MVP', description: 'Selected by panel for outstanding performance.',
+        type: 'cash', icon: 'medal', coins: 2500 },
+      { title: 'Fan Favorite', description: 'Community-voted most exciting player.',
+        type: 'cash', icon: 'zap', fiat: 1000 },
+    ],
+  };
 
   // ── Tab activation ──
 

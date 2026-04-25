@@ -3102,6 +3102,12 @@ class HubBracketAPIView(LoginRequiredMixin, View):
             matches_qs = matches_qs.filter(bracket__isnull=True)
 
         matches = list(matches_qs.order_by('round_number', 'match_number', 'id'))
+
+        # Canonical read model for participant/score resolution — the bracket
+        # tree wins over any TBA/empty Match row.
+        from apps.tournaments.services.match_read_model import MatchReadModel
+        _hub_bracket_read_model = MatchReadModel.for_tournament(tournament)
+
         if not matches:
             if has_groups and groups_drawn:
                 group_status = 'drawn_waiting_matches'
@@ -3230,35 +3236,53 @@ class HubBracketAPIView(LoginRequiredMixin, View):
                 }
 
             _lobby = _rls_bracket(m, now=_bracket_now)
-            # Phase classification mirrors TOC truth contract:
-            # pure-knockout formats are always knockout regardless of bracket_id.
-            if is_pure_knockout:
+            # Canonical view — participants, scores, winner from read model.
+            _cview = _hub_bracket_read_model.by_id(m.id) or {}
+            phase_value = _cview.get('stage')
+            if phase_value == 'knockout':
                 phase_value = 'knockout_stage'
-            elif fmt == 'round_robin':
+            elif phase_value == 'group_stage':
                 phase_value = 'group_stage'
-            elif fmt == 'swiss':
+            elif phase_value == 'swiss':
                 phase_value = 'swiss'
             else:
-                phase_value = 'knockout_stage' if m.bracket_id else 'group_stage'
+                # Fallback when read model has no entry for this match.
+                if is_pure_knockout:
+                    phase_value = 'knockout_stage'
+                elif fmt == 'round_robin':
+                    phase_value = 'group_stage'
+                elif fmt == 'swiss':
+                    phase_value = 'swiss'
+                else:
+                    phase_value = 'knockout_stage' if m.bracket_id else 'group_stage'
+
+            c_p1_id = _cview.get('participant1_id') if _cview else m.participant1_id
+            c_p1_name = _cview.get('participant1_name') if _cview else (m.participant1_name or '')
+            c_p2_id = _cview.get('participant2_id') if _cview else m.participant2_id
+            c_p2_name = _cview.get('participant2_name') if _cview else (m.participant2_name or '')
+            c_winner_id = _cview.get('winner_id') if _cview else m.winner_id
+
             serialized_match = {
                 'id': m.id,
                 'match_number': m.match_number,
                 'state': m.state,
                 'state_display': m.get_state_display(),
                 'phase': phase_value,
+                'source': _cview.get('source', 'match'),
+                'bracket_node_id': _cview.get('bracket_node_id'),
                 'participant1': {
-                    'id': m.participant1_id,
-                    'name': m.participant1_name or 'TBD',
+                    'id': c_p1_id,
+                    'name': c_p1_name or 'TBD',
                     'score': m.participant1_score,
-                    'is_winner': m.winner_id == m.participant1_id if m.winner_id else False,
-                    'logo_url': participant_media_map.get(m.participant1_id, ''),
+                    'is_winner': bool(c_winner_id and c_winner_id == c_p1_id),
+                    'logo_url': participant_media_map.get(c_p1_id, '') if c_p1_id else '',
                 },
                 'participant2': {
-                    'id': m.participant2_id,
-                    'name': m.participant2_name or 'TBD',
+                    'id': c_p2_id,
+                    'name': c_p2_name or 'TBD',
                     'score': m.participant2_score,
-                    'is_winner': m.winner_id == m.participant2_id if m.winner_id else False,
-                    'logo_url': participant_media_map.get(m.participant2_id, ''),
+                    'is_winner': bool(c_winner_id and c_winner_id == c_p2_id),
+                    'logo_url': participant_media_map.get(c_p2_id, '') if c_p2_id else '',
                 },
                 'scheduled_at': m.scheduled_time.isoformat() if m.scheduled_time else None,
                 'lobby_state': _lobby['state'],
@@ -3932,6 +3956,10 @@ class HubMatchesAPIView(LoginRequiredMixin, View):
         show_full_matchup = is_staff_view or include_all_matches
         participant_id = (registration.team_id if registration else None) if is_team else request.user.id
 
+        # Canonical read model — one source of truth for stage/round_label.
+        from apps.tournaments.services.match_read_model import MatchReadModel
+        _hub_matches_read_model = MatchReadModel.for_tournament(tournament)
+
         # Get user's matches (staff/organizers see ALL matches)
         user_matches = Match.objects.filter(
             tournament=tournament,
@@ -4036,21 +4064,25 @@ class HubMatchesAPIView(LoginRequiredMixin, View):
                 opponent_score = m.participant2_score if is_p1 else m.participant1_score
                 is_winner = inferred_winner_id == participant_id if inferred_winner_id else None
 
-            # Canonical stage + label — single source of truth.
-            from apps.tournaments.services.match_classification import (
-                classify_stage as _classify_stage,
-                compute_round_label as _compute_round_label,
-            )
-            stage_value = _classify_stage(tournament, m)
+            # Canonical read model — bracket-node-aware stage + label.
+            # Built once outside the per-match loop (see `_hub_matches_read_model`).
+            _canonical_view = _hub_matches_read_model.by_id(m.id) if _hub_matches_read_model else None
+            stage_value = (_canonical_view or {}).get('stage')
+            if not stage_value:
+                from apps.tournaments.services.match_classification import classify_stage as _classify_stage
+                stage_value = _classify_stage(tournament, m)
             is_knockout_match = stage_value == 'knockout'
-            if is_knockout_match:
-                round_name = _compute_round_label(
-                    tournament, m, bracket=bracket,
-                ) or f'Round {m.round_number}'
-            elif stage_value == 'swiss':
-                round_name = f'Round {m.round_number}'
-            else:
-                round_name = 'Group Stage'
+            round_name = (_canonical_view or {}).get('round_label') or ''
+            if not round_name:
+                if is_knockout_match:
+                    from apps.tournaments.services.match_classification import compute_round_label as _compute_round_label
+                    round_name = _compute_round_label(
+                        tournament, m, bracket=bracket,
+                    ) or f'Round {m.round_number}'
+                elif stage_value == 'swiss':
+                    round_name = f'Round {m.round_number}'
+                else:
+                    round_name = 'Group Stage'
 
             winner_name = getattr(m, 'winner_name', None)
             if not winner_name and inferred_winner_id:
@@ -4152,9 +4184,23 @@ class HubMatchesAPIView(LoginRequiredMixin, View):
             )
             match_room_url = reverse('tournaments:match_room', kwargs={'slug': tournament.slug, 'match_id': m.id})
 
+            # Canonical participant slots — node-first via MatchReadModel.
+            if _canonical_view:
+                canon_p1_id = _canonical_view.get('participant1_id')
+                canon_p2_id = _canonical_view.get('participant2_id')
+                canon_p1_name = _canonical_view.get('participant1_name') or ''
+                canon_p2_name = _canonical_view.get('participant2_name') or ''
+                canon_round_number = _canonical_view.get('round_number') or m.round_number
+            else:
+                canon_p1_id = m.participant1_id
+                canon_p2_id = m.participant2_id
+                canon_p1_name = m.participant1_name or ''
+                canon_p2_name = m.participant2_name or ''
+                canon_round_number = m.round_number
+
             match_data = {
                 'id': m.id,
-                'round_number': m.round_number,
+                'round_number': canon_round_number,
                 'round_name': round_name,
                 'match_number': m.match_number,
                 'state': m.state,
@@ -4162,10 +4208,10 @@ class HubMatchesAPIView(LoginRequiredMixin, View):
                 'phase': 'group_stage' if not is_knockout_match else 'knockout_stage',
                 'stage': 'knockout' if is_knockout_match else 'group',
                 'is_knockout': is_knockout_match,
-                'p1_id': m.participant1_id,
-                'p2_id': m.participant2_id,
-                'p1_name': m.participant1_name or 'TBD',
-                'p2_name': m.participant2_name or 'TBD',
+                'p1_id': canon_p1_id,
+                'p2_id': canon_p2_id,
+                'p1_name': canon_p1_name or 'TBD',
+                'p2_name': canon_p2_name or 'TBD',
                 'opponent_name': opponent_name or 'TBD',
                 'your_score': your_score,
                 'opponent_score': opponent_score,

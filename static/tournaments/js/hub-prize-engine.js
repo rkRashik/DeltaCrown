@@ -75,25 +75,31 @@
       var winner = tier.winner ? esc(tier.winner.team_name || '') : '';
       var fiatLabel = tier.fiat ? '৳' + fmt(tier.fiat) : 'TBA';
       var coinsLabel = tier.coins ? '+ ' + fmt(tier.coins) + ' DC' : '';
-      return ''
-        + '<div class="relative overflow-hidden rounded-3xl hub-glass border ' + style.ringClass + ' p-6 md:p-8 ' + style.elevation + ' transition-all">'
-        +   '<div class="absolute top-2 right-3 font-black opacity-10 text-7xl text-white pointer-events-none" style="font-family:Outfit,sans-serif;">' + (idx + 1) + '</div>'
-        +   '<div class="relative z-10 space-y-4">'
-        +     '<div class="w-14 h-14 rounded-2xl ' + style.iconBg + ' flex items-center justify-center shadow-lg">'
-        +       '<i data-lucide="' + style.icon + '" class="w-7 h-7 ' + style.iconColor + '"></i>'
-        +     '</div>'
-        +     '<div>'
-        +       '<p class="text-[10px] font-bold uppercase tracking-[0.2em] ' + style.labelColor + ' mb-1">' + ordinal(tier.rank) + ' · ' + esc(tier.title || '') + '</p>'
-        +       (winner ? '<p class="text-sm font-bold text-white truncate mt-1">' + winner + '</p>' : '<p class="text-xs text-gray-500 mt-1">Awaiting winner</p>')
-        +     '</div>'
-        +     '<div>'
-        +       '<h4 class="text-3xl md:text-4xl font-black text-white tracking-tight" style="font-family:Outfit,sans-serif;">' + fiatLabel + '</h4>'
-        +       (coinsLabel
-        +         ? '<div class="inline-flex items-center gap-1.5 px-3 py-1 mt-3 rounded-lg bg-[#00F0FF]/10 border border-[#00F0FF]/20 text-xs font-bold text-[#00F0FF]"><i data-lucide="coins" class="w-3 h-3"></i><span>' + coinsLabel + '</span></div>'
-        +         : '')
-        +     '</div>'
-        +   '</div>'
-        + '</div>';
+      var winnerHtml = winner
+        ? '<p class="text-sm font-bold text-white truncate mt-1">' + winner + '</p>'
+        : '<p class="text-xs text-gray-500 mt-1">Awaiting winner</p>';
+      var coinsHtml = coinsLabel
+        ? '<div class="inline-flex items-center gap-1.5 px-3 py-1 mt-3 rounded-lg bg-[#00F0FF]/10 border border-[#00F0FF]/20 text-xs font-bold text-[#00F0FF]"><i data-lucide="coins" class="w-3 h-3"></i><span>' + coinsLabel + '</span></div>'
+        : '';
+      var parts = [
+        '<div class="relative overflow-hidden rounded-3xl hub-glass border ' + style.ringClass + ' p-6 md:p-8 ' + style.elevation + ' transition-all">',
+        '<div class="absolute top-2 right-3 font-black opacity-10 text-7xl text-white pointer-events-none" style="font-family:Outfit,sans-serif;">' + (idx + 1) + '</div>',
+        '<div class="relative z-10 space-y-4">',
+        '<div class="w-14 h-14 rounded-2xl ' + style.iconBg + ' flex items-center justify-center shadow-lg">',
+        '<i data-lucide="' + style.icon + '" class="w-7 h-7 ' + style.iconColor + '"></i>',
+        '</div>',
+        '<div>',
+        '<p class="text-[10px] font-bold uppercase tracking-[0.2em] ' + style.labelColor + ' mb-1">' + ordinal(tier.rank) + ' · ' + esc(tier.title || '') + '</p>',
+        winnerHtml,
+        '</div>',
+        '<div>',
+        '<h4 class="text-3xl md:text-4xl font-black text-white tracking-tight" style="font-family:Outfit,sans-serif;">' + fiatLabel + '</h4>',
+        coinsHtml,
+        '</div>',
+        '</div>',
+        '</div>'
+      ];
+      return parts.join('');
     }
 
     function renderPodium(data) {
@@ -153,26 +159,29 @@
         var coinsTxt = a.coins ? fmt(a.coins) + ' DC' : '';
         var rewardTxt = a.reward_text ? esc(a.reward_text) : (fiatTxt || coinsTxt || 'Award');
         var typeBadge = (a.type || 'cash').toUpperCase();
-        return ''
-          + '<div class="rounded-2xl hub-glass border border-white/5 p-5 group hover:border-[#7000FF]/30 transition-all">'
-          +   '<div class="flex items-start justify-between mb-4">'
-          +     '<div class="w-11 h-11 rounded-xl bg-gradient-to-br from-gray-800 to-black border border-white/10 flex items-center justify-center group-hover:border-[#7000FF]/40 transition-colors">'
-          +       '<i data-lucide="' + esc(a.icon || 'medal') + '" class="w-5 h-5 text-gray-300 group-hover:text-[#C99CFF] transition-colors"></i>'
-          +     '</div>'
-          +     '<span class="px-2 py-1 bg-white/5 border border-white/10 rounded text-[9px] font-bold uppercase tracking-widest text-gray-400">' + esc(typeBadge) + '</span>'
-          +   '</div>'
-          +   '<h4 class="text-base font-bold text-white mb-1" style="font-family:Outfit,sans-serif;">' + esc(a.title || '') + '</h4>'
-          +   '<p class="text-xs text-gray-400 leading-relaxed mb-4 min-h-[36px]">' + esc(a.description || '') + '</p>'
-          +   '<div class="p-3 rounded-xl bg-black/40 border border-white/5 flex items-center justify-between">'
-          +     '<div>'
-          +       '<p class="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Reward</p>'
-          +       '<p class="text-sm font-bold text-white mt-0.5">' + rewardTxt + '</p>'
-          +     '</div>'
-          +     (coinsTxt
-          +       ? '<div class="text-right"><p class="text-[9px] font-bold text-[#00F0FF] uppercase tracking-widest">Bonus</p><p class="text-xs font-bold text-[#00F0FF]">' + coinsTxt + '</p></div>'
-          +       : '')
-          +   '</div>'
-          + '</div>';
+        var bonusHtml = coinsTxt
+          ? '<div class="text-right"><p class="text-[9px] font-bold text-[#00F0FF] uppercase tracking-widest">Bonus</p><p class="text-xs font-bold text-[#00F0FF]">' + coinsTxt + '</p></div>'
+          : '';
+        var parts = [
+          '<div class="rounded-2xl hub-glass border border-white/5 p-5 group hover:border-[#7000FF]/30 transition-all">',
+          '<div class="flex items-start justify-between mb-4">',
+          '<div class="w-11 h-11 rounded-xl bg-gradient-to-br from-gray-800 to-black border border-white/10 flex items-center justify-center group-hover:border-[#7000FF]/40 transition-colors">',
+          '<i data-lucide="' + esc(a.icon || 'medal') + '" class="w-5 h-5 text-gray-300 group-hover:text-[#C99CFF] transition-colors"></i>',
+          '</div>',
+          '<span class="px-2 py-1 bg-white/5 border border-white/10 rounded text-[9px] font-bold uppercase tracking-widest text-gray-400">' + esc(typeBadge) + '</span>',
+          '</div>',
+          '<h4 class="text-base font-bold text-white mb-1" style="font-family:Outfit,sans-serif;">' + esc(a.title || '') + '</h4>',
+          '<p class="text-xs text-gray-400 leading-relaxed mb-4 min-h-[36px]">' + esc(a.description || '') + '</p>',
+          '<div class="p-3 rounded-xl bg-black/40 border border-white/5 flex items-center justify-between">',
+          '<div>',
+          '<p class="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Reward</p>',
+          '<p class="text-sm font-bold text-white mt-0.5">' + rewardTxt + '</p>',
+          '</div>',
+          bonusHtml,
+          '</div>',
+          '</div>'
+        ];
+        return parts.join('');
       }).join('');
     }
 

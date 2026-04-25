@@ -832,17 +832,28 @@ class TournamentDetailView(DetailView):
                 value = value.replace(source, target)
             return value
 
-        # Canonical classifier — single source of truth shared with TOC + HUB.
+        # Canonical read model — bracket-node-aware stage + round label.
+        from apps.tournaments.services.match_read_model import MatchReadModel
         from apps.tournaments.services.match_classification import (
             classify_stage as _classify_stage,
             compute_round_label as _compute_round_label,
             tournament_total_rounds as _tournament_total_rounds,
         )
+        _canonical_read_model = MatchReadModel.for_tournament(tournament)
+        _canonical_view_by_id = {v['match_id']: v for v in _canonical_read_model.list()}
         _canonical_total_rounds = _tournament_total_rounds(tournament)
         for match in matches_qs:
-            stage_value = _classify_stage(tournament, match)
+            _canonical_view = _canonical_view_by_id.get(match.id) or {}
+            stage_value = _canonical_view.get('stage') or _classify_stage(tournament, match)
             phase = 'knockout_stage' if stage_value == 'knockout' else (
                 'swiss' if stage_value == 'swiss' else 'group_stage'
+            )
+            # Canonical round_number from the read model — when the bracket
+            # tree disagrees with Match.round_number, the tree wins.
+            canonical_round_number = (
+                _canonical_view.get('round_number')
+                if _canonical_view.get('round_number') is not None
+                else match.round_number
             )
 
             if match.state == 'live':
@@ -856,12 +867,9 @@ class TournamentDetailView(DetailView):
             is_completed = match.state in ['completed', 'forfeit', 'cancelled']
             show_scores = match.state in ['live', 'completed', 'pending_result', 'disputed']
 
+            # `winner` (1/2) is re-derived below using canonical participant IDs
+            # so a match with node-sourced p1/p2 still highlights the right side.
             winner = None
-            if match.winner_id:
-                if match.winner_id == match.participant1_id:
-                    winner = 1
-                elif match.winner_id == match.participant2_id:
-                    winner = 2
 
             group_name = ''
             group_id = None
@@ -875,11 +883,16 @@ class TournamentDetailView(DetailView):
                     group_id = gid
                     group_name = groups_map.get(gid, '')
 
-            if phase == 'knockout_stage' and match.round_number:
-                round_label = _compute_round_label(
-                    tournament, match,
-                    total_rounds=_canonical_total_rounds,
-                ) or f'Round {match.round_number}'
+            if phase == 'knockout_stage' and canonical_round_number:
+                # Prefer the canonical label directly from the read model.
+                round_label = (
+                    _canonical_view.get('round_label')
+                    or _compute_round_label(
+                        tournament, match,
+                        total_rounds=_canonical_total_rounds,
+                    )
+                    or f'Round {canonical_round_number}'
+                )
 
             round_label = _normalize_round_label(round_label)
 
@@ -903,22 +916,44 @@ class TournamentDetailView(DetailView):
             if match.scheduled_time:
                 start_time_display = _format_display_datetime(match.scheduled_time, _tf)
 
+            # Canonical participant slots — node-first. When BracketNode has
+            # participant data but the Match row is TBA, the bracket wins.
+            _c_p1_id = _canonical_view.get('participant1_id') if _canonical_view else None
+            _c_p2_id = _canonical_view.get('participant2_id') if _canonical_view else None
+            _c_p1_name = _canonical_view.get('participant1_name') if _canonical_view else ''
+            _c_p2_name = _canonical_view.get('participant2_name') if _canonical_view else ''
+            canon_p1_id = _c_p1_id or match.participant1_id
+            canon_p2_id = _c_p2_id or match.participant2_id
+            canon_p1_name_raw = _c_p1_name or match.participant1_name or ''
+            canon_p2_name_raw = _c_p2_name or match.participant2_name or ''
+
             p1_name = 'TBD'
             p2_name = 'TBD'
             p1_logo = None
             p2_logo = None
 
-            if match.participant1_id:
-                p1_name = teams_map.get(match.participant1_id) or match.participant1_name or 'TBD'
-                p1_logo = teams_logo_map.get(match.participant1_id)
-            elif match.participant1_name:
-                p1_name = match.participant1_name
+            if canon_p1_id:
+                p1_name = teams_map.get(canon_p1_id) or canon_p1_name_raw or 'TBD'
+                p1_logo = teams_logo_map.get(canon_p1_id)
+            elif canon_p1_name_raw:
+                p1_name = canon_p1_name_raw
 
-            if match.participant2_id:
-                p2_name = teams_map.get(match.participant2_id) or match.participant2_name or 'TBD'
-                p2_logo = teams_logo_map.get(match.participant2_id)
-            elif match.participant2_name:
-                p2_name = match.participant2_name
+            if canon_p2_id:
+                p2_name = teams_map.get(canon_p2_id) or canon_p2_name_raw or 'TBD'
+                p2_logo = teams_logo_map.get(canon_p2_id)
+            elif canon_p2_name_raw:
+                p2_name = canon_p2_name_raw
+
+            # Canonical winner side derivation: use node-sourced winner_id if
+            # available, else Match.winner_id. Match against canonical IDs.
+            canon_winner_id = (
+                _canonical_view.get('winner_id') if _canonical_view else None
+            ) or match.winner_id
+            if canon_winner_id:
+                if canon_winner_id == canon_p1_id:
+                    winner = 1
+                elif canon_winner_id == canon_p2_id:
+                    winner = 2
 
             team1_is_winner = winner == 1
             team2_is_winner = winner == 2
@@ -1010,7 +1045,11 @@ class TournamentDetailView(DetailView):
                 'show_scores': show_scores,
                 'winner': winner,
                 'round_label': round_label,
+                'round_number_canonical': canonical_round_number,
                 'stage_label': stage_label,
+                'stage': stage_value,
+                'source': _canonical_view.get('source', 'match'),
+                'bracket_node_id': _canonical_view.get('bracket_node_id'),
                 'match_label': match_label,
                 'group_name': group_name,
                 'group_id': group_id,
@@ -1023,8 +1062,10 @@ class TournamentDetailView(DetailView):
                 'starts_at_relative': starts_at_relative,
                 'team1_name': p1_name,
                 'team2_name': p2_name,
-                'team1_id': match.participant1_id,
-                'team2_id': match.participant2_id,
+                'team1_id': canon_p1_id,
+                'team2_id': canon_p2_id,
+                'raw_team1_id': match.participant1_id,
+                'raw_team2_id': match.participant2_id,
                 'team1_logo_url': p1_logo,
                 'team2_logo_url': p2_logo,
                 'team1_is_winner': team1_is_winner,
