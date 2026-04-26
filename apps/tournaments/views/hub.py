@@ -3450,6 +3450,12 @@ class HubBracketAPIView(LoginRequiredMixin, View):
             c_p2_id = _cview.get('participant2_id') if _cview else m.participant2_id
             c_p2_name = _cview.get('participant2_name') if _cview else (m.participant2_name or '')
             c_winner_id = _cview.get('winner_id') if _cview else m.winner_id
+            m_lobby_info = m.lobby_info or {}
+            is_third_place_match = bool(
+                (_cview.get('bracket_type') if _cview else None) == BracketNode.THIRD_PLACE or
+                m_lobby_info.get('third_place_match') is True or
+                m_lobby_info.get('stage') in {'third_place', 'bronze'}
+            )
 
             serialized_match = {
                 'id': m.id,
@@ -3459,6 +3465,8 @@ class HubBracketAPIView(LoginRequiredMixin, View):
                 'phase': phase_value,
                 'source': _cview.get('source', 'match'),
                 'bracket_node_id': _cview.get('bracket_node_id'),
+                'bracket_type': _cview.get('bracket_type') if _cview else None,
+                'is_third_place_match': is_third_place_match,
                 'participant1': {
                     'id': c_p1_id,
                     'name': c_p1_name or 'TBD',

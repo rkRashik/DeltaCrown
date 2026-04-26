@@ -9,6 +9,7 @@
 
 {% block tournament_css %}
 <link rel="stylesheet" href="{% static 'tournaments/css/hub.css' %}?v=20260416_overview_premium_polish_v3">
+<link rel="stylesheet" href="{% static 'tournaments/css/bracket-demo.css' %}?v=20260426a">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800;900&family=Libre+Barcode+39+Text&display=swap" rel="stylesheet">
@@ -555,6 +556,11 @@
       {% comment %}Tab: Standings{% endcomment %}
       <div id="hub-tab-standings" class="hub-tab-content">
         {% include "tournaments/hub/_tab_standings.html" %}
+      </div>
+
+      {% comment %}Tab: Results & Achievements{% endcomment %}
+      <div id="hub-tab-results-achievements" class="hub-tab-content">
+        {% include "tournaments/hub/_tab_results_achievements.html" %}
       </div>
 
       {% comment %}Tab: Schedule{% endcomment %}
@@ -1118,8 +1124,10 @@
 {% block tournament_js %}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="{% static 'tournaments/js/bracket-demo-engine.js' %}?v=20260426a"></script>
 <script src="{% static 'tournaments/js/hub-engine.js' %}?v=20260416_overview_premium_polish_v3"></script>
 <script src="{% static 'tournaments/js/hub-prize-engine.js' %}?v=20260426a"></script>
+<script src="{% static 'tournaments/js/results-achievements-engine.js' %}?v=20260426a"></script>
 <script nonce="{{ request.csp_nonce }}">
   document.addEventListener('DOMContentLoaded', function() {
     if (typeof lucide !== 'undefined') lucide.createIcons();

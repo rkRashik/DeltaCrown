@@ -14,7 +14,6 @@ from __future__ import annotations
 import logging
 
 from django.core.cache import cache
-from django.db.models import Q
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.response import Response
@@ -22,6 +21,7 @@ from rest_framework.response import Response
 from apps.tournaments.api.toc.base import TOCBaseView
 from apps.tournaments.api.toc.cache_utils import bump_toc_scopes
 from apps.tournaments.models import PrizeClaim, Registration, TournamentResult
+from apps.organizations.models import Team
 from apps.tournaments.services.bracket_service import BracketService
 from apps.tournaments.services.placement_service import PlacementService
 from apps.tournaments.services.prize_config_service import PrizeConfigService
@@ -41,7 +41,7 @@ def _invalidate_rewards_cache(tournament):
 
 
 def _registration_label(registration):
-    team = getattr(registration, 'team', None)
+    team = getattr(registration, '_resolved_team', None) or getattr(registration, 'team', None)
     if team and getattr(team, 'name', None):
         return str(team.name)
     user = getattr(registration, 'user', None)
@@ -54,7 +54,7 @@ def _registration_subtitle(registration):
     parts = []
     if getattr(registration, 'status', None):
         parts.append(str(registration.status).replace('_', ' ').title())
-    team = getattr(registration, 'team', None)
+    team = getattr(registration, '_resolved_team', None) or getattr(registration, 'team', None)
     user = getattr(registration, 'user', None)
     if team and getattr(team, 'tag', None):
         parts.append(str(team.tag))
@@ -212,18 +212,26 @@ class PrizeRecipientSearchView(TOCBaseView):
         qs = (
             Registration.objects
             .filter(tournament=self.tournament, is_deleted=False)
-            .select_related('user', 'team')
+            .select_related('user')
             .order_by('id')
         )
+        registrations = list(qs[:200])
+        team_ids = [reg.team_id for reg in registrations if getattr(reg, 'team_id', None)]
+        teams = {
+            team.id: team
+            for team in Team.objects.filter(id__in=team_ids)
+        }
+        for reg in registrations:
+            reg._resolved_team = teams.get(reg.team_id)
         if query:
-            qs = qs.filter(
-                Q(user__username__icontains=query) |
-                Q(user__email__icontains=query) |
-                Q(team__name__icontains=query) |
-                Q(team__tag__icontains=query)
-            )
+            needle = query.casefold()
+            registrations = [
+                reg for reg in registrations
+                if needle in (_registration_label(reg) or '').casefold()
+                or needle in (_registration_subtitle(reg) or '').casefold()
+            ]
         results = []
-        for reg in qs[:30]:
+        for reg in registrations[:30]:
             results.append({
                 'registration_id': reg.id,
                 'name': _registration_label(reg),
@@ -256,11 +264,13 @@ class PrizePlacementAssignView(TOCBaseView):
         recipient = (
             Registration.objects
             .filter(tournament=self.tournament, is_deleted=False, id=recipient_id)
-            .select_related('user', 'team')
+            .select_related('user')
             .first()
         )
         if not recipient:
             return Response({'error': 'Recipient is not registered in this tournament.'}, status=status.HTTP_400_BAD_REQUEST)
+        if getattr(recipient, 'team_id', None):
+            recipient._resolved_team = Team.objects.filter(id=recipient.team_id).first()
 
         payload = PlacementService.standings_payload(self.tournament)
         standings = list(payload.get('standings') or [])
@@ -355,7 +365,7 @@ class PrizeBronzeCreateView(TOCBaseView):
             ['full_access', 'edit_settings', 'manage_brackets'],
         ):
             return Response(
-                {'error': 'You do not have permission to create a bronze match.'},
+                {'error': 'You do not have permission to create a Third Place Match.'},
                 status=status.HTTP_403_FORBIDDEN,
             )
         try:

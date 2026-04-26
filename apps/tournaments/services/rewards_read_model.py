@@ -16,6 +16,8 @@ from apps.tournaments.models import (
     Certificate,
     PrizeClaim,
     PrizeTransaction,
+    Match,
+    BracketNode,
     Registration,
     Tournament,
     TournamentResult,
@@ -32,7 +34,7 @@ from apps.tournaments.services.staff_permission_checker import StaffPermissionCh
 class TournamentRewardsReadModel:
     """Build surface-specific results/rewards payloads for one tournament."""
 
-    NO_BRONZE_REASON = 'No bronze match configured, 3rd place cannot be assigned.'
+    NO_BRONZE_REASON = 'No Third Place Match configured, 3rd place cannot be assigned.'
 
     RANK_TO_TRANSACTION_PLACEMENT = {
         1: PrizeTransaction.Placement.FIRST,
@@ -851,7 +853,8 @@ class TournamentRewardsReadModel:
                 'block_reason': '',
                 'is_tied': False,
             }
-        if cls._bronze_match_enabled(ctx):
+        third_place_match = cls._third_place_match(ctx)
+        if third_place_match and getattr(third_place_match, 'winner_id', None):
             return {
                 'result_label': '',
                 'placement_unresolved': False,
@@ -860,11 +863,16 @@ class TournamentRewardsReadModel:
                 'is_tied': False,
             }
         label = cls._unresolved_placement_label(ctx)
+        reason = (
+            'Third Place Match is not completed yet.'
+            if third_place_match
+            else cls.NO_BRONZE_REASON
+        )
         return {
             'result_label': label,
             'placement_unresolved': True,
             'payout_blocked': True,
-            'block_reason': cls.NO_BRONZE_REASON,
+            'block_reason': reason,
             'is_tied': label == 'Joint 3rd',
         }
 
@@ -898,18 +906,37 @@ class TournamentRewardsReadModel:
     @classmethod
     def _has_no_bronze_unresolved_placements(cls, ctx: Dict[str, Any]) -> bool:
         return any(
-            row.get('placement_unresolved') and row.get('block_reason') == cls.NO_BRONZE_REASON
+            row.get('placement_unresolved')
             for row in ctx.get('placements') or []
         )
 
     @classmethod
     def _placement_resolution_status(cls, ctx: Dict[str, Any]) -> Dict[str, Any]:
         unresolved = cls._has_no_bronze_unresolved_placements(ctx)
+        third_place_match = cls._third_place_match(ctx)
+        third_place_match_exists = bool(third_place_match)
+        third_place_match_completed = bool(
+            third_place_match and
+            getattr(third_place_match, 'state', '') in (Match.COMPLETED, Match.FORFEIT) and
+            getattr(third_place_match, 'winner_id', None)
+        )
+        message = ''
+        if unresolved:
+            message = (
+                'Third Place Match is not completed yet.'
+                if third_place_match_exists
+                else cls.NO_BRONZE_REASON
+            )
         return {
             'third_place_assignable': not unresolved,
             'bronze_match_enabled': cls._bronze_match_enabled(ctx),
+            'third_place_match_enabled': cls._bronze_match_enabled(ctx) or third_place_match_exists,
+            'third_place_match_exists': third_place_match_exists,
+            'third_place_match_completed': third_place_match_completed,
+            'third_place_match_id': getattr(third_place_match, 'id', None) if third_place_match else None,
+            'can_create_third_place_match': bool(unresolved and not third_place_match_exists),
             'payout_blocked_for_ranks': [3, 4] if unresolved else [],
-            'message': cls.NO_BRONZE_REASON if unresolved else '',
+            'message': message,
         }
 
     @classmethod
@@ -932,6 +959,33 @@ class TournamentRewardsReadModel:
             structure.get('third_place_match_enabled') is True or
             structure.get('bronze_match_enabled') is True
         )
+
+    @classmethod
+    def _third_place_match(cls, ctx: Dict[str, Any]) -> Optional[Match]:
+        tournament = ctx['tournament']
+        filters = {
+            'tournament': tournament,
+            'is_deleted': False,
+        }
+        try:
+            bracket = tournament.bracket
+        except Exception:
+            bracket = None
+        qs = Match.objects.filter(**filters)
+        if bracket:
+            qs = qs.filter(bracket=bracket)
+        match = (
+            qs.filter(bracket_node__bracket_type=BracketNode.THIRD_PLACE)
+            .order_by('-round_number', 'match_number', '-id')
+            .first()
+        )
+        if match:
+            return match
+        for candidate in qs.order_by('-round_number', 'match_number', '-id')[:20]:
+            info = getattr(candidate, 'lobby_info', None) or {}
+            if info.get('third_place_match') is True or info.get('stage') in {'third_place', 'bronze'}:
+                return candidate
+        return None
 
     @classmethod
     def _claim_payload(cls, claim: Optional[PrizeClaim], *, include_private: bool) -> Optional[Dict[str, Any]]:

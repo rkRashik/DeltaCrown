@@ -173,6 +173,7 @@ class TOCView(LoginRequiredMixin, TemplateView):
             {'id': 'rules', 'label': 'Rules & Info', 'icon': 'book-open', 'group': 'Platform'},
             {'id': 'settings', 'label': 'Settings', 'icon': 'settings', 'group': 'Platform'},
             {'id': 'prizes', 'label': 'Prizes & Awards', 'icon': 'trophy', 'group': 'Engagement'},
+            {'id': 'results-achievements', 'label': 'Results & Achievements', 'icon': 'award', 'group': 'Engagement'},
             {'id': 'public-hub-config', 'label': 'Public Hub Config', 'icon': 'monitor-smartphone', 'group': 'Engagement'},
             {'id': 'fan-predictions', 'label': 'Fan Predictions', 'icon': 'pie-chart', 'group': 'Engagement'},
             {'id': 'match-center', 'label': 'Match Center', 'icon': 'monitor-play', 'group': 'Engagement'},

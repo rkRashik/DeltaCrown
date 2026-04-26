@@ -180,15 +180,15 @@
         </div>
         <input data-prize-award-text="${idx}" type="text" maxlength="240" value="${escapeAttr(a.reward_text || '')}"
           class="w-full bg-dc-panel border border-dc-border rounded px-2 py-1 text-xs text-white outline-none" placeholder="Reward detail (e.g. 'Logitech G Pro X')">
-        <label class="text-[10px] text-dc-text block mt-1">Recipient (name or team — optional)
+        <label class="hidden text-[10px] text-dc-text mt-1">Recipient (name or team — optional)
           <input data-prize-award-recipient="${idx}" type="text" maxlength="120" value="${escapeAttr(a.recipient_name || '')}"
             class="mt-1 w-full bg-dc-panel border border-dc-border rounded px-2 py-1 text-xs text-white outline-none" placeholder="Awaiting assignment">
         </label>
-        <label class="text-[10px] text-dc-text block mt-1">Recipient Registration ID (optional)
+        <label class="hidden text-[10px] text-dc-text mt-1">Recipient Registration ID (optional)
           <input data-prize-award-recipient-id="${idx}" type="number" min="0" value="${a.recipient_id || ''}"
             class="mt-1 w-full bg-dc-panel border border-dc-border rounded px-2 py-1 text-xs text-white outline-none" placeholder="Registration ID">
         </label>
-        <div class="flex items-center justify-between gap-3 rounded-lg border border-dc-border bg-dc-surface/50 px-3 py-2">
+        <div class="hidden items-center justify-between gap-3 rounded-lg border border-dc-border bg-dc-surface/50 px-3 py-2">
           <div class="min-w-0">
             <p class="text-[10px] uppercase tracking-widest text-dc-text">Selected recipient</p>
             <p class="text-sm font-bold ${a.recipient_name ? 'text-theme' : 'text-dc-warning'} truncate">${escapeHtml(a.recipient_name || 'Awaiting assignment')}</p>
@@ -349,7 +349,7 @@
               <i data-lucide="message-square" class="w-3 h-3 inline-block mr-1"></i> Contact
             </button>
             ${row.placement_unresolved ? `<button data-prize-create-bronze class="px-2 py-1 rounded border border-dc-warning/30 text-[10px] text-dc-warning hover:bg-dc-warning/10">
-              <i data-lucide="medal" class="w-3 h-3 inline-block mr-1"></i> Create Bronze Match
+              <i data-lucide="medal" class="w-3 h-3 inline-block mr-1"></i> Create Third Place Match
             </button>` : ''}
             <button data-prize-assign-rank="${row.rank}" class="px-2 py-1 rounded border border-theme/30 text-[10px] text-theme hover:bg-theme/10">
               <i data-lucide="user-plus" class="w-3 h-3 inline-block mr-1"></i> Manual Assign
@@ -567,7 +567,7 @@
 
   async function createBronzeMatch() {
     const status = $('#prizes-sync-status');
-    if (status) status.textContent = 'Creating bronze match...';
+    if (status) status.textContent = 'Creating Third Place Match...';
     try {
       const data = await TOC.fetch(`${API}/prizes/bronze/create/`, { method: 'POST' });
       renderPreview(data.public_preview);
@@ -575,7 +575,7 @@
       TOC.toast('Bronze match created from semifinal losers.', 'success');
       if (status) status.textContent = 'Bronze match created';
     } catch (e) {
-      TOC.toast((e && e.message) || 'Could not create bronze match.', 'error');
+      TOC.toast((e && e.message) || 'Could not create Third Place Match.', 'error');
       if (status) status.textContent = 'Bronze creation failed';
     }
   }

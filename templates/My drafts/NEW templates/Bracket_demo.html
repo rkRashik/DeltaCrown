@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DeltaCrown Professional Bracket</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    body { background-color: #05080f; color: #e2e8f0; font-family: 'Inter', sans-serif; }
+
+    /* Elegant Custom Scrollbar */
+    .custom-scrollbar::-webkit-scrollbar { height: 8px; width: 8px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: #0f172a; border-radius: 4px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+    /* SVG Connectors */
+    svg.bracket-connectors {
+      position: absolute;
+      top: 0; left: 0;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Subtle hover animations */
+    .match-card {
+      z-index: 10;
+      position: relative;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    }
+    .match-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px -5px rgba(6, 182, 212, 0.1), 0 8px 10px -6px rgba(6, 182, 212, 0.1);
+      border-color: rgba(6, 182, 212, 0.3);
+    }
+  </style>
+</head>
+<body class="h-screen flex overflow-hidden selection:bg-cyan-500/30">
+
+  <aside class="w-72 bg-[#0a0e17] border-r border-slate-800 flex flex-col h-full z-50 shadow-2xl relative">
+    <div class="p-5 border-b border-slate-800 flex items-center gap-3">
+      <div class="w-8 h-8 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center">
+        <i data-lucide="layout-dashboard" class="w-4 h-4 text-cyan-400"></i>
+      </div>
+      <h2 class="font-bold text-sm tracking-wide text-white">Bracket Settings</h2>
+    </div>
+
+    <div class="p-5 space-y-6 flex-1 overflow-y-auto custom-scrollbar">
+      <div class="space-y-2">
+        <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Tournament Size</label>
+        <select id="dev-teams" class="w-full bg-[#111827] border border-slate-700 rounded-lg px-3 py-2.5 text-sm focus:border-cyan-500 outline-none transition-colors text-white">
+          <option value="4">4 Teams (Left to Right)</option>
+          <option value="8">8 Teams (Left to Right)</option>
+          <option value="16" selected>16 Teams (Split View)</option>
+          <option value="32">32 Teams (Split View)</option>
+        </select>
+      </div>
+
+      <div class="space-y-3">
+        <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Options</label>
+        <label class="flex items-center gap-3 cursor-pointer group">
+          <input type="checkbox" id="dev-3rd-place" checked class="w-4 h-4 rounded border-slate-600 text-cyan-500 bg-[#111827] focus:ring-cyan-500 focus:ring-offset-[#0a0e17]">
+          <span class="text-sm text-slate-300 group-hover:text-white transition-colors">3rd Place Playoff</span>
+        </label>
+      </div>
+    </div>
+
+    <div class="p-5 border-t border-slate-800">
+      <button onclick="renderBracket()" class="w-full py-2.5 bg-white text-black hover:bg-slate-200 text-xs font-bold uppercase tracking-widest rounded-lg transition-colors">
+        Regenerate Preview
+      </button>
+    </div>
+  </aside>
+
+  <main class="flex-1 relative overflow-auto custom-scrollbar flex flex-col bg-[#05080f]">
+
+    <div class="p-8 pb-0 z-20 sticky left-0">
+      <h1 class="text-3xl font-black text-white tracking-tight">DeltaCrown Series</h1>
+      <p class="text-xs text-cyan-400 font-mono mt-1 flex items-center gap-2 uppercase tracking-widest" id="preview-meta">
+        <span class="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse"></span>
+        Loading...
+      </p>
+    </div>
+
+    <div class="flex-1 w-full h-full p-10 flex items-center min-w-max" id="canvas-wrapper">
+      <div id="bracket-container" class="relative flex items-center gap-12 lg:gap-20 mx-auto">
+        </div>
+    </div>
+  </main>
+
+  <script>
+    lucide.createIcons();
+
+    // Data Generator
+    const teamNames = ["Navi", "FaZe Clan", "Real Madrid", "LOUD", "Paper Rex", "Sentinels", "Team Liquid", "Fnatic", "Cloud9", "G2 Esports", "T1", "DRX", "Vitality", "Karmine Corp", "NRG", "100 Thieves", "EDG", "Bilibili", "Leviatan", "Furia", "Optic", "Luminosity", "MIBR", "NIP", "Complexity", "Secret", "OG", "Astralis", "Heroic", "Mouz", "ENCE", "BIG"];
+
+    function getTeamInfo(index) {
+      const name = teamNames[index % teamNames.length];
+      const logo = `https://api.dicebear.com/7.x/initials/svg?seed=${name}&backgroundColor=0f172a,1e293b,334155&textColor=ffffff`;
+      return { name, logo, score: Math.floor(Math.random() * 4) };
+    }
+
+    // Professional Round Name Resolver
+    function getRoundName(totalTeamsInRound) {
+      if (totalTeamsInRound === 2) return "Grand Final";
+      if (totalTeamsInRound === 4) return "Semifinals";
+      if (totalTeamsInRound === 8) return "Quarterfinals";
+      if (totalTeamsInRound === 16) return "Round of 16";
+      if (totalTeamsInRound === 32) return "Round of 32";
+      return `Round ${totalTeamsInRound}`;
+    }
+
+    // Match Card Component
+    function createMatchCard(id, p1, p2, nextId, side, isFinal = false, is3rd = false) {
+      const p1Win = p1 && p2 && p1.score >= p2.score;
+      const p2Win = p1 && p2 && p2.score > p1.score;
+
+      const getPlayerRow = (p, isWin, isBottom) => `
+        <div class="flex items-center px-3 py-2.5 ${isBottom ? '' : 'border-b border-slate-700/50'} ${isWin ? 'bg-cyan-500/5' : ''}">
+          ${p ? `<img src="${p.logo}" class="w-5 h-5 rounded-md mr-2.5 shadow-sm border border-slate-600/50">` : `<div class="w-5 h-5 rounded-md mr-2.5 bg-slate-800 border border-slate-700 flex items-center justify-center"><span class="text-[8px] text-slate-500">?</span></div>`}
+          <span class="text-xs font-semibold truncate flex-1 ${p ? (isWin ? 'text-white' : 'text-slate-400') : 'text-slate-600'}">
+            ${p ? p.name : 'TBD'}
+          </span>
+          <span class="text-xs font-bold font-mono ml-3 ${p ? (isWin ? 'text-cyan-400' : 'text-slate-500') : 'text-slate-700'}">
+            ${p ? p.score : '-'}
+          </span>
+        </div>
+      `;
+
+      let headerBadge = isFinal ?
+        `<span class="text-[9px] font-bold text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded flex items-center gap-1"><i data-lucide="trophy" class="w-3 h-3"></i> GRAND FINAL</span>` :
+        (is3rd ? `<span class="text-[9px] font-bold text-slate-300 bg-slate-700/50 px-2 py-0.5 rounded">3RD PLACE</span>` :
+        `<span class="text-[9px] font-semibold text-slate-500">MATCH ${id}</span>`);
+
+      return `
+        <div class="match-wrapper w-56 my-3 relative" id="match-${id}" data-next="${nextId}" data-side="${side}">
+          <div class="match-card bg-[#111827] border border-slate-700/60 rounded-xl flex flex-col overflow-hidden shadow-xl">
+            <div class="px-3 py-2 bg-[#151d2c] border-b border-slate-700/60 flex justify-between items-center">
+               ${headerBadge}
+               <span class="text-[9px] ${isFinal ? 'text-red-400 animate-pulse' : 'text-cyan-500'} font-bold tracking-wider">${isFinal ? 'LIVE' : 'DONE'}</span>
+            </div>
+            ${getPlayerRow(p1, p1Win, false)}
+            ${getPlayerRow(p2, p2Win, true)}
+          </div>
+        </div>
+      `;
+    }
+
+    // Main Bracket Controller
+    function renderBracket() {
+      const totalTeams = parseInt(document.getElementById('dev-teams').value);
+      const show3rd = document.getElementById('dev-3rd-place').checked;
+      const container = document.getElementById('bracket-container');
+      const canvasWrapper = document.getElementById('canvas-wrapper');
+      const meta = document.getElementById('preview-meta');
+
+      container.innerHTML = '';
+
+      // Real-world logic: < 16 teams goes left-to-right, >= 16 teams is split
+      if (totalTeams < 16) {
+        meta.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse"></span> ${totalTeams} Teams • Standard Single Elimination`;
+        canvasWrapper.classList.remove('justify-center'); // Align left for standard view
+        renderStandardBracket(totalTeams, show3rd, container);
+      } else {
+        meta.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse"></span> ${totalTeams} Teams • Split Bracket View`;
+        canvasWrapper.classList.add('justify-center'); // Center align for split view
+        renderSplitBracket(totalTeams, show3rd, container);
+      }
+
+      lucide.createIcons();
+      setTimeout(drawConnectors, 100);
+    }
+
+    // Layout 1: Standard Left-To-Right (For 4, 8 teams)
+    function renderStandardBracket(totalTeams, show3rd, container) {
+      const rounds = Math.log2(totalTeams);
+      let matchIdCounter = 1;
+      let html = '';
+
+      for(let r = 0; r < rounds; r++) {
+        let matchesInRound = totalTeams / Math.pow(2, r + 1);
+        let roundTeams = matchesInRound * 2;
+        let isFinalRound = r === rounds - 1;
+        let roundName = getRoundName(roundTeams);
+
+        html += `<div class="flex flex-col justify-center gap-2 relative">
+          <div class="absolute -top-8 left-0 text-[10px] font-bold text-slate-500 uppercase tracking-widest">${roundName}</div>`;
+
+        for(let m = 0; m < matchesInRound; m++) {
+          const currentId = `STD-${r}-${m}`;
+          const nextId = isFinalRound ? `` : `STD-${r+1}-${Math.floor(m/2)}`;
+
+          let p1 = r === 0 ? getTeamInfo(matchIdCounter - 1) : null;
+          let p2 = r === 0 ? getTeamInfo(matchIdCounter + 50) : null;
+          html += createMatchCard(currentId, p1, p2, nextId, 'left', isFinalRound, false);
+          matchIdCounter++;
+        }
+
+        // Add 3rd place under the final match in the last column
+        if (isFinalRound && show3rd) {
+          html += `<div class="mt-8 pt-6 border-t border-dashed border-slate-700/50">
+            ${createMatchCard('3RD', {name:'Loser SF1', logo:'https://api.dicebear.com/7.x/initials/svg?seed=L1', score:2}, {name:'Loser SF2', logo:'https://api.dicebear.com/7.x/initials/svg?seed=L2', score:1}, '', 'left', false, true)}
+          </div>`;
+        }
+
+        html += `</div>`;
+      }
+      container.innerHTML = html;
+    }
+
+    // Layout 2: Split View (For 16, 32 teams)
+    function renderSplitBracket(totalTeams, show3rd, container) {
+      const halfTeams = totalTeams / 2;
+      const rounds = Math.log2(halfTeams);
+      let matchIdCounter = 1;
+      let html = '';
+
+      // 1. LEFT WING
+      html += `<div class="flex gap-12 lg:gap-20" id="bracket-left">`;
+      for(let r = 0; r < rounds; r++) {
+        let matchesInRound = halfTeams / Math.pow(2, r + 1);
+        let roundTeams = matchesInRound * 4; // *4 because it's only half the bracket
+        let roundName = getRoundName(roundTeams);
+
+        html += `<div class="flex flex-col justify-center gap-2 relative">
+          <div class="absolute -top-8 left-0 text-[10px] font-bold text-slate-500 uppercase tracking-widest">${roundName}</div>`;
+
+        for(let m = 0; m < matchesInRound; m++) {
+          const currentId = `L-${r}-${m}`;
+          const nextId = r === rounds - 1 ? `FINAL` : `L-${r+1}-${Math.floor(m/2)}`;
+          let p1 = r === 0 ? getTeamInfo(matchIdCounter - 1) : null;
+          let p2 = r === 0 ? getTeamInfo(matchIdCounter + 50) : null;
+          html += createMatchCard(currentId, p1, p2, nextId, 'left');
+          matchIdCounter++;
+        }
+        html += `</div>`;
+      }
+      html += `</div>`;
+
+      // 2. CENTER (Final & 3rd Place)
+      html += `<div class="flex flex-col justify-center items-center relative z-20" id="bracket-center">
+        <div class="absolute -top-8 text-[10px] font-bold text-amber-500/80 uppercase tracking-widest">${getRoundName(2)}</div>
+        <div class="mb-6 w-12 h-12 rounded-full bg-gradient-to-tr from-amber-500 to-yellow-300 p-[1px] shadow-[0_0_30px_rgba(245,158,11,0.2)]">
+          <div class="w-full h-full bg-[#05080f] rounded-full flex items-center justify-center">
+            <i data-lucide="trophy" class="w-6 h-6 text-amber-400"></i>
+          </div>
+        </div>
+        ${createMatchCard('FINAL', null, null, '', 'center', true)}`;
+
+      if(show3rd) {
+        html += `<div class="mt-16 pt-8 border-t border-dashed border-slate-700/50 w-full flex justify-center">
+          ${createMatchCard('3RD', {name:'Loser SF1', logo:'https://api.dicebear.com/7.x/initials/svg?seed=L1', score:2}, {name:'Loser SF2', logo:'https://api.dicebear.com/7.x/initials/svg?seed=L2', score:1}, '', 'center', false, true)}
+        </div>`;
+      }
+      html += `</div>`;
+
+      // 3. RIGHT WING
+      html += `<div class="flex flex-row-reverse gap-12 lg:gap-20" id="bracket-right">`;
+      for(let r = 0; r < rounds; r++) {
+        let matchesInRound = halfTeams / Math.pow(2, r + 1);
+        let roundTeams = matchesInRound * 4;
+        let roundName = getRoundName(roundTeams);
+
+        html += `<div class="flex flex-col justify-center gap-2 relative">
+          <div class="absolute -top-8 right-0 text-[10px] font-bold text-slate-500 uppercase tracking-widest">${roundName}</div>`;
+
+        for(let m = 0; m < matchesInRound; m++) {
+          const currentId = `R-${r}-${m}`;
+          const nextId = r === rounds - 1 ? `FINAL` : `R-${r+1}-${Math.floor(m/2)}`;
+          let p1 = r === 0 ? getTeamInfo(matchIdCounter + 100) : null;
+          let p2 = r === 0 ? getTeamInfo(matchIdCounter + 150) : null;
+          html += createMatchCard(currentId, p1, p2, nextId, 'right');
+          matchIdCounter++;
+        }
+        html += `</div>`;
+      }
+      html += `</div>`;
+
+      container.innerHTML = html;
+    }
+
+    // Dynamic S-Curve SVG Connectors (Handles Both Layouts)
+    function drawConnectors() {
+      const container = document.getElementById('bracket-container');
+      let svg = document.getElementById('master-svg');
+      if (svg) svg.remove();
+
+      svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.id = 'master-svg';
+      svg.classList.add('bracket-connectors');
+
+      const cRect = container.getBoundingClientRect();
+      svg.setAttribute('width', cRect.width);
+      svg.setAttribute('height', cRect.height);
+
+      const matches = document.querySelectorAll('.match-wrapper');
+
+      matches.forEach(match => {
+        const nextId = match.getAttribute('data-next');
+        const side = match.getAttribute('data-side');
+        if (!nextId) return;
+
+        const nextElement = document.getElementById(`match-${nextId}`);
+        if (!nextElement) return;
+
+        const mRect = match.querySelector('.match-card').getBoundingClientRect();
+        const nRect = nextElement.querySelector('.match-card').getBoundingClientRect();
+
+        let startX, startY, endX, endY;
+
+        // Logic routing based on the side property
+        if (side === 'left') {
+          startX = mRect.right - cRect.left;
+          startY = mRect.top + (mRect.height / 2) - cRect.top;
+          endX = nRect.left - cRect.left;
+          endY = nRect.top + (nRect.height / 2) - cRect.top;
+        } else if (side === 'right') {
+          startX = mRect.left - cRect.left;
+          startY = mRect.top + (mRect.height / 2) - cRect.top;
+          endX = nRect.right - cRect.left;
+          endY = nRect.top + (nRect.height / 2) - cRect.top;
+        } else {
+          return; // Center items (Final, 3rd) don't have next destinations
+        }
+
+        const midX = startX + (endX - startX) / 2;
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+
+        path.setAttribute('d', `M ${startX} ${startY} C ${midX} ${startY}, ${midX} ${endY}, ${endX} ${endY}`);
+        path.setAttribute('stroke', '#334155');
+        path.setAttribute('stroke-width', '2');
+        path.setAttribute('fill', 'none');
+        path.setAttribute('stroke-linecap', 'round');
+
+        svg.appendChild(path);
+      });
+
+      container.appendChild(svg);
+    }
+
+    // Initialize
+    window.onload = renderBracket;
+    window.onresize = drawConnectors;
+  </script>
+</body>
+</html>

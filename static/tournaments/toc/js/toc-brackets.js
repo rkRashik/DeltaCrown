@@ -656,6 +656,18 @@
       return;
     }
 
+    if (window.DCBracketRenderer && typeof window.DCBracketRenderer.renderToc === 'function') {
+      window.DCBracketRenderer.renderToc(container, data, { prefix: 'toc-bk' });
+      if (seedEditor && !b.is_finalized && nodes.length) {
+        seedEditor.classList.remove('hidden');
+        renderSeedList(nodes);
+      } else if (seedEditor) {
+        seedEditor.classList.add('hidden');
+      }
+      iconsRefresh();
+      return;
+    }
+
     var hasLosers = nodes.some(function(n) { return n.bracket_type === 'losers'; });
     if (hasLosers) {
       var winnersNodes = nodes.filter(function(n) { return n.bracket_type !== 'losers'; });

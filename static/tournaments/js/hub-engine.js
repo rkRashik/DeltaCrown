@@ -25,7 +25,7 @@ const HubEngine = (() => {
   const BROKEN_AVATAR_CACHE_KEY = 'hub_broken_avatar_urls';
   const HUB_TABS = new Set([
     'overview', 'announcements', 'matches', 'squad', 'schedule',
-    'bracket', 'standings', 'prizes', 'resources',
+    'bracket', 'standings', 'results-achievements', 'prizes', 'resources',
     'participants', 'rulebook', 'support', 'lobby',
   ]);
   const TAB_ALIASES = {
@@ -40,6 +40,7 @@ const HubEngine = (() => {
     'schedule',
     'bracket',
     'standings',
+    'results-achievements',
     'prizes',
     'resources',
   ]);
@@ -1828,6 +1829,10 @@ const HubEngine = (() => {
     const tree = document.getElementById('hub-bracket-tree');
     if (!tree) return;
     requestAnimationFrame(() => {
+      if (window.DCBracketRenderer && typeof window.DCBracketRenderer.redraw === 'function') {
+        window.DCBracketRenderer.redraw(tree);
+        return;
+      }
       tree.querySelectorAll('.bk-section').forEach(sec => _drawBracketConnectors(sec));
     });
   }
@@ -5851,6 +5856,11 @@ const HubEngine = (() => {
 
       tree.innerHTML = groupedHtml;
       if (typeof lucide !== 'undefined') lucide.createIcons();
+      return;
+    }
+
+    if (window.DCBracketRenderer && typeof window.DCBracketRenderer.renderHub === 'function') {
+      window.DCBracketRenderer.renderHub(tree, data, { prefix: 'hub-bk' });
       return;
     }
 

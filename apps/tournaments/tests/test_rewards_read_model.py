@@ -444,7 +444,7 @@ def test_no_bronze_match_blocks_rank_three_without_fake_winner():
     assert rank3['winner'] is None
     assert rank3['result_label'] == 'Semi-finalist / placement unresolved'
     assert rank3['payout_blocked'] is True
-    assert rank3['block_reason'] == 'No bronze match configured, 3rd place cannot be assigned.'
+    assert rank3['block_reason'] == 'No Third Place Match configured, 3rd place cannot be assigned.'
     assert op_rank3['payout']['status'] == 'blocked'
 
 

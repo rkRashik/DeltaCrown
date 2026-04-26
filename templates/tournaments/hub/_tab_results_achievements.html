@@ -1,0 +1,9 @@
+{% comment %}
+Participant-facing Results & Achievements surface. Shared renderer owns the
+Achievement-style visual treatment and deliberately hides organizer controls.
+{% endcomment %}
+<div class="p-4 sm:p-6 lg:p-8 min-h-[80vh]">
+  <div data-results-achievements-engine
+       data-results-mode="hub"
+       data-results-url="{{ api_prize_claim_url }}"></div>
+</div>

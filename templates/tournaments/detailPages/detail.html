@@ -7,6 +7,7 @@
 {% block og_description %}{% if tournament.meta_description %}{{ tournament.meta_description }}{% else %}{{ tournament.name }} - {{ game_spec.display_name }} {{ tournament_format_label }} tournament on DeltaCrown.{% endif %}{% endblock %}
 
 {% block tournament_css %}
+<link rel="stylesheet" href="{% static 'tournaments/css/bracket-demo.css' %}?v=20260426a">
 <style>
     :root {
         --theme-primary: {{ game_spec.primary_color|default:"#00E5FF" }};
@@ -909,7 +910,7 @@
 
                 {% if show_prizes %}
                 <button data-detail-tab="prizes" class="relative py-5 px-4 text-sm font-gaming font-bold uppercase tracking-[0.15em] transition-colors whitespace-nowrap group" :class="activeTab === 'prizes' ? 'text-white' : 'text-gray-500 hover:text-gray-300'" @click="setTab('prizes')">
-                    {% if is_completed_phase %}Results &amp; Rewards{% else %}Prizes{% endif %}
+                    Results &amp; Rewards
                     <div class="absolute bottom-0 left-0 w-full h-1 theme-bg transform origin-left transition-transform duration-300" :class="activeTab === 'prizes' ? 'scale-x-100 theme-glow' : 'scale-x-0 group-hover:scale-x-50 opacity-50'"></div>
                 </button>
                 {% endif %}
@@ -1514,6 +1515,10 @@
 
                 {% if show_prizes %}
                 <div x-show="activeTab === 'prizes'" x-transition.opacity class="space-y-8" x-cloak>
+                    <div data-results-achievements-engine
+                         data-results-mode="public"
+                         data-results-url="{% url 'tournaments:detail_prize_overview' slug=tournament.slug %}"></div>
+                    <div class="hidden" aria-hidden="true">
                     <div class="relative rounded-[2rem] p-[1px] overflow-hidden group">
                         <div class="absolute inset-0 bg-gradient-to-r from-dc-gold via-transparent to-dc-gold opacity-30 group-hover:opacity-50 transition-opacity duration-700 animate-pulse-slow"></div>
                         <div class="relative glass-extreme rounded-[calc(2rem-1px)] p-12 overflow-hidden flex flex-col items-center text-center">
@@ -1599,6 +1604,7 @@
                         <i data-lucide="trophy" class="w-10 h-10 text-gray-700 mx-auto mb-3"></i>
                         <p class="text-sm font-bold text-gray-400">Results and rewards are not published yet</p>
                         <p id="prize-engine-panel-empty-detail" class="text-xs text-gray-600 mt-1">Check back after the tournament is completed.</p>
+                    </div>
                     </div>
 
                     {# Renderer: static/tournaments/js/detail-prize-engine.js — no inline script #}
@@ -2477,6 +2483,7 @@
 {% endblock %}
 
 {% block tournament_js %}
+<script src="{% static 'tournaments/js/bracket-demo-engine.js' %}?v=20260426a"></script>
 <script nonce="{{ request.csp_nonce }}">
 document.addEventListener('alpine:init', function () {
     Alpine.data('detailPage', function () {
@@ -2839,6 +2846,11 @@ document.addEventListener('alpine:init', function () {
             renderBracketFromHubPayload: function (payload) {
                 var tree = this.$root.querySelector('#detail-bracket-tree');
                 if (!tree || !payload || !Array.isArray(payload.rounds)) {
+                    return;
+                }
+
+                if (window.DCBracketRenderer && typeof window.DCBracketRenderer.renderHub === 'function') {
+                    window.DCBracketRenderer.renderHub(tree, payload, { prefix: 'detail-bk' });
                     return;
                 }
 
@@ -3380,5 +3392,5 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 });
 </script>
-<script src="{% static 'tournaments/js/detail-prize-engine.js' %}?v=20260426a"></script>
+<script src="{% static 'tournaments/js/results-achievements-engine.js' %}?v=20260426a"></script>
 {% endblock %}

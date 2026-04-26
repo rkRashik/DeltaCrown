@@ -210,7 +210,7 @@ class BracketService:
         if not bracket:
             raise ValidationError('No bracket exists for this tournament.')
         if not BracketService._single_elimination_bracket(bracket):
-            raise ValidationError('Bronze match repair is only supported for single elimination brackets.')
+            raise ValidationError('Third Place Match repair is only supported for single elimination brackets.')
 
         existing_node = (
             BracketNode.objects
@@ -224,7 +224,7 @@ class BracketService:
 
         losers = BracketService._semifinal_losers_for_bronze(bracket)
         if len(losers) < 2:
-            raise ValidationError('Cannot create bronze match until both semifinal losers are known.')
+            raise ValidationError('Cannot create Third Place Match until both semifinal losers are known.')
 
         final_round = bracket.total_rounds or (
             BracketNode.objects.filter(bracket=bracket).aggregate(Max('round_number'))['round_number__max'] or 1
@@ -277,7 +277,7 @@ class BracketService:
             state=Match.SCHEDULED,
             scheduled_time=BracketService._default_knockout_start(tournament),
             lobby_info={
-                'stage': 'bronze',
+                'stage': 'third_place',
                 'third_place_match': True,
                 'created_by_repair': bool(actor),
             },
@@ -305,7 +305,7 @@ class BracketService:
         tournament.save(update_fields=['config'])
 
         logger.info(
-            'Created bronze match %s for tournament %s from semifinal losers %s vs %s',
+            'Created Third Place Match %s for tournament %s from semifinal losers %s vs %s',
             match.id,
             tournament_id,
             existing_node.participant1_name,
@@ -1799,7 +1799,7 @@ class BracketService:
         node.save(update_fields=['winner_id'])
 
         if node.bracket_type == BracketNode.THIRD_PLACE:
-            logger.info(f"Match {match.id} completed bronze match - no bracket advancement")
+            logger.info(f"Match {match.id} completed Third Place Match - no bracket advancement")
             try:
                 async_to_sync(broadcast_bracket_updated)(
                     tournament_id=match.tournament_id,
@@ -1815,7 +1815,7 @@ class BracketService:
                 )
             except Exception as e:
                 logger.warning(
-                    f"Failed to broadcast bracket_updated for bronze match {match.id}: {e}",
+                    f"Failed to broadcast bracket_updated for Third Place Match {match.id}: {e}",
                     exc_info=True
                 )
             BracketService._maybe_finalize_tournament(match.tournament_id)

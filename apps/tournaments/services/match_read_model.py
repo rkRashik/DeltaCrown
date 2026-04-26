@@ -221,7 +221,7 @@ class MatchReadModel:
                 total_rounds=self._total_rounds,
             ) or f'Round {canonical_round_number}'
         if node_meta and node_meta.get('bracket_type') == 'third-place':
-            round_label = 'Bronze Match'
+            round_label = 'Third Place Match'
 
         if inferred:
             source = 'inferred_legacy'

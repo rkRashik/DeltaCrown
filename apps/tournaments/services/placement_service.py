@@ -115,8 +115,11 @@ class PlacementService:
         )
         if not ordered:
             ordered = bracket_ordered
-        elif bracket_ordered and len(bracket_ordered) > len(ordered):
-            ordered = bracket_ordered
+        elif bracket_ordered:
+            if len(bracket_ordered) > len(ordered):
+                ordered = bracket_ordered
+            else:
+                ordered = cls._overlay_completed_third_place_rows(ordered, bracket_ordered)
 
         return cls._sanitize_unresolved_single_elim_standings(tournament, ordered)
 
@@ -182,10 +185,38 @@ class PlacementService:
                 cls._match_loser_id(bronze_match),
                 cls._match_loser_name(bronze_match),
             )
-            _append(3, bronze_winner, 'bronze_match_winner')
-            _append(4, bronze_loser, 'bronze_match_loser')
+            _append(3, bronze_winner, 'third_place_match_winner')
+            _append(4, bronze_loser, 'third_place_match_loser')
 
         return ordered
+
+    @staticmethod
+    def _overlay_completed_third_place_rows(
+        base_rows: List[Dict[str, Any]],
+        bracket_rows: List[Dict[str, Any]],
+    ) -> List[Dict[str, Any]]:
+        third_place_sources = {
+            'third_place_match_winner',
+            'third_place_match_loser',
+            'bronze_match_winner',
+            'bronze_match_loser',
+        }
+        third_place_rows = {
+            int(row.get('placement') or 0): row
+            for row in bracket_rows
+            if int(row.get('placement') or 0) in (3, 4)
+            and (row.get('source') or '') in third_place_sources
+        }
+        if not third_place_rows:
+            return base_rows
+
+        merged = {
+            int(row.get('placement') or 0): row
+            for row in base_rows
+            if int(row.get('placement') or 0)
+        }
+        merged.update(third_place_rows)
+        return [merged[key] for key in sorted(merged)]
 
     @classmethod
     def _completed_final_match(
@@ -391,7 +422,12 @@ class PlacementService:
             return rows
         if cls._completed_bronze_match(tournament, bracket):
             return rows
-        fake_sources = {'semifinal_loser', 'semifinal_loser_or_lb_final'}
+        fake_sources = {
+            'third_place',
+            'fourth_place',
+            'semifinal_loser',
+            'semifinal_loser_or_lb_final',
+        }
         return [
             row for row in rows
             if not (
@@ -676,8 +712,15 @@ class PlacementService:
                 'top4': [],
             }
 
-        # Prefer persisted standings; fall back to live derivation.
+        # Prefer persisted standings, but completed Third Place Match rows must
+        # override stale legacy rank 3/4 JSON.
         ordered = list(result.final_standings or []) or cls.build_final_standings(tournament)
+        bracket_ordered = cls.derive_standings_from_completed_bracket_final(
+            tournament,
+            result=result,
+        )
+        if ordered and bracket_ordered:
+            ordered = cls._overlay_completed_third_place_rows(ordered, bracket_ordered)
 
         ordered = cls._sanitize_unresolved_single_elim_standings(tournament, ordered)
         top4 = ordered[:4] if ordered else []
