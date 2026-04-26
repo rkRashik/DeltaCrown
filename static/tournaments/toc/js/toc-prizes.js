@@ -188,7 +188,7 @@
           <input data-prize-award-recipient-id="${idx}" type="number" min="0" value="${a.recipient_id || ''}"
             class="mt-1 w-full bg-dc-panel border border-dc-border rounded px-2 py-1 text-xs text-white outline-none" placeholder="Registration ID">
         </label>
-        <div class="hidden items-center justify-between gap-3 rounded-lg border border-dc-border bg-dc-surface/50 px-3 py-2">
+        <div class="flex items-center justify-between gap-3 rounded-lg border border-dc-border bg-dc-surface/50 px-3 py-2">
           <div class="min-w-0">
             <p class="text-[10px] uppercase tracking-widest text-dc-text">Selected recipient</p>
             <p class="text-sm font-bold ${a.recipient_name ? 'text-theme' : 'text-dc-warning'} truncate">${escapeHtml(a.recipient_name || 'Awaiting assignment')}</p>
@@ -321,8 +321,11 @@
       const blockReason = row.payout_blocked && row.block_reason
         ? `<p class="text-[10px] text-dc-warning mt-1">${escapeHtml(row.block_reason)}</p>`
         : '';
-      // TODO: Wire direct messaging and automated per-claim payout triggers
-      // when those backend endpoints exist; do not fake successful payouts.
+      const contactReason = 'Messaging integration pending.';
+      const claimReason = claimId ? 'Prize claim permission is required.' : 'No prize claim has been submitted yet.';
+      const paidReason = row.payout_blocked
+        ? (row.block_reason || 'Payout is blocked for this placement.')
+        : claimReason;
       return `
         <div class="rounded-lg border border-dc-border bg-dc-surface/30 p-3 space-y-3">
           <div class="flex items-start justify-between gap-3">
@@ -345,8 +348,8 @@
             <div>${opBadge(cert ? `Certificate ${cert.status}` : 'Certificate pending', certTone)}</div>
           </div>
           <div class="flex flex-wrap items-center gap-2">
-            <button class="px-2 py-1 rounded border border-dc-border text-[10px] text-dc-text cursor-not-allowed opacity-60" disabled title="Messaging integration pending">
-              <i data-lucide="message-square" class="w-3 h-3 inline-block mr-1"></i> Contact
+            <button class="px-2 py-1 rounded border border-dc-border text-[10px] text-dc-text cursor-not-allowed opacity-60" disabled title="${escapeAttr(contactReason)}">
+              <i data-lucide="message-square" class="w-3 h-3 inline-block mr-1"></i> Contact pending
             </button>
             ${row.placement_unresolved ? `<button data-prize-create-bronze class="px-2 py-1 rounded border border-dc-warning/30 text-[10px] text-dc-warning hover:bg-dc-warning/10">
               <i data-lucide="medal" class="w-3 h-3 inline-block mr-1"></i> Create Third Place Match
@@ -355,14 +358,17 @@
               <i data-lucide="user-plus" class="w-3 h-3 inline-block mr-1"></i> Manual Assign
             </button>
             <button data-prize-claim-action="approve" data-claim-id="${claimId}" data-cap-require="approve_payments"
+              title="${escapeAttr(canReview ? 'Approve claim for processing.' : claimReason)}"
               class="px-2 py-1 rounded border border-dc-warning/30 text-[10px] text-dc-warning hover:bg-dc-warning/10 disabled:opacity-40 disabled:cursor-not-allowed" ${canReview ? '' : 'disabled'}>
               Approve
             </button>
             <button data-prize-claim-action="reject" data-claim-id="${claimId}" data-cap-require="approve_payments"
+              title="${escapeAttr(canReview ? 'Reject this claim.' : claimReason)}"
               class="px-2 py-1 rounded border border-dc-danger/30 text-[10px] text-dc-danger hover:bg-dc-dangerBg disabled:opacity-40 disabled:cursor-not-allowed" ${canReview ? '' : 'disabled'}>
               Reject
             </button>
             <button data-prize-claim-action="mark_paid" data-claim-id="${claimId}" data-cap-require="approve_payments"
+              title="${escapeAttr(canMarkPaid && !row.payout_blocked ? 'Record manual payout as paid.' : paidReason)}"
               class="px-2 py-1 rounded border border-dc-success/30 text-[10px] text-dc-success hover:bg-dc-success/10 disabled:opacity-40 disabled:cursor-not-allowed" ${canMarkPaid && !row.payout_blocked ? '' : 'disabled'}>
               Mark Paid
             </button>
@@ -485,7 +491,8 @@
         award.recipient_id = recipient.id;
         award.recipient_name = recipient.name;
         renderAwards();
-        TOC.toast('Recipient selected. Save prizes to persist.', 'success');
+        await save();
+        TOC.toast('Special award recipient assigned.', 'success');
       }
       closeRecipientPicker();
       return;
@@ -572,11 +579,11 @@
       const data = await TOC.fetch(`${API}/prizes/bronze/create/`, { method: 'POST' });
       renderPreview(data.public_preview);
       renderOperations(data.operations);
-      TOC.toast('Bronze match created from semifinal losers.', 'success');
-      if (status) status.textContent = 'Bronze match created';
+      TOC.toast('Third Place Match created from semifinal losers.', 'success');
+      if (status) status.textContent = 'Third Place Match created';
     } catch (e) {
       TOC.toast((e && e.message) || 'Could not create Third Place Match.', 'error');
-      if (status) status.textContent = 'Bronze creation failed';
+      if (status) status.textContent = 'Third Place Match creation failed';
     }
   }
 

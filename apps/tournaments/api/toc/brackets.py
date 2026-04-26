@@ -38,17 +38,26 @@ from .serializers import (
 
 # ── Bracket endpoints ──────────────────────────────────────────
 
+def _is_finalized_tournament(tournament) -> bool:
+    return str(getattr(tournament, 'status', '') or '').lower() in {'completed', 'archived'}
+
+
 class BracketGetView(TOCBaseView):
     """S5-B5: GET /api/toc/<slug>/brackets/"""
 
     def get(self, request, slug):
         cache_key = toc_cache_key('brackets', self.tournament.id, 'bracket')
-        cached = cache.get(cache_key)
-        if cached is not None:
-            return Response(cached)
+        use_cache = not _is_finalized_tournament(self.tournament)
+        if use_cache:
+            cached = cache.get(cache_key)
+            if cached is not None:
+                return Response(cached)
+        else:
+            cache.delete(cache_key)
 
         data = TOCBracketsService.get_bracket(self.tournament)
-        cache.set(cache_key, data, timeout=300)
+        if use_cache:
+            cache.set(cache_key, data, timeout=300)
         return Response(data)
 
 
@@ -146,12 +155,17 @@ class ScheduleGetView(TOCBaseView):
 
     def get(self, request, slug):
         cache_key = toc_cache_key('brackets', self.tournament.id, 'schedule')
-        cached = cache.get(cache_key)
-        if cached is not None:
-            return Response(cached)
+        use_cache = not _is_finalized_tournament(self.tournament)
+        if use_cache:
+            cached = cache.get(cache_key)
+            if cached is not None:
+                return Response(cached)
+        else:
+            cache.delete(cache_key)
 
         data = TOCBracketsService.get_schedule(self.tournament)
-        cache.set(cache_key, data, timeout=300)
+        if use_cache:
+            cache.set(cache_key, data, timeout=300)
         return Response(data)
 
 

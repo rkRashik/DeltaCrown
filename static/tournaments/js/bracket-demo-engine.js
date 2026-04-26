@@ -18,6 +18,11 @@
     return prefix + '-' + String(value == null ? '' : value).replace(/[^A-Za-z0-9_-]/g, '-');
   }
 
+  function isPlaceholderName(value) {
+    var text = String(value || '').trim().toLowerCase();
+    return !text || ['tba', 'tbd', 'pending', 'to be decided', 'to be announced'].indexOf(text) >= 0;
+  }
+
   function isThirdPlaceMatch(match) {
     var label = String(match.round_name || match.round_label || match.title || '').toLowerCase();
     var type = String(match.bracket_type || match.node_type || '').toLowerCase();
@@ -44,10 +49,10 @@
 
   function participantLogo(name, logo) {
     if (logo) {
-      return '<img src="' + esc(logo) + '" alt="" class="w-5 h-5 rounded-md mr-2.5 shadow-sm border border-slate-600/50 object-cover">';
+      return '<img src="' + esc(logo) + '" alt="" class="w-9 h-9 rounded-xl mr-3 shadow-sm border border-white/10 object-cover">';
     }
     var initial = String(name || '?').trim().slice(0, 1).toUpperCase() || '?';
-    return '<div class="w-5 h-5 rounded-md mr-2.5 bg-slate-800 border border-slate-700 flex items-center justify-center"><span class="text-[8px] text-slate-400 font-black">' + esc(initial) + '</span></div>';
+    return '<div class="w-9 h-9 rounded-xl mr-3 bg-gradient-to-br from-zinc-700/80 to-zinc-950 border border-white/10 flex items-center justify-center"><span class="text-[11px] text-zinc-200 font-black">' + esc(initial) + '</span></div>';
   }
 
   function teamRow(participant, isWinner, isBottom, isDone) {
@@ -56,20 +61,20 @@
     var hasParticipant = name !== 'TBD' || p.id;
     var score = p.score != null && (isDone || p.score) ? p.score : '-';
     return [
-      '<div class="flex items-center px-3 py-2.5 ' + (isBottom ? '' : 'border-b border-slate-700/50') + (isWinner ? ' bg-cyan-500/5' : '') + '">',
+      '<div class="dc-team-row flex items-center px-3.5 py-3 ' + (isBottom ? '' : 'border-b border-white/10') + (isWinner ? ' is-winner' : (isDone ? ' is-loser' : '')) + '">',
       participantLogo(name, p.logo_url || p.logo || ''),
-      '<span class="text-xs font-semibold truncate flex-1 ' + (hasParticipant ? (isWinner ? 'text-white' : 'text-slate-400') : 'text-slate-600 italic') + '">' + esc(name) + '</span>',
-      '<span class="text-xs font-bold font-mono ml-3 ' + (isWinner ? 'text-cyan-400' : 'text-slate-500') + '">' + esc(score) + '</span>',
+      '<span class="text-sm font-bold truncate flex-1 ' + (hasParticipant ? (isWinner ? 'text-white' : 'text-zinc-300') : 'text-zinc-600 italic') + '">' + esc(name) + '</span>',
+      '<span class="text-sm font-black font-mono ml-3 ' + (isWinner ? 'text-amber-200' : 'text-zinc-500') + '">' + esc(score) + '</span>',
       '</div>',
     ].join('');
   }
 
   function stateBadge(match, isFinal, isThird) {
     var state = String(match.state || '').toLowerCase();
-    if (state === 'live') return '<span class="text-[9px] text-red-400 animate-pulse font-bold tracking-wider">LIVE</span>';
-    if (state === 'completed' || state === 'forfeit') return '<span class="text-[9px] text-cyan-500 font-bold tracking-wider">DONE</span>';
-    if (isThird) return '<span class="text-[9px] text-amber-400 font-bold tracking-wider">PENDING</span>';
-    return '<span class="text-[9px] text-slate-500 font-bold tracking-wider">' + esc((match.state_display || state || 'TBD').toUpperCase()) + '</span>';
+    if (state === 'live') return '<span class="dc-state-badge live">LIVE</span>';
+    if (state === 'completed' || state === 'forfeit') return '<span class="dc-state-badge done">DONE</span>';
+    if (isThird) return '<span class="dc-state-badge pending">PENDING</span>';
+    return '<span class="dc-state-badge">' + esc((match.state_display || state || 'TBD').toUpperCase()) + '</span>';
   }
 
   function matchCard(match, options) {
@@ -91,9 +96,9 @@
         ? '<span class="text-[9px] font-bold text-slate-200 bg-slate-700/50 px-2 py-0.5 rounded">THIRD PLACE MATCH</span>'
         : '<span class="text-[9px] font-semibold text-slate-500">MATCH ' + esc(match.match_number || match.render_label || '') + '</span>';
     return [
-      '<div class="match-wrapper w-56 my-3 relative" id="' + id + '" data-next="' + next + '" data-side="' + esc(side) + '">',
-      '<div class="match-card bracket-match-card bg-[#111827] border border-slate-700/60 rounded-xl flex flex-col overflow-hidden shadow-xl"' + nodeAttr + '>',
-      '<div class="px-3 py-2 bg-[#151d2c] border-b border-slate-700/60 flex justify-between items-center">',
+      '<div class="match-wrapper w-68 min-w-[17rem] my-3 relative" id="' + id + '" data-next="' + next + '" data-side="' + esc(side) + '">',
+      '<div class="match-card bracket-match-card dc-match-card ' + (isFinal ? 'dc-final-card ' : '') + (isThird ? 'dc-third-card ' : '') + 'flex flex-col overflow-hidden"' + nodeAttr + '>',
+      '<div class="px-3.5 py-2.5 border-b border-white/8 flex justify-between items-center">',
       header,
       stateBadge(match, isFinal, isThird),
       '</div>',
@@ -135,6 +140,8 @@
       var winnerId = node.winner_id || m.winner_id;
       var p1Id = node.participant1_id || m.participant1_id;
       var p2Id = node.participant2_id || m.participant2_id;
+      var p1Name = isPlaceholderName(node.participant1_name) ? (m.participant1_name || 'TBD') : node.participant1_name;
+      var p2Name = isPlaceholderName(node.participant2_name) ? (m.participant2_name || 'TBD') : node.participant2_name;
       var nodeJson = JSON.stringify(node);
       nodeRounds[rn].push({
         id: m.id || node.match_id || node.id,
@@ -147,14 +154,14 @@
         node_json: nodeJson,
         participant1: {
           id: p1Id,
-          name: node.participant1_name || m.participant1_name || 'TBD',
+          name: p1Name || 'TBD',
           score: m.participant1_score,
           is_winner: !!(winnerId && p1Id && winnerId === p1Id),
           logo_url: node.participant1_logo || '',
         },
         participant2: {
           id: p2Id,
-          name: node.participant2_name || m.participant2_name || 'TBD',
+          name: p2Name || 'TBD',
           score: m.participant2_score,
           is_winner: !!(winnerId && p2Id && winnerId === p2Id),
           logo_url: node.participant2_logo || '',
@@ -219,7 +226,7 @@
   function columnHtml(round, label, side, prefix) {
     return [
       '<div class="flex flex-col justify-center gap-2 relative min-w-[14rem]">',
-      '<div class="absolute -top-8 ' + (side === 'right' ? 'right-0' : 'left-0') + ' text-[10px] font-bold text-slate-500 uppercase tracking-widest whitespace-nowrap">' + esc(label) + '</div>',
+      '<div class="absolute -top-8 ' + (side === 'right' ? 'right-0' : 'left-0') + ' text-[10px] font-bold text-slate-500 uppercase whitespace-nowrap">' + esc(label) + '</div>',
       (round.matches || []).map(function (match) { return matchCard(match, { prefix: prefix, side: side }); }).join(''),
       '</div>',
     ].join('');
@@ -227,7 +234,7 @@
 
   function standardHtml(rounds, prefix) {
     assignStandardNext(rounds, prefix);
-    return '<div class="dc-bracket-container relative flex items-center gap-12 lg:gap-20 mx-auto min-w-max">' +
+    return '<div class="dc-bracket-container relative flex items-center gap-12 lg:gap-20 min-w-max">' +
       rounds.map(function (round) {
         return columnHtml(round, round.round_name || roundName((round.matches || []).length * 2), 'left', prefix);
       }).join('') +
@@ -269,12 +276,12 @@
       finalMatch.side = 'center';
     }
     return [
-      '<div class="dc-bracket-container relative flex items-center gap-12 lg:gap-20 mx-auto min-w-max">',
+      '<div class="dc-bracket-container relative flex items-center gap-12 lg:gap-20 min-w-max">',
       '<div class="flex gap-12 lg:gap-20">',
       left.map(function (round) { return columnHtml(round, round.round_name || roundName((round.matches || []).length * 4), 'left', prefix); }).join(''),
       '</div>',
       '<div class="flex flex-col justify-center items-center relative z-20">',
-      '<div class="absolute -top-8 text-[10px] font-bold text-amber-500/80 uppercase tracking-widest whitespace-nowrap">Grand Final</div>',
+      '<div class="absolute -top-8 text-[10px] font-bold text-amber-500/80 uppercase whitespace-nowrap">Grand Final</div>',
       '<div class="mb-6 w-12 h-12 rounded-full bg-gradient-to-tr from-amber-500 to-yellow-300 p-[1px] shadow-[0_0_30px_rgba(245,158,11,0.2)]"><div class="w-full h-full bg-[#05080f] rounded-full flex items-center justify-center"><i data-lucide="trophy" class="w-6 h-6 text-amber-400"></i></div></div>',
       finalMatch ? matchCard(finalMatch, { prefix: prefix, side: 'center' }) : '',
       '</div>',
@@ -293,15 +300,17 @@
       m.side = 'center';
     });
     return [
-      '<section class="mt-8 rounded-2xl border border-slate-700/60 bg-[#0a0e17]/80 p-5">',
-      '<div class="mb-4 flex items-center gap-3">',
-      '<div class="w-8 h-8 rounded-lg bg-amber-400/10 border border-amber-400/20 flex items-center justify-center"><i data-lucide="medal" class="w-4 h-4 text-amber-300"></i></div>',
-      '<div><h3 class="text-sm font-black uppercase tracking-widest text-white">Placement Match</h3><p class="text-[10px] text-slate-500">Third Place Match is separate from the championship path.</p></div>',
+      '<div class="dc-placement-strip sticky left-0 mt-6 flex flex-col items-center gap-3">',
+      '<div class="flex items-center gap-3 text-[10px] font-black uppercase text-amber-300/90">',
+      '<span class="h-px w-14 bg-amber-300/20"></span>',
+      '<i data-lucide="medal" class="w-4 h-4"></i>',
+      '<span>Third Place Match</span>',
+      '<span class="h-px w-14 bg-amber-300/20"></span>',
       '</div>',
-      '<div class="flex flex-wrap gap-4">',
+      '<div class="flex flex-wrap justify-center gap-4">',
       matches.map(function (match) { return matchCard(match, { prefix: prefix, side: 'center' }); }).join(''),
       '</div>',
-      '</section>',
+      '</div>',
     ].join('');
   }
 
@@ -324,20 +333,93 @@
     var bracketHtml;
     if (!hasDouble && teams >= 16 && rounds.length >= 3) bracketHtml = splitHtml(rounds, prefix);
     else bracketHtml = standardHtml(rounds, prefix);
+    root.classList.add('dc-bracket-render-root');
+    root.style.transform = 'none';
+    root.style.transformOrigin = 'top left';
     root.innerHTML = [
-      '<div class="dc-bracket-shell overflow-auto custom-scrollbar bg-[#05080f] rounded-2xl border border-slate-800 p-8">',
-      '<div class="mb-8 sticky left-0 z-20">',
-      '<h3 class="text-2xl font-black text-white tracking-tight">Championship Bracket</h3>',
-      '<p class="mt-1 text-xs text-cyan-400 font-mono uppercase tracking-widest">' + esc(normalized.format_display || normalized.format || 'Single Elimination') + '</p>',
-      '</div>',
-      '<div class="w-full min-w-max p-2 flex items-center">',
+      '<div class="dc-bracket-shell overflow-auto custom-scrollbar">',
+      '<div class="dc-bracket-scale">',
+      '<div class="dc-bracket-stage">',
       bracketHtml,
-      '</div>',
       placementHtml(split.third, prefix),
       '</div>',
+      '</div>',
+      '</div>',
     ].join('');
+    prepareZoom(root, 1);
     window.requestAnimationFrame(function () { drawConnectors(root); });
+    enablePan(root);
     if (window.lucide && typeof window.lucide.createIcons === 'function') window.lucide.createIcons();
+  }
+
+  function prepareZoom(root, initialScale) {
+    var shell = root.querySelector('.dc-bracket-shell');
+    var scaleBox = root.querySelector('.dc-bracket-scale');
+    var stage = root.querySelector('.dc-bracket-stage');
+    if (!shell || !scaleBox || !stage) return;
+
+    function apply(scale) {
+      var nextScale = Math.max(0.3, Math.min(2, Number(scale) || 1));
+      root.__dcBracketScale = nextScale;
+      stage.style.transformOrigin = 'top left';
+      stage.style.transform = 'scale(' + nextScale + ')';
+      var width = Math.ceil(stage.scrollWidth * nextScale);
+      var height = Math.ceil(stage.scrollHeight * nextScale);
+      scaleBox.style.width = Math.max(width, shell.clientWidth + 160, 720) + 'px';
+      scaleBox.style.height = Math.max(height, shell.clientHeight + 120, 560) + 'px';
+      window.requestAnimationFrame(function () { drawConnectors(root); });
+    }
+
+    root.__dcBracketZoom = apply;
+    apply(initialScale || root.__dcBracketScale || 1);
+    if (!root.__dcResizeReady) {
+      root.__dcResizeReady = true;
+      window.addEventListener('resize', function () {
+        if (!document.body.contains(root)) return;
+        apply(root.__dcBracketScale || 1);
+      });
+    }
+  }
+
+  function enablePan(root) {
+    var shell = root.querySelector('.dc-bracket-shell');
+    if (!shell || shell.__dcPanReady) return;
+    shell.__dcPanReady = true;
+    var dragging = false;
+    var startX = 0;
+    var startY = 0;
+    var scrollLeft = 0;
+    var scrollTop = 0;
+
+    shell.addEventListener('pointerdown', function (event) {
+      if (event.button !== 0) return;
+      if (event.target.closest('button,a,input,textarea,select')) return;
+      dragging = true;
+      startX = event.clientX;
+      startY = event.clientY;
+      scrollLeft = shell.scrollLeft;
+      scrollTop = shell.scrollTop;
+      shell.classList.add('is-panning');
+      shell.setPointerCapture(event.pointerId);
+    });
+    shell.addEventListener('pointermove', function (event) {
+      if (!dragging) return;
+      shell.scrollLeft = scrollLeft - (event.clientX - startX);
+      shell.scrollTop = scrollTop - (event.clientY - startY);
+    });
+    function endPan(event) {
+      if (!dragging) return;
+      dragging = false;
+      shell.classList.remove('is-panning');
+      try { shell.releasePointerCapture(event.pointerId); } catch (e) {}
+    }
+    shell.addEventListener('pointerup', endPan);
+    shell.addEventListener('pointercancel', endPan);
+    shell.addEventListener('wheel', function (event) {
+      if (!event.shiftKey || Math.abs(event.deltaX) >= Math.abs(event.deltaY)) return;
+      shell.scrollLeft += event.deltaY;
+      event.preventDefault();
+    }, { passive: false });
   }
 
   function drawConnectors(root) {
@@ -345,13 +427,16 @@
     containers.forEach(function (container) {
       var old = container.querySelector('svg.bracket-connectors');
       if (old) old.remove();
+      var scale = Number(root.__dcBracketScale || 1) || 1;
       var rect = container.getBoundingClientRect();
       var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
       svg.classList.add('bracket-connectors');
-      svg.setAttribute('width', rect.width);
-      svg.setAttribute('height', rect.height);
-      svg.style.width = rect.width + 'px';
-      svg.style.height = rect.height + 'px';
+      var svgWidth = container.offsetWidth || (rect.width / scale);
+      var svgHeight = container.offsetHeight || (rect.height / scale);
+      svg.setAttribute('width', svgWidth);
+      svg.setAttribute('height', svgHeight);
+      svg.style.width = svgWidth + 'px';
+      svg.style.height = svgHeight + 'px';
       container.querySelectorAll('.match-wrapper').forEach(function (match) {
         var nextId = match.getAttribute('data-next');
         if (!nextId) return;
@@ -361,14 +446,14 @@
         var side = match.getAttribute('data-side');
         var mr = match.querySelector('.match-card').getBoundingClientRect();
         var nr = next.querySelector('.match-card').getBoundingClientRect();
-        var startX = side === 'right' ? mr.left - rect.left : mr.right - rect.left;
-        var startY = mr.top + (mr.height / 2) - rect.top;
-        var endX = side === 'right' ? nr.right - rect.left : nr.left - rect.left;
-        var endY = nr.top + (nr.height / 2) - rect.top;
+        var startX = (side === 'right' ? mr.left - rect.left : mr.right - rect.left) / scale;
+        var startY = (mr.top + (mr.height / 2) - rect.top) / scale;
+        var endX = (side === 'right' ? nr.right - rect.left : nr.left - rect.left) / scale;
+        var endY = (nr.top + (nr.height / 2) - rect.top) / scale;
         var midX = startX + (endX - startX) / 2;
         var path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
         path.setAttribute('d', 'M ' + startX + ' ' + startY + ' C ' + midX + ' ' + startY + ', ' + midX + ' ' + endY + ', ' + endX + ' ' + endY);
-        path.setAttribute('stroke', '#334155');
+        path.setAttribute('stroke', '#52525b');
         path.setAttribute('stroke-width', '2');
         path.setAttribute('fill', 'none');
         path.setAttribute('stroke-linecap', 'round');

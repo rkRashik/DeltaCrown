@@ -13,6 +13,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth import get_user_model
 from django.contrib.auth.views import LoginView, LogoutView, PasswordResetView
+from django.db import IntegrityError
 from django.http import HttpRequest, HttpResponse, HttpResponseRedirect, JsonResponse
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
@@ -223,7 +224,15 @@ class SignUpView(FormView):
         return ctx
 
     def form_valid(self, form):
-        pending = form.save()
+        try:
+            pending = form.save()
+        except IntegrityError:
+            logger.exception("Signup pending record could not be saved without a uniqueness conflict")
+            form.add_error(
+                None,
+                "A signup for this email or username is already pending. Please verify it or try again.",
+            )
+            return self.form_invalid(form)
         try:
             otp = EmailOTP.issue(pending_signup=pending)
         except EmailOTP.RequestThrottled as exc:
@@ -236,7 +245,15 @@ class SignUpView(FormView):
             )
             return self.form_invalid(form)
 
-        send_otp_email(pending, otp.code, expires_in_minutes=EmailOTP.EXPIRATION_MINUTES)
+        try:
+            send_otp_email(pending, otp.code, expires_in_minutes=EmailOTP.EXPIRATION_MINUTES)
+        except Exception:
+            logger.exception("Signup OTP email failed for pending_signup_id=%s", pending.id)
+            form.add_error(
+                "email",
+                "We couldn't send the verification email right now. Please try again.",
+            )
+            return self.form_invalid(form)
 
         session = self.request.session
         _bind_pending_to_session(session, pending)

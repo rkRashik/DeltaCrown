@@ -1228,58 +1228,21 @@ class TOCMatchesService:
         if tournament is None:
             return {}
 
-        normalized_ids = set()
-        for raw_id in participant_ids or set():
-            if not raw_id:
-                continue
-            try:
-                normalized_ids.add(int(raw_id))
-            except (TypeError, ValueError):
-                continue
+        from apps.tournaments.services.participant_identity import ParticipantIdentityService
 
-        if not normalized_ids:
-            return {}
-
-        media_map: Dict[int, str] = {}
-        is_team = str(getattr(tournament, 'participation_type', '') or '').lower() == 'team'
-
-        if is_team:
-            try:
-                from apps.organizations.models import Team
-                for team in Team.objects.filter(id__in=normalized_ids).only('id', 'logo'):
-                    logo_url = ''
-                    try:
-                        if getattr(team, 'logo', None):
-                            logo_url = cls._normalize_media_url(team.logo.url)
-                    except Exception:
-                        logo_url = ''
-                    media_map[int(team.id)] = logo_url
-            except Exception:
-                return media_map
-
-            # Fallback: for teams without logos, use registrant avatar
-            empty_team_ids = {tid for tid, url in media_map.items() if not url}
-            if empty_team_ids:
-                try:
-                    from apps.tournaments.models.registration import Registration
-                    for reg in Registration.objects.filter(
-                        tournament=tournament,
-                        team_id__in=empty_team_ids,
-                    ).select_related('user', 'user__profile')[:len(empty_team_ids)]:
-                        if reg.team_id and not media_map.get(int(reg.team_id)):
-                            media_map[int(reg.team_id)] = cls._user_avatar_url(reg.user)
-                except Exception:
-                    pass
-            return media_map
-
-        try:
-            User = get_user_model()
-            users = User.objects.filter(id__in=normalized_ids).select_related('profile')
-            for user in users:
-                media_map[int(user.id)] = cls._user_avatar_url(user)
-        except Exception:
-            pass
-        return media_map
+        identities = ParticipantIdentityService.for_match_participants(
+            tournament,
+            participant_ids or set(),
+        )
+        return {
+            int(pid): str(
+                (identity or {}).get('logo_url')
+                or (identity or {}).get('avatar_url')
+                or (identity or {}).get('image_url')
+                or ''
+            )
+            for pid, identity in identities.items()
+        }
 
     @staticmethod
     def _safe_game_scores(m):
@@ -1430,8 +1393,18 @@ class TOCMatchesService:
                 c_winner_side = 2
 
         # Recompute logos based on canonical participant IDs (not raw).
-        c_p1_logo_url = str(participant_media_map.get(c_p1_id, '') or '') if c_p1_id else ''
-        c_p2_logo_url = str(participant_media_map.get(c_p2_id, '') or '') if c_p2_id else ''
+        c_p1_logo_url = (
+            str(canonical_view.get('participant1_logo_url') or canonical_view.get('participant1_avatar_url') or '')
+            if canonical_view else ''
+        )
+        c_p2_logo_url = (
+            str(canonical_view.get('participant2_logo_url') or canonical_view.get('participant2_avatar_url') or '')
+            if canonical_view else ''
+        )
+        if not c_p1_logo_url and c_p1_id:
+            c_p1_logo_url = str(participant_media_map.get(c_p1_id, '') or '')
+        if not c_p2_logo_url and c_p2_id:
+            c_p2_logo_url = str(participant_media_map.get(c_p2_id, '') or '')
         c_winner_logo_url = ''
         if c_winner_side == 1:
             c_winner_logo_url = c_p1_logo_url

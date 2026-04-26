@@ -44,6 +44,28 @@
     return parts.length ? parts.join(' + ') : 'TBA';
   }
 
+  function imageFor(row) {
+    row = row || {};
+    var winner = row.winner || {};
+    return row.image_url || row.logo_url || row.avatar_url ||
+      winner.image_url || winner.logo_url || winner.avatar_url || '';
+  }
+
+  function initials(name) {
+    return String(name || '?').trim().split(/\s+/).slice(0, 2).map(function (part) {
+      return part.slice(0, 1).toUpperCase();
+    }).join('') || '?';
+  }
+
+  function avatarHtml(name, row, sizeClass) {
+    var src = imageFor(row);
+    var classes = sizeClass || 'h-10 w-10 rounded-xl';
+    if (src) {
+      return '<img src="' + esc(src) + '" alt="" class="' + classes + ' object-cover border border-white/10 bg-black/40">';
+    }
+    return '<div class="' + classes + ' border border-white/10 bg-white/5 flex items-center justify-center"><span class="text-[11px] font-black text-slate-200">' + esc(initials(name)) + '</span></div>';
+  }
+
   function toneForRank(rank) {
     if (rank === 1) return 'border-[#FFD700]/45 bg-[#FFD700]/10 text-[#FFD700]';
     if (rank === 2) return 'border-slate-300/25 bg-slate-300/10 text-slate-200';
@@ -120,8 +142,9 @@
         return [
           '<div class="relative rounded-2xl border p-5 text-center transition ' + toneForRank(rank) + (champion ? ' md:-translate-y-5 shadow-[0_0_45px_rgba(255,215,0,0.14)]' : '') + '">',
           '<div class="absolute right-4 top-3 font-display text-6xl font-black text-white/5">' + rank + '</div>',
-          '<div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl border border-white/10 bg-black/40">',
-          '<i data-lucide="' + (champion ? 'crown' : rank === 2 ? 'medal' : 'award') + '" class="h-7 w-7"></i>',
+          '<div class="relative mx-auto mb-4 h-16 w-16">',
+          avatarHtml(winnerLabel(tier), tier, 'h-16 w-16 rounded-2xl'),
+          '<span class="absolute -right-2 -bottom-2 flex h-7 w-7 items-center justify-center rounded-xl border border-black/50 bg-black/80"><i data-lucide="' + (champion ? 'crown' : rank === 2 ? 'medal' : 'award') + '" class="h-4 w-4"></i></span>',
           '</div>',
           '<p class="text-[10px] font-black uppercase tracking-[0.25em]">' + ordinal(rank) + '</p>',
           '<h4 class="mt-2 truncate font-display text-lg font-black text-white">' + esc(winnerLabel(tier)) + '</h4>',
@@ -153,10 +176,13 @@
         return [
           '<div class="grid grid-cols-12 gap-3 px-6 py-4 items-center">',
           '<div class="col-span-2 sm:col-span-1 text-xs font-mono text-[#00E5FF]">' + esc(row.rank_label || ordinal(rank)) + '</div>',
-          '<div class="col-span-10 sm:col-span-5 min-w-0">',
+          '<div class="col-span-10 sm:col-span-5 min-w-0 flex items-center gap-3">',
+          avatarHtml(name, row, 'h-10 w-10 rounded-xl shrink-0'),
+          '<div class="min-w-0">',
           '<p class="truncate text-sm font-bold text-white">' + esc(name) + '</p>',
           '<p class="mt-0.5 text-[10px] uppercase tracking-widest text-slate-500">' + esc(row.title || row.source || '') + '</p>',
           row.block_reason ? '<p class="mt-1 text-[10px] text-[#FFB800]">' + esc(row.block_reason) + '</p>' : '',
+          '</div>',
           '</div>',
           '<div class="col-span-6 sm:col-span-3 text-sm font-display font-black text-white">' + money(data, prize.fiat) + '</div>',
           '<div class="col-span-6 sm:col-span-3 text-right text-xs font-mono text-[#00E5FF]">' + fmt(prize.coins || 0) + ' DC</div>',
@@ -190,8 +216,9 @@
         return [
           '<article class="rounded-2xl border border-white/10 bg-black/30 p-5">',
           '<div class="flex items-start justify-between gap-3">',
-          '<div class="flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-white/5">',
-          '<i data-lucide="' + esc(row.icon || 'award') + '" class="h-5 w-5 text-[#FFD700]"></i>',
+          '<div class="relative">',
+          avatarHtml(recipient || row.title || 'Award', row, 'h-11 w-11 rounded-xl'),
+          '<span class="absolute -right-2 -bottom-2 flex h-6 w-6 items-center justify-center rounded-lg border border-black/50 bg-black/80"><i data-lucide="' + esc(row.icon || 'award') + '" class="h-3.5 w-3.5 text-[#FFD700]"></i></span>',
           '</div>',
           mode === 'toc' && item.awardIndex !== null ? '<button data-ra-assign-award="' + item.awardIndex + '" class="rounded-lg border border-[#00E5FF]/30 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-[#00E5FF]">Assign</button>' : '',
           '</div>',
@@ -224,32 +251,45 @@
         var claim = row.claim || null;
         var payout = row.payout || {};
         var claimId = claim && claim.id ? claim.id : '';
+        var claimStatus = claim && claim.status ? String(claim.status) : '';
+        var claimClosed = claimStatus === 'paid' || claimStatus === 'rejected';
         var rank = Number(row.rank || 0);
         var canAssignPlacement = rank === 3 || rank === 4 || !!row.placement_unresolved;
         var canCreateThirdPlace = !!(row.placement_unresolved && resolution.can_create_third_place_match);
         var thirdPlacePending = !!(row.placement_unresolved && resolution.third_place_match_exists && !resolution.third_place_match_completed);
+        var canReview = !!(row.actions && row.actions.can_review_claim);
+        var canMarkPaid = !!(row.actions && row.actions.can_mark_paid && !row.payout_blocked);
+        var claimDisabledReason = claimId
+          ? (claimClosed ? 'Claim is already ' + claimStatus + '.' : 'Prize claim permission is required.')
+          : 'No prize claim has been submitted yet.';
+        var paidDisabledReason = row.payout_blocked
+          ? (row.block_reason || 'Payout is blocked for this placement.')
+          : (claimClosed ? 'Claim is already ' + claimStatus + '.' : claimDisabledReason);
         return [
           '<article class="rounded-2xl border border-white/10 bg-black/30 p-4">',
           '<div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">',
+          '<div class="min-w-0 flex items-start gap-3">',
+          avatarHtml(winnerLabel(row), row, 'h-11 w-11 rounded-xl shrink-0'),
           '<div class="min-w-0">',
           '<p class="text-[10px] font-mono uppercase tracking-widest text-[#00E5FF]">' + esc(row.rank_label || ordinal(row.rank)) + '</p>',
           '<h4 class="mt-1 truncate font-display text-base font-black text-white">' + esc(winnerLabel(row)) + '</h4>',
           row.block_reason ? '<p class="mt-1 text-xs text-[#FFB800]">' + esc(row.block_reason) + '</p>' : '',
           '<div class="mt-3 flex flex-wrap gap-2">',
           badge(claim ? 'Claim ' + claim.status : 'No claim', claim && claim.status === 'paid' ? 'green' : 'gray'),
-          badge('Payout ' + (payout.status || 'not_started'), payout.status === 'blocked' ? 'red' : 'cyan'),
+          badge(payout.label || ('Payout ' + (payout.status || 'not_started')), payout.status === 'blocked' ? 'red' : 'cyan'),
           row.certificate ? badge('Certificate ' + row.certificate.status, 'green') : badge('Certificate pending', 'gray'),
           row.prize ? badge('Prize ' + prizeLabel(data, row.prize), 'gold') : '',
           '</div>',
           '</div>',
+          '</div>',
           '<div class="flex flex-wrap gap-2 lg:justify-end">',
-          '<button class="' + BTN + ' opacity-60 cursor-not-allowed" disabled><i data-lucide="message-square" class="h-3 w-3"></i> Contact</button>',
+          '<button data-ra-contact data-recipient-name="' + esc(winnerLabel(row)) + '" data-rank-label="' + esc(row.rank_label || ordinal(row.rank)) + '" data-claim-status="' + esc(claim ? claim.status : 'No claim') + '" data-payout-status="' + esc(payout.label || payout.status || 'not_started') + '" class="' + BTN + '" title="Open recipient contact details."><i data-lucide="message-square" class="h-3 w-3"></i> Contact</button>',
           canCreateThirdPlace ? '<button data-ra-create-third-place class="' + BTN_WARN + '"><i data-lucide="medal" class="h-3 w-3"></i> Create Third Place Match</button>' : '',
           thirdPlacePending ? '<button class="' + BTN_WARN + ' opacity-60 cursor-not-allowed" disabled><i data-lucide="swords" class="h-3 w-3"></i> Play / Enter Result</button>' : '',
           canAssignPlacement ? '<button data-ra-assign-rank="' + row.rank + '" class="' + BTN + '"><i data-lucide="user-plus" class="h-3 w-3"></i> Manual Assign</button>' : '',
-          '<button data-ra-claim="approve" data-claim-id="' + claimId + '" class="' + BTN + '" ' + (claimId ? '' : 'disabled') + '>Approve</button>',
-          '<button data-ra-claim="reject" data-claim-id="' + claimId + '" class="' + BTN_DANGER + '" ' + (claimId ? '' : 'disabled') + '>Reject</button>',
-          '<button data-ra-claim="mark_paid" data-claim-id="' + claimId + '" class="' + BTN_GOOD + '" ' + (claimId && !row.payout_blocked ? '' : 'disabled') + '>Mark Paid</button>',
+          '<button data-ra-claim="approve" data-claim-id="' + claimId + '" class="' + BTN + '" title="' + esc(canReview ? 'Approve claim for processing.' : claimDisabledReason) + '" ' + (canReview ? '' : 'disabled') + '>Approve</button>',
+          '<button data-ra-claim="reject" data-claim-id="' + claimId + '" class="' + BTN_DANGER + '" title="' + esc(canReview ? 'Reject this claim.' : claimDisabledReason) + '" ' + (canReview ? '' : 'disabled') + '>Reject</button>',
+          '<button data-ra-claim="mark_paid" data-claim-id="' + claimId + '" class="' + BTN_GOOD + '" title="' + esc(canMarkPaid ? 'Record manual payout as paid.' : paidDisabledReason) + '" ' + (canMarkPaid ? '' : 'disabled') + '>Mark Paid</button>',
           '</div>',
           '</div>',
           '</article>',
@@ -265,7 +305,7 @@
     var result = data.your_result || {};
     var prizes = data.your_prizes || [];
     var claimable = prizes.filter(function (p) {
-      return !p.claimed && (!p.status || p.status === 'pending' || p.status === 'completed');
+      return !!p.claimable || (!p.claimed && (!p.status || p.status === 'pending'));
     });
     return [
       '<section class="' + PANEL + ' rounded-3xl p-6 border-[#00E5FF]/25">',
@@ -276,7 +316,7 @@
       '<div class="mt-4 flex flex-wrap gap-2">',
       result.claimable ? badge('Claim available', 'gold') : '',
       result.claim && result.claim.status ? badge('Claim ' + result.claim.status, 'gold') : '',
-      result.payout && result.payout.status ? badge('Payout ' + result.payout.status, 'cyan') : '',
+      result.payout && result.payout.status ? badge(result.payout.label || ('Payout ' + result.payout.status), 'cyan') : '',
       result.certificate ? badge('Certificate available', 'green') : '',
       prizes.length ? badge(prizes.length + ' prize item(s)', 'gold') : '',
       '</div>',
@@ -284,8 +324,8 @@
       '<div class="flex flex-wrap gap-2 lg:justify-end">',
       claimable.length ? claimable.map(function (p) {
         return '<button data-ra-claim-prize data-tx-id="' + esc(p.id) + '" data-amount="' + esc(p.amount || '') + '" data-placement="' + esc(p.placement_display || p.placement || '') + '" class="' + BTN_GOOD + '"><i data-lucide="wallet" class="h-3 w-3"></i> Claim Prize</button>';
-      }).join('') : '<button class="' + BTN + ' opacity-60 cursor-not-allowed" disabled><i data-lucide="wallet" class="h-3 w-3"></i> Claim Status</button>',
-      '<button class="' + BTN + ' opacity-60 cursor-not-allowed" disabled><i data-lucide="message-square" class="h-3 w-3"></i> Contact Organizer</button>',
+      }).join('') : '<button class="' + BTN + ' opacity-60 cursor-not-allowed" disabled title="No claimable prize is available for this registration."><i data-lucide="wallet" class="h-3 w-3"></i> Claim Status</button>',
+      '<button data-ra-contact-organizer class="' + BTN + '" title="Open organizer contact options."><i data-lucide="message-square" class="h-3 w-3"></i> Contact Organizer</button>',
       '</div>',
       '</div>',
       '</section>',
@@ -378,7 +418,7 @@
     apiFetch(base + '/prizes/recipients/?q=' + encodeURIComponent(query || '')).then(function (data) {
       var rows = data.results || [];
       results.innerHTML = rows.length ? rows.map(function (row) {
-        return '<button data-ra-pick data-id="' + row.registration_id + '" data-name="' + esc(row.name || '') + '" class="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-left hover:border-[#00E5FF]/40"><span class="block text-sm font-bold text-white">' + esc(row.name || '') + '</span><span class="block text-[10px] text-slate-500">' + esc(row.subtitle || '') + '</span></button>';
+        return '<button data-ra-pick data-id="' + row.registration_id + '" data-name="' + esc(row.name || '') + '" class="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-left hover:border-[#00E5FF]/40 flex items-center gap-3">' + avatarHtml(row.name || '', row, 'h-10 w-10 rounded-xl shrink-0') + '<span class="min-w-0"><span class="block truncate text-sm font-bold text-white">' + esc(row.name || '') + '</span><span class="block truncate text-[10px] text-slate-500">' + esc(row.subtitle || '') + '</span></span></button>';
       }).join('') : '<p class="text-xs text-slate-500">No matching recipients.</p>';
     }).catch(function () {
       results.innerHTML = '<p class="text-xs text-rose-300">Recipient search failed.</p>';
@@ -407,22 +447,98 @@
     }
   }
 
+  function contactModal(button) {
+    var modal = document.getElementById('ra-contact-modal');
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id = 'ra-contact-modal';
+      modal.className = 'hidden fixed inset-0 z-[420] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm';
+      modal.innerHTML = [
+        '<div class="w-full max-w-md rounded-2xl border border-white/10 bg-[#12121A] p-5 shadow-2xl">',
+        '<div class="flex items-start justify-between gap-3">',
+        '<div><p class="text-[10px] font-black uppercase tracking-[0.25em] text-[#00E5FF]">Recipient Contact</p><h3 data-ra-contact-title class="mt-1 font-display text-lg font-black text-white">Contact Recipient</h3></div>',
+        '<button data-ra-contact-close class="rounded-lg p-2 text-slate-400 hover:bg-white/10 hover:text-white" aria-label="Close"><i data-lucide="x" class="h-5 w-5"></i></button>',
+        '</div>',
+        '<div class="mt-4 rounded-xl border border-white/10 bg-black/35 p-4 space-y-2 text-sm">',
+        '<p class="text-slate-400">Direct messaging is not connected for tournament reward operations yet.</p>',
+        '<dl class="grid grid-cols-1 gap-2 text-xs">',
+        '<div><dt class="text-slate-500 uppercase tracking-widest">Recipient</dt><dd data-ra-contact-name class="mt-1 font-bold text-white"></dd></div>',
+        '<div><dt class="text-slate-500 uppercase tracking-widest">Reward Row</dt><dd data-ra-contact-rank class="mt-1 font-bold text-white"></dd></div>',
+        '<div><dt class="text-slate-500 uppercase tracking-widest">Claim</dt><dd data-ra-contact-claim class="mt-1 font-bold text-white"></dd></div>',
+        '<div><dt class="text-slate-500 uppercase tracking-widest">Payout</dt><dd data-ra-contact-payout class="mt-1 font-bold text-white"></dd></div>',
+        '</dl>',
+        '</div>',
+        '<p class="mt-4 text-xs text-slate-500">Use the participant profile/contact details outside this panel until messaging integration is enabled.</p>',
+        '<button data-ra-contact-close class="mt-5 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-200 hover:bg-white/10">Close</button>',
+        '</div>',
+      ].join('');
+      document.body.appendChild(modal);
+      modal.addEventListener('click', function (event) {
+        if (event.target === modal || event.target.closest('[data-ra-contact-close]')) {
+          modal.classList.add('hidden');
+        }
+      });
+    }
+    modal.querySelector('[data-ra-contact-title]').textContent = 'Contact ' + (button.getAttribute('data-recipient-name') || 'Recipient');
+    modal.querySelector('[data-ra-contact-name]').textContent = button.getAttribute('data-recipient-name') || 'Unassigned';
+    modal.querySelector('[data-ra-contact-rank]').textContent = button.getAttribute('data-rank-label') || '-';
+    modal.querySelector('[data-ra-contact-claim]').textContent = button.getAttribute('data-claim-status') || 'No claim';
+    modal.querySelector('[data-ra-contact-payout]').textContent = button.getAttribute('data-payout-status') || 'Manual payout required';
+    modal.classList.remove('hidden');
+    if (window.lucide) window.lucide.createIcons();
+  }
+
+  function notify(message, type) {
+    if (window.TOC && typeof window.TOC.toast === 'function') {
+      window.TOC.toast(message, type || 'info');
+      return;
+    }
+    if (type === 'error') console.error(message);
+    else console.info(message);
+  }
+
+  function openHubPrizeClaim(button) {
+    if (!button) return;
+    if (window.HubEngine && typeof window.HubEngine.openPrizeModal === 'function') {
+      window.HubEngine.openPrizeModal(
+        button.getAttribute('data-tx-id') || '',
+        button.getAttribute('data-amount') || '',
+        button.getAttribute('data-placement') || ''
+      );
+      return;
+    }
+    notify('Prize claim panel is unavailable. Refresh and try again.', 'error');
+  }
+
   function wire(root) {
     root.addEventListener('click', function (event) {
       var base = root.getAttribute('data-api-base') || '';
       if (event.target.closest('[data-ra-create-third-place]')) {
-        apiFetch(base + '/prizes/bronze/create/', { method: 'POST' }).then(function (payload) { render(root, normalizePayload(payload)); });
+        apiFetch(base + '/prizes/bronze/create/', { method: 'POST' })
+          .then(function (payload) { render(root, normalizePayload(payload)); })
+          .catch(function (error) { notify(error.message || 'Third Place Match creation failed.', 'error'); });
+        return;
+      }
+      var contact = event.target.closest('[data-ra-contact]');
+      if (contact) {
+        event.preventDefault();
+        contactModal(contact);
+        return;
+      }
+      if (event.target.closest('[data-ra-contact-organizer]')) {
+        event.preventDefault();
+        if (window.HubEngine && typeof window.HubEngine.showContactModal === 'function') {
+          window.HubEngine.showContactModal();
+        } else {
+          notify('Organizer contact panel is unavailable. Use the tournament contact channels.', 'error');
+        }
         return;
       }
       var hubClaim = event.target.closest('[data-ra-claim-prize]');
       if (hubClaim) {
-        if (window.HubEngine && typeof window.HubEngine.openPrizeModal === 'function') {
-          window.HubEngine.openPrizeModal(
-            hubClaim.getAttribute('data-tx-id') || '',
-            hubClaim.getAttribute('data-amount') || '',
-            hubClaim.getAttribute('data-placement') || ''
-          );
-        }
+        event.preventDefault();
+        event.__raClaimHandled = true;
+        openHubPrizeClaim(hubClaim);
         return;
       }
       var assign = event.target.closest('[data-ra-assign-rank]');
@@ -437,10 +553,23 @@
       }
       var claim = event.target.closest('[data-ra-claim]');
       if (claim && !claim.disabled) {
+        var action = claim.getAttribute('data-ra-claim');
+        var notes = '';
+        if (action === 'mark_paid') {
+          if (!window.confirm('Record this claim as manually paid? This does not trigger an automated payout.')) return;
+          notes = 'Manual payout marked paid from Results & Achievements.';
+        } else if (action === 'reject') {
+          notes = window.prompt('Optional rejection note:', '') || '';
+        }
         apiFetch(base + '/prizes/claims/' + claim.getAttribute('data-claim-id') + '/action/', {
           method: 'POST',
-          body: { action: claim.getAttribute('data-ra-claim') },
-        }).then(function (payload) { render(root, normalizePayload(payload)); });
+          body: { action: action, notes: notes },
+        }).then(function (payload) {
+          render(root, normalizePayload(payload));
+          notify(action === 'mark_paid' ? 'Manual payout marked paid.' : (action === 'approve' ? 'Claim approved.' : 'Claim rejected.'), 'success');
+        }).catch(function (error) {
+          notify(error.message || 'Claim action failed.', 'error');
+        });
       }
     });
   }
@@ -465,6 +594,12 @@
     });
   }
 
+  function reloadAll() {
+    document.querySelectorAll('[data-results-achievements-engine]').forEach(function (root) {
+      load(root);
+    });
+  }
+
   document.addEventListener('DOMContentLoaded', init);
   document.addEventListener('toc:tab-changed', function (event) {
     if (event.detail && event.detail.tab === 'results-achievements') init();
@@ -472,5 +607,13 @@
   document.addEventListener('hub:tab-activated', function (event) {
     if (event.detail && event.detail.tab === 'results-achievements') init();
   });
+  document.addEventListener('click', function (event) {
+    var hubClaim = event.target.closest('[data-ra-claim-prize]');
+    if (!hubClaim || event.__raClaimHandled) return;
+    if (!hubClaim.closest('[data-results-achievements-engine]')) return;
+    event.preventDefault();
+    openHubPrizeClaim(hubClaim);
+  });
+  document.addEventListener('hub:prize-claim-updated', reloadAll);
   if (document.readyState !== 'loading') init();
 })();

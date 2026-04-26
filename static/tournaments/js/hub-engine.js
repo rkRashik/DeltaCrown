@@ -32,6 +32,11 @@ const HubEngine = (() => {
     disputes: 'support',
     'support-disputes': 'support',
     'hub-tab-support': 'support',
+    results: 'results-achievements',
+    rewards: 'results-achievements',
+    'results-rewards': 'results-achievements',
+    'hall-of-champions': 'results-achievements',
+    hall: 'results-achievements',
   };
   const LOCKED_TABS_WHEN_UNVERIFIED = new Set([
     'matches',
@@ -796,6 +801,9 @@ const HubEngine = (() => {
     if (normalizedTab === _currentTab) {
       _applyTabLockState(normalizedTab, { announce: false });
       if (syncUrl) _syncUrlForTab(normalizedTab, historyMode);
+      document.dispatchEvent(new CustomEvent('hub:tab-activated', {
+        detail: { tab: normalizedTab },
+      }));
       return;
     }
 
@@ -890,6 +898,10 @@ const HubEngine = (() => {
     if (normalizedTab === 'schedule') {
       _fetchScheduleMatches();
     }
+
+    document.dispatchEvent(new CustomEvent('hub:tab-activated', {
+      detail: { tab: normalizedTab },
+    }));
 
     // Re-init lucide icons for dynamic content
     if (typeof lucide !== 'undefined') lucide.createIcons();
@@ -1841,6 +1853,10 @@ const HubEngine = (() => {
     const tree = document.getElementById('hub-bracket-tree');
     if (!tree) return;
     _bracketScale = Math.max(0.3, Math.min(2, _bracketScale + dir * 0.2));
+    if (typeof tree.__dcBracketZoom === 'function') {
+      tree.__dcBracketZoom(_bracketScale);
+      return;
+    }
     tree.style.transform = `scale(${_bracketScale})`;
     _redrawBracketLines();
   }
@@ -1849,6 +1865,10 @@ const HubEngine = (() => {
     const tree = document.getElementById('hub-bracket-tree');
     if (!tree) return;
     _bracketScale = 1;
+    if (typeof tree.__dcBracketZoom === 'function') {
+      tree.__dcBracketZoom(1);
+      return;
+    }
     tree.style.transform = 'scale(1)';
     _redrawBracketLines();
   }
@@ -1995,18 +2015,93 @@ const HubEngine = (() => {
   }
 
   // ── Prize Claim Modal ──
+  function _ensurePrizeClaimModal() {
+    let modal = document.getElementById('prize-claim-modal');
+    if (modal) return modal;
+
+    modal = document.createElement('div');
+    modal.id = 'prize-claim-modal';
+    modal.className = 'hidden fixed inset-0 z-[200] flex items-center justify-center bg-black/70 backdrop-blur-sm';
+    modal.innerHTML = `
+      <div class="w-full max-w-md mx-4 rounded-2xl hub-glass border border-white/10 p-6 space-y-5 shadow-2xl">
+        <div class="flex items-center justify-between">
+          <h3 class="text-lg font-black text-white">Claim Prize</h3>
+          <button type="button" data-click="HubEngine.closePrizeModal" class="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition" aria-label="Close prize claim">
+            <i data-lucide="x" class="w-5 h-5"></i>
+          </button>
+        </div>
+        <div id="claim-modal-prize-info" class="p-4 rounded-xl bg-[#FFB800]/5 border border-[#FFB800]/20">
+          <p class="text-xs text-gray-400">Prize Amount</p>
+          <p id="claim-modal-amount" class="text-2xl font-black text-[#FFB800]">-</p>
+          <p id="claim-modal-placement" class="text-xs text-gray-500 mt-1"></p>
+        </div>
+        <div class="p-4 rounded-xl bg-white/[0.03] border border-white/10 space-y-2">
+          <div class="flex items-start gap-3">
+            <i data-lucide="info" class="w-4 h-4 text-[#00F0FF] mt-0.5 flex-shrink-0"></i>
+            <div>
+              <p class="text-xs font-bold text-white">Manual payout required</p>
+              <p class="text-xs text-gray-400 mt-1">Submit your preferred payout details. The organizer will review the claim and complete payout manually.</p>
+            </div>
+          </div>
+          <p id="claim-modal-organizer-note" class="text-[11px] text-gray-500">Use Contact Organizer if you need to update payout details after submitting.</p>
+        </div>
+        <div>
+          <label for="claim-payout-method" class="block text-xs font-bold text-gray-400 mb-2">Payout Method</label>
+          <select id="claim-payout-method" class="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-[#00F0FF]/50 focus:outline-none transition">
+            <option value="deltacoin">DeltaCoin Wallet</option>
+            <option value="bkash">bKash</option>
+            <option value="nagad">Nagad</option>
+            <option value="rocket">Rocket</option>
+            <option value="bank">Bank Transfer</option>
+          </select>
+        </div>
+        <div id="claim-destination-wrap" class="hidden">
+          <label for="claim-payout-destination" class="block text-xs font-bold text-gray-400 mb-2">Account / Phone Number</label>
+          <input id="claim-payout-destination" type="text" placeholder="e.g. 017XXXXXXXX" class="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:border-[#00F0FF]/50 focus:outline-none transition">
+        </div>
+        <input type="hidden" id="claim-transaction-id" value="">
+        <button id="claim-submit-btn" type="button" data-click="HubEngine.submitPrizeClaim" class="w-full py-3 rounded-xl bg-[#FFB800] hover:bg-[#FFC933] text-black font-black text-sm uppercase tracking-wider transition-all shadow-[0_0_20px_rgba(255,184,0,0.3)]">
+          Submit Claim
+        </button>
+        <button type="button" data-click="HubEngine.showContactModal" class="w-full py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 font-bold text-xs uppercase tracking-wider transition">
+          Contact Organizer
+        </button>
+        <p id="claim-error" class="hidden text-xs text-[#FF2A55] text-center"></p>
+        <p id="claim-success" class="hidden text-xs text-[#00FF66] text-center"></p>
+      </div>`;
+    document.body.appendChild(modal);
+    return modal;
+  }
+
   function openPrizeModal(txId, amount, placement) {
     if (_isCriticalLocked()) {
       _showLockToast();
       return;
     }
 
-    document.getElementById('claim-transaction-id').value = txId;
-    document.getElementById('claim-modal-amount').textContent = amount;
-    document.getElementById('claim-modal-placement').textContent = placement;
-    document.getElementById('claim-error').classList.add('hidden');
-    document.getElementById('claim-success').classList.add('hidden');
-    document.getElementById('claim-submit-btn').disabled = false;
+    _ensurePrizeClaimModal();
+
+    const txEl = document.getElementById('claim-transaction-id');
+    const amountEl = document.getElementById('claim-modal-amount');
+    const placementEl = document.getElementById('claim-modal-placement');
+    const errEl = document.getElementById('claim-error');
+    const okEl = document.getElementById('claim-success');
+    const btn = document.getElementById('claim-submit-btn');
+    const destEl = document.getElementById('claim-payout-destination');
+
+    if (!txEl || !amountEl || !placementEl || !btn) {
+      _announceLiveMessage('Prize claim panel is unavailable. Refresh and try again.', 'assertive');
+      return;
+    }
+
+    txEl.value = txId || '';
+    amountEl.textContent = amount || '-';
+    placementEl.textContent = placement || '';
+    if (destEl) destEl.value = '';
+    if (errEl) errEl.classList.add('hidden');
+    if (okEl) okEl.classList.add('hidden');
+    btn.disabled = false;
+    btn.textContent = 'Submit Claim';
 
     // Show/hide destination field based on method
     _onPayoutMethodChange();
@@ -2040,12 +2135,19 @@ const HubEngine = (() => {
     const url = _shell?.dataset.apiPrizeClaim;
     if (!url) return;
 
-    const txId = document.getElementById('claim-transaction-id').value;
-    const method = document.getElementById('claim-payout-method').value;
+    _ensurePrizeClaimModal();
+
+    const txId = document.getElementById('claim-transaction-id')?.value;
+    const method = document.getElementById('claim-payout-method')?.value;
     const dest = document.getElementById('claim-payout-destination')?.value || '';
     const btn = document.getElementById('claim-submit-btn');
     const errEl = document.getElementById('claim-error');
     const okEl = document.getElementById('claim-success');
+
+    if (!txId || !method || !btn || !errEl || !okEl) {
+      _announceLiveMessage('Prize claim details are missing. Refresh and try again.', 'assertive');
+      return;
+    }
 
     btn.disabled = true;
     btn.textContent = 'Submitting...';
@@ -2069,11 +2171,14 @@ const HubEngine = (() => {
       const data = await resp.json();
 
       if (data.success) {
-        okEl.textContent = 'Prize claimed successfully! Your payout is being processed.';
+        okEl.textContent = data.message || 'Prize claim submitted. Organizer review and manual payout are required.';
         okEl.classList.remove('hidden');
         btn.textContent = 'Claimed';
         // Refresh cache
         _prizesCache = null;
+        document.dispatchEvent(new CustomEvent('hub:prize-claim-updated', {
+          detail: { transactionId: txId, status: data.status || 'pending' },
+        }));
         setTimeout(() => {
           closePrizeModal();
           _fetchPrizes();

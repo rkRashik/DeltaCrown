@@ -9,7 +9,7 @@
 
 {% block tournament_css %}
 <link rel="stylesheet" href="{% static 'tournaments/css/hub.css' %}?v=20260416_overview_premium_polish_v3">
-<link rel="stylesheet" href="{% static 'tournaments/css/bracket-demo.css' %}?v=20260426a">
+<link rel="stylesheet" href="{% static 'tournaments/css/bracket-demo.css' %}?v=20260427a">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800;900&family=Libre+Barcode+39+Text&display=swap" rel="stylesheet">
@@ -616,6 +616,12 @@
         <span class="hub-nav-label">Bracket</span>
       </div>
     </button>
+    <button class="hub-nav-btn hub-mobile-bottom-item" data-hub-tab="results-achievements" data-click="HubEngine.switchTab" data-click-args='["results-achievements"]'>
+      <div class="flex flex-col items-center gap-1">
+        <i data-lucide="award" class="w-4 h-4"></i>
+        <span class="hub-nav-label">Hall</span>
+      </div>
+    </button>
     <button class="hub-nav-btn hub-mobile-bottom-item" data-hub-tab="{% if is_team %}squad{% else %}participants{% endif %}" data-click="HubEngine.switchTab" data-click-args='["{% if is_team %}squad{% else %}participants{% endif %}"]'>
       <div class="flex flex-col items-center gap-1">
         <i data-lucide="{% if is_team %}shield{% else %}users{% endif %}" class="w-4 h-4"></i>
@@ -1124,10 +1130,10 @@
 {% block tournament_js %}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script src="{% static 'tournaments/js/bracket-demo-engine.js' %}?v=20260426a"></script>
-<script src="{% static 'tournaments/js/hub-engine.js' %}?v=20260416_overview_premium_polish_v3"></script>
+<script src="{% static 'tournaments/js/bracket-demo-engine.js' %}?v=20260427a"></script>
+<script src="{% static 'tournaments/js/hub-engine.js' %}?v=20260427a"></script>
 <script src="{% static 'tournaments/js/hub-prize-engine.js' %}?v=20260426a"></script>
-<script src="{% static 'tournaments/js/results-achievements-engine.js' %}?v=20260426a"></script>
+<script src="{% static 'tournaments/js/results-achievements-engine.js' %}?v=20260427a"></script>
 <script nonce="{{ request.csp_nonce }}">
   document.addEventListener('DOMContentLoaded', function() {
     if (typeof lucide !== 'undefined') lucide.createIcons();

@@ -148,6 +148,7 @@ from apps.tournaments.views.draw import (
     GroupDrawPublicView,
     smart_group_presets,
 )
+from apps.tournaments.views.create import TournamentCreatePageView
 # [TOC Purge] from apps.tournaments.views.payment_status import (
 #     RegistrationStatusView, PaymentResubmitView, DownloadPaymentProofView,
 # )
@@ -192,6 +193,9 @@ urlpatterns = [
     path('', views.TournamentListView.as_view(), name='list'),
     # Backwards-compatibility alias used in templates: "tournaments:browse"
     path('browse/', views.TournamentListView.as_view(), name='browse'),
+    
+    # Tournament Creation Wizard (public hosting)
+    path('create/', TournamentCreatePageView.as_view(), name='create'),
     
     # ──────────────────────────────────────────────────────────────────
     # [TOC Purge] All organizer/ URL patterns removed.

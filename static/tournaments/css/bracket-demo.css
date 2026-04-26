@@ -4,17 +4,17 @@
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
-  background: #0f172a;
+  background: rgba(24, 24, 27, 0.45);
   border-radius: 4px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #334155;
+  background: #52525b;
   border-radius: 4px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #475569;
+  background: #71717a;
 }
 
 svg.bracket-connectors {
@@ -29,15 +29,146 @@ svg.bracket-connectors {
 .match-card {
   z-index: 10;
   position: relative;
-  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, filter 0.2s ease;
 }
 
 .match-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 10px 25px -5px rgba(6, 182, 212, 0.1), 0 8px 10px -6px rgba(6, 182, 212, 0.1);
-  border-color: rgba(6, 182, 212, 0.3);
+  box-shadow: 0 18px 35px -12px rgba(245, 158, 11, 0.24), 0 8px 20px -14px rgba(255, 255, 255, 0.18);
+  border-color: rgba(245, 158, 11, 0.34);
 }
 
 .dc-bracket-container {
   isolation: isolate;
+  min-width: max-content;
+  margin-left: 0;
+  margin-right: 0;
+}
+
+.dc-bracket-shell {
+  width: 100%;
+  max-width: 100%;
+  height: min(72vh, 760px);
+  min-height: 520px;
+  max-height: calc(100vh - 220px);
+  overflow: auto !important;
+  cursor: grab;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable both-edges;
+  touch-action: pan-x pan-y;
+  background:
+    radial-gradient(circle at 50% 12%, rgba(245, 158, 11, 0.08), transparent 32%),
+    linear-gradient(180deg, rgba(9, 9, 11, 0.08), rgba(9, 9, 11, 0.02));
+}
+
+.dc-bracket-render-root,
+.bracket-tree-container {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.dc-bracket-scale {
+  position: relative;
+  min-width: 960px;
+  min-height: 620px;
+}
+
+.dc-bracket-stage {
+  position: absolute;
+  top: 0;
+  left: 0;
+  min-width: max-content;
+  min-height: 620px;
+  padding: 24px 32px 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 20px;
+  will-change: transform;
+}
+
+.dc-bracket-shell.is-panning {
+  cursor: grabbing;
+  user-select: none;
+}
+
+.dc-match-card {
+  border: 1px solid rgba(212, 212, 216, 0.14);
+  border-radius: 16px;
+  background:
+    linear-gradient(145deg, rgba(39, 39, 42, 0.82), rgba(9, 9, 11, 0.94)),
+    radial-gradient(circle at top left, rgba(245, 158, 11, 0.1), transparent 45%);
+  box-shadow: 0 18px 38px -24px rgba(0, 0, 0, 0.9);
+  backdrop-filter: blur(16px);
+}
+
+.dc-final-card {
+  border-color: rgba(251, 191, 36, 0.48);
+  background:
+    radial-gradient(circle at 50% 0%, rgba(251, 191, 36, 0.2), transparent 44%),
+    linear-gradient(145deg, rgba(30, 23, 8, 0.94), rgba(3, 7, 18, 0.96));
+  box-shadow: 0 0 0 1px rgba(251, 191, 36, 0.1), 0 20px 48px -22px rgba(251, 191, 36, 0.55);
+}
+
+.dc-third-card {
+  border-color: rgba(251, 191, 36, 0.24);
+}
+
+.dc-team-row.is-winner {
+  background: linear-gradient(90deg, rgba(245, 158, 11, 0.14), rgba(245, 158, 11, 0.03));
+}
+
+.dc-team-row.is-loser {
+  opacity: 0.54;
+  filter: saturate(0.7);
+}
+
+.dc-state-badge {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 999px;
+  padding: 2px 7px;
+  color: #94a3b8;
+  background: rgba(15, 23, 42, 0.55);
+  font-size: 9px;
+  line-height: 1;
+  font-weight: 900;
+  letter-spacing: 0;
+}
+
+.dc-state-badge.done {
+  color: #fbbf24;
+  border-color: rgba(251, 191, 36, 0.32);
+  background: rgba(120, 53, 15, 0.18);
+}
+
+.dc-state-badge.live {
+  color: #fca5a5;
+  border-color: rgba(248, 113, 113, 0.35);
+  background: rgba(127, 29, 29, 0.28);
+}
+
+.dc-state-badge.pending {
+  color: #fcd34d;
+  border-color: rgba(252, 211, 77, 0.28);
+  background: rgba(120, 53, 15, 0.18);
+}
+
+.dc-placement-strip .match-wrapper {
+  margin-top: 0;
+}
+
+.dc-placement-strip {
+  position: relative;
+}
+
+.dc-placement-strip::before {
+  content: "";
+  position: absolute;
+  top: -22px;
+  left: 50%;
+  width: 1px;
+  height: 22px;
+  background: linear-gradient(to bottom, rgba(251, 191, 36, 0.04), rgba(251, 191, 36, 0.35));
 }

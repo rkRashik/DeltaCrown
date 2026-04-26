@@ -94,8 +94,9 @@ class TestSignupStaleRecovery:
         ))
         assert len(rows) == 1
         assert rows[0].username == SIGNUP_PAYLOAD["username"]
-        # Old pending and its OTPs are gone (cascade), a new OTP was issued.
-        assert not PendingSignup.objects.filter(pk=prior.pk).exists()
+        # Existing pending signup is reused idempotently, old OTPs are removed,
+        # and a fresh OTP is issued for the same pending row.
+        assert rows[0].pk == prior.pk
         assert EmailOTP.objects.filter(pending_signup=rows[0]).count() == 1
         assert len(mail.outbox) == before_count + 1
 
@@ -112,9 +113,7 @@ class TestSignupStaleRecovery:
             email__iexact=SIGNUP_PAYLOAD["email"],
         ))
         assert len(rows) == 1
-        # Replaced row, not the prior id.
-        assert rows[0].pk != prior.pk
-        assert not PendingSignup.objects.filter(pk=prior.pk).exists()
+        assert rows[0].pk == prior.pk
 
     def test_active_pending_username_collision_different_email_still_blocks(
         self, client,

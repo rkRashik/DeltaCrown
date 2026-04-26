@@ -12,6 +12,8 @@ from __future__ import annotations
 from decimal import Decimal
 from typing import Any, Dict, Iterable, List, Optional
 
+from django.db import IntegrityError
+
 from apps.tournaments.models import (
     Certificate,
     PrizeClaim,
@@ -27,6 +29,7 @@ from apps.tournaments.services.completion_truth import (
     is_tournament_effectively_completed,
 )
 from apps.tournaments.services.placement_service import PlacementService
+from apps.tournaments.services.participant_identity import ParticipantIdentityService
 from apps.tournaments.services.prize_config_service import PrizeConfigService, _ordinal
 from apps.tournaments.services.staff_permission_checker import StaffPermissionChecker
 
@@ -70,7 +73,7 @@ class TournamentRewardsReadModel:
         registration: Optional[Registration] = None,
     ) -> Dict[str, Any]:
         """Participant payload with current viewer claim/payout/certificate state."""
-        ctx = cls._build_context(tournament)
+        ctx = cls._build_context(tournament, ensure_transactions=True)
         payload = cls._public_from_context(ctx)
         payload['surface'] = 'hub'
         payload['viewer'] = cls._viewer_payload(registration)
@@ -97,7 +100,7 @@ class TournamentRewardsReadModel:
     @classmethod
     def toc_payload(cls, tournament: Tournament, *, user=None) -> Dict[str, Any]:
         """Organizer operations payload with claim/payout/certificate details."""
-        ctx = cls._build_context(tournament)
+        ctx = cls._build_context(tournament, ensure_transactions=True)
         public_preview = cls._public_from_context(ctx)
         permissions = cls._toc_permissions(tournament, user)
         operations = cls._toc_operations(ctx, permissions)
@@ -114,7 +117,12 @@ class TournamentRewardsReadModel:
     # ------------------------------------------------------------------
 
     @classmethod
-    def _build_context(cls, tournament: Tournament) -> Dict[str, Any]:
+    def _build_context(
+        cls,
+        tournament: Tournament,
+        *,
+        ensure_transactions: bool = False,
+    ) -> Dict[str, Any]:
         cfg = PrizeConfigService.get_config(tournament)
         completion_payload = get_tournament_completion_payload(tournament)
         effectively_completed = bool(
@@ -180,6 +188,21 @@ class TournamentRewardsReadModel:
             for s in standings
             if isinstance(s, dict)
         }
+        participant_identities = ParticipantIdentityService.for_registrations(
+            tournament,
+            [
+                cls._int(s.get('registration_id'))
+                for s in standings
+                if isinstance(s, dict) and cls._int(s.get('registration_id'))
+            ],
+        )
+
+        if ensure_transactions and effectively_completed:
+            cls._ensure_prize_transactions(
+                tournament,
+                standings_by_rank,
+                tier_by_rank,
+            )
 
         transactions = list(
             PrizeTransaction.objects.filter(tournament=tournament)
@@ -207,6 +230,7 @@ class TournamentRewardsReadModel:
             'standings_payload': standings_payload,
             'standings': standings,
             'standings_by_rank': standings_by_rank,
+            'participant_identities': participant_identities,
             'tier_by_rank': tier_by_rank,
             'result': result,
             'placements_published': bool(result and (result.final_standings or [])),
@@ -219,10 +243,12 @@ class TournamentRewardsReadModel:
         ctx['standings_rows'] = cls._standing_rows(ctx)
         ctx['result_status'] = cls._result_status(ctx)
         ctx['special_awards_public'] = cls._special_awards(
+            tournament,
             cfg.get('special_awards') or [],
             include_internal=False,
         )
         ctx['special_awards_toc'] = cls._special_awards(
+            tournament,
             cfg.get('special_awards') or [],
             include_internal=True,
         )
@@ -243,6 +269,61 @@ class TournamentRewardsReadModel:
         return ctx
 
     @classmethod
+    def _ensure_prize_transactions(
+        cls,
+        tournament: Tournament,
+        standings_by_rank: Dict[int, Dict[str, Any]],
+        tier_by_rank: Dict[int, Dict[str, Any]],
+    ) -> None:
+        """Create missing manual prize transactions for completed winners.
+
+        This is intentionally idempotent and only creates the audit record that
+        lets the winner submit a claim. It does not execute an automated payout.
+        """
+        for rank, placement in cls.RANK_TO_TRANSACTION_PLACEMENT.items():
+            standing = standings_by_rank.get(rank) or {}
+            registration_id = cls._int(standing.get('registration_id'))
+            if not registration_id:
+                continue
+            tier = tier_by_rank.get(rank) or {}
+            fiat = cls._int(tier.get('fiat'))
+            coins = cls._int(tier.get('coins'))
+            if not (fiat or coins):
+                continue
+            amount = Decimal(str(coins or fiat or 0))
+            notes = (
+                'Manual payout required. Created from Results & Rewards read model. '
+                f'Configured reward: fiat={fiat}, coins={coins}.'
+            )
+            try:
+                tx, created = PrizeTransaction.objects.get_or_create(
+                    tournament=tournament,
+                    participant_id=registration_id,
+                    placement=placement,
+                    defaults={
+                        'amount': amount,
+                        'status': PrizeTransaction.Status.PENDING,
+                        'notes': notes,
+                    },
+                )
+            except IntegrityError:
+                tx = PrizeTransaction.objects.filter(
+                    tournament=tournament,
+                    participant_id=registration_id,
+                    placement=placement,
+                ).first()
+                created = False
+            if not tx or created:
+                continue
+            if tx.status == PrizeTransaction.Status.PENDING and (
+                tx.amount != amount or 'Manual payout required' not in (tx.notes or '')
+            ):
+                tx.amount = amount
+                if 'Manual payout required' not in (tx.notes or ''):
+                    tx.notes = f'{tx.notes}\n{notes}'.strip() if tx.notes else notes
+                tx.save(update_fields=['amount', 'notes', 'updated_at'])
+
+    @classmethod
     def _placement_rows(cls, ctx: Dict[str, Any]) -> List[Dict[str, Any]]:
         rows = []
         for tier in ctx['config'].get('placements') or []:
@@ -251,6 +332,13 @@ class TournamentRewardsReadModel:
             rank = cls._int(tier.get('rank'))
             standing = ctx['standings_by_rank'].get(rank)
             participant_id = cls._int(standing.get('registration_id')) if standing else None
+            identity = ctx.get('participant_identities', {}).get(participant_id) or {}
+            display_name = (
+                (standing.get('team_name') if standing else '')
+                or identity.get('name')
+                or ''
+            )
+            image_url = identity.get('image_url') or identity.get('logo_url') or identity.get('avatar_url') or ''
             certificate = ctx['certificates_by_participant'].get(participant_id)
             rows.append({
                 'rank': rank,
@@ -261,8 +349,15 @@ class TournamentRewardsReadModel:
                 'coins': cls._int(tier.get('coins')),
                 'winner': {
                     'registration_id': participant_id,
-                    'team_name': standing.get('team_name') or '',
+                    'team_name': display_name,
+                    'name': display_name,
+                    'image_url': image_url,
+                    'logo_url': identity.get('logo_url') or image_url,
+                    'avatar_url': identity.get('avatar_url') or image_url,
                 } if standing else None,
+                'image_url': image_url,
+                'logo_url': identity.get('logo_url') or image_url,
+                'avatar_url': identity.get('avatar_url') or image_url,
                 **cls._placement_resolution(ctx, rank, standing),
                 'certificate_badge': cls._certificate_badge(
                     certificate,
@@ -280,13 +375,19 @@ class TournamentRewardsReadModel:
             participant_id = cls._int(standing.get('registration_id'))
             tier = ctx['tier_by_rank'].get(rank) or {}
             certificate = ctx['certificates_by_participant'].get(participant_id)
+            identity = ctx.get('participant_identities', {}).get(participant_id) or {}
+            display_name = standing.get('team_name') or identity.get('name') or ''
+            image_url = identity.get('image_url') or identity.get('logo_url') or identity.get('avatar_url') or ''
             rows.append({
                 'rank': rank,
                 'rank_label': _ordinal(rank) if rank else '',
                 'title': tier.get('title') or (_ordinal(rank) if rank else ''),
                 'registration_id': participant_id,
-                'team_name': standing.get('team_name') or '',
-                'result_label': standing.get('team_name') or '',
+                'team_name': display_name,
+                'result_label': display_name,
+                'image_url': image_url,
+                'logo_url': identity.get('logo_url') or image_url,
+                'avatar_url': identity.get('avatar_url') or image_url,
                 'placement_unresolved': False,
                 'payout_blocked': False,
                 'block_reason': '',
@@ -331,9 +432,17 @@ class TournamentRewardsReadModel:
     def _viewer_payload(cls, registration: Optional[Registration]) -> Optional[Dict[str, Any]]:
         if not registration:
             return None
+        identity = ParticipantIdentityService.for_registrations(
+            registration.tournament,
+            {registration.id},
+        ).get(int(registration.id), {})
+        image_url = identity.get('image_url') or identity.get('logo_url') or identity.get('avatar_url') or ''
         return {
             'registration_id': registration.id,
-            'team_name': cls._registration_label(registration),
+            'team_name': identity.get('name') or cls._registration_label(registration),
+            'image_url': image_url,
+            'logo_url': identity.get('logo_url') or image_url,
+            'avatar_url': identity.get('avatar_url') or image_url,
         }
 
     @classmethod
@@ -391,6 +500,10 @@ class TournamentRewardsReadModel:
                 'amount': str(pt.amount),
                 'status': pt.status,
                 'claimed': claim is not None,
+                'claimable': bool(not claim and pt.status in (
+                    PrizeTransaction.Status.PENDING,
+                    PrizeTransaction.Status.COMPLETED,
+                )),
                 'claim_status': claim.status if claim else None,
                 'claim': cls._claim_payload(claim, include_private=False),
                 'payout': cls._payout_payload(pt, claim, include_private=False),
@@ -433,11 +546,17 @@ class TournamentRewardsReadModel:
                 'enabled': False,
                 'label': 'Messaging integration pending',
             }
+            claim_status = getattr(claim, 'status', '') if claim else ''
+            claim_is_open = claim_status in {
+                PrizeClaim.STATUS_PENDING,
+                PrizeClaim.STATUS_PROCESSING,
+            }
             merged['actions'] = {
-                'can_review_claim': bool(claim and permissions.get('can_manage_payouts')),
+                'can_review_claim': bool(
+                    claim and permissions.get('can_manage_payouts') and claim_is_open
+                ),
                 'can_mark_paid': bool(
-                    claim and permissions.get('can_manage_payouts') and
-                    claim.status != PrizeClaim.STATUS_PAID
+                    claim and permissions.get('can_manage_payouts') and claim_is_open
                 ),
             }
             placements.append(merged)
@@ -527,9 +646,17 @@ class TournamentRewardsReadModel:
     ) -> Optional[Dict[str, Any]]:
         if not registration:
             return None
+        identity = ParticipantIdentityService.for_registrations(
+            registration.tournament,
+            {registration.pk},
+        ).get(int(registration.pk), {})
+        image_url = identity.get('image_url') or identity.get('logo_url') or identity.get('avatar_url') or ''
         return {
             'registration_id': cls._int(getattr(registration, 'pk', None)),
-            'team_name': cls._registration_label(registration),
+            'team_name': identity.get('name') or cls._registration_label(registration),
+            'image_url': image_url,
+            'logo_url': identity.get('logo_url') or image_url,
+            'avatar_url': identity.get('avatar_url') or image_url,
         }
 
     @classmethod
@@ -596,6 +723,7 @@ class TournamentRewardsReadModel:
             recipient_name = row.get('team_name') or ''
             if not recipient_name:
                 continue
+            image_url = row.get('image_url') or row.get('logo_url') or row.get('avatar_url') or ''
             achievement = {
                 'id': f'placement-{rank}',
                 'title': title,
@@ -605,6 +733,9 @@ class TournamentRewardsReadModel:
                 'rank': rank,
                 'source': 'placement',
                 'recipient_name': recipient_name,
+                'image_url': image_url,
+                'logo_url': row.get('logo_url') or image_url,
+                'avatar_url': row.get('avatar_url') or image_url,
                 'reward_text': cls._achievement_reward_text(row.get('prize') or {}),
             }
             if include_internal:
@@ -780,14 +911,36 @@ class TournamentRewardsReadModel:
     @classmethod
     def _special_awards(
         cls,
+        tournament: Tournament,
         awards: Iterable[Dict[str, Any]],
         *,
         include_internal: bool,
     ) -> List[Dict[str, Any]]:
         out = []
+        recipient_ids = [
+            cls._int(award.get('recipient_id'))
+            for award in awards
+            if isinstance(award, dict) and cls._int(award.get('recipient_id'))
+        ]
+        recipients_by_id = ParticipantIdentityService.for_registrations(
+            tournament,
+            recipient_ids,
+        )
         for award in awards:
             if not isinstance(award, dict):
                 continue
+            recipient_id = cls._int(award.get('recipient_id'))
+            recipient_name = award.get('recipient_name') or ''
+            resolved_recipient = recipients_by_id.get(recipient_id)
+            if not recipient_name and recipient_id:
+                recipient_name = (resolved_recipient or {}).get('name') or ''
+            awaiting_recipient = not bool(recipient_name or resolved_recipient)
+            image_url = (
+                (resolved_recipient or {}).get('image_url')
+                or (resolved_recipient or {}).get('logo_url')
+                or (resolved_recipient or {}).get('avatar_url')
+                or ''
+            )
             row = {
                 'id': award.get('id') or '',
                 'title': award.get('title') or '',
@@ -797,13 +950,14 @@ class TournamentRewardsReadModel:
                 'fiat': cls._int(award.get('fiat')),
                 'coins': cls._int(award.get('coins')),
                 'reward_text': award.get('reward_text') or '',
-                'recipient_name': award.get('recipient_name') or 'Awaiting assignment',
-                'awaiting_recipient': not bool(
-                    award.get('recipient_name') or award.get('recipient_id')
-                ),
+                'recipient_name': recipient_name or 'Awaiting assignment',
+                'image_url': image_url,
+                'logo_url': (resolved_recipient or {}).get('logo_url') or image_url,
+                'avatar_url': (resolved_recipient or {}).get('avatar_url') or image_url,
+                'awaiting_recipient': awaiting_recipient,
             }
             if include_internal:
-                row['recipient_id'] = award.get('recipient_id')
+                row['recipient_id'] = recipient_id or None
                 row['contact'] = {
                     'enabled': False,
                     'label': 'Messaging integration pending',
@@ -828,8 +982,10 @@ class TournamentRewardsReadModel:
         standing: Optional[Dict[str, Any]],
     ) -> Dict[str, Any]:
         if standing:
+            participant_id = cls._int(standing.get('registration_id'))
+            identity = ctx.get('participant_identities', {}).get(participant_id) or {}
             return {
-                'result_label': standing.get('team_name') or '',
+                'result_label': standing.get('team_name') or identity.get('name') or '',
                 'placement_unresolved': False,
                 'payout_blocked': False,
                 'block_reason': '',
@@ -1017,8 +1173,34 @@ class TournamentRewardsReadModel:
     ) -> Dict[str, Any]:
         claim_status = claim.status if claim else None
         status = claim_status or (transaction.status if transaction else 'not_started')
+        if not transaction:
+            label = 'No payout started'
+            requires_manual = False
+        elif claim and claim.status == PrizeClaim.STATUS_PAID:
+            label = 'Paid'
+            requires_manual = False
+        elif claim and claim.status == PrizeClaim.STATUS_REJECTED:
+            label = 'Rejected'
+            requires_manual = False
+        elif claim and claim.status == PrizeClaim.STATUS_PROCESSING:
+            label = 'Manual payout required'
+            requires_manual = True
+        elif claim and claim.status == PrizeClaim.STATUS_PENDING:
+            label = 'Claim pending review'
+            requires_manual = True
+        elif transaction.status == PrizeTransaction.Status.COMPLETED:
+            label = 'Paid'
+            requires_manual = False
+        elif transaction.status == PrizeTransaction.Status.FAILED:
+            label = 'Failed'
+            requires_manual = False
+        else:
+            label = 'Manual payout required'
+            requires_manual = True
         out = {
             'status': status,
+            'label': label,
+            'requires_manual_payout': requires_manual,
             'transaction_id': transaction.id if transaction else None,
             'amount': str(transaction.amount) if transaction else '0',
             'placement': transaction.placement if transaction else '',

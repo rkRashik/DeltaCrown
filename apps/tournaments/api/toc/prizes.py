@@ -20,9 +20,10 @@ from rest_framework.response import Response
 
 from apps.tournaments.api.toc.base import TOCBaseView
 from apps.tournaments.api.toc.cache_utils import bump_toc_scopes
-from apps.tournaments.models import PrizeClaim, Registration, TournamentResult
+from apps.tournaments.models import PrizeClaim, PrizeTransaction, Registration, TournamentResult
 from apps.organizations.models import Team
 from apps.tournaments.services.bracket_service import BracketService
+from apps.tournaments.services.participant_identity import ParticipantIdentityService
 from apps.tournaments.services.placement_service import PlacementService
 from apps.tournaments.services.prize_config_service import PrizeConfigService
 from apps.tournaments.services.rewards_read_model import TournamentRewardsReadModel
@@ -194,6 +195,29 @@ class PrizeClaimActionView(TOCBaseView):
             claim.admin_notes = f'{existing}\n{notes}'.strip() if existing else notes
         claim.save(update_fields=['status', 'paid_at', 'admin_notes', 'updated_at'])
 
+        transaction = claim.prize_transaction
+        tx_fields = []
+        if action in {'review', 'approve'}:
+            if transaction.status != PrizeTransaction.Status.PENDING:
+                transaction.status = PrizeTransaction.Status.PENDING
+                tx_fields.append('status')
+            note = 'Manual payout approved for organizer fulfillment.'
+        elif action == 'reject':
+            transaction.status = PrizeTransaction.Status.FAILED
+            tx_fields.append('status')
+            note = 'Prize claim rejected.'
+        else:
+            transaction.status = PrizeTransaction.Status.COMPLETED
+            transaction.processed_by = request.user
+            tx_fields.extend(['status', 'processed_by'])
+            note = 'Manual payout marked paid from TOC Results & Achievements.'
+        if note and note not in (transaction.notes or ''):
+            transaction.notes = f'{transaction.notes}\n{note}'.strip() if transaction.notes else note
+            tx_fields.append('notes')
+        if tx_fields:
+            tx_fields.append('updated_at')
+            transaction.save(update_fields=list(dict.fromkeys(tx_fields)))
+
         bump_toc_scopes(self.tournament.id, 'overview', 'analytics', 'standings', 'prizes')
         _invalidate_rewards_cache(self.tournament)
         payload = TournamentRewardsReadModel.toc_payload(
@@ -212,7 +236,7 @@ class PrizeRecipientSearchView(TOCBaseView):
         qs = (
             Registration.objects
             .filter(tournament=self.tournament, is_deleted=False)
-            .select_related('user')
+            .select_related('user', 'user__profile')
             .order_by('id')
         )
         registrations = list(qs[:200])
@@ -223,19 +247,28 @@ class PrizeRecipientSearchView(TOCBaseView):
         }
         for reg in registrations:
             reg._resolved_team = teams.get(reg.team_id)
+        identities = ParticipantIdentityService.for_registrations(
+            self.tournament,
+            [reg.id for reg in registrations],
+        )
         if query:
             needle = query.casefold()
             registrations = [
                 reg for reg in registrations
-                if needle in (_registration_label(reg) or '').casefold()
+                if needle in ((identities.get(reg.id) or {}).get('name') or _registration_label(reg) or '').casefold()
                 or needle in (_registration_subtitle(reg) or '').casefold()
             ]
         results = []
         for reg in registrations[:30]:
+            identity = identities.get(reg.id) or {}
+            image_url = identity.get('image_url') or identity.get('logo_url') or identity.get('avatar_url') or ''
             results.append({
                 'registration_id': reg.id,
-                'name': _registration_label(reg),
+                'name': identity.get('name') or _registration_label(reg),
                 'subtitle': _registration_subtitle(reg),
+                'image_url': image_url,
+                'logo_url': identity.get('logo_url') or image_url,
+                'avatar_url': identity.get('avatar_url') or image_url,
                 'status': reg.status,
                 'team_id': getattr(reg, 'team_id', None),
                 'user_id': getattr(reg, 'user_id', None),
@@ -271,6 +304,11 @@ class PrizePlacementAssignView(TOCBaseView):
             return Response({'error': 'Recipient is not registered in this tournament.'}, status=status.HTTP_400_BAD_REQUEST)
         if getattr(recipient, 'team_id', None):
             recipient._resolved_team = Team.objects.filter(id=recipient.team_id).first()
+        recipient_identity = ParticipantIdentityService.for_registrations(
+            self.tournament,
+            {recipient.id},
+        ).get(int(recipient.id), {})
+        recipient_name = recipient_identity.get('name') or _registration_label(recipient)
 
         payload = PlacementService.standings_payload(self.tournament)
         standings = list(payload.get('standings') or [])
@@ -278,7 +316,7 @@ class PrizePlacementAssignView(TOCBaseView):
         standings.append({
             'placement': rank,
             'registration_id': recipient.id,
-            'team_name': _registration_label(recipient),
+            'team_name': recipient_name,
             'source': 'manual_assignment',
             'is_tied': False,
             'tied_with': [],
@@ -327,7 +365,7 @@ class PrizePlacementAssignView(TOCBaseView):
         rules['manual_assignments'].append({
             'rank': rank,
             'registration_id': recipient.id,
-            'recipient_name': _registration_label(recipient),
+            'recipient_name': recipient_name,
             'assigned_by_id': getattr(request.user, 'id', None),
             'assigned_at': timezone.now().isoformat(),
         })

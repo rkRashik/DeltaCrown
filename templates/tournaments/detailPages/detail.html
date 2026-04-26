@@ -7,7 +7,7 @@
 {% block og_description %}{% if tournament.meta_description %}{{ tournament.meta_description }}{% else %}{{ tournament.name }} - {{ game_spec.display_name }} {{ tournament_format_label }} tournament on DeltaCrown.{% endif %}{% endblock %}
 
 {% block tournament_css %}
-<link rel="stylesheet" href="{% static 'tournaments/css/bracket-demo.css' %}?v=20260426a">
+<link rel="stylesheet" href="{% static 'tournaments/css/bracket-demo.css' %}?v=20260427a">
 <style>
     :root {
         --theme-primary: {{ game_spec.primary_color|default:"#00E5FF" }};
@@ -1916,7 +1916,7 @@
                         {% else %}
                         <div class="overflow-x-auto pb-16 no-scrollbar">
                             {% if has_bracket_rounds %}
-                            <div id="detail-bracket-tree" class="bracket-tree-container" :style="'transform: scale(' + bracketZoom + ')'">
+                            <div id="detail-bracket-tree" class="bracket-tree-container">
                                 {% if tournament.format == 'double_elimination' %}
                                 <div class="bk-label bk-ub">Upper Bracket</div>
                                 {% endif %}
@@ -2483,7 +2483,7 @@
 {% endblock %}
 
 {% block tournament_js %}
-<script src="{% static 'tournaments/js/bracket-demo-engine.js' %}?v=20260426a"></script>
+<script src="{% static 'tournaments/js/bracket-demo-engine.js' %}?v=20260427a"></script>
 <script nonce="{{ request.csp_nonce }}">
 document.addEventListener('alpine:init', function () {
     Alpine.data('detailPage', function () {
@@ -2945,6 +2945,15 @@ document.addEventListener('alpine:init', function () {
 
             bracketZoomIn: function () {
                 this.bracketZoom = Math.min(2, Math.round((this.bracketZoom + 0.2) * 100) / 100);
+                var tree = this.$root.querySelector('#detail-bracket-tree');
+                if (tree && typeof tree.__dcBracketZoom === 'function') {
+                    tree.__dcBracketZoom(this.bracketZoom);
+                    return;
+                }
+                if (tree) {
+                    tree.style.transformOrigin = 'top left';
+                    tree.style.transform = 'scale(' + this.bracketZoom + ')';
+                }
                 var self = this;
                 this.$nextTick(function () {
                     self.drawBracketConnectors();
@@ -2953,6 +2962,15 @@ document.addEventListener('alpine:init', function () {
 
             bracketZoomOut: function () {
                 this.bracketZoom = Math.max(0.3, Math.round((this.bracketZoom - 0.2) * 100) / 100);
+                var tree = this.$root.querySelector('#detail-bracket-tree');
+                if (tree && typeof tree.__dcBracketZoom === 'function') {
+                    tree.__dcBracketZoom(this.bracketZoom);
+                    return;
+                }
+                if (tree) {
+                    tree.style.transformOrigin = 'top left';
+                    tree.style.transform = 'scale(' + this.bracketZoom + ')';
+                }
                 var self = this;
                 this.$nextTick(function () {
                     self.drawBracketConnectors();

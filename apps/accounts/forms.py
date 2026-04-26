@@ -3,6 +3,8 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.hashers import make_password
 from django.contrib.auth.password_validation import validate_password
+from django.db import IntegrityError, transaction
+from django.utils import timezone
 
 from .models import EmailOTP, PendingSignup
 
@@ -97,17 +99,47 @@ class SignUpForm(forms.Form):
         return cleaned
 
     def save(self):
-        # Replace any prior pending signup for this email so the user gets
-        # a clean record (and a fresh OTP downstream). Cascading deletes
-        # remove old EmailOTPs.
-        PendingSignup.objects.filter(
-            email__iexact=self.cleaned_data["email"],
-        ).delete()
-        return PendingSignup.objects.create(
-            username=self.cleaned_data["username"],
-            email=self.cleaned_data["email"],
-            password_hash=make_password(self.cleaned_data["password1"]),
-        )
+        email = self.cleaned_data["email"].lower()
+        username = self.cleaned_data["username"]
+        password_hash = make_password(self.cleaned_data["password1"])
+        try:
+            with transaction.atomic():
+                pending = (
+                    PendingSignup.objects
+                    .select_for_update()
+                    .filter(email__iexact=email)
+                    .first()
+                )
+                if pending:
+                    pending.username = username
+                    pending.email = email
+                    pending.password_hash = password_hash
+                    pending.created_at = timezone.now()
+                    pending.save(update_fields=["username", "email", "password_hash", "created_at"])
+                    EmailOTP.objects.filter(pending_signup=pending).delete()
+                    return pending
+                return PendingSignup.objects.create(
+                    username=username,
+                    email=email,
+                    password_hash=password_hash,
+                )
+        except IntegrityError:
+            with transaction.atomic():
+                pending = (
+                    PendingSignup.objects
+                    .select_for_update()
+                    .filter(email__iexact=email)
+                    .first()
+                )
+                if not pending:
+                    raise
+                pending.username = username
+                pending.email = email
+                pending.password_hash = password_hash
+                pending.created_at = timezone.now()
+                pending.save(update_fields=["username", "email", "password_hash", "created_at"])
+                EmailOTP.objects.filter(pending_signup=pending).delete()
+                return pending
 
 
 class VerifyEmailForm(forms.Form):

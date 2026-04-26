@@ -17,6 +17,7 @@ from datetime import timedelta
 from urllib.parse import urlencode
 
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.core.cache import cache
 from django.db import models
 from django.db.models import Q
 from django.http import JsonResponse
@@ -1830,6 +1831,18 @@ def _build_hub_context(request, tournament, registration, query_suffix='', is_st
         hub_critical_locked=hub_critical_locked,
         is_staff_view=is_staff_view,
     )
+    if hub_completion_payload.get('completed'):
+        outcome_state = hub_command_center.get('outcome_state')
+        if outcome_state == 'champion':
+            hub_command_center['title'] = 'Tournament Champion'
+        elif outcome_state == 'runner_up':
+            hub_command_center['title'] = 'Runner-Up Finish'
+        elif outcome_state == 'third_place':
+            hub_command_center['title'] = 'Third-Place Finish'
+        elif hub_command_center.get('champion_name'):
+            hub_command_center['title'] = f"Champion: {hub_command_center['champion_name']}"
+        hub_command_center['cta_label'] = 'View Hall of Champions'
+        hub_command_center['cta_action'] = 'open_results'
     hub_lifecycle_pipeline = _build_hub_lifecycle_pipeline(
         tournament,
         command_center=hub_command_center,
@@ -1844,6 +1857,22 @@ def _build_hub_context(request, tournament, registration, query_suffix='', is_st
         is_captain=is_captain,
         hub_critical_locked=hub_critical_locked,
     )
+    hub_has_claimable_prize = False
+    if registration and hub_completion_payload.get('completed'):
+        try:
+            from apps.tournaments.services.rewards_read_model import TournamentRewardsReadModel
+
+            hub_rewards_preview = TournamentRewardsReadModel.hub_payload(
+                tournament,
+                user=user,
+                registration=registration,
+            )
+            hub_has_claimable_prize = any(
+                bool(item.get('claimable'))
+                for item in (hub_rewards_preview.get('your_prizes') or [])
+            ) or bool((hub_rewards_preview.get('your_result') or {}).get('claimable'))
+        except Exception:
+            hub_has_claimable_prize = False
 
     # Derive effective status so SSR templates show stage-aware truth.
     # TournamentResult with winner is authoritative: even if persisted status
@@ -1925,6 +1954,7 @@ def _build_hub_context(request, tournament, registration, query_suffix='', is_st
         'hub_command_center': hub_command_center,
         'hub_lifecycle_pipeline': hub_lifecycle_pipeline,
         'hub_official_pass': hub_official_pass,
+        'hub_has_claimable_prize': hub_has_claimable_prize,
 
         # Squad
         'team': team,
@@ -2274,52 +2304,21 @@ def _get_avatar_url(user):
 
 def _build_participant_media_map(tournament, participant_ids):
     """Return {participant_id: logo_or_avatar_url} for team or solo tournaments."""
-    normalized_ids = set()
-    for raw_id in participant_ids or []:
-        if not raw_id:
-            continue
-        try:
-            normalized_ids.add(int(raw_id))
-        except (TypeError, ValueError):
-            continue
+    from apps.tournaments.services.participant_identity import ParticipantIdentityService
 
-    if not normalized_ids:
-        return {}
-
-    media_map = {}
-    is_team = tournament.participation_type == 'team'
-
-    if is_team:
-        from apps.organizations.models import Team
-
-        for team in Team.objects.filter(id__in=normalized_ids).only('id', 'logo'):
-            logo_url = ''
-            try:
-                if hasattr(team, 'logo') and team.logo:
-                    logo_url = _normalize_media_url(team.logo.url)
-            except Exception:
-                logo_url = ''
-            media_map[team.id] = logo_url
-
-        # Fallback: for teams without logos, use the registrant's avatar
-        empty_team_ids = {tid for tid, url in media_map.items() if not url}
-        if empty_team_ids:
-            from apps.tournaments.models.registration import Registration
-            for reg in Registration.objects.filter(
-                tournament=tournament,
-                team_id__in=empty_team_ids,
-            ).select_related('user', 'user__profile')[:len(empty_team_ids)]:
-                if reg.team_id and not media_map.get(reg.team_id):
-                    media_map[reg.team_id] = _get_avatar_url(reg.user)
-        return media_map
-
-    from django.contrib.auth import get_user_model
-
-    User = get_user_model()
-    users = User.objects.filter(id__in=normalized_ids).select_related('profile')
-    for user in users:
-        media_map[user.id] = _get_avatar_url(user)
-    return media_map
+    identities = ParticipantIdentityService.for_match_participants(
+        tournament,
+        participant_ids or set(),
+    )
+    return {
+        int(pid): (
+            identity.get('logo_url')
+            or identity.get('avatar_url')
+            or identity.get('image_url')
+            or ''
+        )
+        for pid, identity in identities.items()
+    }
 
 
 def _json_response(payload, status=200, cache_control=None):
@@ -3127,6 +3126,17 @@ class HubPrizeClaimAPIView(LoginRequiredMixin, View):
         if not transaction_id:
             return JsonResponse({'error': 'transaction_id is required'}, status=400)
 
+        from apps.tournaments.services.rewards_read_model import TournamentRewardsReadModel
+
+        # Completed tournaments may not have historic PrizeTransaction rows.
+        # The read model creates the missing manual-payout intents
+        # idempotently before we validate the submitted transaction id.
+        TournamentRewardsReadModel.hub_payload(
+            tournament,
+            user=request.user,
+            registration=registration,
+        )
+
         # Validate payout method
         valid_methods = [c[0] for c in PrizeClaim.PAYOUT_METHOD_CHOICES]
         if payout_method not in valid_methods:
@@ -3169,11 +3179,14 @@ class HubPrizeClaimAPIView(LoginRequiredMixin, View):
             "Hub prize claim: user=%s tournament=%s tx=%d method=%s",
             request.user.username, slug, transaction_id, payout_method,
         )
+        cache.delete(f'public_prize_overview_v1_{tournament.id}')
+        cache.delete(f'public_prize_overview_v2_{tournament.id}')
 
         return JsonResponse({
             'success': True,
             'claim_id': claim.id,
             'status': claim.status,
+            'message': 'Prize claim submitted. Organizer review and manual payout are required.',
             'claimed_at': claim.claimed_at.isoformat() if claim.claimed_at else None,
         }, status=201)
 
@@ -3450,6 +3463,16 @@ class HubBracketAPIView(LoginRequiredMixin, View):
             c_p2_id = _cview.get('participant2_id') if _cview else m.participant2_id
             c_p2_name = _cview.get('participant2_name') if _cview else (m.participant2_name or '')
             c_winner_id = _cview.get('winner_id') if _cview else m.winner_id
+            c_p1_logo = (
+                _cview.get('participant1_logo_url')
+                or _cview.get('participant1_avatar_url')
+                or (participant_media_map.get(c_p1_id, '') if c_p1_id else '')
+            )
+            c_p2_logo = (
+                _cview.get('participant2_logo_url')
+                or _cview.get('participant2_avatar_url')
+                or (participant_media_map.get(c_p2_id, '') if c_p2_id else '')
+            )
             m_lobby_info = m.lobby_info or {}
             is_third_place_match = bool(
                 (_cview.get('bracket_type') if _cview else None) == BracketNode.THIRD_PLACE or
@@ -3472,14 +3495,14 @@ class HubBracketAPIView(LoginRequiredMixin, View):
                     'name': c_p1_name or 'TBD',
                     'score': m.participant1_score,
                     'is_winner': bool(c_winner_id and c_winner_id == c_p1_id),
-                    'logo_url': participant_media_map.get(c_p1_id, '') if c_p1_id else '',
+                    'logo_url': c_p1_logo,
                 },
                 'participant2': {
                     'id': c_p2_id,
                     'name': c_p2_name or 'TBD',
                     'score': m.participant2_score,
                     'is_winner': bool(c_winner_id and c_winner_id == c_p2_id),
-                    'logo_url': participant_media_map.get(c_p2_id, '') if c_p2_id else '',
+                    'logo_url': c_p2_logo,
                 },
                 'scheduled_at': m.scheduled_time.isoformat() if m.scheduled_time else None,
                 'lobby_state': _lobby['state'],

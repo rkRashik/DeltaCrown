@@ -150,11 +150,23 @@ class BracketService:
                 loser_id = match.participant2_id
             elif match.winner_id == match.participant2_id:
                 loser_id = match.participant1_id
+        loser_name = ''
         if loser_id == match.participant1_id:
-            return loser_id, match.participant1_name or ''
-        if loser_id == match.participant2_id:
-            return loser_id, match.participant2_name or ''
-        return loser_id, ''
+            loser_name = match.participant1_name or ''
+        elif loser_id == match.participant2_id:
+            loser_name = match.participant2_name or ''
+        if loser_id and not str(loser_name or '').strip():
+            try:
+                from apps.tournaments.services.participant_identity import ParticipantIdentityService
+
+                identity = ParticipantIdentityService.for_match_participants(
+                    match.tournament,
+                    {loser_id},
+                ).get(int(loser_id))
+                loser_name = (identity or {}).get('name') or ''
+            except Exception:
+                loser_name = ''
+        return loser_id, loser_name
 
     @staticmethod
     def _semifinal_losers_for_bronze(bracket: Bracket) -> List[Tuple[int, str]]:

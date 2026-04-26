@@ -131,21 +131,23 @@
     const transitions = Array.isArray(payload.transitions) ? payload.transitions : [];
     const alerts = Array.isArray(payload.alerts) ? payload.alerts : [];
     const events = Array.isArray(payload.events) ? payload.events : [];
+    const isCompleted = isCompletedPayload(payload);
 
     renderLifecycle(lifecycle, transitions, lifecycleStepper);
-    renderStats(Array.isArray(payload.stats) ? payload.stats : []);
+    renderStats(Array.isArray(payload.stats) ? payload.stats : [], isCompleted);
     renderAlerts(alerts);
     renderEvents(events);
     renderActionQueue(alerts);
     renderProgress(lifecycle);
     renderHealthScore(payload.health_score || null);
-    renderUpcomingMatches(payload.upcoming_matches || []);
-    renderGroupProgress(payload.group_progress || null);
+    renderUpcomingMatches(isCompleted ? [] : (payload.upcoming_matches || []), isCompleted);
+    renderGroupProgress(payload.group_progress || null, isCompleted);
     renderCountdowns(payload.countdowns || []);
     renderQuickStats(payload.quick_stats || null);
     renderActivityLog(payload.activity_log || []);
     renderTournamentFeed(payload.tournament_feed || []);
     updateGlobalStatus(payload);
+    applyCompletedState(payload, isCompleted);
 
     // Backward compatibility fallback when backend doesn't provide bundled data yet.
     if (!payload.quick_stats) loadQuickStats();
@@ -153,6 +155,11 @@
     if (!Array.isArray(payload.tournament_feed)) loadTournamentFeed();
 
     setOverviewLoading(false);
+  }
+
+  function isCompletedPayload(payload) {
+    const status = String((payload && payload.status) || '').toLowerCase();
+    return status === 'completed' || status === 'archived' || !!(payload && payload.completion && payload.completion.completed);
   }
 
   function renderError(err) {
@@ -328,7 +335,7 @@
     disputes:      { val: 'stat-open-disputes', meta: 'stat-disputes-meta' },
   };
 
-  function renderStats(stats) {
+  function renderStats(stats, isCompleted) {
     if (!stats) return;
     stats.forEach(function (s) {
       const mapping = STAT_MAP[s.key];
@@ -342,8 +349,8 @@
           valEl.classList.add('text-dc-danger', 'drop-shadow-[0_0_10px_rgba(255,42,85,0.8)]');
         }
         if (s.key === 'matches') {
-          valEl.classList.toggle('text-dc-success', Number(s.value || 0) > 0);
-          valEl.classList.toggle('drop-shadow-[0_0_14px_rgba(16,185,129,0.6)]', Number(s.value || 0) > 0);
+          valEl.classList.toggle('text-dc-success', Number(s.value || 0) > 0 && !isCompleted);
+          valEl.classList.toggle('drop-shadow-[0_0_14px_rgba(16,185,129,0.6)]', Number(s.value || 0) > 0 && !isCompleted);
         }
       }
       if (metaEl && s.detail) metaEl.textContent = s.detail;
@@ -795,9 +802,20 @@
   //  Sprint 27: Upcoming Matches Widget
   // ═══════════════════════════════════════════════════════════════
 
-  function renderUpcomingMatches(matches) {
+  function renderUpcomingMatches(matches, isCompleted) {
     var container = $('#upcoming-matches');
     if (!container) return;
+
+    if (isCompleted) {
+      container.innerHTML = `
+        <div class="flex flex-col items-center justify-center h-24 text-center">
+          <i data-lucide="trophy" class="w-6 h-6 text-amber-300/70 mb-2"></i>
+          <p class="text-[10px] text-dc-text font-mono">Tournament completed</p>
+          <button data-click="TOC.navigate" data-click-args="[&quot;results-achievements&quot;]" class="mt-2 text-[9px] text-theme hover:text-white transition-colors font-mono uppercase tracking-widest">Review results</button>
+        </div>`;
+      _reinitIcons();
+      return;
+    }
 
     if (!matches || matches.length === 0) {
       container.innerHTML = `
@@ -848,7 +866,7 @@
   //  Sprint 27: Group Stage Progress
   // ═══════════════════════════════════════════════════════════════
 
-  function renderGroupProgress(gp) {
+  function renderGroupProgress(gp, isCompleted) {
     var container = $('#group-progress');
     var badge = $('#group-progress-badge');
     if (!container) return;
@@ -865,12 +883,12 @@
     }
 
     if (badge) {
-      badge.textContent = gp.completion_pct + '%';
+      badge.textContent = isCompleted ? 'Done' : gp.completion_pct + '%';
       badge.classList.remove('hidden');
     }
 
-    var stateLabel = (gp.state || 'unknown').replace(/_/g, ' ');
-    var stateColor = gp.state === 'completed' ? 'text-dc-success' : gp.state === 'active' ? 'text-theme' : 'text-dc-text';
+    var stateLabel = (isCompleted ? 'completed' : (gp.state || 'unknown')).replace(/_/g, ' ');
+    var stateColor = isCompleted || gp.state === 'completed' ? 'text-dc-success' : gp.state === 'active' ? 'text-theme' : 'text-dc-text';
 
     container.innerHTML = `
       <div class="mb-3">
@@ -1131,6 +1149,32 @@
   // ═══════════════════════════════════════════════════════════════
   //  S1-F9: Auto-refresh (30s poll)
   // ═══════════════════════════════════════════════════════════════
+
+  function applyCompletedState(data, isCompleted) {
+    const view = $('#view-overview');
+    if (view) view.classList.toggle('toc-overview-completed', !!isCompleted);
+    if (!isCompleted) return;
+
+    const actionBtn = $('#toc-action-btn');
+    if (actionBtn) {
+      actionBtn.innerHTML = '<i data-lucide="trophy" class="w-4 h-4"></i> Results & Achievements';
+      actionBtn.className = 'flex items-center gap-2 px-4 py-2 rounded-xl bg-theme/15 text-theme border border-theme/30 text-sm font-bold hover:bg-theme/25 transition-colors';
+      actionBtn.removeAttribute('data-click-show');
+      actionBtn.setAttribute('data-click', 'TOC.navigate');
+      actionBtn.setAttribute('data-click-args', '["results-achievements"]');
+    }
+
+    const btnFinalize = $('#btn-finalize');
+    if (btnFinalize) btnFinalize.classList.add('hidden');
+    _setText('#stat-in-progress', 0);
+
+    const nextAction = $('#lifecycle-next-action');
+    if (nextAction && !nextAction.innerHTML.trim()) {
+      nextAction.classList.remove('hidden');
+      nextAction.innerHTML = '<div class="mt-4 rounded-xl border border-amber-300/25 bg-amber-300/5 px-4 py-3"><div class="flex items-start gap-3"><div class="w-7 h-7 rounded-lg bg-amber-300/15 border border-amber-300/30 text-amber-300 flex items-center justify-center shrink-0"><i data-lucide="trophy" class="w-4 h-4"></i></div><div class="min-w-0 flex-1"><p class="text-[9px] uppercase tracking-[0.2em] text-amber-300 font-black">Next Action</p><p class="text-xs text-white mt-1 leading-relaxed">Review results, payouts, archive.</p></div><button class="shrink-0 px-3 py-1.5 rounded-lg bg-amber-300/10 border border-amber-300/30 text-[10px] font-black uppercase tracking-widest text-amber-200 hover:bg-amber-300/20 transition-colors" data-click="TOC.navigate" data-click-args="[&quot;results-achievements&quot;]">Open Results</button></div></div>';
+    }
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+  }
 
   function startAutoRefresh() {
     stopAutoRefresh();

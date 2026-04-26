@@ -63,6 +63,11 @@ class TOCView(LoginRequiredMixin, TemplateView):
         if user.is_superuser or user.is_staff:
             return True
         if tournament.organizer_id == user.id:
+            # Time-bound organizer access (Faceit/Toornament model)
+            from django.utils import timezone
+            expires = getattr(tournament, 'organizer_access_expires_at', None)
+            if expires and timezone.now() > expires:
+                return False  # Access window has closed
             return True
         # Check StaffRole assignments (Sprint 10G RBAC)
         from apps.tournaments.models.staffing import TournamentStaffAssignment

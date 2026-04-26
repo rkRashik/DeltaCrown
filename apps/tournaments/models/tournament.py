@@ -148,6 +148,11 @@ class Tournament(SoftDeleteModel, TimestampedModel):
         db_index=True,
         help_text='Whether this tournament is featured on the homepage'
     )
+    organizer_access_expires_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text='When organizer TOC access expires (auto-set to 7 days post-completion). Null = no expiry.'
+    )
     
     # Game (ForeignKey to games.Game — canonical source)
     game = models.ForeignKey(

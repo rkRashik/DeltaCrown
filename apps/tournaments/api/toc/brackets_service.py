@@ -48,6 +48,11 @@ class TOCBracketsService:
     """TOC-level bracket, group-stage, and qualifier operations."""
 
     @staticmethod
+    def _is_placeholder_name(value: Any) -> bool:
+        text = str(value or '').strip().lower()
+        return not text or text in {'tba', 'tbd', 'pending', 'to be decided', 'to be announced'}
+
+    @staticmethod
     def _coerce_group_id(raw_group_id: Any) -> Optional[int]:
         """Normalize group_id from JSON payloads to int when possible."""
         if raw_group_id is None:
@@ -451,20 +456,32 @@ class TOCBracketsService:
         except Exception:
             viz = {}
 
-        nodes = BracketNode.objects.filter(bracket=bracket).select_related(
+        nodes = list(BracketNode.objects.filter(bracket=bracket).select_related(
             "match"
-        ).order_by("round_number", "match_number_in_round")
+        ).order_by("round_number", "match_number_in_round"))
 
         # Batch-resolve team names & logos for all participant IDs in nodes
         is_team = tournament.participation_type != 'solo'
+        participant_ids = set()
+        for n in nodes:
+            match_obj = getattr(n, 'match', None)
+            for raw_id in (
+                n.participant1_id,
+                n.participant2_id,
+                getattr(match_obj, 'participant1_id', None),
+                getattr(match_obj, 'participant2_id', None),
+                getattr(match_obj, 'winner_id', None),
+                getattr(match_obj, 'loser_id', None),
+            ):
+                if raw_id:
+                    participant_ids.add(raw_id)
+        from apps.tournaments.services.participant_identity import ParticipantIdentityService
+        identity_map = ParticipantIdentityService.for_match_participants(
+            tournament,
+            participant_ids,
+        )
         team_map = {}
         if is_team:
-            participant_ids = set()
-            for n in nodes:
-                if n.participant1_id:
-                    participant_ids.add(n.participant1_id)
-                if n.participant2_id:
-                    participant_ids.add(n.participant2_id)
             if participant_ids:
                 try:
                     from apps.organizations.models.team import Team as OrgTeam
@@ -500,7 +517,12 @@ class TOCBracketsService:
                 gfr_round = wb_rounds + 2
 
         def _annotate(n):
-            data = TOCBracketsService._serialize_node(n, team_map=team_map, is_team=is_team)
+            data = TOCBracketsService._serialize_node(
+                n,
+                team_map=team_map,
+                is_team=is_team,
+                identity_map=identity_map,
+            )
             if gf_round and n.bracket_type == BracketNode.MAIN:
                 data["is_gf"] = n.round_number == gf_round
                 data["is_gf_reset"] = n.round_number == gfr_round
@@ -1029,23 +1051,53 @@ class TOCBracketsService:
                 c_p2_id = canonical_view.get('participant2_id')
                 c_p1_name = canonical_view.get('participant1_name') or ''
                 c_p2_name = canonical_view.get('participant2_name') or ''
+                c_p1_logo = (
+                    canonical_view.get('participant1_logo_url')
+                    or canonical_view.get('participant1_avatar_url')
+                    or ''
+                )
+                c_p2_logo = (
+                    canonical_view.get('participant2_logo_url')
+                    or canonical_view.get('participant2_avatar_url')
+                    or ''
+                )
                 # Only overlay when canonical differs from raw — keeps team_map
                 # enrichment (logos/display_name_override) intact.
-                if c_p1_id != m.participant1_id or not serialized.get('participant1_name'):
+                if (
+                    c_p1_id != m.participant1_id or
+                    TOCBracketsService._is_placeholder_name(serialized.get('participant1_name'))
+                ):
                     serialized["participant1_id"] = c_p1_id
                     if c_p1_name:
                         serialized["participant1_name"] = c_p1_name
+                    if c_p1_logo:
+                        serialized["participant1_logo"] = c_p1_logo
+                        serialized["participant1_logo_url"] = c_p1_logo
                     # Refresh logo for new id
                     if is_team and team_map and c_p1_id in team_map:
-                        serialized["participant1_logo"] = team_map[c_p1_id]['logo_url']
+                        serialized["participant1_logo"] = team_map[c_p1_id]['logo_url'] or c_p1_logo
+                        serialized["participant1_logo_url"] = team_map[c_p1_id]['logo_url'] or c_p1_logo
                         serialized["participant1_name"] = team_map[c_p1_id]['name']
-                if c_p2_id != m.participant2_id or not serialized.get('participant2_name'):
+                if (
+                    c_p2_id != m.participant2_id or
+                    TOCBracketsService._is_placeholder_name(serialized.get('participant2_name'))
+                ):
                     serialized["participant2_id"] = c_p2_id
                     if c_p2_name:
                         serialized["participant2_name"] = c_p2_name
+                    if c_p2_logo:
+                        serialized["participant2_logo"] = c_p2_logo
+                        serialized["participant2_logo_url"] = c_p2_logo
                     if is_team and team_map and c_p2_id in team_map:
-                        serialized["participant2_logo"] = team_map[c_p2_id]['logo_url']
+                        serialized["participant2_logo"] = team_map[c_p2_id]['logo_url'] or c_p2_logo
+                        serialized["participant2_logo_url"] = team_map[c_p2_id]['logo_url'] or c_p2_logo
                         serialized["participant2_name"] = team_map[c_p2_id]['name']
+                if c_p1_logo and not serialized.get("participant1_logo"):
+                    serialized["participant1_logo"] = c_p1_logo
+                    serialized["participant1_logo_url"] = c_p1_logo
+                if c_p2_logo and not serialized.get("participant2_logo"):
+                    serialized["participant2_logo"] = c_p2_logo
+                    serialized["participant2_logo_url"] = c_p2_logo
                 if canonical_view.get('winner_id'):
                     serialized["winner_id"] = canonical_view['winner_id']
             gname = group_lookup.get(serialized.get('participant1_id')) or group_lookup.get(serialized.get('participant2_id')) or ""
@@ -1687,7 +1739,7 @@ class TOCBracketsService:
         }
 
     @staticmethod
-    def _serialize_node(node, team_map=None, is_team=False) -> Dict:
+    def _serialize_node(node, team_map=None, is_team=False, identity_map=None) -> Dict:
         # Canonical Match resolution: prefer the linked node.match, then fall
         # back to a coordinate lookup so older data where the FK was never
         # set still surfaces real scores/state. Order: (bracket, round, mNo)
@@ -1733,22 +1785,48 @@ class TOCBracketsService:
             }
 
         # Resolve participant names & logos from team_map (overrides denormalized names)
+        p1_id = node.participant1_id or (match_obj.participant1_id if match_obj else None)
+        p2_id = node.participant2_id or (match_obj.participant2_id if match_obj else None)
         p1_name = node.participant1_name
         p2_name = node.participant2_name
+        if match_obj and TOCBracketsService._is_placeholder_name(p1_name):
+            p1_name = match_obj.participant1_name
+        if match_obj and TOCBracketsService._is_placeholder_name(p2_name):
+            p2_name = match_obj.participant2_name
         p1_logo = ''
         p2_logo = ''
+        p1_identity = (identity_map or {}).get(int(p1_id)) if p1_id else None
+        p2_identity = (identity_map or {}).get(int(p2_id)) if p2_id else None
+        if p1_identity and TOCBracketsService._is_placeholder_name(p1_name):
+            p1_name = p1_identity.get('name') or p1_name
+        if p2_identity and TOCBracketsService._is_placeholder_name(p2_name):
+            p2_name = p2_identity.get('name') or p2_name
+        if p1_identity:
+            p1_logo = (
+                p1_identity.get('logo_url')
+                or p1_identity.get('avatar_url')
+                or p1_identity.get('image_url')
+                or ''
+            )
+        if p2_identity:
+            p2_logo = (
+                p2_identity.get('logo_url')
+                or p2_identity.get('avatar_url')
+                or p2_identity.get('image_url')
+                or ''
+            )
         p1_tag = ''
         p2_tag = ''
         if is_team and team_map:
-            if node.participant1_id and node.participant1_id in team_map:
-                info = team_map[node.participant1_id]
+            if p1_id and p1_id in team_map:
+                info = team_map[p1_id]
                 p1_name = info['name']
-                p1_logo = info['logo_url']
+                p1_logo = info['logo_url'] or p1_logo
                 p1_tag = info['tag']
-            if node.participant2_id and node.participant2_id in team_map:
-                info = team_map[node.participant2_id]
+            if p2_id and p2_id in team_map:
+                info = team_map[p2_id]
                 p2_name = info['name']
-                p2_logo = info['logo_url']
+                p2_logo = info['logo_url'] or p2_logo
                 p2_tag = info['tag']
 
         return {
@@ -1757,13 +1835,17 @@ class TOCBracketsService:
             "round_number": node.round_number,
             "match_number": node.match_number_in_round,
             "bracket_type": node.bracket_type,
-            "participant1_id": node.participant1_id,
+            "participant1_id": p1_id,
             "participant1_name": p1_name,
             "participant1_logo": p1_logo,
+            "participant1_logo_url": p1_logo,
+            "participant1_avatar_url": (p1_identity or {}).get('avatar_url') or p1_logo,
             "participant1_tag": p1_tag,
-            "participant2_id": node.participant2_id,
+            "participant2_id": p2_id,
             "participant2_name": p2_name,
             "participant2_logo": p2_logo,
+            "participant2_logo_url": p2_logo,
+            "participant2_avatar_url": (p2_identity or {}).get('avatar_url') or p2_logo,
             "participant2_tag": p2_tag,
             "winner_id": node.winner_id,
             "is_bye": node.is_bye,
@@ -1875,9 +1957,11 @@ class TOCBracketsService:
             "participant1_id": m.participant1_id,
             "participant1_name": p1_name,
             "participant1_logo": p1_logo,
+            "participant1_logo_url": p1_logo,
             "participant2_id": m.participant2_id,
             "participant2_name": p2_name,
             "participant2_logo": p2_logo,
+            "participant2_logo_url": p2_logo,
             "participant1_score": m.participant1_score,
             "participant2_score": m.participant2_score,
             "state": m.state,

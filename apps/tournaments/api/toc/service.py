@@ -70,12 +70,19 @@ class TOCService:
             is_tournament_effectively_completed,
         )
         completion_payload = ensure_post_finalization(tournament)
+        terminal_completed = bool(
+            completion_payload.get('completed') or
+            is_tournament_effectively_completed(tournament)
+        )
 
         # Gather raw stats from DB
         reg_stats = cls._get_registration_stats(tournament)
         payment_stats = cls._get_payment_stats(tournament)
         dispute_stats = cls._get_dispute_stats(tournament)
         match_stats = cls._get_match_stats(tournament)
+        if terminal_completed:
+            match_stats['live'] = 0
+            match_stats['scheduled'] = 0
         t_stats = time.perf_counter()
 
         # Lifecycle progress from existing service
@@ -119,7 +126,7 @@ class TOCService:
         t_health = time.perf_counter()
 
         # S27: Upcoming matches — next 5 scheduled matches
-        upcoming_matches = cls._get_upcoming_matches(tournament)
+        upcoming_matches = [] if terminal_completed else cls._get_upcoming_matches(tournament)
         t_upcoming = time.perf_counter()
 
         # S27: Group stage progress (if applicable)
@@ -127,7 +134,7 @@ class TOCService:
         t_group = time.perf_counter()
 
         # S28: Countdown timers for key milestones
-        countdowns = cls._get_countdowns(tournament, upcoming_matches=upcoming_matches)
+        countdowns = [] if terminal_completed else cls._get_countdowns(tournament, upcoming_matches=upcoming_matches)
         t_countdowns = time.perf_counter()
 
         # S28: Quick-launch actions based on tournament state
@@ -750,8 +757,8 @@ class TOCService:
                 'tab': 'matches',
             },
             'completed': {
-                'label': 'Tournament lifecycle is complete. Review analytics and archive notes.',
-                'tab': 'overview',
+                'label': 'Review results, payouts, archive.',
+                'tab': 'results-achievements',
             },
         }
         next_action = action_map.get(current_key, action_map['setup'])
@@ -1152,12 +1159,26 @@ class TOCService:
 
         elif status in ('completed', 'finalized'):
             actions.append({
+                'id': 'results_achievements',
+                'label': 'Results & Achievements',
+                'icon': 'trophy',
+                'action': 'tab',
+                'target': 'results-achievements',
+            })
+            actions.append({
                 'id': 'export_results',
                 'label': 'Export Results',
                 'icon': 'download',
                 'action': 'api',
                 'endpoint': 'standings/export/',
                 'method': 'GET',
+            })
+            actions.append({
+                'id': 'archive_overview',
+                'label': 'Archive / Overview',
+                'icon': 'archive',
+                'action': 'tab',
+                'target': 'overview',
             })
 
         return actions

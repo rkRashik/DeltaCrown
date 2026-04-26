@@ -341,29 +341,34 @@
           {% if hub_command_center.champion_name %}
           <div class="rounded-xl border border-amber-300/25 bg-amber-300/5 px-4 py-3">
             <p class="text-[10px] font-bold text-amber-300 uppercase tracking-widest">Champion</p>
-            <p class="mt-1 text-sm font-bold text-white truncate">🏆 {{ hub_command_center.champion_name }}</p>
+            <p class="mt-1 text-sm font-bold text-white truncate">{{ hub_command_center.champion_name }}</p>
           </div>
           {% endif %}
           {% if hub_command_center.runner_up_name %}
           <div class="rounded-xl border border-zinc-300/15 bg-zinc-500/5 px-4 py-3">
             <p class="text-[10px] font-bold text-zinc-300 uppercase tracking-widest">Runner-Up</p>
-            <p class="mt-1 text-sm font-bold text-white truncate">🥈 {{ hub_command_center.runner_up_name }}</p>
+            <p class="mt-1 text-sm font-bold text-white truncate">{{ hub_command_center.runner_up_name }}</p>
           </div>
           {% endif %}
           {% if hub_command_center.third_place_name %}
           <div class="rounded-xl border border-orange-300/15 bg-orange-300/5 px-4 py-3">
             <p class="text-[10px] font-bold text-orange-300 uppercase tracking-widest">Third Place</p>
-            <p class="mt-1 text-sm font-bold text-white truncate">🥉 {{ hub_command_center.third_place_name }}</p>
+            <p class="mt-1 text-sm font-bold text-white truncate">{{ hub_command_center.third_place_name }}</p>
           </div>
           {% endif %}
         </div>
 
         <div class="hub-overview-intel-actions">
-          <button type="button" data-click="HubEngine.switchTab" data-click-args='["bracket"]' class="hub-overview-intel-action-btn">
-            View Final Standings
+          <button type="button" data-click="HubEngine.switchTab" data-click-args='["results-achievements"]' class="hub-overview-intel-action-btn">
+            View Hall of Champions
           </button>
-          <button type="button" data-click="HubEngine.switchTab" data-click-args='["prizes"]' class="hub-overview-intel-action-btn secondary">
-            View Prizes
+          {% if hub_has_claimable_prize %}
+          <button type="button" data-click="HubEngine.switchTab" data-click-args='["results-achievements"]' class="hub-overview-intel-action-btn secondary">
+            Claim Prize
+          </button>
+          {% endif %}
+          <button type="button" data-click="HubEngine.switchTab" data-click-args='["bracket"]' class="hub-overview-intel-action-btn secondary">
+            View Bracket
           </button>
         </div>
       </div>

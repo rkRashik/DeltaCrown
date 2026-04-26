@@ -1195,12 +1195,12 @@ body.hub-outcome-open {
   .hub-mobile-bottom-nav {
     position: fixed;
     left: 50%;
-    width: min(32rem, calc(100vw - 1rem));
+    width: min(34rem, calc(100vw - 1rem));
     bottom: calc(0.5rem + env(safe-area-inset-bottom, 0px));
     --hub-dock-shift-y: 0px;
     transform: translate3d(-50%, var(--hub-dock-shift-y), 0);
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 0.15rem;
     padding: 0.4rem 0.5rem;
     height: 72px;
@@ -1229,7 +1229,7 @@ body.hub-outcome-open {
     font-size: 0.56rem;
     font-weight: 800;
     text-transform: uppercase;
-    letter-spacing: 0.07em;
+    letter-spacing: 0;
     justify-content: center;
     position: relative;
     overflow: hidden;

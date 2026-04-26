@@ -25,6 +25,10 @@ from apps.tournaments.api.toc.cache_utils import bump_toc_scopes, toc_cache_key
 from apps.tournaments.api.toc.matches_service import TOCMatchesService
 
 
+def _is_finalized_tournament(tournament) -> bool:
+    return str(getattr(tournament, 'status', '') or '').lower() in {'completed', 'archived'}
+
+
 class MatchListView(TOCBaseView):
     """S6-B1: Paginated match list with filters."""
 
@@ -56,9 +60,13 @@ class MatchListView(TOCBaseView):
         cache_bucket = int(timezone.now().timestamp() // 8)
         query_sig = request.META.get('QUERY_STRING', '')
         cache_key = toc_cache_key('matches', self.tournament.id, cache_bucket, query_sig)
-        cached = cache.get(cache_key)
-        if cached is not None:
-            return Response(cached)
+        use_cache = not _is_finalized_tournament(self.tournament)
+        if use_cache:
+            cached = cache.get(cache_key)
+            if cached is not None:
+                return Response(cached)
+        else:
+            cache.delete(cache_key)
 
         result = TOCMatchesService.get_matches(
             self.tournament,
@@ -70,7 +78,8 @@ class MatchListView(TOCBaseView):
             page=page,
             page_size=page_size,
         )
-        cache.set(cache_key, result, timeout=12)
+        if use_cache:
+            cache.set(cache_key, result, timeout=12)
         return Response(result)
 
 

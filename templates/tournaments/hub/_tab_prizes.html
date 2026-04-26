@@ -175,6 +175,17 @@
         <p id="claim-modal-placement" class="text-xs text-gray-500 mt-1"></p>
       </div>
 
+      <div class="p-4 rounded-xl bg-white/[0.03] border border-white/10 space-y-2">
+        <div class="flex items-start gap-3">
+          <i data-lucide="info" class="w-4 h-4 text-[#00F0FF] mt-0.5 flex-shrink-0"></i>
+          <div>
+            <p class="text-xs font-bold text-white">Manual payout required</p>
+            <p class="text-xs text-gray-400 mt-1">Submit your preferred payout details. The organizer will review the claim and complete payout manually.</p>
+          </div>
+        </div>
+        <p id="claim-modal-organizer-note" class="text-[11px] text-gray-500">Use Contact Organizer if you need to update payout details after submitting.</p>
+      </div>
+
       <div>
         <label for="claim-payout-method" class="block text-xs font-bold text-gray-400 mb-2">Payout Method</label>
         <select id="claim-payout-method"
@@ -198,6 +209,11 @@
       <button id="claim-submit-btn" data-click="HubEngine.submitPrizeClaim"
               class="w-full py-3 rounded-xl bg-[#FFB800] hover:bg-[#FFC933] text-black font-black text-sm uppercase tracking-wider transition-all shadow-[0_0_20px_rgba(255,184,0,0.3)]">
         Submit Claim
+      </button>
+
+      <button type="button" data-click="HubEngine.showContactModal"
+              class="w-full py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 font-bold text-xs uppercase tracking-wider transition">
+        Contact Organizer
       </button>
 
       <p id="claim-error" class="hidden text-xs text-[#FF2A55] text-center"></p>
