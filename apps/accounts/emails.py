@@ -1,10 +1,13 @@
 import re
+import logging
 from email.utils import formataddr
 
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
+
+logger = logging.getLogger(__name__)
 
 
 def normalize_from_email(value: str | None = None) -> str:
@@ -50,4 +53,13 @@ def send_otp_email(user, code, *, expires_in_minutes: int = 10):
         },
     )
     msg.attach_alternative(html_body, "text/html")
-    msg.send(fail_silently=False)
+    sent_count = msg.send(fail_silently=False)
+    logger.info(
+        "OTP email send result: sent=%s backend=%s from=%s to_domain=%s target=%s",
+        sent_count,
+        getattr(settings, "EMAIL_BACKEND", ""),
+        from_email,
+        (user.email or "").split("@")[-1],
+        getattr(user, "id", None) or getattr(user, "email", ""),
+    )
+    return sent_count

@@ -28,8 +28,9 @@ class PrizeClaim(TimestampedModel):
     Attributes:
         prize_transaction: OneToOne link to the PrizeTransaction
         claimed_by: The user claiming the prize
-        payout_method: Chosen payout channel (deltacoin/bkash/nagad/rocket/bank)
+        payout_method: Chosen payout channel (deltacoin/bkash/nagad/rocket/bank/other)
         payout_destination: Masked target (e.g., bKash 017****678)
+        claim_details: Structured payout/courier details for organizer review
         status: Claim lifecycle state
         claimed_at: When the claim was submitted
         paid_at: When the payout was executed
@@ -41,6 +42,7 @@ class PrizeClaim(TimestampedModel):
     PAYOUT_NAGAD = 'nagad'
     PAYOUT_ROCKET = 'rocket'
     PAYOUT_BANK = 'bank'
+    PAYOUT_OTHER = 'other'
 
     PAYOUT_METHOD_CHOICES = [
         (PAYOUT_DELTACOIN, 'DeltaCoin Wallet'),
@@ -48,6 +50,7 @@ class PrizeClaim(TimestampedModel):
         (PAYOUT_NAGAD, 'Nagad'),
         (PAYOUT_ROCKET, 'Rocket'),
         (PAYOUT_BANK, 'Bank Transfer'),
+        (PAYOUT_OTHER, 'Other'),
     ]
 
     STATUS_PENDING = 'pending'
@@ -85,6 +88,11 @@ class PrizeClaim(TimestampedModel):
         blank=True,
         default='',
         help_text='Masked payout target (e.g., 017****678)',
+    )
+    claim_details = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text='Structured payout and courier details submitted by the claimant',
     )
     status = models.CharField(
         max_length=20,

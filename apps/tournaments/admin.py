@@ -1471,7 +1471,7 @@ class PrizeClaimAdmin(ModelAdmin):
             'fields': ('prize_transaction', 'claimed_by', 'status'),
         }),
         ('Payout Details', {
-            'fields': ('payout_method', 'payout_destination', 'paid_at'),
+            'fields': ('payout_method', 'payout_destination', 'claim_details', 'paid_at'),
         }),
         ('Admin', {
             'fields': ('admin_notes',),

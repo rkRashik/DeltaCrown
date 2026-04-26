@@ -3118,8 +3118,9 @@ class HubPrizeClaimAPIView(LoginRequiredMixin, View):
         try:
             body = json.loads(request.body)
             transaction_id = body.get('transaction_id')
-            payout_method = body.get('payout_method', 'deltacoin')
-            payout_destination = body.get('payout_destination', '')
+            payout_method = str(body.get('payout_method') or 'bkash').strip().lower()
+            payout_destination = str(body.get('payout_destination') or '').strip()
+            claim_details = body.get('claim_details') if isinstance(body.get('claim_details'), dict) else {}
         except (json.JSONDecodeError, AttributeError):
             return JsonResponse({'error': 'Invalid JSON'}, status=400)
 
@@ -3144,6 +3145,42 @@ class HubPrizeClaimAPIView(LoginRequiredMixin, View):
                 'error': f'Invalid payout method. Must be one of: {", ".join(valid_methods)}'
             }, status=400)
 
+        def _clean(value, limit=240):
+            return str(value or '').strip()[:limit]
+
+        payout_number = _clean(
+            claim_details.get('payout_number') or body.get('payout_number'),
+            80,
+        )
+        account_name = _clean(
+            claim_details.get('account_name') or body.get('account_name'),
+            120,
+        )
+        payout_note = _clean(
+            claim_details.get('payout_note') or body.get('payout_note'),
+            500,
+        )
+        courier = claim_details.get('courier') if isinstance(claim_details.get('courier'), dict) else {}
+        courier_details = {
+            'full_name': _clean(courier.get('full_name') or body.get('courier_full_name'), 120),
+            'phone': _clean(courier.get('phone') or body.get('courier_phone'), 80),
+            'address': _clean(courier.get('address') or body.get('courier_address'), 500),
+            'district': _clean(courier.get('district') or body.get('courier_district'), 120),
+            'notes': _clean(courier.get('notes') or body.get('courier_notes'), 500),
+        }
+        has_courier_details = any(courier_details.values())
+
+        if payout_method in {
+            PrizeClaim.PAYOUT_BKASH,
+            PrizeClaim.PAYOUT_NAGAD,
+            PrizeClaim.PAYOUT_ROCKET,
+        } and not payout_number:
+            return JsonResponse({'error': 'Payout number is required for mobile wallet claims.'}, status=400)
+        if payout_method == PrizeClaim.PAYOUT_BANK and not (payout_number and account_name):
+            return JsonResponse({'error': 'Bank account number and account name are required.'}, status=400)
+        if payout_method == PrizeClaim.PAYOUT_OTHER and not (payout_number or account_name or payout_note or has_courier_details):
+            return JsonResponse({'error': 'Enter payout or courier details before submitting.'}, status=400)
+
         # Verify the PrizeTransaction belongs to this user and tournament
         try:
             pt = PrizeTransaction.objects.get(
@@ -3167,17 +3204,35 @@ class HubPrizeClaimAPIView(LoginRequiredMixin, View):
                 'error': f'Prize transaction is {pt.status} and cannot be claimed'
             }, status=400)
 
+        method_label = dict(PrizeClaim.PAYOUT_METHOD_CHOICES).get(payout_method, payout_method.title())
+        visible_tail = payout_number[-4:] if payout_number else ''
+        destination_summary = (
+            f'{method_label} ending {visible_tail}' if visible_tail else method_label
+        )[:100]
+        structured_details = {
+            'payout': {
+                'method': payout_method,
+                'method_label': method_label,
+                'payout_number': payout_number,
+                'account_name': account_name,
+                'note': payout_note,
+            },
+            'courier': courier_details,
+            'submitted_from': 'hub_results_achievements',
+        }
+
         # Create claim
         claim = PrizeClaim.objects.create(
             prize_transaction=pt,
             claimed_by=request.user,
             payout_method=payout_method,
-            payout_destination=payout_destination,
+            payout_destination=payout_destination[:100] or destination_summary,
+            claim_details=structured_details,
         )
 
         logger.info(
-            "Hub prize claim: user=%s tournament=%s tx=%d method=%s",
-            request.user.username, slug, transaction_id, payout_method,
+            "Hub prize claim submitted: user=%s tournament=%s tx=%d method=%s courier=%s",
+            request.user.username, slug, transaction_id, payout_method, has_courier_details,
         )
         cache.delete(f'public_prize_overview_v1_{tournament.id}')
         cache.delete(f'public_prize_overview_v2_{tournament.id}')

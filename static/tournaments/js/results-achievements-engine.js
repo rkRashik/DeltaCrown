@@ -239,6 +239,24 @@
     var rows = ops.placements || [];
     if (!rows.length) return '';
     var resolution = (ops.status && ops.status.placement_resolution) || (data.result_status && data.result_status.placement_resolution) || {};
+    function detailsHtml(claim) {
+      if (!claim) return '';
+      var details = claim.claim_details || {};
+      var payoutInfo = details.payout || {};
+      var courier = details.courier || {};
+      var parts = [];
+      if (claim.payout_method) parts.push(['Method', payoutInfo.method_label || claim.payout_method]);
+      if (payoutInfo.payout_number || claim.payout_destination) parts.push(['Number / Account', payoutInfo.payout_number || claim.payout_destination]);
+      if (payoutInfo.account_name) parts.push(['Account name', payoutInfo.account_name]);
+      if (payoutInfo.note) parts.push(['Payout note', payoutInfo.note]);
+      if (courier.full_name || courier.phone || courier.address || courier.district || courier.notes) {
+        parts.push(['Courier', [courier.full_name, courier.phone, courier.district, courier.address, courier.notes].filter(Boolean).join(' / ')]);
+      }
+      if (!parts.length) return '';
+      return '<div class="mt-3 grid grid-cols-1 md:grid-cols-2 gap-2">' + parts.map(function (part) {
+        return '<div class="rounded-lg border border-white/10 bg-black/25 px-3 py-2"><p class="text-[9px] uppercase tracking-widest text-slate-500">' + esc(part[0]) + '</p><p class="mt-1 text-xs font-semibold text-slate-100 break-words">' + esc(part[1]) + '</p></div>';
+      }).join('') + '</div>';
+    }
     return [
       '<section class="' + PANEL + ' rounded-3xl p-6">',
       '<div class="mb-5 flex items-center justify-between gap-4">',
@@ -280,10 +298,11 @@
           row.certificate ? badge('Certificate ' + row.certificate.status, 'green') : badge('Certificate pending', 'gray'),
           row.prize ? badge('Prize ' + prizeLabel(data, row.prize), 'gold') : '',
           '</div>',
+          detailsHtml(claim),
           '</div>',
           '</div>',
           '<div class="flex flex-wrap gap-2 lg:justify-end">',
-          '<button data-ra-contact data-recipient-name="' + esc(winnerLabel(row)) + '" data-rank-label="' + esc(row.rank_label || ordinal(row.rank)) + '" data-claim-status="' + esc(claim ? claim.status : 'No claim') + '" data-payout-status="' + esc(payout.label || payout.status || 'not_started') + '" class="' + BTN + '" title="Open recipient contact details."><i data-lucide="message-square" class="h-3 w-3"></i> Contact</button>',
+          '<button data-ra-contact data-ra-contact-rank="' + esc(row.rank) + '" data-recipient-name="' + esc(winnerLabel(row)) + '" data-rank-label="' + esc(row.rank_label || ordinal(row.rank)) + '" data-claim-status="' + esc(claim ? claim.status : 'No claim') + '" data-payout-status="' + esc(payout.label || payout.status || 'not_started') + '" class="' + BTN + '" title="Open recipient contact details."><i data-lucide="message-square" class="h-3 w-3"></i> Contact</button>',
           canCreateThirdPlace ? '<button data-ra-create-third-place class="' + BTN_WARN + '"><i data-lucide="medal" class="h-3 w-3"></i> Create Third Place Match</button>' : '',
           thirdPlacePending ? '<button class="' + BTN_WARN + ' opacity-60 cursor-not-allowed" disabled><i data-lucide="swords" class="h-3 w-3"></i> Play / Enter Result</button>' : '',
           canAssignPlacement ? '<button data-ra-assign-rank="' + row.rank + '" class="' + BTN + '"><i data-lucide="user-plus" class="h-3 w-3"></i> Manual Assign</button>' : '',
@@ -307,6 +326,9 @@
     var claimable = prizes.filter(function (p) {
       return !!p.claimable || (!p.claimed && (!p.status || p.status === 'pending'));
     });
+    var submittedClaim = prizes.find(function (p) {
+      return p.claim && p.claim.status && p.claim.status !== 'rejected';
+    });
     return [
       '<section class="' + PANEL + ' rounded-3xl p-6 border-[#00E5FF]/25">',
       '<div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">',
@@ -324,7 +346,9 @@
       '<div class="flex flex-wrap gap-2 lg:justify-end">',
       claimable.length ? claimable.map(function (p) {
         return '<button data-ra-claim-prize data-tx-id="' + esc(p.id) + '" data-amount="' + esc(p.amount || '') + '" data-placement="' + esc(p.placement_display || p.placement || '') + '" class="' + BTN_GOOD + '"><i data-lucide="wallet" class="h-3 w-3"></i> Claim Prize</button>';
-      }).join('') : '<button class="' + BTN + ' opacity-60 cursor-not-allowed" disabled title="No claimable prize is available for this registration."><i data-lucide="wallet" class="h-3 w-3"></i> Claim Status</button>',
+      }).join('') : (submittedClaim
+        ? '<button class="' + BTN_GOOD + ' opacity-70 cursor-not-allowed" disabled title="Claim already submitted."><i data-lucide="check-circle" class="h-3 w-3"></i> Claim submitted / under review</button>'
+        : '<button class="' + BTN + ' opacity-60 cursor-not-allowed" disabled title="No claimable prize is available for this registration."><i data-lucide="wallet" class="h-3 w-3"></i> Claim Status</button>'),
       '<button data-ra-contact-organizer class="' + BTN + '" title="Open organizer contact options."><i data-lucide="message-square" class="h-3 w-3"></i> Contact Organizer</button>',
       '</div>',
       '</div>',
@@ -447,7 +471,14 @@
     }
   }
 
-  function contactModal(button) {
+  function contactModal(button, root) {
+    var rank = Number(button.getAttribute('data-ra-contact-rank') || 0);
+    var rows = (((root || {}).__raData || {}).operations || {}).placements || [];
+    var row = rows.find(function (item) { return Number(item.rank || 0) === rank; }) || {};
+    var claim = row.claim || {};
+    var details = claim.claim_details || {};
+    var payoutInfo = details.payout || {};
+    var courier = details.courier || {};
     var modal = document.getElementById('ra-contact-modal');
     if (!modal) {
       modal = document.createElement('div');
@@ -460,13 +491,14 @@
         '<button data-ra-contact-close class="rounded-lg p-2 text-slate-400 hover:bg-white/10 hover:text-white" aria-label="Close"><i data-lucide="x" class="h-5 w-5"></i></button>',
         '</div>',
         '<div class="mt-4 rounded-xl border border-white/10 bg-black/35 p-4 space-y-2 text-sm">',
-        '<p class="text-slate-400">Direct messaging is not connected for tournament reward operations yet.</p>',
+        '<p class="text-slate-400">Messaging integration pending. Recipient details are shown for manual organizer follow-up.</p>',
         '<dl class="grid grid-cols-1 gap-2 text-xs">',
         '<div><dt class="text-slate-500 uppercase tracking-widest">Recipient</dt><dd data-ra-contact-name class="mt-1 font-bold text-white"></dd></div>',
         '<div><dt class="text-slate-500 uppercase tracking-widest">Reward Row</dt><dd data-ra-contact-rank class="mt-1 font-bold text-white"></dd></div>',
         '<div><dt class="text-slate-500 uppercase tracking-widest">Claim</dt><dd data-ra-contact-claim class="mt-1 font-bold text-white"></dd></div>',
         '<div><dt class="text-slate-500 uppercase tracking-widest">Payout</dt><dd data-ra-contact-payout class="mt-1 font-bold text-white"></dd></div>',
         '</dl>',
+        '<div data-ra-contact-details class="mt-4 grid grid-cols-1 gap-2"></div>',
         '</div>',
         '<p class="mt-4 text-xs text-slate-500">Use the participant profile/contact details outside this panel until messaging integration is enabled.</p>',
         '<button data-ra-contact-close class="mt-5 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-200 hover:bg-white/10">Close</button>',
@@ -484,6 +516,20 @@
     modal.querySelector('[data-ra-contact-rank]').textContent = button.getAttribute('data-rank-label') || '-';
     modal.querySelector('[data-ra-contact-claim]').textContent = button.getAttribute('data-claim-status') || 'No claim';
     modal.querySelector('[data-ra-contact-payout]').textContent = button.getAttribute('data-payout-status') || 'Manual payout required';
+    var extra = [];
+    if (payoutInfo.method_label || claim.payout_method) extra.push(['Method', payoutInfo.method_label || claim.payout_method]);
+    if (payoutInfo.payout_number || claim.payout_destination) extra.push(['Number / Account', payoutInfo.payout_number || claim.payout_destination]);
+    if (payoutInfo.account_name) extra.push(['Account name', payoutInfo.account_name]);
+    if (payoutInfo.note) extra.push(['Payout note', payoutInfo.note]);
+    if (courier.full_name || courier.phone || courier.address || courier.district || courier.notes) {
+      extra.push(['Courier', [courier.full_name, courier.phone, courier.district, courier.address, courier.notes].filter(Boolean).join(' / ')]);
+    }
+    var detailsNode = modal.querySelector('[data-ra-contact-details]');
+    if (detailsNode) {
+      detailsNode.innerHTML = extra.length ? extra.map(function (item) {
+        return '<div class="rounded-lg border border-white/10 bg-black/30 px-3 py-2"><p class="text-[9px] uppercase tracking-widest text-slate-500">' + esc(item[0]) + '</p><p class="mt-1 text-xs font-semibold text-white break-words">' + esc(item[1]) + '</p></div>';
+      }).join('') : '<p class="text-xs text-slate-500">No submitted payment details yet.</p>';
+    }
     modal.classList.remove('hidden');
     if (window.lucide) window.lucide.createIcons();
   }
@@ -522,7 +568,7 @@
       var contact = event.target.closest('[data-ra-contact]');
       if (contact) {
         event.preventDefault();
-        contactModal(contact);
+        contactModal(contact, root);
         return;
       }
       if (event.target.closest('[data-ra-contact-organizer]')) {
@@ -555,15 +601,26 @@
       if (claim && !claim.disabled) {
         var action = claim.getAttribute('data-ra-claim');
         var notes = '';
+        var paymentReference = '';
+        var paymentNote = '';
         if (action === 'mark_paid') {
           if (!window.confirm('Record this claim as manually paid? This does not trigger an automated payout.')) return;
+          paymentReference = window.prompt('Payment transaction reference (optional):', '') || '';
+          paymentNote = window.prompt('Payment note (optional):', '') || '';
           notes = 'Manual payout marked paid from Results & Achievements.';
+          if (paymentReference) notes += ' Ref: ' + paymentReference;
+          if (paymentNote) notes += ' Note: ' + paymentNote;
         } else if (action === 'reject') {
           notes = window.prompt('Optional rejection note:', '') || '';
         }
         apiFetch(base + '/prizes/claims/' + claim.getAttribute('data-claim-id') + '/action/', {
           method: 'POST',
-          body: { action: action, notes: notes },
+          body: {
+            action: action,
+            notes: notes,
+            payment_reference: paymentReference,
+            payment_note: paymentNote,
+          },
         }).then(function (payload) {
           render(root, normalizePayload(payload));
           notify(action === 'mark_paid' ? 'Manual payout marked paid.' : (action === 'approve' ? 'Claim approved.' : 'Claim rejected.'), 'success');

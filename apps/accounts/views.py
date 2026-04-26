@@ -246,9 +246,28 @@ class SignUpView(FormView):
             return self.form_invalid(form)
 
         try:
-            send_otp_email(pending, otp.code, expires_in_minutes=EmailOTP.EXPIRATION_MINUTES)
-        except Exception:
-            logger.exception("Signup OTP email failed for pending_signup_id=%s", pending.id)
+            sent_count = send_otp_email(pending, otp.code, expires_in_minutes=EmailOTP.EXPIRATION_MINUTES)
+            if sent_count < 1:
+                logger.error(
+                    "Signup OTP email reported zero deliveries: pending_signup_id=%s email=%s backend=%s",
+                    pending.id,
+                    pending.email,
+                    getattr(settings, "EMAIL_BACKEND", ""),
+                )
+                form.add_error(
+                    "email",
+                    "We couldn't send the verification email right now. Please try again.",
+                )
+                return self.form_invalid(form)
+            logger.info("Signup OTP email queued: pending_signup_id=%s email=%s", pending.id, pending.email)
+        except Exception as exc:
+            logger.exception(
+                "Signup OTP email failed: pending_signup_id=%s email=%s backend=%s error=%s",
+                pending.id,
+                pending.email,
+                getattr(settings, "EMAIL_BACKEND", ""),
+                exc,
+            )
             form.add_error(
                 "email",
                 "We couldn't send the verification email right now. Please try again.",
@@ -401,7 +420,26 @@ class ResendOTPView(View):
             messages.info(request, f"Please wait about {minutes} minute(s) before requesting another code.")
             return redirect("account:verify_email_otp")
 
-        send_otp_email(subject, otp.code, expires_in_minutes=EmailOTP.EXPIRATION_MINUTES)
+        try:
+            sent_count = send_otp_email(subject, otp.code, expires_in_minutes=EmailOTP.EXPIRATION_MINUTES)
+            if sent_count < 1:
+                logger.error(
+                    "Resend OTP email reported zero deliveries: subject=%s backend=%s",
+                    getattr(subject, "email", subject),
+                    getattr(settings, "EMAIL_BACKEND", ""),
+                )
+                messages.error(request, "We couldn't send a new code right now. Please try again.")
+                return redirect("account:verify_email_otp")
+            logger.info("Resend OTP email queued: subject=%s", getattr(subject, "email", subject))
+        except Exception as exc:
+            logger.exception(
+                "Resend OTP email failed: subject=%s backend=%s error=%s",
+                getattr(subject, "email", subject),
+                getattr(settings, "EMAIL_BACKEND", ""),
+                exc,
+            )
+            messages.error(request, "We couldn't send a new code right now. Please try again.")
+            return redirect("account:verify_email_otp")
         request.session["pending_otp_purpose"] = otp.purpose
         messages.success(request, "A new verification code has been sent.")
         return redirect("account:verify_email_otp")

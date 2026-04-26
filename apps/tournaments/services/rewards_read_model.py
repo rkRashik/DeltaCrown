@@ -1159,6 +1159,7 @@ class TournamentRewardsReadModel:
                 'claimed_by_id': claim.claimed_by_id,
                 'claimed_by': getattr(claim.claimed_by, 'username', '') if claim.claimed_by_id else '',
                 'payout_destination': claim.payout_destination,
+                'claim_details': claim.claim_details or {},
                 'admin_notes': claim.admin_notes,
             })
         return out

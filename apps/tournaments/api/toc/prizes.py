@@ -176,6 +176,8 @@ class PrizeClaimActionView(TOCBaseView):
 
         action = str((request.data or {}).get('action') or '').strip().lower()
         notes = str((request.data or {}).get('notes') or '').strip()[:1000]
+        payment_reference = str((request.data or {}).get('payment_reference') or '').strip()[:160]
+        payment_note = str((request.data or {}).get('payment_note') or '').strip()[:1000]
 
         if action in {'review', 'approve'}:
             claim.status = PrizeClaim.STATUS_PROCESSING
@@ -193,7 +195,20 @@ class PrizeClaimActionView(TOCBaseView):
         if notes:
             existing = (claim.admin_notes or '').strip()
             claim.admin_notes = f'{existing}\n{notes}'.strip() if existing else notes
-        claim.save(update_fields=['status', 'paid_at', 'admin_notes', 'updated_at'])
+        claim_details = claim.claim_details or {}
+        if action == 'mark_paid' and (payment_reference or payment_note):
+            payment_review = claim_details.get('payment_review')
+            if not isinstance(payment_review, dict):
+                payment_review = {}
+            payment_review.update({
+                'payment_reference': payment_reference,
+                'payment_note': payment_note,
+                'marked_paid_by_id': request.user.id,
+                'marked_paid_at': timezone.now().isoformat(),
+            })
+            claim_details['payment_review'] = payment_review
+            claim.claim_details = claim_details
+        claim.save(update_fields=['status', 'paid_at', 'admin_notes', 'claim_details', 'updated_at'])
 
         transaction = claim.prize_transaction
         tx_fields = []
