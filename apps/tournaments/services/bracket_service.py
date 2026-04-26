@@ -38,7 +38,7 @@ from decimal import Decimal
 from django.db import transaction
 from django.core.exceptions import ValidationError
 from django.utils import timezone
-from django.db.models import Q
+from django.db.models import Max, Q
 
 from apps.tournaments.models import (
     Tournament,
@@ -104,6 +104,226 @@ class BracketService:
                 "Auto-finalize trigger failed for tournament %s",
                 tournament_id,
             )
+
+    @staticmethod
+    def _bronze_match_enabled(tournament: Tournament, bracket: Optional[Bracket] = None) -> bool:
+        config = getattr(tournament, 'config', None) or {}
+        for source in (
+            config,
+            config.get('bracket_settings') or {},
+            config.get('knockout_config') or {},
+        ):
+            if source.get('third_place_match_enabled') is True:
+                return True
+            if source.get('bronze_match_enabled') is True:
+                return True
+        structure = getattr(bracket, 'bracket_structure', None) or {}
+        return bool(
+            structure.get('third_place_match_enabled') is True or
+            structure.get('bronze_match_enabled') is True
+        )
+
+    @staticmethod
+    def _single_elimination_bracket(bracket: Bracket) -> bool:
+        fmt = (getattr(bracket, 'format', '') or '').replace('_', '-').lower()
+        structure = getattr(bracket, 'bracket_structure', None) or {}
+        structure_fmt = (structure.get('format') or '').replace('_', '-').lower()
+        return fmt == Bracket.SINGLE_ELIMINATION or structure_fmt == 'single-elimination'
+
+    @staticmethod
+    def _default_knockout_start(tournament: Tournament):
+        config = getattr(tournament, 'config', None) or {}
+        ko_cfg = config.get('knockout_config', {}) if isinstance(config, dict) else {}
+        raw = ko_cfg.get('start_time') or config.get('knockout_start_time')
+        if raw:
+            from django.utils.dateparse import parse_datetime
+            parsed = parse_datetime(str(raw))
+            if parsed:
+                return parsed
+        return getattr(tournament, 'tournament_start', None) or timezone.now()
+
+    @staticmethod
+    def _match_loser(match: Match) -> Tuple[Optional[int], str]:
+        loser_id = match.loser_id
+        if not loser_id:
+            if match.winner_id == match.participant1_id:
+                loser_id = match.participant2_id
+            elif match.winner_id == match.participant2_id:
+                loser_id = match.participant1_id
+        if loser_id == match.participant1_id:
+            return loser_id, match.participant1_name or ''
+        if loser_id == match.participant2_id:
+            return loser_id, match.participant2_name or ''
+        return loser_id, ''
+
+    @staticmethod
+    def _semifinal_losers_for_bronze(bracket: Bracket) -> List[Tuple[int, str]]:
+        final_node = (
+            BracketNode.objects
+            .filter(bracket=bracket, bracket_type=BracketNode.MAIN, parent_node__isnull=True)
+            .select_related('match')
+            .order_by('-round_number', 'match_number_in_round')
+            .first()
+        )
+        if not final_node or not final_node.match_id or final_node.round_number <= 1:
+            return []
+        final_match = final_node.match
+        finalist_ids = {
+            pid for pid in (
+                final_match.participant1_id,
+                final_match.participant2_id,
+                final_match.winner_id,
+            ) if pid
+        }
+        losers: List[Tuple[int, str]] = []
+        semifinal_nodes = (
+            BracketNode.objects
+            .filter(
+                bracket=bracket,
+                bracket_type=BracketNode.MAIN,
+                round_number=final_node.round_number - 1,
+                match__state__in=[Match.COMPLETED, Match.FORFEIT],
+            )
+            .select_related('match')
+            .order_by('match_number_in_round', 'position')
+        )
+        for node in semifinal_nodes:
+            match = node.match
+            if not match or match.winner_id not in finalist_ids:
+                continue
+            loser_id, loser_name = BracketService._match_loser(match)
+            if loser_id and loser_id not in finalist_ids:
+                losers.append((loser_id, loser_name))
+        return losers[:2]
+
+    @staticmethod
+    @transaction.atomic
+    def create_bronze_match_from_semifinal_losers(tournament_id: int, actor=None) -> Match:
+        tournament = Tournament.objects.select_for_update().get(pk=tournament_id)
+        bracket = (
+            Bracket.objects
+            .select_for_update()
+            .filter(tournament=tournament)
+            .order_by('-id')
+            .first()
+        )
+        if not bracket:
+            raise ValidationError('No bracket exists for this tournament.')
+        if not BracketService._single_elimination_bracket(bracket):
+            raise ValidationError('Bronze match repair is only supported for single elimination brackets.')
+
+        existing_node = (
+            BracketNode.objects
+            .select_related('match')
+            .filter(bracket=bracket, bracket_type=BracketNode.THIRD_PLACE)
+            .order_by('id')
+            .first()
+        )
+        if existing_node and existing_node.match_id:
+            return existing_node.match
+
+        losers = BracketService._semifinal_losers_for_bronze(bracket)
+        if len(losers) < 2:
+            raise ValidationError('Cannot create bronze match until both semifinal losers are known.')
+
+        final_round = bracket.total_rounds or (
+            BracketNode.objects.filter(bracket=bracket).aggregate(Max('round_number'))['round_number__max'] or 1
+        )
+        max_match_number = (
+            BracketNode.objects
+            .filter(bracket=bracket, round_number=final_round)
+            .aggregate(Max('match_number_in_round'))['match_number_in_round__max'] or 1
+        )
+        match_number = max_match_number + 1 if not existing_node else existing_node.match_number_in_round
+
+        if not existing_node:
+            position = (
+                BracketNode.objects
+                .filter(bracket=bracket)
+                .aggregate(Max('position'))['position__max'] or 0
+            ) + 1
+            existing_node = BracketNode.objects.create(
+                bracket=bracket,
+                position=position,
+                round_number=final_round,
+                match_number_in_round=match_number,
+                participant1_id=losers[0][0],
+                participant1_name=losers[0][1] or '',
+                participant2_id=losers[1][0],
+                participant2_name=losers[1][1] or '',
+                bracket_type=BracketNode.THIRD_PLACE,
+            )
+        else:
+            existing_node.participant1_id = losers[0][0]
+            existing_node.participant1_name = losers[0][1] or ''
+            existing_node.participant2_id = losers[1][0]
+            existing_node.participant2_name = losers[1][1] or ''
+            existing_node.save(update_fields=[
+                'participant1_id',
+                'participant1_name',
+                'participant2_id',
+                'participant2_name',
+            ])
+
+        match = Match.objects.create(
+            tournament=tournament,
+            bracket=bracket,
+            round_number=existing_node.round_number,
+            match_number=existing_node.match_number_in_round,
+            participant1_id=existing_node.participant1_id,
+            participant1_name=existing_node.participant1_name or '',
+            participant2_id=existing_node.participant2_id,
+            participant2_name=existing_node.participant2_name or '',
+            state=Match.SCHEDULED,
+            scheduled_time=BracketService._default_knockout_start(tournament),
+            lobby_info={
+                'stage': 'bronze',
+                'third_place_match': True,
+                'created_by_repair': bool(actor),
+            },
+        )
+        existing_node.match = match
+        existing_node.save(update_fields=['match'])
+
+        structure = dict(bracket.bracket_structure or {})
+        structure['third_place_match_enabled'] = True
+        structure['bronze_match_enabled'] = True
+        structure['third_place_match_id'] = match.id
+        bracket.bracket_structure = structure
+        bracket.total_matches = max(
+            bracket.total_matches or 0,
+            BracketNode.objects.filter(bracket=bracket).exclude(is_bye=True).count(),
+        )
+        bracket.save(update_fields=['bracket_structure', 'total_matches', 'updated_at'])
+
+        config = dict(getattr(tournament, 'config', None) or {})
+        bracket_settings = dict(config.get('bracket_settings') or {})
+        bracket_settings['third_place_match_enabled'] = True
+        bracket_settings['bronze_match_enabled'] = True
+        config['bracket_settings'] = bracket_settings
+        tournament.config = config
+        tournament.save(update_fields=['config'])
+
+        logger.info(
+            'Created bronze match %s for tournament %s from semifinal losers %s vs %s',
+            match.id,
+            tournament_id,
+            existing_node.participant1_name,
+            existing_node.participant2_name,
+        )
+        return match
+
+    @staticmethod
+    def _ensure_bronze_match_if_enabled(bracket: Optional[Bracket]) -> Optional[Match]:
+        if not bracket:
+            return None
+        tournament = bracket.tournament
+        if not BracketService._bronze_match_enabled(tournament, bracket):
+            return None
+        try:
+            return BracketService.create_bronze_match_from_semifinal_losers(tournament.id)
+        except ValidationError:
+            return None
 
     @staticmethod
     @transaction.atomic
@@ -949,6 +1169,9 @@ class BracketService:
             'bracket_size': bracket_size,
             'rounds': []
         }
+        if BracketService._bronze_match_enabled(tournament):
+            bracket_structure['third_place_match_enabled'] = True
+            bracket_structure['bronze_match_enabled'] = True
         
         # Build rounds metadata
         for round_num in range(1, total_rounds + 1):
@@ -1574,12 +1797,36 @@ class BracketService:
         # Update node winner
         node.winner_id = match.winner_id
         node.save(update_fields=['winner_id'])
+
+        if node.bracket_type == BracketNode.THIRD_PLACE:
+            logger.info(f"Match {match.id} completed bronze match - no bracket advancement")
+            try:
+                async_to_sync(broadcast_bracket_updated)(
+                    tournament_id=match.tournament_id,
+                    bracket_data={
+                        'bracket_id': node.bracket.id,
+                        'tournament_id': match.tournament_id,
+                        'updated_nodes': updated_node_ids,
+                        'next_matches': [],
+                        'bracket_status': node.bracket.status,
+                        'bronze_winner_id': match.winner_id,
+                        'updated_at': timezone.now().isoformat(),
+                    }
+                )
+            except Exception as e:
+                logger.warning(
+                    f"Failed to broadcast bracket_updated for bronze match {match.id}: {e}",
+                    exc_info=True
+                )
+            BracketService._maybe_finalize_tournament(match.tournament_id)
+            return None
         
         # Get parent node
         parent_node = node.parent_node
         if not parent_node:
             # This is the finals node - no parent to advance to
             logger.info(f"Match {match.id} is finals - bracket complete")
+            BracketService._ensure_bronze_match_if_enabled(node.bracket)
             
             # Broadcast bracket_updated (tournament complete)
             # Module 6.1: Wrap async broadcast with async_to_sync
@@ -1803,6 +2050,16 @@ class BracketService:
                 'match_number': parent_match.match_number,
                 'participant1_id': parent_match.participant1_id,
                 'participant2_id': parent_match.participant2_id,
+            })
+
+        bronze_match = BracketService._ensure_bronze_match_if_enabled(node.bracket)
+        if bronze_match:
+            created_matches.append({
+                'match_id': bronze_match.id,
+                'round': bronze_match.round_number,
+                'match_number': bronze_match.match_number,
+                'participant1_id': bronze_match.participant1_id,
+                'participant2_id': bronze_match.participant2_id,
             })
         
         # Module 2.3: Broadcast bracket_updated event to WebSocket clients

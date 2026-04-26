@@ -51,11 +51,25 @@ class TOCService:
 
         Returns a dict matching OverviewSerializer shape:
         {status, status_display, is_frozen, freeze_reason, lifecycle, lifecycle_stepper, stats, alerts,
-         events, transitions, health_score, upcoming_matches, group_progress}
+         events, transitions, health_score, upcoming_matches, group_progress, completion}
 
         Sprint 27: Added health_score, upcoming_matches, group_progress.
+
+        Auto-convergence: if the tournament is effectively completed but
+        ``Tournament.status`` is still LIVE (or post-finalization hasn't
+        finished), run ``PostFinalizationService`` synchronously BEFORE
+        assembling the payload — otherwise the lifecycle stepper / stats /
+        next-action fields would render the stale "Knockout Active" state.
+        The service is idempotent and never raises.
         """
         t0 = time.perf_counter()
+
+        # ── Auto-converge to completed state ──────────────────────────
+        from apps.tournaments.services.completion_truth import (
+            ensure_post_finalization,
+            is_tournament_effectively_completed,
+        )
+        completion_payload = ensure_post_finalization(tournament)
 
         # Gather raw stats from DB
         reg_stats = cls._get_registration_stats(tournament)
@@ -126,6 +140,7 @@ class TOCService:
             reg_stats=reg_stats,
             match_stats=match_stats,
             group_progress=group_progress,
+            completion_payload=completion_payload,
         )
 
         # S30: Inline quick stats + recent activity to avoid overview fan-out calls
@@ -155,6 +170,12 @@ class TOCService:
             )
 
         effective_status = getattr(tournament, 'get_effective_status', lambda: tournament.status)()
+        # Force completed when any completion-truth signal fires (TournamentResult
+        # winner exists, post-finalization sentinel set, etc.). Auto-convergence
+        # above already nudged Tournament.status, but a stale ORM cache or a
+        # service error during convergence shouldn't leak "live" to the UI.
+        if completion_payload.get('completed') and effective_status not in (Tournament.COMPLETED, Tournament.ARCHIVED):
+            effective_status = Tournament.COMPLETED
         # Derive display from effective status (not raw), so UI label matches the operational status
         status_display_map = dict(Tournament.STATUS_CHOICES)
         effective_display = status_display_map.get(effective_status, tournament.get_status_display())
@@ -178,6 +199,7 @@ class TOCService:
             'quick_stats': quick_stats,
             'activity_log': activity_log,
             'tournament_feed': tournament_feed,
+            'completion': completion_payload,
         }
 
     # ── S1-S2: Transition Validation & Execution ──────────────────────
@@ -534,24 +556,27 @@ class TOCService:
         reg_stats: Dict[str, int],
         match_stats: Dict[str, int],
         group_progress: Optional[Dict[str, Any]],
+        completion_payload: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """Build organizer guidance for lifecycle progression in the Overview tab."""
         status = str(getattr(tournament, 'get_effective_status', lambda: tournament.status)() or '').lower()
         fmt = str(tournament.format or '').lower().replace('-', '_')
 
-        # Secondary completed check: TournamentResult with winner is the
-        # strongest proof the event is over, regardless of persisted status.
-        # This catches the case where status is still 'live' but the bracket
-        # is done (auto_advance hasn't fired yet in the current request cycle).
-        if status not in ('completed', 'archived'):
+        # Authoritative completion override: any completion-truth signal
+        # (passed in payload, TournamentResult winner, or status flag) collapses
+        # the stepper to its "Completed" terminal state — regardless of stale
+        # config flags or LIVE status drift.
+        is_completed = bool(completion_payload and completion_payload.get('completed'))
+        if not is_completed and status not in ('completed', 'archived'):
             try:
-                from apps.tournaments.models.result import TournamentResult as _TR
-                if _TR.objects.filter(
-                    tournament_id=tournament.pk, is_deleted=False,
-                ).exclude(winner_id__isnull=True).exists():
-                    status = 'completed'
+                from apps.tournaments.services.completion_truth import (
+                    is_tournament_effectively_completed,
+                )
+                is_completed = is_tournament_effectively_completed(tournament)
             except Exception:
-                pass
+                is_completed = False
+        if is_completed:
+            status = 'completed'
         is_group_flow = fmt in ('group_playoff', 'group_stage')
 
         groups_drawn = False
@@ -648,6 +673,12 @@ class TOCService:
 
         if status in ('completed', 'archived'):
             current_key = 'completed'
+            # Force every prior step to done so the rail reads as a fully
+            # closed pipeline. Stale local stats (e.g. groups_drawn=False on
+            # legacy tournaments) must not leak as "pending" once the event
+            # is over.
+            for key in list(done_map.keys()):
+                done_map[key] = True
         elif status == 'live':
             # Stage-aware current key for group_playoff
             if fmt == 'group_playoff' and inner_stage == 'knockout_stage':
@@ -663,7 +694,10 @@ class TOCService:
         for step in steps:
             key = step['key']
             if key == current_key:
-                step_status = 'active'
+                # Once status is completed/archived, the terminal step is the
+                # finish line — render it as 'done' so it shows the fully-lit
+                # state rather than a pulsing "active" node.
+                step_status = 'done' if status in ('completed', 'archived') else 'active'
             elif done_map.get(key):
                 step_status = 'done'
             else:
@@ -1018,6 +1052,19 @@ class TOCService:
         """
         actions = []
         status = tournament.status
+
+        # Override status to 'completed' when the truth helper says so —
+        # otherwise we'd surface "Start Tournament" / live-only actions on a
+        # tournament whose bracket is already done.
+        try:
+            from apps.tournaments.services.completion_truth import (
+                is_tournament_effectively_completed,
+            )
+            if status not in ('completed', 'archived', 'cancelled'):
+                if is_tournament_effectively_completed(tournament):
+                    status = 'completed'
+        except Exception:
+            pass
 
         if status == 'draft':
             actions.append({

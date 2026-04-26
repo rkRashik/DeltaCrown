@@ -312,6 +312,63 @@
   </section>
 
   <section class="grid grid-cols-1 lg:grid-cols-12 gap-5 md:gap-6">
+    {% if is_post_completion %}
+    {# ─── Final Result card (post-completion replacement for Target Intel) ─── #}
+    <div id="hub-overview-final-result-card" class="lg:col-span-7 hub-overview-intel-card hub-overview-system-card premium-glass-card">
+      <div class="hub-overview-card-head hub-overview-card-head--compact">
+        <div class="hub-overview-section-title">
+          <p class="hub-overview-title-eyebrow">Tournament Result</p>
+          <h3 class="hub-overview-card-title">
+            <span class="hub-overview-title-icon is-cyan" aria-hidden="true">
+              <i data-lucide="trophy" class="w-4 h-4"></i>
+            </span>
+            <span class="hub-overview-title-text">{{ hub_command_center.title|default:'Tournament Completed' }}</span>
+          </h3>
+        </div>
+        <span class="hub-overview-action-badge success">Completed</span>
+      </div>
+
+      <div class="p-5 md:p-6 space-y-4">
+        {% if hub_command_center.outcome_state == 'champion' %}
+        <p class="text-sm text-emerald-300 font-bold">{{ hub_command_center.subtitle }}</p>
+        {% elif hub_command_center.outcome_state == 'runner_up' or hub_command_center.outcome_state == 'third_place' %}
+        <p class="text-sm text-amber-200 font-bold">{{ hub_command_center.subtitle }}</p>
+        {% else %}
+        <p class="text-sm text-zinc-300">{{ hub_command_center.subtitle|default:'Final standings and prizes are now available.' }}</p>
+        {% endif %}
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+          {% if hub_command_center.champion_name %}
+          <div class="rounded-xl border border-amber-300/25 bg-amber-300/5 px-4 py-3">
+            <p class="text-[10px] font-bold text-amber-300 uppercase tracking-widest">Champion</p>
+            <p class="mt-1 text-sm font-bold text-white truncate">🏆 {{ hub_command_center.champion_name }}</p>
+          </div>
+          {% endif %}
+          {% if hub_command_center.runner_up_name %}
+          <div class="rounded-xl border border-zinc-300/15 bg-zinc-500/5 px-4 py-3">
+            <p class="text-[10px] font-bold text-zinc-300 uppercase tracking-widest">Runner-Up</p>
+            <p class="mt-1 text-sm font-bold text-white truncate">🥈 {{ hub_command_center.runner_up_name }}</p>
+          </div>
+          {% endif %}
+          {% if hub_command_center.third_place_name %}
+          <div class="rounded-xl border border-orange-300/15 bg-orange-300/5 px-4 py-3">
+            <p class="text-[10px] font-bold text-orange-300 uppercase tracking-widest">Third Place</p>
+            <p class="mt-1 text-sm font-bold text-white truncate">🥉 {{ hub_command_center.third_place_name }}</p>
+          </div>
+          {% endif %}
+        </div>
+
+        <div class="hub-overview-intel-actions">
+          <button type="button" data-click="HubEngine.switchTab" data-click-args='["bracket"]' class="hub-overview-intel-action-btn">
+            View Final Standings
+          </button>
+          <button type="button" data-click="HubEngine.switchTab" data-click-args='["prizes"]' class="hub-overview-intel-action-btn secondary">
+            View Prizes
+          </button>
+        </div>
+      </div>
+    </div>
+    {% else %}
     <div id="hub-overview-intel-card" class="lg:col-span-7 hub-overview-intel-card hub-overview-system-card premium-glass-card">
       <div class="hub-overview-card-head hub-overview-card-head--compact">
         <div class="hub-overview-section-title">
@@ -385,6 +442,7 @@
         </div>
       </div>
     </div>
+    {% endif %}
 
     <div class="lg:col-span-5 hub-overview-feed-card hub-overview-system-card premium-glass-card">
       <div class="hub-overview-card-head hub-overview-card-head--compact">

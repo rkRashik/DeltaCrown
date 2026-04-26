@@ -18,9 +18,9 @@
     <div>
       <h2 class="text-2xl font-black text-white tracking-tight" style="font-family:Outfit,sans-serif;">
         <i data-lucide="trophy" class="w-6 h-6 inline-block text-[#FFB800] mr-2 align-text-bottom"></i>
-        Bounty Board
+        Results &amp; Rewards
       </h2>
-      <p class="text-xs text-gray-500 mt-1" style="font-family:'Space Grotesk',monospace;">Prize pool &amp; claim your winnings</p>
+      <p class="text-xs text-gray-500 mt-1" style="font-family:'Space Grotesk',monospace;">Final placements, achievements, certificates, and claim status</p>
     </div>
     <span class="hub-badge hub-badge-warning" id="prize-tournament-status"></span>
   </div>
@@ -33,6 +33,7 @@
   {% endcomment %}
   <div id="hub-prize-engine"
        data-prize-overview-url="{% url 'tournaments:detail_prize_overview' slug=tournament.slug %}"
+       data-hub-rewards-url="{% url 'tournaments:hub_prize_claim_api' slug=tournament.slug %}"
        class="space-y-8">
 
     {# ── Loading skeleton ─────────────────────────────── #}
@@ -111,12 +112,32 @@
     </div>
 
     {# ── Special Awards ────────────────────────────────── #}
+    <div id="prize-engine-achievements-wrap" class="hidden">
+      <div class="flex items-center gap-3 mb-4">
+        <h3 class="text-base font-black text-white tracking-tight" style="font-family:Outfit,sans-serif;">Result Achievements</h3>
+        <div class="h-px flex-1 bg-gradient-to-r from-white/10 to-transparent"></div>
+      </div>
+      <div id="prize-engine-achievements" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4"></div>
+    </div>
+
     <div id="prize-engine-awards-wrap" class="hidden">
       <div class="flex items-center gap-3 mb-4">
         <h3 class="text-base font-black text-white tracking-tight" style="font-family:Outfit,sans-serif;">Special Accolades</h3>
         <div class="h-px flex-1 bg-gradient-to-r from-white/10 to-transparent"></div>
       </div>
       <div id="prize-engine-awards" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4"></div>
+    </div>
+
+    {# â”€â”€ Current participant result â”€â”€ #}
+    <div id="your-result-section" class="hidden rounded-2xl hub-glass border border-[#00F0FF]/20 p-5">
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <p class="text-[10px] font-black text-[#00F0FF] uppercase tracking-[0.3em] mb-1">Your Result</p>
+          <h3 id="your-result-title" class="text-xl font-black text-white" style="font-family:Outfit,sans-serif;"></h3>
+          <p id="your-result-detail" class="text-xs text-gray-400 mt-1"></p>
+        </div>
+        <div id="your-result-status" class="flex flex-wrap items-center gap-2"></div>
+      </div>
     </div>
 
     {# ── Empty state when no config exists ─────────────── #}

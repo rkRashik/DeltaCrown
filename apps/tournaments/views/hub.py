@@ -1251,7 +1251,7 @@ def _resolve_hub_command_center(
     return payload
 
 
-def _build_hub_lifecycle_pipeline(tournament, *, command_center=None):
+def _build_hub_lifecycle_pipeline(tournament, *, command_center=None, completion_payload=None):
     has_draw_signal = Bracket.objects.filter(tournament=tournament).exists() or GroupStanding.objects.filter(
         group__tournament=tournament,
         group__is_deleted=False,
@@ -1262,20 +1262,23 @@ def _build_hub_lifecycle_pipeline(tournament, *, command_center=None):
         is_deleted=False,
     ).exists()
 
+    # Single source of truth: a winner exists OR status is COMPLETED/ARCHIVED.
+    is_completed = bool(completion_payload and completion_payload.get('completed'))
+    if not is_completed:
+        try:
+            from apps.tournaments.services.completion_truth import (
+                is_tournament_effectively_completed,
+            )
+            is_completed = is_tournament_effectively_completed(tournament)
+        except Exception:
+            is_completed = False
+
     status = str(
         (tournament.get_effective_status() if hasattr(tournament, 'get_effective_status') else tournament.status)
         or ''
     ).lower()
-    # TournamentResult with winner is authoritative — override stale LIVE status.
-    if status not in ('completed', 'archived', 'cancelled'):
-        try:
-            from apps.tournaments.models.result import TournamentResult as _TR
-            if _TR.objects.filter(
-                tournament_id=tournament.pk, is_deleted=False,
-            ).exclude(winner_id__isnull=True).exists():
-                status = 'completed'
-        except Exception:
-            pass
+    if is_completed:
+        status = 'completed'
     active_key = 'registered'
 
     if status == Tournament.COMPLETED:
@@ -1302,6 +1305,11 @@ def _build_hub_lifecycle_pipeline(tournament, *, command_center=None):
     if command_center and command_center.get('show') and active_key in {'drawn', 'scheduled'}:
         active_key = 'live_ops'
 
+    # When the tournament is over, command center always shows the Champion
+    # card — but mission progress must read 'rewards', not 'live_ops'.
+    if is_completed:
+        active_key = 'rewards'
+
     steps = [
         {'key': 'registered', 'label': 'Registered', 'icon': 'check'},
         {'key': 'drawn', 'label': 'Drawn', 'icon': 'shuffle'},
@@ -1313,8 +1321,14 @@ def _build_hub_lifecycle_pipeline(tournament, *, command_center=None):
     active_idx = step_index.get(active_key, 0)
 
     for idx, step in enumerate(steps):
-        step['completed'] = idx < active_idx
-        step['active'] = idx == active_idx
+        # When completed, every step before Rewards reads as done and Rewards
+        # itself shows as the terminal active node.
+        if is_completed:
+            step['completed'] = idx < active_idx
+            step['active'] = idx == active_idx
+        else:
+            step['completed'] = idx < active_idx
+            step['active'] = idx == active_idx
 
     progress_percent = int((active_idx / max(len(steps) - 1, 1)) * 100)
     return {
@@ -1323,6 +1337,7 @@ def _build_hub_lifecycle_pipeline(tournament, *, command_center=None):
         'active_index': active_idx,
         'phase_label': f'PHASE {active_idx + 1}/{len(steps)}',
         'progress_percent': progress_percent,
+        'completed': is_completed,
     }
 
 
@@ -1377,6 +1392,20 @@ def _build_hub_context(request, tournament, registration, query_suffix='', is_st
     user = request.user
     now = timezone.now()
     is_team = tournament.participation_type == 'team'
+
+    # ── Auto-converge to completed state ────────────────
+    # If TournamentResult winner exists but tournament.status is still LIVE,
+    # synchronously run the post-finalization pipeline so the rest of the
+    # context build (lifecycle pipeline, command center, mission progress)
+    # sees the converged state. The helper is idempotent and never raises —
+    # page renders even if a downstream step errors.
+    try:
+        from apps.tournaments.services.completion_truth import (
+            ensure_post_finalization,
+        )
+        hub_completion_payload = ensure_post_finalization(tournament)
+    except Exception:
+        hub_completion_payload = {'completed': False}
 
     # ── Lobby & Check-in ────────────────────────────────
     lobby = getattr(tournament, 'lobby', None)
@@ -1804,6 +1833,7 @@ def _build_hub_context(request, tournament, registration, query_suffix='', is_st
     hub_lifecycle_pipeline = _build_hub_lifecycle_pipeline(
         tournament,
         command_center=hub_command_center,
+        completion_payload=hub_completion_payload,
     )
     hub_official_pass = _build_hub_official_pass(
         user,
@@ -1819,15 +1849,14 @@ def _build_hub_context(request, tournament, registration, query_suffix='', is_st
     # TournamentResult with winner is authoritative: even if persisted status
     # is still LIVE, the event is complete.
     effective_status = getattr(tournament, 'get_effective_status', lambda: tournament.status)()
-    if effective_status not in ('completed', 'archived', 'cancelled'):
-        try:
-            from apps.tournaments.models.result import TournamentResult as _TR
-            if _TR.objects.filter(
-                tournament_id=tournament.pk, is_deleted=False,
-            ).exclude(winner_id__isnull=True).exists():
-                effective_status = 'completed'
-        except Exception:
-            pass
+    # Authoritative completion override — same rule as the rest of the HUB
+    # surfaces. Picks up post-finalization signals even when the model status
+    # is still drifting.
+    if (
+        hub_completion_payload.get('completed')
+        and effective_status not in ('completed', 'archived', 'cancelled')
+    ):
+        effective_status = 'completed'
     effective_status_display = dict(Tournament.STATUS_CHOICES).get(
         effective_status, tournament.get_status_display()
     )
@@ -1880,6 +1909,8 @@ def _build_hub_context(request, tournament, registration, query_suffix='', is_st
         'current_stage': current_stage,
         'stage_display': stage_display,
         'participant_progression': participant_progression,
+        'hub_completion_payload': hub_completion_payload,
+        'is_post_completion': bool(hub_completion_payload.get('completed')),
 
         # Status
         'user_status': user_status,
@@ -2536,6 +2567,15 @@ class HubStateAPIView(LoginRequiredMixin, View):
         hub_critical_locked = _critical_actions_locked(request.user, tournament, registration)
         check_in_status = lobby.check_in_status if lobby else 'not_configured'
 
+        # Auto-converge (idempotent) so polled state reflects completed status.
+        try:
+            from apps.tournaments.services.completion_truth import (
+                ensure_post_finalization,
+            )
+            api_completion_payload = ensure_post_finalization(tournament)
+        except Exception:
+            api_completion_payload = {'completed': False}
+
         # Check-in state
         check_in = None
         if lobby:
@@ -2567,6 +2607,7 @@ class HubStateAPIView(LoginRequiredMixin, View):
         lifecycle_pipeline = _build_hub_lifecycle_pipeline(
             tournament,
             command_center=command_center,
+            completion_payload=api_completion_payload,
         )
 
         data = {
@@ -2708,13 +2749,25 @@ class HubUnifiedAPIView(LoginRequiredMixin, View):
                 ).first()
 
         phase_event = _get_next_phase_event(tournament, lobby, now)
+        # Auto-converge (idempotent) before composing unified payload.
+        try:
+            from apps.tournaments.services.completion_truth import (
+                ensure_post_finalization,
+            )
+            unified_completion_payload = ensure_post_finalization(tournament)
+        except Exception:
+            unified_completion_payload = {'completed': False}
         command_center = _resolve_hub_command_center(
             tournament, registration, request.user,
             now=now, check_in=check_in, check_in_status=check_in_status,
             hub_critical_locked=hub_critical_locked,
             is_staff_view=view_mode['is_staff_view'],
         )
-        lifecycle_pipeline = _build_hub_lifecycle_pipeline(tournament, command_center=command_center)
+        lifecycle_pipeline = _build_hub_lifecycle_pipeline(
+            tournament,
+            command_center=command_center,
+            completion_payload=unified_completion_payload,
+        )
 
         reg_count = Registration.objects.filter(
             tournament=tournament, is_deleted=False,
@@ -3031,62 +3084,28 @@ class HubPrizeClaimAPIView(LoginRequiredMixin, View):
         if not registration and not _is_tournament_staff_or_organizer(request.user, tournament):
             return _json_response({'error': 'not_registered'}, status=403, cache_control='no-store')
 
-        lock_resp = _forbidden_if_critical_locked(request, tournament, registration)
-        if lock_resp:
-            return lock_resp
+        from apps.tournaments.services.rewards_read_model import (
+            TournamentRewardsReadModel,
+        )
+
+        payload = TournamentRewardsReadModel.hub_payload(
+            tournament,
+            user=request.user,
+            registration=registration,
+        )
+        payload['claim_actions_locked'] = _critical_actions_locked(
+            request.user,
+            tournament,
+            registration,
+        )
+        if payload['claim_actions_locked']:
+            payload['claim_lock_reason'] = _critical_lock_reason(registration)
+
+        return _json_response(payload, cache_control='no-store')
 
         # ── Prize Pool Info ────────────────────────────
-        prize_pool = {
-            'total': str(tournament.prize_pool or 0),
-            'currency': tournament.prize_currency or 'BDT',
-            'distribution': tournament.prize_distribution or {},
-            'deltacoin': tournament.prize_deltacoin or 0,
-        }
-
         # ── User's prize transactions ─────────────────
-        user_prizes = PrizeTransaction.objects.filter(
-            tournament=tournament,
-            participant=registration,
-        ).select_related('claim').order_by('-created_at')
-
-        prizes = []
-        for pt in user_prizes:
-            claim = getattr(pt, 'claim', None)
-            prizes.append({
-                'id': pt.id,
-                'placement': pt.placement,
-                'placement_display': pt.get_placement_display(),
-                'amount': str(pt.amount),
-                'status': pt.status,
-                'claimed': claim is not None,
-                'claim_status': claim.status if claim else None,
-                'claim_payout_method': claim.payout_method if claim else None,
-                'paid_at': claim.paid_at.isoformat() if claim and claim.paid_at else None,
-            })
-
         # ── Tournament prizes overview (all placements) ──
-        all_prizes = PrizeTransaction.objects.filter(
-            tournament=tournament,
-        ).values('placement').annotate(
-            total=models.Sum('amount'),
-            count=models.Count('id'),
-        ).order_by('placement')
-
-        overview = []
-        for row in all_prizes:
-            overview.append({
-                'placement': row['placement'],
-                'total': str(row['total'] or 0),
-                'count': row['count'],
-            })
-
-        return _json_response({
-            'prize_pool': prize_pool,
-            'your_prizes': prizes,
-            'overview': overview,
-            'tournament_status': getattr(tournament, 'get_effective_status', lambda: tournament.status)(),
-        }, cache_control='no-store')
-
     def post(self, request, slug):
         tournament = get_object_or_404(Tournament, slug=slug)
         registration = _get_user_registration(request.user, tournament)

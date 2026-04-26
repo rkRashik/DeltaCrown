@@ -31,6 +31,7 @@ from django.db.models import Max, Q
 
 from apps.tournaments.models import (
     Bracket,
+    BracketNode,
     Match,
     Registration,
     Tournament,
@@ -93,7 +94,7 @@ class PlacementService:
                 'tied_with': tied_with or [],
             }
 
-        if result:
+        if result and result.winner_id:
             for rank, reg, source in (
                 (1, result.winner, 'final_winner'),
                 (2, result.runner_up, 'final_loser'),
@@ -103,12 +104,301 @@ class PlacementService:
                 if entry:
                     ordered.append(entry)
 
-            fourth = cls._derive_fourth_place(tournament, result)
+            fourth = result.fourth_place or cls._derive_fourth_place(tournament, result)
             entry = _entry(4, fourth, 'semifinal_loser_or_lb_final')
             if entry:
                 ordered.append(entry)
 
+        bracket_ordered = cls.derive_standings_from_completed_bracket_final(
+            tournament,
+            result=result,
+        )
+        if not ordered:
+            ordered = bracket_ordered
+        elif bracket_ordered and len(bracket_ordered) > len(ordered):
+            ordered = bracket_ordered
+
+        return cls._sanitize_unresolved_single_elim_standings(tournament, ordered)
+
+    @classmethod
+    def derive_standings_from_completed_bracket_final(
+        cls,
+        tournament: Tournament,
+        *,
+        result: Optional[TournamentResult] = None,
+    ) -> List[Dict[str, Any]]:
+        """
+        Derive top standings directly from the completed bracket final.
+
+        This is the legacy-safe path used when TournamentResult/final_standings
+        is missing. It does not write anything; callers that want persistence
+        should use persist_standings().
+        """
+        bracket, final_match = cls._completed_final_match(tournament, result=result)
+        if not final_match or not final_match.winner_id:
+            return []
+
+        winner = cls._registration_for_match_participant(
+            tournament,
+            final_match.winner_id,
+            cls._match_winner_name(final_match),
+        )
+        runner_up = cls._registration_for_match_participant(
+            tournament,
+            cls._match_loser_id(final_match),
+            cls._match_loser_name(final_match),
+        )
+        if not winner:
+            return []
+
+        ordered: List[Dict[str, Any]] = []
+        seen = set()
+
+        def _append(rank: int, reg: Optional[Registration], source: str) -> None:
+            if not reg or reg.pk in seen:
+                return
+            ordered.append({
+                'placement': rank,
+                'registration_id': reg.pk,
+                'team_name': _registration_label(reg),
+                'source': source,
+                'is_tied': False,
+                'tied_with': [],
+            })
+            seen.add(reg.pk)
+
+        _append(1, winner, 'bracket_final_winner')
+        _append(2, runner_up, 'bracket_final_loser')
+
+        bronze_match = cls._completed_bronze_match(tournament, bracket)
+        if bronze_match and bronze_match.winner_id:
+            bronze_winner = cls._registration_for_match_participant(
+                tournament,
+                bronze_match.winner_id,
+                cls._match_winner_name(bronze_match),
+            )
+            bronze_loser = cls._registration_for_match_participant(
+                tournament,
+                cls._match_loser_id(bronze_match),
+                cls._match_loser_name(bronze_match),
+            )
+            _append(3, bronze_winner, 'bronze_match_winner')
+            _append(4, bronze_loser, 'bronze_match_loser')
+
         return ordered
+
+    @classmethod
+    def _completed_final_match(
+        cls,
+        tournament: Tournament,
+        *,
+        result: Optional[TournamentResult] = None,
+    ) -> Tuple[Optional[Bracket], Optional[Match]]:
+        bracket = result.final_bracket if result and result.final_bracket_id else None
+        if not bracket:
+            try:
+                bracket = tournament.bracket
+            except Bracket.DoesNotExist:
+                bracket = None
+
+        base_filter = Q(tournament=tournament, is_deleted=False)
+        match_filter = base_filter & (Q(bracket=bracket) if bracket else Q())
+
+        final_match = (
+            Match.objects
+            .filter(match_filter)
+            .filter(state__in=[Match.COMPLETED, Match.FORFEIT])
+            .exclude(winner_id__isnull=True)
+            .exclude(bracket_node__bracket_type=BracketNode.THIRD_PLACE)
+            .order_by('-round_number', 'match_number', '-id')
+            .first()
+        )
+        if not final_match and bracket:
+            final_match = (
+                Match.objects
+                .filter(base_filter)
+                .filter(state__in=[Match.COMPLETED, Match.FORFEIT])
+                .exclude(winner_id__isnull=True)
+                .exclude(bracket_node__bracket_type=BracketNode.THIRD_PLACE)
+                .order_by('-round_number', 'match_number', '-id')
+                .first()
+            )
+        if final_match and not bracket:
+            bracket = final_match.bracket
+        return bracket, final_match
+
+    @staticmethod
+    def _completed_bronze_match(
+        tournament: Tournament,
+        bracket: Optional[Bracket],
+    ) -> Optional[Match]:
+        filters = Q(tournament=tournament, is_deleted=False)
+        if bracket:
+            filters &= Q(bracket=bracket)
+        return (
+            Match.objects
+            .filter(filters)
+            .filter(state__in=[Match.COMPLETED, Match.FORFEIT])
+            .exclude(winner_id__isnull=True)
+            .filter(bracket_node__bracket_type=BracketNode.THIRD_PLACE)
+            .order_by('-round_number', 'match_number', '-id')
+            .first()
+        )
+
+    @staticmethod
+    def _match_loser_id(match: Match) -> Optional[int]:
+        if match.loser_id:
+            return match.loser_id
+        if match.winner_id == match.participant1_id:
+            return match.participant2_id
+        if match.winner_id == match.participant2_id:
+            return match.participant1_id
+        return None
+
+    @staticmethod
+    def _match_winner_name(match: Match) -> str:
+        if match.winner_id == match.participant1_id:
+            return match.participant1_name or ''
+        if match.winner_id == match.participant2_id:
+            return match.participant2_name or ''
+        return ''
+
+    @classmethod
+    def _match_loser_name(cls, match: Match) -> str:
+        loser_id = cls._match_loser_id(match)
+        if loser_id == match.participant1_id:
+            return match.participant1_name or ''
+        if loser_id == match.participant2_id:
+            return match.participant2_name or ''
+        return ''
+
+    @classmethod
+    def _registration_for_match_participant(
+        cls,
+        tournament: Tournament,
+        participant_id: Optional[int],
+        participant_name: str = '',
+    ) -> Optional[Registration]:
+        if not participant_id and not participant_name:
+            return None
+        queryset = Registration.objects.select_related('user').filter(
+            tournament=tournament,
+            is_deleted=False,
+        )
+
+        lookup_order = []
+        participation_type = (getattr(tournament, 'participation_type', '') or '').lower()
+        if participation_type == Tournament.TEAM:
+            lookup_order = ['team_id', 'user_id', 'pk']
+        elif participation_type == Tournament.SOLO:
+            lookup_order = ['user_id', 'pk', 'team_id']
+        else:
+            lookup_order = ['pk', 'team_id', 'user_id']
+
+        for field_name in lookup_order:
+            if not participant_id:
+                continue
+            reg = queryset.filter(**{field_name: participant_id}).first()
+            if reg:
+                return reg
+
+        normalized_name = cls._normalize_participant_name(participant_name)
+        if normalized_name:
+            for reg in queryset:
+                if cls._normalize_participant_name(_registration_label(reg)) == normalized_name:
+                    return reg
+                user = getattr(reg, 'user', None)
+                if user and cls._normalize_participant_name(getattr(user, 'username', '')) == normalized_name:
+                    return reg
+
+        return None
+
+    @staticmethod
+    def _normalize_participant_name(value: str) -> str:
+        return ' '.join(str(value or '').strip().casefold().split())
+
+    @classmethod
+    def _semifinal_losers_from_finalists(
+        cls,
+        tournament: Tournament,
+        bracket: Optional[Bracket],
+        final_match: Match,
+        *,
+        winner_id: Optional[int],
+        runner_up_id: Optional[int],
+    ) -> List[Registration]:
+        if not winner_id or not runner_up_id or final_match.round_number <= 1:
+            return []
+
+        filters = Q(
+            tournament=tournament,
+            is_deleted=False,
+            round_number=final_match.round_number - 1,
+            state__in=[Match.COMPLETED, Match.FORFEIT],
+        )
+        if bracket:
+            filters &= Q(bracket=bracket)
+
+        finalist_ids = [winner_id, runner_up_id]
+        excluded = {winner_id, runner_up_id}
+        loser_ids: List[int] = []
+        for match in (
+            Match.objects
+            .filter(filters, winner_id__in=finalist_ids)
+            .order_by('match_number', 'id')
+        ):
+            loser_id = cls._match_loser_id(match)
+            if loser_id and loser_id not in excluded and loser_id not in loser_ids:
+                loser_ids.append(loser_id)
+
+        if not loser_ids:
+            return []
+
+        out = []
+        for match in (
+            Match.objects
+            .filter(filters, winner_id__in=finalist_ids)
+            .order_by('match_number', 'id')
+        ):
+            loser_id = cls._match_loser_id(match)
+            if not loser_id or loser_id in excluded:
+                continue
+            reg = cls._registration_for_match_participant(
+                tournament,
+                loser_id,
+                cls._match_loser_name(match),
+            )
+            if reg and reg not in out:
+                out.append(reg)
+        return out
+
+    @classmethod
+    def _sanitize_unresolved_single_elim_standings(
+        cls,
+        tournament: Tournament,
+        rows: List[Dict[str, Any]],
+    ) -> List[Dict[str, Any]]:
+        if not rows:
+            return []
+        try:
+            bracket = tournament.bracket
+        except Bracket.DoesNotExist:
+            bracket = None
+        fmt = (getattr(tournament, 'format', '') or '').replace('_', '-').lower()
+        structure = getattr(bracket, 'bracket_structure', None) or {}
+        structure_fmt = (structure.get('format') or '').replace('_', '-').lower()
+        if fmt != 'single-elimination' and structure_fmt != 'single-elimination':
+            return rows
+        if cls._completed_bronze_match(tournament, bracket):
+            return rows
+        fake_sources = {'semifinal_loser', 'semifinal_loser_or_lb_final'}
+        return [
+            row for row in rows
+            if not (
+                row.get('placement') in (3, 4) and
+                (row.get('source') or '') in fake_sources
+            )
+        ]
 
     # ── 4th place derivation ────────────────────────────────────────────
 
@@ -259,29 +549,101 @@ class PlacementService:
                 # (e.g. legacy tournaments with disputed/skipped matches). In
                 # that case, try to build standings from whatever bracket data
                 # exists WITHOUT creating a TournamentResult.
-                import logging as _log
-                _log.getLogger(__name__).warning(
-                    'WinnerDetermination failed for %s: %s — falling back to'
-                    ' bracket-only standings derivation', tournament.pk, det_err,
+                logger.warning(
+                    'WinnerDetermination failed for %s: %s; falling back to '
+                    'completed bracket-final derivation',
+                    tournament.pk,
+                    det_err,
                 )
                 result = TournamentResult.objects.filter(
                     tournament=tournament, is_deleted=False,
                 ).first()
                 if not result:
-                    # Still no result — nothing to save standings onto.
+                    result = cls._backfill_result_from_completed_final(
+                        tournament,
+                        actor=actor,
+                    )
+                if not result:
                     raise
 
         ordered = cls.build_final_standings(tournament)
         result.final_standings = ordered
+        update_fields = ['final_standings']
 
-        fourth_entry = next((e for e in ordered if e['placement'] == 4), None)
-        if fourth_entry and not result.fourth_place_id:
-            result.fourth_place_id = fourth_entry['registration_id']
+        for field_name, rank in (
+            ('runner_up_id', 2),
+            ('third_place_id', 3),
+            ('fourth_place_id', 4),
+        ):
+            value = cls._registration_id_for_rank(ordered, rank)
+            if value and not getattr(result, field_name):
+                setattr(result, field_name, value)
+                update_fields.append(field_name)
 
-        result.save(update_fields=['final_standings', 'fourth_place'])
+        result.save(update_fields=update_fields)
         return result
 
     # ── public payload ──────────────────────────────────────────────────
+
+    @classmethod
+    def _backfill_result_from_completed_final(
+        cls,
+        tournament: Tournament,
+        *,
+        actor=None,
+    ) -> Optional[TournamentResult]:
+        standings = cls.derive_standings_from_completed_bracket_final(tournament)
+        winner_entry = next((e for e in standings if e.get('placement') == 1), None)
+        if not winner_entry:
+            return None
+
+        bracket, final_match = cls._completed_final_match(tournament)
+        result, created = TournamentResult.objects.get_or_create(
+            tournament=tournament,
+            defaults={
+                'winner_id': winner_entry['registration_id'],
+                'runner_up_id': cls._registration_id_for_rank(standings, 2),
+                'third_place_id': cls._registration_id_for_rank(standings, 3),
+                'fourth_place_id': cls._registration_id_for_rank(standings, 4),
+                'final_bracket': bracket,
+                'final_standings': standings,
+                'determination_method': 'normal',
+                'rules_applied': {
+                    'source': 'completed_bracket_final_backfill',
+                    'final_match_id': final_match.pk if final_match else None,
+                    'tournament_id': tournament.pk,
+                },
+                'created_by': actor,
+            },
+        )
+        if not created:
+            update_fields = []
+            for field_name, rank in (
+                ('runner_up_id', 2),
+                ('third_place_id', 3),
+                ('fourth_place_id', 4),
+            ):
+                value = cls._registration_id_for_rank(standings, rank)
+                if value and not getattr(result, field_name):
+                    setattr(result, field_name, value)
+                    update_fields.append(field_name)
+            if not result.final_bracket_id and bracket:
+                result.final_bracket = bracket
+                update_fields.append('final_bracket')
+            if not result.final_standings:
+                result.final_standings = standings
+                update_fields.append('final_standings')
+            if update_fields:
+                result.save(update_fields=update_fields)
+        return result
+
+    @staticmethod
+    def _registration_id_for_rank(
+        standings: List[Dict[str, Any]],
+        rank: int,
+    ) -> Optional[int]:
+        entry = next((e for e in standings if e.get('placement') == rank), None)
+        return entry.get('registration_id') if entry else None
 
     @classmethod
     def standings_payload(cls, tournament: Tournament) -> Dict[str, Any]:
@@ -295,6 +657,19 @@ class PlacementService:
         ).select_related('winner', 'runner_up', 'third_place', 'fourth_place').first()
 
         if not result:
+            ordered = cls.derive_standings_from_completed_bracket_final(tournament)
+            if ordered:
+                return {
+                    'finalized': False,
+                    'standings': ordered,
+                    'top4': ordered[:4],
+                    'winner': cls._snapshot_for_rank(ordered, 1),
+                    'runner_up': cls._snapshot_for_rank(ordered, 2),
+                    'third_place': cls._snapshot_for_rank(ordered, 3),
+                    'fourth_place': cls._snapshot_for_rank(ordered, 4),
+                    'determination_method': 'bracket_final',
+                    'requires_review': False,
+                }
             return {
                 'finalized': False,
                 'standings': [],
@@ -304,6 +679,7 @@ class PlacementService:
         # Prefer persisted standings; fall back to live derivation.
         ordered = list(result.final_standings or []) or cls.build_final_standings(tournament)
 
+        ordered = cls._sanitize_unresolved_single_elim_standings(tournament, ordered)
         top4 = ordered[:4] if ordered else []
 
         return {
@@ -328,6 +704,19 @@ class PlacementService:
             } if result.fourth_place_id else None,
             'determination_method': result.determination_method,
             'requires_review': result.requires_review,
+        }
+
+    @staticmethod
+    def _snapshot_for_rank(
+        standings: List[Dict[str, Any]],
+        rank: int,
+    ) -> Optional[Dict[str, Any]]:
+        entry = next((e for e in standings if e.get('placement') == rank), None)
+        if not entry:
+            return None
+        return {
+            'registration_id': entry.get('registration_id'),
+            'team_name': entry.get('team_name') or '',
         }
 
 

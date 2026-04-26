@@ -8,6 +8,7 @@ to provide TOC-level bracket operations.
 import logging
 from typing import Any, Dict, List, Optional
 
+from django.core.exceptions import ValidationError
 from django.db.models import Q
 from django.utils import timezone
 
@@ -321,6 +322,21 @@ class TOCBracketsService:
         destruction of an existing bracket. Must reset first.
         """
         data = data or {}
+        if (
+            "third_place_match_enabled" in data or
+            "bronze_match_enabled" in data
+        ):
+            config = dict(getattr(tournament, "config", None) or {})
+            bracket_settings = dict(config.get("bracket_settings") or {})
+            enabled = bool(
+                data.get("third_place_match_enabled") or
+                data.get("bronze_match_enabled")
+            )
+            bracket_settings["third_place_match_enabled"] = enabled
+            bracket_settings["bronze_match_enabled"] = enabled
+            config["bracket_settings"] = bracket_settings
+            tournament.config = config
+            tournament.save(update_fields=["config"])
 
         existing = Bracket.objects.filter(tournament=tournament).first()
         if existing:
@@ -386,6 +402,23 @@ class TOCBracketsService:
                 )
 
         return {"status": "reset", "message": "Bracket reset. Generate a new one."}
+
+    @staticmethod
+    def create_bronze_match(tournament, user) -> Dict[str, Any]:
+        """Repair action: create a third-place match from known semifinal losers."""
+        try:
+            match = BracketService.create_bronze_match_from_semifinal_losers(
+                tournament.id,
+                actor=user,
+            )
+        except ValidationError as exc:
+            raise ValueError(str(exc))
+        from apps.tournaments.services.match_read_model import MatchReadModel
+        return {
+            "status": "created",
+            "message": "Bronze match created from semifinal losers.",
+            "match": MatchReadModel.for_tournament(tournament).by_id(match.id),
+        }
 
     @staticmethod
     def publish_bracket(tournament, user) -> Dict[str, Any]:

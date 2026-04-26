@@ -305,6 +305,21 @@ class TournamentDetailView(DetailView):
     def _get_phase_context(self, tournament, user):
         """Build phase-specific context for the dynamic detail view."""
         effective = getattr(tournament, 'get_effective_status', lambda: tournament.status)()
+        # Auto-converge on detail page load — same rule as TOC/HUB. The
+        # public detail page is the highest-traffic surface; if a tournament
+        # has a winner but status drifted to LIVE, this collapses it to
+        # 'completed' so the page renders the post-event experience.
+        try:
+            from apps.tournaments.services.completion_truth import (
+                ensure_post_finalization,
+            )
+            completion_payload = ensure_post_finalization(tournament)
+            if completion_payload.get('completed') and effective not in (
+                'completed', 'archived',
+            ):
+                effective = 'completed'
+        except Exception:
+            pass
         if effective in ('completed', 'archived'):
             cache_key = f'detail_phase_{tournament.id}'
             cached = cache.get(cache_key)
@@ -3030,20 +3045,34 @@ def tournament_prize_overview(request, slug):
     """
     Public read-only prize overview for the tournament detail page.
 
-    Returns the merged prize configuration + live placements payload from
-    PrizeConfigService.public_payload(). No auth required — this is the same
-    data shown to spectators on the public detail page.
+    Returns the spectator-safe rewards read model. No auth required — this is
+    the same data shown to public viewers on the detail page.
     """
     tournament = get_object_or_404(
         Tournament.objects.select_related('game', 'organizer'),
         slug=slug,
     )
 
-    cache_key = f'public_prize_overview_v1_{tournament.id}'
+    from apps.tournaments.services.completion_truth import (
+        is_tournament_effectively_completed,
+    )
+    from apps.tournaments.services.rewards_read_model import (
+        TournamentRewardsReadModel,
+    )
+
+    completed = is_tournament_effectively_completed(tournament)
+    cache_key = f'public_prize_overview_v2_{tournament.id}'
+    if completed:
+        cache.delete(f'public_prize_overview_v1_{tournament.id}')
+        cache.delete(cache_key)
+        payload = TournamentRewardsReadModel.public_payload(tournament)
+        response = JsonResponse(payload)
+        response['Cache-Control'] = 'no-store, max-age=0'
+        return response
+
     payload = cache.get(cache_key)
     if payload is None:
-        from apps.tournaments.services.prize_config_service import PrizeConfigService
-        payload = PrizeConfigService.public_payload(tournament)
+        payload = TournamentRewardsReadModel.public_payload(tournament)
         cache.set(cache_key, payload, timeout=30)
 
     return JsonResponse(payload)

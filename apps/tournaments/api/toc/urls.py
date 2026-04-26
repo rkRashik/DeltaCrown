@@ -98,6 +98,14 @@ urlpatterns = [
     path('<slug:slug>/prizes/', prizes.PrizeConfigView.as_view(), name='prizes-config'),
     path('<slug:slug>/prizes/save/', prizes.PrizeConfigSaveView.as_view(), name='prizes-config-save'),
     path('<slug:slug>/prizes/publish/', prizes.PrizePublishView.as_view(), name='prizes-publish'),
+    path('<slug:slug>/prizes/recipients/', prizes.PrizeRecipientSearchView.as_view(), name='prizes-recipient-search'),
+    path('<slug:slug>/prizes/placements/assign/', prizes.PrizePlacementAssignView.as_view(), name='prizes-placement-assign'),
+    path('<slug:slug>/prizes/bronze/create/', prizes.PrizeBronzeCreateView.as_view(), name='prizes-bronze-create'),
+    path(
+        '<slug:slug>/prizes/claims/<int:claim_id>/action/',
+        prizes.PrizeClaimActionView.as_view(),
+        name='prizes-claim-action',
+    ),
 
     # ── Bounties (S4-B10) ──
     path('<slug:slug>/bounties/', payments.BountyListCreateView.as_view(), name='bounties'),
@@ -112,6 +120,7 @@ urlpatterns = [
     path('<slug:slug>/brackets/', brackets.BracketGetView.as_view(), name='brackets'),
     path('<slug:slug>/brackets/generate/', brackets.BracketGenerateView.as_view(), name='brackets-generate'),
     path('<slug:slug>/brackets/reset/', brackets.BracketResetView.as_view(), name='brackets-reset'),
+    path('<slug:slug>/brackets/bronze/create/', brackets.BracketBronzeCreateView.as_view(), name='brackets-bronze-create'),
     path('<slug:slug>/brackets/publish/', brackets.BracketPublishView.as_view(), name='brackets-publish'),
     path('<slug:slug>/brackets/seeds/', brackets.BracketSeedsView.as_view(), name='brackets-seeds'),
 

@@ -909,7 +909,7 @@
 
                 {% if show_prizes %}
                 <button data-detail-tab="prizes" class="relative py-5 px-4 text-sm font-gaming font-bold uppercase tracking-[0.15em] transition-colors whitespace-nowrap group" :class="activeTab === 'prizes' ? 'text-white' : 'text-gray-500 hover:text-gray-300'" @click="setTab('prizes')">
-                    Prizes
+                    {% if is_completed_phase %}Results &amp; Rewards{% else %}Prizes{% endif %}
                     <div class="absolute bottom-0 left-0 w-full h-1 theme-bg transform origin-left transition-transform duration-300" :class="activeTab === 'prizes' ? 'scale-x-100 theme-glow' : 'scale-x-0 group-hover:scale-x-50 opacity-50'"></div>
                 </button>
                 {% endif %}
@@ -1534,6 +1534,14 @@
                         </div>
                     </div>
 
+                    <div id="prize-engine-podium-public-wrap" class="hidden glass-panel rounded-[2rem] overflow-hidden">
+                        <div class="px-8 py-5 border-b border-white/5 bg-white/[0.02] flex items-center gap-3">
+                            <i data-lucide="trophy" class="w-4 h-4 text-dc-gold"></i>
+                            <h3 class="text-sm font-bold text-white uppercase tracking-widest">Final Podium</h3>
+                        </div>
+                        <div id="prize-engine-podium-public" class="grid grid-cols-1 md:grid-cols-3 gap-4 p-6"></div>
+                    </div>
+
                     <div class="glass-panel rounded-[2rem] overflow-hidden" id="prize-distribution-panel" data-prize-overview-url="{% url 'tournaments:detail_prize_overview' slug=tournament.slug %}">
                         <div class="px-8 py-5 border-b border-white/5 bg-white/[0.02] flex items-center justify-between">
                             <h3 class="text-sm font-bold text-white uppercase tracking-widest">Placement Distribution</h3>
@@ -1571,12 +1579,26 @@
                     </div>
 
                     {# Special Awards — populated dynamically when configured by organizer. #}
+                    <div id="prize-engine-standings-wrap" class="hidden glass-panel rounded-[2rem] overflow-hidden">
+                        <div class="px-8 py-5 border-b border-white/5 bg-white/[0.02] flex items-center gap-3">
+                            <i data-lucide="list-ordered" class="w-4 h-4 text-dc-cyan"></i>
+                            <h3 class="text-sm font-bold text-white uppercase tracking-widest">Final Standings</h3>
+                        </div>
+                        <div id="prize-engine-standings" class="divide-y divide-white/5"></div>
+                    </div>
+
                     <div id="prize-engine-special-awards" class="hidden glass-panel rounded-[2rem] overflow-hidden">
                         <div class="px-8 py-5 border-b border-white/5 bg-white/[0.02] flex items-center gap-3">
                             <i data-lucide="award" class="w-4 h-4 text-dc-gold"></i>
-                            <h3 class="text-sm font-bold text-white uppercase tracking-widest">Special Awards</h3>
+                            <h3 class="text-sm font-bold text-white uppercase tracking-widest">Achievements &amp; Awards</h3>
                         </div>
                         <div id="prize-engine-special-list" class="grid grid-cols-1 md:grid-cols-2 gap-4 p-6"></div>
+                    </div>
+
+                    <div id="prize-engine-panel-empty" class="hidden glass-panel rounded-[2rem] p-8 text-center">
+                        <i data-lucide="trophy" class="w-10 h-10 text-gray-700 mx-auto mb-3"></i>
+                        <p class="text-sm font-bold text-gray-400">Results and rewards are not published yet</p>
+                        <p id="prize-engine-panel-empty-detail" class="text-xs text-gray-600 mt-1">Check back after the tournament is completed.</p>
                     </div>
 
                     {# Renderer: static/tournaments/js/detail-prize-engine.js — no inline script #}
@@ -3358,5 +3380,5 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 });
 </script>
-<script src="{% static 'tournaments/js/detail-prize-engine.js' %}?v=20260425a"></script>
+<script src="{% static 'tournaments/js/detail-prize-engine.js' %}?v=20260426a"></script>
 {% endblock %}

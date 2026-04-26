@@ -472,3 +472,454 @@ class TestIdempotency:
         assert t.status == Tournament.COMPLETED
         # tournament_end was set on first run; second run must not bump it.
         assert t.tournament_end == first_end
+
+
+# ── Auto-convergence: status=LIVE + winner exists → all surfaces show completed
+
+
+@pytest.mark.django_db
+class TestAutoConvergenceWhenStatusStillLive:
+    """
+    Regression coverage for the "TOC says LIVE despite winner" symptom.
+
+    Setup: TournamentResult with winner exists, but Tournament.status is
+    still LIVE (auto-finalize never ran or was rolled back). Every overview
+    surface — TOC overview status, TOC lifecycle stepper, HUB lifecycle
+    pipeline, HUB command center — must converge to "completed" without
+    requiring a manual finalize click.
+    """
+
+    def _make_live_with_winner(self, organizer, game, slug):
+        t = _make_tournament(organizer, game, slug=slug)
+        # Status is intentionally left LIVE.
+        assert t.status == Tournament.LIVE
+
+        u_a = User.objects.create_user(
+            username=f'{slug}-a', email=f'{slug}-a@t.t', password='x',
+        )
+        u_b = User.objects.create_user(
+            username=f'{slug}-b', email=f'{slug}-b@t.t', password='x',
+        )
+        w = _make_registration(t, u_a)
+        l = _make_registration(t, u_b)
+        _make_completed_match(t, winner_reg=w, loser_reg=l)
+        _make_result_with_winner(t, w, l)
+        return t, u_a, u_b, w, l
+
+    def test_completion_truth_predicate_fires_on_winner(
+        self, organizer, game,
+    ):
+        from apps.tournaments.services.completion_truth import (
+            is_tournament_effectively_completed,
+        )
+        t, *_ = self._make_live_with_winner(organizer, game, 'conv-truth')
+        assert is_tournament_effectively_completed(t) is True
+
+    def test_completion_payload_exposes_winner_when_status_still_live(
+        self, organizer, game,
+    ):
+        from apps.tournaments.services.completion_truth import (
+            get_tournament_completion_payload,
+        )
+        t, u_a, *_ = self._make_live_with_winner(organizer, game, 'conv-payload')
+
+        payload = get_tournament_completion_payload(t)
+
+        assert payload['completed'] is True
+        assert payload['has_winner'] is True
+        assert payload['winner']['team_name'] == u_a.username
+
+    def test_ensure_post_finalization_persists_status_completed(
+        self, organizer, game,
+    ):
+        from apps.tournaments.services.completion_truth import (
+            ensure_post_finalization,
+        )
+        t, *_ = self._make_live_with_winner(organizer, game, 'conv-persist')
+        assert t.status == Tournament.LIVE
+
+        payload = ensure_post_finalization(t)
+
+        t.refresh_from_db()
+        assert payload['completed'] is True
+        assert payload['converged'] is True
+        assert t.status == Tournament.COMPLETED
+
+    def test_ensure_post_finalization_idempotent_double_run(
+        self, organizer, game,
+    ):
+        from apps.tournaments.services.completion_truth import (
+            ensure_post_finalization,
+        )
+        t, *_ = self._make_live_with_winner(organizer, game, 'conv-idem')
+
+        ensure_post_finalization(t)
+        t.refresh_from_db()
+        ann_count_first = TournamentAnnouncement.objects.filter(
+            tournament=t, is_pinned=True,
+        ).count()
+
+        # Second call after status already converged — must not duplicate.
+        ensure_post_finalization(t)
+        ann_count_second = TournamentAnnouncement.objects.filter(
+            tournament=t, is_pinned=True,
+        ).count()
+
+        assert ann_count_first == 1
+        assert ann_count_second == 1
+
+    def test_toc_overview_returns_completed_status_when_winner_exists(
+        self, organizer, game,
+    ):
+        from apps.tournaments.api.toc.service import TOCService
+
+        t, *_ = self._make_live_with_winner(organizer, game, 'conv-toc-status')
+
+        overview = TOCService.get_overview(t)
+
+        assert overview['status'] == Tournament.COMPLETED
+        assert 'completion' in overview
+        assert overview['completion']['completed'] is True
+
+    def test_toc_lifecycle_stepper_marks_completed_done_when_winner_exists(
+        self, organizer, game,
+    ):
+        from apps.tournaments.api.toc.service import TOCService
+
+        t, *_ = self._make_live_with_winner(
+            organizer, game, 'conv-toc-stepper',
+        )
+
+        overview = TOCService.get_overview(t)
+        stepper = overview['lifecycle_stepper']
+
+        # Final step is 'completed' and renders as 'done' (terminal lit state)
+        last_step = stepper['steps'][-1]
+        assert last_step['key'] == 'completed'
+        assert last_step['status'] == 'done'
+
+        # No prior step shows 'pending' once the tournament is over.
+        for step in stepper['steps'][:-1]:
+            assert step['status'] in ('done', 'active'), (
+                f"step {step['key']} unexpectedly pending after completion"
+            )
+
+        # Next-action label must NOT mention live knockout.
+        next_action = stepper.get('next_action') or {}
+        assert 'knockout stage is live' not in next_action.get('label', '').lower()
+        assert next_action.get('tab') == 'overview'
+
+    def test_toc_quick_actions_do_not_offer_live_only_buttons(
+        self, organizer, game,
+    ):
+        from apps.tournaments.api.toc.service import TOCService
+
+        t, *_ = self._make_live_with_winner(
+            organizer, game, 'conv-toc-actions',
+        )
+
+        overview = TOCService.get_overview(t)
+        action_ids = {a.get('id') for a in overview.get('quick_actions') or []}
+
+        # No "broadcast_update" / "open_checkin" / "start_tournament" once over.
+        assert 'broadcast_update' not in action_ids
+        assert 'open_checkin' not in action_ids
+        assert 'start_tournament' not in action_ids
+
+    def test_hub_lifecycle_pipeline_marks_rewards_active_when_winner_exists(
+        self, organizer, game,
+    ):
+        from apps.tournaments.views.hub import _build_hub_lifecycle_pipeline
+
+        t, *_ = self._make_live_with_winner(organizer, game, 'conv-hub-rewards')
+
+        # Convergence runs separately; the pipeline should still resolve to
+        # 'rewards' even without a converged status (defensive override).
+        pipeline = _build_hub_lifecycle_pipeline(
+            t,
+            command_center={'show': True},
+            completion_payload={'completed': True},
+        )
+
+        assert pipeline['active_key'] == 'rewards'
+        assert pipeline['completed'] is True
+        assert pipeline['progress_percent'] == 100
+
+    def test_hub_command_center_never_shows_awaiting_opponent_when_completed(
+        self, organizer, game,
+    ):
+        from apps.tournaments.views.hub import _resolve_hub_command_center
+
+        t, u_a, u_b, w, l = self._make_live_with_winner(
+            organizer, game, 'conv-hub-target-intel',
+        )
+        # Don't run convergence first — verify the command center detects
+        # completion on its own via the truth helper.
+
+        payload_winner = _resolve_hub_command_center(
+            t, registration=w, user=u_a,
+        )
+        payload_runner = _resolve_hub_command_center(
+            t, registration=l, user=u_b,
+        )
+
+        for payload in (payload_winner, payload_runner):
+            assert payload['show'] is True
+            assert payload['lobby_state'] == 'completed'
+            assert payload['cta_label'] == 'View Final Standings'
+            blob = (
+                str(payload.get('title', '')) + ' ' +
+                str(payload.get('subtitle', '')) + ' ' +
+                str(payload.get('hint', ''))
+            ).lower()
+            assert 'awaiting opponent' not in blob
+            assert 'awaiting opponent assignment' not in blob
+
+
+# ── FinalizeView idempotent UX ─────────────────────────────────────────────
+
+
+@pytest.mark.django_db
+class TestFinalizeViewIdempotentUX:
+    """
+    The frontend must read FinalizeView's idempotent response as success,
+    not an error. We verify the response shape and re-running the pipeline
+    does not duplicate announcements.
+    """
+
+    def test_finalize_already_completed_returns_success_with_idempotent_flag(
+        self, organizer, game, player_one, player_two,
+    ):
+        from rest_framework.test import APIClient
+        from django.urls import reverse
+
+        t = _make_tournament(
+            organizer, game, slug='conv-finalize-1',
+            status=Tournament.COMPLETED,
+        )
+        w = _make_registration(t, player_one)
+        l = _make_registration(t, player_two)
+        _make_completed_match(t, winner_reg=w, loser_reg=l)
+        _make_result_with_winner(t, w, l)
+
+        client = APIClient()
+        client.force_authenticate(user=organizer)
+        url = reverse('toc_api:lifecycle-finalize', kwargs={'slug': t.slug})
+        resp = client.post(url, {}, format='json')
+
+        assert resp.status_code == 200
+        assert resp.data['finalized'] is True
+        assert resp.data.get('idempotent') is True
+        assert resp.data.get('already_completed') is True
+        # Message is human-friendly, not an error string.
+        assert 'already finalized' not in resp.data['message'].lower()
+
+    def test_finalize_idempotent_path_does_not_duplicate_announcements(
+        self, organizer, game, player_one, player_two,
+    ):
+        from rest_framework.test import APIClient
+        from django.urls import reverse
+
+        t = _make_tournament(
+            organizer, game, slug='conv-finalize-2',
+            status=Tournament.COMPLETED,
+        )
+        w = _make_registration(t, player_one)
+        l = _make_registration(t, player_two)
+        _make_completed_match(t, winner_reg=w, loser_reg=l)
+        _make_result_with_winner(t, w, l)
+
+        client = APIClient()
+        client.force_authenticate(user=organizer)
+        url = reverse('toc_api:lifecycle-finalize', kwargs={'slug': t.slug})
+
+        client.post(url, {}, format='json')
+        client.post(url, {}, format='json')
+        client.post(url, {}, format='json')
+
+        ann_count = TournamentAnnouncement.objects.filter(
+            tournament=t, is_pinned=True,
+        ).count()
+        assert ann_count == 1
+
+
+# ── Prize winner binding fallback ──────────────────────────────────────────
+
+
+@pytest.mark.django_db
+class TestPrizePayloadFallback:
+    """
+    When a TournamentResult exists with winner FK fields populated but
+    ``final_standings`` is empty (legacy tournament, partial pipeline run),
+    the prize payload must still bind winner names to placement rows 1..4
+    via direct fallback to TournamentResult.{winner,runner_up,third_place,
+    fourth_place}.
+    """
+
+    def test_prize_payload_binds_winners_when_final_standings_empty(
+        self, organizer, game, player_one, player_two,
+    ):
+        from apps.tournaments.services.rewards_read_model import (
+            TournamentRewardsReadModel,
+        )
+
+        t = _make_tournament(organizer, game, slug='prize-fallback-1')
+        w = _make_registration(t, player_one)
+        l = _make_registration(t, player_two)
+        _make_completed_match(t, winner_reg=w, loser_reg=l)
+        result = _make_result_with_winner(t, w, l)
+
+        # Force final_standings to be empty so we exercise the fallback.
+        result.final_standings = []
+        result.save(update_fields=['final_standings'])
+        # Sanity: re-read confirms empty.
+        result.refresh_from_db()
+        assert result.final_standings == []
+
+        payload = TournamentRewardsReadModel.public_payload(t)
+
+        # The rank-1 placement entry must expose a winner with the team_name.
+        rank1 = next((p for p in payload['placements'] if p['rank'] == 1), None)
+        assert rank1 is not None
+        assert rank1['winner'] is not None, (
+            'rank 1 winner should bind from TournamentResult.winner '
+            'even when final_standings is empty'
+        )
+        assert rank1['winner']['team_name'] == player_one.username
+
+        rank2 = next((p for p in payload['placements'] if p['rank'] == 2), None)
+        if rank2 is not None:
+            assert rank2['winner'] is not None
+            assert rank2['winner']['team_name'] == player_two.username
+
+    def test_prize_payload_fallback_is_read_only_when_standings_empty(
+        self, organizer, game, player_one, player_two,
+    ):
+        """The fallback path binds winners without mutating final_standings."""
+        from apps.tournaments.services.rewards_read_model import (
+            TournamentRewardsReadModel,
+        )
+
+        t = _make_tournament(organizer, game, slug='prize-fallback-2')
+        w = _make_registration(t, player_one)
+        l = _make_registration(t, player_two)
+        _make_completed_match(t, winner_reg=w, loser_reg=l)
+        result = _make_result_with_winner(t, w, l)
+        result.final_standings = []
+        result.save(update_fields=['final_standings'])
+
+        TournamentRewardsReadModel.public_payload(t)
+
+        result.refresh_from_db()
+        assert result.final_standings == []
+
+    def test_prize_payload_no_awaiting_winner_when_result_exists(
+        self, organizer, game, player_one, player_two,
+    ):
+        """
+        Smoke test: regardless of how empty the model is, if result.winner
+        exists we must bind the winner — never expose 'awaiting' state for
+        rank 1.
+        """
+        from apps.tournaments.services.rewards_read_model import (
+            TournamentRewardsReadModel,
+        )
+
+        t = _make_tournament(organizer, game, slug='prize-fallback-3')
+        w = _make_registration(t, player_one)
+        l = _make_registration(t, player_two)
+        _make_completed_match(t, winner_reg=w, loser_reg=l)
+        result = _make_result_with_winner(t, w, l)
+        result.final_standings = []
+        result.save(update_fields=['final_standings'])
+
+        payload = TournamentRewardsReadModel.public_payload(t)
+        rank1 = next((p for p in payload['placements'] if p['rank'] == 1), None)
+
+        assert rank1 is not None
+        # The frontend renders 'Awaiting winner' when payload.winner is None.
+        # Our payload must never produce that for an existing result.
+        assert rank1['winner'] is not None
+        assert rank1['winner']['team_name']
+
+
+# ── HUB template renders Final Result card (no Awaiting Opponent text) ────
+
+
+@pytest.mark.django_db
+class TestHubOverviewTemplate:
+    """
+    The HUB overview template must:
+      * Hide the legacy Target Intel card when ``is_post_completion`` is True.
+      * Render a Final Result card with Champion / Runner-Up / Third names.
+      * Never include the "Awaiting Opponent Assignment" string in completed
+        renders (regardless of JS state).
+    """
+
+    def _render_overview_tab(self, tournament, registration, user):
+        from django.template.loader import get_template
+        from django.test import RequestFactory
+        from apps.tournaments.views.hub import _build_hub_context
+
+        request = RequestFactory().get(f'/tournaments/{tournament.slug}/hub/')
+        request.user = user
+        ctx = _build_hub_context(request, tournament, registration)
+        ctx['request'] = request
+        return get_template(
+            'tournaments/hub/_tab_overview.html'
+        ).render(ctx)
+
+    def test_completed_overview_hides_target_intel_and_shows_final_result(
+        self, organizer, game, player_one, player_two,
+    ):
+        t = _make_tournament(organizer, game, slug='hub-tpl-1')
+        w = _make_registration(t, player_one)
+        l = _make_registration(t, player_two)
+        _make_completed_match(t, winner_reg=w, loser_reg=l)
+        _make_result_with_winner(t, w, l)
+        # Convergence runs inside _build_hub_context.
+
+        html = self._render_overview_tab(t, registration=w, user=player_one)
+
+        # No legacy Target Intel ID in the rendered DOM
+        assert 'id="hub-overview-intel-card"' not in html
+        # Final Result card is rendered
+        assert 'hub-overview-final-result-card' in html
+        # Champion name appears in the card
+        assert player_one.username in html
+        # No "Awaiting Opponent Assignment" anywhere
+        assert 'Awaiting Opponent Assignment' not in html
+        assert 'Awaiting Opponent' not in html
+
+    def test_completed_overview_shows_view_final_standings_and_view_prizes(
+        self, organizer, game, player_one, player_two,
+    ):
+        t = _make_tournament(organizer, game, slug='hub-tpl-2')
+        w = _make_registration(t, player_one)
+        l = _make_registration(t, player_two)
+        _make_completed_match(t, winner_reg=w, loser_reg=l)
+        _make_result_with_winner(t, w, l)
+
+        html = self._render_overview_tab(t, registration=w, user=player_one)
+
+        assert 'View Final Standings' in html
+        assert 'View Prizes' in html
+
+    def test_pre_completion_overview_still_renders_target_intel(
+        self, organizer, game, player_one, player_two,
+    ):
+        """Sanity: live tournaments still show the legacy widget."""
+        t = _make_tournament(organizer, game, slug='hub-tpl-3')
+        # No TournamentResult, no completed match → still LIVE.
+        w = _make_registration(t, player_one)
+        Registration.objects.create(
+            tournament=t,
+            user=player_two,
+            status=Registration.CONFIRMED,
+            registration_data={},
+        )
+
+        html = self._render_overview_tab(t, registration=w, user=player_one)
+
+        assert 'id="hub-overview-intel-card"' in html
+        assert 'hub-overview-final-result-card' not in html

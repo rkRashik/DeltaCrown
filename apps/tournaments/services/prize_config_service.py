@@ -50,8 +50,6 @@ from typing import Any, Dict, List, Optional
 from django.utils import timezone
 
 from apps.tournaments.models import Tournament
-from apps.tournaments.services.placement_service import PlacementService
-
 logger = logging.getLogger(__name__)
 
 
@@ -147,64 +145,15 @@ class PrizeConfigService:
     @classmethod
     def public_payload(cls, tournament: Tournament) -> Dict[str, Any]:
         """
-        HUB-facing payload: prize config merged with live placements.
+        Public/HUB-compatible payload: prize config merged with live placements.
 
-        Each placement in the response carries the optional registration_id /
-        team_name when the tournament has been finalized, so the HUB can show
-        winners' names alongside the prize amounts.
+        Delegates to TournamentRewardsReadModel so public, HUB, and TOC
+        surfaces share one read-side truth. Kept here for legacy callers.
         """
-        cfg = cls.get_config(tournament)
-        placements_payload = PlacementService.standings_payload(tournament)
-        finalized = bool(placements_payload.get('finalized'))
-        standings = placements_payload.get('standings') or []
-        by_rank = {int(s.get('placement') or 0): s for s in standings if s}
-
-        merged_placements = []
-        for entry in cfg.get('placements', []):
-            rank = int(entry.get('rank') or 0)
-            standing = by_rank.get(rank) if finalized else None
-            merged_placements.append({
-                'rank': rank,
-                'rank_label': _ordinal(rank) if rank else '',
-                'title': entry.get('title') or _ordinal(rank),
-                'percent': int(entry.get('percent') or 0),
-                'fiat': int(entry.get('fiat') or 0),
-                'coins': int(entry.get('coins') or 0),
-                'winner': {
-                    'registration_id': standing.get('registration_id'),
-                    'team_name': standing.get('team_name'),
-                } if standing else None,
-            })
-
-        # Annotate special awards with awaiting-recipient state for public UI.
-        raw_awards = list(cfg.get('special_awards') or [])
-        public_awards = []
-        for a in raw_awards:
-            public_awards.append({
-                'id': a.get('id', ''),
-                'title': a.get('title', ''),
-                'description': a.get('description', ''),
-                'type': a.get('type', 'cash'),
-                'icon': a.get('icon', 'medal'),
-                'fiat': int(a.get('fiat') or 0),
-                'coins': int(a.get('coins') or 0),
-                'reward_text': a.get('reward_text', ''),
-                'recipient_id': a.get('recipient_id'),
-                'recipient_name': a.get('recipient_name') or None,
-                'awaiting_recipient': not bool(a.get('recipient_name') or a.get('recipient_id')),
-            })
-
-        return {
-            'currency': cfg.get('currency') or 'BDT',
-            'fiat_pool': int(cfg.get('fiat_pool') or 0),
-            'coin_pool': int(cfg.get('coin_pool') or 0),
-            'placements': merged_placements,
-            'special_awards': public_awards,
-            'certificates_enabled': bool(cfg.get('certificates_enabled', True)),
-            'finalized': finalized,
-            'top4': placements_payload.get('top4') or [],
-            'requires_review': placements_payload.get('requires_review', False),
-        }
+        from apps.tournaments.services.rewards_read_model import (
+            TournamentRewardsReadModel,
+        )
+        return TournamentRewardsReadModel.public_payload(tournament)
 
     # ── internals ───────────────────────────────────────────────────────
 
@@ -332,7 +281,32 @@ class PrizeConfigService:
             }
             for p in (out.get('placements') or []) if isinstance(p, dict)
         ]
-        out['special_awards'] = list(out.get('special_awards') or [])
+        awards: List[Dict[str, Any]] = []
+        for raw in out.get('special_awards') or []:
+            if not isinstance(raw, dict):
+                continue
+            title = str(raw.get('title') or '').strip()[:120]
+            if not title:
+                continue
+            atype = str(raw.get('type') or 'cash').lower()
+            if atype not in _VALID_AWARD_TYPES:
+                atype = 'cash'
+            recipient_id = _to_int(raw.get('recipient_id'), 0) or None
+            recipient_name = str(raw.get('recipient_name') or '').strip()[:120]
+            awards.append({
+                'id': str(raw.get('id') or '').strip()[:60] or _slugify(title),
+                'title': title,
+                'description': str(raw.get('description') or '').strip()[:400],
+                'type': atype,
+                'icon': str(raw.get('icon') or 'medal')[:40],
+                'fiat': _to_int(raw.get('fiat'), 0),
+                'coins': _to_int(raw.get('coins'), 0),
+                'reward_text': str(raw.get('reward_text') or '').strip()[:240],
+                'recipient_id': recipient_id,
+                'recipient_name': recipient_name,
+                'awaiting_recipient': not bool(recipient_id or recipient_name),
+            })
+        out['special_awards'] = awards
         out['certificates_enabled'] = bool(out.get('certificates_enabled', True))
         return out
 

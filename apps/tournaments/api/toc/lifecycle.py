@@ -223,9 +223,14 @@ class FinalizeView(TOCBaseView):
             return Response({
                 'finalized': True,
                 'idempotent': True,
+                'already_completed': True,
                 'status': self.tournament.status,
                 'status_display': self.tournament.get_status_display(),
-                'message': 'Tournament already finalized.',
+                'message': (
+                    'Finalization confirmed. Standings, prizes, achievements, '
+                    'and announcements are up to date. Refresh to see the '
+                    'completed state.'
+                ),
             })
 
         finalized, reason = TournamentLifecycleService.maybe_finalize_tournament(

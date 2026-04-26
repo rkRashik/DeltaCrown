@@ -78,6 +78,33 @@ class BracketResetView(TOCBaseView):
         return Response(data)
 
 
+class BracketBronzeCreateView(TOCBaseView):
+    """POST /api/toc/<slug>/brackets/bronze/create/"""
+
+    def post(self, request, slug):
+        try:
+            data = TOCBracketsService.create_bronze_match(
+                self.tournament,
+                request.user,
+            )
+            bump_toc_scopes(
+                self.tournament.id,
+                'brackets',
+                'matches',
+                'overview',
+                'analytics',
+                'standings',
+                'prizes',
+            )
+            cache.delete(f'public_prize_overview_v1_{self.tournament.id}')
+            cache.delete(f'public_prize_overview_v2_{self.tournament.id}')
+            return Response(data, status=status.HTTP_201_CREATED)
+        except ValueError as e:
+            return Response(
+                {"error": str(e)}, status=status.HTTP_400_BAD_REQUEST
+            )
+
+
 class BracketPublishView(TOCBaseView):
     """S5-B3: POST /api/toc/<slug>/brackets/publish/"""
 

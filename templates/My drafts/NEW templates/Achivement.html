@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="en" class="dark antialiased overflow-x-hidden">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeltaCrown - Ultra Premium Tournament Engine V4</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet">
+    
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.3/dist/cdn.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Outfit', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        'dc-dark': '#030305',
+                        'dc-surface': '#0A0A0F',
+                        'dc-panel': '#12121A',
+                        'dc-border': '#1F1F2E',
+                        'dc-cyan': '#00E5FF',
+                        'dc-cyan-dim': 'rgba(0, 229, 255, 0.15)',
+                        'tier-crown': '#8B5CF6',
+                        'tier-sov': '#3B82F6',
+                        'tier-van': '#10B981',
+                        'crown-gold': '#FFD700'
+                    },
+                    animation: {
+                        'shimmer': 'shimmer 2s linear infinite',
+                        'float': 'float 4s ease-in-out infinite',
+                        'glow-pulse': 'glow-pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'slide-down': 'slide-down 0.3s ease-out forwards',
+                    },
+                    keyframes: {
+                        shimmer: {
+                            from: { backgroundPosition: '200% 0' },
+                            to: { backgroundPosition: '-200% 0' }
+                        },
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-8px)' },
+                        },
+                        'glow-pulse': {
+                            '0%, 100%': { opacity: 0.5, transform: 'scale(1)' },
+                            '50%': { opacity: 0.8, transform: 'scale(1.05)' },
+                        },
+                        'slide-down': {
+                            '0%': { opacity: 0, transform: 'translateY(-10px)' },
+                            '100%': { opacity: 1, transform: 'translateY(0)' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        body { background-color: #030305; color: #E2E8F0; }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #030305; }
+        ::-webkit-scrollbar-thumb { background: #1F1F2E; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #00E5FF; }
+
+        /* Glass & Surfaces */
+        .surface-glass { background: rgba(18, 18, 26, 0.6); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.03); }
+        .surface-panel { background: #12121A; border: 1px solid #1F1F2E; }
+        
+        /* Typography & Glows */
+        .text-glow-cyan { text-shadow: 0 0 15px rgba(0, 229, 255, 0.5); }
+        .text-glow-gold { text-shadow: 0 0 20px rgba(255, 215, 0, 0.5); }
+        .text-glow-crown { text-shadow: 0 0 20px rgba(139, 92, 246, 0.6); }
+
+        /* Complex Tier Gradients */
+        .tier-bg-crown { background: linear-gradient(135deg, rgba(139,92,246,0.1) 0%, rgba(0,0,0,0) 100%); border-left: 2px solid #8B5CF6; }
+        .tier-bg-sov { background: linear-gradient(135deg, rgba(59,130,246,0.1) 0%, rgba(0,0,0,0) 100%); border-left: 2px solid #3B82F6; }
+        
+        /* Animated Crown Elite Border */
+        .elite-border {
+            position: relative;
+        }
+        .elite-border::before {
+            content: ''; position: absolute; inset: -1px; border-radius: inherit; padding: 1px;
+            background: linear-gradient(90deg, #00E5FF, #8B5CF6, #FFD700, #00E5FF);
+            background-size: 200% auto;
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            animation: shimmer 3s linear infinite;
+        }
+
+        /* Expanding Row Transition */
+        .expand-transition { transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+        [x-cloak] { display: none !important; }
+    </style>
+</head>
+<body x-data="deltaEngine()" x-init="initEngine()" class="min-h-screen relative font-sans selection:bg-dc-cyan selection:text-black pb-24">
+
+    <div class="fixed top-0 left-[20%] w-[60%] h-[300px] bg-dc-cyan/10 blur-[150px] pointer-events-none z-0"></div>
+
+    <div class="fixed bottom-0 left-0 w-full z-50 surface-glass border-t border-dc-border px-6 py-3 flex items-center justify-between text-sm">
+        <div class="flex items-center gap-6">
+            <div class="flex items-center gap-2 text-gray-400 font-mono text-xs">
+                <i data-lucide="cpu" class="w-4 h-4 text-dc-cyan"></i> ENGINE STATE:
+            </div>
+            
+            <div class="flex bg-black/50 rounded-lg p-1 border border-white/5">
+                <button @click="setMode('public')" :class="viewMode === 'public' ? 'bg-white/10 text-white' : 'text-gray-500 hover:text-gray-300'" class="px-4 py-1.5 rounded-md font-medium transition">Public</button>
+                <button @click="setMode('hub')" :class="viewMode === 'hub' ? 'bg-dc-cyan/20 text-dc-cyan' : 'text-gray-500 hover:text-gray-300'" class="px-4 py-1.5 rounded-md font-medium transition">HUB (Participant)</button>
+                <button @click="setMode('toc')" :class="viewMode === 'toc' ? 'bg-red-500/20 text-red-400' : 'text-gray-500 hover:text-gray-300'" class="px-4 py-1.5 rounded-md font-medium transition">TOC (Admin)</button>
+            </div>
+
+            <select x-model="activeGame" @change="loadGameData()" class="bg-black/50 border border-white/10 text-white rounded-lg px-3 py-1.5 focus:border-dc-cyan focus:ring-0 outline-none">
+                <option value="valorant">Valorant</option>
+                <option value="efootball">eFootball</option>
+                <option value="pubgm">PUBG Mobile</option>
+            </select>
+        </div>
+        
+        <div class="font-mono text-xs text-gray-500 flex items-center gap-3">
+            <span x-show="viewMode === 'hub'" class="text-dc-cyan flex items-center gap-1"><div class="w-2 h-2 rounded-full bg-dc-cyan animate-pulse"></div> Authenticated: Redwan (FC Redwan)</span>
+            <span x-show="viewMode === 'toc'" class="text-red-400 flex items-center gap-1"><i data-lucide="shield-alert" class="w-3 h-3"></i> Superuser Access</span>
+            DCRS Sync: <span class="text-green-400">ACTIVE</span>
+        </div>
+    </div>
+
+    <div class="max-w-[1400px] mx-auto pt-12 px-4 md:px-8 relative z-10 flex flex-col lg:flex-row gap-8">
+        
+        <aside class="w-full lg:w-[320px] shrink-0 space-y-6">
+            
+            <div class="surface-glass rounded-2xl p-6 relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-dc-cyan to-purple-500"></div>
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-dc-cyan/10 text-dc-cyan text-xs font-bold uppercase tracking-wider mb-4">
+                    <i data-lucide="radio" class="w-3 h-3 animate-pulse"></i> Official Major
+                </div>
+                <h1 class="text-2xl font-display font-black text-white leading-tight mb-2">DeltaCrown Genesis Cup</h1>
+                <p class="text-sm text-gray-400 mb-6" x-text="`Game: ${gameTitles[activeGame]} • South Asia Region`"></p>
+                
+                <div class="space-y-4">
+                    <div class="p-4 rounded-xl bg-black/40 border border-white/5 flex items-center justify-between">
+                        <div>
+                            <div class="text-xs text-gray-500 uppercase font-bold tracking-wider mb-1">Total Prize Pool</div>
+                            <div class="text-xl font-mono font-bold text-white text-glow-cyan" x-text="totalPrizePool"></div>
+                        </div>
+                        <i data-lucide="coins" class="w-8 h-8 text-dc-cyan opacity-50"></i>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="p-3 rounded-xl bg-black/40 border border-white/5">
+                            <div class="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Format</div>
+                            <div class="text-sm font-bold text-gray-200 mt-1">Double Elim</div>
+                        </div>
+                        <div class="p-3 rounded-xl bg-black/40 border border-white/5">
+                            <div class="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Status</div>
+                            <div class="text-sm font-bold text-green-400 mt-1">Completed</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div x-show="viewMode === 'toc'" x-collapse class="mt-6 pt-6 border-t border-white/10 space-y-3">
+                    <h3 class="text-xs font-bold text-red-400 uppercase tracking-wider flex items-center gap-2">
+                        <i data-lucide="settings" class="w-4 h-4"></i> Admin Quick Actions
+                    </h3>
+                    <button class="w-full py-2.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 rounded-lg text-sm font-bold transition flex items-center justify-center gap-2">
+                        <i data-lucide="file-check-2" class="w-4 h-4"></i> Finalize Results & Publish
+                    </button>
+                    <button class="w-full py-2.5 bg-white/5 hover:bg-white/10 text-gray-300 border border-white/10 rounded-lg text-sm font-bold transition flex items-center justify-center gap-2">
+                        <i data-lucide="download-cloud" class="w-4 h-4"></i> Export CSV Manifest
+                    </button>
+                </div>
+            </div>
+
+            <div class="surface-panel rounded-2xl p-5">
+                <h3 class="text-sm font-bold text-white mb-4">View Filters</h3>
+                <div class="space-y-2">
+                    <button class="w-full text-left px-4 py-2 rounded-lg bg-white/10 text-white font-medium text-sm flex items-center justify-between">
+                        Grand Finals <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                    </button>
+                    <button class="w-full text-left px-4 py-2 rounded-lg text-gray-400 hover:bg-white/5 hover:text-gray-200 font-medium text-sm transition flex items-center justify-between">
+                        Playoffs Bracket <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                    </button>
+                    <button class="w-full text-left px-4 py-2 rounded-lg text-gray-400 hover:bg-white/5 hover:text-gray-200 font-medium text-sm transition flex items-center justify-between">
+                        Group Stage <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </div>
+
+        </aside>
+
+        <main class="flex-1 space-y-8 min-w-0">
+            
+            <div class="surface-glass rounded-3xl p-8 relative">
+                <div class="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMiIgY3k9IjIiIHI9IjEiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4wNSkiLz48L3N2Zz4=')] opacity-50 rounded-3xl"></div>
+                
+                <h2 class="text-xl font-display font-bold text-white flex items-center gap-2 mb-10 relative z-10">
+                    <i data-lucide="crown" class="w-6 h-6 text-crown-gold"></i> Championship Podium
+                </h2>
+
+                <div class="flex flex-col md:flex-row items-end justify-center gap-4 lg:gap-8 h-auto md:h-[340px] relative z-10">
+                    
+                    <div class="w-full md:w-[30%] flex flex-col items-center order-2 md:order-1 group cursor-pointer">
+                        <div class="relative w-20 h-20 mb-4 transition-transform group-hover:-translate-y-2">
+                            <img :src="podiumData[1]?.logo" class="w-full h-full rounded-2xl object-cover border-2 border-gray-400 bg-dc-dark z-10 relative shadow-[0_0_20px_rgba(156,163,175,0.2)]">
+                            <template x-if="podiumData[1]?.isElite"><div class="absolute -top-3 -right-3 bg-dc-dark rounded-full p-1 border border-gray-600 z-20"><i data-lucide="shield-check" class="w-4 h-4 text-dc-cyan"></i></div></template>
+                        </div>
+                        <div class="w-full surface-panel border-t-2 border-t-gray-400 rounded-t-2xl p-5 text-center h-[160px] flex flex-col justify-between transition-all group-hover:bg-white/[0.02]">
+                            <div>
+                                <h3 class="text-white font-display font-bold truncate text-lg" x-text="podiumData[1]?.name"></h3>
+                                <p class="text-xs text-gray-500 font-mono mt-1" x-text="podiumData[1]?.stats"></p>
+                            </div>
+                            <div>
+                                <span class="text-gray-400 font-black text-2xl font-display block mb-1">2ND</span>
+                                <span class="text-sm font-mono font-bold text-gray-300" x-text="podiumData[1]?.prize"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="w-full md:w-[40%] flex flex-col items-center order-1 md:order-2 group cursor-pointer z-20">
+                        <div class="absolute -top-16 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                            <i data-lucide="sparkles" class="w-10 h-10 text-crown-gold animate-pulse"></i>
+                        </div>
+                        <div class="relative w-32 h-32 mb-6 transition-transform group-hover:-translate-y-3 elite-border rounded-2xl">
+                            <img :src="podiumData[0]?.logo" class="w-full h-full rounded-2xl object-cover bg-dc-dark z-10 relative shadow-[0_0_40px_rgba(255,215,0,0.3)]">
+                            <div class="absolute -bottom-4 left-1/2 -translate-x-1/2 bg-crown-gold text-black text-[10px] font-black uppercase px-3 py-1 rounded-full z-20 whitespace-nowrap shadow-lg tracking-wider">Champion</div>
+                        </div>
+                        <div class="w-full surface-panel border-t-2 border-t-crown-gold rounded-t-2xl p-6 text-center h-[220px] flex flex-col justify-between transition-all bg-gradient-to-t from-transparent to-crown-gold/[0.02] shadow-[0_-10px_30px_rgba(255,215,0,0.05)]">
+                            <div>
+                                <h3 class="text-white font-display font-black truncate text-2xl" x-text="podiumData[0]?.name"></h3>
+                                <p class="text-sm text-crown-gold/70 font-mono mt-2 flex items-center justify-center gap-1">
+                                    <i data-lucide="swords" class="w-4 h-4"></i> <span x-text="podiumData[0]?.stats"></span>
+                                </p>
+                            </div>
+                            <div>
+                                <span class="text-crown-gold font-black text-4xl font-display block mb-1 text-glow-gold">1ST</span>
+                                <span class="text-lg font-mono font-bold text-yellow-400" x-text="podiumData[0]?.prize"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="w-full md:w-[30%] flex flex-col items-center order-3 group cursor-pointer">
+                        <div class="relative w-20 h-20 mb-4 transition-transform group-hover:-translate-y-2">
+                            <img :src="podiumData[2]?.logo" class="w-full h-full rounded-2xl object-cover border-2 border-[#CD7F32] bg-dc-dark z-10 relative shadow-[0_0_20px_rgba(205,127,50,0.2)]">
+                        </div>
+                        <div class="w-full surface-panel border-t-2 border-t-[#CD7F32] rounded-t-2xl p-5 text-center h-[140px] flex flex-col justify-between transition-all group-hover:bg-white/[0.02]">
+                            <div>
+                                <h3 class="text-white font-display font-bold truncate text-lg" x-text="podiumData[2]?.name"></h3>
+                            </div>
+                            <div>
+                                <span class="text-[#CD7F32] font-black text-2xl font-display block mb-1">3RD</span>
+                                <span class="text-sm font-mono font-bold text-gray-300" x-text="podiumData[2]?.prize"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="surface-panel rounded-2xl border border-dc-border overflow-hidden">
+                <div class="p-5 border-b border-white/5 flex flex-wrap items-center justify-between gap-4 bg-black/20">
+                    <div class="flex items-center gap-4">
+                        <h3 class="text-lg font-display font-bold text-white flex items-center gap-2">
+                            <i data-lucide="bar-chart-2" class="w-5 h-5 text-dc-cyan"></i> Detailed Standings
+                        </h3>
+                        <div class="hidden md:flex items-center gap-2 bg-black/50 p-1 rounded-lg border border-white/5">
+                            <button class="px-3 py-1 text-xs font-bold rounded-md bg-white/10 text-white">All Tiers</button>
+                            <button class="px-3 py-1 text-xs font-bold rounded-md text-gray-400 hover:text-white">The Crown</button>
+                            <button class="px-3 py-1 text-xs font-bold rounded-md text-gray-400 hover:text-white">Sovereign</button>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-3 w-full md:w-auto">
+                        <div class="relative w-full md:w-64">
+                            <i data-lucide="search" class="w-4 h-4 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2"></i>
+                            <input type="text" placeholder="Search team or player..." class="w-full bg-black border border-white/10 rounded-lg pl-9 pr-4 py-2 text-sm text-white focus:border-dc-cyan focus:outline-none transition">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse whitespace-nowrap">
+                        <thead>
+                            <tr class="text-xs uppercase tracking-wider text-gray-500 bg-black/40 border-b border-white/5">
+                                <th class="py-4 pl-6 font-medium w-16">Rank</th>
+                                <th class="py-4 font-medium">Team Roster</th>
+                                <template x-for="col in statColumns" :key="col">
+                                    <th class="py-4 font-medium text-right px-4">
+                                        <div class="flex items-center justify-end gap-1 cursor-pointer hover:text-white transition">
+                                            <span x-text="col"></span> <i data-lucide="arrow-down-up" class="w-3 h-3"></i>
+                                        </div>
+                                    </th>
+                                </template>
+                                <th class="py-4 font-medium text-right px-4">Prize Cut</th>
+                                <th class="py-4 pr-6 font-medium text-right" x-show="viewMode !== 'public'">Management</th>
+                            </tr>
+                        </thead>
+                        <tbody class="text-sm divide-y divide-white/[0.02]">
+                            
+                            <template x-for="(team, index) in tableData" :key="team.id">
+                                <tr class="hover:bg-white/[0.02] transition duration-200 group cursor-pointer"
+                                    :class="{'bg-dc-cyan/[0.03] border-l-2 border-l-dc-cyan': viewMode === 'hub' && team.isParticipant, 
+                                             'tier-bg-crown': team.tier === 'The Crown',
+                                             'tier-bg-sov': team.tier === 'Sovereign'}">
+                                    
+                                    <td class="py-4 pl-6">
+                                        <span class="font-display font-black text-xl"
+                                              :class="index === 0 ? 'text-crown-gold' : (index === 1 ? 'text-gray-300' : (index === 2 ? 'text-[#CD7F32]' : 'text-gray-600'))"
+                                              x-text="'#' + (index + 1)"></span>
+                                    </td>
+                                    
+                                    <td class="py-4 min-w-[250px]">
+                                        <div class="flex items-center gap-4">
+                                            <div class="relative">
+                                                <img :src="team.logo" class="w-12 h-12 rounded-xl object-cover bg-dc-dark border border-white/10" :class="{'elite-border': team.isElite}">
+                                            </div>
+                                            <div>
+                                                <div class="font-bold text-white text-base flex items-center gap-2">
+                                                    <span x-text="team.name"></span>
+                                                    <template x-if="team.isElite">
+                                                        <span class="px-2 py-0.5 rounded text-[10px] bg-dc-cyan/10 text-dc-cyan border border-dc-cyan/20 uppercase tracking-wider" title="Crown Elite Member">Elite</span>
+                                                    </template>
+                                                </div>
+                                                <div class="flex items-center gap-2 mt-1">
+                                                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-md border"
+                                                          :class="{
+                                                            'bg-tier-crown/10 text-tier-crown border-tier-crown/30': team.tier === 'The Crown',
+                                                            'bg-tier-sov/10 text-tier-sov border-tier-sov/30': team.tier === 'Sovereign',
+                                                            'bg-tier-van/10 text-tier-van border-tier-van/30': team.tier === 'Vanguard',
+                                                            'bg-gray-800 text-gray-400 border-gray-700': team.tier === 'Unranked'
+                                                          }" x-text="team.tier"></span>
+                                                    <span class="text-xs text-gray-500" x-text="team.region"></span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+
+                                    <template x-for="stat in team.stats" :key="Math.random()">
+                                        <td class="py-4 text-right px-4 font-mono text-gray-300">
+                                            <span x-text="stat.value" :class="{'text-green-400 font-bold': stat.highlight}"></span>
+                                        </td>
+                                    </template>
+
+                                    <td class="py-4 text-right px-4 font-mono font-bold text-white text-glow-cyan" x-text="team.prize"></td>
+
+                                    <td class="py-4 pr-6 text-right" x-show="viewMode !== 'public'">
+                                        <template x-if="viewMode === 'hub'">
+                                            <div>
+                                                <template x-if="team.isParticipant">
+                                                    <button @click="claimPrize(team)" class="inline-flex items-center gap-2 px-4 py-2 bg-green-500/10 hover:bg-green-500/20 border border-green-500/30 text-green-400 text-xs font-bold rounded-lg transition">
+                                                        <i data-lucide="wallet" class="w-4 h-4"></i> Claim Prize
+                                                    </button>
+                                                </template>
+                                                <template x-if="!team.isParticipant">
+                                                    <span class="text-xs text-gray-600">-</span>
+                                                </template>
+                                            </div>
+                                        </template>
+
+                                        <template x-if="viewMode === 'toc'">
+                                            <div class="flex items-center justify-end gap-2">
+                                                <button class="p-2 bg-white/5 hover:bg-white/10 text-gray-400 rounded-lg transition" title="Edit Scores">
+                                                    <i data-lucide="edit-3" class="w-4 h-4"></i>
+                                                </button>
+                                                <button @click="openDisburseModal(team)" class="p-2 bg-dc-cyan/10 hover:bg-dc-cyan/20 border border-dc-cyan/30 text-dc-cyan rounded-lg transition" title="Disburse Funds">
+                                                    <i data-lucide="send" class="w-4 h-4"></i>
+                                                </button>
+                                                <button class="p-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 rounded-lg transition" title="Penalize/Ban">
+                                                    <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+                                                </button>
+                                            </div>
+                                        </template>
+                                    </td>
+                                </tr>
+                            </template>
+                            
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div>
+                <h3 class="text-lg font-display font-bold text-white mb-4 flex items-center gap-2">
+                    <i data-lucide="star" class="w-5 h-5 text-crown-gold"></i> Individual Achievements
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                    <template x-for="award in specialAwards" :key="award.title">
+                        <div class="surface-glass rounded-xl p-5 relative overflow-hidden group hover:border-dc-cyan/50 transition duration-300">
+                            <i :data-lucide="award.icon" class="absolute -right-4 -bottom-4 w-32 h-32 text-white/[0.02] group-hover:text-dc-cyan/[0.05] transition duration-500 transform group-hover:scale-110"></i>
+                            
+                            <div class="relative z-10">
+                                <div class="flex items-start justify-between mb-4">
+                                    <div class="w-10 h-10 rounded-lg bg-dc-cyan/10 flex items-center justify-center border border-dc-cyan/20">
+                                        <i :data-lucide="award.icon" class="w-5 h-5 text-dc-cyan"></i>
+                                    </div>
+                                    <div class="text-right">
+                                        <div class="text-xs font-bold text-gray-500 uppercase tracking-wider" x-text="award.title"></div>
+                                        <div class="text-sm font-mono font-bold text-green-400 mt-1" x-text="award.prize"></div>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex items-center gap-3">
+                                    <img :src="award.playerImage" class="w-12 h-12 rounded-full border-2 border-white/10 object-cover">
+                                    <div>
+                                        <div class="font-display font-bold text-white text-lg leading-tight" x-text="award.playerName"></div>
+                                        <div class="text-xs text-gray-400 mt-0.5" x-text="award.teamName"></div>
+                                    </div>
+                                </div>
+                                
+                                <div class="mt-4 pt-4 border-t border-white/5">
+                                    <p class="text-sm text-gray-300" x-text="award.metric"></p>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <div x-show="isModalOpen" style="display: none;" class="fixed inset-0 z-[100] flex items-center justify-center">
+        <div x-show="isModalOpen" x-transition.opacity @click="isModalOpen = false" class="absolute inset-0 bg-black/80 backdrop-blur-sm"></div>
+        
+        <div x-show="isModalOpen" 
+             x-transition:enter="transition ease-out duration-300"
+             x-transition:enter-start="opacity-0 translate-y-8 scale-95"
+             x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+             class="relative w-full max-w-lg surface-panel border border-white/10 rounded-2xl shadow-2xl p-6 m-4">
+            
+            <button @click="isModalOpen = false" class="absolute top-4 right-4 text-gray-500 hover:text-white transition">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+
+            <h2 class="text-xl font-display font-bold text-white mb-1 flex items-center gap-2">
+                <i data-lucide="send" class="w-5 h-5 text-dc-cyan"></i> Disburse Funds
+            </h2>
+            <p class="text-sm text-gray-400 mb-6">Tournament Operations Center Protocol</p>
+
+            <div class="bg-black/50 rounded-xl p-4 border border-white/5 mb-6 flex items-center gap-4">
+                <img :src="selectedTeam?.logo" class="w-12 h-12 rounded-lg object-cover">
+                <div>
+                    <div class="font-bold text-white" x-text="selectedTeam?.name"></div>
+                    <div class="text-sm text-gray-400 font-mono" x-text="`Target Payout: ${selectedTeam?.prize}`"></div>
+                </div>
+            </div>
+
+            <div class="space-y-4 mb-8">
+                <div>
+                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Payment Method</label>
+                    <select class="w-full bg-black border border-white/10 rounded-lg px-4 py-3 text-sm text-white focus:border-dc-cyan focus:outline-none">
+                        <option>bKash Corporate Transfer</option>
+                        <option>Bank Deposit</option>
+                        <option>DeltaCrown Wallet Coins</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Admin Remarks</label>
+                    <textarea class="w-full bg-black border border-white/10 rounded-lg px-4 py-3 text-sm text-white focus:border-dc-cyan focus:outline-none h-24 placeholder-gray-600" placeholder="e.g., Final clearance for S1..."></textarea>
+                </div>
+            </div>
+
+            <div class="flex gap-3">
+                <button @click="isModalOpen = false" class="flex-1 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-white font-bold text-sm transition">Cancel</button>
+                <button @click="executeDisbursement()" class="flex-1 py-3 bg-dc-cyan text-black hover:bg-dc-cyan/90 rounded-xl font-black text-sm transition flex items-center justify-center gap-2">
+                    <i data-lucide="check-circle" class="w-4 h-4"></i> Confirm Payment
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('alpine:init', () => {
+            Alpine.data('deltaEngine', () => ({
+                viewMode: 'public', // 'public' | 'hub' | 'toc'
+                activeGame: 'efootball',
+                isModalOpen: false,
+                selectedTeam: null,
+                totalPrizePool: '৳ 100,000',
+                
+                gameTitles: {
+                    'valorant': 'Valorant VCT Format',
+                    'efootball': 'eFootball Pro League',
+                    'pubgm': 'PUBG Mobile Scrims'
+                },
+
+                // Schema for Datatable Columns based on Game
+                statColumns: [],
+                tableData: [],
+                podiumData: [],
+                specialAwards: [],
+
+                // The massive data object simulating your backend DB
+                database: {
+                    'efootball': {
+                        columns: ['Matches', 'W-D-L', 'GF-GA', 'Points'],
+                        teams: [
+                            { id: 1, name: 'Los Blancos FC', logo: 'https://api.dicebear.com/7.x/initials/svg?seed=LBFC&backgroundColor=f8fafc&textColor=000000', tier: 'The Crown', isElite: true, region: 'BD', isParticipant: false, prize: '৳ 50,000', stats: [{value: '10'}, {value: '10-0-0', highlight: true}, {value: '35-4'}, {value: '30'}] },
+                            { id: 2, name: 'FC Redwan', logo: 'https://api.dicebear.com/7.x/initials/svg?seed=FCR&backgroundColor=ef4444', tier: 'Sovereign', isElite: true, region: 'BD', isParticipant: true, prize: '৳ 25,000', stats: [{value: '10'}, {value: '8-1-1'}, {value: '28-10'}, {value: '25'}] },
+                            { id: 3, name: 'Dhaka City FC', logo: 'https://api.dicebear.com/7.x/initials/svg?seed=DCFC&backgroundColor=0ea5e9', tier: 'Vanguard', isElite: false, region: 'BD', isParticipant: false, prize: '৳ 10,000', stats: [{value: '10'}, {value: '6-2-2'}, {value: '18-12'}, {value: '20'}] },
+                            { id: 4, name: 'Genesis United', logo: 'https://api.dicebear.com/7.x/initials/svg?seed=GU&backgroundColor=8b5cf6', tier: 'Vanguard', isElite: false, region: 'IN', isParticipant: false, prize: '৳ 5,000', stats: [{value: '10'}, {value: '4-3-3'}, {value: '15-15'}, {value: '15'}] },
+                            { id: 5, name: 'Royal Tigers', logo: 'https://api.dicebear.com/7.x/initials/svg?seed=RT&backgroundColor=eab308', tier: 'Unranked', isElite: false, region: 'BD', isParticipant: false, prize: '-', stats: [{value: '10'}, {value: '2-2-6'}, {value: '8-22'}, {value: '8'}] }
+                        ],
+                        awards: [
+                            { title: 'Golden Boot', icon: 'goal', prize: '৳ 5,000', playerName: 'Galactico7', teamName: 'Los Blancos FC', playerImage: 'https://api.dicebear.com/7.x/avataaars/svg?seed=G7', metric: 'Highest Scorer: 18 Goals' },
+                            { title: 'Best Playmaker', icon: 'zap', prize: '3000 Coins', playerName: 'Redwan_XR', teamName: 'FC Redwan', playerImage: 'https://api.dicebear.com/7.x/avataaars/svg?seed=XR', metric: 'Most Assists: 12 Assists' },
+                            { title: 'Golden Glove', icon: 'shield', prize: '৳ 2,000', playerName: 'Wall_Alisson', teamName: 'Dhaka City FC', playerImage: 'https://api.dicebear.com/7.x/avataaars/svg?seed=WA', metric: 'Clean Sheets: 6 Matches' }
+                        ]
+                    },
+                    'valorant': {
+                        columns: ['Maps W-L', 'Rnd Diff', 'Avg ACS', 'Win Rate'],
+                        teams: [
+                            { id: 10, name: 'Sentinels', logo: 'https://api.dicebear.com/7.x/initials/svg?seed=SEN&backgroundColor=e11d48', tier: 'The Crown', isElite: true, region: 'NA', isParticipant: false, prize: '$50,000', stats: [{value: '14-2'}, {value: '+68', highlight: true}, {value: '245.5'}, {value: '87.5%'}] },
+                            { id: 11, name: 'Paper Rex', logo: 'https://api.dicebear.com/7.x/initials/svg?seed=PRX&backgroundColor=ec4899', tier: 'The Crown', isElite: false, region: 'APAC', isParticipant: false, prize: '$20,000', stats: [{value: '12-5'}, {value: '+45'}, {value: '252.1', highlight: true}, {value: '70.5%'}] },
+                            { id: 12, name: 'LOUD', logo: 'https://api.dicebear.com/7.x/initials/svg?seed=LOUD&backgroundColor=22c55e', tier: 'Sovereign', isElite: true, region: 'BR', isParticipant: false, prize: '$10,000', stats: [{value: '10-6'}, {value: '+20'}, {value: '230.4'}, {value: '62.5%'}] }
+                        ],
+                        awards: [
+                            { title: 'Tournament MVP', icon: 'crosshair', prize: '$5,000', playerName: 'TenZ', teamName: 'Sentinels', playerImage: 'https://api.dicebear.com/7.x/avataaars/svg?seed=TenZ', metric: 'Overall Rating: 1.34 / 268 ACS' },
+                            { title: 'Clutch Master', icon: 'flame', prize: '$2,000', playerName: 'f0rsakeN', teamName: 'Paper Rex', playerImage: 'https://api.dicebear.com/7.x/avataaars/svg?seed=f0rs', metric: '1vX Scenarios Won: 14' }
+                        ]
+                    },
+                    'pubgm': {
+                        columns: ['Matches', 'WWCD', 'Elims', 'Total Pts'],
+                        teams: [
+                            { id: 20, name: 'Stalwart Esports', logo: 'https://api.dicebear.com/7.x/initials/svg?seed=STE&backgroundColor=14b8a6', tier: 'The Crown', isElite: true, region: 'MESA', isParticipant: false, prize: '৳ 100,000', stats: [{value: '18'}, {value: '4'}, {value: '142', highlight: true}, {value: '280'}] },
+                            { id: 21, name: 'IHC Esports', logo: 'https://api.dicebear.com/7.x/initials/svg?seed=IHC&backgroundColor=dc2626', tier: 'Sovereign', isElite: false, region: 'MESA', isParticipant: false, prize: '৳ 50,000', stats: [{value: '18'}, {value: '3'}, {value: '120'}, {value: '245'}] },
+                            { id: 22, name: 'A1 eSports', logo: 'https://api.dicebear.com/7.x/initials/svg?seed=A1&backgroundColor=f59e0b', tier: 'Vanguard', isElite: true, region: 'BD', isParticipant: true, prize: '৳ 25,000', stats: [{value: '18'}, {value: '2'}, {value: '95'}, {value: '210'}] }
+                        ],
+                        awards: [
+                            { title: 'Terminator', icon: 'target', prize: '৳ 10,000', playerName: 'STE·Action', teamName: 'Stalwart Esports', playerImage: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Act', metric: 'Total Eliminations: 48' },
+                            { title: 'Lone Survivor', icon: 'shield-half', prize: '5000 Coins', playerName: 'A1·Sin', teamName: 'A1 eSports', playerImage: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sin', metric: 'Avg Survival Time: 22m 14s' }
+                        ]
+                    }
+                },
+
+                initEngine() {
+                    this.loadGameData();
+                },
+
+                setMode(mode) {
+                    this.viewMode = mode;
+                    // Mocking participant auth state injection
+                    if(mode === 'hub') {
+                        // In reality, this would filter or highlight the logged-in user's team
+                        console.log("HUB Mode Active: User Context Injected");
+                    }
+                    setTimeout(() => lucide.createIcons(), 50);
+                },
+
+                loadGameData() {
+                    const data = this.database[this.activeGame];
+                    this.statColumns = data.columns;
+                    this.tableData = data.teams;
+                    this.specialAwards = data.awards;
+                    
+                    // Format Podium Data (Top 3)
+                    this.podiumData = [];
+                    if(data.teams.length >= 3) {
+                        this.podiumData = [
+                            { ...data.teams[0], stats: data.teams[0].stats[1].value + ' (' + data.teams[0].stats[3].value + ' Pts)' }, // 1st
+                            { ...data.teams[1], stats: data.teams[1].stats[1].value + ' (' + data.teams[1].stats[3].value + ' Pts)' }, // 2nd
+                            { ...data.teams[2], stats: data.teams[2].stats[1].value + ' (' + data.teams[2].stats[3].value + ' Pts)' }  // 3rd
+                        ];
+                    }
+
+                    // Reset icons after DOM update
+                    setTimeout(() => lucide.createIcons(), 50);
+                },
+
+                openDisburseModal(team) {
+                    this.selectedTeam = team;
+                    this.isModalOpen = true;
+                    setTimeout(() => lucide.createIcons(), 50);
+                },
+
+                executeDisbursement() {
+                    alert(`Disbursement command sent to backend for ${this.selectedTeam.name}. Amount: ${this.selectedTeam.prize}`);
+                    this.isModalOpen = false;
+                },
+                
+                claimPrize(team) {
+                    alert(`Claiming prize for ${team.name} into DeltaCrown Wallet!`);
+                }
+            }));
+        });
+    </script>
+</body>
+</html>

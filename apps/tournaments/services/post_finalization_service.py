@@ -523,6 +523,7 @@ class PostFinalizationService:
                 f'hub:overview:{tournament.slug}',
                 f'tournament:detail:{tournament.slug}',
                 f'public_prize_overview_v1_{tournament.id}',
+                f'detail_phase_{tournament.id}',
             ]
             cache.delete_many(keys)
         except Exception:
