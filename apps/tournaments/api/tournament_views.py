@@ -27,6 +27,7 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
+from django.db import transaction
 from django.db.models import Q, Count
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
@@ -41,6 +42,12 @@ from apps.tournaments.api.tournament_serializers import (
     TournamentCancelSerializer,
 )
 from apps.tournaments.services.tournament_service import TournamentService
+from apps.tournaments.services.hosting_fee import (
+    get_hosting_fee,
+    get_user_balance,
+    charge_hosting_fee,
+)
+from apps.tournament_ops.exceptions import PaymentFailedError
 
 
 class TournamentViewSet(viewsets.ModelViewSet):
@@ -280,7 +287,75 @@ class TournamentViewSet(viewsets.ModelViewSet):
         - 400: Validation error
         - 401: Authentication required
         """
-        return super().create(request, *args, **kwargs)
+        if not request.user.is_authenticated:
+            return Response(
+                {
+                    'error': 'AUTHENTICATION_REQUIRED',
+                    'message': 'Authentication is required to create a tournament.',
+                },
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        user = request.user
+        is_staff = user.is_staff or user.is_superuser
+        fee = 0
+        current_balance = get_user_balance(user)
+
+        if not is_staff:
+            fee = get_hosting_fee()
+            current_balance = get_user_balance(user)
+            if current_balance < fee:
+                return Response(
+                    {
+                        'error': 'INSUFFICIENT_DELTACOIN',
+                        'message': f'You need at least {fee} DC to host a tournament.',
+                        'hosting_fee': fee,
+                        'balance': current_balance,
+                    },
+                    status=status.HTTP_402_PAYMENT_REQUIRED,
+                )
+
+        tournament = None
+        charge_result = None
+
+        try:
+            with transaction.atomic():
+                tournament = serializer.save()
+                charge_result = charge_hosting_fee(user, tournament)
+        except PaymentFailedError as error:
+            current_balance = get_user_balance(user)
+            return Response(
+                {
+                    'error': 'HOSTING_FEE_PAYMENT_FAILED',
+                    'message': str(error),
+                    'hosting_fee': fee,
+                    'balance': current_balance,
+                },
+                status=status.HTTP_402_PAYMENT_REQUIRED,
+            )
+
+        detail_data = TournamentDetailSerializer(
+            tournament,
+            context=self.get_serializer_context(),
+        ).data
+
+        return Response(
+            {
+                'message': 'Tournament created successfully',
+                'tournament': detail_data,
+                'redirect_url': f'/toc/{tournament.slug}/?onboarding=true',
+                'hosting_fee_charged': 0 if is_staff else fee,
+                'balance_after': (
+                    charge_result.get('balance_after')
+                    if charge_result
+                    else get_user_balance(user)
+                ),
+            },
+            status=status.HTTP_201_CREATED,
+        )
     
     def update(self, request, *args, **kwargs):
         """

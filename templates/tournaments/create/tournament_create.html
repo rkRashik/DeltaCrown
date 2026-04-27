@@ -1,319 +1,1261 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}Host a Tournament — DeltaCrown{% endblock %}
-{% block og_title %}Host a Tournament — DeltaCrown{% endblock %}
+{% block title %}Host a Tournament - DeltaCrown{% endblock %}
+{% block og_title %}Host a Tournament - DeltaCrown{% endblock %}
 
 {% block extra_css %}
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Rajdhani:wght@500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700;800&display=swap" rel="stylesheet">
 <style>
-  .wizard-card{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);backdrop-filter:blur(20px)}
-  .wizard-card:hover{border-color:rgba(255,255,255,0.12)}
-  .game-card{transition:all .3s cubic-bezier(.4,0,.2,1)}
-  .game-card.selected{border-color:var(--accent,#06b6d4);box-shadow:0 0 30px rgba(var(--accent-rgb,6,182,212),.2)}
-  .format-card.selected{border-color:var(--accent,#06b6d4);background:rgba(var(--accent-rgb,6,182,212),.08)}
-  .format-card.disabled{opacity:.35;pointer-events:none}
-  .step-dot.active{background:var(--accent,#06b6d4);box-shadow:0 0 12px rgba(var(--accent-rgb,6,182,212),.5)}
-  .step-dot.done{background:#10b981}
-  .slide-in{animation:slideIn .4s ease-out}
-  @keyframes slideIn{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:translateX(0)}}
-  .tip-card{background:linear-gradient(135deg,rgba(var(--accent-rgb,6,182,212),.08),rgba(139,92,246,.06));border:1px solid rgba(var(--accent-rgb,6,182,212),.15)}
-  input[type="datetime-local"]::-webkit-calendar-picker-indicator{filter:invert(1)}
-  .size-chip.recommended{border-color:var(--accent,#06b6d4);background:rgba(var(--accent-rgb,6,182,212),.12)}
-  .dc-input{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);color:#fff;transition:border-color .2s}
-  .dc-input:focus{border-color:var(--accent,#06b6d4);outline:none;box-shadow:0 0 0 3px rgba(var(--accent-rgb,6,182,212),.15)}
+  .font-space {
+    font-family: 'Space Grotesk', sans-serif;
+  }
+
+  #createApp {
+    --accent: #06b6d4;
+    --accent-rgb: 6, 182, 212;
+    --mx: 50%;
+    --my: 20%;
+    min-height: 100vh;
+    color: #fff;
+    background:
+      radial-gradient(circle at var(--mx) var(--my), rgba(var(--accent-rgb), 0.20), transparent 28%),
+      radial-gradient(circle at 12% 0%, rgba(var(--accent-rgb), 0.16), transparent 34%),
+      radial-gradient(circle at 85% 85%, rgba(124, 58, 237, 0.14), transparent 35%),
+      linear-gradient(135deg, #030409 0%, #070a12 44%, #050711 100%);
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  #createApp::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.04;
+    background-image: radial-gradient(rgba(255, 255, 255, 0.8) 0.6px, transparent 0.6px);
+    background-size: 3px 3px;
+    z-index: 0;
+  }
+
+  #createApp::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(to bottom, rgba(255, 255, 255, 0.04), transparent 16%, transparent 82%, rgba(0, 0, 0, 0.55));
+    z-index: 0;
+  }
+
+  .app-layer {
+    position: relative;
+    z-index: 1;
+  }
+
+  .glass-panel {
+    border: 1px solid rgba(255, 255, 255, 0.11);
+    background: rgba(255, 255, 255, 0.04);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.42);
+  }
+
+  .wizard-card {
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    background: rgba(255, 255, 255, 0.045);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    box-shadow: 0 16px 46px rgba(0, 0, 0, 0.34);
+    transition: border-color 0.24s ease, transform 0.24s ease;
+  }
+
+  .wizard-card:hover {
+    border-color: rgba(255, 255, 255, 0.18);
+  }
+
+  .dc-input {
+    border: 1px solid rgba(255, 255, 255, 0.13);
+    background: rgba(0, 0, 0, 0.34);
+    color: #fff;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .dc-input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.22);
+  }
+
+  .dc-input::placeholder {
+    color: rgba(255, 255, 255, 0.34);
+  }
+
+  input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+    filter: invert(1) opacity(0.7);
+  }
+
+  .step-dot {
+    transition: all 0.25s ease;
+  }
+
+  .step-dot.active {
+    border-color: var(--accent);
+    background: var(--accent);
+    color: #02060f;
+    box-shadow: 0 0 22px rgba(var(--accent-rgb), 0.58);
+  }
+
+  .step-dot.done {
+    border-color: rgba(var(--accent-rgb), 0.50);
+    background: rgba(var(--accent-rgb), 0.18);
+    color: var(--accent);
+  }
+
+  .game-card {
+    transition: all 0.26s ease;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.04);
+  }
+
+  .game-card:hover {
+    transform: translateY(-3px);
+    border-color: rgba(255, 255, 255, 0.23);
+  }
+
+  .game-card.selected {
+    border-color: var(--accent);
+    background: linear-gradient(150deg, rgba(var(--accent-rgb), 0.18), rgba(255, 255, 255, 0.05));
+    box-shadow:
+      0 0 0 1px rgba(var(--accent-rgb), 0.48),
+      0 20px 48px rgba(var(--accent-rgb), 0.24);
+  }
+
+  .choice-card {
+    transition: all 0.24s ease;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.03);
+  }
+
+  .choice-card:hover {
+    border-color: rgba(255, 255, 255, 0.22);
+  }
+
+  .choice-card.selected {
+    border-color: var(--accent);
+    background: rgba(var(--accent-rgb), 0.14);
+    box-shadow: inset 0 0 0 1px rgba(var(--accent-rgb), 0.4);
+  }
+
+  .choice-card.disabled {
+    opacity: 0.40;
+    pointer-events: none;
+    filter: saturate(0.5);
+  }
+
+  .slide-panel {
+    animation: slideIn 0.34s ease;
+  }
+
+  @keyframes slideIn {
+    from {
+      opacity: 0;
+      transform: translateY(14px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .switch {
+    position: relative;
+    width: 56px;
+    height: 32px;
+  }
+
+  .switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+
+  .switch-track {
+    position: absolute;
+    inset: 0;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.4);
+    transition: all 0.2s ease;
+  }
+
+  .switch-thumb {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 24px;
+    height: 24px;
+    border-radius: 999px;
+    background: #fff;
+    transition: all 0.2s ease;
+  }
+
+  .switch input:checked + .switch-track {
+    border-color: rgba(var(--accent-rgb), 0.65);
+    background: rgba(var(--accent-rgb), 0.36);
+  }
+
+  .switch input:checked + .switch-track + .switch-thumb {
+    transform: translateX(24px);
+  }
+
+  .expand-panel {
+    display: grid;
+    grid-template-rows: 0fr;
+    opacity: 0;
+    transition: all 0.4s ease;
+  }
+
+  .expand-panel.open {
+    grid-template-rows: 1fr;
+    opacity: 1;
+  }
+
+  .expand-panel > .expand-inner {
+    overflow: hidden;
+  }
+
+  .sticky-bottom-nav {
+    position: fixed;
+    left: 16px;
+    right: 16px;
+    bottom: 16px;
+    z-index: 40;
+  }
+
+  @media (min-width: 1024px) {
+    .sticky-bottom-nav {
+      left: 384px;
+    }
+  }
+
+  @media (min-width: 1280px) {
+    .sticky-bottom-nav {
+      left: 424px;
+    }
+  }
+
+  @media (max-width: 1023px) {
+    .desktop-shell {
+      display: none;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .mobile-shell {
+      display: none;
+    }
+    .desktop-shell {
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 100vh;
+      width: 360px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      z-index: 50;
+    }
+    .main-with-sidebar {
+      margin-left: 360px;
+    }
+  }
+
+  @media (min-width: 1280px) {
+    .desktop-shell {
+      width: 400px;
+    }
+    .main-with-sidebar {
+      margin-left: 400px;
+    }
+  }
+
+  .game-card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 12px;
+  }
+
+  @media (min-width: 640px) {
+    .game-card-grid {
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 14px;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .game-card-grid {
+      grid-template-columns: repeat(auto-fill, minmax(175px, 1fr));
+    }
+  }
+
+  .game-card-portrait {
+    position: relative;
+    border-radius: 14px;
+    overflow: hidden;
+    cursor: pointer;
+    border: 1.5px solid rgba(255,255,255,0.10);
+    transition: transform 0.28s ease, border-color 0.28s ease, box-shadow 0.28s ease;
+    aspect-ratio: 3 / 4;
+    background-size: cover;
+    background-position: center;
+    background-color: rgba(255,255,255,0.05);
+  }
+
+  .game-card-portrait:hover {
+    transform: translateY(-4px) scale(1.01);
+    border-color: rgba(255,255,255,0.28);
+  }
+
+  .game-card-portrait .card-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0);
+    transition: background 0.3s ease;
+  }
+
+  .game-card-portrait:hover .card-overlay,
+  .game-card-portrait:focus .card-overlay {
+    background: rgba(0,0,0,0.55);
+  }
+
+  .game-card-portrait .card-info {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    padding: 12px;
+    text-align: center;
+  }
+
+  .game-card-portrait:hover .card-info,
+  .game-card-portrait:focus .card-info {
+    opacity: 1;
+  }
+
+  .game-card-portrait .card-selected-badge {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.6);
+    border: 1.5px solid rgba(255,255,255,0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 900;
+    z-index: 10;
+  }
+
+  .game-card-portrait[style*="box-shadow"] .card-overlay {
+    background: rgba(0,0,0,0.28);
+  }
 </style>
 {% endblock %}
 
 {% block content %}
-<div id="createApp" class="min-h-screen bg-dc-dark pt-8 pb-20" style="--accent:#06b6d4;--accent-rgb:6,182,212">
-  <!-- Header -->
-  <div class="max-w-5xl mx-auto px-4 mb-8">
-    <div class="flex items-center gap-3 mb-2">
-      <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500/20 to-purple-500/20 flex items-center justify-center">
-        <svg class="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
-      </div>
-      <h1 class="text-2xl md:text-3xl font-bold font-gaming text-white tracking-wide">Host a Tournament</h1>
-    </div>
-    <p class="text-gray-400 text-sm ml-[52px]">Create and manage your own competitive event on DeltaCrown</p>
-  </div>
+<div id="createApp"
+     class="pb-36"
+     data-api-create-url="{{ api_create_url }}"
+     data-is-staff="{{ is_staff|yesno:'true,false' }}"
+     data-can-afford="{{ can_afford|yesno:'true,false' }}"
+     data-hosting-fee="{{ hosting_fee }}"
+     data-user-balance="{{ user_balance }}"
+     data-after-balance="{{ after_balance }}"
+     style="--accent:#06b6d4;--accent-rgb:6,182,212;--mx:50%;--my:20%;">
 
-  <!-- Progress Bar -->
-  <div class="max-w-5xl mx-auto px-4 mb-10">
-    <div class="flex items-center justify-between relative">
-      <div class="absolute top-4 left-0 right-0 h-0.5 bg-white/5"></div>
-      <div class="absolute top-4 left-0 h-0.5 bg-gradient-to-r from-cyan-500 to-purple-500 transition-all duration-500" id="progressLine" style="width:12.5%"></div>
-      <div id="stepDots" class="flex justify-between w-full relative z-10">
-        <div class="flex flex-col items-center gap-2 cursor-pointer" onclick="goToStep(0)">
-          <div class="step-dot active w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-xs font-bold text-white transition-all duration-300">1</div>
-          <span class="text-[11px] text-gray-500 font-medium hidden sm:block">Game & Info</span>
-        </div>
-        <div class="flex flex-col items-center gap-2 cursor-pointer" onclick="goToStep(1)">
-          <div class="step-dot w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-xs font-bold text-gray-500 transition-all duration-300">2</div>
-          <span class="text-[11px] text-gray-500 font-medium hidden sm:block">Format & Schedule</span>
-        </div>
-        <div class="flex flex-col items-center gap-2 cursor-pointer" onclick="goToStep(2)">
-          <div class="step-dot w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-xs font-bold text-gray-500 transition-all duration-300">3</div>
-          <span class="text-[11px] text-gray-500 font-medium hidden sm:block">Fees & Rules</span>
-        </div>
-        <div class="flex flex-col items-center gap-2 cursor-pointer" onclick="goToStep(3)">
-          <div class="step-dot w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-xs font-bold text-gray-500 transition-all duration-300">4</div>
-          <span class="text-[11px] text-gray-500 font-medium hidden sm:block">Review</span>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Step Container -->
-  <div class="max-w-5xl mx-auto px-4">
-    <!-- STEP 1: Game & Identity -->
-    <div id="step-0" class="step-panel slide-in">
-      <div class="grid lg:grid-cols-[1fr,340px] gap-6">
-        <div class="space-y-6">
-          <!-- Game Selection -->
-          <div class="wizard-card rounded-2xl p-6">
-            <h2 class="text-lg font-bold text-white font-gaming mb-1">Select Game</h2>
-            <p class="text-gray-400 text-sm mb-5">Choose the game for your tournament</p>
-            <div id="gameGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3"></div>
+  <div class="app-layer flex min-h-screen w-full flex-col lg:flex-row">
+    <header class="mobile-shell sticky top-0 z-40 border-b border-white/10 bg-black/45 px-4 py-3 backdrop-blur-2xl">
+      <div class="flex items-center justify-between gap-3">
+        <div class="flex min-w-0 items-center gap-3">
+          <div class="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/15 bg-white/5 shadow-[0_0_22px_rgba(var(--accent-rgb),0.28)]">
+            <span class="font-space text-lg font-extrabold">DC</span>
           </div>
-          <!-- Tournament Name -->
-          <div class="wizard-card rounded-2xl p-6">
-            <h2 class="text-lg font-bold text-white font-gaming mb-4">Tournament Details</h2>
-            <div class="space-y-4">
-              <div>
-                <label class="text-sm text-gray-300 font-medium mb-1.5 block">Tournament Name *</label>
-                <input id="tournamentName" type="text" class="dc-input w-full rounded-xl px-4 py-3 text-sm" placeholder="e.g. DeltaCrown Valorant Showdown S1" maxlength="200">
-                <p class="text-xs text-gray-500 mt-1.5">Slug: <span id="slugPreview" class="text-cyan-400/70">—</span></p>
+          <div class="min-w-0">
+            <h1 class="font-space text-base font-bold tracking-tight">DeltaCrown</h1>
+            <p class="text-[10px] font-bold uppercase tracking-[0.22em] text-white/40">Organizer</p>
+          </div>
+        </div>
+        <button type="button" id="mobileGuideBtn" class="rounded-2xl border border-white/10 bg-white/5 p-3 text-white/70 transition hover:bg-white/10">?</button>
+      </div>
+      <div id="mobileStepper" class="mt-4 flex items-center gap-2 overflow-x-auto pb-1"></div>
+    </header>
+
+    <aside class="desktop-shell border-r border-white/10 bg-black/30 backdrop-blur-3xl shadow-[18px_0_70px_rgba(0,0,0,0.42)]">
+      <div class="px-8 pt-8 pb-4 xl:px-10 xl:pt-10">
+        <h2 class="font-space text-lg font-extrabold tracking-tight text-white/80">Create Tournament</h2>
+      </div>
+
+      <div class="flex-1 overflow-hidden px-10 pb-6">
+        <div class="mb-7 flex items-center justify-between">
+          <p class="text-[10px] font-extrabold uppercase tracking-[0.28em] text-white/35">Setup Progress</p>
+          <span id="desktopStepCount" class="text-[10px] font-bold text-white/45">01 / 05</span>
+        </div>
+        <div class="relative pl-1">
+          <div class="absolute bottom-5 left-[18px] top-5 w-px bg-white/10"></div>
+          <div id="timelineBar" class="absolute left-[18px] top-5 w-px bg-[var(--accent)] shadow-[0_0_18px_rgba(var(--accent-rgb),0.75)] transition-all duration-500" style="height:0px"></div>
+          <nav id="desktopStepper" class="relative space-y-4"></nav>
+        </div>
+      </div>
+
+      <div class="border-t border-white/10 bg-black/25 p-7">
+        <div class="flex items-center justify-between gap-4">
+          <div class="flex min-w-0 items-center gap-3">
+            {% if user_profile and user_profile.avatar %}
+            <img src="{{ user_profile.avatar.url }}" alt="{{ username }}" class="h-11 w-11 rounded-2xl border border-white/10 object-cover">
+            {% else %}
+            <div class="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/6 text-xs font-bold">{{ username|slice:":2"|upper }}</div>
+            {% endif %}
+            <div class="min-w-0">
+              <p class="truncate font-space text-sm font-bold">{{ username }}</p>
+              <p class="mt-1 text-[10px] font-bold uppercase tracking-[0.16em] text-white/40">Organizer</p>
+            </div>
+          </div>
+          <button type="button" id="desktopGuideBtn" title="Organizer Guide" class="group flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-white/60 transition hover:bg-white/12 hover:border-white/20 hover:text-white" aria-label="Open Organizer Guide">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5">
+              <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+              <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <main id="mainScroll" class="main-with-sidebar relative flex-1 overflow-y-auto scroll-smooth pb-40">
+      <form id="tournamentForm" class="mx-auto w-full max-w-[1320px] px-4 py-8 sm:px-6 lg:px-10 xl:px-14 lg:py-12" novalidate>
+
+        <section id="step-1" data-panel class="slide-panel">
+          <div class="mb-8 flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
+            <div class="max-w-3xl">
+              <div class="mb-5 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 backdrop-blur-xl">
+                <span class="h-2 w-2 rounded-full bg-[var(--accent)] shadow-[0_0_16px_rgba(var(--accent-rgb),1)]"></span>
+                <span class="text-[10px] font-extrabold uppercase tracking-[0.25em] text-white/60">Step 1 — Game</span>
               </div>
-              <div>
-                <label class="text-sm text-gray-300 font-medium mb-1.5 block">Participation Type *</label>
-                <div class="grid grid-cols-2 gap-3">
-                  <button id="btn-team" onclick="setParticipation('team')" class="format-card selected rounded-xl p-4 border border-white/10 text-center transition-all">
-                    <div class="text-2xl mb-1">👥</div>
-                    <div class="text-sm font-semibold text-white">Team</div>
-                    <div class="text-xs text-gray-400" id="teamSizeHint">5v5</div>
-                  </button>
-                  <button id="btn-solo" onclick="setParticipation('solo')" class="format-card rounded-xl p-4 border border-white/10 text-center transition-all">
-                    <div class="text-2xl mb-1">🎮</div>
-                    <div class="text-sm font-semibold text-white">Solo</div>
-                    <div class="text-xs text-gray-400">1v1</div>
-                  </button>
+              <h2 class="font-space text-4xl font-extrabold tracking-[-0.04em] sm:text-5xl lg:text-6xl">Choose the game first.</h2>
+              <p class="mt-4 max-w-2xl text-sm leading-relaxed text-white/55 sm:text-base">Pick a game to unlock recommended settings, format options, and starter rules.</p>
+            </div>
+
+            <div class="glass-panel min-w-[280px] rounded-[1.5rem] p-3">
+              <div class="flex items-center gap-3 rounded-2xl bg-black/35 px-4 py-3">
+                <span class="text-white/40">Search</span>
+                <input id="gameSearch" type="search" placeholder="Search games" class="w-full bg-transparent text-sm outline-none placeholder:text-white/30">
+              </div>
+              <div class="mt-3 flex items-center justify-between px-2 text-[10px] font-extrabold uppercase tracking-[0.18em] text-white/40">
+                <span id="gameCount">0 games</span>
+                <span>Active catalog</span>
+              </div>
+            </div>
+          </div>
+
+          <div id="categoryFilters" class="mb-6 flex gap-2 overflow-x-auto pb-2"></div>
+          <div id="gameGrid" class="game-card-grid"></div>
+
+          <div id="selectedHeroIcon" class="hidden"></div>
+          <div id="selectedHeroName" class="hidden"></div>
+          <div id="quickSlots" class="hidden"></div>
+          <div id="quickRoster" class="hidden"></div>
+          <div id="quickPlatform" class="hidden"></div>
+          <div id="quickServer" class="hidden"></div>
+        </section>
+
+        <section id="step-2" data-panel class="slide-panel hidden">
+          <div class="mb-8">
+            <div class="mb-5 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 backdrop-blur-xl">
+              <span class="h-2 w-2 rounded-full bg-[var(--accent)] shadow-[0_0_16px_rgba(var(--accent-rgb),1)]"></span>
+              <span class="text-[10px] font-extrabold uppercase tracking-[0.25em] text-white/60">Step 2 — Details</span>
+            </div>
+            <h2 class="font-space text-4xl font-extrabold tracking-[-0.035em] sm:text-5xl">Tournament details.</h2>
+            <p class="mt-3 text-sm text-white/50">Public name, slug, brief, full description, communication links, and visual placeholders.</p>
+          </div>
+
+          <div class="grid gap-5 xl:grid-cols-[1fr_360px]">
+            <div class="space-y-5">
+              <div class="wizard-card rounded-[2rem] p-5 sm:p-7">
+                <h3 class="mb-5 text-[10px] font-extrabold uppercase tracking-[0.25em] text-white/40">Core Details</h3>
+                <div class="grid gap-4 md:grid-cols-2">
+                  <label class="md:col-span-2 block">
+                    <span class="mb-2 block text-xs font-bold text-white/75">Tournament Name *</span>
+                    <input id="tournamentName" type="text" maxlength="200" class="dc-input w-full rounded-2xl px-5 py-4 font-space text-lg font-bold" placeholder="Genesis Cup 2026">
+                    <p class="mt-2 text-xs text-white/45">Slug preview: /t/<span id="slugPreview" class="font-semibold text-[var(--accent)]">untitled</span></p>
+                  </label>
+
+                  <label class="md:col-span-2 block">
+                    <span class="mb-2 block text-xs font-bold text-white/75">Tournament Brief</span>
+                    <input id="tournamentBrief" type="text" maxlength="300" class="dc-input w-full rounded-2xl px-5 py-4" placeholder="Short summary for discovery cards">
+                  </label>
+
+                  <label class="md:col-span-2 block">
+                    <span class="mb-2 block text-xs font-bold text-white/75">Full Description *</span>
+                    <textarea id="description" rows="5" class="dc-input w-full resize-none rounded-2xl px-5 py-4" placeholder="Describe your tournament format, goals, and organizer expectations."></textarea>
+                  </label>
+
+                  <label class="block">
+                    <span class="mb-2 block text-xs font-bold text-white/75">Region</span>
+                    <select id="regionSelect" class="dc-input w-full rounded-2xl px-5 py-4">
+                      <option value="Bangladesh">Bangladesh</option>
+                      <option value="South Asia">South Asia</option>
+                      <option value="Asia">Asia</option>
+                      <option value="Global">Global</option>
+                    </select>
+                  </label>
+
+                  <label class="block">
+                    <span class="mb-2 block text-xs font-bold text-white/75">Visibility</span>
+                    <select id="visibilitySelect" class="dc-input w-full rounded-2xl px-5 py-4">
+                      <option value="public">Public listing</option>
+                      <option value="unlisted">Unlisted link</option>
+                      <option value="invite">Invite only</option>
+                    </select>
+                  </label>
+
+                  <label class="block">
+                    <span class="mb-2 block text-xs font-bold text-white/75">Timezone</span>
+                    <select id="timezoneSelect" class="dc-input w-full rounded-2xl px-5 py-4">
+                      <option value="Asia/Dhaka">Asia/Dhaka</option>
+                      <option value="Asia/Kolkata">Asia/Kolkata</option>
+                      <option value="Asia/Singapore">Asia/Singapore</option>
+                      <option value="UTC">UTC</option>
+                    </select>
+                  </label>
+
+                  <div>
+                    <span class="mb-2 block text-xs font-bold text-white/75">Community Links</span>
+                    <p class="mb-3 text-[11px] text-white/40">Add links where participants can reach your community.</p>
+                    <div id="communityLinksContainer" class="space-y-2">
+                      <div class="community-link-row flex gap-2">
+                        <select class="community-link-platform dc-input w-[130px] rounded-xl px-3 py-3 text-sm">
+                          <option value="discord">Discord</option>
+                          <option value="whatsapp">WhatsApp</option>
+                          <option value="telegram">Telegram</option>
+                          <option value="facebook">Facebook</option>
+                          <option value="messenger">Messenger</option>
+                          <option value="other">Other</option>
+                        </select>
+                        <input type="url" class="community-link-url dc-input flex-1 rounded-xl px-4 py-3" placeholder="https://...">
+                      </div>
+                    </div>
+                    <button type="button" id="addCommunityLink" class="mt-2 inline-flex items-center gap-1 rounded-xl border border-dashed border-white/20 bg-white/5 px-3 py-1.5 text-[11px] font-bold text-white/55 transition hover:bg-white/10 hover:text-white">+ Add link</button>
+                  </div>
+
+                  <label class="block">
+                    <span class="mb-2 block text-xs font-bold text-white/75">Support Contact</span>
+                    <input id="supportContact" type="text" class="dc-input w-full rounded-2xl px-5 py-4" placeholder="Support email or handle">
+                  </label>
+                </div>
+              </div>
+
+              <div class="wizard-card rounded-[2rem] p-5 sm:p-7">
+                <h3 class="mb-5 text-[10px] font-extrabold uppercase tracking-[0.25em] text-white/40">Visual Assets (Optional)</h3>
+                <p class="mb-4 text-xs text-white/45">Banner/logo upload UI is included for workflow parity. Files can be configured later if media upload is not enabled for organizer create payload.</p>
+                <div class="grid gap-4 md:grid-cols-2">
+                  <label class="group flex min-h-[170px] cursor-pointer flex-col items-center justify-center rounded-[1.5rem] border border-dashed border-white/20 bg-black/25 px-5 text-center transition hover:border-[var(--accent)] hover:bg-[rgba(var(--accent-rgb),0.07)]">
+                    <input id="bannerInput" type="file" class="sr-only" accept="image/*">
+                    <span class="mb-3 rounded-full border border-white/15 bg-white/5 px-4 py-1 text-xs font-bold">Banner</span>
+                    <strong id="bannerLabel" class="font-space text-sm">Upload banner</strong>
+                    <span class="mt-1 text-[11px] text-white/45">1920x480 suggested</span>
+                  </label>
+
+                  <label class="group flex min-h-[170px] cursor-pointer flex-col items-center justify-center rounded-[1.5rem] border border-dashed border-white/20 bg-black/25 px-5 text-center transition hover:border-[var(--accent)] hover:bg-[rgba(var(--accent-rgb),0.07)]">
+                    <input id="logoInput" type="file" class="sr-only" accept="image/*">
+                    <span class="mb-3 rounded-full border border-white/15 bg-white/5 px-4 py-1 text-xs font-bold">Logo</span>
+                    <strong id="logoLabel" class="font-space text-sm">Upload logo</strong>
+                    <span class="mt-1 text-[11px] text-white/45">Square suggested</span>
+                  </label>
                 </div>
               </div>
             </div>
+
+            <aside class="h-max overflow-hidden rounded-[2rem] border border-white/10 bg-white/5 shadow-2xl backdrop-blur-2xl xl:sticky xl:top-8">
+              <div class="relative h-28 bg-[linear-gradient(135deg,rgba(var(--accent-rgb),0.45),rgba(255,255,255,0.08),rgba(0,0,0,0.15))]"></div>
+              <div class="relative -mt-9 p-6">
+                <div class="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl border border-white/15 bg-black/70 text-sm font-bold text-[var(--accent)]">TOC</div>
+                <p class="text-[10px] font-extrabold uppercase tracking-[0.24em] text-white/40">Live Preview</p>
+                <h3 id="previewName" class="mt-2 break-words font-space text-2xl font-extrabold tracking-tight">Untitled Tournament</h3>
+                <p class="mt-2 text-xs font-bold text-[var(--accent)]">/t/<span id="previewSlug">untitled</span></p>
+                <div class="mt-6 flex flex-wrap gap-2">
+                  <span id="previewGame" class="rounded-full border border-[var(--accent)]/25 bg-[rgba(var(--accent-rgb),0.12)] px-3 py-1.5 text-[10px] font-extrabold uppercase tracking-[0.16em]">Game</span>
+                  <span id="previewRegion" class="rounded-full border border-white/10 bg-white/6 px-3 py-1.5 text-[10px] font-extrabold uppercase tracking-[0.16em] text-white/65">Bangladesh</span>
+                </div>
+              </div>
+            </aside>
           </div>
-        </div>
-        <!-- Smart Tips Panel -->
-        <div id="tipsPanel" class="hidden lg:block">
-          <div class="tip-card rounded-2xl p-5 sticky top-24">
-            <div class="flex items-center gap-2 mb-3">
-              <span class="text-lg">💡</span>
-              <h3 class="text-sm font-bold text-white" id="tipTitle">Select a game</h3>
+        </section>
+
+        <section id="step-3" data-panel class="slide-panel hidden">
+          <div class="mb-8">
+            <div class="mb-5 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 backdrop-blur-xl">
+              <span class="h-2 w-2 rounded-full bg-[var(--accent)] shadow-[0_0_16px_rgba(var(--accent-rgb),1)]"></span>
+              <span class="text-[10px] font-extrabold uppercase tracking-[0.25em] text-white/60">Step 3 — Format</span>
             </div>
-            <p class="text-xs text-gray-400 mb-3" id="tipSubtitle">Pick a game to see smart suggestions</p>
-            <div id="tipsList" class="space-y-2"></div>
+            <h2 class="font-space text-4xl font-extrabold tracking-[-0.035em] sm:text-5xl">Format & capacity.</h2>
+            <p class="mt-3 text-sm text-white/50">Configure format support, capacity, participation model, platform and validation profile.</p>
           </div>
+
+          <div class="grid gap-5 xl:grid-cols-[1fr_360px]">
+            <div class="space-y-5">
+              <div class="wizard-card rounded-[2rem] p-5 sm:p-7">
+                <h3 class="mb-5 text-[10px] font-extrabold uppercase tracking-[0.25em] text-white/40">Format</h3>
+                <div id="formatGrid" class="grid gap-3"></div>
+              </div>
+
+              <div class="wizard-card rounded-[2rem] p-5 sm:p-7">
+                <div class="mb-5 flex items-center justify-between gap-4">
+                  <h3 class="text-[10px] font-extrabold uppercase tracking-[0.25em] text-white/40">Capacity</h3>
+                  <strong id="capacityLabel" class="font-space text-3xl text-[var(--accent)]">16</strong>
+                </div>
+                <input id="capacitySlider" type="range" min="2" max="256" step="1" value="16" class="w-full accent-[var(--accent)]">
+                <div id="sizeChips" class="mt-4 flex flex-wrap gap-2"></div>
+
+                <div class="mt-6 grid gap-4 md:grid-cols-3">
+                  <label>
+                    <span class="mb-2 block text-[10px] font-extrabold uppercase tracking-[0.16em] text-white/45">Roster Min</span>
+                    <input id="rosterMin" type="number" min="1" class="dc-input w-full rounded-2xl px-4 py-3 text-center font-space text-lg font-bold" value="5">
+                  </label>
+                  <label>
+                    <span class="mb-2 block text-[10px] font-extrabold uppercase tracking-[0.16em] text-white/45">Roster Max</span>
+                    <input id="rosterMax" type="number" min="1" class="dc-input w-full rounded-2xl px-4 py-3 text-center font-space text-lg font-bold" value="7">
+                  </label>
+                  <label>
+                    <span class="mb-2 block text-[10px] font-extrabold uppercase tracking-[0.16em] text-white/45">Subs</span>
+                    <input id="rosterSubs" type="number" min="0" class="dc-input w-full rounded-2xl px-4 py-3 text-center font-space text-lg font-bold" value="2">
+                  </label>
+                </div>
+              </div>
+
+              <div class="wizard-card rounded-[2rem] p-5 sm:p-7">
+                <h3 class="mb-5 text-[10px] font-extrabold uppercase tracking-[0.25em] text-white/40">Participation and Platform</h3>
+                <div class="grid gap-4 md:grid-cols-2">
+                  <div>
+                    <span class="mb-2 block text-xs font-bold text-white/75">Participation Model</span>
+                    <div class="grid grid-cols-3 gap-2">
+                      <button id="btnTeam" type="button" class="choice-card rounded-xl px-2 py-3 text-xs font-bold">Team</button>
+                      <button id="btnSolo" type="button" class="choice-card rounded-xl px-2 py-3 text-xs font-bold">Solo</button>
+                      <button id="btnSquad" type="button" class="choice-card rounded-xl px-2 py-3 text-xs font-bold">Squad</button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <span class="mb-2 block text-xs font-bold text-white/75">Platform</span>
+                    <div id="platformGrid" class="grid grid-cols-2 gap-2"></div>
+                  </div>
+
+                  <label>
+                    <span class="mb-2 block text-xs font-bold text-white/75">Result Proof</span>
+                    <select id="resultProof" class="dc-input w-full rounded-2xl px-5 py-4">
+                      <option value="screenshot">Screenshot required</option>
+                      <option value="video">Video proof required</option>
+                      <option value="api">API verified</option>
+                    </select>
+                  </label>
+
+                  <label>
+                    <span class="mb-2 block text-xs font-bold text-white/75">Server / Region</span>
+                    <input id="serverRegion" type="text" class="dc-input w-full rounded-2xl px-5 py-4" placeholder="Global">
+                  </label>
+                </div>
+              </div>
+
+              <div class="wizard-card rounded-[2rem] p-5 sm:p-7">
+                <div class="flex items-center justify-between gap-4">
+                  <div>
+                    <h3 class="text-[10px] font-extrabold uppercase tracking-[0.25em] text-white/40">Advanced Controls</h3>
+                    <p class="mt-2 text-xs text-white/45">Optional tournament automation toggles.</p>
+                  </div>
+                  <label class="switch">
+                    <input id="advancedToggle" type="checkbox">
+                    <span class="switch-track"></span>
+                    <span class="switch-thumb"></span>
+                  </label>
+                </div>
+                <div id="advancedPanel" class="expand-panel mt-4">
+                  <div class="expand-inner">
+                    <div class="grid gap-3 pt-2 sm:grid-cols-2">
+                      <label class="flex items-center justify-between gap-4 rounded-2xl border border-white/10 bg-black/25 p-4">
+                        <span><strong class="block text-sm">Dynamic Seeding</strong><span class="text-xs text-white/42">Rank-aware pairings</span></span>
+                        <input id="enableDynamicSeeding" type="checkbox" class="h-4 w-4 accent-[var(--accent)]">
+                      </label>
+                      <label class="flex items-center justify-between gap-4 rounded-2xl border border-white/10 bg-black/25 p-4">
+                        <span><strong class="block text-sm">Live Updates</strong><span class="text-xs text-white/42">Realtime TOC refresh</span></span>
+                        <input id="enableLiveUpdates" type="checkbox" class="h-4 w-4 accent-[var(--accent)]" checked>
+                      </label>
+                      <label class="flex items-center justify-between gap-4 rounded-2xl border border-white/10 bg-black/25 p-4">
+                        <span><strong class="block text-sm">Certificates</strong><span class="text-xs text-white/42">Auto-generate winner certs</span></span>
+                        <input id="enableCertificates" type="checkbox" class="h-4 w-4 accent-[var(--accent)]" checked>
+                      </label>
+                      <label class="flex items-center justify-between gap-4 rounded-2xl border border-white/10 bg-black/25 p-4">
+                        <span><strong class="block text-sm">Challenges</strong><span class="text-xs text-white/42">In-match challenge system</span></span>
+                        <input id="enableChallenges" type="checkbox" class="h-4 w-4 accent-[var(--accent)]">
+                      </label>
+                      <label class="flex items-center justify-between gap-4 rounded-2xl border border-white/10 bg-black/25 p-4">
+                        <span><strong class="block text-sm">Fan Voting</strong><span class="text-xs text-white/42">Community MVP voting</span></span>
+                        <input id="enableFanVoting" type="checkbox" class="h-4 w-4 accent-[var(--accent)]">
+                      </label>
+                      <label class="flex items-center justify-between gap-4 rounded-2xl border border-white/10 bg-black/25 p-4">
+                        <span><strong class="block text-sm">Check-in</strong><span class="text-xs text-white/42">Minutes before start</span></span>
+                        <input id="checkInMinutes" type="number" min="5" max="120" value="15" class="dc-input w-16 rounded-xl px-2 py-2 text-center text-sm font-bold">
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <aside class="space-y-5 xl:sticky xl:top-8 xl:h-max">
+              <div class="wizard-card rounded-[2rem] p-6">
+                <h3 class="mb-5 text-[10px] font-extrabold uppercase tracking-[0.25em] text-white/40">Architecture Pulse</h3>
+                <div class="space-y-4 text-sm">
+                  <div class="flex justify-between border-b border-white/10 pb-3"><span class="text-white/45">Slots</span><strong id="sumSlots" class="text-[var(--accent)]">16</strong></div>
+                  <div class="flex justify-between border-b border-white/10 pb-3"><span class="text-white/45">Roster</span><strong id="sumRoster">5-7</strong></div>
+                  <div class="flex justify-between border-b border-white/10 pb-3"><span class="text-white/45">Platform</span><strong id="sumPlatform">PC</strong></div>
+                  <div class="flex justify-between"><span class="text-white/45">Server</span><strong id="sumServer">Global</strong></div>
+                </div>
+              </div>
+
+              <div class="wizard-card rounded-[2rem] border-[var(--accent)]/25 bg-[rgba(var(--accent-rgb),0.1)] p-5">
+                <p class="text-[10px] font-extrabold uppercase tracking-[0.2em] text-[var(--accent)]">Setup Insight</p>
+                <p id="advisorTip" class="mt-3 text-xs leading-relaxed text-white/70">Select a game to load game-specific advice.</p>
+                <div id="configPreview" class="mt-4 space-y-2 text-xs text-white/65"></div>
+              </div>
+            </aside>
+          </div>
+        </section>
+
+        <section id="step-4" data-panel class="slide-panel hidden">
+          <div class="mb-8">
+            <div class="mb-5 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 backdrop-blur-xl">
+              <span class="h-2 w-2 rounded-full bg-[var(--accent)] shadow-[0_0_16px_rgba(var(--accent-rgb),1)]"></span>
+              <span class="text-[10px] font-extrabold uppercase tracking-[0.25em] text-white/60">Step 4 — Schedule & Payment</span>
+            </div>
+            <h2 class="font-space text-4xl font-extrabold tracking-[-0.035em] sm:text-5xl">Schedule & payment.</h2>
+          </div>
+
+          <div class="grid gap-5 xl:grid-cols-[1fr_360px]">
+            <div class="space-y-5">
+              <div class="wizard-card rounded-[2rem] p-5 sm:p-7">
+                <h3 class="mb-6 text-[10px] font-extrabold uppercase tracking-[0.25em] text-white/40">Master Timeline</h3>
+                <div class="grid gap-4 md:grid-cols-2">
+                  <label>
+                    <span class="mb-2 block text-xs font-bold text-white/75">Registration Opens *</span>
+                    <input id="regStart" type="datetime-local" class="dc-input w-full rounded-2xl px-4 py-4">
+                  </label>
+                  <label>
+                    <span class="mb-2 block text-xs font-bold text-white/75">Registration Closes *</span>
+                    <input id="regEnd" type="datetime-local" class="dc-input w-full rounded-2xl px-4 py-4">
+                  </label>
+                  <label>
+                    <span class="mb-2 block text-xs font-bold text-white/75">Check-in Opens</span>
+                    <input id="checkInOpen" type="datetime-local" class="dc-input w-full rounded-2xl px-4 py-4">
+                  </label>
+                  <label>
+                    <span class="mb-2 block text-xs font-bold text-white/75">Tournament Starts *</span>
+                    <input id="tourStart" type="datetime-local" class="dc-input w-full rounded-2xl px-4 py-4">
+                  </label>
+                  <label class="md:col-span-2">
+                    <span class="mb-2 block text-xs font-bold text-white/75">Tournament Ends</span>
+                    <input id="tourEnd" type="datetime-local" class="dc-input w-full rounded-2xl px-4 py-4">
+                  </label>
+                </div>
+              </div>
+
+              <div class="wizard-card rounded-[2rem] p-5 sm:p-7">
+                <div class="mb-5 flex items-center justify-between gap-4">
+                  <h3 class="text-[10px] font-extrabold uppercase tracking-[0.25em] text-white/40">Venue and Official Controls</h3>
+                  {% if is_staff %}
+                  <label class="switch">
+                    <input id="officialToggle" type="checkbox">
+                    <span class="switch-track"></span>
+                    <span class="switch-thumb"></span>
+                  </label>
+                  {% endif %}
+                </div>
+
+                {% if is_staff %}
+                <p class="mb-4 text-xs text-white/45">Official tournament toggle and Online/LAN/Hybrid venue modes are available for staff and superusers.</p>
+                {% else %}
+                <input id="officialToggle" type="checkbox" class="hidden" disabled>
+                <p class="mb-4 rounded-xl border border-yellow-500/35 bg-yellow-500/10 px-3 py-2 text-xs text-yellow-200">Official, LAN, and Hybrid creation modes are staff-only. Your venue mode is locked to Online.</p>
+                {% endif %}
+
+                <div class="flex flex-wrap gap-2 rounded-2xl border border-white/10 bg-black/35 p-2">
+                  <label class="cursor-pointer">
+                    <input type="radio" name="venueMode" value="online" class="peer sr-only" checked>
+                    <span class="block rounded-xl px-4 py-2 text-xs font-bold text-white/60 transition peer-checked:bg-white/12 peer-checked:text-white">Online</span>
+                  </label>
+                  {% if is_staff %}
+                  <label class="cursor-pointer">
+                    <input type="radio" name="venueMode" value="lan" class="peer sr-only">
+                    <span class="block rounded-xl px-4 py-2 text-xs font-bold text-white/60 transition peer-checked:bg-white/12 peer-checked:text-white">LAN</span>
+                  </label>
+                  <label class="cursor-pointer">
+                    <input type="radio" name="venueMode" value="hybrid" class="peer sr-only">
+                    <span class="block rounded-xl px-4 py-2 text-xs font-bold text-white/60 transition peer-checked:bg-white/12 peer-checked:text-white">Hybrid</span>
+                  </label>
+                  {% endif %}
+                </div>
+
+                <div id="lanFields" class="expand-panel mt-4">
+                  <div class="expand-inner">
+                    <div class="grid gap-4 pt-2 md:grid-cols-2">
+                      <label>
+                        <span class="mb-2 block text-xs font-bold text-white/75">Venue Name</span>
+                        <input id="venueName" type="text" class="dc-input w-full rounded-2xl px-4 py-3" placeholder="Venue name">
+                      </label>
+                      <label>
+                        <span class="mb-2 block text-xs font-bold text-white/75">Venue City</span>
+                        <input id="venueCity" type="text" class="dc-input w-full rounded-2xl px-4 py-3" placeholder="City">
+                      </label>
+                      <label class="md:col-span-2">
+                        <span class="mb-2 block text-xs font-bold text-white/75">Venue Map URL</span>
+                        <input id="venueMap" type="url" class="dc-input w-full rounded-2xl px-4 py-3" placeholder="Google Maps URL">
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="wizard-card rounded-[2rem] p-5 sm:p-7">
+                <div class="flex items-center justify-between gap-4">
+                  <div>
+                    <h3 class="text-[10px] font-extrabold uppercase tracking-[0.25em] text-white/40">Entry Economy</h3>
+                    <p class="mt-2 text-xs text-white/45">Free by default. Enable paid flow when needed.</p>
+                  </div>
+                  <label class="switch">
+                    <input id="entryFeeToggle" type="checkbox">
+                    <span class="switch-track"></span>
+                    <span class="switch-thumb"></span>
+                  </label>
+                </div>
+
+                <div id="feePanel" class="expand-panel mt-4">
+                  <div class="expand-inner">
+                    <div class="space-y-5 border-t border-white/10 pt-5">
+                      <div class="grid gap-4 md:grid-cols-2">
+                        <label>
+                          <span class="mb-2 block text-xs font-bold text-white/75">Entry Fee Amount</span>
+                          <input id="entryFeeAmount" type="number" min="0" class="dc-input w-full rounded-2xl px-4 py-4" placeholder="0">
+                        </label>
+                        <label>
+                          <span class="mb-2 block text-xs font-bold text-white/75">Entry Fee Currency</span>
+                          <select id="entryFeeCurrency" class="dc-input w-full rounded-2xl px-4 py-4">
+                            <option value="BDT">BDT</option>
+                            <option value="DC">DeltaCoin</option>
+                            <option value="USD">USD</option>
+                          </select>
+                        </label>
+                      </div>
+
+                      <div class="rounded-[1.5rem] border border-white/10 bg-black/25 p-4">
+                        <h4 class="mb-3 text-[10px] font-extrabold uppercase tracking-[0.22em] text-white/45">Payment Methods</h4>
+                        <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                          <label class="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm font-semibold"><input class="payment-method-checkbox h-4 w-4 accent-[var(--accent)]" type="checkbox" value="bkash" checked> bKash</label>
+                          <label class="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm font-semibold"><input class="payment-method-checkbox h-4 w-4 accent-[var(--accent)]" type="checkbox" value="nagad"> Nagad</label>
+                          <label class="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm font-semibold"><input class="payment-method-checkbox h-4 w-4 accent-[var(--accent)]" type="checkbox" value="rocket"> Rocket</label>
+                          <label class="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm font-semibold"><input class="payment-method-checkbox h-4 w-4 accent-[var(--accent)]" type="checkbox" value="bank_transfer"> Bank Transfer</label>
+                          <label class="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm font-semibold"><input class="payment-method-checkbox h-4 w-4 accent-[var(--accent)]" type="checkbox" value="deltacoin"> DeltaCoin</label>
+                        </div>
+                        <div class="mt-4 grid gap-3 md:grid-cols-2">
+                          <input id="receiverNumber" type="text" class="dc-input w-full rounded-2xl px-4 py-3" placeholder="Receiver number / wallet ID">
+                          <input id="verificationNote" type="text" class="dc-input w-full rounded-2xl px-4 py-3" placeholder="Verification note">
+                          <textarea id="paymentInstruction" rows="3" class="dc-input md:col-span-2 w-full resize-none rounded-2xl px-4 py-3" placeholder="Payment instruction for participants"></textarea>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="wizard-card rounded-[2rem] p-5 sm:p-7">
+                <h3 class="mb-5 text-[10px] font-extrabold uppercase tracking-[0.25em] text-white/40">Prize Distribution</h3>
+                <div class="grid gap-4 md:grid-cols-2">
+                  <label>
+                    <span class="mb-2 block text-xs font-bold text-white/75">Prize Pool Amount</span>
+                    <input id="prizePool" type="number" min="0" class="dc-input w-full rounded-2xl px-4 py-4 font-space text-lg font-bold" placeholder="0">
+                  </label>
+                  <label>
+                    <span class="mb-2 block text-xs font-bold text-white/75">Prize Currency</span>
+                    <select id="prizeCurrency" class="dc-input w-full rounded-2xl px-4 py-4">
+                      <option value="BDT">BDT</option>
+                      <option value="DC">DeltaCoin</option>
+                      <option value="USD">USD</option>
+                    </select>
+                  </label>
+                </div>
+
+                <div class="mt-4 grid gap-3 sm:grid-cols-3">
+                  <label>
+                    <span class="mb-2 block text-[10px] font-extrabold uppercase tracking-[0.16em] text-white/45">1st %</span>
+                    <input id="prizeFirst" type="number" min="0" max="100" value="50" class="dc-input w-full rounded-2xl px-4 py-3 text-center font-bold">
+                  </label>
+                  <label>
+                    <span class="mb-2 block text-[10px] font-extrabold uppercase tracking-[0.16em] text-white/45">2nd %</span>
+                    <input id="prizeSecond" type="number" min="0" max="100" value="30" class="dc-input w-full rounded-2xl px-4 py-3 text-center font-bold">
+                  </label>
+                  <label>
+                    <span class="mb-2 block text-[10px] font-extrabold uppercase tracking-[0.16em] text-white/45">3rd %</span>
+                    <input id="prizeThird" type="number" min="0" max="100" value="20" class="dc-input w-full rounded-2xl px-4 py-3 text-center font-bold">
+                  </label>
+                </div>
+
+                <label class="mt-4 block">
+                  <span class="mb-2 block text-xs font-bold text-white/75">MVP Bonus (Optional)</span>
+                  <input id="mvpBonus" type="text" class="dc-input w-full rounded-2xl px-4 py-3" placeholder="Optional MVP reward note">
+                </label>
+
+                <div class="mt-5 rounded-xl border border-[var(--accent)]/20 bg-[rgba(var(--accent-rgb),0.06)] p-4">
+                  <p class="text-[10px] font-extrabold uppercase tracking-[0.2em] text-[var(--accent)] mb-2">Advanced Prize Setup</p>
+                  <p class="text-xs leading-relaxed text-white/55">Need custom split ratios, DeltaCoin prizes, or per-round payouts? The <strong class="text-white/80">Tournament Operations Center (TOC)</strong> offers full prize management after creation — including multi-tier distributions, conditional bonuses, and live payout tracking.</p>
+                </div>
+              </div>
+            </div>
+
+            <aside class="wizard-card h-max rounded-[2rem] p-6 xl:sticky xl:top-8">
+              <h3 class="mb-5 text-[10px] font-extrabold uppercase tracking-[0.25em] text-white/40">Economy Pulse</h3>
+              <div class="space-y-4 text-sm">
+                <div class="flex justify-between border-b border-white/10 pb-3"><span class="text-white/45">Entry</span><strong id="sumEntry" class="text-[var(--accent)]">Free</strong></div>
+                <div class="flex justify-between border-b border-white/10 pb-3"><span class="text-white/45">Currency</span><strong id="sumCurrency">BDT</strong></div>
+                <div class="flex justify-between"><span class="text-white/45">Prize</span><strong id="sumPrize">0</strong></div>
+              </div>
+            </aside>
+          </div>
+        </section>
+
+        <section id="step-5" data-panel class="slide-panel hidden">
+          <div class="mb-8">
+            <div class="mb-5 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 backdrop-blur-xl">
+              <span class="h-2 w-2 rounded-full bg-violet-400 shadow-[0_0_16px_rgba(167,139,250,1)]"></span>
+              <span class="text-[10px] font-extrabold uppercase tracking-[0.25em] text-white/60">Step 5 — Rules</span>
+            </div>
+            <h2 class="font-space text-4xl font-extrabold tracking-[-0.035em] sm:text-5xl">Rules & eligibility.</h2>
+            <p class="mt-3 text-sm text-white/50">Set participant eligibility and define the tournament rulebook.</p>
+          </div>
+
+          <div class="grid gap-5 xl:grid-cols-[1fr_340px]">
+            <div class="space-y-5">
+              <div class="wizard-card rounded-[2rem] p-5 sm:p-7">
+                <h3 class="mb-5 text-[10px] font-extrabold uppercase tracking-[0.25em] text-white/40">Eligibility</h3>
+                <div class="grid gap-4 md:grid-cols-3">
+                  <label>
+                    <span class="mb-2 block text-xs font-bold text-white/75">Min Age</span>
+                    <select id="minAge" class="dc-input w-full rounded-2xl px-4 py-4">
+                      <option value="none">No limit</option>
+                      <option value="13+">13+</option>
+                      <option value="16+">16+</option>
+                      <option value="18+">18+</option>
+                    </select>
+                  </label>
+                  <label>
+                    <span class="mb-2 block text-xs font-bold text-white/75">Country Restriction</span>
+                    <input id="countryRestriction" type="text" class="dc-input w-full rounded-2xl px-4 py-4" placeholder="Open / specific country">
+                  </label>
+                  <label>
+                    <span class="mb-2 block text-xs font-bold text-white/75">Rank Restriction</span>
+                    <input id="rankRestriction" type="text" class="dc-input w-full rounded-2xl px-4 py-4" placeholder="Open / capped rank">
+                  </label>
+                </div>
+              </div>
+
+              <div class="wizard-card rounded-[2rem] p-5 sm:p-7">
+                <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+                  <h3 class="text-[10px] font-extrabold uppercase tracking-[0.25em] text-white/40">Rulebook</h3>
+                  <div class="flex items-center gap-2">
+                    <button id="btnLoadRuleTemplate" type="button" class="rounded-xl border border-[var(--accent)]/30 bg-[rgba(var(--accent-rgb),0.12)] px-3 py-2 text-[10px] font-extrabold uppercase tracking-[0.18em] text-[var(--accent)] transition hover:bg-[rgba(var(--accent-rgb),0.2)]">Load game template</button>
+                    <button id="generateRules" type="button" class="rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-[10px] font-extrabold uppercase tracking-[0.18em] text-white/75 transition hover:bg-white/10">Generate guide</button>
+                  </div>
+                </div>
+                <textarea id="rulesText" rows="12" class="dc-input w-full resize-none rounded-[1.5rem] px-5 py-5 font-mono text-sm leading-relaxed" placeholder="Write clear participant rules..."></textarea>
+              </div>
+            </div>
+
+            <aside class="space-y-4 xl:sticky xl:top-8 xl:h-max">
+              <div class="wizard-card rounded-[2rem] p-5">
+                <p class="mb-3 text-[10px] font-extrabold uppercase tracking-[0.22em] text-white/40">Organizer Guidelines</p>
+                <div class="space-y-3 text-xs text-white/60 leading-relaxed">
+                  <div class="flex gap-2.5"><span class="mt-0.5 text-[var(--accent)] shrink-0">▸</span><span><strong class="text-white/85">Fair play first.</strong> Ensure all participants agree to a no-cheating, no-smurfing policy before joining.</span></div>
+                  <div class="flex gap-2.5"><span class="mt-0.5 text-[var(--accent)] shrink-0">▸</span><span><strong class="text-white/85">Clear communication.</strong> Announce schedule changes at least 24 hours in advance via community links.</span></div>
+                  <div class="flex gap-2.5"><span class="mt-0.5 text-[var(--accent)] shrink-0">▸</span><span><strong class="text-white/85">Result submission.</strong> Require screenshot proof within 10 minutes of match end. Disputes must be filed within 15 minutes.</span></div>
+                  <div class="flex gap-2.5"><span class="mt-0.5 text-[var(--accent)] shrink-0">▸</span><span><strong class="text-white/85">Bracket integrity.</strong> Never modify match results manually without documented reason and participant acknowledgement.</span></div>
+                  <div class="flex gap-2.5"><span class="mt-0.5 text-[var(--accent)] shrink-0">▸</span><span><strong class="text-white/85">Prize payouts.</strong> Release prize within 72 hours of finals. Delays must be communicated publicly.</span></div>
+                  <div class="flex gap-2.5"><span class="mt-0.5 text-[var(--accent)] shrink-0">▸</span><span><strong class="text-white/85">Disqualification.</strong> You may disqualify participants for rule violations — document and announce every DQ publicly.</span></div>
+                  <div class="flex gap-2.5"><span class="mt-0.5 text-[var(--accent)] shrink-0">▸</span><span><strong class="text-white/85">No-show policy.</strong> Define and clearly state the waiting period (recommended: 10 min) before a no-show forfeit.</span></div>
+                </div>
+              </div>
+              <div class="rounded-xl border border-violet-500/20 bg-violet-500/6 p-4">
+                <p class="text-[10px] font-extrabold uppercase tracking-[0.2em] text-violet-300 mb-1.5">Tip</p>
+                <p class="text-xs text-white/50 leading-relaxed">Use "Generate guide" to auto-fill a starter rulebook, then customise it. Use "Load game template" to get game-specific rules.</p>
+              </div>
+            </aside>
+          </div>
+        </section>
+
+        <section id="step-6" data-panel class="slide-panel hidden">
+          <div class="mb-8">
+            <div class="mb-5 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 backdrop-blur-xl">
+              <span class="h-2 w-2 rounded-full bg-sky-400 shadow-[0_0_16px_rgba(56,189,248,1)]"></span>
+              <span class="text-[10px] font-extrabold uppercase tracking-[0.25em] text-white/60">Step 6 — Review</span>
+            </div>
+            <h2 class="font-space text-4xl font-extrabold tracking-[-0.035em] sm:text-5xl">Review everything.</h2>
+            <p class="mt-3 text-sm text-white/50">Confirm your tournament configuration before proceeding to launch.</p>
+          </div>
+
+          <div class="grid gap-5 xl:grid-cols-[1fr_380px]">
+            <div class="space-y-5">
+              <div class="wizard-card rounded-[2rem] p-5 sm:p-7">
+                <h3 class="mb-5 text-[10px] font-extrabold uppercase tracking-[0.25em] text-white/40">Tournament Summary</h3>
+                <div id="reviewContent" class="space-y-2 text-sm"></div>
+              </div>
+
+              <div class="wizard-card rounded-[2rem] p-5 sm:p-7">
+                <h3 class="mb-5 text-[10px] font-extrabold uppercase tracking-[0.25em] text-white/40">Smart Organizer Guide</h3>
+                <div class="space-y-3 text-sm text-white/65">
+                  <p><strong class="text-white">TOC onboarding:</strong> after successful creation you are redirected to the Tournament Operations Center with a guided onboarding flow.</p>
+                  <p><strong class="text-white">Participant Hub:</strong> use the TOC participant and support panels to monitor registrations and verify payment.</p>
+                  <p><strong class="text-white">Bracket lock & check-in:</strong> confirm registration close time and check-in strategy before publishing match progression.</p>
+                  <p><strong class="text-white">Payment verification:</strong> if using manual methods, ensure receiver details and instructions are clearly stated in your rulebook.</p>
+                </div>
+              </div>
+            </div>
+
+            <aside class="relative h-max overflow-hidden rounded-[2rem] border border-[var(--accent)]/25 bg-[linear-gradient(180deg,rgba(var(--accent-rgb),0.18),rgba(255,255,255,0.045),rgba(0,0,0,0.28))] p-6 shadow-[0_0_70px_rgba(var(--accent-rgb),0.16)] backdrop-blur-2xl xl:sticky xl:top-8">
+              <div class="absolute -right-16 -top-16 h-48 w-48 rounded-full bg-[var(--accent)]/25 blur-3xl"></div>
+              <div class="relative">
+                <div class="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full border border-white/20 bg-white/10 text-xs font-extrabold text-white/80">PREVIEW</div>
+                <p class="text-center text-[10px] font-extrabold uppercase tracking-[0.25em] text-white/48">Ready to launch</p>
+                <h3 id="launchName" class="mt-3 text-center font-space text-2xl font-extrabold tracking-tight">Untitled Tournament</h3>
+                <p id="launchGame" class="mt-2 text-center text-xs font-extrabold uppercase tracking-[0.24em] text-[var(--accent)]">Game</p>
+                <div class="mt-6 grid grid-cols-2 gap-3 text-center">
+                  <div class="rounded-2xl border border-white/10 bg-black/25 p-3"><span class="text-[10px] text-white/42">Slots</span><strong id="launchSlots" class="mt-1 block font-space text-lg">16</strong></div>
+                  <div class="rounded-2xl border border-white/10 bg-black/25 p-3"><span class="text-[10px] text-white/42">Entry</span><strong id="launchEntry" class="mt-1 block font-space text-lg">Free</strong></div>
+                </div>
+                <button type="button" onclick="document.getElementById('nextBtn').click()" class="mt-6 w-full rounded-2xl border border-white/15 bg-white/8 px-6 py-3 font-space text-sm font-bold text-white/80 transition hover:bg-white/15">Proceed to Launch →</button>
+              </div>
+            </aside>
+          </div>
+        </section>
+
+        <section id="step-7" data-panel class="slide-panel hidden">
+          <div class="mb-8">
+            <div class="mb-5 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 backdrop-blur-xl">
+              <span class="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_16px_rgba(52,211,153,1)]"></span>
+              <span class="text-[10px] font-extrabold uppercase tracking-[0.25em] text-white/60">Step 7 — Launch</span>
+            </div>
+            <h2 class="font-space text-4xl font-extrabold tracking-[-0.035em] sm:text-5xl">Ready to deploy.</h2>
+            <p class="mt-3 text-sm text-white/50">Review the hosting fee and launch your tournament to the DeltaCrown network.</p>
+          </div>
+
+          <div class="grid gap-5 xl:grid-cols-[1fr_400px]">
+            <div class="space-y-5">
+              {% if not is_staff %}
+              <div class="wizard-card rounded-[2rem] p-5 sm:p-7">
+                <h3 class="mb-5 text-[10px] font-extrabold uppercase tracking-[0.25em] text-white/40">Hosting Fee</h3>
+                <div class="space-y-0 divide-y divide-white/8 text-sm">
+                  <div class="flex items-center justify-between py-4"><span class="text-white/65">Tournament Hosting</span><strong class="font-space text-base text-cyan-300">{{ hosting_fee }} DC</strong></div>
+                  <div class="flex items-center justify-between py-4"><span class="text-white/65">Your DeltaCoin Balance</span><strong class="font-space text-base">{{ user_balance }} DC</strong></div>
+                  <div class="flex items-center justify-between py-4"><span class="text-white/65">Balance After Creation</span><strong class="font-space text-base {% if can_afford %}text-emerald-400{% else %}text-red-400{% endif %}">{% if can_afford %}{{ after_balance }} DC{% else %}Insufficient{% endif %}</strong></div>
+                </div>
+                {% if not can_afford %}
+                <div class="mt-4 rounded-xl border border-red-500/35 bg-red-500/10 p-4">
+                  <p class="text-sm font-bold text-red-300 mb-1">Insufficient DeltaCoins</p>
+                  <p class="text-xs text-red-200/70">You need at least {{ hosting_fee }} DC to host a tournament. Top up your wallet to continue.</p>
+                </div>
+                <button id="topupCta" type="button" class="mt-3 inline-flex items-center gap-2 rounded-xl border border-red-400/35 bg-red-500/15 px-4 py-2 text-xs font-bold uppercase tracking-[0.15em] text-red-100 transition hover:bg-red-500/25">Top-up Wallet</button>
+                {% endif %}
+              </div>
+              {% else %}
+              <div class="wizard-card rounded-[2rem] border-emerald-500/25 bg-emerald-500/5 p-5 sm:p-7">
+                <div class="flex items-center gap-3">
+                  <span class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400 text-lg">✓</span>
+                  <div>
+                    <p class="font-semibold text-emerald-400">Staff Account — Free Hosting</p>
+                    <p class="text-xs text-white/50 mt-0.5">No DeltaCoin charge applies to staff and superuser accounts.</p>
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+
+              <div class="wizard-card rounded-[2rem] p-5 sm:p-7">
+                <h3 class="mb-4 text-[10px] font-extrabold uppercase tracking-[0.25em] text-white/40">What happens next?</h3>
+                <div class="space-y-3 text-sm text-white/60">
+                  <div class="flex items-start gap-3">
+                    <span class="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white/10 text-[10px] font-bold text-white/60">1</span>
+                    <span>Your tournament is created and a unique <strong class="text-white/80">/toc/slug/</strong> page is generated.</span>
+                  </div>
+                  <div class="flex items-start gap-3">
+                    <span class="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white/10 text-[10px] font-bold text-white/60">2</span>
+                    <span>You are redirected to the <strong class="text-white/80">Tournament Operations Center (TOC)</strong> with a guided onboarding flow.</span>
+                  </div>
+                  <div class="flex items-start gap-3">
+                    <span class="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white/10 text-[10px] font-bold text-white/60">3</span>
+                    <span>Set up bracket structure, publish to participants, and manage registrations from TOC.</span>
+                  </div>
+                  <div class="flex items-start gap-3">
+                    <span class="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white/10 text-[10px] font-bold text-white/60">4</span>
+                    <span>DeltaCoin hosting fee {% if is_staff %}(waived for staff){% else %}of {{ hosting_fee }} DC{% endif %} is deducted upon successful creation.</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <aside class="relative h-max overflow-hidden rounded-[2rem] border border-emerald-500/30 bg-[linear-gradient(180deg,rgba(52,211,153,0.1),rgba(0,0,0,0.35))] p-6 shadow-[0_0_70px_rgba(52,211,153,0.1)] backdrop-blur-2xl xl:sticky xl:top-8">
+              <div class="absolute -right-12 -top-12 h-40 w-40 rounded-full bg-emerald-500/15 blur-3xl"></div>
+              <div class="relative">
+                <div class="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-full border border-white/20 bg-white text-sm font-extrabold text-black">TOC</div>
+                <p class="text-center text-[10px] font-extrabold uppercase tracking-[0.25em] text-white/48">Deployment Contract</p>
+                <h3 id="launchNameFinal" class="mt-3 text-center font-space text-2xl font-extrabold tracking-tight">Untitled Tournament</h3>
+                <p id="launchGameFinal" class="mt-2 text-center text-xs font-extrabold uppercase tracking-[0.24em] text-emerald-400">Game</p>
+                <div class="mt-6 grid grid-cols-2 gap-3 text-center">
+                  <div class="rounded-2xl border border-white/10 bg-black/25 p-3"><span class="text-[10px] text-white/42">Slots</span><strong id="launchSlotsFinal" class="mt-1 block font-space text-lg">16</strong></div>
+                  <div class="rounded-2xl border border-white/10 bg-black/25 p-3"><span class="text-[10px] text-white/42">Entry</span><strong id="launchEntryFinal" class="mt-1 block font-space text-lg">Free</strong></div>
+                </div>
+                <button id="btnSubmit" type="button" class="mt-7 w-full rounded-2xl bg-white px-6 py-4 font-space text-base font-extrabold text-black transition hover:-translate-y-0.5 hover:shadow-[0_18px_60px_rgba(255,255,255,0.26)] {% if not can_afford and not is_staff %}opacity-50 cursor-not-allowed{% endif %}" {% if not can_afford and not is_staff %}disabled{% endif %}>
+                  {% if is_staff %}Launch Tournament{% else %}Pay {{ hosting_fee }} DC & Launch{% endif %}
+                </button>
+                {% if not is_staff %}
+                <p class="mt-3 text-center text-[10px] text-white/35">{{ hosting_fee }} DeltaCoins will be deducted from your balance</p>
+                {% endif %}
+              </div>
+            </aside>
+
+
+          </div>
+        </section>
+      </form>
+    </main>
+  </div>
+
+  <div class="sticky-bottom-nav">
+    <div class="mx-auto flex max-w-[1320px] items-center gap-3 rounded-2xl border border-white/10 bg-black/60 px-3 py-1.5 backdrop-blur-2xl shadow-[0_8px_40px_rgba(0,0,0,0.5)]">
+      <button id="prevBtn" type="button" class="hidden items-center gap-1 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-bold text-white/70 transition hover:bg-white/10 sm:px-4">Back</button>
+      <div class="min-w-0 flex-1 px-2">
+        <div class="h-1 overflow-hidden rounded-full bg-white/8">
+          <div id="bottomProgress" class="h-full rounded-full bg-[var(--accent)] shadow-[0_0_12px_rgba(var(--accent-rgb),0.6)] transition-all duration-500" style="width:20%"></div>
         </div>
       </div>
+      <span id="bottomStepLabel" class="text-[10px] font-bold uppercase tracking-wider text-white/40">1 / 7</span>
+      <button id="nextBtn" type="button" class="inline-flex items-center gap-1 rounded-xl bg-white px-4 py-2 font-space text-xs font-extrabold text-black transition hover:-translate-y-0.5 hover:shadow-[0_12px_30px_rgba(255,255,255,0.18)] sm:px-6">Continue</button>
     </div>
+  </div>
 
-    <!-- STEP 2: Format & Schedule -->
-    <div id="step-1" class="step-panel hidden">
-      <div class="grid lg:grid-cols-[1fr,340px] gap-6">
-        <div class="space-y-6">
-          <!-- Format -->
-          <div class="wizard-card rounded-2xl p-6">
-            <h2 class="text-lg font-bold text-white font-gaming mb-1">Tournament Format</h2>
-            <p class="text-gray-400 text-sm mb-5">Choose bracket structure</p>
-            <div id="formatGrid" class="space-y-3"></div>
-          </div>
-          <!-- Capacity -->
-          <div class="wizard-card rounded-2xl p-6">
-            <h2 class="text-lg font-bold text-white font-gaming mb-4">Capacity</h2>
-            <div>
-              <label class="text-sm text-gray-300 font-medium mb-2 block">Max Participants: <span id="capacityLabel" class="text-cyan-400 font-bold">16</span></label>
-              <input id="capacitySlider" type="range" min="2" max="256" value="16" class="w-full accent-cyan-500">
-              <div id="sizeChips" class="flex flex-wrap gap-2 mt-3"></div>
-            </div>
-          </div>
-          <!-- Platform -->
-          <div class="wizard-card rounded-2xl p-6">
-            <h2 class="text-lg font-bold text-white font-gaming mb-4">Platform</h2>
-            <div id="platformGrid" class="grid grid-cols-2 sm:grid-cols-4 gap-3"></div>
-          </div>
-          <!-- Schedule -->
-          <div class="wizard-card rounded-2xl p-6">
-            <h2 class="text-lg font-bold text-white font-gaming mb-4">Schedule</h2>
-            <div class="grid sm:grid-cols-2 gap-4">
-              <div>
-                <label class="text-sm text-gray-300 font-medium mb-1.5 block">Registration Opens *</label>
-                <input id="regStart" type="datetime-local" class="dc-input w-full rounded-xl px-4 py-3 text-sm">
-              </div>
-              <div>
-                <label class="text-sm text-gray-300 font-medium mb-1.5 block">Registration Closes *</label>
-                <input id="regEnd" type="datetime-local" class="dc-input w-full rounded-xl px-4 py-3 text-sm">
-              </div>
-              <div>
-                <label class="text-sm text-gray-300 font-medium mb-1.5 block">Tournament Starts *</label>
-                <input id="tourStart" type="datetime-local" class="dc-input w-full rounded-xl px-4 py-3 text-sm">
-              </div>
-              <div>
-                <label class="text-sm text-gray-300 font-medium mb-1.5 block">Tournament Ends</label>
-                <input id="tourEnd" type="datetime-local" class="dc-input w-full rounded-xl px-4 py-3 text-sm">
-              </div>
-            </div>
-          </div>
-        </div>
-        <!-- Live Preview -->
-        <div class="hidden lg:block">
-          <div class="wizard-card rounded-2xl p-5 sticky top-24">
-            <h3 class="text-sm font-bold text-white mb-3">📋 Configuration</h3>
-            <div id="configPreview" class="space-y-2 text-xs text-gray-400"></div>
-          </div>
-        </div>
-      </div>
-    </div>
+  <div id="toast" class="pointer-events-none fixed left-1/2 top-5 z-[70] hidden -translate-x-1/2 rounded-2xl border border-white/10 bg-black/75 px-5 py-3 text-sm font-bold text-white shadow-2xl backdrop-blur-2xl"></div>
 
-    <!-- STEP 3: Fees & Rules -->
-    <div id="step-2" class="step-panel hidden">
-      <div class="space-y-6 max-w-3xl">
-        <!-- Entry Fee -->
-        <div class="wizard-card rounded-2xl p-6">
-          <div class="flex items-center justify-between mb-4">
-            <h2 class="text-lg font-bold text-white font-gaming">Entry Fee</h2>
-            <label class="relative inline-flex items-center cursor-pointer">
-              <input id="entryFeeToggle" type="checkbox" class="sr-only peer">
-              <div class="w-11 h-6 bg-white/10 rounded-full peer peer-checked:bg-cyan-600 after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full"></div>
-              <span class="ml-2 text-sm text-gray-300">Paid</span>
-            </label>
+  <div id="guideModal" class="fixed inset-0 z-[80] hidden items-center justify-center bg-black/75 p-4 backdrop-blur-xl">
+    <div class="w-full max-w-2xl overflow-hidden rounded-[2rem] border border-white/10 bg-[#080a10]/98 shadow-2xl backdrop-blur-2xl">
+      <div class="flex items-center justify-between border-b border-white/10 px-6 py-5">
+        <div class="flex items-center gap-3">
+          <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--accent)]/15 text-[var(--accent)]">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
           </div>
-          <div id="feeFields" class="hidden grid sm:grid-cols-2 gap-4">
-            <div>
-              <label class="text-sm text-gray-300 font-medium mb-1.5 block">Amount</label>
-              <input id="entryFeeAmount" type="number" class="dc-input w-full rounded-xl px-4 py-3 text-sm" placeholder="0" min="0">
-            </div>
-            <div>
-              <label class="text-sm text-gray-300 font-medium mb-1.5 block">Currency</label>
-              <select id="entryFeeCurrency" class="dc-input w-full rounded-xl px-4 py-3 text-sm">
-                <option value="BDT">BDT (৳)</option>
-                <option value="DC">DeltaCoin (DC)</option>
-                <option value="USD">USD ($)</option>
-              </select>
-            </div>
+          <div>
+            <h3 class="font-space text-lg font-bold">Tournament Organizer Guide</h3>
+            <p class="text-[11px] text-white/40">Everything you need to run a successful event</p>
           </div>
         </div>
-        <!-- Prize Pool -->
-        <div class="wizard-card rounded-2xl p-6">
-          <h2 class="text-lg font-bold text-white font-gaming mb-4">Prize Pool <span class="text-xs text-gray-500 font-normal">(Optional)</span></h2>
-          <div class="grid sm:grid-cols-2 gap-4">
-            <div>
-              <label class="text-sm text-gray-300 font-medium mb-1.5 block">Prize Amount</label>
-              <input id="prizePool" type="number" class="dc-input w-full rounded-xl px-4 py-3 text-sm" placeholder="0" min="0">
-            </div>
-            <div>
-              <label class="text-sm text-gray-300 font-medium mb-1.5 block">Currency</label>
-              <select id="prizeCurrency" class="dc-input w-full rounded-xl px-4 py-3 text-sm">
-                <option value="BDT">BDT (৳)</option>
-                <option value="DC">DeltaCoin (DC)</option>
-                <option value="USD">USD ($)</option>
-              </select>
-            </div>
-          </div>
-        </div>
-        <!-- Rules & Description -->
-        <div class="wizard-card rounded-2xl p-6">
-          <h2 class="text-lg font-bold text-white font-gaming mb-4">Description & Rules</h2>
-          <div class="space-y-4">
-            <div>
-              <label class="text-sm text-gray-300 font-medium mb-1.5 block">Description</label>
-              <textarea id="description" rows="3" class="dc-input w-full rounded-xl px-4 py-3 text-sm resize-none" placeholder="Describe your tournament..."></textarea>
-            </div>
-            <div>
-              <label class="text-sm text-gray-300 font-medium mb-1.5 block">Rules</label>
-              <textarea id="rulesText" rows="5" class="dc-input w-full rounded-xl px-4 py-3 text-sm resize-none font-mono text-xs" placeholder="Tournament rules..."></textarea>
-              <button onclick="loadRuleTemplate()" class="text-xs text-cyan-400 hover:text-cyan-300 mt-1.5 transition-colors">⚡ Load game-specific template</button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- STEP 4: Review & Confirm -->
-    <div id="step-3" class="step-panel hidden">
-      <div class="max-w-3xl space-y-6">
-        <div class="wizard-card rounded-2xl p-6">
-          <h2 class="text-lg font-bold text-white font-gaming mb-5">Review Your Tournament</h2>
-          <div id="reviewContent" class="space-y-4"></div>
-        </div>
-        <!-- DeltaCoin Cost -->
-        {% if not is_staff %}
-        <div class="wizard-card rounded-2xl p-6 border-cyan-500/20">
-          <div class="flex items-center gap-3 mb-4">
-            <span class="text-2xl">🪙</span>
-            <h3 class="text-lg font-bold text-white">Hosting Fee</h3>
-          </div>
-          <div class="flex justify-between items-center py-2 border-b border-white/5">
-            <span class="text-sm text-gray-400">Tournament Hosting</span>
-            <span class="text-sm font-bold text-cyan-400">{{ hosting_fee }} DC</span>
-          </div>
-          <div class="flex justify-between items-center py-2 border-b border-white/5">
-            <span class="text-sm text-gray-400">Your Balance</span>
-            <span class="text-sm font-bold text-white">{{ user_balance }} DC</span>
-          </div>
-          <div class="flex justify-between items-center py-2">
-            <span class="text-sm text-gray-400">After Creation</span>
-            <span class="text-sm font-bold {% if can_afford %}text-emerald-400{% else %}text-red-400{% endif %}">
-              {% if can_afford %}{{ user_balance|add:"-"|add:hosting_fee }} DC{% else %}Insufficient{% endif %}
-            </span>
-          </div>
-          {% if not can_afford %}
-          <div class="mt-4 p-3 rounded-xl bg-red-500/10 border border-red-500/20">
-            <p class="text-sm text-red-300">⚠️ You need at least {{ hosting_fee }} DC to host a tournament.</p>
-          </div>
-          {% endif %}
-        </div>
-        {% else %}
-        <div class="wizard-card rounded-2xl p-4 border-emerald-500/20">
-          <div class="flex items-center gap-3">
-            <span class="text-xl">✅</span>
-            <div>
-              <p class="text-sm font-bold text-emerald-400">Staff Account — Free Hosting</p>
-              <p class="text-xs text-gray-400">No DeltaCoin charge for admin accounts</p>
-            </div>
-          </div>
-        </div>
-        {% endif %}
-      </div>
-    </div>
-
-    <!-- Navigation Buttons -->
-    <div class="flex justify-between items-center mt-8 max-w-3xl">
-      <button id="btnPrev" onclick="prevStep()" class="hidden px-6 py-3 rounded-xl border border-white/10 text-sm font-medium text-gray-300 hover:bg-white/5 transition-all">
-        ← Previous
-      </button>
-      <div class="ml-auto flex gap-3">
-        <button id="btnNext" onclick="nextStep()" class="px-8 py-3 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 text-sm font-bold text-white hover:from-cyan-500 hover:to-blue-500 transition-all shadow-lg shadow-cyan-500/20">
-          Next Step →
+        <button id="closeGuide" type="button" class="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white/60 transition hover:bg-white/10">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
-        <button id="btnSubmit" onclick="submitTournament()" class="hidden px-8 py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-cyan-600 text-sm font-bold text-white hover:from-emerald-500 hover:to-cyan-500 transition-all shadow-lg shadow-emerald-500/20 {% if not can_afford and not is_staff %}opacity-50 cursor-not-allowed{% endif %}" {% if not can_afford and not is_staff %}disabled{% endif %}>
-          ✨ Create Tournament
-        </button>
+      </div>
+      <div class="max-h-[70vh] overflow-y-auto p-6 space-y-5">
+
+        <div class="rounded-xl border border-[var(--accent)]/20 bg-[var(--accent)]/6 px-4 py-3">
+          <p class="text-[10px] font-extrabold uppercase tracking-[0.2em] text-[var(--accent)] mb-1">Wizard Steps</p>
+          <p class="text-xs text-white/60">Game → Details → Format → Schedule &amp; Payment → Rules → Review → Launch</p>
+        </div>
+
+        <div class="space-y-4 text-sm">
+
+          <div>
+            <p class="text-[10px] font-extrabold uppercase tracking-[0.18em] text-white/35 mb-2">1 — Before You Create</p>
+            <div class="space-y-2 text-white/60 leading-relaxed">
+              <p><span class="text-white/85 font-semibold">Choose the right game.</span> Pick the game your community plays most. All format defaults and rules will be pre-tuned for it.</p>
+              <p><span class="text-white/85 font-semibold">Decide your format first.</span> Single Elimination is easiest to run. Double Elimination gives players a second chance. Round Robin suits smaller groups.</p>
+              <p><span class="text-white/85 font-semibold">Set realistic dates.</span> Allow at least 5–7 days for registration before the event starts. Check-in should open 15–30 min before match time.</p>
+            </div>
+          </div>
+
+          <div class="border-t border-white/8 pt-4">
+            <p class="text-[10px] font-extrabold uppercase tracking-[0.18em] text-white/35 mb-2">2 — Participant Management</p>
+            <div class="space-y-2 text-white/60 leading-relaxed">
+              <p><span class="text-white/85 font-semibold">Use check-in.</span> Enable check-in 15–30 minutes before start. Participants who miss check-in can be replaced with reserves.</p>
+              <p><span class="text-white/85 font-semibold">Cap your capacity smartly.</span> A power-of-2 bracket (8, 16, 32, 64) avoids byes and is easier to manage. Use Round Robin for odd numbers.</p>
+              <p><span class="text-white/85 font-semibold">Verify payment manually if needed.</span> For Bkash/Nagad payments, cross-check transaction IDs before approving slots. Use the TOC participant panel.</p>
+            </div>
+          </div>
+
+          <div class="border-t border-white/8 pt-4">
+            <p class="text-[10px] font-extrabold uppercase tracking-[0.18em] text-white/35 mb-2">3 — Running the Event</p>
+            <div class="space-y-2 text-white/60 leading-relaxed">
+              <p><span class="text-white/85 font-semibold">Start matches on time.</span> Delays cascade. If a team is late, use a 10-minute no-show rule and move on. Announce this in your rulebook.</p>
+              <p><span class="text-white/85 font-semibold">Require screenshot proof.</span> All winners must submit match result screenshots within 10 minutes. No proof = no confirmed result.</p>
+              <p><span class="text-white/85 font-semibold">Handle disputes quickly.</span> Only accept disputes filed within 15 minutes of a result. Document every ruling publicly in your community channel.</p>
+              <p><span class="text-white/85 font-semibold">Never edit brackets manually</span> without reason. If you must override a result, log it clearly with screenshots and inform both sides.</p>
+            </div>
+          </div>
+
+          <div class="border-t border-white/8 pt-4">
+            <p class="text-[10px] font-extrabold uppercase tracking-[0.18em] text-white/35 mb-2">4 — Prizes & Payouts</p>
+            <div class="space-y-2 text-white/60 leading-relaxed">
+              <p><span class="text-white/85 font-semibold">Never promise what you can't deliver.</span> Set a prize pool you can 100% pay out before the event starts, not after.</p>
+              <p><span class="text-white/85 font-semibold">Payout within 72 hours.</span> Winners expect fast rewards. Delays harm your reputation as an organizer.</p>
+              <p><span class="text-white/85 font-semibold">Use TOC for complex prizes.</span> Multi-tier distributions, DeltaCoin payouts, and conditional bonuses are all manageable from the Tournament Operations Center after creation.</p>
+            </div>
+          </div>
+
+          <div class="border-t border-white/8 pt-4">
+            <p class="text-[10px] font-extrabold uppercase tracking-[0.18em] text-white/35 mb-2">5 — After Creation</p>
+            <div class="space-y-2 text-white/60 leading-relaxed">
+              <p><span class="text-white/85 font-semibold">TOC Onboarding.</span> You'll be redirected to the Tournament Operations Center with a step-by-step onboarding guide. Complete it to unlock all management tools.</p>
+              <p><span class="text-white/85 font-semibold">Publish immediately.</span> Share your /t/ tournament link and community channels as soon as registration opens.</p>
+              <p><span class="text-white/85 font-semibold">Communicate proactively.</span> Post updates on schedule changes at least 24 hours in advance. Silence from organizers kills participation.</p>
+            </div>
+          </div>
+
+          <div class="rounded-xl border border-emerald-500/20 bg-emerald-500/6 px-4 py-3 mt-2">
+            <p class="text-[10px] font-extrabold uppercase tracking-[0.18em] text-emerald-400 mb-1">Pro Tip</p>
+            <p class="text-xs text-white/55">Run a test tournament with friends first. Use it to find gaps in your rulebook, test payment flow, and practice the TOC tools before going public.</p>
+          </div>
+        </div>
       </div>
     </div>
   </div>
-</div>
 
-<!-- Loading Overlay -->
-<div id="loadingOverlay" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center">
-  <div class="text-center">
-    <div class="w-12 h-12 border-4 border-cyan-500/30 border-t-cyan-500 rounded-full animate-spin mx-auto mb-4"></div>
-    <p class="text-white font-medium">Creating your tournament...</p>
+  <div id="loadingOverlay" class="fixed inset-0 z-[90] hidden items-center justify-center bg-black/80 backdrop-blur-xl">
+    <div class="glass-panel w-full max-w-sm rounded-3xl p-8 text-center">
+      <div class="mx-auto h-14 w-14 rounded-full border-4 border-white/20 border-t-[var(--accent)] animate-spin"></div>
+      <h3 class="mt-4 font-space text-lg font-bold">Submitting tournament...</h3>
+      <p class="mt-1 text-sm text-white/70">Processing create request and hosting fee flow.</p>
+    </div>
   </div>
-</div>
 
-<script id="gamesData" type="application/json">{{ games_json|safe }}</script>
-<script id="formatChoicesData" type="application/json">{{ format_choices_json|safe }}</script>
-<script id="platformChoicesData" type="application/json">{{ platform_choices_json|safe }}</script>
+  <div id="deployOverlay" class="fixed inset-0 z-[95] hidden flex-col items-center justify-center bg-[#030409]/95 p-6 text-center backdrop-blur-3xl">
+    <div class="relative mb-8 flex h-32 w-32 items-center justify-center">
+      <div class="absolute inset-0 rounded-full border border-white/10"></div>
+      <div class="absolute inset-3 rounded-full border-2 border-transparent border-r-[var(--accent)] border-t-[var(--accent)] animate-spin"></div>
+      <div class="font-space text-4xl font-extrabold text-[var(--accent)]">TOC</div>
+    </div>
+    <h2 id="deployTitle" class="font-space text-4xl font-extrabold tracking-tight">Compiling architecture...</h2>
+    <p id="deployText" class="mt-4 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-[10px] font-extrabold uppercase tracking-[0.25em] text-white/45">Validating game protocol</p>
+  </div>
+
+  <script id="gamesData" type="application/json">{{ games_json|safe }}</script>
+  <script id="formatChoicesData" type="application/json">{{ format_choices_json|safe }}</script>
+  <script id="platformChoicesData" type="application/json">{{ platform_choices_json|safe }}</script>
+</div>
 {% endblock %}
 
 {% block extra_js %}

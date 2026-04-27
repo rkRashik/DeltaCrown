@@ -107,17 +107,61 @@ def charge_hosting_fee(user, tournament) -> Optional[Dict[str, Any]]:
     if fee <= 0:
         return None
 
-    from apps.tournament_ops.adapters.economy_adapter import EconomyAdapter
-    adapter = EconomyAdapter()
+    from apps.economy.services import debit
+    from apps.tournament_ops.exceptions import PaymentFailedError
+    from apps.user_profile.models import UserProfile
+
+    reason = f"Tournament hosting fee (tournament #{tournament.id})"
+    idempotency_key = f"tournament-hosting-fee-{user.id}-{tournament.id}"
+    meta = {
+        'tournament_id': tournament.id,
+        'type': 'tournament_hosting_fee',
+        'organizer_id': user.id,
+    }
 
     logger.info(
         "Charging hosting fee of %d DC to user %s for tournament %s",
         fee, user.username, tournament.slug,
     )
 
-    return adapter.charge_registration_fee(
-        user_id=user.id,
-        tournament_id=tournament.id,
-        amount=fee,
-        currency='DC',
-    )
+    try:
+        profile = UserProfile.objects.get(user_id=user.id)
+        result = debit(
+            profile,
+            fee,
+            reason=reason,
+            idempotency_key=idempotency_key,
+            meta=meta,
+        )
+    except UserProfile.DoesNotExist as e:
+        logger.error(
+            "Hosting fee charge failed: UserProfile missing for user %s (tournament: %s)",
+            user.id,
+            tournament.id,
+        )
+        raise PaymentFailedError(
+            "Unable to charge hosting fee: organizer profile was not found."
+        ) from e
+    except Exception as e:
+        logger.error(
+            "Hosting fee charge failed for user %s (tournament: %s): %s",
+            user.id,
+            tournament.id,
+            e,
+            exc_info=True,
+        )
+
+        message = "Unable to charge tournament hosting fee."
+        if 'insufficient' in str(e).lower():
+            message = "Insufficient DeltaCoin balance to pay the tournament hosting fee."
+
+        raise PaymentFailedError(f"{message} Details: {e}") from e
+
+    return {
+        'transaction_id': str(result.get('transaction_id', '')),
+        'amount': fee,
+        'currency': 'DC',
+        'status': 'completed',
+        'balance_after': result.get('balance_after', None),
+        'metadata': meta,
+    }

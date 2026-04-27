@@ -1,0 +1,1181 @@
+<!DOCTYPE html>
+<html lang="en" class="dark" style="--accent:#ff4655; --accent-rgb:255,70,85; --mx:50%; --my:20%;">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DeltaCrown | Premium Tournament Architect</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700;800&display=swap" rel="stylesheet" />
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            inter: ['Inter', 'sans-serif'],
+            space: ['Space Grotesk', 'sans-serif']
+          },
+          colors: {
+            accent: 'var(--accent)'
+          },
+          animation: {
+            'fade-in-up': 'fadeInUp .55s cubic-bezier(.16,1,.3,1) both',
+            'float-soft': 'floatSoft 7s ease-in-out infinite',
+            'pulse-glow': 'pulseGlow 2.4s ease-in-out infinite',
+            'shimmer': 'shimmer 2.2s linear infinite',
+            'scale-in': 'scaleIn .35s cubic-bezier(.16,1,.3,1) both'
+          },
+          keyframes: {
+            fadeInUp: {
+              '0%': { opacity: '0', transform: 'translateY(18px)' },
+              '100%': { opacity: '1', transform: 'translateY(0)' }
+            },
+            floatSoft: {
+              '0%,100%': { transform: 'translate3d(0,0,0) scale(1)' },
+              '50%': { transform: 'translate3d(0,-10px,0) scale(1.02)' }
+            },
+            pulseGlow: {
+              '0%,100%': { opacity: '.55', transform: 'scale(1)' },
+              '50%': { opacity: '1', transform: 'scale(1.06)' }
+            },
+            shimmer: {
+              '0%': { backgroundPosition: '200% 0' },
+              '100%': { backgroundPosition: '-200% 0' }
+            },
+            scaleIn: {
+              '0%': { opacity: '0', transform: 'scale(.96)' },
+              '100%': { opacity: '1', transform: 'scale(1)' }
+            }
+          }
+        }
+      }
+    };
+  </script>
+</head>
+
+<body class="h-dvh overflow-hidden bg-[#030409] text-white antialiased font-inter selection:bg-[var(--accent)] selection:text-black">
+  <div aria-hidden="true" class="hidden grid-rows-[1fr] opacity-100 inline-flex flex block animate-ping"></div>
+  <div id="meshLayer" class="fixed inset-0 pointer-events-none transition-all duration-700"></div>
+  <div class="fixed inset-0 pointer-events-none opacity-[0.035] mix-blend-screen bg-[url('data:image/svg+xml,%3Csvg_viewBox=%220_0_220_220%22_xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter_id=%22n%22%3E%3CfeTurbulence_type=%22fractalNoise%22_baseFrequency=%220.75%22_numOctaves=%222%22_stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect_width=%22100%25%22_height=%22100%25%22_filter=%22url(%23n)%22/%3E%3C/svg%3E')] "></div>
+  <div class="fixed inset-0 pointer-events-none bg-[linear-gradient(to_bottom,rgba(255,255,255,0.04),transparent_16%,transparent_82%,rgba(0,0,0,0.55))]"></div>
+
+  <div class="flex h-full w-full flex-col lg:flex-row relative z-10">
+    <header class="lg:hidden sticky top-0 z-40 border-b border-white/10 bg-black/45 backdrop-blur-2xl px-4 py-3">
+      <div class="flex items-center justify-between gap-3">
+        <div class="flex items-center gap-3 min-w-0">
+          <div class="h-10 w-10 shrink-0 rounded-2xl border border-white/15 bg-white/[0.06] flex items-center justify-center shadow-[0_0_26px_rgba(var(--accent-rgb),0.24)]">
+            <span class="font-space text-xl font-extrabold text-white">Δ</span>
+          </div>
+          <div class="min-w-0">
+            <h1 class="font-space text-base font-bold tracking-tight leading-tight">DeltaCrown</h1>
+            <p class="text-[10px] uppercase tracking-[0.24em] text-white/35 font-bold">Architect</p>
+          </div>
+        </div>
+        <button type="button" id="mobileGuideBtn" class="rounded-2xl border border-white/10 bg-white/[0.04] p-3 text-white/65 active:scale-95 transition">
+          <i data-lucide="help-circle" class="h-5 w-5"></i>
+        </button>
+      </div>
+      <div id="mobileStepper" class="mt-4 flex items-center gap-2 overflow-x-auto pb-1"></div>
+    </header>
+
+    <aside class="hidden lg:flex w-[360px] xl:w-[400px] shrink-0 flex-col border-r border-white/10 bg-black/30 backdrop-blur-3xl shadow-[18px_0_70px_rgba(0,0,0,0.42)]">
+      <div class="p-8 xl:p-10">
+        <div class="flex items-center gap-4">
+          <div class="relative h-14 w-14 rounded-[1.4rem] border border-white/15 bg-white/[0.06] flex items-center justify-center overflow-hidden shadow-[0_0_34px_rgba(var(--accent-rgb),0.25)]">
+            <div class="absolute inset-0 bg-[linear-gradient(135deg,rgba(var(--accent-rgb),0.7),rgba(255,255,255,0.06),transparent)] opacity-70"></div>
+            <span class="relative font-space text-3xl font-extrabold text-white drop-shadow-lg">Δ</span>
+          </div>
+          <div>
+            <h1 class="font-space text-2xl font-extrabold tracking-tight leading-none">DeltaCrown<span class="text-white/35">.lab</span></h1>
+            <p class="mt-2 text-[10px] uppercase tracking-[0.28em] text-white/35 font-extrabold">Premium Architect Console</p>
+          </div>
+        </div>
+
+        <div id="contextCard" class="mt-9 rounded-[1.75rem] border border-white/10 bg-white/[0.045] p-5 shadow-2xl backdrop-blur-2xl relative overflow-hidden transition-all duration-500">
+          <div class="absolute -right-14 -top-14 h-36 w-36 rounded-full blur-3xl opacity-30 bg-[var(--accent)] animate-float-soft"></div>
+          <div class="relative flex items-center gap-4">
+            <div id="contextIcon" class="h-12 w-12 rounded-2xl border border-white/10 bg-black/40 flex items-center justify-center text-[var(--accent)] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+              <i data-lucide="crosshair" class="h-6 w-6"></i>
+            </div>
+            <div class="min-w-0">
+              <h2 id="contextTitle" class="font-space text-lg font-bold text-white truncate">VALORANT</h2>
+              <p id="contextSub" class="mt-1 text-[10px] uppercase tracking-[0.24em] font-extrabold text-[var(--accent)]">FPS Protocol Loaded</p>
+            </div>
+          </div>
+          <div class="relative mt-5 rounded-2xl border border-white/8 bg-black/35 p-4">
+            <div class="mb-2 flex items-center gap-2 text-[var(--accent)]">
+              <i data-lucide="sparkles" class="h-3.5 w-3.5"></i>
+              <span class="text-[10px] uppercase tracking-[0.22em] font-extrabold">Setup Insight</span>
+            </div>
+            <p id="contextTip" class="text-xs leading-relaxed text-white/62">5v5, map veto, screenshot proof, and short protest windows are recommended.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex-1 overflow-y-auto px-10 pb-6">
+        <div class="mb-7 flex items-center justify-between">
+          <p class="text-[10px] uppercase tracking-[0.28em] text-white/32 font-extrabold">Deployment Sequence</p>
+          <span id="desktopStepCount" class="text-[10px] font-bold text-white/40">01 / 05</span>
+        </div>
+        <div class="relative pl-1">
+          <div class="absolute left-[18px] top-5 bottom-5 w-px bg-white/10"></div>
+          <div id="timelineBar" class="absolute left-[18px] top-5 w-px bg-[var(--accent)] shadow-[0_0_18px_rgba(var(--accent-rgb),0.75)] transition-all duration-500" style="height:0px"></div>
+          <nav id="desktopStepper" class="relative space-y-4"></nav>
+        </div>
+      </div>
+
+      <div class="border-t border-white/10 bg-black/25 p-7">
+        <div class="flex items-center justify-between gap-4">
+          <div class="flex items-center gap-3 min-w-0">
+            <div class="relative shrink-0">
+              <img class="h-11 w-11 rounded-2xl border border-white/10 bg-white/[0.04]" src="https://api.dicebear.com/7.x/avataaars/svg?seed=Redwan&backgroundColor=111827" alt="Organizer avatar" />
+              <span class="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-black bg-emerald-400"></span>
+            </div>
+            <div class="min-w-0">
+              <p class="truncate font-space text-sm font-bold">Redwan Ul Rashik</p>
+              <p class="mt-1 text-[10px] uppercase tracking-[0.16em] text-white/38 font-bold">Lead Architect</p>
+            </div>
+          </div>
+          <button type="button" id="desktopGuideBtn" class="rounded-2xl border border-white/10 bg-white/[0.04] p-3 text-white/55 hover:text-white hover:bg-white/[0.08] transition">
+            <i data-lucide="book-open" class="h-5 w-5"></i>
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <main id="mainScroll" class="relative flex-1 overflow-y-auto scroll-smooth pb-36">
+      <form id="tournamentForm" class="mx-auto w-full max-w-[1320px] px-4 py-8 sm:px-6 lg:px-10 xl:px-14 lg:py-12" novalidate>
+        <section id="step-1" data-panel class="animate-fade-in-up">
+          <div class="mb-8 flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
+            <div class="max-w-3xl">
+              <div class="mb-5 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.045] px-3 py-1.5 backdrop-blur-xl">
+                <span class="h-2 w-2 rounded-full bg-[var(--accent)] shadow-[0_0_16px_rgba(var(--accent-rgb),1)] animate-pulse-glow"></span>
+                <span class="text-[10px] uppercase tracking-[0.25em] text-white/58 font-extrabold">Phase 01 · Combat Zone</span>
+              </div>
+              <h2 class="font-space text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-[-0.04em] text-white">Choose the game first.</h2>
+              <p class="mt-4 text-sm sm:text-base text-white/54 max-w-2xl leading-relaxed">Every next setting will adapt to the selected arena: roster, server, capacity, rules, and payment flow.</p>
+            </div>
+
+            <div class="rounded-[1.5rem] border border-white/10 bg-white/[0.045] p-3 backdrop-blur-2xl min-w-[280px] shadow-2xl">
+              <div class="flex items-center gap-3 rounded-2xl bg-black/35 px-4 py-3">
+                <i data-lucide="search" class="h-4 w-4 text-white/42"></i>
+                <input id="gameSearch" type="search" placeholder="Search games" class="w-full bg-transparent text-sm text-white placeholder:text-white/30 outline-none" />
+              </div>
+              <div class="mt-3 flex items-center justify-between px-2 text-[10px] uppercase tracking-[0.18em] text-white/36 font-extrabold">
+                <span id="gameCount">16 games</span>
+                <span>Global catalog</span>
+              </div>
+            </div>
+          </div>
+
+          <div id="categoryFilters" class="mb-6 flex gap-2 overflow-x-auto pb-2"></div>
+
+          <div id="gameGrid" class="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 sm:gap-4"></div>
+
+          <div class="mt-8 grid gap-4 lg:grid-cols-[1fr_360px]">
+            <div class="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5 sm:p-6 backdrop-blur-2xl shadow-2xl overflow-hidden relative">
+              <div class="absolute -right-16 -top-16 h-48 w-48 rounded-full bg-[var(--accent)]/20 blur-3xl"></div>
+              <div class="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+                <div class="flex items-center gap-4 min-w-0">
+                  <div id="selectedHeroIcon" class="h-14 w-14 shrink-0 rounded-2xl border border-[var(--accent)]/40 bg-[rgba(var(--accent-rgb),0.12)] flex items-center justify-center text-[var(--accent)] shadow-[0_0_28px_rgba(var(--accent-rgb),0.22)]">
+                    <i data-lucide="crosshair" class="h-7 w-7"></i>
+                  </div>
+                  <div class="min-w-0">
+                    <p class="text-[10px] uppercase tracking-[0.24em] text-white/38 font-extrabold">Selected protocol</p>
+                    <h3 id="selectedHeroName" class="mt-1 truncate font-space text-2xl font-bold">VALORANT</h3>
+                  </div>
+                </div>
+                <button type="button" data-next-inline class="rounded-2xl bg-white px-6 py-4 font-space text-sm font-extrabold text-black transition hover:-translate-y-0.5 hover:shadow-[0_18px_50px_rgba(255,255,255,0.2)] active:scale-95">
+                  Continue to identity
+                </button>
+              </div>
+            </div>
+
+            <div class="rounded-[2rem] border border-white/10 bg-black/30 p-5 backdrop-blur-2xl shadow-2xl">
+              <p class="mb-4 text-[10px] uppercase tracking-[0.24em] text-white/36 font-extrabold">Auto defaults</p>
+              <div class="grid grid-cols-2 gap-3 text-sm">
+                <div class="rounded-2xl border border-white/8 bg-white/[0.035] p-4">
+                  <span class="text-xs text-white/42">Slots</span>
+                  <strong id="quickSlots" class="mt-1 block font-space text-xl text-white">16</strong>
+                </div>
+                <div class="rounded-2xl border border-white/8 bg-white/[0.035] p-4">
+                  <span class="text-xs text-white/42">Roster</span>
+                  <strong id="quickRoster" class="mt-1 block font-space text-xl text-white">5-7</strong>
+                </div>
+                <div class="rounded-2xl border border-white/8 bg-white/[0.035] p-4">
+                  <span class="text-xs text-white/42">Platform</span>
+                  <strong id="quickPlatform" class="mt-1 block font-space text-xl text-white">PC</strong>
+                </div>
+                <div class="rounded-2xl border border-white/8 bg-white/[0.035] p-4">
+                  <span class="text-xs text-white/42">Server</span>
+                  <strong id="quickServer" class="mt-1 block font-space text-xl text-white">Mumbai</strong>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="step-2" data-panel class="hidden animate-fade-in-up">
+          <div class="mb-8 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <div class="mb-5 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.045] px-3 py-1.5 backdrop-blur-xl">
+                <span class="h-2 w-2 rounded-full bg-[var(--accent)] shadow-[0_0_16px_rgba(var(--accent-rgb),1)]"></span>
+                <span class="text-[10px] uppercase tracking-[0.25em] text-white/58 font-extrabold">Phase 02 · Identity</span>
+              </div>
+              <h2 class="font-space text-4xl sm:text-5xl font-extrabold tracking-[-0.035em]">Tournament identity.</h2>
+              <p class="mt-3 text-sm text-white/48">Public name, link, community, and visual assets.</p>
+            </div>
+          </div>
+
+          <div class="grid gap-5 xl:grid-cols-[1fr_360px]">
+            <div class="space-y-5">
+              <div class="rounded-[2rem] border border-white/10 bg-white/[0.045] p-5 sm:p-7 backdrop-blur-2xl shadow-2xl">
+                <div class="mb-6 flex items-center justify-between">
+                  <h3 class="text-[10px] uppercase tracking-[0.25em] text-white/38 font-extrabold">Core Details</h3>
+                  <div class="relative group" tabindex="0">
+                    <i data-lucide="info" class="h-4 w-4 text-white/35 group-hover:text-white transition"></i>
+                    <div class="pointer-events-none absolute right-0 top-7 z-30 w-64 rounded-2xl border border-white/10 bg-[#0b0d13]/95 p-3 text-xs leading-relaxed text-white/65 opacity-0 shadow-2xl backdrop-blur-2xl transition group-hover:opacity-100 group-focus:opacity-100">Keep this short. Players should understand the event from the card title alone.</div>
+                  </div>
+                </div>
+
+                <div class="grid gap-4 md:grid-cols-2">
+                  <label class="md:col-span-2 block">
+                    <span class="mb-2 block text-xs font-bold text-white/72">Tournament Name <span class="text-[var(--accent)]">*</span></span>
+                    <input id="tourneyName" type="text" maxlength="100" placeholder="Genesis Cup 2026" value="Genesis Cup" class="w-full rounded-2xl border border-white/10 bg-black/35 px-5 py-4 font-space text-lg font-bold text-white outline-none transition placeholder:text-white/22 focus:border-[var(--accent)] focus:ring-4 focus:ring-[rgba(var(--accent-rgb),0.12)]" />
+                  </label>
+
+                  <label class="block">
+                    <span class="mb-2 flex items-center gap-2 text-xs font-bold text-white/72">URL Slug
+                      <span class="relative group" tabindex="0">
+                        <i data-lucide="info" class="h-3.5 w-3.5 text-white/35 group-hover:text-white"></i>
+                        <span class="pointer-events-none absolute left-1/2 top-6 z-30 hidden w-56 -translate-x-1/2 rounded-xl border border-white/10 bg-[#0b0d13]/95 p-3 text-[11px] font-normal leading-relaxed text-white/65 shadow-2xl group-hover:block group-focus:block">Creates deltacrown.online/t/your-slug</span>
+                      </span>
+                    </span>
+                    <div class="flex rounded-2xl border border-white/10 bg-black/35 focus-within:border-[var(--accent)] focus-within:ring-4 focus-within:ring-[rgba(var(--accent-rgb),0.12)] transition">
+                      <span class="shrink-0 px-4 py-4 text-sm text-white/35">/t/</span>
+                      <input id="tourneySlug" type="text" value="genesis-cup" class="min-w-0 flex-1 bg-transparent py-4 pr-5 text-sm font-bold text-white outline-none placeholder:text-white/25" />
+                    </div>
+                  </label>
+
+                  <label class="block">
+                    <span class="mb-2 block text-xs font-bold text-white/72">Primary Region</span>
+                    <select id="regionSelect" class="w-full rounded-2xl border border-white/10 bg-black/35 px-5 py-4 text-sm font-bold text-white outline-none transition focus:border-[var(--accent)] focus:ring-4 focus:ring-[rgba(var(--accent-rgb),0.12)]">
+                      <option>Bangladesh</option>
+                      <option>South Asia</option>
+                      <option>Asia</option>
+                      <option>Global</option>
+                    </select>
+                  </label>
+
+                  <label class="block">
+                    <span class="mb-2 block text-xs font-bold text-white/72">Visibility</span>
+                    <select id="visibilitySelect" class="w-full rounded-2xl border border-white/10 bg-black/35 px-5 py-4 text-sm font-bold text-white outline-none transition focus:border-[var(--accent)] focus:ring-4 focus:ring-[rgba(var(--accent-rgb),0.12)]">
+                      <option>Public listing</option>
+                      <option>Unlisted link</option>
+                      <option>Invite only</option>
+                    </select>
+                  </label>
+
+                  <label class="block">
+                    <span class="mb-2 block text-xs font-bold text-white/72">Timezone</span>
+                    <select id="timezoneSelect" class="w-full rounded-2xl border border-white/10 bg-black/35 px-5 py-4 text-sm font-bold text-white outline-none transition focus:border-[var(--accent)] focus:ring-4 focus:ring-[rgba(var(--accent-rgb),0.12)]">
+                      <option>Asia/Dhaka</option>
+                      <option>Asia/Kolkata</option>
+                      <option>Asia/Singapore</option>
+                      <option>UTC</option>
+                    </select>
+                  </label>
+                </div>
+              </div>
+
+              <div class="rounded-[2rem] border border-white/10 bg-white/[0.045] p-5 sm:p-7 backdrop-blur-2xl shadow-2xl">
+                <h3 class="mb-6 text-[10px] uppercase tracking-[0.25em] text-white/38 font-extrabold">Community & Support</h3>
+                <div class="grid gap-4 md:grid-cols-2">
+                  <label class="block">
+                    <span class="mb-2 block text-xs font-bold text-white/72">Community Link</span>
+                    <input id="communityLink" type="url" placeholder="Discord / WhatsApp" class="w-full rounded-2xl border border-white/10 bg-black/35 px-5 py-4 text-sm text-white outline-none transition placeholder:text-white/25 focus:border-[var(--accent)] focus:ring-4 focus:ring-[rgba(var(--accent-rgb),0.12)]" />
+                  </label>
+                  <label class="block">
+                    <span class="mb-2 block text-xs font-bold text-white/72">Support Contact</span>
+                    <input id="supportContact" type="email" placeholder="admin@deltacrown.online" class="w-full rounded-2xl border border-white/10 bg-black/35 px-5 py-4 text-sm text-white outline-none transition placeholder:text-white/25 focus:border-[var(--accent)] focus:ring-4 focus:ring-[rgba(var(--accent-rgb),0.12)]" />
+                  </label>
+                </div>
+              </div>
+
+              <div class="rounded-[2rem] border border-white/10 bg-white/[0.045] p-5 sm:p-7 backdrop-blur-2xl shadow-2xl">
+                <h3 class="mb-6 text-[10px] uppercase tracking-[0.25em] text-white/38 font-extrabold">Visual Assets</h3>
+                <div class="grid gap-4 md:grid-cols-[1fr_260px]">
+                  <label class="group relative flex min-h-[180px] cursor-pointer flex-col items-center justify-center rounded-[1.5rem] border border-dashed border-white/15 bg-black/25 px-5 text-center transition hover:border-[var(--accent)] hover:bg-[rgba(var(--accent-rgb),0.06)]">
+                    <input id="bannerInput" type="file" class="sr-only" accept="image/*" />
+                    <span class="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.05] text-[var(--accent)] transition group-hover:scale-105 group-hover:shadow-[0_0_24px_rgba(var(--accent-rgb),0.25)]"><i data-lucide="image-plus" class="h-6 w-6"></i></span>
+                    <strong id="bannerLabel" class="font-space text-sm">Upload banner</strong>
+                    <span class="mt-1 text-[11px] text-white/38">1920×480 preferred</span>
+                  </label>
+
+                  <label class="group relative flex min-h-[180px] cursor-pointer flex-col items-center justify-center rounded-[1.5rem] border border-dashed border-white/15 bg-black/25 px-5 text-center transition hover:border-[var(--accent)] hover:bg-[rgba(var(--accent-rgb),0.06)]">
+                    <input id="logoInput" type="file" class="sr-only" accept="image/*" />
+                    <span class="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.05] text-[var(--accent)] transition group-hover:scale-105 group-hover:shadow-[0_0_24px_rgba(var(--accent-rgb),0.25)]"><i data-lucide="box" class="h-6 w-6"></i></span>
+                    <strong id="logoLabel" class="font-space text-sm">Upload logo</strong>
+                    <span class="mt-1 text-[11px] text-white/38">Square 400×400</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <aside class="xl:sticky xl:top-8 h-max rounded-[2rem] border border-white/10 bg-white/[0.045] backdrop-blur-2xl shadow-2xl overflow-hidden">
+              <div class="relative h-28 bg-[linear-gradient(135deg,rgba(var(--accent-rgb),0.45),rgba(255,255,255,0.06),rgba(0,0,0,0.1))]">
+                <div class="absolute inset-0 bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.10),transparent)] bg-[length:200%_100%] animate-shimmer"></div>
+              </div>
+              <div class="p-6 -mt-9 relative">
+                <div class="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl border border-white/15 bg-black/70 text-[var(--accent)] shadow-2xl">
+                  <i data-lucide="trophy" class="h-7 w-7"></i>
+                </div>
+                <p class="text-[10px] uppercase tracking-[0.24em] text-white/38 font-extrabold">Live Preview</p>
+                <h3 id="previewName" class="mt-2 font-space text-2xl font-extrabold tracking-tight break-words">Genesis Cup</h3>
+                <p class="mt-2 text-xs font-bold text-[var(--accent)]">/t/<span id="previewSlug">genesis-cup</span></p>
+                <div class="mt-6 flex flex-wrap gap-2">
+                  <span id="previewGame" class="rounded-full border border-[var(--accent)]/25 bg-[rgba(var(--accent-rgb),0.10)] px-3 py-1.5 text-[10px] font-extrabold uppercase tracking-[0.16em] text-white">VALORANT</span>
+                  <span id="previewRegion" class="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1.5 text-[10px] font-extrabold uppercase tracking-[0.16em] text-white/55">Bangladesh</span>
+                </div>
+              </div>
+            </aside>
+          </div>
+        </section>
+
+        <section id="step-3" data-panel class="hidden animate-fade-in-up">
+          <div class="mb-8">
+            <div class="mb-5 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.045] px-3 py-1.5 backdrop-blur-xl">
+              <span class="h-2 w-2 rounded-full bg-[var(--accent)] shadow-[0_0_16px_rgba(var(--accent-rgb),1)]"></span>
+              <span class="text-[10px] uppercase tracking-[0.25em] text-white/58 font-extrabold">Phase 03 · Architecture</span>
+            </div>
+            <h2 class="font-space text-4xl sm:text-5xl font-extrabold tracking-[-0.035em]">Bracket architecture.</h2>
+            <p class="mt-3 text-sm text-white/48">Format, capacity, roster limits, platform, and automated controls.</p>
+          </div>
+
+          <div class="grid gap-5 xl:grid-cols-[1fr_360px]">
+            <div class="space-y-5">
+              <div class="rounded-[2rem] border border-white/10 bg-white/[0.045] p-5 sm:p-7 backdrop-blur-2xl shadow-2xl">
+                <h3 class="mb-6 text-[10px] uppercase tracking-[0.25em] text-white/38 font-extrabold">Core Structure</h3>
+                <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                  <label class="cursor-pointer">
+                    <input type="radio" name="format" value="Single Elimination" class="peer sr-only" checked />
+                    <span class="flex min-h-[112px] flex-col items-center justify-center rounded-2xl border border-white/10 bg-black/30 p-4 text-center transition peer-checked:border-[var(--accent)] peer-checked:bg-[rgba(var(--accent-rgb),0.10)] hover:border-white/20">
+                      <i data-lucide="git-commit" class="mb-3 h-5 w-5 text-white/45"></i>
+                      <span class="font-space text-sm font-bold">Single Elim</span>
+                    </span>
+                  </label>
+                  <label class="cursor-pointer">
+                    <input type="radio" name="format" value="Double Elimination" class="peer sr-only" />
+                    <span class="flex min-h-[112px] flex-col items-center justify-center rounded-2xl border border-white/10 bg-black/30 p-4 text-center transition peer-checked:border-[var(--accent)] peer-checked:bg-[rgba(var(--accent-rgb),0.10)] hover:border-white/20">
+                      <i data-lucide="git-branch" class="mb-3 h-5 w-5 text-white/45"></i>
+                      <span class="font-space text-sm font-bold">Double Elim</span>
+                    </span>
+                  </label>
+                  <label class="cursor-pointer">
+                    <input type="radio" name="format" value="Group + KO" class="peer sr-only" />
+                    <span class="flex min-h-[112px] flex-col items-center justify-center rounded-2xl border border-white/10 bg-black/30 p-4 text-center transition peer-checked:border-[var(--accent)] peer-checked:bg-[rgba(var(--accent-rgb),0.10)] hover:border-white/20">
+                      <i data-lucide="layout-grid" class="mb-3 h-5 w-5 text-white/45"></i>
+                      <span class="font-space text-sm font-bold">Group + KO</span>
+                    </span>
+                  </label>
+                  <label class="cursor-pointer">
+                    <input type="radio" name="format" value="Points Table" class="peer sr-only" />
+                    <span class="flex min-h-[112px] flex-col items-center justify-center rounded-2xl border border-white/10 bg-black/30 p-4 text-center transition peer-checked:border-[var(--accent)] peer-checked:bg-[rgba(var(--accent-rgb),0.10)] hover:border-white/20">
+                      <i data-lucide="bar-chart-3" class="mb-3 h-5 w-5 text-white/45"></i>
+                      <span class="font-space text-sm font-bold">Points Table</span>
+                    </span>
+                  </label>
+                </div>
+              </div>
+
+              <div class="rounded-[2rem] border border-white/10 bg-white/[0.045] p-5 sm:p-7 backdrop-blur-2xl shadow-2xl">
+                <div class="mb-6 flex items-center justify-between gap-4">
+                  <h3 class="text-[10px] uppercase tracking-[0.25em] text-white/38 font-extrabold">Limits & Capacity</h3>
+                  <strong id="capacityDisplay" class="font-space text-3xl text-[var(--accent)]">16</strong>
+                </div>
+                <input id="capacityRange" type="range" min="4" max="256" step="4" value="16" class="w-full accent-[var(--accent)]" />
+                <div class="mt-6 grid gap-4 md:grid-cols-3">
+                  <label>
+                    <span class="mb-2 block text-[10px] uppercase tracking-[0.16em] text-white/45 font-extrabold">Min Roster</span>
+                    <input id="rosterMin" type="number" value="5" class="w-full rounded-2xl border border-white/10 bg-black/35 px-4 py-3 text-center font-space text-lg font-bold outline-none focus:border-[var(--accent)]" />
+                  </label>
+                  <label>
+                    <span class="mb-2 block text-[10px] uppercase tracking-[0.16em] text-white/45 font-extrabold">Max Roster</span>
+                    <input id="rosterMax" type="number" value="7" class="w-full rounded-2xl border border-white/10 bg-black/35 px-4 py-3 text-center font-space text-lg font-bold outline-none focus:border-[var(--accent)]" />
+                  </label>
+                  <label>
+                    <span class="mb-2 block text-[10px] uppercase tracking-[0.16em] text-white/45 font-extrabold">Subs</span>
+                    <input id="rosterSubs" type="number" value="2" class="w-full rounded-2xl border border-white/10 bg-black/35 px-4 py-3 text-center font-space text-lg font-bold outline-none focus:border-[var(--accent)]" />
+                  </label>
+                </div>
+              </div>
+
+              <div class="rounded-[2rem] border border-white/10 bg-white/[0.045] p-5 sm:p-7 backdrop-blur-2xl shadow-2xl">
+                <h3 class="mb-6 text-[10px] uppercase tracking-[0.25em] text-white/38 font-extrabold">Platform & Integrity</h3>
+                <div class="grid gap-4 md:grid-cols-2">
+                  <label>
+                    <span class="mb-2 block text-xs font-bold text-white/72">Participation Model</span>
+                    <select id="participationModel" class="w-full rounded-2xl border border-white/10 bg-black/35 px-5 py-4 text-sm font-bold outline-none focus:border-[var(--accent)]">
+                      <option>Team roster</option>
+                      <option>Solo players</option>
+                      <option>Squads</option>
+                    </select>
+                  </label>
+                  <label>
+                    <span class="mb-2 block text-xs font-bold text-white/72">Platform</span>
+                    <select id="platformSelect" class="w-full rounded-2xl border border-white/10 bg-black/35 px-5 py-4 text-sm font-bold outline-none focus:border-[var(--accent)]">
+                      <option>PC</option>
+                      <option>Mobile</option>
+                      <option>Console</option>
+                      <option>Cross-platform</option>
+                    </select>
+                  </label>
+                  <label>
+                    <span class="mb-2 block text-xs font-bold text-white/72">Server / Region</span>
+                    <select id="serverSelect" class="w-full rounded-2xl border border-white/10 bg-black/35 px-5 py-4 text-sm font-bold outline-none focus:border-[var(--accent)]">
+                      <option>Mumbai</option>
+                      <option>Singapore</option>
+                      <option>Asia</option>
+                      <option>SEA</option>
+                      <option>Global</option>
+                    </select>
+                  </label>
+                  <label>
+                    <span class="mb-2 flex items-center gap-2 text-xs font-bold text-white/72">Result Proof
+                      <span class="relative group" tabindex="0"><i data-lucide="info" class="h-3.5 w-3.5 text-white/35 group-hover:text-white"></i><span class="pointer-events-none absolute right-0 top-6 z-30 hidden w-56 rounded-xl border border-white/10 bg-[#0b0d13]/95 p-3 text-[11px] font-normal text-white/65 shadow-2xl group-hover:block group-focus:block">Use screenshot for fast disputes; use video proof for finals or high-prize events.</span></span>
+                    </span>
+                    <select id="proofSelect" class="w-full rounded-2xl border border-white/10 bg-black/35 px-5 py-4 text-sm font-bold outline-none focus:border-[var(--accent)]">
+                      <option>Screenshot required</option>
+                      <option>Video proof required</option>
+                      <option>API verified</option>
+                    </select>
+                  </label>
+                </div>
+              </div>
+
+              <div class="rounded-[2rem] border border-white/10 bg-white/[0.045] p-5 sm:p-7 backdrop-blur-2xl shadow-2xl">
+                <div class="flex items-center justify-between gap-4">
+                  <div>
+                    <h3 class="text-[10px] uppercase tracking-[0.25em] text-white/38 font-extrabold">Automated Controls</h3>
+                    <p class="mt-2 text-xs text-white/42">Optional bracket safety system.</p>
+                  </div>
+                  <label class="relative inline-flex cursor-pointer items-center">
+                    <input id="archAdvancedToggle" type="checkbox" class="peer sr-only" />
+                    <span class="h-8 w-14 rounded-full border border-white/10 bg-black/45 transition peer-checked:border-[var(--accent)] peer-checked:bg-[var(--accent)]"></span>
+                    <span class="absolute left-1 h-6 w-6 rounded-full bg-white transition peer-checked:translate-x-6"></span>
+                  </label>
+                </div>
+                <div id="archAdvancedPanel" class="grid grid-rows-[0fr] opacity-0 transition-all duration-500 ease-out">
+                  <div class="overflow-hidden">
+                    <div class="mt-6 grid gap-3 sm:grid-cols-2">
+                      <label class="flex items-center justify-between gap-4 rounded-2xl border border-white/10 bg-black/25 p-4">
+                        <span><strong class="block text-sm">Dynamic Seeding</strong><span class="text-xs text-white/38">Rank-aware bracket seed</span></span>
+                        <input type="checkbox" class="h-4 w-4 accent-[var(--accent)]" />
+                      </label>
+                      <label class="flex items-center justify-between gap-4 rounded-2xl border border-white/10 bg-black/25 p-4">
+                        <span><strong class="block text-sm">Map Veto</strong><span class="text-xs text-white/38">Guided veto flow</span></span>
+                        <input type="checkbox" checked class="h-4 w-4 accent-[var(--accent)]" />
+                      </label>
+                      <label class="flex items-center justify-between gap-4 rounded-2xl border border-white/10 bg-black/25 p-4">
+                        <span><strong class="block text-sm">Admin Gate</strong><span class="text-xs text-white/38">Approval before bracket</span></span>
+                        <input type="checkbox" checked class="h-4 w-4 accent-[var(--accent)]" />
+                      </label>
+                      <label class="flex items-center justify-between gap-4 rounded-2xl border border-white/10 bg-black/25 p-4">
+                        <span><strong class="block text-sm">Protest Timer</strong><span class="text-xs text-white/38">15 min dispute window</span></span>
+                        <input type="checkbox" checked class="h-4 w-4 accent-[var(--accent)]" />
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <aside class="xl:sticky xl:top-8 h-max space-y-5">
+              <div class="rounded-[2rem] border border-white/10 bg-white/[0.045] p-6 backdrop-blur-2xl shadow-2xl">
+                <h3 class="mb-5 text-[10px] uppercase tracking-[0.25em] text-white/38 font-extrabold">Architecture Pulse</h3>
+                <div class="space-y-4 text-sm">
+                  <div class="flex justify-between border-b border-white/8 pb-3"><span class="text-white/45">Slots</span><strong id="sumSlots" class="text-[var(--accent)]">16</strong></div>
+                  <div class="flex justify-between border-b border-white/8 pb-3"><span class="text-white/45">Roster</span><strong id="sumRoster">5-7</strong></div>
+                  <div class="flex justify-between border-b border-white/8 pb-3"><span class="text-white/45">Platform</span><strong id="sumPlatform">PC</strong></div>
+                  <div class="flex justify-between"><span class="text-white/45">Server</span><strong id="sumServer">Mumbai</strong></div>
+                </div>
+              </div>
+              <div class="rounded-[2rem] border border-[var(--accent)]/20 bg-[rgba(var(--accent-rgb),0.08)] p-5 backdrop-blur-2xl">
+                <div class="mb-3 flex items-center gap-2 text-[var(--accent)]">
+                  <i data-lucide="shield-check" class="h-4 w-4"></i>
+                  <span class="text-[10px] uppercase tracking-[0.2em] font-extrabold">Setup Insight</span>
+                </div>
+                <p id="advisorTip" class="text-xs leading-relaxed text-white/62">5v5, map veto, screenshot proof, and short protest windows are recommended.</p>
+              </div>
+            </aside>
+          </div>
+        </section>
+
+        <section id="step-4" data-panel class="hidden animate-fade-in-up">
+          <div class="mb-8">
+            <div class="mb-5 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.045] px-3 py-1.5 backdrop-blur-xl">
+              <span class="h-2 w-2 rounded-full bg-[var(--accent)] shadow-[0_0_16px_rgba(var(--accent-rgb),1)]"></span>
+              <span class="text-[10px] uppercase tracking-[0.25em] text-white/58 font-extrabold">Phase 04 · Economy</span>
+            </div>
+            <h2 class="font-space text-4xl sm:text-5xl font-extrabold tracking-[-0.035em]">Timeline & economy.</h2>
+            <p class="mt-3 text-sm text-white/48">Schedule, venue, entry fee, payment verification, and rewards.</p>
+          </div>
+
+          <div class="grid gap-5 xl:grid-cols-[1fr_360px]">
+            <div class="space-y-5">
+              <div class="rounded-[2rem] border border-white/10 bg-white/[0.045] p-5 sm:p-7 backdrop-blur-2xl shadow-2xl">
+                <h3 class="mb-6 text-[10px] uppercase tracking-[0.25em] text-white/38 font-extrabold">Master Timeline</h3>
+                <div class="grid gap-4 md:grid-cols-2">
+                  <label><span class="mb-2 block text-xs font-bold text-white/72">Registration Opens</span><input type="datetime-local" class="w-full rounded-2xl border border-white/10 bg-black/35 px-4 py-4 text-sm text-white/85 outline-none focus:border-[var(--accent)]" /></label>
+                  <label><span class="mb-2 block text-xs font-bold text-white/72">Registration Closes</span><input type="datetime-local" class="w-full rounded-2xl border border-white/10 bg-black/35 px-4 py-4 text-sm text-white/85 outline-none focus:border-[var(--accent)]" /></label>
+                  <label><span class="mb-2 block text-xs font-bold text-white/72">Check-in Opens</span><input type="datetime-local" class="w-full rounded-2xl border border-white/10 bg-black/35 px-4 py-4 text-sm text-white/85 outline-none focus:border-[var(--accent)]" /></label>
+                  <label><span class="mb-2 block text-xs font-bold text-white/72">Event Starts</span><input type="datetime-local" class="w-full rounded-2xl border border-[var(--accent)]/40 bg-black/45 px-4 py-4 text-sm text-white/85 outline-none focus:border-[var(--accent)]" /></label>
+                </div>
+              </div>
+
+              <div class="rounded-[2rem] border border-white/10 bg-white/[0.045] p-5 sm:p-7 backdrop-blur-2xl shadow-2xl">
+                <div class="mb-5 flex items-center justify-between gap-4">
+                  <h3 class="text-[10px] uppercase tracking-[0.25em] text-white/38 font-extrabold">Venue Mode</h3>
+                  <div class="flex rounded-2xl border border-white/10 bg-black/35 p-1">
+                    <label class="cursor-pointer"><input type="radio" name="venueMode" value="Online" class="peer sr-only" checked /><span class="block rounded-xl px-4 py-2 text-xs font-bold text-white/45 transition peer-checked:bg-white/10 peer-checked:text-white">Online</span></label>
+                    <label class="cursor-pointer"><input type="radio" name="venueMode" value="LAN" class="peer sr-only" /><span class="block rounded-xl px-4 py-2 text-xs font-bold text-white/45 transition peer-checked:bg-white/10 peer-checked:text-white">LAN</span></label>
+                  </div>
+                </div>
+                <div id="lanPanel" class="grid grid-rows-[0fr] opacity-0 transition-all duration-500 ease-out">
+                  <div class="overflow-hidden">
+                    <div class="grid gap-4 md:grid-cols-2 pt-2">
+                      <input type="text" placeholder="Venue name" class="rounded-2xl border border-white/10 bg-black/35 px-5 py-4 text-sm outline-none focus:border-[var(--accent)]" />
+                      <input type="text" placeholder="City" class="rounded-2xl border border-white/10 bg-black/35 px-5 py-4 text-sm outline-none focus:border-[var(--accent)]" />
+                      <input type="url" placeholder="Google Maps URL" class="md:col-span-2 rounded-2xl border border-white/10 bg-black/35 px-5 py-4 text-sm outline-none focus:border-[var(--accent)]" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="rounded-[2rem] border border-white/10 bg-white/[0.045] p-5 sm:p-7 backdrop-blur-2xl shadow-2xl">
+                <div class="flex items-center justify-between gap-4">
+                  <div>
+                    <h3 class="text-[10px] uppercase tracking-[0.25em] text-white/38 font-extrabold">Entry Economy</h3>
+                    <p class="mt-2 text-xs text-white/42">Free by default. Enable only when required.</p>
+                  </div>
+                  <label class="relative inline-flex cursor-pointer items-center">
+                    <input id="feeToggle" type="checkbox" class="peer sr-only" />
+                    <span class="h-8 w-14 rounded-full border border-white/10 bg-black/45 transition peer-checked:border-[var(--accent)] peer-checked:bg-[var(--accent)]"></span>
+                    <span class="absolute left-1 h-6 w-6 rounded-full bg-white transition peer-checked:translate-x-6"></span>
+                  </label>
+                </div>
+
+                <div id="feePanel" class="grid grid-rows-[0fr] opacity-0 transition-all duration-500 ease-out">
+                  <div class="overflow-hidden">
+                    <div class="mt-6 space-y-5 border-t border-white/8 pt-6">
+                      <div class="grid gap-4 md:grid-cols-3">
+                        <label><span class="mb-2 block text-[10px] uppercase tracking-[0.16em] text-white/45 font-extrabold">Amount</span><input id="entryAmount" type="number" placeholder="100" class="w-full rounded-2xl border border-white/10 bg-black/35 px-4 py-4 font-space text-lg font-bold outline-none focus:border-[var(--accent)]" /></label>
+                        <label><span class="mb-2 block text-[10px] uppercase tracking-[0.16em] text-white/45 font-extrabold">Currency</span><select id="currencySelect" class="w-full rounded-2xl border border-white/10 bg-black/35 px-4 py-4 font-bold outline-none focus:border-[var(--accent)]"><option value="BDT">BDT ৳</option><option value="DC">Delta Coin</option></select></label>
+                        <label><span class="mb-2 block text-[10px] uppercase tracking-[0.16em] text-white/45 font-extrabold">Deadline</span><select class="w-full rounded-2xl border border-white/10 bg-black/35 px-4 py-4 font-bold outline-none focus:border-[var(--accent)]"><option>Before approval</option><option>Before bracket lock</option></select></label>
+                      </div>
+
+                      <div id="mfsPanel" class="rounded-[1.5rem] border border-white/10 bg-black/30 p-5">
+                        <div class="mb-4 flex items-center justify-between gap-4">
+                          <h4 class="text-[10px] uppercase tracking-[0.22em] text-white/45 font-extrabold">Payment Methods</h4>
+                          <span class="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[10px] text-white/45">BD only</span>
+                        </div>
+                        <div class="grid gap-3 sm:grid-cols-3">
+                          <label class="flex items-center justify-center gap-2 rounded-2xl border border-pink-500/25 bg-pink-500/5 px-4 py-3 text-sm font-bold text-pink-300"><input type="checkbox" checked class="accent-pink-500" /> bKash</label>
+                          <label class="flex items-center justify-center gap-2 rounded-2xl border border-orange-500/25 bg-orange-500/5 px-4 py-3 text-sm font-bold text-orange-300"><input type="checkbox" checked class="accent-orange-500" /> Nagad</label>
+                          <label class="flex items-center justify-center gap-2 rounded-2xl border border-purple-500/25 bg-purple-500/5 px-4 py-3 text-sm font-bold text-purple-300"><input type="checkbox" class="accent-purple-500" /> Rocket</label>
+                        </div>
+                        <div class="mt-4 grid gap-3 md:grid-cols-2">
+                          <input type="text" placeholder="Receiver number" class="rounded-2xl border border-white/10 bg-black/35 px-4 py-3 text-sm outline-none focus:border-[var(--accent)]" />
+                          <input type="text" placeholder="Verification note" class="rounded-2xl border border-white/10 bg-black/35 px-4 py-3 text-sm outline-none focus:border-[var(--accent)]" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="rounded-[2rem] border border-white/10 bg-white/[0.045] p-5 sm:p-7 backdrop-blur-2xl shadow-2xl">
+                <h3 class="mb-6 text-[10px] uppercase tracking-[0.25em] text-white/38 font-extrabold">Reward Distribution</h3>
+                <div class="grid gap-4 md:grid-cols-2">
+                  <label><span class="mb-2 block text-xs font-bold text-white/72">Total Prize Pool</span><input id="prizePool" type="text" placeholder="5,000 BDT" class="w-full rounded-2xl border border-[var(--accent)]/35 bg-black/35 px-5 py-4 font-space text-lg font-bold outline-none focus:border-[var(--accent)]" /></label>
+                  <label><span class="mb-2 block text-xs font-bold text-white/72">MVP Bonus</span><input type="text" placeholder="Optional" class="w-full rounded-2xl border border-white/10 bg-black/35 px-5 py-4 font-space text-lg font-bold outline-none focus:border-[var(--accent)]" /></label>
+                </div>
+                <div class="mt-4 grid gap-3 sm:grid-cols-3">
+                  <input value="50%" class="rounded-2xl border border-yellow-400/25 bg-yellow-400/5 px-4 py-3 text-center font-bold outline-none" />
+                  <input value="30%" class="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-center font-bold outline-none" />
+                  <input value="20%" class="rounded-2xl border border-orange-400/25 bg-orange-400/5 px-4 py-3 text-center font-bold outline-none" />
+                </div>
+                <button type="button" data-next-inline class="mt-6 text-sm text-white/45 hover:text-white transition">Skip & Configure later in Control Center →</button>
+              </div>
+            </div>
+
+            <aside class="xl:sticky xl:top-8 h-max rounded-[2rem] border border-white/10 bg-white/[0.045] p-6 backdrop-blur-2xl shadow-2xl">
+              <h3 class="mb-5 text-[10px] uppercase tracking-[0.25em] text-white/38 font-extrabold">Economy Pulse</h3>
+              <div class="space-y-4 text-sm">
+                <div class="flex justify-between border-b border-white/8 pb-3"><span class="text-white/45">Entry</span><strong id="sumEntry" class="text-[var(--accent)]">Free</strong></div>
+                <div class="flex justify-between border-b border-white/8 pb-3"><span class="text-white/45">Currency</span><strong id="sumCurrency">BDT</strong></div>
+                <div class="flex justify-between"><span class="text-white/45">Prize</span><strong id="sumPrize">TBA</strong></div>
+              </div>
+            </aside>
+          </div>
+        </section>
+
+        <section id="step-5" data-panel class="hidden animate-fade-in-up">
+          <div class="mb-8">
+            <div class="mb-5 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.045] px-3 py-1.5 backdrop-blur-xl">
+              <span class="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_16px_rgba(52,211,153,1)]"></span>
+              <span class="text-[10px] uppercase tracking-[0.25em] text-white/58 font-extrabold">Phase 05 · Rules & Launch</span>
+            </div>
+            <h2 class="font-space text-4xl sm:text-5xl font-extrabold tracking-[-0.035em]">Ready to deploy.</h2>
+            <p class="mt-3 text-sm text-white/48">Finalize eligibility, rulebook, automation, and launch state.</p>
+          </div>
+
+          <div class="grid gap-5 xl:grid-cols-[1fr_380px]">
+            <div class="space-y-5">
+              <div class="rounded-[2rem] border border-white/10 bg-white/[0.045] p-5 sm:p-7 backdrop-blur-2xl shadow-2xl">
+                <h3 class="mb-6 text-[10px] uppercase tracking-[0.25em] text-white/38 font-extrabold">Eligibility</h3>
+                <div class="grid gap-4 md:grid-cols-3">
+                  <label><span class="mb-2 block text-xs font-bold text-white/72">Min Age</span><select class="w-full rounded-2xl border border-white/10 bg-black/35 px-5 py-4 font-bold outline-none focus:border-[var(--accent)]"><option>No limit</option><option>13+</option><option>16+</option><option>18+</option></select></label>
+                  <label><span class="mb-2 block text-xs font-bold text-white/72">Rank Limit</span><input type="text" placeholder="Open" class="w-full rounded-2xl border border-white/10 bg-black/35 px-5 py-4 outline-none focus:border-[var(--accent)]" /></label>
+                  <label><span class="mb-2 block text-xs font-bold text-white/72">Country</span><input type="text" value="Bangladesh" class="w-full rounded-2xl border border-white/10 bg-black/35 px-5 py-4 outline-none focus:border-[var(--accent)]" /></label>
+                </div>
+              </div>
+
+              <div class="rounded-[2rem] border border-white/10 bg-white/[0.045] p-5 sm:p-7 backdrop-blur-2xl shadow-2xl">
+                <div class="mb-5 flex items-center justify-between gap-4">
+                  <h3 class="text-[10px] uppercase tracking-[0.25em] text-white/38 font-extrabold">Public Rulebook</h3>
+                  <button id="generateRules" type="button" class="inline-flex items-center gap-2 rounded-xl border border-[var(--accent)]/25 bg-[rgba(var(--accent-rgb),0.10)] px-3 py-2 text-[10px] font-extrabold uppercase tracking-[0.18em] text-[var(--accent)] hover:bg-[rgba(var(--accent-rgb),0.16)] transition">
+                    <i data-lucide="sparkles" class="h-3.5 w-3.5"></i> Generate
+                  </button>
+                </div>
+                <textarea id="rulesArea" rows="10" placeholder="Generate a clean game-aware rulebook." class="w-full resize-none rounded-[1.5rem] border border-white/10 bg-black/35 px-5 py-5 font-mono text-sm leading-relaxed text-white/76 outline-none transition placeholder:text-white/25 focus:border-[var(--accent)] focus:ring-4 focus:ring-[rgba(var(--accent-rgb),0.12)]"></textarea>
+              </div>
+
+              <div class="rounded-[2rem] border border-white/10 bg-white/[0.045] p-5 sm:p-7 backdrop-blur-2xl shadow-2xl">
+                <div class="flex items-center justify-between gap-4">
+                  <div>
+                    <h3 class="text-[10px] uppercase tracking-[0.25em] text-white/38 font-extrabold">Automated Controls</h3>
+                    <p class="mt-2 text-xs text-white/42">Hidden by default for a calmer launch flow.</p>
+                  </div>
+                  <label class="relative inline-flex cursor-pointer items-center">
+                    <input id="launchAdvancedToggle" type="checkbox" class="peer sr-only" />
+                    <span class="h-8 w-14 rounded-full border border-white/10 bg-black/45 transition peer-checked:border-[var(--accent)] peer-checked:bg-[var(--accent)]"></span>
+                    <span class="absolute left-1 h-6 w-6 rounded-full bg-white transition peer-checked:translate-x-6"></span>
+                  </label>
+                </div>
+                <div id="launchAdvancedPanel" class="grid grid-rows-[0fr] opacity-0 transition-all duration-500 ease-out">
+                  <div class="overflow-hidden">
+                    <div class="mt-6 grid gap-3 sm:grid-cols-2">
+                      <label class="flex items-center justify-between gap-4 rounded-2xl border border-white/10 bg-black/25 p-4"><span><strong class="block text-sm">Auto Bracket Lock</strong><span class="text-xs text-white/38">At registration close</span></span><input checked type="checkbox" class="h-4 w-4 accent-[var(--accent)]" /></label>
+                      <label class="flex items-center justify-between gap-4 rounded-2xl border border-white/10 bg-black/25 p-4"><span><strong class="block text-sm">Auto Forfeit</strong><span class="text-xs text-white/38">Missed check-ins</span></span><input type="checkbox" class="h-4 w-4 accent-[var(--accent)]" /></label>
+                      <label class="flex items-center justify-between gap-4 rounded-2xl border border-white/10 bg-black/25 p-4"><span><strong class="block text-sm">Waitlist Fallback</strong><span class="text-xs text-white/38">Fill empty slots</span></span><input checked type="checkbox" class="h-4 w-4 accent-[var(--accent)]" /></label>
+                      <label class="flex items-center justify-between gap-4 rounded-2xl border border-white/10 bg-black/25 p-4"><span><strong class="block text-sm">Live Telemetry</strong><span class="text-xs text-white/38">Spectator bracket</span></span><input checked type="checkbox" class="h-4 w-4 accent-[var(--accent)]" /></label>
+                    </div>
+                  </div>
+                </div>
+                <button type="button" id="skipRules" class="mt-6 text-sm text-white/45 hover:text-white transition">Skip & Configure later in Control Center →</button>
+              </div>
+            </div>
+
+            <aside class="xl:sticky xl:top-8 h-max rounded-[2rem] border border-[var(--accent)]/25 bg-[linear-gradient(180deg,rgba(var(--accent-rgb),0.18),rgba(255,255,255,0.045),rgba(0,0,0,0.28))] p-6 backdrop-blur-2xl shadow-[0_0_70px_rgba(var(--accent-rgb),0.16)] overflow-hidden relative">
+              <div class="absolute -right-16 -top-16 h-48 w-48 rounded-full bg-[var(--accent)]/25 blur-3xl"></div>
+              <div class="relative">
+                <div class="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-full border border-white/20 bg-white text-black shadow-[0_0_45px_rgba(255,255,255,0.28)]">
+                  <i data-lucide="rocket" class="h-9 w-9"></i>
+                </div>
+                <p class="text-center text-[10px] uppercase tracking-[0.25em] text-white/48 font-extrabold">Deployment Contract</p>
+                <h3 id="launchName" class="mt-3 text-center font-space text-3xl font-extrabold tracking-tight">Genesis Cup</h3>
+                <p id="launchGame" class="mt-2 text-center text-xs font-extrabold uppercase tracking-[0.24em] text-[var(--accent)]">VALORANT</p>
+                <div class="mt-7 grid grid-cols-2 gap-3 text-center">
+                  <div class="rounded-2xl border border-white/10 bg-black/25 p-4"><span class="text-xs text-white/42">Slots</span><strong id="launchSlots" class="mt-1 block font-space text-xl">16</strong></div>
+                  <div class="rounded-2xl border border-white/10 bg-black/25 p-4"><span class="text-xs text-white/42">Entry</span><strong id="launchEntry" class="mt-1 block font-space text-xl">Free</strong></div>
+                </div>
+                <button id="deployBtn" type="button" class="mt-7 w-full rounded-2xl bg-white px-6 py-4 font-space text-lg font-extrabold text-black transition hover:-translate-y-0.5 hover:shadow-[0_18px_60px_rgba(255,255,255,0.26)] active:scale-95">
+                  Deploy Tournament
+                </button>
+              </div>
+            </aside>
+          </div>
+        </section>
+      </form>
+    </main>
+  </div>
+
+  <div class="fixed bottom-4 left-4 right-4 z-40 lg:left-[384px] xl:left-[424px]">
+    <div class="mx-auto flex max-w-[1320px] items-center justify-between gap-3 rounded-[1.5rem] border border-white/10 bg-black/50 p-2 backdrop-blur-2xl shadow-[0_18px_80px_rgba(0,0,0,0.48)]">
+      <button id="prevBtn" type="button" class="hidden items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-bold text-white/70 transition hover:bg-white/[0.08] hover:text-white active:scale-95 sm:px-5">
+        <i data-lucide="arrow-left" class="h-4 w-4"></i><span class="hidden sm:inline">Back</span>
+      </button>
+      <div class="min-w-0 flex-1 px-2">
+        <div class="h-1.5 overflow-hidden rounded-full bg-white/10">
+          <div id="bottomProgress" class="h-full rounded-full bg-[var(--accent)] shadow-[0_0_18px_rgba(var(--accent-rgb),0.75)] transition-all duration-500" style="width:20%"></div>
+        </div>
+      </div>
+      <button id="saveDraft" type="button" class="hidden sm:inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-3 text-sm font-bold text-white/65 transition hover:bg-white/[0.08] hover:text-white active:scale-95">
+        <i data-lucide="save" class="h-4 w-4"></i> Save
+      </button>
+      <button id="nextBtn" type="button" class="inline-flex items-center gap-2 rounded-2xl bg-white px-5 py-3 font-space text-sm font-extrabold text-black transition hover:-translate-y-0.5 hover:shadow-[0_18px_50px_rgba(255,255,255,0.2)] active:scale-95 sm:px-7">
+        Continue <i data-lucide="arrow-right" class="h-4 w-4"></i>
+      </button>
+    </div>
+  </div>
+
+  <div id="toast" class="pointer-events-none fixed left-1/2 top-5 z-[70] hidden -translate-x-1/2 rounded-2xl border border-white/10 bg-black/75 px-5 py-3 text-sm font-bold text-white shadow-2xl backdrop-blur-2xl"></div>
+
+  <div id="guideModal" class="fixed inset-0 z-[80] hidden items-center justify-center bg-black/70 p-4 backdrop-blur-xl">
+    <div class="w-full max-w-lg rounded-[2rem] border border-white/10 bg-[#080a10]/95 shadow-2xl backdrop-blur-2xl animate-scale-in overflow-hidden">
+      <div class="flex items-center justify-between border-b border-white/10 p-5">
+        <div>
+          <h3 class="font-space text-xl font-bold">Organizer Guide</h3>
+          <p class="mt-1 text-xs text-white/42">Short, contextual, no clutter.</p>
+        </div>
+        <button id="closeGuide" type="button" class="rounded-2xl border border-white/10 bg-white/[0.05] p-3 text-white/60 hover:text-white transition"><i data-lucide="x" class="h-5 w-5"></i></button>
+      </div>
+      <div class="space-y-4 p-5 text-sm leading-relaxed text-white/60">
+        <p><strong class="text-white">Game-first flow:</strong> choose a game first so the platform can auto-load correct defaults.</p>
+        <p><strong class="text-white">Advanced settings:</strong> hidden toggles keep the flow clean until you need deeper control.</p>
+        <p><strong class="text-white">Launch:</strong> deploy now, then refine optional settings later inside Control Center.</p>
+      </div>
+    </div>
+  </div>
+
+  <div id="deployOverlay" class="fixed inset-0 z-[90] hidden flex-col items-center justify-center bg-[#030409]/95 p-6 text-center backdrop-blur-3xl">
+    <div class="relative mb-8 flex h-32 w-32 items-center justify-center">
+      <div class="absolute inset-0 rounded-full border border-white/10"></div>
+      <div class="absolute inset-3 rounded-full border-2 border-transparent border-t-[var(--accent)] border-r-[var(--accent)] animate-spin"></div>
+      <div class="font-space text-5xl font-extrabold text-[var(--accent)] drop-shadow-[0_0_22px_rgba(var(--accent-rgb),0.65)]">Δ</div>
+    </div>
+    <h2 id="deployTitle" class="font-space text-4xl font-extrabold tracking-tight">Compiling architecture...</h2>
+    <p id="deployText" class="mt-4 rounded-full border border-white/10 bg-white/[0.045] px-4 py-2 text-[10px] uppercase tracking-[0.25em] text-white/45 font-extrabold">Validating game protocol</p>
+  </div>
+
+  <script>
+    const GAMES = [
+      { id: 'val', name: 'VALORANT', category: 'FPS', color: '#ff4655', icon: 'crosshair', initials: 'VLR', slots: 16, rosterMin: 5, rosterMax: 7, subs: 2, platform: 'PC', server: 'Mumbai', model: 'Team roster', format: 'Single Elimination', tip: 'Use 5v5, map veto, screenshot proof, and short protest windows.' },
+      { id: 'cs2', name: 'Counter-Strike 2', category: 'FPS', color: '#f5a623', icon: 'target', initials: 'CS2', slots: 16, rosterMin: 5, rosterMax: 7, subs: 2, platform: 'PC', server: 'Singapore', model: 'Team roster', format: 'Single Elimination', tip: 'Define MR12, overtime economy, demo proof, and anti-cheat requirement.' },
+      { id: 'codm', name: 'Call of Duty Mobile', category: 'Mobile FPS', color: '#facc15', icon: 'scan-line', initials: 'CODM', slots: 32, rosterMin: 5, rosterMax: 6, subs: 1, platform: 'Mobile', server: 'Asia', model: 'Team roster', format: 'Single Elimination', tip: 'Lock maps, modes, device policy, and lobby host responsibility.' },
+      { id: 'pubgm', name: 'PUBG Mobile', category: 'Battle Royale', color: '#f59e0b', icon: 'map', initials: 'PUBG', slots: 64, rosterMin: 4, rosterMax: 5, subs: 1, platform: 'Mobile', server: 'Asia', model: 'Squads', format: 'Points Table', tip: 'Use points table, room timing, emulator policy, kill points, and screenshot proof.' },
+      { id: 'ff', name: 'Free Fire', category: 'Battle Royale', color: '#ff7b00', icon: 'flame', initials: 'FF', slots: 48, rosterMin: 4, rosterMax: 5, subs: 1, platform: 'Mobile', server: 'Asia', model: 'Squads', format: 'Points Table', tip: 'Standard BR scoring, room password timeline, and strict emulator policies.' },
+      { id: 'mlbb', name: 'Mobile Legends', category: 'MOBA', color: '#8b5cf6', icon: 'swords', initials: 'MLBB', slots: 16, rosterMin: 5, rosterMax: 7, subs: 2, platform: 'Mobile', server: 'Asia', model: 'Team roster', format: 'Single Elimination', tip: 'Lock draft mode, pause rules, roster rules, screenshot proof, and lobby host.' },
+      { id: 'dota2', name: 'DOTA 2', category: 'MOBA', color: '#e83e8c', icon: 'shield', initials: 'DOTA', slots: 16, rosterMin: 5, rosterMax: 7, subs: 2, platform: 'PC', server: 'SEA', model: 'Team roster', format: 'Double Elimination', tip: 'Captains Mode, strict pause limits, and admin lobby presence for finals.' },
+      { id: 'lol', name: 'League of Legends', category: 'MOBA', color: '#2dd4bf', icon: 'crown', initials: 'LOL', slots: 16, rosterMin: 5, rosterMax: 7, subs: 2, platform: 'PC', server: 'Asia', model: 'Team roster', format: 'Single Elimination', tip: 'Define draft mode, side selection, remake policy, and pause limits.' },
+      { id: 'efootball', name: 'eFootball 2026', category: 'Sports', color: '#2f80ed', icon: 'aperture', initials: 'EFT', slots: 32, rosterMin: 1, rosterMax: 1, subs: 0, platform: 'Mobile', server: 'Asia', model: 'Solo players', format: 'Single Elimination', tip: 'Keep match time, form condition, disconnect policy, and banned setups visible.' },
+      { id: 'eafc', name: 'EA FC 26', category: 'Sports', color: '#19c37d', icon: 'gamepad-2', initials: 'FC26', slots: 32, rosterMin: 1, rosterMax: 1, subs: 0, platform: 'Console', server: 'Global', model: 'Solo players', format: 'Single Elimination', tip: 'Specify Kick-Off or Ultimate Team, match length, extra time, and disconnect handling.' },
+      { id: 'rocket', name: 'Rocket League', category: 'Sports', color: '#38bdf8', icon: 'rocket', initials: 'RL', slots: 32, rosterMin: 3, rosterMax: 4, subs: 1, platform: 'Cross-platform', server: 'Global', model: 'Team roster', format: 'Double Elimination', tip: 'Define arena pool, server priority, overtime handling, and series length.' },
+      { id: 'r6', name: 'Rainbow Six Siege', category: 'FPS', color: '#60a5fa', icon: 'badge-alert', initials: 'R6S', slots: 16, rosterMin: 5, rosterMax: 7, subs: 2, platform: 'PC', server: 'Asia', model: 'Team roster', format: 'Single Elimination', tip: 'Operator rules, map ban, tactical timeout, and protest proof should be strict.' },
+      { id: 'apex', name: 'Apex Legends', category: 'Battle Royale', color: '#ef4444', icon: 'triangle', initials: 'APEX', slots: 60, rosterMin: 3, rosterMax: 4, subs: 1, platform: 'Cross-platform', server: 'Singapore', model: 'Squads', format: 'Points Table', tip: 'Use placement plus kills, lobby code timing, and minimum match count.' },
+      { id: 'fortnite', name: 'Fortnite', category: 'Battle Royale', color: '#a855f7', icon: 'zap', initials: 'FN', slots: 100, rosterMin: 1, rosterMax: 4, subs: 0, platform: 'Cross-platform', server: 'Asia', model: 'Solo players', format: 'Points Table', tip: 'Clarify solo/duo/squad, scoring, custom key timing, and stream delay.' },
+      { id: 'clash', name: 'Clash Royale', category: 'Strategy', color: '#3b82f6', icon: 'castle', initials: 'CR', slots: 64, rosterMin: 1, rosterMax: 1, subs: 0, platform: 'Mobile', server: 'Global', model: 'Solo players', format: 'Single Elimination', tip: 'Use best-of series, deck rules, replay proof, and disconnect policy.' },
+      { id: 'tekken', name: 'Tekken 8', category: 'Fighting', color: '#fb7185', icon: 'hand-fist', initials: 'TK8', slots: 32, rosterMin: 1, rosterMax: 1, subs: 0, platform: 'Console', server: 'Global', model: 'Solo players', format: 'Double Elimination', tip: 'Double elimination, character lock rules, stage random, and connection checks.' }
+    ];
+
+    const STEPS = [
+      { id: 1, title: 'Combat Zone', sub: 'Choose game', icon: 'scan-search' },
+      { id: 2, title: 'Identity', sub: 'Brand & link', icon: 'fingerprint' },
+      { id: 3, title: 'Architecture', sub: 'Bracket logic', icon: 'git-branch' },
+      { id: 4, title: 'Economy', sub: 'Time & fees', icon: 'wallet' },
+      { id: 5, title: 'Launch', sub: 'Rules & deploy', icon: 'rocket' }
+    ];
+
+    const $ = (selector) => document.querySelector(selector);
+    const $$ = (selector) => Array.from(document.querySelectorAll(selector));
+    const root = document.documentElement;
+    const state = { step: 1, game: GAMES[0], category: 'All' };
+
+    function hexToRgb(hex) {
+      const value = hex.replace('#', '');
+      return `${parseInt(value.slice(0, 2), 16)},${parseInt(value.slice(2, 4), 16)},${parseInt(value.slice(4, 6), 16)}`;
+    }
+
+    function setMesh() {
+      const rgb = getComputedStyle(root).getPropertyValue('--accent-rgb').trim() || '255,70,85';
+      const mx = getComputedStyle(root).getPropertyValue('--mx').trim() || '50%';
+      const my = getComputedStyle(root).getPropertyValue('--my').trim() || '20%';
+      $('#meshLayer').style.background = `
+        radial-gradient(circle at ${mx} ${my}, rgba(${rgb}, .18) 0%, transparent 28%),
+        radial-gradient(circle at 12% 0%, rgba(${rgb}, .13) 0%, transparent 34%),
+        radial-gradient(circle at 85% 85%, rgba(124, 58, 237, .12) 0%, transparent 35%),
+        linear-gradient(135deg, #030409 0%, #070a12 44%, #050711 100%)
+      `;
+    }
+
+    function renderSteppers() {
+      $('#desktopStepper').innerHTML = STEPS.map((step) => `
+        <button type="button" data-jump-step="${step.id}" class="group flex w-full items-center gap-4 rounded-2xl p-3 text-left transition hover:bg-white/[0.04]">
+          <span data-dot="${step.id}" class="relative z-10 flex h-9 w-9 items-center justify-center rounded-2xl border border-white/10 bg-black/45 text-xs font-extrabold text-white/45 transition">
+            ${step.id}
+          </span>
+          <span class="min-w-0">
+            <span data-step-title="${step.id}" class="block font-space text-sm font-bold text-white/45 transition">${step.title}</span>
+            <span class="mt-1 block text-[10px] uppercase tracking-[0.18em] text-white/28 font-bold">${step.sub}</span>
+          </span>
+        </button>
+      `).join('');
+
+      $('#mobileStepper').innerHTML = STEPS.map((step) => `
+        <button type="button" data-jump-step="${step.id}" class="flex shrink-0 items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-[11px] font-bold text-white/45 transition">
+          <span data-mobile-dot="${step.id}" class="flex h-5 w-5 items-center justify-center rounded-full bg-black/50 text-[10px]">${step.id}</span>
+          <span>${step.title}</span>
+        </button>
+      `).join('');
+
+      $$('[data-jump-step]').forEach((btn) => btn.addEventListener('click', () => goToStep(Number(btn.dataset.jumpStep))));
+    }
+
+    function renderCategories() {
+      const categories = ['All', ...new Set(GAMES.map((g) => g.category))];
+      $('#categoryFilters').innerHTML = categories.map((cat) => `
+        <button type="button" data-category="${cat}" class="shrink-0 rounded-full border border-white/10 bg-white/[0.035] px-4 py-2 text-xs font-bold text-white/48 transition hover:bg-white/[0.07] hover:text-white">
+          ${cat}
+        </button>
+      `).join('');
+      $$('[data-category]').forEach((btn) => btn.addEventListener('click', () => {
+        state.category = btn.dataset.category;
+        filterGames();
+        updateCategoryButtons();
+      }));
+      updateCategoryButtons();
+    }
+
+    function updateCategoryButtons() {
+      $$('[data-category]').forEach((btn) => {
+        const active = btn.dataset.category === state.category;
+        btn.style.borderColor = active ? state.game.color : '';
+        btn.style.background = active ? `rgba(${hexToRgb(state.game.color)}, .12)` : '';
+        btn.style.color = active ? '#fff' : '';
+      });
+    }
+
+    function renderGames() {
+      $('#gameGrid').innerHTML = GAMES.map((game) => {
+        const rgb = hexToRgb(game.color);
+        return `
+          <button type="button" data-game-card data-game-id="${game.id}" data-name="${game.name.toLowerCase()}" data-category-name="${game.category}" class="group relative min-h-[180px] sm:min-h-[210px] overflow-hidden rounded-[1.6rem] border border-white/10 bg-white/[0.035] p-4 text-left shadow-2xl backdrop-blur-2xl transition-all duration-500 hover:-translate-y-1 hover:border-white/20 hover:bg-white/[0.06] focus:outline-none focus:ring-2 focus:ring-white/20" style="--card:${game.color}; --card-rgb:${rgb};">
+            <span class="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full blur-3xl opacity-35 transition duration-500 group-hover:opacity-80" style="background: rgba(${rgb}, .75)"></span>
+            <span class="pointer-events-none absolute -bottom-12 left-2 h-24 w-24 rounded-full blur-3xl opacity-20 transition duration-500 group-hover:opacity-50" style="background: rgba(${rgb}, .55)"></span>
+            <span class="pointer-events-none absolute inset-0 opacity-20 bg-[linear-gradient(135deg,rgba(255,255,255,0.18),transparent_28%,transparent_58%,rgba(255,255,255,0.08))]"></span>
+            <span class="relative z-10 flex h-full flex-col justify-between gap-5">
+              <span class="flex items-start justify-between gap-2">
+                <span class="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-black/35 text-white/70 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition group-hover:scale-105" style="color:${game.color}">
+                  <i data-lucide="${game.icon}" class="h-6 w-6"></i>
+                </span>
+                <span class="rounded-full border border-white/10 bg-black/25 px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-[0.14em] text-white/45">${game.category}</span>
+              </span>
+              <span>
+                <span class="mb-2 block font-space text-3xl font-extrabold tracking-[-0.08em] text-white/12 transition group-hover:text-white/20">${game.initials}</span>
+                <strong class="block font-space text-base font-extrabold leading-tight text-white">${game.name}</strong>
+                <span class="mt-2 flex flex-wrap gap-1.5">
+                  <span class="rounded-full bg-white/[0.06] px-2 py-1 text-[10px] font-bold text-white/50">${game.platform}</span>
+                  <span class="rounded-full bg-white/[0.06] px-2 py-1 text-[10px] font-bold text-white/50">${game.slots} slots</span>
+                </span>
+              </span>
+            </span>
+          </button>
+        `;
+      }).join('');
+
+      $$('[data-game-card]').forEach((card) => {
+        card.addEventListener('click', (event) => selectGame(card.dataset.gameId, event));
+      });
+    }
+
+    function filterGames() {
+      const query = ($('#gameSearch').value || '').trim().toLowerCase();
+      let visible = 0;
+      $$('[data-game-card]').forEach((card) => {
+        const matchesQuery = !query || card.dataset.name.includes(query);
+        const matchesCat = state.category === 'All' || card.dataset.categoryName === state.category;
+        const show = matchesQuery && matchesCat;
+        card.classList.toggle('hidden', !show);
+        if (show) visible++;
+      });
+      $('#gameCount').textContent = `${visible} game${visible === 1 ? '' : 's'}`;
+    }
+
+    function selectGame(id, event) {
+      const game = GAMES.find((item) => item.id === id) || GAMES[0];
+      state.game = game;
+      const rgb = hexToRgb(game.color);
+      root.style.setProperty('--accent', game.color);
+      root.style.setProperty('--accent-rgb', rgb);
+      setMesh();
+      updateCategoryButtons();
+
+      $$('[data-game-card]').forEach((card) => {
+        card.style.borderColor = '';
+        card.style.boxShadow = '';
+        card.style.background = '';
+        card.setAttribute('aria-pressed', 'false');
+      });
+
+      const selected = $(`[data-game-card][data-game-id="${game.id}"]`);
+      if (selected) {
+        selected.style.borderColor = game.color;
+        selected.style.boxShadow = `0 18px 55px -18px rgba(${rgb}, .75), inset 0 1px 0 rgba(255,255,255,.12)`;
+        selected.style.background = `linear-gradient(135deg, rgba(${rgb}, .14), rgba(255,255,255,.045))`;
+        selected.setAttribute('aria-pressed', 'true');
+        if (event) {
+          const pulse = document.createElement('span');
+          pulse.className = 'pointer-events-none absolute inset-0 rounded-[1.6rem] animate-ping';
+          pulse.style.border = `1px solid ${game.color}`;
+          selected.appendChild(pulse);
+          setTimeout(() => pulse.remove(), 600);
+        }
+      }
+
+      $('#contextIcon').innerHTML = `<i data-lucide="${game.icon}" class="h-6 w-6"></i>`;
+      $('#contextTitle').textContent = game.name;
+      $('#contextSub').textContent = `${game.category} Protocol Loaded`;
+      $('#contextTip').textContent = game.tip;
+      $('#selectedHeroIcon').innerHTML = `<i data-lucide="${game.icon}" class="h-7 w-7"></i>`;
+      $('#selectedHeroName').textContent = game.name;
+      $('#quickSlots').textContent = game.slots;
+      $('#quickRoster').textContent = `${game.rosterMin}-${game.rosterMax}`;
+      $('#quickPlatform').textContent = game.platform;
+      $('#quickServer').textContent = game.server;
+      $('#previewGame').textContent = game.name;
+      $('#launchGame').textContent = game.name;
+      $('#advisorTip').textContent = game.tip;
+
+      $('#capacityRange').value = game.slots;
+      $('#capacityDisplay').textContent = game.slots;
+      $('#rosterMin').value = game.rosterMin;
+      $('#rosterMax').value = game.rosterMax;
+      $('#rosterSubs').value = game.subs;
+      $('#platformSelect').value = game.platform;
+      $('#serverSelect').value = game.server;
+      $('#participationModel').value = game.model;
+      const targetFormat = $$('input[name="format"]').find((input) => input.value === game.format);
+      if (targetFormat) targetFormat.checked = true;
+      $('#rulesArea').value = '';
+      updateSummary();
+      lucide.createIcons();
+    }
+
+    function goToStep(step) {
+      const next = Math.max(1, Math.min(STEPS.length, step));
+      state.step = next;
+      $$('[data-panel]').forEach((panel, index) => {
+        panel.classList.toggle('hidden', index + 1 !== state.step);
+        panel.classList.toggle('animate-fade-in-up', index + 1 === state.step);
+      });
+      updateSteppers();
+      $('#mainScroll').scrollTo({ top: 0, behavior: 'smooth' });
+      lucide.createIcons();
+    }
+
+    function updateSteppers() {
+      $('#desktopStepCount').textContent = `${String(state.step).padStart(2, '0')} / ${String(STEPS.length).padStart(2, '0')}`;
+      const progress = ((state.step - 1) / (STEPS.length - 1)) * 100;
+      $('#timelineBar').style.height = `calc(${progress}% - 6px)`;
+      $('#bottomProgress').style.width = `${(state.step / STEPS.length) * 100}%`;
+
+      STEPS.forEach((step) => {
+        const active = step.id === state.step;
+        const done = step.id < state.step;
+        const dot = $(`[data-dot="${step.id}"]`);
+        const title = $(`[data-step-title="${step.id}"]`);
+        const mobileDot = $(`[data-mobile-dot="${step.id}"]`);
+        const mobileBtn = $(`[data-jump-step="${step.id}"]`);
+
+        if (dot) {
+          dot.innerHTML = done ? '<i data-lucide="check" class="h-4 w-4"></i>' : step.id;
+          dot.style.borderColor = active || done ? 'var(--accent)' : '';
+          dot.style.background = active ? 'var(--accent)' : (done ? 'rgba(var(--accent-rgb), .12)' : '');
+          dot.style.color = active ? '#000' : (done ? 'var(--accent)' : '');
+          dot.style.boxShadow = active ? '0 0 24px rgba(var(--accent-rgb), .55)' : '';
+        }
+        if (title) title.style.color = active ? '#fff' : (done ? 'rgba(255,255,255,.76)' : '');
+        if (mobileDot) {
+          mobileDot.innerHTML = done ? '✓' : step.id;
+          mobileDot.style.background = active ? 'var(--accent)' : (done ? 'rgba(var(--accent-rgb), .14)' : '');
+          mobileDot.style.color = active ? '#000' : (done ? 'var(--accent)' : '');
+        }
+        if (mobileBtn) {
+          mobileBtn.style.borderColor = active ? 'var(--accent)' : '';
+          mobileBtn.style.background = active ? 'rgba(var(--accent-rgb), .12)' : '';
+          mobileBtn.style.color = active ? '#fff' : '';
+        }
+      });
+
+      $('#prevBtn').classList.toggle('hidden', state.step === 1);
+      $('#prevBtn').classList.toggle('inline-flex', state.step !== 1);
+      $('#nextBtn').classList.toggle('hidden', state.step === STEPS.length);
+    }
+
+    function slugify(text) {
+      return text.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 80);
+    }
+
+    function togglePanel(panelId, open) {
+      const panel = $(panelId);
+      if (!panel) return;
+      panel.classList.toggle('grid-rows-[1fr]', open);
+      panel.classList.toggle('grid-rows-[0fr]', !open);
+      panel.classList.toggle('opacity-100', open);
+      panel.classList.toggle('opacity-0', !open);
+    }
+
+    function updateSummary() {
+      const slots = $('#capacityRange').value;
+      const roster = `${$('#rosterMin').value || 0}-${$('#rosterMax').value || 0}`;
+      const platform = $('#platformSelect').value;
+      const server = $('#serverSelect').value;
+      const feeEnabled = $('#feeToggle').checked;
+      const amount = $('#entryAmount').value || '0';
+      const currency = $('#currencySelect').value;
+      const entry = feeEnabled ? `${amount} ${currency}` : 'Free';
+      const prize = $('#prizePool').value || 'TBA';
+
+      $('#sumSlots').textContent = slots;
+      $('#sumRoster').textContent = roster;
+      $('#sumPlatform').textContent = platform;
+      $('#sumServer').textContent = server;
+      $('#sumEntry').textContent = entry;
+      $('#sumCurrency').textContent = currency;
+      $('#sumPrize').textContent = prize;
+      $('#launchSlots').textContent = slots;
+      $('#launchEntry').textContent = entry;
+    }
+
+    function generateRules() {
+      const game = state.game;
+      const format = ($$('input[name="format"]').find((input) => input.checked) || {}).value || 'Single Elimination';
+      const lines = [
+        `DeltaCrown Official Rulebook — ${game.name}`,
+        ``,
+        `1. Format: ${format}. Admin decisions preserve competitive integrity.`,
+        `2. Check-in is required before the bracket lock. Late teams may be removed.`,
+        `3. Roster: ${$('#rosterMin').value}-${$('#rosterMax').value} active players. Subs: ${$('#rosterSubs').value}.`,
+        `4. Result proof: ${$('#proofSelect').value}. Winners must submit proof immediately.`,
+        `5. Disputes must be filed within 15 minutes with clean evidence.`
+      ];
+
+      if (game.id === 'efootball') {
+        lines.push('', 'Game-specific:', '- Match time, condition, and disconnect policy must be fixed before launch.', '- Banned or removed formations must be rejected by admins.');
+      } else if (['val', 'cs2', 'r6', 'codm'].includes(game.id)) {
+        lines.push('', 'Game-specific:', '- Map veto must happen in official lobby/chat.', '- Exploits, stream sniping, and unauthorized tools cause disqualification.');
+      } else if (['pubgm', 'ff', 'apex', 'fortnite'].includes(game.id)) {
+        lines.push('', 'Game-specific:', '- Points table must define placement and elimination points.', '- Room code timing and device policy must be followed exactly.');
+      } else if (['mlbb', 'dota2', 'lol'].includes(game.id)) {
+        lines.push('', 'Game-specific:', '- Draft, pause, and remake rules must be followed by both teams.', '- Lobby host must preserve screenshots for disputes.');
+      }
+
+      $('#rulesArea').value = lines.join('\n');
+      showToast('Smart rulebook generated');
+    }
+
+    function showToast(message) {
+      const toast = $('#toast');
+      toast.textContent = message;
+      toast.classList.remove('hidden');
+      clearTimeout(showToast.timer);
+      showToast.timer = setTimeout(() => toast.classList.add('hidden'), 1800);
+    }
+
+    function bindEvents() {
+      document.addEventListener('pointermove', (event) => {
+        root.style.setProperty('--mx', `${(event.clientX / window.innerWidth) * 100}%`);
+        root.style.setProperty('--my', `${(event.clientY / window.innerHeight) * 100}%`);
+        setMesh();
+      }, { passive: true });
+
+      $('#gameSearch').addEventListener('input', filterGames);
+      $('#nextBtn').addEventListener('click', () => goToStep(state.step + 1));
+      $('#prevBtn').addEventListener('click', () => goToStep(state.step - 1));
+      $$('[data-next-inline]').forEach((btn) => btn.addEventListener('click', () => goToStep(state.step + 1)));
+
+      $('#tourneyName').addEventListener('input', (event) => {
+        const name = event.target.value.trim() || 'Untitled Tournament';
+        const slug = slugify(name) || 'untitled';
+        $('#tourneySlug').value = slug;
+        $('#previewName').textContent = name;
+        $('#launchName').textContent = name;
+        $('#previewSlug').textContent = slug;
+      });
+      $('#tourneySlug').addEventListener('input', (event) => {
+        const slug = slugify(event.target.value) || 'untitled';
+        event.target.value = slug;
+        $('#previewSlug').textContent = slug;
+      });
+      $('#regionSelect').addEventListener('change', (event) => $('#previewRegion').textContent = event.target.value);
+
+      $('#bannerInput').addEventListener('change', (event) => $('#bannerLabel').textContent = event.target.files[0]?.name || 'Upload banner');
+      $('#logoInput').addEventListener('change', (event) => $('#logoLabel').textContent = event.target.files[0]?.name || 'Upload logo');
+
+      $('#capacityRange').addEventListener('input', (event) => {
+        $('#capacityDisplay').textContent = event.target.value;
+        updateSummary();
+      });
+      ['rosterMin', 'rosterMax', 'rosterSubs', 'platformSelect', 'serverSelect', 'proofSelect', 'entryAmount', 'currencySelect', 'prizePool'].forEach((id) => {
+        $(`#${id}`).addEventListener('input', updateSummary);
+        $(`#${id}`).addEventListener('change', updateSummary);
+      });
+      $('#currencySelect').addEventListener('change', (event) => {
+        $('#mfsPanel').classList.toggle('hidden', event.target.value === 'DC');
+      });
+
+      $('#archAdvancedToggle').addEventListener('change', (event) => togglePanel('#archAdvancedPanel', event.target.checked));
+      $('#launchAdvancedToggle').addEventListener('change', (event) => togglePanel('#launchAdvancedPanel', event.target.checked));
+      $('#feeToggle').addEventListener('change', (event) => { togglePanel('#feePanel', event.target.checked); updateSummary(); });
+      $$('input[name="venueMode"]').forEach((radio) => radio.addEventListener('change', (event) => togglePanel('#lanPanel', event.target.value === 'LAN')));
+      $$('input[name="format"]').forEach((radio) => radio.addEventListener('change', updateSummary));
+
+      $('#generateRules').addEventListener('click', generateRules);
+      $('#skipRules').addEventListener('click', () => showToast('Rules marked for Control Center'));
+      $('#saveDraft').addEventListener('click', () => showToast('Draft saved locally'));
+
+      const openGuide = () => { $('#guideModal').classList.remove('hidden'); $('#guideModal').classList.add('flex'); lucide.createIcons(); };
+      const closeGuide = () => { $('#guideModal').classList.add('hidden'); $('#guideModal').classList.remove('flex'); };
+      $('#desktopGuideBtn').addEventListener('click', openGuide);
+      $('#mobileGuideBtn').addEventListener('click', openGuide);
+      $('#closeGuide').addEventListener('click', closeGuide);
+      $('#guideModal').addEventListener('click', (event) => { if (event.target === $('#guideModal')) closeGuide(); });
+
+      $('#deployBtn').addEventListener('click', deploy);
+    }
+
+    function deploy() {
+      const overlay = $('#deployOverlay');
+      const title = $('#deployTitle');
+      const text = $('#deployText');
+      overlay.classList.remove('hidden');
+      overlay.classList.add('flex');
+      const messages = ['Validating game protocol', 'Locking bracket engine', 'Syncing economy settings', 'Creating Control Center'];
+      let index = 0;
+      const timer = setInterval(() => {
+        index++;
+        if (index < messages.length) text.textContent = messages[index];
+      }, 850);
+      setTimeout(() => {
+        clearInterval(timer);
+        title.textContent = 'Tournament deployed';
+        text.textContent = 'Redirecting to Control Center';
+        overlay.querySelector('.animate-spin')?.classList.remove('animate-spin');
+        overlay.querySelector('.font-space.text-5xl').innerHTML = '<i data-lucide="check" class="h-14 w-14"></i>';
+        lucide.createIcons();
+      }, 3600);
+    }
+
+    function init() {
+      setMesh();
+      renderSteppers();
+      renderCategories();
+      renderGames();
+      bindEvents();
+      selectGame(state.game.id);
+      goToStep(1);
+      updateSummary();
+      lucide.createIcons();
+    }
+
+    document.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>
