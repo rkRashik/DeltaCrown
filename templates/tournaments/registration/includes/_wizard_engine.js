@@ -126,6 +126,8 @@
         const panel = document.getElementById('member-modal-panel');
         if (panel) {
             panel.addEventListener('click', function(event) {
+                // Let close-button clicks propagate to the document handler
+                if (event.target.closest('[data-action="close-member-modal"]')) return;
                 event.stopPropagation();
             });
         }

@@ -215,6 +215,22 @@ class TournamentDetailView(DetailView):
         context.update(detail_action_input_context)
         context.update(_build_detail_action_context(tournament, user, context=detail_action_input_context))
 
+        # Spectator preview toggle: organizers can view the page as a public user.
+        # Activated via ?view_as=spectator; reverted via ?view_as=organizer.
+        real_is_organizer = bool(context.get('viewer_can_manage'))
+        view_as_spectator = (
+            self.request.GET.get('view_as') == 'spectator'
+            and real_is_organizer
+        )
+        context['real_is_organizer'] = real_is_organizer
+        context['view_as_spectator'] = view_as_spectator
+        if view_as_spectator:
+            context['is_organizer'] = False
+            context['viewer_can_manage'] = False
+            context['can_manage_detail_widgets'] = False
+            _sp_input = {**detail_action_input_context, 'viewer_can_manage': False, 'is_organizer': False}
+            context.update(_build_detail_action_context(tournament, user, context=_sp_input))
+
         # Detailed registration status (wire up the dead code at _get_registration_status)
         if user.is_authenticated and context.get('is_registered'):
             try:
@@ -1512,6 +1528,7 @@ class TournamentDetailView(DetailView):
 
                 standings_rows.append({
                     'rank': 0,
+                    'global_rank': None,
                     'name': participant_name,
                     'participant_id': participant_id,
                     'logo_url': logo_url,
@@ -1534,6 +1551,7 @@ class TournamentDetailView(DetailView):
 
             for idx, row in enumerate(standings_rows, start=1):
                 row['rank'] = idx
+                row['global_rank'] = idx
 
             context['standings_primary'] = standings_rows
             context['standings_source'] = 'bracket'
