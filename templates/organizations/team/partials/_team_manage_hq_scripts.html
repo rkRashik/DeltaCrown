@@ -811,7 +811,7 @@
             // Re-enable button
             saveBtn.disabled = false;
             saveBtn.innerHTML = '<i data-lucide="save" class="w-3.5 h-3.5 inline mr-1"></i> Save Changes';
-            lucide.createIcons(); // Reinitialize icon
+            try { lucide.createIcons(); } catch(_) {} // Reinitialize icon
         }
     }
 
@@ -857,14 +857,14 @@
                 saveBtn.classList.remove('bg-green-500');
                 saveBtn.classList.add('bg-green-600', 'hover:bg-green-700');
                 saveBtn.disabled = false;
-                lucide.createIcons();
+                try { lucide.createIcons(); } catch(_) {}
             }, 2000);
 
         } catch (error) {
             alert(error.message || 'Failed to update tournament operations');
             saveBtn.disabled = false;
             saveBtn.innerHTML = '<i data-lucide="save" class="w-3.5 h-3.5 inline mr-1"></i> Save';
-            lucide.createIcons();
+            try { lucide.createIcons(); } catch(_) {}
         }
     }
 
@@ -1031,7 +1031,7 @@
                 <div class="space-y-4">
                     <div>
                         <label class="block text-sm font-medium mb-2">
-                            <i data-lucide="twitter" class="w-4 h-4 inline mr-1"></i>
+                            <i data-lucide="share-2" class="w-4 h-4 inline mr-1"></i>
                             Twitter / X URL
                         </label>
                         <input type="url" id="modalTwitterUrl" value="${currentTwitter}"

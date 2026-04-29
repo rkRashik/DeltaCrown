@@ -145,7 +145,7 @@
     {% include "organizations/team/manage_hq/partials/_mobile_nav.html" %}
 
     <script nonce="{{ request.csp_nonce }}">
-        lucide.createIcons();
+        try { lucide.createIcons(); } catch(e) { console.warn('lucide.createIcons failed on initial load:', e); }
 
         const sidebar = document.getElementById('sidebar');
         const scrim = document.getElementById('scrim');
@@ -308,6 +308,8 @@
             gameIdLabel: "{{ game_id_label|escapejs }}",
         };
     </script>
+    <!-- CSP-safe data-click / data-change event delegator (required for all data-click buttons) -->
+    <script src="{% static 'js/csp-delegator.js' %}"></script>
     <script src="{% static 'organizations/js/team-manage-hq.js' %}"></script>
 </body>
 </html>

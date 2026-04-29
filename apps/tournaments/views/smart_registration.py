@@ -1050,9 +1050,13 @@ class SmartRegistrationView(LoginRequiredMixin, View):
                     rl = game_service.get_roster_limits(tournament.game)
                     min_roster = rl.get('min_team_size', 1)
                     max_roster = rl.get('max_roster_size', 20)
+                    min_starters = rl.get('min_team_size', 1)
+                    max_starters = rl.get('max_team_size', min_starters)
                 except Exception:
                     min_roster = 1
                     max_roster = 20
+                    min_starters = 1
+                    max_starters = 10
 
                 active_count = roster_qs.count()
                 if active_count < min_roster:
@@ -1076,6 +1080,22 @@ class SmartRegistrationView(LoginRequiredMixin, View):
                         if part.isdigit():
                             submitted_member_ids.add(int(part))
                 igl_member_id = form_data.get('igl_member_id', '').strip()
+
+                # Batch-load game passports for roster members (for game_id fallback + missing flag)
+                _STAFF_ROLES = {'HEAD_COACH', 'COACH', 'MANAGER', 'ANALYST', 'SCOUT'}
+                try:
+                    from apps.user_profile.models_main import GameProfile
+                    _roster_user_ids = [m.user_id for m in roster_qs]
+                    _passports_map = {
+                        gp.user_id: gp
+                        for gp in GameProfile.objects.filter(
+                            user_id__in=_roster_user_ids,
+                            game=tournament.game,
+                            status=GameProfile.STATUS_ACTIVE,
+                        )
+                    }
+                except Exception:
+                    _passports_map = {}
 
                 snapshot = []
                 for member in roster_qs:
@@ -1111,10 +1131,22 @@ class SmartRegistrationView(LoginRequiredMixin, View):
                     if igl_member_id == mid:
                         member_entry['is_igl'] = True
 
-                    # Capture per-member game_id override from form
+                    # Resolve game_id: form override → passport fallback → missing flag
                     member_game_id = form_data.get(f'member_{mid}_game_id', '').strip()
                     if member_game_id:
                         member_entry['game_id'] = member_game_id
+                    else:
+                        _gp = _passports_map.get(member.user_id)
+                        if _gp and _gp.ign:
+                            _gid = _gp.ign
+                            if _gp.discriminator:
+                                _disc = _gp.discriminator
+                                if not _disc.startswith('#') and not _disc.startswith('-'):
+                                    _disc = f'#{_disc}'
+                                _gid = f"{_gp.ign}{_disc}"
+                            member_entry['game_id'] = _gid
+                        elif member.role not in _STAFF_ROLES:
+                            member_entry['game_id_missing'] = True
 
                     # Capture avatar if available from profile
                     try:
@@ -1125,6 +1157,21 @@ class SmartRegistrationView(LoginRequiredMixin, View):
                         member_entry['avatar'] = ''
 
                     snapshot.append(member_entry)
+
+                # ── Validate starter count (excludes coaching staff) ──
+                starter_count = sum(1 for e in snapshot if e.get('roster_slot') == 'STARTER')
+                if starter_count < min_starters:
+                    raise ValidationError(
+                        f"This tournament requires at least {min_starters} "
+                        f"starter{'s' if min_starters != 1 else ''}. "
+                        f"Currently {starter_count} assigned."
+                    )
+                if starter_count > max_starters:
+                    raise ValidationError(
+                        f"This tournament allows at most {max_starters} "
+                        f"starter{'s' if max_starters != 1 else ''}. "
+                        f"Currently {starter_count} assigned."
+                    )
 
                 registration.lineup_snapshot = snapshot
                 registration.save(update_fields=['lineup_snapshot'])

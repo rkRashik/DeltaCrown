@@ -392,11 +392,11 @@ Section 7.1 of the Master Plan.
                         </div>
                     </div>
                     <div class="flex items-center gap-2 shrink-0 ml-2">
-                        <button data-click="ManageHQ.handleJoinRequest" data-click-args='[{{ jr.id }}, 'approve', this]'
+                        <button data-click="ManageHQ.handleJoinRequest" data-click-args='[{{ jr.id }}, "approve"]' data-click-pass-el
                             class="text-xs px-3 py-1.5 rounded-lg bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 transition font-medium">
                             Approve
                         </button>
-                        <button data-click="ManageHQ.handleJoinRequest" data-click-args='[{{ jr.id }}, 'reject', this]'
+                        <button data-click="ManageHQ.handleJoinRequest" data-click-args='[{{ jr.id }}, "reject"]' data-click-pass-el
                             class="text-xs px-3 py-1.5 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition font-medium">
                             Reject
                         </button>
