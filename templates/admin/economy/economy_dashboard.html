@@ -1,0 +1,330 @@
+{% extends "admin/base_site.html" %}
+{% load i18n humanize %}
+
+{% block title %}Economy Command Center | {{ site_title|default:"Admin" }}{% endblock %}
+
+{% block extrahead %}
+{{ block.super }}
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          brand: { DEFAULT: '#6366f1', dark: '#4f46e5', light: '#818cf8' },
+        }
+      }
+    }
+  }
+</script>
+<style>
+  /* Prevent Tailwind from fighting the Unfold/Django admin base */
+  #content { padding: 0 !important; background: transparent !important; }
+  .ec-wrap { font-family: 'Inter', ui-sans-serif, system-ui, sans-serif; }
+</style>
+{% endblock %}
+
+{% block content_title %}{% endblock %}
+
+{% block content %}
+<div class="ec-wrap min-h-screen bg-slate-950 text-slate-100 p-6 md:p-8">
+
+  {# ── Page Header ──────────────────────────────────────────────────────── #}
+  <div class="flex items-center justify-between mb-8 flex-wrap gap-4">
+    <div>
+      <h1 class="text-2xl font-black tracking-tight text-white flex items-center gap-3">
+        <span class="text-3xl">💰</span>
+        Economy Command Center
+      </h1>
+      <p class="text-slate-400 text-sm mt-1">
+        Real-time view of DeltaCoin circulation, treasury reserves, and minting operations.
+      </p>
+    </div>
+    <div class="flex items-center gap-2 bg-slate-800 border border-slate-700 rounded-xl px-4 py-2 text-sm">
+      <span class="text-slate-400">Active Rate:</span>
+      <span class="font-bold text-emerald-400">1 BDT = {{ config.dc_per_bdt }} DC</span>
+      <span class="text-slate-600 mx-1">|</span>
+      <a href="{% url 'admin:economy_economyconfig_changelist' %}"
+         class="text-indigo-400 hover:text-indigo-300 transition-colors text-xs font-medium">
+        Edit Config →
+      </a>
+    </div>
+  </div>
+
+  {# ── Flash Messages ───────────────────────────────────────────────────── #}
+  {% if messages %}
+    {% for msg in messages %}
+      <div class="mb-6 rounded-xl border px-5 py-4 text-sm font-medium flex items-center gap-3
+        {% if 'success' in msg.tags %}bg-emerald-950 border-emerald-700 text-emerald-300
+        {% elif 'error' in msg.tags %}bg-red-950 border-red-700 text-red-300
+        {% else %}bg-amber-950 border-amber-700 text-amber-300{% endif %}">
+        {% if 'success' in msg.tags %}✅{% elif 'error' in msg.tags %}❌{% else %}⚠️{% endif %}
+        {{ msg }}
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  {# ── Metric Cards ─────────────────────────────────────────────────────── #}
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
+
+    {# Card 1 — Circulating Supply #}
+    <div class="relative overflow-hidden rounded-2xl bg-slate-900 border border-slate-800 p-6 group hover:border-indigo-500/50 transition-all duration-300">
+      <div class="absolute top-0 right-0 w-32 h-32 bg-indigo-600/10 rounded-full -translate-y-8 translate-x-8 group-hover:bg-indigo-600/20 transition-colors"></div>
+      <div class="relative">
+        <div class="flex items-center gap-2 mb-4">
+          <div class="w-8 h-8 rounded-lg bg-indigo-500/20 flex items-center justify-center text-lg">🪙</div>
+          <span class="text-xs font-bold uppercase tracking-widest text-slate-500">Circulating Supply</span>
+        </div>
+        <p class="text-4xl font-black text-indigo-400 tabular-nums leading-none">
+          {{ circulating_supply|intcomma }}
+        </p>
+        <p class="text-slate-500 text-xs mt-2 font-medium">DC across all user wallets</p>
+      </div>
+    </div>
+
+    {# Card 2 — Fiat Reserve Required #}
+    <div class="relative overflow-hidden rounded-2xl bg-slate-900 border border-slate-800 p-6 group hover:border-emerald-500/50 transition-all duration-300">
+      <div class="absolute top-0 right-0 w-32 h-32 bg-emerald-600/10 rounded-full -translate-y-8 translate-x-8 group-hover:bg-emerald-600/20 transition-colors"></div>
+      <div class="relative">
+        <div class="flex items-center gap-2 mb-4">
+          <div class="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center text-lg">🏦</div>
+          <span class="text-xs font-bold uppercase tracking-widest text-slate-500">Fiat Reserve Required</span>
+        </div>
+        <p class="text-4xl font-black text-emerald-400 tabular-nums leading-none">
+          ৳{{ fiat_reserve_required|floatformat:2|intcomma }}
+        </p>
+        <p class="text-slate-500 text-xs mt-2 font-medium">BDT needed to back circulation</p>
+      </div>
+    </div>
+
+    {# Card 3 — Treasury Balance #}
+    <div class="relative overflow-hidden rounded-2xl bg-slate-900 border border-slate-800 p-6 group hover:border-amber-500/50 transition-all duration-300">
+      <div class="absolute top-0 right-0 w-32 h-32 bg-amber-600/10 rounded-full -translate-y-8 translate-x-8 group-hover:bg-amber-600/20 transition-colors"></div>
+      <div class="relative">
+        <div class="flex items-center gap-2 mb-4">
+          <div class="w-8 h-8 rounded-lg bg-amber-500/20 flex items-center justify-center text-lg">⚡</div>
+          <span class="text-xs font-bold uppercase tracking-widest text-slate-500">Treasury Balance</span>
+        </div>
+        <p class="text-4xl font-black tabular-nums leading-none
+          {% if treasury.cached_balance >= 0 %}text-amber-400{% else %}text-red-400{% endif %}">
+          {{ treasury.cached_balance|intcomma }} DC
+        </p>
+        <p class="text-slate-500 text-xs mt-2 font-medium">
+          {% if treasury.cached_balance < 0 %}
+            {{ treasury.cached_balance|cut:"-"|intcomma }} DC minted &amp; in circulation
+          {% else %}
+            Available to distribute
+          {% endif %}
+        </p>
+      </div>
+    </div>
+
+  </div>
+
+  {# ── Two-column layout: Mint Form + Quick Links ───────────────────────── #}
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+
+    {# Mint Form (takes 2/3 width) #}
+    <div class="lg:col-span-2">
+      {% if request.user.is_superuser and mint_form %}
+      <div class="rounded-2xl bg-slate-900 border border-slate-800 overflow-hidden">
+
+        {# Header #}
+        <div class="flex items-center gap-3 px-6 py-4 border-b border-slate-800 bg-slate-900/80">
+          <span class="text-xl">⚗️</span>
+          <div>
+            <h2 class="font-bold text-white text-sm">Mint DC to Treasury</h2>
+            <p class="text-xs text-slate-500">Superuser-only · Irreversible ledger operation</p>
+          </div>
+          <div class="ml-auto flex gap-2">
+            <span class="text-xs bg-violet-900/60 border border-violet-700 text-violet-300 rounded-full px-3 py-1 font-bold">SUPERUSER</span>
+            <span class="text-xs bg-red-900/60 border border-red-700 text-red-300 rounded-full px-3 py-1 font-bold">IRREVERSIBLE</span>
+          </div>
+        </div>
+
+        {# Warning Banner #}
+        <div class="mx-6 mt-5 flex items-start gap-3 rounded-xl bg-amber-950/60 border border-amber-800/50 px-4 py-3">
+          <span class="text-amber-400 text-lg mt-0.5">⚠️</span>
+          <p class="text-amber-300/80 text-xs leading-relaxed">
+            Enter the <strong class="text-amber-200">real-world BDT amount received</strong> (bKash/bank transfer).
+            The system calculates DC at the current rate and credits the Master Treasury.
+            Treasury DC can then be distributed to users via Top-Up approvals.
+          </p>
+        </div>
+
+        {# Form #}
+        <form method="post" action="" class="p-6">
+          {% csrf_token %}
+          <input type="hidden" name="mint_submit" value="1">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
+
+            <div>
+              <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
+                BDT Amount Received (৳)
+              </label>
+              <div class="relative">
+                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 font-bold text-sm">৳</span>
+                <input type="number" step="0.01" min="1" name="bdt_amount" id="id_bdt_amount"
+                       placeholder="e.g. 500.00"
+                       value="{{ mint_form.bdt_amount.value|default:'' }}"
+                       required
+                       class="w-full bg-slate-800 border border-slate-700 rounded-xl pl-8 pr-4 py-3 text-white text-sm
+                              placeholder:text-slate-600 focus:outline-none focus:border-indigo-500 focus:ring-2
+                              focus:ring-indigo-500/20 transition-all">
+              </div>
+              {% if mint_form.bdt_amount.errors %}
+                <p class="text-red-400 text-xs mt-1">{{ mint_form.bdt_amount.errors.as_text }}</p>
+              {% endif %}
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
+                Reference Note
+              </label>
+              <input type="text" name="note" id="id_mint_note" maxlength="255"
+                     value="{{ mint_form.note.value|default:'Genesis Mint / Admin Fiat Deposit' }}"
+                     class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm
+                            placeholder:text-slate-600 focus:outline-none focus:border-indigo-500 focus:ring-2
+                            focus:ring-indigo-500/20 transition-all">
+            </div>
+
+          </div>
+
+          <div class="flex items-center justify-between flex-wrap gap-4">
+            <p class="text-slate-500 text-xs">
+              At <span class="text-emerald-400 font-bold">{{ config.dc_per_bdt }} DC/BDT</span>,
+              ৳100 → <span class="text-indigo-400 font-bold">{{ config.dc_per_bdt|floatformat:0 }}00 DC</span>
+            </p>
+            <button type="submit"
+                    class="flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-violet-600
+                           hover:from-indigo-500 hover:to-violet-500 text-white font-bold text-sm
+                           px-6 py-3 rounded-xl transition-all duration-200 shadow-lg shadow-indigo-500/20
+                           active:scale-95">
+              ⚗️ Mint to Treasury
+            </button>
+          </div>
+        </form>
+
+      </div>
+      {% else %}
+      <div class="rounded-2xl bg-slate-900 border border-slate-700/50 p-6 flex items-center gap-4">
+        <span class="text-3xl">🔒</span>
+        <div>
+          <p class="font-bold text-slate-300">Minting Restricted</p>
+          <p class="text-slate-500 text-sm">The Mint form is only visible to superuser accounts.</p>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    {# Quick Links (1/3 width) #}
+    <div class="rounded-2xl bg-slate-900 border border-slate-800 p-5">
+      <h3 class="text-xs font-bold uppercase tracking-widest text-slate-500 mb-4">Quick Navigation</h3>
+      <div class="flex flex-col gap-2">
+        {% url 'admin:economy_deltacrownwallet_changelist' as wallet_url %}
+        {% url 'admin:economy_deltacrowntransaction_changelist' as tx_url %}
+        {% url 'admin:economy_topuprequest_changelist' as topup_url %}
+        {% url 'admin:economy_withdrawalrequest_changelist' as wd_url %}
+        <a href="{{ wallet_url }}"
+           class="flex items-center gap-3 text-sm text-slate-300 hover:text-white hover:bg-slate-800
+                  rounded-lg px-3 py-2.5 transition-all group">
+          <span class="text-base w-6 text-center">👛</span>
+          <span class="flex-1">All Wallets</span>
+          <span class="text-slate-600 group-hover:text-slate-400 text-xs">→</span>
+        </a>
+        <a href="{{ wallet_url }}?is_treasury__exact=1"
+           class="flex items-center gap-3 text-sm text-slate-300 hover:text-white hover:bg-slate-800
+                  rounded-lg px-3 py-2.5 transition-all group">
+          <span class="text-base w-6 text-center">🏦</span>
+          <span class="flex-1">Treasury Wallet</span>
+          <span class="text-slate-600 group-hover:text-slate-400 text-xs">→</span>
+        </a>
+        <a href="{{ tx_url }}"
+           class="flex items-center gap-3 text-sm text-slate-300 hover:text-white hover:bg-slate-800
+                  rounded-lg px-3 py-2.5 transition-all group">
+          <span class="text-base w-6 text-center">📜</span>
+          <span class="flex-1">All Transactions</span>
+          <span class="text-slate-600 group-hover:text-slate-400 text-xs">→</span>
+        </a>
+        <div class="border-t border-slate-800 my-1"></div>
+        <a href="{{ topup_url }}?status__exact=pending"
+           class="flex items-center gap-3 text-sm text-slate-300 hover:text-white hover:bg-slate-800
+                  rounded-lg px-3 py-2.5 transition-all group">
+          <span class="text-base w-6 text-center">⏳</span>
+          <span class="flex-1">Pending Top-Ups</span>
+          <span class="text-slate-600 group-hover:text-slate-400 text-xs">→</span>
+        </a>
+        <a href="{{ wd_url }}?status__exact=pending"
+           class="flex items-center gap-3 text-sm text-slate-300 hover:text-white hover:bg-slate-800
+                  rounded-lg px-3 py-2.5 transition-all group">
+          <span class="text-base w-6 text-center">⏳</span>
+          <span class="flex-1">Pending Withdrawals</span>
+          <span class="text-slate-600 group-hover:text-slate-400 text-xs">→</span>
+        </a>
+      </div>
+    </div>
+
+  </div>
+
+  {# ── Recent Treasury Transactions ─────────────────────────────────────── #}
+  <div class="rounded-2xl bg-slate-900 border border-slate-800 overflow-hidden">
+
+    <div class="flex items-center justify-between px-6 py-4 border-b border-slate-800">
+      <div class="flex items-center gap-2">
+        <span class="text-lg">🧾</span>
+        <h2 class="font-bold text-white text-sm">Recent Treasury Transactions</h2>
+        <span class="text-xs text-slate-500">(last 20)</span>
+      </div>
+      <a href="{% url 'admin:economy_deltacrowntransaction_changelist' %}?wallet__is_treasury__exact=1"
+         class="text-xs text-indigo-400 hover:text-indigo-300 transition-colors font-medium">
+        View all →
+      </a>
+    </div>
+
+    {% if recent_treasury_txns %}
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="border-b border-slate-800">
+            <th class="text-left px-6 py-3 text-xs font-bold uppercase tracking-wider text-slate-500">ID</th>
+            <th class="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-500">Amount</th>
+            <th class="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-500">Reason</th>
+            <th class="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-500">Note</th>
+            <th class="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-500">By</th>
+            <th class="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-500">Date</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-800/60">
+          {% for tx in recent_treasury_txns %}
+          <tr class="{% cycle 'bg-transparent' 'bg-slate-800/20' %} hover:bg-slate-800/40 transition-colors">
+            <td class="px-6 py-3 text-slate-500 font-mono text-xs">#{{ tx.id }}</td>
+            <td class="px-4 py-3 font-bold tabular-nums
+              {% if tx.amount > 0 %}text-emerald-400{% else %}text-red-400{% endif %}">
+              {% if tx.amount > 0 %}+{% endif %}{{ tx.amount|intcomma }} DC
+            </td>
+            <td class="px-4 py-3">
+              <span class="text-xs bg-indigo-900/50 border border-indigo-800/60 text-indigo-300
+                           rounded-full px-2.5 py-1 font-medium whitespace-nowrap">
+                {{ tx.get_reason_display }}
+              </span>
+            </td>
+            <td class="px-4 py-3 text-slate-400 text-xs max-w-xs truncate">{{ tx.note }}</td>
+            <td class="px-4 py-3 text-slate-400 text-xs">{{ tx.created_by.username|default:"—" }}</td>
+            <td class="px-4 py-3 text-slate-500 text-xs whitespace-nowrap">{{ tx.created_at|date:"d M Y · H:i" }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="flex flex-col items-center justify-center py-16 text-center">
+      <span class="text-5xl mb-4 opacity-30">📭</span>
+      <p class="text-slate-500 font-medium">No treasury transactions yet.</p>
+      <p class="text-slate-600 text-sm mt-1">Use the Mint form above to fund the treasury.</p>
+    </div>
+    {% endif %}
+
+  </div>
+
+</div>
+{% endblock %}

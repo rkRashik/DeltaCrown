@@ -134,13 +134,26 @@ class TOCView(LoginRequiredMixin, TemplateView):
         participation = getattr(t, 'participation_type', 'team')
         is_solo = participation == 'solo'
         fmt = getattr(t, 'format', '')
-        # Tree-style brackets only — Swiss has rounds + standings, no bracket tree.
+
+        # Tree-style knockout brackets (for legacy template/JS that check has_brackets).
         has_brackets = fmt in ('single_elimination', 'double_elimination', 'group_playoff')
-        # Standings tab applies to any non-tree format (RR, Swiss, group play).
-        has_standings = fmt in ('group_playoff', 'round_robin', 'swiss')
+        # Standings tab — any format where points/rankings are primary.
+        has_standings = fmt in ('group_playoff', 'round_robin', 'swiss', 'battle_royale')
         # Backwards compatibility for templates/JS that still read has_groups.
         has_groups = has_standings
         game_has_servers = getattr(game, 'has_servers', False) if game else False
+
+        # Every format gets a competition-structure tab (brackets / league / lobbies).
+        # Label and icon differ per format so the sidebar is always meaningful.
+        _STRUCT_TAB: dict[str, tuple[str, str]] = {
+            'single_elimination': ('Brackets',        'git-branch'),
+            'double_elimination': ('Brackets',        'git-branch'),
+            'group_playoff':      ('Brackets',        'git-branch'),
+            'round_robin':        ('League Table',    'list-ordered'),
+            'swiss':              ('Swiss Rounds',    'list-ordered'),
+            'battle_royale':      ('Lobbies & Scoring', 'crosshair'),
+        }
+        _struct_label, _struct_icon = _STRUCT_TAB.get(fmt, ('Brackets', 'git-branch'))
 
         base_tabs = [
             {'id': 'overview', 'label': 'Overview', 'icon': 'layout-dashboard', 'group': 'Management'},
@@ -153,8 +166,8 @@ class TOCView(LoginRequiredMixin, TemplateView):
             {'id': 'checkin', 'label': 'Check-in', 'icon': 'user-check', 'group': 'Management'},
             {'id': 'analytics', 'label': 'Analytics', 'icon': 'bar-chart-3', 'group': 'Management'},
         ])
-        if has_brackets:
-            base_tabs.append({'id': 'brackets', 'label': 'Brackets', 'icon': 'git-branch', 'group': 'Competition'})
+        if fmt:  # every format with a known competition structure gets this tab
+            base_tabs.append({'id': 'brackets', 'label': _struct_label, 'icon': _struct_icon, 'group': 'Competition'})
         base_tabs.extend([
             {'id': 'matches', 'label': 'Matches', 'icon': 'swords', 'group': 'Competition'},
             {'id': 'schedule', 'label': 'Schedule', 'icon': 'calendar', 'group': 'Competition'},
@@ -184,6 +197,24 @@ class TOCView(LoginRequiredMixin, TemplateView):
             {'id': 'match-center', 'label': 'Match Center', 'icon': 'monitor-play', 'group': 'Engagement'},
         ])
 
+        # Phase 4: apply format-specific tab label overrides and inject UI metadata
+        # via the strategy registry so each format can rename/relabel its tabs
+        # without touching the template (e.g. "Matches" → "Fixtures" for RR).
+        from apps.tournaments.services.format_strategy import (
+            format_has_strategy,
+            get_strategy,
+        )
+        format_primary_surface = 'Bracket'
+        format_hub_ui = {}
+        if fmt and format_has_strategy(fmt):
+            _strategy = get_strategy(fmt)
+            _label_overrides = _strategy.get_toc_tab_labels()
+            for tab in base_tabs:
+                if tab['id'] in _label_overrides:
+                    tab['label'] = _label_overrides[tab['id']]
+            format_primary_surface = _strategy.get_primary_surface_name()
+            format_hub_ui = _strategy.get_hub_ui()
+
         ctx['toc_tabs'] = base_tabs
         ctx['participation_type'] = participation
         ctx['is_solo'] = is_solo
@@ -191,6 +222,8 @@ class TOCView(LoginRequiredMixin, TemplateView):
         ctx['has_groups'] = has_groups
         ctx['has_standings'] = has_standings
         ctx['tournament_format'] = fmt
+        ctx['format_primary_surface'] = format_primary_surface
+        ctx['format_hub_ui'] = format_hub_ui
         ctx['current_stage'] = t.get_current_stage() if hasattr(t, 'get_current_stage') else ''
 
         # Provide initial settings payload so Settings tab can hydrate even if

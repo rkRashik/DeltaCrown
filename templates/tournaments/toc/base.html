@@ -260,7 +260,14 @@
                         <i data-lucide="{% if is_solo %}user{% else %}users{% endif %}" class="w-2.5 h-2.5"></i> {{ participation_type|title }}
                     </span>
                     <span id="sidebar-badge-format" class="inline-flex items-center gap-1 text-[10px] font-medium bg-dc-surface text-dc-textBright px-2 py-0.5 rounded-full border border-dc-border">
-                        <i data-lucide="git-branch" class="w-2.5 h-2.5"></i> {{ tournament_format|default:"Custom"|title }}
+                        {% if tournament_format == 'round_robin' %}
+                        <i data-lucide="list-ordered" class="w-2.5 h-2.5"></i>
+                        {% elif tournament_format == 'swiss' %}
+                        <i data-lucide="list-ordered" class="w-2.5 h-2.5"></i>
+                        {% else %}
+                        <i data-lucide="git-branch" class="w-2.5 h-2.5"></i>
+                        {% endif %}
+                        {{ format_primary_surface|default:tournament_format|default:"Custom"|title }}
                     </span>
                 </div>
             </details>
@@ -1207,69 +1214,143 @@
                 {# Ghost icon — Git Branch #}
                 <i data-lucide="git-branch" class="ghost-icon w-[500px] h-[500px] fixed right-[-100px] top-[200px] opacity-[0.012] pointer-events-none"></i>
 
-                {# ── Page title ── #}
+                {# ── Page title (format-aware) ── #}
                 <div class="relative">
                     <div class="absolute -left-4 top-1 w-1 h-8 bg-theme rounded-full"></div>
-                    <h2 class="font-display font-black text-2xl text-white tracking-tight">Competition</h2>
+                    <h2 class="font-display font-black text-2xl text-white tracking-tight">
+                        {% if tournament_format == 'round_robin' %}League Table
+                        {% elif tournament_format == 'swiss' %}Swiss Rounds
+                        {% elif tournament_format == 'battle_royale' %}Lobbies &amp; Scoring
+                        {% else %}Competition{% endif %}
+                    </h2>
                     <p class="text-xs text-dc-text mt-1 font-mono">
-                        {% if current_stage == 'knockout_stage' %}Knockout Stage Active · Bracket matches in play
+                        {% if tournament_format == 'round_robin' %}League Table · Fixtures · Standings
+                        {% elif tournament_format == 'swiss' %}Swiss Rounds · Pairings · Standings
+                        {% elif tournament_format == 'battle_royale' %}Lobby Sessions · Score Entry · Leaderboard
+                        {% elif current_stage == 'knockout_stage' %}Knockout Stage Active · Bracket matches in play
                         {% elif current_stage == 'group_stage' %}Group Stage · Round-robin matches active
                         {% else %}Group Stage · Brackets · Qualifier Pipelines{% endif %}
                     </p>
                 </div>
 
-                {# ── Sub-Navigation Pills ── #}
+                {# ── Sub-Navigation Pills (format-aware) ── #}
+                {% comment %}
+                Each format renders only the pills relevant to its lifecycle.
+                Round Robin and Swiss never need Playoff Bracket / Qualifier Pipelines.
+                Single/Double Elim never need Group Stage / Swiss Standings.
+                Group + Playoff is the original format and shows everything.
+                {% endcomment %}
                 <div id="brackets-subnav" class="flex items-center gap-2 border-b border-dc-border/30 pb-4">
+
+                    {# Group Stage pill — relabelled "League Table" for round_robin #}
+                    {% if tournament_format == 'round_robin' or tournament_format == 'group_playoff' or not tournament_format %}
                     <button data-subtab="groups" data-click="TOC.brackets.switchSubTab" data-click-args='["groups"]'
                         class="brackets-pill px-5 py-2 rounded-full text-xs font-bold tracking-wide transition-all duration-200
                                border border-dc-border text-dc-text hover:text-white hover:border-dc-borderLight">
-                        <i data-lucide="layout-grid" class="w-3.5 h-3.5 inline-block mr-1.5 align-[-3px]"></i>Group Stage
+                        <i data-lucide="{% if tournament_format == 'round_robin' %}list-ordered{% else %}layout-grid{% endif %}" class="w-3.5 h-3.5 inline-block mr-1.5 align-[-3px]"></i>{% if tournament_format == 'round_robin' %}League Table{% else %}Group Stage{% endif %}
                     </button>
+                    {% endif %}
+
+                    {# Swiss Standings pill — only for swiss #}
+                    {% if tournament_format == 'swiss' %}
                     <button data-subtab="swiss" data-click="TOC.brackets.switchSubTab" data-click-args='["swiss"]'
-                        class="brackets-pill hidden px-5 py-2 rounded-full text-xs font-bold tracking-wide transition-all duration-200
+                        class="brackets-pill px-5 py-2 rounded-full text-xs font-bold tracking-wide transition-all duration-200
                                border border-dc-border text-dc-text hover:text-white hover:border-dc-borderLight">
-                        <i data-lucide="rows-3" class="w-3.5 h-3.5 inline-block mr-1.5 align-[-3px]"></i>Swiss Standings
+                        <i data-lucide="rows-3" class="w-3.5 h-3.5 inline-block mr-1.5 align-[-3px]"></i>Swiss Rounds
                     </button>
+                    {% endif %}
+
+                    {# Playoff Bracket pill — only for bracket-tree formats and group_playoff #}
+                    {% if tournament_format == 'single_elimination' or tournament_format == 'double_elimination' or tournament_format == 'group_playoff' %}
                     <button data-subtab="bracket" data-click="TOC.brackets.switchSubTab" data-click-args='["bracket"]'
                         class="brackets-pill px-5 py-2 rounded-full text-xs font-bold tracking-wide transition-all duration-200
                                border border-dc-border text-dc-text hover:text-white hover:border-dc-borderLight">
-                        <i data-lucide="git-branch" class="w-3.5 h-3.5 inline-block mr-1.5 align-[-3px]"></i>Playoff Bracket
+                        <i data-lucide="git-branch" class="w-3.5 h-3.5 inline-block mr-1.5 align-[-3px]"></i>{% if tournament_format == 'group_playoff' %}Playoff Bracket{% else %}Bracket{% endif %}
                     </button>
+                    {% endif %}
+
+                    {# Schedule pill — relabelled per format #}
                     <button data-subtab="schedule" data-click="TOC.brackets.switchSubTab" data-click-args='["schedule"]'
                         class="brackets-pill px-5 py-2 rounded-full text-xs font-bold tracking-wide transition-all duration-200
                                border border-dc-border text-dc-text hover:text-white hover:border-dc-borderLight">
-                        <i data-lucide="calendar" class="w-3.5 h-3.5 inline-block mr-1.5 align-[-3px]"></i>Schedule
+                        <i data-lucide="calendar" class="w-3.5 h-3.5 inline-block mr-1.5 align-[-3px]"></i>{% if tournament_format == 'round_robin' %}Fixture Schedule{% elif tournament_format == 'battle_royale' %}Lobby Schedule{% else %}Schedule{% endif %}
                     </button>
+
+                    {# Qualifier Pipelines pill — only for group_playoff (advanced multi-stage) #}
+                    {% if tournament_format == 'group_playoff' %}
                     <button data-subtab="pipelines" data-click="TOC.brackets.switchSubTab" data-click-args='["pipelines"]'
                         class="brackets-pill px-5 py-2 rounded-full text-xs font-bold tracking-wide transition-all duration-200
                                border border-dc-border text-dc-text hover:text-white hover:border-dc-borderLight">
                         <i data-lucide="git-merge" class="w-3.5 h-3.5 inline-block mr-1.5 align-[-3px]"></i>Qualifier Pipelines
                     </button>
+                    {% endif %}
                 </div>
 
-                {# ══ GROUP STAGE Sub-View ══ #}
+                {# ══ GROUP STAGE / LEAGUE TABLE Sub-View ══ #}
+                {% comment %}
+                Reused by Round Robin (single "League Table" group) and Group + Playoff
+                (multiple groups). Action bar is format-aware: RR has no draw step,
+                no group config, no Live Draw Ceremony.
+                {% endcomment %}
                 <div id="sub-groups" class="brackets-subview hidden">
-                    {# Action bar #}
+                    {# Action bar (format-aware) #}
                     <div class="flex items-center justify-between mb-6">
                         <div id="groups-stage-meta" class="text-[10px] font-mono text-dc-text uppercase tracking-widest"></div>
                         <div class="flex items-center gap-2">
+
+                            {# Configure — group_playoff opens groups modal; round_robin opens format-options modal #}
+                            {% if tournament_format == 'group_playoff' %}
                             <button data-click="TOC.brackets.openGroupConfig" data-cap-require="manage_brackets" class="px-3 py-1.5 text-[10px] font-bold text-dc-text border border-dc-border rounded-lg hover:text-white hover:border-dc-borderLight transition-colors">
                                 <i data-lucide="settings" class="w-3 h-3 inline mr-1"></i>Configure
                             </button>
+                            {% elif tournament_format == 'round_robin' %}
+                            <button data-click="TOC.brackets.openFormatConfig" data-cap-require="manage_brackets" class="px-3 py-1.5 text-[10px] font-bold text-dc-text border border-dc-border rounded-lg hover:text-white hover:border-dc-borderLight transition-colors">
+                                <i data-lucide="sliders-horizontal" class="w-3 h-3 inline mr-1"></i>Configure
+                            </button>
+                            {% endif %}
+
+                            {# Draw — only for group_playoff (RR has no draw step) #}
+                            {% if tournament_format == 'group_playoff' %}
                             <button id="btn-group-draw" data-click="TOC.brackets.drawGroups" data-cap-require="manage_brackets" class="px-3 py-1.5 text-[10px] font-bold text-theme border border-theme/20 rounded-lg hover:bg-theme/10 transition-colors">
                                 <i data-lucide="shuffle" class="w-3 h-3 inline mr-1"></i>Draw
                             </button>
+                            {% endif %}
+
+                            {% comment %}
+                            Generate — for group_playoff this is "Generate Matches" (post-draw),
+                            for round_robin this is "Generate Fixtures" (atomic, no draw step).
+                            {% endcomment %}
+                            {% if tournament_format == 'round_robin' %}
+                            <button id="btn-group-generate-matches" data-click="TOC.brackets.generate" data-cap-require="manage_brackets" class="px-3 py-1.5 text-[10px] font-bold text-emerald-400 border border-emerald-400/20 rounded-lg hover:bg-emerald-400/10 transition-colors">
+                                <i data-lucide="zap" class="w-3 h-3 inline mr-1"></i>Generate Fixtures
+                            </button>
+                            {% else %}
                             <button id="btn-group-generate-matches" data-click="TOC.brackets.generateGroupMatches" data-cap-require="manage_brackets" class="hidden px-3 py-1.5 text-[10px] font-bold text-emerald-400 border border-emerald-400/20 rounded-lg hover:bg-emerald-400/10 transition-colors">
                                 <i data-lucide="swords" class="w-3 h-3 inline mr-1"></i>Generate Matches
                             </button>
+                            {% endif %}
+
+                            {# Live Draw Ceremony — only for group_playoff (RR has no draw) #}
+                            {% if tournament_format == 'group_playoff' %}
                             <a href="{% url 'tournaments:group_draw_director' slug=tournament.slug %}" target="_blank"
                                data-cap-require="manage_brackets"
                                class="px-3 py-1.5 text-[10px] font-bold text-emerald-400 border border-emerald-400/20 rounded-lg hover:bg-emerald-400/10 transition-colors inline-flex items-center">
                                 <i data-lucide="tv" class="w-3 h-3 inline mr-1"></i>Live Draw Ceremony
                             </a>
+                            {% endif %}
+
+                            {# Reset — relabelled per format #}
+                            {% if tournament_format == 'round_robin' %}
+                            <button id="btn-group-reset" data-click="TOC.brackets.resetBracket" data-cap-require="manage_brackets" class="hidden px-3 py-1.5 text-[10px] font-bold text-dc-danger border border-dc-danger/20 rounded-lg hover:bg-dc-danger/10 transition-colors">
+                                <i data-lucide="rotate-ccw" class="w-3 h-3 inline mr-1"></i>Reset Fixtures
+                            </button>
+                            {% else %}
                             <button id="btn-group-reset" data-click="TOC.brackets.resetGroups" data-cap-require="manage_brackets" class="hidden px-3 py-1.5 text-[10px] font-bold text-dc-danger border border-dc-danger/20 rounded-lg hover:bg-dc-danger/10 transition-colors">
                                 <i data-lucide="rotate-ccw" class="w-3 h-3 inline mr-1"></i>Reset Draw
                             </button>
+                            {% endif %}
+
+                            {# Recalculate — relevant for both #}
                             <button data-click="TOC.brackets.recalcStandings" data-cap-require="manage_brackets" class="px-3 py-1.5 text-[10px] font-bold text-dc-text border border-dc-border rounded-lg hover:text-white hover:border-dc-borderLight transition-colors">
                                 <i data-lucide="refresh-cw" class="w-3 h-3 inline mr-1"></i>Recalculate
                             </button>

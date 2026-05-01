@@ -216,8 +216,19 @@ class TOCStandingsService:
         if hasattr(tournament, 'get_current_stage'):
             current_stage = tournament.get_current_stage()
 
-        # Knockout bracket standings (if bracket exists)
-        bracket_standings = TOCStandingsService._get_bracket_standings(tournament)
+        # Knockout bracket standings — only relevant for formats that use a
+        # Bracket tree.  Round Robin stores all results in GroupStanding rows,
+        # so querying for a Bracket object would find any stale / legacy bracket
+        # and incorrectly render a "Knockout Bracket" card on the standings tab.
+        _bracket_formats = {
+            Tournament.SINGLE_ELIM,
+            Tournament.DOUBLE_ELIM,
+            Tournament.GROUP_PLAYOFF,
+        }
+        if tournament.format in _bracket_formats:
+            bracket_standings = TOCStandingsService._get_bracket_standings(tournament)
+        else:
+            bracket_standings = None
 
         return {
             "groups": group_standings,

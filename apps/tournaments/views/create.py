@@ -106,6 +106,14 @@ class TournamentCreatePageView(LoginRequiredMixin, TemplateView):
                 'icon': 'git-merge',
                 'best_for': '16-64 participants',
             },
+            {
+                'value': 'battle_royale',
+                'label': 'Battle Royale / Lobby',
+                'description': 'Placement + kills leaderboard across multiple lobby sessions. No 1v1 brackets.',
+                'icon': 'crosshair',
+                'best_for': 'PUBG Mobile, Free Fire — 8-64 teams/squads',
+                'badge': 'BR / Lobby',
+            },
         ]
 
         # Platform choices

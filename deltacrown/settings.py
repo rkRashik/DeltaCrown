@@ -1848,7 +1848,13 @@ if _HAS_UNFOLD:
                 "collapsible": True,
                 "items": [
                     {
+                        "title": "Hosting & Pricing",
+                        "icon": "sell",
+                        "link": reverse_lazy("admin:tournaments_tournamenthostingconfig_changelist"),
+                    },
+                    {
                         "title": "Templates",
+
                         "icon": "content_copy",
                         "link": reverse_lazy("admin:tournaments_tournamenttemplate_changelist"),
                     },
@@ -2001,6 +2007,16 @@ if _HAS_UNFOLD:
                 "title": "Finance & Rewards",
                 "separator": True,
                 "items": [
+                    {
+                        "title": "Economy Dashboard",
+                        "icon": "monitoring",
+                        "link": reverse_lazy("admin:economy_dashboard"),
+                    },
+                    {
+                        "title": "Economy Config",
+                        "icon": "tune",
+                        "link": reverse_lazy("admin:economy_economyconfig_changelist"),
+                    },
                     {
                         "title": "Wallets",
                         "icon": "account_balance_wallet",

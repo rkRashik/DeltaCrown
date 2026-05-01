@@ -180,6 +180,10 @@ from .fan_prediction_vote import (
 from .result_ingestion import (
     MatchIntegrityCheck,  # Phase 5: Automated API vs manual score comparison
 )
+from .hosting_config import (
+    TournamentHostingConfig,  # Admin-configurable hosting fee & pricing config
+    PromoType,                # Promotion type choices enum
+)
 
 __all__ = [
     'Game',
@@ -276,4 +280,6 @@ __all__ = [
     'TournamentFanPredictionVote',
     # Phase 5: Automated Result Ingestion
     'MatchIntegrityCheck',
+    # Hosting & Pricing Configuration (admin-controlled)
+    'TournamentHostingConfig',
 ]

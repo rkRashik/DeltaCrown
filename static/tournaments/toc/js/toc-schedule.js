@@ -792,10 +792,33 @@
     const hasBracket = state.data?.context?.has_bracket || false;
     const hasGroups  = state.data?.context?.has_groups  || false;
     const ready      = hasBracket || hasGroups; // structure exists
+    const fmt        = (window.TOC_CONFIG || {}).tournamentFormat || '';
+    const isRR       = fmt === 'round_robin';
 
     if (!hasMatches) {
       if (ready) {
-        // Bracket/groups exist but matches not yet generated
+        // Format-specific messages and CTAs
+        if (isRR) {
+          // Round Robin: groups exist but fixtures not generated yet
+          return `
+          <div class="flex flex-col items-center justify-center py-16 text-center max-w-lg mx-auto">
+            <div class="w-16 h-16 rounded-2xl bg-theme/10 border border-theme/20 flex items-center justify-center mb-6">
+              <i data-lucide="list-ordered" class="w-8 h-8 text-theme/60"></i>
+            </div>
+            <h3 class="text-lg font-display font-black text-white mb-2">Fixtures Not Generated Yet</h3>
+            <p class="text-sm text-dc-text mb-6">Go to the <strong class="text-white">League Table</strong> tab and click <strong class="text-white">Generate Fixtures</strong> to create all pairwise matches and activate the standings table.</p>
+            <div class="flex gap-3">
+              <button data-click="TOC.navigate" data-click-args="[&quot;brackets&quot;]" class="px-5 py-2.5 bg-theme text-dc-bg text-[10px] font-black uppercase tracking-widest rounded-lg hover:opacity-90 transition-opacity flex items-center gap-2">
+                <i data-lucide="list-ordered" class="w-4 h-4"></i> Go to League Table
+              </button>
+              <button data-click="TOC.schedule.openUserGuide" class="px-5 py-2.5 bg-dc-panel border border-dc-border text-dc-textBright text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-white/5 transition-colors flex items-center gap-2">
+                <i data-lucide="book-open" class="w-4 h-4"></i> Guide
+              </button>
+            </div>
+          </div>`;
+        }
+
+        // Default: bracket/groups exist but matches not yet generated
         const what = hasGroups ? 'groups have been seeded' : 'bracket has been generated';
         const action = hasGroups ? 'Use the <strong class="text-theme">Generate Matches</strong> action in the Groups sub-tab to create round-robin fixtures.' : 'Bracket nodes exist but match records have not been created yet. Try resetting and regenerating the bracket.';
         return `

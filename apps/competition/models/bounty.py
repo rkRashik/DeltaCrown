@@ -161,6 +161,18 @@ class Bounty(SoftDeleteModel):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    # ── Economy / Escrow ─────────────────────────────────────────────────
+    # Integer DC equivalent of reward_amount — used by the escrow engine.
+    # reward_amount (Decimal) is kept for display/legacy purposes.
+    reward_amount_dc = models.PositiveIntegerField(
+        default=0,
+        help_text="DeltaCoins locked in escrow by the bounty issuer. 0 = non-DC reward."
+    )
+    escrow_locked = models.BooleanField(
+        default=False,
+        help_text="True once the issuer's DC have been locked into escrow."
+    )
+
     # Managers — default excludes soft-deleted rows
     objects = SoftDeleteManager()
     all_objects = models.Manager()

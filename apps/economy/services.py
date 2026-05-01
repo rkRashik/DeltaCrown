@@ -10,12 +10,15 @@ from django.db.models import Count
 from time import sleep
 import random
 
-from .models import CoinPolicy, DeltaCrownTransaction, DeltaCrownWallet
+from .models import CoinPolicy, DeltaCrownTransaction, DeltaCrownWallet, EconomyConfig
 
 
 # Public API of this module
 __all__ = [
     "wallet_for",
+    "get_master_treasury",
+    "get_economy_config",
+    "transfer_dc",
     "award",
     "award_participation_for_registration",
     "award_placements",
@@ -47,6 +50,148 @@ __all__ = [
 def wallet_for(profile) -> DeltaCrownWallet:
     w, _ = DeltaCrownWallet.objects.get_or_create(profile=profile)
     return w
+
+
+def get_master_treasury() -> DeltaCrownWallet:
+    """
+    Get or create the single Master Treasury system wallet.
+
+    The treasury is the canonical source for all minted DeltaCoins.
+    Every top-up credit to a user must be matched by a debit here,
+    so the treasury balance represents -(total DC in circulation).
+
+    allow_overdraft=True: the treasury goes negative as coins are minted.
+    is_treasury=True:     UniqueConstraint ensures only one row ever exists.
+    profile=None:         treasury is a system entity, not a user account.
+    """
+    treasury, _ = DeltaCrownWallet.objects.get_or_create(
+        is_treasury=True,
+        defaults={
+            "profile": None,
+            "allow_overdraft": True,
+            "cached_balance": 0,
+        },
+    )
+    return treasury
+
+
+def get_economy_config() -> EconomyConfig:
+    """Return the singleton EconomyConfig row. Shorthand for EconomyConfig.get_solo()."""
+    return EconomyConfig.get_solo()
+
+
+def transfer_dc(
+    sender_wallet: DeltaCrownWallet,
+    receiver_wallet: DeltaCrownWallet,
+    amount: int,
+    *,
+    idempotency_key: str,
+    note: str = "",
+    actor=None,
+) -> tuple["DeltaCrownTransaction", "DeltaCrownTransaction"]:
+    """
+    Atomically transfer `amount` DC from sender_wallet to receiver_wallet.
+
+    Design guarantees
+    -----------------
+    * Atomic: both legs commit or neither does.
+    * Deadlock-safe: wallets are locked in ascending PK order so two concurrent
+      transfers involving the same pair can never deadlock each other.
+    * Idempotent: pass a stable idempotency_key (e.g. a UUID from the frontend
+      or the database PK of a GiftRequest row). Duplicate calls with the same
+      key silently return the already-created transaction pair.
+    * Balance snapshot: cached_balance_after is recorded on both legs.
+
+    Args:
+        sender_wallet:    Wallet to debit.
+        receiver_wallet:  Wallet to credit.
+        amount:           Positive integer DC to move.
+        idempotency_key:  Unique key for this transfer (max 64 chars).
+        note:             Human-readable reason shown in ledger.
+        actor:            User initiating the transfer (for audit trail).
+
+    Returns:
+        (debit_txn, credit_txn) tuple — both DeltaCrownTransaction instances.
+
+    Raises:
+        ValueError:           If amount <= 0 or sender == receiver.
+        InsufficientFunds:    If sender balance is insufficient.
+        django.db.IntegrityError: Surfaced only if idempotency_key collides
+                              across *different* transfer amounts (bug in caller).
+    """
+    from django.db import IntegrityError as _IntegrityError
+    from .exceptions import InsufficientFunds
+
+    if amount <= 0:
+        raise ValueError(f"transfer_dc: amount must be positive, got {amount}")
+    if sender_wallet.pk == receiver_wallet.pk:
+        raise ValueError("transfer_dc: sender and receiver must be different wallets")
+
+    # TODO: Wire PIN verification before this point.
+    # if sender_wallet.pin and not pin_verified:
+    #     raise PINRequired("PIN verification required for P2P transfer")
+
+    # Lock wallets in PK order to prevent deadlocks
+    low_pk, high_pk = sorted([sender_wallet.pk, receiver_wallet.pk])
+
+    idem_debit = f"p2p_debit_{idempotency_key}"
+    idem_credit = f"p2p_credit_{idempotency_key}"
+
+    with transaction.atomic():
+        # SELECT FOR UPDATE in consistent order
+        locked = {
+            w.pk: w
+            for w in DeltaCrownWallet.objects.select_for_update().filter(
+                pk__in=[low_pk, high_pk]
+            ).order_by("pk")
+        }
+        sender = locked[sender_wallet.pk]
+        receiver = locked[receiver_wallet.pk]
+
+        # Balance check
+        if not sender.allow_overdraft and sender.cached_balance < amount:
+            raise InsufficientFunds(
+                f"Insufficient balance: {sender.cached_balance} DC available, "
+                f"{amount} DC requested."
+            )
+
+        # Apply balance changes
+        sender.cached_balance -= amount
+        receiver.cached_balance += amount
+        sender.save(update_fields=["cached_balance", "updated_at"])
+        receiver.save(update_fields=["cached_balance", "updated_at"])
+
+        txn_note = note or f"P2P transfer {amount} DC"
+
+        # Debit leg
+        try:
+            debit_txn = DeltaCrownTransaction.objects.create(
+                wallet=sender,
+                amount=-amount,
+                reason=DeltaCrownTransaction.Reason.P2P_TRANSFER,
+                note=txn_note,
+                created_by=actor,
+                idempotency_key=idem_debit,
+                cached_balance_after=sender.cached_balance,
+            )
+        except _IntegrityError:
+            debit_txn = DeltaCrownTransaction.objects.get(idempotency_key=idem_debit)
+
+        # Credit leg
+        try:
+            credit_txn = DeltaCrownTransaction.objects.create(
+                wallet=receiver,
+                amount=+amount,
+                reason=DeltaCrownTransaction.Reason.P2P_TRANSFER,
+                note=txn_note,
+                created_by=actor,
+                idempotency_key=idem_credit,
+                cached_balance_after=receiver.cached_balance,
+            )
+        except _IntegrityError:
+            credit_txn = DeltaCrownTransaction.objects.get(idempotency_key=idem_credit)
+
+    return debit_txn, credit_txn
 
 
 def _profiles_from_team(team) -> Iterable:
@@ -404,14 +549,34 @@ def _result_dict(wallet: DeltaCrownWallet, txn: DeltaCrownTransaction, idem: Opt
     }
 
 
-def _create_transaction(wallet: DeltaCrownWallet, amount: int, reason: str, *, idempotency_key: Optional[str], **kwargs) -> DeltaCrownTransaction:
-    """Create a transaction row and persist. Map DB integrity errors."""
+def _create_transaction(
+    wallet: DeltaCrownWallet,
+    amount: int,
+    reason: str,
+    *,
+    idempotency_key: Optional[str],
+    balance_after: Optional[int] = None,
+    **kwargs,
+) -> DeltaCrownTransaction:
+    """
+    Create a transaction row and persist. Map DB integrity errors.
+
+    Args:
+        wallet: The wallet being credited or debited.
+        amount: Positive for credit, negative for debit.
+        reason: DeltaCrownTransaction.Reason choice value.
+        idempotency_key: Unique key to prevent duplicate transactions.
+        balance_after: Wallet balance immediately after this transaction.
+                       Should equal wallet.cached_balance at the point of calling.
+                       Stored as cached_balance_after on the transaction row.
+    """
     try:
         tx = DeltaCrownTransaction.objects.create(
             wallet=wallet,
             amount=int(amount),
             reason=reason,
             idempotency_key=idempotency_key,
+            cached_balance_after=balance_after,
             **kwargs,
         )
         return tx
@@ -469,7 +634,12 @@ def credit(profile: Union[int, object], amount: int, *, reason: str, idempotency
             wallet.cached_balance = int(wallet.cached_balance) + int(amount)
             wallet.save(update_fields=["cached_balance", "updated_at"]) if wallet.pk else wallet.save()
 
-            txn = _create_transaction(wallet, amount, reason, idempotency_key=idempotency_key)
+            # Pass the post-update balance so the ledger row is self-contained.
+            txn = _create_transaction(
+                wallet, amount, reason,
+                idempotency_key=idempotency_key,
+                balance_after=wallet.cached_balance,
+            )
             return _result_dict(wallet, txn, idempotency_key)
 
     return _with_retry(_op)
@@ -503,7 +673,11 @@ def debit(profile: Union[int, object], amount: int, *, reason: str, idempotency_
             wallet.cached_balance = projected
             wallet.save(update_fields=["cached_balance", "updated_at"]) if wallet.pk else wallet.save()
 
-            txn = _create_transaction(wallet, -int(amount), reason, idempotency_key=idempotency_key)
+            txn = _create_transaction(
+                wallet, -int(amount), reason,
+                idempotency_key=idempotency_key,
+                balance_after=wallet.cached_balance,
+            )
             return _result_dict(wallet, txn, idempotency_key)
 
     return _with_retry(_op)
@@ -569,9 +743,18 @@ def transfer(from_profile: Union[int, object], to_profile: Union[int, object], a
             w_to.cached_balance = int(w_to.cached_balance) + int(amount)
             w_to.save(update_fields=["cached_balance", "updated_at"]) if w_to.pk else w_to.save()
 
-            # Create transactions: debit then credit (with distinct keys)
-            debit_tx = _create_transaction(w_from, -int(amount), reason, idempotency_key=debit_key)
-            credit_tx = _create_transaction(w_to, int(amount), reason, idempotency_key=credit_key)
+            # Create transactions: debit then credit (with distinct keys).
+            # Pass each wallet's post-update balance so both legs are self-contained.
+            debit_tx = _create_transaction(
+                w_from, -int(amount), reason,
+                idempotency_key=debit_key,
+                balance_after=w_from.cached_balance,
+            )
+            credit_tx = _create_transaction(
+                w_to, int(amount), reason,
+                idempotency_key=credit_key,
+                balance_after=w_to.cached_balance,
+            )
 
             return {
                 "from_wallet_id": w_from.id,

@@ -27,8 +27,8 @@
   {% comment %}── Participant intelligence banner (populated by JS) ──{% endcomment %}
   <div id="hub-standings-intelligence" class="hidden mb-6"></div>
 
-  {% if current_stage == 'knockout_stage' %}
-  {% comment %}── Knockout transition CTA ─────────────────────────────{% endcomment %}
+  {% if current_stage == 'knockout_stage' and tournament.format == 'group_playoff' %}
+  {% comment %}── Knockout transition CTA — only for Group + Playoff ──{% endcomment %}
   <div class="mb-6 rounded-xl overflow-hidden border border-emerald-500/20 bg-[#0e0e18] relative">
     <div class="absolute inset-0 bg-gradient-to-r from-emerald-500/[0.03] to-transparent pointer-events-none"></div>
     <div class="relative flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5">

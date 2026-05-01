@@ -26,6 +26,14 @@ class DeltaCrownWallet(SoftDeleteModel):
         "user_profile.UserProfile",
         on_delete=models.CASCADE,
         related_name="dc_wallet",
+        null=True,
+        blank=True,
+        help_text="Owning user profile. Null only for the Master Treasury system wallet.",
+    )
+    is_treasury = models.BooleanField(
+        default=False,
+        help_text="True for the single Master Treasury system wallet. "
+                  "Use economy.services.get_master_treasury() to obtain it.",
     )
     cached_balance = models.IntegerField(default=0)
     allow_overdraft = models.BooleanField(
@@ -126,9 +134,19 @@ class DeltaCrownWallet(SoftDeleteModel):
         indexes = [
             models.Index(fields=["profile"]),
         ]
-        verbose_name = "DeltaCrown Wallet"
+        constraints = [
+            models.UniqueConstraint(
+                condition=models.Q(is_treasury=True),
+                fields=["is_treasury"],
+                name="economy_single_master_treasury",
+            ),
+        ]
+        verbose_name = "Wallet"
+        verbose_name_plural = "Wallets"
 
     def __str__(self) -> str:
+        if self.is_treasury:
+            return f"MasterTreasury: {self.cached_balance} DC"
         return f"Wallet<{getattr(self.profile, 'id', None)}>: {self.cached_balance}"
     
     # ====================================================================

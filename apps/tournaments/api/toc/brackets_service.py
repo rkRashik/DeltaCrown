@@ -44,6 +44,138 @@ class GroupMatchGenerationError(ValueError):
         self.code = code
 
 
+class FixtureResetBlockedError(ValueError):
+    """
+    Raised when an organizer attempts to reset / regenerate fixtures while
+    matches are already in progress, completed, or under dispute.
+
+    The error carries a structured ``code`` and ``details`` payload so the TOC
+    frontend can show the correct UI:
+
+    * ``code='fixtures_in_progress'`` — matches are dirty, organizer needs an
+      admin force-override to proceed.
+    * ``code='tournament_finalized'`` — tournament is COMPLETED / ARCHIVED;
+      no reset is possible. Organizer must clone-and-archive instead.
+    """
+
+    def __init__(self, message: str, *, code: str, details: Optional[Dict[str, Any]] = None):
+        super().__init__(message)
+        self.code = code
+        self.details = details or {}
+
+
+def _classify_fixture_state(tournament) -> Dict[str, Any]:
+    """
+    Classify the current state of a tournament's fixtures for reset-safety checks.
+
+    Returns a dict with:
+        is_finalized:    bool   tournament.status in {completed, archived}
+        dirty:           bool   any match is past pre-game state (live/completed/forfeit/etc)
+        dirty_count:     int    number of dirty matches
+        total_matches:   int    total non-deleted matches
+        sample_states:   list   up to 3 sample (state, count) tuples for diagnostics
+
+    Pre-game match states (``scheduled``, ``check_in``, ``ready``) are considered
+    safe to discard. Anything past that — ``live``, ``pending_result``, ``completed``,
+    ``forfeit``, ``cancelled``, ``disputed`` — represents user-entered data and
+    should require an admin override before being destroyed.
+
+    This helper is format-agnostic. It's used by every strategy's reset path
+    and by the TOCBracketsService.reset_bracket() entry point.
+    """
+    PRE_GAME = {Match.SCHEDULED, Match.CHECK_IN, Match.READY}
+
+    status = (getattr(tournament, "status", "") or "").lower()
+    is_finalized = status in {"completed", "archived"}
+
+    matches = Match.objects.filter(
+        tournament=tournament,
+        is_deleted=False,
+    ).only("state")
+    total_matches = matches.count()
+
+    dirty_qs = matches.exclude(state__in=PRE_GAME)
+    dirty_count = dirty_qs.count()
+
+    sample_states: List[tuple] = []
+    if dirty_count:
+        from collections import Counter
+        state_counter = Counter(dirty_qs.values_list("state", flat=True))
+        sample_states = state_counter.most_common(3)
+
+    return {
+        "is_finalized":  is_finalized,
+        "dirty":         dirty_count > 0,
+        "dirty_count":   dirty_count,
+        "total_matches": total_matches,
+        "sample_states": sample_states,
+    }
+
+
+def _ensure_reset_allowed(tournament, *, force: bool = False, actor=None) -> None:
+    """
+    Gate-keeper for fixture/bracket reset operations.
+
+    Rules:
+    * If ``tournament.status`` is COMPLETED / ARCHIVED → always block.
+      Organizer must archive-and-clone instead.
+    * If any matches are dirty (past pre-game state) AND ``force`` is False
+      → block with ``code='fixtures_in_progress'``.
+    * If dirty AND ``force=True`` AND actor is staff/superuser → allow.
+    * If dirty AND ``force=True`` AND actor is organizer-only → block.
+      Force overrides require platform-admin level credentials.
+
+    Raises ``FixtureResetBlockedError`` on violation.
+    """
+    state = _classify_fixture_state(tournament)
+
+    if state["is_finalized"]:
+        raise FixtureResetBlockedError(
+            "This tournament has been finalized. To re-run, archive it and "
+            "clone a fresh tournament.",
+            code="tournament_finalized",
+            details={"status": tournament.status},
+        )
+
+    if not state["dirty"]:
+        return  # clean reset — allowed
+
+    # Dirty but force flag set → check actor permission level
+    if force:
+        is_admin = bool(
+            actor and (getattr(actor, "is_staff", False) or getattr(actor, "is_superuser", False))
+        )
+        if not is_admin:
+            raise FixtureResetBlockedError(
+                "Force reset requires a platform admin. Tournament organizers "
+                "cannot override this safeguard once matches have been played.",
+                code="force_requires_admin",
+                details={
+                    "dirty_count":    state["dirty_count"],
+                    "total_matches":  state["total_matches"],
+                },
+            )
+        logger.warning(
+            "FORCE RESET tournament=%s actor=%s dirty=%d/%d states=%s",
+            tournament.id, getattr(actor, "username", "?"),
+            state["dirty_count"], state["total_matches"], state["sample_states"],
+        )
+        return  # admin override — allowed (caller proceeds to delete)
+
+    # Dirty + no force → blocked, prompt frontend for admin override
+    raise FixtureResetBlockedError(
+        f"{state['dirty_count']} of {state['total_matches']} matches have already "
+        f"been played or are in progress. Resetting will destroy match results. "
+        f"A platform admin can force this through if absolutely necessary.",
+        code="fixtures_in_progress",
+        details={
+            "dirty_count":    state["dirty_count"],
+            "total_matches":  state["total_matches"],
+            "sample_states":  state["sample_states"],
+        },
+    )
+
+
 class TOCBracketsService:
     """TOC-level bracket, group-stage, and qualifier operations."""
 
@@ -343,6 +475,39 @@ class TOCBracketsService:
             tournament.config = config
             tournament.save(update_fields=["config"])
 
+        # ── Non-bracket formats route BEFORE the Bracket existence check ────────
+        # Round Robin and Battle Royale never create a Bracket object — they use
+        # GroupStage / leaderboard infrastructure instead.  An existing Bracket
+        # (e.g. from a previous SE generation before the format was changed)
+        # must NOT block them.  Each strategy owns its own idempotency guard.
+        _NON_BRACKET_FORMATS = {Tournament.ROUND_ROBIN, Tournament.BATTLE_ROYALE}
+        if tournament.format in _NON_BRACKET_FORMATS:
+            from apps.tournaments.services.format_strategy import (
+                get_strategy,
+                format_has_strategy,
+            )
+            fmt = tournament.format
+            if not format_has_strategy(fmt):
+                raise ValueError(
+                    f"No format strategy registered for '{fmt}'."
+                )
+            try:
+                result = get_strategy(fmt).generate_fixtures(tournament, data)
+            except Exception as exc:
+                raise ValueError(str(exc))
+            try:
+                from apps.tournaments.api.toc.notifications_service import TOCNotificationsService
+                TOCNotificationsService.fire_auto_event(tournament, "bracket_generated")
+            except Exception:
+                pass
+            try:
+                from apps.tournaments.api.toc.cache_utils import bump_toc_scopes
+                bump_toc_scopes(tournament.id, "brackets", "matches", "overview", "standings", "analytics")
+            except Exception:
+                pass
+            return result
+
+        # ── Bracket existence guard (bracket-based formats only) ────────────
         existing = Bracket.objects.filter(tournament=tournament).first()
         if existing:
             raise ValueError(
@@ -372,11 +537,38 @@ class TOCBracketsService:
             except Exception as exc:
                 raise ValueError(str(exc))
         else:
-            bracket = BracketService.generate_bracket_universal_safe(
-                tournament_id=tournament.id,
-                bracket_format=data.get("bracket_format") or data.get("format"),
-                seeding_method=data.get("seeding_method"),
+            # Phase 3: route all remaining formats (SE, DE, Swiss, and any
+            # future registered format) through the strategy layer so that
+            # create_matches_from_bracket() is guaranteed to run after node
+            # generation.  Unknown / unregistered formats fall through to the
+            # bare generate_bracket_universal_safe() as a safe fallback.
+            from apps.tournaments.services.format_strategy import (
+                get_strategy,
+                format_has_strategy,
             )
+            fmt = tournament.format
+            if format_has_strategy(fmt):
+                try:
+                    get_strategy(fmt).generate_fixtures(tournament, data)
+                except Exception as exc:
+                    raise ValueError(str(exc))
+                # Fetch the bracket the strategy just created for serialization.
+                bracket = (
+                    Bracket.objects.filter(tournament=tournament)
+                    .order_by("-id")
+                    .first()
+                )
+                if bracket is None:
+                    raise ValueError(
+                        f"Strategy for '{fmt}' produced no Bracket row."
+                    )
+            else:
+                # Unknown format — best-effort bare generation (no Match rows).
+                bracket = BracketService.generate_bracket_universal_safe(
+                    tournament_id=tournament.id,
+                    bracket_format=data.get("bracket_format") or data.get("format"),
+                    seeding_method=data.get("seeding_method"),
+                )
 
         # Fire auto-notification for bracket generation
         try:
@@ -387,9 +579,31 @@ class TOCBracketsService:
         return TOCBracketsService._serialize_bracket(bracket)
 
     @staticmethod
-    def reset_bracket(tournament, user) -> Dict[str, Any]:
-        """Reset bracket — deletes existing and regenerates."""
-        # Delete existing bracket + matches
+    def reset_bracket(tournament, user, *, force: bool = False) -> Dict[str, Any]:
+        """
+        Reset bracket / fixtures — routes to the format strategy for clean teardown.
+
+        Safety gate (enforced by ``_ensure_reset_allowed``):
+        * COMPLETED / ARCHIVED tournaments — reset is always blocked.
+        * Tournaments with played matches — require ``force=True`` AND a
+          staff/superuser ``user``. Organizers cannot override this.
+
+        Raises ``FixtureResetBlockedError`` (subclass of ``ValueError``) when
+        the safety gate refuses. The view layer catches and translates these
+        into structured 409/403 responses with ``code`` and ``details`` so
+        the frontend can show the right confirmation flow.
+        """
+        if tournament.format == Tournament.ROUND_ROBIN:
+            # Round Robin uses Group/GroupStage data, not Bracket rows.
+            from apps.tournaments.services.format_strategy import get_strategy
+            get_strategy(Tournament.ROUND_ROBIN).reset_fixtures(
+                tournament, force=force, actor=user
+            )
+            return {"status": "reset", "message": "Fixtures reset. Generate new ones."}
+
+        # All other formats: enforce safety gate at the service layer too,
+        # then delete Bracket + bracket-linked Matches.
+        _ensure_reset_allowed(tournament, force=force, actor=user)
         Bracket.objects.filter(tournament=tournament).delete()
         Match.objects.filter(
             tournament=tournament, bracket__isnull=False
@@ -446,7 +660,30 @@ class TOCBracketsService:
 
     @staticmethod
     def get_bracket(tournament) -> Dict[str, Any]:
-        """Current bracket state as tree structure."""
+        """Current bracket state as tree structure.
+
+        For Round Robin tournaments, there is no Bracket tree — the competition
+        runs through Group/GroupStage/GroupStanding infrastructure.  We return a
+        bracket-compatible envelope with ``is_round_robin=True`` and the full
+        group payload embedded so the TOC brackets tab can render the league
+        table and so button state management (Generate / Reset) works correctly.
+        """
+        if tournament.format == Tournament.ROUND_ROBIN:
+            groups_payload = TOCBracketsService.get_groups(tournament)
+            fixtures_exist = bool(
+                groups_payload.get("exists")
+                and groups_payload.get("groups")
+                and groups_payload.get("matches_total", 0) > 0
+            )
+            return {
+                "exists": fixtures_exist,
+                "is_round_robin": True,
+                "bracket": None,
+                "nodes": [],
+                "groups_data": groups_payload,
+                "current_stage": None,
+            }
+
         bracket = Bracket.objects.filter(tournament=tournament).first()
         if not bracket:
             return {"exists": False, "bracket": None, "nodes": []}

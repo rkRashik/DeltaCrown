@@ -537,6 +537,27 @@ class TournamentAdmin(SafeUploadMixin, ModelAdmin):
         )
     organizer_console_button.short_description = 'Operations Center'
     
+    def has_delete_permission(self, request, obj=None):
+        """Superusers and staff admins can always delete tournaments."""
+        if request.user.is_superuser or request.user.is_staff:
+            return True
+        return super().has_delete_permission(request, obj)
+
+    def get_deleted_objects(self, objs, request):
+        """
+        Override to allow superusers to delete tournaments with all related objects,
+        bypassing the per-model delete permission checks on cascade targets.
+
+        Django's default behaviour blocks deletion if the user lacks delete permission
+        on ANY related model type (e.g. Registration, Payment, Match…).  Superusers
+        should never hit that wall — they own every permission by definition.
+        """
+        deleted_objects, model_count, perms_needed, protected = super().get_deleted_objects(objs, request)
+        if request.user.is_superuser:
+            # Superusers have all permissions — clear the blocking set
+            perms_needed = set()
+        return deleted_objects, model_count, perms_needed, protected
+
     def save_model(self, request, obj, form, change):
         """Set organizer to current user if creating new tournament, handle official tournaments"""
         # Handle official tournaments - auto-assign to official account
@@ -1561,3 +1582,288 @@ class TournamentStaffAssignmentAdmin(ModelAdmin):
     list_filter = ['is_active']
     search_fields = ['tournament__name', 'user__username']
     readonly_fields = ['created_at', 'updated_at']
+
+
+
+# ============================================================================
+# HOSTING & PRICING CONFIGURATION  (Singleton admin — Advanced)
+# ============================================================================
+
+from apps.tournaments.models.hosting_config import TournamentHostingConfig, PromoType  # noqa: E402
+
+
+@admin.register(TournamentHostingConfig)
+class TournamentHostingConfigAdmin(ModelAdmin):
+    """
+    Singleton admin — full control over tournament hosting fees, growth
+    promotions, organiser restrictions, and staff privileges.
+
+    Clicking 'Hosting & Pricing' in the sidebar jumps straight to this
+    change form (no list page). Adding a 2nd row and deleting are blocked.
+    """
+
+    # ── List columns (rarely seen — changelist redirects to change form) ──
+    list_display = [
+        "config_title", "effective_fee_display", "active_promo",
+        "promo_status_badge", "user_restrictions_summary",
+        "organizer_access_days", "updated_at", "updated_by",
+    ]
+
+    readonly_fields = [
+        "updated_at", "updated_by",
+        "fee_preview_badge", "promo_status_badge",
+        "promo_first_n_users_used", "promo_first_n_tournaments_used",
+        "promo_progress_bar",
+    ]
+
+    fieldsets = (
+        # ── Section 1: Base Fee ──────────────────────────────────────────
+        ("Section 1 — Base Hosting Fee", {
+            "fields": (
+                "hosting_fee_enabled",
+                "hosting_fee_dc",
+                "fee_preview_badge",
+                "staff_bypass_enabled",
+            ),
+            "description": (
+                "The standard fee charged when no promotion applies. "
+                "<strong>Staff &amp; superuser accounts are always exempt</strong> when bypass is on. "
+                "Set DC to 0 or disable the fee engine to make hosting free for all."
+            ),
+        }),
+        # ── Section 2: Promotions ────────────────────────────────────────
+        ("Section 2 — Growth Promotions", {
+            "fields": (
+                "active_promo",
+                "promo_label",
+                "promo_description",
+                "promo_status_badge",
+                "promo_progress_bar",
+            ),
+            "description": (
+                "Choose which promotion is running. Only one is active at a time. "
+                "Configure the details in the sub-sections below and set the label/description "
+                "to show on the tournament creation wizard."
+            ),
+        }),
+        ("Promotion — Time-Based (free until date)", {
+            "fields": ("promo_free_until",),
+            "classes": ("collapse",),
+            "description": (
+                "Everyone gets free hosting until this date. "
+                "Great for launch events or holiday specials. "
+                "Set <em>Active Promotion</em> above to <strong>Free until a specific date</strong>."
+            ),
+        }),
+        ("Promotion — First-N Users", {
+            "fields": (
+                "promo_first_n_users_limit",
+                "promo_first_n_users_used",
+            ),
+            "classes": ("collapse",),
+            "description": (
+                "The first N users who create a tournament get it free. "
+                "Perfect for launch-day hype. The used counter is auto-tracked. "
+                "Set <em>Active Promotion</em> to <strong>Free for the first N registered users</strong>."
+            ),
+        }),
+        ("Promotion — First-N Tournaments", {
+            "fields": (
+                "promo_first_n_tournaments_limit",
+                "promo_first_n_tournaments_used",
+            ),
+            "classes": ("collapse",),
+            "description": (
+                "The first N tournaments ever created on the platform are free (any user). "
+                "Good for growing the community event library quickly. "
+                "Set <em>Active Promotion</em> to <strong>Free for the first N tournaments</strong>."
+            ),
+        }),
+        ("Promotion — Signup Bonus", {
+            "fields": (
+                "signup_bonus_dc_enabled",
+                "signup_bonus_dc_amount",
+            ),
+            "classes": ("collapse",),
+            "description": (
+                "Award DeltaCoin to new users when they create their first tournament. "
+                "This stacks on top of any active hosting promo."
+            ),
+        }),
+        # ── Section 3: Regular User Restrictions ─────────────────────────
+        ("Section 3 — Regular User Restrictions", {
+            "fields": (
+                "user_can_create_official",
+                "user_can_feature_tournament",
+                "user_can_set_deltacoin_prize",
+                "user_max_deltacoin_prize",
+                "user_can_charge_entry_fee",
+                "user_max_participants",
+                "user_max_active_tournaments",
+                "user_allowed_formats_json",
+            ),
+            "description": (
+                "Controls what non-staff organisers can and cannot do. "
+                "<strong>Tip:</strong> keep <em>Can Mark as Official</em> OFF to protect the "
+                "Official badge — regular users will never see that option. "
+                "Set any numeric limit to 0 for no cap."
+            ),
+        }),
+        # ── Section 4: Staff / Official Privileges ───────────────────────
+        ("Section 4 — Staff &amp; Official Privileges", {
+            "classes": ("collapse",),
+            "fields": (
+                "staff_can_waive_fee",
+                "official_tournaments_require_staff",
+                "staff_max_slots_override",
+            ),
+            "description": "Fine-tune what staff accounts can do beyond regular users.",
+        }),
+        # ── Section 5: Organiser Access ──────────────────────────────────
+        ("Section 5 — Organiser TOC Access", {
+            "fields": ("organizer_access_days",),
+            "description": (
+                "Days after a tournament ends that the organiser keeps full TOC access. "
+                "Mirrors how Faceit, Toornament, and Battlefly handle post-event access."
+            ),
+        }),
+        # ── Section 6: Pricing Tiers (display only) ──────────────────────
+        ("Section 6 — Pricing Tier Labels (display only)", {
+            "classes": ("collapse",),
+            "fields": (
+                "tier_free_label", "tier_free_description",
+                "tier_standard_label", "tier_standard_description",
+                "tier_premium_label", "tier_premium_description",
+                "tier_premium_dc",
+            ),
+            "description": (
+                "Marketing copy shown on the creation wizard. "
+                "These labels do <em>not</em> enforce separate tiers yet — "
+                "only the hosting fee above is actually charged."
+            ),
+        }),
+        # ── Section 7: Audit ─────────────────────────────────────────────
+        ("Section 7 — Admin Notes &amp; Audit", {
+            "classes": ("collapse",),
+            "fields": ("admin_notes", "updated_at", "updated_by"),
+        }),
+    )
+
+    formfield_overrides = {
+        models.BooleanField: {"widget": UnfoldBooleanSwitchWidget},
+    }
+
+    # ── Custom display methods ─────────────────────────────────────────────
+
+    @display(description="Configuration")
+    def config_title(self, obj):
+        return format_html("<strong>Hosting &amp; Pricing Settings</strong>")
+
+    @display(description="Effective Base Fee")
+    def effective_fee_display(self, obj):
+        fee = obj.effective_fee()
+        if fee == 0:
+            return format_html("<span style='color:#22c55e;font-weight:bold;'>FREE</span>")
+        return format_html("<span style='color:#f59e0b;font-weight:bold;'>{} DC</span>", fee)
+
+    @display(description="Effective Base Fee")
+    def fee_preview_badge(self, obj):
+        fee = obj.effective_fee()
+        if fee == 0:
+            return format_html(
+                "<span style='color:#22c55e;font-weight:bold;font-size:15px;'>"
+                "FREE — no hosting fee charged to organisers</span>"
+            )
+        return format_html(
+            "<span style='color:#f59e0b;font-weight:bold;font-size:15px;'>"
+            "{} DeltaCoin charged per tournament (when no promo applies)</span>",
+            fee,
+        )
+
+    @display(description="Promo Status")
+    def promo_status_badge(self, obj):
+        if obj.active_promo == PromoType.NONE:
+            return format_html(
+                "<span style='color:#6b7280;'>No promotion active</span>"
+            )
+        active = obj.is_promo_active()
+        if not active:
+            return format_html(
+                "<span style='color:#ef4444;font-weight:bold;'>EXPIRED / EXHAUSTED</span>"
+            )
+        remaining = obj.promo_slots_remaining()
+        if remaining is not None:
+            return format_html(
+                "<span style='color:#22c55e;font-weight:bold;'>"
+                "ACTIVE — {} slots remaining</span>",
+                remaining,
+            )
+        if obj.active_promo == PromoType.TIME_BASED and obj.promo_free_until:
+            return format_html(
+                "<span style='color:#22c55e;font-weight:bold;'>"
+                "ACTIVE — free until {}</span>",
+                obj.promo_free_until.strftime("%Y-%m-%d %H:%M"),
+            )
+        return format_html(
+            "<span style='color:#22c55e;font-weight:bold;'>ACTIVE</span>"
+        )
+
+    @display(description="Promo Usage")
+    def promo_progress_bar(self, obj):
+        if obj.active_promo == PromoType.FIRST_N_USERS:
+            used  = obj.promo_first_n_users_used
+            limit = obj.promo_first_n_users_limit
+        elif obj.active_promo == PromoType.FIRST_N_TOURNAMENTS:
+            used  = obj.promo_first_n_tournaments_used
+            limit = obj.promo_first_n_tournaments_limit
+        else:
+            return format_html(
+                "<span style='color:#9ca3af;'>N/A — select a First-N promo to see usage.</span>"
+            )
+        pct   = int(used / limit * 100) if limit else 0
+        color = "#22c55e" if pct < 75 else ("#f59e0b" if pct < 100 else "#ef4444")
+        return format_html(
+            "<div style='background:#e5e7eb;border-radius:6px;height:14px;width:260px;overflow:hidden;'>"
+            "<div style='background:{};height:100%;width:{}%;'></div></div>"
+            "<span style='font-size:11px;color:#374151;margin-top:2px;display:block;'>"
+            "{} / {} used ({} remaining)</span>",
+            color, pct, used, limit, limit - used,
+        )
+
+    @display(description="User Restrictions")
+    def user_restrictions_summary(self, obj):
+        parts = []
+        if not obj.user_can_create_official:
+            parts.append("no official tag")
+        if not obj.user_can_set_deltacoin_prize:
+            parts.append("no DC prizes")
+        if obj.user_max_participants:
+            parts.append(f"max {obj.user_max_participants} slots")
+        if obj.user_max_active_tournaments:
+            parts.append(f"max {obj.user_max_active_tournaments} active")
+        if not parts:
+            return format_html("<span style='color:#22c55e;'>Unrestricted</span>")
+        return format_html(
+            "<span style='color:#f59e0b;font-size:11px;'>{}</span>",
+            " | ".join(parts),
+        )
+
+    # ── Singleton guards ───────────────────────────────────────────────────
+
+    def has_add_permission(self, request):
+        return not TournamentHostingConfig.objects.exists()
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    def changelist_view(self, request, extra_context=None):
+        from django.http import HttpResponseRedirect
+        from django.urls import reverse
+        obj, _ = TournamentHostingConfig.objects.get_or_create(pk=1)
+        return HttpResponseRedirect(
+            reverse("admin:tournaments_tournamenthostingconfig_change", args=[obj.pk])
+        )
+
+    def save_model(self, request, obj, form, change):
+        obj.updated_by = request.user
+        super().save_model(request, obj, form, change)

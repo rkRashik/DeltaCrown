@@ -949,7 +949,7 @@
 
                 {% if show_standings and standings_primary %}
                 <button data-detail-tab="standings" class="relative py-5 px-4 text-sm font-gaming font-bold uppercase tracking-[0.15em] transition-colors whitespace-nowrap group" :class="activeTab === 'standings' ? 'text-white' : 'text-gray-500 hover:text-gray-300'" @click="setTab('standings')">
-                    Standings
+                    {% if tournament.format == 'round_robin' %}League Table{% elif tournament.format == 'battle_royale' %}Leaderboard{% elif tournament.format == 'swiss' %}Standings{% else %}Standings{% endif %}
                     <div class="absolute bottom-0 left-0 w-full h-1 theme-bg transform origin-left transition-transform duration-300" :class="activeTab === 'standings' ? 'scale-x-100 theme-glow' : 'scale-x-0 group-hover:scale-x-50 opacity-50'"></div>
                 </button>
                 {% endif %}
@@ -963,7 +963,7 @@
 
                 {% if show_bracket %}
                 <button data-detail-tab="bracket" class="relative py-5 px-4 text-sm font-gaming font-bold uppercase tracking-[0.15em] transition-colors whitespace-nowrap group" :class="activeTab === 'bracket' ? 'text-white' : 'text-gray-500 hover:text-gray-300'" @click="setTab('bracket')">
-                    Bracket
+                    {% if tournament.format == 'swiss' %}Swiss Rounds{% elif tournament.format == 'double_elimination' %}Bracket{% else %}Bracket{% endif %}
                     <div class="absolute bottom-0 left-0 w-full h-1 theme-bg transform origin-left transition-transform duration-300" :class="activeTab === 'bracket' ? 'scale-x-100 theme-glow' : 'scale-x-0 group-hover:scale-x-50 opacity-50'"></div>
                 </button>
                 {% endif %}

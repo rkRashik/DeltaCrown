@@ -660,6 +660,46 @@ class TOCService:
                 'live': live_done,
                 'completed': completed_done,
             }
+        elif fmt == 'round_robin':
+            # Round Robin: league table surface — no bracket wording.
+            has_fixtures = int(match_stats.get('total') or 0) > 0
+            steps = [
+                {'key': 'setup',             'label': 'Setup',             'icon': 'settings-2'},
+                {'key': 'registration',      'label': 'Registration',      'icon': 'users'},
+                {'key': 'generate_fixtures', 'label': 'Generate Fixtures', 'icon': 'list-ordered'},
+                {'key': 'live',              'label': 'Live',              'icon': 'radio'},
+                {'key': 'finalize_table',    'label': 'Finalize Table',    'icon': 'trophy'},
+                {'key': 'completed',         'label': 'Completed',         'icon': 'flag'},
+            ]
+            done_map = {
+                'setup':             setup_done,
+                'registration':      registration_done,
+                'generate_fixtures': has_fixtures,
+                'live':              live_done,
+                'finalize_table':    completed_done,
+                'completed':         completed_done,
+            }
+
+        elif fmt == 'battle_royale':
+            # Battle Royale: lobby sessions + leaderboard, no 1v1 bracket.
+            has_sessions = int(match_stats.get('total') or 0) > 0
+            steps = [
+                {'key': 'setup',         'label': 'Setup',          'icon': 'settings-2'},
+                {'key': 'registration',  'label': 'Registration',   'icon': 'users'},
+                {'key': 'lobby_setup',   'label': 'Lobby Setup',    'icon': 'crosshair'},
+                {'key': 'live',          'label': 'Live',           'icon': 'radio'},
+                {'key': 'score_entry',   'label': 'Score Entry',    'icon': 'bar-chart-2'},
+                {'key': 'completed',     'label': 'Completed',      'icon': 'flag'},
+            ]
+            done_map = {
+                'setup':        setup_done,
+                'registration': registration_done,
+                'lobby_setup':  has_sessions,
+                'live':         live_done,
+                'score_entry':  completed_done,
+                'completed':    completed_done,
+            }
+
         else:
             steps = [
                 {'key': 'setup', 'label': 'Setup', 'icon': 'settings-2'},
@@ -748,9 +788,27 @@ class TOCService:
                 'label': 'Generate the tournament bracket from confirmed participants.',
                 'tab': 'brackets',
             },
+            # Round Robin — format-specific copy
+            'generate_fixtures': {
+                'label': 'Generate all fixtures from confirmed participants.',
+                'tab': 'matches',
+            },
+            'finalize_table': {
+                'label': 'All matches complete — finalize standings and declare the champion.',
+                'tab': 'standings',
+            },
             'scheduling': {
                 'label': 'Set match times and stations before going live.',
                 'tab': 'schedule',
+            },
+            # Battle Royale steps
+            'lobby_setup': {
+                'label': 'Create lobby sessions and configure the scoring matrix.',
+                'tab': 'brackets',
+            },
+            'score_entry': {
+                'label': 'All sessions complete. Enter final scores and generate the leaderboard.',
+                'tab': 'standings',
             },
             'live': {
                 'label': 'Tournament is live. Monitor matches and resolve disputes quickly.',
@@ -763,8 +821,18 @@ class TOCService:
         }
         next_action = action_map.get(current_key, action_map['setup'])
 
+        # Derive a canonical format tag for the frontend stepper rail
+        if is_group_flow:
+            stepper_format = 'group'
+        elif fmt == 'round_robin':
+            stepper_format = 'round_robin'
+        elif fmt == 'battle_royale':
+            stepper_format = 'battle_royale'
+        else:
+            stepper_format = 'bracket'
+
         return {
-            'format': 'group' if is_group_flow else 'bracket',
+            'format': stepper_format,
             'current_key': current_key,
             'steps': rendered_steps,
             'next_action': next_action,

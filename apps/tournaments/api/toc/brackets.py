@@ -79,12 +79,137 @@ class BracketGenerateView(TOCBaseView):
 
 
 class BracketResetView(TOCBaseView):
-    """S5-B2: POST /api/toc/<slug>/brackets/reset/"""
+    """
+    S5-B2: POST /api/toc/<slug>/brackets/reset/
+
+    Body: ``{"force": true|false}`` (optional, default false)
+
+    Response codes:
+    * 200 — reset succeeded
+    * 409 ``code='fixtures_in_progress'`` — matches are dirty; frontend must
+      prompt for admin force-confirm and retry with ``{"force": true}``
+    * 403 ``code='force_requires_admin'`` — force was attempted by a
+      non-admin actor (organizer cannot override the safety gate)
+    * 423 ``code='tournament_finalized'`` — tournament is COMPLETED/ARCHIVED;
+      no reset path available, frontend must offer Archive-and-Clone
+    """
 
     def post(self, request, slug):
-        data = TOCBracketsService.reset_bracket(self.tournament, request.user)
-        bump_toc_scopes(self.tournament.id, 'brackets', 'matches', 'overview', 'analytics')
+        from apps.tournaments.api.toc.brackets_service import FixtureResetBlockedError
+
+        body  = request.data if isinstance(request.data, dict) else {}
+        force = bool(body.get("force"))
+        try:
+            data = TOCBracketsService.reset_bracket(
+                self.tournament, request.user, force=force
+            )
+        except FixtureResetBlockedError as exc:
+            status_code = {
+                "fixtures_in_progress":  status.HTTP_409_CONFLICT,
+                "force_requires_admin":  status.HTTP_403_FORBIDDEN,
+                "tournament_finalized":  status.HTTP_423_LOCKED,
+            }.get(exc.code, status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": str(exc), "code": exc.code, "details": exc.details},
+                status=status_code,
+            )
+        except ValueError as exc:
+            return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
+        bump_toc_scopes(self.tournament.id, 'brackets', 'matches', 'overview', 'analytics', 'standings')
         return Response(data)
+
+
+class BracketFormatConfigView(TOCBaseView):
+    """
+    GET / POST /api/toc/<slug>/brackets/format-config/
+
+    Read or save format-specific options (rounds, advancement, tiebreakers, etc.)
+    onto ``tournament.config['format_options']``. The option keys vary per
+    format and are merged into the strategy's ``generate_fixtures(options)``
+    call, so generation reflects the saved settings.
+
+    Body: arbitrary dict of format option keys (validated per-format below).
+    """
+
+    # Whitelist of option keys per format — anything else is ignored to prevent
+    # config injection.
+    ALLOWED_KEYS = {
+        'round_robin': {
+            'rounds',                 # 1 (single RR) or 2 (double RR)
+            'advancement_count',      # top N advance to next stage
+            'points_system',          # {"win": 3, "draw": 1, "loss": 0}
+            'tiebreaker_rules',       # ordered list of tiebreaker keys
+            'match_format',           # 'bo1' | 'bo3' | 'bo5'
+        },
+        'swiss': {
+            'total_rounds',
+            'tiebreaker_rules',
+            'drop_after_losses',
+        },
+        'single_elimination': {
+            'third_place_match_enabled',
+            'seeding_method',
+        },
+        'double_elimination': {
+            'seeding_method',
+            'grand_final_reset_enabled',
+        },
+        'group_playoff': set(),  # group_playoff uses the legacy /groups/configure/ endpoint
+        'battle_royale': {
+            'scoring_matrix',
+            'lobbies_per_match_day',
+            'advancement_count',
+        },
+    }
+
+    def get(self, request, slug):
+        config = (self.tournament.config or {}) if isinstance(self.tournament.config, dict) else {}
+        return Response({
+            'tournament_format': self.tournament.format,
+            'format_options': config.get('format_options') or {},
+        })
+
+    def post(self, request, slug):
+        body = request.data if isinstance(request.data, dict) else {}
+        fmt = self.tournament.format
+        allowed = self.ALLOWED_KEYS.get(fmt, set())
+
+        # Filter to whitelist
+        cleaned = {k: v for k, v in body.items() if k in allowed}
+
+        # Coerce rounds to int 1..2 for RR, else reject
+        if fmt == 'round_robin' and 'rounds' in cleaned:
+            try:
+                rounds = int(cleaned['rounds'])
+                if rounds not in (1, 2):
+                    return Response({"error": "rounds must be 1 (single RR) or 2 (double RR)."}, status=status.HTTP_400_BAD_REQUEST)
+                cleaned['rounds'] = rounds
+            except (TypeError, ValueError):
+                return Response({"error": "rounds must be an integer."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if 'advancement_count' in cleaned:
+            try:
+                ac = int(cleaned['advancement_count'])
+                if ac < 1:
+                    return Response({"error": "advancement_count must be >= 1."}, status=status.HTTP_400_BAD_REQUEST)
+                cleaned['advancement_count'] = ac
+            except (TypeError, ValueError):
+                return Response({"error": "advancement_count must be an integer."}, status=status.HTTP_400_BAD_REQUEST)
+
+        config = dict(self.tournament.config or {})
+        existing = dict(config.get('format_options') or {})
+        existing.update(cleaned)
+        config['format_options'] = existing
+        self.tournament.config = config
+        self.tournament.save(update_fields=['config'])
+
+        bump_toc_scopes(self.tournament.id, 'brackets', 'overview')
+        return Response({
+            'tournament_format': fmt,
+            'format_options': existing,
+            'updated_keys': list(cleaned.keys()),
+        })
 
 
 class BracketBronzeCreateView(TOCBaseView):

@@ -14,26 +14,148 @@ from django.utils.html import format_html
 from django.urls import reverse
 from django.utils.safestring import mark_safe
 
-from .models import CoinPolicy, DeltaCrownTransaction, DeltaCrownWallet, TopUpRequest, WalletPINOTP, WithdrawalRequest
+from .models import (
+    CoinPolicy, DeltaCrownTransaction, DeltaCrownWallet,
+    EconomyConfig, EconomyDashboard, TopUpRequest, WalletPINOTP,
+    WithdrawalRequest,   # DEPRECATED — kept for admin visibility of legacy rows
+    PrizeClaim,
+)
 
 
 @admin.register(DeltaCrownWallet)
 class DeltaCrownWalletAdmin(ModelAdmin):
-    list_display = ("id", "profile_display", "cached_balance", "updated_at")
+    list_display = ("id", "treasury_badge", "profile_display", "cached_balance", "updated_at")
     search_fields = ("profile__user__username", "profile__user__email", "profile__public_id")
-    readonly_fields = ("created_at", "updated_at", "cached_balance")
+    readonly_fields = ("created_at", "updated_at", "cached_balance", "is_treasury")
     autocomplete_fields = ("profile",)
-    actions = ["recalculate_balances", "reconcile_to_profile"]
+    actions = ["recalculate_balances", "reconcile_to_profile", "adjust_balance"]
+
+    # ------------------------------------------------------------------
+    # Display helpers
+    # ------------------------------------------------------------------
+
+    def treasury_badge(self, obj):
+        if obj.is_treasury:
+            return format_html('<span style="background:#f59e0b;color:#fff;padding:2px 8px;'
+                               'border-radius:8px;font-size:11px;font-weight:700;">🏦 TREASURY</span>')
+        return ""
+    treasury_badge.short_description = "Type"
 
     def profile_display(self, obj):
+        if obj.is_treasury:
+            return format_html('<em style="color:#6b7280;">Master Treasury (system)</em>')
         u = getattr(obj.profile, "user", None)
         public_id = getattr(obj.profile, 'public_id', None)
         username = getattr(u, 'username', '') or getattr(u, 'email', '')
         if public_id:
             return f"{public_id} — {username}"
         return f"{getattr(obj.profile, 'id', None)} — {username}"
-
     profile_display.short_description = "Profile"
+
+    # ------------------------------------------------------------------
+    # Action: recalculate_balances  (was listed but never implemented — Bug #4)
+    # ------------------------------------------------------------------
+
+    @admin.action(description="Recalculate balance from ledger SUM (safe, atomic)")
+    def recalculate_balances(self, request, queryset):
+        """
+        Re-derive cached_balance from SUM(transaction.amount) for each selected wallet.
+        Uses select_for_update so concurrent writes cannot race.
+        """
+        fixed = skipped = 0
+        for wallet in queryset:
+            try:
+                old = wallet.cached_balance
+                new = wallet.recalc_and_save()
+                if old != new:
+                    fixed += 1
+            except Exception as exc:
+                self.message_user(
+                    request,
+                    f"Wallet #{wallet.id}: {exc}",
+                    level=messages.ERROR,
+                )
+                skipped += 1
+        self.message_user(
+            request,
+            f"Done — {fixed} wallet(s) corrected, {skipped} error(s).",
+            level=messages.SUCCESS if not skipped else messages.WARNING,
+        )
+
+    # ------------------------------------------------------------------
+    # Action: reconcile_to_profile  (was listed but never implemented — Bug #4)
+    # ------------------------------------------------------------------
+
+    @admin.action(description="Sync wallet balance → user profile fields")
+    def reconcile_to_profile(self, request, queryset):
+        """Push cached_balance to profile.deltacoin_balance for selected user wallets."""
+        from apps.user_profile.services.economy_sync import sync_wallet_to_profile
+        synced = skipped = 0
+        for wallet in queryset.filter(is_treasury=False):
+            try:
+                sync_wallet_to_profile(wallet.id)
+                synced += 1
+            except Exception as exc:
+                self.message_user(request, f"Wallet #{wallet.id}: {exc}", level=messages.ERROR)
+                skipped += 1
+        self.message_user(
+            request,
+            f"Synced {synced} wallet(s) to profile. {skipped} error(s).",
+            level=messages.SUCCESS if not skipped else messages.WARNING,
+        )
+
+    # ------------------------------------------------------------------
+    # Action: adjust_balance  (moved from TransactionAdmin — Bug #6)
+    # ------------------------------------------------------------------
+
+    @admin.action(description="Manually adjust balance (credit or debit)")
+    def adjust_balance(self, request: HttpRequest, queryset):
+        """
+        Apply a manual MANUAL_ADJUST transaction to selected wallets.
+        queryset here contains DeltaCrownWallet objects (correct, unlike the old location).
+        """
+        if "apply" in request.POST:
+            form = AdjustForm(request.POST)
+            if form.is_valid():
+                amount = form.cleaned_data["amount"]
+                note = form.cleaned_data.get("note") or "Manual adjustment"
+                n = 0
+                for wallet in queryset:
+                    DeltaCrownTransaction.objects.create(
+                        wallet=wallet,
+                        amount=int(amount),
+                        reason=DeltaCrownTransaction.Reason.MANUAL_ADJUST,
+                        note=note,
+                        created_by=request.user,
+                    )
+                    # recalc_and_save() is also triggered by DeltaCrownTransaction.save(),
+                    # but calling it explicitly here ensures the admin reflects the update
+                    # immediately without relying on the model-layer side effect.
+                    wallet.recalc_and_save()
+                    n += 1
+                self.message_user(
+                    request,
+                    f"Adjusted {n} wallet(s) by {amount:+d} DC.",
+                    level=messages.SUCCESS,
+                )
+                return None
+            self.message_user(request, "Invalid input.", level=messages.ERROR)
+        else:
+            form = AdjustForm()
+
+        from django.template.response import TemplateResponse
+        return TemplateResponse(
+            request,
+            "admin/economy/adjust_balance.html",
+            {
+                **self.admin_site.each_context(request),
+                "opts": self.model._meta,
+                "title": "Adjust selected wallet balances",
+                "queryset": queryset,
+                "action_checkbox_name": admin.helpers.ACTION_CHECKBOX_NAME,
+                "form": form,
+            },
+        )
 
 
 @admin.register(WalletPINOTP)
@@ -153,39 +275,53 @@ class TopUpRequestAdmin(ModelAdmin):
     payment_details_display.short_description = 'Payment Details'
     
     def approve_topups(self, request, queryset):
-        """Bulk approve top-up requests"""
+        """Bulk approve top-up requests — debits Master Treasury then credits user."""
         from django.db import transaction as db_transaction
         from django.utils import timezone
-        
+        from .services import get_master_treasury
+
         approved_count = 0
         for topup in queryset.filter(status='pending'):
             try:
                 with db_transaction.atomic():
-                    # Create transaction record
+                    treasury = get_master_treasury()
+
+                    # 1. Debit the Master Treasury (establishes where the coins come from).
+                    #    idempotency_key prevents duplicate debits on retry.
+                    DeltaCrownTransaction.objects.create(
+                        wallet=treasury,
+                        amount=-topup.amount,
+                        reason=DeltaCrownTransaction.Reason.TOP_UP,
+                        note=f'Treasury debit for top-up #{topup.id}',
+                        created_by=request.user,
+                        idempotency_key=f'topup_{topup.id}_treasury',
+                    )
+
+                    # 2. Credit the user wallet.
+                    #    Same idempotency family; unique constraint prevents double-credit.
                     txn = DeltaCrownTransaction.objects.create(
                         wallet=topup.wallet,
                         amount=topup.amount,
-                        reason='top_up',
-                        note=f'Top-up request #{topup.id} approved by {request.user.username}'
+                        reason=DeltaCrownTransaction.Reason.TOP_UP,
+                        note=f'Top-up #{topup.id} approved by {request.user.username}',
+                        created_by=request.user,
+                        idempotency_key=f'topup_{topup.id}',
                     )
-                    
-                    # Update top-up request
+
+                    # 3. Persist top-up request state.
                     topup.status = 'completed'
                     topup.reviewed_at = timezone.now()
                     topup.reviewed_by = request.user
                     topup.completed_at = timezone.now()
                     topup.transaction = txn
-                    topup.admin_note = f'Bulk approved by {request.user.username}'
+                    topup.admin_note = f'Approved by {request.user.username}'
                     topup.save()
-                    
-                    # Recalculate wallet balance
-                    topup.wallet.recalc_and_save()
-                    
+
                     approved_count += 1
-                    
+
             except Exception as e:
                 self.message_user(request, f'Error approving #{topup.id}: {str(e)}', level=messages.ERROR)
-        
+
         if approved_count > 0:
             self.message_user(request, f'Successfully approved {approved_count} top-up(s)', level=messages.SUCCESS)
     approve_topups.short_description = 'Approve selected top-ups'
@@ -222,6 +358,7 @@ class DeltaCrownTransactionAdmin(ModelAdmin):
         "id",
         "wallet",
         "amount",
+        "cached_balance_after",
         "reason",
         "tournament_id",
         "registration_id",
@@ -236,9 +373,13 @@ class DeltaCrownTransactionAdmin(ModelAdmin):
         "idempotency_key",
         "note",
     )
-    readonly_fields = ("created_at", "tournament_id", "registration_id", "match_id")  # Legacy fields readonly
+    readonly_fields = (
+        "created_at",
+        "cached_balance_after",  # Populated at creation; never mutable
+        "tournament_id", "registration_id", "match_id",  # Legacy fields
+    )
     autocomplete_fields = ("wallet", "created_by")  # Removed tournament/registration/match (legacy)
-    actions = ["export_csv", "adjust_balance"]
+    actions = ["export_csv"]  # adjust_balance moved to DeltaCrownWalletAdmin (Bug #6 fix)
 
     @admin.action(description="Export selected rows to CSV")
     def export_csv(self, request, queryset):
@@ -283,45 +424,9 @@ class DeltaCrownTransactionAdmin(ModelAdmin):
             )
         return response
 
-    @admin.action(description="Adjust balance (opens a small form)")
-    def adjust_balance(self, request: HttpRequest, queryset):
-        """
-        Bulk adjustment action with a small ActionForm.
-        """
-        if "apply" in request.POST:
-            form = AdjustForm(request.POST)
-            if form.is_valid():
-                amount = form.cleaned_data["amount"]
-                note = form.cleaned_data.get("note") or ""
-                n = 0
-                for wallet in queryset:
-                    DeltaCrownTransaction.objects.create(
-                        wallet=wallet,
-                        amount=int(amount),
-                        reason=DeltaCrownTransaction.Reason.MANUAL_ADJUST,
-                        note=note or "Manual adjustment",
-                        created_by=getattr(request, "user", None),
-                    )
-                    wallet.recalc_and_save()
-                    n += 1
-                self.message_user(request, f"Adjusted {n} wallet(s) by {amount} coins.", level=messages.SUCCESS)
-                return None
-            else:
-                self.message_user(request, "Invalid input.", level=messages.ERROR)
-        else:
-            form = AdjustForm()
-
-        from django.template.response import TemplateResponse
-
-        context = {
-            **self.admin_site.each_context(request),
-            "opts": self.model._meta,
-            "title": "Adjust selected wallet balances",
-            "queryset": queryset,
-            "action_checkbox_name": admin.helpers.ACTION_CHECKBOX_NAME,
-            "form": form,
-        }
-        return TemplateResponse(request, "admin/economy/adjust_balance.html", context)
+# adjust_balance action removed from here — it was operating on a Transaction
+# queryset, not a Wallet queryset, making every iteration a type error.
+# It now lives correctly on DeltaCrownWalletAdmin above.
 
 
 # Legacy Tournament Integration - Disabled (November 2, 2025)
@@ -343,125 +448,185 @@ class DeltaCrownTransactionAdmin(ModelAdmin):
 
 @admin.register(WithdrawalRequest)
 class WithdrawalRequestAdmin(ModelAdmin):
-    list_display = ['id', 'wallet_link', 'amount', 'bdt_display', 'payment_method', 'status_badge', 'requested_at', 'reviewed_by_display']
-    list_filter = ['status', 'payment_method', 'requested_at', 'reviewed_at']
-    search_fields = ['wallet__profile__user__username', 'wallet__profile__user__email', 'wallet__profile__real_full_name', 'payment_number', 'admin_note']
-    readonly_fields = ['wallet', 'requested_at', 'reviewed_at', 'reviewed_by', 'completed_at', 'transaction', 'payment_details_display', 'bdt_amount']
-    
-    fieldsets = [
-        ('Withdrawal Info', {
-            'fields': ['wallet', 'amount', 'status']
-        }),
-        ('Payment Details', {
-            'fields': ['payment_method', 'payment_number', 'payment_details_display']
-        }),
-        ('Exchange & Fees', {
-            'fields': ['dc_to_bdt_rate', 'processing_fee', 'bdt_amount'],
-            'classes': ['collapse']
-        }),
-        ('Notes', {
-            'fields': ['user_note', 'admin_note', 'rejection_reason']
-        }),
-        ('Review Metadata', {
-            'fields': ['requested_at', 'reviewed_at', 'reviewed_by', 'completed_at'],
-            'classes': ['collapse']
-        }),
-        ('Transaction', {
-            'fields': ['transaction'],
-            'classes': ['collapse']
-        }),
+    """
+    [DEPRECATED] Legacy DC-to-Fiat withdrawal admin.
+
+    DC withdrawals are no longer permitted (closed-loop economy compliance).
+    This admin is READ-ONLY to allow auditing of historical records.
+    All add / change / delete actions are disabled.
+    Use PrizeClaimAdmin (below) for official tournament prize disbursements.
+    """
+    list_display = ['id', 'wallet_link', 'amount', 'bdt_display', 'payment_method',
+                    'status_badge', 'requested_at', 'reviewed_by_display']
+    list_filter = ['status', 'payment_method', 'requested_at']
+    search_fields = ['wallet__profile__user__username', 'wallet__profile__user__email',
+                     'admin_note']
+    readonly_fields = [
+        'wallet', 'amount', 'status', 'payment_method', 'payment_number',
+        'payment_details', 'dc_to_bdt_rate', 'processing_fee', 'bdt_amount',
+        'requested_at', 'reviewed_at', 'reviewed_by', 'completed_at',
+        'user_note', 'admin_note', 'rejection_reason', 'transaction',
     ]
-    
-    actions = ['approve_withdrawals', 'reject_withdrawals']
-    
+
+    def has_add_permission(self, request):
+        """Block new withdrawals — closed-loop economy."""
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        """Read-only audit trail."""
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        """Preserve audit trail."""
+        return False
+
     def wallet_link(self, obj):
         url = reverse('admin:economy_deltacrownwallet_change', args=[obj.wallet.id])
         return format_html('<a href="{}">{}</a>', url, obj.wallet.profile.user.username)
     wallet_link.short_description = 'Wallet'
-    
+
     def bdt_display(self, obj):
         return f"৳{obj.bdt_amount}"
-    bdt_display.short_description = 'BDT Amount'
-    
+    bdt_display.short_description = 'BDT'
+
     def status_badge(self, obj):
         colors = {
-            'pending': '#f59e0b',
-            'approved': '#3b82f6',
-            'completed': '#10b981',
-            'rejected': '#ef4444',
-            'cancelled': '#6b7280',
+            'pending': '#f59e0b', 'approved': '#3b82f6',
+            'completed': '#10b981', 'rejected': '#ef4444', 'cancelled': '#6b7280',
         }
         color = colors.get(obj.status, '#6b7280')
         return format_html(
-            '<span style="background-color: {}; color: white; padding: 4px 12px; border-radius: 12px; font-size: 11px; font-weight: 600;">{}</span>',
-            color,
-            obj.get_status_display().upper()
+            '<span style="background:{};color:#fff;padding:3px 10px;'
+            'border-radius:10px;font-size:11px;font-weight:600;">{}</span>',
+            color, obj.get_status_display().upper()
         )
     status_badge.short_description = 'Status'
-    
+
     def reviewed_by_display(self, obj):
-        if obj.reviewed_by:
-            return obj.reviewed_by.username
-        return '-'
+        return obj.reviewed_by.username if obj.reviewed_by else '—'
     reviewed_by_display.short_description = 'Reviewed By'
-    
-    def payment_details_display(self, obj):
-        html = f'<strong>Method:</strong> {obj.get_payment_method_display()}<br>'
-        html += f'<strong>Number:</strong> {obj.payment_number}<br>'
-        
-        if obj.payment_details:
-            for key, value in obj.payment_details.items():
-                html += f'<strong>{key.replace("_", " ").title()}:</strong> {value}<br>'
-        
-        return mark_safe(html)
-    payment_details_display.short_description = 'Payment Details'
-    
-    def approve_withdrawals(self, request, queryset):
-        """Bulk approve withdrawal requests"""
-        approved_count = 0
-        for withdrawal in queryset.filter(status='pending'):
+
+
+@admin.register(PrizeClaim)
+class PrizeClaimAdmin(ModelAdmin):
+    """
+    Admin interface for official tournament prize disbursements (BDT fiat).
+
+    Workflow for admins:
+      1. Review PENDING claims — verify tournament name & account details.
+      2. If KYC required, use 'Start KYC Verification' action to escalate.
+      3. Transfer funds externally (bKash / Nagad / Bank).
+      4. Use 'Mark as PAID' action — enter the external transfer reference.
+      5. Use 'Reject Claim' action with a clear rejection note if fraud suspected.
+    """
+    list_display = [
+        'id', 'wallet_link', 'tournament_name', 'amount_bdt_display',
+        'payment_method', 'status_badge', 'submitted_at', 'resolved_by_display',
+    ]
+    list_filter = ['status', 'payment_method', 'submitted_at']
+    search_fields = [
+        'wallet__profile__user__username', 'wallet__profile__user__email',
+        'tournament_name', 'admin_note',
+    ]
+    readonly_fields = [
+        'wallet', 'tournament_name', 'amount_bdt', 'payment_method',
+        'account_details', 'submitted_at', 'resolved_at', 'resolved_by',
+    ]
+    fieldsets = [
+        ('Claim Details', {
+            'fields': ['wallet', 'tournament_name', 'amount_bdt'],
+        }),
+        ('Payout Info', {
+            'fields': ['payment_method', 'account_details'],
+        }),
+        ('Status & Resolution', {
+            'fields': ['status', 'admin_note'],
+        }),
+        ('Audit Trail', {
+            'fields': ['submitted_at', 'resolved_at', 'resolved_by'],
+            'classes': ['collapse'],
+        }),
+    ]
+    actions = ['action_start_kyc', 'action_mark_paid', 'action_reject']
+
+    # ── Display helpers ────────────────────────────────────────────────────────────
+
+    def wallet_link(self, obj):
+        url = reverse('admin:economy_deltacrownwallet_change', args=[obj.wallet.id])
+        username = getattr(getattr(obj.wallet, 'profile', None), 'user', None)
+        label = getattr(username, 'username', f'Wallet #{obj.wallet_id}')
+        return format_html('<a href="{}">{}</a>', url, label)
+    wallet_link.short_description = 'Claimant'
+
+    def amount_bdt_display(self, obj):
+        return format_html('<strong>৳{}</strong>', obj.amount_bdt)
+    amount_bdt_display.short_description = 'Amount (BDT)'
+
+    def status_badge(self, obj):
+        colors = {
+            PrizeClaim.Status.PENDING:       '#f59e0b',
+            PrizeClaim.Status.VERIFYING_KYC: '#6366f1',
+            PrizeClaim.Status.PAID:          '#10b981',
+            PrizeClaim.Status.REJECTED:      '#ef4444',
+        }
+        color = colors.get(obj.status, '#6b7280')
+        return format_html(
+            '<span style="background:{};color:#fff;padding:3px 10px;'
+            'border-radius:10px;font-size:11px;font-weight:600;">{}</span>',
+            color, obj.get_status_display().upper()
+        )
+    status_badge.short_description = 'Status'
+
+    def resolved_by_display(self, obj):
+        return obj.resolved_by.username if obj.resolved_by else '—'
+    resolved_by_display.short_description = 'Resolved By'
+
+    # ── Actions ───────────────────────────────────────────────────────────────
+
+    @admin.action(description='🔍 Escalate to KYC Verification')
+    def action_start_kyc(self, request, queryset):
+        updated = queryset.filter(status=PrizeClaim.Status.PENDING).update(
+            status=PrizeClaim.Status.VERIFYING_KYC
+        )
+        self.message_user(request, f'{updated} claim(s) escalated to KYC verification.',
+                          level=messages.SUCCESS)
+
+    @admin.action(description='✅ Mark selected claims as PAID')
+    def action_mark_paid(self, request, queryset):
+        paid = skipped = 0
+        for claim in queryset:
             try:
-                withdrawal.approve(
-                    reviewed_by=request.user,
-                    admin_note=f'Bulk approved by {request.user.username}',
-                    completed_immediately=True
-                )
-                approved_count += 1
-                
-                # Award first withdrawal badge
-                try:
-                    from apps.user_profile.signals import award_first_withdrawal_badge
-                    user = withdrawal.wallet.user_profile.user
-                    award_first_withdrawal_badge(user)
-                except Exception as e:
-                    # Don't fail withdrawal approval if badge award fails
-                    import logging
-                    logger = logging.getLogger(__name__)
-                    logger.warning(f"Failed to award withdrawal badge to {user.username}: {e}")
-                
-            except Exception as e:
-                self.message_user(request, f'Error approving #{withdrawal.id}: {str(e)}', level=messages.ERROR)
-        
-        if approved_count > 0:
-            self.message_user(request, f'Successfully approved {approved_count} withdrawal(s)', level=messages.SUCCESS)
-    approve_withdrawals.short_description = 'Approve selected withdrawals'
-    
-    def reject_withdrawals(self, request, queryset):
-        """Bulk reject withdrawal requests"""
-        rejected_count = 0
-        for withdrawal in queryset.filter(status='pending'):
+                claim.mark_paid(admin_user=request.user)
+                paid += 1
+            except ValueError as exc:
+                self.message_user(request, f'Claim #{claim.id}: {exc}',
+                                  level=messages.WARNING)
+                skipped += 1
+        if paid:
+            self.message_user(
+                request,
+                f'{paid} claim(s) marked PAID. '
+                f'Remember to record the transfer reference in admin_note.',
+                level=messages.SUCCESS,
+            )
+
+    @admin.action(description='❌ Reject selected claims')
+    def action_reject(self, request, queryset):
+        rejected = skipped = 0
+        for claim in queryset:
             try:
-                withdrawal.reject(
-                    reviewed_by=request.user,
-                    rejection_reason='Bulk rejection by admin'
+                claim.reject(
+                    admin_user=request.user,
+                    reason=f'Bulk rejected by {request.user.username}',
                 )
-                rejected_count += 1
-            except Exception as e:
-                self.message_user(request, f'Error rejecting #{withdrawal.id}: {str(e)}', level=messages.ERROR)
-        
-        if rejected_count > 0:
-            self.message_user(request, f'Successfully rejected {rejected_count} withdrawal(s)', level=messages.SUCCESS)
-    reject_withdrawals.short_description = 'Reject selected withdrawals'
+                rejected += 1
+            except ValueError as exc:
+                self.message_user(request, f'Claim #{claim.id}: {exc}',
+                                  level=messages.WARNING)
+                skipped += 1
+        if rejected:
+            self.message_user(request, f'{rejected} claim(s) rejected.',
+                              level=messages.WARNING)
 
 
 @admin.register(CoinPolicy)
@@ -469,7 +634,7 @@ class CoinPolicyAdmin(ModelAdmin):
     list_display = ['tournament_id', 'enabled', 'participation', 'top4', 'runner_up', 'winner', 'created_at']
     list_filter = ['enabled', 'created_at']
     search_fields = ['tournament_id']
-    
+
     fieldsets = [
         ('Tournament', {
             'fields': ['tournament_id', 'enabled']
@@ -482,8 +647,64 @@ class CoinPolicyAdmin(ModelAdmin):
             'classes': ['collapse']
         }),
     ]
-    
+
     readonly_fields = ['created_at', 'updated_at']
+
+
+# =============================================================================
+# ECONOMY PLAYBOOK — Internal Financial Documentation
+# =============================================================================
+
+from .models import EconomyPlaybook
+
+
+@admin.register(EconomyPlaybook)
+class EconomyPlaybookAdmin(ModelAdmin):
+    """
+    Admin-editable knowledge base for internal economy rules and SOPs.
+
+    Admins can create, read, and update playbook articles covering:
+      • Treasury minting procedures
+      • Prize claim disbursement SOPs
+      • Escrow wager limits (manual vs API games)
+      • KYC verification checklists
+      • Closed-loop economy compliance policy
+
+    Articles are never exposed to end-users.
+    """
+    list_display  = ('title', 'slug', 'updated_at', 'content_preview')
+    search_fields = ('title', 'content')
+    readonly_fields = ('slug', 'updated_at')
+    prepopulated_fields = {}  # slug is auto-generated in model.save()
+
+    fieldsets = [
+        ('Article', {
+            'fields': ['title', 'slug'],
+        }),
+        ('Content (Markdown / Plain Text)', {
+            'fields': ['content'],
+            'description': (
+                'Use ## for headings, - for bullets, ``` for code blocks. '
+                'This content is only visible to admin staff.'
+            ),
+        }),
+        ('Meta', {
+            'fields': ['updated_at'],
+            'classes': ['collapse'],
+        }),
+    ]
+
+    def content_preview(self, obj):
+        """Show first 120 chars of content as a quick preview in the list view."""
+        preview = obj.content[:120]
+        if len(obj.content) > 120:
+            preview += '…'
+        return preview
+    content_preview.short_description = 'Preview'
+
+    def has_delete_permission(self, request, obj=None):
+        """Only superusers may delete playbook articles."""
+        return request.user.is_superuser
 
 
 # =====================================================================
@@ -610,3 +831,232 @@ class TradeRequestAdmin(ModelAdmin):
             'fields': ['message', 'status', 'created_at', 'resolved_at']
         }),
     )
+
+
+# =============================================================================
+# ECONOMY CONFIGURATION & DASHBOARD ADMIN  (Phase 2 / Phase 3)
+# =============================================================================
+
+class MintToTreasuryForm(forms.Form):
+    """Superuser-only form to credit the Master Treasury with freshly minted DC."""
+    bdt_amount = forms.DecimalField(
+        min_value=1,
+        max_digits=12,
+        decimal_places=2,
+        label="BDT Amount Received (৳)",
+        help_text="Real-world BDT deposited. DC is calculated using the current exchange rate.",
+    )
+    note = forms.CharField(
+        max_length=255,
+        required=False,
+        label="Reference Note",
+        initial="Genesis Mint / Admin Fiat Deposit",
+    )
+
+
+@admin.register(EconomyConfig)
+class EconomyConfigAdmin(ModelAdmin):
+    """
+    Singleton admin for EconomyConfig.
+    Only one row (pk=1) is meaningful; Add and Delete are hidden.
+    Hosts the Economy Command Center dashboard at /admin/economy/economyconfig/dashboard/
+    """
+    list_display = ("__str__", "bdt_per_dc", "dc_per_bdt_display",
+                    "top_up_min_dc", "withdrawal_min_dc", "withdrawal_fee_pct",
+                    "updated_at", "dashboard_link")
+    readonly_fields = ("updated_at", "dc_per_bdt_display")
+
+    fieldsets = [
+        ("Exchange Rate", {
+            "fields": ["bdt_per_dc", "dc_per_bdt_display"],
+            "description": (
+                "Set <strong>bdt_per_dc</strong> to control how many BDT a single DeltaCoin costs. "
+                "Default: 0.1000 → 1 BDT = 10 DC."
+            ),
+        }),
+        ("Top-Up Policy", {"fields": ["top_up_min_dc"]}),
+        ("Withdrawal Policy", {"fields": ["withdrawal_min_dc", "withdrawal_fee_pct"]}),
+        ("Meta", {"fields": ["updated_at"], "classes": ["collapse"]}),
+    ]
+
+    # ------------------------------------------------------------------
+    # Singleton enforcement
+    # ------------------------------------------------------------------
+
+    def has_add_permission(self, request):
+        return not EconomyConfig.objects.exists()
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    # ------------------------------------------------------------------
+    # Display helpers
+    # ------------------------------------------------------------------
+
+    def dc_per_bdt_display(self, obj):
+        return format_html(
+            "<strong style='color:#10b981;font-size:16px;'>{}</strong> DC per BDT",
+            obj.dc_per_bdt,
+        )
+    dc_per_bdt_display.short_description = "Effective rate (DC per BDT)"
+
+    def dashboard_link(self, obj):
+        url = reverse("admin:economy_dashboard")
+        return format_html(
+            '<a class="button" href="{}" style="background:#6366f1;color:#fff;'
+            'padding:4px 14px;border-radius:6px;font-size:.8rem;white-space:nowrap;">'
+            '💰 Open Dashboard</a>',
+            url,
+        )
+    dashboard_link.short_description = "Command Center"
+
+    # ------------------------------------------------------------------
+    # Custom URL: /admin/economy/economyconfig/dashboard/
+    # ------------------------------------------------------------------
+
+    def get_urls(self):
+        from django.urls import path
+        urls = super().get_urls()
+        custom = [
+            path(
+                "dashboard/",
+                self.admin_site.admin_view(self.dashboard_view),
+                name="economy_dashboard",
+            ),
+        ]
+        return custom + urls
+
+    # ------------------------------------------------------------------
+    # Dashboard view
+    # ------------------------------------------------------------------
+
+    def dashboard_view(self, request):
+        from decimal import Decimal
+        from django.db import transaction as db_transaction
+        from django.db.models import Sum
+        from django.contrib import messages as dj_messages
+        from django.utils import timezone
+        from .models import DeltaCrownTransaction, DeltaCrownWallet
+        from .services import get_master_treasury
+
+        config = EconomyConfig.get_solo()
+        treasury = get_master_treasury()
+
+        # ---- Live metrics -------------------------------------------- #
+        circulating_supply = int(
+            DeltaCrownWallet.objects
+            .filter(is_treasury=False)
+            .aggregate(total=Sum("cached_balance"))["total"] or 0
+        )
+        fiat_reserve_required = Decimal(str(circulating_supply)) * config.bdt_per_dc
+
+        # ---- Mint form (POST) ---------------------------------------- #
+        mint_form = None
+        if request.user.is_superuser:
+            if request.method == "POST" and "mint_submit" in request.POST:
+                mint_form = MintToTreasuryForm(request.POST)
+                if mint_form.is_valid():
+                    bdt_amount = mint_form.cleaned_data["bdt_amount"]
+                    note = mint_form.cleaned_data.get("note") or "Genesis Mint / Admin Fiat Deposit"
+                    dc_amount = int(bdt_amount / config.bdt_per_dc)
+                    if dc_amount > 0:
+                        with db_transaction.atomic():
+                            DeltaCrownTransaction.objects.create(
+                                wallet=treasury,
+                                amount=dc_amount,
+                                reason=DeltaCrownTransaction.Reason.MANUAL_ADJUST,
+                                note=note,
+                                created_by=request.user,
+                                idempotency_key=(
+                                    f"mint_treasury_{request.user.id}"
+                                    f"_{int(timezone.now().timestamp())}"
+                                ),
+                            )
+                            treasury.recalc_and_save()
+                        dj_messages.success(
+                            request,
+                            f"✅ Minted {dc_amount:,} DC to Treasury "
+                            f"(৳{bdt_amount} BDT deposited at {config.dc_per_bdt} DC/BDT).",
+                        )
+                        treasury.refresh_from_db()
+                        # Recalculate after mint for fresh metrics
+                        circulating_supply = int(
+                            DeltaCrownWallet.objects
+                            .filter(is_treasury=False)
+                            .aggregate(total=Sum("cached_balance"))["total"] or 0
+                        )
+                        fiat_reserve_required = Decimal(str(circulating_supply)) * config.bdt_per_dc
+                        mint_form = MintToTreasuryForm(
+                            initial={"note": "Genesis Mint / Admin Fiat Deposit"}
+                        )
+                    else:
+                        dj_messages.error(request, "BDT amount too small to mint any DC.")
+            else:
+                mint_form = MintToTreasuryForm(
+                    initial={"note": "Genesis Mint / Admin Fiat Deposit"}
+                )
+
+        # ---- Recent treasury transactions ---------------------------- #
+        recent_treasury_txns = (
+            DeltaCrownTransaction.objects
+            .filter(wallet=treasury)
+            .select_related("created_by")
+            .order_by("-created_at")[:20]
+        )
+
+        from django.template.response import TemplateResponse
+        return TemplateResponse(
+            request,
+            "admin/economy/economy_dashboard.html",
+            {
+                **self.admin_site.each_context(request),
+                "title": "Economy Command Center",
+                "opts": self.model._meta,
+                "config": config,
+                "treasury": treasury,
+                "circulating_supply": circulating_supply,
+                "fiat_reserve_required": fiat_reserve_required,
+                "mint_form": mint_form,
+                "recent_treasury_txns": recent_treasury_txns,
+            },
+        )
+
+
+# =============================================================================
+# ECONOMY DASHBOARD SIDEBAR PROXY ADMIN  (Phase 3.5 — navigation shim)
+# =============================================================================
+
+@admin.register(EconomyDashboard)
+class EconomyDashboardAdmin(ModelAdmin):
+    """
+    Sidebar navigation shim.
+
+    Django's get_app_list() evaluates ALL four permission checks before
+    including a model link in the sidebar. All four must return a truthy
+    value — overriding only module/view is not enough. has_add and
+    has_change are also checked internally even for display-only entries.
+
+    changelist_view immediately 302s to the real dashboard URL so the
+    link acts as a pure navigation shim with no list/change/delete UI.
+    """
+
+    def changelist_view(self, request, extra_context=None):
+        from django.http import HttpResponseRedirect
+        return HttpResponseRedirect(reverse("admin:economy_dashboard"))
+
+    # ── All four must return True for the sidebar link to render ──────────
+    def has_module_permission(self, request):
+        return request.user.is_staff
+
+    def has_view_permission(self, request, obj=None):
+        return request.user.is_staff
+
+    def has_change_permission(self, request, obj=None):
+        return request.user.is_staff
+
+    def has_add_permission(self, request):
+        return request.user.is_staff
+
+    # ── Delete stays blocked — never expose a destructive action ──────────
+    def has_delete_permission(self, request, obj=None):
+        return False

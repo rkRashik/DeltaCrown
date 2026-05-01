@@ -4,20 +4,26 @@
 from .wallet import DeltaCrownWallet
 from .transaction import DeltaCrownTransaction
 from .policy import CoinPolicy
-from .requests import TopUpRequest, WithdrawalRequest
+from .requests import TopUpRequest, WithdrawalRequest, PrizeClaim
 from .inventory import InventoryItem, UserInventoryItem
 from .social import GiftRequest, TradeRequest
 from .security import WalletPINOTP
+from .config import EconomyConfig, EconomyDashboard
+from .documentation import EconomyPlaybook
 
 __all__ = [
     "DeltaCrownWallet",
     "DeltaCrownTransaction",
     "CoinPolicy",
     "TopUpRequest",
-    "WithdrawalRequest",
+    "WithdrawalRequest",   # DEPRECATED — kept for migration/signal compatibility
+    "PrizeClaim",
     "InventoryItem",
     "UserInventoryItem",
     "GiftRequest",
     "TradeRequest",
     "WalletPINOTP",
+    "EconomyConfig",
+    "EconomyDashboard",
+    "EconomyPlaybook",
 ]

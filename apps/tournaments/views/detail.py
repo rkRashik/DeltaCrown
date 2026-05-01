@@ -367,9 +367,16 @@ class TournamentDetailView(DetailView):
         phase_ctx['show_prizes'] = True    # always visible
         phase_ctx['show_rules'] = True     # always visible
         phase_ctx['show_announcements'] = status not in ['draft', 'pending_approval']
-        phase_ctx['show_bracket'] = status in ['live', 'completed', 'archived']
-        phase_ctx['show_matches'] = status in ['live', 'completed', 'archived']
-        phase_ctx['show_standings'] = status in ['live', 'completed', 'archived']
+        # Format-aware Bracket / Standings visibility on the public detail page.
+        # Round Robin and Battle Royale never have a bracket tree — those formats
+        # surface their competition data in Standings (League Table / Leaderboard)
+        # instead. Hiding the Bracket tab keeps the detail page coherent per format.
+        _BRACKET_FORMATS = {'single_elimination', 'double_elimination', 'group_playoff', 'swiss'}
+        _STANDINGS_FORMATS = {'group_playoff', 'round_robin', 'swiss', 'battle_royale'}
+        _has_data_phase = status in ['live', 'completed', 'archived']
+        phase_ctx['show_bracket']   = _has_data_phase and tournament.format in _BRACKET_FORMATS
+        phase_ctx['show_matches']   = _has_data_phase
+        phase_ctx['show_standings'] = _has_data_phase and tournament.format in _STANDINGS_FORMATS
         phase_ctx['show_streams'] = status in ['live']
         phase_ctx['show_checkin_info'] = status == 'registration_closed'
         phase_ctx['is_pre_registration'] = status in ['draft', 'pending_approval', 'published']

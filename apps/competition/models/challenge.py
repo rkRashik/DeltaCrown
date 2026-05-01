@@ -270,6 +270,19 @@ class Challenge(SoftDeleteModel):
         help_text="Staff-promoted highlight challenge"
     )
 
+    # ── Economy / Escrow ─────────────────────────────────────────────────
+    # wager_amount_dc is the DC each participating TEAM must lock into escrow.
+    # For a two-team challenge the total pot = wager_amount_dc * 2.
+    # prize_amount (Decimal) remains for display/legacy purposes.
+    wager_amount_dc = models.PositiveIntegerField(
+        default=0,
+        help_text="DeltaCoins each team must lock into escrow. 0 = no wager."
+    )
+    escrow_locked = models.BooleanField(
+        default=False,
+        help_text="True once ALL participants have had their escrow funds locked."
+    )
+
     # Managers — default excludes soft-deleted rows
     objects = SoftDeleteManager()
     all_objects = models.Manager()

@@ -84,20 +84,22 @@ class Tournament(SoftDeleteModel, TimestampedModel):
     }
     
     # Format choices
-    SINGLE_ELIM = 'single_elimination'
-    DOUBLE_ELIM = 'double_elimination'
-    ROUND_ROBIN = 'round_robin'
-    SWISS = 'swiss'
+    SINGLE_ELIM   = 'single_elimination'
+    DOUBLE_ELIM   = 'double_elimination'
+    ROUND_ROBIN   = 'round_robin'
+    SWISS         = 'swiss'
     GROUP_PLAYOFF = 'group_playoff'
-    
+    BATTLE_ROYALE = 'battle_royale'   # Lobby / placement+kills leaderboard
+
     FORMAT_CHOICES = [
-        (SINGLE_ELIM, 'Single Elimination'),
-        (DOUBLE_ELIM, 'Double Elimination'),
-        (ROUND_ROBIN, 'Round Robin'),
-        (SWISS, 'Swiss'),
+        (SINGLE_ELIM,   'Single Elimination'),
+        (DOUBLE_ELIM,   'Double Elimination'),
+        (ROUND_ROBIN,   'Round Robin'),
+        (SWISS,         'Swiss'),
         (GROUP_PLAYOFF, 'Group Stage + Playoff'),
+        (BATTLE_ROYALE, 'Battle Royale / Lobby Leaderboard'),
     ]
-    
+
     # Backward-compatible aliases (legacy test references)
     SINGLE_ELIMINATION = SINGLE_ELIM
     DOUBLE_ELIMINATION = DOUBLE_ELIM
@@ -620,7 +622,29 @@ class Tournament(SoftDeleteModel, TimestampedModel):
         blank=True,
         help_text='Game-specific match configuration rendered in match lobby rules (JSONB)'
     )
-    
+
+    # ── Compliance & Risk Control ─────────────────────────────────────────────
+    require_kyc_for_prizes = models.BooleanField(
+        default=False,
+        db_index=True,
+        help_text=(
+            'If True, winners must pass KYC verification before a PrizeClaim '
+            'ticket can be marked PAID. Organizers toggle this per tournament. '
+            'Recommended for prize pools above the KYC threshold.'
+        )
+    )
+    is_api_verified = models.BooleanField(
+        default=False,
+        db_index=True,
+        help_text=(
+            'True = this game uses an official API integration for score '
+            'verification (e.g. Valorant via Riot API). '
+            'False = manual/screenshot-based result submission (e.g. eFootball). '
+            'Used by the escrow service to enforce wager caps: manual games are '
+            'capped at 1000 DC per side to mitigate dispute fraud.'
+        )
+    )
+
     # Managers
     objects = SoftDeleteManager()
     all_objects = models.Manager()

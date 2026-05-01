@@ -610,12 +610,28 @@
         <span class="hub-nav-label">Lobby</span>
       </div>
     </button>
+    {# Mobile bottom: bracket button — hidden for Round Robin, relabelled for Swiss #}
+    {% if tournament.format != 'round_robin' %}
     <button class="hub-nav-btn hub-mobile-bottom-item" data-hub-tab="bracket" data-click="HubEngine.switchTab" data-click-args='["bracket"]'>
       <div class="flex flex-col items-center gap-1">
+        {% if tournament.format == 'swiss' %}
+        <i data-lucide="list-ordered" class="w-4 h-4"></i>
+        <span class="hub-nav-label">Rounds</span>
+        {% else %}
         <i data-lucide="git-merge" class="w-4 h-4 rotate-90"></i>
         <span class="hub-nav-label">Bracket</span>
+        {% endif %}
       </div>
     </button>
+    {% else %}
+    {# Round Robin: replace bracket slot with Standings for faster access #}
+    <button class="hub-nav-btn hub-mobile-bottom-item" data-hub-tab="standings" data-click="HubEngine.switchTab" data-click-args='["standings"]'>
+      <div class="flex flex-col items-center gap-1">
+        <i data-lucide="bar-chart-2" class="w-4 h-4"></i>
+        <span class="hub-nav-label">Standings</span>
+      </div>
+    </button>
+    {% endif %}
     <button class="hub-nav-btn hub-mobile-bottom-item" data-hub-tab="results-achievements" data-click="HubEngine.switchTab" data-click-args='["results-achievements"]'>
       <div class="flex flex-col items-center gap-1">
         <i data-lucide="award" class="w-4 h-4"></i>

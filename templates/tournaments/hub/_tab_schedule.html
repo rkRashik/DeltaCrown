@@ -10,7 +10,10 @@
     <div>
       <h2 class="font-display font-black text-4xl text-white tracking-wide">Timeline</h2>
       <p class="font-mono text-xs text-gray-400 mt-2">
-        {% if current_stage == 'knockout_stage' %}Knockout fixtures are shown first. Swipe the date tape to browse.
+        {% if tournament.format == 'round_robin' %}League fixtures. Every participant plays every other once. Swipe the date tape to browse.
+        {% elif tournament.format == 'swiss' %}Swiss-round pairings. Swipe the date tape to browse past and future rounds.
+        {% elif tournament.format == 'battle_royale' %}Lobby session schedule. Swipe the date tape to browse past and future lobbies.
+        {% elif current_stage == 'knockout_stage' %}Knockout fixtures are shown first. Swipe the date tape to browse.
         {% elif current_stage == 'group_stage' %}Group stage fixtures. Swipe the date tape to browse past and future matches.
         {% else %}Swipe the date tape to browse past and future fixtures.{% endif %}
       </p>
@@ -94,7 +97,12 @@
     <div id="schedule-match-empty" class="hidden text-center py-12">
       <i data-lucide="calendar-off" class="w-10 h-10 text-gray-600 mx-auto mb-3"></i>
       <p class="text-sm text-gray-500">No matches scheduled yet.</p>
-      <p class="text-xs text-gray-600 mt-1">Match times will appear here once the bracket is generated.</p>
+      <p class="text-xs text-gray-600 mt-1">
+        {% if tournament.format == 'round_robin' %}Match times will appear here once fixtures are generated.
+        {% elif tournament.format == 'swiss' %}Match times will appear here once Round 1 is generated.
+        {% elif tournament.format == 'battle_royale' %}Lobby times will appear here once sessions are scheduled.
+        {% else %}Match times will appear here once the bracket is generated.{% endif %}
+      </p>
     </div>
 
     {% comment %}Match cards rendered by JS{% endcomment %}

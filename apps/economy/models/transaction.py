@@ -29,6 +29,16 @@ class DeltaCrownTransaction(models.Model):
         MANUAL_ADJUST = "manual_adjust", "Manual adjust"
         CORRECTION = "correction", "Correction"
         P2P_TRANSFER = "p2p_transfer", "P2P Transfer"
+        # Phase 1 Economy Cleanup: explicit types for financial flows
+        TOP_UP = "top_up", "Top-Up"
+        WITHDRAWAL = "withdrawal", "Withdrawal"
+        # Phase 4 Escrow Engine
+        ESCROW_LOCK = "escrow_lock", "Escrow Locked"
+        ESCROW_REFUND = "escrow_refund", "Escrow Refunded"
+        WAGER_WIN = "wager_win", "Wager Winnings"
+        PLATFORM_FEE = "platform_fee", "Platform Fee"
+        # Phase 5 P2P & Withdrawals
+        WITHDRAWAL_REVENUE = "withdrawal_revenue", "Withdrawal Revenue (Fee)"
 
     wallet = models.ForeignKey(
         DeltaCrownWallet,
@@ -36,6 +46,12 @@ class DeltaCrownTransaction(models.Model):
         related_name="transactions",
     )
     amount = models.IntegerField(help_text="Positive for credit, negative for debit")
+    cached_balance_after = models.IntegerField(
+        null=True,
+        blank=True,
+        help_text="Wallet balance immediately after this transaction was applied. "
+                  "Populated at creation time; never mutate.",
+    )
     reason = models.CharField(max_length=32, choices=Reason.choices)
 
     # Context (optional but helps audit)
@@ -67,7 +83,8 @@ class DeltaCrownTransaction(models.Model):
                 name="economy_transaction_amount_nonzero"
             ),
         ]
-        verbose_name = "DeltaCrown Transaction"
+        verbose_name = "Transaction"
+        verbose_name_plural = "Transactions"
 
     def __str__(self) -> str:
         return f"Tx[{self.id}] {self.amount} for {self.get_reason_display()} (wallet={self.wallet_id})"

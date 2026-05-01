@@ -19,7 +19,8 @@ from apps.economy.models import (
     DeltaCrownWallet,
     TopUpRequest,
     WithdrawalRequest,
-    DeltaCrownTransaction
+    DeltaCrownTransaction,
+    EconomyConfig,
 )
 from apps.user_profile.models import UserProfile
 
@@ -100,8 +101,10 @@ def topup_request(request):
         # Optional user note
         user_note = request.POST.get('user_note', '').strip()
         
-        # Get exchange rate (hardcoded for now, can be dynamic later)
-        dc_to_bdt_rate = Decimal('1.00')  # 1 DC = 1 BDT for simplicity
+        # Exchange rate from admin-configurable EconomyConfig (fixes 10x overvaluation).
+        # bdt_per_dc=0.10 means 1 DC = BDT 0.10, so 1 BDT buys 10 DC.
+        config = EconomyConfig.get_solo()
+        dc_to_bdt_rate = config.bdt_per_dc
         
         # Create top-up request
         topup = TopUpRequest.objects.create(
@@ -111,8 +114,8 @@ def topup_request(request):
             payment_method=payment_method,
             payment_number=payment_number,
             dc_to_bdt_rate=dc_to_bdt_rate,
+            bdt_amount=Decimal(str(amount)) * dc_to_bdt_rate,
             user_note=user_note,
-            requested_at=timezone.now()
         )
         
         elapsed_ms = int((time.time() - start_time) * 1000)
@@ -277,11 +280,10 @@ def withdraw_request(request):
         # Optional user note
         user_note = request.POST.get('user_note', '').strip()
         
-        # Get exchange rate (hardcoded for now)
-        dc_to_bdt_rate = Decimal('1.00')  # 1 DC = 1 BDT
-        
-        # Processing fee (e.g., 2% of amount)
-        processing_fee = int(amount * Decimal('0.02'))
+        # Exchange rate and fee from admin-configurable EconomyConfig.
+        config = EconomyConfig.get_solo()
+        dc_to_bdt_rate = config.bdt_per_dc
+        processing_fee = int(Decimal(str(amount)) * config.withdrawal_fee_pct / Decimal('100'))
         
         # Create withdrawal request
         withdrawal = WithdrawalRequest.objects.create(
@@ -292,8 +294,8 @@ def withdraw_request(request):
             payment_number=payment_number,
             dc_to_bdt_rate=dc_to_bdt_rate,
             processing_fee=processing_fee,
+            bdt_amount=Decimal(str(amount - processing_fee)) * dc_to_bdt_rate,
             user_note=user_note,
-            requested_at=timezone.now()
         )
         
         elapsed_ms = int((time.time() - start_time) * 1000)
