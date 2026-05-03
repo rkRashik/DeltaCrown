@@ -49,7 +49,7 @@
   function winnerLabel(tier, data) {
     if (tier && tier.winner && tier.winner.team_name) return esc(tier.winner.team_name);
     if (tier && tier.result_label) return esc(tier.result_label);
-    return isCompleted(data) ? 'Result pending' : 'Pending';
+    return ''; // No winner published yet — show nothing
   }
 
   function achievementRows(data) {
@@ -115,7 +115,9 @@
     var winnerTone = tier.winner && tier.winner.team_name ? 'text-white' : 'text-gray-500';
     var coinsLabel = tier.coins ? '+ ' + fmt(tier.coins) + ' DC' : '';
     var cert = tier.certificate_badge || {};
-    var winnerHtml = '<p class="text-sm font-bold ' + winnerTone + ' truncate mt-1">' + winner + '</p>';
+    var winnerHtml = winner
+      ? '<p class="text-sm font-bold ' + winnerTone + ' truncate mt-1">' + winner + '</p>'
+      : '';
     var coinsHtml = coinsLabel
       ? '<div class="inline-flex items-center gap-1.5 px-3 py-1 mt-3 rounded-lg bg-[#00F0FF]/10 border border-[#00F0FF]/20 text-xs font-bold text-[#00F0FF]"><i data-lucide="coins" class="w-3 h-3"></i><span>' + coinsLabel + '</span></div>'
       : '';
@@ -144,6 +146,9 @@
   }
 
   function renderPodium(data) {
+    // Only show the championship podium when tournament is completed and results are available.
+    // For in-progress tournaments, the prize structure is shown via renderExtendedTiers instead.
+    if (!isCompleted(data)) return;
     var top3 = (data.placements || []).slice(0, 3);
     if (!top3.length) return;
     var podium = document.getElementById('prize-engine-podium');
@@ -170,7 +175,7 @@
         '<div class="w-10 h-10 rounded-full bg-black/40 border border-white/5 flex items-center justify-center font-mono font-bold text-gray-400 text-sm shrink-0">' + ordinal(tier.rank) + '</div>',
         '<div class="min-w-0">',
         '<p class="text-sm font-bold text-white truncate">' + esc(tier.title || '') + '</p>',
-        '<p class="text-xs text-[#FFB800] mt-0.5 truncate">' + winner + '</p>',
+        winner ? '<p class="text-xs text-[#FFB800] mt-0.5 truncate">' + winner + '</p>' : '',
         '</div>',
         '</div>',
         '<div class="text-right shrink-0">',

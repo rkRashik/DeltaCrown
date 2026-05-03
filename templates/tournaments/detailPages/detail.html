@@ -1578,8 +1578,9 @@
                             <span id="prize-engine-finalized-badge" class="hidden text-[10px] font-mono text-dc-gold uppercase tracking-widest">Finalized</span>
                         </div>
                         <div id="prize-engine-placements" class="divide-y divide-white/5">
-                            {# Static fallback if JS is off — replaced with live data on enhance. #}
+                            {# If completed and results are in, show real winners; otherwise show prize structure. #}
                             {% if is_completed_phase and podium %}
+                            {# — Results published: show actual winner names + amounts — #}
                             {% for winner in podium|slice:":3" %}
                             <div class="flex items-center justify-between p-6 hover:bg-white/[0.02] transition-colors group">
                                 <div class="flex items-center gap-6">
@@ -1592,17 +1593,36 @@
                             </div>
                             {% endfor %}
                             {% else %}
+                            {# — Not yet completed: show prize structure with placement + prize amount — #}
                             <div class="flex items-center justify-between p-6 hover:bg-white/[0.02] transition-colors group">
-                                <div class="flex items-center gap-6"><div class="w-12 h-12 rounded-xl bg-black/50 border border-white/5 flex items-center justify-center font-display font-bold text-gray-400 text-lg">1st</div><span class="font-bold text-white text-base">Champion</span></div>
-                                <div class="flex items-center gap-8"><span class="font-display font-bold text-2xl text-white">{{ tournament.prize_distribution.1|default:'TBA' }}</span></div>
+                                <div class="flex items-center gap-6">
+                                    <div class="w-12 h-12 rounded-xl bg-dc-gold/10 border border-dc-gold/30 flex items-center justify-center font-display font-bold text-dc-gold text-lg">🥇</div>
+                                    <div>
+                                        <span class="font-bold text-white text-base">1st Place</span>
+                                        <p class="text-[10px] text-gray-500 uppercase tracking-widest mt-0.5">Champion</p>
+                                    </div>
+                                </div>
+                                <span class="font-display font-bold text-2xl text-white">{{ tournament.prize_distribution.1|default:'TBA' }}</span>
                             </div>
                             <div class="flex items-center justify-between p-6 hover:bg-white/[0.02] transition-colors group">
-                                <div class="flex items-center gap-6"><div class="w-12 h-12 rounded-xl bg-black/50 border border-white/5 flex items-center justify-center font-display font-bold text-gray-400 text-lg">2nd</div><span class="font-bold text-white text-base">Runner Up</span></div>
-                                <div class="flex items-center gap-8"><span class="font-display font-bold text-2xl text-white">{{ tournament.prize_distribution.2|default:'TBA' }}</span></div>
+                                <div class="flex items-center gap-6">
+                                    <div class="w-12 h-12 rounded-xl bg-gray-400/10 border border-gray-400/30 flex items-center justify-center font-display font-bold text-gray-300 text-lg">🥈</div>
+                                    <div>
+                                        <span class="font-bold text-white text-base">2nd Place</span>
+                                        <p class="text-[10px] text-gray-500 uppercase tracking-widest mt-0.5">Runner Up</p>
+                                    </div>
+                                </div>
+                                <span class="font-display font-bold text-2xl text-white">{{ tournament.prize_distribution.2|default:'TBA' }}</span>
                             </div>
                             <div class="flex items-center justify-between p-6 hover:bg-white/[0.02] transition-colors group">
-                                <div class="flex items-center gap-6"><div class="w-12 h-12 rounded-xl bg-black/50 border border-white/5 flex items-center justify-center font-display font-bold text-gray-400 text-lg">3rd</div><span class="font-bold text-white text-base">Third Place</span></div>
-                                <div class="flex items-center gap-8"><span class="font-display font-bold text-2xl text-white">{{ tournament.prize_distribution.3|default:'TBA' }}</span></div>
+                                <div class="flex items-center gap-6">
+                                    <div class="w-12 h-12 rounded-xl bg-amber-700/10 border border-amber-700/30 flex items-center justify-center font-display font-bold text-amber-600 text-lg">🥉</div>
+                                    <div>
+                                        <span class="font-bold text-white text-base">3rd Place</span>
+                                        <p class="text-[10px] text-gray-500 uppercase tracking-widest mt-0.5">Third Place</p>
+                                    </div>
+                                </div>
+                                <span class="font-display font-bold text-2xl text-white">{{ tournament.prize_distribution.3|default:'TBA' }}</span>
                             </div>
                             {% endif %}
                         </div>

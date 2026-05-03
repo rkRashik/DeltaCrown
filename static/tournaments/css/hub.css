@@ -2987,9 +2987,9 @@ body.hub-outcome-open {
   --hub-clean-surface-1: #161922;
   --hub-clean-surface-2: #17181f;
   --hub-clean-surface-3: rgba(255, 255, 255, 0.035);
-  --hub-clean-border: rgba(255, 255, 255, 0.08);
-  --hub-clean-border-strong: rgba(255, 255, 255, 0.14);
-  --hub-clean-border-soft: rgba(255, 255, 255, 0.06);
+  --hub-clean-border: rgba(255, 255, 255, 0.07);
+  --hub-clean-border-strong: rgba(255, 255, 255, 0.12);
+  --hub-clean-border-soft: rgba(255, 255, 255, 0.05);
   --hub-clean-text: #fafafa;
   --hub-clean-muted: #a1a1aa;
   --hub-clean-muted-strong: #d4d4d8;
@@ -2999,12 +2999,13 @@ body.hub-outcome-open {
   --hub-clean-warning: #f59e0b;
   --hub-clean-danger: #fb7185;
   --hub-overview-game-strong: color-mix(in srgb, var(--hub-game-primary) 62%, #ecfeff);
-  --hub-overview-game-soft: color-mix(in srgb, var(--hub-game-primary) 24%, transparent);
-  --hub-overview-game-faint: color-mix(in srgb, var(--hub-game-primary) 11%, transparent);
-  --hub-overview-glass-bg: linear-gradient(165deg, rgba(20, 21, 28, 0.78) 0%, rgba(9, 9, 11, 0.92) 100%);
-  --hub-overview-glass-shadow: 0 20px 44px -24px rgba(0, 0, 0, 0.92), inset 0 1px 0 rgba(255, 255, 255, 0.08);
-  --hub-overview-glass-shadow-hover: 0 26px 50px -24px rgba(0, 0, 0, 0.96), inset 0 1px 0 rgba(255, 255, 255, 0.12);
-  --hub-overview-system-card-bg: linear-gradient(166deg, rgba(14, 17, 26, 0.94) 0%, rgba(8, 10, 16, 0.98) 100%);
+  --hub-overview-game-soft: color-mix(in srgb, var(--hub-game-primary) 18%, transparent);
+  --hub-overview-game-faint: color-mix(in srgb, var(--hub-game-primary) 8%, transparent);
+  --hub-overview-glass-bg: linear-gradient(165deg, rgba(18, 20, 28, 0.88) 0%, rgba(9, 9, 11, 0.96) 100%);
+  --hub-overview-glass-shadow: 0 20px 44px -24px rgba(0, 0, 0, 0.92), inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  --hub-overview-glass-shadow-hover: 0 26px 50px -24px rgba(0, 0, 0, 0.96), inset 0 1px 0 rgba(255, 255, 255, 0.10);
+  /* Solid dark surface — no game color bleeding into card backgrounds */
+  --hub-overview-system-card-bg: linear-gradient(170deg, #13151e 0%, #0a0b10 100%);
 }
 
 body.hub-share-open {
@@ -3094,27 +3095,25 @@ body.hub-share-open {
 :where(.hub-overview-standby-card, .hub-overview-mission-card, .hub-overview-intel-card, .hub-overview-feed-card, .hub-overview-lower-card, .hub-overview-id-pass),
 .hub-overview-system-card {
   padding: clamp(1rem, 2vw, 1.16rem);
-  background:
-    radial-gradient(circle at 10% -12%, color-mix(in srgb, var(--hub-game-primary) 20%, transparent) 0%, transparent 44%),
-    radial-gradient(circle at 90% 118%, color-mix(in srgb, var(--hub-game-primary) 14%, transparent) 0%, transparent 54%),
-    var(--hub-overview-system-card-bg);
-  border-color: color-mix(in srgb, var(--hub-game-primary) 22%, rgba(255, 255, 255, 0.07));
-  box-shadow: 0 24px 46px -26px rgba(0, 0, 0, 0.95), inset 0 1px 0 rgba(255, 255, 255, 0.08);
-  transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1), border-color 260ms ease, box-shadow 260ms ease, background 260ms ease;
+  /* Clean dark surface — game color used ONLY in border accent, not background fill */
+  background: var(--hub-overview-system-card-bg);
+  border-color: color-mix(in srgb, var(--hub-game-primary) 8%, rgba(255, 255, 255, 0.07));
+  box-shadow: 0 24px 46px -26px rgba(0, 0, 0, 0.96), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1), border-color 260ms ease, box-shadow 260ms ease;
 }
 
 :where(.hub-overview-standby-card, .hub-overview-mission-card, .hub-overview-intel-card, .hub-overview-feed-card, .hub-overview-lower-card, .hub-overview-id-pass):hover,
 .hub-overview-system-card:hover {
   transform: translateY(-2px);
-  border-color: color-mix(in srgb, var(--hub-game-primary) 32%, rgba(255, 255, 255, 0.1));
-  box-shadow: 0 28px 52px -25px rgba(0, 0, 0, 0.96), inset 0 1px 0 rgba(255, 255, 255, 0.13), 0 0 20px color-mix(in srgb, var(--hub-game-primary) 10%, transparent);
+  border-color: color-mix(in srgb, var(--hub-game-primary) 18%, rgba(255, 255, 255, 0.10));
+  box-shadow: 0 28px 52px -25px rgba(0, 0, 0, 0.96), inset 0 1px 0 rgba(255, 255, 255, 0.09), 0 0 24px color-mix(in srgb, var(--hub-game-primary) 5%, transparent);
 }
 
 .hub-overview-system-card::before {
+  /* Only white top shimmer — no game color in card pseudo layer */
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.11) 0%, rgba(255, 255, 255, 0.012) 22%, transparent 38%),
-    linear-gradient(108deg, color-mix(in srgb, var(--hub-game-primary) 16%, transparent) 0%, transparent 45%),
-    radial-gradient(circle at 0% 0%, rgba(255, 255, 255, 0.08) 0%, transparent 26%);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.008) 18%, transparent 32%),
+    radial-gradient(circle at 0% 0%, rgba(255, 255, 255, 0.05) 0%, transparent 22%);
 }
 
 .hub-overview-card-head {

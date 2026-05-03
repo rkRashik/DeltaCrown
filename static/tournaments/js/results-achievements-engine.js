@@ -33,7 +33,7 @@
     if (row && row.winner && row.winner.team_name) return row.winner.team_name;
     if (row && row.team_name) return row.team_name;
     if (row && row.result_label) return row.result_label;
-    return 'Pending';
+    return ''; // No winner published yet — show nothing
   }
 
   function prizeLabel(data, prize) {
@@ -123,14 +123,17 @@
   }
 
   function podiumHtml(data) {
+    // Only render podium when the tournament is completed and results are available.
+    // Prevents showing empty "Pending" cards for in-progress tournaments.
+    var completed = !!(data.result_status && data.result_status.completed);
     var podium = (data.placements || []).slice(0, 3);
-    if (!podium.length) return '';
+    if (!completed || !podium.length) return '';
     var order = podium.length === 3 ? [1, 0, 2] : podium.map(function (_, i) { return i; });
     return [
       '<section class="' + PANEL + ' rounded-3xl p-6 lg:p-8">',
       '<div class="mb-8 flex items-center justify-between gap-4">',
       '<h3 class="font-display text-xl font-black text-white flex items-center gap-2"><i data-lucide="crown" class="h-5 w-5 text-[#FFD700]"></i> Championship Podium</h3>',
-      data.result_status && data.result_status.completed ? badge('Completed', 'green') : badge('In progress', 'gray'),
+      badge('Completed', 'green'),
       '</div>',
       '<div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 items-end">',
       order.map(function (idx) {
@@ -139,15 +142,16 @@
         var rank = Number(tier.rank) || idx + 1;
         var champion = rank === 1;
         var unresolved = !!tier.placement_unresolved;
+        var winner = winnerLabel(tier);
         return [
           '<div class="relative rounded-2xl border p-5 text-center transition ' + toneForRank(rank) + (champion ? ' md:-translate-y-5 shadow-[0_0_45px_rgba(255,215,0,0.14)]' : '') + '">',
           '<div class="absolute right-4 top-3 font-display text-6xl font-black text-white/5">' + rank + '</div>',
           '<div class="relative mx-auto mb-4 h-16 w-16">',
-          avatarHtml(winnerLabel(tier), tier, 'h-16 w-16 rounded-2xl'),
+          avatarHtml(winner || ordinal(rank), tier, 'h-16 w-16 rounded-2xl'),
           '<span class="absolute -right-2 -bottom-2 flex h-7 w-7 items-center justify-center rounded-xl border border-black/50 bg-black/80"><i data-lucide="' + (champion ? 'crown' : rank === 2 ? 'medal' : 'award') + '" class="h-4 w-4"></i></span>',
           '</div>',
           '<p class="text-[10px] font-black uppercase tracking-[0.25em]">' + ordinal(rank) + '</p>',
-          '<h4 class="mt-2 truncate font-display text-lg font-black text-white">' + esc(winnerLabel(tier)) + '</h4>',
+          winner ? '<h4 class="mt-2 truncate font-display text-lg font-black text-white">' + esc(winner) + '</h4>' : '',
           unresolved ? '<p class="mt-2 text-[10px] font-bold uppercase tracking-widest text-[#FFB800]">Placement unresolved</p>' : '',
           '<p class="mt-5 font-display text-2xl font-black text-white">' + money(data, tier.fiat) + '</p>',
           tier.coins ? '<p class="mt-1 text-xs font-mono text-[#00E5FF]">' + fmt(tier.coins) + ' DC</p>' : '',
@@ -160,8 +164,10 @@
   }
 
   function standingsHtml(data) {
+    // Only show standings when the tournament is completed.
+    var completed = !!(data.result_status && data.result_status.completed);
     var rows = data.standings && data.standings.length ? data.standings : (data.placements || []);
-    if (!rows.length) return '';
+    if (!completed || !rows.length) return '';
     return [
       '<section class="' + PANEL + ' rounded-3xl overflow-hidden">',
       '<div class="border-b border-white/5 px-6 py-5 flex items-center justify-between">',
@@ -177,9 +183,9 @@
           '<div class="grid grid-cols-12 gap-3 px-6 py-4 items-center">',
           '<div class="col-span-2 sm:col-span-1 text-xs font-mono text-[#00E5FF]">' + esc(row.rank_label || ordinal(rank)) + '</div>',
           '<div class="col-span-10 sm:col-span-5 min-w-0 flex items-center gap-3">',
-          avatarHtml(name, row, 'h-10 w-10 rounded-xl shrink-0'),
+          avatarHtml(name || ordinal(rank), row, 'h-10 w-10 rounded-xl shrink-0'),
           '<div class="min-w-0">',
-          '<p class="truncate text-sm font-bold text-white">' + esc(name) + '</p>',
+          name ? '<p class="truncate text-sm font-bold text-white">' + esc(name) + '</p>' : '',
           '<p class="mt-0.5 text-[10px] uppercase tracking-widest text-slate-500">' + esc(row.title || row.source || '') + '</p>',
           row.block_reason ? '<p class="mt-1 text-[10px] text-[#FFB800]">' + esc(row.block_reason) + '</p>' : '',
           '</div>',

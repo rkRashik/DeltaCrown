@@ -40,7 +40,7 @@
   function winnerLabel(tier, data) {
     if (tier && tier.winner && tier.winner.team_name) return esc(tier.winner.team_name);
     if (tier && tier.result_label) return esc(tier.result_label);
-    return isCompleted(data) ? 'Result pending' : 'Pending';
+    return ''; // No winner published yet — show nothing
   }
 
   function show(id) {
@@ -72,7 +72,7 @@
         '<div class="rounded-2xl border ' + accent + ' p-5 text-center">',
         '<div class="text-[10px] uppercase tracking-[0.25em] text-gray-400">' + ordinal(tier.rank) + '</div>',
         '<div class="text-lg font-display font-black text-white mt-1">' + esc(tier.title || '') + '</div>',
-        '<div class="text-sm text-dc-gold mt-2 truncate">' + winner + '</div>',
+        winner ? '<div class="text-sm text-dc-gold mt-2 truncate">' + winner + '</div>' : '',
         '<div class="text-2xl font-display font-black text-white mt-4">' + money(data, tier.fiat) + '</div>',
         tier.coins ? '<div class="text-xs font-mono text-dc-cyan mt-1">' + fmt(tier.coins) + ' DC</div>' : '',
         cert,
@@ -98,7 +98,7 @@
         '<div class="w-12 h-12 rounded-xl bg-black/50 border border-white/5 flex items-center justify-center font-display font-bold text-gray-400 text-lg">' + ordinal(tier.rank) + '</div>',
         '<div class="min-w-0">',
         '<div class="font-bold text-white text-base truncate">' + esc(tier.title || '') + '</div>',
-        '<div class="text-xs ' + winnerTone + ' mt-1 truncate">' + winnerName + '</div>',
+        winnerName ? '<div class="text-xs text-dc-gold mt-1 truncate">' + winnerName + '</div>' : '',
         '</div>',
         '</div>',
         '<div class="flex items-center gap-4 text-right shrink-0">',
