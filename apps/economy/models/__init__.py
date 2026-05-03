@@ -8,8 +8,9 @@ from .requests import TopUpRequest, WithdrawalRequest, PrizeClaim
 from .inventory import InventoryItem, UserInventoryItem
 from .social import GiftRequest, TradeRequest
 from .security import WalletPINOTP
-from .config import EconomyConfig, EconomyDashboard
+from .config import EconomyConfig, EconomyDashboard, FinancialFortress
 from .documentation import EconomyPlaybook
+from .audit import FortressAuditLog
 
 __all__ = [
     "DeltaCrownWallet",
@@ -25,5 +26,7 @@ __all__ = [
     "WalletPINOTP",
     "EconomyConfig",
     "EconomyDashboard",
+    "FinancialFortress",
     "EconomyPlaybook",
+    "FortressAuditLog",
 ]

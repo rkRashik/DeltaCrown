@@ -12,7 +12,7 @@
         <div class="flex items-center justify-between mb-8">
             <div>
                 <h1 class="text-4xl font-display font-bold text-white mb-2">Wallet Dashboard</h1>
-                <p class="text-gray-400">Manage your earnings, withdrawals, and transactions</p>
+                <p class="text-gray-400">Manage your DeltaCoin balance, transactions, and tournament prize claims</p>
             </div>
             <a href="{% url 'user_profile:settings' %}" class="text-gray-400 hover:text-white transition">
                 <i class="fa-solid fa-arrow-left mr-2"></i> Back to Settings
@@ -30,7 +30,7 @@
                 <p class="text-4xl font-bold text-white">
                     {{ wallet.balance|format_money_context:request }}
                 </p>
-                <p class="text-xs text-gray-500 mt-2">Ready for withdrawal</p>
+                <p class="text-xs text-gray-500 mt-2">Utility token — not redeemable for fiat</p>
             </div>
 
             <!-- Pending Balance -->
@@ -59,9 +59,15 @@
         </div>
 
         <!-- Quick Actions -->
-        <div class="flex flex-wrap gap-4 mb-8">
-            <a href="{% url 'economy:withdrawal_request' %}" class="bg-z-cyan text-black px-6 py-3 rounded-xl font-bold hover:bg-white transition flex items-center gap-2">
-                <i class="fa-solid fa-money-bill-transfer"></i> Withdraw Funds
+        <div class="flex flex-wrap gap-4 mb-3">
+            {# Top Up: visible & accessible on this settings page #}
+            <a href="{% url 'economy:deposit' %}" class="bg-z-green text-black px-6 py-3 rounded-xl font-bold hover:bg-white transition flex items-center gap-2">
+                <i class="fa-solid fa-plus"></i> Top Up
+            </a>
+            {# Claim Prizes: replaces Withdraw Funds — directs to Tournament Hub #}
+            <a href="#" {# TODO: {% url 'tournaments:my_tournaments' %} #}
+               class="bg-dc-warning text-black px-6 py-3 rounded-xl font-bold hover:bg-yellow-300 transition flex items-center gap-2">
+                <i class="fa-solid fa-trophy"></i> Claim Prizes
             </a>
             <a href="{% url 'economy:transaction_history' %}" class="bg-white/10 text-white px-6 py-3 rounded-xl font-bold hover:bg-white/20 transition flex items-center gap-2">
                 <i class="fa-solid fa-clock-rotate-left"></i> View Full History
@@ -70,13 +76,18 @@
                 <i class="fa-solid fa-credit-card"></i> Payment Methods
             </a>
         </div>
+        {# Compliance helper text — explains prize claim flow to users #}
+        <p class="text-sm text-gray-400 mb-8">
+            Tournament winnings are disbursed separately. Navigate to your specific
+            Tournament Hub to claim fiat prizes.
+        </p>
 
         <!-- Pending Withdrawals -->
         {% if pending_withdrawals %}
         <div class="glass-panel p-6 mb-8 border-l-4 border-l-yellow-500">
             <h3 class="font-bold text-white text-lg mb-4 flex items-center gap-2">
                 <i class="fa-solid fa-hourglass-half text-yellow-500"></i>
-                Pending Withdrawals
+                Pending Requests
             </h3>
             <div class="space-y-3">
                 {% for withdrawal in pending_withdrawals %}

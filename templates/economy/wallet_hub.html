@@ -1,0 +1,577 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Wallet Hub — DeltaCrown{% endblock %}
+
+{% block extra_css %}
+<style nonce="{{ request.csp_nonce }}">
+    .wh-glass { background: rgba(18,18,22,0.7); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.05); }
+    .wh-card  { background: linear-gradient(145deg,rgba(255,255,255,0.03) 0%,rgba(0,0,0,0.2) 100%); border: 1px solid rgba(255,255,255,0.05); }
+    .tab-content { display:none; animation: whFadeIn .3s ease-in-out; }
+    .tab-content.active { display:block; }
+    @keyframes whFadeIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+    .nav-item.active  { color:#10b981; border-color:#10b981 !important; background:rgba(16,185,129,.1); }
+    .mobile-nav-item.active { color:#10b981; }
+    ::-webkit-scrollbar{width:6px} ::-webkit-scrollbar-track{background:transparent} ::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:10px}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex flex-col md:flex-row pb-16 md:pb-0" style="background:#0a0a0c;color:#fff">
+
+    <aside class="hidden md:flex flex-col w-64 wh-glass border-r border-dc-border h-screen sticky top-0">
+        <div class="p-6 border-b border-dc-border flex items-center gap-3">
+            <i class="fa-solid fa-crown text-emerald-400 text-2xl"></i>
+            <span class="font-bold text-xl tracking-wider">Economy Hub</span>
+        </div>
+        <div class="p-4 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Wallet</div>
+        <nav class="flex-1 px-4 space-y-2" id="desktop-nav">
+            <button data-tab="overview" class="nav-item active w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-400 hover:text-white hover:bg-white/5 transition border border-transparent text-left font-medium">
+                <i class="fa-solid fa-layer-group w-5"></i> Overview
+            </button>
+            <button data-tab="acquire" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-400 hover:text-white hover:bg-white/5 transition border border-transparent text-left font-medium">
+                <i class="fa-solid fa-cart-plus w-5"></i> Acquire DC
+            </button>
+            <button data-tab="ledger" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-400 hover:text-white hover:bg-white/5 transition border border-transparent text-left font-medium">
+                <i class="fa-solid fa-receipt w-5"></i> Ledger History
+            </button>
+            <button data-tab="claims" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-400 hover:text-white hover:bg-white/5 transition border border-transparent text-left font-medium relative">
+                <i class="fa-solid fa-trophy w-5"></i> Prize Claims
+                {% if pending_claims_count %}<span class="absolute right-4 bg-dc-gold text-black text-[10px] font-bold px-1.5 py-0.5 rounded-full">{{ pending_claims_count }}</span>{% endif %}
+            </button>
+            <button data-tab="rules" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-400 hover:text-white hover:bg-white/5 transition border border-transparent text-left font-medium mt-8 border-t border-dc-border">
+                <i class="fa-solid fa-scale-balanced w-5"></i> Economy Rules
+            </button>
+        </nav>
+    </aside>
+
+    <nav class="md:hidden fixed bottom-0 w-full wh-glass border-t border-dc-border z-[60] px-2 py-2 flex justify-around items-center" id="mobile-nav">
+        <button data-tab="overview" class="mobile-nav-item active flex flex-col items-center gap-1 p-2 text-gray-400 w-16">
+            <i class="fa-solid fa-layer-group text-lg"></i>
+            <span class="text-[10px] font-medium">Overview</span>
+        </button>
+        <button data-tab="acquire" class="mobile-nav-item flex flex-col items-center gap-1 p-2 text-gray-400 w-16">
+            <i class="fa-solid fa-cart-plus text-lg"></i>
+            <span class="text-[10px] font-medium">Store</span>
+        </button>
+        <button data-tab="ledger" class="mobile-nav-item flex flex-col items-center gap-1 p-2 text-gray-400 w-16">
+            <i class="fa-solid fa-receipt text-lg"></i>
+            <span class="text-[10px] font-medium">History</span>
+        </button>
+        <button data-tab="claims" class="mobile-nav-item flex flex-col items-center gap-1 p-2 text-gray-400 w-16 relative">
+            <i class="fa-solid fa-trophy text-lg"></i>
+            {% if pending_claims_count %}<span class="absolute top-1 right-2 bg-dc-gold text-black text-[8px] font-bold px-1 rounded-full">{{ pending_claims_count }}</span>{% endif %}
+            <span class="text-[10px] font-medium">Claims</span>
+        </button>
+        <button data-tab="rules" class="mobile-nav-item flex flex-col items-center gap-1 p-2 text-gray-400 w-16">
+            <i class="fa-solid fa-scale-balanced text-lg"></i>
+            <span class="text-[10px] font-medium">Rules</span>
+        </button>
+    </nav>
+
+    <main class="flex-1 overflow-y-auto p-4 md:p-8 w-full max-w-5xl mx-auto">
+
+        <header class="md:hidden flex items-center justify-between mb-6">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-crown text-dc-primary"></i>
+                <span class="font-bold tracking-wider">DELTACROWN</span>
+            </div>
+            <div class="bg-black/50 border border-white/10 px-3 py-1 rounded-full flex items-center gap-2">
+                <span class="text-dc-gold font-bold text-sm" id="mobile-header-balance">{{ wallet.cached_balance|default:0 }} DC</span>
+            </div>
+        </header>
+
+        <section id="tab-overview" class="tab-content active space-y-6">
+            <div class="wh-card rounded-2xl p-6 md:p-8 relative overflow-hidden">
+                <div class="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none"></div>
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 relative z-10">
+                    <div>
+                        <p class="text-gray-400 font-medium mb-1 flex items-center gap-2">
+                            <i class="fa-solid fa-shield-halved text-emerald-400 text-xs"></i> 
+                            Official Competitive Asset
+                            <i class="fa-solid fa-circle-info text-xs cursor-pointer text-gray-500 hover:text-white transition" title="DC is used for platform services and cannot be withdrawn."></i>
+                        </p>
+                        <h1 class="text-5xl md:text-6xl font-bold flex items-center gap-3">
+                            <i class="fa-solid fa-coins text-dc-gold"></i>
+                            <span id="overview-balance">{{ wallet.cached_balance|default:0 }}</span>
+                            <span class="text-2xl text-gray-500 font-normal">DC</span>
+                        </h1>
+                    </div>
+                    <div class="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+                        <button data-action="switchTab" data-tab-target="acquire" class="bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 px-6 rounded-xl transition shadow-[0_0_15px_rgba(16,185,129,0.3)] flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-plus"></i> Acquire DC
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="wh-card rounded-2xl p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-bold">Recent Activity</h3>
+                        <button data-action="switchTab" data-tab-target="ledger" class="text-xs text-emerald-400 hover:underline">View All</button>
+                    </div>
+                    <div class="space-y-3">
+                        {% for tx in transactions|slice:":3" %}
+                        <div class="flex justify-between items-center pb-3 border-b border-white/5 last:border-0 last:pb-0">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs {% if tx.amount > 0 %}bg-emerald-500/20 text-emerald-400{% else %}bg-red-500/20 text-red-400{% endif %}">
+                                    <i class="fa-solid {% if tx.amount > 0 %}fa-arrow-down{% else %}fa-arrow-up{% endif %}"></i>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium">{{ tx.get_reason_display }}</p>
+                                    <p class="text-xs text-gray-500">{{ tx.created_at|date:"j M Y" }}</p>
+                                </div>
+                            </div>
+                            <span class="font-bold text-sm {% if tx.amount > 0 %}text-emerald-400{% else %}text-red-400{% endif %}">
+                                {% if tx.amount > 0 %}+{% endif %}{{ tx.amount }}
+                            </span>
+                        </div>
+                        {% empty %}
+                        <div class="text-center text-sm text-gray-500 py-4">No recent transactions.</div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="wh-card rounded-2xl p-6 border-t-2 border-t-dc-gold">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-bold flex items-center gap-2"><i class="fa-solid fa-trophy text-dc-gold"></i> Pending Prize Claims</h3>
+                    </div>
+                    {% with active_claims=claims %}
+                    {% for claim in active_claims %}
+                    {% if claim.status == 'pending' or claim.status == 'verifying_kyc' %}
+                    <div class="bg-black/40 border border-dc-gold/30 rounded-xl p-4 flex justify-between items-center mb-3">
+                        <div>
+                            <p class="font-bold text-sm">{{ claim.tournament_name }}</p>
+                            <p class="text-xs text-gray-400">{{ claim.get_payment_method_display }}</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="font-bold text-dc-gold">৳{{ claim.amount_bdt }}</p>
+                            <span class="text-[10px] bg-yellow-500/20 text-yellow-500 px-2 py-0.5 rounded border border-yellow-500/30">{{ claim.get_status_display|upper }}</span>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% empty %}
+                    <div class="text-center text-sm text-gray-500 py-4">No pending claims.</div>
+                    {% endfor %}
+                    {% endwith %}
+                    <button data-action="switchTab" data-tab-target="claims" class="w-full mt-4 text-sm font-medium border border-white/10 hover:bg-white/5 py-2 rounded-lg transition">Manage Claims</button>
+                </div>
+            </div>
+        </section>
+
+        <section id="tab-acquire" class="tab-content space-y-6">
+            
+            <div class="bg-amber-500/10 border border-amber-500/30 rounded-xl p-5 flex items-start gap-4">
+                <div class="bg-amber-500/20 p-2 rounded-lg mt-0.5">
+                    <i class="fa-solid fa-hourglass-half text-amber-500 text-xl"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold text-amber-500 text-lg mb-1">Store Launching Soon</h3>
+                    <p class="text-sm text-gray-300">The DeltaCoin acquisition gateway is currently undergoing final regulatory checks. You can browse the packages, but transactions are temporarily disabled.</p>
+                </div>
+            </div>
+
+            <div>
+                <h2 class="text-2xl font-bold mb-2 flex items-center gap-2">
+                    Digital Asset Store 
+                    <span class="text-[10px] bg-gray-700 text-gray-300 px-2 py-1 rounded uppercase tracking-widest font-bold">Preview Mode</span>
+                </h2>
+                <p class="text-gray-400 text-sm">Purchase DeltaCoin packages to enter premium tournaments and bounties.</p>
+            </div>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {% for pkg in packages %}
+                <div class="wh-card rounded-2xl p-5 relative overflow-hidden group border border-white/5 hover:border-emerald-500/50 transition cursor-pointer package-selector"
+                     data-pkg-id="{{ pkg.id }}" data-pkg-name="{{ pkg.name|escapejs }}" data-pkg-dc="{{ pkg.dc }}" data-pkg-price="{{ pkg.price_bdt }}">
+                    {% if pkg.popular %}
+                    <div class="absolute top-0 right-0 bg-emerald-500 text-[10px] font-bold px-3 py-1 rounded-bl-xl text-black">BEST VALUE</div>
+                    {% endif %}
+                    <div class="w-12 h-12 rounded-xl bg-black/50 border border-white/5 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                        <i class="fa-solid {{ pkg.icon }} text-dc-gold text-xl"></i>
+                    </div>
+                    <h3 class="font-bold text-lg text-white mb-1">{{ pkg.name }}</h3>
+                    <div class="flex items-end justify-between mt-4">
+                        <div class="flex items-center gap-1">
+                            <span class="text-xl font-bold">{{ pkg.dc }}</span>
+                            <span class="text-xs text-gray-500">DC</span>
+                        </div>
+                        <div class="bg-white/10 px-3 py-1 rounded-lg font-medium text-sm">৳{{ pkg.price_bdt }}</div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="col-span-3 text-center py-10 text-gray-500">Packages are being configured...</div>
+                {% endfor %}
+            </div>
+        </section>
+
+        <section id="tab-ledger" class="tab-content space-y-6">
+            <div>
+                <h2 class="text-2xl font-bold mb-2">Ledger History</h2>
+                <p class="text-gray-400 text-sm">A complete record of your DeltaCoin utility usage.</p>
+            </div>
+            <div class="wh-card rounded-2xl overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm whitespace-nowrap">
+                        <thead class="bg-black/40 border-b border-dc-border text-gray-400">
+                            <tr>
+                                <th class="px-6 py-4 font-medium">Transaction</th>
+                                <th class="px-6 py-4 font-medium">Date</th>
+                                <th class="px-6 py-4 font-medium">Ref</th>
+                                <th class="px-6 py-4 font-medium text-right">Amount (DC)</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-dc-border">
+                            {% for tx in transactions %}
+                            <tr class="hover:bg-white/5 transition">
+                                <td class="px-6 py-4">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs {% if tx.amount > 0 %}bg-emerald-500/20 text-emerald-400{% else %}bg-red-500/20 text-red-400{% endif %}">
+                                            <i class="fa-solid {% if tx.amount > 0 %}fa-arrow-down{% else %}fa-arrow-up{% endif %}"></i>
+                                        </div>
+                                        <span class="font-medium">{{ tx.get_reason_display }}{% if tx.note %} — {{ tx.note }}{% endif %}</span>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 text-gray-400">{{ tx.created_at|date:"j M Y" }}</td>
+                                <td class="px-6 py-4 text-gray-500 font-mono text-xs">#{{ tx.id }}</td>
+                                <td class="px-6 py-4 text-right font-bold {% if tx.amount > 0 %}text-emerald-400{% else %}text-red-400{% endif %}">
+                                    {% if tx.amount > 0 %}+{% endif %}{{ tx.amount }}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="4" class="px-6 py-8 text-center text-gray-500">No ledger history available.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% if transactions %}
+            <a href="{% url 'economy:transaction_history' %}" class="text-emerald-400 hover:underline text-sm text-center block mt-2">View complete history →</a>
+            {% endif %}
+        </section>
+
+        <section id="tab-claims" class="tab-content space-y-6">
+            <div>
+                <h2 class="text-2xl font-bold mb-2">Prize Claims</h2>
+                <p class="text-gray-400 text-sm">Claim your real-world fiat winnings from official tournaments.</p>
+            </div>
+            <div class="bg-dc-gold/10 border border-dc-gold/30 rounded-xl p-4 flex items-start gap-3">
+                <i class="fa-solid fa-shield-halved text-dc-gold mt-1"></i>
+                <div class="text-sm">
+                    <p class="font-bold text-dc-gold mb-1">KYC Verification Required</p>
+                    <p class="text-gray-300">To comply with local regulations, fiat prize disbursements require identity verification. Please ensure your National ID details match your payment account.</p>
+                </div>
+            </div>
+            {% for claim in claims %}
+            <div class="wh-card rounded-2xl p-6">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4 pb-4 border-b border-dc-border">
+                    <div>
+                        <h3 class="font-bold text-lg">{{ claim.tournament_name }}</h3>
+                        <p class="text-gray-400 text-sm">Submitted {{ claim.submitted_at|date:"j M Y" }}</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-2xl font-bold text-white">৳{{ claim.amount_bdt }} BDT</p>
+                        {% if claim.status == 'pending' %}
+                        <span class="inline-block mt-1 text-[10px] bg-yellow-500/20 text-yellow-500 px-2 py-0.5 rounded border border-yellow-500/30">PENDING REVIEW</span>
+                        {% elif claim.status == 'verifying_kyc' %}
+                        <span class="inline-block mt-1 text-[10px] bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded border border-blue-500/30">VERIFYING KYC</span>
+                        {% elif claim.status == 'paid' %}
+                        <span class="inline-block mt-1 text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded border border-emerald-500/30">PAID</span>
+                        {% elif claim.status == 'rejected' %}
+                        <span class="inline-block mt-1 text-[10px] bg-red-500/20 text-red-400 px-2 py-0.5 rounded border border-red-500/30">REJECTED</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4 text-sm">
+                    <div><p class="text-gray-500 text-xs uppercase tracking-wider mb-1">Method</p><p class="font-medium">{{ claim.get_payment_method_display }}</p></div>
+                    <div><p class="text-gray-500 text-xs uppercase tracking-wider mb-1">Account</p><p class="font-mono text-xs">{{ claim.account_details|truncatechars:40 }}</p></div>
+                </div>
+                {% if claim.admin_note and claim.status == 'rejected' %}
+                <div class="mt-4 bg-red-500/10 border border-red-500/30 rounded-xl p-3 text-sm text-red-400">{{ claim.admin_note }}</div>
+                {% elif claim.admin_note and claim.status == 'paid' %}
+                <div class="mt-4 bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-3 text-sm text-emerald-400">Transfer ref: {{ claim.admin_note }}</div>
+                {% endif %}
+            </div>
+            {% empty %}
+            <div class="wh-card rounded-2xl p-12 text-center">
+                <i class="fa-solid fa-trophy text-5xl text-gray-700 mb-4 block"></i>
+                <h3 class="font-bold text-lg mb-2">No pending tournament claims.</h3>
+                <p class="text-gray-500 text-sm mb-6">Win an official tournament to receive a fiat prize disbursement ticket.</p>
+                <a href="{% url 'tournaments:list' %}" class="bg-dc-gold text-black font-bold py-2 px-6 rounded-xl hover:bg-yellow-300 transition text-sm">Browse Tournaments</a>
+            </div>
+            {% endfor %}
+        </section>
+
+        <section id="tab-rules" class="tab-content space-y-6">
+            <div class="wh-card rounded-2xl p-8 bg-gradient-to-br from-black/80 to-emerald-900/10 border-emerald-500/20">
+                <div class="flex flex-col md:flex-row gap-6 items-center md:items-start">
+                    <div class="w-20 h-20 rounded-2xl bg-black border border-emerald-500/30 flex items-center justify-center shrink-0 shadow-[0_0_20px_rgba(16,185,129,0.2)]">
+                        <i class="fa-solid fa-crown text-4xl text-emerald-400"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-2xl font-bold mb-2">What is DeltaCoin (DC)?</h2>
+                        <p class="text-gray-300 leading-relaxed text-sm">
+                            DeltaCoin (DC) is the official, secure competitive asset of the DeltaCrown ecosystem. It is a <strong>closed-loop utility token</strong> designed exclusively to fuel your esports journey. You use DC to enter premium tournaments, place wagers in challenges, and claim bounties. <br><br>
+                            <span class="text-amber-400 font-bold"><i class="fa-solid fa-triangle-exclamation"></i> Important:</span> DC is not cryptocurrency and holds no real-world fiat value. It cannot be withdrawn, cashed out, or exchanged back into BDT.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <h3 class="text-lg font-bold border-b border-white/10 pb-2 mt-8">Core Economic Principles</h3>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="wh-card rounded-2xl p-6">
+                    <div class="w-10 h-10 rounded-full bg-dc-gold/20 flex items-center justify-center mb-4 border border-dc-gold/30">
+                        <i class="fa-solid fa-money-bill-wave text-dc-gold"></i>
+                    </div>
+                    <h3 class="font-bold text-lg mb-2">Fiat Prize Separation</h3>
+                    <p class="text-sm text-gray-400 leading-relaxed">Official tournament prize pools advertised in BDT (Fiat) are completely separate from the DeltaCoin system. If you win an official tournament, you will generate a "Prize Claim" ticket. Admins will verify your identity (KYC) and disburse the real cash directly to your Mobile Financial Service (MFS) like bKash or Nagad.</p>
+                </div>
+
+                <div class="wh-card rounded-2xl p-6">
+                    <div class="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center mb-4 border border-blue-500/30">
+                        <i class="fa-solid fa-handshake-angle text-blue-400"></i>
+                    </div>
+                    <h3 class="font-bold text-lg mb-2">The Escrow Engine</h3>
+                    <p class="text-sm text-gray-400 leading-relaxed">When engaging in 1v1 challenges or bounties, both players' DC is temporarily deducted and held in a neutral "Escrow" state. Funds are only released automatically to the victor upon verified match completion. If a match is cancelled, the DC is instantly refunded.</p>
+                </div>
+
+                <div class="wh-card rounded-2xl p-6 md:col-span-2 flex flex-col md:flex-row items-center gap-6">
+                    <div class="w-12 h-12 rounded-full bg-purple-500/20 flex items-center justify-center border border-purple-500/30 shrink-0">
+                        <i class="fa-solid fa-scale-balanced text-purple-400 text-xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-lg mb-2">Wager Limits & Integrity</h3>
+                        <p class="text-sm text-gray-400 leading-relaxed">To prevent fraud in non-API (manual screenshot) games, DeltaCrown enforces a strict maximum wager limit of <strong>1,000 DC</strong> per challenge. Games with direct API integrations (like Valorant) have higher limits due to automated result verification.</p>
+                    </div>
+                </div>
+                
+                <div class="wh-card rounded-2xl p-6 border border-white/10 flex flex-col items-center justify-center text-center md:col-span-2">
+                    <i class="fa-solid fa-book-open text-3xl text-gray-600 mb-3"></i>
+                    <h3 class="font-bold mb-1">Legal Transparency</h3>
+                    <a href="/legal/terms/" class="text-sm text-emerald-400 hover:underline">View complete Terms of Service &amp; Legal Compliance</a>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <div id="payment-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] hidden items-center justify-center opacity-0 transition-opacity duration-300">
+        <div class="wh-card w-full max-w-md rounded-2xl p-6 transform scale-95 transition-transform duration-300" id="payment-modal-content">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="font-bold text-lg">Acquire DeltaCoin</h3>
+                <button id="close-modal-btn" class="text-gray-500 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            
+            <div class="mb-5 text-center p-4 bg-black/30 rounded-xl border border-white/5">
+                <p class="text-sm text-gray-400">Total Payable</p>
+                <p class="text-3xl font-bold text-white" id="modal-price">৳0</p>
+                <p class="text-xs text-emerald-400 mt-1 font-bold" id="modal-item">Acquiring: 0 DC</p>
+            </div>
+
+            <div class="space-y-4 mb-6">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Sender Mobile Number</label>
+                    <input type="text" id="modal-number" placeholder="e.g. 017XXXXXXXX"
+                           class="w-full bg-black/60 border border-dc-border rounded-xl px-4 py-3 text-white focus:outline-none focus:border-emerald-500 transition">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Transaction ID (TrxID)</label>
+                    <input type="text" id="modal-trxid" placeholder="e.g. 8A7B6C5D4E"
+                           class="w-full bg-black/60 border border-dc-border rounded-xl px-4 py-3 text-white focus:outline-none focus:border-emerald-500 transition font-mono uppercase">
+                </div>
+            </div>
+
+            <p id="modal-error" class="text-xs text-red-400 mb-3 hidden text-center"></p>
+            
+            <div class="space-y-3">
+                <button data-action="processPayment" data-gateway="bkash" class="w-full bg-[#e2136e] hover:bg-[#c10f5d] text-white font-bold py-3 px-4 rounded-xl transition flex justify-between items-center group">
+                    <span>Verify bKash Payment</span>
+                    <i class="fa-solid fa-arrow-right opacity-0 group-hover:opacity-100 transition"></i>
+                </button>
+                <button data-action="processPayment" data-gateway="nagad" class="w-full bg-[#f26522] hover:bg-[#d65518] text-white font-bold py-3 px-4 rounded-xl transition flex justify-between items-center group">
+                    <span>Verify Nagad Payment</span>
+                    <i class="fa-solid fa-arrow-right opacity-0 group-hover:opacity-100 transition"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+</div>{% endblock %}
+
+{% block extra_js %}
+<script nonce="{{ request.csp_nonce }}">
+    // ── State ──────────────────────────────────────────────────────────────
+    let selectedPkg = null;
+    const csrfNode = document.querySelector('[name=csrfmiddlewaretoken]');
+    const CSRF = csrfNode ? csrfNode.value : '{{ csrf_token }}';
+    const TOPUP_URL = "{% url 'economy:topup_request' %}";
+
+    // ── Tab Navigation ─────────────────────────────────────────────────────
+    function switchTab(tabId) {
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.nav-item, .mobile-nav-item').forEach(el => el.classList.remove('active'));
+        
+        const targetTab = document.getElementById('tab-' + tabId);
+        if(targetTab) targetTab.classList.add('active');
+        
+        document.querySelectorAll('[data-tab="' + tabId + '"]').forEach(el => el.classList.add('active'));
+        window.scrollTo(0, 0);
+    }
+
+    // ── Payment Modal Functions ────────────────────────────────────────────
+    const modal = document.getElementById('payment-modal');
+    const modalContent = document.getElementById('payment-modal-content');
+
+    function openPaymentModal(id, name, dc, price) {
+        selectedPkg = { id, name, dc, price };
+        document.getElementById('modal-price').innerText = '৳' + price;
+        document.getElementById('modal-item').innerText = 'Acquiring: ' + dc.toLocaleString() + ' DC';
+        
+        // Reset fields
+        document.getElementById('modal-number').value = '';
+        document.getElementById('modal-trxid').value = '';
+        document.getElementById('modal-error').classList.add('hidden');
+        
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        
+        setTimeout(() => { 
+            modal.classList.remove('opacity-0'); 
+            modalContent.classList.remove('scale-95'); 
+        }, 10);
+    }
+
+    function closeModal() {
+        modal.classList.add('opacity-0'); 
+        modalContent.classList.add('scale-95');
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }, 300);
+        selectedPkg = null;
+    }
+
+    // ── Payment Processor (COMING SOON OVERRIDE) ────────────────────────────
+    function processPayment(gateway) {
+        if (!selectedPkg) return;
+        
+        const number = document.getElementById('modal-number').value.trim();
+        const trxid = document.getElementById('modal-trxid').value.trim();
+        const errEl = document.getElementById('modal-error');
+        
+        // Basic validation just to make it feel real
+        if (!number || number.length < 11) {
+            errEl.textContent = 'Please enter a valid 11-digit mobile number.';
+            errEl.classList.remove('hidden'); 
+            return;
+        }
+        if (!trxid || trxid.length < 6) {
+            errEl.textContent = 'Please enter a valid Transaction ID (TrxID).';
+            errEl.classList.remove('hidden'); 
+            return;
+        }
+        
+        errEl.classList.add('hidden');
+        closeModal();
+        
+        // ==========================================
+        // COMING SOON: Block the actual API Call
+        // ==========================================
+        setTimeout(() => {
+            if (window.showToast) {
+                window.showToast({ 
+                    type: 'warning', 
+                    message: 'The DeltaCoin store is launching soon! Top-ups are currently disabled while we finalize regulatory checks.',
+                    duration: 6000
+                });
+            } else {
+                alert('The DeltaCoin store is launching soon! Top-ups are currently disabled.');
+            }
+        }, 300);
+
+        /* // FUTURE PRODUCTION CODE:
+        // (Uncomment this and remove the block above when the store is live)
+        
+        overlay.classList.remove('hidden'); 
+        overlay.classList.add('flex');
+
+        try {
+            const resp = await fetch(TOPUP_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+                body: JSON.stringify({
+                    amount: selectedPkg.price,
+                    payment_method: gateway,
+                    payment_number: number,
+                    user_note: 'Store: ' + selectedPkg.name + ' | TrxID: ' + trxid
+                })
+            });
+            const data = await resp.json();
+            
+            overlay.classList.remove('flex'); 
+            overlay.classList.add('hidden');
+            
+            if (resp.ok) {
+                if (window.showToast) window.showToast({ type:'success', message:'Top-up request submitted! DC will be credited after admin review.' });
+                switchTab('overview');
+            } else {
+                const msg = data.error || data.detail || 'Request failed. Please try again.';
+                if (window.showToast) window.showToast({ type:'error', message: msg });
+            }
+        } catch(err) {
+            overlay.classList.remove('flex'); 
+            overlay.classList.add('hidden');
+            if (window.showToast) window.showToast({ type:'error', message:'Network error. Please check your connection.' });
+        }
+        */
+    }
+
+    // ── Safe Event Listeners Binding ───────────────────────────────────────
+    document.addEventListener('DOMContentLoaded', () => {
+        
+        // 1. Initial Routing based on ?tab= URL param
+        const tab = new URLSearchParams(window.location.search).get('tab');
+        const valid = ['overview','acquire','ledger','claims','rules'];
+        if (tab && valid.includes(tab)) switchTab(tab);
+
+        // 2. Bind Navigation Tab Buttons
+        document.querySelectorAll('.nav-item, .mobile-nav-item').forEach(btn => {
+            btn.addEventListener('click', e => switchTab(e.currentTarget.dataset.tab));
+        });
+
+        // 3. Bind Quick Action Buttons
+        document.querySelectorAll('[data-action="switchTab"]').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                switchTab(e.currentTarget.dataset.tabTarget);
+            });
+        });
+
+        // 4. Bind Package Selection Cards
+        document.querySelectorAll('.package-selector').forEach(card => {
+            card.addEventListener('click', (e) => {
+                const ds = e.currentTarget.dataset;
+                openPaymentModal(ds.pkgId, ds.pkgName, parseInt(ds.pkgDc), parseInt(ds.pkgPrice));
+            });
+        });
+
+        // 5. Bind Modal Close Buttons
+        const closeBtn = document.getElementById('close-modal-btn');
+        if (closeBtn) closeBtn.addEventListener('click', closeModal);
+        
+        if (modal) {
+            modal.addEventListener('click', e => { 
+                if (e.target === modal) closeModal(); 
+            });
+        }
+
+        // 6. Bind Payment Gateway Buttons
+        document.querySelectorAll('[data-action="processPayment"]').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                processPayment(e.currentTarget.dataset.gateway);
+            });
+        });
+    });
+</script>
+{% endblock %}

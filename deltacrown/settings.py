@@ -2002,80 +2002,16 @@ if _HAS_UNFOLD:
                     },
                 ],
             },
-            # ── Finance & Rewards ──
+            # ── Finance & Rewards ── (Fortress-managed; ALL ledger access via Fortress SPA only)
             {
                 "title": "Finance & Rewards",
                 "separator": True,
                 "items": [
                     {
-                        "title": "Economy Dashboard",
-                        "icon": "monitoring",
-                        "link": reverse_lazy("admin:economy_dashboard"),
-                    },
-                    {
-                        "title": "Economy Config",
-                        "icon": "tune",
-                        "link": reverse_lazy("admin:economy_economyconfig_changelist"),
-                    },
-                    {
-                        "title": "Wallets",
-                        "icon": "account_balance_wallet",
-                        "link": reverse_lazy("admin:economy_deltacrownwallet_changelist"),
-                    },
-                    {
-                        "title": "Transactions",
-                        "icon": "receipt_long",
-                        "link": reverse_lazy("admin:economy_deltacrowntransaction_changelist"),
-                    },
-                    {
-                        "title": "Top-Up Requests",
-                        "icon": "add_card",
-                        "link": reverse_lazy("admin:economy_topuprequest_changelist"),
-                    },
-                    {
-                        "title": "Withdrawals",
-                        "icon": "money_off",
-                        "link": reverse_lazy("admin:economy_withdrawalrequest_changelist"),
-                    },
-                    {
-                        "title": "Prize Payouts",
-                        "icon": "paid",
-                        "link": reverse_lazy("admin:tournaments_prizetransaction_changelist"),
-                    },
-                    {
-                        "title": "Prize Claims",
-                        "icon": "redeem",
-                        "link": reverse_lazy("admin:tournaments_prizeclaim_changelist"),
-                    },
-                    {
-                        "title": "Certificates",
-                        "icon": "card_membership",
-                        "link": reverse_lazy("admin:tournaments_certificate_changelist"),
-                    },
-                    {
-                        "title": "Coin Policy",
-                        "icon": "policy",
-                        "link": reverse_lazy("admin:economy_coinpolicy_changelist"),
-                    },
-                    {
-                        "title": "Gift Requests",
-                        "icon": "card_giftcard",
-                        "link": reverse_lazy("admin:economy_giftrequest_changelist"),
-                    },
-                    {
-                        "title": "Trade Requests",
-                        "icon": "swap_horiz",
-                        "link": reverse_lazy("admin:economy_traderequest_changelist"),
-                    },
-                    {
-                        "title": "Inventory Items",
-                        "icon": "inventory_2",
-                        "link": reverse_lazy("admin:economy_inventoryitem_changelist"),
-                    },
-                    {
-                        "title": "User Inventory",
-                        "icon": "backpack",
-                        "link": reverse_lazy("admin:economy_userinventoryitem_changelist"),
+                        "title": "\U0001f6e1\ufe0f Financial Fortress",
+                        "icon": "shield",
+                        "link": reverse_lazy("economy:fortress_dashboard"),
+                        "permission": lambda request: request.user.is_superuser,
                     },
                 ],
             },

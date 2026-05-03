@@ -754,8 +754,29 @@
           <div class="absolute -right-16 -top-16 w-48 h-48 bg-dc-warning/10 rounded-full blur-[60px] pointer-events-none group-hover:bg-dc-warning/20 transition-all"></div>
           <div class="relative z-10">
             <div class="flex items-center justify-between mb-6">
+              {# ── Crown Vault Title with DC Info Tooltip ── #}
               <h3 class="text-sm font-bold text-white flex items-center gap-2">
                 <i class="fa-solid fa-vault text-dc-warning"></i> Crown Vault
+                {# DC closed-loop info tooltip #}
+                <span class="relative group/tooltip">
+                  <svg class="w-3.5 h-3.5 text-dc-textMuted hover:text-white transition-colors cursor-help" viewBox="0 0 20 20" fill="currentColor" aria-label="What is DeltaCoin?">
+                    <circle cx="10" cy="10" r="9" fill="none" stroke="currentColor" stroke-width="1.5"/>
+                    <text x="10" y="14.5" text-anchor="middle" font-size="11" font-weight="bold" fill="currentColor">i</text>
+                  </svg>
+                  <span class="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-full mb-2 z-50
+                               hidden group-hover/tooltip:flex flex-col
+                               w-64 p-3 rounded-xl
+                               bg-black/80 backdrop-blur-md
+                               border border-white/10
+                               shadow-2xl">
+                    <span class="text-[10px] text-gray-200 leading-relaxed">
+                      DeltaCoin (DC) is a non-withdrawable utility token for entry fees and platform assets.
+                      Fiat tournament prizes are claimed directly from the Tournament Hub.
+                    </span>
+                    <span class="absolute left-1/2 -translate-x-1/2 top-full -mt-px
+                                 border-4 border-transparent border-t-white/10"></span>
+                  </span>
+                </span>
               </h3>
               <a href="{% url 'economy:transaction_history' %}" class="text-dc-textMuted hover:text-white transition-colors no-underline">
                 <i class="fa-solid fa-clock-rotate-left text-sm"></i>
@@ -767,23 +788,26 @@
                 <span class="text-dc-warning font-bold text-lg">DC</span>
               </div>
               <div class="flex items-center gap-2 mt-2">
-                <p class="text-xs text-dc-textMuted font-medium">≈ <span x-text="wallet.bdtEquiv.toLocaleString()"></span> BDT Value</p>
+                {# BDT fiat equivalent removed — DC is a closed-loop utility token (compliance) #}
                 <span x-show="wallet.pending > 0" class="w-1 h-1 bg-white/[0.2] rounded-full"></span>
                 <p class="text-xs text-dc-success font-medium" x-show="wallet.pending > 0">+<span x-text="wallet.pending"></span> Pending</p>
               </div>
             </div>
             <div class="grid grid-cols-2 gap-3 mb-4">
-              <a href="{% url 'economy:deposit' %}" class="p-3.5 rounded-xl bg-dc-success/10 border border-dc-success/30 hover:bg-dc-success hover:text-black text-dc-success font-bold text-sm transition-all active:scale-[0.98] flex items-center justify-center gap-3 no-underline group">
-                <div class="w-9 h-9 rounded-full bg-dc-success/20 flex items-center justify-center group-hover:bg-black/20 transition shrink-0">
+              {# Top Up — opens Wallet Hub on the Acquire tab #}
+              <a href="{% url 'economy:wallet_hub' %}?tab=acquire" class="p-3.5 rounded-xl border border-white/20 hover:bg-white/5 text-white/70 font-bold text-sm transition-all active:scale-[0.98] flex items-center justify-center gap-3 no-underline group">
+                <div class="w-9 h-9 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-white/10 transition shrink-0">
                   <i class="fa-solid fa-plus text-base"></i>
                 </div>
                 <span class="uppercase text-xs tracking-wider font-bold">Top Up</span>
               </a>
-              <a href="{% url 'economy:withdraw' %}" class="p-3.5 rounded-xl bg-white/[0.05] border border-white/[0.1] hover:bg-white hover:text-black text-white font-bold text-sm transition-all active:scale-[0.98] flex items-center justify-center gap-3 no-underline group">
-                <div class="w-9 h-9 rounded-full bg-white/[0.1] flex items-center justify-center group-hover:bg-black/20 transition shrink-0">
-                  <i class="fa-solid fa-arrow-right-from-bracket text-base"></i>
+              {# Claim Prizes — opens Wallet Hub on the Claims tab #}
+              <a href="{% url 'economy:wallet_hub' %}?tab=claims"
+                 class="p-3.5 rounded-xl bg-dc-warning/10 border border-dc-warning/40 hover:bg-dc-warning hover:text-black text-dc-warning font-bold text-sm transition-all active:scale-[0.98] flex items-center justify-center gap-3 no-underline group">
+                <div class="w-9 h-9 rounded-full bg-dc-warning/20 flex items-center justify-center group-hover:bg-black/20 transition shrink-0">
+                  <i class="fa-solid fa-trophy text-base"></i>
                 </div>
-                <span class="uppercase text-xs tracking-wider font-bold">Cash Out</span>
+                <span class="uppercase text-xs tracking-wider font-bold">Claim Prizes</span>
               </a>
             </div>
 

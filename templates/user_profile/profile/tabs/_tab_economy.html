@@ -30,14 +30,32 @@
             </div>
 
             <div class="relative z-10 my-auto">
-                <div class="text-[10px] text-gray-400 uppercase font-bold mb-1">Available Balance</div>
+                <div class="flex items-center gap-2 text-[10px] text-gray-400 uppercase font-bold mb-1">
+                    <span>Available Balance</span>
+                    {# DC closed-loop info tooltip #}
+                    <span class="relative group/tooltip">
+                        <svg class="w-3 h-3 text-gray-600 hover:text-gray-400 transition-colors cursor-help" viewBox="0 0 20 20" fill="currentColor">
+                            <circle cx="10" cy="10" r="9" fill="none" stroke="currentColor" stroke-width="1.5"/>
+                            <text x="10" y="14.5" text-anchor="middle" font-size="11" font-weight="bold" fill="currentColor">i</text>
+                        </svg>
+                        <span class="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-full mb-2 z-50
+                                     hidden group-hover/tooltip:flex flex-col
+                                     w-64 p-3 rounded-xl
+                                     bg-black/85 backdrop-blur-md
+                                     border border-white/10 shadow-2xl">
+                            <span class="text-[10px] text-gray-200 leading-relaxed">
+                                DeltaCoin (DC) is a non-withdrawable utility token for entry fees and platform assets.
+                                Fiat tournament prizes are claimed directly from the Tournament Hub.
+                            </span>
+                            <span class="absolute left-1/2 -translate-x-1/2 top-full -mt-px
+                                         border-4 border-transparent border-t-white/10"></span>
+                        </span>
+                    </span>
+                </div>
                 <div class="text-5xl font-display font-black text-white tracking-tighter drop-shadow-lg flex items-center gap-2">
                     {{ wallet_balance|floatformat:0|default:"0" }} <span class="text-2xl text-z-gold mb-1">DC</span>
                 </div>
-                <div class="inline-flex items-center gap-1 mt-1 bg-white/5 px-2 py-0.5 rounded border border-white/5">
-                    <i class="fa-solid fa-arrow-right-arrow-left text-[9px] text-gray-400"></i>
-                    <span class="text-xs font-mono font-bold text-gray-300">≈ {{ wallet_balance|mul:0.1|floatformat:0 }} BDT</span>
-                </div>
+                {# BDT fiat equivalent removed — DC is a closed-loop utility token (compliance) #}
             </div>
 
             <div class="flex justify-between items-end relative z-10">
@@ -56,20 +74,27 @@
         <div class="glass-panel p-6 rounded-2xl flex flex-col justify-center gap-4">
             <h3 class="text-white font-bold text-lg">Quick Actions</h3>
             <div class="grid grid-cols-2 gap-4">
-                <button id="topup-btn" class="p-4 rounded-xl bg-z-green/10 border border-z-green/30 hover:bg-z-green hover:text-black text-z-green font-bold flex flex-col items-center justify-center gap-2 transition group">
+                {# Top Up — opens Wallet Hub on the Acquire tab #}
+                <a href="{% url 'economy:wallet_hub' %}?tab=acquire"
+                   id="topup-btn"
+                   class="p-4 rounded-xl bg-z-green/10 border border-z-green/30 hover:bg-z-green hover:text-black text-z-green font-bold flex flex-col items-center justify-center gap-2 transition group no-underline">
                     <div class="w-10 h-10 rounded-full bg-z-green/20 flex items-center justify-center group-hover:bg-black/20 transition">
                         <i class="fa-solid fa-plus text-lg"></i>
                     </div>
                     <span class="uppercase text-xs tracking-wider">Top Up</span>
-                </button>
-                <button id="withdraw-btn" class="p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white hover:text-black text-white font-bold flex flex-col items-center justify-center gap-2 transition group">
-                    <div class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center group-hover:bg-black/20 transition">
-                        <i class="fa-solid fa-arrow-right-from-bracket text-lg"></i>
+                </a>
+                {# Claim Prizes — opens Wallet Hub on the Claims tab #}
+                <a href="{% url 'economy:wallet_hub' %}?tab=claims"
+                   id="claim-prizes-btn"
+                   class="p-4 rounded-xl bg-z-gold/10 border border-z-gold/30 hover:bg-z-gold hover:text-black text-z-gold font-bold flex flex-col items-center justify-center gap-2 transition group no-underline">
+                    <div class="w-10 h-10 rounded-full bg-z-gold/20 flex items-center justify-center group-hover:bg-black/20 transition">
+                        <i class="fa-solid fa-trophy text-lg"></i>
                     </div>
-                    <span class="uppercase text-xs tracking-wider">Cash Out</span>
-                </button>
+                    <span class="uppercase text-xs tracking-wider">Claim Prizes</span>
+                </a>
             </div>
-            <a href="/transactions/" class="w-full py-3 rounded-xl border border-z-gold/30 text-z-gold font-bold hover:bg-z-gold hover:text-black transition flex items-center justify-center gap-2 text-sm uppercase">
+            {# Ledger — opens Wallet Hub on the Ledger tab #}
+            <a href="{% url 'economy:wallet_hub' %}?tab=ledger" class="w-full py-3 rounded-xl border border-z-gold/30 text-z-gold font-bold hover:bg-z-gold hover:text-black transition flex items-center justify-center gap-2 text-sm uppercase no-underline">
                 <i class="fa-solid fa-clock-rotate-left"></i> Transaction History
             </a>
         </div>
@@ -84,7 +109,7 @@
                 </div>
                 <h3 class="text-sm font-bold text-white uppercase tracking-widest">Recent Activity</h3>
             </div>
-            <div class="text-xs text-gray-500 font-mono">1 DC = 0.1 BDT</div>
+            <div class="text-xs text-gray-600 font-mono">{# DC rate display removed — closed-loop economy #}</div>
         </div>
         <table class="w-full text-left text-sm">
             <thead class="bg-black/20 text-[10px] uppercase text-gray-500 font-bold">
@@ -219,112 +244,7 @@
 </div>
 {% endif %}
 
-{% if relationship_ctx.is_owner %}
-<!-- Top-Up Modal -->
-<div id="topup-modal" class="fixed inset-0 bg-black/90 backdrop-blur-xl z-[9999] hidden items-center justify-center p-4">
-    <div class="glass-panel p-8 rounded-3xl max-w-md w-full relative animate-scale-up border-2 border-z-green/30">
-        <button id="topup-modal-close" class="absolute top-4 right-4 text-gray-400 hover:text-white"><i class="fa-solid fa-times text-xl"></i></button>
-        
-        <div class="mb-6 flex items-center gap-3">
-            <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-z-green to-z-cyan flex items-center justify-center">
-                <i class="fa-solid fa-plus text-white text-xl"></i>
-            </div>
-            <div>
-                <h3 class="text-white font-bold text-xl font-display">Top Up DeltaCrown</h3>
-                <p class="text-gray-400 text-xs">Request pending admin approval</p>
-            </div>
-        </div>
-        
-        <form id="topup-form" class="space-y-4">
-            <div>
-                <label class="text-white text-sm font-bold mb-2 block">Amount (DC)</label>
-                <input type="number" id="topup-amount" min="10" placeholder="Minimum 10 DC" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white font-bold focus:outline-none focus:border-z-green" required>
-                <p class="text-gray-500 text-xs mt-1">1 DC = 1 BDT</p>
-            </div>
-            
-            <div>
-                <label class="text-white text-sm font-bold mb-2 block">Payment Method</label>
-                <select id="topup-method" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white font-bold focus:outline-none focus:border-z-green" required>
-                    <option value="">Select method</option>
-                    <option value="bkash">bKash</option>
-                    <option value="nagad">Nagad</option>
-                    <option value="rocket">Rocket</option>
-                    <option value="bank">Bank Transfer</option>
-                </select>
-            </div>
-            
-            <div>
-                <label class="text-white text-sm font-bold mb-2 block">Payment Number</label>
-                <input type="text" id="topup-number" placeholder="e.g., 01712345678" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white font-bold focus:outline-none focus:border-z-green" required>
-            </div>
-            
-            <div>
-                <label class="text-white text-sm font-bold mb-2 block">Note (Optional)</label>
-                <textarea id="topup-note" rows="2" placeholder="Any additional notes..." class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm resize-none focus:outline-none focus:border-z-green"></textarea>
-            </div>
-            
-            <div id="topup-error-message" class="text-xs text-red-400 mt-1 hidden"></div>
-            
-            <button type="submit" class="w-full py-3 rounded-xl bg-z-green text-black font-bold hover:bg-z-cyan transition uppercase text-sm">Submit Request</button>
-        </form>
-    </div>
-</div>
 
-<!-- Withdrawal Modal -->
-<div id="withdraw-modal" class="fixed inset-0 bg-black/90 backdrop-blur-xl z-[9999] hidden items-center justify-center p-4">
-    <div class="glass-panel p-8 rounded-3xl max-w-md w-full relative animate-scale-up border-2 border-white/30">
-        <button id="withdraw-modal-close" class="absolute top-4 right-4 text-gray-400 hover:text-white"><i class="fa-solid fa-times text-xl"></i></button>
-        
-        <div class="mb-6 flex items-center gap-3">
-            <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-white to-gray-300 flex items-center justify-center">
-                <i class="fa-solid fa-arrow-right-from-bracket text-black text-xl"></i>
-            </div>
-            <div>
-                <h3 class="text-white font-bold text-xl font-display">Cash Out</h3>
-                <p class="text-gray-400 text-xs">Available: {{ wallet_balance|floatformat:0|default:"0" }} DC</p>
-            </div>
-        </div>
-        
-        <form id="withdraw-form" class="space-y-4">
-            <div>
-                <label class="text-white text-sm font-bold mb-2 block">Amount (DC)</label>
-                <input type="number" id="withdraw-amount" min="50" max="{{ wallet_balance|floatformat:0|default:0 }}" placeholder="Minimum 50 DC" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white font-bold focus:outline-none focus:border-white" required>
-                <p class="text-gray-500 text-xs mt-1">Processing fee: 2% | 1 DC = 1 BDT</p>
-            </div>
-            
-            <div>
-                <label class="text-white text-sm font-bold mb-2 block">Payment Method</label>
-                <select id="withdraw-method" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white font-bold focus:outline-none focus:border-white" required>
-                    <option value="">Select method</option>
-                    <option value="bkash">bKash</option>
-                    <option value="nagad">Nagad</option>
-                    <option value="rocket">Rocket</option>
-                    <option value="bank">Bank Transfer</option>
-                </select>
-            </div>
-            
-            <div>
-                <label class="text-white text-sm font-bold mb-2 block">Account Number</label>
-                <input type="text" id="withdraw-number" placeholder="e.g., 01712345678" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white font-bold focus:outline-none focus:border-white" required>
-            </div>
-            
-            <div>
-                <label class="text-white text-sm font-bold mb-2 block">Wallet PIN</label>
-                <input type="password" id="withdraw-pin" maxlength="6" placeholder="6-digit PIN" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white font-bold focus:outline-none focus:border-white" required>
-                <p class="text-gray-500 text-xs mt-1">Enter your wallet PIN to authorize withdrawal</p>
-            </div>
-            
-            <div>
-                <label class="text-white text-sm font-bold mb-2 block">Note (Optional)</label>
-                <textarea id="withdraw-note" rows="2" placeholder="Any additional notes..." class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm resize-none focus:outline-none focus:border-white"></textarea>
-            </div>
-            
-            <div id="withdraw-error-message" class="text-xs text-red-400 mt-1 hidden"></div>
-            
-            <button type="submit" class="w-full py-3 rounded-xl bg-white text-black font-bold hover:bg-gray-200 transition uppercase text-sm">Submit Request</button>
-        </form>
-    </div>
-</div>
 
 <script nonce="{{ request.csp_nonce }}">
 (function() {
@@ -624,193 +544,7 @@
     // Make loadWalletRequests global for retry button
     window.loadWalletRequests = loadWalletRequests;
     
-    // ========================================================================
-    // Modal Controls & Form Handlers
-    // ========================================================================
-    
-    // Modal controls
-    const topupBtn = document.getElementById('topup-btn');
-    const withdrawBtn = document.getElementById('withdraw-btn');
-    const topupModal = document.getElementById('topup-modal');
-    const withdrawModal = document.getElementById('withdraw-modal');
-    const topupModalClose = document.getElementById('topup-modal-close');
-    const withdrawModalClose = document.getElementById('withdraw-modal-close');
-    const topupForm = document.getElementById('topup-form');
-    const withdrawForm = document.getElementById('withdraw-form');
-    
-    // Helper functions for inline errors
-    function showError(elementId, message) {
-        const errorDiv = document.getElementById(elementId);
-        errorDiv.innerHTML = message; // Use innerHTML to support links
-        errorDiv.classList.remove('hidden');
-    }
-    
-    function hideError(elementId) {
-        const errorDiv = document.getElementById(elementId);
-        errorDiv.classList.add('hidden');
-    }
-    
-    if (!topupBtn || !withdrawBtn || !topupModal || !withdrawModal) return;
-    
-    // Open modals
-    topupBtn.addEventListener('click', () => {
-        topupModal.classList.remove('hidden');
-        topupModal.classList.add('flex');
-    });
-    
-    withdrawBtn.addEventListener('click', () => {
-        withdrawModal.classList.remove('hidden');
-        withdrawModal.classList.add('flex');
-    });
-    
-    // Close modals
-    topupModalClose.addEventListener('click', () => {
-        topupModal.classList.add('hidden');
-        topupModal.classList.remove('flex');
-    });
-    
-    withdrawModalClose.addEventListener('click', () => {
-        withdrawModal.classList.add('hidden');
-        withdrawModal.classList.remove('flex');
-    });
-    
-    // Click outside to close
-    topupModal.addEventListener('click', (e) => {
-        if (e.target === topupModal) {
-            topupModal.classList.add('hidden');
-            topupModal.classList.remove('flex');
-        }
-    });
-    
-    withdrawModal.addEventListener('click', (e) => {
-        if (e.target === withdrawModal) {
-            withdrawModal.classList.add('hidden');
-            withdrawModal.classList.remove('flex');
-        }
-    });
-    
-    // Handle Top-Up Form Submission
-    topupForm.addEventListener('submit', async function(e) {
-        e.preventDefault();
-        hideError('topup-error-message');
-        
-        const amount = document.getElementById('topup-amount').value;
-        const method = document.getElementById('topup-method').value;
-        const number = document.getElementById('topup-number').value;
-        const note = document.getElementById('topup-note').value;
-        
-        const submitBtn = topupForm.querySelector('button[type=submit]');
-        submitBtn.disabled = true;
-        submitBtn.textContent = 'Submitting...';
-        
-        try {
-            const formData = new FormData();
-            formData.append('amount', amount);
-            formData.append('payment_method', method);
-            formData.append('payment_number', number);
-            formData.append('user_note', note);
-            
-            const response = await fetch('/api/topup/request/', {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || ''
-                },
-                body: formData
-            });
-            
-            const contentType = response.headers.get('content-type');
-            if (!contentType || !contentType.includes('application/json')) {
-                throw new Error('Server returned non-JSON response');
-            }
-            
-            const data = await response.json();
-            
-            if (data.success) {
-                topupModal.classList.add('hidden');
-                topupModal.classList.remove('flex');
-                topupForm.reset();
-                // Refresh requests list instead of full page reload
-                if (window.loadWalletRequests) {
-                    window.loadWalletRequests();
-                }
-                // UP-PHASE7.7: Show toast notification
-                showToast('Top-up request submitted successfully! Admin will review shortly.', 'success');
-            } else {
-                showError('topup-error-message', data.error || 'Failed to submit request');
-            }
-        } catch (error) {
-            console.error('Error submitting top-up:', error);
-            showError('topup-error-message', error.message || 'Failed to submit request. Please try again.');
-        } finally {
-            submitBtn.disabled = false;
-            submitBtn.textContent = 'Submit Request';
-        }
-    });
-    
-    // Handle Withdrawal Form Submission
-    withdrawForm.addEventListener('submit', async function(e) {
-        e.preventDefault();
-        hideError('withdraw-error-message');
-        
-        const amount = document.getElementById('withdraw-amount').value;
-        const method = document.getElementById('withdraw-method').value;
-        const number = document.getElementById('withdraw-number').value;
-        const pin = document.getElementById('withdraw-pin').value;
-        const note = document.getElementById('withdraw-note').value;
-        
-        const submitBtn = withdrawForm.querySelector('button[type=submit]');
-        submitBtn.disabled = true;
-        submitBtn.textContent = 'Submitting...';
-        
-        try {
-            const formData = new FormData();
-            formData.append('amount', amount);
-            formData.append('payment_method', method);
-            formData.append('payment_number', number);
-            formData.append('pin', pin);
-            formData.append('user_note', note);
-            
-            const response = await fetch('/api/withdraw/request/', {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || ''
-                },
-                body: formData
-            });
-            
-            const contentType = response.headers.get('content-type');
-            if (!contentType || !contentType.includes('application/json')) {
-                throw new Error('Server returned non-JSON response. The route may not exist.');
-            }
-            
-            const data = await response.json();
-            
-            if (data.success) {
-                withdrawModal.classList.add('hidden');
-                withdrawModal.classList.remove('flex');
-                withdrawForm.reset();
-                // Refresh requests list instead of full page reload
-                if (window.loadWalletRequests) {
-                    window.loadWalletRequests();
-                }
-                // UP-PHASE7.7: Show toast notification
-                showToast('Withdrawal request submitted successfully! You will be notified when approved.', 'success');
-            } else {
-                let errorMsg = data.error || 'Failed to submit request';
-                // UP-PHASE7.7: Link to Settings → Wallet menu for PIN setup
-                if (errorMsg.includes('set up') || errorMsg.includes('PIN') && errorMsg.includes('before')) {
-                    errorMsg += ' <a href="/me/settings/#billing" class="text-z-gold hover:underline">Set up PIN in Settings →</a>';
-                }
-                showError('withdraw-error-message', errorMsg);
-            }
-        } catch (error) {
-            console.error('Error submitting withdrawal:', error);
-            showError('withdraw-error-message', error.message || 'Failed to submit request. Please try again.');
-        } finally {
-            submitBtn.disabled = false;
-            submitBtn.textContent = 'Submit Request';
-        }
-    });
+    // ── End of loadWalletRequests section ─────────────────────────────────
 })();
 </script>
 {% endif %}

@@ -19,16 +19,29 @@ from .models import (
     EconomyConfig, EconomyDashboard, TopUpRequest, WalletPINOTP,
     WithdrawalRequest,   # DEPRECATED — kept for admin visibility of legacy rows
     PrizeClaim,
+    FinancialFortress,
 )
 
 
-@admin.register(DeltaCrownWallet)
+# [FORTRESS] DeltaCrownWallet — unregistered; managed exclusively via Financial Fortress
+# @admin.register(DeltaCrownWallet)
 class DeltaCrownWalletAdmin(ModelAdmin):
     list_display = ("id", "treasury_badge", "profile_display", "cached_balance", "updated_at")
     search_fields = ("profile__user__username", "profile__user__email", "profile__public_id")
     readonly_fields = ("created_at", "updated_at", "cached_balance", "is_treasury")
     autocomplete_fields = ("profile",)
     actions = ["recalculate_balances", "reconcile_to_profile", "adjust_balance"]
+
+    # ── Fortress lock: only superusers may create or delete wallet rows ───────
+    def has_add_permission(self, request):
+        return request.user.is_superuser
+
+    def has_delete_permission(self, request, obj=None):
+        return request.user.is_superuser
+
+    def has_change_permission(self, request, obj=None):
+        """Staff may view but not edit wallet rows directly; use Fortress for mutations."""
+        return request.user.is_superuser
 
     # ------------------------------------------------------------------
     # Display helpers
@@ -199,7 +212,8 @@ class WalletPINOTPAdmin(ModelAdmin):
     validity_status.short_description = "Status"
 
 
-@admin.register(TopUpRequest)
+# [FORTRESS] TopUpRequest — unregistered; managed exclusively via Financial Fortress
+# @admin.register(TopUpRequest)
 class TopUpRequestAdmin(ModelAdmin):
     list_display = ['id', 'wallet_link', 'amount', 'bdt_display', 'payment_method', 'status_badge', 'requested_at', 'reviewed_by_display']
     list_filter = ['status', 'payment_method', 'requested_at', 'reviewed_at']
@@ -352,8 +366,14 @@ class AdjustForm(forms.Form):
     note = forms.CharField(required=False, max_length=255)
 
 
-@admin.register(DeltaCrownTransaction)
+# [FORTRESS] DeltaCrownTransaction — immutable ledger; no admin access
+# @admin.register(DeltaCrownTransaction)
 class DeltaCrownTransactionAdmin(ModelAdmin):
+    """
+    Immutable ledger admin — ALL mutations are blocked.
+    Transactions are only ever created programmatically through services.py
+    or the Financial Fortress. Direct admin editing is forbidden.
+    """
     list_display = (
         "id",
         "wallet",
@@ -366,20 +386,31 @@ class DeltaCrownTransactionAdmin(ModelAdmin):
         "created_by",
         "created_at",
     )
-    list_filter = ("reason",)  # Removed "tournament" filter (legacy app removed)
+    list_filter = ("reason",)
     search_fields = (
         "wallet__profile__user__username",
         "wallet__profile__user__email",
         "idempotency_key",
         "note",
     )
+    # Every field is read-only — the ledger is immutable by design
     readonly_fields = (
+        "wallet", "amount", "reason", "note", "created_by",
+        "idempotency_key", "cached_balance_after",
+        "tournament_id", "registration_id", "match_id",
         "created_at",
-        "cached_balance_after",  # Populated at creation; never mutable
-        "tournament_id", "registration_id", "match_id",  # Legacy fields
     )
-    autocomplete_fields = ("wallet", "created_by")  # Removed tournament/registration/match (legacy)
-    actions = ["export_csv"]  # adjust_balance moved to DeltaCrownWalletAdmin (Bug #6 fix)
+    actions = ["export_csv"]
+
+    # ── Fortress lock: ledger rows are NEVER editable from the admin ──────────
+    def has_add_permission(self, request):
+        return False  # Transactions created only via services.py / Fortress API
+
+    def has_change_permission(self, request, obj=None):
+        return False  # Ledger is immutable — no direct edits ever
+
+    def has_delete_permission(self, request, obj=None):
+        return False  # Preserve audit trail — no deletions ever
 
     @admin.action(description="Export selected rows to CSV")
     def export_csv(self, request, queryset):
@@ -446,7 +477,8 @@ class DeltaCrownTransactionAdmin(ModelAdmin):
 # 3. Use apps.get_model() to avoid direct imports
 
 
-@admin.register(WithdrawalRequest)
+# [FORTRESS] WithdrawalRequest — deprecated; read-only audit via Fortress
+# @admin.register(WithdrawalRequest)
 class WithdrawalRequestAdmin(ModelAdmin):
     """
     [DEPRECATED] Legacy DC-to-Fiat withdrawal admin.
@@ -507,7 +539,8 @@ class WithdrawalRequestAdmin(ModelAdmin):
     reviewed_by_display.short_description = 'Reviewed By'
 
 
-@admin.register(PrizeClaim)
+# [FORTRESS] PrizeClaim — managed exclusively via Financial Fortress
+# @admin.register(PrizeClaim)
 class PrizeClaimAdmin(ModelAdmin):
     """
     Admin interface for official tournament prize disbursements (BDT fiat).
@@ -629,7 +662,8 @@ class PrizeClaimAdmin(ModelAdmin):
                               level=messages.WARNING)
 
 
-@admin.register(CoinPolicy)
+# [FORTRESS] CoinPolicy — legacy; read-only via Fortress audit log
+# @admin.register(CoinPolicy)
 class CoinPolicyAdmin(ModelAdmin):
     list_display = ['tournament_id', 'enabled', 'participation', 'top4', 'runner_up', 'winner', 'created_at']
     list_filter = ['enabled', 'created_at']
@@ -658,7 +692,8 @@ class CoinPolicyAdmin(ModelAdmin):
 from .models import EconomyPlaybook
 
 
-@admin.register(EconomyPlaybook)
+# [FORTRESS] EconomyPlaybook — internal doc; no admin editing
+# @admin.register(EconomyPlaybook)
 class EconomyPlaybookAdmin(ModelAdmin):
     """
     Admin-editable knowledge base for internal economy rules and SOPs.
@@ -1060,3 +1095,123 @@ class EconomyDashboardAdmin(ModelAdmin):
     # ── Delete stays blocked — never expose a destructive action ──────────
     def has_delete_permission(self, request, obj=None):
         return False
+
+
+# =============================================================================
+# FINANCIAL FORTRESS SIDEBAR PROXY ADMIN  (Phase A — Fortress entry point)
+# =============================================================================
+
+# [FORTRESS] FinancialFortress proxy — sidebar link now injected via UNFOLD SIDEBAR config
+# @admin.register(FinancialFortress)
+class FinancialFortressAdmin(ModelAdmin):
+    """
+    Superuser-only navigation shim that creates the '🛡️ Financial Fortress'
+    entry in the Django Admin sidebar.
+
+    Clicking the link immediately 302s to the secure fortress_dashboard view.
+    All four Django permission checks return True ONLY for superusers so the
+    link is invisible to regular staff / partial admins.
+    """
+
+    def changelist_view(self, request, extra_context=None):
+        from django.http import HttpResponseRedirect
+        if not request.user.is_superuser:
+            from django.core.exceptions import PermissionDenied
+            raise PermissionDenied("Financial Fortress: superuser access required.")
+        return HttpResponseRedirect(reverse("economy:fortress_dashboard"))
+
+    # ── All four must return True for the sidebar link to render ──────────
+    def has_module_permission(self, request):
+        return request.user.is_superuser
+
+    def has_view_permission(self, request, obj=None):
+        return request.user.is_superuser
+
+    def has_change_permission(self, request, obj=None):
+        return request.user.is_superuser
+
+    def has_add_permission(self, request):
+        return request.user.is_superuser
+
+    def has_delete_permission(self, request, obj=None):
+        return False  # Never expose a destructive action on a proxy shim
+
+
+# =============================================================================
+# FORTRESS READ-ONLY RE-REGISTRATION
+# =============================================================================
+# The 8 ledger models below were previously unregistered to prevent manual
+# corruption.  However, un-registering them breaks existing templates that
+# reference their changelist URLs via {% url 'admin:economy_..._changelist' %}.
+#
+# FIX: Re-register every model using thin subclasses that inherit from
+# ReadOnlyFortressMixin FIRST (highest MRO priority), making them view-only:
+# → has_add_permission    → False
+# → has_change_permission → False
+# → has_delete_permission → False
+#
+# All ledger mutations must go through the Fortress API service layer only.
+# =============================================================================
+
+class ReadOnlyFortressMixin:
+    """
+    Fortress security mixin: makes any ModelAdmin fully read-only.
+    All three write-permission methods unconditionally return False,
+    overriding any methods defined in the subclass or base ModelAdmin.
+
+    Signatures match Django's ModelAdmin calling convention exactly:
+      has_add_permission(request, obj=None)
+      has_change_permission(request, obj=None)
+      has_delete_permission(request, obj=None)
+    """
+    def has_add_permission(self, request, obj=None):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    def has_view_permission(self, request, obj=None):
+        """Explicitly allow viewing — read-only means read, not blind."""
+        return request.user.is_active and (request.user.is_staff or request.user.is_superuser)
+
+
+# Import models that need to be re-registered (not already imported above)
+from .models import EconomyPlaybook  # noqa: E402  (imported at module scope)
+
+
+@admin.register(DeltaCrownWallet)
+class _ReadOnlyWalletAdmin(ReadOnlyFortressMixin, DeltaCrownWalletAdmin):
+    """View-only mirror of DeltaCrownWalletAdmin — write paths blocked."""
+
+
+@admin.register(DeltaCrownTransaction)
+class _ReadOnlyTransactionAdmin(ReadOnlyFortressMixin, DeltaCrownTransactionAdmin):
+    """View-only mirror of DeltaCrownTransactionAdmin — write paths blocked."""
+
+
+@admin.register(TopUpRequest)
+class _ReadOnlyTopUpAdmin(ReadOnlyFortressMixin, TopUpRequestAdmin):
+    """View-only mirror of TopUpRequestAdmin — write paths blocked."""
+
+
+@admin.register(WithdrawalRequest)
+class _ReadOnlyWithdrawalAdmin(ReadOnlyFortressMixin, WithdrawalRequestAdmin):
+    """View-only mirror of WithdrawalRequestAdmin — write paths blocked."""
+
+
+@admin.register(PrizeClaim)
+class _ReadOnlyPrizeClaimAdmin(ReadOnlyFortressMixin, PrizeClaimAdmin):
+    """View-only mirror of PrizeClaimAdmin — write paths blocked."""
+
+
+@admin.register(CoinPolicy)
+class _ReadOnlyCoinPolicyAdmin(ReadOnlyFortressMixin, CoinPolicyAdmin):
+    """View-only mirror of CoinPolicyAdmin — write paths blocked."""
+
+
+@admin.register(EconomyPlaybook)
+class _ReadOnlyPlaybookAdmin(ReadOnlyFortressMixin, EconomyPlaybookAdmin):
+    """View-only mirror of EconomyPlaybookAdmin — write paths blocked."""

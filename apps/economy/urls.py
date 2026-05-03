@@ -13,13 +13,49 @@ from .views.pin_views import pin_setup, pin_verify
 # UP-PHASE7.7: OTP verification for PIN security
 from .views.otp_views import otp_request, otp_verify_and_set_pin
 
+# Wallet Hub SPA
+from .views.wallet_hub import wallet_hub_view
+
+# Financial Fortress — SuperAdmin Economy Command Center
+from .views.fortress import fortress_dashboard
+from .views.fortress_api import (
+    api_status,
+    api_approvals,
+    api_mint,
+    api_airdrop,
+    api_approve_topup,
+    api_reject_topup,
+    api_audit,
+    api_bulk_airdrop,
+    api_wallets,
+    api_reset_pin,
+)
+
 app_name = "economy"
 
 urlpatterns = [
+    # ── Financial Fortress (SuperAdmin only) ──────────────────────────────────
+    path("fortress/command-center/", fortress_dashboard, name="fortress_dashboard"),
+
+    # ── Fortress JSON API endpoints ───────────────────────────────────────────
+    path("fortress/api/status/",         api_status,         name="fortress_api_status"),
+    path("fortress/api/approvals/",      api_approvals,      name="fortress_api_approvals"),
+    path("fortress/api/mint/",           api_mint,           name="fortress_api_mint"),
+    path("fortress/api/airdrop/",        api_airdrop,        name="fortress_api_airdrop"),
+    path("fortress/api/airdrop/bulk/",   api_bulk_airdrop,   name="fortress_api_bulk_airdrop"),
+    path("fortress/api/approve-topup/",  api_approve_topup,  name="fortress_api_approve_topup"),
+    path("fortress/api/reject-topup/",   api_reject_topup,   name="fortress_api_reject_topup"),
+    path("fortress/api/audit/",          api_audit,          name="fortress_api_audit"),
+    path("fortress/api/wallets/",        api_wallets,        name="fortress_api_wallets"),
+    path("fortress/api/wallets/reset-pin/", api_reset_pin,   name="fortress_api_reset_pin"),
+
     # UP-PHASE7.7: Old wallet page redirects to Settings
     path("wallet/", wallet_view, name="wallet"),
-    
-    # Wallet Dashboard
+
+    # ── Wallet Hub SPA (primary economy entry point) ──────────────────────
+    path("wallet/hub/", wallet_hub_view, name="wallet_hub"),
+
+    # Wallet Dashboard (legacy)
     path('wallet/dashboard/', withdrawal.wallet_dashboard_view, name='wallet_dashboard'),
     # Backwards compatibility / short links used in templates
     path('deposit/', wallet_transactions_view, name='deposit'),

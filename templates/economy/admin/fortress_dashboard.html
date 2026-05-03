@@ -1,0 +1,1497 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Financial Fortress — DeltaCrown SuperAdmin</title>
+    <script nonce="{{ request.csp_nonce }}" src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script nonce="{{ request.csp_nonce }}" src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script nonce="{{ request.csp_nonce }}">
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { 
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace']
+                    },
+                    colors: {
+                        dc: {
+                            bg: '#030305',
+                            panel: '#08080a',
+                            card: '#101014',
+                            border: 'rgba(255,255,255,0.08)',
+                            primary: '#10b981', // Emerald
+                            gold: '#f59e0b',
+                            danger: '#ef4444',
+                            accent: '#6366f1', // Indigo
+                            cyan: '#06b6d4'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style nonce="{{ request.csp_nonce }}">
+        body { background-color: #030305; color: #ffffff; overflow: hidden; }
+        
+        /* Premium Glassmorphism */
+        .glass-panel { background: rgba(10, 10, 14, 0.75); backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, 0.05); box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5); }
+        .glass-card { background: linear-gradient(145deg, rgba(255,255,255,0.03) 0%, rgba(0,0,0,0.6) 100%); border: 1px solid rgba(255,255,255,0.05); transition: all 0.2s ease; }
+        .glass-card:hover { border-color: rgba(255,255,255,0.1); box-shadow: 0 8px 30px rgba(0,0,0,0.4); }
+        
+        /* Layout & Animations */
+        .view-section { display: none; animation: slideFadeUp 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+        .view-section.active { display: block; }
+        @keyframes slideFadeUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* Nav & Utilities */
+        .nav-item.active { background: linear-gradient(90deg, rgba(16, 185, 129, 0.15) 0%, transparent 100%); color: #10b981; border-left: 3px solid #10b981; }
+        .pin-input { letter-spacing: 0.8em; font-size: 1.8rem; text-align: center; font-family: 'JetBrains Mono', monospace; font-weight: 800; }
+        
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+
+        /* Status Badges */
+        .badge { padding: 0.25rem 0.5rem; border-radius: 0.375rem; font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+        .badge-pending { background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3); }
+        .badge-approved { background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); }
+        .badge-rejected { background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); }
+    </style>
+</head>
+<body class="h-screen w-full flex font-sans selection:bg-dc-primary selection:text-black">
+
+    <div id="sudo-screen" class="fixed inset-0 z-[100] bg-[#030305] flex flex-col items-center justify-center p-4 transition-opacity duration-500">
+        <div class="absolute inset-0 overflow-hidden pointer-events-none">
+            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[1000px] bg-emerald-900/10 rounded-full blur-[150px]"></div>
+        </div>
+        
+        <div class="relative z-10 w-full max-w-md">
+            <div class="text-center mb-8">
+                <div class="w-24 h-24 mx-auto bg-black border border-white/10 rounded-3xl flex items-center justify-center mb-6 shadow-[0_0_40px_rgba(16,185,129,0.15)] relative overflow-hidden">
+                    <div class="absolute inset-0 bg-gradient-to-b from-dc-primary/20 to-transparent opacity-50"></div>
+                    <i class="fa-solid fa-fingerprint text-5xl text-dc-primary relative z-10"></i>
+                </div>
+                <h1 class="text-3xl font-extrabold tracking-tight text-white mb-2">Financial Fortress</h1>
+                <p class="text-gray-400 text-sm font-mono bg-white/5 inline-block px-3 py-1 rounded-full border border-white/10">RESTRICTED ACCESS</p>
+            </div>
+
+            <div class="glass-panel p-8 rounded-[2rem] border border-white/10 relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-dc-primary to-transparent opacity-50"></div>
+                
+                <div class="mb-6 relative">
+                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest text-center mb-4">Enter Master PIN</label>
+                    <input type="password" id="sudo-pin" maxlength="5" class="w-full bg-black/60 border border-white/10 rounded-2xl px-4 py-5 text-white focus:outline-none focus:border-dc-primary focus:ring-1 focus:ring-dc-primary/50 transition-all pin-input shadow-inner" placeholder="•••••" autofocus>
+                </div>
+                
+                <p id="sudo-error" class="text-dc-danger text-xs font-bold text-center mb-4 hidden bg-dc-danger/10 py-2 rounded-lg border border-dc-danger/20"><i class="fa-solid fa-triangle-exclamation mr-1"></i> Invalid PIN. Authorization failed.</p>
+                
+                <button id="btn-unlock" class="w-full bg-dc-primary hover:bg-emerald-400 text-black font-bold py-4 rounded-2xl transition-all shadow-[0_0_20px_rgba(16,185,129,0.3)] active:scale-[0.98] flex items-center justify-center gap-2 text-lg">
+                    <i class="fa-solid fa-unlock-keyhole"></i> Authorize
+                </button>
+                
+                <div class="mt-6 flex items-center justify-center gap-2 text-[10px] text-gray-500 font-mono">
+                    <i class="fa-solid fa-shield-halved text-dc-primary/70"></i> Session encrypted via RSA-2048
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="main-app" class="w-full h-full flex hidden opacity-0 transition-opacity duration-500">
+        
+        <aside class="w-72 bg-dc-panel border-r border-dc-border flex flex-col z-20 shrink-0">
+            <div class="h-20 flex items-center px-6 border-b border-dc-border shrink-0 bg-black/20">
+                <div class="flex items-center gap-3 w-full">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-dc-primary/20 to-dc-primary/5 border border-dc-primary/30 flex items-center justify-center shadow-[0_0_15px_rgba(16,185,129,0.15)]">
+                        <i class="fa-solid fa-building-columns text-dc-primary"></i>
+                    </div>
+                    <div class="flex-1">
+                        <h2 class="font-bold text-white tracking-wide leading-tight text-sm">DeltaCrown</h2>
+                        <span class="text-[9px] font-mono text-dc-primary uppercase tracking-widest font-bold">Economy Control</span>
+                    </div>
+                </div>
+            </div>
+
+            <nav class="flex-1 overflow-y-auto py-6 space-y-1">
+                <div class="text-[10px] font-bold text-gray-600 uppercase tracking-widest px-6 mb-3">Intelligence</div>
+                <button data-tab-target="dashboard" id="nav-dashboard" class="nav-item active w-full flex items-center gap-3 px-6 py-3.5 text-gray-400 hover:text-white transition-all font-medium text-sm">
+                    <i class="fa-solid fa-chart-line w-5 text-center"></i> Financial Overview
+                </button>
+                
+                <div class="text-[10px] font-bold text-gray-600 uppercase tracking-widest px-6 mt-8 mb-3">Operations</div>
+                <button data-tab-target="treasury" id="nav-treasury" class="nav-item w-full flex items-center gap-3 px-6 py-3.5 text-gray-400 hover:text-white transition-all font-medium text-sm">
+                    <i class="fa-solid fa-vault w-5 text-center"></i> Master Treasury
+                </button>
+                <button data-tab-target="approvals" id="nav-approvals" class="nav-item w-full flex items-center justify-between px-6 py-3.5 text-gray-400 hover:text-white transition-all font-medium text-sm">
+                    <div class="flex items-center gap-3"><i class="fa-solid fa-money-bill-transfer w-5 text-center"></i> Approvals & Fiat</div>
+                    <span id="nav-badge-approvals" class="bg-dc-gold text-black text-[10px] font-bold px-2 py-0.5 rounded-full shadow-[0_0_10px_rgba(245,158,11,0.3)]">{{ total_pending }}</span>
+                </button>
+                <button data-tab-target="transfers" id="nav-transfers" class="nav-item w-full flex items-center gap-3 px-6 py-3.5 text-gray-400 hover:text-white transition-all font-medium text-sm">
+                    <i class="fa-solid fa-parachute-box w-5 text-center"></i> Bulk & Airdrops
+                </button>
+
+                <div class="text-[10px] font-bold text-gray-600 uppercase tracking-widest px-6 mt-8 mb-3">Governance</div>
+                <button data-tab-target="automation" id="nav-automation" class="nav-item w-full flex items-center gap-3 px-6 py-3.5 text-gray-400 hover:text-white transition-all font-medium text-sm">
+                    <i class="fa-solid fa-robot w-5 text-center"></i> Reward Automation
+                </button>
+                <button data-tab-target="guide" id="nav-guide" class="nav-item w-full flex items-center gap-3 px-6 py-3.5 text-gray-400 hover:text-white transition-all font-medium text-sm">
+                    <i class="fa-solid fa-book-bookmark w-5 text-center"></i> Admin Guide & Policy
+                </button>
+                <button data-tab-target="audit" id="nav-audit" class="nav-item w-full flex items-center gap-3 px-6 py-3.5 text-gray-400 hover:text-white transition-all font-medium text-sm">
+                    <i class="fa-solid fa-clipboard-list w-5 text-center"></i> Audit Ledger
+                </button>
+                <button data-tab-target="wallets" id="nav-wallets" class="nav-item w-full flex items-center gap-3 px-6 py-3.5 text-gray-400 hover:text-white transition-all font-medium text-sm">
+                    <i class="fa-solid fa-wallet w-5 text-center"></i> Wallets & Accounts
+                </button>
+            </nav>
+
+            <div class="p-4 border-t border-dc-border shrink-0 bg-black/20">
+                <div class="flex items-center gap-3 mb-4 px-2">
+                    <img src="https://ui-avatars.com/api/?name={{ admin_user.get_full_name|urlencode }}&background=10b981&color=000&bold=true" class="w-8 h-8 rounded-lg border border-dc-border" alt="Admin">
+                    <div class="flex-1 min-w-0">
+                        <p class="text-xs font-bold text-white truncate">{{ admin_user.get_full_name|default:admin_user.username }}</p>
+                        <p class="text-[9px] text-gray-500 font-mono">SuperAdmin</p>
+                    </div>
+                </div>
+                <button id="btn-terminate" class="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-dc-danger hover:bg-dc-danger hover:text-white border border-dc-danger/20 transition-all text-xs font-bold">
+                    <i class="fa-solid fa-power-off"></i> Terminate Session
+                </button>
+            </div>
+        </aside>
+
+        <main class="flex-1 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-gray-900/20 via-dc-bg to-dc-bg overflow-y-auto relative scroll-smooth">
+            
+            <header class="h-20 border-b border-white/5 bg-dc-bg/80 backdrop-blur-xl sticky top-0 z-50 flex items-center justify-between px-8">
+                <div>
+                    <h1 id="page-title" class="text-2xl font-bold text-white tracking-tight">Financial Overview</h1>
+                    <p id="page-subtitle" class="text-xs text-gray-400 font-mono mt-1">Real-time macro economy metrics</p>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div class="bg-black/50 border border-white/10 px-4 py-2 rounded-xl flex items-center gap-3">
+                        <span class="w-2 h-2 rounded-full bg-dc-success animate-pulse"></span>
+                        <span class="text-xs font-mono text-gray-300">System Online</span>
+                        <span class="text-[10px] text-gray-600 border-l border-white/10 pl-3 ml-1" id="live-time">00:00:00</span>
+                    </div>
+                </div>
+            </header>
+
+            <div class="p-8 max-w-[1600px] mx-auto pb-24">
+
+                <div id="view-dashboard" class="view-section active space-y-6">
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div class="glass-card p-5 rounded-2xl relative overflow-hidden group">
+                            <div class="absolute -right-4 -top-4 w-24 h-24 bg-dc-primary/10 rounded-full blur-xl group-hover:bg-dc-primary/20 transition"></div>
+                            <div class="flex justify-between items-start mb-4 relative z-10">
+                                <div class="w-10 h-10 rounded-xl bg-dc-primary/10 border border-dc-primary/20 flex items-center justify-center text-dc-primary"><i class="fa-solid fa-chart-pie"></i></div>
+                                <span class="badge badge-approved">+12.5% M/M</span>
+                            </div>
+                            <p class="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1 relative z-10">Market Circulation</p>
+                            <h3 class="text-2xl font-bold text-white font-mono relative z-10" id="stat-circulation"><span class="text-gray-500 text-sm italic">Loading…</span></h3>
+                        </div>
+                        
+                        <div class="glass-card p-5 rounded-2xl relative overflow-hidden group border-dc-danger/20">
+                            <div class="absolute -right-4 -top-4 w-24 h-24 bg-dc-danger/10 rounded-full blur-xl group-hover:bg-dc-danger/20 transition"></div>
+                            <div class="flex justify-between items-start mb-4 relative z-10">
+                                <div class="w-10 h-10 rounded-xl bg-dc-danger/10 border border-dc-danger/20 flex items-center justify-center text-dc-danger"><i class="fa-solid fa-building-columns"></i></div>
+                                <span class="text-[10px] text-gray-500 font-mono">Ledger Root</span>
+                            </div>
+                            <p class="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1 relative z-10">Master Treasury</p>
+                            <h3 class="text-2xl font-bold text-dc-danger font-mono relative z-10" id="stat-treasury"><span class="text-gray-500 text-sm italic">Loading…</span></h3>
+                        </div>
+
+                        <div class="glass-card p-5 rounded-2xl relative overflow-hidden group">
+                            <div class="absolute -right-4 -top-4 w-24 h-24 bg-dc-cyan/10 rounded-full blur-xl group-hover:bg-dc-cyan/20 transition"></div>
+                            <div class="flex justify-between items-start mb-4 relative z-10">
+                                <div class="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400"><i class="fa-solid fa-arrow-right-to-bracket"></i></div>
+                                <span class="badge badge-approved">Fiat Backed</span>
+                            </div>
+                            <p class="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1 relative z-10">Total User Inflow (YTD)</p>
+                            <h3 class="text-2xl font-bold text-white font-mono relative z-10">850,000 <span class="text-sm text-gray-500">DC</span></h3>
+                        </div>
+
+                        <div class="glass-card p-5 rounded-2xl relative overflow-hidden group">
+                            <div class="absolute -right-4 -top-4 w-24 h-24 bg-dc-gold/10 rounded-full blur-xl group-hover:bg-dc-gold/20 transition"></div>
+                            <div class="flex justify-between items-start mb-4 relative z-10">
+                                <div class="w-10 h-10 rounded-xl bg-dc-gold/10 border border-dc-gold/20 flex items-center justify-center text-dc-gold"><i class="fa-solid fa-gift"></i></div>
+                                <span class="badge badge-pending">Platform Cost</span>
+                            </div>
+                            <p class="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1 relative z-10">Admin Outflow (Airdrops)</p>
+                            <h3 class="text-2xl font-bold text-white font-mono relative z-10">400,400 <span class="text-sm text-gray-500">DC</span></h3>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div class="lg:col-span-2 glass-panel p-6 rounded-3xl">
+                            <div class="flex justify-between items-center mb-6">
+                                <div>
+                                    <h3 class="font-bold text-white">Inflow vs Outflow Velocity</h3>
+                                    <p class="text-xs text-gray-400">Monthly breakdown of DC creation.</p>
+                                </div>
+                                <select class="bg-black/50 border border-white/10 text-xs text-white px-3 py-1.5 rounded-lg outline-none">
+                                    <option>Last 6 Months</option>
+                                    <option>This Year</option>
+                                </select>
+                            </div>
+                            <div class="h-64 w-full relative">
+                                <canvas id="financeChart"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="glass-panel p-6 rounded-3xl flex flex-col">
+                            <h3 class="font-bold text-white mb-1">Circulation Distribution</h3>
+                            <p class="text-xs text-gray-400 mb-6">Where is the minted DC currently sitting?</p>
+                            
+                            <div class="flex-1 flex flex-col justify-center space-y-6">
+                                <div>
+                                    <div class="flex justify-between text-xs mb-2">
+                                        <span class="text-gray-300 flex items-center gap-2"><i class="fa-solid fa-users text-dc-primary w-4"></i> User Wallets</span>
+                                        <span class="font-mono font-bold">850K (68%)</span>
+                                    </div>
+                                    <div class="w-full bg-black/50 rounded-full h-2 overflow-hidden border border-white/5">
+                                        <div class="bg-dc-primary h-2 rounded-full" style="width: 68%"></div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="flex justify-between text-xs mb-2">
+                                        <span class="text-gray-300 flex items-center gap-2"><i class="fa-solid fa-sitemap text-dc-accent w-4"></i> Org/Team Treasuries</span>
+                                        <span class="font-mono font-bold">350K (28%)</span>
+                                    </div>
+                                    <div class="w-full bg-black/50 rounded-full h-2 overflow-hidden border border-white/5">
+                                        <div class="bg-dc-accent h-2 rounded-full" style="width: 28%"></div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="flex justify-between text-xs mb-2">
+                                        <span class="text-gray-300 flex items-center gap-2"><i class="fa-solid fa-lock text-dc-gold w-4"></i> Escrow Locked</span>
+                                        <span class="font-mono font-bold">50K (4%)</span>
+                                    </div>
+                                    <div class="w-full bg-black/50 rounded-full h-2 overflow-hidden border border-white/5">
+                                        <div class="bg-dc-gold h-2 rounded-full" style="width: 4%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="view-treasury" class="view-section space-y-6">
+                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                        
+                        <div class="lg:col-span-7 glass-panel p-8 rounded-3xl relative overflow-hidden">
+                            <div class="absolute top-0 right-0 w-64 h-64 bg-dc-primary/5 rounded-full blur-3xl pointer-events-none"></div>
+                            
+                            <div class="mb-8">
+                                <h2 class="text-2xl font-bold text-white flex items-center gap-3"><i class="fa-solid fa-hammer text-dc-primary"></i> Mint Official Reserve</h2>
+                                <p class="text-sm text-gray-400 mt-2">Generate new DC into the Master Treasury. This increases total market circulation and must be backed by fiat or corporate policy.</p>
+                            </div>
+
+                            <form id="form-mint" class="space-y-6 relative z-10">
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Amount to Mint (DC)</label>
+                                    <div class="relative">
+                                        <div class="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none"><i class="fa-solid fa-coins text-dc-gold"></i></div>
+                                        <input type="number" id="mint-amount" class="w-full bg-black/60 border border-white/10 rounded-2xl py-4 pl-12 pr-6 text-white text-xl font-mono focus:outline-none focus:border-dc-primary transition-colors shadow-inner" placeholder="0" required>
+                                    </div>
+                                </div>
+                                
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Fiat Backing</label>
+                                        <select class="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3.5 text-sm text-white focus:outline-none focus:border-dc-primary appearance-none">
+                                            <option>Bank Deposit</option>
+                                            <option>Corporate Injection</option>
+                                            <option>Promotional Budget</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Reference / TrxID</label>
+                                        <input type="text" class="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3.5 text-sm text-white focus:outline-none focus:border-dc-primary font-mono uppercase" placeholder="e.g. BD-7892X" required>
+                                    </div>
+                                </div>
+
+                                <div class="bg-dc-primary/5 border border-dc-primary/20 rounded-xl p-5 mt-4">
+                                    <div class="flex justify-between items-center mb-2">
+                                        <span class="text-xs text-gray-400">Current Treasury Balance</span>
+                                        <span class="text-sm font-mono text-dc-danger font-bold" id="treasury-current"><span class="text-gray-500 italic">Loading…</span></span>
+                                    </div>
+                                    <div class="flex justify-between items-center border-t border-white/5 pt-2">
+                                        <span class="text-xs text-white font-bold">Projected Balance</span>
+                                        <span class="text-base font-mono text-white font-bold" id="mint-preview"><span class="text-gray-500 italic">Loading…</span></span>
+                                    </div>
+                                </div>
+
+                                <button type="submit" class="w-full bg-white hover:bg-gray-200 text-black font-bold py-4 rounded-xl transition-all shadow-[0_0_15px_rgba(255,255,255,0.1)] text-sm uppercase tracking-widest mt-2">
+                                    Authorize Minting
+                                </button>
+                            </form>
+                        </div>
+
+                        <div class="lg:col-span-5 flex flex-col gap-6">
+                            <div class="glass-card p-6 rounded-3xl flex-1 flex flex-col justify-center items-center text-center relative overflow-hidden">
+                                <div class="w-20 h-20 rounded-full bg-black border-4 border-dc-danger/30 flex items-center justify-center mb-4 shadow-[0_0_30px_rgba(239,68,68,0.2)]">
+                                    <i class="fa-solid fa-building-columns text-3xl text-dc-danger"></i>
+                                </div>
+                                <h3 class="text-gray-400 text-xs font-bold uppercase tracking-widest mb-1">Root Ledger Status</h3>
+                                <p class="text-3xl font-bold font-mono text-dc-danger mb-2" id="treasury-sidebar"><span class="text-gray-500 text-sm italic">Loading…</span></p>
+                                <p class="text-[10px] {% if ledger_healthy %}text-emerald-400{% else %}text-red-400{% endif %} bg-white/5 px-3 py-1 rounded-full border border-white/5">{% if ledger_healthy %}Healthy: Ledger Balanced{% else %}⚠ Imbalance Detected (Δ {{ ledger_delta }}){% endif %}</p>
+                            </div>
+
+                            <div class="glass-card p-6 rounded-3xl border-dc-gold/20 relative">
+                                <div class="flex items-center gap-3 mb-4">
+                                    <i class="fa-solid fa-fire text-dc-gold text-xl"></i>
+                                    <h3 class="font-bold text-white">Burn / Revoke DC</h3>
+                                </div>
+                                <p class="text-xs text-gray-400 mb-4 leading-relaxed">Remove DC from circulation to decrease the deficit. Usually done when fiat is withdrawn via Prize Claims.</p>
+                                <button class="w-full bg-black/50 border border-dc-gold/30 hover:bg-dc-gold/10 text-dc-gold font-bold py-3 rounded-xl transition-all text-xs uppercase tracking-widest">
+                                    Open Burn Portal
+                                </button>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <div id="view-approvals" class="view-section space-y-6">
+                    
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+                        <div class="flex bg-black/50 p-1 rounded-xl border border-white/10 w-full md:w-auto">
+                            <button class="flex-1 md:flex-none px-6 py-2.5 rounded-lg bg-white/10 text-white text-sm font-bold shadow-sm">Top-Up Requests <span class="bg-dc-gold text-black px-1.5 py-0.5 rounded text-[10px] ml-1">5</span></button>
+                            <button class="flex-1 md:flex-none px-6 py-2.5 rounded-lg text-gray-400 hover:text-white text-sm font-bold transition">Prize Claims (Fiat)</button>
+                        </div>
+                        
+                        <div class="flex gap-3 w-full md:w-auto">
+                            <div class="relative flex-1 md:w-64">
+                                <input type="text" id="approval-search" class="w-full bg-black/60 border border-white/10 rounded-xl py-2.5 pl-10 pr-4 text-sm text-white focus:border-dc-primary transition-colors placeholder-gray-600" placeholder="Search TrxID or Number...">
+                                <i class="fa-solid fa-search absolute left-3.5 top-3.5 text-gray-500 text-xs"></i>
+                            </div>
+                            <button id="btn-sort" class="bg-black/60 border border-white/10 hover:bg-white/5 px-4 py-2.5 rounded-xl text-gray-300 transition text-sm flex items-center gap-2" title="Sort by Time">
+                                <i class="fa-solid fa-arrow-down-short-wide text-xs"></i> Sort
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="glass-panel rounded-3xl overflow-hidden border border-white/10">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left whitespace-nowrap">
+                                <thead class="bg-black/60 border-b border-white/10 text-gray-500 text-[10px] uppercase tracking-widest font-bold">
+                                    <tr>
+                                        <th class="px-6 py-5">Time & User</th>
+                                        <th class="px-6 py-5">Requested Value</th>
+                                        <th class="px-6 py-5">Gateway & TrxID</th>
+                                        <th class="px-6 py-5">Admin Note / Proof</th>
+                                        <th class="px-6 py-5 text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-white/5 text-sm" id="approvals-tbody">
+                                    </tbody>
+                            </table>
+                        </div>
+                        <div class="bg-black/40 p-4 border-t border-white/5 text-center text-xs text-gray-500 font-mono">
+                            Showing <span id="appr-count">{{ pending_topups_count }}</span> pending top-up requests · <span>{{ pending_claims_count }}</span> prize claims
+                        </div>
+                    </div>
+                </div>
+
+                <div id="view-transfers" class="view-section space-y-6">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        
+                        <div class="glass-card p-8 rounded-3xl">
+                            <div class="w-12 h-12 rounded-xl bg-dc-accent/10 border border-dc-accent/20 flex items-center justify-center mb-6">
+                                <i class="fa-solid fa-crosshairs text-dc-accent text-xl"></i>
+                            </div>
+                            <h2 class="text-xl font-bold mb-1 text-white">Targeted Airdrop</h2>
+                            <p class="text-xs text-gray-400 mb-6">Send DC to a specific user directly from the Master Treasury.</p>
+                            
+                            <form id="form-airdrop" class="space-y-5">
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Username / Delta ID</label>
+                                    <div class="relative">
+                                        <i class="fa-solid fa-user absolute left-4 top-4 text-gray-500 text-sm"></i>
+                                        <input type="text" class="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3.5 pl-11 text-sm text-white focus:border-dc-accent transition" placeholder="e.g. rakib_gamer or #1042" required>
+                                    </div>
+                                </div>
+                                
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Amount (DC)</label>
+                                        <input type="number" class="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3.5 text-sm font-mono text-white focus:border-dc-accent transition" placeholder="0" required>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Classification</label>
+                                        <select class="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3.5 text-sm text-white focus:border-dc-accent appearance-none">
+                                            <option>Admin Reward</option>
+                                            <option>Bug Compensation</option>
+                                            <option>Event Giveaway</option>
+                                            <option>Manual Correction</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                
+                                <button type="submit" class="w-full bg-dc-accent hover:bg-indigo-500 text-white font-bold py-3.5 rounded-xl transition-all shadow-[0_0_15px_rgba(99,102,241,0.25)] text-sm tracking-wider uppercase mt-4">
+                                    Execute Airdrop
+                                </button>
+                            </form>
+                        </div>
+
+                        <div class="glass-card p-8 rounded-3xl border border-dashed border-gray-600 flex flex-col items-center justify-center text-center relative overflow-hidden group hover:border-dc-primary/50 cursor-pointer">
+                            <div class="absolute inset-0 bg-dc-primary/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                            <div class="w-20 h-20 rounded-full bg-black border border-white/10 flex items-center justify-center mb-6 relative z-10 group-hover:scale-110 transition-transform shadow-xl">
+                                <i class="fa-solid fa-users-viewfinder text-3xl text-gray-400 group-hover:text-dc-primary transition-colors"></i>
+                            </div>
+                            <h2 class="text-xl font-bold text-white mb-2 relative z-10">Mass Distribution (Bulk)</h2>
+                            <p class="text-xs text-gray-400 mb-6 max-w-sm relative z-10 leading-relaxed">Upload a CSV file or select a completed tournament to distribute DC to multiple players simultaneously based on placement policies.</p>
+                            
+                            <div class="flex gap-3 relative z-10">
+                                <button id="btn-bulk-airdrop" class="bg-dc-primary/20 hover:bg-dc-primary/30 text-dc-primary font-bold py-2.5 px-6 rounded-lg text-xs transition border border-dc-primary/30">
+                                    <i class="fa-solid fa-parachute-box mr-1.5"></i>Bulk Airdrop
+                                </button>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <div id="view-automation" class="view-section space-y-6">
+                    <div class="glass-panel p-8 rounded-3xl">
+                        <div class="flex justify-between items-start mb-8">
+                            <div>
+                                <h2 class="text-xl font-bold text-white mb-1"><i class="fa-solid fa-robot text-gray-400 mr-2"></i> Trigger Rules</h2>
+                                <p class="text-xs text-gray-500">System automatically injects DC from Treasury based on these conditions.</p>
+                            </div>
+                            <button class="bg-white text-black font-bold py-2 px-5 rounded-lg text-xs transition hover:bg-gray-200 shadow-lg"><i class="fa-solid fa-plus mr-1.5"></i> Add Rule</button>
+                        </div>
+
+                        <div class="space-y-4">
+                            <div class="p-5 rounded-2xl border border-white/5 bg-black/40 flex flex-col md:flex-row md:items-center justify-between gap-4 opacity-60 grayscale hover:grayscale-0 transition-all duration-500">
+                                <div class="flex items-center gap-4">
+                                    <div class="w-10 h-10 rounded-lg bg-gray-800 flex items-center justify-center text-gray-400"><i class="fa-solid fa-user-plus"></i></div>
+                                    <div>
+                                        <h4 class="font-bold text-white text-sm">Account Creation (Welcome Bonus)</h4>
+                                        <p class="text-[10px] text-gray-500 mt-0.5">High scam risk. Disabled to prevent bot farming.</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-6">
+                                    <div class="text-right"><p class="text-[10px] uppercase text-gray-500 font-bold mb-1">Payload</p><p class="font-mono text-sm text-gray-400">100 DC</p></div>
+                                    <span class="badge badge-rejected">Disabled</span>
+                                    <button class="text-gray-500 hover:text-white px-2"><i class="fa-solid fa-sliders"></i></button>
+                                </div>
+                            </div>
+
+                            <div class="p-5 rounded-2xl border border-dc-primary/20 bg-gradient-to-r from-dc-primary/5 to-transparent flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+                                <div class="flex items-center gap-4">
+                                    <div class="w-10 h-10 rounded-lg bg-dc-primary/20 flex items-center justify-center text-dc-primary"><i class="fa-solid fa-gamepad"></i></div>
+                                    <div>
+                                        <h4 class="font-bold text-white text-sm">Verified Competitor Bonus</h4>
+                                        <p class="text-[10px] text-gray-400 mt-0.5">Triggers when a user links an API game or completes first match.</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-6">
+                                    <div class="text-right"><p class="text-[10px] uppercase text-gray-500 font-bold mb-1">Payload</p><p class="font-mono font-bold text-dc-gold text-sm">150 DC</p></div>
+                                    <span class="badge badge-approved">Active</span>
+                                    <button class="text-gray-400 hover:text-white px-2"><i class="fa-solid fa-sliders"></i></button>
+                                </div>
+                            </div>
+
+                            <div class="p-5 rounded-2xl border border-blue-500/20 bg-gradient-to-r from-blue-500/5 to-transparent flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                <div class="flex items-center gap-4">
+                                    <div class="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center text-blue-400"><i class="fa-solid fa-id-card"></i></div>
+                                    <div>
+                                        <h4 class="font-bold text-white text-sm">KYC Identity Verified</h4>
+                                        <p class="text-[10px] text-gray-400 mt-0.5">Triggers once per lifetime upon NID/Passport approval.</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-6">
+                                    <div class="text-right"><p class="text-[10px] uppercase text-gray-500 font-bold mb-1">Payload</p><p class="font-mono font-bold text-dc-gold text-sm">500 DC</p></div>
+                                    <span class="badge badge-approved">Active</span>
+                                    <button class="text-gray-400 hover:text-white px-2"><i class="fa-solid fa-sliders"></i></button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="view-audit" class="view-section space-y-6">
+                    <div class="glass-panel p-6 rounded-3xl overflow-hidden">
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-lg font-bold text-white">Immutable Audit Trail</h2>
+                            <button class="text-xs bg-white/5 border border-white/10 hover:bg-white/10 px-3 py-1.5 rounded transition text-gray-300"><i class="fa-solid fa-download mr-1.5"></i> Export CSV</button>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-sm whitespace-nowrap">
+                                <thead class="bg-black/60 border-b border-white/10 text-gray-500 text-[10px] uppercase tracking-widest font-bold">
+                                    <tr>
+                                        <th class="px-6 py-4">Timestamp</th>
+                                        <th class="px-6 py-4">Sudo Actor</th>
+                                        <th class="px-6 py-4">Action Code</th>
+                                        <th class="px-6 py-4">Target Wallet</th>
+                                        <th class="px-6 py-4">Volume</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="audit-tbody" class="divide-y divide-white/5 font-mono text-xs text-gray-300">
+                                    <tr id="audit-loading-row">
+                                        <td colspan="5" class="px-6 py-10 text-center text-gray-500">
+                                            <i class="fa-solid fa-spinner fa-spin mr-2"></i>Loading audit trail…
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="view-guide" class="view-section space-y-6">
+                    <div class="flex justify-between items-end mb-6">
+                        <div>
+                            <h2 class="text-2xl font-bold text-white mb-2">Platform Economy Dictionary</h2>
+                            <p class="text-sm text-gray-400">Internal reference guide for definitions, metrics, and compliance policies.</p>
+                        </div>
+                        <button id="btn-edit-policies" class="bg-white/10 hover:bg-white/20 text-white font-bold py-2 px-5 rounded-xl text-xs transition border border-white/10"><i class="fa-solid fa-pen-to-square mr-2"></i> Edit Policies</button>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        
+                        <div class="glass-card p-6 rounded-3xl relative overflow-hidden group">
+                            <div class="absolute -right-10 -top-10 text-9xl text-white opacity-[0.02] group-hover:opacity-[0.04] transition pointer-events-none"><i class="fa-solid fa-building-columns"></i></div>
+                            <h3 class="text-lg font-bold text-dc-danger mb-2 flex items-center gap-2">Master Treasury <span class="badge badge-rejected border-none ml-2">Root Node</span></h3>
+                            <p class="text-sm text-gray-300 leading-relaxed mb-4">The ultimate source of all DeltaCoins. It starts at a `0` balance. When new DC is minted or given to users, the Master Treasury's balance decreases (goes negative). This ensures the Double-Entry Ledger remains balanced at exactly 0.</p>
+                            <div class="bg-black/40 p-3 rounded-lg border border-white/5 text-xs text-gray-400 font-mono">Formula: Sum(All User Wallets) + Treasury Balance = 0</div>
+                        </div>
+
+                        <div class="glass-card p-6 rounded-3xl relative overflow-hidden group">
+                            <div class="absolute -right-10 -top-10 text-9xl text-white opacity-[0.02] group-hover:opacity-[0.04] transition pointer-events-none"><i class="fa-solid fa-chart-pie"></i></div>
+                            <h3 class="text-lg font-bold text-dc-primary mb-2 flex items-center gap-2">Market Circulation</h3>
+                            <p class="text-sm text-gray-300 leading-relaxed mb-4">The total absolute number of DeltaCoins currently held by all users, organizations, and escrows across the entire platform. This number should always be the exact positive inverse of the Master Treasury deficit.</p>
+                            <div class="bg-black/40 p-3 rounded-lg border border-white/5 text-xs text-gray-400 font-mono">Condition: Circulation == |Master Treasury|</div>
+                        </div>
+
+                        <div class="glass-card p-6 rounded-3xl relative overflow-hidden group">
+                            <div class="absolute -right-10 -top-10 text-9xl text-white opacity-[0.02] group-hover:opacity-[0.04] transition pointer-events-none"><i class="fa-solid fa-arrow-right-to-bracket"></i></div>
+                            <h3 class="text-lg font-bold text-dc-cyan mb-2 flex items-center gap-2">Total User Inflow</h3>
+                            <p class="text-sm text-gray-300 leading-relaxed mb-4">The volume of DC that entered circulation because users purchased it with real fiat money (bKash/Nagad top-ups). This represents the "Fiat-Backed" portion of the economy and actual company revenue.</p>
+                        </div>
+
+                        <div class="glass-card p-6 rounded-3xl relative overflow-hidden group">
+                            <div class="absolute -right-10 -top-10 text-9xl text-white opacity-[0.02] group-hover:opacity-[0.04] transition pointer-events-none"><i class="fa-solid fa-gift"></i></div>
+                            <h3 class="text-lg font-bold text-dc-gold mb-2 flex items-center gap-2">Admin Outflow</h3>
+                            <p class="text-sm text-gray-300 leading-relaxed mb-4">The volume of DC injected into circulation for free via automated rewards (Welcome, KYC), tournament platform payouts, or manual admin airdrops. This represents "Promotional" or "Platform Cost" DC.</p>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         WALLETS & ACCOUNTS TAB  (#view-wallets)
+         Injected after guide section — displayed by switchTab('wallets')
+    ═══════════════════════════════════════════════════════════ -->
+    <template id="wallets-tab-template">
+        <!-- Rendered into #main-content by switchTab / this section is
+             placed statically so the section switcher can find it -->
+    </template>
+
+    <!-- Statically included so view-section switcher picks it up -->
+    <script nonce="{{ request.csp_nonce }}">
+    /* Wallets section is injected dynamically into main-content via JS
+       because the tab HTML is added after #main-content is defined. */
+    document.addEventListener('DOMContentLoaded', function() {
+        // Inject #view-wallets into the main content area if not present
+        if (!document.getElementById('view-wallets')) {
+            const main = document.querySelector('#main-app main > div:last-child') ||
+                         document.querySelector('#main-app main');
+            if (main) {
+                const section = document.createElement('div');
+                section.id = 'view-wallets';
+                section.className = 'view-section space-y-6';
+                section.innerHTML = `
+                <div class="glass-panel p-6 rounded-3xl overflow-hidden">
+                    <div class="flex justify-between items-center mb-6">
+                        <div>
+                            <h2 class="text-lg font-bold text-white flex items-center gap-2">
+                                <i class="fa-solid fa-wallet text-dc-primary"></i>
+                                All User Wallets & PIN Status
+                            </h2>
+                            <p class="text-xs text-gray-500 mt-1">Live data — sorted by balance descending. Treasury row shown first.</p>
+                        </div>
+                        <button onclick="void(0)" id="btn-refresh-wallets"
+                            class="text-xs bg-white/5 border border-white/10 hover:bg-white/10 px-4 py-2 rounded-lg transition text-gray-300">
+                            <i class="fa-solid fa-rotate-right mr-1.5"></i>Refresh
+                        </button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm whitespace-nowrap">
+                            <thead class="bg-black/60 border-b border-white/10 text-gray-500 text-[10px] uppercase tracking-widest font-bold">
+                                <tr>
+                                    <th class="px-4 py-4">User</th>
+                                    <th class="px-4 py-4">Email</th>
+                                    <th class="px-4 py-4">Balance</th>
+                                    <th class="px-4 py-4">Type</th>
+                                    <th class="px-4 py-4">PIN Status</th>
+                                    <th class="px-4 py-4">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="wallets-tbody" class="divide-y divide-white/5 text-xs text-gray-300">
+                                <tr>
+                                    <td colspan="6" class="px-4 py-10 text-center text-gray-500">
+                                        <i class="fa-solid fa-spinner fa-spin mr-2"></i>Loading wallets…
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="mt-4 px-2 text-[10px] text-gray-600 font-mono" id="wallets-footer"></div>
+                </div>`;
+                main.appendChild(section);
+            }
+        }
+
+        // Wire refresh button (delegated after injection)
+        document.addEventListener('click', function(e) {
+            if (e.target && e.target.id === 'btn-refresh-wallets') {
+                loadWallets();
+            }
+        });
+
+        // Auto-load wallets when tab is clicked
+        document.querySelectorAll('[data-tab-target="wallets"]').forEach(function(btn) {
+            btn.addEventListener('click', loadWallets);
+        });
+    });
+    </script>
+
+    <div id="confirm-modal" class="fixed inset-0 z-[200] bg-black/80 backdrop-blur-md hidden flex flex-col items-center justify-center opacity-0 transition-opacity duration-300 p-4">
+        <div class="glass-card p-8 rounded-3xl w-full max-w-md scale-95 transition-transform duration-300" id="confirm-modal-content">
+            <div class="w-16 h-16 rounded-full bg-dc-warning/10 text-dc-warning flex items-center justify-center text-2xl mb-6 mx-auto border border-dc-warning/20">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <h2 class="text-xl font-bold text-center text-white mb-2">Confirm Operation</h2>
+            <p class="text-sm text-gray-400 text-center mb-6" id="confirm-text">Are you sure you want to execute this irreversible ledger operation?</p>
+            
+            <div class="mb-6">
+                <label class="block text-xs font-bold text-gray-500 uppercase tracking-widest text-center mb-2">Sudo PIN Required</label>
+                <input type="password" id="confirm-pin" maxlength="5" class="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3 text-white text-center tracking-[0.5em] font-mono focus:border-dc-warning outline-none" placeholder="•••••">
+            </div>
+
+            <div class="flex gap-3">
+                <button id="btn-cancel" class="flex-1 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-white font-bold text-sm transition border border-white/10">Cancel</button>
+                <button id="btn-execute" class="flex-1 py-3 rounded-xl bg-dc-warning hover:bg-yellow-400 text-black font-bold text-sm transition shadow-[0_0_15px_rgba(245,158,11,0.3)]">Authorize</button>
+            </div>
+        </div>
+    </div>
+
+    <script nonce="{{ request.csp_nonce }}">
+        // ==========================================
+        // 1. AUTH & NAVIGATION LOGIC
+        // ==========================================
+
+        // Django context variables injected server-side
+        const CSRF_TOKEN = '{{ csrf_token }}';
+
+        // ── Fortress API URL map (generated server-side — always correct) ──────
+        // NEVER hardcode /economy/fortress/... — the prefix can change.
+        // Use these constants in every fetch() call below.
+        const API_URLS = {
+            status:       "{% url 'economy:fortress_api_status' %}",
+            approvals:    "{% url 'economy:fortress_api_approvals' %}",
+            audit:        "{% url 'economy:fortress_api_audit' %}",
+            mint:         "{% url 'economy:fortress_api_mint' %}",
+            airdrop:      "{% url 'economy:fortress_api_airdrop' %}",
+            bulkAirdrop:  "{% url 'economy:fortress_api_bulk_airdrop' %}",
+            approveTopup: "{% url 'economy:fortress_api_approve_topup' %}",
+            rejectTopup:  "{% url 'economy:fortress_api_reject_topup' %}",
+            wallets:      "{% url 'economy:fortress_api_wallets' %}",
+            resetPin:     "{% url 'economy:fortress_api_reset_pin' %}",
+        };
+
+        // ── UI-gate PIN (server-side ops still require valid session + is_superuser)
+        // Phase D will replace this with a POST to a server-side verify endpoint.
+        const MASTER_PIN = "12341";  // TODO Phase D: replace with server-side verify
+        const SUDO_VERIFY_URL = API_URLS.status.replace('status/', 'sudo/verify/');
+
+        function unlockFortress() {
+            const pin = document.getElementById('sudo-pin').value;
+            const err = document.getElementById('sudo-error');
+            
+            if(pin === MASTER_PIN) {
+                // Hide lock screen smoothly
+                const lockScreen = document.getElementById('sudo-screen');
+                lockScreen.style.opacity = '0';
+                setTimeout(() => {
+                    lockScreen.style.display = 'none';
+                    // Show Main App smoothly
+                    const mainApp = document.getElementById('main-app');
+                    mainApp.classList.remove('hidden');
+                    setTimeout(() => mainApp.style.opacity = '1', 50);
+                    switchTab('dashboard'); // Init dashboard
+                    startClock();
+                    renderApprovals(); // Init mock data table
+                }, 500);
+            } else {
+                err.classList.remove('hidden');
+                document.getElementById('sudo-pin').value = '';
+            }
+        }
+
+        // ── All event listeners wired via DOMContentLoaded (CSP-safe) ─────────
+
+        function switchTab(tabId) {
+            // Update Sidebar
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            const navEl = document.getElementById('nav-' + tabId);
+            if(navEl) navEl.classList.add('active');
+
+            // Update Views
+            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+            const viewEl = document.getElementById('view-' + tabId);
+            if(viewEl) viewEl.classList.add('active');
+
+            // Update Header Title
+            const titles = {
+                'dashboard': { title: 'Financial Overview', sub: 'Real-time macro economy metrics' },
+                'treasury': { title: 'Master Treasury', sub: 'Root ledger and minting controls' },
+                'transfers': { title: 'Airdrop & Transfers', sub: 'Direct and bulk DC distribution' },
+                'approvals': { title: 'Approvals & Fiat', sub: 'Manage user top-ups and prize claims' },
+                'automation': { title: 'Reward Automation', sub: 'Smart contract behavior rules' },
+                'audit': { title: 'Audit Ledger', sub: 'Immutable log of all financial events' },
+                'wallets': { title: 'Wallets & Accounts', sub: 'All user wallets, balances, and PIN management' },
+                'guide': { title: 'Admin Guide & Policy', sub: 'Definitions and platform rules' }
+            };
+            if(titles[tabId]) {
+                document.getElementById('page-title').innerText = titles[tabId].title;
+                document.getElementById('page-subtitle').innerText = titles[tabId].sub;
+            }
+        }
+
+        function startClock() {
+            setInterval(() => {
+                const now = new Date();
+                document.getElementById('live-time').innerText = now.toLocaleTimeString('en-US', { hour12: false });
+            }, 1000);
+        }
+
+        // ==========================================
+        // 2. LIVE DATA — API-backed Approvals Table
+        // ==========================================
+
+        // Runtime cache for the current pending approvals (loaded from API)
+        let liveApprovals = [];
+        let sortAsc = false;
+
+        /**
+         * Fetch live approvals from the Fortress API and refresh the table.
+         */
+        async function loadApprovals() {
+            try {
+                const res = await fetch(API_URLS.approvals, {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                const ct = res.headers.get('content-type') || '';
+                if (!res.ok || !ct.includes('application/json')) {
+                    throw new Error(`Server returned ${res.status} (not JSON).`);
+                }
+                const json = await res.json();
+                if (json.ok) {
+                    // Safe extraction: handle both {data:{approvals:[]}} and {data:[]}
+                    const raw = json.data;
+                    const list = (raw && Array.isArray(raw.approvals)) ? raw.approvals
+                               : (raw && Array.isArray(raw))           ? raw
+                               : [];
+                    liveApprovals = list;
+                    renderApprovals(liveApprovals);
+                } else {
+                    console.error('[Fortress] loadApprovals error:', json.error);
+                    renderApprovals([]);
+                }
+            } catch (err) {
+                console.error('[Fortress] loadApprovals fetch failed:', err);
+                renderApprovals([]);
+            }
+        }
+
+        /**
+         * Fetch live treasury / circulation stats and update dashboard cards.
+         */
+        async function loadStatus() {
+            try {
+                const res = await fetch(API_URLS.status, {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                const ct = res.headers.get('content-type') || '';
+                if (!res.ok || !ct.includes('application/json')) {
+                    throw new Error(`Server returned ${res.status} (not JSON).`);
+                }
+                const json = await res.json();
+                if (!json.ok) return;
+                const d = json.data || {};
+
+                const fmt = (n) => (typeof n === 'number' ? n : 0).toLocaleString();
+
+                const circulationEl = document.getElementById('stat-circulation');
+                if (circulationEl) circulationEl.innerHTML = `${fmt(d.circulating_supply)} <span class="text-sm text-gray-500">DC</span>`;
+
+                const treasuryEl = document.getElementById('stat-treasury');
+                if (treasuryEl) treasuryEl.innerHTML = `${fmt(d.treasury_balance)} <span class="text-sm text-gray-500">DC</span>`;
+
+                const sidebarEl = document.getElementById('treasury-sidebar');
+                if (sidebarEl) sidebarEl.innerText = fmt(d.treasury_balance);
+
+                const currentEl = document.getElementById('treasury-current');
+                if (currentEl) currentEl.innerText = fmt(d.treasury_balance);
+
+                const mintPreviewEl = document.getElementById('mint-preview');
+                if (mintPreviewEl) mintPreviewEl.innerText = fmt(d.treasury_balance);
+
+                const badgeEl = document.getElementById('nav-badge-approvals');
+                if (badgeEl) badgeEl.innerText = d.pending_topups_count || 0;
+            } catch (err) {
+                console.error('[Fortress] loadStatus fetch failed:', err);
+            }
+        }
+
+        function renderApprovals(data) {
+            // Defensive: ensure data is always an array
+            const list = Array.isArray(data) ? data : [];
+            const tbody = document.getElementById('approvals-tbody');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+
+            const countEl = document.getElementById('appr-count');
+            if (countEl) countEl.innerText = list.length;
+            const badgeEl = document.getElementById('nav-badge-approvals');
+            if (badgeEl) badgeEl.innerText = list.length;
+
+            if (list.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-10 text-center text-gray-500">No pending requests found.</td></tr>`;
+                return;
+            }
+
+            data.forEach(req => {
+                // Method styling
+                let methodSpan = '';
+                const m = (req.method || '').toLowerCase();
+                if (m === 'bkash')  methodSpan = `<span class="bg-pink-500/20 text-pink-400 px-2 py-1 rounded text-[10px] font-bold border border-pink-500/30">${req.method}</span>`;
+                else if (m === 'nagad') methodSpan = `<span class="bg-orange-500/20 text-orange-400 px-2 py-1 rounded text-[10px] font-bold border border-orange-500/30">${req.method}</span>`;
+                else methodSpan = `<span class="bg-purple-500/20 text-purple-400 px-2 py-1 rounded text-[10px] font-bold border border-purple-500/30">${req.method}</span>`;
+
+                const d = new Date(req.date);
+                const dateStr = d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                tbody.innerHTML += `
+                    <tr class="hover:bg-white/5 transition-colors">
+                        <td class="px-6 py-4">
+                            <div class="font-bold text-white flex items-center gap-2">${req.user} <span class="text-[9px] text-gray-500 font-mono bg-black/50 px-1 rounded">${req.id}</span></div>
+                            <div class="text-[10px] text-gray-500 mt-1"><i class="fa-regular fa-clock"></i> ${dateStr}</div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <span class="font-mono font-bold text-dc-gold text-base">${req.amount.toLocaleString()} DC</span>
+                            <div class="text-[10px] text-gray-500 mt-1">Fiat Claim: ${req.fiat}</div>
+                        </td>
+                        <td class="px-6 py-4">${methodSpan}</td>
+                        <td class="px-6 py-4">
+                            <div class="font-mono text-xs text-dc-cyan font-bold tracking-wider">${req.txid}</div>
+                            <div class="text-[10px] text-gray-500 mt-1 font-mono">${req.phone}</div>
+                        </td>
+                        <td class="px-6 py-4 text-right">
+                            <button data-action="approve" data-id="${req.pk}" class="w-9 h-9 rounded-lg bg-dc-success/10 text-dc-success hover:bg-dc-success hover:text-black transition border border-dc-success/20" title="Approve"><i class="fa-solid fa-check"></i></button>
+                            <button data-action="reject" data-id="${req.pk}" class="w-9 h-9 rounded-lg bg-dc-danger/10 text-dc-danger hover:bg-dc-danger hover:text-white transition ml-2 border border-dc-danger/20" title="Reject"><i class="fa-solid fa-xmark"></i></button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        // Search filter (runs against live cache)
+        function filterApprovals() {
+            const query = document.getElementById('approval-search').value.toLowerCase();
+            const filtered = liveApprovals.filter(req =>
+                (req.txid  || '').toLowerCase().includes(query) ||
+                (req.phone || '').toLowerCase().includes(query) ||
+                (req.user  || '').toLowerCase().includes(query)
+            );
+            renderApprovals(filtered);
+        }
+
+        // Sort by date (runs against live cache)
+        function sortApprovals() {
+            sortAsc = !sortAsc;
+            liveApprovals.sort((a, b) => {
+                const dA = new Date(a.date), dB = new Date(b.date);
+                return sortAsc ? dA - dB : dB - dA;
+            });
+            filterApprovals();
+        }
+
+        // ── Real API: Approve ───────────────────────────────────────────────────
+        async function approveRequest(pk) {
+            if (!confirm(`Approve request #${pk}? This will debit the Treasury and credit the user.`)) return;
+            try {
+                const res = await fetch(API_URLS.approveTopup, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': CSRF_TOKEN,
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    body: JSON.stringify({ request_id: parseInt(pk) }),
+                });
+                const ct = res.headers.get('content-type') || '';
+                if (!ct.includes('application/json')) throw new Error(`Server returned ${res.status} (not JSON).`);
+                const json = await res.json();
+                if (json.ok) {
+                    await Promise.all([loadApprovals(), loadStatus()]);
+                    alert(`✅ Top-Up #${pk} approved. ${json.data.amount_credited} DC credited to ${json.data.user}.`);
+                } else {
+                    alert(`❌ Approval failed: ${json.error}`);
+                }
+            } catch (err) {
+                alert(`❌ Network error: ${err.message}`);
+            }
+        }
+
+        // ── Real API: Reject ────────────────────────────────────────────────────
+        async function rejectRequest(pk) {
+            const reason = prompt(`Rejection reason for #${pk} (shown to user):`);
+            if (reason === null) return; // user cancelled
+            try {
+                const res = await fetch(API_URLS.rejectTopup, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': CSRF_TOKEN,
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    body: JSON.stringify({ request_id: parseInt(pk), reason }),
+                });
+                const ct = res.headers.get('content-type') || '';
+                if (!ct.includes('application/json')) throw new Error(`Server returned ${res.status} (not JSON).`);
+                const json = await res.json();
+                if (json.ok) {
+                    await loadApprovals();
+                    alert(`✅ Request #${pk} rejected.`);
+                } else {
+                    alert(`❌ Rejection failed: ${json.error}`);
+                }
+            } catch (err) {
+                alert(`❌ Network error: ${err.message}`);
+            }
+        }
+
+        // ==========================================
+        // 3. MINTING PREVIEW & MODALS
+        // ==========================================
+        function updateMintPreview() {
+            const val = parseInt(document.getElementById('mint-amount').value) || 0;
+            const current = TREASURY_BALANCE;
+            const newBal = current - val; // Treasury goes more negative when minting
+            document.getElementById('mint-preview').innerText = newBal.toLocaleString();
+        }
+
+        let pendingAction = null;
+        
+        function showConfirmModal(actionType) {
+            pendingAction = actionType;
+            const modal = document.getElementById('confirm-modal');
+            const content = document.getElementById('confirm-modal-content');
+            document.getElementById('confirm-pin').value = '';
+            
+            if(actionType === 'mint') {
+                const amt = document.getElementById('mint-amount').value;
+                document.getElementById('confirm-text').innerText = `You are about to MINT ${amt} DC into the Master Treasury. This is irreversible.`;
+            } else if (actionType === 'airdrop') {
+                document.getElementById('confirm-text').innerText = `You are about to execute a direct manual airdrop from the Treasury.`;
+            }
+
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            setTimeout(() => { modal.classList.remove('opacity-0'); content.classList.remove('scale-95'); }, 10);
+        }
+
+        function closeConfirmModal() {
+            const modal = document.getElementById('confirm-modal');
+            const content = document.getElementById('confirm-modal-content');
+            modal.classList.add('opacity-0'); content.classList.add('scale-95');
+            setTimeout(() => { modal.classList.add('hidden'); modal.classList.remove('flex'); }, 300);
+        }
+
+        async function executeAction() {
+            const pin = document.getElementById('confirm-pin').value;
+            if (pin !== MASTER_PIN) {
+                document.getElementById('confirm-pin').value = '';
+                alert('❌ Invalid PIN. Authorization denied.');
+                return;
+            }
+            closeConfirmModal();
+
+            try {
+                if (pendingAction === 'mint') {
+                    const amount = parseInt(document.getElementById('mint-amount').value) || 0;
+                    const reference = document.querySelector('#form-mint input[type=text]')?.value?.trim() || '';
+                    if (amount <= 0) { alert('❌ Enter a valid amount.'); return; }
+
+                    const res = await fetch(API_URLS.mint, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': CSRF_TOKEN,
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                        body: JSON.stringify({ amount_dc: amount, reference: reference || 'Admin Mint' }),
+                    });
+                    const ct = res.headers.get('content-type') || '';
+                    if (!ct.includes('application/json')) throw new Error(`Server returned ${res.status} (not JSON).`);
+                    const json = await res.json();
+                    if (json.ok) {
+                        await loadStatus();
+                        document.getElementById('mint-amount').value = '';
+                        alert(`✅ Minted ${amount.toLocaleString()} DC. New treasury: ${json.data.new_treasury_balance.toLocaleString()} DC.`);
+                    } else {
+                        alert(`❌ Mint failed: ${json.error}`);
+                    }
+
+                } else if (pendingAction === 'airdrop') {
+                    const username  = document.querySelector('#form-airdrop input[type=text]')?.value?.trim();
+                    const amountEl  = document.querySelector('#form-airdrop input[type=number]');
+                    const noteEl    = document.querySelector('#form-airdrop select');
+                    const amount    = parseInt(amountEl?.value) || 0;
+                    const note      = noteEl?.value || 'Admin Airdrop';
+                    if (!username)    { alert('❌ Enter a username.'); return; }
+                    if (amount <= 0)  { alert('❌ Enter a valid amount.'); return; }
+
+                    const res = await fetch(API_URLS.airdrop, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': CSRF_TOKEN,
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                        body: JSON.stringify({ username, amount_dc: amount, note }),
+                    });
+                    const ct = res.headers.get('content-type') || '';
+                    if (!ct.includes('application/json')) throw new Error(`Server returned ${res.status} (not JSON).`);
+                    const json = await res.json();
+                    if (json.ok) {
+                        await loadStatus();
+                        alert(`✅ Airdropped ${amount.toLocaleString()} DC to ${username}. New balance: ${json.data.new_user_balance.toLocaleString()} DC.`);
+                    } else {
+                        alert(`❌ Airdrop failed: ${json.error}`);
+                    }
+                }
+            } catch (err) {
+                alert(`❌ Network error: ${err.message}`);
+            }
+        }
+
+        // ==========================================
+        // 4. CHART.JS INITIALIZATION (Dashboard)
+        // ==========================================
+        window.addEventListener('load', () => {
+            const ctx = document.getElementById('financeChart').getContext('2d');
+            
+            // Gradient for Inflow (Cyan)
+            const inflowGradient = ctx.createLinearGradient(0, 0, 0, 400);
+            inflowGradient.addColorStop(0, 'rgba(6, 182, 212, 0.5)'); // Cyan
+            inflowGradient.addColorStop(1, 'rgba(6, 182, 212, 0.0)');
+            
+            // Gradient for Outflow (Gold)
+            const outflowGradient = ctx.createLinearGradient(0, 0, 0, 400);
+            outflowGradient.addColorStop(0, 'rgba(245, 158, 11, 0.5)'); // Gold
+            outflowGradient.addColorStop(1, 'rgba(245, 158, 11, 0.0)');
+
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['Nov', 'Dec', 'Jan', 'Feb', 'Mar', 'Apr'],
+                    datasets: [
+                        {
+                            label: 'User Inflow (Fiat Topups)',
+                            data: [45000, 60000, 85000, 120000, 150000, 210000],
+                            borderColor: '#06b6d4',
+                            backgroundColor: inflowGradient,
+                            borderWidth: 2,
+                            tension: 0.4,
+                            fill: true,
+                            pointBackgroundColor: '#06b6d4',
+                            pointBorderColor: '#fff',
+                            pointRadius: 4
+                        },
+                        {
+                            label: 'Admin Outflow (Rewards)',
+                            data: [15000, 20000, 40000, 35000, 50000, 45000],
+                            borderColor: '#f59e0b',
+                            backgroundColor: outflowGradient,
+                            borderWidth: 2,
+                            tension: 0.4,
+                            fill: true,
+                            pointBackgroundColor: '#f59e0b',
+                            pointBorderColor: '#fff',
+                            pointRadius: 4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top', align: 'end', labels: { color: '#a1a1aa', boxWidth: 10, font: { family: "'Inter', sans-serif", size: 10 } } },
+                        tooltip: { backgroundColor: 'rgba(0,0,0,0.8)', titleColor: '#fff', bodyColor: '#fff', padding: 10, borderColor: 'rgba(255,255,255,0.1)', borderWidth: 1 }
+                    },
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#71717a', font: { family: "'JetBrains Mono', monospace", size: 10 }, callback: function(val) { return val/1000 + 'k'; } } },
+                        x: { grid: { display: false }, ticks: { color: '#71717a', font: { family: "'Inter', sans-serif", size: 11 } } }
+                    }
+                }
+            });
+        });
+        // ==========================================
+        // 5. CSP-SAFE EVENT WIRING (DOMContentLoaded)
+        // ==========================================
+        document.addEventListener('DOMContentLoaded', function () {
+
+            // ── Bootstrap: load live data immediately on page ready ───────────
+            loadStatus();
+            loadApprovals();
+
+            // ── Unlock screen ────────────────────────────────────────────────
+            document.getElementById('btn-unlock').addEventListener('click', unlockFortress);
+            document.getElementById('sudo-pin').addEventListener('keypress', function (e) {
+                if (e.key === 'Enter') unlockFortress();
+            });
+
+            // ── Sidebar tab navigation (data-tab-target) ─────────────────────
+            document.querySelectorAll('[data-tab-target]').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    switchTab(this.dataset.tabTarget);
+                });
+            });
+
+            // ── Terminate session button ──────────────────────────────────────
+            document.getElementById('btn-terminate').addEventListener('click', function () {
+                window.location.reload();
+            });
+
+            // ── Mint form (prevent default + trigger confirm modal) ───────────
+            document.getElementById('form-mint').addEventListener('submit', function (e) {
+                e.preventDefault();
+                showConfirmModal('mint');
+            });
+
+            // ── Mint amount preview (live update) ────────────────────────────
+            document.getElementById('mint-amount').addEventListener('input', updateMintPreview);
+
+            // ── Approval search (live filter) ─────────────────────────────────
+            document.getElementById('approval-search').addEventListener('keyup', filterApprovals);
+
+            // ── Sort approvals button ─────────────────────────────────────────
+            document.getElementById('btn-sort').addEventListener('click', sortApprovals);
+
+            // ── Airdrop form ──────────────────────────────────────────────────
+            document.getElementById('form-airdrop').addEventListener('submit', function (e) {
+                e.preventDefault();
+                showConfirmModal('airdrop');
+            });
+
+            // ── Edit Policies button (policy gate) ────────────────────────────
+            document.getElementById('btn-edit-policies').addEventListener('click', function () {
+                alert('Sudo PIN required to edit policies.');
+            });
+
+            // ── Confirm modal: Cancel ─────────────────────────────────────────
+            document.getElementById('btn-cancel').addEventListener('click', closeConfirmModal);
+
+            // ── Confirm modal: Execute / Authorize ────────────────────────────
+            document.getElementById('btn-execute').addEventListener('click', executeAction);
+
+            // ── Approve / Reject delegation on tbody (dynamic rows) ───────────
+            // Buttons are rendered via renderApprovals() JS; we delegate to tbody.
+            document.getElementById('approvals-tbody').addEventListener('click', function (e) {
+                const approveBtn = e.target.closest('[data-action="approve"]');
+                const rejectBtn  = e.target.closest('[data-action="reject"]');
+                if (approveBtn) approveRequest(approveBtn.dataset.id);
+                if (rejectBtn)  rejectRequest(rejectBtn.dataset.id);
+            });
+
+            // ── Bulk Airdrop button ───────────────────────────────────────────
+            document.getElementById('btn-bulk-airdrop').addEventListener('click', triggerBulkAirdrop);
+
+            // ── Auto-load audit log when switching to that tab ────────────────
+            document.querySelectorAll('[data-tab-target="audit"]').forEach(function (btn) {
+                btn.addEventListener('click', loadAuditLogs);
+            });
+        });
+
+        // ==========================================
+        // 6. AUDIT LEDGER — Live fetch (Phase C)
+        // ==========================================
+
+        /** Colour map mirrors fortress_api.py ACTION_COLOUR dict */
+        const AUDIT_COLOURS = {
+            MINT_TO_TREASURY:  { text: 'text-dc-cyan',    label: 'text-dc-cyan' },
+            AIRDROP:           { text: 'text-dc-gold',    label: 'text-dc-gold' },
+            BULK_AIRDROP:      { text: 'text-purple-400', label: 'text-purple-400' },
+            APPROVE_TOPUP:     { text: 'text-dc-success', label: 'text-dc-success' },
+            REJECT_TOPUP:      { text: 'text-dc-danger',  label: 'text-dc-danger' },
+            AUTO_REWARD_KYC:   { text: 'text-blue-400',   label: 'text-blue-400' },
+            AUTO_REWARD_MATCH: { text: 'text-blue-400',   label: 'text-blue-400' },
+        };
+
+        async function loadAuditLogs() {
+            const tbody = document.getElementById('audit-tbody');
+            if (!tbody) return;
+
+            tbody.innerHTML = `
+                <tr id="audit-loading-row">
+                    <td colspan="5" class="px-6 py-10 text-center text-gray-500">
+                        <i class="fa-solid fa-spinner fa-spin mr-2"></i>Loading audit trail…
+                    </td>
+                </tr>`;
+
+            try {
+                const res  = await fetch(API_URLS.audit + '?limit=50', {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                const ct = res.headers.get('content-type') || '';
+                if (!res.ok || !ct.includes('application/json')) {
+                    throw new Error(`Server returned ${res.status} (not JSON).`);
+                }
+                const json = await res.json();
+
+                if (!json.ok) {
+                    tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-10 text-center text-dc-danger">
+                        ❌ Failed to load audit trail: ${json.error}</td></tr>`;
+                    return;
+                }
+
+                const logs = json.data.logs;
+
+                if (logs.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-10 text-center text-gray-500">
+                        No audit entries yet.</td></tr>`;
+                    return;
+                }
+
+                tbody.innerHTML = '';
+                logs.forEach(entry => {
+                    const colours = AUDIT_COLOURS[entry.action] || { text: 'text-gray-400', label: 'text-gray-400' };
+                    const amtSign = entry.amount >= 0 ? '+' : '';
+                    const amtColour = entry.amount >= 0 ? 'text-dc-success' : 'text-dc-danger';
+                    tbody.innerHTML += `
+                        <tr class="hover:bg-white/5 transition-colors">
+                            <td class="px-6 py-4 text-gray-400">${entry.timestamp}</td>
+                            <td class="px-6 py-4 font-bold text-white">${entry.actor}</td>
+                            <td class="px-6 py-4 font-bold ${colours.text}">${entry.action}</td>
+                            <td class="px-6 py-4 text-gray-400 max-w-[160px] truncate" title="${entry.target}">${entry.target}</td>
+                            <td class="px-6 py-4 font-bold ${amtColour}">${amtSign}${entry.amount.toLocaleString()} DC</td>
+                        </tr>`;
+                });
+
+            } catch (err) {
+                tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-10 text-center text-dc-danger">
+                    ❌ Network error: ${err.message}</td></tr>`;
+            }
+        }
+
+        // ==========================================
+        // 7. BULK AIRDROP — Prompt + fetch (Phase C)
+        // ==========================================
+
+        async function triggerBulkAirdrop() {
+            // Step 1: collect usernames
+            const rawUsers = prompt(
+                '🪂 BULK AIRDROP\n\nPaste a comma-separated list of usernames:\n(max 500, duplicates ignored)',
+                ''
+            );
+            if (!rawUsers || !rawUsers.trim()) return;
+
+            const usernames = [...new Set(
+                rawUsers.split(',').map(u => u.trim()).filter(Boolean)
+            )];
+            if (usernames.length === 0) { alert('❌ No valid usernames found.'); return; }
+
+            // Step 2: collect amount
+            const rawAmount = prompt(
+                `💰 How many DC per user?\n(${usernames.length} users selected)`,
+                '100'
+            );
+            if (!rawAmount) return;
+            const amount_dc = parseInt(rawAmount);
+            if (!amount_dc || amount_dc <= 0) { alert('❌ Enter a valid positive amount.'); return; }
+
+            // Step 3: confirm
+            const totalDC = amount_dc * usernames.length;
+            const confirmed = confirm(
+                `⚠️ BULK AIRDROP CONFIRMATION\n\n` +
+                `Users:       ${usernames.length}\n` +
+                `DC per user: ${amount_dc.toLocaleString()}\n` +
+                `Total DC:    ${totalDC.toLocaleString()}\n\n` +
+                `This will debit the Master Treasury by ${totalDC.toLocaleString()} DC.\n` +
+                `Proceed?`
+            );
+            if (!confirmed) return;
+
+            // Step 4: execute
+            try {
+                const res = await fetch(API_URLS.bulkAirdrop, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': CSRF_TOKEN,
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    body: JSON.stringify({
+                        usernames,
+                        amount_dc,
+                        note: 'Fortress Bulk Airdrop',
+                    }),
+                });
+                const ct = res.headers.get('content-type') || '';
+                if (!ct.includes('application/json')) throw new Error(`Server returned ${res.status} (not JSON).`);
+                const json = await res.json();
+
+                if (json.ok) {
+                    const d = json.data;
+                    await loadStatus();  // refresh treasury balance
+
+                    let summary = `✅ BULK AIRDROP COMPLETE\n\n` +
+                        `✔ Succeeded: ${d.succeeded_count} users (${d.total_dc_sent.toLocaleString()} DC sent)\n` +
+                        `✘ Failed:    ${d.failed_count} users\n` +
+                        `New Treasury: ${d.new_treasury_balance.toLocaleString()} DC`;
+
+                    if (d.failed.length > 0) {
+                        summary += `\n\nFailed users:\n` +
+                            d.failed.map(f => `  • ${f.username}: ${f.reason}`).join('\n');
+                    }
+                    alert(summary);
+                    loadAuditLogs();  // refresh audit tab if open
+                } else {
+                    alert(`❌ Bulk airdrop failed: ${json.error}`);
+                }
+            } catch (err) {
+                alert(`❌ Network error: ${err.message}`);
+            }
+        }
+
+        // ==========================================
+        // 8. WALLETS & ACCOUNTS (Phase C Task 4)
+        // ==========================================
+
+        async function loadWallets() {
+            const tbody = document.getElementById('wallets-tbody');
+            const footer = document.getElementById('wallets-footer');
+            if (!tbody) return;
+
+            tbody.innerHTML = `<tr><td colspan="6" class="px-4 py-10 text-center text-gray-500">
+                <i class="fa-solid fa-spinner fa-spin mr-2"></i>Loading wallets…</td></tr>`;
+
+            try {
+                const res = await fetch(API_URLS.wallets, {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                const ct = res.headers.get('content-type') || '';
+                if (!res.ok || !ct.includes('application/json')) {
+                    throw new Error(`Server returned ${res.status} (not JSON).`);
+                }
+                const json = await res.json();
+                if (!json.ok) {
+                    throw new Error(json.error || 'API returned ok=false');
+                }
+
+                const wallets = (json.data && Array.isArray(json.data.wallets))
+                    ? json.data.wallets : [];
+
+                if (wallets.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="6" class="px-4 py-10 text-center text-gray-500">No wallets found.</td></tr>`;
+                    return;
+                }
+
+                tbody.innerHTML = '';
+                wallets.forEach(w => {
+                    const balClass   = w.balance >= 0 ? 'text-dc-success' : 'text-dc-danger';
+                    const typeTag    = w.is_treasury
+                        ? `<span class="bg-dc-danger/20 text-dc-danger border border-dc-danger/30 px-2 py-0.5 rounded text-[10px] font-bold">TREASURY</span>`
+                        : `<span class="bg-white/5 text-gray-400 border border-white/10 px-2 py-0.5 rounded text-[10px]">User</span>`;
+                    const pinTag     = w.has_pin
+                        ? `<span class="bg-dc-success/15 text-dc-success border border-dc-success/30 px-2 py-0.5 rounded text-[10px] font-bold"><i class="fa-solid fa-lock mr-1"></i>Set</span>`
+                        : `<span class="bg-gray-800 text-gray-500 border border-white/5 px-2 py-0.5 rounded text-[10px]"><i class="fa-solid fa-lock-open mr-1"></i>None</span>`;
+                    const resetBtn   = w.is_treasury ? '—'
+                        : `<button data-wallet-id="${w.wallet_id}" data-username="${w.username}"
+                                class="btn-reset-pin text-[10px] bg-dc-warning/10 hover:bg-dc-warning/20 text-dc-warning border border-dc-warning/30 px-3 py-1 rounded transition font-bold">
+                                <i class="fa-solid fa-key mr-1"></i>Reset PIN
+                           </button>`;
+
+                    tbody.innerHTML += `
+                        <tr class="hover:bg-white/5 transition-colors ${w.is_treasury ? 'bg-dc-danger/5' : ''}">
+                            <td class="px-4 py-3 font-bold text-white">${w.username}</td>
+                            <td class="px-4 py-3 text-gray-400 font-mono text-[10px]">${w.email}</td>
+                            <td class="px-4 py-3 font-bold font-mono ${balClass}">${w.balance.toLocaleString()} DC</td>
+                            <td class="px-4 py-3">${typeTag}</td>
+                            <td class="px-4 py-3">${pinTag}</td>
+                            <td class="px-4 py-3">${resetBtn}</td>
+                        </tr>`;
+                });
+
+                if (footer) {
+                    footer.textContent = `${wallets.length} wallets loaded · ${new Date().toLocaleTimeString()}`;
+                }
+
+            } catch (err) {
+                tbody.innerHTML = `<tr><td colspan="6" class="px-4 py-10 text-center text-dc-danger">
+                    ❌ ${err.message}</td></tr>`;
+                console.error('[Fortress] loadWallets failed:', err);
+            }
+        }
+
+        // Event delegation for Reset PIN buttons (rendered dynamically)
+        document.addEventListener('click', async function(e) {
+            const btn = e.target.closest('.btn-reset-pin');
+            if (!btn) return;
+
+            const walletId = btn.dataset.walletId;
+            const username = btn.dataset.username;
+
+            if (!confirm(`⚠️ Reset PIN for "${username}"?\n\nThis will invalidate their current PIN. They must re-setup PIN via OTP on next login.`)) return;
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i>Resetting…';
+
+            try {
+                const res = await fetch(API_URLS.resetPin, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': CSRF_TOKEN,
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    body: JSON.stringify({ wallet_id: parseInt(walletId) }),
+                });
+                const ct = res.headers.get('content-type') || '';
+                if (!ct.includes('application/json')) throw new Error(`Server returned ${res.status} (not JSON).`);
+                const json = await res.json();
+
+                if (json.ok) {
+                    alert(`✅ PIN reset for ${username}.\n${json.data.message}`);
+                    loadWallets();   // refresh table to update PIN status column
+                } else {
+                    alert(`❌ Reset failed: ${json.error}`);
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fa-solid fa-key mr-1"></i>Reset PIN';
+                }
+            } catch (err) {
+                alert(`❌ Network error: ${err.message}`);
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-key mr-1"></i>Reset PIN';
+            }
+        });
+
+    </script>
+</body>
+</html>

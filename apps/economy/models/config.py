@@ -92,3 +92,25 @@ class EconomyDashboard(EconomyConfig):
         app_label = "economy"
         verbose_name = "Economy Dashboard"
         verbose_name_plural = "Economy Dashboard"
+
+
+# ---------------------------------------------------------------------------
+# Financial Fortress proxy — superuser-only admin sidebar entry
+# ---------------------------------------------------------------------------
+
+class FinancialFortress(EconomyConfig):
+    """
+    Proxy of EconomyConfig used solely to inject the '🛡️ Financial Fortress'
+    clickable link into the Django admin sidebar.
+
+    No additional DB table is created (proxy=True).
+    The admin registration for this proxy (FinancialFortressAdmin) immediately
+    redirects to the dedicated fortress_dashboard view and is visible ONLY to
+    is_superuser accounts.
+    """
+
+    class Meta:
+        proxy = True
+        app_label = "economy"
+        verbose_name = "🛡️ Financial Fortress"
+        verbose_name_plural = "🛡️ Financial Fortress"

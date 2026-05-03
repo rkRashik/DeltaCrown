@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeltaCrown - Digital Wallet Hub</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        dc: {
+                            bg: '#0a0a0c',
+                            card: '#121216',
+                            border: 'rgba(255,255,255,0.08)',
+                            primary: '#10b981',
+                            gold: '#f59e0b',
+                            danger: '#ef4444'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #0a0a0c; color: #ffffff; -webkit-tap-highlight-color: transparent; }
+        .glass { background: rgba(18, 18, 22, 0.7); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.05); }
+        .glass-card { background: linear-gradient(145deg, rgba(255,255,255,0.03) 0%, rgba(0,0,0,0.2) 100%); border: 1px solid rgba(255,255,255,0.05); }
+
+        /* Tab Transitions */
+        .tab-content { display: none; animation: fadeIn 0.3s ease-in-out; }
+        .tab-content.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Nav active states */
+        .nav-item.active { color: #10b981; border-color: #10b981; background: rgba(16, 185, 129, 0.1); }
+        .mobile-nav-item.active { color: #10b981; }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+    </style>
+</head>
+<body class="bg-dc-bg min-h-screen flex flex-col md:flex-row pb-20 md:pb-0">
+
+    <aside class="hidden md:flex flex-col w-64 glass border-r border-dc-border h-screen sticky top-0">
+        <div class="p-6 border-b border-dc-border flex items-center gap-3">
+            <i class="fa-solid fa-crown text-dc-primary text-2xl"></i>
+            <span class="font-bold text-xl tracking-wider">DELTACROWN</span>
+        </div>
+        <div class="p-4 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Wallet App</div>
+        <nav class="flex-1 px-4 space-y-2" id="desktop-nav">
+            <button data-tab="overview" class="nav-item active w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-400 hover:text-white hover:bg-white/5 transition border border-transparent text-left font-medium">
+                <i class="fa-solid fa-layer-group w-5"></i> Overview
+            </button>
+            <button data-tab="acquire" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-400 hover:text-white hover:bg-white/5 transition border border-transparent text-left font-medium">
+                <i class="fa-solid fa-cart-plus w-5"></i> Acquire DC
+            </button>
+            <button data-tab="ledger" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-400 hover:text-white hover:bg-white/5 transition border border-transparent text-left font-medium">
+                <i class="fa-solid fa-receipt w-5"></i> Ledger History
+            </button>
+            <button data-tab="claims" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-400 hover:text-white hover:bg-white/5 transition border border-transparent text-left font-medium relative">
+                <i class="fa-solid fa-trophy w-5"></i> Prize Claims
+                <span class="absolute right-4 bg-dc-gold text-black text-[10px] font-bold px-1.5 py-0.5 rounded-full">1</span>
+            </button>
+            <button data-tab="rules" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-400 hover:text-white hover:bg-white/5 transition border border-transparent text-left font-medium mt-8 border-t border-dc-border">
+                <i class="fa-solid fa-scale-balanced w-5"></i> Economy Rules
+            </button>
+        </nav>
+    </aside>
+
+    <nav class="md:hidden fixed bottom-0 w-full glass border-t border-dc-border z-50 px-2 py-2 flex justify-around items-center" id="mobile-nav">
+        <button data-tab="overview" class="mobile-nav-item active flex flex-col items-center gap-1 p-2 text-gray-400 w-16">
+            <i class="fa-solid fa-layer-group text-lg"></i>
+            <span class="text-[10px] font-medium">Overview</span>
+        </button>
+        <button data-tab="acquire" class="mobile-nav-item flex flex-col items-center gap-1 p-2 text-gray-400 w-16">
+            <i class="fa-solid fa-cart-plus text-lg"></i>
+            <span class="text-[10px] font-medium">Store</span>
+        </button>
+        <button data-tab="ledger" class="mobile-nav-item flex flex-col items-center gap-1 p-2 text-gray-400 w-16">
+            <i class="fa-solid fa-receipt text-lg"></i>
+            <span class="text-[10px] font-medium">History</span>
+        </button>
+        <button data-tab="claims" class="mobile-nav-item flex flex-col items-center gap-1 p-2 text-gray-400 w-16 relative">
+            <i class="fa-solid fa-trophy text-lg"></i>
+            <span class="absolute top-1 right-2 bg-dc-gold text-black text-[8px] font-bold px-1 rounded-full">1</span>
+            <span class="text-[10px] font-medium">Claims</span>
+        </button>
+        <button data-tab="rules" class="mobile-nav-item flex flex-col items-center gap-1 p-2 text-gray-400 w-16">
+            <i class="fa-solid fa-scale-balanced text-lg"></i>
+            <span class="text-[10px] font-medium">Rules</span>
+        </button>
+    </nav>
+
+    <main class="flex-1 overflow-y-auto p-4 md:p-8 w-full max-w-5xl mx-auto">
+
+        <header class="md:hidden flex items-center justify-between mb-6">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-crown text-dc-primary"></i>
+                <span class="font-bold tracking-wider">DELTACROWN</span>
+            </div>
+            <div class="bg-black/50 border border-white/10 px-3 py-1 rounded-full flex items-center gap-2">
+                <span class="text-dc-gold font-bold text-sm" id="mobile-header-balance">0 DC</span>
+            </div>
+        </header>
+
+        <section id="tab-overview" class="tab-content active space-y-6">
+            <div class="glass-card rounded-2xl p-6 md:p-8 relative overflow-hidden">
+                <div class="absolute top-0 right-0 w-64 h-64 bg-dc-primary/10 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none"></div>
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 relative z-10">
+                    <div>
+                        <p class="text-gray-400 font-medium mb-1 flex items-center gap-2">
+                            Platform Utility Token
+                            <i class="fa-solid fa-circle-info text-xs cursor-pointer text-gray-500 hover:text-white transition" title="DC is used for platform services and cannot be withdrawn."></i>
+                        </p>
+                        <h1 class="text-5xl md:text-6xl font-bold flex items-center gap-3">
+                            <i class="fa-solid fa-coins text-dc-gold"></i>
+                            <span id="overview-balance">0</span>
+                            <span class="text-2xl text-gray-500 font-normal">DC</span>
+                        </h1>
+                    </div>
+                    <div class="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+                        <button onclick="switchTab('acquire')" class="bg-dc-primary hover:bg-dc-primaryHover text-white font-bold py-3 px-6 rounded-xl transition shadow-[0_0_15px_rgba(16,185,129,0.3)] flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-plus"></i> Acquire DC
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="glass-card rounded-2xl p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-bold">Recent Activity</h3>
+                        <button onclick="switchTab('ledger')" class="text-xs text-dc-primary hover:underline">View All</button>
+                    </div>
+                    <div class="space-y-4" id="overview-activity">
+                        <div class="text-center text-sm text-gray-500 py-4">No recent transactions.</div>
+                    </div>
+                </div>
+
+                <div class="glass-card rounded-2xl p-6 border-t-2 border-t-dc-gold">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-bold flex items-center gap-2"><i class="fa-solid fa-trophy text-dc-gold"></i> Pending Prize Claims</h3>
+                    </div>
+                    <div class="bg-black/40 border border-dc-gold/30 rounded-xl p-4 flex justify-between items-center">
+                        <div>
+                            <p class="font-bold text-sm">eFootball Genesis Cup</p>
+                            <p class="text-xs text-gray-400">Champion Prize</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="font-bold text-dc-gold">৳5,000</p>
+                            <span class="text-[10px] bg-yellow-500/20 text-yellow-500 px-2 py-0.5 rounded border border-yellow-500/30">PENDING KYC</span>
+                        </div>
+                    </div>
+                    <button onclick="switchTab('claims')" class="w-full mt-4 text-sm font-medium border border-white/10 hover:bg-white/5 py-2 rounded-lg transition">Manage Claims</button>
+                </div>
+            </div>
+        </section>
+
+        <section id="tab-acquire" class="tab-content space-y-6">
+            <div>
+                <h2 class="text-2xl font-bold mb-2">Digital Asset Store</h2>
+                <p class="text-gray-400 text-sm">Purchase DeltaCoin packages to enter premium tournaments and bounties.</p>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" id="store-packages">
+                </div>
+        </section>
+
+        <section id="tab-ledger" class="tab-content space-y-6">
+            <div>
+                <h2 class="text-2xl font-bold mb-2">Ledger History</h2>
+                <p class="text-gray-400 text-sm">A complete record of your DeltaCoin utility usage.</p>
+            </div>
+
+            <div class="glass-card rounded-2xl overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm whitespace-nowrap">
+                        <thead class="bg-black/40 border-b border-dc-border text-gray-400">
+                            <tr>
+                                <th class="px-6 py-4 font-medium">Transaction</th>
+                                <th class="px-6 py-4 font-medium">Date</th>
+                                <th class="px-6 py-4 font-medium">Ref</th>
+                                <th class="px-6 py-4 font-medium text-right">Amount (DC)</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-dc-border" id="ledger-table-body">
+                            <tr><td colspan="4" class="px-6 py-8 text-center text-gray-500">No ledger history available.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <section id="tab-claims" class="tab-content space-y-6">
+            <div>
+                <h2 class="text-2xl font-bold mb-2">Prize Claims</h2>
+                <p class="text-gray-400 text-sm">Claim your real-world fiat winnings from official tournaments.</p>
+            </div>
+
+            <div class="bg-dc-gold/10 border border-dc-gold/30 rounded-xl p-4 flex items-start gap-3">
+                <i class="fa-solid fa-shield-halved text-dc-gold mt-1"></i>
+                <div class="text-sm">
+                    <p class="font-bold text-dc-gold mb-1">KYC Verification Required</p>
+                    <p class="text-gray-300">To comply with local regulations, fiat prize disbursements require identity verification. Please ensure your National ID details match your payment account.</p>
+                </div>
+            </div>
+
+            <div class="glass-card rounded-2xl p-6">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 pb-6 border-b border-dc-border">
+                    <div>
+                        <h3 class="font-bold text-lg">eFootball Genesis Cup</h3>
+                        <p class="text-gray-400 text-sm">Tournament Champion - Earned May 1, 2026</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-2xl font-bold text-white">৳5,000 BDT</p>
+                        <span class="inline-block mt-1 text-[10px] bg-yellow-500/20 text-yellow-500 px-2 py-0.5 rounded border border-yellow-500/30">ACTION REQUIRED</span>
+                    </div>
+                </div>
+
+                <form class="space-y-4 max-w-lg" onsubmit="event.preventDefault(); alert('Claim submitted for Admin review.');">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Select Payout Method</label>
+                        <div class="grid grid-cols-2 gap-3">
+                            <label class="border border-dc-border rounded-xl p-3 flex items-center gap-3 cursor-pointer hover:bg-white/5 transition has-[:checked]:border-dc-primary has-[:checked]:bg-dc-primary/5">
+                                <input type="radio" name="payout" class="accent-dc-primary" checked>
+                                <span class="font-bold text-pink-500">bKash</span>
+                            </label>
+                            <label class="border border-dc-border rounded-xl p-3 flex items-center gap-3 cursor-pointer hover:bg-white/5 transition has-[:checked]:border-dc-primary has-[:checked]:bg-dc-primary/5">
+                                <input type="radio" name="payout" class="accent-dc-primary">
+                                <span class="font-bold text-orange-500">Nagad</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Account Number</label>
+                        <input type="text" placeholder="01XXXXXXXXX" class="w-full bg-black/40 border border-dc-border rounded-xl px-4 py-3 focus:outline-none focus:border-dc-primary">
+                    </div>
+                    <button type="submit" class="bg-white text-black font-bold py-3 px-6 rounded-xl hover:bg-gray-200 transition">Submit Claim for Review</button>
+                </form>
+            </div>
+        </section>
+
+        <section id="tab-rules" class="tab-content space-y-6">
+            <div>
+                <h2 class="text-2xl font-bold mb-2">Platform Economy Principles</h2>
+                <p class="text-gray-400 text-sm">Understanding how DeltaCrown maintains a safe, compliant ecosystem.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="glass-card rounded-2xl p-6">
+                    <div class="w-10 h-10 rounded-full bg-dc-primary/20 flex items-center justify-center mb-4 border border-dc-primary/30">
+                        <i class="fa-solid fa-lock text-dc-primary"></i>
+                    </div>
+                    <h3 class="font-bold text-lg mb-2">Closed-Loop Utility Token</h3>
+                    <p class="text-sm text-gray-400 leading-relaxed">DeltaCoins (DC) are strictly digital platform utility assets used for tournament entries and challenges. DC cannot be withdrawn, refunded, or converted back to fiat currency under any circumstances.</p>
+                </div>
+
+                <div class="glass-card rounded-2xl p-6">
+                    <div class="w-10 h-10 rounded-full bg-dc-gold/20 flex items-center justify-center mb-4 border border-dc-gold/30">
+                        <i class="fa-solid fa-money-bill-wave text-dc-gold"></i>
+                    </div>
+                    <h3 class="font-bold text-lg mb-2">Fiat Prize Separation</h3>
+                    <p class="text-sm text-gray-400 leading-relaxed">Official tournament prize pools listed in BDT (Fiat) are disbursed entirely separate from the DeltaCoin economy. Winners must claim fiat prizes through the Prize Claims portal using local MFS channels.</p>
+                </div>
+
+                <div class="glass-card rounded-2xl p-6">
+                    <div class="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center mb-4 border border-blue-500/30">
+                        <i class="fa-solid fa-handshake-angle text-blue-400"></i>
+                    </div>
+                    <h3 class="font-bold text-lg mb-2">Escrow Integrity</h3>
+                    <p class="text-sm text-gray-400 leading-relaxed">When engaging in challenges or bounties, DC is temporarily held in a neutral smart-escrow. Funds are released automatically to the victor upon verified match completion, ensuring 100% fair play.</p>
+                </div>
+
+                <div class="glass-card rounded-2xl p-6 border border-white/10 flex flex-col items-center justify-center text-center">
+                    <i class="fa-solid fa-book-open text-3xl text-gray-600 mb-3"></i>
+                    <h3 class="font-bold mb-1">Read Full Terms</h3>
+                    <a href="#" class="text-sm text-dc-primary hover:underline">View complete Terms of Service & Legal Compliance</a>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <div id="payment-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] hidden flex items-center justify-center opacity-0 transition-opacity duration-300">
+        <div class="glass-card w-full max-w-sm rounded-2xl p-6 transform scale-95 transition-transform duration-300" id="payment-modal-content">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="font-bold text-lg">Select Gateway</h3>
+                <button onclick="closeModal()" class="text-gray-500 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <div class="mb-6 text-center">
+                <p class="text-sm text-gray-400">Total Payable</p>
+                <p class="text-3xl font-bold" id="modal-price">৳0</p>
+                <p class="text-xs text-dc-primary mt-1" id="modal-item">Acquiring: 0 DC</p>
+            </div>
+
+            <div class="space-y-3">
+                <button onclick="processPayment('bKash')" class="w-full bg-[#e2136e] hover:bg-[#c10f5d] text-white font-bold py-3 px-4 rounded-xl transition flex justify-between items-center group">
+                    <span>Pay with bKash</span>
+                    <i class="fa-solid fa-arrow-right opacity-0 group-hover:opacity-100 transition"></i>
+                </button>
+                <button onclick="processPayment('Nagad')" class="w-full bg-[#f26522] hover:bg-[#d65518] text-white font-bold py-3 px-4 rounded-xl transition flex justify-between items-center group">
+                    <span>Pay with Nagad</span>
+                    <i class="fa-solid fa-arrow-right opacity-0 group-hover:opacity-100 transition"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="processing-overlay" class="fixed inset-0 bg-black/90 z-[200] hidden flex-col items-center justify-center">
+        <div class="w-16 h-16 border-4 border-dc-border border-t-dc-primary rounded-full animate-spin mb-4"></div>
+        <p class="font-bold tracking-widest animate-pulse" id="processing-text">VERIFYING PAYMENT...</p>
+    </div>
+
+    <script>
+        // State
+        let currentBalance = 0;
+        let selectedPackage = null;
+        const transactionHistory = [];
+
+        // Tab Navigation Logic
+        function switchTab(tabId) {
+            // Hide all contents
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-item, .mobile-nav-item').forEach(el => el.classList.remove('active'));
+
+            // Show selected
+            document.getElementById(`tab-${tabId}`).classList.add('active');
+
+            // Update nav states
+            document.querySelectorAll(`[data-tab="${tabId}"]`).forEach(el => el.classList.add('active'));
+
+            // Scroll to top
+            window.scrollTo(0, 0);
+        }
+
+        // Add event listeners to nav buttons
+        document.querySelectorAll('.nav-item, .mobile-nav-item').forEach(btn => {
+            btn.addEventListener('click', (e) => switchTab(e.currentTarget.dataset.tab));
+        });
+
+        // Digital Store Packages
+        const packages = [
+            { id: 1, name: "Rookie Pack", dc: 100, price: 10, icon: "fa-seedling" },
+            { id: 2, name: "Challenger Stash", dc: 500, price: 50, icon: "fa-box" },
+            { id: 3, name: "Pro Bundle", dc: 1000, price: 100, icon: "fa-layer-group", popular: true },
+            { id: 4, name: "Elite Reserve", dc: 5000, price: 500, icon: "fa-gem" }
+        ];
+
+        // Render Packages
+        const packageContainer = document.getElementById('store-packages');
+        packageContainer.innerHTML = packages.map(pkg => `
+            <div class="glass-card rounded-2xl p-5 relative overflow-hidden group border hover:border-dc-primary/50 transition cursor-pointer" onclick="openPaymentModal(${pkg.id})">
+                ${pkg.popular ? `<div class="absolute top-0 right-0 bg-dc-primary text-[10px] font-bold px-3 py-1 rounded-bl-xl text-black">BEST VALUE</div>` : ''}
+                <div class="w-12 h-12 rounded-xl bg-black/50 border border-white/5 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                    <i class="fa-solid ${pkg.icon} text-dc-gold text-xl"></i>
+                </div>
+                <h3 class="font-bold text-lg text-white mb-1">${pkg.name}</h3>
+                <div class="flex items-end justify-between mt-4">
+                    <div class="flex items-center gap-1">
+                        <span class="text-xl font-bold">${pkg.dc.toLocaleString()}</span>
+                        <span class="text-xs text-gray-500">DC</span>
+                    </div>
+                    <div class="bg-white/10 px-3 py-1 rounded-lg font-medium text-sm">
+                        ৳${pkg.price}
+                    </div>
+                </div>
+            </div>
+        `).join('');
+
+        // Payment Simulation Logic
+        const modal = document.getElementById('payment-modal');
+        const modalContent = document.getElementById('payment-modal-content');
+        const overlay = document.getElementById('processing-overlay');
+
+        function openPaymentModal(pkgId) {
+            selectedPackage = packages.find(p => p.id === pkgId);
+            document.getElementById('modal-price').innerText = `৳${selectedPackage.price}`;
+            document.getElementById('modal-item').innerText = `Acquiring: ${selectedPackage.dc.toLocaleString()} DC`;
+
+            modal.classList.remove('hidden');
+            // Slight delay for animation
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                modalContent.classList.remove('scale-95');
+            }, 10);
+        }
+
+        function closeModal() {
+            modal.classList.add('opacity-0');
+            modalContent.classList.add('scale-95');
+            setTimeout(() => modal.classList.add('hidden'), 300);
+            selectedPackage = null;
+        }
+
+        function processPayment(gateway) {
+            closeModal();
+            overlay.classList.remove('hidden');
+            overlay.classList.add('flex');
+
+            // Simulate network delay
+            setTimeout(() => {
+                document.getElementById('processing-text').innerText = "CREDITING DELTACOINS...";
+
+                setTimeout(() => {
+                    // Success! Update Balance
+                    currentBalance += selectedPackage.dc;
+                    updateDOM();
+
+                    // Add to ledger
+                    addLedgerEntry(`Store Purchase (${selectedPackage.name}) via ${gateway}`, selectedPackage.dc, true);
+
+                    overlay.classList.remove('flex');
+                    overlay.classList.add('hidden');
+                    document.getElementById('processing-text').innerText = "VERIFYING PAYMENT..."; // reset
+
+                    // Route back to overview
+                    switchTab('overview');
+
+                }, 1000);
+            }, 1500);
+        }
+
+        // Update DOM Elements
+        function updateDOM() {
+            const displayBal = currentBalance.toLocaleString();
+            document.getElementById('overview-balance').innerText = displayBal;
+            document.getElementById('mobile-header-balance').innerText = `${displayBal} DC`;
+        }
+
+        function addLedgerEntry(desc, amount, isCredit) {
+            const date = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+            const ref = 'TRX-' + Math.random().toString(36).substr(2, 8).toUpperCase();
+
+            transactionHistory.unshift({ desc, date, ref, amount, isCredit });
+
+            // Update Ledger Tab Table
+            const tbody = document.getElementById('ledger-table-body');
+            tbody.innerHTML = transactionHistory.map(tx => `
+                <tr class="hover:bg-white/5 transition">
+                    <td class="px-6 py-4 flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-full ${tx.isCredit ? 'bg-dc-primary/20 text-dc-primary' : 'bg-dc-danger/20 text-dc-danger'} flex items-center justify-center text-xs">
+                            <i class="fa-solid ${tx.isCredit ? 'fa-arrow-down' : 'fa-arrow-up'}"></i>
+                        </div>
+                        <span class="font-medium">${tx.desc}</span>
+                    </td>
+                    <td class="px-6 py-4 text-gray-400">${tx.date}</td>
+                    <td class="px-6 py-4 text-gray-500 font-mono text-xs">${tx.ref}</td>
+                    <td class="px-6 py-4 text-right font-bold ${tx.isCredit ? 'text-dc-primary' : 'text-dc-danger'}">
+                        ${tx.isCredit ? '+' : '-'}${tx.amount.toLocaleString()}
+                    </td>
+                </tr>
+            `).join('');
+
+            // Update Mini Ledger in Overview
+            const miniLedger = document.getElementById('overview-activity');
+            const recent = transactionHistory.slice(0, 3);
+            miniLedger.innerHTML = recent.map(tx => `
+                <div class="flex justify-between items-center pb-3 border-b border-white/5 last:border-0 last:pb-0">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-full ${tx.isCredit ? 'bg-dc-primary/20 text-dc-primary' : 'bg-dc-danger/20 text-dc-danger'} flex items-center justify-center text-xs">
+                            <i class="fa-solid ${tx.isCredit ? 'fa-arrow-down' : 'fa-arrow-up'}"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium">${tx.desc}</p>
+                            <p class="text-xs text-gray-500">${tx.date}</p>
+                        </div>
+                    </div>
+                    <span class="font-bold text-sm ${tx.isCredit ? 'text-dc-primary' : 'text-white'}">${tx.isCredit ? '+' : ''}${tx.amount.toLocaleString()}</span>
+                </div>
+            `).join('');
+        }
+    </script>
+</body>
+</html>
