@@ -86,7 +86,7 @@
             {% endfor %}
         </div>
         {% if relationship_ctx.is_owner %}
-        <button data-click="showUploadPlaceholder" class="bg-z-cyan text-black px-6 py-2 rounded-lg font-bold text-xs uppercase shadow-neon-cyan hover:bg-white transition flex items-center gap-2">
+        <button type="button" data-click="showUploadPlaceholder" class="bg-z-cyan text-black px-6 py-2 rounded-lg font-bold text-xs uppercase shadow-neon-cyan hover:bg-white transition flex items-center gap-2">
             <i class="fa-solid fa-cloud-arrow-up"></i> Upload Clip
         </button>
         {% endif %}
@@ -150,7 +150,7 @@
 </div>
 
 <!-- Highlight Modal Player -->
-<div id="highlight-modal" class="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4" data-click="closeHighlightModal">
+<div id="highlight-modal" class="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4" data-click-self="closeHighlightModal">
     <div class="relative w-full max-w-6xl">
         <button data-click="closeHighlightModal" class="absolute -top-12 right-0 text-white hover:text-z-cyan transition text-2xl">
             <i class="fa-solid fa-xmark"></i>
@@ -177,7 +177,7 @@
 </div>
 
 <!-- Upload Modal -->
-<div id="upload-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] items-center justify-center px-4" data-click="closeUploadModal">
+<div id="upload-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] items-center justify-center px-4" data-click-self="closeUploadModal">
     <div class="relative w-full max-w-2xl" data-stop-propagation>
         <button data-click="closeUploadModal" class="absolute -top-12 right-0 text-white hover:text-z-cyan transition text-2xl">
             <i class="fa-solid fa-xmark"></i>
