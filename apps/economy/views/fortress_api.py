@@ -72,6 +72,163 @@ def _err(message: str, status: int = 400) -> JsonResponse:
 
 
 # ---------------------------------------------------------------------------
+# POST /fortress/api/pin/verify/   (Phase D)
+# ---------------------------------------------------------------------------
+
+@_fortress_guard
+@require_POST
+def api_pin_verify(request) -> JsonResponse:
+    """
+    Server-side Fortress PIN verification.
+
+    Replaces the insecure client-side MASTER_PIN comparison.
+
+    Body (JSON)
+    -----------
+    pin : str   The 4-8 digit PIN to verify.
+
+    Session keys used
+    -----------------
+    _fortress_pin_attempts   : int   — wrong-attempt counter
+    _fortress_pin_locked_until : str  — ISO timestamp of lock expiry
+
+    Returns
+    -------
+    { ok: true,  data: { verified: true } }  on success
+    { ok: false, error: "...", locked_until?: "ISO" }  on failure
+    """
+    from django.utils import timezone as tz
+    from apps.economy.models.config import EconomyConfig
+
+    # ── Brute-force guard ────────────────────────────────────────────────
+    locked_until_str = request.session.get("_fortress_pin_locked_until")
+    if locked_until_str:
+        import datetime
+        locked_until = datetime.datetime.fromisoformat(locked_until_str)
+        if tz.now() < locked_until:
+            return JsonResponse(
+                {"ok": False, "error": "Too many failed attempts. Try again later.",
+                 "locked_until": locked_until_str},
+                status=429,
+            )
+        # Lock has expired — reset counters
+        request.session.pop("_fortress_pin_locked_until", None)
+        request.session["_fortress_pin_attempts"] = 0
+
+    # ── Extract PIN ───────────────────────────────────────────────────────
+    try:
+        body = _json_body(request)
+        pin  = str(body.get("pin", "")).strip()
+    except ValueError as exc:
+        return _err(f"Bad request: {exc}")
+
+    if not pin:
+        return _err("PIN is required.")
+
+    # ── Load config + verify ──────────────────────────────────────────────
+    config = EconomyConfig.get_solo()
+
+    if not config.fortress_pin_hash:
+        logger.warning("[FORTRESS] PIN verify attempted but no PIN is set in EconomyConfig.")
+        return _err("Fortress PIN has not been configured. Set it in Admin → Economy Config.", status=503)
+
+    if config.check_fortress_pin(pin):
+        # Success — reset attempts counter and mark session as verified
+        request.session["_fortress_pin_attempts"]  = 0
+        request.session["_fortress_verified"]       = True
+        logger.info("[FORTRESS] PIN verified OK for user=%s ip=%s",
+                    request.user.username, request.META.get("REMOTE_ADDR"))
+        return _ok({"verified": True})
+
+    # ── Wrong PIN ─────────────────────────────────────────────────────────
+    attempts = request.session.get("_fortress_pin_attempts", 0) + 1
+    request.session["_fortress_pin_attempts"] = attempts
+    max_attempts = config.fortress_pin_max_attempts
+
+    logger.warning("[FORTRESS] Wrong PIN attempt=%s/%s user=%s ip=%s",
+                   attempts, max_attempts, request.user.username, request.META.get("REMOTE_ADDR"))
+
+    if attempts >= max_attempts:
+        locked_until = tz.now() + __import__("datetime").timedelta(seconds=60)
+        request.session["_fortress_pin_locked_until"] = locked_until.isoformat()
+        request.session["_fortress_pin_attempts"]     = 0
+        return JsonResponse(
+            {"ok": False,
+             "error": f"Too many failed attempts ({max_attempts}). Locked for 60 seconds.",
+             "locked_until": locked_until.isoformat()},
+            status=429,
+        )
+
+    remaining = max_attempts - attempts
+    return _err(f"Incorrect PIN. {remaining} attempt{'s' if remaining != 1 else ''} remaining.")
+
+
+# ---------------------------------------------------------------------------
+# POST /fortress/api/pin/set/   (Phase D)
+# ---------------------------------------------------------------------------
+
+@_fortress_guard
+@require_POST
+def api_pin_set(request) -> JsonResponse:
+    """
+    Rotate the Fortress master PIN without touching Django Admin.
+
+    Body (JSON)
+    -----------
+    current_pin : str   Must match the existing hash (or be blank if no PIN set yet).
+    new_pin     : str   4-8 digits. Will be hashed with Django's default hasher.
+
+    Effect
+    ------
+    * Updates EconomyConfig.fortress_pin_hash
+    * Writes a FortressAuditLog entry
+    * Resets any active lockout in the current session
+    """
+    from apps.economy.models.config import EconomyConfig
+    from apps.economy.models.audit import FortressAuditLog
+
+    try:
+        body        = _json_body(request)
+        current_pin = str(body.get("current_pin", "")).strip()
+        new_pin     = str(body.get("new_pin", "")).strip()
+    except ValueError as exc:
+        return _err(f"Bad request: {exc}")
+
+    if not new_pin or len(new_pin) < 4 or len(new_pin) > 8 or not new_pin.isdigit():
+        return _err("new_pin must be 4-8 digits.")
+
+    config = EconomyConfig.get_solo()
+
+    # Allow setting a PIN for the first time (no current hash)
+    if config.fortress_pin_hash:
+        if not config.check_fortress_pin(current_pin):
+            return _err("Current PIN is incorrect.")
+
+    config.set_fortress_pin(new_pin)
+    config.save(update_fields=["fortress_pin_hash", "updated_at"])
+
+    # Clear session lock counters
+    request.session.pop("_fortress_pin_attempts", None)
+    request.session.pop("_fortress_pin_locked_until", None)
+    request.session["_fortress_verified"] = True
+
+    try:
+        FortressAuditLog.objects.create(
+            action=FortressAuditLog.Action.AIRDROP,   # closest enum; note carries context
+            actor=request.user,
+            actor_label=request.user.username,
+            amount=0,
+            note=f"[PIN ROTATED] Fortress master PIN changed by {request.user.username}",
+            ip_address=request.META.get("REMOTE_ADDR"),
+        )
+    except Exception as exc:
+        logger.error("[FORTRESS] api_pin_set audit log failed: %s", exc)
+
+    logger.info("[FORTRESS] PIN_ROTATE by user=%s ip=%s", request.user.username, request.META.get("REMOTE_ADDR"))
+    return _ok({"rotated": True, "message": "Fortress PIN updated successfully."})
+
+
+# ---------------------------------------------------------------------------
 # GET /economy/fortress/api/status/
 # ---------------------------------------------------------------------------
 
@@ -89,27 +246,170 @@ def api_status(request) -> JsonResponse:
     ledger_healthy        : bool
     wallet_count          : int   (number of user wallets)
     pending_topups_count  : int
+    total_inflow          : int   (sum of approved TopUpRequest amounts)
+    admin_outflow         : int   (sum of Airdrop/BulkAirdrop audit amounts)
+    distribution          : dict  (user_wallets, org_treasuries, escrow amounts + %)
     """
+    from django.db.models import Q
+    from apps.economy.models.audit import FortressAuditLog
+
     treasury = get_master_treasury()
     treasury_balance = int(treasury.cached_balance)
 
+    # All non-treasury wallets
+    user_wallets_qs = DeltaCrownWallet.objects.filter(
+        is_treasury=False, deleted_at__isnull=True
+    )
+
     circulating_supply = int(
-        DeltaCrownWallet.objects
-        .filter(is_treasury=False, deleted_at__isnull=True)
-        .aggregate(total=Sum("cached_balance"))["total"] or 0
+        user_wallets_qs.aggregate(total=Sum("cached_balance"))["total"] or 0
     )
 
     ledger_delta = circulating_supply + treasury_balance
 
+    # ── Macro stats ──────────────────────────────────────────────────────────
+    # Total fiat-backed inflow = sum of all approved top-up requests
+    total_inflow = int(
+        TopUpRequest.objects
+        .filter(status=TopUpRequest.Status.APPROVED)
+        .aggregate(total=Sum("amount"))["total"] or 0
+    )
+
+    # Admin outflow = all airdrop-type audit log amounts
+    admin_outflow = int(
+        FortressAuditLog.objects
+        .filter(action__in=[
+            FortressAuditLog.Action.AIRDROP,
+            FortressAuditLog.Action.BULK_AIRDROP,
+            FortressAuditLog.Action.AUTO_REWARD_KYC,
+            FortressAuditLog.Action.AUTO_REWARD_MATCH,
+        ])
+        .aggregate(total=Sum("amount"))["total"] or 0
+    )
+
+    # ── Circulation distribution ─────────────────────────────────────────────
+    # Org/team treasuries: wallets linked to an org profile
+    try:
+        from apps.organizations.models import Organization  # noqa: F401
+        org_wallet_ids = list(
+            DeltaCrownWallet.objects
+            .filter(is_treasury=False, deleted_at__isnull=True)
+            .filter(profile__organization__isnull=False)
+            .values_list('pk', flat=True)
+        )
+    except Exception:
+        org_wallet_ids = []
+
+    # Escrow: wallets involved in active escrow locks
+    try:
+        from apps.economy.models import DeltaCrownTransaction
+        from django.db.models import OuterRef, Subquery
+        escrow_wallet_ids = list(
+            DeltaCrownWallet.objects
+            .filter(is_treasury=False, deleted_at__isnull=True)
+            .filter(
+                transactions__reason=DeltaCrownTransaction.Reason.ESCROW_LOCK,
+            )
+            .values_list('pk', flat=True)
+            .distinct()
+        )
+    except Exception:
+        escrow_wallet_ids = []
+
+    org_supply = int(
+        DeltaCrownWallet.objects
+        .filter(pk__in=org_wallet_ids, deleted_at__isnull=True)
+        .aggregate(total=Sum("cached_balance"))["total"] or 0
+    ) if org_wallet_ids else 0
+
+    escrow_supply = int(
+        DeltaCrownWallet.objects
+        .filter(pk__in=escrow_wallet_ids, deleted_at__isnull=True)
+        .aggregate(total=Sum("cached_balance"))["total"] or 0
+    ) if escrow_wallet_ids else 0
+
+    user_supply = max(0, circulating_supply - org_supply - escrow_supply)
+
+    total_c = circulating_supply or 1  # avoid div/0
+    distribution = {
+        "user_wallets":    {"amount": user_supply,   "pct": round(user_supply   / total_c * 100, 1)},
+        "org_treasuries":  {"amount": org_supply,    "pct": round(org_supply    / total_c * 100, 1)},
+        "escrow":          {"amount": escrow_supply, "pct": round(escrow_supply / total_c * 100, 1)},
+    }
+
     return _ok({
-        "treasury_balance": treasury_balance,
-        "circulating_supply": circulating_supply,
-        "ledger_delta": ledger_delta,
-        "ledger_healthy": ledger_delta == 0,
-        "wallet_count": DeltaCrownWallet.objects.filter(is_treasury=False).count(),
+        "treasury_balance":    treasury_balance,
+        "circulating_supply":  circulating_supply,
+        "ledger_delta":        ledger_delta,
+        "ledger_healthy":      ledger_delta == 0,
+        "wallet_count":        user_wallets_qs.count(),
         "pending_topups_count": TopUpRequest.objects.filter(status="pending").count(),
-        "timestamp": timezone.now().isoformat(),
+        "total_inflow":        total_inflow,
+        "admin_outflow":       admin_outflow,
+        "distribution":        distribution,
+        "timestamp":           timezone.now().isoformat(),
     })
+
+
+# ---------------------------------------------------------------------------
+# GET /fortress/api/users/search/?q=<query>
+# ---------------------------------------------------------------------------
+
+@_fortress_guard
+@require_GET
+def api_user_search(request) -> JsonResponse:
+    """
+    Fuzzy user search for the Airdrop autocomplete dropdown.
+
+    Query params
+    ------------
+    q : str   Search string (username prefix match). Min 1 char, max 5 results.
+
+    Returns
+    -------
+    users : list of { id, username, avatar_url }
+    """
+    from django.contrib.auth import get_user_model
+    from django.db.models import Q
+
+    User = get_user_model()
+    q = request.GET.get("q", "").strip()
+
+    if not q:
+        return _ok({"users": []})
+
+    matches = (
+        User.objects
+        .filter(
+            Q(username__icontains=q) | Q(email__icontains=q),
+            is_active=True,
+        )
+        .exclude(is_superuser=True)           # don't expose superuser accounts
+        .select_related("profile")
+        .order_by("username")
+        [:5]
+    )
+
+    users = []
+    for user in matches:
+        # Resolve avatar URL safely
+        avatar_url = None
+        try:
+            prof = getattr(user, "profile", None)
+            if prof:
+                av = getattr(prof, "avatar", None)
+                if av and hasattr(av, "url"):
+                    avatar_url = av.url
+        except Exception:
+            pass
+
+        users.append({
+            "id":         user.pk,
+            "username":   user.username,
+            "avatar_url": avatar_url,
+        })
+
+    return _ok({"users": users})
 
 
 # ---------------------------------------------------------------------------

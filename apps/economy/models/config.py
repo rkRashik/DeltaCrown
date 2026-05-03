@@ -35,6 +35,19 @@ class EconomyConfig(models.Model):
         default=Decimal("2.00"),
         help_text="Processing fee charged on withdrawals, as a percentage (e.g. 2.00 = 2%).",
     )
+    fortress_pin_hash = models.CharField(
+        max_length=255,
+        blank=True,
+        default="",
+        help_text=(
+            "Hashed Fortress master PIN (use 'Set PIN' action in admin to change). "
+            "If blank, the Fortress is locked and no PIN will be accepted."
+        ),
+    )
+    fortress_pin_max_attempts = models.PositiveSmallIntegerField(
+        default=5,
+        help_text="Maximum consecutive wrong-PIN attempts before a 60-second cooldown.",
+    )
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
@@ -72,6 +85,22 @@ class EconomyConfig(models.Model):
         if not self.bdt_per_dc:
             return Decimal("0")
         return (Decimal("1") / self.bdt_per_dc).quantize(Decimal("0.01"))
+
+    # ------------------------------------------------------------------
+    # Fortress PIN helpers
+    # ------------------------------------------------------------------
+
+    def set_fortress_pin(self, plain_pin: str) -> None:
+        """Hash and store a new fortress PIN. Call save() after."""
+        from django.contrib.auth.hashers import make_password
+        self.fortress_pin_hash = make_password(plain_pin)
+
+    def check_fortress_pin(self, plain_pin: str) -> bool:
+        """Return True if plain_pin matches the stored hash."""
+        if not self.fortress_pin_hash:
+            return False
+        from django.contrib.auth.hashers import check_password
+        return check_password(plain_pin, self.fortress_pin_hash)
 
 
 # ---------------------------------------------------------------------------

@@ -1,5 +1,5 @@
 {% load profile_tags %}
-{% if relationship_ctx.is_owner %}
+{% if is_owner %}
 <!-- UP-PHASE7.7: Toast Notification Container -->
 <div id="toast-container" class="fixed top-4 right-4 z-[9999] space-y-3" style="max-width: 400px;"></div>
 
@@ -147,84 +147,6 @@
         </table>
     </div>
 
-    <!-- UP-PHASE7.6: My Requests Section (Top-ups & Withdrawals) -->
-    <div class="glass-panel p-6 rounded-2xl">
-        <div class="flex items-center justify-between mb-6">
-            <h3 class="text-white font-display font-bold text-xl flex items-center gap-2">
-                <i class="fa-solid fa-clock-rotate-left text-z-cyan"></i>
-                My Requests
-            </h3>
-            <button id="refresh-requests-btn" class="text-z-cyan hover:text-white text-sm transition flex items-center gap-2">
-                <i class="fa-solid fa-rotate"></i>
-                Refresh
-            </button>
-        </div>
-        
-        <!-- Request Type Tabs -->
-        <div class="flex gap-3 mb-6 border-b border-white/10">
-            <button id="tab-topups" class="request-tab active px-4 py-3 text-sm font-bold transition relative text-white">
-                Top-Ups
-                <span class="absolute bottom-0 left-0 right-0 h-0.5 bg-z-cyan tab-indicator"></span>
-            </button>
-            <button id="tab-withdrawals" class="request-tab px-4 py-3 text-sm font-bold transition relative text-gray-400">
-                Withdrawals
-                <span class="absolute bottom-0 left-0 right-0 h-0.5 bg-z-cyan tab-indicator hidden"></span>
-            </button>
-        </div>
-        
-        <!-- Top-Ups Table -->
-        <div id="topups-container" class="request-container">
-            <div class="overflow-x-auto">
-                <table class="w-full text-sm">
-                    <thead>
-                        <tr class="text-left text-gray-500 uppercase text-xs tracking-wide border-b border-white/5">
-                            <th class="px-4 py-3 font-bold">ID</th>
-                            <th class="px-4 py-3 font-bold">Amount</th>
-                            <th class="px-4 py-3 font-bold">Method</th>
-                            <th class="px-4 py-3 font-bold">Status</th>
-                            <th class="px-4 py-3 font-bold">Requested</th>
-                            <th class="px-4 py-3 font-bold">Note</th>
-                        </tr>
-                    </thead>
-                    <tbody id="topups-tbody" class="divide-y divide-white/5">
-                        <!-- Populated by JS -->
-                        <tr>
-                            <td colspan="6" class="px-4 py-12 text-center text-gray-500 text-sm">
-                                <i class="fa-solid fa-spinner fa-spin mr-2"></i>Loading...
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-        
-        <!-- Withdrawals Table -->
-        <div id="withdrawals-container" class="request-container hidden">
-            <div class="overflow-x-auto">
-                <table class="w-full text-sm">
-                    <thead>
-                        <tr class="text-left text-gray-500 uppercase text-xs tracking-wide border-b border-white/5">
-                            <th class="px-4 py-3 font-bold">ID</th>
-                            <th class="px-4 py-3 font-bold">Amount</th>
-                            <th class="px-4 py-3 font-bold">Fee</th>
-                            <th class="px-4 py-3 font-bold">Net</th>
-                            <th class="px-4 py-3 font-bold">Method</th>
-                            <th class="px-4 py-3 font-bold">Status</th>
-                            <th class="px-4 py-3 font-bold">Requested</th>
-                        </tr>
-                    </thead>
-                    <tbody id="withdrawals-tbody" class="divide-y divide-white/5">
-                        <!-- Populated by JS -->
-                        <tr>
-                            <td colspan="7" class="px-4 py-12 text-center text-gray-500 text-sm">
-                                <i class="fa-solid fa-spinner fa-spin mr-2"></i>Loading...
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
 
 </div>
 {% else %}
@@ -242,7 +164,6 @@
         </p>
     </div>
 </div>
-{% endif %}
 
 
 

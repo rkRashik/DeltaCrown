@@ -898,8 +898,9 @@ class EconomyConfigAdmin(ModelAdmin):
     """
     list_display = ("__str__", "bdt_per_dc", "dc_per_bdt_display",
                     "top_up_min_dc", "withdrawal_min_dc", "withdrawal_fee_pct",
-                    "updated_at", "dashboard_link")
-    readonly_fields = ("updated_at", "dc_per_bdt_display")
+                    "fortress_pin_status", "updated_at", "dashboard_link")
+    readonly_fields = ("updated_at", "dc_per_bdt_display", "fortress_pin_status")
+    actions = ["action_set_fortress_pin"]
 
     fieldsets = [
         ("Exchange Rate", {
@@ -911,6 +912,15 @@ class EconomyConfigAdmin(ModelAdmin):
         }),
         ("Top-Up Policy", {"fields": ["top_up_min_dc"]}),
         ("Withdrawal Policy", {"fields": ["withdrawal_min_dc", "withdrawal_fee_pct"]}),
+        ("🔐 Fortress Security", {
+            "fields": ["fortress_pin_status", "fortress_pin_max_attempts"],
+            "description": (
+                "<strong style='color:#f59e0b'>PIN Management:</strong> "
+                "Use the <em>Set Fortress PIN</em> admin action (select row → action dropdown) "
+                "to hash and store a new master PIN. "
+                "The raw PIN is never stored or displayed."
+            ),
+        }),
         ("Meta", {"fields": ["updated_at"], "classes": ["collapse"]}),
     ]
 
@@ -935,6 +945,30 @@ class EconomyConfigAdmin(ModelAdmin):
         )
     dc_per_bdt_display.short_description = "Effective rate (DC per BDT)"
 
+    def fortress_pin_status(self, obj):
+        if obj.fortress_pin_hash:
+            return format_html(
+                "<span style='color:#10b981;font-weight:bold;'>✅ PIN is SET</span> "
+                "<span style='color:#6b7280;font-size:.75rem;'>(hash stored securely)</span>"
+            )
+        return format_html(
+            "<span style='color:#ef4444;font-weight:bold;'>⚠️ NOT SET — Fortress is locked</span>"
+        )
+    fortress_pin_status.short_description = "Fortress PIN"
+
+    @admin.action(description="🔐 Set / Rotate Fortress Master PIN")
+    def action_set_fortress_pin(self, request, queryset):
+        """
+        Admin action: prompts the superuser to enter a new PIN via a URL param.
+        Because Django admin actions can't show a form natively, we use a
+        two-step approach: redirect to a custom view that renders a simple form.
+        """
+        from django.http import HttpResponseRedirect
+        from django.urls import reverse
+        return HttpResponseRedirect(
+            reverse("admin:economy_config_set_pin")
+        )
+
     def dashboard_link(self, obj):
         url = reverse("admin:economy_dashboard")
         return format_html(
@@ -957,6 +991,11 @@ class EconomyConfigAdmin(ModelAdmin):
                 "dashboard/",
                 self.admin_site.admin_view(self.dashboard_view),
                 name="economy_dashboard",
+            ),
+            path(
+                "set-fortress-pin/",
+                self.admin_site.admin_view(self.set_pin_view),
+                name="economy_config_set_pin",
             ),
         ]
         return custom + urls
@@ -1053,6 +1092,108 @@ class EconomyConfigAdmin(ModelAdmin):
                 "fiat_reserve_required": fiat_reserve_required,
                 "mint_form": mint_form,
                 "recent_treasury_txns": recent_treasury_txns,
+            },
+        )
+
+    # ------------------------------------------------------------------
+    # Phase D: Set Fortress PIN admin view
+    # /admin/economy/economyconfig/set-fortress-pin/
+    # ------------------------------------------------------------------
+
+    def set_pin_view(self, request):
+        """
+        GET  → render a minimal PIN-change form.
+        POST → validate inputs, hash and store the new PIN, redirect with message.
+        """
+        from django.contrib import messages as dj_messages
+        from django.http import HttpResponseRedirect
+        from django.template.response import TemplateResponse
+        from django.urls import reverse
+
+        config = EconomyConfig.get_solo()
+        error  = None
+
+        if request.method == "POST":
+            current_pin = request.POST.get("current_pin", "").strip()
+            new_pin     = request.POST.get("new_pin", "").strip()
+            confirm_pin = request.POST.get("confirm_pin", "").strip()
+
+            if config.fortress_pin_hash and not config.check_fortress_pin(current_pin):
+                error = "Current PIN is incorrect."
+            elif not new_pin or len(new_pin) < 4 or len(new_pin) > 8 or not new_pin.isdigit():
+                error = "New PIN must be 4–8 digits."
+            elif new_pin != confirm_pin:
+                error = "New PIN and Confirm PIN do not match."
+            else:
+                config.set_fortress_pin(new_pin)
+                config.save(update_fields=["fortress_pin_hash", "updated_at"])
+                dj_messages.success(
+                    request,
+                    "\u2705 Fortress master PIN updated. The old PIN is now invalid.",
+                )
+                return HttpResponseRedirect(
+                    reverse("admin:economy_economyconfig_changelist")
+                )
+
+        pin_set = bool(config.fortress_pin_hash)
+        status_html = (
+            "<span style='color:#10b981;font-weight:bold'>\u2705 PIN is SET</span>"
+            if pin_set else
+            "<span style='color:#ef4444;font-weight:bold'>\u26a0\ufe0f No PIN set \u2014 Fortress is locked for all users</span>"
+        )
+        error_html = (
+            f"<p style='color:#ef4444;font-weight:bold;margin:0 0 12px'>{error}</p>"
+            if error else ""
+        )
+        cancel_url = reverse("admin:economy_economyconfig_changelist")
+
+        html = format_html(
+            """
+            <h1>\U0001f510 Set / Rotate Fortress Master PIN</h1>
+            {error}
+            <form method="post" style="max-width:400px;margin-top:16px">
+                <input type="hidden" name="csrfmiddlewaretoken" value="{csrf}">
+                <p><label style="font-weight:bold">Current PIN</label>
+                   <br><small style="color:#6b7280">Leave blank if setting PIN for the first time.</small><br>
+                   <input type="password" name="current_pin" maxlength="8" autocomplete="off"
+                     style="width:100%;padding:8px 12px;border:1px solid #ccc;border-radius:6px;font-size:1rem;margin-top:4px">
+                </p>
+                <p><label style="font-weight:bold">New PIN</label>
+                   <br><small style="color:#6b7280">Must be 4–8 digits.</small><br>
+                   <input type="password" name="new_pin" maxlength="8" autocomplete="off"
+                     style="width:100%;padding:8px 12px;border:1px solid #ccc;border-radius:6px;font-size:1rem;margin-top:4px">
+                </p>
+                <p><label style="font-weight:bold">Confirm New PIN</label><br>
+                   <input type="password" name="confirm_pin" maxlength="8" autocomplete="off"
+                     style="width:100%;padding:8px 12px;border:1px solid #ccc;border-radius:6px;font-size:1rem;margin-top:4px">
+                </p>
+                <div style="display:flex;gap:12px;align-items:center;margin-top:8px">
+                    <button type="submit"
+                      style="background:#f59e0b;color:#000;font-weight:bold;padding:10px 24px;
+                             border:none;border-radius:8px;cursor:pointer;font-size:.95rem">
+                        Save PIN
+                    </button>
+                    <a href="{cancel}" style="color:#6b7280;font-size:.875rem">Cancel</a>
+                </div>
+            </form>
+            <p style="color:#6b7280;font-size:.8rem;margin-top:20px">
+                Current status: {status}<br>
+                \u2139\ufe0f PIN is hashed with Django\u2019s default hasher (PBKDF2). The raw value is never stored.
+            </p>
+            """,
+            error=format_html(error_html),
+            csrf=request.META.get("CSRF_COOKIE", ""),
+            cancel=cancel_url,
+            status=format_html(status_html),
+        )
+
+        return TemplateResponse(
+            request,
+            "admin/base_site.html",
+            {
+                **self.admin_site.each_context(request),
+                "title": "Set Fortress PIN",
+                "content": html,
             },
         )
 

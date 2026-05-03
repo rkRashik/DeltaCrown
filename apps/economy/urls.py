@@ -29,6 +29,9 @@ from .views.fortress_api import (
     api_bulk_airdrop,
     api_wallets,
     api_reset_pin,
+    api_user_search,
+    api_pin_verify,
+    api_pin_set,
 )
 
 app_name = "economy"
@@ -48,6 +51,9 @@ urlpatterns = [
     path("fortress/api/audit/",          api_audit,          name="fortress_api_audit"),
     path("fortress/api/wallets/",        api_wallets,        name="fortress_api_wallets"),
     path("fortress/api/wallets/reset-pin/", api_reset_pin,   name="fortress_api_reset_pin"),
+    path("fortress/api/users/search/",   api_user_search,    name="fortress_api_user_search"),
+    path("fortress/api/pin/verify/",      api_pin_verify,     name="fortress_api_pin_verify"),
+    path("fortress/api/pin/set/",         api_pin_set,        name="fortress_api_pin_set"),
 
     # UP-PHASE7.7: Old wallet page redirects to Settings
     path("wallet/", wallet_view, name="wallet"),

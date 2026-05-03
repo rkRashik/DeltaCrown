@@ -154,15 +154,28 @@
 
             <div class="p-4 border-t border-dc-border shrink-0 bg-black/20">
                 <div class="flex items-center gap-3 mb-4 px-2">
-                    <img src="https://ui-avatars.com/api/?name={{ admin_user.get_full_name|urlencode }}&background=10b981&color=000&bold=true" class="w-8 h-8 rounded-lg border border-dc-border" alt="Admin">
+                    {% with admin_profile=request.user.profile %}
+                    {% if admin_profile and admin_profile.avatar %}
+                    <img src="{{ admin_profile.avatar.url }}" class="w-8 h-8 rounded-lg border border-dc-border object-cover" alt="Admin">
+                    {% else %}
+                    <img src="https://ui-avatars.com/api/?name={{ request.user.get_full_name|default:request.user.username|urlencode }}&background=10b981&color=000&bold=true&size=64" class="w-8 h-8 rounded-lg border border-dc-border" alt="Admin">
+                    {% endif %}
+                    {% endwith %}
                     <div class="flex-1 min-w-0">
-                        <p class="text-xs font-bold text-white truncate">{{ admin_user.get_full_name|default:admin_user.username }}</p>
+                        <p class="text-xs font-bold text-white truncate">{{ request.user.get_full_name|default:request.user.username }}</p>
                         <p class="text-[9px] text-gray-500 font-mono">SuperAdmin</p>
                     </div>
                 </div>
-                <button id="btn-terminate" class="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-dc-danger hover:bg-dc-danger hover:text-white border border-dc-danger/20 transition-all text-xs font-bold">
-                    <i class="fa-solid fa-power-off"></i> Terminate Session
-                </button>
+                <div class="flex gap-2">
+                    <button id="btn-change-pin"
+                        class="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-dc-warning hover:bg-dc-warning/10 border border-dc-warning/20 transition-all text-xs font-bold">
+                        <i class="fa-solid fa-key"></i> Change PIN
+                    </button>
+                    <button id="btn-terminate"
+                        class="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-dc-danger hover:bg-dc-danger hover:text-white border border-dc-danger/20 transition-all text-xs font-bold">
+                        <i class="fa-solid fa-power-off"></i> Exit
+                    </button>
+                </div>
             </div>
         </aside>
 
@@ -214,7 +227,7 @@
                                 <span class="badge badge-approved">Fiat Backed</span>
                             </div>
                             <p class="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1 relative z-10">Total User Inflow (YTD)</p>
-                            <h3 class="text-2xl font-bold text-white font-mono relative z-10">850,000 <span class="text-sm text-gray-500">DC</span></h3>
+                            <h3 class="text-2xl font-bold text-white font-mono relative z-10" id="stat-inflow"><span class="text-gray-500 text-sm italic">Loading…</span></h3>
                         </div>
 
                         <div class="glass-card p-5 rounded-2xl relative overflow-hidden group">
@@ -224,7 +237,7 @@
                                 <span class="badge badge-pending">Platform Cost</span>
                             </div>
                             <p class="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1 relative z-10">Admin Outflow (Airdrops)</p>
-                            <h3 class="text-2xl font-bold text-white font-mono relative z-10">400,400 <span class="text-sm text-gray-500">DC</span></h3>
+                            <h3 class="text-2xl font-bold text-white font-mono relative z-10" id="stat-outflow"><span class="text-gray-500 text-sm italic">Loading…</span></h3>
                         </div>
                     </div>
 
@@ -253,28 +266,28 @@
                                 <div>
                                     <div class="flex justify-between text-xs mb-2">
                                         <span class="text-gray-300 flex items-center gap-2"><i class="fa-solid fa-users text-dc-primary w-4"></i> User Wallets</span>
-                                        <span class="font-mono font-bold">850K (68%)</span>
+                                        <span class="font-mono font-bold" id="dist-user-label">—</span>
                                     </div>
                                     <div class="w-full bg-black/50 rounded-full h-2 overflow-hidden border border-white/5">
-                                        <div class="bg-dc-primary h-2 rounded-full" style="width: 68%"></div>
+                                        <div class="bg-dc-primary h-2 rounded-full transition-all duration-700" id="dist-user-bar" style="width: 0%"></div>
                                     </div>
                                 </div>
                                 <div>
                                     <div class="flex justify-between text-xs mb-2">
                                         <span class="text-gray-300 flex items-center gap-2"><i class="fa-solid fa-sitemap text-dc-accent w-4"></i> Org/Team Treasuries</span>
-                                        <span class="font-mono font-bold">350K (28%)</span>
+                                        <span class="font-mono font-bold" id="dist-org-label">—</span>
                                     </div>
                                     <div class="w-full bg-black/50 rounded-full h-2 overflow-hidden border border-white/5">
-                                        <div class="bg-dc-accent h-2 rounded-full" style="width: 28%"></div>
+                                        <div class="bg-dc-accent h-2 rounded-full transition-all duration-700" id="dist-org-bar" style="width: 0%"></div>
                                     </div>
                                 </div>
                                 <div>
                                     <div class="flex justify-between text-xs mb-2">
                                         <span class="text-gray-300 flex items-center gap-2"><i class="fa-solid fa-lock text-dc-gold w-4"></i> Escrow Locked</span>
-                                        <span class="font-mono font-bold">50K (4%)</span>
+                                        <span class="font-mono font-bold" id="dist-escrow-label">—</span>
                                     </div>
                                     <div class="w-full bg-black/50 rounded-full h-2 overflow-hidden border border-white/5">
-                                        <div class="bg-dc-gold h-2 rounded-full" style="width: 4%"></div>
+                                        <div class="bg-dc-gold h-2 rounded-full transition-all duration-700" id="dist-escrow-bar" style="width: 0%"></div>
                                     </div>
                                 </div>
                             </div>
@@ -413,9 +426,10 @@
                             <form id="form-airdrop" class="space-y-5">
                                 <div>
                                     <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Username / Delta ID</label>
-                                    <div class="relative">
-                                        <i class="fa-solid fa-user absolute left-4 top-4 text-gray-500 text-sm"></i>
-                                        <input type="text" class="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3.5 pl-11 text-sm text-white focus:border-dc-accent transition" placeholder="e.g. rakib_gamer or #1042" required>
+                                    <div class="relative" id="airdrop-autocomplete-wrapper">
+                                        <i class="fa-solid fa-user absolute left-4 top-4 text-gray-500 text-sm z-10"></i>
+                                        <input type="text" id="airdrop-username-input" autocomplete="off" class="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3.5 pl-11 text-sm text-white focus:border-dc-accent transition" placeholder="e.g. rakib_gamer" required>
+                                        <ul id="airdrop-autocomplete-list" class="absolute z-50 left-0 right-0 top-full mt-1 bg-[#0f1117] border border-white/10 rounded-xl overflow-hidden shadow-2xl hidden"></ul>
                                     </div>
                                 </div>
                                 
@@ -669,6 +683,54 @@
     });
     </script>
 
+    <!-- ═══════════════════════════════════════════════════════════
+         CHANGE FORTRESS PIN MODAL  (Phase D)
+    ═══════════════════════════════════════════════════════════ -->
+    <div id="pin-change-modal"
+         class="fixed inset-0 z-[300] bg-black/80 backdrop-blur-md hidden flex items-center justify-center p-4 opacity-0 transition-opacity duration-300">
+        <div class="glass-card p-8 rounded-3xl w-full max-w-sm scale-95 transition-transform duration-300" id="pin-change-content">
+            <div class="w-14 h-14 rounded-2xl bg-dc-warning/10 border border-dc-warning/20 text-dc-warning flex items-center justify-center text-xl mb-6 mx-auto">
+                <i class="fa-solid fa-key"></i>
+            </div>
+            <h2 class="text-lg font-bold text-white text-center mb-1">Change Fortress PIN</h2>
+            <p class="text-xs text-gray-500 text-center mb-6">New PIN must be 4–8 digits. Leave "Current PIN" blank if setting for the first time.</p>
+
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">Current PIN</label>
+                    <input type="password" id="pin-current" maxlength="8"
+                        class="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3 text-white text-center tracking-[0.4em] font-mono focus:border-dc-warning outline-none transition"
+                        placeholder="••••••">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">New PIN</label>
+                    <input type="password" id="pin-new" maxlength="8"
+                        class="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3 text-white text-center tracking-[0.4em] font-mono focus:border-dc-warning outline-none transition"
+                        placeholder="••••••">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">Confirm New PIN</label>
+                    <input type="password" id="pin-confirm" maxlength="8"
+                        class="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3 text-white text-center tracking-[0.4em] font-mono focus:border-dc-warning outline-none transition"
+                        placeholder="••••••">
+                </div>
+            </div>
+
+            <p id="pin-change-msg" class="text-xs text-center mt-4 hidden"></p>
+
+            <div class="flex gap-3 mt-6">
+                <button id="btn-pin-change-cancel"
+                    class="flex-1 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-white font-bold text-sm transition border border-white/10">
+                    Cancel
+                </button>
+                <button id="btn-pin-change-submit"
+                    class="flex-1 py-3 rounded-xl bg-dc-warning text-black font-bold text-sm hover:bg-yellow-400 transition">
+                    <i class="fa-solid fa-check mr-1.5"></i>Save PIN
+                </button>
+            </div>
+        </div>
+    </div>
+
     <div id="confirm-modal" class="fixed inset-0 z-[200] bg-black/80 backdrop-blur-md hidden flex flex-col items-center justify-center opacity-0 transition-opacity duration-300 p-4">
         <div class="glass-card p-8 rounded-3xl w-full max-w-md scale-95 transition-transform duration-300" id="confirm-modal-content">
             <div class="w-16 h-16 rounded-full bg-dc-warning/10 text-dc-warning flex items-center justify-center text-2xl mb-6 mx-auto border border-dc-warning/20">
@@ -711,34 +773,99 @@
             rejectTopup:  "{% url 'economy:fortress_api_reject_topup' %}",
             wallets:      "{% url 'economy:fortress_api_wallets' %}",
             resetPin:     "{% url 'economy:fortress_api_reset_pin' %}",
+            userSearch:   "{% url 'economy:fortress_api_user_search' %}",
+            pinVerify:    "{% url 'economy:fortress_api_pin_verify' %}",
+            pinSet:       "{% url 'economy:fortress_api_pin_set' %}",
         };
 
-        // ── UI-gate PIN (server-side ops still require valid session + is_superuser)
-        // Phase D will replace this with a POST to a server-side verify endpoint.
-        const MASTER_PIN = "12341";  // TODO Phase D: replace with server-side verify
-        const SUDO_VERIFY_URL = API_URLS.status.replace('status/', 'sudo/verify/');
+        // ═══════════════════════════════════════════════════════════════════
+        // PHASE D — Async server-side PIN verification (replaces MASTER_PIN)
+        // ═══════════════════════════════════════════════════════════════════
 
-        function unlockFortress() {
-            const pin = document.getElementById('sudo-pin').value;
-            const err = document.getElementById('sudo-error');
-            
-            if(pin === MASTER_PIN) {
-                // Hide lock screen smoothly
-                const lockScreen = document.getElementById('sudo-screen');
-                lockScreen.style.opacity = '0';
-                setTimeout(() => {
-                    lockScreen.style.display = 'none';
-                    // Show Main App smoothly
-                    const mainApp = document.getElementById('main-app');
-                    mainApp.classList.remove('hidden');
-                    setTimeout(() => mainApp.style.opacity = '1', 50);
-                    switchTab('dashboard'); // Init dashboard
-                    startClock();
-                    renderApprovals(); // Init mock data table
-                }, 500);
-            } else {
-                err.classList.remove('hidden');
-                document.getElementById('sudo-pin').value = '';
+        let _lockCountdownTimer = null;
+
+        async function unlockFortress() {
+            const pinInput  = document.getElementById('sudo-pin');
+            const errEl     = document.getElementById('sudo-error');
+            const btn       = document.getElementById('btn-unlock');
+            const pin       = pinInput.value.trim();
+
+            if (!pin) return;
+
+            // Disable button during request
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>Verifying…';
+            errEl.classList.add('hidden');
+
+            try {
+                const res = await fetch(API_URLS.pinVerify, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type':    'application/json',
+                        'X-CSRFToken':     CSRF_TOKEN,
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    body: JSON.stringify({ pin }),
+                });
+
+                const ct   = res.headers.get('content-type') || '';
+                if (!ct.includes('application/json')) throw new Error('Server error (non-JSON response).');
+                const json = await res.json();
+
+                if (res.status === 429) {
+                    // Brute-force lockout
+                    const lockedUntil = json.locked_until ? new Date(json.locked_until) : null;
+                    errEl.textContent = json.error || 'Too many attempts. Please wait.';
+                    errEl.classList.remove('hidden');
+                    pinInput.value = '';
+
+                    if (lockedUntil) {
+                        clearInterval(_lockCountdownTimer);
+                        btn.disabled = true;
+                        _lockCountdownTimer = setInterval(() => {
+                            const secs = Math.ceil((lockedUntil - Date.now()) / 1000);
+                            if (secs <= 0) {
+                                clearInterval(_lockCountdownTimer);
+                                btn.disabled = false;
+                                btn.innerHTML = '<i class="fa-solid fa-unlock-keyhole mr-2"></i>Unlock Fortress';
+                                errEl.classList.add('hidden');
+                            } else {
+                                btn.innerHTML = `<i class="fa-solid fa-lock mr-2"></i>Locked (${secs}s)`;
+                            }
+                        }, 1000);
+                    }
+                    return;
+                }
+
+                if (json.ok && json.data && json.data.verified) {
+                    // ── SUCCESS: dismiss lock screen ───────────────────────
+                    const lockScreen = document.getElementById('sudo-screen');
+                    lockScreen.style.opacity = '0';
+                    setTimeout(() => {
+                        lockScreen.style.display = 'none';
+                        const mainApp = document.getElementById('main-app');
+                        mainApp.classList.remove('hidden');
+                        setTimeout(() => mainApp.style.opacity = '1', 50);
+                        switchTab('dashboard');
+                        startClock();
+                        loadStatus();
+                        loadApprovals();
+                    }, 500);
+                } else {
+                    // ── WRONG PIN ─────────────────────────────────────────
+                    errEl.textContent = json.error || 'Incorrect PIN.';
+                    errEl.classList.remove('hidden');
+                    pinInput.value = '';
+                    pinInput.focus();
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fa-solid fa-unlock-keyhole mr-2"></i>Unlock Fortress';
+                }
+            } catch (err) {
+                errEl.textContent = `Connection error: ${err.message}`;
+                errEl.classList.remove('hidden');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-unlock-keyhole mr-2"></i>Unlock Fortress';
+                console.error('[Fortress] PIN verify error:', err);
             }
         }
 
@@ -853,6 +980,34 @@
 
                 const badgeEl = document.getElementById('nav-badge-approvals');
                 if (badgeEl) badgeEl.innerText = d.pending_topups_count || 0;
+
+                // ── New macro stats ─────────────────────────────────────────────────
+                const inflowEl = document.getElementById('stat-inflow');
+                if (inflowEl) inflowEl.innerHTML = `${fmt(d.total_inflow)} <span class="text-sm text-gray-500">DC</span>`;
+
+                const outflowEl = document.getElementById('stat-outflow');
+                if (outflowEl) outflowEl.innerHTML = `${fmt(d.admin_outflow)} <span class="text-sm text-gray-500">DC</span>`;
+
+                // ── Distribution bars ────────────────────────────────────────────────
+                if (d.distribution) {
+                    const dist = d.distribution;
+                    const fmtK = (n) => n >= 1000 ? (n/1000).toFixed(1) + 'K' : String(n);
+
+                    const userLbl = document.getElementById('dist-user-label');
+                    const userBar = document.getElementById('dist-user-bar');
+                    if (userLbl) userLbl.textContent = `${fmtK(dist.user_wallets.amount)} (${dist.user_wallets.pct}%)`;
+                    if (userBar) userBar.style.width = dist.user_wallets.pct + '%';
+
+                    const orgLbl = document.getElementById('dist-org-label');
+                    const orgBar = document.getElementById('dist-org-bar');
+                    if (orgLbl) orgLbl.textContent = `${fmtK(dist.org_treasuries.amount)} (${dist.org_treasuries.pct}%)`;
+                    if (orgBar) orgBar.style.width = dist.org_treasuries.pct + '%';
+
+                    const escLbl = document.getElementById('dist-escrow-label');
+                    const escBar = document.getElementById('dist-escrow-bar');
+                    if (escLbl) escLbl.textContent = `${fmtK(dist.escrow.amount)} (${dist.escrow.pct}%)`;
+                    if (escBar) escBar.style.width = dist.escrow.pct + '%';
+                }
             } catch (err) {
                 console.error('[Fortress] loadStatus fetch failed:', err);
             }
@@ -1059,7 +1214,7 @@
                     }
 
                 } else if (pendingAction === 'airdrop') {
-                    const username  = document.querySelector('#form-airdrop input[type=text]')?.value?.trim();
+                    const username  = document.getElementById('airdrop-username-input')?.value?.trim();
                     const amountEl  = document.querySelector('#form-airdrop input[type=number]');
                     const noteEl    = document.querySelector('#form-airdrop select');
                     const amount    = parseInt(amountEl?.value) || 0;
@@ -1153,8 +1308,73 @@
             });
         });
         // ==========================================
+        // ==========================================
         // 5. CSP-SAFE EVENT WIRING (DOMContentLoaded)
         // ==========================================
+
+        // ── Task 3: Airdrop Username Autocomplete ───────────────────────────
+        let _autocompleteTimer = null;
+
+        function initAirdropAutocomplete() {
+            const input = document.getElementById('airdrop-username-input');
+            const list  = document.getElementById('airdrop-autocomplete-list');
+            if (!input || !list) return;
+
+            function closeDropdown() {
+                list.innerHTML = '';
+                list.classList.add('hidden');
+            }
+
+            input.addEventListener('keyup', function () {
+                clearTimeout(_autocompleteTimer);
+                const q = input.value.trim();
+                if (q.length < 2) { closeDropdown(); return; }
+
+                _autocompleteTimer = setTimeout(async () => {
+                    try {
+                        const res = await fetch(`${API_URLS.userSearch}?q=${encodeURIComponent(q)}`, {
+                            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                        });
+                        const ct = res.headers.get('content-type') || '';
+                        if (!res.ok || !ct.includes('application/json')) return;
+                        const json = await res.json();
+                        const users = (json.ok && Array.isArray(json.data.users)) ? json.data.users : [];
+
+                        if (users.length === 0) { closeDropdown(); return; }
+
+                        list.innerHTML = users.map(u => {
+                            const avatarHtml = u.avatar_url
+                                ? `<img src="${u.avatar_url}" class="w-7 h-7 rounded-full object-cover border border-white/10 flex-shrink-0" alt="">`
+                                : `<div class="w-7 h-7 rounded-full bg-dc-primary/20 border border-dc-primary/30 flex-shrink-0 flex items-center justify-center text-[10px] text-dc-primary font-bold">${u.username[0].toUpperCase()}</div>`;
+                            return `<li data-username="${u.username}"
+                                class="flex items-center gap-3 px-4 py-2.5 cursor-pointer hover:bg-white/10 transition-colors text-sm text-white">
+                                ${avatarHtml}
+                                <span class="font-medium">${u.username}</span>
+                            </li>`;
+                        }).join('');
+                        list.classList.remove('hidden');
+                    } catch (err) {
+                        closeDropdown();
+                    }
+                }, 300);
+            });
+
+            // Fill input on item click
+            list.addEventListener('click', function (e) {
+                const li = e.target.closest('li[data-username]');
+                if (!li) return;
+                input.value = li.dataset.username;
+                closeDropdown();
+                input.focus();
+            });
+
+            // Close on outside click
+            document.addEventListener('click', function (e) {
+                if (!e.target.closest('#airdrop-autocomplete-wrapper')) closeDropdown();
+            });
+        }
+        // ──────────────────────────────────────────────────────────────────────
+
         document.addEventListener('DOMContentLoaded', function () {
 
             // ── Bootstrap: load live data immediately on page ready ───────────
@@ -1227,7 +1447,97 @@
             document.querySelectorAll('[data-tab-target="audit"]').forEach(function (btn) {
                 btn.addEventListener('click', loadAuditLogs);
             });
+
+            // ── Airdrop autocomplete ──────────────────────────────────────────
+            initAirdropAutocomplete();
+
+            // ── Change PIN modal ──────────────────────────────────────────────
+            document.getElementById('btn-change-pin').addEventListener('click', function () {
+                const modal = document.getElementById('pin-change-modal');
+                modal.classList.remove('hidden');
+                setTimeout(() => {
+                    modal.style.opacity = '1';
+                    document.getElementById('pin-change-content').style.transform = 'scale(1)';
+                }, 10);
+                document.getElementById('pin-current').focus();
+                // Clear fields
+                ['pin-current','pin-new','pin-confirm'].forEach(id => document.getElementById(id).value = '');
+                const msg = document.getElementById('pin-change-msg');
+                msg.classList.add('hidden');
+                msg.textContent = '';
+            });
+
+            document.getElementById('btn-pin-change-cancel').addEventListener('click', closePinModal);
+            document.getElementById('btn-pin-change-submit').addEventListener('click', changePin);
         });
+
+        // ==========================================
+        // Phase D — Change PIN Modal JS
+        // ==========================================
+
+        function closePinModal() {
+            const modal = document.getElementById('pin-change-modal');
+            modal.style.opacity = '0';
+            document.getElementById('pin-change-content').style.transform = 'scale(0.95)';
+            setTimeout(() => modal.classList.add('hidden'), 300);
+        }
+
+        async function changePin() {
+            const currentPin = document.getElementById('pin-current').value.trim();
+            const newPin     = document.getElementById('pin-new').value.trim();
+            const confirmPin = document.getElementById('pin-confirm').value.trim();
+            const msgEl      = document.getElementById('pin-change-msg');
+            const submitBtn  = document.getElementById('btn-pin-change-submit');
+
+            const showMsg = (text, isError = true) => {
+                msgEl.textContent = text;
+                msgEl.className   = `text-xs text-center mt-4 ${isError ? 'text-dc-danger' : 'text-dc-success'}`;
+                msgEl.classList.remove('hidden');
+            };
+
+            // ── Client-side validation ─────────────────────────────────────
+            if (!newPin || newPin.length < 4 || newPin.length > 8 || !/^\d+$/.test(newPin)) {
+                showMsg('New PIN must be 4–8 digits only.'); return;
+            }
+            if (newPin !== confirmPin) {
+                showMsg('New PIN and Confirm PIN do not match.'); return;
+            }
+
+            // ── POST to server ──────────────────────────────────────────────
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1.5"></i>Saving…';
+
+            try {
+                const res = await fetch(API_URLS.pinSet, {
+                    method:  'POST',
+                    headers: {
+                        'Content-Type':     'application/json',
+                        'X-CSRFToken':      CSRF_TOKEN,
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    body: JSON.stringify({ current_pin: currentPin, new_pin: newPin }),
+                });
+
+                const ct   = res.headers.get('content-type') || '';
+                if (!ct.includes('application/json')) throw new Error('Server error (non-JSON).');
+                const json = await res.json();
+
+                if (json.ok && json.data && json.data.rotated) {
+                    showMsg('✅ ' + json.data.message, false);
+                    // Auto-close after 1.5 s
+                    setTimeout(closePinModal, 1500);
+                } else {
+                    showMsg(json.error || 'PIN change failed.');
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="fa-solid fa-check mr-1.5"></i>Save PIN';
+                }
+            } catch (err) {
+                showMsg(`Network error: ${err.message}`);
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fa-solid fa-check mr-1.5"></i>Save PIN';
+                console.error('[Fortress] changePin error:', err);
+            }
+        }
 
         // ==========================================
         // 6. AUDIT LEDGER — Live fetch (Phase C)
