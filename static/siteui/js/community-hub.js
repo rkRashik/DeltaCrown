@@ -343,6 +343,8 @@
 
         /* Wire game chip clicks */
         wireGameChips();
+      } else if (gamesEl) {
+        gamesEl.innerHTML = '<div class="px-3 py-2 text-xs text-white/15">No game channels yet</div>';
       }
 
       /* ── Teams (right sidebar) ── */

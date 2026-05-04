@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load static %}
+{% load static dc_avatar %}
 
 {% block title %}Community — DeltaCrown{% endblock %}
 
@@ -10,7 +10,16 @@
    ═══════════════════════════════════════════════════════════════ */
 
 /* === Root === */
-.dc-root { min-height: 100vh; position: relative; overflow-x: hidden; background: linear-gradient(180deg, #060610 0%, #0a0e1a 30%, #080c16 60%, #060610 100%); }
+.dc-root {
+  min-height: 100vh;
+  position: relative;
+  overflow-x: hidden;
+  background: linear-gradient(180deg, #060610 0%, #0a0e1a 30%, #080c16 60%, #060610 100%);
+  --dc-community-header-height: 60px;
+  --dc-community-top-gap: 1.5rem;
+  --dc-community-sidebar-top: calc(var(--nav-height-desktop) + var(--dc-community-header-height) + var(--dc-community-top-gap));
+  --dc-community-sidebar-height: calc(100vh - var(--nav-height-desktop) - var(--dc-community-header-height) - 3rem);
+}
 
 /* === Ambient atmosphere === */
 .dc-root::before {
@@ -190,6 +199,15 @@
 .dc-sidebar-drawer { transition: transform .3s cubic-bezier(.4,0,.2,1); }
 .dc-sidebar-drawer.open { transform: translateX(0) !important; }
 
+@media (min-width: 1024px) {
+  .dc-community-sidebar {
+    top: var(--dc-community-sidebar-top);
+    max-height: var(--dc-community-sidebar-height);
+    bottom: auto;
+    height: auto;
+  }
+}
+
 /* === Hide scrollbar === */
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
@@ -318,6 +336,9 @@
 
 {% block content %}
 <div class="dc-root" id="community-app">
+  {% if request.user.is_authenticated %}
+  {% user_avatar_url request.user as avatar_url %}
+  {% endif %}
 
   {# Ambient glow decorations #}
   <div class="dc-glow-tl"></div>
@@ -325,28 +346,11 @@
 
   {# HEADER BAR — Esports HUD style #}
   <header class="sticky top-0 z-40 backdrop-blur-xl bg-delta-base/80 border-b border-white/[.05]">
-    {# Thin status strip #}
-    <div class="border-b border-white/[.03] bg-white/[.01]">
-      <div class="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex items-center justify-between h-7 text-[10px] text-white/25 tracking-wider uppercase font-medium">
-          <div class="flex items-center gap-4">
-            <span class="dc-status-live">Community Online</span>
-            <span class="hidden sm:inline opacity-50">|</span>
-            <span class="hidden sm:inline" id="hud-stat-posts">— posts</span>
-            <span class="hidden sm:inline opacity-50">|</span>
-            <span class="hidden sm:inline" id="hud-stat-teams">— teams</span>
-          </div>
-          <div class="flex items-center gap-3">
-            <span class="text-[#00E5FF]/40">DeltaCrown Esports Network</span>
-          </div>
-        </div>
-      </div>
-    </div>
     <div class="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
       {# Row 1: Logo / Search / CTA #}
       <div class="flex items-center gap-4 h-[60px]">
         {# Mobile menu #}
-        <button id="sidebar-toggle" class="lg:hidden p-2 -ml-2 rounded-xl hover:bg-white/5 text-white/40">
+        <button id="sidebar-toggle" class="lg:hidden p-2 -ml-2 rounded-xl hover:bg-white/5 text-white/40" aria-label="Open community sidebar">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
         </button>
 
@@ -365,8 +369,10 @@
 
         {# Search — wider #}
         <div class="flex-1 max-w-2xl mx-auto relative">
-          <svg class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20 pointer-events-none" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-          <input id="search-input" type="search" placeholder="Search posts, players, games…"
+          <div class="absolute left-4 inset-y-0 flex items-center pointer-events-none">
+            <svg class="w-4 h-4 text-white/20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          </div>
+          <input id="search-input" type="search" placeholder="Search posts, players, games…" aria-label="Search community"
                  class="w-full pl-11 pr-4 py-2.5 rounded-xl bg-white/[.03] border border-white/[.07] text-sm text-white placeholder-white/20 focus:outline-none focus:border-[#00E5FF]/40 focus:bg-white/[.05] focus:shadow-[0_0_20px_rgba(0,229,255,.06)] transition">
         </div>
 
@@ -385,12 +391,12 @@
   <div class="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8 flex gap-6 xl:gap-8 relative z-10">
 
     {# ── LEFT SIDEBAR ── #}
-    <aside id="left-sidebar"
-           class="dc-sidebar-drawer fixed inset-y-0 left-0 z-50 w-[300px] bg-delta-base/95 backdrop-blur-xl border-r border-white/[.06] p-5 -translate-x-full
-                  lg:translate-x-0 lg:sticky lg:top-[104px] lg:h-[calc(100vh-120px)] lg:w-[280px] lg:shrink-0 lg:block overflow-y-auto no-scrollbar">
+        <aside id="left-sidebar"
+          class="dc-sidebar-drawer dc-community-sidebar fixed inset-y-0 left-0 z-50 w-[300px] bg-delta-base/95 backdrop-blur-xl border-r border-white/[.06] p-5 -translate-x-full
+            lg:translate-x-0 lg:sticky lg:w-[280px] lg:shrink-0 lg:block overflow-y-auto no-scrollbar">
 
       {# Close mobile #}
-      <button id="sidebar-close" class="lg:hidden absolute top-3 right-3 p-2 rounded-xl hover:bg-white/10 text-white/30">
+      <button id="sidebar-close" class="lg:hidden absolute top-3 right-3 p-2 rounded-xl hover:bg-white/10 text-white/30" aria-label="Close community sidebar">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>
       </button>
 
@@ -462,7 +468,7 @@
           <a href="/rankings/" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-white/35 text-sm hover:text-white/70 hover:bg-white/[.04] transition group">
             <svg class="w-4 h-4 shrink-0 group-hover:text-emerald-400 transition" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 20V10M12 20V4M6 20v-6"/></svg> Rankings
           </a>
-          <a href="/store/" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-white/35 text-sm hover:text-white/70 hover:bg-white/[.04] transition group">
+          <a href="/crownstore/" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-white/35 text-sm hover:text-white/70 hover:bg-white/[.04] transition group">
             <svg class="w-4 h-4 shrink-0 group-hover:text-rose-400 transition" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4zM3 6h18M16 10a4 4 0 01-8 0"/></svg> Store
           </a>
         </nav>
@@ -488,8 +494,9 @@
       {% if request.user.is_authenticated %}
       <div id="compose-trigger" class="dc-compose-inline mb-6 rounded-2xl dc-glass p-4 flex items-center gap-4 cursor-text dc-enter"
            data-click="CommunityHub.openComposer">
-        <div class="w-10 h-10 rounded-full bg-gradient-to-br from-[#00E5FF]/25 to-[#6C00FF]/25 grid place-items-center text-sm font-bold text-white/60 shrink-0 border border-white/[.06]">
-          {{ request.user.username|first|upper }}
+        <div class="w-10 h-10 rounded-full bg-gradient-to-br from-[#00E5FF]/25 to-[#6C00FF]/25 p-[1px] shrink-0 border border-white/[.06]">
+          <img src="{{ avatar_url }}" alt="{{ request.user.username }}"
+               class="w-full h-full rounded-full object-cover bg-delta-base">
         </div>
         <div class="flex-1 text-sm text-white/20">Share updates, highlights, strategies…</div>
         <div class="flex items-center gap-2">
@@ -524,8 +531,9 @@
             <div id="post-as-options" class="flex items-center gap-2 flex-wrap">
               <button data-post-as="user" data-team-id=""
                       class="dc-as-option selected flex items-center gap-2 px-3.5 py-2 rounded-xl border border-white/[.08] bg-white/[.03] text-xs text-white/60">
-                <div class="w-6 h-6 rounded-full bg-gradient-to-br from-[#00E5FF]/30 to-[#6C00FF]/30 grid place-items-center text-[10px] font-bold text-white">
-                  {{ request.user.username|first|upper }}
+                <div class="w-6 h-6 rounded-full bg-gradient-to-br from-[#00E5FF]/30 to-[#6C00FF]/30 p-[1px]">
+                     <img src="{{ avatar_url }}" alt="{{ request.user.username }}"
+                       class="w-full h-full rounded-full object-cover bg-delta-base">
                 </div>
                 <span class="font-medium">{{ request.user.username }}</span>
               </button>
@@ -571,14 +579,20 @@
           {# Bottom: Game / Vis / Submit #}
           <div class="px-5 py-3 border-t border-white/[.04] flex items-center justify-between flex-wrap gap-3 bg-white/[.01]">
             <div class="flex items-center gap-2.5">
-              <select id="compose-game" class="px-3 py-2 rounded-lg bg-white/[.04] border border-white/[.06] text-xs text-white/40 focus:outline-none appearance-none pr-7 cursor-pointer hover:border-white/[.12] transition">
-                <option value="">🎮 Game</option>
-              </select>
-              <select id="compose-visibility" class="px-3 py-2 rounded-lg bg-white/[.04] border border-white/[.06] text-xs text-white/40 focus:outline-none appearance-none pr-7 cursor-pointer hover:border-white/[.12] transition">
-                <option value="public">🌐 Public</option>
-                <option value="friends">👥 Friends</option>
-                <option value="private">🔒 Private</option>
-              </select>
+              <div class="relative">
+                <select id="compose-game" class="px-3 py-2 rounded-lg bg-white/[.04] border border-white/[.06] text-xs text-white/40 focus:outline-none appearance-none pr-8 cursor-pointer hover:border-white/[.12] transition">
+                  <option value="">🎮 Game</option>
+                </select>
+                <svg class="w-3.5 h-3.5 text-white/40 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+              </div>
+              <div class="relative">
+                <select id="compose-visibility" class="px-3 py-2 rounded-lg bg-white/[.04] border border-white/[.06] text-xs text-white/40 focus:outline-none appearance-none pr-8 cursor-pointer hover:border-white/[.12] transition">
+                  <option value="public">🌐 Public</option>
+                  <option value="friends">👥 Friends</option>
+                  <option value="private">🔒 Private</option>
+                </select>
+                <svg class="w-3.5 h-3.5 text-white/40 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+              </div>
             </div>
             <div class="flex items-center gap-2.5">
               <button id="compose-cancel" class="px-4 py-2 rounded-xl text-xs text-white/30 hover:text-white/60 hover:bg-white/[.05] transition">Cancel</button>
@@ -637,15 +651,16 @@
 
 
     {# ── RIGHT SIDEBAR ── wider + visible from lg ── #}
-    <aside class="hidden lg:block w-[300px] xl:w-[340px] shrink-0 sticky top-[104px] h-[calc(100vh-120px)] overflow-y-auto space-y-5 no-scrollbar">
+    <aside class="dc-community-sidebar hidden lg:block w-[300px] xl:w-[340px] shrink-0 sticky overflow-y-auto space-y-5 no-scrollbar">
 
       {# User's quick profile card (logged in) #}
       {% if request.user.is_authenticated %}
       <div class="rounded-2xl dc-glass overflow-hidden">
         <div class="h-16 bg-gradient-to-r from-[#00E5FF]/15 via-[#6C00FF]/10 to-[#00E5FF]/15 relative">
           <div class="absolute -bottom-5 left-4">
-            <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-[#00E5FF]/30 to-[#6C00FF]/30 grid place-items-center text-lg font-bold text-white border-2 border-delta-base">
-              {{ request.user.username|first|upper }}
+            <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-[#00E5FF]/30 to-[#6C00FF]/30 p-[2px] border-2 border-delta-base">
+                  <img src="{{ avatar_url }}" alt="{{ request.user.username }}"
+                   class="w-full h-full rounded-[10px] object-cover bg-delta-base">
             </div>
           </div>
         </div>
@@ -653,7 +668,7 @@
           <div class="text-sm font-bold text-white/90">{{ request.user.username }}</div>
           <div class="text-[11px] text-white/30 mt-0.5">@{{ request.user.username }}</div>
           <div class="flex items-center gap-4 mt-3 pt-3 border-t border-white/[.04]">
-            <a href="/profile/" class="text-[11px] text-white/35 hover:text-[#00E5FF] transition">View Profile</a>
+            <a href="/@{{ request.user.username }}/" class="text-[11px] text-white/35 hover:text-[#00E5FF] transition">View Profile</a>
             <a href="/dashboard/" class="text-[11px] text-white/35 hover:text-[#00E5FF] transition">Dashboard</a>
           </div>
         </div>
