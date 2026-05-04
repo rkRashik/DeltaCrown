@@ -931,7 +931,7 @@ if os.getenv("RESEND_API_KEY"):
     # Using gmail.com or any unverified domain → 550 rejection.
     EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
     EMAIL_HOST = "smtp.resend.com"
-    EMAIL_PORT = 587
+    EMAIL_PORT = 2525
     EMAIL_USE_SSL = False
     EMAIL_USE_TLS = True
     EMAIL_HOST_USER = "resend"  # Resend uses literal "resend" as username
@@ -941,7 +941,7 @@ elif os.getenv("DeltaCrownEmailAppPassword"):
     # Dev/LAN: Gmail SMTP
     EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
     EMAIL_HOST = "smtp.gmail.com"
-    EMAIL_PORT = 587
+    EMAIL_PORT = 2525
     EMAIL_USE_TLS = True
     EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "deltacrownhq@gmail.com")
     EMAIL_HOST_PASSWORD = os.getenv("DeltaCrownEmailAppPassword")
