@@ -442,7 +442,7 @@ def vnext_hub(request):
                 'organization',
                 'ranking',
             ).prefetch_related(
-                'vnext_memberships',
+                'vnext_memberships__user__profile',
             ).order_by('-updated_at')[:8]
         )
     except Exception as e:

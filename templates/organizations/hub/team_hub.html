@@ -1,6 +1,5 @@
 {% extends "base.html" %}
-{% load static %}
-{% load humanize %}
+{% load static humanize dc_avatar %}
 
 {% block title %}Team Hub — DeltaCrown{% endblock %}
 {% block og_title %}Team Hub — DeltaCrown Esports{% endblock %}
@@ -97,6 +96,14 @@ body::after {
     background: linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
     border-color: rgba(6, 182, 212, 0.25);
     box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 12px 48px rgba(0,0,0,0.4), 0 0 20px rgba(6,182,212,0.05);
+}
+.hub-team-card {
+    transition: transform .35s ease, box-shadow .35s ease, border-color .35s ease;
+}
+.hub-team-card:hover {
+    transform: translateY(-6px);
+    border-color: rgba(6, 182, 212, 0.4);
+    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.45), 0 0 36px rgba(6, 182, 212, 0.25);
 }
 .glass-glow { position: relative; overflow: hidden }
 .glass-glow::before {
@@ -1089,7 +1096,7 @@ body::after {
                 {% if featured_ranked_teams %}
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
                     {% for team in featured_ranked_teams %}
-                    <a href="{% url 'organizations:team_detail' team.slug %}" class="group relative glass rounded-2xl overflow-hidden hover:border-dc-cyan/30 transition-all duration-500 block hover:-translate-y-1" style="text-decoration:none; color:inherit;">
+                    <a href="{% url 'organizations:team_detail' team.slug %}" class="hub-team-card group relative glass rounded-2xl overflow-hidden hover:border-dc-cyan/30 transition-all duration-500 block" style="text-decoration:none; color:inherit;">
 
                         {# ── Cinematic banner header ── #}
                         <div class="h-36 relative overflow-hidden">
@@ -1117,15 +1124,6 @@ body::after {
                                 </span>
                             </div>
 
-                            {# Recruiting badge – bottom left #}
-                            {% if team.is_recruiting %}
-                            <div class="absolute bottom-3 left-3 z-10">
-                                <span class="inline-flex items-center gap-1 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[9px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider backdrop-blur-md">
-                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Recruiting
-                                </span>
-                            </div>
-                            {% endif %}
-
                             {# Organization logo overlay – bottom right on banner #}
                             {% if team.organization and team.organization.logo %}
                             <div class="absolute bottom-3 right-3 z-10 flex items-center gap-1.5 bg-black/60 backdrop-blur-md border border-white/10 rounded-lg px-2 py-1">
@@ -1136,8 +1134,8 @@ body::after {
                         </div>
 
                         {# ── Card body ── #}
-                        <div class="px-5 pb-5 -mt-10 relative z-10">
-                            <div class="flex items-end gap-3.5 mb-3">
+                        <div class="px-5 pb-6 -mt-10 relative z-10">
+                            <div class="flex items-end gap-4 mb-4">
                                 {# Team logo overlapping banner #}
                                 {% if team.logo %}
                                 <img src="{{ team.logo.url }}" class="w-[72px] h-[72px] rounded-xl object-cover border-2 border-dc-dark flex-shrink-0 shadow-2xl group-hover:border-dc-cyan/50 transition-all duration-300 bg-dc-dark" alt="{{ team.name }}" loading="lazy">
@@ -1166,7 +1164,7 @@ body::after {
                             </div>
 
                             {# ── Stats & Roster Row ── #}
-                            <div class="border-t border-white/5 pt-3 flex items-center justify-between gap-3">
+                            <div class="border-t border-white/5 pt-4 flex items-center justify-between gap-4">
                                 {# CP + Rank stats #}
                                 <div class="flex items-center gap-4 text-xs min-w-0">
                                     {% with r=team.ranking %}
@@ -1195,17 +1193,18 @@ body::after {
                                 </div>
 
                                 {# Member avatars stack #}
-                                <div class="flex items-center -space-x-1.5 flex-shrink-0">
+                                <div class="flex items-center -space-x-1 flex-shrink-0">
                                     {% for member in team.vnext_memberships.all|slice:":4" %}
                                     {% if member.roster_image %}
-                                    <img src="{{ member.roster_image.url }}" class="w-8 h-8 rounded-full object-cover border-2 border-dc-dark shadow-md ring-1 ring-white/5" alt="{{ member.display_name|default:member.user.username }}" title="{{ member.display_name|default:member.user.username }}" loading="lazy">
+                                    <img src="{{ member.roster_image.url }}" class="w-9 h-9 rounded-full object-cover border-2 border-dc-dark shadow-md ring-1 ring-white/5" alt="{{ member.display_name|default:member.user.username }}" title="{{ member.display_name|default:member.user.username }}" loading="lazy">
                                     {% else %}
-                                    <div class="w-8 h-8 rounded-full bg-white/10 border-2 border-dc-dark flex items-center justify-center text-[10px] font-bold text-gray-300 shadow-md ring-1 ring-white/5" title="{{ member.display_name|default:member.user.username }}">{{ member.display_name|default:member.user.username|make_list|first|upper }}</div>
+                                    {% user_avatar_url member.user as member_avatar %}
+                                    <img src="{{ member_avatar }}" class="w-9 h-9 rounded-full object-cover border-2 border-dc-dark shadow-md ring-1 ring-white/5" alt="{{ member.display_name|default:member.user.username }}" title="{{ member.display_name|default:member.user.username }}" loading="lazy">
                                     {% endif %}
                                     {% endfor %}
                                     {% with total=team.vnext_memberships.all|length %}
                                     {% if total > 4 %}
-                                    <div class="w-8 h-8 rounded-full bg-white/5 border-2 border-dc-dark flex items-center justify-center text-[10px] font-bold text-gray-400 shadow-md">+{{ total|add:"-4" }}</div>
+                                    <div class="w-9 h-9 rounded-full bg-white/5 border-2 border-dc-dark flex items-center justify-center text-[10px] font-bold text-gray-400 shadow-md">+{{ total|add:"-4" }}</div>
                                     {% endif %}
                                     {% endwith %}
                                 </div>
