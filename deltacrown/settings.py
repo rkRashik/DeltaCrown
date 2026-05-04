@@ -881,7 +881,7 @@ LOGOUT_REDIRECT_URL = "/"
 
 # Dev email backend (password reset prints to console)
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
-DEFAULT_FROM_EMAIL = "no-reply@deltacrown.local"
+DEFAULT_FROM_EMAIL = "noreply@deltacrown.xyz"
 
 
 # Where your site runs
@@ -931,12 +931,12 @@ if os.getenv("RESEND_API_KEY"):
     # Using gmail.com or any unverified domain → 550 rejection.
     EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
     EMAIL_HOST = "smtp.resend.com"
-    EMAIL_PORT = 465
-    EMAIL_USE_SSL = True
-    EMAIL_USE_TLS = False
+    EMAIL_PORT = 587
+    EMAIL_USE_SSL = False
+    EMAIL_USE_TLS = True
     EMAIL_HOST_USER = "resend"  # Resend uses literal "resend" as username
     EMAIL_HOST_PASSWORD = os.getenv("RESEND_API_KEY")
-    DEFAULT_FROM_EMAIL = "DeltaCrown <noreply@deltacrown.xyz>"
+    DEFAULT_FROM_EMAIL = "noreply@deltacrown.xyz"
 elif os.getenv("DeltaCrownEmailAppPassword"):
     # Dev/LAN: Gmail SMTP
     EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
@@ -945,11 +945,11 @@ elif os.getenv("DeltaCrownEmailAppPassword"):
     EMAIL_USE_TLS = True
     EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "deltacrownhq@gmail.com")
     EMAIL_HOST_PASSWORD = os.getenv("DeltaCrownEmailAppPassword")
-    DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+    DEFAULT_FROM_EMAIL = "noreply@deltacrown.xyz"
 else:
     # Fallback (CI/tests)
     EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
-    DEFAULT_FROM_EMAIL = "no-reply@deltacrown.local"
+    DEFAULT_FROM_EMAIL = "noreply@deltacrown.xyz"
 
 
 
