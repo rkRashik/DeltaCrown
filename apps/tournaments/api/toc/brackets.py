@@ -160,6 +160,7 @@ class BracketFormatConfigView(TOCBaseView):
             'scoring_matrix',
             'lobbies_per_match_day',
             'advancement_count',
+            'tiebreaker_rules',
         },
     }
 
@@ -210,6 +211,78 @@ class BracketFormatConfigView(TOCBaseView):
             'format_options': existing,
             'updated_keys': list(cleaned.keys()),
         })
+
+
+class BracketBRScoreEntryView(TOCBaseView):
+    """
+    POST /api/toc/<slug>/brackets/br-score-entry/
+
+    Submit per-team placement + kills for a single Battle Royale lobby session.
+
+    Body:
+        {
+            "match_id": 1234,                         # the lobby session Match
+            "results": [
+                {"participant_id": 99, "placement": 1, "kills": 12},
+                {"participant_id": 88, "placement": 2, "kills": 8},
+                ...
+            ],
+            "map_name":      "Erangel"   # optional, persisted onto Match.lobby_info
+        }
+
+    Response (200):
+        {"status": "applied", "match_id": ..., "rows_applied": N, "winner_id": ...}
+
+    Errors:
+        400  validation failure (invalid results, wrong tournament, etc.)
+        409  match not in a state where results can be applied
+    """
+
+    def post(self, request, slug):
+        from apps.tournaments.models.match import Match
+        from apps.tournaments.services.br_scoring_service import BRScoringService
+
+        body = request.data if isinstance(request.data, dict) else {}
+        match_id = body.get("match_id")
+        results  = body.get("results")
+        map_name = (body.get("map_name") or "").strip()
+
+        try:
+            match_id = int(match_id)
+        except (TypeError, ValueError):
+            return Response({"error": "match_id is required and must be int."},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            match = Match.objects.get(
+                id=match_id,
+                tournament=self.tournament,
+                is_deleted=False,
+            )
+        except Match.DoesNotExist:
+            return Response({"error": "Lobby session not found."},
+                            status=status.HTTP_404_NOT_FOUND)
+
+        info = match.lobby_info or {}
+        if not info.get("br_session"):
+            return Response(
+                {"error": "This match is not a Battle Royale lobby session."},
+                status=status.HTTP_409_CONFLICT,
+            )
+
+        # Persist optional metadata before scoring (so failures still save the map name).
+        if map_name and map_name != info.get("map_name"):
+            info["map_name"] = map_name
+            match.lobby_info = info
+            match.save(update_fields=["lobby_info"])
+
+        try:
+            data = BRScoringService.apply_lobby_results(match, results)
+        except (ValueError, ValidationError) as exc:
+            return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
+        bump_toc_scopes(self.tournament.id, 'brackets', 'matches', 'overview', 'standings', 'analytics')
+        return Response(data)
 
 
 class BracketBronzeCreateView(TOCBaseView):

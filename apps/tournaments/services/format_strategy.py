@@ -739,14 +739,61 @@ class SwissStrategy(FormatStrategy):
     def generate_fixtures(self, tournament: "Tournament", options: Dict) -> Dict:
         from apps.tournaments.services.bracket_service import BracketService
         from apps.brackets.models import BracketNode
+        from apps.tournaments.services.swiss_service import SwissService
 
-        # ``generate_bracket_universal_safe`` with format='swiss' routes to
-        # ``SwissService.generate_round1()`` which creates Round 1 BracketNodes.
-        bracket = BracketService.generate_bracket_universal_safe(
-            tournament_id=tournament.id,
-            bracket_format="swiss",
-            seeding_method=options.get("seeding_method"),
+        # ── Merge organizer-saved format options ──────────────────────────────
+        # Frontend persists customisation via /brackets/format-config/ →
+        # tournament.config['format_options']. Direct call args win when both
+        # are present (handy for tests).
+        saved_options: Dict = {}
+        try:
+            cfg = tournament.config if isinstance(tournament.config, dict) else {}
+            saved_options = dict(cfg.get('format_options') or {})
+        except Exception:
+            saved_options = {}
+        merged = {**saved_options, **(options or {})}
+
+        # 0 / None / negative => auto (ceil(log2(n)) inside SwissService.generate_round1)
+        configured_rounds = int(merged.get("total_rounds") or 0)
+        total_rounds_arg = configured_rounds if configured_rounds > 0 else None
+
+        # Build seeded participant list directly so we can pass total_rounds
+        # to SwissService — generate_bracket_universal_safe doesn't expose it.
+        seeded_participants = BracketService._get_confirmed_participants(tournament)
+        seeded_participants = BracketService.apply_seeding(
+            seeded_participants,
+            merged.get("seeding_method") or "slot-order",
+            tournament,
         )
+
+        # Idempotency / regeneration handling — if a Swiss bracket already
+        # exists and is not finalized, delete it (mirrors generate_bracket()
+        # legacy behaviour for swiss-format regeneration).
+        from apps.brackets.models import Bracket
+        from apps.tournaments.models.bracket import BracketNode as _BN
+        if hasattr(tournament, 'bracket'):
+            old_bracket = tournament.bracket
+            if not old_bracket.is_finalized:
+                _BN.all_objects.filter(bracket=old_bracket).delete()
+                old_bracket.delete()
+
+        bracket = SwissService.generate_round1(
+            tournament,
+            seeded_participants,
+            seeding_method=merged.get("seeding_method") or "slot-order",
+            total_rounds=total_rounds_arg,
+        )
+
+        # Persist drop_after_losses + tiebreaker_rules onto bracket.bracket_structure
+        # so the standings service / advance-round logic can read them later.
+        struct = dict(getattr(bracket, "bracket_structure", None) or {})
+        if merged.get("drop_after_losses"):
+            struct["drop_after_losses"] = int(merged["drop_after_losses"])
+        if merged.get("tiebreaker_rules"):
+            struct["tiebreaker_rules"] = list(merged["tiebreaker_rules"])
+        if struct:
+            bracket.bracket_structure = struct
+            bracket.save(update_fields=["bracket_structure"])
 
         # Phase 3: create playable Match rows for non-bye Round 1 nodes.
         matches = BracketService.create_matches_from_bracket(bracket)
@@ -759,8 +806,9 @@ class SwissStrategy(FormatStrategy):
 
         logger.info(
             "SwissStrategy.generate_fixtures tournament=%s bracket=%s "
-            "round1_matches=%d byes=%d total_rounds=%d",
+            "round1_matches=%d byes=%d total_rounds=%d drop_after=%s",
             tournament.id, bracket.id, len(matches), bye_count, total_rounds,
+            struct.get("drop_after_losses") if struct else None,
         )
 
         return {
@@ -897,24 +945,195 @@ class BattleRoyaleStrategy(FormatStrategy):
     label = "Battle Royale / Lobby Leaderboard"
     primary_surface = "standings"
 
+    @transaction.atomic
     def generate_fixtures(self, tournament: "Tournament", options: Dict) -> Dict:
-        raise ValidationError(
-            "Battle Royale lobby session management is not yet available in the "
-            "self-serve flow. Use the TOC Lobbies tab to create and score sessions."
+        """
+        Create Battle Royale lobby sessions.
+
+        Reuses GroupStage + Group + GroupStanding infrastructure (single
+        "Leaderboard" group containing every confirmed registration). Lobby
+        sessions are stored as Match rows with ``lobby_info``:
+
+            {'br_session': True, 'session_number': N, 'map_name': '...'}
+
+        Each lobby session is initially empty (no game_scores). Organizers
+        enter placement + kills per team via the score-entry endpoint, which
+        triggers ``BRScoringService.apply_lobby_results()`` to recalculate
+        every participant's standings on the fly.
+        """
+        from apps.tournaments.models.group import Group, GroupStage, GroupStanding
+        from apps.tournaments.models.match import Match
+
+        # ── Idempotency guard ─────────────────────────────────────────────────
+        if GroupStage.objects.filter(tournament=tournament).exists():
+            raise ValidationError(
+                "Lobby sessions have already been generated. "
+                "Reset them before regenerating."
+            )
+
+        # ── Validate participants ──────────────────────────────────────────────
+        registrations = self._confirmed_registrations(tournament)
+        n = len(registrations)
+        if n < 2:
+            raise ValidationError(
+                f"Battle Royale requires at least 2 confirmed registrations; "
+                f"found {n}."
+            )
+
+        # ── Merge organizer-saved format options ──────────────────────────────
+        saved_options: Dict = {}
+        try:
+            cfg = tournament.config if isinstance(tournament.config, dict) else {}
+            saved_options = dict(cfg.get('format_options') or {})
+        except Exception:
+            saved_options = {}
+        merged = {**saved_options, **(options or {})}
+
+        # Number of lobby sessions to create up-front. Default 4 (Erangel × 4
+        # is a common BR phase-1 setup). Organizer can configure.
+        lobbies_count = int(merged.get('lobbies_per_match_day') or 4)
+        if lobbies_count < 1:
+            lobbies_count = 1
+        if lobbies_count > 50:
+            lobbies_count = 50
+
+        advancement_count = int(merged.get('advancement_count') or max(1, n // 2))
+        if advancement_count < 1:
+            advancement_count = 1
+
+        # Default scoring matrix (PUBG/Free Fire-style). Organizer overridable.
+        scoring_matrix = merged.get('scoring_matrix') or {
+            'placement_points': {
+                '1': 15, '2': 12, '3': 10, '4': 8, '5': 6,
+                '6': 4, '7': 2, '8': 1,
+            },
+            'kill_points': 1,  # per kill
+        }
+
+        # ── GroupStage wrapper ─────────────────────────────────────────────────
+        stage = GroupStage.objects.create(
+            tournament=tournament,
+            name="Leaderboard",
+            num_groups=1,
+            group_size=n,
+            format="round_robin",  # closest existing choice; semantically a leaderboard
+            state="active",
+            advancement_count_per_group=advancement_count,
         )
 
+        # ── Single group (the global leaderboard) ─────────────────────────────
+        group = Group.objects.create(
+            tournament=tournament,
+            name="Leaderboard",
+            display_order=0,
+            max_participants=n,
+            advancement_count=advancement_count,
+            config={
+                'scoring_matrix':  scoring_matrix,
+                'lobbies_count':   lobbies_count,
+                'tiebreaker_rules': merged.get('tiebreaker_rules') or [
+                    'points', 'placement_points', 'total_kills', 'average_placement',
+                ],
+                'format': 'battle_royale',
+            },
+        )
+
+        # ── Seed GroupStanding rows ────────────────────────────────────────────
+        for seed, reg in enumerate(registrations, start=1):
+            standing_kwargs: Dict = {"group": group, "rank": seed}
+            if reg.team_id:
+                standing_kwargs["team_id"] = reg.team_id
+            else:
+                standing_kwargs["user"] = reg.user
+            GroupStanding.objects.create(**standing_kwargs)
+
+        # ── Create N lobby session Match rows (placeholder participants) ─────
+        # Each lobby is one match record. Participants are not pre-assigned to
+        # specific lobbies — every team plays in every session and the
+        # game_scores blob holds the per-team result row when entered.
+        default_time = (
+            getattr(tournament, "tournament_start", None)
+            or timezone.now()
+        )
+        from datetime import timedelta as _td
+        for session_no in range(1, lobbies_count + 1):
+            Match.objects.create(
+                tournament=tournament,
+                round_number=1,
+                match_number=session_no,
+                state=Match.SCHEDULED,
+                scheduled_time=default_time + _td(minutes=30 * (session_no - 1)),
+                lobby_info={
+                    'br_session':     True,
+                    'session_number': session_no,
+                    'map_name':       '',         # organizer fills in
+                    'lobby_room_id':  '',
+                },
+            )
+
+        # ── Bust caches ───────────────────────────────────────────────────────
+        try:
+            from apps.tournaments.api.toc.cache_utils import bump_toc_scopes
+            bump_toc_scopes(tournament.id, 'standings', 'brackets', 'matches', 'overview')
+        except Exception:
+            pass
+
+        logger.info(
+            "BattleRoyaleStrategy.generate_fixtures tournament=%s lobbies=%d "
+            "participants=%d advancement=%d",
+            tournament.id, lobbies_count, n, advancement_count,
+        )
+
+        return {
+            "status": "lobbies_generated",
+            "participants": n,
+            "lobbies": lobbies_count,
+            "advancement_count": advancement_count,
+            "group_stage_id": stage.id,
+            "group_id": group.id,
+            "message": (
+                f"Created {lobbies_count} lobby session"
+                f"{'s' if lobbies_count != 1 else ''} for {n} participants. "
+                f"Enter results per lobby to populate the leaderboard."
+            ),
+        }
+
+    @transaction.atomic
     def reset_fixtures(self, tournament: "Tournament", *, force: bool = False, actor=None) -> None:
-        # Battle Royale lobby/score data is not yet persisted in DB models;
-        # the safety gate still applies once Phase 6 wires up Match rows.
+        """Delete all lobby sessions + leaderboard rows. Safety-gated."""
         from apps.tournaments.api.toc.brackets_service import _ensure_reset_allowed
+        from apps.tournaments.models.group import Group, GroupStage, GroupStanding
+        from apps.tournaments.models.match import Match
+
         _ensure_reset_allowed(tournament, force=force, actor=actor)
+
+        Match.objects.filter(
+            tournament=tournament,
+            bracket__isnull=True,
+            is_deleted=False,
+        ).delete()
+        group_ids = list(
+            Group.objects.filter(tournament=tournament).values_list("id", flat=True)
+        )
+        if group_ids:
+            GroupStanding.objects.filter(group_id__in=group_ids).delete()
+        Group.objects.filter(tournament=tournament).delete()
+        GroupStage.objects.filter(tournament=tournament).delete()
 
     def standings(self, tournament: "Tournament") -> Dict:
         from apps.tournaments.api.toc.standings_service import TOCStandingsService
         return TOCStandingsService.get_standings(tournament)
 
     def can_finalize(self, tournament: "Tournament") -> Tuple[bool, str]:
-        return False, "Battle Royale finalization is not yet automated. Finalize manually via TOC."
+        from apps.tournaments.models.match import Match
+        pending = Match.objects.filter(
+            tournament=tournament,
+            bracket__isnull=True,
+            is_deleted=False,
+        ).exclude(state__in=["completed", "forfeit", "cancelled"]).count()
+        if pending:
+            return False, f"{pending} lobby session(s) still pending result entry."
+        return True, ""
 
     def toc_steps(self, tournament: "Tournament") -> List[Dict]:
         return [

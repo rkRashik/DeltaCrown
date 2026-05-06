@@ -1242,12 +1242,17 @@
                 {% endcomment %}
                 <div id="brackets-subnav" class="flex items-center gap-2 border-b border-dc-border/30 pb-4">
 
-                    {# Group Stage pill — relabelled "League Table" for round_robin #}
-                    {% if tournament_format == 'round_robin' or tournament_format == 'group_playoff' or not tournament_format %}
+                    {% comment %}
+                    Primary surface pill — relabelled per format:
+                      round_robin   -> "League Table"
+                      battle_royale -> "Lobby Sessions"
+                      group_playoff -> "Group Stage"
+                    {% endcomment %}
+                    {% if tournament_format == 'round_robin' or tournament_format == 'group_playoff' or tournament_format == 'battle_royale' or not tournament_format %}
                     <button data-subtab="groups" data-click="TOC.brackets.switchSubTab" data-click-args='["groups"]'
                         class="brackets-pill px-5 py-2 rounded-full text-xs font-bold tracking-wide transition-all duration-200
                                border border-dc-border text-dc-text hover:text-white hover:border-dc-borderLight">
-                        <i data-lucide="{% if tournament_format == 'round_robin' %}list-ordered{% else %}layout-grid{% endif %}" class="w-3.5 h-3.5 inline-block mr-1.5 align-[-3px]"></i>{% if tournament_format == 'round_robin' %}League Table{% else %}Group Stage{% endif %}
+                        <i data-lucide="{% if tournament_format == 'round_robin' %}list-ordered{% elif tournament_format == 'battle_royale' %}crosshair{% else %}layout-grid{% endif %}" class="w-3.5 h-3.5 inline-block mr-1.5 align-[-3px]"></i>{% if tournament_format == 'round_robin' %}League Table{% elif tournament_format == 'battle_royale' %}Lobby Sessions{% else %}Group Stage{% endif %}
                     </button>
                     {% endif %}
 
@@ -1298,12 +1303,12 @@
                         <div id="groups-stage-meta" class="text-[10px] font-mono text-dc-text uppercase tracking-widest"></div>
                         <div class="flex items-center gap-2">
 
-                            {# Configure — group_playoff opens groups modal; round_robin opens format-options modal #}
+                            {# Configure — group_playoff opens groups modal; RR/BR open format-options modal #}
                             {% if tournament_format == 'group_playoff' %}
                             <button data-click="TOC.brackets.openGroupConfig" data-cap-require="manage_brackets" class="px-3 py-1.5 text-[10px] font-bold text-dc-text border border-dc-border rounded-lg hover:text-white hover:border-dc-borderLight transition-colors">
                                 <i data-lucide="settings" class="w-3 h-3 inline mr-1"></i>Configure
                             </button>
-                            {% elif tournament_format == 'round_robin' %}
+                            {% elif tournament_format == 'round_robin' or tournament_format == 'battle_royale' %}
                             <button data-click="TOC.brackets.openFormatConfig" data-cap-require="manage_brackets" class="px-3 py-1.5 text-[10px] font-bold text-dc-text border border-dc-border rounded-lg hover:text-white hover:border-dc-borderLight transition-colors">
                                 <i data-lucide="sliders-horizontal" class="w-3 h-3 inline mr-1"></i>Configure
                             </button>
@@ -1324,6 +1329,10 @@
                             <button id="btn-group-generate-matches" data-click="TOC.brackets.generate" data-cap-require="manage_brackets" class="px-3 py-1.5 text-[10px] font-bold text-emerald-400 border border-emerald-400/20 rounded-lg hover:bg-emerald-400/10 transition-colors">
                                 <i data-lucide="zap" class="w-3 h-3 inline mr-1"></i>Generate Fixtures
                             </button>
+                            {% elif tournament_format == 'battle_royale' %}
+                            <button id="btn-group-generate-matches" data-click="TOC.brackets.generate" data-cap-require="manage_brackets" class="px-3 py-1.5 text-[10px] font-bold text-emerald-400 border border-emerald-400/20 rounded-lg hover:bg-emerald-400/10 transition-colors">
+                                <i data-lucide="crosshair" class="w-3 h-3 inline mr-1"></i>Generate Lobbies
+                            </button>
                             {% else %}
                             <button id="btn-group-generate-matches" data-click="TOC.brackets.generateGroupMatches" data-cap-require="manage_brackets" class="hidden px-3 py-1.5 text-[10px] font-bold text-emerald-400 border border-emerald-400/20 rounded-lg hover:bg-emerald-400/10 transition-colors">
                                 <i data-lucide="swords" class="w-3 h-3 inline mr-1"></i>Generate Matches
@@ -1343,6 +1352,10 @@
                             {% if tournament_format == 'round_robin' %}
                             <button id="btn-group-reset" data-click="TOC.brackets.resetBracket" data-cap-require="manage_brackets" class="hidden px-3 py-1.5 text-[10px] font-bold text-dc-danger border border-dc-danger/20 rounded-lg hover:bg-dc-danger/10 transition-colors">
                                 <i data-lucide="rotate-ccw" class="w-3 h-3 inline mr-1"></i>Reset Fixtures
+                            </button>
+                            {% elif tournament_format == 'battle_royale' %}
+                            <button id="btn-group-reset" data-click="TOC.brackets.resetBracket" data-cap-require="manage_brackets" class="hidden px-3 py-1.5 text-[10px] font-bold text-dc-danger border border-dc-danger/20 rounded-lg hover:bg-dc-danger/10 transition-colors">
+                                <i data-lucide="rotate-ccw" class="w-3 h-3 inline mr-1"></i>Reset Lobbies
                             </button>
                             {% else %}
                             <button id="btn-group-reset" data-click="TOC.brackets.resetGroups" data-cap-require="manage_brackets" class="hidden px-3 py-1.5 text-[10px] font-bold text-dc-danger border border-dc-danger/20 rounded-lg hover:bg-dc-danger/10 transition-colors">
@@ -1369,6 +1382,11 @@
                             <span id="swiss-complete-badge" class="hidden text-xs font-bold px-2 py-0.5 rounded-full bg-dc-success/20 text-dc-success border border-dc-success/20">Tournament Complete</span>
                         </div>
                         <div class="flex items-center gap-2">
+                            {% if tournament_format == 'swiss' %}
+                            <button data-click="TOC.brackets.openFormatConfig" data-cap-require="manage_brackets" class="px-3 py-1.5 text-[10px] font-bold text-dc-text border border-dc-border rounded-lg hover:text-white hover:border-dc-borderLight transition-colors">
+                                <i data-lucide="sliders-horizontal" class="w-3 h-3 inline mr-1"></i>Configure
+                            </button>
+                            {% endif %}
                             <button data-click="TOC.brackets.refreshSwiss" class="px-3 py-1.5 text-[10px] font-bold text-dc-text border border-dc-border rounded-lg hover:text-white hover:border-dc-borderLight transition-colors">
                                 <i data-lucide="refresh-cw" class="w-3 h-3 inline mr-1"></i>Refresh
                             </button>

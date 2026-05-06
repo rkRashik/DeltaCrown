@@ -60,16 +60,16 @@ GAME_TIPS: Dict[str, Dict[str, Any]] = {
         ),
     },
     'pubgm': {
-        'recommended_format': 'round_robin',
+        'recommended_format': 'battle_royale',
         'recommended_participation': 'team',
         'recommended_platform': 'mobile',
         'recommended_sizes': [16, 20, 24],
-        'match_format_label': 'Multi-match series (3-5 maps)',
+        'match_format_label': 'Lobby leaderboard (3-5 maps)',
         'subtitle': '4-Man Squad Battle Royale',
         'tips': [
-            'Use placement + kill scoring (PMPL format)',
-            '16-20 teams per lobby for best experience',
-            'Multiple matches across 2-3 days recommended',
+            'Battle Royale / Lobby Leaderboard format is recommended (PMPL-style)',
+            'Configure placement points + kill points in the TOC Configure modal',
+            '16-20 teams per lobby; multiple maps aggregate into one leaderboard',
         ],
         'rule_template': (
             '• PUBG Mobile competitive rules\n'
@@ -139,15 +139,15 @@ GAME_TIPS: Dict[str, Dict[str, Any]] = {
         ),
     },
     'freefire': {
-        'recommended_format': 'round_robin',
+        'recommended_format': 'battle_royale',
         'recommended_participation': 'team',
         'recommended_platform': 'mobile',
         'recommended_sizes': [12, 16, 24],
-        'match_format_label': 'Multi-match series',
+        'match_format_label': 'Lobby leaderboard (multi-map)',
         'subtitle': '4-Man Squad Battle Royale',
         'tips': [
-            'Similar to PUBG Mobile format',
-            'Placement + kill scoring recommended',
+            'Battle Royale / Lobby Leaderboard format aggregates placement + kills',
+            'Configure scoring matrix (placement points + kill points) in TOC',
             'Custom room: Squad mode, Bermuda/Kalahari',
         ],
         'rule_template': (
@@ -305,13 +305,21 @@ def build_game_intelligence_payload(games_queryset) -> list:
             'min_team_size': roster.min_team_size if roster else 1,
             'max_substitutes': roster.max_substitutes if roster else 2,
 
-            # Tournament config intelligence
+            # Tournament config intelligence.
+            # Battle Royale support is inferred from the game's category — BR
+            # (PUBG, Free Fire) is the canonical use case. For non-BR games,
+            # the format is hidden from the recommended grid.
             'supported_formats': {
                 'single_elimination': tourney_cfg.supports_single_elimination if tourney_cfg else True,
                 'double_elimination': tourney_cfg.supports_double_elimination if tourney_cfg else True,
-                'round_robin': tourney_cfg.supports_round_robin if tourney_cfg else True,
-                'swiss': tourney_cfg.supports_swiss if tourney_cfg else False,
-                'group_playoff': tourney_cfg.supports_group_stage if tourney_cfg else True,
+                'round_robin':        tourney_cfg.supports_round_robin if tourney_cfg else True,
+                'swiss':              tourney_cfg.supports_swiss if tourney_cfg else False,
+                'group_playoff':      tourney_cfg.supports_group_stage if tourney_cfg else True,
+                'battle_royale':      (
+                    getattr(tourney_cfg, 'supports_battle_royale', None)
+                    if (tourney_cfg and hasattr(tourney_cfg, 'supports_battle_royale'))
+                    else (str(getattr(game, 'category', '') or '').upper() == 'BR')
+                ),
             },
             'default_match_format': tourney_cfg.default_match_format if tourney_cfg else 'BO3',
             'scoring_type': tourney_cfg.default_scoring_type if tourney_cfg else 'WIN_LOSS',

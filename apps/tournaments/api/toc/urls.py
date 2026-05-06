@@ -124,6 +124,7 @@ urlpatterns = [
     path('<slug:slug>/brackets/publish/', brackets.BracketPublishView.as_view(), name='brackets-publish'),
     path('<slug:slug>/brackets/seeds/', brackets.BracketSeedsView.as_view(), name='brackets-seeds'),
     path('<slug:slug>/brackets/format-config/', brackets.BracketFormatConfigView.as_view(), name='brackets-format-config'),
+    path('<slug:slug>/brackets/br-score-entry/', brackets.BracketBRScoreEntryView.as_view(), name='brackets-br-score-entry'),
 
     # ── Schedule (S5-B6 through S5-B9) ──
     path('<slug:slug>/schedule/', brackets.ScheduleGetView.as_view(), name='schedule'),

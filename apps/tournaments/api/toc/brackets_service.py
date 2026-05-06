@@ -196,7 +196,12 @@ class TOCBracketsService:
 
     @staticmethod
     def _group_stage_match_stats(tournament, group_ids: set[int]) -> Dict[int, Dict[str, int]]:
-        """Return per-group totals for bracket-less matches that are tagged with lobby_info.group_id."""
+        """Return per-group totals for bracket-less matches that are tagged with lobby_info.group_id.
+
+        Uses a JSONB ``__group_id__in`` filter so PostgreSQL skips matches that
+        don't belong to any of the requested groups. This is significantly
+        faster than iterating every bracket-less match in Python.
+        """
         stats = {
             gid: {"total": 0, "completed": 0}
             for gid in group_ids
@@ -204,11 +209,21 @@ class TOCBracketsService:
         if not group_ids:
             return stats
 
-        matches = Match.objects.filter(
-            tournament=tournament,
-            bracket__isnull=True,
-            is_deleted=False,
-        ).only("id", "state", "lobby_info")
+        # DB-side filter for matches whose lobby_info.group_id ∈ group_ids
+        from django.db.models import Q
+        gid_list = list(group_ids)
+        matches = (
+            Match.objects.filter(
+                tournament=tournament,
+                bracket__isnull=True,
+                is_deleted=False,
+            )
+            .filter(
+                Q(lobby_info__group_id__in=gid_list)
+                | Q(lobby_info__group_id__in=[str(g) for g in gid_list])
+            )
+            .only("id", "state", "lobby_info")
+        )
 
         for match in matches.iterator():
             group_id = TOCBracketsService._coerce_group_id((match.lobby_info or {}).get("group_id"))
@@ -668,19 +683,21 @@ class TOCBracketsService:
         group payload embedded so the TOC brackets tab can render the league
         table and so button state management (Generate / Reset) works correctly.
         """
-        if tournament.format == Tournament.ROUND_ROBIN:
-            groups_payload = TOCBracketsService.get_groups(tournament)
-            fixtures_exist = bool(
-                groups_payload.get("exists")
-                and groups_payload.get("groups")
-                and groups_payload.get("matches_total", 0) > 0
-            )
+        if tournament.format in (Tournament.ROUND_ROBIN, Tournament.BATTLE_ROYALE):
+            # Lightweight existence-only envelope. The full groups payload is
+            # served by GET /groups/ and is fetched independently by the
+            # frontend; embedding it here would duplicate the heavy query on
+            # every page load (was the root cause of TOC tab slowness).
+            stage_exists = GroupStage.objects.filter(tournament=tournament).exists()
+            fixtures_exist = stage_exists and Match.objects.filter(
+                tournament=tournament, bracket__isnull=True, is_deleted=False,
+            ).exists()
             return {
                 "exists": fixtures_exist,
-                "is_round_robin": True,
+                "is_round_robin": True,   # frontend flag — both RR & BR use this gate
+                "is_battle_royale": tournament.format == Tournament.BATTLE_ROYALE,
                 "bracket": None,
                 "nodes": [],
-                "groups_data": groups_payload,
                 "current_stage": None,
             }
 

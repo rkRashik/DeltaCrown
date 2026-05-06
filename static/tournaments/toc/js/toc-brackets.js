@@ -327,17 +327,16 @@
 
     var fmt = (window.TOC_CONFIG || {}).tournamentFormat || '';
 
-    // Round Robin: existence is signalled via bracketData.is_round_robin flag
+    // RR + BR: existence is signalled via bracketData.is_round_robin flag
     // (set by get_bracket() when a GroupStage exists) rather than bracketData.bracket.
-    // This ensures the Generate button hides and Reset button shows after fixtures
-    // are created, even though no Bracket DB row exists for round_robin.
+    var nonBracketFmt = (fmt === 'round_robin' || fmt === 'battle_royale');
     var exists;
-    if (fmt === 'round_robin') {
+    if (nonBracketFmt) {
       exists = !!(bracketData && bracketData.is_round_robin && bracketData.exists);
     } else {
       exists = !!(bracketData && bracketData.exists && bracketData.bracket);
     }
-    var published = !!(exists && !fmt.startsWith('round_robin') && bracketData.bracket && bracketData.bracket.is_finalized);
+    var published = !!(exists && !nonBracketFmt && bracketData.bracket && bracketData.bracket.is_finalized);
 
     if (genBtn) {
       if (exists) {
@@ -350,6 +349,8 @@
           genBtn.innerHTML = genBtn.innerHTML.replace('Generate Bracket', 'Generate Fixtures');
         } else if (fmt === 'swiss') {
           genBtn.innerHTML = genBtn.innerHTML.replace('Generate Bracket', 'Generate Round 1');
+        } else if (fmt === 'battle_royale') {
+          genBtn.innerHTML = genBtn.innerHTML.replace('Generate Bracket', 'Generate Lobbies');
         }
       }
     }
@@ -362,8 +363,8 @@
       }
     }
     if (pubBtn) {
-      // Publish is only meaningful for tree brackets; hide for round_robin
-      if (!exists || published || fmt === 'round_robin' || fmt === 'swiss') {
+      // Publish is only meaningful for tree brackets; hide for non-bracket formats
+      if (!exists || published || nonBracketFmt || fmt === 'swiss') {
         pubBtn.classList.add('hidden');
       } else {
         pubBtn.classList.remove('hidden');
@@ -381,11 +382,12 @@
     var hasMatches   = matchStats.total > 0;
     var fmt          = (window.TOC_CONFIG || {}).tournamentFormat || '';
     var isRR         = fmt === 'round_robin';
+    var isBR         = fmt === 'battle_royale';
+    var isAtomic     = isRR || isBR;  // formats with no manual draw step
 
     if (drawBtn) {
-      // Round Robin: no manual draw step — fixtures are generated atomically.
-      // Hide the Draw button entirely so the organiser isn't confused.
-      if (isRR || isDrawn) {
+      // RR + BR: no manual draw step — fixtures/lobbies are generated atomically.
+      if (isAtomic || isDrawn) {
         drawBtn.classList.add('hidden');
       } else {
         drawBtn.classList.remove('hidden');
@@ -401,9 +403,9 @@
       }
     }
     if (genMatchesBtn) {
-      // Round Robin: button is always visible (no draw step prerequisite).
-      // Label stays "Generate Fixtures" / "Re-Generate Fixtures" — never get
-      // overwritten with "Generate Matches" wording.
+      // RR + BR: button is always visible (no draw step prerequisite). Label
+      // stays format-aware ("Generate Fixtures" / "Generate Lobbies") and is
+      // never overwritten with "Generate Matches" wording.
       if (isRR) {
         genMatchesBtn.classList.remove('hidden');
         genMatchesBtn.disabled = false;
@@ -413,6 +415,16 @@
         } else {
           genMatchesBtn.innerHTML = '<i data-lucide="zap" class="w-3 h-3 inline mr-1"></i>Generate Fixtures';
           genMatchesBtn.title = 'Generate all pairwise fixtures and activate the League Table.';
+        }
+      } else if (isBR) {
+        genMatchesBtn.classList.remove('hidden');
+        genMatchesBtn.disabled = false;
+        if (hasMatches) {
+          genMatchesBtn.innerHTML = '<i data-lucide="refresh-cw" class="w-3 h-3 inline mr-1"></i>Re-Generate Lobbies';
+          genMatchesBtn.title = 'Replace existing lobby sessions with a fresh set.';
+        } else {
+          genMatchesBtn.innerHTML = '<i data-lucide="crosshair" class="w-3 h-3 inline mr-1"></i>Generate Lobbies';
+          genMatchesBtn.title = 'Create N lobby sessions and activate the leaderboard.';
         }
       } else if (isDrawn) {
         // Group + Playoff: button shown after group draw is complete.
@@ -1051,18 +1063,43 @@
   async function generate() {
     var fmt = (window.TOC_CONFIG || {}).tournamentFormat || '';
     var isRR = fmt === 'round_robin';
+    var isBR = fmt === 'battle_royale';
 
-    // Frontend guard: bracketData.exists is true for RR when fixtures exist
+    // Frontend guard: bracketData.exists is true for RR/BR when fixtures/lobbies exist
     if (bracketData && bracketData.exists) {
-      toast(isRR ? 'Fixtures already generated. Reset them before regenerating.' : 'A bracket already exists. Reset it before generating a new one.', 'error');
+      var alreadyMsg = isRR ? 'Fixtures already generated. Reset them before regenerating.'
+        : isBR ? 'Lobby sessions already generated. Reset them before regenerating.'
+        : 'A bracket already exists. Reset it before generating a new one.';
+      toast(alreadyMsg, 'error');
       return;
     }
 
-    var title       = isRR ? 'Generate Fixtures' : (fmt === 'swiss' ? 'Generate Round 1' : 'Generate Bracket');
-    var message     = isRR
-      ? 'All pairwise fixtures will be generated from confirmed registrations and the League Table will be created.'
-      : 'A bracket will be generated from the current confirmed registrations. You will not be able to edit seeding afterward without resetting.';
-    var confirmText = isRR ? 'Generate Fixtures' : (fmt === 'swiss' ? 'Generate Round 1' : 'Generate Bracket');
+    var title, message, confirmText, generatingMsg, doneMsg;
+    if (isRR) {
+      title = 'Generate Fixtures';
+      message = 'All pairwise fixtures will be generated from confirmed registrations and the League Table will be created.';
+      confirmText = 'Generate Fixtures';
+      generatingMsg = 'Generating fixtures…';
+      doneMsg = 'Fixtures generated!';
+    } else if (isBR) {
+      title = 'Generate Lobby Sessions';
+      message = 'Lobby sessions will be created based on your saved Configure settings (default 4). All teams play in every lobby; you enter scores per session.';
+      confirmText = 'Generate Lobbies';
+      generatingMsg = 'Generating lobby sessions…';
+      doneMsg = 'Lobbies generated!';
+    } else if (fmt === 'swiss') {
+      title = 'Generate Round 1';
+      message = 'Round 1 pairings will be generated from confirmed registrations. You will not be able to edit seeding afterward without resetting.';
+      confirmText = 'Generate Round 1';
+      generatingMsg = 'Generating round 1…';
+      doneMsg = 'Round 1 generated!';
+    } else {
+      title = 'Generate Bracket';
+      message = 'A bracket will be generated from the current confirmed registrations. You will not be able to edit seeding afterward without resetting.';
+      confirmText = 'Generate Bracket';
+      generatingMsg = 'Generating bracket…';
+      doneMsg = 'Bracket generated';
+    }
 
     TOC.dangerConfirm({
       title: title,
@@ -1073,9 +1110,9 @@
         var btn = document.querySelector('#btn-bracket-generate') || document.querySelector('[onclick*="generate()"]');
         var restore = withSpinner(btn);
         try {
-          toast(isRR ? 'Generating fixtures…' : 'Generating bracket…', 'info');
+          toast(generatingMsg, 'info');
           await API.post('brackets/generate/');
-          toast(isRR ? 'Fixtures generated!' : 'Bracket generated', 'success');
+          toast(doneMsg, 'success');
           refresh({ force: true });
         } catch (e) {
           toast(parseError(e), 'error');
@@ -1089,21 +1126,33 @@
   async function resetBracket() {
     var fmt = (window.TOC_CONFIG || {}).tournamentFormat || '';
     var isRR = fmt === 'round_robin';
+    var isBR = fmt === 'battle_royale';
+    var nonBracketFmt = isRR || isBR;
 
-    // For round_robin, exists is signalled via bracketData.is_round_robin.
-    var hasContent = isRR
+    // For RR/BR, exists is signalled via bracketData.is_round_robin.
+    var hasContent = nonBracketFmt
       ? !!(bracketData && bracketData.is_round_robin && bracketData.exists)
       : !!(bracketData && bracketData.exists);
 
     if (!hasContent) {
-      toast(isRR ? 'No fixtures to reset.' : 'No bracket to reset.', 'error');
+      var noContentMsg = isRR ? 'No fixtures to reset.'
+        : isBR ? 'No lobby sessions to reset.'
+        : 'No bracket to reset.';
+      toast(noContentMsg, 'error');
       return;
     }
 
-    var title   = isRR ? 'Reset Fixtures'  : 'Reset Bracket';
-    var message = isRR
-      ? 'This will permanently delete all generated fixtures and the League Table. Participant standings will be wiped. This cannot be undone.'
-      : 'This will permanently delete the current bracket, all matches, and all match data. This action CANNOT be undone.';
+    var title, message;
+    if (isRR) {
+      title = 'Reset Fixtures';
+      message = 'This will permanently delete all generated fixtures and the League Table. Participant standings will be wiped. This cannot be undone.';
+    } else if (isBR) {
+      title = 'Reset Lobby Sessions';
+      message = 'This will permanently delete all lobby sessions, score entries, and the leaderboard. Match results will be wiped. This cannot be undone.';
+    } else {
+      title = 'Reset Bracket';
+      message = 'This will permanently delete the current bracket, all matches, and all match data. This action CANNOT be undone.';
+    }
 
     var confirmed = await showTypedConfirmation(title, message, 'RESET');
     if (!confirmed) return;
@@ -1112,7 +1161,7 @@
     var restore = withSpinner(btn);
     try {
       await API.post('brackets/reset/');
-      toast(isRR ? 'Fixtures reset' : 'Bracket reset', 'info');
+      toast(isRR ? 'Fixtures reset' : isBR ? 'Lobby sessions reset' : 'Bracket reset', 'info');
       refresh();
       restore();
       return;
@@ -1162,7 +1211,7 @@
         var restore2 = withSpinner(btn2);
         try {
           await API.post('brackets/reset/', { force: true });
-          toast(isRR ? 'Fixtures force-reset by admin.' : 'Bracket force-reset by admin.', 'info');
+          toast(isRR ? 'Fixtures force-reset by admin.' : isBR ? 'Lobby sessions force-reset by admin.' : 'Bracket force-reset by admin.', 'info');
           refresh();
         } catch (e2) {
           var code2 = e2 && e2.payload && e2.payload.code;
@@ -1301,24 +1350,155 @@
   }
 
   /* ================================================================
-   *  FORMAT CONFIG MODAL — Round Robin (and other non-group formats)
+   *  FORMAT CONFIG MODAL — dispatches per-format
    *  Reads/writes tournament.config['format_options'] via the
    *  /brackets/format-config/ endpoint.
    * ================================================================ */
   async function openFormatConfig() {
     var fmt = (window.TOC_CONFIG || {}).tournamentFormat || '';
-    if (fmt !== 'round_robin') {
-      // For now this modal is RR-specific. Swiss and BR get their own modals later.
-      toast('Format configuration is only available for Round Robin in this build.', 'info');
-      return;
-    }
 
-    // Pre-fill from saved config
+    // Pre-fill from saved config (single GET for all formats)
     var saved = {};
     try {
       var resp = await API.get('brackets/format-config/');
       saved = (resp && resp.format_options) || {};
     } catch (e) { saved = {}; }
+
+    if (fmt === 'swiss')         return _openSwissConfig(saved);
+    if (fmt === 'round_robin')   return _openRRConfig(saved);
+    if (fmt === 'battle_royale') return _openBRConfig(saved);
+
+    toast('Format configuration is not yet available for this tournament format.', 'info');
+  }
+
+  /* Battle Royale config modal */
+  function _openBRConfig(saved) {
+    var lobbiesCount = parseInt(saved.lobbies_per_match_day || 4, 10) || 4;
+    var advance      = parseInt(saved.advancement_count || 16, 10) || 16;
+    var matrix       = saved.scoring_matrix || {};
+    var killPts      = parseInt(matrix.kill_points || 1, 10) || 1;
+    var placementPts = matrix.placement_points || {
+      '1':15, '2':12, '3':10, '4':8, '5':6, '6':4, '7':2, '8':1,
+    };
+
+    // Build placement-points grid (top 10 positions)
+    var placementHtml = '';
+    for (var pos = 1; pos <= 10; pos++) {
+      var val = placementPts[String(pos)] != null ? placementPts[String(pos)] : 0;
+      placementHtml += '<div class="flex items-center gap-2">'
+        + '<span class="w-8 text-[10px] font-mono text-dc-text">#' + pos + '</span>'
+        + '<input type="number" min="0" data-fc-placement="' + pos + '" value="' + val + '" class="flex-1 bg-dc-bg border border-dc-border rounded-md px-2 py-1 text-white text-xs" />'
+        + '</div>';
+    }
+
+    var html = '<div class="p-6 space-y-5 max-w-lg max-h-[80vh] overflow-y-auto">'
+      + '<div>'
+      + '<h3 class="font-display font-black text-lg text-white">Battle Royale Settings</h3>'
+      + '<p class="text-[10px] text-dc-text mt-0.5 font-mono uppercase tracking-widest">Saved options apply to the next Generate Lobbies call.</p>'
+      + '</div>'
+
+      // Lobbies per match day
+      + '<div>'
+      + '<label class="text-[9px] font-bold text-dc-text uppercase tracking-widest block mb-1">Lobby Sessions to Create</label>'
+      + '<input id="fc-lobbies" type="number" value="' + lobbiesCount + '" min="1" max="50" class="w-full bg-dc-bg border border-dc-border rounded-lg px-3 py-2 text-white text-xs focus:border-theme outline-none">'
+      + '<p class="text-[10px] text-dc-text mt-1">Number of lobby/map sessions to generate up-front (e.g. 4 maps × phase). All teams play in every session.</p>'
+      + '</div>'
+
+      // Advancement
+      + '<div>'
+      + '<label class="text-[9px] font-bold text-dc-text uppercase tracking-widest block mb-1">Top N Advance to Next Phase</label>'
+      + '<input id="fc-advance" type="number" value="' + advance + '" min="1" class="w-full bg-dc-bg border border-dc-border rounded-lg px-3 py-2 text-white text-xs focus:border-theme outline-none">'
+      + '</div>'
+
+      // Kill points
+      + '<div>'
+      + '<label class="text-[9px] font-bold text-dc-text uppercase tracking-widest block mb-1">Points per Kill</label>'
+      + '<input id="fc-kill-pts" type="number" value="' + killPts + '" min="0" class="w-full bg-dc-bg border border-dc-border rounded-lg px-3 py-2 text-white text-xs focus:border-theme outline-none">'
+      + '</div>'
+
+      // Placement points table
+      + '<div>'
+      + '<label class="text-[9px] font-bold text-dc-text uppercase tracking-widest block mb-2">Placement Points (Top 10)</label>'
+      + '<div class="space-y-2 bg-dc-bg/30 border border-dc-border/30 rounded-lg p-3">' + placementHtml + '</div>'
+      + '<p class="text-[10px] text-dc-text mt-1">Finishes outside the top 10 score 0 placement points (kills only).</p>'
+      + '</div>'
+
+      + '<div class="flex gap-2 pt-2">'
+      + '<button data-click="TOC.brackets.confirmFormatConfig" class="flex-1 py-2.5 bg-theme text-dc-bg text-xs font-black uppercase tracking-widest rounded-lg hover:opacity-90 transition-opacity">Save Settings</button>'
+      + '<button data-click="TOC.brackets.closeFormatConfig" class="px-4 py-2.5 bg-dc-bg border border-dc-border text-dc-text text-xs font-bold uppercase tracking-widest rounded-lg hover:text-white transition-colors">Cancel</button>'
+      + '</div>'
+      + '</div>';
+
+    showOverlay('format-config-overlay', html);
+  }
+
+  /* Swiss-specific config modal */
+  function _openSwissConfig(saved) {
+    var totalRounds = parseInt(saved.total_rounds || 0, 10) || 0; // 0 = auto (ceil(log2(n)))
+    var dropAfter   = parseInt(saved.drop_after_losses || 0, 10) || 0; // 0 = no auto-drop
+    var tieRules    = Array.isArray(saved.tiebreaker_rules) && saved.tiebreaker_rules.length
+      ? saved.tiebreaker_rules
+      : ['wins', 'buchholz', 'sonneborn_berger', 'opponent_avg'];
+
+    var TIE_OPTIONS = [
+      { key: 'wins',              label: 'Wins' },
+      { key: 'buchholz',          label: 'Buchholz (sum of opponent wins)' },
+      { key: 'sonneborn_berger',  label: 'Sonneborn-Berger' },
+      { key: 'opponent_avg',      label: 'Average Opponent Score' },
+      { key: 'head_to_head',      label: 'Head-to-Head' },
+      { key: 'cumulative',        label: 'Cumulative Score' },
+    ];
+    var tieHtml = TIE_OPTIONS.map(function(t) {
+      var checked = tieRules.indexOf(t.key) !== -1 ? 'checked' : '';
+      var order   = tieRules.indexOf(t.key);
+      var orderBadge = order >= 0
+        ? '<span class="ml-2 text-[9px] text-theme font-mono">#' + (order + 1) + '</span>'
+        : '';
+      return '<label class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-dc-bg/40 cursor-pointer">'
+        + '<input type="checkbox" class="fc-tie" data-key="' + t.key + '" ' + checked + ' />'
+        + '<span class="text-xs text-white">' + t.label + '</span>'
+        + orderBadge
+        + '</label>';
+    }).join('');
+
+    var html = '<div class="p-6 space-y-5 max-w-lg">'
+      + '<div>'
+      + '<h3 class="font-display font-black text-lg text-white">Swiss Settings</h3>'
+      + '<p class="text-[10px] text-dc-text mt-0.5 font-mono uppercase tracking-widest">Saved options apply to the next Generate Round 1 call.</p>'
+      + '</div>'
+
+      // Total rounds
+      + '<div>'
+      + '<label class="text-[9px] font-bold text-dc-text uppercase tracking-widest block mb-1">Total Rounds</label>'
+      + '<input id="fc-total-rounds" type="number" value="' + totalRounds + '" min="0" max="20" class="w-full bg-dc-bg border border-dc-border rounded-lg px-3 py-2 text-white text-xs focus:border-theme outline-none">'
+      + '<p class="text-[10px] text-dc-text mt-1">Set to <strong class="text-white">0</strong> for automatic ceil(log2(participants)). Override only if you want a fixed-length event.</p>'
+      + '</div>'
+
+      // Drop-after-losses
+      + '<div>'
+      + '<label class="text-[9px] font-bold text-dc-text uppercase tracking-widest block mb-1">Eliminate after N Losses</label>'
+      + '<input id="fc-drop-after" type="number" value="' + dropAfter + '" min="0" max="10" class="w-full bg-dc-bg border border-dc-border rounded-lg px-3 py-2 text-white text-xs focus:border-theme outline-none">'
+      + '<p class="text-[10px] text-dc-text mt-1">Set to <strong class="text-white">0</strong> to keep all participants until end (classic Swiss). Set to <strong class="text-white">3</strong> for FACEIT-style "3 losses → out".</p>'
+      + '</div>'
+
+      // Tiebreakers
+      + '<div>'
+      + '<label class="text-[9px] font-bold text-dc-text uppercase tracking-widest block mb-1">Tiebreaker Order</label>'
+      + '<p class="text-[10px] text-dc-text mb-2">Checked rules apply in the order shown (#1 first).</p>'
+      + '<div class="space-y-1 bg-dc-bg/30 border border-dc-border/30 rounded-lg p-2">' + tieHtml + '</div>'
+      + '</div>'
+
+      + '<div class="flex gap-2 pt-2">'
+      + '<button data-click="TOC.brackets.confirmFormatConfig" data-fc-format="swiss" class="flex-1 py-2.5 bg-theme text-dc-bg text-xs font-black uppercase tracking-widest rounded-lg hover:opacity-90 transition-opacity">Save Settings</button>'
+      + '<button data-click="TOC.brackets.closeFormatConfig" class="px-4 py-2.5 bg-dc-bg border border-dc-border text-dc-text text-xs font-bold uppercase tracking-widest rounded-lg hover:text-white transition-colors">Cancel</button>'
+      + '</div>'
+      + '</div>';
+
+    showOverlay('format-config-overlay', html);
+  }
+
+  /* Round Robin config modal — original implementation */
+  function _openRRConfig(saved) {
 
     var rounds        = parseInt(saved.rounds || 1, 10);
     var advance       = parseInt(saved.advancement_count || 1, 10);
@@ -1417,32 +1597,70 @@
   }
 
   async function confirmFormatConfig() {
+    var fmt = (window.TOC_CONFIG || {}).tournamentFormat || '';
     try {
-      var rounds        = document.querySelector('#fc-rounds');
-      var advance       = document.querySelector('#fc-advance');
-      var matchFormat   = document.querySelector('#fc-match-format');
-      var winI          = document.querySelector('#fc-pts-win');
-      var drawI         = document.querySelector('#fc-pts-draw');
-      var lossI         = document.querySelector('#fc-pts-loss');
-
-      // Tiebreaker rules — preserve checkbox DOM order
+      // Tiebreaker rules — preserve checkbox DOM order (shared across formats)
       var tieRules = Array.from(document.querySelectorAll('.fc-tie:checked'))
         .map(function(el){ return el.dataset.key; })
         .filter(Boolean);
-      if (!tieRules.length) tieRules = ['points', 'wins'];
 
-      await API.post('brackets/format-config/', {
-        rounds:            parseInt(rounds ? rounds.value : 1, 10) || 1,
-        advancement_count: parseInt(advance ? advance.value : 1, 10) || 1,
-        match_format:      matchFormat ? matchFormat.value : 'bo1',
-        points_system: {
-          win:  parseInt(winI  ? winI.value  : 3, 10),
-          draw: parseInt(drawI ? drawI.value : 1, 10),
-          loss: parseInt(lossI ? lossI.value : 0, 10),
-        },
-        tiebreaker_rules: tieRules,
-      });
-      toast('Settings saved. Next Generate Fixtures will use these.', 'success');
+      var payload;
+      if (fmt === 'swiss') {
+        var totalRounds  = document.querySelector('#fc-total-rounds');
+        var dropAfter    = document.querySelector('#fc-drop-after');
+        if (!tieRules.length) tieRules = ['wins', 'buchholz'];
+        payload = {
+          total_rounds:      parseInt(totalRounds ? totalRounds.value : 0, 10) || 0,
+          drop_after_losses: parseInt(dropAfter ? dropAfter.value : 0, 10) || 0,
+          tiebreaker_rules:  tieRules,
+        };
+      } else if (fmt === 'battle_royale') {
+        var lobbiesI = document.querySelector('#fc-lobbies');
+        var advI     = document.querySelector('#fc-advance');
+        var killPtsI = document.querySelector('#fc-kill-pts');
+        var placementPts = {};
+        Array.from(document.querySelectorAll('[data-fc-placement]')).forEach(function(el){
+          var pos = el.dataset.fcPlacement;
+          var v = parseInt(el.value, 10);
+          if (!Number.isNaN(v)) placementPts[pos] = v;
+        });
+        payload = {
+          lobbies_per_match_day: parseInt(lobbiesI ? lobbiesI.value : 4, 10) || 4,
+          advancement_count:     parseInt(advI ? advI.value : 16, 10) || 16,
+          scoring_matrix: {
+            kill_points:      parseInt(killPtsI ? killPtsI.value : 1, 10) || 1,
+            placement_points: placementPts,
+          },
+        };
+      } else {
+        // Round Robin (default branch)
+        var rounds      = document.querySelector('#fc-rounds');
+        var advance     = document.querySelector('#fc-advance');
+        var matchFormat = document.querySelector('#fc-match-format');
+        var winI        = document.querySelector('#fc-pts-win');
+        var drawI       = document.querySelector('#fc-pts-draw');
+        var lossI       = document.querySelector('#fc-pts-loss');
+        if (!tieRules.length) tieRules = ['points', 'wins'];
+        payload = {
+          rounds:            parseInt(rounds ? rounds.value : 1, 10) || 1,
+          advancement_count: parseInt(advance ? advance.value : 1, 10) || 1,
+          match_format:      matchFormat ? matchFormat.value : 'bo1',
+          points_system: {
+            win:  parseInt(winI  ? winI.value  : 3, 10),
+            draw: parseInt(drawI ? drawI.value : 1, 10),
+            loss: parseInt(lossI ? lossI.value : 0, 10),
+          },
+          tiebreaker_rules: tieRules,
+        };
+      }
+
+      await API.post('brackets/format-config/', payload);
+      toast(
+        fmt === 'swiss'
+          ? 'Settings saved. Next Generate Round 1 will use these.'
+          : 'Settings saved. Next Generate Fixtures will use these.',
+        'success'
+      );
       closeOverlay('format-config-overlay');
     } catch (e) { toast(parseError(e), 'error'); }
   }
