@@ -300,7 +300,7 @@
                     <div class="space-y-1">
                         <button class="nav-btn" data-target="recruitment"><i class="fa-solid fa-briefcase w-5 text-center"></i> Career & LFT</button>
                         <button class="nav-btn" data-target="passports"><i class="fa-solid fa-gamepad w-5 text-center"></i> Game Passports</button>
-                        <button class="nav-btn" data-target="matchmaking"><i class="fa-solid fa-crosshairs w-5 text-center"></i> Bounties & Match</button>
+                        <a class="nav-btn" href="{% url 'dashboard:competitive_hub' %}" style="text-decoration: none; display: flex; align-items: center;"><i class="fa-solid fa-crown w-5 text-center"></i> Crown Arena</a>
                         <button class="nav-btn" data-target="loadout"><i class="fa-solid fa-computer-mouse w-5 text-center"></i> Pro Loadout</button>
                     </div>
                 </div>
@@ -324,7 +324,7 @@
             <button class="mobile-nav-btn" data-target="about" data-nav="about">About</button>
             <button class="mobile-nav-btn" data-target="connections" data-nav="connections">Connections</button>
             <button class="mobile-nav-btn" data-target="recruitment" data-nav="recruitment">Career</button>
-            <button class="mobile-nav-btn" data-target="matchmaking" data-nav="matchmaking">Bounties</button>
+            <a class="mobile-nav-btn" href="{% url 'dashboard:competitive_hub' %}" style="text-decoration: none;">Crown Arena</a>
             <button class="mobile-nav-btn" data-target="privacy" data-nav="privacy">Privacy</button>
             <button class="mobile-nav-btn" data-target="platform" data-nav="platform">Platform</button>
             <button class="mobile-nav-btn" data-target="passports" data-nav="passports">Games</button>
@@ -1433,291 +1433,50 @@
                     </form>
                 </div>
 
-                <!-- BOUNTIES & MATCHMAKING TAB — 2026 REDESIGN -->
                 <div id="tab-matchmaking" class="tab-section space-y-8">
-
-                    <!-- ═══════════════════════════════════════════════════════
-                         HERO HEADER — Arena Dashboard
-                         ═══════════════════════════════════════════════════════ -->
-                    <div class="relative rounded-2xl overflow-hidden">
-                        <div class="absolute inset-0 bg-gradient-to-br from-z-red/[.08] via-transparent to-z-purple/[.06]"></div>
-                        <div class="absolute -top-24 -right-24 w-72 h-72 bg-z-red/[.06] rounded-full blur-[120px] pointer-events-none"></div>
-                        <div class="absolute -bottom-16 -left-16 w-48 h-48 bg-z-purple/[.06] rounded-full blur-[80px] pointer-events-none"></div>
-
-                        <div class="relative z-10 p-6 md:p-8">
-                            <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-5 mb-8">
-                                <div class="flex items-center gap-4">
-                                    <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-z-red/20 to-z-red/5 border border-z-red/30 flex items-center justify-center shadow-lg shadow-z-red/10">
-                                        <i class="fa-solid fa-crosshairs text-z-red text-2xl"></i>
-                                    </div>
-                                    <div>
-                                        <h2 class="text-2xl md:text-3xl font-display font-black text-white tracking-tight">Arena Control</h2>
-                                        <p class="text-xs text-gray-400 mt-1 flex items-center gap-2">
-                                            Manage your competitive bounty settings
-                                            <span class="inline-flex items-center gap-1.5 px-2 py-0.5 bg-z-red/10 border border-z-red/20 rounded-md">
-                                                <span class="w-1.5 h-1.5 rounded-full bg-z-red animate-pulse"></span>
-                                                <span class="text-[9px] font-black text-z-red uppercase tracking-wider">Live</span>
-                                            </span>
-                                        </p>
-                                    </div>
-                                </div>
-                                <a href="{% url 'user_profile:public_profile' request.user.username %}#bounty" class="group inline-flex items-center gap-2 text-[11px] font-bold text-gray-400 hover:text-white bg-white/[.04] hover:bg-white/[.08] border border-white/[.08] hover:border-white/20 px-4 py-2.5 rounded-xl transition-all duration-300">
-                                    <i class="fa-solid fa-arrow-up-right-from-square text-[9px] group-hover:text-z-cyan transition-colors"></i>
-                                    View Public Bounty Tab
-                                </a>
-                            </div>
-
-                            <!-- Quick Stats Ribbon -->
-                            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                                <div class="group relative p-4 rounded-xl bg-white/[.03] border border-white/[.06] hover:border-green-500/30 transition-all duration-300">
-                                    <div class="absolute inset-0 bg-gradient-to-br from-green-500/[.03] to-transparent rounded-xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                                    <div class="relative z-10">
-                                        <div class="text-[9px] text-gray-500 uppercase tracking-[0.15em] font-bold mb-2">Victories</div>
-                                        <div class="text-3xl font-display font-black text-white leading-none">{{ bounty_stats.won_count|default:"0" }}</div>
-                                        <div class="mt-2 text-[9px] text-gray-600">of {{ bounty_stats.accepted_count|default:"0" }} fought</div>
-                                    </div>
-                                </div>
-                                <div class="group relative p-4 rounded-xl bg-white/[.03] border border-z-gold/15 hover:border-z-gold/40 transition-all duration-300">
-                                    <div class="absolute inset-0 bg-gradient-to-br from-z-gold/[.04] to-transparent rounded-xl"></div>
-                                    <div class="relative z-10">
-                                        <div class="text-[9px] text-gray-500 uppercase tracking-[0.15em] font-bold mb-2">Earned</div>
-                                        <div class="text-2xl font-display font-black text-white leading-none flex items-baseline gap-0.5">
-                                            <span class="text-sm text-z-gold">Đ</span>{{ bounty_stats.total_earnings|default:"0" }}
-                                        </div>
-                                        <div class="mt-2 text-[9px] text-z-gold/60 font-bold">Lifetime</div>
-                                    </div>
-                                </div>
-                                <div class="group relative p-4 rounded-xl bg-white/[.03] border border-white/[.06] hover:border-z-cyan/30 transition-all duration-300">
-                                    <div class="absolute inset-0 bg-gradient-to-br from-z-cyan/[.03] to-transparent rounded-xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                                    <div class="relative z-10">
-                                        <div class="text-[9px] text-gray-500 uppercase tracking-[0.15em] font-bold mb-2">Win Rate</div>
-                                        <div class="text-3xl font-display font-black text-white leading-none">{{ bounty_stats.win_rate|default:"0" }}<span class="text-base text-gray-500 ml-0.5">%</span></div>
-                                        <div class="mt-2 h-1 w-full bg-white/[.06] rounded-full overflow-hidden">
-                                            <div class="h-full rounded-full bg-gradient-to-r from-z-cyan to-z-purple" style="width: {{ bounty_stats.win_rate|default:0 }}%"></div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="group relative p-4 rounded-xl bg-white/[.03] border border-z-red/15 hover:border-z-red/40 transition-all duration-300">
-                                    <div class="absolute inset-0 bg-gradient-to-br from-z-red/[.04] to-transparent rounded-xl"></div>
-                                    <div class="relative z-10">
-                                        <div class="text-[9px] text-gray-500 uppercase tracking-[0.15em] font-bold mb-2">Active</div>
-                                        <div class="text-3xl font-display font-black text-white leading-none">{{ bounty_stats.active_count|default:"0" }}</div>
-                                        <div class="mt-2 text-[9px] text-z-red/60 font-bold flex items-center gap-1">
-                                            {% if bounty_stats.active_count %}<span class="w-1.5 h-1.5 rounded-full bg-z-red animate-pulse"></span> In progress{% else %}None{% endif %}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                  <div class="relative rounded-2xl overflow-hidden p-8 md:p-10"
+                       style="background: linear-gradient(135deg, rgba(99,102,241,.20), rgba(255,70,85,.10) 60%, rgba(255,215,0,.08));
+                              border: 1px solid rgba(99,102,241,.40);
+                              box-shadow: 0 0 32px -6px rgba(99,102,241,.45), inset 0 1px 0 0 rgba(255,255,255,.06);
+                              backdrop-filter: blur(24px);">
+                    <div class="absolute -top-16 -right-16 w-56 h-56 bg-indigo-500/15 rounded-full blur-3xl pointer-events-none"></div>
+                    <div class="absolute -bottom-16 -left-16 w-56 h-56 bg-amber-400/10 rounded-full blur-3xl pointer-events-none"></div>
+                    <div class="relative z-10 max-w-2xl">
+                      <div class="text-[10px] font-bold uppercase tracking-[0.22em] text-indigo-300/90 mb-3">DeltaCrown / Skill-Based Reward System</div>
+                      <h2 class="text-3xl md:text-4xl font-display font-black text-white leading-tight mb-3">
+                        Crown <span class="bg-clip-text text-transparent bg-gradient-to-r from-indigo-300 via-fuchsia-300 to-amber-300">Arena</span>
+                      </h2>
+                      <p class="text-sm text-gray-300 leading-relaxed mb-6">
+                        Bounties &amp; matchmaking moved to a unified competitive hub.  Crown Contracts, Crown Clash, The Hitlist, and Crown Royale all run on the new DeltaCoin escrow engine — fully audited, anti-whale capped, and 100% scam-free.
+                      </p>
+                      <div class="grid grid-cols-2 gap-3 mb-6">
+                        <div class="px-3 py-2.5 rounded-lg bg-white/[0.04] border border-white/[0.08] text-[12px]">
+                          <div class="text-[9px] font-bold uppercase tracking-widest text-indigo-300/80 mb-0.5">📜 Crown Contracts</div>
+                          <div class="text-gray-300">Self-challenge missions</div>
                         </div>
+                        <div class="px-3 py-2.5 rounded-lg bg-white/[0.04] border border-white/[0.08] text-[12px]">
+                          <div class="text-[9px] font-bold uppercase tracking-widest text-cyan-300/80 mb-0.5">⚔️ Crown Clash</div>
+                          <div class="text-gray-300">Head-to-head escrow matches</div>
+                        </div>
+                        <div class="px-3 py-2.5 rounded-lg bg-white/[0.04] border border-white/[0.08] text-[12px]">
+                          <div class="text-[9px] font-bold uppercase tracking-widest text-rose-300/80 mb-0.5">🎯 The Hitlist</div>
+                          <div class="text-gray-300">Issuer bounty board</div>
+                        </div>
+                        <div class="px-3 py-2.5 rounded-lg bg-white/[0.04] border border-white/[0.08] text-[12px]">
+                          <div class="text-[9px] font-bold uppercase tracking-widest text-amber-300/80 mb-0.5">👑 Crown Royale</div>
+                          <div class="text-gray-300">Paid Battle Royale lobbies</div>
+                        </div>
+                      </div>
+                      <a href="{% url 'dashboard:competitive_hub' %}"
+                         class="inline-flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-bold uppercase tracking-wider text-white transition-all"
+                         style="background: linear-gradient(135deg, #6366F1, #8B5CF6); box-shadow: 0 8px 28px -6px rgba(99,102,241,.55);">
+                        Open Crown Arena
+                        <i class="fa-solid fa-arrow-right text-xs"></i>
+                      </a>
                     </div>
+                  </div>
+                </div>
 
-                    <form id="matchmaking-form" class="space-y-6">
-                        {% csrf_token %}
-
-                        <!-- ═══════════════════════════════════════════════════════
-                             MASTER SWITCH — Challenge Availability
-                             ═══════════════════════════════════════════════════════ -->
-                        <div class="relative rounded-2xl overflow-hidden border border-white/[.06] bg-gradient-to-r from-white/[.02] to-transparent">
-                            <div class="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-z-red/60 via-z-red/30 to-transparent"></div>
-                            <div class="p-5 md:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                                <div class="flex items-center gap-4">
-                                    <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-z-red/20 to-z-red/5 border border-z-red/25 flex items-center justify-center shadow-lg shadow-z-red/10">
-                                        <i class="fa-solid fa-satellite-dish text-z-red text-lg"></i>
-                                    </div>
-                                    <div>
-                                        <label class="font-black text-white text-sm block leading-tight">Open for Challenges</label>
-                                        <p class="text-[11px] text-gray-500 mt-1 max-w-xs leading-relaxed">Your profile will display a Challenge button so other players can send you bounties</p>
-                                    </div>
-                                </div>
-                                <label class="z-toggle-wrapper shrink-0">
-                                    <input type="checkbox" name="enabled" class="z-toggle-input" {% if matchmaking_settings.enabled %}checked{% endif %}>
-                                    <span class="z-toggle-slider"></span>
-                                </label>
-                            </div>
-                        </div>
-
-                        <!-- ═══════════════════════════════════════════════════════
-                             WAGER RANGE — Financial Controls
-                             ═══════════════════════════════════════════════════════ -->
-                        <div class="rounded-2xl border border-white/[.06] overflow-hidden">
-                            <div class="px-5 md:px-6 py-4 border-b border-white/[.06] bg-white/[.015] flex items-center gap-3">
-                                <div class="w-9 h-9 rounded-xl bg-z-gold/10 border border-z-gold/20 flex items-center justify-center">
-                                    <i class="fa-solid fa-coins text-z-gold text-sm"></i>
-                                </div>
-                                <div>
-                                    <h3 class="font-black text-white text-sm">Wager Range</h3>
-                                    <p class="text-[10px] text-gray-500 mt-0.5">Set the Đ DeltaCoin stake range you're comfortable with</p>
-                                </div>
-                            </div>
-                            <div class="p-5 md:p-6 space-y-5">
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div class="group relative p-5 rounded-xl bg-gradient-to-br from-white/[.025] to-transparent border border-white/[.06] hover:border-z-gold/25 transition-all duration-300">
-                                        <label class="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] mb-3 block">
-                                            Floor
-                                        </label>
-                                        <div class="relative">
-                                            <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-z-gold font-black text-sm">Đ</span>
-                                            <input type="number" name="min_bounty" class="z-input w-full pl-9 pr-4 text-lg font-display font-bold" value="{{ matchmaking_settings.min_bounty|default:'' }}" placeholder="100" min="0" max="50000">
-                                        </div>
-                                        <p class="text-[9px] text-gray-600 mt-2 flex items-center gap-1.5">
-                                            <i class="fa-solid fa-arrow-down text-[7px] text-gray-700"></i>
-                                            Challenges below this are blocked
-                                        </p>
-                                    </div>
-                                    <div class="group relative p-5 rounded-xl bg-gradient-to-br from-white/[.025] to-transparent border border-white/[.06] hover:border-z-gold/25 transition-all duration-300">
-                                        <label class="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] mb-3 block">
-                                            Ceiling
-                                        </label>
-                                        <div class="relative">
-                                            <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-z-gold font-black text-sm">Đ</span>
-                                            <input type="number" name="max_bounty" class="z-input w-full pl-9 pr-4 text-lg font-display font-bold" value="{{ matchmaking_settings.max_bounty|default:'' }}" placeholder="No limit" min="0" max="50000">
-                                        </div>
-                                        <p class="text-[9px] text-gray-600 mt-2 flex items-center gap-1.5">
-                                            <i class="fa-solid fa-arrow-up text-[7px] text-gray-700"></i>
-                                            Optional upper cap on incoming bounties
-                                        </p>
-                                    </div>
-                                </div>
-                                <div class="flex items-start gap-3 px-4 py-3 rounded-xl bg-z-cyan/[.03] border border-z-cyan/10">
-                                    <i class="fa-solid fa-shield-halved text-z-cyan/50 mt-0.5 shrink-0 text-xs"></i>
-                                    <div class="text-[10px] text-gray-400 leading-relaxed">
-                                        Both players' stakes are locked in <strong class="text-z-cyan/80">escrow</strong> on acceptance.
-                                        <strong class="text-gray-300">5% platform fee</strong> on payout. Full refund on expiry.
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- ═══════════════════════════════════════════════════════
-                             AUTOMATION RULES — Smart Logic
-                             ═══════════════════════════════════════════════════════ -->
-                        <div class="rounded-2xl border border-white/[.06] overflow-hidden">
-                            <div class="px-5 md:px-6 py-4 border-b border-white/[.06] bg-white/[.015] flex items-center gap-3">
-                                <div class="w-9 h-9 rounded-xl bg-z-purple/10 border border-z-purple/20 flex items-center justify-center">
-                                    <i class="fa-solid fa-microchip text-z-purple text-sm"></i>
-                                </div>
-                                <div>
-                                    <h3 class="font-black text-white text-sm">Automation</h3>
-                                    <p class="text-[10px] text-gray-500 mt-0.5">Let the system handle routine bounty decisions for you</p>
-                                </div>
-                            </div>
-                            <div class="divide-y divide-white/[.04]">
-                                <!-- Auto-Accept -->
-                                <label class="flex items-center justify-between px-5 md:px-6 py-4 hover:bg-white/[.015] transition cursor-pointer group">
-                                    <div class="flex items-center gap-3.5">
-                                        <div class="w-10 h-10 rounded-xl bg-green-500/[.06] border border-green-500/15 flex items-center justify-center group-hover:border-green-500/30 transition">
-                                            <i class="fa-solid fa-bolt text-green-400 text-sm"></i>
-                                        </div>
-                                        <div>
-                                            <span class="font-bold text-white text-[13px] block leading-tight">Auto-Accept</span>
-                                            <span class="text-[10px] text-gray-500 mt-0.5 block">Instantly accept bounties within your wager range</span>
-                                        </div>
-                                    </div>
-                                    <span class="z-toggle-wrapper shrink-0">
-                                        <input type="checkbox" name="auto_accept" class="z-toggle-input" {% if matchmaking_settings.auto_accept %}checked{% endif %}>
-                                        <span class="z-toggle-slider"></span>
-                                    </span>
-                                </label>
-                                <!-- Auto-Reject -->
-                                <label class="flex items-center justify-between px-5 md:px-6 py-4 hover:bg-white/[.015] transition cursor-pointer group">
-                                    <div class="flex items-center gap-3.5">
-                                        <div class="w-10 h-10 rounded-xl bg-red-500/[.06] border border-red-500/15 flex items-center justify-center group-hover:border-red-500/30 transition">
-                                            <i class="fa-solid fa-ban text-red-400 text-sm"></i>
-                                        </div>
-                                        <div>
-                                            <span class="font-bold text-white text-[13px] block leading-tight">Auto-Reject Below Floor</span>
-                                            <span class="text-[10px] text-gray-500 mt-0.5 block">Automatically decline bounties under your minimum stake</span>
-                                        </div>
-                                    </div>
-                                    <span class="z-toggle-wrapper shrink-0">
-                                        <input type="checkbox" name="auto_reject_below_min" class="z-toggle-input" {% if matchmaking_settings.auto_reject_below_min %}checked{% endif %}>
-                                        <span class="z-toggle-slider"></span>
-                                    </span>
-                                </label>
-                                <!-- Team Bounties -->
-                                <label class="flex items-center justify-between px-5 md:px-6 py-4 hover:bg-white/[.015] transition cursor-pointer group">
-                                    <div class="flex items-center gap-3.5">
-                                        <div class="w-10 h-10 rounded-xl bg-z-purple/[.06] border border-z-purple/15 flex items-center justify-center group-hover:border-z-purple/30 transition">
-                                            <i class="fa-solid fa-users text-z-purple text-sm"></i>
-                                        </div>
-                                        <div>
-                                            <span class="font-bold text-white text-[13px] block leading-tight">Allow Team Bounties</span>
-                                            <span class="text-[10px] text-gray-500 mt-0.5 block">Accept team vs team challenges involving your roster</span>
-                                        </div>
-                                    </div>
-                                    <span class="z-toggle-wrapper shrink-0">
-                                        <input type="checkbox" name="allow_team_bounties" class="z-toggle-input" {% if matchmaking_settings.allow_team_bounties %}checked{% endif %}>
-                                        <span class="z-toggle-slider"></span>
-                                    </span>
-                                </label>
-                            </div>
-                        </div>
-
-                        <!-- ═══════════════════════════════════════════════════════
-                             GAME ROSTER — Arena Selection
-                             ═══════════════════════════════════════════════════════ -->
-                        <div class="rounded-2xl border border-white/[.06] overflow-hidden">
-                            <div class="px-5 md:px-6 py-4 border-b border-white/[.06] bg-white/[.015] flex items-center justify-between">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-9 h-9 rounded-xl bg-z-gold/10 border border-z-gold/20 flex items-center justify-center">
-                                        <i class="fa-solid fa-gamepad text-z-gold text-sm"></i>
-                                    </div>
-                                    <div>
-                                        <h3 class="font-black text-white text-sm">Game Roster</h3>
-                                        <p class="text-[10px] text-gray-500 mt-0.5">Choose which games you're willing to fight in</p>
-                                    </div>
-                                </div>
-                                <span class="text-[9px] bg-white/[.05] px-2.5 py-1 rounded-lg text-gray-400 font-bold tabular-nums border border-white/[.06]" id="matchmaking-game-count">
-                                    {% for game in available_games_for_matchmaking %}{% if game.slug in matchmaking_settings.games_enabled %}+{% endif %}{% endfor %} selected
-                                </span>
-                            </div>
-                            <div class="p-5 md:p-6">
-                                <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-                                    {% for game in available_games_for_matchmaking %}
-                                    <label class="cursor-pointer group/game">
-                                        <input type="checkbox" name="games_enabled" value="{{ game.slug }}" class="peer sr-only" {% if game.slug in matchmaking_settings.games_enabled %}checked{% endif %}>
-                                        <div class="relative p-4 rounded-xl border border-white/[.06] bg-white/[.02] peer-checked:bg-z-cyan/[.08] peer-checked:border-z-cyan/30 transition-all duration-300 hover:bg-white/[.04] text-center group-hover/game:border-white/15 overflow-hidden">
-                                            <div class="absolute inset-0 bg-gradient-to-br from-z-cyan/[.06] to-transparent opacity-0 peer-checked:opacity-100 transition-opacity rounded-xl"></div>
-                                            <div class="relative z-10">
-                                                {% if game.icon %}
-                                                <img src="{{ game.icon.url }}" alt="{{ game.display_name }}" class="w-8 h-8 mx-auto mb-2 rounded-lg object-cover opacity-60 peer-checked:opacity-100 transition-opacity">
-                                                {% else %}
-                                                <div class="w-8 h-8 mx-auto mb-2 rounded-lg bg-white/[.06] flex items-center justify-center">
-                                                    <i class="fa-solid fa-gamepad text-gray-600 text-sm"></i>
-                                                </div>
-                                                {% endif %}
-                                                <div class="text-[11px] font-bold text-gray-300 peer-checked:text-white leading-tight transition-colors">{{ game.display_name }}</div>
-                                            </div>
-                                            <div class="absolute top-2 right-2 w-4 h-4 rounded-full bg-z-cyan/20 border border-z-cyan/40 flex items-center justify-center opacity-0 peer-checked:opacity-100 transition-opacity">
-                                                <i class="fa-solid fa-check text-z-cyan text-[7px]"></i>
-                                            </div>
-                                        </div>
-                                    </label>
-                                    {% empty %}
-                                    <div class="col-span-full py-10 text-center">
-                                        <div class="w-12 h-12 rounded-xl bg-white/[.04] border border-white/[.06] flex items-center justify-center mx-auto mb-3">
-                                            <i class="fa-solid fa-gamepad text-gray-600 text-lg"></i>
-                                        </div>
-                                        <p class="text-gray-500 text-xs">No games available yet</p>
-                                    </div>
-                                    {% endfor %}
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Save Button -->
-                        <div class="flex items-center justify-between gap-4 pt-2">
-                            <div class="text-[10px] text-gray-600 flex items-center gap-1.5">
-                                <i class="fa-solid fa-circle-info text-[8px]"></i>
-                                Changes take effect immediately after saving
-                            </div>
-                            <button type="submit" class="group relative bg-gradient-to-r from-z-red to-red-600 hover:from-white hover:to-white text-white hover:text-z-red px-8 py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-300 flex items-center gap-2 shadow-lg shadow-z-red/20 overflow-hidden">
-                                <span class="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></span>
-                                <i class="fa-solid fa-floppy-disk relative z-10"></i>
-                                <span class="relative z-10">Save Settings</span>
-                            </button>
-                        </div>
-                    </form>
                 </div>
 
                 <!-- PRIVACY TAB (PHASE 7C-P0: FULL MATRIX) -->
@@ -3123,7 +2882,7 @@
             identity: 'Identity', about: 'About', connections: 'Connections',
             security: 'Security', privacy: 'Privacy & Visibility', platform: 'Platform',
             notifications: 'Notifications', recruitment: 'Career & LFT',
-            passports: 'Game Passports', matchmaking: 'Bounties & Match',
+            passports: 'Game Passports', matchmaking: 'Crown Arena',
             loadout: 'Pro Loadout', inventory: 'Inventory', stream: 'Live Feed',
             billing: 'Wallet', danger: 'Danger Zone'
         };
@@ -4435,11 +4194,11 @@
         }
     }
 
-    // UP-PHASE2A: Save Matchmaking Settings
     async function saveMatchmakingSettings(event) {
         if (event) event.preventDefault();
-        
+
         const form = document.getElementById('matchmaking-form');
+        if (!form) return;
         const button = form.querySelector('button[type="submit"]');
         const originalHTML = button ? button.innerHTML : '';
         

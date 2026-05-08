@@ -8,6 +8,7 @@ Phase 11: Premium dark theme team directory.
 """
 from django.db.models import Count, Q
 from django.shortcuts import render
+from django.core.cache import cache
 
 from apps.organizations.models.team import Team
 from apps.organizations.choices import TeamStatus
@@ -70,34 +71,30 @@ def team_directory(request):
     # Limit to 100
     teams = teams[:100]
 
-    # Get counts for header
-    total_teams = Team.objects.filter(
-        status=TeamStatus.ACTIVE, visibility='PUBLIC'
-    ).count()
-    recruiting_count = Team.objects.filter(
-        status=TeamStatus.ACTIVE, visibility='PUBLIC', is_recruiting=True
-    ).count()
+    # Public sidebar/header data — cache for 5 min to drop ~5 queries per page paint.
+    def _directory_facets():
+        total = Team.objects.filter(status=TeamStatus.ACTIVE, visibility='PUBLIC').count()
+        recruiting = Team.objects.filter(
+            status=TeamStatus.ACTIVE, visibility='PUBLIC', is_recruiting=True
+        ).count()
+        regions_qs = list(
+            Team.objects.filter(status=TeamStatus.ACTIVE, visibility='PUBLIC')
+            .values_list('region', flat=True).distinct().order_by('region')
+        )
+        return {
+            'total_teams': total,
+            'recruiting_count': recruiting,
+            'regions': [r for r in regions_qs if r],
+        }
+    facets = cache.get_or_set('orgs:team_directory:facets:v1', _directory_facets, 300)
+    total_teams = facets['total_teams']
+    recruiting_count = facets['recruiting_count']
+    regions = facets['regions']
 
-    # Active games for filter pills
-    active_games = Game.objects.filter(is_active=True).order_by('display_name')
-
-    # Unique regions for filter
-    regions = (
-        Team.objects
-        .filter(status=TeamStatus.ACTIVE, visibility='PUBLIC')
-        .values_list('region', flat=True)
-        .distinct()
-        .order_by('region')
-    )
-    regions = [r for r in regions if r]
-
-    # Build game lookup for template (game_id -> Game obj)
-    game_map = {}
-    try:
-        for game in Game.objects.filter(is_active=True):
-            game_map[game.id] = game
-    except Exception:
-        pass
+    # Single fetch of active games — feeds both the filter pills and the
+    # per-team game_obj lookup (was 2 duplicated DB hits).
+    active_games = list(Game.objects.filter(is_active=True).order_by('display_name'))
+    game_map = {game.id: game for game in active_games}
 
     # Annotate teams with game info via wrapper dicts
     team_list = []

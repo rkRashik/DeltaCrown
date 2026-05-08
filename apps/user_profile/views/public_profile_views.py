@@ -158,13 +158,16 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
             'has_pending_request': permissions.get('has_pending_request', False),
         })
     
-    # Build safe context (existing logic)
-    context = build_public_profile_context(
+    # Build safe context — cached per (username, viewer_role) for 5 min.
+    # Owner bypasses cache; non-owner roles share entries by privacy bucket.
+    from apps.user_profile.services.profile_context import build_public_profile_context_cached
+    context = build_public_profile_context_cached(
         viewer=request.user if request.user.is_authenticated else None,
         username=username,
+        viewer_role=permission_checker.get_viewer_role(),
         requested_sections=['basic', 'stats', 'games', 'social', 'activity'],
         activity_page=1,
-        activity_per_page=10  # Preview only (show last 10)
+        activity_per_page=10,  # Preview only (show last 10)
     )
     
     # Phase 5B: Add permission flags to context
@@ -698,10 +701,18 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
     context['career_settings'] = career_profile  # Alias for template compatibility
     context['user_tournaments'] = []
     
-    # Phase 5B Workstream 3: Add follower count for real follow button
+    # Phase 5B Workstream 3: Add follower count for real follow button.
+    # Single aggregate query — was 2 separate COUNT(*) round trips.
+    from django.db.models import Count, Q as _Q
     from apps.user_profile.models import Follow, PrivacySettings
-    context['follower_count'] = Follow.objects.filter(following=profile_user).count()
-    context['following_count'] = Follow.objects.filter(follower=profile_user).count()
+    _follow_counts = Follow.objects.filter(
+        _Q(following=profile_user) | _Q(follower=profile_user)
+    ).aggregate(
+        followers=Count('id', filter=_Q(following=profile_user)),
+        following=Count('id', filter=_Q(follower=profile_user)),
+    )
+    context['follower_count'] = _follow_counts['followers'] or 0
+    context['following_count'] = _follow_counts['following'] or 0
     # Reuse is_following from permissions (already computed via FollowService)
     context['is_following'] = permissions.get('is_following', False)
     

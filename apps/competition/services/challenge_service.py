@@ -20,8 +20,48 @@ from django.db.models import Q, Count, Sum, Case, When, Value, IntegerField
 from django.utils import timezone
 
 from apps.competition.models import Challenge, Bounty, BountyClaim, MatchReport
+from apps.economy import escrow_service
+from apps.economy.exceptions import InsufficientFunds
+from apps.economy.models import DeltaCrownWallet
 
 logger = logging.getLogger(__name__)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Crown Clash escrow constants
+# ─────────────────────────────────────────────────────────────────────────────
+
+#: Anti-whale ceiling: maximum DC each side may stake on a single Crown Clash.
+#: Mirrors the spirit of escrow_service.NON_API_WAGER_CAP_DC but applies to
+#: every Crown Clash regardless of game-result verification mode.
+CROWN_CLASH_ENTRY_FEE_CAP_DC: int = 1_000
+
+#: Platform fee taken from the prize pot on a normal settlement.
+CROWN_CLASH_PLATFORM_FEE_PCT: int = 5
+
+#: Anti-whale ceiling for Hitlist challenger entry fees per claim.
+HITLIST_CHALLENGER_ENTRY_FEE_CAP_DC: int = 1_000
+
+#: Platform fee on Hitlist payouts (applied to "winnings" portion only).
+HITLIST_PLATFORM_FEE_PCT: int = 5
+
+
+def _wallet_for_user(user) -> DeltaCrownWallet:
+    """Return the DeltaCrownWallet for ``user`` or raise ValidationError."""
+    if user is None:
+        raise ValidationError("Cannot resolve wallet: user is None.")
+    profile = getattr(user, "profile", None) or getattr(user, "user_profile", None)
+    if profile is None:
+        raise ValidationError(
+            f"User '{getattr(user, 'username', user)}' has no profile; "
+            "cannot participate in a Crown Clash."
+        )
+    try:
+        return DeltaCrownWallet.objects.get(profile=profile)
+    except DeltaCrownWallet.DoesNotExist as exc:
+        raise ValidationError(
+            f"User '{user.username}' has no DeltaCoin wallet."
+        ) from exc
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -56,16 +96,26 @@ class ChallengeService:
         scheduled_at=None,
         expires_at=None,
         is_public=True,
+        entry_fee_dc=0,
     ):
         """
         Create and issue a new challenge.
 
+        When ``entry_fee_dc`` is positive, this is a Crown Clash: the
+        challenger's wallet is debited that many DC and locked into escrow.
+        The opponent's matching lock happens on accept.  Refunded on
+        decline / cancel / expire; paid out on settle.
+
         Raises:
-            PermissionDenied: If user lacks authority on challenger_team.
-            ValidationError: If parameters are invalid.
+            PermissionDenied:  If user lacks authority on challenger_team.
+            ValidationError:   If parameters are invalid or entry fee
+                               exceeds CROWN_CLASH_ENTRY_FEE_CAP_DC.
+            InsufficientFunds: If the challenger cannot cover entry_fee_dc.
         """
         # Validate team authority
-        ChallengeService._verify_team_authority(created_by, challenger_team)
+        ChallengeService._verify_team_authority(
+            created_by, challenger_team, action='issue a Crown Clash',
+        )
 
         # Cannot challenge yourself
         if challenged_team and challenger_team.pk == challenged_team.pk:
@@ -75,6 +125,15 @@ class ChallengeService:
         if challenged_team:
             # Soft check — we don't enforce roster game lock at this stage
             pass
+
+        # Crown Clash entry-fee gate: anti-whale ceiling check
+        if entry_fee_dc and entry_fee_dc > CROWN_CLASH_ENTRY_FEE_CAP_DC:
+            raise ValidationError(
+                f"Crown Clash entry fee {entry_fee_dc} DC exceeds the "
+                f"anti-whale cap of {CROWN_CLASH_ENTRY_FEE_CAP_DC} DC per side."
+            )
+        if entry_fee_dc < 0:
+            raise ValidationError("Entry fee cannot be negative.")
 
         # Validate game_config or apply defaults
         if not game_config:
@@ -107,12 +166,31 @@ class ChallengeService:
             expires_at=expires_at,
             is_public=is_public,
             created_by=created_by,
+            entry_fee_dc=entry_fee_dc or 0,
         )
 
+        # Crown Clash: lock the challenger's stake immediately so the offer
+        # is funded.  Opponent's matching lock occurs on accept.
+        if entry_fee_dc:
+            wallet = _wallet_for_user(created_by)
+            result = escrow_service.lock_funds(
+                wallet,
+                entry_fee_dc,
+                reference_id=challenge.clash_ref_id('challenger'),
+                actor=created_by,
+                note=f"Crown Clash {challenge.reference_code} challenger stake "
+                     f"(funded by {created_by.username})",
+            )
+            challenge.challenger_lock_txn = result.transactions[0]
+            challenge.funded_by_challenger = created_by
+            challenge.save(update_fields=[
+                'challenger_lock_txn', 'funded_by_challenger', 'updated_at',
+            ])
+
         logger.info(
-            "Challenge created: %s by %s (team=%s, game=%s, type=%s)",
+            "Challenge created: %s by %s (team=%s, game=%s, type=%s, entry_fee=%s)",
             challenge.reference_code, created_by.username,
-            challenger_team.name, game.short_code, challenge_type,
+            challenger_team.name, game.short_code, challenge_type, entry_fee_dc,
         )
         return challenge
 
@@ -144,7 +222,9 @@ class ChallengeService:
             raise ValidationError("Must specify accepting_team for open challenges.")
 
         # Verify authority
-        ChallengeService._verify_team_authority(accepted_by, accepting_team)
+        ChallengeService._verify_team_authority(
+            accepted_by, accepting_team, action='accept this Crown Clash',
+        )
 
         # Cannot accept your own challenge
         if accepting_team.pk == challenge.challenger_team_id:
@@ -154,32 +234,75 @@ class ChallengeService:
         if challenge.challenged_team is None:
             challenge.challenged_team = accepting_team
 
+        # Crown Clash: opponent locks matching stake at accept time.
+        # Once both sides are locked, escrow_locked = True (full pot funded).
+        update_fields = [
+            'status', 'challenged_team', 'accepted_by', 'accepted_at', 'updated_at'
+        ]
+        if challenge.entry_fee_dc:
+            wallet = _wallet_for_user(accepted_by)
+            result = escrow_service.lock_funds(
+                wallet,
+                challenge.entry_fee_dc,
+                reference_id=challenge.clash_ref_id('challenged'),
+                actor=accepted_by,
+                note=f"Crown Clash {challenge.reference_code} challenged stake "
+                     f"(funded by {accepted_by.username})",
+            )
+            challenge.challenged_lock_txn = result.transactions[0]
+            challenge.funded_by_challenged = accepted_by
+            challenge.escrow_locked = True
+            update_fields += [
+                'challenged_lock_txn', 'funded_by_challenged', 'escrow_locked',
+            ]
+
         challenge.status = 'ACCEPTED'
         challenge.accepted_by = accepted_by
         challenge.accepted_at = timezone.now()
-        challenge.save(update_fields=[
-            'status', 'challenged_team', 'accepted_by', 'accepted_at', 'updated_at'
-        ])
+        challenge.save(update_fields=update_fields)
+
+        # ── Spawn the Match Room (synthetic tournament-backed lobby) ────
+        try:
+            match = ChallengeService._spawn_clash_match_room(
+                challenge, actor=accepted_by,
+            )
+            if match is not None:
+                challenge.match = match
+                challenge.save(update_fields=['match', 'updated_at'])
+        except Exception:
+            logger.exception(
+                "Match Room spawn failed for clash %s — challenge accepted but "
+                "no lobby created. Admins can re-spawn via management command.",
+                challenge.reference_code,
+            )
 
         logger.info(
-            "Challenge accepted: %s by %s (team=%s)",
+            "Challenge accepted: %s by %s (team=%s, pot=%s DC, match=%s)",
             challenge.reference_code, accepted_by.username, accepting_team.name,
+            challenge.prize_pot_dc, getattr(challenge.match, 'pk', None),
         )
         return challenge
 
     @staticmethod
     @transaction.atomic
     def decline_challenge(*, challenge_id, declined_by):
-        """Decline a challenge."""
+        """Decline a challenge.  Refunds the challenger's locked stake."""
         challenge = Challenge.objects.select_for_update().get(pk=challenge_id)
 
         if challenge.status != 'OPEN':
             raise ValidationError("Challenge is not open.")
 
-        ChallengeService._verify_team_authority(declined_by, challenge.challenged_team)
+        ChallengeService._verify_team_authority(
+            declined_by, challenge.challenged_team, action='decline this Crown Clash',
+        )
+
+        ChallengeService._refund_challenger_if_locked(
+            challenge, actor=declined_by, note="Challenge declined by opponent"
+        )
 
         challenge.status = 'DECLINED'
-        challenge.save(update_fields=['status', 'updated_at'])
+        challenge.closure_reason = 'DECLINED_BY_OPPONENT'
+        challenge.save(update_fields=['status', 'closure_reason', 'updated_at'])
 
         logger.info("Challenge declined: %s by %s", challenge.reference_code, declined_by.username)
         return challenge
@@ -193,10 +316,17 @@ class ChallengeService:
         if challenge.status not in ('OPEN',):
             raise ValidationError("Only open challenges can be cancelled.")
 
-        ChallengeService._verify_team_authority(cancelled_by, challenge.challenger_team)
+        ChallengeService._verify_team_authority(
+            cancelled_by, challenge.challenger_team, action='cancel this Crown Clash',
+        )
+
+        ChallengeService._refund_challenger_if_locked(
+            challenge, actor=cancelled_by, note="Challenge cancelled by issuer"
+        )
 
         challenge.status = 'CANCELLED'
-        challenge.save(update_fields=['status', 'updated_at'])
+        challenge.closure_reason = 'CANCELLED_BY_ISSUER'
+        challenge.save(update_fields=['status', 'closure_reason', 'updated_at'])
 
         logger.info("Challenge cancelled: %s by %s", challenge.reference_code, cancelled_by.username)
         return challenge
@@ -212,11 +342,14 @@ class ChallengeService:
         if challenge.status != 'ACCEPTED':
             raise ValidationError("Only accepted challenges can be scheduled.")
 
-        # Either team can propose a schedule
+        # Either team's owner / manager / tournament-captain can propose a schedule.
         is_challenger = ChallengeService._has_team_authority(scheduled_by, challenge.challenger_team)
         is_challenged = ChallengeService._has_team_authority(scheduled_by, challenge.challenged_team)
         if not (is_challenger or is_challenged):
-            raise PermissionDenied("You are not part of this challenge.")
+            raise PermissionDenied(
+                "Only the team owner, manager, or designated tournament captain "
+                "of either team can schedule this match."
+            )
 
         if scheduled_at <= timezone.now():
             raise ValidationError("Scheduled time must be in the future.")
@@ -250,11 +383,14 @@ class ChallengeService:
         if challenge.status not in ('ACCEPTED', 'SCHEDULED', 'IN_PROGRESS'):
             raise ValidationError(f"Cannot submit result for {challenge.get_status_display()} challenge.")
 
-        # Verify participant
+        # Verify participant authority on either team.
         is_challenger = ChallengeService._has_team_authority(submitted_by, challenge.challenger_team)
         is_challenged = ChallengeService._has_team_authority(submitted_by, challenge.challenged_team)
         if not (is_challenger or is_challenged):
-            raise PermissionDenied("You are not part of this challenge.")
+            raise PermissionDenied(
+                "Only the team owner, manager, or designated tournament captain "
+                "of either team can submit the match result."
+            )
 
         # Map challenge result to MatchReport result
         mr_result_map = {
@@ -302,26 +438,93 @@ class ChallengeService:
     @transaction.atomic
     def settle_challenge(*, challenge_id, settled_by=None):
         """
-        Settle a completed challenge — mark as settled, distribute prizes.
-        
-        Can be called automatically after verification, or manually by admin.
+        Settle a completed challenge — distribute the Crown Clash prize pot.
+
+        Outcome handling (when entry_fee_dc > 0 and both sides locked):
+          * CHALLENGER_WIN / FORFEIT_CHALLENGED → pay challenger's user
+          * CHALLENGED_WIN / FORFEIT_CHALLENGER → pay challenged's user
+          * DRAW                                 → refund both sides
+          * NO_SHOW                              → refund both, BOTH_NO_SHOW
+
+        Closure reason recorded on the challenge so the UI never has to
+        guess why the lobby finished.
         """
         challenge = Challenge.objects.select_for_update().get(pk=challenge_id)
 
         if challenge.status != 'COMPLETED':
             raise ValidationError("Only completed challenges can be settled.")
 
+        result = challenge.result
+        update_fields = ['status', 'settled_at', 'resolved_by', 'updated_at']
+
+        # ── Crown Clash payout/refund path ───────────────────────────
+        if challenge.entry_fee_dc and challenge.escrow_locked:
+            winner_user = ChallengeService._resolve_winner_user(challenge)
+            if winner_user is not None:
+                wallet = _wallet_for_user(winner_user)
+                payout = escrow_service.payout_winner(
+                    wallet,
+                    challenge.prize_pot_dc,
+                    platform_fee_pct=CROWN_CLASH_PLATFORM_FEE_PCT,
+                    reference_id=challenge.clash_ref_id(),
+                    actor=settled_by,
+                    note=f"Crown Clash {challenge.reference_code} settlement",
+                )
+                challenge.payout_txn = payout.transactions[0]
+                challenge.closure_reason = 'NORMAL'
+                update_fields.append('payout_txn')
+            elif result == 'NO_SHOW':
+                ChallengeService._refund_both_sides(
+                    challenge,
+                    actor=settled_by,
+                    note=f"Crown Clash {challenge.reference_code} no-show refund",
+                )
+                challenge.closure_reason = 'BOTH_NO_SHOW'
+            else:
+                # DRAW (or any other non-winning result with locked pot)
+                ChallengeService._refund_both_sides(
+                    challenge,
+                    actor=settled_by,
+                    note=f"Crown Clash {challenge.reference_code} draw refund",
+                )
+                challenge.closure_reason = 'NORMAL'
+            update_fields.append('closure_reason')
+        elif challenge.entry_fee_dc and not challenge.escrow_locked:
+            # Asymmetric lock (only challenger staked).  Refund them.
+            ChallengeService._refund_challenger_if_locked(
+                challenge,
+                actor=settled_by,
+                note=f"Crown Clash {challenge.reference_code} asymmetric refund",
+            )
+            challenge.closure_reason = challenge.closure_reason or 'NORMAL'
+            update_fields.append('closure_reason')
+
         challenge.status = 'SETTLED'
         challenge.settled_at = timezone.now()
         challenge.resolved_by = settled_by
-        challenge.save(update_fields=['status', 'settled_at', 'resolved_by', 'updated_at'])
+        challenge.save(update_fields=update_fields)
 
-        # TODO: Integrate with economy app for Crown Points distribution
-        # if challenge.prize_type == 'CP' and challenge.winner:
-        #     EconomyService.award_crown_points(challenge.winner, challenge.prize_amount)
-
-        logger.info("Challenge settled: %s", challenge.reference_code)
+        logger.info(
+            "Challenge settled: %s (result=%s, pot=%s DC, closure=%s)",
+            challenge.reference_code, result, challenge.prize_pot_dc,
+            challenge.closure_reason,
+        )
         return challenge
+
+    @staticmethod
+    def _resolve_winner_user(challenge):
+        """Return the User whose wallet should receive the payout, or None.
+
+        Crown Clash funds are locked from ``created_by`` (challenger side)
+        and ``accepted_by`` (challenged side).  The winning user is the
+        same one who funded that side.
+        """
+        result = challenge.result
+        if result in ('CHALLENGER_WIN', 'FORFEIT_CHALLENGED'):
+            return challenge.created_by
+        if result in ('CHALLENGED_WIN', 'FORFEIT_CHALLENGER'):
+            return challenge.accepted_by
+        return None
 
     # ── Dispute ──────────────────────────────────────────────────────────
 
@@ -337,7 +540,10 @@ class ChallengeService:
         is_challenger = ChallengeService._has_team_authority(disputed_by, challenge.challenger_team)
         is_challenged = ChallengeService._has_team_authority(disputed_by, challenge.challenged_team)
         if not (is_challenger or is_challenged):
-            raise PermissionDenied("You are not part of this challenge.")
+            raise PermissionDenied(
+                "Only the team owner, manager, or designated tournament captain "
+                "of either team can raise a dispute on this match."
+            )
 
         challenge.status = 'DISPUTED'
         challenge.save(update_fields=['status', 'updated_at'])
@@ -425,40 +631,272 @@ class ChallengeService:
     @staticmethod
     def expire_stale_challenges():
         """
-        Bulk-expire challenges past their deadline.
-        Called by Celery beat or management command.
+        Expire OPEN challenges past their deadline.
+
+        Walks per-row so any Crown Clash challenger lock is refunded as
+        each row transitions to EXPIRED.  Each row is its own atomic block
+        so a single bad row never blocks the rest.
         """
-        expired = Challenge.objects.filter(
+        stale_qs = Challenge.objects.filter(
             status='OPEN',
             expires_at__lt=timezone.now(),
-        ).update(status='EXPIRED', updated_at=timezone.now())
+        ).only('id', 'reference_code')
 
-        if expired:
-            logger.info("Expired %d stale challenges", expired)
-        return expired
+        count = 0
+        for challenge_stub in stale_qs.iterator():
+            try:
+                with transaction.atomic():
+                    challenge = (
+                        Challenge.objects
+                        .select_for_update()
+                        .get(pk=challenge_stub.pk)
+                    )
+                    if challenge.status != 'OPEN':
+                        continue
+                    ChallengeService._refund_challenger_if_locked(
+                        challenge, actor=None, note="Challenge expired before acceptance"
+                    )
+                    challenge.status = 'EXPIRED'
+                    challenge.closure_reason = 'EXPIRED'
+                    challenge.save(update_fields=['status', 'closure_reason', 'updated_at'])
+                count += 1
+            except Exception:
+                logger.exception(
+                    "expire_stale_challenges: failed on %s",
+                    challenge_stub.reference_code,
+                )
+
+        if count:
+            logger.info("Expired %d stale challenges", count)
+        return count
 
     # ── Internal helpers ─────────────────────────────────────────────────
 
     @staticmethod
-    def _verify_team_authority(user, team):
-        """Verify user has OWNER or MANAGER role on team."""
+    def _verify_team_authority(user, team, *, action='act'):
+        """Verify the user has authority to ``action`` on behalf of ``team``.
+
+        Authority = ACTIVE membership AND (role IN OWNER/MANAGER OR
+        is_tournament_captain=True).  Anything else raises PermissionDenied
+        with a clear, copy-ready message for the API layer.
+        """
         if team is None:
             raise ValidationError("Team is required.")
         if not ChallengeService._has_team_authority(user, team):
             raise PermissionDenied(
-                f"You do not have authority to act for {team.name}."
+                f"Only the team owner, manager, or designated tournament captain "
+                f"can {action} on behalf of {team.name}."
             )
 
     @staticmethod
     def _has_team_authority(user, team):
-        """Check if user has OWNER or MANAGER role on team."""
-        if team is None:
+        """True iff user is OWNER/MANAGER or the team's tournament captain.
+
+        Performs the check via two ORed clauses so a player who is BOTH a
+        captain AND has the OWNER role still matches once.
+        """
+        if team is None or user is None or not getattr(user, 'is_authenticated', True):
             return False
         return team.vnext_memberships.filter(
             user=user,
             status='ACTIVE',
-            role__in=['OWNER', 'MANAGER', 'CAPTAIN'],
+        ).filter(
+            Q(role__in=['OWNER', 'MANAGER']) | Q(is_tournament_captain=True)
         ).exists()
+
+    # ── Crown Clash escrow helpers ───────────────────────────────────────
+
+    @staticmethod
+    def _refund_challenger_if_locked(challenge, *, actor=None, note=""):
+        """Refund the challenger's escrow lock if one exists.  Idempotent.
+
+        Called from decline / cancel / expire paths where only the
+        challenger has staked (opponent never locked).  Updates the
+        challenge fields in-memory; caller is responsible for save().
+        """
+        if not challenge.entry_fee_dc or not challenge.challenger_lock_txn_id:
+            return None
+        wallet = _wallet_for_user(challenge.created_by)
+        result = escrow_service.refund_funds(
+            wallet,
+            challenge.entry_fee_dc,
+            reference_id=challenge.clash_ref_id('challenger'),
+            actor=actor,
+            note=note or f"Refund {challenge.reference_code} challenger stake",
+        )
+        return result
+
+    @staticmethod
+    def _spawn_clash_match_room(challenge, *, actor=None):
+        """Create a synthetic Tournament + Match for a Crown Clash.
+
+        Re-uses the existing tournaments.Match infrastructure (lobby_state,
+        chat, dispute, phase pipeline) by binding the clash to a private,
+        non-bracket Tournament that exists solely to host the match row.
+        Idempotent: a clash that already has ``challenge.match`` set does
+        nothing.
+        """
+        if challenge.match_id:
+            return challenge.match
+
+        from apps.tournaments.models import Match, Tournament
+
+        challenger = challenge.challenger_team
+        challenged = challenge.challenged_team
+        if challenger is None or challenged is None:
+            return None
+        organizer = (
+            challenge.created_by
+            or challenge.accepted_by
+            or actor
+        )
+        if organizer is None:
+            return None
+
+        now = timezone.now()
+        scheduled_at = challenge.scheduled_at or (now + timedelta(hours=1))
+        slug = f"crown-clash-{challenge.reference_code.lower()}"
+
+        tournament, _ = Tournament.objects.get_or_create(
+            slug=slug,
+            defaults=dict(
+                name=f"Crown Clash · {challenger.name} vs {challenged.name}",
+                description=(
+                    f"Auto-generated lobby host for Crown Clash "
+                    f"{challenge.reference_code}.  Hidden from public listings."
+                ),
+                organizer=organizer,
+                game=challenge.game,
+                format='SINGLE_ELIM',
+                participation_type='TEAM',
+                max_participants=2,
+                min_participants=2,
+                registration_start=now,
+                registration_end=now,
+                tournament_start=scheduled_at,
+                is_official=False,
+                is_featured=False,
+            ),
+        )
+
+        match, _ = Match.objects.get_or_create(
+            tournament=tournament,
+            bracket=None,
+            round_number=1,
+            match_number=1,
+            defaults=dict(
+                participant1_id=challenger.pk,
+                participant1_name=challenger.name,
+                participant2_id=challenged.pk,
+                participant2_name=challenged.name,
+                state=Match.SCHEDULED,
+                scheduled_time=scheduled_at,
+                lobby_info={
+                    'kind': 'crown_clash',
+                    'clash_ref': challenge.reference_code,
+                    'best_of': challenge.best_of,
+                    'entry_fee_dc': challenge.entry_fee_dc,
+                    'prize_pot_dc': challenge.prize_pot_dc,
+                },
+            ),
+        )
+        return match
+
+    @staticmethod
+    def _spawn_hitlist_match_room(bounty, claim, *, actor=None):
+        """Create a synthetic Tournament + Match for a Hitlist claim.
+
+        Each claim gets its own match-room so multiple challengers don't
+        clash inside the same lobby.  Idempotent on ``claim.match``.
+        """
+        if claim.match_id:
+            return claim.match
+
+        from apps.tournaments.models import Match, Tournament
+
+        issuer = bounty.issuer_team
+        challenger = claim.claiming_team
+        if issuer is None or challenger is None:
+            return None
+        organizer = (
+            bounty.created_by
+            or claim.claimed_by
+            or actor
+        )
+        if organizer is None:
+            return None
+
+        now = timezone.now()
+        slug = f"hitlist-{bounty.reference_code.lower()}-claim-{str(claim.pk)[:8]}"
+
+        tournament, _ = Tournament.objects.get_or_create(
+            slug=slug,
+            defaults=dict(
+                name=f"Hitlist · {challenger.name} hunts {issuer.name}",
+                description=(
+                    f"Auto-generated lobby host for Hitlist claim against "
+                    f"bounty {bounty.reference_code}.  Hidden from public listings."
+                ),
+                organizer=organizer,
+                game=bounty.game,
+                format='SINGLE_ELIM',
+                participation_type='TEAM',
+                max_participants=2,
+                min_participants=2,
+                registration_start=now,
+                registration_end=now,
+                tournament_start=now + timedelta(hours=1),
+                is_official=False,
+                is_featured=False,
+            ),
+        )
+
+        match, _ = Match.objects.get_or_create(
+            tournament=tournament,
+            bracket=None,
+            round_number=1,
+            match_number=1,
+            defaults=dict(
+                participant1_id=issuer.pk,
+                participant1_name=issuer.name,
+                participant2_id=challenger.pk,
+                participant2_name=challenger.name,
+                state=Match.SCHEDULED,
+                scheduled_time=now + timedelta(hours=1),
+                lobby_info={
+                    'kind': 'hitlist',
+                    'bounty_ref': bounty.reference_code,
+                    'claim_id': str(claim.pk),
+                    'reward_amount_dc': bounty.reward_amount_dc,
+                    'challenger_entry_fee_dc': bounty.challenger_entry_fee_dc,
+                },
+            ),
+        )
+        return match
+
+    @staticmethod
+    def _refund_both_sides(challenge, *, actor=None, note=""):
+        """Refund BOTH locked stakes — for draws, no-shows, admin voids."""
+        if not challenge.entry_fee_dc:
+            return
+        if challenge.challenger_lock_txn_id:
+            ch_wallet = _wallet_for_user(challenge.created_by)
+            escrow_service.refund_funds(
+                ch_wallet,
+                challenge.entry_fee_dc,
+                reference_id=challenge.clash_ref_id('challenger'),
+                actor=actor,
+                note=note or f"Refund {challenge.reference_code} challenger stake",
+            )
+        if challenge.challenged_lock_txn_id:
+            op_wallet = _wallet_for_user(challenge.accepted_by)
+            escrow_service.refund_funds(
+                op_wallet,
+                challenge.entry_fee_dc,
+                reference_id=challenge.clash_ref_id('challenged'),
+                actor=actor,
+                note=note or f"Refund {challenge.reference_code} challenged stake",
+            )
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -487,15 +925,39 @@ class BountyService:
         max_claims=1,
         expires_at=None,
         is_public=True,
+        is_hitlist=False,
+        reward_amount_dc=0,
+        challenger_entry_fee_dc=0,
     ):
-        """Create a new bounty."""
-        ChallengeService._verify_team_authority(created_by, issuer_team)
+        """Create a new bounty.
+
+        When ``is_hitlist`` is True the issuer's ``reward_amount_dc`` is
+        locked into escrow up front, and challengers will be required
+        to lock ``challenger_entry_fee_dc`` per claim attempt.
+        """
+        ChallengeService._verify_team_authority(
+            created_by, issuer_team,
+            action='post a Hitlist bounty' if is_hitlist else 'post a bounty',
+        )
 
         if not criteria:
             criteria = {}
 
         if not expires_at:
             expires_at = timezone.now() + timedelta(days=30)
+
+        # Hitlist guards: anti-whale + non-zero reward + max_claims=1
+        if is_hitlist:
+            if reward_amount_dc <= 0:
+                raise ValidationError("Hitlist bounties require a non-zero reward_amount_dc.")
+            if challenger_entry_fee_dc <= 0:
+                raise ValidationError("Hitlist bounties require a non-zero challenger_entry_fee_dc.")
+            if challenger_entry_fee_dc > HITLIST_CHALLENGER_ENTRY_FEE_CAP_DC:
+                raise ValidationError(
+                    f"Hitlist challenger entry fee {challenger_entry_fee_dc} DC exceeds "
+                    f"the anti-whale cap of {HITLIST_CHALLENGER_ENTRY_FEE_CAP_DC} DC."
+                )
+            max_claims = 1  # Hitlist reward is consumed on first verified win
 
         bounty = Bounty.objects.create(
             issuer_team=issuer_team,
@@ -506,17 +968,38 @@ class BountyService:
             criteria=criteria,
             reward_type=reward_type,
             reward_amount=Decimal(str(reward_amount)),
+            reward_amount_dc=reward_amount_dc or 0,
             reward_description=reward_description,
             max_claims=max_claims,
             expires_at=expires_at,
             is_public=is_public,
             created_by=created_by,
+            is_hitlist=is_hitlist,
+            challenger_entry_fee_dc=challenger_entry_fee_dc or 0,
         )
 
+        # Lock the issuer's reward immediately (Hitlist only).
+        if is_hitlist and reward_amount_dc > 0:
+            wallet = _wallet_for_user(created_by)
+            result = escrow_service.lock_funds(
+                wallet,
+                reward_amount_dc,
+                reference_id=bounty.hitlist_ref_id('issuer'),
+                actor=created_by,
+                note=f"Hitlist {bounty.reference_code} issuer reward "
+                     f"(funded by {created_by.username})",
+            )
+            bounty.issuer_lock_txn = result.transactions[0]
+            bounty.funded_by = created_by
+            bounty.escrow_locked = True
+            bounty.save(update_fields=[
+                'issuer_lock_txn', 'funded_by', 'escrow_locked', 'updated_at',
+            ])
+
         logger.info(
-            "Bounty created: %s by %s (team=%s, game=%s)",
+            "Bounty created: %s by %s (team=%s, game=%s, hitlist=%s, reward=%s DC)",
             bounty.reference_code, created_by.username,
-            issuer_team.name, game.short_code,
+            issuer_team.name, game.short_code, is_hitlist, reward_amount_dc,
         )
         return bounty
 
@@ -538,7 +1021,9 @@ class BountyService:
         if not bounty.is_claimable:
             raise ValidationError("This bounty is not claimable.")
 
-        ChallengeService._verify_team_authority(claimed_by, claiming_team)
+        ChallengeService._verify_team_authority(
+            claimed_by, claiming_team, action='submit a bounty claim',
+        )
 
         # Cannot claim your own bounty
         if claiming_team.pk == bounty.issuer_team_id:
@@ -563,43 +1048,195 @@ class BountyService:
             claimed_by=claimed_by,
         )
 
+        # Hitlist: lock the challenger's entry fee.  The fee is held until
+        # verify_claim either pays it back (challenger wins) or transfers
+        # it to the issuer minus a 5% platform fee (challenger loses).
+        if bounty.is_hitlist and bounty.challenger_entry_fee_dc > 0:
+            wallet = _wallet_for_user(claimed_by)
+            result = escrow_service.lock_funds(
+                wallet,
+                bounty.challenger_entry_fee_dc,
+                reference_id=bounty.hitlist_ref_id(f"claim:{claim.pk}"),
+                actor=claimed_by,
+                note=f"Hitlist {bounty.reference_code} challenger entry fee "
+                     f"(funded by {claimed_by.username})",
+            )
+            claim.entry_fee_lock_txn = result.transactions[0]
+            claim.funded_by = claimed_by
+            claim.save(update_fields=['entry_fee_lock_txn', 'funded_by'])
+
+        # ── Spawn the Hitlist Match Room ──────────────────────────────
+        if bounty.is_hitlist:
+            try:
+                match = ChallengeService._spawn_hitlist_match_room(
+                    bounty, claim, actor=claimed_by,
+                )
+                if match is not None:
+                    claim.match = match
+                    claim.save(update_fields=['match'])
+            except Exception:
+                logger.exception(
+                    "Match Room spawn failed for hitlist claim %s on bounty %s "
+                    "— claim accepted but no lobby created.",
+                    claim.pk, bounty.reference_code,
+                )
+
         logger.info(
-            "Bounty claim: %s claimed by %s (team=%s)",
+            "Bounty claim: %s claimed by %s (team=%s, entry_fee=%s DC, match=%s)",
             bounty.reference_code, claimed_by.username, claiming_team.name,
+            bounty.challenger_entry_fee_dc if bounty.is_hitlist else 0,
+            getattr(claim.match, 'pk', None),
         )
         return claim
 
     @staticmethod
     @transaction.atomic
     def verify_claim(*, claim_id, verified_by, approved=True, notes=''):
-        """Verify or reject a bounty claim."""
+        """Verify or reject a bounty claim.
+
+        Hitlist payout matrix (when ``bounty.is_hitlist`` is True):
+
+          approved (challenger won):
+              - refund challenger's entry-fee lock
+              - payout the issuer's locked reward to the challenger
+                (winnings minus HITLIST_PLATFORM_FEE_PCT)
+              - mark bounty CLAIMED, refund OTHER pending claims
+          rejected (challenger lost):
+              - payout the challenger's entry-fee to the issuer
+                (winnings minus HITLIST_PLATFORM_FEE_PCT)
+              - issuer's reward stays locked for the next challenger
+        """
         claim = BountyClaim.objects.select_for_update().select_related('bounty').get(pk=claim_id)
 
         if claim.status != 'PENDING':
             raise ValidationError("Claim is not pending.")
 
+        bounty = claim.bounty
+        is_hitlist = bounty.is_hitlist
+
         if approved:
             claim.status = 'VERIFIED'
             claim.verified_at = timezone.now()
             claim.verified_by = verified_by
+            claim.closure_reason = 'VERIFIED_PAID'
 
-            # Update bounty claim count
-            claim.bounty.claim_count += 1
-            if claim.bounty.claim_count >= claim.bounty.max_claims:
-                claim.bounty.status = 'CLAIMED'
-            claim.bounty.save(update_fields=['claim_count', 'status', 'updated_at'])
+            # Hitlist: pay challenger their winnings + refund their entry fee.
+            if is_hitlist:
+                BountyService._hitlist_payout_to_challenger(
+                    bounty, claim, actor=verified_by
+                )
+
+            # Update bounty claim count + close bounty if maxed.
+            bounty.claim_count += 1
+            bounty_update_fields = ['claim_count', 'updated_at']
+            if bounty.claim_count >= bounty.max_claims:
+                bounty.status = 'CLAIMED'
+                bounty.closure_reason = 'CLAIMED'
+                bounty.escrow_locked = False
+                bounty_update_fields += ['status', 'closure_reason', 'escrow_locked']
+            bounty.save(update_fields=bounty_update_fields)
+
+            # Auto-void any other PENDING claims (refund their entry fees).
+            if bounty.status == 'CLAIMED':
+                BountyService._refund_other_pending_claims(
+                    bounty, except_pk=claim.pk, actor=verified_by
+                )
         else:
             claim.status = 'REJECTED'
+            claim.closure_reason = 'REJECTED'
+
+            # Hitlist: pay the challenger's entry fee to the issuer (minus 5%).
+            if is_hitlist:
+                BountyService._hitlist_payout_to_issuer(
+                    bounty, claim, actor=verified_by
+                )
 
         claim.admin_notes = notes
-        claim.save(update_fields=['status', 'verified_at', 'verified_by', 'admin_notes'])
+        claim.save(update_fields=[
+            'status', 'verified_at', 'verified_by', 'admin_notes',
+            'closure_reason', 'outcome_txn',
+        ])
 
         logger.info(
-            "Bounty claim %s: %s (by %s)",
+            "Bounty claim %s: %s (hitlist=%s, by %s)",
             'verified' if approved else 'rejected',
-            claim.bounty.reference_code, verified_by.username,
+            bounty.reference_code, is_hitlist, verified_by.username,
         )
         return claim
+
+    # ── Hitlist escrow helpers ───────────────────────────────────────────
+
+    @staticmethod
+    def _hitlist_payout_to_challenger(bounty, claim, *, actor=None):
+        """Approved-claim path: refund challenger's entry-fee + transfer reward."""
+        # Refund challenger entry-fee (their stake comes back).
+        if claim.entry_fee_lock_txn_id:
+            wallet = _wallet_for_user(claim.claimed_by)
+            escrow_service.refund_funds(
+                wallet,
+                bounty.challenger_entry_fee_dc,
+                reference_id=bounty.hitlist_ref_id(f"claim:{claim.pk}"),
+                actor=actor,
+                note=f"Hitlist {bounty.reference_code} entry-fee refund (winner)",
+            )
+        # Transfer issuer's locked reward to challenger (5% fee on winnings).
+        if bounty.issuer_lock_txn_id and bounty.reward_amount_dc > 0:
+            wallet = _wallet_for_user(claim.claimed_by)
+            payout = escrow_service.payout_winner(
+                wallet,
+                bounty.reward_amount_dc,
+                platform_fee_pct=HITLIST_PLATFORM_FEE_PCT,
+                reference_id=bounty.hitlist_ref_id(f"payout:{claim.pk}"),
+                actor=actor,
+                note=f"Hitlist {bounty.reference_code} reward to {claim.claiming_team.name}",
+            )
+            claim.outcome_txn = payout.transactions[0]
+
+    @staticmethod
+    def _hitlist_payout_to_issuer(bounty, claim, *, actor=None):
+        """Rejected-claim path: transfer challenger entry-fee to issuer (5% fee)."""
+        if not claim.entry_fee_lock_txn_id or not bounty.challenger_entry_fee_dc:
+            return
+        wallet = _wallet_for_user(bounty.created_by)
+        payout = escrow_service.payout_winner(
+            wallet,
+            bounty.challenger_entry_fee_dc,
+            platform_fee_pct=HITLIST_PLATFORM_FEE_PCT,
+            reference_id=bounty.hitlist_ref_id(f"payout:{claim.pk}"),
+            actor=actor,
+            note=f"Hitlist {bounty.reference_code} entry-fee to issuer",
+        )
+        claim.outcome_txn = payout.transactions[0]
+
+    @staticmethod
+    def _refund_other_pending_claims(bounty, *, except_pk, actor=None):
+        """Refund entry-fees on any OTHER PENDING claims (bounty consumed)."""
+        if not bounty.is_hitlist:
+            return
+        others = BountyClaim.objects.select_for_update().filter(
+            bounty=bounty, status='PENDING'
+        ).exclude(pk=except_pk)
+        for other in others:
+            try:
+                if other.entry_fee_lock_txn_id and bounty.challenger_entry_fee_dc:
+                    wallet = _wallet_for_user(other.claimed_by)
+                    escrow_service.refund_funds(
+                        wallet,
+                        bounty.challenger_entry_fee_dc,
+                        reference_id=bounty.hitlist_ref_id(f"claim:{other.pk}"),
+                        actor=actor,
+                        note=f"Hitlist {bounty.reference_code} bounty consumed — refund",
+                    )
+                other.status = 'REJECTED'
+                other.closure_reason = 'VOIDED'
+                other.closure_note = 'Bounty consumed by another verified claim.'
+                other.save(update_fields=[
+                    'status', 'closure_reason', 'closure_note',
+                ])
+            except Exception:
+                logger.exception(
+                    "_refund_other_pending_claims: failed on claim=%s", other.pk
+                )
 
     @staticmethod
     def get_team_bounties(team, status_filter=None, limit=10):
@@ -630,12 +1267,50 @@ class BountyService:
 
     @staticmethod
     def expire_stale_bounties():
-        """Bulk-expire bounties past their deadline."""
-        expired = Bounty.objects.filter(
+        """Expire ACTIVE bounties past their deadline.
+
+        Per-row processing so any locked Hitlist reward is refunded to
+        the issuer as the bounty transitions to EXPIRED.  In-flight
+        PENDING claims also get their entry-fees refunded.
+        """
+        stale_qs = Bounty.objects.filter(
             status='ACTIVE',
             expires_at__lt=timezone.now(),
-        ).update(status='EXPIRED', updated_at=timezone.now())
+        ).only('id', 'reference_code')
 
-        if expired:
-            logger.info("Expired %d stale bounties", expired)
-        return expired
+        count = 0
+        for stub in stale_qs.iterator():
+            try:
+                with transaction.atomic():
+                    bounty = Bounty.objects.select_for_update().get(pk=stub.pk)
+                    if bounty.status != 'ACTIVE':
+                        continue
+                    # Refund issuer's reward lock (Hitlist only).
+                    if bounty.is_hitlist and bounty.issuer_lock_txn_id:
+                        wallet = _wallet_for_user(bounty.created_by)
+                        escrow_service.refund_funds(
+                            wallet,
+                            bounty.reward_amount_dc,
+                            reference_id=bounty.hitlist_ref_id('issuer'),
+                            actor=None,
+                            note=f"Hitlist {bounty.reference_code} expired — refund issuer",
+                        )
+                        bounty.escrow_locked = False
+                    # Refund any in-flight challenger entry-fees.
+                    BountyService._refund_other_pending_claims(
+                        bounty, except_pk=0, actor=None
+                    )
+                    bounty.status = 'EXPIRED'
+                    bounty.closure_reason = 'EXPIRED'
+                    bounty.save(update_fields=[
+                        'status', 'closure_reason', 'escrow_locked', 'updated_at',
+                    ])
+                count += 1
+            except Exception:
+                logger.exception(
+                    "expire_stale_bounties: failed on %s", stub.reference_code,
+                )
+
+        if count:
+            logger.info("Expired %d stale bounties", count)
+        return count

@@ -18,6 +18,7 @@ from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 from rest_framework import status
+from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
 
 from .base import TOCBaseView
@@ -161,6 +162,7 @@ class BracketFormatConfigView(TOCBaseView):
             'lobbies_per_match_day',
             'advancement_count',
             'tiebreaker_rules',
+            'is_screenshot_required',
         },
     }
 
@@ -197,6 +199,9 @@ class BracketFormatConfigView(TOCBaseView):
                 cleaned['advancement_count'] = ac
             except (TypeError, ValueError):
                 return Response({"error": "advancement_count must be an integer."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if 'is_screenshot_required' in cleaned:
+            cleaned['is_screenshot_required'] = bool(cleaned['is_screenshot_required'])
 
         config = dict(self.tournament.config or {})
         existing = dict(config.get('format_options') or {})
@@ -282,6 +287,390 @@ class BracketBRScoreEntryView(TOCBaseView):
             return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
         bump_toc_scopes(self.tournament.id, 'brackets', 'matches', 'overview', 'standings', 'analytics')
+        return Response(data)
+
+
+class BracketBRScreenshotExtractView(TOCBaseView):
+    """
+    POST /api/toc/<slug>/brackets/br-score-screenshot/
+
+    AI-assisted score entry. Admin uploads an end-of-match screenshot from a
+    Battle Royale game (PUBG Mobile / FreeFire). The pipeline:
+
+        1. Validates the uploaded match is a BR lobby session.
+        2. Pushes the image to Supabase Storage as a temporary audit copy.
+        3. Calls Gemini Vision with the bytes + a candidate participant list.
+        4. Deletes the Supabase object (best-effort, in finally).
+        5. Returns parsed ``{results, map_name}`` so the admin can review/edit
+           in the grid before the actual submission to ``br-score-entry/``.
+
+    This endpoint does NOT mutate the leaderboard. It's a read-only AI helper.
+    The follow-up POST to ``/brackets/br-score-entry/`` is where results are
+    actually applied.
+
+    Request (multipart/form-data):
+        match_id   : int     (the BR lobby Match)
+        screenshot : file    (image: jpg / png / webp)
+
+    Responses:
+        200  → {"results": [...], "map_name": "...", "audit": {...}}
+        400  → bad input / no candidates / empty upload
+        404  → match not found in this tournament
+        409  → match is not a BR lobby session
+        422  → Gemini failed to return parseable JSON (frontend should fall
+               back to the manual grid)
+        503  → server is missing GEMINI_API_KEY / SUPABASE_* env vars
+    """
+
+    parser_classes = [MultiPartParser, FormParser]
+
+    def post(self, request, slug):
+        from apps.tournaments.models.match import Match
+        from apps.tournaments.services.br_screenshot_service import (
+            BRScreenshotConfigError,
+            BRScreenshotError,
+            BRScreenshotExtractionError,
+            BRScreenshotUploadError,
+            process_br_screenshot,
+        )
+
+        # Parse match_id from form-data (it arrives as string).
+        match_id_raw = request.data.get("match_id")
+        try:
+            match_id = int(match_id_raw)
+        except (TypeError, ValueError):
+            return Response({"error": "match_id is required and must be int."},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        upload = request.FILES.get("screenshot")
+        if upload is None:
+            return Response({"error": "screenshot file is required."},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        # Hard ceiling — protect 512MB Render container from large uploads.
+        max_bytes = 8 * 1024 * 1024
+        if getattr(upload, "size", 0) and upload.size > max_bytes:
+            return Response(
+                {"error": f"Screenshot too large (max {max_bytes // (1024 * 1024)} MB)."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            match = Match.objects.get(
+                id=match_id,
+                tournament=self.tournament,
+                is_deleted=False,
+            )
+        except Match.DoesNotExist:
+            return Response({"error": "Lobby session not found."},
+                            status=status.HTTP_404_NOT_FOUND)
+
+        info = match.lobby_info or {}
+        if not info.get("br_session"):
+            return Response(
+                {"error": "This match is not a Battle Royale lobby session."},
+                status=status.HTTP_409_CONFLICT,
+            )
+
+        try:
+            image_bytes = upload.read()
+        except Exception as exc:
+            return Response(
+                {"error": f"Could not read uploaded file: {exc}"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            data = process_br_screenshot(
+                tournament=self.tournament,
+                match=match,
+                image_bytes=image_bytes,
+                content_type=getattr(upload, "content_type", "") or "image/jpeg",
+                original_filename=getattr(upload, "name", "") or "",
+            )
+        except BRScreenshotConfigError as exc:
+            return Response(
+                {"error": str(exc), "code": exc.code, "details": exc.details},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+        except BRScreenshotExtractionError as exc:
+            return Response(
+                {"error": str(exc), "code": exc.code, "details": exc.details},
+                status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            )
+        except BRScreenshotUploadError as exc:
+            return Response(
+                {"error": str(exc), "code": exc.code, "details": exc.details},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+        except BRScreenshotError as exc:
+            return Response(
+                {"error": str(exc), "code": exc.code, "details": exc.details},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Echo the match_id back so the frontend can pre-select it on the grid.
+        data["match_id"] = match.id
+        data["session_number"] = (match.lobby_info or {}).get("session_number")
+        return Response(data)
+
+
+class BracketSportsScreenshotExtractView(TOCBaseView):
+    """
+    POST /api/toc/<slug>/brackets/sports-score-screenshot/
+
+    AI-assisted score entry for 1v1 sports games (eFootball / EA SPORTS FC 26)
+    in any bracket-style format (SE / DE / RR / Swiss / GP). Admin uploads a
+    final-whistle result screen; pipeline:
+
+        1. Validates the match belongs to this tournament and is NOT a BR
+           lobby session (those use ``br-score-screenshot/`` instead).
+        2. Pushes the image to Supabase Storage as a temporary audit copy.
+        3. Calls Gemini Vision with a strict-shape prompt + the two
+           participant names as hints.
+        4. Deletes the Supabase object (best-effort, in finally).
+        5. Fuzzy-maps home/away → participant1/participant2 using
+           ``difflib.SequenceMatcher``. Returns ``mapping_confidence`` so the
+           frontend can decide whether to auto-fill or just suggest.
+
+    This endpoint is read-only. The follow-up POST to ``matches/<pk>/score/``
+    is where scores actually land.
+
+    Request (multipart/form-data):
+        match_id   : int     (the SE/DE/RR/Swiss/GP Match)
+        screenshot : file    (image: jpg / png / webp)
+
+    Responses:
+        200  → {
+                 "match_id": ...,
+                 "home_team": "...", "home_score": ..., "away_team": "...", "away_score": ...,
+                 "participant1_name": "...", "participant1_score": <int|None>,
+                 "participant2_name": "...", "participant2_score": <int|None>,
+                 "mapping_confidence": "high"|"low"|"none",
+                 "audit": { ... }
+               }
+        400  → bad input / empty upload
+        404  → match not found in this tournament
+        409  → match is a BR lobby session (use the BR endpoint instead)
+        422  → Gemini failed to return parseable JSON / hallucinated scores
+        502  → Supabase upload failed
+        503  → server is missing GEMINI_API_KEY / SUPABASE_* env vars
+    """
+
+    parser_classes = [MultiPartParser, FormParser]
+
+    def post(self, request, slug):
+        from apps.tournaments.models.match import Match
+        from apps.tournaments.services.sports_screenshot_service import (
+            SportsScreenshotConfigError,
+            SportsScreenshotError,
+            SportsScreenshotExtractionError,
+            SportsScreenshotUploadError,
+            process_sports_screenshot,
+        )
+
+        match_id_raw = request.data.get("match_id")
+        try:
+            match_id = int(match_id_raw)
+        except (TypeError, ValueError):
+            return Response({"error": "match_id is required and must be int."},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        upload = request.FILES.get("screenshot")
+        if upload is None:
+            return Response({"error": "screenshot file is required."},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        # Same 8 MB ceiling as the BR endpoint — protect the 512 MB Render box
+        # from oversized uploads.
+        max_bytes = 8 * 1024 * 1024
+        if getattr(upload, "size", 0) and upload.size > max_bytes:
+            return Response(
+                {"error": f"Screenshot too large (max {max_bytes // (1024 * 1024)} MB)."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            match = Match.objects.get(
+                id=match_id,
+                tournament=self.tournament,
+                is_deleted=False,
+            )
+        except Match.DoesNotExist:
+            return Response({"error": "Match not found."},
+                            status=status.HTTP_404_NOT_FOUND)
+
+        # Refuse BR lobby sessions — they use the dedicated BR endpoint that
+        # operates on a leaderboard candidate list, not p1/p2 slots.
+        info = match.lobby_info or {}
+        if info.get("br_session"):
+            return Response(
+                {"error": "This match is a Battle Royale lobby session. Use /brackets/br-score-screenshot/ instead.",
+                 "code": "not_a_sports_match"},
+                status=status.HTTP_409_CONFLICT,
+            )
+
+        try:
+            image_bytes = upload.read()
+        except Exception as exc:
+            return Response(
+                {"error": f"Could not read uploaded file: {exc}"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            data = process_sports_screenshot(
+                tournament=self.tournament,
+                match=match,
+                image_bytes=image_bytes,
+                content_type=getattr(upload, "content_type", "") or "image/jpeg",
+                original_filename=getattr(upload, "name", "") or "",
+            )
+        except SportsScreenshotConfigError as exc:
+            return Response(
+                {"error": str(exc), "code": exc.code, "details": exc.details},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+        except SportsScreenshotExtractionError as exc:
+            return Response(
+                {"error": str(exc), "code": exc.code, "details": exc.details},
+                status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            )
+        except SportsScreenshotUploadError as exc:
+            return Response(
+                {"error": str(exc), "code": exc.code, "details": exc.details},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+        except SportsScreenshotError as exc:
+            return Response(
+                {"error": str(exc), "code": exc.code, "details": exc.details},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        return Response(data)
+
+
+class BracketTeam5v5ScreenshotExtractView(TOCBaseView):
+    """
+    POST /api/toc/<slug>/brackets/team-5v5-score-screenshot/
+
+    AI-assisted score + KDA entry for 5v5 team formats (MLBB, Valorant, CS2,
+    CoD). Admin uploads an end-of-match scoreboard; pipeline:
+
+        1. Validates the match belongs to this tournament and is NOT a BR
+           lobby session.
+        2. Pushes the image to Supabase Storage as a temporary audit copy
+           under ``team_5v5/...``.
+        3. Calls Gemini Vision with both teams' rosters as hints.
+        4. Deletes the Supabase object (best-effort, in finally).
+        5. Fuzzy-maps team_a/team_b → participant1/participant2 using
+           ``difflib.SequenceMatcher``; per-team, fuzzy-maps each AI player
+           row to a user_id on that team's starter roster.
+
+    Read-only — admin reviews + corrects in the TOC grid before submitting
+    the actual score via ``matches/<pk>/score/`` (and per-player KDA via the
+    series / stats endpoints).
+
+    Request (multipart/form-data):
+        match_id   : int     (the SE/DE/RR/Swiss/GP team match)
+        screenshot : file    (image: jpg / png / webp)
+
+    Responses:
+        200  → see ``process_team_5v5_screenshot`` for the full shape
+        400  → bad input / empty upload
+        404  → match not found in this tournament
+        409  → match is a BR lobby session (use the BR endpoint instead)
+        422  → Gemini failed to return parseable JSON / hallucinated values
+        502  → Supabase upload failed
+        503  → server is missing GEMINI_API_KEY / SUPABASE_* env vars
+    """
+
+    parser_classes = [MultiPartParser, FormParser]
+
+    def post(self, request, slug):
+        from apps.tournaments.models.match import Match
+        from apps.tournaments.services.team_5v5_screenshot_service import (
+            Team5v5ScreenshotConfigError,
+            Team5v5ScreenshotError,
+            Team5v5ScreenshotExtractionError,
+            Team5v5ScreenshotUploadError,
+            process_team_5v5_screenshot,
+        )
+
+        match_id_raw = request.data.get("match_id")
+        try:
+            match_id = int(match_id_raw)
+        except (TypeError, ValueError):
+            return Response({"error": "match_id is required and must be int."},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        upload = request.FILES.get("screenshot")
+        if upload is None:
+            return Response({"error": "screenshot file is required."},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        max_bytes = 8 * 1024 * 1024
+        if getattr(upload, "size", 0) and upload.size > max_bytes:
+            return Response(
+                {"error": f"Screenshot too large (max {max_bytes // (1024 * 1024)} MB)."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            match = Match.objects.get(
+                id=match_id,
+                tournament=self.tournament,
+                is_deleted=False,
+            )
+        except Match.DoesNotExist:
+            return Response({"error": "Match not found."},
+                            status=status.HTTP_404_NOT_FOUND)
+
+        info = match.lobby_info or {}
+        if info.get("br_session"):
+            return Response(
+                {"error": "This match is a Battle Royale lobby session. Use /brackets/br-score-screenshot/ instead.",
+                 "code": "not_a_team_match"},
+                status=status.HTTP_409_CONFLICT,
+            )
+
+        try:
+            image_bytes = upload.read()
+        except Exception as exc:
+            return Response(
+                {"error": f"Could not read uploaded file: {exc}"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            data = process_team_5v5_screenshot(
+                tournament=self.tournament,
+                match=match,
+                image_bytes=image_bytes,
+                content_type=getattr(upload, "content_type", "") or "image/jpeg",
+                original_filename=getattr(upload, "name", "") or "",
+            )
+        except Team5v5ScreenshotConfigError as exc:
+            return Response(
+                {"error": str(exc), "code": exc.code, "details": exc.details},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+        except Team5v5ScreenshotExtractionError as exc:
+            return Response(
+                {"error": str(exc), "code": exc.code, "details": exc.details},
+                status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            )
+        except Team5v5ScreenshotUploadError as exc:
+            return Response(
+                {"error": str(exc), "code": exc.code, "details": exc.details},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+        except Team5v5ScreenshotError as exc:
+            return Response(
+                {"error": str(exc), "code": exc.code, "details": exc.details},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         return Response(data)
 
 

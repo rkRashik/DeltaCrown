@@ -381,6 +381,8 @@ INSTALLED_APPS = [
     "apps.spectator",  # Phase G: Spectator Live Views
     "apps.support",  # FAQ, Contact, Testimonials
     "apps.challenges",  # Phase B: Challenge Hub (wager matches, bounties)
+    "apps.contracts",   # Crown Contracts (self-challenge missions)
+    "apps.royale",      # Crown Royale (paid Battle Royale lobbies)
     "channels",
 
 ]

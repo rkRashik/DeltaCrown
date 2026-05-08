@@ -11,8 +11,10 @@ Used by:
 Ensures consistent eligibility logic across all views and templates.
 """
 
-from typing import Dict, Optional, Tuple
+from collections import defaultdict
+from typing import Dict, Iterable, List, Optional, Tuple
 from django.contrib.auth.models import User
+from django.db.models import Count
 from apps.tournaments.models import Tournament, Registration
 from apps.organizations.models import Team, TeamMembership
 from apps.user_profile.models import UserProfile
@@ -237,9 +239,378 @@ class RegistrationEligibilityService:
                 'action_url': f'/tournaments/{tournament.slug}/register/',
                 'action_label': 'Register Now',
             })
-        
+
         return result
-    
+
+    @staticmethod
+    def check_eligibility_bulk(
+        tournaments: Iterable[Tournament],
+        user: Optional[User],
+    ) -> Dict[int, Dict]:
+        """
+        Bulk variant of check_eligibility. Pre-fetches every per-user dataset
+        once and answers each tournament in memory. Returns a dict keyed by
+        tournament_id mirroring the per-tournament shape of check_eligibility.
+
+        Egress: ~7 queries total regardless of len(tournaments).
+        Per-tournament work is in-memory only.
+        """
+        tournament_list = list(tournaments)
+        if not user or not user.is_authenticated:
+            unauth = {
+                'can_register': False,
+                'reason': 'You must be logged in to register.',
+                'status': 'not_authenticated',
+                'registration': None,
+                'action_url': '/accounts/login/',
+                'action_label': 'Login to Register',
+            }
+            return {t.id: dict(unauth) for t in tournament_list}
+
+        if not tournament_list:
+            return {}
+
+        tournament_ids = [t.id for t in tournament_list]
+        team_tournament_ids = [
+            t.id for t in tournament_list if t.participation_type == Tournament.TEAM
+        ]
+
+        user_profile = UserProfile.objects.filter(user=user).first()
+
+        # Solo registrations across all tournaments — single query.
+        # Most-recent-first so dict insertion gives us the latest per tournament.
+        solo_regs = list(
+            Registration.objects.filter(
+                tournament_id__in=tournament_ids,
+                user=user,
+                is_deleted=False,
+            ).exclude(
+                status__in=[Registration.CANCELLED, Registration.REJECTED],
+            ).order_by('-created_at')
+        )
+        user_solo_regs: Dict[int, Registration] = {}
+        for r in solo_regs:
+            user_solo_regs.setdefault(r.tournament_id, r)
+
+        # Capacity counts grouped per tournament — single query.
+        capacity_counts = dict(
+            Registration.objects.filter(
+                tournament_id__in=tournament_ids,
+                status__in=RegistrationEligibilityService.CAPACITY_BLOCKING_STATUSES,
+                is_deleted=False,
+            ).values('tournament_id')
+            .annotate(c=Count('id'))
+            .values_list('tournament_id', 'c')
+        )
+
+        # Guest team counts grouped per tournament — single query.
+        guest_counts: Dict[int, int] = {}
+        if team_tournament_ids:
+            guest_counts = dict(
+                Registration.objects.filter(
+                    tournament_id__in=team_tournament_ids,
+                    is_guest_team=True,
+                    is_deleted=False,
+                ).exclude(
+                    status__in=[Registration.CANCELLED, Registration.REJECTED],
+                ).values('tournament_id')
+                .annotate(c=Count('id'))
+                .values_list('tournament_id', 'c')
+            )
+
+        # Team-tournament-only datasets.
+        membership_by_team: Dict[int, TeamMembership] = {}
+        teams_by_game: Dict[int, List[Team]] = defaultdict(list)
+        team_active_members: Dict[int, int] = {}
+        team_regs_by_tournament: Dict[int, Dict[int, Registration]] = defaultdict(dict)
+        ceo_org_ids: set = set()
+        all_org_ids: set = set()
+
+        if team_tournament_ids and user_profile:
+            from apps.organizations.models import Organization, OrganizationMembership
+
+            direct_memberships = list(
+                TeamMembership.objects.filter(
+                    user=user_profile.user,
+                    status=TeamMembership.Status.ACTIVE,
+                ).select_related('team')
+            )
+            membership_by_team = {m.team_id: m for m in direct_memberships}
+            direct_team_ids = {
+                m.team_id for m in direct_memberships
+                if m.team and getattr(m.team, 'status', None) == 'ACTIVE'
+            }
+
+            ceo_org_ids = set(
+                Organization.objects.filter(ceo=user).values_list('id', flat=True)
+            )
+            staff_org_ids = set(
+                OrganizationMembership.objects.filter(
+                    user=user, role__in=['CEO', 'MANAGER'],
+                ).values_list('organization_id', flat=True)
+            )
+            all_org_ids = ceo_org_ids | staff_org_ids
+
+            org_team_ids: set = set()
+            if all_org_ids:
+                org_team_ids = set(
+                    Team.objects.filter(
+                        organization_id__in=all_org_ids, status='ACTIVE',
+                    ).values_list('id', flat=True)
+                )
+
+            combined_team_ids = direct_team_ids | org_team_ids
+            if combined_team_ids:
+                # One fetch for every team the user could possibly act on.
+                all_teams = list(
+                    Team.objects.filter(id__in=combined_team_ids)
+                    .only('id', 'name', 'slug', 'game_id', 'organization_id',
+                          'created_by_id', 'status')
+                )
+                for t in all_teams:
+                    teams_by_game[t.game_id].append(t)
+
+                # Active member counts in one grouped query.
+                team_active_members = dict(
+                    TeamMembership.objects.filter(
+                        team_id__in=combined_team_ids,
+                        status=TeamMembership.Status.ACTIVE,
+                    ).values('team_id')
+                    .annotate(c=Count('id'))
+                    .values_list('team_id', 'c')
+                )
+
+                # Team registrations across all tournaments in one query.
+                for r in Registration.objects.filter(
+                    tournament_id__in=team_tournament_ids,
+                    team_id__in=combined_team_ids,
+                    is_deleted=False,
+                ).exclude(
+                    status__in=[Registration.CANCELLED, Registration.REJECTED],
+                ).order_by('-created_at'):
+                    team_regs_by_tournament[r.tournament_id].setdefault(r.team_id, r)
+
+        # Per-tournament resolution — pure in-memory work from here.
+        result_map: Dict[int, Dict] = {}
+        for tournament in tournament_list:
+            result = {
+                'can_register': False,
+                'reason': '',
+                'status': 'unknown',
+                'registration': None,
+                'action_url': '',
+                'action_label': 'View Details',
+            }
+
+            existing = user_solo_regs.get(tournament.id)
+            if existing:
+                result.update({
+                    'reason': 'You are already registered for this tournament.',
+                    'status': 'already_registered',
+                    'registration': existing,
+                    'action_url': f'/tournaments/{tournament.slug}/lobby/',
+                    'action_label': 'Enter Lobby',
+                })
+                result_map[tournament.id] = result
+                continue
+
+            if tournament.participation_type == Tournament.TEAM:
+                team_regs_for_t = team_regs_by_tournament.get(tournament.id) or {}
+                if team_regs_for_t:
+                    team_registration = next(iter(team_regs_for_t.values()))
+                    result.update({
+                        'reason': 'Your team is already registered for this tournament.',
+                        'status': 'team_already_registered',
+                        'registration': team_registration,
+                        'action_url': f'/tournaments/{tournament.slug}/lobby/',
+                        'action_label': 'Enter Lobby',
+                    })
+                    result_map[tournament.id] = result
+                    continue
+
+            if tournament.status == Tournament.COMPLETED:
+                result.update({
+                    'reason': 'This tournament has ended.',
+                    'status': 'completed',
+                    'action_url': f'/tournaments/{tournament.slug}/results/',
+                    'action_label': 'View Results',
+                })
+                result_map[tournament.id] = result
+                continue
+
+            if tournament.status == Tournament.CANCELLED:
+                result.update({
+                    'reason': 'This tournament has been cancelled.',
+                    'status': 'cancelled',
+                    'action_url': f'/tournaments/{tournament.slug}/',
+                    'action_label': 'View Details',
+                })
+                result_map[tournament.id] = result
+                continue
+
+            if tournament.status not in [Tournament.REGISTRATION_OPEN, Tournament.PUBLISHED]:
+                result.update({
+                    'reason': 'Registration is not currently open.',
+                    'status': 'registration_closed',
+                    'action_url': f'/tournaments/{tournament.slug}/',
+                    'action_label': 'View Details',
+                })
+                result_map[tournament.id] = result
+                continue
+
+            is_full = (
+                tournament.max_participants > 0
+                and capacity_counts.get(tournament.id, 0) >= tournament.max_participants
+            )
+            if is_full:
+                result.update({
+                    'can_register': True,
+                    'reason': 'This tournament is full. You will be placed on the waitlist.',
+                    'status': 'full_waitlist',
+                    'action_url': f'/tournaments/{tournament.slug}/register/?waitlist=1',
+                    'action_label': 'Join Waitlist',
+                })
+
+            if tournament.participation_type == Tournament.TEAM:
+                team_check = RegistrationEligibilityService._team_eligibility_from_cache(
+                    tournament=tournament,
+                    user=user,
+                    user_profile=user_profile,
+                    teams_by_game=teams_by_game,
+                    membership_by_team=membership_by_team,
+                    ceo_org_ids=ceo_org_ids,
+                    all_org_ids=all_org_ids,
+                    team_active_members=team_active_members,
+                )
+                if not team_check['eligible']:
+                    allows_guest = (
+                        getattr(tournament, 'max_guest_teams', 0)
+                        and tournament.max_guest_teams > 0
+                    )
+                    if allows_guest and team_check['status'] in (
+                        'no_team', 'no_eligible_team', 'no_permission', 'no_profile',
+                    ):
+                        current_guest = guest_counts.get(tournament.id, 0)
+                        if current_guest < tournament.max_guest_teams:
+                            remaining = tournament.max_guest_teams - current_guest
+                            result.update({
+                                'can_register': True,
+                                'reason': (
+                                    f"{team_check['reason']} "
+                                    f"You can register as a guest team instead "
+                                    f"({remaining} guest slot(s) remaining)."
+                                ),
+                                'status': 'guest_team_eligible',
+                                'action_url': f'/tournaments/{tournament.slug}/register/?guest=1',
+                                'action_label': 'Register as Guest Team',
+                            })
+                            result_map[tournament.id] = result
+                            continue
+
+                    result.update({
+                        'can_register': False,
+                        'reason': team_check['reason'],
+                        'status': team_check['status'],
+                        'action_url': team_check.get(
+                            'action_url', f'/tournaments/{tournament.slug}/',
+                        ),
+                        'action_label': team_check.get('action_label', 'View Details'),
+                    })
+                    result_map[tournament.id] = result
+                    continue
+
+            if not is_full:
+                result.update({
+                    'can_register': True,
+                    'reason': '',
+                    'status': 'eligible',
+                    'action_url': f'/tournaments/{tournament.slug}/register/',
+                    'action_label': 'Register Now',
+                })
+
+            result_map[tournament.id] = result
+
+        return result_map
+
+    @staticmethod
+    def _team_eligibility_from_cache(
+        *,
+        tournament: Tournament,
+        user: User,
+        user_profile: Optional[UserProfile],
+        teams_by_game: Dict[int, List[Team]],
+        membership_by_team: Dict[int, TeamMembership],
+        ceo_org_ids: set,
+        all_org_ids: set,
+        team_active_members: Dict[int, int],
+    ) -> Dict:
+        """
+        Pure in-memory team-eligibility resolver used by check_eligibility_bulk.
+        Mirrors the success/failure shape of _check_team_eligibility but issues
+        zero database queries — every input is pre-fetched by the bulk caller.
+        """
+        if not user_profile:
+            return {
+                'eligible': False,
+                'reason': 'You need to complete your profile before registering.',
+                'status': 'no_profile',
+                'action_url': '/profile/edit/',
+                'action_label': 'Complete Profile',
+            }
+
+        game_teams = teams_by_game.get(tournament.game_id, [])
+        team_with_permission: Optional[Team] = None
+        for t in game_teams:
+            membership = membership_by_team.get(t.id)
+            is_ceo = bool(t.organization_id) and t.organization_id in ceo_org_ids
+            is_creator = t.created_by_id == user.id
+            is_org_staff = bool(t.organization_id) and t.organization_id in all_org_ids
+            has_role = False
+            if membership:
+                role_ok = membership.role in [
+                    TeamMembership.Role.OWNER,
+                    TeamMembership.Role.MANAGER,
+                ]
+                try:
+                    perm_ok = membership.has_permission('register_tournaments')
+                except Exception:
+                    perm_ok = False
+                has_role = role_ok or perm_ok
+            if is_creator or is_ceo or is_org_staff or has_role:
+                team_with_permission = t
+                break
+
+        if not team_with_permission:
+            if not game_teams:
+                game_name = getattr(getattr(tournament, 'game', None), 'name', 'this game')
+                return {
+                    'eligible': False,
+                    'reason': f'You need to join a {game_name} team to register.',
+                    'status': 'no_team',
+                    'action_url': '/teams/create/',
+                    'action_label': 'Create Team',
+                }
+            return {
+                'eligible': False,
+                'reason': "You don't have permission to register any of your teams.",
+                'status': 'no_permission',
+                'action_url': '/teams/',
+                'action_label': 'View Teams',
+            }
+
+        min_team_size = getattr(getattr(tournament, 'game', None), 'min_team_size', 5) or 5
+        active_count = team_active_members.get(team_with_permission.id, 0)
+        if active_count < min_team_size:
+            return {
+                'eligible': False,
+                'reason': f'Your team needs at least {min_team_size} members.',
+                'status': 'roster_too_small',
+                'action_url': f'/teams/{team_with_permission.slug}/',
+                'action_label': 'Manage Team',
+            }
+
+        return {'eligible': True, 'reason': '', 'status': 'eligible'}
+
     @staticmethod
     def _check_team_eligibility(tournament: Tournament, user: User) -> Dict:
         """

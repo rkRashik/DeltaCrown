@@ -52,6 +52,19 @@ class ChallengeListSerializer(serializers.Serializer):
     is_open_challenge = serializers.BooleanField(read_only=True)
     is_featured = serializers.BooleanField(read_only=True)
 
+    # ── Crown Clash escrow fields ───────────────────────────────────────
+    entry_fee_dc = serializers.IntegerField(read_only=True)
+    prize_pot_dc = serializers.IntegerField(read_only=True)
+    is_crown_clash = serializers.BooleanField(read_only=True)
+    escrow_locked = serializers.BooleanField(read_only=True)
+
+    # ── Lobby closure (UI: render reason instead of bare countdown) ─────
+    closure_reason = serializers.CharField(read_only=True, allow_blank=True)
+    closure_reason_display = serializers.CharField(
+        source='get_closure_reason_display', read_only=True, allow_blank=True
+    )
+    closure_note = serializers.CharField(read_only=True, allow_blank=True)
+
 
 class ChallengeDetailSerializer(ChallengeListSerializer):
     """Full challenge detail including game config and scores."""
@@ -89,6 +102,13 @@ class ChallengeCreateSerializer(serializers.Serializer):
     scheduled_at = serializers.DateTimeField(required=False, allow_null=True, default=None)
     expires_at = serializers.DateTimeField(required=False, allow_null=True, default=None)
     is_public = serializers.BooleanField(default=True)
+    # Crown Clash entry fee.  When > 0 the issuer's wallet is debited at
+    # creation time and the opponent's matching stake is locked on accept.
+    entry_fee_dc = serializers.IntegerField(
+        default=0,
+        min_value=0,
+        help_text="DeltaCoins each side locks into escrow (Crown Clash). 0 = no entry fee."
+    )
 
 
 class ChallengeAcceptSerializer(serializers.Serializer):
@@ -151,10 +171,23 @@ class BountyListSerializer(serializers.Serializer):
     max_claims = serializers.IntegerField()
     claim_count = serializers.IntegerField(read_only=True)
     is_claimable = serializers.BooleanField(read_only=True)
-    
+
     expires_at = serializers.DateTimeField(allow_null=True)
     created_at = serializers.DateTimeField(read_only=True)
     is_featured = serializers.BooleanField(read_only=True)
+
+    # ── Hitlist escrow fields ───────────────────────────────────────────
+    is_hitlist = serializers.BooleanField(read_only=True)
+    reward_amount_dc = serializers.IntegerField(read_only=True)
+    challenger_entry_fee_dc = serializers.IntegerField(read_only=True)
+    escrow_locked = serializers.BooleanField(read_only=True)
+
+    # ── Closure (UI: render reason instead of bare countdown) ───────────
+    closure_reason = serializers.CharField(read_only=True, allow_blank=True)
+    closure_reason_display = serializers.CharField(
+        source='get_closure_reason_display', read_only=True, allow_blank=True
+    )
+    closure_note = serializers.CharField(read_only=True, allow_blank=True)
 
 
 class BountyCreateSerializer(serializers.Serializer):
@@ -177,6 +210,21 @@ class BountyCreateSerializer(serializers.Serializer):
     max_claims = serializers.IntegerField(default=1, min_value=1)
     expires_at = serializers.DateTimeField(required=False, allow_null=True, default=None)
     is_public = serializers.BooleanField(default=True)
+    # ── Hitlist mode ────────────────────────────────────────────────────
+    is_hitlist = serializers.BooleanField(
+        default=False,
+        help_text="When true, locks reward_amount_dc from the issuer immediately."
+    )
+    reward_amount_dc = serializers.IntegerField(
+        default=0,
+        min_value=0,
+        help_text="DeltaCoins the issuer locks as the prize (Hitlist only)."
+    )
+    challenger_entry_fee_dc = serializers.IntegerField(
+        default=0,
+        min_value=0,
+        help_text="DeltaCoins each challenger team locks per claim (Hitlist only)."
+    )
 
 
 class BountyClaimSerializer(serializers.Serializer):

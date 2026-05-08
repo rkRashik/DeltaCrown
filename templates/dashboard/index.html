@@ -657,7 +657,7 @@
                 <div class="flex items-center gap-4 p-4 rounded-xl bg-black/40 border border-white/[0.06] hover:border-white/[0.15] transition-all group">
                   <div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border"
                        :class="{
-                         'bg-dc-warning/10 border-dc-warning/20': ch.type === 'WAGER',
+                         'bg-dc-warning/10 border-dc-warning/20': ch.isCrownClash,
                          'bg-dc-danger/10 border-dc-danger/20': ch.type === 'BOUNTY',
                          'bg-dc-accent/10 border-dc-accent/20': ch.type === 'SCRIM',
                          'bg-purple-400/10 border-purple-400/20': ch.type === 'DUEL'
@@ -810,6 +810,26 @@
                 <span class="uppercase text-xs tracking-wider font-bold">Claim Prizes</span>
               </a>
             </div>
+
+            <a href="{% url 'dashboard:competitive_hub' %}"
+               class="block p-3.5 rounded-xl mb-4 no-underline group transition-all active:scale-[0.98]"
+               style="background: linear-gradient(135deg, rgba(99,102,241,.18), rgba(255,70,85,.10) 60%, rgba(255,215,0,.10));
+                      border: 1px solid rgba(99,102,241,.40);
+                      box-shadow: 0 0 24px -6px rgba(99,102,241,.40), inset 0 1px 0 0 rgba(255,255,255,.06);">
+              <div class="flex items-center justify-between gap-3">
+                <div class="flex items-center gap-3">
+                  <div class="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
+                       style="background: linear-gradient(135deg, #6366F1, #FF4655 80%); box-shadow: 0 0 14px -2px rgba(99,102,241,.6);">
+                    <i class="fa-solid fa-crown text-white text-sm"></i>
+                  </div>
+                  <div class="min-w-0">
+                    <div class="text-[10px] uppercase tracking-[0.2em] text-indigo-300/80 font-bold">Crown Arena</div>
+                    <div class="text-sm font-black text-white truncate">Contracts · Clash · Hitlist · Royale</div>
+                  </div>
+                </div>
+                <i class="fa-solid fa-arrow-right text-white/60 group-hover:text-white transition"></i>
+              </div>
+            </a>
 
             {# Recent Transactions #}
             <div class="pt-4 border-t border-white/[0.08]" x-show="wallet.recentTxns.length > 0">

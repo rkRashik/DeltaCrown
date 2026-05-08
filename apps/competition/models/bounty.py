@@ -173,6 +173,57 @@ class Bounty(SoftDeleteModel):
         help_text="True once the issuer's DC have been locked into escrow."
     )
 
+    # ── The Hitlist ──────────────────────────────────────────────────────
+    # When is_hitlist is True, this bounty acts as a "kings vs challengers"
+    # match.  Challenger teams pay challenger_entry_fee_dc per claim attempt.
+    is_hitlist = models.BooleanField(
+        default=False,
+        db_index=True,
+        help_text="True if this bounty is published on The Hitlist (paid challenges)."
+    )
+    challenger_entry_fee_dc = models.PositiveIntegerField(
+        default=0,
+        help_text="DC each challenger team locks per claim attempt (Hitlist only)."
+    )
+
+    # Audit trail link to issuer's reward lock transaction.
+    issuer_lock_txn = models.ForeignKey(
+        'economy.DeltaCrownTransaction',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='+',
+        help_text="Issuer's escrow lock transaction (set when reward_amount_dc > 0)."
+    )
+    funded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='+',
+        help_text="User whose personal wallet funded the bounty reward."
+    )
+
+    # ── Lobby Closure (UI: never rely on a generic countdown) ────────────
+    CLOSURE_REASON_CHOICES = [
+        ('', 'Not closed'),
+        ('CLAIMED', 'Claimed — reward paid out'),
+        ('CANCELLED_BY_ISSUER', 'Cancelled by issuer'),
+        ('EXPIRED', 'Expired before claim'),
+        ('ADMIN_VOID', 'Voided by admin'),
+    ]
+    closure_reason = models.CharField(
+        max_length=24,
+        choices=CLOSURE_REASON_CHOICES,
+        blank=True,
+        default='',
+        db_index=True,
+        help_text="Why the bounty closed. UI must surface this rather than a bare countdown."
+    )
+    closure_note = models.TextField(
+        blank=True,
+        default='',
+        help_text="Free-form admin/system note for the closure (e.g. dispute outcome)."
+    )
+
     # Managers — default excludes soft-deleted rows
     objects = SoftDeleteManager()
     all_objects = models.Manager()
@@ -216,6 +267,18 @@ class Bounty(SoftDeleteModel):
             and not self.is_expired
             and self.claim_count < self.max_claims
         )
+
+    def hitlist_ref_id(self, suffix: str = '') -> str:
+        """Stable escrow reference_id for this Hitlist bounty.
+
+        ``suffix`` allows per-side or per-claim distinction:
+            ''            → issuer reward lock / settlement
+            'issuer'      → issuer reward lock
+            'claim:<pk>'  → challenger entry-fee lock for that claim
+            'payout:<pk>' → settlement reference for a specific claim
+        """
+        base = f"HL-{self.reference_code}"
+        return f"{base}_{suffix}" if suffix else base
 
 
 class BountyClaim(SoftDeleteModel):
@@ -289,6 +352,58 @@ class BountyClaim(SoftDeleteModel):
     claimed_at = models.DateTimeField(auto_now_add=True)
     verified_at = models.DateTimeField(null=True, blank=True)
     admin_notes = models.TextField(blank=True)
+
+    # ── Hitlist escrow audit ─────────────────────────────────────────────
+    entry_fee_lock_txn = models.ForeignKey(
+        'economy.DeltaCrownTransaction',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='+',
+        help_text="Challenger's entry-fee lock transaction (Hitlist only)."
+    )
+    outcome_txn = models.ForeignKey(
+        'economy.DeltaCrownTransaction',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='+',
+        help_text="Settlement transaction — payout or refund — recorded on resolution."
+    )
+    funded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='+',
+        help_text="User whose personal wallet funded the challenger entry fee."
+    )
+    match = models.ForeignKey(
+        'tournaments.Match',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='+',
+        help_text="Match Room spawned when this Hitlist claim was submitted."
+    )
+
+    # ── Closure (UI: never rely on a generic countdown) ──────────────────
+    CLOSURE_REASON_CHOICES = [
+        ('', 'Not closed'),
+        ('VERIFIED_PAID', 'Challenger won — reward paid'),
+        ('REJECTED', 'Challenger lost — entry fee forfeited'),
+        ('VOIDED', 'Voided by admin'),
+        ('EXPIRED', 'Expired before verification'),
+    ]
+    closure_reason = models.CharField(
+        max_length=24,
+        choices=CLOSURE_REASON_CHOICES,
+        blank=True,
+        default='',
+        db_index=True,
+        help_text="Why the claim closed.  UI surfaces this on the claim card."
+    )
+    closure_note = models.TextField(
+        blank=True,
+        default='',
+        help_text="Free-form admin/system note for the claim closure."
+    )
 
     class Meta:
         db_table = 'competition_bounty_claim'

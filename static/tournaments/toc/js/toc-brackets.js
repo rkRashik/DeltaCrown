@@ -653,6 +653,16 @@
     var fmt = window.TOC_CONFIG ? window.TOC_CONFIG.tournamentFormat : '';
     var isGroupPlayoff = fmt === 'group_playoff';
     var isRoundRobin   = fmt === 'round_robin';
+    var isBattleRoyale = fmt === 'battle_royale';
+
+    // Battle Royale: no bracket tree — the Brackets sub-tab hosts the lobby
+    // session score-entry grid (one card per generated lobby).
+    if (isBattleRoyale) {
+      if (infoBar)    infoBar.classList.add('hidden');
+      if (seedEditor) seedEditor.classList.add('hidden');
+      renderBRLobbiesView(container);
+      return;
+    }
 
     // Round Robin: no Bracket tree — the Playoff Bracket sub-tab shows a
     // friendly redirect to the Group Stage sub-tab where the league table lives.
@@ -795,6 +805,326 @@
       seedEditor.classList.add('hidden');
     }
     iconsRefresh();
+  }
+
+  /* ================================================================
+   *  BATTLE ROYALE — Lobby Session Score Entry
+   *  ----------------------------------------------------------------
+   *  Renders one card per generated lobby session. Each card has:
+   *    - File input + "Extract via AI" button (POST /brackets/br-score-screenshot/)
+   *    - Map name input
+   *    - Per-team grid (placement + kills inputs)
+   *    - Submit (POST /brackets/br-score-entry/)
+   *  Pre-fills inputs from any existing match.game_scores.br_results so
+   *  organizers can edit a previously-submitted result.
+   * ================================================================ */
+  var _brStateByMatch = {}; // matchId -> { participants: [{id,label}], submitting: bool, extracting: bool }
+
+  function _brEscape(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  async function renderBRLobbiesView(container) {
+    if (!container) return;
+    container.innerHTML = '<div class="flex items-center justify-center py-16">'
+      + '<div class="text-xs font-mono text-dc-text/50">Loading lobby sessions…</div></div>';
+
+    var matchesResp, standingsResp;
+    try {
+      var pair = await Promise.all([
+        API.get('matches/?page_size=200').catch(function () { return null; }),
+        API.get('groups/standings/').catch(function () { return null; }),
+      ]);
+      matchesResp = pair[0]; standingsResp = pair[1];
+    } catch (e) {
+      container.innerHTML = '<div class="py-16 text-center text-dc-danger text-xs">'
+        + 'Failed to load lobby sessions: ' + _brEscape(parseError(e)) + '</div>';
+      return;
+    }
+
+    var allMatches = (matchesResp && Array.isArray(matchesResp.matches)) ? matchesResp.matches : [];
+    var sessions = allMatches.filter(function (m) {
+      var info = m.lobby_info || {};
+      return info.br_session === true;
+    });
+    sessions.sort(function (a, b) {
+      var an = (a.lobby_info && a.lobby_info.session_number) || 0;
+      var bn = (b.lobby_info && b.lobby_info.session_number) || 0;
+      return an - bn;
+    });
+
+    // Build participant list from leaderboard standings (the single Group
+    // returned by the BattleRoyaleStrategy).
+    var participants = [];
+    try {
+      var groups = (standingsResp && Array.isArray(standingsResp.groups)) ? standingsResp.groups : [];
+      var seen = {};
+      groups.forEach(function (g) {
+        (g.standings || []).forEach(function (s) {
+          var pid = s.team_id || s.user_id;
+          if (!pid || seen[pid]) return;
+          seen[pid] = true;
+          participants.push({
+            id: pid,
+            label: s.team_name || s.username || s.display_name || ('Participant #' + pid),
+          });
+        });
+      });
+    } catch (_) { /* no-op */ }
+
+    // Empty state — no lobby sessions generated yet.
+    if (!sessions.length) {
+      container.innerHTML = '<div class="flex flex-col items-center justify-center py-16 text-center">'
+        + '<div class="w-16 h-16 rounded-2xl bg-theme/10 border border-theme/20 flex items-center justify-center mb-5">'
+        + '<i data-lucide="crosshair" class="w-8 h-8 text-theme/60"></i></div>'
+        + '<h3 class="text-lg font-bold text-white mb-2">No Lobby Sessions Yet</h3>'
+        + '<p class="text-sm text-dc-text max-w-md mb-6">Click <strong class="text-white">Generate</strong> above to create lobby sessions from your saved Battle Royale settings.</p></div>';
+      iconsRefresh();
+      return;
+    }
+
+    if (!participants.length) {
+      container.innerHTML = '<div class="py-16 text-center text-dc-warning text-xs">'
+        + 'Lobby sessions exist but the leaderboard has no participants yet. '
+        + 'Reset and re-generate to seed the leaderboard.</div>';
+      return;
+    }
+
+    // Persist participant list per match for handlers (DOM is the source of
+    // truth for the editable grid; we just need labels for AI pre-fill).
+    sessions.forEach(function (m) {
+      _brStateByMatch[m.id] = _brStateByMatch[m.id] || {};
+      _brStateByMatch[m.id].participants = participants;
+    });
+
+    var configFmtOpts = (window.TOC_CONFIG && window.TOC_CONFIG.formatOptions) || {};
+    var screenshotRequired = configFmtOpts.is_screenshot_required === true;
+
+    var headerHtml = '<div class="flex items-center justify-between mb-5">'
+      + '<div>'
+      + '<h3 class="text-sm font-black text-white uppercase tracking-widest">Lobby Sessions — Score Entry</h3>'
+      + '<p class="text-[10px] text-dc-text font-mono mt-0.5">'
+      + sessions.length + ' session(s) · ' + participants.length + ' participant(s)'
+      + (screenshotRequired ? ' · <span class="text-amber-400">screenshot required</span>' : '')
+      + '</p>'
+      + '</div>'
+      + '</div>';
+
+    container.innerHTML = headerHtml
+      + '<div class="space-y-4">'
+      + sessions.map(function (m) { return _brRenderSessionCard(m, participants, screenshotRequired); }).join('')
+      + '</div>';
+    iconsRefresh();
+  }
+
+  function _brRenderSessionCard(m, participants, screenshotRequired) {
+    var info  = m.lobby_info || {};
+    var sn    = info.session_number || '?';
+    var map   = info.map_name || '';
+    var state = (m.state || '').toString().toLowerCase();
+    var isCompleted = state === 'completed' || state === 'forfeit';
+
+    // Pre-fill from existing br_results if the lobby has already been scored.
+    var existing = {};
+    var scores = m.game_scores || {};
+    if (Array.isArray(scores.br_results)) {
+      scores.br_results.forEach(function (r) {
+        if (r && r.participant_id != null) {
+          existing[r.participant_id] = {
+            placement: r.placement, kills: r.kills,
+          };
+        }
+      });
+    }
+
+    var stateBadge = isCompleted
+      ? '<span class="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"><i data-lucide="check-circle-2" class="w-3 h-3"></i>Completed</span>'
+      : '<span class="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded bg-dc-panel border border-dc-border text-dc-text">Pending</span>';
+
+    var rowsHtml = participants.map(function (p) {
+      var ex = existing[p.id] || {};
+      var place = ex.placement != null ? ex.placement : '';
+      var kills = ex.kills     != null ? ex.kills     : '';
+      return '<tr class="border-b border-dc-border/20 last:border-b-0">'
+        + '<td class="px-3 py-2 text-xs text-white">' + _brEscape(p.label) + '</td>'
+        + '<td class="px-2 py-2 w-24"><input type="number" min="1" max="100" value="' + _brEscape(place) + '" data-br-pid="' + p.id + '" data-br-field="placement" class="w-full bg-dc-bg border border-dc-border rounded px-2 py-1 text-white text-xs text-center focus:border-theme outline-none" placeholder="—"></td>'
+        + '<td class="px-2 py-2 w-24"><input type="number" min="0" max="100" value="' + _brEscape(kills) + '" data-br-pid="' + p.id + '" data-br-field="kills" class="w-full bg-dc-bg border border-dc-border rounded px-2 py-1 text-white text-xs text-center focus:border-theme outline-none" placeholder="0"></td>'
+        + '</tr>';
+    }).join('');
+
+    return '<div class="glass-box rounded-xl border border-dc-border" data-br-card="' + m.id + '">'
+      // Header
+      + '<div class="flex items-center justify-between p-4 border-b border-dc-border/40 bg-dc-panel/30">'
+      + '<div class="flex items-center gap-3">'
+      + '<div class="w-10 h-10 rounded-lg bg-theme/10 border border-theme/20 flex items-center justify-center">'
+      + '<i data-lucide="crosshair" class="w-5 h-5 text-theme"></i></div>'
+      + '<div>'
+      + '<div class="text-sm font-black text-white">Session #' + _brEscape(sn) + '</div>'
+      + '<div class="text-[10px] font-mono text-dc-text uppercase tracking-widest">Match ID ' + m.id + (map ? ' · ' + _brEscape(map) : '') + '</div>'
+      + '</div></div>'
+      + stateBadge
+      + '</div>'
+      // AI extract row
+      + '<div class="p-4 border-b border-dc-border/40 bg-dc-bg/40">'
+      + '<div class="flex items-center gap-3 flex-wrap">'
+      + '<label class="flex-1 min-w-[260px] cursor-pointer flex items-center gap-2 px-3 py-2 bg-dc-bg border border-dashed border-dc-border rounded-lg hover:border-theme/40 transition-colors">'
+      + '<i data-lucide="image" class="w-4 h-4 text-dc-text"></i>'
+      + '<span class="text-xs text-dc-text" data-br-filename-for="' + m.id + '">Choose result screenshot…</span>'
+      + '<input type="file" accept="image/png,image/jpeg,image/webp" class="hidden" data-br-file="' + m.id + '" data-change="TOC.brackets.onBRFilePicked" data-change-args=\'[' + m.id + ']\'>'
+      + '</label>'
+      + '<button type="button" data-click="TOC.brackets.extractBRSessionAI" data-click-args=\'[' + m.id + ']\' class="px-3 py-2 bg-purple-500/15 border border-purple-500/30 text-purple-300 text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-purple-500/25 transition-colors flex items-center gap-1.5" data-br-extract-btn="' + m.id + '">'
+      + '<i data-lucide="sparkles" class="w-3.5 h-3.5"></i><span>Extract via AI</span></button>'
+      + '<input type="text" placeholder="Map name (e.g. Erangel)" value="' + _brEscape(map) + '" data-br-mapname="' + m.id + '" class="w-44 bg-dc-bg border border-dc-border rounded-lg px-3 py-2 text-white text-xs focus:border-theme outline-none">'
+      + '</div>'
+      + '<p class="text-[10px] text-dc-text mt-2">Upload an end-of-match screenshot. Gemini Vision extracts placements + kills, you review and edit before submitting.</p>'
+      + '</div>'
+      // Score grid
+      + '<div class="overflow-x-auto">'
+      + '<table class="w-full text-xs">'
+      + '<thead class="bg-dc-panel/50"><tr class="text-[9px] font-bold text-dc-text uppercase tracking-widest">'
+      + '<th class="px-3 py-2 text-left">Participant</th>'
+      + '<th class="px-2 py-2 text-center w-24">Placement</th>'
+      + '<th class="px-2 py-2 text-center w-24">Kills</th>'
+      + '</tr></thead>'
+      + '<tbody>' + rowsHtml + '</tbody></table>'
+      + '</div>'
+      // Submit row
+      + '<div class="flex items-center justify-end gap-2 p-3 border-t border-dc-border/40 bg-dc-panel/20">'
+      + '<button type="button" data-click="TOC.brackets.submitBRSession" data-click-args=\'[' + m.id + ']\' data-cap-require="manage_brackets" class="px-4 py-2 bg-theme text-dc-bg text-[10px] font-black uppercase tracking-widest rounded-lg hover:opacity-90 transition-opacity flex items-center gap-1.5" data-br-submit-btn="' + m.id + '">'
+      + '<i data-lucide="send" class="w-3.5 h-3.5"></i><span>' + (isCompleted ? 'Re-submit' : 'Submit') + '</span></button>'
+      + '</div>'
+      + '</div>';
+  }
+
+  function onBRFilePicked(matchId) {
+    var input = document.querySelector('[data-br-file="' + matchId + '"]');
+    var label = document.querySelector('[data-br-filename-for="' + matchId + '"]');
+    if (!input || !label) return;
+    var f = input.files && input.files[0];
+    label.textContent = f ? f.name : 'Choose result screenshot…';
+  }
+
+  async function extractBRSessionAI(matchId) {
+    var input  = document.querySelector('[data-br-file="' + matchId + '"]');
+    var btn    = document.querySelector('[data-br-extract-btn="' + matchId + '"]');
+    if (!input || !btn) return;
+
+    var f = input.files && input.files[0];
+    if (!f) { toast('Choose a screenshot file first.', 'info'); return; }
+
+    var state = _brStateByMatch[matchId] = _brStateByMatch[matchId] || {};
+    if (state.extracting) return;
+    state.extracting = true;
+    btn.disabled = true;
+    var span = btn.querySelector('span');
+    var origText = span ? span.textContent : '';
+    if (span) span.textContent = 'Extracting…';
+    btn.classList.add('opacity-70', 'cursor-wait');
+
+    try {
+      var fd = new FormData();
+      fd.append('match_id', String(matchId));
+      fd.append('screenshot', f);
+      var resp = await API.post('brackets/br-score-screenshot/', fd);
+      _brApplyAIResult(matchId, resp);
+      var n = (resp && Array.isArray(resp.results)) ? resp.results.length : 0;
+      toast('AI extracted ' + n + ' row(s). Review and submit.', 'success');
+    } catch (e) {
+      toast('AI extraction failed: ' + parseError(e), 'error');
+    } finally {
+      state.extracting = false;
+      btn.disabled = false;
+      btn.classList.remove('opacity-70', 'cursor-wait');
+      if (span) span.textContent = origText || 'Extract via AI';
+    }
+  }
+
+  function _brApplyAIResult(matchId, resp) {
+    if (!resp) return;
+    var results = Array.isArray(resp.results) ? resp.results : [];
+    var card = document.querySelector('[data-br-card="' + matchId + '"]');
+    if (!card) return;
+
+    // Reset numeric inputs (so an old fill doesn't shadow a new partial fill).
+    Array.from(card.querySelectorAll('[data-br-pid][data-br-field]')).forEach(function (el) {
+      el.value = '';
+    });
+
+    results.forEach(function (r) {
+      if (!r || r.participant_id == null) return;
+      var placeEl = card.querySelector('[data-br-pid="' + r.participant_id + '"][data-br-field="placement"]');
+      var killsEl = card.querySelector('[data-br-pid="' + r.participant_id + '"][data-br-field="kills"]');
+      if (placeEl) placeEl.value = (r.placement != null ? String(r.placement) : '');
+      if (killsEl) killsEl.value = (r.kills     != null ? String(r.kills)     : '');
+    });
+
+    if (resp.map_name) {
+      var mapEl = card.querySelector('[data-br-mapname="' + matchId + '"]');
+      if (mapEl && !mapEl.value) mapEl.value = resp.map_name;
+    }
+  }
+
+  async function submitBRSession(matchId) {
+    var card = document.querySelector('[data-br-card="' + matchId + '"]');
+    if (!card) return;
+    var btn = card.querySelector('[data-br-submit-btn="' + matchId + '"]');
+    var state = _brStateByMatch[matchId] = _brStateByMatch[matchId] || {};
+    if (state.submitting) return;
+
+    var rows = [];
+    Array.from(card.querySelectorAll('[data-br-pid][data-br-field="placement"]')).forEach(function (el) {
+      var pid = parseInt(el.dataset.brPid, 10);
+      var placeStr = (el.value || '').trim();
+      if (!pid || placeStr === '') return; // skip rows with no placement
+      var killsEl = card.querySelector('[data-br-pid="' + pid + '"][data-br-field="kills"]');
+      var killsStr = killsEl ? (killsEl.value || '').trim() : '';
+      var placement = parseInt(placeStr, 10);
+      var kills = killsStr === '' ? 0 : parseInt(killsStr, 10);
+      if (Number.isNaN(placement) || placement < 1) return;
+      if (Number.isNaN(kills) || kills < 0) kills = 0;
+      rows.push({ participant_id: pid, placement: placement, kills: kills });
+    });
+
+    if (!rows.length) {
+      toast('Enter at least one placement before submitting.', 'error');
+      return;
+    }
+    // Cheap duplicate-placement guard.
+    var placements = rows.map(function (r) { return r.placement; });
+    var dupe = placements.filter(function (p, i) { return placements.indexOf(p) !== i; });
+    if (dupe.length) {
+      toast('Duplicate placement #' + dupe[0] + '. Each row needs a unique finish.', 'error');
+      return;
+    }
+
+    var mapEl = card.querySelector('[data-br-mapname="' + matchId + '"]');
+    var mapName = mapEl ? (mapEl.value || '').trim() : '';
+
+    state.submitting = true;
+    if (btn) {
+      btn.disabled = true;
+      btn.classList.add('opacity-70', 'cursor-wait');
+    }
+    try {
+      await API.post('brackets/br-score-entry/', {
+        match_id: matchId,
+        results:  rows,
+        map_name: mapName,
+      });
+      toast('Session #' + matchId + ' submitted.', 'success');
+      // Refresh so the card re-renders with the new state + standings update.
+      refresh({ useCache: false });
+    } catch (e) {
+      toast('Submit failed: ' + parseError(e), 'error');
+    } finally {
+      state.submitting = false;
+      if (btn) {
+        btn.disabled = false;
+        btn.classList.remove('opacity-70', 'cursor-wait');
+      }
+    }
   }
 
   /* --- Bracket grid builder ---------------------------------- */
@@ -1377,6 +1707,7 @@
     var advance      = parseInt(saved.advancement_count || 16, 10) || 16;
     var matrix       = saved.scoring_matrix || {};
     var killPts      = parseInt(matrix.kill_points || 1, 10) || 1;
+    var screenshotRequired = saved.is_screenshot_required === true;
     var placementPts = matrix.placement_points || {
       '1':15, '2':12, '3':10, '4':8, '5':6, '6':4, '7':2, '8':1,
     };
@@ -1421,6 +1752,15 @@
       + '<label class="text-[9px] font-bold text-dc-text uppercase tracking-widest block mb-2">Placement Points (Top 10)</label>'
       + '<div class="space-y-2 bg-dc-bg/30 border border-dc-border/30 rounded-lg p-3">' + placementHtml + '</div>'
       + '<p class="text-[10px] text-dc-text mt-1">Finishes outside the top 10 score 0 placement points (kills only).</p>'
+      + '</div>'
+
+      // Screenshot enforcement (AI extraction)
+      + '<div>'
+      + '<label class="flex items-center gap-2 cursor-pointer select-none">'
+      + '<input id="fc-screenshot-required" type="checkbox" ' + (screenshotRequired ? 'checked' : '') + ' class="rounded border-dc-border bg-dc-bg text-theme">'
+      + '<span class="text-xs font-bold text-white uppercase tracking-widest">Require screenshot for score entry</span>'
+      + '</label>'
+      + '<p class="text-[10px] text-dc-text mt-1 ml-6">When enabled, organizers must upload a result screenshot. Gemini Vision extracts placements + kills automatically; admin reviews before submitting.</p>'
       + '</div>'
 
       + '<div class="flex gap-2 pt-2">'
@@ -1618,6 +1958,7 @@
         var lobbiesI = document.querySelector('#fc-lobbies');
         var advI     = document.querySelector('#fc-advance');
         var killPtsI = document.querySelector('#fc-kill-pts');
+        var screenshotI = document.querySelector('#fc-screenshot-required');
         var placementPts = {};
         Array.from(document.querySelectorAll('[data-fc-placement]')).forEach(function(el){
           var pos = el.dataset.fcPlacement;
@@ -1625,8 +1966,9 @@
           if (!Number.isNaN(v)) placementPts[pos] = v;
         });
         payload = {
-          lobbies_per_match_day: parseInt(lobbiesI ? lobbiesI.value : 4, 10) || 4,
-          advancement_count:     parseInt(advI ? advI.value : 16, 10) || 16,
+          lobbies_per_match_day:  parseInt(lobbiesI ? lobbiesI.value : 4, 10) || 4,
+          advancement_count:      parseInt(advI ? advI.value : 16, 10) || 16,
+          is_screenshot_required: !!(screenshotI && screenshotI.checked),
           scoring_matrix: {
             kill_points:      parseInt(killPtsI ? killPtsI.value : 1, 10) || 1,
             placement_points: placementPts,
@@ -2390,6 +2732,10 @@
     showDrawGuide: showDrawGuide, refreshSchedule: refreshSchedule,
     // Swiss
     refreshSwiss: refreshSwiss, advanceSwissRound: advanceSwissRound,
+    // Battle Royale lobby score entry
+    onBRFilePicked: onBRFilePicked,
+    extractBRSessionAI: extractBRSessionAI,
+    submitBRSession: submitBRSession,
   };
 
   document.addEventListener('toc:tab-changed', function (e) {

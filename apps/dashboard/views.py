@@ -51,6 +51,61 @@ def my_matches_view(request: HttpRequest) -> HttpResponse:
 
 
 @login_required
+def competitive_hub_view(request: HttpRequest) -> HttpResponse:
+    """Crown Arena Competitive Hub.
+
+    Renders the shell + a JSON context block of the user's authority teams
+    and the active game catalog so the create-modal forms can populate
+    their dropdowns without an additional fetch round-trip.
+    """
+    user = request.user
+    my_teams = []
+    try:
+        from apps.organizations.models import TeamMembership
+        qs = (
+            TeamMembership.objects
+            .filter(user=user, status='ACTIVE', role__in=['OWNER', 'MANAGER', 'CAPTAIN'])
+            .select_related('team', 'team__game')
+        )
+        for m in qs:
+            t = m.team
+            if not t:
+                continue
+            game = getattr(t, 'game', None)
+            my_teams.append({
+                'id': t.pk,
+                'name': t.name,
+                'slug': getattr(t, 'slug', '') or '',
+                'tag': getattr(t, 'tag', '') or '',
+                'game_id': game.pk if game else None,
+                'game_short_code': getattr(game, 'short_code', '') or '',
+                'role': m.role,
+            })
+    except Exception:
+        my_teams = []
+
+    games = []
+    try:
+        Game = _safe_model('games.Game')
+        if Game:
+            for g in Game.objects.filter(is_active=True).only('id', 'display_name', 'short_code'):
+                games.append({
+                    'id': g.pk,
+                    'name': getattr(g, 'display_name', '') or g.short_code or '',
+                    'short_code': g.short_code or '',
+                })
+    except Exception:
+        games = []
+
+    return render(request, "dashboard/competitive_hub.html", {
+        "hub_context": {
+            "my_teams": my_teams,
+            "games": games,
+        },
+    })
+
+
+@login_required
 def dashboard_index(request: HttpRequest) -> HttpResponse:
     """
     Comprehensive Dashboard — the user's command center.

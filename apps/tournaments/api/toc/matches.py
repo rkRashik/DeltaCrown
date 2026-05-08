@@ -408,3 +408,56 @@ class MatchSeriesGameView(TOCBaseView):
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
         except (TypeError, ValueError) as e:
             return Response({'error': f'Invalid data: {e}'}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class MatchTeam5v5RostersView(TOCBaseView):
+    """
+    GET /api/toc/<slug>/matches/<pk>/team-5v5-rosters/
+
+    Returns the candidate starter rosters for both teams on a 5v5 team match,
+    so the TOC KDA grid can populate its user-picker dropdowns *before* (or
+    independently of) running the AI OCR. Same shape as the
+    ``participant{1,2}_candidates`` arrays in the OCR response.
+
+    Response 200:
+        {
+          "match_id": <int>,
+          "participant1_id":   <int|None>,
+          "participant1_name": "<str>",
+          "participant2_id":   <int|None>,
+          "participant2_name": "<str>",
+          "participant1_candidates": [{"user_id": <int>, "label": "<str>"}, ...],
+          "participant2_candidates": [{"user_id": <int>, "label": "<str>"}, ...]
+        }
+    """
+
+    def get(self, request, slug, pk):
+        from apps.tournaments.models.match import Match
+        from apps.tournaments.services.team_5v5_screenshot_service import (
+            build_team_rosters,
+        )
+
+        try:
+            match = Match.objects.get(
+                id=int(pk),
+                tournament=self.tournament,
+                is_deleted=False,
+            )
+        except (Match.DoesNotExist, TypeError, ValueError):
+            return Response({"error": "Match not found."},
+                            status=status.HTTP_404_NOT_FOUND)
+
+        team1, team2 = build_team_rosters(
+            tournament=self.tournament,
+            participant1_id=match.participant1_id,
+            participant2_id=match.participant2_id,
+        )
+        return Response({
+            "match_id":                match.id,
+            "participant1_id":         match.participant1_id,
+            "participant1_name":       match.participant1_name or "",
+            "participant2_id":         match.participant2_id,
+            "participant2_name":       match.participant2_name or "",
+            "participant1_candidates": team1,
+            "participant2_candidates": team2,
+        })

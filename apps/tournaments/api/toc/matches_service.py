@@ -1463,6 +1463,11 @@ class TOCMatchesService:
                     if isinstance(lobby.get('football_stats'), dict)
                     else None
                 ),
+                # Battle Royale lobby session metadata — needed by the TOC
+                # BR score-entry grid to identify, label, and group sessions.
+                'br_session': bool(lobby.get('br_session')),
+                'session_number': lobby.get('session_number'),
+                'map_name': lobby.get('map_name', ''),
             },
             'participant1_checked_in': getattr(m, 'participant1_checked_in', False),
             'participant2_checked_in': getattr(m, 'participant2_checked_in', False),

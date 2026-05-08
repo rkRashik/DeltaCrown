@@ -15,7 +15,9 @@ Example:
     >>> return render(request, 'user_profile/v2/profile_public.html', context)
 """
 from typing import Optional, Dict, Any, List
+import hashlib
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.core.paginator import Paginator
 from django.db.models import Q
 from django.utils import timezone
@@ -28,6 +30,569 @@ from apps.common.media_urls import field_file_url
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
+
+
+# -----------------------------------------------------------------------------
+# Public-profile cache layer (Phase 12 egress rescue).
+#
+# `build_public_profile_context` returns SAFE primitives only — pickle-friendly.
+# Cache key: profile:ctx:{username}:{version}:{viewer_role}:{sections}:{page}.
+# Invalidation uses a per-username version counter so a single cache.incr()
+# evicts every variant atomically.
+# -----------------------------------------------------------------------------
+
+_PROFILE_CTX_VERSION_KEY = 'profile:ctx:ver:{username}'
+_PROFILE_CTX_TTL_SECONDS = 300  # 5 min — bursty profile traffic, slow drift.
+
+
+def _profile_cache_version(username: str) -> int:
+    """Return the current invalidation counter for this username, init=1."""
+    key = _PROFILE_CTX_VERSION_KEY.format(username=username)
+    v = cache.get(key)
+    if v is None:
+        # No expiry — version persists across cache GC of payload entries.
+        cache.set(key, 1, None)
+        return 1
+    try:
+        return int(v)
+    except (TypeError, ValueError):
+        cache.set(key, 1, None)
+        return 1
+
+
+def invalidate_public_profile_cache(username: str) -> None:
+    """Bump the profile's cache version. O(1) eviction of every cached entry."""
+    if not username:
+        return
+    key = _PROFILE_CTX_VERSION_KEY.format(username=username)
+    try:
+        cache.incr(key)
+    except ValueError:
+        # Key didn't exist (first invalidation before any cache miss).
+        cache.set(key, 2, None)
+
+
+def build_public_profile_context_cached(
+    viewer: Optional[Any],
+    username: str,
+    viewer_role: str,
+    requested_sections: Optional[List[str]] = None,
+    activity_page: int = 1,
+    activity_per_page: int = 25,
+) -> Dict[str, Any]:
+    """
+    Cached wrapper around `build_public_profile_context`.
+
+    - Owner role bypasses cache: their writes happen here and freshness matters.
+    - Other roles cache for 5 min, keyed by (username, version, role, sections, page).
+    - Bumping the version via invalidate_public_profile_cache() evicts all variants.
+    - Errors and private-profile responses are NOT cached.
+    """
+    if viewer_role == 'owner':
+        return build_public_profile_context(
+            viewer, username, requested_sections,
+            activity_page, activity_per_page,
+        )
+
+    sections = tuple(sorted(requested_sections or [
+        'basic', 'stats', 'activity', 'games', 'social',
+    ]))
+    sections_key = hashlib.sha1(','.join(sections).encode()).hexdigest()[:8]
+    version = _profile_cache_version(username)
+    cache_key = (
+        f'profile:ctx:{username}:{version}:{viewer_role}:'
+        f'{sections_key}:p{activity_page}x{activity_per_page}'
+    )
+
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return cached
+
+    payload = build_public_profile_context(
+        viewer, username, requested_sections,
+        activity_page, activity_per_page,
+    )
+    if not payload.get('error') and payload.get('can_view'):
+        cache.set(cache_key, payload, _PROFILE_CTX_TTL_SECONDS)
+    return payload
+
+
+# -----------------------------------------------------------------------------
+# Extended profile payload — all owner-invariant data fetched outside
+# build_public_profile_context. Caches everything as JSON-safe primitives;
+# evicted via the SAME version counter so a single bump clears both layers.
+# -----------------------------------------------------------------------------
+
+def _serialize_hardware_gear(hw_item) -> Optional[Dict[str, Any]]:
+    if not hw_item:
+        return None
+    return {
+        'id': hw_item.id,
+        'category': hw_item.category,
+        'brand': hw_item.brand,
+        'model': hw_item.model,
+        'specs': hw_item.specs or {},
+        'purchase_url': hw_item.purchase_url,
+        'is_public': hw_item.is_public,
+        'updated_at': hw_item.updated_at.isoformat() if hw_item.updated_at else None,
+    }
+
+
+def build_public_profile_extended_context(
+    profile_user,
+    *,
+    viewer_role: str,
+    is_following: bool = False,
+    can_view_achievements: bool = True,
+    can_view_match_history: bool = True,
+) -> Dict[str, Any]:
+    """
+    Compute every owner-invariant context block consumed by public_profile_view
+    that lives OUTSIDE build_public_profile_context. Returns a flat dict of
+    JSON-safe primitives ready to merge into the template context.
+
+    Inputs:
+        profile_user:           Django User instance (the profile being viewed).
+        viewer_role:            'owner' | 'follower' | 'visitor' | 'anonymous'.
+        is_following:           Whether viewer is an approved follower.
+        can_view_achievements:  Result of permission_checker.can_view_achievements.
+        can_view_match_history: Result of permission_checker.can_view_match_history.
+
+    Output keys mirror the existing template-facing context keys 1:1 so the
+    view can apply them with a single `context.update(...)`.
+    """
+    from django.db.models import Q
+    from apps.user_profile.models import (
+        UserBadge, UserProfileStats, ProfileShowcase,
+        ProfileAboutItem, StreamConfig, HighlightClip, PinnedHighlight,
+    )
+    from apps.tournaments.models import Registration, Match
+    from apps.organizations.models import TeamMembership
+    from apps.games.models import Game
+    from apps.siteui.models import CommunityPost
+    from apps.user_profile.services import (
+        loadout_service, trophy_showcase_service, endorsement_service,
+    )
+
+    is_owner = viewer_role == 'owner'
+    user_profile = getattr(profile_user, 'profile', None)
+    out: Dict[str, Any] = {}
+
+    # ---- Posts (CommunityPost) — visibility scoped per viewer role. ---------
+    if user_profile is None:
+        post_qs = CommunityPost.objects.none()
+    elif is_owner:
+        post_qs = CommunityPost.objects.filter(author=user_profile, is_approved=True)
+    elif is_following:
+        post_qs = CommunityPost.objects.filter(
+            author=user_profile, is_approved=True,
+            visibility__in=['public', 'friends'],
+        )
+    else:
+        post_qs = CommunityPost.objects.filter(
+            author=user_profile, is_approved=True, visibility='public',
+        )
+    user_posts_qs = (
+        post_qs.select_related('author', 'author__user')
+        .prefetch_related('media').order_by('-created_at')[:20]
+    )
+    out['user_posts'] = list(user_posts_qs)  # ORM list is what template expects.
+
+    # ---- All games (used by user_teams and highlight pickers) ---------------
+    all_games_list = list(Game.objects.all())
+    games_by_id = {g.id: g for g in all_games_list}
+    out['all_games'] = [
+        {'id': g.id, 'display_name': g.display_name, 'slug': g.slug}
+        for g in all_games_list if getattr(g, 'is_active', True)
+    ]
+
+    # ---- User teams ---------------------------------------------------------
+    user_teams_payload: List[Dict[str, Any]] = []
+    if user_profile is not None:
+        user_teams_qs = (
+            TeamMembership.objects.filter(
+                user=user_profile.user,
+                status=TeamMembership.Status.ACTIVE,
+            )
+            .select_related('team')
+            .order_by('-team__created_at')[:10]
+        )
+        for tm in user_teams_qs:
+            game_obj = games_by_id.get(tm.team.game_id)
+            game_slug = game_obj.slug if game_obj else str(tm.team.game_id)
+            game_name = game_obj.display_name if game_obj else game_slug.title()
+            try:
+                logo_url = tm.team.logo.url if tm.team.logo else None
+            except Exception:
+                logo_url = None
+            user_teams_payload.append({
+                'id': tm.team.id,
+                'slug': tm.team.slug,
+                'name': tm.team.name,
+                'tag': tm.team.tag,
+                'game': game_name,
+                'game_slug': game_slug,
+                'role': tm.role,
+                'logo_url': logo_url,
+                'is_captain': tm.role == 'CAPTAIN',
+            })
+    out['user_teams'] = user_teams_payload
+
+    # ---- User tournaments (Registration) ------------------------------------
+    try:
+        regs = (
+            Registration.objects.filter(
+                user=profile_user,
+                is_deleted=False,
+                status__in=[
+                    Registration.CONFIRMED,
+                    Registration.PENDING,
+                    Registration.PAYMENT_SUBMITTED,
+                ],
+            )
+            .select_related('tournament')
+            .order_by('-tournament__tournament_start')[:10]
+        )
+        out['user_tournaments'] = [
+            {
+                'id': reg.tournament.id,
+                'name': reg.tournament.name,
+                'slug': reg.tournament.slug,
+                'status': reg.tournament.status,
+                'registration_status': reg.status,
+                'start_date': reg.tournament.tournament_start,
+            }
+            for reg in regs
+        ]
+    except Exception:
+        out['user_tournaments'] = []
+
+    # ---- Achievements (UserBadge) — privacy gated --------------------------
+    if can_view_achievements:
+        ub_qs = (
+            UserBadge.objects.filter(user=profile_user)
+            .select_related('badge').order_by('-earned_at')[:12]
+        )
+        out['achievements'] = [
+            {
+                'id': ub.id,
+                'name': ub.badge.name,
+                'description': ub.badge.description,
+                'icon': ub.badge.icon,
+                'awarded_at': ub.earned_at,
+                'rarity': getattr(ub.badge, 'rarity', 'common'),
+            }
+            for ub in ub_qs
+        ]
+    else:
+        out['achievements'] = None
+
+    # ---- User stats (UserProfileStats) --------------------------------------
+    try:
+        stats = UserProfileStats.objects.get(user_profile=user_profile) if user_profile else None
+    except UserProfileStats.DoesNotExist:
+        stats = None
+    if stats:
+        kills = getattr(stats, 'total_kills', 0) or 0
+        deaths = getattr(stats, 'total_deaths', 0) or 0
+        out['user_stats_partial'] = {
+            'total_matches': stats.matches_played,
+            'total_wins': stats.matches_won,
+            'total_losses': max((stats.matches_played or 0) - (stats.matches_won or 0), 0),
+            'win_rate': round(
+                (stats.matches_won / stats.matches_played * 100) if stats.matches_played else 0,
+                1,
+            ),
+            'tournaments_played': stats.tournaments_played,
+            'tournaments_won': stats.tournaments_won,
+            'total_kills': kills,
+            'total_deaths': deaths,
+            'kd_ratio': round((kills / deaths) if deaths > 0 else 0, 2),
+        }
+    else:
+        out['user_stats_partial'] = {
+            'total_matches': 0, 'total_wins': 0, 'total_losses': 0,
+            'win_rate': 0, 'tournaments_played': 0, 'tournaments_won': 0,
+            'total_kills': 0, 'total_deaths': 0, 'kd_ratio': 0,
+        }
+
+    # ---- Match history — privacy gated -------------------------------------
+    if can_view_match_history:
+        reg_ids = list(
+            Registration.objects.filter(
+                user=profile_user, is_deleted=False,
+            ).values_list('id', flat=True)
+        )
+        if reg_ids:
+            match_qs = (
+                Match.objects.filter(
+                    Q(participant1_id__in=reg_ids) | Q(participant2_id__in=reg_ids),
+                    state__in=['completed', 'disputed'],
+                    is_deleted=False,
+                )
+                .select_related('tournament')
+                .order_by('-scheduled_time')[:10]
+            )
+            out['match_history'] = [
+                {
+                    'id': m.id,
+                    'tournament_name': m.tournament.name if m.tournament else 'Unknown',
+                    'game': m.tournament.game if m.tournament else None,
+                    'participant1_name': m.participant1_name or 'Participant 1',
+                    'participant2_name': m.participant2_name or 'Participant 2',
+                    'participant1_score': m.participant1_score,
+                    'participant2_score': m.participant2_score,
+                    'winner_id': m.winner_id,
+                    'scheduled_time': m.scheduled_time,
+                    'state': m.state,
+                    'is_user_winner': (m.winner_id in reg_ids) if m.winner_id else False,
+                }
+                for m in match_qs
+            ]
+        else:
+            out['match_history'] = []
+    else:
+        out['match_history'] = None
+
+    # ---- About items (ProfileAboutItem) — visibility filtered --------------
+    about_items_payload: List[Dict[str, Any]] = []
+    if user_profile is not None:
+        about_qs = ProfileAboutItem.objects.filter(
+            user_profile=user_profile, is_active=True,
+        ).order_by('order_index', '-created_at')
+        for item in about_qs:
+            try:
+                allow = item.can_be_viewed_by(profile_user if is_owner else None, is_following)
+            except Exception:
+                # Conservative default: only public items leak.
+                allow = (getattr(item, 'visibility', 'public') == 'public')
+            if allow:
+                about_items_payload.append({
+                    'id': item.id,
+                    'item_type': item.item_type,
+                    'display_text': item.display_text,
+                    'icon_emoji': item.icon_emoji,
+                    'visibility': item.visibility,
+                })
+    out['about_items'] = about_items_payload
+
+    # ---- Stream config ------------------------------------------------------
+    try:
+        sc = StreamConfig.objects.select_related('user').get(
+            user=profile_user, is_active=True,
+        )
+        out['stream_config'] = {
+            'platform': sc.platform,
+            'embed_url': sc.embed_url,
+            'title': sc.title or f"{profile_user.username}'s stream",
+            'stream_url': sc.stream_url,
+        }
+    except StreamConfig.DoesNotExist:
+        out['stream_config'] = None
+
+    # ---- Highlights: pinned + clips + filter games -------------------------
+    try:
+        pinned = PinnedHighlight.objects.select_related(
+            'clip', 'clip__game'
+        ).get(user=profile_user)
+        out['pinned_highlight'] = {
+            'id': pinned.clip.id,
+            'title': pinned.clip.title,
+            'embed_url': pinned.clip.embed_url,
+            'thumbnail_url': pinned.clip.thumbnail_url,
+            'platform': pinned.clip.platform,
+            'game': pinned.clip.game.display_name if pinned.clip.game else None,
+            'created_at': pinned.clip.created_at,
+        }
+    except PinnedHighlight.DoesNotExist:
+        out['pinned_highlight'] = None
+
+    clip_qs = (
+        HighlightClip.objects.filter(user=profile_user)
+        .select_related('game').order_by('display_order', '-created_at')[:20]
+    )
+    clip_list = list(clip_qs)
+    out['highlight_clips'] = [
+        {
+            'id': c.id,
+            'title': c.title,
+            'description': getattr(c, 'description', ''),
+            'embed_url': c.embed_url,
+            'thumbnail_url': c.thumbnail_url,
+            'platform': c.platform,
+            'video_id': c.video_id,
+            'game': c.game.display_name if c.game else None,
+            'game_slug': c.game.slug if c.game else None,
+            'display_order': c.display_order,
+            'created_at': c.created_at,
+            'is_pinned': bool(out['pinned_highlight']) and c.id == out['pinned_highlight']['id'],
+        }
+        for c in clip_list
+    ]
+    out['can_add_more_clips'] = len(out['highlight_clips']) < 20
+
+    seen_games: set = set()
+    highlight_games: List[Dict[str, Any]] = []
+    for c in clip_list:
+        if c.game and c.game.slug not in seen_games:
+            seen_games.add(c.game.slug)
+            highlight_games.append({'slug': c.game.slug, 'name': c.game.display_name})
+    out['highlight_games'] = highlight_games
+
+    # ---- Showcase (ProfileShowcase) ----------------------------------------
+    if user_profile is not None:
+        try:
+            sh = ProfileShowcase.objects.get(user_profile=user_profile)
+            out['showcase'] = {
+                'enabled_sections': sh.get_enabled_sections(),
+                'section_order': sh.section_order or [],
+                'featured_team_id': sh.featured_team_id,
+                'featured_team_role': sh.featured_team_role,
+                'featured_passport_id': sh.featured_passport_id,
+                'highlights': sh.highlights or [],
+            }
+        except ProfileShowcase.DoesNotExist:
+            out['showcase'] = {
+                'enabled_sections': ProfileShowcase.get_default_sections(),
+                'section_order': [],
+                'featured_team_id': None,
+                'featured_team_role': '',
+                'featured_passport_id': None,
+                'highlights': [],
+            }
+    else:
+        out['showcase'] = None
+
+    # ---- Loadout (hardware + game configs) — service already encapsulates --
+    try:
+        loadout_data = loadout_service.get_complete_loadout(
+            user=profile_user, public_only=not is_owner,
+        )
+        hw = loadout_data.get('hardware', {}) or {}
+        out['hardware_gear'] = {
+            'mouse': _serialize_hardware_gear(hw.get('MOUSE')),
+            'keyboard': _serialize_hardware_gear(hw.get('KEYBOARD')),
+            'headset': _serialize_hardware_gear(hw.get('HEADSET')),
+            'monitor': _serialize_hardware_gear(hw.get('MONITOR')),
+            'mousepad': _serialize_hardware_gear(hw.get('MOUSEPAD')),
+        }
+        out['has_loadout'] = loadout_service.has_loadout(profile_user)
+        out['game_configs'] = [
+            {
+                'id': cfg.id,
+                'game': cfg.game.display_name,
+                'game_slug': cfg.game.slug,
+                'settings': cfg.settings,
+                'notes': cfg.notes,
+                'is_public': cfg.is_public,
+                'updated_at': cfg.updated_at.isoformat() if cfg.updated_at else None,
+            }
+            for cfg in loadout_data.get('game_configs', []) or []
+        ]
+    except Exception:
+        out['hardware_gear'] = {
+            'mouse': None, 'keyboard': None, 'headset': None,
+            'monitor': None, 'mousepad': None,
+        }
+        out['has_loadout'] = False
+        out['game_configs'] = []
+
+    # ---- Trophy showcase ---------------------------------------------------
+    try:
+        sd = trophy_showcase_service.get_showcase_data(profile_user)
+        out['trophy_showcase'] = {
+            'equipped_border': sd['equipped']['border'],
+            'equipped_frame': sd['equipped']['frame'],
+            'unlocked_borders': sd['unlocked']['borders'],
+            'unlocked_frames': sd['unlocked']['frames'],
+            'pinned_badges': sd.get('pinned_badges', []),
+        }
+    except Exception:
+        out['trophy_showcase'] = {
+            'equipped_border': None, 'equipped_frame': None,
+            'unlocked_borders': [], 'unlocked_frames': [], 'pinned_badges': [],
+        }
+
+    # ---- Endorsements ------------------------------------------------------
+    try:
+        es = endorsement_service.get_endorsements_summary(profile_user)
+        out['endorsements'] = {
+            'total_count': es['total_count'],
+            'by_skill': es['by_skill'],
+            'top_skill': es.get('top_skill'),
+            'recent_endorsements': [
+                {
+                    'skill': e.skill_name,
+                    'skill_display': e.get_skill_name_display(),
+                    'endorser': e.endorser.username,
+                    'match_id': e.match_id,
+                    'created_at': e.created_at,
+                }
+                for e in es.get('recent_endorsements', [])[:5]
+            ],
+        }
+    except Exception:
+        out['endorsements'] = {
+            'total_count': 0, 'by_skill': {}, 'top_skill': None,
+            'recent_endorsements': [],
+        }
+
+    return out
+
+
+def build_public_profile_extended_context_cached(
+    profile_user,
+    *,
+    viewer_role: str,
+    is_following: bool = False,
+    can_view_achievements: bool = True,
+    can_view_match_history: bool = True,
+) -> Dict[str, Any]:
+    """
+    Cached wrapper around build_public_profile_extended_context.
+    Owner bypasses cache. Non-owner cached for 5 min, evicted by per-username
+    version bump (same counter as build_public_profile_context_cached).
+    """
+    if viewer_role == 'owner':
+        return build_public_profile_extended_context(
+            profile_user,
+            viewer_role=viewer_role,
+            is_following=is_following,
+            can_view_achievements=can_view_achievements,
+            can_view_match_history=can_view_match_history,
+        )
+
+    username = getattr(profile_user, 'username', '')
+    if not username:
+        return build_public_profile_extended_context(
+            profile_user,
+            viewer_role=viewer_role,
+            is_following=is_following,
+            can_view_achievements=can_view_achievements,
+            can_view_match_history=can_view_match_history,
+        )
+
+    flag_bits = (
+        ('a' if can_view_achievements else '-')
+        + ('m' if can_view_match_history else '-')
+        + ('f' if is_following else '-')
+    )
+    version = _profile_cache_version(username)
+    cache_key = f'profile:ext:{username}:{version}:{viewer_role}:{flag_bits}'
+
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return cached
+
+    payload = build_public_profile_extended_context(
+        profile_user,
+        viewer_role=viewer_role,
+        is_following=is_following,
+        can_view_achievements=can_view_achievements,
+        can_view_match_history=can_view_match_history,
+    )
+    cache.set(cache_key, payload, _PROFILE_CTX_TTL_SECONDS)
+    return payload
 
 
 def build_public_profile_context(

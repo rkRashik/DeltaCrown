@@ -271,16 +271,100 @@ class Challenge(SoftDeleteModel):
     )
 
     # ── Economy / Escrow ─────────────────────────────────────────────────
-    # wager_amount_dc is the DC each participating TEAM must lock into escrow.
-    # For a two-team challenge the total pot = wager_amount_dc * 2.
-    # prize_amount (Decimal) remains for display/legacy purposes.
+    # Legacy field kept for back-compat (predates Crown Clash).  All new
+    # Crown Clash code uses ``entry_fee_dc`` instead.
     wager_amount_dc = models.PositiveIntegerField(
         default=0,
-        help_text="DeltaCoins each team must lock into escrow. 0 = no wager."
+        help_text="[Legacy] Replaced by entry_fee_dc for new Crown Clash matches."
     )
     escrow_locked = models.BooleanField(
         default=False,
         help_text="True once ALL participants have had their escrow funds locked."
+    )
+
+    # Crown Clash entry fee — each participant locks this many DC into escrow.
+    # Total prize pot = entry_fee_dc * 2 once both sides are locked.
+    entry_fee_dc = models.PositiveIntegerField(
+        default=0,
+        help_text="DeltaCoins each participant locks into escrow. 0 = no entry fee."
+    )
+
+    # ── Lobby Closure (UI: never rely on a generic countdown) ────────────
+    CLOSURE_REASON_CHOICES = [
+        ('', 'Not closed'),
+        ('NORMAL', 'Match completed normally'),
+        ('OPPONENT_NO_SHOW', 'Opponent failed to join in time'),
+        ('CHALLENGER_NO_SHOW', 'Challenger failed to join in time'),
+        ('BOTH_NO_SHOW', 'Neither side joined'),
+        ('CANCELLED_BY_ISSUER', 'Cancelled by issuer'),
+        ('DECLINED_BY_OPPONENT', 'Declined by opponent'),
+        ('EXPIRED', 'Expired before acceptance'),
+        ('ADMIN_VOID', 'Voided by admin'),
+        ('DISPUTE_RESOLVED', 'Resolved via admin dispute'),
+    ]
+    closure_reason = models.CharField(
+        max_length=24,
+        choices=CLOSURE_REASON_CHOICES,
+        blank=True,
+        default='',
+        db_index=True,
+        help_text="Why the lobby closed. UI must surface this rather than a bare countdown."
+    )
+    closure_note = models.TextField(
+        blank=True,
+        default='',
+        help_text="Free-form admin/system note explaining the closure (e.g. dispute outcome)."
+    )
+
+    # Escrow ledger audit trail — links from this challenge to the immutable
+    # transactions in apps.economy.  Nullable: only populated when entry_fee_dc > 0.
+    challenger_lock_txn = models.ForeignKey(
+        'economy.DeltaCrownTransaction',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='+',
+        help_text="Challenger-side escrow lock transaction."
+    )
+    challenged_lock_txn = models.ForeignKey(
+        'economy.DeltaCrownTransaction',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='+',
+        help_text="Challenged-side escrow lock transaction."
+    )
+    payout_txn = models.ForeignKey(
+        'economy.DeltaCrownTransaction',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='+',
+        help_text="Winner payout transaction (set on settle)."
+    )
+
+    # ── Funding audit (Phase 10A — personal-wallet bridge) ────────────
+    # Until a TeamWallet ships, the captain/manager pays out of their personal
+    # wallet on behalf of the team.  These fields make accountability explicit.
+    funded_by_challenger = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='+',
+        help_text="User whose personal wallet funded the challenger team's stake."
+    )
+    funded_by_challenged = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='+',
+        help_text="User whose personal wallet funded the challenged team's stake."
+    )
+
+    # ── Match Room (synthetic tournament-backed lobby) ────────────────
+    match = models.ForeignKey(
+        'tournaments.Match',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='+',
+        help_text="Match Room spawned when this Crown Clash is accepted."
     )
 
     # Managers — default excludes soft-deleted rows
@@ -331,6 +415,27 @@ class Challenge(SoftDeleteModel):
     @property
     def is_open_challenge(self):
         return self.challenged_team is None and self.status == 'OPEN'
+
+    @property
+    def is_crown_clash(self) -> bool:
+        """A Challenge is a Crown Clash when it carries a non-zero entry fee."""
+        return self.entry_fee_dc > 0
+
+    @property
+    def prize_pot_dc(self) -> int:
+        """Total DC pot.  Equals entry_fee_dc * 2 once both sides are locked."""
+        if not self.entry_fee_dc:
+            return 0
+        return self.entry_fee_dc * 2 if self.escrow_locked else self.entry_fee_dc
+
+    def clash_ref_id(self, side: str = '') -> str:
+        """Stable escrow reference_id for this Crown Clash.
+
+        ``side`` is one of 'challenger' / 'challenged' for per-side locks,
+        or '' for the settlement-level reference.
+        """
+        base = f"CC-{self.reference_code}"
+        return f"{base}_{side}" if side else base
 
     @property
     def winner(self):

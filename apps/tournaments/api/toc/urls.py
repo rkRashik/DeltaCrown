@@ -125,6 +125,9 @@ urlpatterns = [
     path('<slug:slug>/brackets/seeds/', brackets.BracketSeedsView.as_view(), name='brackets-seeds'),
     path('<slug:slug>/brackets/format-config/', brackets.BracketFormatConfigView.as_view(), name='brackets-format-config'),
     path('<slug:slug>/brackets/br-score-entry/', brackets.BracketBRScoreEntryView.as_view(), name='brackets-br-score-entry'),
+    path('<slug:slug>/brackets/br-score-screenshot/', brackets.BracketBRScreenshotExtractView.as_view(), name='brackets-br-score-screenshot'),
+    path('<slug:slug>/brackets/sports-score-screenshot/', brackets.BracketSportsScreenshotExtractView.as_view(), name='brackets-sports-score-screenshot'),
+    path('<slug:slug>/brackets/team-5v5-score-screenshot/', brackets.BracketTeam5v5ScreenshotExtractView.as_view(), name='brackets-team-5v5-score-screenshot'),
 
     # ── Schedule (S5-B6 through S5-B9) ──
     path('<slug:slug>/schedule/', brackets.ScheduleGetView.as_view(), name='schedule'),
@@ -165,6 +168,7 @@ urlpatterns = [
     path('<slug:slug>/matches/<int:pk>/verify/', matches.MatchVerifyView.as_view(), name='match-verify'),
     path('<slug:slug>/matches/<int:pk>/series/', matches.MatchSeriesStatusView.as_view(), name='match-series-status'),
     path('<slug:slug>/matches/<int:pk>/series/game/', matches.MatchSeriesGameView.as_view(), name='match-series-game'),
+    path('<slug:slug>/matches/<int:pk>/team-5v5-rosters/', matches.MatchTeam5v5RostersView.as_view(), name='match-team-5v5-rosters'),
     # Swiss system
     path('<slug:slug>/swiss/standings/', brackets.SwissStandingsView.as_view(), name='swiss-standings'),
     path('<slug:slug>/swiss/advance-round/', brackets.SwissAdvanceRoundView.as_view(), name='swiss-advance-round'),

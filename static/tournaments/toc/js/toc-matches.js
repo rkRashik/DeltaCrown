@@ -1140,9 +1140,447 @@
     // Football stats sub-form (eFootball / SPORTS only)
     renderFootballStatsEditor(m);
 
+    // AI Score Extractor visibility — hide on BR lobby sessions (those use
+    // the dedicated /br-score-screenshot/ endpoint with a leaderboard grid).
+    // Also hide on 5v5 team games — the dedicated 5v5 grid takes over.
+    var aiBlock = $('#ai-score-extractor');
+    var team5v5Block = $('#team-5v5-grid');
+    var isBRSession = !!(m && m.lobby_info && m.lobby_info.br_session);
+    var is5v5 = is5v5TeamGame();
+
+    if (aiBlock) {
+      if (isBRSession || is5v5) {
+        aiBlock.classList.add('hidden');
+      } else {
+        aiBlock.classList.remove('hidden');
+      }
+      // Reset transient state (file label + button) when match changes.
+      var fileEl = $('#ai-score-file');
+      if (fileEl) fileEl.value = '';
+      var nameEl = $('#ai-score-filename');
+      if (nameEl) nameEl.textContent = 'Choose result screenshot…';
+      var btn = $('#ai-score-extract-btn');
+      if (btn) {
+        btn.disabled = false;
+        btn.classList.remove('opacity-70', 'cursor-wait');
+        var span = btn.querySelector('span');
+        if (span) span.textContent = 'Extract';
+      }
+    }
+
+    // 5v5 KDA Grid — shown for MOBA / tactical shooter games on non-BR matches.
+    if (team5v5Block) {
+      if (is5v5 && !isBRSession) {
+        team5v5Block.classList.remove('hidden');
+        // Reset transient extractor state.
+        var f5 = $('#team-5v5-file');
+        if (f5) f5.value = '';
+        var fn5 = $('#team-5v5-filename');
+        if (fn5) fn5.textContent = 'Choose scoreboard screenshot…';
+        var b5 = $('#team-5v5-extract-btn');
+        if (b5) {
+          b5.disabled = false;
+          b5.classList.remove('opacity-70', 'cursor-wait');
+          var s5 = b5.querySelector('span');
+          if (s5) s5.textContent = 'Extract';
+        }
+        var hint = $('#team-5v5-game-hint');
+        if (hint) hint.textContent = team5v5GameLabel();
+        // Render an empty grid immediately, then populate rosters async.
+        renderTeam5v5Grid(m, { participant1_candidates: [], participant2_candidates: [] });
+        fetchTeam5v5Rosters(m);
+      } else {
+        team5v5Block.classList.add('hidden');
+      }
+    }
+
     // Render series UI
     renderSeriesPanel(m);
   }
+
+  /* ============================================================
+     5v5 Team KDA Grid (MLBB / Valorant / CS2 / CoD)
+  ============================================================ */
+  function is5v5TeamGame() {
+    var cfg = window.TOC_CONFIG || {};
+    var slug = String(cfg.gameSlug || '').toLowerCase();
+    var teamSlugs = [
+      'mlbb', 'mobile-legends', 'mobilelegends',
+      'valorant',
+      'cs2', 'csgo', 'cs:go', 'counter-strike', 'counterstrike',
+      'cod', 'callofduty', 'call-of-duty',
+    ];
+    if (teamSlugs.indexOf(slug) !== -1) return true;
+    var cat = String(cfg.gameCategory || '').toUpperCase();
+    return cat === 'MOBA' || cat === 'FPS' || cat === 'TACTICAL';
+  }
+
+  function team5v5GameLabel() {
+    var slug = String((window.TOC_CONFIG || {}).gameSlug || '').toLowerCase();
+    if (slug === 'mlbb' || slug.indexOf('mobile-legends') !== -1 || slug === 'mobilelegends') return 'MLBB';
+    if (slug === 'valorant') return 'Valorant';
+    if (slug.indexOf('cs') === 0 || slug.indexOf('counter') === 0) return 'CS2';
+    if (slug === 'cod' || slug.indexOf('callofduty') !== -1 || slug.indexOf('call-of-duty') !== -1) return 'Call of Duty';
+    return 'MOBA / Tactical';
+  }
+
+  function team5v5ScoreColumnLabel() {
+    // Game-specific label for the per-player "score" column in the grid.
+    var slug = String((window.TOC_CONFIG || {}).gameSlug || '').toLowerCase();
+    if (slug === 'mlbb' || slug.indexOf('mobile-legends') !== -1 || slug === 'mobilelegends') return 'Gold';
+    if (slug === 'valorant') return 'ACS';
+    return 'Score';
+  }
+
+  function _team5v5Escape(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  function _team5v5OptionsFor(candidates, lockedUserId) {
+    // Build <option> set for a player-picker. ``lockedUserId`` (if set) is
+    // pre-selected; otherwise the placeholder is selected.
+    var opts = '<option value="">— pick player —</option>';
+    var seen = false;
+    (candidates || []).forEach(function (c) {
+      var sel = (lockedUserId != null && Number(c.user_id) === Number(lockedUserId)) ? ' selected' : '';
+      if (sel) seen = true;
+      opts += '<option value="' + Number(c.user_id) + '"' + sel + '>' + _team5v5Escape(c.label) + '</option>';
+    });
+    // If the locked user_id isn't in the candidate list (sub got swapped, etc.),
+    // synthesize a one-off option so the row still locks visibly.
+    if (lockedUserId != null && !seen) {
+      opts += '<option value="' + Number(lockedUserId) + '" selected>(locked: user #' + Number(lockedUserId) + ')</option>';
+    }
+    return opts;
+  }
+
+  function _team5v5BuildRow(side, idx, candidates, lockedUserId, ign, kda) {
+    // ``side`` ∈ {'a','b'} — which team panel this row belongs to.
+    // ``lockedUserId`` non-null + matched_label = AI mapped this row.
+    var locked = lockedUserId != null;
+    var k = (kda && kda.kills   != null) ? kda.kills   : '';
+    var d = (kda && kda.deaths  != null) ? kda.deaths  : '';
+    var a = (kda && kda.assists != null) ? kda.assists : '';
+    var s = (kda && kda.score   != null) ? kda.score   : '';
+    var pickerCls = locked
+      ? 'w-full bg-dc-panel border border-emerald-500/30 text-white text-xs rounded px-2 py-1.5 focus:border-theme outline-none'
+      : 'w-full bg-dc-bg border border-amber-500/40 text-white text-xs rounded px-2 py-1.5 focus:border-theme outline-none';
+    var ignHint = (!locked && ign)
+      ? '<div class="text-[9px] font-mono text-amber-400/80 mt-0.5 truncate" title="' + _team5v5Escape(ign) + '">AI saw: ' + _team5v5Escape(ign) + '</div>'
+      : '';
+
+    return '<tr class="border-t border-dc-border/30" data-team5v5-row data-team5v5-side="' + side + '" data-team5v5-idx="' + idx + '">'
+      + '<td class="px-2 py-2 align-top w-[44%]">'
+      +   '<select class="' + pickerCls + '" data-team5v5-player>'
+      +     _team5v5OptionsFor(candidates, lockedUserId)
+      +   '</select>'
+      +   ignHint
+      + '</td>'
+      + '<td class="px-1 py-2 w-[12%]"><input type="number" min="0" max="99" value="' + _team5v5Escape(k) + '" data-team5v5-stat="kills"   class="w-full bg-dc-bg border border-dc-border rounded px-2 py-1 text-white text-xs text-center focus:border-theme outline-none" placeholder="K"></td>'
+      + '<td class="px-1 py-2 w-[12%]"><input type="number" min="0" max="99" value="' + _team5v5Escape(d) + '" data-team5v5-stat="deaths"  class="w-full bg-dc-bg border border-dc-border rounded px-2 py-1 text-white text-xs text-center focus:border-theme outline-none" placeholder="D"></td>'
+      + '<td class="px-1 py-2 w-[12%]"><input type="number" min="0" max="99" value="' + _team5v5Escape(a) + '" data-team5v5-stat="assists" class="w-full bg-dc-bg border border-dc-border rounded px-2 py-1 text-white text-xs text-center focus:border-theme outline-none" placeholder="A"></td>'
+      + '<td class="px-1 py-2 w-[20%]"><input type="number" min="0" max="200000" value="' + _team5v5Escape(s) + '" data-team5v5-stat="score" class="w-full bg-dc-bg border border-dc-border rounded px-2 py-1 text-white text-xs text-center focus:border-theme outline-none" placeholder="0"></td>'
+      + '</tr>';
+  }
+
+  function _team5v5BuildPanel(side, teamName, candidates, players) {
+    // ``players`` may be empty (initial render) or a 5-element AI mapping.
+    var rows = '';
+    var scoreLabel = team5v5ScoreColumnLabel();
+    for (var i = 0; i < 5; i++) {
+      var p = (players && players[i]) || null;
+      var lockedUserId = p ? p.user_id : null;
+      var ign = p ? p.ign : '';
+      rows += _team5v5BuildRow(side, i, candidates, lockedUserId, ign, p);
+    }
+    var emptyRosterBanner = (!candidates || !candidates.length)
+      ? '<div class="px-3 py-1.5 text-[10px] text-amber-300 bg-amber-500/10 border-b border-amber-500/30">No locked roster — pick each player manually after extraction.</div>'
+      : '';
+    var headerSide = side === 'a' ? 'A' : 'B';
+    return '<div class="px-3 py-2 bg-dc-panel/60 border-b border-dc-border/40 flex items-center justify-between">'
+      +   '<div class="flex items-center gap-2">'
+      +     '<span class="text-[9px] font-mono text-dc-text/60 uppercase tracking-widest">Team ' + headerSide + '</span>'
+      +     '<span class="text-xs font-bold text-white truncate">' + _team5v5Escape(teamName || ('Team ' + headerSide)) + '</span>'
+      +   '</div>'
+      +   '<span class="text-[9px] font-mono text-dc-text/40">' + (candidates ? candidates.length : 0) + ' starter(s)</span>'
+      + '</div>'
+      + emptyRosterBanner
+      + '<div class="overflow-x-auto"><table class="w-full text-xs">'
+      +   '<thead class="bg-dc-bg/50">'
+      +     '<tr class="text-[9px] font-bold text-dc-text/70 uppercase tracking-widest">'
+      +       '<th class="px-2 py-1.5 text-left">Player</th>'
+      +       '<th class="px-1 py-1.5 text-center">K</th>'
+      +       '<th class="px-1 py-1.5 text-center">D</th>'
+      +       '<th class="px-1 py-1.5 text-center">A</th>'
+      +       '<th class="px-1 py-1.5 text-center">' + _team5v5Escape(scoreLabel) + '</th>'
+      +     '</tr>'
+      +   '</thead>'
+      +   '<tbody>' + rows + '</tbody>'
+      + '</table></div>';
+  }
+
+  function renderTeam5v5Grid(m, data) {
+    // ``data`` shape: {participant1_candidates, participant2_candidates,
+    //                  [participant1_players], [participant2_players]}
+    if (!m) return;
+    var panelA = $('#team-5v5-panel-a');
+    var panelB = $('#team-5v5-panel-b');
+    if (!panelA || !panelB) return;
+    var nameA = m.participant1_name || 'Team A';
+    var nameB = m.participant2_name || 'Team B';
+    var candA = (data && data.participant1_candidates) || [];
+    var candB = (data && data.participant2_candidates) || [];
+    var playersA = (data && data.participant1_players) || null;
+    var playersB = (data && data.participant2_players) || null;
+    panelA.innerHTML = _team5v5BuildPanel('a', nameA, candA, playersA);
+    panelB.innerHTML = _team5v5BuildPanel('b', nameB, candB, playersB);
+    iconsRefresh && iconsRefresh();
+  }
+
+  // Cached rosters keyed by matchId so we don't re-fetch when the admin
+  // re-selects the same match.
+  var _team5v5RosterCache = {};
+
+  async function fetchTeam5v5Rosters(m) {
+    if (!m || !m.id) return;
+    var cached = _team5v5RosterCache[m.id];
+    if (cached) {
+      renderTeam5v5Grid(m, cached);
+      return;
+    }
+    try {
+      var resp = await API.get('matches/' + m.id + '/team-5v5-rosters/');
+      _team5v5RosterCache[m.id] = resp;
+      // Only re-render if this match is still the selected one.
+      if (selectedMatchId === m.id) renderTeam5v5Grid(m, resp);
+    } catch (e) {
+      // Non-fatal — admin can still run AI extract; mapping just won't auto-link.
+      console.warn('[team-5v5] roster fetch failed', e);
+    }
+  }
+
+  function onTeam5v5FilePicked() {
+    var input = $('#team-5v5-file');
+    var label = $('#team-5v5-filename');
+    if (!input || !label) return;
+    var f = input.files && input.files[0];
+    label.textContent = f ? f.name : 'Choose scoreboard screenshot…';
+  }
+
+  async function extractTeam5v5AI() {
+    if (!selectedMatchId) { toast('Select a match first.', 'error'); return; }
+    var input = $('#team-5v5-file');
+    var btn   = $('#team-5v5-extract-btn');
+    if (!input || !btn) return;
+
+    var f = input.files && input.files[0];
+    if (!f) { toast('Choose a screenshot file first.', 'info'); return; }
+    if (f.size > 8 * 1024 * 1024) {
+      toast('Screenshot too large (max 8 MB).', 'error');
+      return;
+    }
+
+    var span = btn.querySelector('span');
+    var origText = span ? span.textContent : 'Extract';
+    btn.disabled = true;
+    btn.classList.add('opacity-70', 'cursor-wait');
+    if (span) span.textContent = 'Extracting…';
+    var submitBtn = document.querySelector('[data-click="TOC.matches.submitScore"]');
+    if (submitBtn) submitBtn.disabled = true;
+
+    try {
+      var fd = new FormData();
+      fd.append('match_id', String(selectedMatchId));
+      fd.append('screenshot', f);
+      var resp = await API.post('brackets/team-5v5-score-screenshot/', fd);
+      // Cache the rosters Gemini returned (they're authoritative for this run).
+      _team5v5RosterCache[selectedMatchId] = {
+        participant1_candidates: resp.participant1_candidates || [],
+        participant2_candidates: resp.participant2_candidates || [],
+      };
+      _applyTeam5v5AIResult(resp);
+    } catch (e) {
+      toast('AI extraction failed: ' + (e?.message || 'Unknown error'), 'error');
+    } finally {
+      btn.disabled = false;
+      btn.classList.remove('opacity-70', 'cursor-wait');
+      if (span) span.textContent = origText;
+      if (submitBtn) submitBtn.disabled = false;
+    }
+  }
+
+  function _applyTeam5v5AIResult(resp) {
+    if (!resp) { toast('AI returned no result.', 'error'); return; }
+
+    var m = allMatches.find(function (x) { return x.id === selectedMatchId; }) || {
+      id: selectedMatchId,
+      participant1_name: resp.participant1_name,
+      participant2_name: resp.participant2_name,
+    };
+
+    // Re-render both panels with the AI-mapped players + freshly cached rosters.
+    renderTeam5v5Grid(m, {
+      participant1_candidates: resp.participant1_candidates || [],
+      participant2_candidates: resp.participant2_candidates || [],
+      participant1_players:    resp.participant1_players    || [],
+      participant2_players:    resp.participant2_players    || [],
+    });
+
+    // Team-level score mapping — populate the standard #score-input-a/b.
+    var teamConf = String(resp.team_mapping_confidence || 'none').toLowerCase();
+    var inputA = $('#score-input-a');
+    var inputB = $('#score-input-b');
+    if (teamConf === 'high' && resp.participant1_score != null && resp.participant2_score != null) {
+      if (inputA) {
+        inputA.value = String(resp.participant1_score);
+        inputA.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+      if (inputB) {
+        inputB.value = String(resp.participant2_score);
+        inputB.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+    } else {
+      // Low / none — leave team scores blank, warn the admin.
+      var seenLabel = '';
+      try {
+        var ta = (resp.team_a && resp.team_a.team_name) || '';
+        var tb = (resp.team_b && resp.team_b.team_name) || '';
+        var sa = resp.team_a ? resp.team_a.score : '';
+        var sb = resp.team_b ? resp.team_b.score : '';
+        if (ta && tb) seenLabel = ' (AI saw ' + ta + ' ' + sa + '–' + sb + ' ' + tb + ')';
+      } catch (_) { /* ignore */ }
+      toast('AI team mapping confidence ' + teamConf + ' — please verify team scores manually.' + seenLabel, 'warning');
+    }
+
+    // Player-level summary toast.
+    var p1Players = Array.isArray(resp.participant1_players) ? resp.participant1_players : [];
+    var p2Players = Array.isArray(resp.participant2_players) ? resp.participant2_players : [];
+    var totalRows = p1Players.length + p2Players.length;
+    var matched = p1Players.concat(p2Players).filter(function (r) {
+      return r && r.user_id != null && r.mapping_confidence !== 'none';
+    }).length;
+    var needsCheck = totalRows - matched;
+    var p1Count = (resp.participant1_candidates || []).length;
+    var p2Count = (resp.participant2_candidates || []).length;
+
+    if (p1Count === 0 || p2Count === 0) {
+      // Edge case: no locked starter roster on at least one side.
+      var which = (p1Count === 0 && p2Count === 0)
+        ? 'both teams'
+        : (p1Count === 0 ? (resp.participant1_name || 'Team A') : (resp.participant2_name || 'Team B'));
+      toast(which + ' has no locked starter roster — pick each player manually before submitting.', 'warning');
+    } else if (needsCheck === 0 && totalRows > 0) {
+      toast('Auto-matched ' + matched + '/' + totalRows + ' players. Review and submit.', 'success');
+    } else if (matched === 0) {
+      toast('AI could not match any players to your roster — please pick each row manually.', 'warning');
+    } else {
+      toast('Auto-matched ' + matched + '/' + totalRows + ' players. ' + needsCheck + ' need manual verification.', 'warning');
+    }
+  }
+
+
+  /* ============================================================
+     AI Score Extractor (Gemini Vision OCR for 1v1 sports screens)
+  ============================================================ */
+  function onSportsFilePicked() {
+    var input = $('#ai-score-file');
+    var label = $('#ai-score-filename');
+    if (!input || !label) return;
+    var f = input.files && input.files[0];
+    label.textContent = f ? f.name : 'Choose result screenshot…';
+  }
+
+  async function extractScoreViaAI() {
+    if (!selectedMatchId) { toast('Select a match first.', 'error'); return; }
+    var input = $('#ai-score-file');
+    var btn   = $('#ai-score-extract-btn');
+    if (!input || !btn) return;
+
+    var f = input.files && input.files[0];
+    if (!f) { toast('Choose a screenshot file first.', 'info'); return; }
+
+    // Cap upload at 8 MB to match the backend ceiling (avoids burning a
+    // round-trip on a doomed request).
+    if (f.size > 8 * 1024 * 1024) {
+      toast('Screenshot too large (max 8 MB).', 'error');
+      return;
+    }
+
+    var span = btn.querySelector('span');
+    var origText = span ? span.textContent : 'Extract';
+    btn.disabled = true;
+    btn.classList.add('opacity-70', 'cursor-wait');
+    if (span) span.textContent = 'Extracting…';
+    // Disable the score Submit while extracting so the admin can't race
+    // a partial pre-fill into the API.
+    var submitBtn = document.querySelector('[data-click="TOC.matches.submitScore"]');
+    if (submitBtn) submitBtn.disabled = true;
+
+    try {
+      var fd = new FormData();
+      fd.append('match_id', String(selectedMatchId));
+      fd.append('screenshot', f);
+      var resp = await API.post('brackets/sports-score-screenshot/', fd);
+      _applySportsAIResult(resp);
+    } catch (e) {
+      toast('AI extraction failed: ' + (e?.message || 'Unknown error'), 'error');
+    } finally {
+      btn.disabled = false;
+      btn.classList.remove('opacity-70', 'cursor-wait');
+      if (span) span.textContent = origText;
+      if (submitBtn) submitBtn.disabled = false;
+    }
+  }
+
+  function _applySportsAIResult(resp) {
+    if (!resp) {
+      toast('AI returned no result.', 'error');
+      return;
+    }
+    var inputA = $('#score-input-a');
+    var inputB = $('#score-input-b');
+    if (!inputA || !inputB) return;
+
+    var confidence = String(resp.mapping_confidence || 'none').toLowerCase();
+    var p1 = resp.participant1_score;
+    var p2 = resp.participant2_score;
+    var hs = resp.home_score;
+    var as = resp.away_score;
+    var hName = resp.home_team || 'home';
+    var aName = resp.away_team || 'away';
+
+    if (confidence === 'high' && p1 != null && p2 != null) {
+      // Confident slot mapping — pre-fill both inputs and let the admin
+      // review without further prompting.
+      inputA.value = String(p1);
+      inputB.value = String(p2);
+      inputA.dispatchEvent(new Event('input', { bubbles: true }));
+      inputB.dispatchEvent(new Event('input', { bubbles: true }));
+      toast('AI extracted ' + p1 + '–' + p2 + '. Review and submit.', 'success');
+      return;
+    }
+
+    // Low / none confidence — fill what we can but warn the admin to verify.
+    // Strategy: if mapping returned anything, drop it in but flag it; else
+    // just write home into A and away into B as a best guess.
+    if (p1 != null && p2 != null) {
+      inputA.value = String(p1);
+      inputB.value = String(p2);
+    } else if (hs != null && as != null) {
+      inputA.value = String(hs);
+      inputB.value = String(as);
+    }
+    inputA.dispatchEvent(new Event('input', { bubbles: true }));
+    inputB.dispatchEvent(new Event('input', { bubbles: true }));
+
+    var seenLabel = (hs != null && as != null)
+      ? ' (AI saw ' + hName + ' ' + hs + '–' + as + ' ' + aName + ')'
+      : '';
+    toast('AI mapping confidence low — please verify scores manually before submitting.' + seenLabel, 'warning');
+  }
+
 
   /* -- Football Stats Editor (eFootball / SPORTS games) -- */
   function isFootballGame() {
@@ -2327,6 +2765,12 @@
     openAddGameScore: openAddGameScore, closeGameScoreModal: closeGameScoreModal, confirmAddGameScore: confirmAddGameScore,
     // Map Veto
     createVetoSession: createVetoSession, resetVetoSession: resetVetoSession, doVetoAction: doVetoAction,
+    // AI Score Extractor (Gemini Vision OCR)
+    onSportsFilePicked: onSportsFilePicked,
+    extractScoreViaAI: extractScoreViaAI,
+    // 5v5 Team KDA Grid (MOBA / Tactical Shooter OCR)
+    onTeam5v5FilePicked: onTeam5v5FilePicked,
+    extractTeam5v5AI: extractTeam5v5AI,
   };
 
   document.addEventListener('toc:tab-changed', function (e) {

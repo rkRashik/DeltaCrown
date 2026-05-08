@@ -150,6 +150,12 @@ urlpatterns = [
     # Phase 10: Challenge & Bounty competitive system API
     path("api/v1/", include("apps.api.urls.challenge_urls")),
 
+    # Crown Contracts (self-challenge missions)
+    path("api/v1/contracts/", include(("apps.contracts.urls", "contracts_api"), namespace="contracts_api")),
+
+    # Crown Royale (paid Battle Royale lobbies)
+    path("api/v1/royale/", include(("apps.royale.urls", "royale_api"), namespace="royale_api")),
+
     # User preferences API (consumed by match-room-core.js)
     path("api/v1/user/preferences/", _user_prefs_view, name="api_v1_user_preferences"),
     

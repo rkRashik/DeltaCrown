@@ -14,6 +14,7 @@ from rest_framework.views import APIView
 
 from apps.competition.models import Challenge, Bounty, BountyClaim
 from apps.competition.services import ChallengeService, BountyService
+from apps.economy.exceptions import InsufficientFunds
 from apps.api.serializers.challenge_serializers import (
     ChallengeListSerializer,
     ChallengeDetailSerializer,
@@ -87,6 +88,12 @@ class ChallengeListCreateView(APIView):
                 scheduled_at=d.get('scheduled_at'),
                 expires_at=d.get('expires_at'),
                 is_public=d.get('is_public', True),
+                entry_fee_dc=d.get('entry_fee_dc', 0),
+            )
+        except InsufficientFunds as e:
+            return Response(
+                {'detail': str(e), 'code': 'INSUFFICIENT_FUNDS'},
+                status=status.HTTP_400_BAD_REQUEST,
             )
         except Exception as e:
             return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
@@ -137,6 +144,11 @@ class ChallengeAcceptView(APIView):
                 challenge_id=challenge_id,
                 accepted_by=request.user,
                 accepting_team=accepting_team,
+            )
+        except InsufficientFunds as e:
+            return Response(
+                {'detail': str(e), 'code': 'INSUFFICIENT_FUNDS'},
+                status=status.HTTP_400_BAD_REQUEST,
             )
         except Exception as e:
             return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
@@ -318,6 +330,14 @@ class BountyListCreateView(APIView):
                 max_claims=d.get('max_claims', 1),
                 expires_at=d.get('expires_at'),
                 is_public=d.get('is_public', True),
+                is_hitlist=d.get('is_hitlist', False),
+                reward_amount_dc=d.get('reward_amount_dc', 0),
+                challenger_entry_fee_dc=d.get('challenger_entry_fee_dc', 0),
+            )
+        except InsufficientFunds as e:
+            return Response(
+                {'detail': str(e), 'code': 'INSUFFICIENT_FUNDS'},
+                status=status.HTTP_400_BAD_REQUEST,
             )
         except Exception as e:
             return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
@@ -358,6 +378,11 @@ class BountyClaimView(APIView):
                 evidence_notes=d.get('evidence_notes', ''),
                 challenge=challenge,
                 match_report=match_report,
+            )
+        except InsufficientFunds as e:
+            return Response(
+                {'detail': str(e), 'code': 'INSUFFICIENT_FUNDS'},
+                status=status.HTTP_400_BAD_REQUEST,
             )
         except Exception as e:
             return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)

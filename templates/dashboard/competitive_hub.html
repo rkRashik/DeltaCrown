@@ -1,0 +1,682 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Crown Arena — DeltaCrown{% endblock %}
+
+{% block extra_head %}
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
+  <script nonce="{{ request.csp_nonce }}">
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            dc: {
+              bg: '#000000', surface: '#08080A', panel: '#101014',
+              border: 'rgba(255, 255, 255, 0.08)',
+              borderHover: 'rgba(255, 255, 255, 0.15)',
+              textMain: '#F8F8F8', textMuted: '#A1A1AA',
+              accent: '#6366F1', accentGlow: 'rgba(99, 102, 241, 0.20)',
+              gold: '#FFD700', neonRed: '#FF4655', electric: '#00E5FF',
+              success: '#10B981', danger: '#F43F5E', warning: '#F59E0B',
+            },
+          },
+          boxShadow: {
+            'glow-accent': '0 0 32px -6px rgba(99, 102, 241, 0.55)',
+            'glow-gold':   '0 0 28px -6px rgba(255, 215, 0, 0.55)',
+            'glow-neon':   '0 0 28px -6px rgba(255, 70, 85, 0.55)',
+            'glow-cyan':   '0 0 28px -6px rgba(0, 229, 255, 0.55)',
+          },
+        }
+      }
+    };
+  </script>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* Cinematic ambient mesh */
+  .arena-mesh {
+    position: fixed; inset: 0; z-index: -1;
+    background-color: #000;
+    background-image:
+      radial-gradient(circle at 12% 8%,  rgba(99, 102, 241, 0.18) 0%, transparent 38%),
+      radial-gradient(circle at 88% 14%, rgba(255, 70, 85, 0.10)  0%, transparent 38%),
+      radial-gradient(circle at 82% 92%, rgba(255, 215, 0, 0.07)  0%, transparent 42%),
+      radial-gradient(circle at 12% 96%, rgba(0, 229, 255, 0.08)  0%, transparent 42%);
+    pointer-events: none;
+  }
+  .arena-mesh::after {
+    content: ""; position: absolute; inset: 0;
+    background:
+      repeating-linear-gradient(
+        0deg, rgba(255,255,255,0.012) 0 1px, transparent 1px 3px
+      );
+    mix-blend-mode: overlay; opacity: .35;
+  }
+
+  .glass-card {
+    background:
+      radial-gradient(circle at top right, rgba(99,102,241,.12), transparent 60%),
+      linear-gradient(180deg, rgba(16,16,22,.80) 0%, rgba(8,8,12,.94) 100%);
+    backdrop-filter: blur(32px) saturate(150%);
+    -webkit-backdrop-filter: blur(32px) saturate(150%);
+    border: 1px solid rgba(255,255,255,0.10);
+    box-shadow:
+      inset 0 1px 0 0 rgba(255,255,255,0.07),
+      0 12px 48px -14px rgba(0,0,0,0.70);
+    border-radius: 22px;
+    transition: transform .35s cubic-bezier(.2,.8,.2,1),
+                border-color .35s ease, box-shadow .35s ease;
+    position: relative; overflow: hidden;
+  }
+  .glass-card::before {
+    content: ""; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,.22), transparent);
+    z-index: 5;
+  }
+  .glass-card::after {
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    background: radial-gradient(circle at var(--mx, 50%) var(--my, 0%), rgba(255,255,255,.06), transparent 45%);
+    opacity: 0; transition: opacity .35s ease;
+    border-radius: inherit;
+  }
+  .glass-card:hover { transform: translateY(-3px); border-color: rgba(255,255,255,0.18); }
+  .glass-card:hover::after { opacity: 1; }
+
+  .glass-card.accent-violet { border-color: rgba(99,102,241,.18); }
+  .glass-card.accent-violet:hover { border-color: rgba(99,102,241,.55); box-shadow: 0 16px 56px -14px rgba(99,102,241,.55), 0 0 28px -4px rgba(99,102,241,.40), inset 0 1px 0 0 rgba(255,255,255,.10); }
+
+  .glass-card.accent-gold { border-color: rgba(255,215,0,.16); }
+  .glass-card.accent-gold:hover { border-color: rgba(255,215,0,.55); box-shadow: 0 16px 56px -14px rgba(255,215,0,.40), 0 0 28px -4px rgba(255,215,0,.30), inset 0 1px 0 0 rgba(255,255,255,.10); }
+
+  .glass-card.accent-neon { border-color: rgba(255,70,85,.18); }
+  .glass-card.accent-neon:hover { border-color: rgba(255,70,85,.55); box-shadow: 0 16px 56px -14px rgba(255,70,85,.50), 0 0 28px -4px rgba(255,70,85,.35), inset 0 1px 0 0 rgba(255,255,255,.10); }
+
+  .glass-card.accent-cyan { border-color: rgba(0,229,255,.18); }
+  .glass-card.accent-cyan:hover { border-color: rgba(0,229,255,.55); box-shadow: 0 16px 56px -14px rgba(0,229,255,.50), 0 0 28px -4px rgba(0,229,255,.35), inset 0 1px 0 0 rgba(255,255,255,.10); }
+
+  /* Tab pill */
+  .tab-pill {
+    background: rgba(255,255,255,0.025);
+    border: 1px solid rgba(255,255,255,0.07);
+    color: #A1A1AA;
+    transition: all .25s ease;
+    position: relative;
+  }
+  .tab-pill[data-active="true"] {
+    background: linear-gradient(135deg, rgba(99,102,241,.25), rgba(99,102,241,.10));
+    border-color: rgba(99,102,241,.55);
+    color: #F8F8F8;
+    box-shadow: 0 0 24px -6px rgba(99,102,241,.55), inset 0 1px 0 0 rgba(255,255,255,.10);
+  }
+  .tab-pill:hover { color: #F8F8F8; border-color: rgba(255,255,255,0.18); }
+
+  /* Action button */
+  .btn-cta {
+    background: linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%);
+    color: #fff; font-weight: 700;
+    border: 1px solid rgba(255,255,255,0.15);
+    box-shadow:
+      0 8px 28px -6px rgba(99,102,241,.55),
+      inset 0 1px 0 0 rgba(255,255,255,.18);
+    transition: transform .15s ease, box-shadow .15s ease, filter .15s ease;
+  }
+  .btn-cta:hover { transform: translateY(-1px); filter: brightness(1.08); box-shadow: 0 12px 40px -6px rgba(99,102,241,.7), inset 0 1px 0 0 rgba(255,255,255,.18); }
+  .btn-cta:active { transform: translateY(0); }
+  .btn-cta:disabled { opacity: .4; cursor: not-allowed; transform: none; filter: grayscale(.4); }
+
+  .btn-ghost {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
+    color: #F8F8F8;
+    transition: all .2s ease;
+  }
+  .btn-ghost:hover { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.18); }
+
+  .btn-action {
+    display: inline-flex; align-items: center; gap: .55rem;
+    padding: .7rem 1.1rem; border-radius: 14px;
+    font-size: .72rem; font-weight: 800; letter-spacing: .07em; text-transform: uppercase;
+    color: #fff;
+    border: 1px solid rgba(255,255,255,.20);
+    background: linear-gradient(135deg, rgba(255,255,255,.08), rgba(255,255,255,.02));
+    box-shadow: inset 0 1px 0 0 rgba(255,255,255,.10);
+    transition: transform .18s ease, box-shadow .25s ease, border-color .25s ease, filter .18s ease;
+  }
+  .btn-action:hover { transform: translateY(-1px); filter: brightness(1.06); }
+  .btn-action.btn-action-cyan {
+    background: linear-gradient(135deg, rgba(34,211,238,.20), rgba(34,211,238,.05));
+    border-color: rgba(34,211,238,.55);
+    box-shadow: 0 0 26px -6px rgba(34,211,238,.45), inset 0 1px 0 0 rgba(255,255,255,.10);
+  }
+  .btn-action.btn-action-cyan:hover {
+    border-color: rgba(34,211,238,.85);
+    box-shadow: 0 0 36px -4px rgba(34,211,238,.75), inset 0 1px 0 0 rgba(255,255,255,.14);
+  }
+  .btn-action.btn-action-neon {
+    background: linear-gradient(135deg, rgba(255,70,85,.22), rgba(255,70,85,.05));
+    border-color: rgba(255,70,85,.55);
+    box-shadow: 0 0 26px -6px rgba(255,70,85,.55), inset 0 1px 0 0 rgba(255,255,255,.10);
+  }
+  .btn-action.btn-action-neon:hover {
+    border-color: rgba(255,70,85,.85);
+    box-shadow: 0 0 38px -4px rgba(255,70,85,.80), inset 0 1px 0 0 rgba(255,255,255,.14);
+  }
+
+  .modal-card.modal-form {
+    max-width: 32rem;
+    padding: 1.65rem 1.65rem 1.4rem;
+  }
+  .field-label {
+    display: block;
+    font-size: .65rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase;
+    color: rgba(229,231,235,.70); margin-bottom: .45rem;
+  }
+  .field-input,
+  .field-select {
+    width: 100%;
+    padding: .7rem .9rem;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.10);
+    color: #F8F8F8;
+    border-radius: 12px;
+    font-size: .85rem; font-family: 'Inter', sans-serif;
+    transition: border-color .2s ease, background .2s ease, box-shadow .2s ease;
+    outline: none;
+  }
+  .field-select { appearance: none; -webkit-appearance: none; padding-right: 2.4rem;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23A1A1AA' stroke-width='2'><polyline points='6 9 12 15 18 9'/></svg>");
+    background-repeat: no-repeat; background-position: right .85rem center;
+  }
+  .field-input:focus,
+  .field-select:focus {
+    border-color: rgba(99,102,241,.55);
+    background: rgba(255,255,255,0.05);
+    box-shadow: 0 0 0 3px rgba(99,102,241,.15);
+  }
+  .field-input::placeholder { color: rgba(161,161,170,.55); }
+  .field-input.is-invalid,
+  .field-select.is-invalid {
+    border-color: rgba(244,63,94,.65);
+    box-shadow: 0 0 0 3px rgba(244,63,94,.15);
+  }
+  .field-hint {
+    font-size: .65rem; color: rgba(161,161,170,.75); margin-top: .35rem;
+  }
+  .field-row { margin-bottom: 1rem; }
+  .field-row.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; margin-bottom: 1rem; }
+
+  .field-input option,
+  .field-select option { background: #0a0a0f; color: #F8F8F8; }
+
+  .form-error {
+    margin: .65rem 0 0;
+    padding: .55rem .8rem;
+    border-radius: 10px;
+    background: rgba(244,63,94,.10);
+    border: 1px solid rgba(244,63,94,.40);
+    color: #FCA5A5;
+    font-size: .72rem; font-weight: 600;
+    box-shadow: 0 0 18px -6px rgba(244,63,94,.45);
+  }
+  .form-error.hidden { display: none; }
+
+  /* DC chip */
+  .dc-chip {
+    display: inline-flex; align-items: center; gap: .35rem;
+    padding: .25rem .65rem;
+    background: linear-gradient(135deg, rgba(255,215,0,.15), rgba(255,215,0,.04));
+    border: 1px solid rgba(255,215,0,.30);
+    color: #FFD700;
+    border-radius: 9999px;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    font-size: .75rem;
+    box-shadow: 0 0 12px -2px rgba(255,215,0,.20), inset 0 1px 0 0 rgba(255,255,255,.06);
+  }
+
+  /* Closure pill — required by spec when closure_reason is set */
+  .closure-pill {
+    display: inline-flex; align-items: center; gap: .4rem;
+    padding: .3rem .7rem;
+    border-radius: 9999px;
+    font-size: .72rem; font-weight: 700; letter-spacing: .02em;
+    background: linear-gradient(135deg, rgba(244,63,94,.18), rgba(244,63,94,.06));
+    border: 1px solid rgba(244,63,94,.45);
+    color: #FCA5A5;
+    box-shadow: 0 0 16px -4px rgba(244,63,94,.45), inset 0 1px 0 0 rgba(255,255,255,.05);
+  }
+  .closure-pill.amber {
+    background: linear-gradient(135deg, rgba(245,158,11,.18), rgba(245,158,11,.05));
+    border-color: rgba(245,158,11,.45);
+    color: #FCD34D;
+    box-shadow: 0 0 16px -4px rgba(245,158,11,.45), inset 0 1px 0 0 rgba(255,255,255,.05);
+  }
+  .closure-pill.neutral {
+    background: linear-gradient(135deg, rgba(255,255,255,.10), rgba(255,255,255,.03));
+    border-color: rgba(255,255,255,.18);
+    color: #E4E4E7;
+  }
+
+  /* Status / state badge */
+  .state-badge {
+    display: inline-flex; align-items: center; gap: .35rem;
+    padding: .2rem .55rem; border-radius: 6px;
+    font-size: .65rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.10);
+    color: #A1A1AA;
+  }
+  .state-badge.live   { background: rgba(16,185,129,.12); border-color: rgba(16,185,129,.45); color: #6EE7B7; }
+  .state-badge.open   { background: rgba(99,102,241,.12); border-color: rgba(99,102,241,.45); color: #A5B4FC; }
+  .state-badge.scoring{ background: rgba(245,158,11,.14); border-color: rgba(245,158,11,.45); color: #FCD34D; }
+
+  /* Dot pulse */
+  .pulse-dot {
+    width: 6px; height: 6px; border-radius: 999px;
+    background: #10B981;
+    box-shadow: 0 0 0 0 rgba(16,185,129,.60);
+    animation: pulse-dot 1.6s ease-out infinite;
+  }
+  @keyframes pulse-dot {
+    0%   { box-shadow: 0 0 0 0 rgba(16,185,129,.55); }
+    70%  { box-shadow: 0 0 0 10px rgba(16,185,129,0); }
+    100% { box-shadow: 0 0 0 0 rgba(16,185,129,0); }
+  }
+
+  /* Modal */
+  .modal-shell {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.65);
+    backdrop-filter: blur(8px);
+    z-index: 70;
+    display: flex; align-items: center; justify-content: center;
+    padding: 1rem;
+  }
+  .modal-card {
+    max-width: 28rem; width: 100%;
+    background: linear-gradient(180deg, rgba(20,20,28,.95), rgba(10,10,15,.98));
+    border: 1px solid rgba(255,255,255,.10);
+    border-radius: 24px;
+    padding: 1.75rem;
+    box-shadow: 0 24px 64px -12px rgba(0,0,0,.8), 0 0 60px -10px rgba(99,102,241,.30);
+    backdrop-filter: blur(32px);
+    animation: modalIn .25s cubic-bezier(.2,.8,.2,1);
+  }
+  @keyframes modalIn {
+    from { opacity: 0; transform: translateY(8px) scale(.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  /* Toast */
+  .toast-shelf {
+    position: fixed; right: 1.25rem; top: 5.5rem; z-index: 80;
+    display: flex; flex-direction: column; gap: .55rem;
+    pointer-events: none;
+  }
+  .toast {
+    pointer-events: auto;
+    min-width: 280px; max-width: 380px;
+    padding: .85rem 1.05rem;
+    border-radius: 14px;
+    background: linear-gradient(180deg, rgba(20,20,28,.95), rgba(8,8,14,.98));
+    border: 1px solid rgba(255,255,255,.10);
+    box-shadow: 0 16px 40px -10px rgba(0,0,0,.7);
+    color: #F8F8F8;
+    backdrop-filter: blur(20px);
+    display: flex; align-items: flex-start; gap: .65rem;
+    animation: toastIn .25s cubic-bezier(.2,.8,.2,1);
+  }
+  .toast.error  { border-color: rgba(244,63,94,.45);  box-shadow: 0 0 28px -6px rgba(244,63,94,.45), 0 16px 40px -10px rgba(0,0,0,.7); }
+  .toast.info   { border-color: rgba(99,102,241,.40); box-shadow: 0 0 28px -6px rgba(99,102,241,.40), 0 16px 40px -10px rgba(0,0,0,.7); }
+  .toast.success{ border-color: rgba(16,185,129,.45); box-shadow: 0 0 28px -6px rgba(16,185,129,.45), 0 16px 40px -10px rgba(0,0,0,.7); }
+  @keyframes toastIn {
+    from { opacity: 0; transform: translateX(20px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+
+  .skeleton {
+    background: linear-gradient(90deg, rgba(255,255,255,.04) 0%, rgba(255,255,255,.10) 50%, rgba(255,255,255,.04) 100%);
+    background-size: 200% 100%;
+    animation: skeleton 1.4s ease-in-out infinite;
+    border-radius: 8px;
+  }
+  @keyframes skeleton {
+    0%   { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  .empty-state {
+    position: relative; overflow: hidden;
+    border-radius: 24px;
+    padding: 4rem 1.5rem;
+    border: 1px solid rgba(255,255,255,.10);
+    background:
+      radial-gradient(circle at 50% 0%, rgba(99,102,241,.18) 0%, transparent 55%),
+      linear-gradient(180deg, rgba(16,16,22,.92), rgba(8,8,12,.98));
+    backdrop-filter: blur(32px) saturate(140%);
+    -webkit-backdrop-filter: blur(32px) saturate(140%);
+    text-align: center;
+  }
+  .empty-state .es-grid {
+    position: absolute; inset: 0; pointer-events: none; opacity: .18;
+    background-image:
+      linear-gradient(rgba(255,255,255,.06) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.06) 1px, transparent 1px);
+    background-size: 32px 32px;
+    -webkit-mask-image: radial-gradient(circle at center, black 30%, transparent 75%);
+            mask-image: radial-gradient(circle at center, black 30%, transparent 75%);
+  }
+  .empty-state .es-glow {
+    position: absolute; left: 50%; top: -3.5rem; transform: translateX(-50%);
+    width: 22rem; height: 22rem; border-radius: 9999px;
+    pointer-events: none; filter: blur(64px);
+    animation: esGlow 6s ease-in-out infinite;
+  }
+  @keyframes esGlow {
+    0%, 100% { opacity: .55; transform: translateX(-50%) scale(1); }
+    50%      { opacity: .85; transform: translateX(-50%) scale(1.1); }
+  }
+  .empty-state .es-icon {
+    position: relative;
+    width: 5rem; height: 5rem; border-radius: 18px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.7rem;
+    margin: 0 auto 1.4rem;
+    border: 1px solid rgba(255,255,255,.14);
+    background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.02));
+    color: rgba(255,255,255,.78);
+    box-shadow: inset 0 1px 0 0 rgba(255,255,255,.10);
+  }
+  .empty-state .es-icon::before {
+    content: ""; position: absolute; inset: -8px;
+    border-radius: 22px; z-index: -1; pointer-events: none;
+    filter: blur(18px);
+  }
+  .empty-state.violet .es-glow { background: radial-gradient(circle, rgba(99,102,241,.55), transparent 60%); }
+  .empty-state.violet .es-icon { color: #C7D2FE; }
+  .empty-state.violet .es-icon::before { background: radial-gradient(circle, rgba(99,102,241,.55), transparent 70%); }
+  .empty-state.cyan   .es-glow { background: radial-gradient(circle, rgba(0,229,255,.45), transparent 60%); }
+  .empty-state.cyan   .es-icon { color: #A5F3FC; }
+  .empty-state.cyan   .es-icon::before { background: radial-gradient(circle, rgba(0,229,255,.45), transparent 70%); }
+  .empty-state.neon   .es-glow { background: radial-gradient(circle, rgba(255,70,85,.50), transparent 60%); }
+  .empty-state.neon   .es-icon { color: #FDA4AF; }
+  .empty-state.neon   .es-icon::before { background: radial-gradient(circle, rgba(255,70,85,.50), transparent 70%); }
+  .empty-state.gold   .es-glow { background: radial-gradient(circle, rgba(251,191,36,.40), transparent 60%); }
+  .empty-state.gold   .es-icon { color: #FDE68A; }
+  .empty-state.gold   .es-icon::before { background: radial-gradient(circle, rgba(251,191,36,.45), transparent 70%); }
+
+  .empty-state .es-cta {
+    display: inline-flex; align-items: center; gap: .5rem;
+    padding: .85rem 1.4rem; border-radius: 14px;
+    font-size: .75rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase;
+    color: #fff;
+    border: 1px solid rgba(255,255,255,.18);
+    background: linear-gradient(135deg, #6366F1, #8B5CF6);
+    box-shadow:
+      0 10px 32px -8px rgba(99,102,241,.65),
+      inset 0 1px 0 0 rgba(255,255,255,.18);
+    animation: esPulse 2.6s ease-in-out infinite;
+    transition: transform .2s ease, filter .2s ease, box-shadow .2s ease;
+  }
+  .empty-state .es-cta:hover {
+    transform: translateY(-2px); filter: brightness(1.10);
+    box-shadow:
+      0 14px 44px -8px rgba(99,102,241,.85),
+      inset 0 1px 0 0 rgba(255,255,255,.22);
+    animation-play-state: paused;
+  }
+  @keyframes esPulse {
+    0%, 100% { box-shadow: 0 10px 32px -8px rgba(99,102,241,.65), inset 0 1px 0 0 rgba(255,255,255,.18); }
+    50%      { box-shadow: 0 16px 48px -8px rgba(99,102,241,.95), 0 0 28px -4px rgba(139,92,246,.50), inset 0 1px 0 0 rgba(255,255,255,.22); }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="arena-mesh"></div>
+
+<main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-32">
+
+  {# ── Hero ────────────────────────────────────────────────────────── #}
+  <header class="relative mb-10">
+    <div class="flex flex-col gap-3">
+      <span class="text-xs font-bold uppercase tracking-[0.25em] text-dc-textMuted">
+        DeltaCrown / Competitive Ecosystem
+      </span>
+      <h1 class="text-4xl sm:text-5xl font-black tracking-tight text-white">
+        Crown <span class="bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 via-fuchsia-400 to-amber-300">Arena</span>
+      </h1>
+      <p class="text-sm sm:text-base text-dc-textMuted max-w-2xl">
+        Skill-based DeltaCoin escrow — contracts, head-to-head clashes, hitlist bounties, and royale lobbies.
+        100&nbsp;% scam-free, every transaction held in our smart-lock vault.
+      </p>
+    </div>
+  </header>
+
+  {# ── Tabs ────────────────────────────────────────────────────────── #}
+  <nav class="flex flex-wrap gap-2 mb-8" id="arena-tabs" role="tablist" aria-label="Crown Arena tabs">
+    <button class="tab-pill px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wide" data-tab="contracts" data-active="true">
+      📜 Crown Contracts
+    </button>
+    <button class="tab-pill px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wide" data-tab="clash" data-active="false">
+      ⚔️ Crown Clash
+    </button>
+    <button class="tab-pill px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wide" data-tab="hitlist" data-active="false">
+      🎯 The Hitlist
+    </button>
+    <button class="tab-pill px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wide" data-tab="royale" data-active="false">
+      👑 Crown Royale
+    </button>
+  </nav>
+
+  {# ── Panels ──────────────────────────────────────────────────────── #}
+  <section id="panel-contracts" class="arena-panel" data-active="true">
+    <div class="flex items-baseline justify-between mb-5">
+      <h2 class="text-lg font-black tracking-tight text-white">Contract Board</h2>
+      <span class="text-xs font-mono text-dc-textMuted" id="contracts-count"></span>
+    </div>
+    <div id="contracts-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"></div>
+  </section>
+
+  <section id="panel-clash" class="arena-panel hidden" data-active="false">
+    <div class="flex items-center justify-between flex-wrap gap-3 mb-5">
+      <div class="flex items-baseline gap-3">
+        <h2 class="text-lg font-black tracking-tight text-white">Open Clashes</h2>
+        <span class="text-xs font-mono text-dc-textMuted" id="clash-count"></span>
+      </div>
+      <button type="button" class="btn-action btn-action-cyan" data-open-modal="create-clash">
+        <i class="fa-solid fa-bolt-lightning"></i>
+        <span>Issue a Crown Clash</span>
+      </button>
+    </div>
+    <div id="clash-grid" class="grid grid-cols-1 md:grid-cols-2 gap-5"></div>
+  </section>
+
+  <section id="panel-hitlist" class="arena-panel hidden" data-active="false">
+    <div class="flex items-center justify-between flex-wrap gap-3 mb-5">
+      <div class="flex items-baseline gap-3">
+        <h2 class="text-lg font-black tracking-tight text-white">The Hitlist &mdash; Beat the Kings</h2>
+        <span class="text-xs font-mono text-dc-textMuted" id="hitlist-count"></span>
+      </div>
+      <button type="button" class="btn-action btn-action-neon" data-open-modal="create-hitlist">
+        <i class="fa-solid fa-crosshairs"></i>
+        <span>Post a Hitlist Bounty</span>
+      </button>
+    </div>
+    <div id="hitlist-grid" class="grid grid-cols-1 md:grid-cols-2 gap-5"></div>
+  </section>
+
+  <section id="panel-royale" class="arena-panel hidden" data-active="false">
+    <div class="flex items-baseline justify-between mb-5">
+      <h2 class="text-lg font-black tracking-tight text-white">Royale Schedule</h2>
+      <span class="text-xs font-mono text-dc-textMuted" id="royale-count"></span>
+    </div>
+    <div id="royale-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"></div>
+  </section>
+</main>
+
+{# ── Confirmation modal (escrow lock warning) ────────────────────── #}
+<div id="confirm-modal" class="modal-shell hidden" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+  <div class="modal-card">
+    <div class="flex items-center justify-between mb-4">
+      <h3 id="confirm-title" class="text-base font-black text-white">Confirm action</h3>
+      <button class="text-dc-textMuted hover:text-white text-2xl leading-none" data-action="cancel-modal">&times;</button>
+    </div>
+    <p id="confirm-body" class="text-sm text-dc-textMuted leading-relaxed mb-2">…</p>
+    <p id="confirm-lock" class="text-xs text-dc-gold font-mono mb-6">…</p>
+    <div class="flex gap-3 justify-end">
+      <button class="btn-ghost px-4 py-2 rounded-xl text-sm font-bold" data-action="cancel-modal">Cancel</button>
+      <button id="confirm-go" class="btn-cta px-5 py-2 rounded-xl text-sm">Confirm &amp; Lock</button>
+    </div>
+  </div>
+</div>
+
+{# ── Create Crown Clash modal ────────────────────────────────────── #}
+<div id="modal-create-clash" class="modal-shell hidden" role="dialog" aria-modal="true" aria-labelledby="create-clash-title">
+  <div class="modal-card modal-form">
+    <div class="flex items-center justify-between mb-4">
+      <div>
+        <div class="text-[10px] font-bold uppercase tracking-[0.22em] text-cyan-300/90 mb-1">Crown Arena</div>
+        <h3 id="create-clash-title" class="text-lg font-black text-white">Issue a Crown Clash</h3>
+      </div>
+      <button type="button" class="text-dc-textMuted hover:text-white text-2xl leading-none" data-close-modal="create-clash">&times;</button>
+    </div>
+
+    <p class="text-xs text-dc-textMuted leading-relaxed mb-4">
+      Both sides lock the entry fee at the same moment the opponent accepts. Winner takes the pot minus a 5% platform fee.
+    </p>
+
+    <form id="form-create-clash" novalidate>
+      <div class="field-row">
+        <label class="field-label" for="clash-team">Your team</label>
+        <select id="clash-team" name="challenger_team_id" class="field-select" required></select>
+      </div>
+
+      <div class="field-row">
+        <label class="field-label" for="clash-opponent">Opponent team</label>
+        <select id="clash-opponent" name="challenged_team_id" class="field-select"></select>
+        <div class="field-hint" id="clash-opponent-hint">Leave blank to publish as an open challenge any team can accept.</div>
+      </div>
+
+      <div class="field-row grid-2">
+        <div>
+          <label class="field-label" for="clash-game">Game</label>
+          <select id="clash-game" name="game_id" class="field-select" required></select>
+        </div>
+        <div>
+          <label class="field-label" for="clash-format">Format</label>
+          <select id="clash-format" name="best_of" class="field-select">
+            <option value="1">BO1 — Single map</option>
+            <option value="3" selected>BO3 — Best of 3</option>
+            <option value="5">BO5 — Best of 5</option>
+            <option value="7">BO7 — Best of 7</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field-row grid-2">
+        <div>
+          <label class="field-label" for="clash-fee">Entry fee (DC)</label>
+          <input id="clash-fee" name="entry_fee_dc" type="number" min="1" max="1000" step="1"
+                 placeholder="100" class="field-input" required>
+          <div class="field-hint">Anti-whale cap: <strong class="text-amber-300">1,000 DC</strong> per side.</div>
+        </div>
+        <div>
+          <label class="field-label" for="clash-title">Title</label>
+          <input id="clash-title" name="title" type="text" maxlength="120"
+                 placeholder="Friday Night Showdown" class="field-input" required>
+        </div>
+      </div>
+
+      <div id="clash-form-error" class="form-error hidden" role="alert"></div>
+
+      <div class="flex items-center justify-between gap-3 mt-5">
+        <span class="text-[11px] font-mono text-dc-textMuted" id="clash-pot-hint">Pot: 0 DC</span>
+        <div class="flex gap-2">
+          <button type="button" class="btn-ghost px-4 py-2 rounded-xl text-sm font-bold" data-close-modal="create-clash">Cancel</button>
+          <button type="submit" class="btn-cta px-5 py-2 rounded-xl text-sm" id="clash-submit">
+            <span class="submit-label">Issue Clash</span>
+            <i class="fa-solid fa-bolt-lightning ml-1.5 text-[10px]"></i>
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+{# ── Post Hitlist Bounty modal ───────────────────────────────────── #}
+<div id="modal-create-hitlist" class="modal-shell hidden" role="dialog" aria-modal="true" aria-labelledby="create-hitlist-title">
+  <div class="modal-card modal-form">
+    <div class="flex items-center justify-between mb-4">
+      <div>
+        <div class="text-[10px] font-bold uppercase tracking-[0.22em] text-rose-300/90 mb-1">The Hitlist</div>
+        <h3 id="create-hitlist-title" class="text-lg font-black text-white">Post a Hitlist Bounty</h3>
+      </div>
+      <button type="button" class="text-dc-textMuted hover:text-white text-2xl leading-none" data-close-modal="create-hitlist">&times;</button>
+    </div>
+
+    <p class="text-xs text-dc-textMuted leading-relaxed mb-4">
+      Stake a reward on your own head. Challengers pay an entry fee per attempt. Beat them and you keep the entry fee. Lose and the challenger takes your reward.
+    </p>
+
+    <form id="form-create-hitlist" novalidate>
+      <div class="field-row">
+        <label class="field-label" for="hitlist-team">Your team (issuer)</label>
+        <select id="hitlist-team" name="issuer_team_id" class="field-select" required></select>
+      </div>
+
+      <div class="field-row">
+        <label class="field-label" for="hitlist-game">Game</label>
+        <select id="hitlist-game" name="game_id" class="field-select" required></select>
+      </div>
+
+      <div class="field-row">
+        <label class="field-label" for="hitlist-title">Bounty headline</label>
+        <input id="hitlist-title" name="title" type="text" maxlength="120"
+               placeholder="Can You Beat the Kings?" class="field-input" required>
+      </div>
+
+      <div class="field-row grid-2">
+        <div>
+          <label class="field-label" for="hitlist-reward">Reward (DC)</label>
+          <input id="hitlist-reward" name="reward_amount_dc" type="number" min="1" step="1"
+                 placeholder="1000" class="field-input" required>
+          <div class="field-hint">Locked from your wallet at post time.</div>
+        </div>
+        <div>
+          <label class="field-label" for="hitlist-entry">Challenger entry fee (DC)</label>
+          <input id="hitlist-entry" name="challenger_entry_fee_dc" type="number" min="1" max="1000" step="1"
+                 placeholder="200" class="field-input" required>
+          <div class="field-hint">Cap: <strong class="text-amber-300">1,000 DC</strong> per challenger.</div>
+        </div>
+      </div>
+
+      <div id="hitlist-form-error" class="form-error hidden" role="alert"></div>
+
+      <div class="flex items-center justify-end gap-2 mt-5">
+        <button type="button" class="btn-ghost px-4 py-2 rounded-xl text-sm font-bold" data-close-modal="create-hitlist">Cancel</button>
+        <button type="submit" class="btn-cta px-5 py-2 rounded-xl text-sm" id="hitlist-submit">
+          <span class="submit-label">Post Bounty</span>
+          <i class="fa-solid fa-crosshairs ml-1.5 text-[10px]"></i>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{# ── Toast shelf ─────────────────────────────────────────────────── #}
+<div id="toast-shelf" class="toast-shelf"></div>
+
+{{ hub_context|json_script:"hub-context" }}
+
+{% endblock %}
+
+{% block extra_js %}
+<script defer src="{% static 'dashboard/competitive-hub.js' %}?v=20260507-1"></script>
+{% endblock %}
