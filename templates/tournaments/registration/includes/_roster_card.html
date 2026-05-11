@@ -90,8 +90,19 @@
             {% endif %}
         </div>
 
-        {# Slot badge + chevron #}
+        {# Slot badge + quick move + chevron #}
         <div class="flex items-center gap-2 shrink-0">
+            <div data-quick-move class="flex items-center">
+                {% if slot_type == 'starter' %}
+                <button type="button" data-action="move-to-sub" class="px-2 py-1 text-[9px] font-black uppercase rounded border border-blue-500/20 bg-blue-500/10 text-blue-300 hover:text-blue-200 hover:border-blue-400/40 transition-all" title="Move to Sub">
+                    <i data-lucide="arrow-down" class="w-3 h-3 inline -mt-0.5 mr-1"></i>To Sub
+                </button>
+                {% elif slot_type == 'sub' %}
+                <button type="button" data-action="move-to-starter" class="px-2 py-1 text-[9px] font-black uppercase rounded border border-white/10 bg-white/5 text-gray-300 hover:text-white hover:border-white/20 transition-all" title="Move to Starter">
+                    <i data-lucide="arrow-up" class="w-3 h-3 inline -mt-0.5 mr-1"></i>To Starter
+                </button>
+                {% endif %}
+            </div>
             {% if slot_type == 'sub' %}
             <span class="px-2 py-1 bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[10px] font-black uppercase rounded tracking-wider">Sub</span>
             {% elif slot_type == 'coach' %}

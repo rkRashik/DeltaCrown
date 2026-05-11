@@ -126,9 +126,8 @@
         const panel = document.getElementById('member-modal-panel');
         if (panel) {
             panel.addEventListener('click', function(event) {
-                // Let close-button clicks propagate to the document handler
-                if (event.target.closest('[data-action="close-member-modal"]')) return;
-                event.stopPropagation();
+                // Allow delegated handlers to receive modal actions.
+                if (event.target.closest('[data-action]')) return;
             });
         }
 
@@ -197,6 +196,12 @@
                 break;
             case 'submit-registration':
                 handleSubmit(event);
+                break;
+            case 'move-to-starter':
+                moveMemberToSlot(actionEl, 'STARTER');
+                break;
+            case 'move-to-sub':
+                moveMemberToSlot(actionEl, 'SUBSTITUTE');
                 break;
             case 'open-member-modal':
                 openMemberModal(actionEl);
@@ -887,8 +892,12 @@
 
     function validateRoster() {
         if (!runtimeConfig.isTeam || runtimeConfig.isGuestTeam) return true;
-        const members = document.querySelectorAll('[data-member-id]');
-        return members.length >= runtimeConfig.rosterConfig.minTeamSize;
+        let starters = 0;
+        document.querySelectorAll('[data-member-id]').forEach(card => {
+            const slot = (card.dataset.memberRosterSlot || 'STARTER').toUpperCase();
+            if (slot !== 'SUBSTITUTE' && slot !== 'COACH') starters += 1;
+        });
+        return starters >= runtimeConfig.rosterConfig.minTeamSize;
     }
 
     function validateCoordinator() {
@@ -1272,6 +1281,21 @@
     // ══════════════════════════════════════════════════════════
     //  ROSTER COUNTS
     // ══════════════════════════════════════════════════════════
+
+    function moveMemberToSlot(actionEl, slot) {
+        const card = actionEl.closest('[data-member-id]');
+        if (!card) return;
+        const memberId = card.dataset.memberId;
+        if (!memberId || card.dataset.memberRosterSlot === slot) return;
+
+        const hiddenSlot = card.querySelector(`[name="member_${memberId}_roster_slot"]`);
+        if (hiddenSlot) hiddenSlot.value = slot;
+        card.dataset.memberRosterSlot = slot;
+        updateSlotBadge(card, slot);
+        moveCardToSection(card, slot);
+        updateRosterCounts();
+        checkStep('roster');
+    }
 
     function updateRosterCounts() {
         if (runtimeConfig.isGuestTeam) {
@@ -1876,6 +1900,20 @@
                 }
             }
         });
+
+        const quickMove = card.querySelector('[data-quick-move]');
+        if (quickMove) {
+            const toSubBtn = '<button type="button" data-action="move-to-sub" class="px-2 py-1 text-[9px] font-black uppercase rounded border border-blue-500/20 bg-blue-500/10 text-blue-300 hover:text-blue-200 hover:border-blue-400/40 transition-all" title="Move to Sub"><i data-lucide="arrow-down" class="w-3 h-3 inline -mt-0.5 mr-1"></i>To Sub</button>';
+            const toStarterBtn = '<button type="button" data-action="move-to-starter" class="px-2 py-1 text-[9px] font-black uppercase rounded border border-white/10 bg-white/5 text-gray-300 hover:text-white hover:border-white/20 transition-all" title="Move to Starter"><i data-lucide="arrow-up" class="w-3 h-3 inline -mt-0.5 mr-1"></i>To Starter</button>';
+            if (slot === 'SUBSTITUTE') {
+                quickMove.innerHTML = toStarterBtn;
+            } else if (slot === 'COACH') {
+                quickMove.innerHTML = '';
+            } else {
+                quickMove.innerHTML = toSubBtn;
+            }
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
     }
 
     function updateRoleBadge(card, roleCode) {

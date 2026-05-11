@@ -1,0 +1,1207 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeltaCrown | Intelligent Arena Hub</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Rajdhani', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        dc: {
+                            bg: '#010103',
+                            surface: '#08080c',
+                            panel: 'rgba(12, 12, 18, 0.75)',
+                            border: 'rgba(255, 255, 255, 0.08)',
+                            cyan: '#00e5ff',
+                            cyanHover: '#66f0ff',
+                            violet: '#8a2be2',
+                            neon: '#ff0055',
+                            gold: '#ffd700',
+                            success: '#00fa9a',
+                            warning: '#ff8c00'
+                        }
+                    },
+                    backgroundImage: {
+                        'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
+                        'hero-glow': 'conic-gradient(from 180deg at 50% 50%, #8a2be255 0deg, #00e5ff55 180deg, #8a2be255 360deg)',
+                    },
+                    animation: {
+                        'spin-slow': 'spin 8s linear infinite',
+                        'pulse-glow': 'pulseGlow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'float': 'float 5s ease-in-out infinite',
+                        'slide-up': 'slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                        'fade-in': 'fadeIn 0.4s ease-out forwards',
+                        'shimmer': 'shimmer 2s linear infinite',
+                        'scanline': 'scanline 8s linear infinite',
+                    },
+                    keyframes: {
+                        pulseGlow: {
+                            '0%, 100%': { opacity: 1, filter: 'brightness(1)' },
+                            '50%': { opacity: .7, filter: 'brightness(1.5)' },
+                        },
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-8px)' },
+                        },
+                        slideUp: {
+                            '0%': { transform: 'translateY(40px)', opacity: '0' },
+                            '100%': { transform: 'translateY(0)', opacity: '1' },
+                        },
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' },
+                        },
+                        shimmer: {
+                            '0%': { backgroundPosition: '-1000px 0' },
+                            '100%': { backgroundPosition: '1000px 0' },
+                        },
+                        scanline: {
+                            '0%': { transform: 'translateY(-100%)' },
+                            '100%': { transform: 'translateY(100vh)' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Base & Resets */
+        body { 
+            background-color: #010103; 
+            color: #e2e8f0; 
+            overflow-x: hidden;
+            scroll-behavior: smooth;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #010103; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(0, 229, 255, 0.4); }
+
+        /* Cinematic Background Architecture */
+        .grid-bg {
+            position: fixed; inset: 0; z-index: -2;
+            background-size: 40px 40px;
+            background-image: linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+                              linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+            mask-image: radial-gradient(circle at center, black, transparent 80%);
+            -webkit-mask-image: radial-gradient(circle at center, black, transparent 80%);
+        }
+        .ambient-orbs {
+            position: fixed; inset: 0; z-index: -1; pointer-events: none;
+            background: 
+                radial-gradient(circle at 15% 30%, rgba(138, 43, 226, 0.08) 0%, transparent 40%),
+                radial-gradient(circle at 85% 60%, rgba(0, 229, 255, 0.06) 0%, transparent 40%),
+                radial-gradient(circle at 50% 90%, rgba(255, 0, 85, 0.05) 0%, transparent 50%);
+        }
+        .scanline-overlay {
+            position: fixed; inset: 0; z-index: 50; pointer-events: none; opacity: 0.03;
+            background: linear-gradient(to bottom, transparent 50%, rgba(0,0,0,1) 51%);
+            background-size: 100% 4px;
+        }
+
+        /* Glassmorphism Classes */
+        .glass-heavy {
+            background: rgba(10, 10, 15, 0.8);
+            backdrop-filter: blur(40px) saturate(180%);
+            -webkit-backdrop-filter: blur(40px) saturate(180%);
+            border: 1px solid rgba(255,255,255,0.06);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), 0 10px 40px -10px rgba(0,0,0,0.8);
+        }
+        .glass-light {
+            background: rgba(255, 255, 255, 0.02);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.04);
+        }
+        .glass-light:hover {
+            background: rgba(255, 255, 255, 0.04);
+            border-color: rgba(255,255,255,0.1);
+        }
+
+        /* Interactive Elements */
+        .btn-cyber {
+            position: relative; overflow: hidden; transition: all 0.3s;
+            clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
+        }
+        .btn-cyber::before {
+            content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: all 0.5s;
+        }
+        .btn-cyber:hover::before { left: 100%; }
+
+        /* Typography */
+        .text-gradient-cyan { background: linear-gradient(to right, #ffffff, #00e5ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .text-gradient-gold { background: linear-gradient(to right, #ffd700, #ffaa00); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+
+        /* State Classes */
+        .hidden-spa { display: none !important; }
+        .fade-enter { animation: fadeIn 0.3s ease-out forwards; }
+        
+        /* Shimmer Loading */
+        .skeleton-block {
+            background: #111;
+            background-image: linear-gradient(to right, #111 0%, #222 20%, #111 40%, #111 100%);
+            background-repeat: no-repeat;
+            background-size: 1000px 100%;
+            animation: shimmer 2s infinite linear forwards;
+        }
+
+        /* Blurs for Overlays */
+        .blur-sm-custom { filter: blur(4px); transition: filter 0.3s ease; pointer-events: none; user-select: none; }
+    </style>
+</head>
+<body class="selection:bg-dc-cyan selection:text-black">
+
+    <div class="grid-bg"></div>
+    <div class="ambient-orbs"></div>
+    <div class="scanline-overlay"></div>
+
+    <div class="fixed bottom-4 left-4 z-[100] glass-heavy p-4 rounded-xl border-dc-violet/30 shadow-[0_0_30px_rgba(138,43,226,0.2)] w-72">
+        <div class="flex justify-between items-center mb-3">
+            <h4 class="font-mono text-xs text-dc-violet font-bold uppercase tracking-widest"><i class="fa-solid fa-code mr-1"></i> Env Controller</h4>
+            <span class="w-2 h-2 rounded-full bg-dc-success animate-pulse"></span>
+        </div>
+        <div class="space-y-2">
+            <button onclick="switchContext('GUEST')" class="w-full text-left px-3 py-1.5 text-xs font-bold rounded bg-white/5 hover:bg-white/10 transition-colors text-gray-400" id="btn-ctx-GUEST">1. Unauthenticated (Guest)</button>
+            <button onclick="switchContext('SOLO')" class="w-full text-left px-3 py-1.5 text-xs font-bold rounded bg-white/5 hover:bg-white/10 transition-colors text-gray-400" id="btn-ctx-SOLO">2. Solo Gamer (No Team)</button>
+            <button onclick="switchContext('TEAM_MEMBER')" class="w-full text-left px-3 py-1.5 text-xs font-bold rounded bg-white/5 hover:bg-white/10 transition-colors text-gray-400" id="btn-ctx-TEAM_MEMBER">3. Team Member (No Perms)</button>
+            <button onclick="switchContext('TEAM_CAPTAIN')" class="w-full text-left px-3 py-1.5 text-xs font-bold rounded bg-dc-cyan/20 border border-dc-cyan/50 text-dc-cyan transition-colors" id="btn-ctx-TEAM_CAPTAIN">4. Team Captain (Full Auth)</button>
+        </div>
+        <div class="mt-3 pt-3 border-t border-white/10">
+            <div class="flex justify-between items-center text-[10px] font-mono text-gray-500">
+                <span>API Latency</span>
+                <span class="text-dc-success">12ms (Cached)</span>
+            </div>
+        </div>
+    </div>
+
+    <main class="max-w-[1920px] mx-auto min-h-screen flex flex-col pt-6 pb-20 px-4 sm:px-6 lg:px-8 relative" id="main-app">
+        
+        <section id="smart-hero" class="relative w-full rounded-[2.5rem] overflow-hidden glass-heavy mb-8 flex-shrink-0 transition-all duration-500 min-h-[340px] flex items-center border-t-2 border-t-dc-cyan/30">
+            <div id="hero-bg" class="absolute inset-0 z-0 opacity-40 mix-blend-screen bg-cover bg-center transition-all duration-700" style="background-image: url('https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=2070&auto=format&fit=crop');"></div>
+            <div class="absolute inset-0 bg-gradient-to-r from-dc-bg via-dc-bg/95 to-transparent z-10"></div>
+            
+            <div class="relative z-20 w-full px-8 md:px-16 lg:px-24 py-12 flex flex-col md:flex-row items-center justify-between gap-10">
+                <div class="max-w-3xl w-full">
+                    <div id="hero-badge" class="inline-flex items-center gap-2 px-3 py-1 bg-dc-cyan/10 border border-dc-cyan/30 rounded-full mb-6">
+                        <span class="w-2 h-2 rounded-full bg-dc-cyan animate-pulse"></span>
+                        <span class="text-[10px] font-bold uppercase tracking-widest text-dc-cyan">System Online</span>
+                    </div>
+                    
+                    <h1 id="hero-title" class="font-display text-5xl md:text-7xl font-black text-white mb-4 leading-[1.1] tracking-tight uppercase">
+                        Loading <span class="text-gradient-cyan">Arena...</span>
+                    </h1>
+                    
+                    <p id="hero-desc" class="text-gray-400 text-base md:text-lg mb-8 max-w-2xl leading-relaxed font-medium">
+                        Initializing DeltaCrown competitive engine. Please standby.
+                    </p>
+                    
+                    <div id="hero-actions" class="flex flex-wrap items-center gap-4">
+                        </div>
+                </div>
+
+                <div id="hero-visualizer" class="hidden lg:flex flex-col items-end justify-center w-72 flex-shrink-0">
+                    </div>
+            </div>
+        </section>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 flex-grow relative" id="arena-core-grid">
+            
+            <div id="guest-lock-overlay" class="absolute inset-0 z-40 hidden-spa flex-col items-center justify-center bg-dc-bg/60 backdrop-blur-md rounded-3xl border border-white/5">
+                <div class="w-20 h-20 bg-dc-cyan/10 rounded-full flex items-center justify-center border border-dc-cyan/30 mb-6 shadow-[0_0_50px_rgba(0,229,255,0.2)]">
+                    <i class="fa-solid fa-lock text-3xl text-dc-cyan"></i>
+                </div>
+                <h2 class="font-display text-4xl font-bold text-white mb-3">Arena Restricted</h2>
+                <p class="text-gray-400 text-center max-w-md mb-8">You must be an authenticated agent to view live matchmaking, hunt bounties, or purchase contracts.</p>
+                <button class="btn-cyber bg-dc-cyan text-black px-10 py-4 font-bold uppercase tracking-widest hover:bg-cyan-400 transition-colors">
+                    Initialize Login Sequence
+                </button>
+            </div>
+
+            <aside class="lg:col-span-3 flex flex-col gap-6" id="col-left">
+                
+                <div class="glass-heavy rounded-2xl p-6 relative overflow-hidden border-t-2 border-t-dc-violet group">
+                    <div class="absolute -right-10 -top-10 w-32 h-32 bg-dc-violet opacity-20 blur-[40px] rounded-full group-hover:opacity-40 transition-opacity"></div>
+                    
+                    <div class="flex justify-between items-center mb-5">
+                        <h3 class="text-[10px] uppercase font-bold text-gray-500 tracking-widest flex items-center gap-2">
+                            <i class="fa-solid fa-microchip"></i> Operating Entity
+                        </h3>
+                    </div>
+
+                    <div id="context-identity-card" class="flex items-center gap-4 bg-white/5 p-3 rounded-xl border border-white/5 mb-5">
+                        <div class="w-12 h-12 rounded-lg bg-gray-800 skeleton-block border border-white/10" id="ctx-avatar"></div>
+                        <div class="flex-grow">
+                            <div class="h-4 w-24 bg-gray-800 skeleton-block rounded mb-2" id="ctx-name"></div>
+                            <div class="h-3 w-16 bg-gray-800 skeleton-block rounded" id="ctx-role"></div>
+                        </div>
+                    </div>
+
+                    <div id="context-stats-grid" class="grid grid-cols-2 gap-3">
+                        <div class="bg-black/40 rounded-lg p-3 border border-white/5">
+                            <p class="text-[9px] text-gray-500 uppercase font-bold mb-1">Win Rate</p>
+                            <p class="font-mono text-lg text-white font-bold" id="ctx-stat-1">--%</p>
+                        </div>
+                        <div class="bg-black/40 rounded-lg p-3 border border-white/5">
+                            <p class="text-[9px] text-gray-500 uppercase font-bold mb-1">Matches</p>
+                            <p class="font-mono text-lg text-white font-bold" id="ctx-stat-2">--</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-heavy rounded-2xl p-6 border-t-2 border-t-dc-gold">
+                    <div class="flex justify-between items-center mb-5">
+                        <h3 class="text-[10px] uppercase font-bold text-gray-500 tracking-widest flex items-center gap-2">
+                            <i class="fa-solid fa-vault"></i> Financial Ledger
+                        </h3>
+                        <i class="fa-solid fa-circle-info text-gray-600 text-xs cursor-pointer hover:text-white"></i>
+                    </div>
+
+                    <div class="relative bg-gradient-to-br from-[#1a1a1a] to-[#0a0a0a] rounded-xl p-6 border border-dc-gold/20 overflow-hidden mb-4 shadow-[inset_0_0_20px_rgba(0,0,0,0.8)]">
+                        <div class="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNCIgaGVpZ2h0PSI0IiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxyZWN0IHdpZHRoPSI0IiBoZWlnaHQ9IjQiIGZpbGw9IiMwMDAiLz48cmVjdCB3aWR0aD0iMSIgaGVpZ2h0PSIxIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuMDUpIi8+PC9zdmc+')] opacity-50 z-0"></div>
+                        
+                        <div class="relative z-10">
+                            <p class="text-[10px] text-gray-400 uppercase tracking-widest mb-1 font-bold" id="wallet-type-label">Available Balance</p>
+                            <div class="flex items-end gap-2 mb-2">
+                                <i class="fa-solid fa-coins text-dc-gold text-2xl mb-1"></i>
+                                <span class="font-display font-black text-4xl text-transparent bg-clip-text bg-gradient-to-b from-white to-gray-400" id="wallet-balance">--</span>
+                                <span class="text-sm font-bold text-gray-500 mb-1.5">DC</span>
+                            </div>
+                            <div class="flex items-center gap-1.5 bg-dc-success/10 border border-dc-success/20 inline-flex px-2 py-0.5 rounded text-[10px] font-bold text-dc-success">
+                                <i class="fa-solid fa-arrow-trend-up"></i>
+                                <span>+12% Yield (30d)</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-black/40 rounded-lg p-3 border border-white/5 flex justify-between items-center mb-5">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded bg-white/5 flex items-center justify-center border border-white/10">
+                                <i class="fa-solid fa-lock text-gray-400 text-xs"></i>
+                            </div>
+                            <div>
+                                <p class="text-[10px] uppercase font-bold text-gray-500">Escrow Locked</p>
+                                <p class="font-mono text-sm font-bold text-white" id="wallet-escrow">-- DC</p>
+                            </div>
+                        </div>
+                        <button class="text-[10px] text-dc-cyan uppercase font-bold hover:underline">View Ledger</button>
+                    </div>
+
+                    <button class="w-full bg-white/5 hover:bg-white/10 border border-white/10 text-white py-3 rounded-lg text-xs font-bold uppercase tracking-widest transition-all hover:border-white/30">
+                        Access Treasury Functions
+                    </button>
+                </div>
+
+                <div class="glass-heavy rounded-2xl p-6 flex-grow flex flex-col">
+                    <div class="flex justify-between items-center mb-5">
+                        <h3 class="text-[10px] uppercase font-bold text-gray-500 tracking-widest flex items-center gap-2">
+                            <i class="fa-solid fa-bars-progress"></i> Active Operations
+                        </h3>
+                        <span class="bg-dc-cyan/20 border border-dc-cyan/30 text-dc-cyan text-[9px] px-2 py-0.5 rounded font-black tracking-widest" id="ops-count">0 RUNNING</span>
+                    </div>
+
+                    <div id="active-ops-container" class="space-y-3 flex-grow overflow-y-auto pr-1">
+                        </div>
+                </div>
+
+            </aside>
+
+            <section class="lg:col-span-6 flex flex-col min-h-[800px]" id="col-center">
+                
+                <div class="glass-heavy rounded-2xl p-3 mb-4 flex flex-col sm:flex-row gap-3 z-30 relative border border-white/5">
+                    
+                    <div class="relative flex-grow">
+                        <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500"></i>
+                        <input type="text" id="global-search" placeholder="Search teams, contracts, or players..." class="w-full bg-black/40 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-dc-cyan/50 focus:bg-black/60 transition-colors font-medium placeholder-gray-600">
+                    </div>
+                    
+                    <div class="flex items-center gap-1 bg-black/40 p-1 rounded-xl border border-white/10 overflow-x-auto hide-scrollbar">
+                        <button onclick="setGameFilter('ALL')" class="game-filter-btn active px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider bg-white/10 text-white transition-all whitespace-nowrap" data-game="ALL">All</button>
+                        <button onclick="setGameFilter('VAL')" class="game-filter-btn px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider text-gray-500 hover:text-white transition-all whitespace-nowrap" data-game="VAL"><i class="fa-solid fa-crosshairs text-dc-cyan mr-1 opacity-70"></i> VAL</button>
+                        <button onclick="setGameFilter('EFB')" class="game-filter-btn px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider text-gray-500 hover:text-white transition-all whitespace-nowrap" data-game="EFB"><i class="fa-solid fa-futbol text-dc-gold mr-1 opacity-70"></i> eFB</button>
+                    </div>
+                </div>
+
+                <div class="flex gap-2 mb-6 z-20 overflow-x-auto hide-scrollbar pb-2">
+                    <button onclick="switchTab('clash')" class="tab-trigger active relative flex-1 min-w-[140px] glass-light border border-white/10 px-5 py-4 rounded-xl flex flex-col items-center justify-center transition-all group overflow-hidden" data-tab="clash">
+                        <div class="absolute inset-0 bg-gradient-to-t from-dc-cyan/20 to-transparent opacity-100 group-hover:opacity-100 transition-opacity tab-bg-glow"></div>
+                        <i class="fa-solid fa-bolt text-xl mb-1.5 text-dc-cyan group-hover:scale-110 transition-transform"></i>
+                        <span class="font-bold text-sm tracking-wide text-white">Crown Clash</span>
+                    </button>
+                    
+                    <button onclick="switchTab('contracts')" class="tab-trigger relative flex-1 min-w-[140px] glass-light border border-transparent px-5 py-4 rounded-xl flex flex-col items-center justify-center transition-all group overflow-hidden" data-tab="contracts">
+                        <div class="absolute inset-0 bg-gradient-to-t from-dc-violet/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity tab-bg-glow"></div>
+                        <i class="fa-solid fa-scroll text-xl mb-1.5 text-gray-500 group-hover:text-dc-violet group-[.active]:text-dc-violet transition-colors"></i>
+                        <span class="font-bold text-sm tracking-wide text-gray-400 group-hover:text-white group-[.active]:text-white">Contract Board</span>
+                    </button>
+
+                    <button onclick="switchTab('hitlist')" class="tab-trigger relative flex-1 min-w-[140px] glass-light border border-transparent px-5 py-4 rounded-xl flex flex-col items-center justify-center transition-all group overflow-hidden" data-tab="hitlist">
+                        <div class="absolute inset-0 bg-gradient-to-t from-dc-neon/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity tab-bg-glow"></div>
+                        <i class="fa-solid fa-crosshairs text-xl mb-1.5 text-gray-500 group-hover:text-dc-neon group-[.active]:text-dc-neon transition-colors"></i>
+                        <span class="font-bold text-sm tracking-wide text-gray-400 group-hover:text-white group-[.active]:text-white">The Hitlist</span>
+                    </button>
+                </div>
+
+                <div class="relative flex-grow bg-black/20 rounded-3xl border border-white/5 p-1 overflow-hidden" id="tab-container-main">
+                    
+                    <div id="tab-content-clash" class="tab-content active w-full h-full p-5 space-y-4">
+                        <div class="flex justify-between items-end mb-4 border-b border-white/5 pb-4">
+                            <div>
+                                <h2 class="font-display text-2xl font-bold text-white flex items-center gap-2">
+                                    <span class="relative flex h-3 w-3 mr-1"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-dc-cyan opacity-75"></span><span class="relative inline-flex rounded-full h-3 w-3 bg-dc-cyan"></span></span>
+                                    Live Radar
+                                </h2>
+                                <p class="text-xs text-gray-400 mt-1">Open matchmaking lobbies. Acceptance locks funds instantly.</p>
+                            </div>
+                            <div id="clash-action-container"></div>
+                        </div>
+
+                        <div id="clash-feed" class="space-y-4 overflow-y-auto max-h-[600px] pr-2">
+                            </div>
+                    </div>
+
+                    <div id="tab-content-contracts" class="tab-content w-full h-full p-5 space-y-4">
+                        <div class="flex justify-between items-end mb-4 border-b border-white/5 pb-4">
+                            <div>
+                                <h2 class="font-display text-2xl font-bold text-white flex items-center gap-2">
+                                    <i class="fa-solid fa-scroll text-dc-violet"></i> Mission Database
+                                </h2>
+                                <p class="text-xs text-gray-400 mt-1">Purchase contracts using personal DC. Complete in-game objectives to earn massive payouts.</p>
+                            </div>
+                            <button onclick="openMissionShop()" class="btn-cyber bg-white/10 hover:bg-white text-white hover:text-black border border-white/20 px-5 py-2 font-bold text-xs uppercase tracking-widest rounded transition-all">
+                                Open Catalog
+                            </button>
+                        </div>
+                        
+                        <div id="contracts-feed" class="grid grid-cols-1 md:grid-cols-2 gap-4 overflow-y-auto max-h-[600px] pr-2">
+                            </div>
+                    </div>
+
+                    <div id="tab-content-hitlist" class="tab-content w-full h-full p-5 space-y-4">
+                        <div class="flex justify-between items-end mb-4 border-b border-white/5 pb-4">
+                            <div>
+                                <h2 class="font-display text-2xl font-bold text-white flex items-center gap-2">
+                                    <i class="fa-solid fa-skull text-dc-neon"></i> Bounties
+                                </h2>
+                                <p class="text-xs text-gray-400 mt-1">High-stakes asymmetrical challenges. Hunt the top teams or post a bounty on yourselves.</p>
+                            </div>
+                            <button id="post-bounty-btn" class="btn-cyber bg-dc-neon/10 hover:bg-dc-neon text-dc-neon hover:text-white border border-dc-neon/30 px-5 py-2 font-bold text-xs uppercase tracking-widest rounded transition-all shadow-[0_0_15px_rgba(255,0,85,0.2)]">
+                                Post Bounty
+                            </button>
+                        </div>
+
+                        <div id="hitlist-feed" class="space-y-6 overflow-y-auto max-h-[600px] pr-2">
+                            </div>
+                    </div>
+
+                </div>
+            </section>
+
+            <aside class="lg:col-span-3 flex flex-col gap-6" id="col-right">
+                
+                <div class="glass-heavy rounded-2xl p-6 border-t-2 border-t-dc-success">
+                    <div class="flex justify-between items-center mb-5">
+                        <h3 class="text-[10px] uppercase font-bold text-gray-500 tracking-widest flex items-center gap-2">
+                            <i class="fa-solid fa-list-check"></i> Objectives Matrix
+                        </h3>
+                        <span class="text-[10px] font-mono text-dc-success font-bold" id="time-remaining">Resets in 14:22:00</span>
+                    </div>
+
+                    <div class="space-y-4" id="objectives-feed">
+                        <div class="group flex gap-3 items-start opacity-50 transition-all">
+                            <div class="mt-1 w-5 h-5 rounded border border-dc-success bg-dc-success/20 flex items-center justify-center flex-shrink-0">
+                                <i class="fa-solid fa-check text-[10px] text-dc-success"></i>
+                            </div>
+                            <div class="flex-grow">
+                                <p class="text-sm font-bold text-gray-400 line-through">System Login Sequence</p>
+                                <p class="text-[10px] text-dc-success font-bold mt-0.5">+10 DC Secured</p>
+                            </div>
+                        </div>
+
+                        <div class="group flex gap-3 items-start transition-all cursor-pointer hover:bg-white/5 p-2 -mx-2 rounded-lg">
+                            <div class="mt-1 w-5 h-5 rounded border border-white/20 bg-black/50 flex items-center justify-center flex-shrink-0 group-hover:border-dc-cyan/50 transition-colors">
+                                <div class="w-1.5 h-1.5 rounded-full bg-dc-cyan/50 animate-pulse"></div>
+                            </div>
+                            <div class="flex-grow">
+                                <div class="flex justify-between items-start mb-1">
+                                    <p class="text-sm font-bold text-white">Execute 1 Crown Clash</p>
+                                    <span class="text-[10px] font-mono text-gray-500">0/1</span>
+                                </div>
+                                <div class="w-full bg-gray-800 rounded-full h-1 mt-1 mb-1.5 overflow-hidden">
+                                    <div class="bg-dc-cyan h-1 rounded-full w-0 transition-all duration-1000"></div>
+                                </div>
+                                <p class="text-[10px] text-dc-gold font-bold uppercase tracking-wider">+50 DC</p>
+                            </div>
+                        </div>
+
+                        <div class="group flex gap-3 items-start transition-all cursor-pointer hover:bg-white/5 p-2 -mx-2 rounded-lg">
+                            <div class="mt-1 w-5 h-5 rounded border border-white/20 bg-black/50 flex items-center justify-center flex-shrink-0 group-hover:border-dc-violet/50 transition-colors"></div>
+                            <div class="flex-grow">
+                                <div class="flex justify-between items-start mb-1">
+                                    <p class="text-sm font-bold text-white">Acquire Contract</p>
+                                    <span class="text-[10px] font-mono text-gray-500">0/1</span>
+                                </div>
+                                <p class="text-[10px] text-dc-gold font-bold uppercase tracking-wider">+25 XP</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-heavy rounded-2xl p-6 flex-grow flex flex-col border-t-2 border-t-gray-600">
+                    <div class="flex justify-between items-center mb-5">
+                        <h3 class="text-[10px] uppercase font-bold text-gray-500 tracking-widest flex items-center gap-2">
+                            <i class="fa-solid fa-satellite-dish animate-pulse text-dc-cyan"></i> Live Telemetry
+                        </h3>
+                    </div>
+
+                    <div class="flex-grow overflow-y-auto pr-1 relative" id="activity-feed">
+                        <div class="absolute top-0 left-0 right-0 h-4 bg-gradient-to-b from-dc-panel to-transparent z-10 pointer-events-none"></div>
+                        
+                        <div class="space-y-5 pt-2 pb-4">
+                            <div class="relative pl-5 before:content-[''] before:absolute before:left-[3px] before:top-2 before:bottom-[-20px] before:w-px before:bg-white/10 last:before:hidden fade-enter">
+                                <div class="absolute left-0 top-1.5 w-[7px] h-[7px] rounded-full bg-dc-success shadow-[0_0_8px_#00fa9a]"></div>
+                                <p class="text-[9px] font-mono text-gray-500 mb-0.5">JUST NOW</p>
+                                <p class="text-xs text-gray-300 leading-relaxed">
+                                    <span class="font-bold text-white hover:text-dc-cyan cursor-pointer transition-colors">Protocol V</span> secured victory against <span class="font-bold text-white">Team Beta</span> in VAL.
+                                </p>
+                                <div class="inline-flex mt-1.5 items-center gap-1 bg-dc-gold/10 border border-dc-gold/20 px-1.5 py-0.5 rounded text-[9px] text-dc-gold font-bold">
+                                    <i class="fa-solid fa-coins"></i> 400 DC Transferred
+                                </div>
+                            </div>
+
+                            <div class="relative pl-5 before:content-[''] before:absolute before:left-[3px] before:top-2 before:bottom-[-20px] before:w-px before:bg-white/10 last:before:hidden fade-enter" style="animation-delay: 0.1s">
+                                <div class="absolute left-0 top-1.5 w-[7px] h-[7px] rounded-full bg-dc-violet shadow-[0_0_8px_#8a2be2]"></div>
+                                <p class="text-[9px] font-mono text-gray-500 mb-0.5">14m AGO</p>
+                                <p class="text-xs text-gray-300 leading-relaxed">
+                                    Agent <span class="font-bold text-white">IShowSiuu</span> completed contract <span class="font-bold text-dc-violet">The Sharpshooter</span>.
+                                </p>
+                            </div>
+
+                            <div class="relative pl-5 before:content-[''] before:absolute before:left-[3px] before:top-2 before:bottom-[-20px] before:w-px before:bg-white/10 last:before:hidden fade-enter" style="animation-delay: 0.2s">
+                                <div class="absolute left-0 top-1.5 w-[7px] h-[7px] rounded-full bg-dc-neon shadow-[0_0_8px_#ff0055]"></div>
+                                <p class="text-[9px] font-mono text-gray-500 mb-0.5">1h 22m AGO</p>
+                                <p class="text-xs text-gray-300 leading-relaxed">
+                                    Massive Hitlist claimed! <span class="font-bold text-dc-neon">Nova Kings</span> eliminated by <span class="font-bold text-white">Underdogs</span>.
+                                </p>
+                            </div>
+                            
+                            <div class="relative pl-5 before:content-[''] before:absolute before:left-[3px] before:top-2 before:bottom-[-20px] before:w-px before:bg-white/10 last:before:hidden fade-enter" style="animation-delay: 0.3s">
+                                <div class="absolute left-0 top-1.5 w-[7px] h-[7px] rounded-full bg-gray-500"></div>
+                                <p class="text-[9px] font-mono text-gray-500 mb-0.5">3h AGO</p>
+                                <p class="text-xs text-gray-300 leading-relaxed">
+                                    <span class="font-bold text-white">Syntax Esports</span> issued an open BO5 eFootball challenge.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </aside>
+        </div>
+    </main>
+
+    <div id="mission-shop-overlay" class="fixed inset-0 z-[60] bg-dc-bg/95 backdrop-blur-xl hidden-spa flex-col transition-all duration-300 opacity-0">
+        <button onclick="closeMissionShop()" class="absolute top-6 right-8 w-12 h-12 rounded-full bg-white/5 hover:bg-dc-neon border border-white/10 hover:border-dc-neon flex items-center justify-center text-white transition-all z-50 group">
+            <i class="fa-solid fa-xmark text-xl group-hover:rotate-90 transition-transform duration-300"></i>
+        </button>
+
+        <div class="w-full max-w-7xl mx-auto h-full flex flex-col pt-12 pb-8 px-6">
+            <div class="text-center mb-10 relative">
+                <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-dc-violet opacity-20 blur-[100px] rounded-full pointer-events-none"></div>
+                <h2 class="font-display text-5xl md:text-7xl font-black text-white uppercase tracking-tight mb-4">
+                    Contract <span class="text-transparent bg-clip-text bg-gradient-to-r from-dc-violet to-fuchsia-400">Database</span>
+                </h2>
+                <p class="text-gray-400 text-lg max-w-2xl mx-auto">Acquire high-value missions. Funds are locked from your personal wallet upon enrollment.</p>
+            </div>
+
+            <div class="flex justify-center gap-3 mb-10">
+                <button class="px-6 py-2 rounded-full bg-dc-violet text-white font-bold text-sm border border-dc-violet shadow-[0_0_15px_rgba(138,43,226,0.4)]">All Rarities</button>
+                <button class="px-6 py-2 rounded-full bg-black/50 text-gray-400 hover:text-white border border-white/10 hover:border-white/30 font-bold text-sm transition-colors">Daily (Common)</button>
+                <button class="px-6 py-2 rounded-full bg-black/50 text-gray-400 hover:text-white border border-white/10 hover:border-white/30 font-bold text-sm transition-colors">Weekly (Rare)</button>
+                <button class="px-6 py-2 rounded-full bg-black/50 text-dc-gold hover:text-yellow-300 border border-dc-gold/20 hover:border-dc-gold/50 font-bold text-sm transition-colors">Campaign (Epic)</button>
+            </div>
+
+            <div class="flex-grow overflow-y-auto pr-4 custom-scrollbar">
+                <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6 pb-20" id="mission-catalog-grid">
+                    </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="slide-over-backdrop" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[70] hidden-spa opacity-0 transition-all duration-300" onclick="closeSlideOver('create-clash')"></div>
+    
+    <div id="slide-over-create-clash" class="fixed top-0 right-0 h-full w-full max-w-lg bg-[#08080c] border-l border-white/10 shadow-[-20px_0_50px_rgba(0,0,0,0.9)] z-[80] transform translate-x-full transition-transform duration-500 cubic-bezier(0.16, 1, 0.3, 1) flex flex-col">
+        
+        <div class="glass-heavy p-6 border-b border-white/10 flex justify-between items-center relative overflow-hidden flex-shrink-0">
+            <div class="absolute -right-10 -top-10 w-40 h-40 bg-dc-cyan opacity-20 blur-[50px] rounded-full pointer-events-none"></div>
+            <div>
+                <h2 class="font-display text-3xl font-black text-white uppercase tracking-wider flex items-center gap-3">
+                    <i class="fa-solid fa-bolt text-dc-cyan"></i> Issue Clash
+                </h2>
+                <p class="text-xs text-gray-400 mt-1 font-medium tracking-wide">Configure match parameters and lock escrow.</p>
+            </div>
+            <button onclick="closeSlideOver('create-clash')" class="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-gray-400 hover:text-white transition-colors border border-white/10 hover:border-white/30">
+                <i class="fa-solid fa-times text-lg"></i>
+            </button>
+        </div>
+
+        <div class="p-8 flex-grow overflow-y-auto space-y-8 custom-scrollbar">
+            
+            <div class="bg-dc-cyan/10 border border-dc-cyan/30 rounded-xl p-4 flex items-start gap-4">
+                <i class="fa-solid fa-shield-halved text-dc-cyan text-xl mt-1"></i>
+                <div>
+                    <p class="text-sm text-white font-bold mb-1" id="so-acting-as">Acting as: Team Context</p>
+                    <p class="text-[10px] text-gray-400 leading-relaxed uppercase tracking-wider">Entry fee will be automatically deducted from the designated treasury upon opponent acceptance. Ensure sufficient funds.</p>
+                </div>
+            </div>
+
+            <div class="space-y-6">
+                <div>
+                    <label class="block text-[10px] uppercase font-bold text-gray-500 tracking-widest mb-2">Game Title</label>
+                    <div class="relative">
+                        <select class="w-full bg-black/60 border border-white/10 hover:border-white/20 rounded-xl px-4 py-3.5 text-white text-sm font-semibold focus:outline-none focus:border-dc-cyan focus:ring-1 focus:ring-dc-cyan/50 appearance-none transition-colors">
+                            <option>Valorant</option>
+                            <option>eFootball 2026</option>
+                            <option>PUBG Mobile</option>
+                        </select>
+                        <i class="fa-solid fa-chevron-down absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 text-xs pointer-events-none"></i>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-[10px] uppercase font-bold text-gray-500 tracking-widest mb-2 flex justify-between">
+                        <span>Target Opponent</span>
+                        <span class="text-dc-cyan">Open Radar (Optional)</span>
+                    </label>
+                    <div class="relative">
+                        <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500"></i>
+                        <input type="text" placeholder="Leave blank to post to Open Matchmaking" class="w-full bg-black/60 border border-white/10 hover:border-white/20 rounded-xl pl-10 pr-4 py-3.5 text-white text-sm font-semibold focus:outline-none focus:border-dc-cyan focus:ring-1 focus:ring-dc-cyan/50 placeholder-gray-600 transition-colors">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-[10px] uppercase font-bold text-gray-500 tracking-widest mb-2">Match Format</label>
+                        <div class="relative">
+                            <select class="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3.5 text-white text-sm font-semibold focus:outline-none focus:border-dc-cyan appearance-none">
+                                <option>BO1</option>
+                                <option selected>BO3</option>
+                                <option>BO5</option>
+                            </select>
+                            <i class="fa-solid fa-chevron-down absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 text-xs pointer-events-none"></i>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] uppercase font-bold text-gray-500 tracking-widest mb-2">Server Region</label>
+                        <div class="relative">
+                            <select class="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3.5 text-white text-sm font-semibold focus:outline-none focus:border-dc-cyan appearance-none">
+                                <option>Mumbai (AP)</option>
+                                <option>Singapore</option>
+                                <option>Auto-Ping</option>
+                            </select>
+                            <i class="fa-solid fa-chevron-down absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 text-xs pointer-events-none"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-gradient-to-br from-[#1a1a10] to-black p-5 rounded-xl border border-dc-gold/30 relative overflow-hidden mt-8 shadow-[0_10px_30px_-10px_rgba(255,215,0,0.1)]">
+                    <div class="absolute -left-10 -bottom-10 w-32 h-32 bg-dc-gold opacity-10 blur-2xl rounded-full pointer-events-none"></div>
+                    
+                    <div class="flex justify-between items-end mb-4 relative z-10">
+                        <label class="block text-[10px] uppercase font-bold text-dc-gold tracking-widest">Entry Fee (Per Team)</label>
+                        <span class="text-[10px] uppercase font-bold text-gray-500 bg-black/50 px-2 py-1 rounded border border-white/10" id="so-wallet-bal">Bal: -- DC</span>
+                    </div>
+                    
+                    <div class="relative flex items-center mb-4 z-10">
+                        <i class="fa-solid fa-coins absolute left-4 text-dc-gold text-xl z-10"></i>
+                        <input type="number" id="clash-entry-input" value="300" oninput="updatePotCalculation()" class="w-full bg-black/80 border border-dc-gold/50 rounded-xl pl-12 pr-4 py-4 text-white font-display font-black text-3xl focus:outline-none focus:border-dc-gold focus:ring-2 focus:ring-dc-gold/50 shadow-inner">
+                    </div>
+                    
+                    <div class="bg-black/40 border border-white/5 p-3 rounded-lg flex justify-between items-center relative z-10">
+                        <div class="flex items-center gap-2">
+                            <div class="w-6 h-6 rounded-full bg-dc-gold/20 flex items-center justify-center border border-dc-gold/40">
+                                <i class="fa-solid fa-trophy text-[10px] text-dc-gold"></i>
+                            </div>
+                            <span class="text-xs font-bold text-gray-300 uppercase tracking-widest">Total Prize Pot</span>
+                        </div>
+                        <span class="text-dc-gold font-display font-black text-2xl" id="clash-pot-display"><i class="fa-solid fa-coins text-sm mr-1"></i>600</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="p-6 border-t border-white/10 bg-[#050508] flex-shrink-0">
+            <button id="btn-submit-clash" onclick="submitClashAction()" class="btn-cyber w-full bg-dc-cyan text-black font-black uppercase tracking-widest py-4 rounded-xl transition-all shadow-[0_0_20px_rgba(0,229,255,0.3)] hover:shadow-[0_0_30px_rgba(0,229,255,0.5)] flex justify-center items-center gap-3 text-lg">
+                <i class="fa-solid fa-lock"></i> <span>Lock <span id="submit-btn-amt">300</span> DC & Issue</span>
+            </button>
+            <p class="text-[9px] text-gray-500 text-center mt-4 uppercase tracking-widest font-mono">Platform fee (5%) deducted only from winning pot.</p>
+        </div>
+    </div>
+
+    <div id="toast-container" class="fixed bottom-6 right-6 z-[100] flex flex-col gap-3 pointer-events-none"></div>
+
+    <script>
+        /**
+         * GLOBAL STATE & MOCK DATA
+         * Simulates backend state to demonstrate the UI/UX responsiveness and context switching.
+         */
+        const APP_STATE = {
+            context: 'TEAM_CAPTAIN', // GUEST, SOLO, TEAM_MEMBER, TEAM_CAPTAIN
+            gameFilter: 'ALL',
+            searchQuery: '',
+            activeTab: 'clash',
+            
+            // Mock Data
+            users: {
+                GUEST: { auth: false },
+                SOLO: { auth: true, name: "Redwan Rashik", role: "Solo Agent", avatar: "Redwan+Rashik", wallet: 450, team: null },
+                TEAM_MEMBER: { auth: true, name: "Protocol V", role: "Roster Member", avatar: "Protocol+V", wallet: 1450, team: { name: "Protocol V", id: 1 }, canIssue: false },
+                TEAM_CAPTAIN: { auth: true, name: "Protocol V", role: "Captain / Owner", avatar: "Protocol+V", wallet: 1450, team: { name: "Protocol V", id: 1 }, canIssue: true }
+            },
+
+            clashes: [
+                { id: 1, challenger: "Team Alpha", logo: "Team+Alpha", game: "VAL", format: "BO3", entry: 400, type: "OPEN" },
+                { id: 2, challenger: "Nova Kings", logo: "Nova+Kings", game: "EFB", format: "BO5", entry: 1000, type: "HIGH_STAKES" },
+                { id: 3, challenger: "Syntax Esports", logo: "Syntax", game: "VAL", format: "BO1", entry: 150, type: "OPEN" },
+                { id: 4, challenger: "BhaiLog Syndicate", logo: "BhaiLog", game: "PUBG", format: "BO3", entry: 250, type: "OPEN" },
+            ],
+
+            contracts: [
+                { id: 1, title: "The Sharpshooter", desc: "Secure 30 headshots in Ranked VAL.", game: "VAL", rarity: "DAILY", entry: 50, reward: 250, icon: "fa-crosshairs", color: "dc-violet" },
+                { id: 2, title: "Clean Sheet King", desc: "Win 5 eFB matches consecutively without conceding.", game: "EFB", rarity: "WEEKLY", entry: 150, reward: 800, icon: "fa-shield-halved", color: "blue-500" },
+                { id: 3, title: "Chicken Dinner", desc: "Place 1st in PUBG Squads with 10+ kills.", game: "PUBG", rarity: "DAILY", entry: 100, reward: 400, icon: "fa-drumstick-bite", color: "dc-gold" },
+                { id: 4, title: "Clutch Master", desc: "Win 3 1vX situations in VAL.", game: "VAL", rarity: "EPIC", entry: 200, reward: 1200, icon: "fa-bolt", color: "dc-neon" },
+            ],
+
+            hitlist: [
+                { id: 1, target: "Syntax Esports", rank: "Rank #2", quote: "Unbeaten in 10. Come try.", entry: 300, reward: 1500, game: "VAL" },
+                { id: 2, target: "1 World Valorant", rank: "Rank #5", quote: "Putting 2000 DC on the line. First come first serve.", entry: 500, reward: 2500, game: "VAL" }
+            ]
+        };
+
+        // Initialize App
+        document.addEventListener('DOMContentLoaded', () => {
+            renderApp();
+            // Focus on Clash tab by default
+            switchTab('clash');
+        });
+
+        /**
+         * CORE RENDER ENGINE
+         * Updates the entire DOM based on APP_STATE
+         */
+        function renderApp() {
+            const user = APP_STATE.users[APP_STATE.context];
+            
+            // 1. Update Controller UI (Demo)
+            document.querySelectorAll('[id^="btn-ctx-"]').forEach(btn => {
+                btn.className = "w-full text-left px-3 py-1.5 text-xs font-bold rounded bg-white/5 hover:bg-white/10 transition-colors text-gray-400";
+            });
+            document.getElementById(`btn-ctx-${APP_STATE.context}`).className = "w-full text-left px-3 py-1.5 text-xs font-bold rounded bg-dc-cyan/20 border border-dc-cyan/50 text-dc-cyan transition-colors";
+
+            // 2. Handle Guest Lock Overlay & Blur
+            const guestOverlay = document.getElementById('guest-lock-overlay');
+            const cols = [document.getElementById('col-left'), document.getElementById('col-center'), document.getElementById('col-right')];
+            
+            if (!user.auth) {
+                guestOverlay.classList.remove('hidden-spa');
+                guestOverlay.classList.add('flex');
+                cols.forEach(col => col.classList.add('blur-sm-custom'));
+                renderGuestHero();
+                return; // Stop rendering data if guest
+            } else {
+                guestOverlay.classList.add('hidden-spa');
+                guestOverlay.classList.remove('flex');
+                cols.forEach(col => col.classList.remove('blur-sm-custom'));
+            }
+
+            // 3. Render Identity & Economy (Left Col)
+            document.getElementById('ctx-avatar').innerHTML = `<img src="https://ui-avatars.com/api/?name=${user.avatar}&background=1a1a1a&color=00e5ff&bold=true" class="w-full h-full rounded-lg object-cover">`;
+            document.getElementById('ctx-name').className = "font-bold text-white text-sm leading-tight";
+            document.getElementById('ctx-name').innerText = user.name;
+            document.getElementById('ctx-role').className = "text-[10px] text-dc-cyan font-bold uppercase tracking-widest";
+            document.getElementById('ctx-role').innerText = user.role;
+            
+            document.getElementById('ctx-stat-1').innerText = user.team ? "64.2%" : "51.8%";
+            document.getElementById('ctx-stat-2').innerText = user.team ? "142" : "38";
+
+            document.getElementById('wallet-type-label').innerText = user.team ? "Team Treasury" : "Personal Wallet";
+            document.getElementById('wallet-balance').innerText = user.wallet.toLocaleString();
+            document.getElementById('wallet-escrow').innerText = user.team ? "600 DC" : "150 DC";
+
+            // 4. Render Smart Hero
+            renderSmartHero(user);
+
+            // 5. Render Action Buttons (Create Clash, Post Bounty) based on permissions
+            renderActionPermissions(user);
+
+            // 6. Render Feeds
+            renderClashFeed();
+            renderContractsFeed();
+            renderHitlistFeed();
+        }
+
+        function renderSmartHero(user) {
+            const titleEl = document.getElementById('hero-title');
+            const descEl = document.getElementById('hero-desc');
+            const actionsEl = document.getElementById('hero-actions');
+            const bgEl = document.getElementById('hero-bg');
+            const visEl = document.getElementById('hero-visualizer');
+
+            if (user.team) {
+                // Team Context
+                bgEl.style.backgroundImage = "url('https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=2070&auto=format&fit=crop')";
+                titleEl.innerHTML = `Command <span class="text-gradient-cyan">Center</span>`;
+                descEl.innerHTML = `Operating as <strong class="text-white">${user.name}</strong>. Treasury funds are available. Issue a Crown Clash to rival teams or hunt high-value bounties.`;
+                
+                actionsEl.innerHTML = user.canIssue ? `
+                    <button onclick="openSlideOver('create-clash')" class="btn-cyber bg-dc-cyan hover:bg-cyan-400 text-black px-8 py-3.5 font-bold uppercase tracking-widest shadow-[0_0_20px_rgba(0,229,255,0.4)] flex items-center gap-2">
+                        <i class="fa-solid fa-crosshairs"></i> Issue a Clash
+                    </button>
+                    <button onclick="switchTab('hitlist')" class="glass-light text-white px-8 py-3.5 rounded-lg font-bold uppercase tracking-wider hover:bg-white/10 transition-colors border border-white/20">
+                        View Bounties
+                    </button>
+                ` : `
+                    <button disabled class="glass-heavy text-gray-500 px-8 py-3.5 rounded-lg font-bold uppercase tracking-widest cursor-not-allowed border border-white/5 flex items-center gap-2">
+                        <i class="fa-solid fa-lock text-xs"></i> Clash Issue Locked
+                    </button>
+                    <p class="text-xs text-gray-400 mt-2 font-mono">Only Captains/Managers can issue challenges.</p>
+                `;
+
+                visEl.innerHTML = `
+                    <div class="glass-light rounded-xl p-4 border border-dc-cyan/30 w-full relative overflow-hidden group">
+                        <div class="absolute inset-0 bg-dc-cyan opacity-10 blur-xl group-hover:opacity-20 transition-opacity"></div>
+                        <p class="text-[10px] text-dc-cyan uppercase font-bold tracking-widest mb-1 relative z-10">Team Power Index</p>
+                        <p class="font-display font-black text-4xl text-white relative z-10">2,845 <span class="text-sm text-gray-500">ELO</span></p>
+                        <div class="mt-3 flex items-center gap-1 relative z-10">
+                            <div class="w-full h-1 bg-gray-800 rounded-full"><div class="h-full bg-dc-cyan rounded-full w-[75%]"></div></div>
+                            <span class="text-[10px] font-mono text-gray-400">75%</span>
+                        </div>
+                    </div>
+                `;
+            } else {
+                // Solo Context
+                bgEl.style.backgroundImage = "url('https://images.unsplash.com/photo-1518605368461-1ee7a5369bd6?q=80&w=2070&auto=format&fit=crop')";
+                titleEl.innerHTML = `Solo <span class="text-gradient-violet">Operative</span>`;
+                descEl.innerHTML = `Welcome back, Agent. Purchase contracts from the database, complete objectives in-game, and extract DC to your personal wallet.`;
+                
+                actionsEl.innerHTML = `
+                    <button onclick="openMissionShop()" class="btn-cyber bg-dc-violet hover:bg-purple-500 text-white px-8 py-3.5 font-bold uppercase tracking-widest shadow-[0_0_20px_rgba(138,43,226,0.5)] flex items-center gap-2">
+                        <i class="fa-solid fa-scroll"></i> Browse Contracts
+                    </button>
+                    <button class="glass-light text-white px-8 py-3.5 rounded-lg font-bold uppercase tracking-wider hover:bg-white/10 transition-colors border border-white/20">
+                        Find a Team
+                    </button>
+                `;
+
+                visEl.innerHTML = `
+                    <div class="glass-light rounded-xl p-4 border border-dc-violet/30 w-full relative overflow-hidden">
+                        <div class="absolute inset-0 bg-dc-violet opacity-10 blur-xl"></div>
+                        <p class="text-[10px] text-dc-violet uppercase font-bold tracking-widest mb-1 relative z-10">Contracts Completed</p>
+                        <p class="font-display font-black text-4xl text-white relative z-10">14 <span class="text-sm text-gray-500">/ 50</span></p>
+                        <div class="mt-3 flex gap-1 relative z-10">
+                            <span class="w-3 h-3 rounded bg-dc-violet border border-white/20"></span>
+                            <span class="w-3 h-3 rounded bg-dc-violet border border-white/20"></span>
+                            <span class="w-3 h-3 rounded bg-white/10 border border-white/10"></span>
+                            <span class="w-3 h-3 rounded bg-white/10 border border-white/10"></span>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        function renderGuestHero() {
+            document.getElementById('hero-title').innerHTML = `DeltaCrown <span class="text-gradient-gold">Arena</span>`;
+            document.getElementById('hero-desc').innerHTML = `The ultimate skill-based reward ecosystem. 100% Escrow secured matches, bounties, and missions.`;
+            document.getElementById('hero-actions').innerHTML = `
+                <button class="btn-cyber bg-dc-gold hover:bg-yellow-400 text-black px-8 py-3.5 font-bold uppercase tracking-widest shadow-[0_0_20px_rgba(255,215,0,0.4)]">
+                    Register Now
+                </button>
+            `;
+            document.getElementById('hero-visualizer').innerHTML = '';
+        }
+
+        function renderActionPermissions(user) {
+            const clashAction = document.getElementById('clash-action-container');
+            const postBountyBtn = document.getElementById('post-bounty-btn');
+
+            if (user.team && user.canIssue) {
+                clashAction.innerHTML = `<button onclick="openSlideOver('create-clash')" class="bg-dc-cyan/10 hover:bg-dc-cyan text-dc-cyan hover:text-black border border-dc-cyan/30 px-5 py-2 font-bold text-xs uppercase tracking-widest rounded transition-all shadow-[0_0_15px_rgba(0,229,255,0.1)]">Issue Clash</button>`;
+                postBountyBtn.style.display = 'block';
+            } else if (user.team && !user.canIssue) {
+                clashAction.innerHTML = `<button disabled title="Captain authority required" class="bg-white/5 border border-white/10 text-gray-500 px-5 py-2 font-bold text-xs uppercase tracking-widest rounded cursor-not-allowed"><i class="fa-solid fa-lock mr-1"></i> Issue Clash</button>`;
+                postBountyBtn.style.display = 'none';
+            } else {
+                clashAction.innerHTML = `<button disabled title="Team required" class="bg-white/5 border border-white/10 text-gray-500 px-5 py-2 font-bold text-xs uppercase tracking-widest rounded cursor-not-allowed">Requires Team</button>`;
+                postBountyBtn.style.display = 'none';
+            }
+        }
+
+        /**
+         * RENDERING FEEDS (With Filtering)
+         */
+        function filterData(dataArray) {
+            return dataArray.filter(item => {
+                const matchGame = APP_STATE.gameFilter === 'ALL' || item.game === APP_STATE.gameFilter;
+                const matchSearch = APP_STATE.searchQuery === '' || JSON.stringify(item).toLowerCase().includes(APP_STATE.searchQuery.toLowerCase());
+                return matchGame && matchSearch;
+            });
+        }
+
+        function renderClashFeed() {
+            const feed = document.getElementById('clash-feed');
+            const data = filterData(APP_STATE.clashes);
+            const user = APP_STATE.users[APP_STATE.context];
+
+            if (data.length === 0) {
+                feed.innerHTML = `<div class="glass-light rounded-xl p-10 text-center border-dashed border-white/10 opacity-70"><i class="fa-solid fa-radar text-4xl text-gray-600 mb-3"></i><p class="text-gray-400 text-sm">No active lobbies match your criteria.</p></div>`;
+                return;
+            }
+
+            // Determine if current user can accept
+            const canAccept = user.auth && user.team && user.canIssue;
+            const acceptBtnState = canAccept ? '' : 'disabled';
+            const acceptBtnClass = canAccept ? 'bg-white/10 hover:bg-dc-cyan hover:text-black border-white/20 hover:border-dc-cyan text-white shadow-[0_0_10px_rgba(255,255,255,0.05)]' : 'bg-black/40 border-white/5 text-gray-600 cursor-not-allowed';
+            const acceptBtnText = canAccept ? 'Accept Match' : (user.team ? '<i class="fa-solid fa-lock text-[10px]"></i> Captain Only' : '<i class="fa-solid fa-lock text-[10px]"></i> Team Reqd');
+
+            feed.innerHTML = data.map(clash => `
+                <div class="glass-card ${clash.type === 'HIGH_STAKES' ? 'accent-gold' : 'accent-cyan'} rounded-2xl p-4 flex flex-col lg:flex-row items-center justify-between gap-5 group relative overflow-hidden fade-enter">
+                    ${clash.type === 'HIGH_STAKES' ? `<div class="absolute top-0 right-0 w-32 h-32 bg-dc-gold opacity-5 blur-[30px] rounded-full pointer-events-none"></div>` : ''}
+                    
+                    <div class="flex items-center gap-4 flex-1 w-full relative z-10">
+                        <div class="relative flex-shrink-0">
+                            <img src="https://ui-avatars.com/api/?name=${clash.logo}&background=1a1a1a&color=fff&bold=true" class="w-14 h-14 rounded-xl border ${clash.type === 'HIGH_STAKES' ? 'border-dc-gold/50 shadow-[0_0_15px_rgba(255,215,0,0.3)]' : 'border-white/10'}">
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2 mb-0.5">
+                                <h3 class="font-bold text-white text-xl leading-tight group-hover:${clash.type === 'HIGH_STAKES' ? 'text-dc-gold' : 'text-dc-cyan'} transition-colors">${clash.challenger}</h3>
+                                ${clash.type === 'HIGH_STAKES' ? `<span class="bg-dc-gold/20 text-dc-gold text-[9px] px-1.5 py-0.5 rounded font-black uppercase tracking-widest border border-dc-gold/30">High Stakes</span>` : ''}
+                            </div>
+                            <p class="text-xs text-gray-400 font-medium">${clash.game} • Open Radar</p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-6 lg:px-8 lg:border-x border-white/10 flex-shrink-0 w-full lg:w-auto justify-between lg:justify-center bg-black/30 lg:bg-transparent p-4 lg:p-0 rounded-xl relative z-10">
+                        <div class="text-center">
+                            <p class="text-[10px] uppercase font-bold text-gray-500 tracking-widest mb-1">Format</p>
+                            <span class="inline-block px-3 py-1 bg-white/5 border border-white/10 rounded-lg text-xs font-bold text-white">${clash.format}</span>
+                        </div>
+                        <div class="text-center">
+                            <p class="text-[10px] uppercase font-bold ${clash.type === 'HIGH_STAKES' ? 'text-dc-gold' : 'text-gray-500'} tracking-widest mb-1">Total Pot</p>
+                            <p class="font-display font-black text-2xl ${clash.type === 'HIGH_STAKES' ? 'text-dc-gold drop-shadow-[0_0_10px_rgba(255,215,0,0.5)]' : 'text-white'} leading-none">
+                                <i class="fa-solid fa-coins text-sm mr-1 ${clash.type !== 'HIGH_STAKES' ? 'text-dc-gold' : ''}"></i>${(clash.entry * 2).toLocaleString()}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="flex-shrink-0 w-full lg:w-auto relative z-10">
+                        <button ${acceptBtnState} onclick="actionWithEscrow(${clash.entry}, 'Match Accepted. Room spawning...')" class="w-full lg:w-auto ${acceptBtnClass} border px-8 py-3 rounded-xl text-sm font-bold uppercase tracking-wider transition-all">
+                            ${acceptBtnText} <span class="ml-1 opacity-70">(${clash.entry} DC)</span>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderContractsFeed() {
+            const feed = document.getElementById('contracts-feed');
+            const data = filterData(APP_STATE.contracts);
+            const user = APP_STATE.users[APP_STATE.context];
+
+            if (data.length === 0) {
+                feed.innerHTML = `<div class="col-span-full glass-light rounded-xl p-10 text-center opacity-70"><p class="text-gray-400 text-sm">No contracts found.</p></div>`;
+                return;
+            }
+
+            const btnState = user.auth ? '' : 'disabled';
+            const btnClass = user.auth ? 'bg-white/5 hover:bg-white text-white hover:text-black border-white/10 hover:border-white' : 'bg-black/40 text-gray-600 border-white/5 cursor-not-allowed';
+            const btnText = user.auth ? 'Buy Contract' : 'Sign In Reqd';
+
+            feed.innerHTML = data.map(contract => `
+                <div class="glass-card accent-violet rounded-2xl p-1 relative overflow-hidden group fade-enter">
+                    <div class="absolute inset-0 bg-gradient-to-br from-${contract.color}/10 to-transparent opacity-40 z-0"></div>
+                    <div class="bg-black/60 rounded-xl p-5 h-full flex flex-col relative z-10 border border-white/5">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="w-12 h-12 bg-${contract.color}/20 rounded-xl flex items-center justify-center border border-${contract.color}/30 shadow-[0_0_15px_currentColor] text-${contract.color}">
+                                <i class="fa-solid ${contract.icon} text-xl"></i>
+                            </div>
+                            <span class="bg-black/80 text-gray-300 text-[9px] font-bold uppercase tracking-widest px-2.5 py-1 rounded border border-white/10">${contract.rarity}</span>
+                        </div>
+                        <h3 class="font-display text-2xl font-bold text-white mb-2 group-hover:text-${contract.color} transition-colors">${contract.title}</h3>
+                        <p class="text-sm text-gray-400 mb-6 flex-grow leading-relaxed font-medium">${contract.desc}</p>
+                        
+                        <div class="bg-black/50 rounded-xl p-3 border border-white/5 flex justify-between items-center mb-3">
+                            <div>
+                                <p class="text-[9px] uppercase font-bold text-gray-500 mb-0.5 tracking-widest">Entry</p>
+                                <p class="font-bold text-white text-sm"><i class="fa-solid fa-coins text-dc-gold text-[10px] mr-1"></i> ${contract.entry}</p>
+                            </div>
+                            <i class="fa-solid fa-arrow-right text-gray-600 text-xs"></i>
+                            <div class="text-right">
+                                <p class="text-[9px] uppercase font-bold text-dc-gold mb-0.5 tracking-widest">Payout</p>
+                                <p class="font-bold text-dc-gold text-xl leading-none"><i class="fa-solid fa-coins text-[10px] mr-1"></i> ${contract.reward}</p>
+                            </div>
+                        </div>
+                        <button ${btnState} onclick="actionWithEscrow(${contract.entry}, 'Contract enrolled. Objective live!')" class="w-full ${btnClass} border py-2.5 rounded-lg text-xs font-bold uppercase tracking-widest transition-all">
+                            ${btnText}
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderHitlistFeed() {
+            const feed = document.getElementById('hitlist-feed');
+            const data = filterData(APP_STATE.hitlist);
+            const user = APP_STATE.users[APP_STATE.context];
+
+            if (data.length === 0) {
+                feed.innerHTML = `<div class="glass-light rounded-xl p-10 text-center opacity-70"><p class="text-gray-400 text-sm">No active bounties.</p></div>`;
+                return;
+            }
+
+            const canAccept = user.auth && user.team && user.canIssue;
+            const btnState = canAccept ? '' : 'disabled';
+            const btnClass = canAccept ? 'bg-dc-neon hover:bg-red-600 text-white shadow-[0_0_20px_rgba(255,0,85,0.3)]' : 'bg-black/40 border border-white/5 text-gray-600 cursor-not-allowed';
+            const btnText = canAccept ? 'Hunt Target' : (user.team ? '<i class="fa-solid fa-lock mr-1"></i> Captain Only' : '<i class="fa-solid fa-lock mr-1"></i> Team Reqd');
+
+            feed.innerHTML = data.map(item => `
+                <div class="glass-card accent-neon rounded-2xl p-6 relative overflow-hidden group fade-enter border-dc-neon/20">
+                    <div class="absolute inset-0 bg-gradient-to-r from-dc-neon/10 to-transparent z-0 opacity-40"></div>
+                    
+                    <div class="relative z-10 flex flex-col md:flex-row gap-8 items-center">
+                        <div class="flex-shrink-0 text-center">
+                            <div class="relative inline-block mb-3">
+                                <div class="absolute inset-0 bg-dc-neon blur-[20px] opacity-40 rounded-full"></div>
+                                <img src="https://ui-avatars.com/api/?name=${item.target.replace(' ', '+')}&background=ff003c&color=fff&size=128&bold=true" class="w-28 h-28 rounded-full border-2 border-dc-neon relative z-10">
+                                <div class="absolute -bottom-2 left-1/2 transform -translate-x-1/2 bg-black text-dc-neon text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded border border-dc-neon whitespace-nowrap">Target</div>
+                            </div>
+                            <h3 class="font-bold text-2xl text-white">${item.target}</h3>
+                            <p class="text-xs font-bold text-dc-cyan uppercase tracking-widest mt-1">${item.rank} • ${item.game}</p>
+                        </div>
+
+                        <div class="flex-grow w-full bg-black/60 rounded-2xl p-6 border border-white/5 relative">
+                            <i class="fa-solid fa-quote-left absolute top-5 left-5 text-4xl text-white/5"></i>
+                            <p class="text-base text-gray-300 italic mb-6 relative z-10 pl-8 border-l-2 border-dc-neon/50 leading-relaxed font-medium">
+                                "${item.quote}"
+                            </p>
+                            
+                            <div class="flex flex-col sm:flex-row items-center justify-between gap-5 border-t border-white/10 pt-5 mt-2">
+                                <div class="flex gap-8">
+                                    <div>
+                                        <p class="text-[10px] uppercase font-bold text-gray-500 tracking-widest mb-1">Challenger Entry</p>
+                                        <p class="font-bold text-white text-lg"><i class="fa-solid fa-coins text-dc-gold text-sm mr-1"></i> ${item.entry} DC</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-[10px] uppercase font-black text-dc-neon tracking-widest mb-1">Bounty Reward</p>
+                                        <p class="font-display font-black text-3xl text-white leading-none drop-shadow-[0_0_15px_rgba(255,0,85,0.5)]">
+                                            <i class="fa-solid fa-coins text-dc-gold text-xl mr-1"></i> ${item.reward.toLocaleString()}
+                                        </p>
+                                    </div>
+                                </div>
+                                <button ${btnState} onclick="actionWithEscrow(${item.entry}, 'Bounty Hunt Initiated. Match room spawning...')" class="w-full sm:w-auto ${btnClass} px-10 py-3.5 rounded-xl font-bold text-sm uppercase tracking-widest transition-all">
+                                    ${btnText}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        /**
+         * EVENT HANDLERS & UI CONTROLS
+         */
+        function switchContext(ctx) {
+            APP_STATE.context = ctx;
+            renderApp();
+            showToast(`Context switched to: ${ctx}`, 'success');
+        }
+
+        function setGameFilter(game) {
+            APP_STATE.gameFilter = game;
+            document.querySelectorAll('.game-filter-btn').forEach(b => {
+                b.classList.remove('active', 'bg-white/10', 'text-white');
+                b.classList.add('text-gray-500');
+            });
+            const btn = document.querySelector(`.game-filter-btn[data-game="${game}"]`);
+            if(btn) {
+                btn.classList.remove('text-gray-500');
+                btn.classList.add('active', 'bg-white/10', 'text-white');
+            }
+            renderApp();
+        }
+
+        document.getElementById('global-search').addEventListener('input', (e) => {
+            APP_STATE.searchQuery = e.target.value;
+            renderApp();
+        });
+
+        function switchTab(tabId) {
+            APP_STATE.activeTab = tabId;
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-trigger').forEach(el => el.classList.remove('active'));
+            
+            const content = document.getElementById(`tab-content-${tabId}`);
+            if(content) content.classList.add('active');
+            
+            const trigger = document.querySelector(`.tab-trigger[data-tab="${tabId}"]`);
+            if(trigger) trigger.classList.add('active');
+        }
+
+        /**
+         * OVERLAYS AND ACTIONS
+         */
+        function openMissionShop() {
+            const overlay = document.getElementById('mission-shop-overlay');
+            overlay.classList.remove('hidden-spa');
+            overlay.classList.add('flex');
+            // Animate in
+            setTimeout(() => {
+                overlay.classList.remove('opacity-0');
+                renderMissionCatalog(); // Reuse existing data for demo
+            }, 10);
+        }
+
+        function closeMissionShop() {
+            const overlay = document.getElementById('mission-shop-overlay');
+            overlay.classList.add('opacity-0');
+            setTimeout(() => {
+                overlay.classList.add('hidden-spa');
+                overlay.classList.remove('flex');
+            }, 300);
+        }
+
+        function renderMissionCatalog() {
+            const grid = document.getElementById('mission-catalog-grid');
+            // Duplicate array to make it look full
+            const extendedContracts = [...APP_STATE.contracts, ...APP_STATE.contracts];
+            grid.innerHTML = extendedContracts.map((contract, i) => `
+                <div class="glass-card accent-violet rounded-2xl p-1 relative overflow-hidden group fade-enter" style="animation-delay: ${i * 0.05}s">
+                    <div class="absolute inset-0 bg-gradient-to-b from-${contract.color}/10 to-transparent opacity-50 z-0"></div>
+                    <div class="bg-black/80 rounded-xl p-5 h-full flex flex-col relative z-10 border border-white/5">
+                        <i class="fa-solid ${contract.icon} text-3xl text-${contract.color} mb-4"></i>
+                        <h3 class="font-display text-xl font-bold text-white mb-2">${contract.title}</h3>
+                        <p class="text-xs text-gray-400 mb-6 flex-grow">${contract.desc}</p>
+                        <button onclick="actionWithEscrow(${contract.entry}, 'Acquired!'); closeMissionShop();" class="w-full bg-white/5 hover:bg-white/20 text-white py-2 rounded text-xs font-bold uppercase transition-all border border-white/10">Buy (${contract.entry} DC)</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function openSlideOver(id) {
+            const user = APP_STATE.users[APP_STATE.context];
+            if (!user.team || !user.canIssue) return; // Guard
+            
+            document.getElementById('so-acting-as').innerText = `Acting as: ${user.team.name}`;
+            document.getElementById('so-wallet-bal').innerText = `Bal: ${user.wallet} DC`;
+            
+            document.getElementById('slide-over-backdrop').classList.remove('hidden-spa');
+            // Small delay for display block to apply
+            setTimeout(() => {
+                document.getElementById('slide-over-backdrop').classList.remove('opacity-0');
+                document.getElementById(`slide-over-${id}`).classList.remove('translate-x-full');
+            }, 10);
+        }
+
+        function closeSlideOver(id) {
+            document.getElementById('slide-over-backdrop').classList.add('opacity-0');
+            document.getElementById(`slide-over-${id}`).classList.add('translate-x-full');
+            setTimeout(() => {
+                document.getElementById('slide-over-backdrop').classList.add('hidden-spa');
+            }, 500); // Wait for transition
+        }
+
+        function updatePotCalculation() {
+            const input = document.getElementById('clash-entry-input').value;
+            const potDisplay = document.getElementById('clash-pot-display');
+            const btnAmt = document.getElementById('submit-btn-amt');
+            
+            const val = parseInt(input) || 0;
+            potDisplay.innerHTML = `<i class="fa-solid fa-coins text-sm mr-1"></i>${(val * 2).toLocaleString()}`;
+            btnAmt.innerText = val.toLocaleString();
+        }
+
+        function submitClashAction() {
+            const val = parseInt(document.getElementById('clash-entry-input').value) || 0;
+            const user = APP_STATE.users[APP_STATE.context];
+            
+            if (val > user.wallet) {
+                showToast('Insufficient Funds in Treasury.', 'error');
+                return;
+            }
+            if (val > 1000) {
+                showToast('Anti-Whale Limit: Max 1000 DC.', 'error');
+                return;
+            }
+
+            closeSlideOver('create-clash');
+            // Deduct mock funds
+            user.wallet -= val;
+            setTimeout(() => {
+                renderApp(); // re-render to update wallet
+                showToast(`Clash Issued! ${val} DC locked in Escrow. Radar updated.`, 'success');
+            }, 400);
+        }
+
+        function actionWithEscrow(amount, successMsg) {
+            const user = APP_STATE.users[APP_STATE.context];
+            if (amount > user.wallet) {
+                showToast('Insufficient Funds. Please visit Treasury.', 'error');
+                return;
+            }
+            user.wallet -= amount; // Mock deduction
+            renderApp();
+            showToast(successMsg, 'success');
+        }
+
+        /**
+         * TOAST SYSTEM
+         */
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            let colorClass = 'border-dc-success';
+            let icon = 'fa-check text-dc-success';
+            let bgGlow = 'bg-dc-success/10';
+            
+            if(type === 'error') {
+                colorClass = 'border-dc-neon';
+                icon = 'fa-xmark text-dc-neon';
+                bgGlow = 'bg-dc-neon/10';
+            }
+
+            toast.className = `glass-heavy border-l-4 ${colorClass} ${bgGlow} rounded-xl p-4 shadow-2xl flex items-center gap-4 animate-slide-in-right max-w-sm pointer-events-auto`;
+            toast.innerHTML = `
+                <div class="w-8 h-8 rounded-full border border-current flex items-center justify-center flex-shrink-0 text-current">
+                    <i class="fa-solid ${icon} text-sm"></i>
+                </div>
+                <p class="text-sm text-white font-medium leading-snug">${message}</p>
+            `;
+            
+            container.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.transform = 'translateX(100%)';
+                toast.style.opacity = '0';
+                toast.style.transition = 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)';
+                setTimeout(() => toast.remove(), 400);
+            }, 4000);
+        }
+    </script>
+</body>
+</html>

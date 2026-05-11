@@ -86,18 +86,26 @@ def publish_tournament_completed(
 def publish_registration_created(
     *, registration_id: int, tournament_id: int,
     team_id: Optional[int] = None, user_id: Optional[int] = None,
-    source: str = "tournament_ops"
+    is_guest_team: Optional[bool] = None, is_waitlisted: Optional[bool] = None,
+    source: str = "tournament_ops", **extra
 ):
     """Publish registration.created via core EventBus."""
     from apps.core.events.events import RegistrationCreatedEvent
     try:
+        data = {
+            "registration_id": registration_id,
+            "tournament_id": tournament_id,
+            "team_id": team_id,
+            "user_id": user_id,
+        }
+        if is_guest_team is not None:
+            data["is_guest_team"] = is_guest_team
+        if is_waitlisted is not None:
+            data["is_waitlisted"] = is_waitlisted
+        if extra:
+            data.update(extra)
         _get_core_bus().publish(RegistrationCreatedEvent(
-            data={
-                "registration_id": registration_id,
-                "tournament_id": tournament_id,
-                "team_id": team_id,
-                "user_id": user_id,
-            },
+            data=data,
             source=source,
         ))
     except Exception as exc:
@@ -107,18 +115,21 @@ def publish_registration_created(
 def publish_registration_confirmed(
     *, registration_id: int, tournament_id: int,
     team_id: Optional[int] = None, user_id: Optional[int] = None,
-    source: str = "tournament_ops"
+    source: str = "tournament_ops", **extra
 ):
     """Publish registration.confirmed via core EventBus."""
     from apps.core.events.events import RegistrationConfirmedEvent
     try:
+        data = {
+            "registration_id": registration_id,
+            "tournament_id": tournament_id,
+            "team_id": team_id,
+            "user_id": user_id,
+        }
+        if extra:
+            data.update(extra)
         _get_core_bus().publish(RegistrationConfirmedEvent(
-            data={
-                "registration_id": registration_id,
-                "tournament_id": tournament_id,
-                "team_id": team_id,
-                "user_id": user_id,
-            },
+            data=data,
             source=source,
         ))
     except Exception as exc:

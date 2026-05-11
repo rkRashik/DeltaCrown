@@ -133,6 +133,7 @@
                         </div>
                     </div>
 
+                    {% if roster_config.allow_coaches %}
                     {# ── Coaching & Staff ── #}
                     <div id="review-staff-section" {% if not roster_staff %}class="hidden"{% endif %}>
                         <div class="text-[10px] font-bold uppercase tracking-widest text-purple-400/60 mb-1.5 flex items-center gap-1.5">
@@ -161,6 +162,7 @@
                         {% endfor %}
                         </div>
                     </div>
+                    {% endif %}
                 </div>
                 {% endif %}
             </div>

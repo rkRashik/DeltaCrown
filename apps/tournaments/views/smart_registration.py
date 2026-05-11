@@ -1014,7 +1014,6 @@ class SmartRegistrationView(LoginRequiredMixin, View):
             if not registration_data.get('coordinator_is_self', True):
                 coord_mid = registration_data.get('coordinator_member_id')
                 if coord_mid:
-                    from apps.organizations.models import TeamMembership
                     is_active_member = TeamMembership.objects.filter(
                         id=coord_mid,
                         team_id=team_id,
