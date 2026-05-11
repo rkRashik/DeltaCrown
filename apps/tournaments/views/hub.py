@@ -226,21 +226,39 @@ def _resolve_hub_view_mode(request, tournament, registration):
     }
 
 
-def _is_registration_verified_for_critical_actions(registration):
-    """Only confirmed/auto-approved registrations may perform critical Hub actions."""
+def _is_registration_verified_for_critical_actions(registration, tournament):
+    """Return True if critical Hub actions should be unlocked for this registration."""
     if not registration:
         return False
-    return registration.status in (Registration.CONFIRMED, Registration.AUTO_APPROVED)
+
+    if registration.status in (Registration.CONFIRMED, Registration.AUTO_APPROVED):
+        return True
+
+    if registration.status in (Registration.WAITLISTED, Registration.DRAFT):
+        return False
+
+    if not tournament.has_entry_fee:
+        return True
+
+    return False
 
 
-def _critical_lock_reason(registration):
+def _critical_lock_reason(registration, tournament):
     if not registration:
         return 'Registration required before critical actions are available.'
 
     payment = getattr(registration, 'payment', None)
 
     if registration.status == Registration.WAITLISTED:
-        return 'You are currently on the waitlist. Full Hub actions unlock after call-up and payment.'
+        return 'You are currently on the waitlist. Full Hub actions unlock after call-up.'
+
+    if not tournament.has_entry_fee:
+        status_map = {
+            Registration.NEEDS_REVIEW: 'Your registration is under manual review. Critical actions are locked for now.',
+            Registration.SUBMITTED: 'Your registration submission is still processing. Critical actions are locked.',
+            Registration.DRAFT: 'Complete your registration first. Critical actions are locked.',
+        }
+        return status_map.get(registration.status, 'Registration is pending review. Critical actions are locked for now.')
 
     if registration.status == Registration.PENDING:
         if payment and payment.status == 'rejected':
@@ -261,14 +279,14 @@ def _critical_lock_reason(registration):
 def _critical_actions_locked(user, tournament, registration):
     if _is_tournament_staff_or_organizer(user, tournament):
         return False
-    return not _is_registration_verified_for_critical_actions(registration)
+    return not _is_registration_verified_for_critical_actions(registration, tournament)
 
 
 def _forbidden_if_critical_locked(request, tournament, registration):
     if _critical_actions_locked(request.user, tournament, registration):
         return JsonResponse({
             'error': 'critical_actions_locked',
-            'reason': _critical_lock_reason(registration),
+            'reason': _critical_lock_reason(registration, tournament),
         }, status=403)
     return None
 
@@ -1637,8 +1655,8 @@ def _build_hub_context(request, tournament, registration, query_suffix='', is_st
     user_status = _registration_status_label(registration, check_in)
 
     hub_critical_locked = _critical_actions_locked(request.user, tournament, registration)
-    hub_payment_verified = _is_registration_verified_for_critical_actions(registration) if registration else False
-    hub_lock_reason = _critical_lock_reason(registration) if hub_critical_locked else ''
+    hub_payment_verified = _is_registration_verified_for_critical_actions(registration, tournament) if registration else False
+    hub_lock_reason = _critical_lock_reason(registration, tournament) if hub_critical_locked else ''
 
     # ── Status detail for modal ──────────────────────────
     status_detail = _build_status_detail(registration, check_in, tournament, now)
@@ -2959,6 +2977,35 @@ class HubSquadAPIView(LoginRequiredMixin, View):
         membership.roster_slot = new_slot
         membership.save(update_fields=['roster_slot'])
 
+        # Keep lineup snapshot in sync when present
+        try:
+            snapshot = registration.lineup_snapshot if registration else None
+            if isinstance(snapshot, list) and snapshot:
+                updated = False
+                for entry in snapshot:
+                    if entry.get('user_id') == membership.user_id:
+                        entry['roster_slot'] = new_slot
+                        updated = True
+                        break
+                if not updated:
+                    snapshot.append({
+                        'user_id': membership.user_id,
+                        'username': membership.user.username,
+                        'display_name': membership.display_name or membership.user.get_full_name() or membership.user.username,
+                        'role': membership.role,
+                        'player_role': membership.player_role or '',
+                        'roster_slot': new_slot,
+                        'is_igl': bool(membership.is_tournament_captain),
+                    })
+                registration.lineup_snapshot = snapshot
+                registration.save(update_fields=['lineup_snapshot'])
+        except Exception as exc:
+            logger.warning(
+                "Failed to sync lineup snapshot after hub swap (reg=%s): %s",
+                getattr(registration, 'id', None),
+                exc,
+            )
+
         logger.info(
             "Hub squad swap: user=%s team=%d member=%d %s -> %s (tournament=%s)",
             request.user.username, registration.team_id, membership_id, old_slot, new_slot, slug
@@ -3098,7 +3145,7 @@ class HubPrizeClaimAPIView(LoginRequiredMixin, View):
             registration,
         )
         if payload['claim_actions_locked']:
-            payload['claim_lock_reason'] = _critical_lock_reason(registration)
+            payload['claim_lock_reason'] = _critical_lock_reason(registration, tournament)
 
         return _json_response(payload, cache_control='no-store')
 

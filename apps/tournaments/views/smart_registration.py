@@ -163,7 +163,7 @@ class SmartRegistrationView(LoginRequiredMixin, View):
                     TeamMembership.objects.filter(
                         team=team,
                         status=TeamMembership.Status.ACTIVE
-                    ).select_related('user__profile').order_by('role', '-joined_at')[:20]
+                    ).select_related('user__profile').order_by('role', '-joined_at')
                 )
 
                 # ── Attach game passport data per member ──
@@ -985,12 +985,14 @@ class SmartRegistrationView(LoginRequiredMixin, View):
             while True:
                 member_gid = form_data.get(f'member_game_id_{idx}', '').strip()
                 member_name = form_data.get(f'member_display_name_{idx}', '').strip()
+                member_role = form_data.get(f'member_role_{idx}', '').strip().lower() or 'starter'
                 if not member_gid and not member_name:
                     break
                 if member_gid:
                     guest_team_data['members'].append({
                         'game_id': member_gid,
                         'display_name': member_name or member_gid,
+                        'role': member_role,
                     })
                 idx += 1
                 if idx > 20:  # safety cap
@@ -1025,6 +1027,55 @@ class SmartRegistrationView(LoginRequiredMixin, View):
                         )
                 else:
                     raise ValidationError("Please select a coordinator from your team roster.")
+
+            # ── Pre-check duplicate game IDs for team roster ──
+            try:
+                roster_qs = TeamMembership.objects.filter(
+                    team_id=team_id,
+                    status=TeamMembership.Status.ACTIVE,
+                ).select_related('user')
+
+                try:
+                    from apps.user_profile.models_main import GameProfile
+                    _roster_user_ids = [m.user_id for m in roster_qs]
+                    _passports_map = {
+                        gp.user_id: gp
+                        for gp in GameProfile.objects.filter(
+                            user_id__in=_roster_user_ids,
+                            game=tournament.game,
+                            status=GameProfile.STATUS_ACTIVE,
+                        )
+                    }
+                except Exception:
+                    _passports_map = {}
+
+                for member in roster_qs:
+                    mid = str(member.id)
+                    member_game_id = form_data.get(f'member_{mid}_game_id', '').strip()
+                    if not member_game_id:
+                        _gp = _passports_map.get(member.user_id)
+                        if _gp and _gp.ign:
+                            _gid = _gp.ign
+                            if _gp.discriminator:
+                                _disc = _gp.discriminator
+                                if not _disc.startswith('#') and not _disc.startswith('-'):
+                                    _disc = f'#{_disc}'
+                                _gid = f"{_gp.ign}{_disc}"
+                            member_game_id = _gid
+                    if member_game_id:
+                        RegistrationService._check_duplicate_game_id(
+                            tournament=tournament,
+                            game_id=member_game_id,
+                            exclude_user=None,
+                        )
+            except ValidationError:
+                raise
+            except Exception:
+                logger.warning(
+                    "Failed pre-check for duplicate game IDs (team_id=%s)",
+                    team_id,
+                    exc_info=True,
+                )
 
         # Create registration via service
         registration = RegistrationService.register_participant(

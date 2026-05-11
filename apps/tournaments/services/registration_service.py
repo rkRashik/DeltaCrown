@@ -727,6 +727,60 @@ class RegistrationService:
             raise ValidationError(
                 "At least one team member is required for guest team registration."
             )
+
+        # Enforce roster role limits for guest teams
+        try:
+            from apps.games.services import game_service
+            rl = game_service.get_roster_limits(tournament.game)
+            min_starters = rl.get('min_team_size', 1)
+            min_roster = rl.get('min_roster_size', min_starters)
+            max_roster = rl.get('max_roster_size', 10)
+            max_subs = rl.get('max_substitutes', 2)
+            allow_coaches = rl.get('allow_coaches', False)
+            max_coaches = rl.get('max_coaches', 0)
+        except Exception:
+            min_starters = 1
+            min_roster = 1
+            max_roster = 10
+            max_subs = 2
+            allow_coaches = False
+            max_coaches = 0
+
+        starters = 0
+        subs = 0
+        coaches = 0
+        for member in members:
+            role = str(member.get('role') or 'starter').strip().lower()
+            if role in ('substitute', 'sub'):
+                subs += 1
+            elif role == 'coach':
+                coaches += 1
+            else:
+                starters += 1
+
+        total = starters + subs + coaches
+        if total < min_roster:
+            raise ValidationError(
+                f"Guest team needs at least {min_roster} total members but only has {total}."
+            )
+        if max_roster and total > max_roster:
+            raise ValidationError(
+                f"Guest team roster ({total}) exceeds the maximum of {max_roster} members."
+            )
+        if starters < min_starters:
+            raise ValidationError(
+                f"Guest team needs at least {min_starters} starters but only has {starters}."
+            )
+        if max_subs and subs > max_subs:
+            raise ValidationError(
+                f"Guest team has too many substitutes ({subs}/{max_subs})."
+            )
+        if not allow_coaches and coaches > 0:
+            raise ValidationError("Guest teams are not allowed to add coaches for this tournament.")
+        if max_coaches and coaches > max_coaches:
+            raise ValidationError(
+                f"Guest team has too many coaches ({coaches}/{max_coaches})."
+            )
     
     @staticmethod
     def _check_duplicate_game_id(
@@ -784,6 +838,17 @@ class RegistrationService:
                         f"Game ID '{game_id}' is already registered as a member of guest team "
                         f"'{team_name}' in this tournament."
                     )
+
+            snapshot = getattr(reg, 'lineup_snapshot', None) or []
+            if isinstance(snapshot, list):
+                for entry in snapshot:
+                    entry_gid = (entry.get('game_id') or entry.get('ign') or '').strip().lower()
+                    if entry_gid and entry_gid == normalized_id:
+                        participant = f"team #{reg.team_id}" if reg.team_id else "another participant"
+                        raise ValidationError(
+                            f"Game ID '{game_id}' is already registered by {participant} in this tournament. "
+                            "Each player may only be registered once."
+                        )
     
     @staticmethod
     @transaction.atomic

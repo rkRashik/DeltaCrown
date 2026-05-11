@@ -866,12 +866,26 @@
         if (!tag || !tag.value.trim()) return false;
         // Need at least min_team_size guest members with game_id
         const rows = document.querySelectorAll('[data-guest-row]');
+        const maxRoster = runtimeConfig.rosterConfig.maxRoster;
         if (rows.length < runtimeConfig.rosterConfig.minTeamSize) return false;
+        if (maxRoster && rows.length > maxRoster) return false;
+        let starters = 0;
+        let subs = 0;
+        let coaches = 0;
         for (const row of rows) {
             const idx = row.getAttribute('data-guest-row');
             const gameId = row.querySelector(`[name="member_game_id_${idx}"]`);
+            const roleSelect = row.querySelector(`[name="member_role_${idx}"]`);
+            const role = (roleSelect ? roleSelect.value : 'starter').toLowerCase();
             if (!gameId || !gameId.value.trim()) return false;
+            if (role === 'substitute') subs += 1;
+            else if (role === 'coach') coaches += 1;
+            else starters += 1;
         }
+        if (starters < runtimeConfig.rosterConfig.minTeamSize) return false;
+        if (runtimeConfig.rosterConfig.maxSubs && subs > runtimeConfig.rosterConfig.maxSubs) return false;
+        if (!runtimeConfig.rosterConfig.allowCoaches && coaches > 0) return false;
+        if (runtimeConfig.rosterConfig.maxCoaches && coaches > runtimeConfig.rosterConfig.maxCoaches) return false;
         return true;
     }
 
