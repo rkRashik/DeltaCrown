@@ -480,3 +480,35 @@ class SystemChecksView(TOCBaseView):
         cache.set(cache_key, data, timeout=25)
         return Response(data)
 
+
+class VerificationPolicyView(TOCBaseView):
+    """
+    GET/POST /api/toc/<slug>/participants/verification-policy/
+    Controls strict verification for free-entry tournaments.
+    """
+
+    def get(self, request, slug):
+        config = self.tournament.config if isinstance(self.tournament.config, dict) else {}
+        policy = config.get('verification_policy') if isinstance(config.get('verification_policy'), dict) else {}
+        return Response({'policy': policy})
+
+    def post(self, request, slug):
+        payload = request.data if isinstance(request.data, dict) else {}
+        enabled = bool(payload.get('free_entry_requires_team_verification', False))
+
+        config = self.tournament.config if isinstance(self.tournament.config, dict) else {}
+        config = dict(config)
+        policy = config.get('verification_policy') if isinstance(config.get('verification_policy'), dict) else {}
+        policy = dict(policy)
+        policy['free_entry_requires_team_verification'] = enabled
+        config['verification_policy'] = policy
+
+        self.tournament.config = config
+        update_fields = ['config']
+        if hasattr(self.tournament, 'updated_at'):
+            update_fields.append('updated_at')
+        self.tournament.save(update_fields=update_fields)
+
+        bump_toc_scopes(self.tournament.id, 'participants', 'overview')
+        return Response({'ok': True, 'policy': policy})
+

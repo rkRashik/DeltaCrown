@@ -493,23 +493,38 @@ class WinnerDeterminationService:
                 f"Tournament {self.tournament.id} has no finals match - cannot determine winner"
             )
         
-        # Winner is the finals winner (winner_id is a Registration ID)
+        # Winner is the finals winner. NOTE: ``finals_match.winner_id`` semantics
+        # depend on the tournament's participation_type:
+        #   • SOLO  → winner_id stores a Registration.id (the participating user's reg)
+        #   • TEAM  → winner_id stores a Team.id (Registration.team_id FK)
+        # The old code assumed Registration.id unconditionally, which raised
+        # "Winner registration N not found" for every team tournament.
         if not finals_match.winner_id:
             raise ValidationError(
                 f"Finals match {finals_match.id} has no winner - cannot determine tournament winner"
             )
-        
-        # Fetch winner Registration object
-        winner_reg = Registration.objects.filter(
-            id=finals_match.winner_id,
-            tournament=self.tournament
-        ).first()
-        
+
+        is_team_tournament = (
+            getattr(self.tournament, 'participation_type', None) == Tournament.TEAM
+        )
+
+        def _reg_for_participant_id(pid: Optional[int]):
+            """Resolve a match participant id to a Registration, slot-aware."""
+            if not pid:
+                return None
+            qs = Registration.objects.filter(tournament=self.tournament)
+            if is_team_tournament:
+                return qs.filter(team_id=pid).first()
+            return qs.filter(id=pid).first()
+
+        winner_reg = _reg_for_participant_id(finals_match.winner_id)
+
         if not winner_reg:
             raise ValidationError(
-                f"Winner registration {finals_match.winner_id} not found for tournament {self.tournament.id}"
+                f"Winner {'team' if is_team_tournament else 'registration'} "
+                f"{finals_match.winner_id} not found for tournament {self.tournament.id}"
             )
-        
+
         self.audit_steps.append({
             'rule': 'winner_identification',
             'data': {
@@ -519,17 +534,14 @@ class WinnerDeterminationService:
             },
             'outcome': 'winner_identified'
         })
-        
+
         # Runner-up is the finals loser (determine from participant IDs)
         loser_id = finals_match.loser_id or (
             finals_match.participant2_id if finals_match.winner_id == finals_match.participant1_id
             else finals_match.participant1_id
         )
-        
-        runner_up_reg = Registration.objects.filter(
-            id=loser_id,
-            tournament=self.tournament
-        ).first() if loser_id else None
+
+        runner_up_reg = _reg_for_participant_id(loser_id)
         
         # Third place: look for 3rd place match, or use semi-final losers with tie-breaker
         third_place_reg = self._determine_third_place(final_bracket, winner_reg, runner_up_reg)

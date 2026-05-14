@@ -1,12 +1,12 @@
 {% extends "tournaments/base.html" %}
 {% load static humanize %}
 
-{# ─────────────────────────────────────────────────────────
+{% comment %}
    Registration Management Dashboard
    Context: tournament_form (via get_tournament_form),
             responses (paginated), stats from context
    Phase 4 Frontend Rebuild
-   ───────────────────────────────────────────────────────── #}
+{% endcomment %}
 
 {% block title %}Registration Dashboard — {{ tournament_form.tournament.name }} | DeltaCrown{% endblock %}
 

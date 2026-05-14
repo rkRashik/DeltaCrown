@@ -501,17 +501,18 @@
       .catch(() => toast('Failed', 'error'));
   }
 
-  function sendTeamMessage() {
+  function sendTeamMessage(teamId) {
     const teams = (dashData?.teams || []);
+    const targetId = (teamId != null) ? String(teamId) : '';
     const teamOpts = teams.length
-      ? teams.map(t => `<option value="${t.id}">${esc(t.name)}</option>`).join('')
+      ? teams.map(t => `<option value="${t.id}"${String(t.id) === targetId ? ' selected' : ''}>${esc(t.name)}</option>`).join('')
       : '<option value="">— enter team ID below —</option>';
     const body = `<div class="space-y-4 p-5">
       ${teams.length
         ? `<div><label class="${LABEL}">Team *</label>
             <select id="notif-team-id" class="${FIELD}">${teamOpts}</select></div>`
         : `<div><label class="${LABEL}">Team ID *</label>
-            <input id="notif-team-id" type="number" class="${FIELD}" placeholder="Numeric team ID"></div>`}
+            <input id="notif-team-id" type="number" class="${FIELD}" placeholder="Numeric team ID" value="${esc(targetId)}"></div>`}
       <div><label class="${LABEL}">Message *</label>
         <textarea id="notif-team-msg" rows="4" class="${FIELD} resize-none" placeholder="Message to team..."></textarea></div>
     </div>`;
@@ -560,7 +561,7 @@
     editTemplate, _submitEditTemplate, deleteTemplate,
     sendNotification, _submitSend,
     scheduleNotification, _submitSchedule,
-    sendTeamMessage, _submitTeamMsg,
+    sendTeamMessage, teamMessage: sendTeamMessage, _submitTeamMsg,
     toggleAutoRule, saveChannels,
   };
 

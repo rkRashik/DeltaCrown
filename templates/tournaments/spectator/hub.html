@@ -1,14 +1,14 @@
 {% extends "tournaments/base.html" %}
 {% load static humanize %}
 
-{# ─────────────────────────────────────────────────────────
+{% comment %}
    Spectator Hub — FE-T-006
    Context: tournament, active_tab, bracket, has_bracket,
             groups, has_groups, standings, game_columns,
             recent_matches, upcoming_matches,
             total_matches, completed_matches, live_matches
    Phase 4 Frontend Rebuild
-   ───────────────────────────────────────────────────────── #}
+{% endcomment %}
 
 {% block title %}Spectate — {{ tournament.name }} | DeltaCrown{% endblock %}
 

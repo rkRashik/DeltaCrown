@@ -1,10 +1,11 @@
 {# Reusable sidebar / drawer component inspired by the sample #}
-{# Usage: include this partial anywhere and trigger with a button:
+{% comment %}
+   Usage: include this partial anywhere and trigger with a button:
    <button class="btn btn-text sm:hidden" aria-haspopup="dialog" aria-expanded="false"
            aria-controls="dc-sidebar" data-overlay="#dc-sidebar">
      ☰
    </button>
- #}
+{% endcomment %}
 
 <aside id="dc-sidebar" class="overlay" tabindex="-1" aria-hidden="true">
   <div class="drawer drawer-start">

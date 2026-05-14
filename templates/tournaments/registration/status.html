@@ -1,12 +1,12 @@
 {% extends "tournaments/base.html" %}
 {% load static humanize %}
 
-{# ─────────────────────────────────────────────────────────
+{% comment %}
    Registration / Payment Status
    Context: tournament, registration, current_payment,
             payment_history, status_info, is_organizer
    Phase 4 Frontend Rebuild
-   ───────────────────────────────────────────────────────── #}
+{% endcomment %}
 
 {% block title %}Registration Status — {{ tournament.name }} | DeltaCrown{% endblock %}
 

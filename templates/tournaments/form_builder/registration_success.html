@@ -1,12 +1,12 @@
 {% extends "tournaments/base.html" %}
 {% load static %}
 
-{# ─────────────────────────────────────────────────────────
+{% comment %}
    Dynamic Registration Success
    Context: tournament, form_response, requires_payment,
             requires_approval
    Phase 4 Frontend Rebuild
-   ───────────────────────────────────────────────────────── #}
+{% endcomment %}
 
 {% block title %}Registration Submitted — {{ tournament.name }} | DeltaCrown{% endblock %}
 

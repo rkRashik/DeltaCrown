@@ -1,12 +1,12 @@
 {% extends "tournaments/base.html" %}
 {% load static humanize %}
 
-{# ─────────────────────────────────────────────────────────
+{% comment %}
    Group Standings — FE-T-013
    Context: tournament, groups_with_standings,
             stat_columns, stat_labels, game_name, game_slug
    Phase 4 Frontend Rebuild
-   ───────────────────────────────────────────────────────── #}
+{% endcomment %}
 
 {% block title %}Group Standings — {{ tournament.name }} | DeltaCrown{% endblock %}
 

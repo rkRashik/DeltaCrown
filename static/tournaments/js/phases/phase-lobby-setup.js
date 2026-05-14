@@ -41,6 +41,25 @@
       '</div>';
   }
 
+  function _kickoffRemainingMs(c) {
+    var match = c.asObject(c.state.room.match);
+    var raw = String(match.scheduled_time || '').trim();
+    if (!raw) return 0;
+    var t = Date.parse(raw);
+    if (!isFinite(t)) return 0;
+    return Math.max(0, t - Date.now());
+  }
+
+  function _fmtCountdown(ms) {
+    var total = Math.floor(ms / 1000);
+    var h = Math.floor(total / 3600);
+    var m = Math.floor((total % 3600) / 60);
+    var s = total % 60;
+    var pad = function (n) { return n < 10 ? '0' + n : '' + n; };
+    if (h > 0) return pad(h) + ':' + pad(m) + ':' + pad(s);
+    return pad(m) + ':' + pad(s);
+  }
+
   window.MatchRoom.registerPhase('lobby_setup', {
     label: function () { return 'Lobby Setup'; },
     narrative: function () { return 'Host publishes lobby credentials. Join the room, then mark match live.'; },
@@ -58,6 +77,15 @@
       var canEdit = isHost || isStaff;
       var canStartLive = c.bool(isHost || me.is_staff, false);
       var disabled = c.waitingLocked() || c.state.requestBusy;
+
+      // Time gate: only allow "Mark Match Live" once the scheduled kickoff has arrived.
+      // Staff bypass this gate. Setup actions (toss/veto/credentials) remain available
+      // during the pre-match lobby window so teams can prepare ahead of time.
+      var kickoffRemaining = _kickoffRemainingMs(c);
+      var beforeKickoff = !isStaff && kickoffRemaining > 0;
+      var countdownText = beforeKickoff ? _fmtCountdown(kickoffRemaining) : '';
+      var kickoffIso = String(c.asObject(c.state.room.match).scheduled_time || '');
+      var startLiveBlocked = disabled || beforeKickoff;
 
       // Detect if credentials have been published (any non-empty credential key)
       var hasCredentials = schema.some(function (f) {
@@ -89,8 +117,10 @@
           '<i data-lucide="send" class="w-3.5 h-3.5"></i>' + (hasCredentials ? 'Update &amp; Reshare' : 'Share With Opponent') + '</button>' +
           '<button type="button" data-action="start-live" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border text-xs font-bold uppercase tracking-wider ' +
           (hasCredentials ? 'border-emerald-400/40 bg-emerald-500/15 text-emerald-200 ' : 'border-white/25 bg-white/5 text-white ') +
-          ((!canStartLive || disabled) ? 'opacity-50 cursor-not-allowed' : 'active:scale-95') + '" ' + ((!canStartLive || disabled) ? 'disabled' : '') + '>' +
-          '<i data-lucide="flag" class="w-3.5 h-3.5"></i>Mark Match Live</button>' +
+          ((!canStartLive || startLiveBlocked) ? 'opacity-50 cursor-not-allowed' : 'active:scale-95') + '" ' + ((!canStartLive || startLiveBlocked) ? 'disabled' : '') + '>' +
+          '<i data-lucide="flag" class="w-3.5 h-3.5"></i>' +
+          (beforeKickoff ? '<span>Live in <span data-kickoff-countdown="' + c.esc(kickoffIso) + '" class="tabular-nums font-black text-ac">' + c.esc(countdownText) + '</span></span>' : 'Mark Match Live') +
+          '</button>' +
           '</div></form></section>';
       }
 
@@ -154,6 +184,37 @@
       return false;
     }
   });
+
+  // Kickoff countdown ticker — runs every second, updates any in-DOM countdown
+  // elements, and triggers a phase re-render when the countdown hits zero so the
+  // "Mark Match Live" button becomes enabled at the scheduled time.
+  window.setInterval(function () {
+    var nodes = document.querySelectorAll('[data-kickoff-countdown]');
+    if (!nodes || !nodes.length) return;
+    var ctx = window.MatchRoom && window.MatchRoom.ctx ? window.MatchRoom.ctx() : null;
+    var needsRerender = false;
+    nodes.forEach(function (node) {
+      var iso = String(node.getAttribute('data-kickoff-countdown') || '').trim();
+      if (!iso) return;
+      var t = Date.parse(iso);
+      if (!isFinite(t)) return;
+      var remaining = Math.max(0, t - Date.now());
+      if (remaining <= 0) {
+        node.textContent = '00:00';
+        needsRerender = true;
+        return;
+      }
+      var total = Math.floor(remaining / 1000);
+      var h = Math.floor(total / 3600);
+      var m = Math.floor((total % 3600) / 60);
+      var s = total % 60;
+      var pad = function (n) { return n < 10 ? '0' + n : '' + n; };
+      node.textContent = h > 0 ? pad(h) + ':' + pad(m) + ':' + pad(s) : pad(m) + ':' + pad(s);
+    });
+    if (needsRerender && ctx && typeof ctx.scheduleRender === 'function') {
+      ctx.scheduleRender('kickoff');
+    }
+  }, 1000);
 
   // Delegate copy button clicks (they don't have data-action, use data-copy-value)
   document.addEventListener('click', function (e) {

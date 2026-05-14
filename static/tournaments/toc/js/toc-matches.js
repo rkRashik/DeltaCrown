@@ -1184,6 +1184,9 @@
           var s5 = b5.querySelector('span');
           if (s5) s5.textContent = 'Extract';
         }
+        // Kill any in-flight progress timer from a previous match — if the
+        // admin switches mid-extract, the old progress bar should disappear.
+        if (typeof _team5v5StopProgress === 'function') _team5v5StopProgress(false);
         var hint = $('#team-5v5-game-hint');
         if (hint) hint.textContent = team5v5GameLabel();
         // Render an empty grid immediately, then populate rosters async.
@@ -1239,56 +1242,117 @@
   }
 
   function _team5v5OptionsFor(candidates, lockedUserId) {
-    // Build <option> set for a player-picker. ``lockedUserId`` (if set) is
-    // pre-selected; otherwise the placeholder is selected.
+    // Build <option> set for a player-picker. V2.2 option-text format:
+    //   - With Game Passport: "<passport_ign> (<platform_name>)"
+    //                         e.g. "1W Pandaaa (Gunda)"
+    //                         (parenthetical suppressed when they match,
+    //                          to avoid noisy "Pandaaa (Pandaaa)")
+    //   - Without Game Passport: just "<platform_name>"
+    // The platform sub-line under the <select> still renders for locked rows
+    // (see _team5v5BuildRow) — that's the per-row display, separate from the
+    // dropdown text.
     var opts = '<option value="">— pick player —</option>';
     var seen = false;
     (candidates || []).forEach(function (c) {
       var sel = (lockedUserId != null && Number(c.user_id) === Number(lockedUserId)) ? ' selected' : '';
       if (sel) seen = true;
-      opts += '<option value="' + Number(c.user_id) + '"' + sel + '>' + _team5v5Escape(c.label) + '</option>';
+      var displayName;
+      if (c.passport_ign) {
+        var plat = (c.platform_name || '').trim();
+        if (plat && plat.toLowerCase() !== c.passport_ign.toLowerCase()) {
+          displayName = c.passport_ign + ' (' + plat + ')';
+        } else {
+          displayName = c.passport_ign;
+        }
+      } else {
+        displayName = (c.platform_name || '').trim() || c.label || ('User #' + c.user_id);
+      }
+      opts += '<option value="' + Number(c.user_id) + '"' + sel + '>' + _team5v5Escape(displayName) + '</option>';
     });
-    // If the locked user_id isn't in the candidate list (sub got swapped, etc.),
-    // synthesize a one-off option so the row still locks visibly.
+    // Sub-swap edge case: locked user_id isn't on the listed starter roster.
     if (lockedUserId != null && !seen) {
       opts += '<option value="' + Number(lockedUserId) + '" selected>(locked: user #' + Number(lockedUserId) + ')</option>';
     }
     return opts;
   }
 
-  function _team5v5BuildRow(side, idx, candidates, lockedUserId, ign, kda) {
+  function _team5v5FindCandidate(candidates, userId) {
+    if (userId == null || !candidates) return null;
+    for (var i = 0; i < candidates.length; i++) {
+      if (Number(candidates[i].user_id) === Number(userId)) return candidates[i];
+    }
+    return null;
+  }
+
+  function _team5v5BuildRow(side, idx, candidates, lockedUserId, aiIgn, p) {
     // ``side`` ∈ {'a','b'} — which team panel this row belongs to.
-    // ``lockedUserId`` non-null + matched_label = AI mapped this row.
+    // ``lockedUserId`` non-null = AI mapped this row to a known user.
+    // ``p`` is the AI-extracted player row (post-validation) when AI ran.
     var locked = lockedUserId != null;
-    var k = (kda && kda.kills   != null) ? kda.kills   : '';
-    var d = (kda && kda.deaths  != null) ? kda.deaths  : '';
-    var a = (kda && kda.assists != null) ? kda.assists : '';
-    var s = (kda && kda.score   != null) ? kda.score   : '';
+    var agent = (p && p.agent   != null) ? p.agent   : '';
+    var k     = (p && p.kills   != null) ? p.kills   : '';
+    var d     = (p && p.deaths  != null) ? p.deaths  : '';
+    var a     = (p && p.assists != null) ? p.assists : '';
+    var acs   = (p && p.acs     != null) ? p.acs     : '';
+    var econ  = (p && p.econ    != null) ? p.econ    : '';
+    var fb    = (p && p.fb      != null) ? p.fb      : '';
+    var plant = (p && p.plants  != null) ? p.plants  : '';
+    var defu  = (p && p.defuses != null) ? p.defuses : '';
+
     var pickerCls = locked
       ? 'w-full bg-dc-panel border border-emerald-500/30 text-white text-xs rounded px-2 py-1.5 focus:border-theme outline-none'
       : 'w-full bg-dc-bg border border-amber-500/40 text-white text-xs rounded px-2 py-1.5 focus:border-theme outline-none';
-    var ignHint = (!locked && ign)
-      ? '<div class="text-[9px] font-mono text-amber-400/80 mt-0.5 truncate" title="' + _team5v5Escape(ign) + '">AI saw: ' + _team5v5Escape(ign) + '</div>'
+
+    // Platform-name sub-line — shown under the picker when locked AND the
+    // platform name differs from the Game Passport IGN (otherwise redundant).
+    var platformSub = '';
+    if (locked) {
+      var lockedCand = _team5v5FindCandidate(candidates, lockedUserId);
+      var platName = (lockedCand && lockedCand.platform_name) || (p && p.matched_platform_name) || '';
+      var ignName  = (lockedCand && lockedCand.passport_ign)  || (p && p.matched_label)         || '';
+      if (platName && platName.toLowerCase() !== (ignName || '').toLowerCase()) {
+        platformSub = '<div class="text-[9px] text-dc-text/50 mt-0.5 truncate" title="Platform: ' + _team5v5Escape(platName) + '">Platform: <span class="text-dc-text/70">' + _team5v5Escape(platName) + '</span></div>';
+      }
+    }
+    // AI raw IGN hint — shown only when no auto-match (admin needs context).
+    var ignHint = (!locked && aiIgn)
+      ? '<div class="text-[9px] font-mono text-amber-400/80 mt-0.5 truncate" title="' + _team5v5Escape(aiIgn) + '">Detected: ' + _team5v5Escape(aiIgn) + '</div>'
       : '';
 
+    var numCell = function (val, statKey, ph, max) {
+      return '<td class="px-1 py-2"><input type="number" min="0" max="' + max + '" value="' + _team5v5Escape(val) + '" data-team5v5-stat="' + statKey + '" class="w-12 bg-dc-bg border border-dc-border rounded px-1.5 py-1 text-white text-xs text-center focus:border-theme outline-none" placeholder="' + ph + '"></td>';
+    };
+
     return '<tr class="border-t border-dc-border/30" data-team5v5-row data-team5v5-side="' + side + '" data-team5v5-idx="' + idx + '">'
-      + '<td class="px-2 py-2 align-top w-[44%]">'
+      // Player column — wider, sticky-feeling so the IGN stays visible while scrolling stats
+      + '<td class="px-2 py-2 align-top min-w-[180px]">'
       +   '<select class="' + pickerCls + '" data-team5v5-player>'
       +     _team5v5OptionsFor(candidates, lockedUserId)
       +   '</select>'
+      +   platformSub
       +   ignHint
       + '</td>'
-      + '<td class="px-1 py-2 w-[12%]"><input type="number" min="0" max="99" value="' + _team5v5Escape(k) + '" data-team5v5-stat="kills"   class="w-full bg-dc-bg border border-dc-border rounded px-2 py-1 text-white text-xs text-center focus:border-theme outline-none" placeholder="K"></td>'
-      + '<td class="px-1 py-2 w-[12%]"><input type="number" min="0" max="99" value="' + _team5v5Escape(d) + '" data-team5v5-stat="deaths"  class="w-full bg-dc-bg border border-dc-border rounded px-2 py-1 text-white text-xs text-center focus:border-theme outline-none" placeholder="D"></td>'
-      + '<td class="px-1 py-2 w-[12%]"><input type="number" min="0" max="99" value="' + _team5v5Escape(a) + '" data-team5v5-stat="assists" class="w-full bg-dc-bg border border-dc-border rounded px-2 py-1 text-white text-xs text-center focus:border-theme outline-none" placeholder="A"></td>'
-      + '<td class="px-1 py-2 w-[20%]"><input type="number" min="0" max="200000" value="' + _team5v5Escape(s) + '" data-team5v5-stat="score" class="w-full bg-dc-bg border border-dc-border rounded px-2 py-1 text-white text-xs text-center focus:border-theme outline-none" placeholder="0"></td>'
+      // Agent column — short text input
+      + '<td class="px-1 py-2 align-top min-w-[80px]">'
+      +   '<input type="text" maxlength="24" value="' + _team5v5Escape(agent) + '" data-team5v5-stat="agent" class="w-full bg-dc-bg border border-dc-border rounded px-1.5 py-1 text-white text-xs focus:border-theme outline-none" placeholder="Agent">'
+      + '</td>'
+      // KDA + ACS
+      + numCell(k,   'kills',   'K',   99)
+      + numCell(d,   'deaths',  'D',   99)
+      + numCell(a,   'assists', 'A',   99)
+      + '<td class="px-1 py-2"><input type="number" min="0" max="200000" value="' + _team5v5Escape(acs) + '" data-team5v5-stat="acs" class="w-16 bg-dc-bg border border-dc-border rounded px-1.5 py-1 text-white text-xs text-center focus:border-theme outline-none" placeholder="0"></td>'
+      // V2: Econ, FB, Plants, Defuses
+      + numCell(econ,  'econ',    'Econ', 99)
+      + numCell(fb,    'fb',      'FB',   99)
+      + numCell(plant, 'plants',  'P',    99)
+      + numCell(defu,  'defuses', 'D',    99)
       + '</tr>';
   }
 
   function _team5v5BuildPanel(side, teamName, candidates, players) {
     // ``players`` may be empty (initial render) or a 5-element AI mapping.
     var rows = '';
-    var scoreLabel = team5v5ScoreColumnLabel();
+    var acsLabel = team5v5ScoreColumnLabel();
     for (var i = 0; i < 5; i++) {
       var p = (players && players[i]) || null;
       var lockedUserId = p ? p.user_id : null;
@@ -1299,6 +1363,8 @@
       ? '<div class="px-3 py-1.5 text-[10px] text-amber-300 bg-amber-500/10 border-b border-amber-500/30">No locked roster — pick each player manually after extraction.</div>'
       : '';
     var headerSide = side === 'a' ? 'A' : 'B';
+    // 10-column V2 header. The whole table scrolls horizontally inside its
+    // overflow-x-auto parent on narrow viewports.
     return '<div class="px-3 py-2 bg-dc-panel/60 border-b border-dc-border/40 flex items-center justify-between">'
       +   '<div class="flex items-center gap-2">'
       +     '<span class="text-[9px] font-mono text-dc-text/60 uppercase tracking-widest">Team ' + headerSide + '</span>'
@@ -1307,14 +1373,19 @@
       +   '<span class="text-[9px] font-mono text-dc-text/40">' + (candidates ? candidates.length : 0) + ' starter(s)</span>'
       + '</div>'
       + emptyRosterBanner
-      + '<div class="overflow-x-auto"><table class="w-full text-xs">'
+      + '<div class="overflow-x-auto"><table class="text-xs" style="min-width:100%;">'
       +   '<thead class="bg-dc-bg/50">'
       +     '<tr class="text-[9px] font-bold text-dc-text/70 uppercase tracking-widest">'
       +       '<th class="px-2 py-1.5 text-left">Player</th>'
+      +       '<th class="px-1 py-1.5 text-center">Agent</th>'
       +       '<th class="px-1 py-1.5 text-center">K</th>'
       +       '<th class="px-1 py-1.5 text-center">D</th>'
       +       '<th class="px-1 py-1.5 text-center">A</th>'
-      +       '<th class="px-1 py-1.5 text-center">' + _team5v5Escape(scoreLabel) + '</th>'
+      +       '<th class="px-1 py-1.5 text-center">' + _team5v5Escape(acsLabel) + '</th>'
+      +       '<th class="px-1 py-1.5 text-center">Econ</th>'
+      +       '<th class="px-1 py-1.5 text-center">FB</th>'
+      +       '<th class="px-1 py-1.5 text-center">Plant</th>'
+      +       '<th class="px-1 py-1.5 text-center">Defuse</th>'
       +     '</tr>'
       +   '</thead>'
       +   '<tbody>' + rows + '</tbody>'
@@ -1336,7 +1407,6 @@
     var playersB = (data && data.participant2_players) || null;
     panelA.innerHTML = _team5v5BuildPanel('a', nameA, candA, playersA);
     panelB.innerHTML = _team5v5BuildPanel('b', nameB, candB, playersB);
-    iconsRefresh && iconsRefresh();
   }
 
   // Cached rosters keyed by matchId so we don't re-fetch when the admin
@@ -1369,6 +1439,88 @@
     label.textContent = f ? f.name : 'Choose scoreboard screenshot…';
   }
 
+  // ─── AI extraction progress UI ────────────────────────────────────────
+  // "Soft progress" bar — fills toward 95% based on elapsed time so the admin
+  // sees the bar move during the ~60s Gemini call without us lying about
+  // actual completion. Hits 100% only when the response actually lands.
+  // Stage messages cycle to give the wait a sense of motion.
+  var _team5v5ProgressTimer = null;
+  var _team5v5ProgressStart = 0;
+  var _team5v5Stages = [
+    { at: 0,  msg: 'Uploading screenshot…' },
+    { at: 4,  msg: 'Processing image…' },
+    { at: 10, msg: 'Reading scoreboard layout…' },
+    { at: 22, msg: 'Identifying teams by colour…' },
+    { at: 35, msg: 'Extracting player KDA…' },
+    { at: 50, msg: 'Reading agents + economy…' },
+    { at: 65, msg: 'Matching roster IGNs…' },
+    { at: 85, msg: 'Almost there…' },
+  ];
+
+  function _team5v5UpdateProgress() {
+    var elapsedSec = (Date.now() - _team5v5ProgressStart) / 1000;
+    // 0..60s → 0..85% linearly; 60..90s → 85..95% slowing; 90s+ stays at 95%.
+    var pct;
+    if (elapsedSec < 60)      pct = (elapsedSec / 60) * 85;
+    else if (elapsedSec < 90) pct = 85 + ((elapsedSec - 60) / 30) * 10;
+    else                       pct = 95;
+
+    var fill  = $('#team-5v5-progress-fill');
+    var pctEl = $('#team-5v5-progress-percent');
+    var msgEl = $('#team-5v5-progress-message-text');
+
+    if (fill)  fill.style.width = pct.toFixed(1) + '%';
+    if (pctEl) pctEl.textContent = Math.floor(pct) + '%';
+
+    if (msgEl) {
+      var stage = _team5v5Stages[0];
+      for (var i = _team5v5Stages.length - 1; i >= 0; i--) {
+        if (elapsedSec >= _team5v5Stages[i].at) { stage = _team5v5Stages[i]; break; }
+      }
+      if (msgEl.textContent !== stage.msg) msgEl.textContent = stage.msg;
+    }
+  }
+
+  function _team5v5StartProgress() {
+    var wrap = $('#team-5v5-progress');
+    if (!wrap) return;
+    wrap.classList.remove('hidden');
+    _team5v5ProgressStart = Date.now();
+    if (_team5v5ProgressTimer) clearInterval(_team5v5ProgressTimer);
+    _team5v5UpdateProgress();
+    _team5v5ProgressTimer = setInterval(_team5v5UpdateProgress, 200);
+  }
+
+  function _team5v5StopProgress(success) {
+    if (_team5v5ProgressTimer) {
+      clearInterval(_team5v5ProgressTimer);
+      _team5v5ProgressTimer = null;
+    }
+    var wrap  = $('#team-5v5-progress');
+    var fill  = $('#team-5v5-progress-fill');
+    var pctEl = $('#team-5v5-progress-percent');
+    var msgEl = $('#team-5v5-progress-message-text');
+
+    if (success && fill && pctEl) {
+      // Jump to 100% with a satisfying "Complete!" beat, then hide.
+      fill.style.width = '100%';
+      pctEl.textContent = '100%';
+      if (msgEl) msgEl.textContent = 'Complete!';
+      setTimeout(function () {
+        if (wrap)  wrap.classList.add('hidden');
+        if (fill)  fill.style.width = '0%';
+        if (pctEl) pctEl.textContent = '0%';
+        if (msgEl) msgEl.textContent = 'Initialising…';
+      }, 700);
+    } else {
+      // Error / abort / match switch — reset and hide silently.
+      if (wrap)  wrap.classList.add('hidden');
+      if (fill)  fill.style.width = '0%';
+      if (pctEl) pctEl.textContent = '0%';
+      if (msgEl) msgEl.textContent = 'Initialising…';
+    }
+  }
+
   async function extractTeam5v5AI() {
     if (!selectedMatchId) { toast('Select a match first.', 'error'); return; }
     var input = $('#team-5v5-file');
@@ -1389,20 +1541,30 @@
     if (span) span.textContent = 'Extracting…';
     var submitBtn = document.querySelector('[data-click="TOC.matches.submitScore"]');
     if (submitBtn) submitBtn.disabled = true;
+    _team5v5StartProgress();
 
     try {
       var fd = new FormData();
       fd.append('match_id', String(selectedMatchId));
       fd.append('screenshot', f);
-      var resp = await API.post('brackets/team-5v5-score-screenshot/', fd);
+      // V2 Valorant extraction (10 players × full economy stats) routinely
+      // takes 60-90s on Gemini Flash with the detailed prompt. We give it a
+      // 2-minute window so a slow-but-correct response isn't aborted client-side.
+      var resp = await API('brackets/team-5v5-score-screenshot/', {
+        method:  'POST',
+        body:    fd,
+        timeout: 120000,
+      });
       // Cache the rosters Gemini returned (they're authoritative for this run).
       _team5v5RosterCache[selectedMatchId] = {
         participant1_candidates: resp.participant1_candidates || [],
         participant2_candidates: resp.participant2_candidates || [],
       };
+      _team5v5StopProgress(true);
       _applyTeam5v5AIResult(resp);
     } catch (e) {
-      toast('AI extraction failed: ' + (e?.message || 'Unknown error'), 'error');
+      _team5v5StopProgress(false);
+      toast('Scoreboard scan failed: ' + (e?.message || 'Unknown error'), 'error');
     } finally {
       btn.disabled = false;
       btn.classList.remove('opacity-70', 'cursor-wait');
@@ -1412,7 +1574,7 @@
   }
 
   function _applyTeam5v5AIResult(resp) {
-    if (!resp) { toast('AI returned no result.', 'error'); return; }
+    if (!resp) { toast('Scan returned no data.', 'error'); return; }
 
     var m = allMatches.find(function (x) { return x.id === selectedMatchId; }) || {
       id: selectedMatchId,
@@ -1428,30 +1590,34 @@
       participant2_players:    resp.participant2_players    || [],
     });
 
-    // Team-level score mapping — populate the standard #score-input-a/b.
-    var teamConf = String(resp.team_mapping_confidence || 'none').toLowerCase();
+    // V2: always populate team-score inputs. The banner numbers are read
+    // reliably even when slot mapping (which team is participant1 vs 2) is
+    // uncertain — we keep a SEPARATE warning toast for that case so the admin
+    // verifies the slot order, not the digits.
     var inputA = $('#score-input-a');
     var inputB = $('#score-input-b');
-    if (teamConf === 'high' && resp.participant1_score != null && resp.participant2_score != null) {
-      if (inputA) {
-        inputA.value = String(resp.participant1_score);
-        inputA.dispatchEvent(new Event('input', { bubbles: true }));
-      }
-      if (inputB) {
-        inputB.value = String(resp.participant2_score);
-        inputB.dispatchEvent(new Event('input', { bubbles: true }));
-      }
-    } else {
-      // Low / none — leave team scores blank, warn the admin.
+    var p1Score = (resp.participant1_score != null) ? resp.participant1_score : resp.team_a_score;
+    var p2Score = (resp.participant2_score != null) ? resp.participant2_score : resp.team_b_score;
+    if (inputA && p1Score != null) {
+      inputA.value = String(p1Score);
+      inputA.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+    if (inputB && p2Score != null) {
+      inputB.value = String(p2Score);
+      inputB.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+
+    var teamConf = String(resp.team_mapping_confidence || 'none').toLowerCase();
+    if (teamConf !== 'high') {
       var seenLabel = '';
       try {
         var ta = (resp.team_a && resp.team_a.team_name) || '';
         var tb = (resp.team_b && resp.team_b.team_name) || '';
-        var sa = resp.team_a ? resp.team_a.score : '';
-        var sb = resp.team_b ? resp.team_b.score : '';
-        if (ta && tb) seenLabel = ' (AI saw ' + ta + ' ' + sa + '–' + sb + ' ' + tb + ')';
+        var sa = (resp.team_a_score != null) ? resp.team_a_score : (resp.team_a && resp.team_a.score);
+        var sb = (resp.team_b_score != null) ? resp.team_b_score : (resp.team_b && resp.team_b.score);
+        if (ta && tb) seenLabel = ' (Detected: ' + ta + ' ' + sa + '–' + sb + ' ' + tb + ')';
       } catch (_) { /* ignore */ }
-      toast('AI team mapping confidence ' + teamConf + ' — please verify team scores manually.' + seenLabel, 'warning');
+      toast('Team detection confidence ' + teamConf + ' — verify which team is A vs B before submitting.' + seenLabel, 'warning');
     }
 
     // Player-level summary toast.
@@ -1474,7 +1640,7 @@
     } else if (needsCheck === 0 && totalRows > 0) {
       toast('Auto-matched ' + matched + '/' + totalRows + ' players. Review and submit.', 'success');
     } else if (matched === 0) {
-      toast('AI could not match any players to your roster — please pick each row manually.', 'warning');
+      toast('Couldn’t match any players to your roster — please pick each row manually.', 'warning');
     } else {
       toast('Auto-matched ' + matched + '/' + totalRows + ' players. ' + needsCheck + ' need manual verification.', 'warning');
     }
@@ -1525,7 +1691,7 @@
       var resp = await API.post('brackets/sports-score-screenshot/', fd);
       _applySportsAIResult(resp);
     } catch (e) {
-      toast('AI extraction failed: ' + (e?.message || 'Unknown error'), 'error');
+      toast('Scoreboard scan failed: ' + (e?.message || 'Unknown error'), 'error');
     } finally {
       btn.disabled = false;
       btn.classList.remove('opacity-70', 'cursor-wait');
@@ -1536,7 +1702,7 @@
 
   function _applySportsAIResult(resp) {
     if (!resp) {
-      toast('AI returned no result.', 'error');
+      toast('Scan returned no data.', 'error');
       return;
     }
     var inputA = $('#score-input-a');
@@ -1558,7 +1724,7 @@
       inputB.value = String(p2);
       inputA.dispatchEvent(new Event('input', { bubbles: true }));
       inputB.dispatchEvent(new Event('input', { bubbles: true }));
-      toast('AI extracted ' + p1 + '–' + p2 + '. Review and submit.', 'success');
+      toast('Scanned ' + p1 + '–' + p2 + '. Review and submit.', 'success');
       return;
     }
 
@@ -1576,9 +1742,9 @@
     inputB.dispatchEvent(new Event('input', { bubbles: true }));
 
     var seenLabel = (hs != null && as != null)
-      ? ' (AI saw ' + hName + ' ' + hs + '–' + as + ' ' + aName + ')'
+      ? ' (Detected: ' + hName + ' ' + hs + '–' + as + ' ' + aName + ')'
       : '';
-    toast('AI mapping confidence low — please verify scores manually before submitting.' + seenLabel, 'warning');
+    toast('Detection confidence low — please verify scores manually before submitting.' + seenLabel, 'warning');
   }
 
 

@@ -34,6 +34,11 @@ try:
     from apps.organizations.models.team import Team as OrgTeam
 except ImportError:
     OrgTeam = None
+try:
+    from apps.organizations.services.compat import get_team_by_any_id, legacy_id_to_org_id
+except ImportError:
+    get_team_by_any_id = None
+    legacy_id_to_org_id = None
 
 logger = logging.getLogger(__name__)
 
@@ -317,7 +322,29 @@ class TOCParticipantService:
         # ── Team metadata ──
         team_info = None
         team_slug = ''
-        if reg.team_id and OrgTeam is not None:
+        if reg.team_id and get_team_by_any_id is not None:
+            try:
+                obj = get_team_by_any_id(reg.team_id)
+                if obj:
+                    logo_url = ''
+                    try:
+                        logo_url = obj.logo.url if getattr(obj, 'logo', None) else ''
+                    except Exception:
+                        pass
+                    team_info = {
+                        'name': obj.name or '',
+                        'tag': getattr(obj, 'tag', '') or '',
+                        'slug': getattr(obj, 'slug', '') or '',
+                        'logo_url': logo_url,
+                        'primary_color': getattr(obj, 'primary_color', '') or '',
+                        'discord_url': getattr(obj, 'discord_url', '') or '',
+                        'twitter_url': getattr(obj, 'twitter_url', '') or '',
+                        'website_url': getattr(obj, 'website_url', '') or '',
+                    }
+                    team_slug = getattr(obj, 'slug', '') or ''
+            except Exception:
+                pass
+        if reg.team_id and team_info is None and OrgTeam is not None:
             try:
                 obj = OrgTeam.objects.filter(id=reg.team_id).only(
                     'id', 'name', 'tag', 'slug', 'logo', 'primary_color',
@@ -586,6 +613,8 @@ class TOCParticipantService:
                 'subject': (subject or 'TOC Alert').strip(),
                 'body': body,
                 'target': sorted(recipients),
+                'event': 'toc_alert',
+                'url': f"/tournaments/{tournament.slug}/hub/#announcements",
                 'force_email': True,
             },
         )
@@ -981,31 +1010,28 @@ class TOCParticipantService:
 
     @classmethod
     def _enrich_lineup_snapshot(cls, reg: Registration, tournament: Tournament) -> List[Dict]:
-        """Enrich lineup_snapshot entries with GameProfile IGNs and user profile URLs."""
+        """Enrich lineup_snapshot entries with current Game Passport IGNs and profile URLs.
+
+        Uses the same `GamePassportService.get_passports_bulk()` path as the Hub
+        squad tab so both surfaces show identical IGN + discriminator values for
+        each roster member.
+        """
         snapshot = reg.lineup_snapshot or []
         if not snapshot:
             return snapshot
 
-        # Get game display name for GameProfile lookup
-        game_dn = ""
-        try:
-            game_dn = getattr(tournament.game, "display_name", "") or ""
-        except Exception:
-            pass
-
         user_ids = [e.get("user_id") for e in snapshot if e.get("user_id")]
-        # Batch-load GameProfile IGNs
-        ign_map: Dict[int, str] = {}
-        if game_dn and user_ids:
+
+        # Batch-load Game Passports via the same service the Hub uses. This avoids
+        # the prior mismatch where TOC filtered GameProfile by `game_display_name`
+        # while the Hub queried by `game.slug` and appended a discriminator.
+        passport_map: Dict[int, Any] = {}
+        if user_ids and getattr(tournament, "game", None):
             try:
-                from apps.user_profile.models import GameProfile
-                for row in GameProfile.objects.filter(
-                    game_display_name__iexact=game_dn,
-                    user_id__in=user_ids,
-                ).exclude(ign="").values("user_id", "ign"):
-                    ign_map[row["user_id"]] = row["ign"]
+                from apps.user_profile.services.game_passport_service import GamePassportService
+                passport_map = GamePassportService.get_passports_bulk(user_ids, tournament.game.slug) or {}
             except Exception:
-                pass
+                passport_map = {}
 
         # Batch-load user slugs for profile links
         slug_map: Dict[int, str] = {}
@@ -1020,15 +1046,29 @@ class TOCParticipantService:
             except Exception:
                 pass
 
+        def _build_game_id(passport, fallback: str) -> str:
+            if not passport or not getattr(passport, "ign", None):
+                return fallback or ""
+            ign = passport.ign or ""
+            discriminator = getattr(passport, "discriminator", "") or ""
+            if discriminator:
+                if not discriminator.startswith("#") and not discriminator.startswith("-"):
+                    discriminator = f"#{discriminator}"
+                return f"{ign}{discriminator}"
+            return ign
+
         enriched = []
         for entry in snapshot:
             e = dict(entry)  # shallow copy
             uid = e.get("user_id")
             if uid:
-                e["game_id"] = ign_map.get(uid, "")
+                passport = passport_map.get(uid)
+                e["game_id"] = _build_game_id(passport, e.get("game_id", "") or "")
+                e["has_passport"] = bool(passport and getattr(passport, "ign", "")) or bool(e.get("game_id"))
                 e["profile_slug"] = slug_map.get(uid, "")
             else:
                 e.setdefault("game_id", "")
+                e.setdefault("has_passport", bool(e.get("game_id")))
                 e.setdefault("profile_slug", "")
             enriched.append(e)
         return enriched
@@ -1121,6 +1161,13 @@ class TOCParticipantService:
         if team_info and team_info.get('name'):
             return team_info['name']
         # Fallback DB lookup for org Team by team_id
+        if reg.team_id and get_team_by_any_id is not None:
+            try:
+                obj = get_team_by_any_id(reg.team_id)
+                if obj and getattr(obj, 'name', ''):
+                    return obj.name
+            except Exception:
+                pass
         if reg.team_id and OrgTeam is not None:
             try:
                 obj = OrgTeam.objects.filter(id=reg.team_id).values('name').first()
@@ -1146,7 +1193,8 @@ class TOCParticipantService:
             return {}
         try:
             cache: Dict[int, Any] = {}
-            for obj in OrgTeam.objects.filter(id__in=team_ids).select_related('organization').only(
+            direct_ids = set(team_ids)
+            for obj in OrgTeam.objects.filter(id__in=direct_ids).select_related('organization').only(
                 'id',
                 'name',
                 'tag',
@@ -1168,6 +1216,40 @@ class TOCParticipantService:
                     'tag': getattr(obj, 'tag', '') or '',
                     'logo_url': logo_url,
                 }
+
+            missing_ids = [tid for tid in team_ids if tid not in cache]
+            if missing_ids and legacy_id_to_org_id is not None:
+                org_id_map = {}
+                reverse_map = {}
+                for legacy_id in missing_ids:
+                    org_id = legacy_id_to_org_id(legacy_id)
+                    if org_id:
+                        org_id_map[legacy_id] = org_id
+                        reverse_map.setdefault(org_id, []).append(legacy_id)
+
+                if org_id_map:
+                    for obj in OrgTeam.objects.filter(id__in=reverse_map.keys()).select_related('organization').only(
+                        'id',
+                        'name',
+                        'tag',
+                        'logo',
+                        'organization__enforce_brand',
+                        'organization__logo',
+                    ):
+                        logo_url = ''
+                        try:
+                            if obj.logo:
+                                logo_url = obj.logo.url
+                            elif obj.organization and getattr(obj.organization, 'enforce_brand', False) and getattr(obj.organization, 'logo', None):
+                                logo_url = obj.organization.logo.url
+                        except (ValueError, Exception):
+                            pass
+                        for legacy_id in reverse_map.get(obj.id, []):
+                            cache[legacy_id] = {
+                                'name': obj.name or '',
+                                'tag': getattr(obj, 'tag', '') or '',
+                                'logo_url': logo_url,
+                            }
             return cache
         except Exception:
             return {}
@@ -1175,8 +1257,10 @@ class TOCParticipantService:
     @classmethod
     def _build_igl_ign_map(cls, registrations, tournament) -> Dict[int, str]:
         """
-        Batch-load GameProfile IGNs for IGL/captain users in team registrations.
-        Returns: {user_id: ign_string}
+        Batch-load Game Passport IGNs (with discriminator) for IGL/captain users
+        in team registrations using the same service the Hub squad tab uses, so
+        both surfaces show identical IGN strings.
+        Returns: {user_id: ign_string_with_discriminator}
         """
         igl_user_ids = set()
         for reg in registrations:
@@ -1193,32 +1277,33 @@ class TOCParticipantService:
         if not igl_user_ids:
             return {}
 
-        game_dn = ""
-        game_id = None
+        game_slug = ''
         try:
-            game_id = tournament.game_id
-            game_dn = getattr(tournament.game, 'display_name', '') or ''
+            game_slug = getattr(tournament.game, 'slug', '') or ''
         except Exception:
             pass
-        if not game_dn and not game_id:
+        if not game_slug:
             return {}
 
         try:
-            from apps.user_profile.models import GameProfile
-            ign_map = {}
-            gp_qs = GameProfile.objects.filter(
-                user_id__in=list(igl_user_ids),
-            ).exclude(ign='')
-            if game_id:
-                gp_qs = gp_qs.filter(game_id=game_id)
-            else:
-                gp_qs = gp_qs.filter(game_display_name__iexact=game_dn)
-
-            for row in gp_qs.values('user_id', 'ign'):
-                ign_map[row['user_id']] = row['ign']
-            return ign_map
+            from apps.user_profile.services.game_passport_service import GamePassportService
+            passport_map = GamePassportService.get_passports_bulk(list(igl_user_ids), game_slug) or {}
         except Exception:
             return {}
+
+        ign_map: Dict[int, str] = {}
+        for user_id, passport in passport_map.items():
+            ign = getattr(passport, 'ign', '') or ''
+            if not ign:
+                continue
+            discriminator = getattr(passport, 'discriminator', '') or ''
+            if discriminator:
+                if not discriminator.startswith('#') and not discriminator.startswith('-'):
+                    discriminator = f'#{discriminator}'
+                ign_map[user_id] = f'{ign}{discriminator}'
+            else:
+                ign_map[user_id] = ign
+        return ign_map
 
     @classmethod
     def _user_avatar_url(cls, user) -> str:

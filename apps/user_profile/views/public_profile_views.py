@@ -160,16 +160,31 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
     
     # Build safe context — cached per (username, viewer_role) for 5 min.
     # Owner bypasses cache; non-owner roles share entries by privacy bucket.
-    from apps.user_profile.services.profile_context import build_public_profile_context_cached
+    from apps.user_profile.services.profile_context import (
+        build_public_profile_context_cached,
+        build_public_profile_extended_context_cached,
+    )
+    _viewer_role = permission_checker.get_viewer_role()
     context = build_public_profile_context_cached(
         viewer=request.user if request.user.is_authenticated else None,
         username=username,
-        viewer_role=permission_checker.get_viewer_role(),
+        viewer_role=_viewer_role,
         requested_sections=['basic', 'stats', 'games', 'social', 'activity'],
         activity_page=1,
         activity_per_page=10,  # Preview only (show last 10)
     )
-    
+
+    # Phase 12.5: Extended payload — every owner-invariant block consumed
+    # outside build_public_profile_context. Same version-counter cache;
+    # owner bypasses for write-through freshness.
+    _extended = build_public_profile_extended_context_cached(
+        profile_user,
+        viewer_role=_viewer_role,
+        is_following=bool(permissions.get('is_following', False)),
+        can_view_achievements=bool(permissions.get('can_view_achievements', False)),
+        can_view_match_history=bool(permissions.get('can_view_match_history', False)),
+    )
+
     # Phase 5B: Add permission flags to context
     context.update(permissions)
     
@@ -378,44 +393,11 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
         context['wallet_visible'] = False
         context['wallet_transactions'] = []
     
-    # UP PHASE 7: Posts tab wiring (read-only)
-    # Visibility rules: owner sees all, follower sees public+friends, visitor sees public only
-    from apps.siteui.models import CommunityPost
-    
-    if context['is_owner']:
-        # Owner sees everything (public + friends + private)
-        user_posts = CommunityPost.objects.filter(
-            author=user_profile,
-            is_approved=True
-        ).select_related(
-            'author', 'author__user'
-        ).prefetch_related(
-            'media'
-        ).order_by('-created_at')[:20]
-    elif permissions.get('is_following'):
-        # Follower sees public + friends
-        user_posts = CommunityPost.objects.filter(
-            author=user_profile,
-            is_approved=True,
-            visibility__in=['public', 'friends']
-        ).select_related(
-            'author', 'author__user'
-        ).prefetch_related(
-            'media'
-        ).order_by('-created_at')[:20]
-    else:
-        # Visitor sees public only
-        user_posts = CommunityPost.objects.filter(
-            author=user_profile,
-            is_approved=True,
-            visibility='public'
-        ).select_related(
-            'author', 'author__user'
-        ).prefetch_related(
-            'media'
-        ).order_by('-created_at')[:20]
-    
-    context['user_posts'] = list(user_posts)
+    # UP PHASE 7: Posts tab wiring — served from Phase 12.5 extended cache.
+    # Visibility rules (owner / follower / visitor) are baked into the cache
+    # key via viewer_role + is_following, so each role bucket caches its own
+    # post visibility set.
+    context['user_posts'] = _extended['user_posts']
     
     # Add page metadata
     context['page_title'] = f"@{username} - DeltaCrown Esports"
@@ -493,38 +475,8 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
     
     context['nav_sections'] = nav_sections
     
-    # UP-TEAM-DISPLAY-01: Add user's teams data
-    if user_profile:
-        from apps.organizations.models import TeamMembership
-        from apps.games.models import Game
-        user_teams = TeamMembership.objects.filter(
-            user=user_profile.user,
-            status=TeamMembership.Status.ACTIVE
-        ).select_related('team').order_by('-team__created_at')[:10]
-        
-        # Get game display names from Game model (single query, reused below)
-        _all_games = list(Game.objects.all())
-        games_by_slug = {g.slug: g.display_name for g in _all_games}
-        games_by_id = {g.id: g for g in _all_games}
-        
-        context['user_teams'] = []
-        for tm in user_teams:
-            game_obj = games_by_id.get(tm.team.game_id)
-            game_slug = game_obj.slug if game_obj else str(tm.team.game_id)
-            game_name = game_obj.display_name if game_obj else game_slug.title()
-            context['user_teams'].append({
-                'id': tm.team.id,
-                'slug': tm.team.slug,
-                'name': tm.team.name,
-                'tag': tm.team.tag,
-                'game': game_name,
-                'game_slug': game_slug,
-                'role': tm.role,
-                'logo_url': tm.team.logo.url if tm.team.logo else None,
-                'is_captain': tm.role == 'CAPTAIN',
-            })
-    else:
-        context['user_teams'] = []
+    # UP-TEAM-DISPLAY-01: Served from Phase 12.5 extended cache.
+    context['user_teams'] = _extended['user_teams']
     
     # PHASE-4D: Career Context Service - Modern portfolio view
     from apps.user_profile.services.career_context import build_career_context, get_game_passports_for_career
@@ -535,31 +487,8 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
     # Add game passports preview for Career tab (top 3)
     context['career_passports'] = get_game_passports_for_career(profile_user, limit=3)
     
-    # UP-TOURNAMENT-DISPLAY-01: Add user's tournaments data
-    try:
-        from apps.tournaments.models import Registration
-        user_regs = Registration.objects.filter(
-            user=profile_user,
-            is_deleted=False,
-            status__in=[
-                Registration.CONFIRMED,
-                Registration.PENDING,
-                Registration.PAYMENT_SUBMITTED,
-            ],
-        ).select_related('tournament').order_by('-tournament__tournament_start')[:10]
-        context['user_tournaments'] = [
-            {
-                'id': reg.tournament.id,
-                'name': reg.tournament.name,
-                'slug': reg.tournament.slug,
-                'status': reg.tournament.status,
-                'registration_status': reg.status,
-                'start_date': reg.tournament.tournament_start,
-            }
-            for reg in user_regs
-        ]
-    except Exception:
-        context['user_tournaments'] = []
+    # UP-TOURNAMENT-DISPLAY-01: Served from Phase 12.5 extended cache.
+    context['user_tournaments'] = _extended['user_tournaments']
     
     # PHASE-4C: About Data Command Center - Privacy-Aware Fields
     # privacy_settings already fetched above (connections section)
@@ -725,28 +654,8 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
         'show_following_list': getattr(privacy_settings, 'show_following_list', True),
     }
     
-    # UP-PHASE14C: Add ProfileShowcase data for About section
-    from apps.user_profile.models import ProfileShowcase
-    try:
-        showcase = ProfileShowcase.objects.get(user_profile=user_profile)
-        context['showcase'] = {
-            'enabled_sections': showcase.get_enabled_sections(),
-            'section_order': showcase.section_order or [],
-            'featured_team_id': showcase.featured_team_id,
-            'featured_team_role': showcase.featured_team_role,
-            'featured_passport_id': showcase.featured_passport_id,
-            'highlights': showcase.highlights or []
-        }
-    except ProfileShowcase.DoesNotExist:
-        # Create default showcase
-        context['showcase'] = {
-            'enabled_sections': ProfileShowcase.get_default_sections(),
-            'section_order': [],
-            'featured_team_id': None,
-            'featured_team_role': '',
-            'featured_passport_id': None,
-            'highlights': []
-        }
+    # UP-PHASE14C: Served from Phase 12.5 extended cache.
+    context['showcase'] = _extended['showcase']
     
     # PHASE UP 5: Career Tab Enhanced Context (append-only, no impact on other tabs)
     from apps.user_profile.services.career_tab_service import CareerTabService, GAME_DISPLAY_CONFIG
@@ -915,25 +824,8 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
     
     context['career_payload_initial'] = career_payload
     
-    # UP-PHASE14C: Add real achievements data (if user has permission to view)
-    if permissions.get('can_view_achievements'):
-        from apps.user_profile.models import UserBadge
-        achievements = UserBadge.objects.filter(
-            user=profile_user
-        ).select_related('badge').order_by('-earned_at')[:12]
-        context['achievements'] = [
-            {
-                'id': badge.id,
-                'name': badge.badge.name,
-                'description': badge.badge.description,
-                'icon': badge.badge.icon,
-                'awarded_at': badge.earned_at,
-                'rarity': getattr(badge.badge, 'rarity', 'common')
-            }
-            for badge in achievements
-        ]
-    else:
-        context['achievements'] = None  # Blocked by privacy
+    # UP-PHASE14C: Served from Phase 12.5 extended cache (privacy-gated).
+    context['achievements'] = _extended['achievements']
     
     # UP-PHASE14C: Social links already loaded above (line ~202).
     # Reuse social_links_renderable instead of re-querying SocialLink.
@@ -942,274 +834,44 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
     else:
         context['social_links'] = None  # Blocked by privacy
     
-    # UP-PHASE14C: Add real stats data
-    from apps.user_profile.models import UserProfileStats, Follow
-    try:
-        stats = UserProfileStats.objects.get(user_profile=user_profile)
-        context['user_stats'] = {
-            'total_matches': stats.matches_played,
-            'total_wins': stats.matches_won,
-            'total_losses': max(stats.matches_played - stats.matches_won, 0),
-            'win_rate': round((stats.matches_won / stats.matches_played * 100) if stats.matches_played > 0 else 0, 1),
-            'tournaments_played': stats.tournaments_played,
-            'tournaments_won': stats.tournaments_won,
-            'total_kills': getattr(stats, 'total_kills', 0),
-            'total_deaths': getattr(stats, 'total_deaths', 0),
-            'kd_ratio': round((getattr(stats, 'total_kills', 0) / getattr(stats, 'total_deaths', 1)) if getattr(stats, 'total_deaths', 0) > 0 else 0, 2),
-            'followers_count': context['follower_count'],   # Reuse cached count
-            'following_count': context['following_count']    # Reuse cached count
-        }
-    except UserProfileStats.DoesNotExist:
-        # No stats yet
-        context['user_stats'] = {
-            'total_matches': 0,
-            'total_wins': 0,
-            'total_losses': 0,
-            'win_rate': 0,
-            'tournaments_played': 0,
-            'tournaments_won': 0,
-            'total_kills': 0,
-            'total_deaths': 0,
-            'kd_ratio': 0,
-            'followers_count': context['follower_count'],   # Reuse cached count
-            'following_count': context['following_count']    # Reuse cached count
-        }
-    
-    # UP-PHASE14C: Add match history data (respect privacy)
-    if permissions.get('can_view_match_history'):
-        from apps.tournaments.models import Match, Registration
-        from django.db.models import Q
-        
-        # Get user's registrations
-        user_registration_ids = list(
-            Registration.objects.filter(
-                user=profile_user,
-                is_deleted=False
-            ).values_list('id', flat=True)
-        )
-        
-        # Get recent matches where user participated (via Registration)
-        if user_registration_ids:
-            matches = Match.objects.filter(
-                Q(participant1_id__in=user_registration_ids) | Q(participant2_id__in=user_registration_ids),
-                state__in=['completed', 'disputed'],
-                is_deleted=False
-            ).select_related('tournament').order_by('-scheduled_time')[:10]
-            
-            context['match_history'] = [
-                {
-                    'id': match.id,
-                    'tournament_name': match.tournament.name if match.tournament else 'Unknown',
-                    'game': match.tournament.game if match.tournament else None,
-                    'participant1_name': match.participant1_name or 'Participant 1',
-                    'participant2_name': match.participant2_name or 'Participant 2',
-                    'participant1_score': match.participant1_score,
-                    'participant2_score': match.participant2_score,
-                    'winner_id': match.winner_id,
-                    'scheduled_time': match.scheduled_time,
-                    'state': match.state,
-                    'is_user_winner': match.winner_id in user_registration_ids if match.winner_id else False
-                }
-                for match in matches
-            ]
-        else:
-            context['match_history'] = []  # No registrations found
-    else:
-        context['match_history'] = None  # Blocked by privacy
-    
-    # UP-PHASE15: Add About items (Facebook-style About section)
-    from apps.user_profile.models import ProfileAboutItem
-    is_follower = permissions.get('is_follower', False)
-    
-    # Query About items (with privacy filtering)
-    about_items = ProfileAboutItem.objects.filter(
-        user_profile=user_profile,
-        is_active=True
-    ).order_by('order_index', '-created_at')
-    
-    # Filter by viewer permissions
-    filtered_about_items = []
-    for item in about_items:
-        viewer_user = request.user if request.user.is_authenticated else None
-        if item.can_be_viewed_by(viewer_user, is_follower):
-            filtered_about_items.append({
-                'id': item.id,
-                'item_type': item.item_type,
-                'display_text': item.display_text,
-                'icon_emoji': item.icon_emoji,
-                'visibility': item.visibility
-            })
-    
-    context['about_items'] = filtered_about_items
-    
-    # ========================================================================
-    # 06c: STREAM CONTEXT (Live Stream Embed)
-    # ========================================================================
-    from apps.user_profile.models import StreamConfig
-    try:
-        stream_config = StreamConfig.objects.select_related('user').get(
-            user=profile_user,
-            is_active=True
-        )
-        context['stream_config'] = {
-            'platform': stream_config.platform,
-            'embed_url': stream_config.embed_url,
-            'title': stream_config.title or f"{profile_user.username}'s stream",
-            'stream_url': stream_config.stream_url,
-        }
-    except StreamConfig.DoesNotExist:
-        context['stream_config'] = None
-    
-    # ========================================================================
-    # 06c: HIGHLIGHTS CONTEXT (Pinned + All Clips)
-    # ========================================================================
-    from apps.user_profile.models import HighlightClip, PinnedHighlight
-    from apps.games.models import Game
-    
-    # Get pinned highlight
-    try:
-        pinned = PinnedHighlight.objects.select_related('clip', 'clip__game').get(user=profile_user)
-        context['pinned_highlight'] = {
-            'id': pinned.clip.id,
-            'title': pinned.clip.title,
-            'embed_url': pinned.clip.embed_url,
-            'thumbnail_url': pinned.clip.thumbnail_url,
-            'platform': pinned.clip.platform,
-            'game': pinned.clip.game.display_name if pinned.clip.game else None,
-            'created_at': pinned.clip.created_at,
-        }
-    except PinnedHighlight.DoesNotExist:
-        context['pinned_highlight'] = None
-    
-    # Get all highlight clips (ordered by display_order)
-    highlights = HighlightClip.objects.filter(
-        user=profile_user
-    ).select_related('game').order_by('display_order', '-created_at')[:20]
-    
-    context['highlight_clips'] = [
-        {
-            'id': clip.id,
-            'title': clip.title,
-            'description': getattr(clip, 'description', ''),
-            'embed_url': clip.embed_url,
-            'thumbnail_url': clip.thumbnail_url,
-            'platform': clip.platform,
-            'video_id': clip.video_id,
-            'game': clip.game.display_name if clip.game else None,
-            'game_slug': clip.game.slug if clip.game else None,
-            'display_order': clip.display_order,
-            'created_at': clip.created_at,
-            'is_pinned': context['pinned_highlight'] and clip.id == context['pinned_highlight']['id'],
-        }
-        for clip in highlights
-    ]
-    context['can_add_more_clips'] = len(context['highlight_clips']) < 20
-    
-    # Extract unique games for filter buttons (client-side filtering)
-    seen_games = set()
-    highlight_games = []
-    for clip in highlights:
-        if clip.game and clip.game.slug not in seen_games:
-            seen_games.add(clip.game.slug)
-            highlight_games.append({
-                'slug': clip.game.slug,
-                'name': clip.game.display_name,
-            })
-    context['highlight_games'] = highlight_games
-    
-    # Get all available games for upload dropdown (reuse _all_games from user_teams section)
-    context['all_games'] = [
-        {'id': g.id, 'display_name': g.display_name, 'slug': g.slug}
-        for g in _all_games if getattr(g, 'is_active', True)
-    ]
-    
-    # ========================================================================
-    # 06c: LOADOUT CONTEXT (Hardware + Game Configs)
-    # ========================================================================
-    from apps.user_profile.services import loadout_service
-    
-    # Get complete loadout (hardware + game configs)
-    # Only show public items for non-owners
-    loadout_data = loadout_service.get_complete_loadout(
-        user=profile_user,
-        public_only=not permissions.get('is_owner', False)
-    )
-    
-    def serialize_hardware(hw_item):
-        """Convert HardwareGear ORM object into JSON-safe dict for template."""
-        if not hw_item:
-            return None
-        return {
-            'id': hw_item.id,
-            'category': hw_item.category,
-            'brand': hw_item.brand,
-            'model': hw_item.model,
-            'specs': hw_item.specs or {},
-            'purchase_url': hw_item.purchase_url,
-            'is_public': hw_item.is_public,
-            'updated_at': hw_item.updated_at.isoformat(),
-        }
-
-    context['hardware_gear'] = {
-        'mouse': serialize_hardware(loadout_data['hardware'].get('MOUSE')),
-        'keyboard': serialize_hardware(loadout_data['hardware'].get('KEYBOARD')),
-        'headset': serialize_hardware(loadout_data['hardware'].get('HEADSET')),
-        'monitor': serialize_hardware(loadout_data['hardware'].get('MONITOR')),
-        'mousepad': serialize_hardware(loadout_data['hardware'].get('MOUSEPAD')),
-    }
-    context['has_loadout'] = loadout_service.has_loadout(profile_user)
-    
-    # Game configs (per-game settings)
-    context['game_configs'] = [
-        {
-            'id': config.id,
-            'game': config.game.display_name,
-            'game_slug': config.game.slug,
-            'settings': config.settings,
-            'notes': config.notes,
-            'is_public': config.is_public,
-            'updated_at': config.updated_at.isoformat(),
-        }
-        for config in loadout_data['game_configs']
-    ]
-    
-    # ========================================================================
-    # 06c: SHOWCASE CONTEXT (Trophy Showcase - Equipped + Unlocked)
-    # ========================================================================
-    from apps.user_profile.services import trophy_showcase_service
-    
-    showcase_data = trophy_showcase_service.get_showcase_data(profile_user)
-    
-    context['trophy_showcase'] = {
-        'equipped_border': showcase_data['equipped']['border'],
-        'equipped_frame': showcase_data['equipped']['frame'],
-        'unlocked_borders': showcase_data['unlocked']['borders'],
-        'unlocked_frames': showcase_data['unlocked']['frames'],
-        'pinned_badges': showcase_data.get('pinned_badges', []),
+    # UP-PHASE14C: Stats payload from extended cache + live follower counts
+    # (follower_count/following_count must stay live so the follow button
+    # always reflects the current relationship state).
+    context['user_stats'] = {
+        **_extended['user_stats_partial'],
+        'followers_count': context['follower_count'],
+        'following_count': context['following_count'],
     }
     
-    # ========================================================================
-    # 06c: ENDORSEMENTS CONTEXT (Peer Recognition)
-    # ========================================================================
-    from apps.user_profile.services import endorsement_service
+    # UP-PHASE14C: Served from Phase 12.5 extended cache (privacy-gated).
+    context['match_history'] = _extended['match_history']
     
-    endorsements_summary = endorsement_service.get_endorsements_summary(profile_user)
+    # UP-PHASE15: About items served from Phase 12.5 extended cache.
+    # Visibility filter runs against viewer_role + is_following — same bucket
+    # the cache is keyed on, so each role sees its own filtered set.
+    context['about_items'] = _extended['about_items']
     
-    context['endorsements'] = {
-        'total_count': endorsements_summary['total_count'],
-        'by_skill': endorsements_summary['by_skill'],  # Dict: {'aim': 15, 'clutch': 8, ...}
-        'top_skill': endorsements_summary.get('top_skill'),  # Most endorsed skill
-        'recent_endorsements': [
-            {
-                'skill': e.skill_name,
-                'skill_display': e.get_skill_name_display(),
-                'endorser': e.endorser.username,
-                'match_id': e.match_id,
-                'created_at': e.created_at,
-            }
-            for e in endorsements_summary.get('recent_endorsements', [])[:5]
-        ],
-    }
+    # Stream + Highlights served from Phase 12.5 extended cache. Pinned/clips
+    # are pre-correlated (is_pinned flag baked in) and the filter-game list
+    # is pre-extracted in one pass.
+    context['stream_config'] = _extended['stream_config']
+    context['pinned_highlight'] = _extended['pinned_highlight']
+    context['highlight_clips'] = _extended['highlight_clips']
+    context['can_add_more_clips'] = _extended['can_add_more_clips']
+    context['highlight_games'] = _extended['highlight_games']
+    
+    # All available active games — already serialized in extended cache payload.
+    context['all_games'] = _extended['all_games']
+    
+    # Loadout, trophy showcase, endorsements — served from Phase 12.5
+    # extended cache. Owner-vs-non-owner loadout visibility is baked into the
+    # cache key via viewer_role (loadout_service is called with
+    # public_only=not is_owner inside the service builder).
+    context['hardware_gear'] = _extended['hardware_gear']
+    context['has_loadout'] = _extended['has_loadout']
+    context['game_configs'] = _extended['game_configs']
+    context['trophy_showcase'] = _extended['trophy_showcase']
+    context['endorsements'] = _extended['endorsements']
     
     # ========================================================================
     # 06c: BOUNTIES CONTEXT (Peer Challenges)

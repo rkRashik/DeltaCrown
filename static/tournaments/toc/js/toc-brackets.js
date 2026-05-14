@@ -975,10 +975,10 @@
       + '<input type="file" accept="image/png,image/jpeg,image/webp" class="hidden" data-br-file="' + m.id + '" data-change="TOC.brackets.onBRFilePicked" data-change-args=\'[' + m.id + ']\'>'
       + '</label>'
       + '<button type="button" data-click="TOC.brackets.extractBRSessionAI" data-click-args=\'[' + m.id + ']\' class="px-3 py-2 bg-purple-500/15 border border-purple-500/30 text-purple-300 text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-purple-500/25 transition-colors flex items-center gap-1.5" data-br-extract-btn="' + m.id + '">'
-      + '<i data-lucide="sparkles" class="w-3.5 h-3.5"></i><span>Extract via AI</span></button>'
+      + '<i data-lucide="sparkles" class="w-3.5 h-3.5"></i><span>Scoreboard Scan</span></button>'
       + '<input type="text" placeholder="Map name (e.g. Erangel)" value="' + _brEscape(map) + '" data-br-mapname="' + m.id + '" class="w-44 bg-dc-bg border border-dc-border rounded-lg px-3 py-2 text-white text-xs focus:border-theme outline-none">'
       + '</div>'
-      + '<p class="text-[10px] text-dc-text mt-2">Upload an end-of-match screenshot. Gemini Vision extracts placements + kills, you review and edit before submitting.</p>'
+      + '<p class="text-[10px] text-dc-text mt-2">Upload an end-of-match screenshot. The system reads placements + kills; you review and edit before submitting.</p>'
       + '</div>'
       // Score grid
       + '<div class="overflow-x-auto">'
@@ -1030,14 +1030,14 @@
       var resp = await API.post('brackets/br-score-screenshot/', fd);
       _brApplyAIResult(matchId, resp);
       var n = (resp && Array.isArray(resp.results)) ? resp.results.length : 0;
-      toast('AI extracted ' + n + ' row(s). Review and submit.', 'success');
+      toast('Scanned ' + n + ' row(s). Review and submit.', 'success');
     } catch (e) {
-      toast('AI extraction failed: ' + parseError(e), 'error');
+      toast('Scoreboard scan failed: ' + parseError(e), 'error');
     } finally {
       state.extracting = false;
       btn.disabled = false;
       btn.classList.remove('opacity-70', 'cursor-wait');
-      if (span) span.textContent = origText || 'Extract via AI';
+      if (span) span.textContent = origText || 'Scoreboard Scan';
     }
   }
 
@@ -1760,7 +1760,7 @@
       + '<input id="fc-screenshot-required" type="checkbox" ' + (screenshotRequired ? 'checked' : '') + ' class="rounded border-dc-border bg-dc-bg text-theme">'
       + '<span class="text-xs font-bold text-white uppercase tracking-widest">Require screenshot for score entry</span>'
       + '</label>'
-      + '<p class="text-[10px] text-dc-text mt-1 ml-6">When enabled, organizers must upload a result screenshot. Gemini Vision extracts placements + kills automatically; admin reviews before submitting.</p>'
+      + '<p class="text-[10px] text-dc-text mt-1 ml-6">When enabled, organizers must upload a result screenshot. The system reads placements + kills automatically; admin reviews before submitting.</p>'
       + '</div>'
 
       + '<div class="flex gap-2 pt-2">'

@@ -46,16 +46,22 @@
   'use strict';
 
   /**
-   * Resolve a dotted path (e.g. "TOC.matches.refresh") to a function on window.
+   * Resolve a dotted path (e.g. "TOC.matches.refresh") to { fn, ctx }.
+   * Preserves method context for calls that rely on `this`.
    */
   function resolve(path) {
-    var parts = path.split('.');
+    var parts = String(path || '').split('.');
     var obj = window;
+    var parent = window;
     for (var i = 0; i < parts.length; i++) {
       if (obj == null) return null;
+      parent = obj;
       obj = obj[parts[i]];
     }
-    return typeof obj === 'function' ? obj : null;
+    if (typeof obj === 'function') {
+      return { fn: obj, ctx: parent };
+    }
+    return null;
   }
 
   /**
@@ -91,10 +97,10 @@
 
     // data-click-self — backdrop dismiss (only fires when target is the element itself)
     if (t.hasAttribute && t.hasAttribute('data-click-self')) {
-      var fn = resolve(t.getAttribute('data-click-self'));
-      if (fn) {
+      var resolved = resolve(t.getAttribute('data-click-self'));
+      if (resolved) {
         var selfArgs = parseArgs(t.getAttribute('data-click-args'));
-        fn.apply(null, selfArgs);
+        resolved.fn.apply(resolved.ctx, selfArgs);
       }
       return;
     }
@@ -198,27 +204,27 @@
     // data-click (general method call)
     var clickEl = t.closest('[data-click]');
     if (clickEl) {
-      fn = resolve(clickEl.getAttribute('data-click'));
-      if (fn) {
+      var resolvedClick = resolve(clickEl.getAttribute('data-click'));
+      if (resolvedClick) {
         var jsonAttr = clickEl.getAttribute('data-click-json');
         if (jsonAttr) {
           // data-click-json: pass parsed JSON object as single argument
-          try { fn(JSON.parse(jsonAttr)); } catch(e) {}
+          try { resolvedClick.fn.call(resolvedClick.ctx, JSON.parse(jsonAttr)); } catch(e) {}
         } else {
           var args = parseArgs(clickEl.getAttribute('data-click-args'));
           if (clickEl.hasAttribute('data-click-pass-el')) {
             args.push(clickEl);
           }
-          fn.apply(null, args);
+          resolvedClick.fn.apply(resolvedClick.ctx, args);
         }
       }
       // data-click-also (second function call after primary)
       var also = clickEl.getAttribute('data-click-also');
       if (also) {
-        var alsoFn = resolve(also);
-        if (alsoFn) {
+        var resolvedAlso = resolve(also);
+        if (resolvedAlso) {
           var alsoArgs = parseArgs(clickEl.getAttribute('data-click-also-args'));
-          alsoFn.apply(null, alsoArgs);
+          resolvedAlso.fn.apply(resolvedAlso.ctx, alsoArgs);
         }
       }
       // data-click-hide + data-click-also-show (swap visibility)
@@ -245,32 +251,32 @@
 
     var el = e.target.closest('[data-change]');
     if (!el) return;
-    var fn = resolve(el.getAttribute('data-change'));
-    if (!fn) return;
+    var resolvedChange = resolve(el.getAttribute('data-change'));
+    if (!resolvedChange) return;
     var args = parseArgs(el.getAttribute('data-change-args'));
     args = appendPass(el, el.getAttribute('data-change-pass'), args);
-    fn.apply(null, args);
+    resolvedChange.fn.apply(resolvedChange.ctx, args);
   }, false);
 
   // ── INPUT delegation ──────────────────────────────────────────────
   document.addEventListener('input', function(e) {
     var el = e.target.closest('[data-input]');
     if (!el) return;
-    var fn = resolve(el.getAttribute('data-input'));
-    if (!fn) return;
+    var resolvedInput = resolve(el.getAttribute('data-input'));
+    if (!resolvedInput) return;
     var args = parseArgs(el.getAttribute('data-input-args'));
     args = appendPass(el, el.getAttribute('data-input-pass'), args);
-    fn.apply(null, args);
+    resolvedInput.fn.apply(resolvedInput.ctx, args);
   }, false);
 
   // ── KEYUP delegation ──────────────────────────────────────────────
   document.addEventListener('keyup', function(e) {
     var el = e.target.closest('[data-keyup]');
     if (!el) return;
-    var fn = resolve(el.getAttribute('data-keyup'));
-    if (!fn) return;
+    var resolvedKeyup = resolve(el.getAttribute('data-keyup'));
+    if (!resolvedKeyup) return;
     var args = parseArgs(el.getAttribute('data-keyup-args'));
-    fn.apply(null, args);
+    resolvedKeyup.fn.apply(resolvedKeyup.ctx, args);
   }, false);
 
   // ── SUBMIT delegation ─────────────────────────────────────────────
@@ -278,8 +284,8 @@
     var form = e.target.closest('[data-submit-action]');
     if (form) {
       e.preventDefault();
-      var fn = resolve(form.getAttribute('data-submit-action'));
-      if (fn) fn(e);
+      var resolvedSubmit = resolve(form.getAttribute('data-submit-action'));
+      if (resolvedSubmit) resolvedSubmit.fn.call(resolvedSubmit.ctx, e);
       return;
     }
     // data-submit-confirm (window.confirm before submit)

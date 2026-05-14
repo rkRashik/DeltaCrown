@@ -234,7 +234,10 @@ def build_public_profile_extended_context(
                 'game_slug': game_slug,
                 'role': tm.role,
                 'logo_url': logo_url,
-                'is_captain': tm.role == 'CAPTAIN',
+                # Captain alias resolves to OWNER in TeamMembership.Role
+                # (CAPTAIN = 'OWNER'). Comparing to the literal 'CAPTAIN' is
+                # always False against actual DB values — use the enum.
+                'is_captain': tm.role == TeamMembership.Role.OWNER,
             })
     out['user_teams'] = user_teams_payload
 

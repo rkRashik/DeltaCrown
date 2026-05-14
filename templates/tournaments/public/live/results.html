@@ -1,13 +1,13 @@
 {% extends "tournaments/base.html" %}
 {% load static humanize %}
 
-{# ─────────────────────────────────────────────────────────
+{% comment %}
    Tournament Results — FE-T-018
    Context: tournament, has_results, result, winner,
             runner_up, third_place, determination_method,
             completed_matches, leaderboard, stats
    Phase 4 Frontend Rebuild
-   ───────────────────────────────────────────────────────── #}
+{% endcomment %}
 
 {% block title %}Results — {{ tournament.name }} | DeltaCrown{% endblock %}
 

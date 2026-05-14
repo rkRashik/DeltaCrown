@@ -80,7 +80,7 @@
       var step = Math.max(0, c.toInt(veto.step, 0));
       var stepInfo = c.asObject(sequence[step]);
       var expectedAction = String(stepInfo.action || 'ban').toLowerCase() === 'pick' ? 'pick' : 'ban';
-      await c.sendWorkflowAction('veto_map', { item: mapName, veto_action: expectedAction });
+      await c.sendWorkflowAction('veto_action', { item: mapName, expected_action: expectedAction });
       return true;
     }
   });

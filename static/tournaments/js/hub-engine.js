@@ -1738,6 +1738,56 @@ const HubEngine = (() => {
     await _swapSlot(membershipId, 'STARTER');
   }
 
+  async function setCaptain(membershipId) {
+    if (_isCriticalLocked()) {
+      _showLockToast();
+      return;
+    }
+    const url = _shell?.dataset.apiSquadSetCaptain;
+    if (!url) {
+      _showSquadToast('Captain change endpoint not configured.', true);
+      return;
+    }
+
+    if (!window.confirm('Make this starter the Captain / IGL? The previous captain will no longer have that role.')) {
+      return;
+    }
+
+    const card = document.querySelector(`[data-member-id="${membershipId}"]`);
+    const btn = card?.querySelector('.squad-set-captain-btn');
+    if (btn) {
+      btn.classList.add('loading');
+      btn.disabled = true;
+    }
+
+    try {
+      const resp = await fetch(url, {
+        method: 'POST',
+        headers: _csrfHeaders({ 'Content-Type': 'application/json' }),
+        credentials: 'same-origin',
+        body: JSON.stringify({ membership_id: membershipId }),
+      });
+      const data = await resp.json();
+      if (data && data.success) {
+        _showSquadToast(`${data.display_name} is now Captain / IGL`);
+        _refreshSquadTab();
+      } else {
+        _showSquadToast((data && data.error) || 'Captain change failed', true);
+        if (btn) {
+          btn.classList.remove('loading');
+          btn.disabled = false;
+        }
+      }
+    } catch (err) {
+      console.error('[HubEngine] setCaptain error:', err);
+      _showSquadToast('Network error. Please try again.', true);
+      if (btn) {
+        btn.classList.remove('loading');
+        btn.disabled = false;
+      }
+    }
+  }
+
   async function _swapSlot(membershipId, newSlot) {
     if (_isCriticalLocked()) {
       _showLockToast();
@@ -1833,6 +1883,83 @@ const HubEngine = (() => {
     toast.classList.remove('hidden');
     setTimeout(() => toast.classList.add('hidden'), 3000);
     _announceLiveMessage(message, isError ? 'assertive' : 'polite');
+  }
+
+  async function copyReminder(text) {
+    const message = String(text || '').trim();
+    if (!message) {
+      _emitToast('warning', 'Nothing to copy.');
+      return;
+    }
+
+    try {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(message);
+      } else {
+        const helper = document.createElement('textarea');
+        helper.value = message;
+        helper.style.position = 'fixed';
+        helper.style.left = '-9999px';
+        document.body.appendChild(helper);
+        helper.focus();
+        helper.select();
+        document.execCommand('copy');
+        document.body.removeChild(helper);
+      }
+      _emitToast('success', 'Reminder copied.');
+    } catch (_err) {
+      _emitToast('warning', 'Copy failed. Select the text manually.');
+    }
+  }
+
+  async function pingMissingIds(userId) {
+    if (_isCriticalLocked()) {
+      _showLockToast();
+      return;
+    }
+
+    const url = _shell?.dataset.apiSquadPing;
+    if (!url) {
+      _emitToast('warning', 'Ping endpoint is not available.');
+      return;
+    }
+
+    const payload = {};
+    if (userId) {
+      payload.user_id = userId;
+    }
+
+    try {
+      const resp = await fetch(url, {
+        method: 'POST',
+        headers: _csrfHeaders({
+          'Content-Type': 'application/json',
+        }),
+        credentials: 'same-origin',
+        body: JSON.stringify(payload),
+      });
+
+      const data = await resp.json().catch(() => ({}));
+      if (resp.ok && data.success) {
+        const sent = Number(data.sent_count || 0);
+        let message = data.message || '';
+        if (!message) {
+          if (userId) {
+            message = sent > 0 ? 'Alert sent to player.' : 'No missing Game ID for this player.';
+          } else {
+            message = sent > 0
+              ? `Ping sent to ${sent} player${sent === 1 ? '' : 's'}.`
+              : 'No missing Game IDs found.';
+          }
+        }
+        _showSquadToast(message);
+      } else {
+        _showSquadToast(data.error || 'Failed to notify missing players.', true);
+      }
+    } catch (err) {
+      console.error('[HubEngine] Missing ID ping error:', err);
+      _showSquadToast('Network error. Please try again.', true);
+    }
   }
 
   // ──────────────────────────────────────────────────────────
@@ -9772,6 +9899,9 @@ const HubEngine = (() => {
     openAnnouncementsPanel,
     swapToSub,
     swapToStarter,
+    setCaptain,
+    copyReminder,
+    pingMissingIds,
     bracketZoom,
     bracketReset,
     // Module 5: Bounty Board

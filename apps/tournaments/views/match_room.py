@@ -1725,31 +1725,43 @@ class MatchRoomView(LoginRequiredMixin, DetailView):
 
         if not self.access["allowed"]:
             denied = self.access.get("denied_reason")
-            if denied == "lobby_not_open":
-                opens_at = self.access.get("lobby_opens_at")
-                if opens_at:
-                    try:
-                        opens_at_label = timezone.localtime(opens_at).strftime("%b %d, %I:%M %p")
-                    except Exception:
-                        opens_at_label = str(opens_at)
-                    messages.info(
+            # Participants of an in-progress match can still load the room after the
+            # lobby's time window technically closes — they may need to finalize
+            # credentials / submit results. Only block on terminal match states.
+            terminal_match_states = {Match.COMPLETED, Match.FORFEIT, Match.CANCELLED, Match.DISPUTED}
+            if (
+                denied == "lobby_closed"
+                and self.access.get("user_side") in (1, 2)
+                and self.object.state not in terminal_match_states
+            ):
+                self.access = dict(self.access)
+                self.access["allowed"] = True
+            else:
+                if denied == "lobby_not_open":
+                    opens_at = self.access.get("lobby_opens_at")
+                    if opens_at:
+                        try:
+                            opens_at_label = timezone.localtime(opens_at).strftime("%b %d, %I:%M %p")
+                        except Exception:
+                            opens_at_label = str(opens_at)
+                        messages.info(
+                            request,
+                            f"Match lobby opens at {opens_at_label} ({LOBBY_OPENS_BEFORE_MINUTES} minutes before kickoff).",
+                        )
+                    else:
+                        messages.info(request, f"Match lobby opens {LOBBY_OPENS_BEFORE_MINUTES} minutes before kickoff.")
+                elif denied == "lobby_closed":
+                    messages.warning(
                         request,
-                        f"Match lobby opens at {opens_at_label} ({LOBBY_OPENS_BEFORE_MINUTES} minutes before kickoff).",
+                        "Match lobby has closed. Contact an admin if you need to reschedule.",
                     )
                 else:
-                    messages.info(request, f"Match lobby opens {LOBBY_OPENS_BEFORE_MINUTES} minutes before kickoff.")
-            elif denied == "lobby_closed":
-                messages.warning(
-                    request,
-                    "Match lobby has closed. Contact an admin if you need to reschedule.",
+                    messages.warning(request, "Only match participants and TOC-authorized admins can access the match lobby.")
+                return redirect(
+                    "tournaments:match_detail",
+                    slug=self.object.tournament.slug,
+                    match_id=self.object.id,
                 )
-            else:
-                messages.warning(request, "Only match participants and TOC-authorized admins can access the match lobby.")
-            return redirect(
-                "tournaments:match_detail",
-                slug=self.object.tournament.slug,
-                match_id=self.object.id,
-            )
 
         self.user_side = self.access.get("user_side")
         return super().dispatch(request, *args, **kwargs)
@@ -1924,9 +1936,22 @@ class MatchRoomWorkflowView(LoginRequiredMixin, View):
             admin_mode_token=admin_mode_token,
         )
         if not access["allowed"]:
-            if access.get("denied_reason") == "lobby_not_open":
-                return JsonResponse({"success": False, "error": "lobby_not_open"}, status=403)
-            return JsonResponse({"success": False, "error": "forbidden"}, status=403)
+            denied_reason = access.get("denied_reason")
+            # Participants whose lobby technically closed by time may still load the room
+            # to read state (e.g., submit results, view final outcome) so long as the
+            # match itself hasn't reached a terminal state.
+            terminal_match_states = {Match.COMPLETED, Match.FORFEIT, Match.CANCELLED, Match.DISPUTED}
+            if (
+                denied_reason == "lobby_closed"
+                and access.get("user_side") in (1, 2)
+                and match.state not in terminal_match_states
+            ):
+                access = dict(access)
+                access["allowed"] = True
+            else:
+                if denied_reason == "lobby_not_open":
+                    return JsonResponse({"success": False, "error": "lobby_not_open"}, status=403)
+                return JsonResponse({"success": False, "error": "forbidden"}, status=403)
 
         lobby_info, workflow, runtime, _ = _ensure_match_workflow(match, persist=True)
         payload = _build_room_payload(match, access, lobby_info, workflow, runtime)
@@ -1968,9 +1993,24 @@ class MatchRoomWorkflowView(LoginRequiredMixin, View):
                 admin_mode_token=admin_mode_token,
             )
             if not access["allowed"]:
-                if access.get("denied_reason") == "lobby_not_open":
-                    return JsonResponse({"success": False, "error": "lobby_not_open"}, status=403)
-                return JsonResponse({"success": False, "error": "forbidden"}, status=403)
+                denied_reason = access.get("denied_reason")
+                # Participants whose lobby has technically closed (by time) may still
+                # finalize an in-flight match — submitting results, sharing credentials,
+                # confirming readiness — provided the match is not in a terminal state.
+                bypass_actions = {"submit_result", "save_credentials", "start_live", "start_results", "direct_ready", "presence_ping", "sync_presence"}
+                terminal_match_states = {Match.COMPLETED, Match.FORFEIT, Match.CANCELLED, Match.DISPUTED}
+                if (
+                    action in bypass_actions
+                    and denied_reason == "lobby_closed"
+                    and access.get("user_side") in (1, 2)
+                    and match.state not in terminal_match_states
+                ):
+                    access = dict(access)
+                    access["allowed"] = True
+                else:
+                    if denied_reason == "lobby_not_open":
+                        return JsonResponse({"success": False, "error": "lobby_not_open"}, status=403)
+                    return JsonResponse({"success": False, "error": "forbidden"}, status=403)
 
             lobby_info, workflow, runtime, _ = _ensure_match_workflow(match, persist=False)
 
@@ -2087,7 +2127,7 @@ class MatchRoomWorkflowView(LoginRequiredMixin, View):
                 return fallback
             return str(phase_order[-1])
 
-        def _assert_checkin_gate(*, allow_direct_ready_action: bool = False) -> None:
+        def _assert_checkin_gate(*, allow_direct_ready_action: bool = False, setup_phase: bool = False) -> None:
             if not bool(policy_effective.get("require_check_in")):
                 return
             if is_staff and is_admin_mode:
@@ -2124,6 +2164,12 @@ class MatchRoomWorkflowView(LoginRequiredMixin, View):
                 raise ValueError("Waiting for ready confirmation: " + ", ".join(missing) + ".")
 
             if match.participant1_checked_in and match.participant2_checked_in:
+                return
+            # For pre-match setup actions (coin toss, map veto, credentials),
+            # don't block on check-in window timing. The lobby-open access check
+            # upstream already ensures the room is reachable; per-action presence
+            # checks (JS waitingLocked + actor_side validation) provide the rest.
+            if setup_phase:
                 return
             if check_in_window.get("is_pending"):
                 raise ValueError("Check-in window has not opened yet.")
@@ -2219,7 +2265,7 @@ class MatchRoomWorkflowView(LoginRequiredMixin, View):
             message = "Presence updated."
 
         elif action == "coin_toss":
-            _assert_checkin_gate()
+            _assert_checkin_gate(setup_phase=True)
             if mode != "veto":
                 raise ValueError("Coin toss is available only for Valorant veto pipeline.")
             if "coin_toss" not in phase_order:
@@ -2241,7 +2287,7 @@ class MatchRoomWorkflowView(LoginRequiredMixin, View):
             message = f"Coin toss resolved. Side {winner_side} won first control."
 
         elif action == "veto_action":
-            _assert_checkin_gate()
+            _assert_checkin_gate(setup_phase=True)
             if mode != "veto":
                 raise ValueError("This match does not use map veto flow.")
             if str(workflow.get("phase")) == "coin_toss":
@@ -2349,7 +2395,7 @@ class MatchRoomWorkflowView(LoginRequiredMixin, View):
             message = "Ready status updated."
 
         elif action == "save_credentials":
-            _assert_checkin_gate()
+            _assert_checkin_gate(setup_phase=True)
             is_host_actor = actor_side == 1
             if not is_host_actor and not (is_staff and is_admin_mode):
                 raise ValueError("Only the host (side 1) can broadcast lobby credentials.")
@@ -2410,6 +2456,13 @@ class MatchRoomWorkflowView(LoginRequiredMixin, View):
             credentials = _safe_dict(workflow.get("credentials"))
             if not credentials.get("lobby_code") and not is_admin_mode:
                 raise ValueError("Lobby credentials must be shared before starting the match.")
+
+            # Time gate: participants cannot start the match before scheduled kickoff.
+            # Setup actions (toss, veto, credentials) are still allowed during the
+            # pre-match lobby window so teams can prepare ahead of time.
+            scheduled_time = getattr(match, "scheduled_time", None)
+            if scheduled_time and timezone.now() < scheduled_time and not is_admin_mode:
+                raise ValueError("Match cannot start until the scheduled kickoff time.")
 
             workflow["phase"] = "live"
             if match.state in (Match.SCHEDULED, Match.CHECK_IN, Match.READY, Match.PENDING_RESULT):

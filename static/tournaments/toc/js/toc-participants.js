@@ -26,6 +26,8 @@
   let systemChecksLoadedAt = 0;
   let systemChecksPromise = null;
   let expandedQuickReview = null; // currently expanded row id (or null)
+  let verificationToggleBound = false;
+  let verificationStatusTimer = null;
   const SYSTEM_CHECKS_TTL_MS = 25000;
 
   /* ── Semantic Status Badges ────────────────────────────────────── */
@@ -119,6 +121,63 @@
     return systemChecksPromise;
   }
 
+  /* ── Verification Policy Toggle (Free Entry) ───────────────────── */
+
+  function setVerificationStatus(message) {
+    const el = $('#free-verification-status');
+    if (!el) return;
+    el.textContent = message || '';
+  }
+
+  async function saveVerificationPolicy(enabled) {
+    const toggle = $('#toggle-free-verification');
+    if (!toggle || !window.TOC || !TOC.config) return;
+
+    toggle.disabled = true;
+    if (verificationStatusTimer) {
+      clearTimeout(verificationStatusTimer);
+      verificationStatusTimer = null;
+    }
+    setVerificationStatus('Saving...');
+
+    try {
+      const payload = { free_entry_requires_team_verification: !!enabled };
+      const data = await TOC.fetch(`${TOC.config.apiBase}/participants/verification-policy/`, {
+        method: 'POST',
+        body: payload,
+      });
+      const policy = (data && data.policy) ? data.policy : payload;
+      if (window.TOC_CONFIG) {
+        window.TOC_CONFIG.verificationPolicy = policy;
+      }
+      setVerificationStatus('Saved');
+      if (window.TOC && TOC.toast) {
+        TOC.toast('Verification policy updated', 'success');
+      }
+    } catch (err) {
+      toggle.checked = !enabled;
+      setVerificationStatus('Save failed');
+      if (window.TOC && TOC.toast) {
+        TOC.toast(err.message || 'Failed to update policy', 'error');
+      }
+    } finally {
+      toggle.disabled = false;
+      verificationStatusTimer = setTimeout(() => setVerificationStatus(''), 2000);
+    }
+  }
+
+  function initVerificationToggle() {
+    if (verificationToggleBound) return;
+    const toggle = $('#toggle-free-verification');
+    if (!toggle) return;
+    verificationToggleBound = true;
+    const policy = (window.TOC_CONFIG && window.TOC_CONFIG.verificationPolicy) || {};
+    toggle.checked = !!policy.free_entry_requires_team_verification;
+    toggle.addEventListener('change', () => {
+      saveVerificationPolicy(toggle.checked);
+    });
+  }
+
   /* ── Render Grid ────────────────────────────────────────────────── */
 
   function render(data) {
@@ -172,7 +231,7 @@
             data-reg-id="${row.id}">
           <td class="px-3 py-2.5" data-click="event.stopPropagation">
             <input type="checkbox" class="toc-checkbox row-select" value="${row.id}" ${checked}
-                   data-change="TOC.participants.toggleSelect" data-change-args="[${row.id}, this.checked]">
+                   data-change="TOC.participants.toggleSelect" data-change-args="[${row.id}]" data-change-pass="checked">
           </td>
           <td class="px-3 py-2.5" data-click="TOC.participants.openDetail" data-click-args="[${row.id}]">
             <div class="flex items-center gap-2.5">
@@ -235,6 +294,10 @@
           </td>
           <td class="px-3 py-2.5 text-right" data-click="event.stopPropagation">
             <div class="flex items-center justify-end gap-1 opacity-80 group-hover:opacity-100 transition-opacity">
+              <button data-click="TOC.participants.openDetail" data-click-args="[${row.id}]"
+                title="View" class="w-7 h-7 rounded-lg border border-dc-border/60 bg-dc-panel/60 hover:bg-dc-panel flex items-center justify-center transition-colors">
+                <i data-lucide="eye" class="w-3 h-3 text-dc-text"></i>
+              </button>
               ${isAwaitingVerification ? `
                 <button data-click="TOC.participants.toggleQuickReview" data-click-args="[${row.id}]"
                   title="Quick Review" class="w-7 h-7 rounded-lg border border-theme/20 bg-theme/5 hover:bg-theme/15 flex items-center justify-center transition-colors">
@@ -369,7 +432,7 @@
     };
     var capAttr = capMap[action] ? ' data-cap-require="' + capMap[action] + '"' : '';
 
-    return `<button data-click="TOC.participants.rowAction" data-click-args="['${action}', ${row.id}]"
+    return `<button data-click="TOC.participants.rowAction" data-click-args='["${action}", ${row.id}]'
               title="${title}"${capAttr}
               class="w-7 h-7 rounded-lg border border-${color}/20 bg-${color}/5 hover:bg-${color}/15 flex items-center justify-center transition-colors">
               <i data-lucide="${icon}" class="w-3 h-3 text-${color}"></i>
@@ -1076,6 +1139,8 @@
     if (thead) {
       thead.addEventListener('click', handleSort);
     }
+
+    initVerificationToggle();
   }
 
   /* ── Navigation ─────────────────────────────────────────────────── */

@@ -190,10 +190,13 @@ class CompletionPipeline:
     def _step_certificates(cls, tournament: Tournament, report: CompletionReport) -> None:
         """Queue certificate generation for all participants."""
         try:
-            from apps.tournaments.services import CertificateService
+            # ``certificate_service`` is the bound singleton — ``generate_certificate``
+            # is an instance method, so calling it on the class itself (the old code)
+            # blew up with a positional-arg / kwarg mismatch.
+            from apps.tournaments.services import certificate_service
 
-            if CertificateService is None:
-                report.errors.append("certificates: CertificateService not available (missing deps)")
+            if certificate_service is None:
+                report.errors.append("certificates: certificate_service not available (missing deps)")
                 return
 
             from apps.tournaments.models.registration import Registration
@@ -206,9 +209,9 @@ class CompletionPipeline:
             count = 0
             for reg in participants.iterator():
                 try:
-                    CertificateService.generate_certificate(
-                        tournament_id=tournament.id,
+                    certificate_service.generate_certificate(
                         registration_id=reg.id,
+                        certificate_type='participant',
                     )
                     count += 1
                 except Exception as cert_err:
@@ -230,7 +233,13 @@ class CompletionPipeline:
             from apps.tournaments.services.analytics_service import analytics_service
 
             if analytics_service:
-                analytics_service.create_snapshot(tournament.id)
+                # AnalyticsService doesn't have ``create_snapshot``; the equivalent
+                # production-ready method is ``calculate_organizer_analytics`` which
+                # writes to the materialized view (force_refresh=True bypasses the
+                # 15-min freshness cache so the final completion snapshot is live).
+                analytics_service.calculate_organizer_analytics(
+                    tournament.id, force_refresh=True,
+                )
                 logger.info("[completion] Analytics snapshot created for %s", tournament.name)
         except Exception as e:
             report.errors.append(f"analytics: {e}")
@@ -246,9 +255,40 @@ class CompletionPipeline:
         """Send completion notifications to all participants."""
         try:
             from apps.tournaments.services.notification_service import TournamentNotificationService
+            from apps.tournaments.models.registration import Registration
+
+            # Resolve top-placement winners for the notification fan-out.
+            # ``notify_tournament_completed`` now handles BOTH:
+            #   - solo events  → winners=<User list>
+            #   - team events  → winner_team_ids=<Team.id list> (fans out to every
+            #                    player in each winning team's lineup_snapshot)
+            winners_users: list = []
+            winner_team_ids: list = []
+            try:
+                winner_reg_ids = [
+                    w.get('registration_id')
+                    for w in (report.winners or [])
+                    if w.get('registration_id') and (w.get('place') == 1)
+                ]
+                if winner_reg_ids:
+                    regs = (
+                        Registration.objects
+                        .filter(id__in=winner_reg_ids)
+                        .select_related('user')
+                    )
+                    for r in regs:
+                        if r.user_id:
+                            winners_users.append(r.user)
+                        if r.team_id:
+                            winner_team_ids.append(r.team_id)
+            except Exception:
+                winners_users = []
+                winner_team_ids = []
 
             count = TournamentNotificationService.notify_tournament_completed(
-                tournament_id=tournament.id,
+                tournament=tournament,
+                winners=winners_users,
+                winner_team_ids=winner_team_ids,
             )
             report.notifications_sent = count if isinstance(count, int) else 0
             logger.info(

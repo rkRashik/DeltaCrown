@@ -8,15 +8,18 @@ Handles all tournament-related notifications:
 - Tournament updates
 """
 
-from typing import List, Optional
+from typing import Dict, List, Optional
 from django.core.mail import send_mass_mail
 from django.template.loader import render_to_string
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.utils import timezone
 from datetime import timedelta
 
 from apps.tournaments.models import Tournament, Match, Registration
 from apps.notifications.models import Notification
+
+User = get_user_model()
 
 
 class TournamentNotificationService:
@@ -195,31 +198,146 @@ class TournamentNotificationService:
             )
     
     @staticmethod
-    def notify_tournament_completed(tournament: Tournament, winners: List):
-        """Notify all participants when tournament is complete"""
+    def notify_tournament_completed(
+        tournament: Tournament,
+        winners: Optional[List] = None,
+        *,
+        winner_team_ids: Optional[List[int]] = None,
+    ) -> int:
+        """Notify every player when a tournament concludes.
+
+        Handles BOTH participation modes in one pass:
+
+        * **Solo registration** (``registration.user`` is set) — notify that user.
+          Mark as winner if their User.id is in ``winners``.
+        * **Team registration** (``registration.team_id`` is set, ``registration.user``
+          is null) — fan out one notification per player listed in the
+          ``registration.lineup_snapshot`` JSON (the tournament-specific roster
+          locked in at registration time, same source the Rosters TOC tab uses).
+          Mark every team member as a winner when their team_id appears in
+          ``winner_team_ids``.
+
+        **Notification scope (team registrations)**:
+
+        The ``lineup_snapshot`` contains both STARTER and SUBSTITUTE players —
+        anyone who was officially rostered for THIS tournament. They all get a
+        completion notification. We intentionally do NOT include:
+
+        * Team COACH / ANALYST / MANAGER memberships (only present in the
+          general ``TeamMembership`` table, not in lineup_snapshot). Staff
+          monitor tournament outcomes via the dashboard, not personal notifs.
+        * Players from the team's general roster who weren't on this specific
+          tournament's lineup. Notifications are scoped to participation.
+
+        If a future feature wants to notify staff, query TeamMembership for the
+        winning team_ids and union the user_ids into the fan-out set.
+
+        Args:
+            tournament: The completed tournament.
+            winners: List of ``User`` objects whose individual notifications
+                should carry the champion copy. Used for solo events.
+            winner_team_ids: List of ``Team.id`` values whose members should
+                receive champion notifications. Used for team events.
+
+        Returns:
+            int: count of Notification rows created.
+
+        Notes:
+            * Duplicate user_ids (a player on multiple registered rosters, or
+              both winners=[] AND winner_team_ids=[] containing their team)
+              receive at most ONE notification per tournament. Winner status
+              wins ties — if any registration marks them a winner, they get
+              the champion copy.
+            * Bulk-fetches all target users in a single ``User.objects.in_bulk``
+              call regardless of bracket size.
+        """
         registrations = Registration.objects.filter(
             tournament=tournament,
             status=Registration.CONFIRMED,
-            is_deleted=False
-        ).select_related('user')
-        
+            is_deleted=False,
+        ).select_related('user').only(
+            'id', 'user_id', 'team_id', 'lineup_snapshot',
+        )
+
+        winner_user_ids = {
+            getattr(w, 'id', None) for w in (winners or []) if w is not None
+        }
+        winner_user_ids.discard(None)
+        winner_team_ids_set = {int(t) for t in (winner_team_ids or []) if t}
+
+        # Phase 1 — collect every (user_id, is_winner) tuple we need to send to.
+        # We pre-dedupe by user_id so the same human gets exactly one notification
+        # even if they're rostered on multiple confirmed registrations.
+        targets: Dict[int, bool] = {}   # user_id -> is_winner (winner wins ties)
+
+        def _mark(uid: int, is_winner: bool):
+            if uid not in targets:
+                targets[uid] = is_winner
+            elif is_winner:
+                # Promote to winner if any registration says so.
+                targets[uid] = True
+
         for registration in registrations:
             user = registration.user
-            
-            # Check if user is a winner
-            is_winner = any(w.id == user.id for w in winners if w)
-            
-            title = "🏆 Tournament Champion!" if is_winner else "Tournament Complete"
-            message = f"{tournament.name} has concluded. {'Congratulations on your victory!' if is_winner else 'Thanks for participating!'}"
-            
+            if user is not None:
+                # Solo path — user is the participant.
+                _mark(user.id, user.id in winner_user_ids)
+                continue
+
+            team_id = registration.team_id
+            if not team_id:
+                # Malformed registration (no user AND no team) — skip silently.
+                continue
+
+            is_team_winner = team_id in winner_team_ids_set
+            snapshot = registration.lineup_snapshot or []
+            if not isinstance(snapshot, list):
+                continue
+            for entry in snapshot:
+                if not isinstance(entry, dict):
+                    continue
+                uid_raw = entry.get('user_id')
+                if not uid_raw:
+                    continue
+                try:
+                    uid = int(uid_raw)
+                except (TypeError, ValueError):
+                    continue
+                _mark(uid, is_team_winner)
+
+        if not targets:
+            return 0
+
+        # Phase 2 — bulk-fetch users and create notifications.
+        users_map = User.objects.in_bulk(list(targets.keys()))
+
+        sent = 0
+        link = f"/tournaments/{tournament.slug}/results/"
+        for uid, is_winner in targets.items():
+            user = users_map.get(uid)
+            if user is None:
+                continue
+            title = (
+                "🏆 Tournament Champion!" if is_winner else "Tournament Complete"
+            )
+            message = (
+                f"{tournament.name} has concluded. "
+                + (
+                    "Congratulations on your victory!"
+                    if is_winner
+                    else "Thanks for participating!"
+                )
+            )
             Notification.objects.create(
                 user=user,
                 title=title,
                 message=message,
                 notification_type='tournament',
-                link=f"/tournaments/{tournament.slug}/results/",
-                icon='🏆' if is_winner else '🎮'
+                link=link,
+                icon='🏆' if is_winner else '🎮',
             )
+            sent += 1
+        return sent
     
     @staticmethod
     def notify_organizer_announcement(tournament: Tournament, announcement_text: str):

@@ -1,14 +1,14 @@
 {% extends "tournaments/base.html" %}
 {% load static %}
 
-{# ─────────────────────────────────────────────────────────
+{% comment %}
    Dynamic Form Builder Step
    Context: tournament, form_html, step, total_steps,
             progress_percentage, enable_autosave, form_title,
             autofill_data, completion_percentage,
             missing_count, update_prompts, team, errors
    Phase 4 Frontend Rebuild
-   ───────────────────────────────────────────────────────── #}
+{% endcomment %}
 
 {% block title %}{{ form_title }} — {{ tournament.name }} | DeltaCrown{% endblock %}
 

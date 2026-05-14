@@ -175,5 +175,119 @@ def _connect_receivers() -> None:
     except ImportError:
         pass
 
+    # Phase 12.5: extended-payload models. -----------------------------------
+    # All of these contribute to build_public_profile_extended_context, so a
+    # write to any of them must bump the cache version for the affected user.
+
+    try:
+        from apps.siteui.models import CommunityPost
+
+        @receiver(post_save, sender=CommunityPost, dispatch_uid='profile_cache:post_save')
+        @receiver(post_delete, sender=CommunityPost, dispatch_uid='profile_cache:post_delete')
+        def _post_changed(sender, instance, **kwargs):  # noqa: ANN001
+            # author -> UserProfile -> user -> username
+            try:
+                author = getattr(instance, 'author', None)
+                _safe_invalidate(getattr(getattr(author, 'user', None), 'username', None))
+            except Exception:
+                pass
+    except ImportError:
+        pass
+
+    try:
+        from apps.user_profile.models import StreamConfig
+
+        @receiver(post_save, sender=StreamConfig, dispatch_uid='profile_cache:stream_save')
+        @receiver(post_delete, sender=StreamConfig, dispatch_uid='profile_cache:stream_delete')
+        def _stream_changed(sender, instance, **kwargs):  # noqa: ANN001
+            _safe_invalidate(_username_from_user_fk(instance))
+    except ImportError:
+        pass
+
+    try:
+        from apps.user_profile.models import ProfileShowcase, ProfileAboutItem
+
+        @receiver(post_save, sender=ProfileShowcase, dispatch_uid='profile_cache:showcase_save')
+        @receiver(post_delete, sender=ProfileShowcase, dispatch_uid='profile_cache:showcase_delete')
+        def _showcase_changed(sender, instance, **kwargs):  # noqa: ANN001
+            _safe_invalidate(_username_from_user_profile(instance))
+
+        @receiver(post_save, sender=ProfileAboutItem, dispatch_uid='profile_cache:about_save')
+        @receiver(post_delete, sender=ProfileAboutItem, dispatch_uid='profile_cache:about_delete')
+        def _about_changed(sender, instance, **kwargs):  # noqa: ANN001
+            _safe_invalidate(_username_from_user_profile(instance))
+    except ImportError:
+        pass
+
+    try:
+        from apps.tournaments.models import Registration
+
+        @receiver(post_save, sender=Registration, dispatch_uid='profile_cache:reg_save')
+        @receiver(post_delete, sender=Registration, dispatch_uid='profile_cache:reg_delete')
+        def _registration_changed(sender, instance, **kwargs):  # noqa: ANN001
+            # Solo registration: invalidate the registered user's profile.
+            # Team registrations don't have a single user_profile to bust,
+            # so we skip them — the 5-min TTL still bounds staleness.
+            _safe_invalidate(_username_from_user_fk(instance))
+    except ImportError:
+        pass
+
+    try:
+        from apps.tournaments.models import Match, Registration as _Reg
+
+        @receiver(post_save, sender=Match, dispatch_uid='profile_cache:match_save')
+        def _match_changed(sender, instance, **kwargs):  # noqa: ANN001
+            # Match completion/state-change updates match_history for both
+            # participants. participant1_id/participant2_id reference
+            # Registration IDs; resolve them to usernames in one query.
+            try:
+                state = getattr(instance, 'state', None)
+                if state not in ('completed', 'disputed', 'forfeit'):
+                    return
+                reg_ids = [
+                    pid for pid in (
+                        getattr(instance, 'participant1_id', None),
+                        getattr(instance, 'participant2_id', None),
+                    ) if pid
+                ]
+                if not reg_ids:
+                    return
+                usernames = _Reg.objects.filter(
+                    id__in=reg_ids,
+                ).values_list('user__username', flat=True)
+                for uname in usernames:
+                    _safe_invalidate(uname)
+            except Exception:
+                pass
+    except ImportError:
+        pass
+
+    # Loadout / endorsement / hardware-config models (best-effort — imported
+    # lazily because they live under apps.user_profile.models and may move).
+    try:
+        from apps.user_profile.models import GameConfig
+
+        @receiver(post_save, sender=GameConfig, dispatch_uid='profile_cache:gamecfg_save')
+        @receiver(post_delete, sender=GameConfig, dispatch_uid='profile_cache:gamecfg_delete')
+        def _game_config_changed(sender, instance, **kwargs):  # noqa: ANN001
+            _safe_invalidate(_username_from_user_fk(instance))
+    except ImportError:
+        pass
+
+    try:
+        from apps.user_profile.models import Endorsement
+
+        @receiver(post_save, sender=Endorsement, dispatch_uid='profile_cache:endorse_save')
+        @receiver(post_delete, sender=Endorsement, dispatch_uid='profile_cache:endorse_delete')
+        def _endorsement_changed(sender, instance, **kwargs):  # noqa: ANN001
+            # Endorsements have an `endorsed_user` (recipient) — invalidate them.
+            try:
+                target = getattr(instance, 'endorsed_user', None) or getattr(instance, 'user', None)
+                _safe_invalidate(getattr(target, 'username', None))
+            except Exception:
+                pass
+    except ImportError:
+        pass
+
 
 _connect_receivers()

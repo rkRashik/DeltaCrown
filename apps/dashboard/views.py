@@ -54,36 +54,126 @@ def my_matches_view(request: HttpRequest) -> HttpResponse:
 def competitive_hub_view(request: HttpRequest) -> HttpResponse:
     """Crown Arena Competitive Hub.
 
-    Renders the shell + a JSON context block of the user's authority teams
-    and the active game catalog so the create-modal forms can populate
-    their dropdowns without an additional fetch round-trip.
+    Pre-fetches everything the page needs to render its first paint:
+    identity card, wallet ledger, primary team, captain authority,
+    available teams + games for the create modals.  All grids hydrate
+    via /api/v1/* after DOMContentLoaded.
     """
-    user = request.user
-    my_teams = []
-    try:
-        from apps.organizations.models import TeamMembership
-        qs = (
-            TeamMembership.objects
-            .filter(user=user, status='ACTIVE', role__in=['OWNER', 'MANAGER', 'CAPTAIN'])
-            .select_related('team', 'team__game')
-        )
-        for m in qs:
-            t = m.team
-            if not t:
-                continue
-            game = getattr(t, 'game', None)
-            my_teams.append({
-                'id': t.pk,
-                'name': t.name,
-                'slug': getattr(t, 'slug', '') or '',
-                'tag': getattr(t, 'tag', '') or '',
-                'game_id': game.pk if game else None,
-                'game_short_code': getattr(game, 'short_code', '') or '',
-                'role': m.role,
-            })
-    except Exception:
-        my_teams = []
+    from django.db.models import Q
+    from apps.organizations.models import TeamMembership
 
+    user = request.user
+
+    # ── 1. Memberships (authority + non-authority) in one query ──
+    memberships = list(
+        TeamMembership.objects
+        .filter(user=user, status='ACTIVE')
+        .select_related('team')
+        .order_by('id')
+    )
+    authority_membership = next(
+        (
+            m for m in memberships
+            if m.team and (
+                m.role in ('OWNER', 'MANAGER') or getattr(m, 'is_tournament_captain', False)
+            )
+        ),
+        None,
+    )
+
+    if not memberships:
+        user_state = 'SOLO'
+    elif authority_membership is not None:
+        user_state = 'TEAM_CAPTAIN'
+    else:
+        user_state = 'TEAM_MEMBER'
+
+    # ── 2. Primary team for the hero / identity card ──
+    primary = authority_membership or (memberships[0] if memberships else None)
+    primary_team = None
+    if primary and primary.team:
+        t = primary.team
+        primary_team = {
+            'id': t.pk,
+            'name': t.name,
+            'slug': getattr(t, 'slug', '') or '',
+            'tag': getattr(t, 'tag', '') or '',
+            'role': primary.role,
+            'is_captain': bool(getattr(primary, 'is_tournament_captain', False)),
+        }
+
+    # ── 3. Identity card ──
+    profile = getattr(user, 'profile', None)
+    display_name = (
+        getattr(profile, 'display_name', '') or
+        user.get_full_name() or
+        user.username
+    )
+    avatar_url = ''
+    try:
+        avatar = getattr(profile, 'avatar', None) if profile else None
+        if avatar and getattr(avatar, 'url', None):
+            avatar_url = avatar.url
+    except Exception:
+        avatar_url = ''
+    identity = {
+        'name': primary_team['name'] if primary_team else display_name,
+        'display_name': display_name,
+        'username': user.username,
+        'avatar_url': avatar_url,
+        'role_label': (
+            f"{primary_team['role'].title()}" if primary_team
+            else 'Solo Agent'
+        ),
+    }
+
+    # ── 4. Wallet snapshot ──
+    wallet_snapshot = {
+        'cached_balance': 0,
+        'pending_balance': 0,
+        'escrow_locked_dc': 0,
+        'has_wallet': False,
+    }
+    try:
+        from apps.economy.models import DeltaCrownWallet, DeltaCrownTransaction
+        wallet = DeltaCrownWallet.objects.filter(profile=profile).first() if profile else None
+        if wallet:
+            wallet_snapshot['cached_balance'] = int(wallet.cached_balance or 0)
+            wallet_snapshot['pending_balance'] = int(wallet.pending_balance or 0)
+            wallet_snapshot['has_wallet'] = True
+            locked = (
+                DeltaCrownTransaction.objects
+                .filter(wallet=wallet, reason=DeltaCrownTransaction.Reason.ESCROW_LOCK)
+                .order_by()
+                .values_list('amount', flat=True)
+            )
+            refunded = (
+                DeltaCrownTransaction.objects
+                .filter(wallet=wallet, reason=DeltaCrownTransaction.Reason.ESCROW_REFUND)
+                .order_by()
+                .values_list('amount', flat=True)
+            )
+            wallet_snapshot['escrow_locked_dc'] = abs(sum(locked)) - sum(refunded)
+    except Exception:
+        pass
+
+    # ── 5. Teams the user has authority on (for create modals) ──
+    my_teams = []
+    for m in memberships:
+        if not m.team:
+            continue
+        if not (m.role in ('OWNER', 'MANAGER') or getattr(m, 'is_tournament_captain', False)):
+            continue
+        my_teams.append({
+            'id': m.team.pk,
+            'name': m.team.name,
+            'slug': getattr(m.team, 'slug', '') or '',
+            'tag': getattr(m.team, 'tag', '') or '',
+            'game_id': m.game_id,
+            'role': m.role,
+        })
+
+    # ── 6. Active games ──
     games = []
     try:
         Game = _safe_model('games.Game')
@@ -99,6 +189,11 @@ def competitive_hub_view(request: HttpRequest) -> HttpResponse:
 
     return render(request, "dashboard/competitive_hub.html", {
         "hub_context": {
+            "user_state": user_state,
+            "can_issue": user_state == 'TEAM_CAPTAIN',
+            "identity": identity,
+            "primary_team": primary_team,
+            "wallet": wallet_snapshot,
             "my_teams": my_teams,
             "games": games,
         },

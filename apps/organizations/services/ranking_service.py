@@ -553,6 +553,211 @@ class RankingService:
             )
 
 
+# ============================================================================
+# TOURNAMENT PLACEMENT REWARDS
+# ============================================================================
+#
+# CP schedule for tournament finishes. Independent of per-match CP (which is
+# ELO-scaled and tier-relative); placement CP is a fixed reward designed to
+# meaningfully outweigh a single match win (~+100 CP at base).
+#
+# Defaults chosen to make a 1st-place finish ~3x a match win, with the gap
+# between consecutive placements shrinking as you go down the bracket — so
+# the difference between "1st" and "2nd" feels significant, while "9th" and
+# "10th" don't.
+
+_TOURNAMENT_PLACEMENT_CP: Dict[int, int] = {
+    1: 300,   # Champion
+    2: 180,   # Runner-up
+    3: 120,   # 3rd place
+    4: 80,    # 4th place
+}
+# Brackets for placements 5+ — (upper_bound_inclusive, cp_reward).
+_TOURNAMENT_BRACKET_CP: List[Tuple[int, int]] = [
+    (8,  40),   # 5th – 8th  (top-8 finish)
+    (16, 20),   # 9th – 16th (top-16 finish)
+]
+# Anyone past 16th place gets a flat participation award.
+_TOURNAMENT_PARTICIPATION_CP: int = 10
+
+# Clamp range for ``tournament.config['cp_multiplier']``. Prevents an admin
+# typo (e.g. "100") from minting absurd CP totals. A 5x cap covers reasonable
+# "season finale" boosts without enabling abuse.
+_CP_MULTIPLIER_MIN: float = 0.0
+_CP_MULTIPLIER_MAX: float = 5.0
+
+
+def _placement_cp_reward(placement: int, *, multiplier: float = 1.0) -> int:
+    """
+    Return the CP reward for a given finish position, scaled by ``multiplier``.
+
+    The multiplier is clamped to ``[0.0, 5.0]`` — values outside that range are
+    silently coerced so a misconfigured tournament can never zero out / blow
+    up the leaderboard.
+
+    Returns 0 for invalid input (placement < 1, multiplier <= 0).
+    """
+    if not isinstance(placement, int) or placement < 1:
+        return 0
+    try:
+        m = float(multiplier)
+    except (TypeError, ValueError):
+        m = 1.0
+    if m <= 0:
+        return 0
+    m = max(_CP_MULTIPLIER_MIN, min(_CP_MULTIPLIER_MAX, m))
+
+    if placement in _TOURNAMENT_PLACEMENT_CP:
+        base = _TOURNAMENT_PLACEMENT_CP[placement]
+    else:
+        base = _TOURNAMENT_PARTICIPATION_CP
+        for upper, cp in _TOURNAMENT_BRACKET_CP:
+            if placement <= upper:
+                base = cp
+                break
+    return int(round(base * m))
+
+
+def _award_tournament_points(
+    team_id: int,
+    tournament_id: int,
+    placement: int,
+    *,
+    actor=None,
+) -> int:
+    """
+    Award placement-based Crown Points to a team for finishing a tournament.
+
+    Returns the CP delta awarded (positive int), or 0 if this is a no-op:
+        * team_id / tournament_id / placement is missing or invalid
+        * tournament does not exist
+        * this (team, tournament) pair has already been awarded (idempotent)
+
+    **Tier multiplier** — the payout is scaled by ``tournament.config['cp_multiplier']``
+    if present (defaults to ``1.0``). Use it to make Majors / Finals reward more
+    than weekly Qualifiers without code changes:
+        Tournament.config['cp_multiplier'] = 2.0  # double payout
+        Tournament.config['cp_multiplier'] = 0.5  # half payout (e.g. exhibition)
+    Clamped to ``[0.0, 5.0]`` — values outside that range are silently coerced
+    so a misconfigured tournament can never zero out / blow up the leaderboard.
+
+    Side effects (all inside one DB transaction):
+        1. ``TeamRanking`` row created if missing, then ``current_cp``,
+           ``season_cp``, ``all_time_cp``, and ``tier`` are updated.
+        2. ``TeamRankingAdjustmentLog`` row written for admin audit.
+        3. ``Tournament.config['ranking_awards']`` ledger appended so the
+           same team can't be paid twice for the same event.
+        4. Global ranks recomputed.
+
+    The function is exposed as ``RankingService.award_tournament_points`` via
+    a thin wrapper below — kept module-level so the locking semantics are
+    visible at the file level.
+    """
+    from django.db import transaction
+    from django.utils import timezone
+    from apps.organizations.models import TeamRanking, TeamRankingAdjustmentLog
+    from apps.tournaments.models.tournament import Tournament
+
+    if not team_id or not tournament_id:
+        return 0
+
+    with transaction.atomic():
+        # Load the tournament with a row lock so two concurrent completion
+        # pipeline runs can't both write to ``config['ranking_awards']``.
+        try:
+            tournament = Tournament.objects.select_for_update().get(pk=tournament_id)
+        except Tournament.DoesNotExist:
+            return 0
+
+        # Read the tier multiplier inside the lock — config can be edited
+        # between the moment the pipeline starts and when we credit each team,
+        # so we want a consistent snapshot for this run.
+        config = dict(tournament.config or {})
+        multiplier = config.get('cp_multiplier', 1.0)
+        cp_delta = _placement_cp_reward(placement, multiplier=multiplier)
+        if cp_delta == 0:
+            return 0
+
+        # Idempotency check — has this team already been paid for this tournament?
+        awards = dict(config.get('ranking_awards') or {})
+        team_awards = list(awards.get('team_awards') or [])
+        if any(int(entry.get('team_id', 0)) == int(team_id) for entry in team_awards):
+            return 0
+
+        # Acquire / create the team ranking row (also locked).
+        ranking, _created = TeamRanking.objects.select_for_update().get_or_create(
+            team_id=team_id
+        )
+
+        cp_before = ranking.current_cp
+        tier_before = ranking.tier or ''
+
+        # Apply the CP delta. Tournament awards are pure gains — no floor
+        # arithmetic needed beyond the existing non-negativity invariant.
+        ranking.current_cp = max(0, ranking.current_cp + cp_delta)
+        ranking.season_cp += cp_delta
+        ranking.all_time_cp = max(ranking.all_time_cp, ranking.current_cp)
+        ranking.tier = RankingService.calculate_tier(ranking.current_cp)
+        ranking.save(update_fields=[
+            'current_cp', 'season_cp', 'all_time_cp', 'tier',
+        ])
+
+        # Audit row — log even if it fails, never block the award itself.
+        try:
+            TeamRankingAdjustmentLog.objects.create(
+                team_id=team_id,
+                admin_user=actor,
+                change_type=TeamRankingAdjustmentLog.ChangeType.BONUS,
+                cp_before=cp_before,
+                cp_after=ranking.current_cp,
+                cp_delta=cp_delta,
+                tier_before=tier_before,
+                tier_after=ranking.tier or '',
+                reason=(
+                    f"Tournament placement #{placement} in "
+                    f"'{tournament.name}' (tournament_id={tournament_id})"
+                ),
+            )
+        except Exception as exc:
+            logger.warning(
+                "TeamRankingAdjustmentLog write failed for tournament=%s team=%s: %s",
+                tournament_id, team_id, exc,
+            )
+
+        # Tournament-level ledger for idempotency on subsequent runs.
+        team_awards.append({
+            'team_id':    int(team_id),
+            'placement':  int(placement),
+            'cp_delta':   int(cp_delta),
+            'awarded_at': timezone.now().isoformat(),
+        })
+        awards['team_awards'] = team_awards
+        awards['last_award_at'] = timezone.now().isoformat()
+        config['ranking_awards'] = awards
+        tournament.config = config
+        tournament.save(update_fields=['config'])
+
+    # Refresh global ranks AFTER the transaction commits so other readers
+    # see the new CP before we recompute. Best-effort; failures here are
+    # non-critical (the next match result will trigger a recompute anyway).
+    try:
+        compute_global_ranks()
+    except Exception as exc:
+        logger.warning(
+            "compute_global_ranks failed after tournament award team=%s tournament=%s: %s",
+            team_id, tournament_id, exc,
+        )
+
+    return cp_delta
+
+
+# Attach as a classmethod-style attribute so callers use the existing API
+# style: ``RankingService.award_tournament_points(...)``. Kept as a thin
+# binding so the implementation stays at module scope (easier to reason
+# about locking) but reads naturally from the call site.
+RankingService.award_tournament_points = staticmethod(_award_tournament_points)
+
+
 def compute_global_ranks():
     """
     Assign global_rank to all active TeamRanking rows using a single

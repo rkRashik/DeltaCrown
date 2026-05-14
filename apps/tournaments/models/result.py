@@ -298,37 +298,43 @@ class TournamentResult(TimestampedModel, SoftDeleteModel):
             self._award_ranking_points()
     
     def _award_ranking_points(self):
-        """Award ranking points to teams based on tournament results."""
+        """Award ranking points to teams based on tournament results.
+
+        Delegates to ``RankingService.award_tournament_points`` which writes
+        to ``TeamRanking`` + ``TeamRankingAdjustmentLog`` and persists an
+        idempotency ledger on ``Tournament.config['ranking_awards']``. Safe
+        to re-run — the same team won't be paid twice for the same event.
+
+        Solo tournaments where the participant has no ``.team`` are silently
+        skipped (the underlying CP model is team-scoped).
+        """
         try:
-            # TODO: Migrate game_ranking_service to organizations app
-            from apps.organizations.services.ranking_service import game_ranking_service
-            
-            # Award points for winner
-            if self.winner and hasattr(self.winner, 'team'):
-                game_ranking_service.award_tournament_points(
-                    team=self.winner.team,
-                    tournament=self.tournament,
-                    placement=1
-                )
-            
-            # Award points for runner-up
-            if self.runner_up and hasattr(self.runner_up, 'team'):
-                game_ranking_service.award_tournament_points(
-                    team=self.runner_up.team,
-                    tournament=self.tournament,
-                    placement=2
-                )
-            
-            # Award points for third place
-            if self.third_place and hasattr(self.third_place, 'team'):
-                game_ranking_service.award_tournament_points(
-                    team=self.third_place.team,
-                    tournament=self.tournament,
-                    placement=3
+            from apps.organizations.services.ranking_service import RankingService
+
+            for participant_attr, placement in (
+                ('winner',     1),
+                ('runner_up',  2),
+                ('third_place', 3),
+            ):
+                participant = getattr(self, participant_attr, None)
+                if participant is None:
+                    continue
+                team = getattr(participant, 'team', None)
+                if team is None or not getattr(team, 'id', None):
+                    # Solo tournament or missing team FK — nothing to credit.
+                    continue
+                RankingService.award_tournament_points(
+                    team_id=team.id,
+                    tournament_id=self.tournament.id,
+                    placement=placement,
                 )
         except Exception as e:
-            # Log error but don't fail result creation
+            # Non-fatal — keep Result.save() resilient. Log at warning level
+            # so it's visible in deploy logs without polluting error pages.
             import logging
             logger = logging.getLogger(__name__)
-            logger.error(f"Failed to award ranking points for tournament {self.tournament.id}: {e}")
+            logger.warning(
+                "Could not award ranking points for tournament %s: %s",
+                self.tournament.id, e,
+            )
 

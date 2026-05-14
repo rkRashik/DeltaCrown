@@ -1,12 +1,12 @@
 {% extends "tournaments/base.html" %}
 {% load static humanize %}
 
-{# ─────────────────────────────────────────────────────────
+{% comment %}
    Resubmit Payment
    Context: tournament, registration, rejection_reason,
             payment_methods
    Phase 4 Frontend Rebuild
-   ───────────────────────────────────────────────────────── #}
+{% endcomment %}
 
 {% block title %}Resubmit Payment — {{ tournament.name }} | DeltaCrown{% endblock %}
 

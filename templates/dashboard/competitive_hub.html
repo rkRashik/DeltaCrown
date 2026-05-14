@@ -4,573 +4,472 @@
 {% block title %}Crown Arena — DeltaCrown{% endblock %}
 
 {% block extra_head %}
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
   <script nonce="{{ request.csp_nonce }}">
     tailwind.config = {
       darkMode: 'class',
       theme: {
         extend: {
           fontFamily: {
-            sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+            sans: ['Inter', 'sans-serif'],
+            display: ['Rajdhani', 'sans-serif'],
             mono: ['JetBrains Mono', 'monospace'],
           },
           colors: {
             dc: {
-              bg: '#000000', surface: '#08080A', panel: '#101014',
+              bg: '#010103',
+              surface: '#08080c',
+              panel: 'rgba(12, 12, 18, 0.75)',
               border: 'rgba(255, 255, 255, 0.08)',
-              borderHover: 'rgba(255, 255, 255, 0.15)',
-              textMain: '#F8F8F8', textMuted: '#A1A1AA',
-              accent: '#6366F1', accentGlow: 'rgba(99, 102, 241, 0.20)',
-              gold: '#FFD700', neonRed: '#FF4655', electric: '#00E5FF',
-              success: '#10B981', danger: '#F43F5E', warning: '#F59E0B',
+              cyan: '#00e5ff',
+              cyanHover: '#66f0ff',
+              violet: '#8a2be2',
+              neon: '#ff0055',
+              gold: '#ffd700',
+              success: '#00fa9a',
+              warning: '#ff8c00',
             },
           },
-          boxShadow: {
-            'glow-accent': '0 0 32px -6px rgba(99, 102, 241, 0.55)',
-            'glow-gold':   '0 0 28px -6px rgba(255, 215, 0, 0.55)',
-            'glow-neon':   '0 0 28px -6px rgba(255, 70, 85, 0.55)',
-            'glow-cyan':   '0 0 28px -6px rgba(0, 229, 255, 0.55)',
+          animation: {
+            'spin-slow': 'spin 8s linear infinite',
+            'pulse-glow': 'pulseGlow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+            'float': 'float 5s ease-in-out infinite',
+            'slide-up': 'slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+            'fade-in': 'fadeIn 0.4s ease-out forwards',
+            'shimmer': 'shimmer 2s linear infinite',
           },
-        }
-      }
+          keyframes: {
+            pulseGlow: { '0%, 100%': { opacity: 1, filter: 'brightness(1)' }, '50%': { opacity: .7, filter: 'brightness(1.5)' } },
+            float: { '0%, 100%': { transform: 'translateY(0)' }, '50%': { transform: 'translateY(-8px)' } },
+            slideUp: { '0%': { transform: 'translateY(40px)', opacity: '0' }, '100%': { transform: 'translateY(0)', opacity: '1' } },
+            fadeIn: { '0%': { opacity: '0' }, '100%': { opacity: '1' } },
+            shimmer: { '0%': { backgroundPosition: '-1000px 0' }, '100%': { backgroundPosition: '1000px 0' } },
+          },
+        },
+      },
     };
   </script>
 {% endblock %}
 
 {% block extra_css %}
 <style>
-  /* Cinematic ambient mesh */
-  .arena-mesh {
-    position: fixed; inset: 0; z-index: -1;
-    background-color: #000;
+  body { background-color: #010103; color: #e2e8f0; }
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: #010103; }
+  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 10px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(0, 229, 255, 0.4); }
+
+  .grid-bg {
+    position: fixed; inset: 0; z-index: -2;
+    background-size: 40px 40px;
     background-image:
-      radial-gradient(circle at 12% 8%,  rgba(99, 102, 241, 0.18) 0%, transparent 38%),
-      radial-gradient(circle at 88% 14%, rgba(255, 70, 85, 0.10)  0%, transparent 38%),
-      radial-gradient(circle at 82% 92%, rgba(255, 215, 0, 0.07)  0%, transparent 42%),
-      radial-gradient(circle at 12% 96%, rgba(0, 229, 255, 0.08)  0%, transparent 42%);
-    pointer-events: none;
+      linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+    -webkit-mask-image: radial-gradient(circle at center, black, transparent 80%);
+            mask-image: radial-gradient(circle at center, black, transparent 80%);
   }
-  .arena-mesh::after {
-    content: ""; position: absolute; inset: 0;
+  .ambient-orbs {
+    position: fixed; inset: 0; z-index: -1; pointer-events: none;
     background:
-      repeating-linear-gradient(
-        0deg, rgba(255,255,255,0.012) 0 1px, transparent 1px 3px
-      );
-    mix-blend-mode: overlay; opacity: .35;
+      radial-gradient(circle at 15% 30%, rgba(138, 43, 226, 0.08) 0%, transparent 40%),
+      radial-gradient(circle at 85% 60%, rgba(0, 229, 255, 0.06) 0%, transparent 40%),
+      radial-gradient(circle at 50% 90%, rgba(255, 0, 85, 0.05) 0%, transparent 50%);
+  }
+  .scanline-overlay {
+    position: fixed; inset: 0; z-index: 50; pointer-events: none; opacity: 0.03;
+    background: linear-gradient(to bottom, transparent 50%, rgba(0,0,0,1) 51%);
+    background-size: 100% 4px;
+  }
+  .hide-scrollbar::-webkit-scrollbar { display: none; }
+  .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+  .glass-heavy {
+    background: rgba(10, 10, 15, 0.8);
+    backdrop-filter: blur(40px) saturate(180%);
+    -webkit-backdrop-filter: blur(40px) saturate(180%);
+    border: 1px solid rgba(255,255,255,0.06);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), 0 10px 40px -10px rgba(0,0,0,0.8);
+  }
+  .glass-light {
+    background: rgba(255, 255, 255, 0.02);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255,255,255,0.04);
+  }
+  .glass-light:hover { background: rgba(255, 255, 255, 0.04); border-color: rgba(255,255,255,0.1); }
+
+  .btn-cyber {
+    position: relative; overflow: hidden; transition: all 0.3s;
+    clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
+  }
+  .btn-cyber::before {
+    content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    transition: all 0.5s;
+  }
+  .btn-cyber:hover::before { left: 100%; }
+  .btn-cyber:disabled { opacity: .55; cursor: not-allowed; filter: grayscale(.5); }
+  .btn-cyber:disabled::before { display: none; }
+
+  .text-gradient-cyan { background: linear-gradient(to right, #ffffff, #00e5ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .text-gradient-gold { background: linear-gradient(to right, #ffd700, #ffaa00); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .text-gradient-violet { background: linear-gradient(to right, #ffffff, #8a2be2); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+
+  .hidden-spa { display: none !important; }
+  .fade-enter { animation: fadeIn 0.3s ease-out forwards; }
+  .skeleton-block {
+    background: #111;
+    background-image: linear-gradient(to right, #111 0%, #222 20%, #111 40%, #111 100%);
+    background-repeat: no-repeat;
+    background-size: 1000px 100%;
+    animation: shimmer 2s infinite linear forwards;
   }
 
-  .glass-card {
-    background:
-      radial-gradient(circle at top right, rgba(99,102,241,.12), transparent 60%),
-      linear-gradient(180deg, rgba(16,16,22,.80) 0%, rgba(8,8,12,.94) 100%);
-    backdrop-filter: blur(32px) saturate(150%);
-    -webkit-backdrop-filter: blur(32px) saturate(150%);
-    border: 1px solid rgba(255,255,255,0.10);
-    box-shadow:
-      inset 0 1px 0 0 rgba(255,255,255,0.07),
-      0 12px 48px -14px rgba(0,0,0,0.70);
-    border-radius: 22px;
-    transition: transform .35s cubic-bezier(.2,.8,.2,1),
-                border-color .35s ease, box-shadow .35s ease;
-    position: relative; overflow: hidden;
-  }
-  .glass-card::before {
-    content: ""; position: absolute; top: 0; left: 0; right: 0; height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,.22), transparent);
-    z-index: 5;
-  }
-  .glass-card::after {
-    content: ""; position: absolute; inset: 0; pointer-events: none;
-    background: radial-gradient(circle at var(--mx, 50%) var(--my, 0%), rgba(255,255,255,.06), transparent 45%);
-    opacity: 0; transition: opacity .35s ease;
-    border-radius: inherit;
-  }
-  .glass-card:hover { transform: translateY(-3px); border-color: rgba(255,255,255,0.18); }
-  .glass-card:hover::after { opacity: 1; }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; animation: fadeIn 0.3s ease-out; }
+  .tab-trigger.active { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.15) !important; }
+  .tab-trigger.active i { color: #fff; }
+  .tab-trigger.active span { color: #fff; }
 
-  .glass-card.accent-violet { border-color: rgba(99,102,241,.18); }
-  .glass-card.accent-violet:hover { border-color: rgba(99,102,241,.55); box-shadow: 0 16px 56px -14px rgba(99,102,241,.55), 0 0 28px -4px rgba(99,102,241,.40), inset 0 1px 0 0 rgba(255,255,255,.10); }
+  /* Accent rings on cards */
+  .accent-cyan   { border-color: rgba(0,229,255,.18) !important; }
+  .accent-cyan:hover   { border-color: rgba(0,229,255,.55) !important; box-shadow: 0 16px 56px -14px rgba(0,229,255,.50), 0 0 28px -4px rgba(0,229,255,.35); }
+  .accent-violet { border-color: rgba(138,43,226,.18) !important; }
+  .accent-violet:hover { border-color: rgba(138,43,226,.55) !important; box-shadow: 0 16px 56px -14px rgba(138,43,226,.55); }
+  .accent-neon   { border-color: rgba(255,0,85,.18) !important; }
+  .accent-neon:hover   { border-color: rgba(255,0,85,.55) !important; box-shadow: 0 16px 56px -14px rgba(255,0,85,.50); }
+  .accent-gold   { border-color: rgba(255,215,0,.18) !important; }
+  .accent-gold:hover   { border-color: rgba(255,215,0,.55) !important; box-shadow: 0 16px 56px -14px rgba(255,215,0,.40); }
 
-  .glass-card.accent-gold { border-color: rgba(255,215,0,.16); }
-  .glass-card.accent-gold:hover { border-color: rgba(255,215,0,.55); box-shadow: 0 16px 56px -14px rgba(255,215,0,.40), 0 0 28px -4px rgba(255,215,0,.30), inset 0 1px 0 0 rgba(255,255,255,.10); }
-
-  .glass-card.accent-neon { border-color: rgba(255,70,85,.18); }
-  .glass-card.accent-neon:hover { border-color: rgba(255,70,85,.55); box-shadow: 0 16px 56px -14px rgba(255,70,85,.50), 0 0 28px -4px rgba(255,70,85,.35), inset 0 1px 0 0 rgba(255,255,255,.10); }
-
-  .glass-card.accent-cyan { border-color: rgba(0,229,255,.18); }
-  .glass-card.accent-cyan:hover { border-color: rgba(0,229,255,.55); box-shadow: 0 16px 56px -14px rgba(0,229,255,.50), 0 0 28px -4px rgba(0,229,255,.35), inset 0 1px 0 0 rgba(255,255,255,.10); }
-
-  /* Tab pill */
-  .tab-pill {
-    background: rgba(255,255,255,0.025);
-    border: 1px solid rgba(255,255,255,0.07);
-    color: #A1A1AA;
-    transition: all .25s ease;
-    position: relative;
-  }
-  .tab-pill[data-active="true"] {
-    background: linear-gradient(135deg, rgba(99,102,241,.25), rgba(99,102,241,.10));
-    border-color: rgba(99,102,241,.55);
-    color: #F8F8F8;
-    box-shadow: 0 0 24px -6px rgba(99,102,241,.55), inset 0 1px 0 0 rgba(255,255,255,.10);
-  }
-  .tab-pill:hover { color: #F8F8F8; border-color: rgba(255,255,255,0.18); }
-
-  /* Action button */
-  .btn-cta {
-    background: linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%);
-    color: #fff; font-weight: 700;
-    border: 1px solid rgba(255,255,255,0.15);
-    box-shadow:
-      0 8px 28px -6px rgba(99,102,241,.55),
-      inset 0 1px 0 0 rgba(255,255,255,.18);
-    transition: transform .15s ease, box-shadow .15s ease, filter .15s ease;
-  }
-  .btn-cta:hover { transform: translateY(-1px); filter: brightness(1.08); box-shadow: 0 12px 40px -6px rgba(99,102,241,.7), inset 0 1px 0 0 rgba(255,255,255,.18); }
-  .btn-cta:active { transform: translateY(0); }
-  .btn-cta:disabled { opacity: .4; cursor: not-allowed; transform: none; filter: grayscale(.4); }
-
-  .btn-ghost {
-    background: rgba(255,255,255,0.03);
+  /* Form fields inside slide-overs */
+  .field-input, .field-select {
+    width: 100%; padding: .85rem 1rem;
+    background: rgba(0,0,0,.6);
     border: 1px solid rgba(255,255,255,0.08);
-    color: #F8F8F8;
-    transition: all .2s ease;
+    color: #fff; border-radius: 12px;
+    font-size: .9rem; font-weight: 500;
+    transition: all 0.2s;
   }
-  .btn-ghost:hover { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.18); }
-
-  .btn-action {
-    display: inline-flex; align-items: center; gap: .55rem;
-    padding: .7rem 1.1rem; border-radius: 14px;
-    font-size: .72rem; font-weight: 800; letter-spacing: .07em; text-transform: uppercase;
-    color: #fff;
-    border: 1px solid rgba(255,255,255,.20);
-    background: linear-gradient(135deg, rgba(255,255,255,.08), rgba(255,255,255,.02));
-    box-shadow: inset 0 1px 0 0 rgba(255,255,255,.10);
-    transition: transform .18s ease, box-shadow .25s ease, border-color .25s ease, filter .18s ease;
-  }
-  .btn-action:hover { transform: translateY(-1px); filter: brightness(1.06); }
-  .btn-action.btn-action-cyan {
-    background: linear-gradient(135deg, rgba(34,211,238,.20), rgba(34,211,238,.05));
-    border-color: rgba(34,211,238,.55);
-    box-shadow: 0 0 26px -6px rgba(34,211,238,.45), inset 0 1px 0 0 rgba(255,255,255,.10);
-  }
-  .btn-action.btn-action-cyan:hover {
-    border-color: rgba(34,211,238,.85);
-    box-shadow: 0 0 36px -4px rgba(34,211,238,.75), inset 0 1px 0 0 rgba(255,255,255,.14);
-  }
-  .btn-action.btn-action-neon {
-    background: linear-gradient(135deg, rgba(255,70,85,.22), rgba(255,70,85,.05));
-    border-color: rgba(255,70,85,.55);
-    box-shadow: 0 0 26px -6px rgba(255,70,85,.55), inset 0 1px 0 0 rgba(255,255,255,.10);
-  }
-  .btn-action.btn-action-neon:hover {
-    border-color: rgba(255,70,85,.85);
-    box-shadow: 0 0 38px -4px rgba(255,70,85,.80), inset 0 1px 0 0 rgba(255,255,255,.14);
-  }
-
-  .modal-card.modal-form {
-    max-width: 32rem;
-    padding: 1.65rem 1.65rem 1.4rem;
-  }
-  .field-label {
-    display: block;
-    font-size: .65rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase;
-    color: rgba(229,231,235,.70); margin-bottom: .45rem;
-  }
-  .field-input,
-  .field-select {
-    width: 100%;
-    padding: .7rem .9rem;
-    background: rgba(255,255,255,0.03);
-    border: 1px solid rgba(255,255,255,0.10);
-    color: #F8F8F8;
-    border-radius: 12px;
-    font-size: .85rem; font-family: 'Inter', sans-serif;
-    transition: border-color .2s ease, background .2s ease, box-shadow .2s ease;
+  .field-input:focus, .field-select:focus {
     outline: none;
+    border-color: rgba(0,229,255,.5);
+    background: rgba(0,0,0,.8);
+    box-shadow: 0 0 0 3px rgba(0,229,255,.10);
+  }
+  .field-input.is-invalid, .field-select.is-invalid {
+    border-color: rgba(255,0,85,.6) !important;
+    box-shadow: 0 0 0 3px rgba(255,0,85,.10) !important;
   }
   .field-select { appearance: none; -webkit-appearance: none; padding-right: 2.4rem;
     background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23A1A1AA' stroke-width='2'><polyline points='6 9 12 15 18 9'/></svg>");
     background-repeat: no-repeat; background-position: right .85rem center;
   }
-  .field-input:focus,
-  .field-select:focus {
-    border-color: rgba(99,102,241,.55);
-    background: rgba(255,255,255,0.05);
-    box-shadow: 0 0 0 3px rgba(99,102,241,.15);
-  }
-  .field-input::placeholder { color: rgba(161,161,170,.55); }
-  .field-input.is-invalid,
-  .field-select.is-invalid {
-    border-color: rgba(244,63,94,.65);
-    box-shadow: 0 0 0 3px rgba(244,63,94,.15);
-  }
-  .field-hint {
-    font-size: .65rem; color: rgba(161,161,170,.75); margin-top: .35rem;
-  }
-  .field-row { margin-bottom: 1rem; }
-  .field-row.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; margin-bottom: 1rem; }
-
-  .field-input option,
-  .field-select option { background: #0a0a0f; color: #F8F8F8; }
-
   .form-error {
-    margin: .65rem 0 0;
-    padding: .55rem .8rem;
-    border-radius: 10px;
-    background: rgba(244,63,94,.10);
-    border: 1px solid rgba(244,63,94,.40);
-    color: #FCA5A5;
-    font-size: .72rem; font-weight: 600;
-    box-shadow: 0 0 18px -6px rgba(244,63,94,.45);
+    margin-top: .65rem; padding: .55rem .85rem; border-radius: 10px;
+    background: rgba(255,0,85,.10); border: 1px solid rgba(255,0,85,.40);
+    color: #fca5a5; font-size: .75rem; font-weight: 600;
   }
   .form-error.hidden { display: none; }
 
-  /* DC chip */
-  .dc-chip {
-    display: inline-flex; align-items: center; gap: .35rem;
-    padding: .25rem .65rem;
-    background: linear-gradient(135deg, rgba(255,215,0,.15), rgba(255,215,0,.04));
-    border: 1px solid rgba(255,215,0,.30);
-    color: #FFD700;
-    border-radius: 9999px;
-    font-family: 'JetBrains Mono', monospace;
-    font-weight: 700;
-    font-size: .75rem;
-    box-shadow: 0 0 12px -2px rgba(255,215,0,.20), inset 0 1px 0 0 rgba(255,255,255,.06);
-  }
-
-  /* Closure pill — required by spec when closure_reason is set */
-  .closure-pill {
-    display: inline-flex; align-items: center; gap: .4rem;
-    padding: .3rem .7rem;
-    border-radius: 9999px;
-    font-size: .72rem; font-weight: 700; letter-spacing: .02em;
-    background: linear-gradient(135deg, rgba(244,63,94,.18), rgba(244,63,94,.06));
-    border: 1px solid rgba(244,63,94,.45);
-    color: #FCA5A5;
-    box-shadow: 0 0 16px -4px rgba(244,63,94,.45), inset 0 1px 0 0 rgba(255,255,255,.05);
-  }
-  .closure-pill.amber {
-    background: linear-gradient(135deg, rgba(245,158,11,.18), rgba(245,158,11,.05));
-    border-color: rgba(245,158,11,.45);
-    color: #FCD34D;
-    box-shadow: 0 0 16px -4px rgba(245,158,11,.45), inset 0 1px 0 0 rgba(255,255,255,.05);
-  }
-  .closure-pill.neutral {
-    background: linear-gradient(135deg, rgba(255,255,255,.10), rgba(255,255,255,.03));
-    border-color: rgba(255,255,255,.18);
-    color: #E4E4E7;
-  }
-
-  /* Status / state badge */
-  .state-badge {
-    display: inline-flex; align-items: center; gap: .35rem;
-    padding: .2rem .55rem; border-radius: 6px;
-    font-size: .65rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.10);
-    color: #A1A1AA;
-  }
-  .state-badge.live   { background: rgba(16,185,129,.12); border-color: rgba(16,185,129,.45); color: #6EE7B7; }
-  .state-badge.open   { background: rgba(99,102,241,.12); border-color: rgba(99,102,241,.45); color: #A5B4FC; }
-  .state-badge.scoring{ background: rgba(245,158,11,.14); border-color: rgba(245,158,11,.45); color: #FCD34D; }
-
-  /* Dot pulse */
-  .pulse-dot {
-    width: 6px; height: 6px; border-radius: 999px;
-    background: #10B981;
-    box-shadow: 0 0 0 0 rgba(16,185,129,.60);
-    animation: pulse-dot 1.6s ease-out infinite;
-  }
-  @keyframes pulse-dot {
-    0%   { box-shadow: 0 0 0 0 rgba(16,185,129,.55); }
-    70%  { box-shadow: 0 0 0 10px rgba(16,185,129,0); }
-    100% { box-shadow: 0 0 0 0 rgba(16,185,129,0); }
-  }
-
-  /* Modal */
-  .modal-shell {
-    position: fixed; inset: 0;
-    background: rgba(0,0,0,0.65);
-    backdrop-filter: blur(8px);
-    z-index: 70;
-    display: flex; align-items: center; justify-content: center;
-    padding: 1rem;
-  }
-  .modal-card {
-    max-width: 28rem; width: 100%;
-    background: linear-gradient(180deg, rgba(20,20,28,.95), rgba(10,10,15,.98));
-    border: 1px solid rgba(255,255,255,.10);
-    border-radius: 24px;
-    padding: 1.75rem;
-    box-shadow: 0 24px 64px -12px rgba(0,0,0,.8), 0 0 60px -10px rgba(99,102,241,.30);
-    backdrop-filter: blur(32px);
-    animation: modalIn .25s cubic-bezier(.2,.8,.2,1);
-  }
-  @keyframes modalIn {
-    from { opacity: 0; transform: translateY(8px) scale(.97); }
-    to   { opacity: 1; transform: translateY(0) scale(1); }
-  }
-
-  /* Toast */
-  .toast-shelf {
-    position: fixed; right: 1.25rem; top: 5.5rem; z-index: 80;
-    display: flex; flex-direction: column; gap: .55rem;
-    pointer-events: none;
-  }
-  .toast {
-    pointer-events: auto;
-    min-width: 280px; max-width: 380px;
-    padding: .85rem 1.05rem;
-    border-radius: 14px;
-    background: linear-gradient(180deg, rgba(20,20,28,.95), rgba(8,8,14,.98));
-    border: 1px solid rgba(255,255,255,.10);
-    box-shadow: 0 16px 40px -10px rgba(0,0,0,.7);
-    color: #F8F8F8;
-    backdrop-filter: blur(20px);
-    display: flex; align-items: flex-start; gap: .65rem;
-    animation: toastIn .25s cubic-bezier(.2,.8,.2,1);
-  }
-  .toast.error  { border-color: rgba(244,63,94,.45);  box-shadow: 0 0 28px -6px rgba(244,63,94,.45), 0 16px 40px -10px rgba(0,0,0,.7); }
-  .toast.info   { border-color: rgba(99,102,241,.40); box-shadow: 0 0 28px -6px rgba(99,102,241,.40), 0 16px 40px -10px rgba(0,0,0,.7); }
-  .toast.success{ border-color: rgba(16,185,129,.45); box-shadow: 0 0 28px -6px rgba(16,185,129,.45), 0 16px 40px -10px rgba(0,0,0,.7); }
-  @keyframes toastIn {
-    from { opacity: 0; transform: translateX(20px); }
-    to   { opacity: 1; transform: translateX(0); }
-  }
-
-  .skeleton {
-    background: linear-gradient(90deg, rgba(255,255,255,.04) 0%, rgba(255,255,255,.10) 50%, rgba(255,255,255,.04) 100%);
-    background-size: 200% 100%;
-    animation: skeleton 1.4s ease-in-out infinite;
-    border-radius: 8px;
-  }
-  @keyframes skeleton {
-    0%   { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
-  }
-
-  .empty-state {
-    position: relative; overflow: hidden;
-    border-radius: 24px;
-    padding: 4rem 1.5rem;
-    border: 1px solid rgba(255,255,255,.10);
-    background:
-      radial-gradient(circle at 50% 0%, rgba(99,102,241,.18) 0%, transparent 55%),
-      linear-gradient(180deg, rgba(16,16,22,.92), rgba(8,8,12,.98));
-    backdrop-filter: blur(32px) saturate(140%);
-    -webkit-backdrop-filter: blur(32px) saturate(140%);
-    text-align: center;
-  }
-  .empty-state .es-grid {
-    position: absolute; inset: 0; pointer-events: none; opacity: .18;
-    background-image:
-      linear-gradient(rgba(255,255,255,.06) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(255,255,255,.06) 1px, transparent 1px);
-    background-size: 32px 32px;
-    -webkit-mask-image: radial-gradient(circle at center, black 30%, transparent 75%);
-            mask-image: radial-gradient(circle at center, black 30%, transparent 75%);
-  }
-  .empty-state .es-glow {
-    position: absolute; left: 50%; top: -3.5rem; transform: translateX(-50%);
-    width: 22rem; height: 22rem; border-radius: 9999px;
-    pointer-events: none; filter: blur(64px);
-    animation: esGlow 6s ease-in-out infinite;
-  }
-  @keyframes esGlow {
-    0%, 100% { opacity: .55; transform: translateX(-50%) scale(1); }
-    50%      { opacity: .85; transform: translateX(-50%) scale(1.1); }
-  }
-  .empty-state .es-icon {
-    position: relative;
-    width: 5rem; height: 5rem; border-radius: 18px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 1.7rem;
-    margin: 0 auto 1.4rem;
-    border: 1px solid rgba(255,255,255,.14);
-    background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.02));
-    color: rgba(255,255,255,.78);
-    box-shadow: inset 0 1px 0 0 rgba(255,255,255,.10);
-  }
-  .empty-state .es-icon::before {
-    content: ""; position: absolute; inset: -8px;
-    border-radius: 22px; z-index: -1; pointer-events: none;
-    filter: blur(18px);
-  }
-  .empty-state.violet .es-glow { background: radial-gradient(circle, rgba(99,102,241,.55), transparent 60%); }
-  .empty-state.violet .es-icon { color: #C7D2FE; }
-  .empty-state.violet .es-icon::before { background: radial-gradient(circle, rgba(99,102,241,.55), transparent 70%); }
-  .empty-state.cyan   .es-glow { background: radial-gradient(circle, rgba(0,229,255,.45), transparent 60%); }
-  .empty-state.cyan   .es-icon { color: #A5F3FC; }
-  .empty-state.cyan   .es-icon::before { background: radial-gradient(circle, rgba(0,229,255,.45), transparent 70%); }
-  .empty-state.neon   .es-glow { background: radial-gradient(circle, rgba(255,70,85,.50), transparent 60%); }
-  .empty-state.neon   .es-icon { color: #FDA4AF; }
-  .empty-state.neon   .es-icon::before { background: radial-gradient(circle, rgba(255,70,85,.50), transparent 70%); }
-  .empty-state.gold   .es-glow { background: radial-gradient(circle, rgba(251,191,36,.40), transparent 60%); }
-  .empty-state.gold   .es-icon { color: #FDE68A; }
-  .empty-state.gold   .es-icon::before { background: radial-gradient(circle, rgba(251,191,36,.45), transparent 70%); }
-
-  .empty-state .es-cta {
-    display: inline-flex; align-items: center; gap: .5rem;
-    padding: .85rem 1.4rem; border-radius: 14px;
-    font-size: .75rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase;
-    color: #fff;
-    border: 1px solid rgba(255,255,255,.18);
-    background: linear-gradient(135deg, #6366F1, #8B5CF6);
-    box-shadow:
-      0 10px 32px -8px rgba(99,102,241,.65),
-      inset 0 1px 0 0 rgba(255,255,255,.18);
-    animation: esPulse 2.6s ease-in-out infinite;
-    transition: transform .2s ease, filter .2s ease, box-shadow .2s ease;
-  }
-  .empty-state .es-cta:hover {
-    transform: translateY(-2px); filter: brightness(1.10);
-    box-shadow:
-      0 14px 44px -8px rgba(99,102,241,.85),
-      inset 0 1px 0 0 rgba(255,255,255,.22);
-    animation-play-state: paused;
-  }
-  @keyframes esPulse {
-    0%, 100% { box-shadow: 0 10px 32px -8px rgba(99,102,241,.65), inset 0 1px 0 0 rgba(255,255,255,.18); }
-    50%      { box-shadow: 0 16px 48px -8px rgba(99,102,241,.95), 0 0 28px -4px rgba(139,92,246,.50), inset 0 1px 0 0 rgba(255,255,255,.22); }
-  }
+  /* Confirmation modal */
+  .modal-shell { position: fixed; inset: 0; background: rgba(0,0,0,.7); backdrop-filter: blur(8px); z-index: 90; display: flex; align-items: center; justify-content: center; padding: 1rem; }
+  .modal-card { max-width: 28rem; width: 100%; padding: 1.75rem; border-radius: 24px; background: linear-gradient(180deg, rgba(20,20,28,.95), rgba(10,10,15,.98)); border: 1px solid rgba(255,255,255,.10); box-shadow: 0 24px 64px -12px rgba(0,0,0,.8), 0 0 60px -10px rgba(0,229,255,.30); }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="arena-mesh"></div>
+<div class="grid-bg"></div>
+<div class="ambient-orbs"></div>
+<div class="scanline-overlay"></div>
 
-<main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-32">
+<main class="max-w-[1920px] mx-auto min-h-screen flex flex-col pt-6 pb-20 px-4 sm:px-6 lg:px-8 relative" id="main-app">
 
-  {# ── Hero ────────────────────────────────────────────────────────── #}
-  <header class="relative mb-10">
-    <div class="flex flex-col gap-3">
-      <span class="text-xs font-bold uppercase tracking-[0.25em] text-dc-textMuted">
-        DeltaCrown / Competitive Ecosystem
-      </span>
-      <h1 class="text-4xl sm:text-5xl font-black tracking-tight text-white">
-        Crown <span class="bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 via-fuchsia-400 to-amber-300">Arena</span>
-      </h1>
-      <p class="text-sm sm:text-base text-dc-textMuted max-w-2xl">
-        Skill-based DeltaCoin escrow — contracts, head-to-head clashes, hitlist bounties, and royale lobbies.
-        100&nbsp;% scam-free, every transaction held in our smart-lock vault.
-      </p>
-    </div>
-  </header>
+  {# ── HERO ───────────────────────────────────────────────────────────── #}
+  <section id="smart-hero" class="relative w-full rounded-[2.5rem] overflow-hidden glass-heavy mb-8 flex-shrink-0 transition-all duration-500 min-h-[340px] flex items-center border-t-2 border-t-dc-cyan/30">
+    <div id="hero-bg" class="absolute inset-0 z-0 opacity-40 mix-blend-screen bg-cover bg-center transition-all duration-700"
+         style="background-image: url('https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=2070&auto=format&fit=crop');"></div>
+    <div class="absolute inset-0 bg-gradient-to-r from-dc-bg via-dc-bg/95 to-transparent z-10"></div>
 
-  {# ── Tabs ────────────────────────────────────────────────────────── #}
-  <nav class="flex flex-wrap gap-2 mb-8" id="arena-tabs" role="tablist" aria-label="Crown Arena tabs">
-    <button class="tab-pill px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wide" data-tab="contracts" data-active="true">
-      📜 Crown Contracts
-    </button>
-    <button class="tab-pill px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wide" data-tab="clash" data-active="false">
-      ⚔️ Crown Clash
-    </button>
-    <button class="tab-pill px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wide" data-tab="hitlist" data-active="false">
-      🎯 The Hitlist
-    </button>
-    <button class="tab-pill px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wide" data-tab="royale" data-active="false">
-      👑 Crown Royale
-    </button>
-  </nav>
-
-  {# ── Panels ──────────────────────────────────────────────────────── #}
-  <section id="panel-contracts" class="arena-panel" data-active="true">
-    <div class="flex items-baseline justify-between mb-5">
-      <h2 class="text-lg font-black tracking-tight text-white">Contract Board</h2>
-      <span class="text-xs font-mono text-dc-textMuted" id="contracts-count"></span>
-    </div>
-    <div id="contracts-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"></div>
-  </section>
-
-  <section id="panel-clash" class="arena-panel hidden" data-active="false">
-    <div class="flex items-center justify-between flex-wrap gap-3 mb-5">
-      <div class="flex items-baseline gap-3">
-        <h2 class="text-lg font-black tracking-tight text-white">Open Clashes</h2>
-        <span class="text-xs font-mono text-dc-textMuted" id="clash-count"></span>
+    <div class="relative z-20 w-full px-8 md:px-16 lg:px-24 py-12 flex flex-col md:flex-row items-center justify-between gap-10">
+      <div class="max-w-3xl w-full">
+        <div class="inline-flex items-center gap-2 px-3 py-1 bg-dc-cyan/10 border border-dc-cyan/30 rounded-full mb-6">
+          <span class="w-2 h-2 rounded-full bg-dc-cyan animate-pulse"></span>
+          <span class="text-[10px] font-bold uppercase tracking-widest text-dc-cyan">Arena Live</span>
+        </div>
+        <h1 id="hero-title" class="font-display text-5xl md:text-7xl font-black text-white mb-4 leading-[1.1] tracking-tight uppercase">
+          Crown <span class="text-gradient-cyan">Arena</span>
+        </h1>
+        <p id="hero-desc" class="text-gray-400 text-base md:text-lg mb-8 max-w-2xl leading-relaxed font-medium">
+          Initializing competitive engine&hellip;
+        </p>
+        <div id="hero-actions" class="flex flex-wrap items-center gap-4"></div>
       </div>
-      <button type="button" class="btn-action btn-action-cyan" data-open-modal="create-clash">
-        <i class="fa-solid fa-bolt-lightning"></i>
-        <span>Issue a Crown Clash</span>
-      </button>
+      <div id="hero-visualizer" class="hidden lg:flex flex-col items-end justify-center w-72 flex-shrink-0"></div>
     </div>
-    <div id="clash-grid" class="grid grid-cols-1 md:grid-cols-2 gap-5"></div>
   </section>
 
-  <section id="panel-hitlist" class="arena-panel hidden" data-active="false">
-    <div class="flex items-center justify-between flex-wrap gap-3 mb-5">
-      <div class="flex items-baseline gap-3">
-        <h2 class="text-lg font-black tracking-tight text-white">The Hitlist &mdash; Beat the Kings</h2>
-        <span class="text-xs font-mono text-dc-textMuted" id="hitlist-count"></span>
+  {# ── 3-COLUMN ARENA CORE ────────────────────────────────────────────── #}
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 flex-grow relative" id="arena-core-grid">
+
+    {# ── LEFT COLUMN ─────────────────────────────────────────────── #}
+    <aside class="lg:col-span-3 flex flex-col gap-6" id="col-left">
+
+      {# Operating Entity #}
+      <div class="glass-heavy rounded-2xl p-6 relative overflow-hidden border-t-2 border-t-dc-violet group">
+        <div class="absolute -right-10 -top-10 w-32 h-32 bg-dc-violet opacity-20 blur-[40px] rounded-full group-hover:opacity-40 transition-opacity"></div>
+        <div class="flex justify-between items-center mb-5">
+          <h3 class="text-[10px] uppercase font-bold text-gray-500 tracking-widest flex items-center gap-2">
+            <i class="fa-solid fa-microchip"></i> Operating Entity
+          </h3>
+        </div>
+        <div id="context-identity-card" class="flex items-center gap-4 bg-white/5 p-3 rounded-xl border border-white/5 mb-5">
+          <div class="w-12 h-12 rounded-lg bg-gray-800 border border-white/10 overflow-hidden flex items-center justify-center" id="ctx-avatar">
+            <span class="text-dc-cyan font-bold text-sm" id="ctx-avatar-fallback">--</span>
+          </div>
+          <div class="flex-grow">
+            <p class="font-bold text-white text-sm leading-tight" id="ctx-name">--</p>
+            <p class="text-[10px] text-dc-cyan font-bold uppercase tracking-widest" id="ctx-role">--</p>
+          </div>
+        </div>
+        <div id="context-stats-grid" class="grid grid-cols-2 gap-3">
+          <div class="bg-black/40 rounded-lg p-3 border border-white/5">
+            <p class="text-[9px] text-gray-500 uppercase font-bold mb-1">Active Ops</p>
+            <p class="font-mono text-lg text-white font-bold" id="ctx-stat-1">--</p>
+          </div>
+          <div class="bg-black/40 rounded-lg p-3 border border-white/5">
+            <p class="text-[9px] text-gray-500 uppercase font-bold mb-1">Authority</p>
+            <p class="font-mono text-lg text-white font-bold" id="ctx-stat-2">--</p>
+          </div>
+        </div>
       </div>
-      <button type="button" class="btn-action btn-action-neon" data-open-modal="create-hitlist">
-        <i class="fa-solid fa-crosshairs"></i>
-        <span>Post a Hitlist Bounty</span>
-      </button>
-    </div>
-    <div id="hitlist-grid" class="grid grid-cols-1 md:grid-cols-2 gap-5"></div>
-  </section>
 
-  <section id="panel-royale" class="arena-panel hidden" data-active="false">
-    <div class="flex items-baseline justify-between mb-5">
-      <h2 class="text-lg font-black tracking-tight text-white">Royale Schedule</h2>
-      <span class="text-xs font-mono text-dc-textMuted" id="royale-count"></span>
-    </div>
-    <div id="royale-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"></div>
-  </section>
+      {# Financial Ledger #}
+      <div class="glass-heavy rounded-2xl p-6 border-t-2 border-t-dc-gold">
+        <div class="flex justify-between items-center mb-5">
+          <h3 class="text-[10px] uppercase font-bold text-gray-500 tracking-widest flex items-center gap-2">
+            <i class="fa-solid fa-vault"></i> Financial Ledger
+          </h3>
+          <i class="fa-solid fa-circle-info text-gray-600 text-xs"></i>
+        </div>
+        <div class="relative bg-gradient-to-br from-[#1a1a1a] to-[#0a0a0a] rounded-xl p-6 border border-dc-gold/20 overflow-hidden mb-4 shadow-[inset_0_0_20px_rgba(0,0,0,0.8)]">
+          <div class="relative z-10">
+            <p class="text-[10px] text-gray-400 uppercase tracking-widest mb-1 font-bold" id="wallet-type-label">Personal Wallet</p>
+            <div class="flex items-end gap-2 mb-2">
+              <i class="fa-solid fa-coins text-dc-gold text-2xl mb-1"></i>
+              <span class="font-display font-black text-4xl text-transparent bg-clip-text bg-gradient-to-b from-white to-gray-400" id="wallet-balance">--</span>
+              <span class="text-sm font-bold text-gray-500 mb-1.5">DC</span>
+            </div>
+          </div>
+        </div>
+        <div class="bg-black/40 rounded-lg p-3 border border-white/5 flex justify-between items-center mb-5">
+          <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded bg-white/5 flex items-center justify-center border border-white/10">
+              <i class="fa-solid fa-lock text-gray-400 text-xs"></i>
+            </div>
+            <div>
+              <p class="text-[10px] uppercase font-bold text-gray-500">Escrow Locked</p>
+              <p class="font-mono text-sm font-bold text-white" id="wallet-escrow">-- DC</p>
+            </div>
+          </div>
+          <a href="{% url 'economy:wallet_hub' %}" class="text-[10px] text-dc-cyan uppercase font-bold hover:underline">View Ledger</a>
+        </div>
+        <a href="{% url 'economy:wallet_hub' %}?tab=acquire" class="block w-full bg-white/5 hover:bg-white/10 border border-white/10 text-white py-3 rounded-lg text-xs font-bold uppercase tracking-widest text-center transition-all hover:border-white/30 no-underline">
+          Access Treasury
+        </a>
+      </div>
+
+      {# Active Operations #}
+      <div class="glass-heavy rounded-2xl p-6 flex-grow flex flex-col">
+        <div class="flex justify-between items-center mb-5">
+          <h3 class="text-[10px] uppercase font-bold text-gray-500 tracking-widest flex items-center gap-2">
+            <i class="fa-solid fa-bars-progress"></i> Active Operations
+          </h3>
+          <span class="bg-dc-cyan/20 border border-dc-cyan/30 text-dc-cyan text-[9px] px-2 py-0.5 rounded font-black tracking-widest" id="ops-count">-- RUNNING</span>
+        </div>
+        <div id="active-ops-container" class="space-y-3 flex-grow overflow-y-auto pr-1 min-h-[200px]">
+          <div class="text-center py-8 text-xs text-gray-600">Loading&hellip;</div>
+        </div>
+      </div>
+    </aside>
+
+    {# ── CENTER COLUMN ───────────────────────────────────────────── #}
+    <section class="lg:col-span-6 flex flex-col min-h-[800px]" id="col-center">
+
+      {# Search + game filter #}
+      <div class="glass-heavy rounded-2xl p-3 mb-4 flex flex-col sm:flex-row gap-3 z-30 relative border border-white/5">
+        <div class="relative flex-grow">
+          <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500"></i>
+          <input type="text" id="global-search" placeholder="Search teams, contracts, or players&hellip;"
+                 class="w-full bg-black/40 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-dc-cyan/50 focus:bg-black/60 transition-colors font-medium placeholder-gray-600">
+        </div>
+        <div class="flex items-center gap-1 bg-black/40 p-1 rounded-xl border border-white/10 overflow-x-auto hide-scrollbar" id="game-filter-bar">
+          <button class="game-filter-btn active px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider bg-white/10 text-white transition-all whitespace-nowrap" data-game="ALL">All</button>
+          {% for g in hub_context.games %}
+          <button class="game-filter-btn px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider text-gray-500 hover:text-white transition-all whitespace-nowrap" data-game="{{ g.short_code }}">{{ g.short_code }}</button>
+          {% endfor %}
+        </div>
+      </div>
+
+      {# Tab triggers #}
+      <div class="flex gap-2 mb-6 z-20 overflow-x-auto hide-scrollbar pb-2" id="tab-triggers">
+        <button class="tab-trigger active relative flex-1 min-w-[140px] glass-light border border-white/10 px-5 py-4 rounded-xl flex flex-col items-center justify-center transition-all group overflow-hidden" data-tab="clash">
+          <div class="absolute inset-0 bg-gradient-to-t from-dc-cyan/20 to-transparent opacity-100 transition-opacity"></div>
+          <i class="fa-solid fa-bolt text-xl mb-1.5 text-dc-cyan group-hover:scale-110 transition-transform relative z-10"></i>
+          <span class="font-bold text-sm tracking-wide text-white relative z-10">Crown Clash</span>
+        </button>
+        <button class="tab-trigger relative flex-1 min-w-[140px] glass-light border border-transparent px-5 py-4 rounded-xl flex flex-col items-center justify-center transition-all group overflow-hidden" data-tab="contracts">
+          <div class="absolute inset-0 bg-gradient-to-t from-dc-violet/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+          <i class="fa-solid fa-scroll text-xl mb-1.5 text-gray-500 group-hover:text-dc-violet transition-colors relative z-10"></i>
+          <span class="font-bold text-sm tracking-wide text-gray-400 group-hover:text-white relative z-10">Contract Board</span>
+        </button>
+        <button class="tab-trigger relative flex-1 min-w-[140px] glass-light border border-transparent px-5 py-4 rounded-xl flex flex-col items-center justify-center transition-all group overflow-hidden" data-tab="hitlist">
+          <div class="absolute inset-0 bg-gradient-to-t from-dc-neon/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+          <i class="fa-solid fa-crosshairs text-xl mb-1.5 text-gray-500 group-hover:text-dc-neon transition-colors relative z-10"></i>
+          <span class="font-bold text-sm tracking-wide text-gray-400 group-hover:text-white relative z-10">The Hitlist</span>
+        </button>
+        <button class="tab-trigger relative flex-1 min-w-[140px] glass-light border border-transparent px-5 py-4 rounded-xl flex flex-col items-center justify-center transition-all group overflow-hidden" data-tab="royale">
+          <div class="absolute inset-0 bg-gradient-to-t from-dc-gold/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+          <i class="fa-solid fa-crown text-xl mb-1.5 text-gray-500 group-hover:text-dc-gold transition-colors relative z-10"></i>
+          <span class="font-bold text-sm tracking-wide text-gray-400 group-hover:text-white relative z-10">Crown Royale</span>
+        </button>
+      </div>
+
+      {# Tab content container #}
+      <div class="relative flex-grow bg-black/20 rounded-3xl border border-white/5 p-1 overflow-hidden" id="tab-container-main">
+
+        <div id="tab-content-clash" class="tab-content active w-full h-full p-5 space-y-4">
+          <div class="flex justify-between items-end mb-4 border-b border-white/5 pb-4">
+            <div>
+              <h2 class="font-display text-2xl font-bold text-white flex items-center gap-2">
+                <span class="relative flex h-3 w-3 mr-1"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-dc-cyan opacity-75"></span><span class="relative inline-flex rounded-full h-3 w-3 bg-dc-cyan"></span></span>
+                Live Radar
+              </h2>
+              <p class="text-xs text-gray-400 mt-1">Open matchmaking lobbies. Acceptance locks funds instantly.</p>
+            </div>
+            <div id="clash-action-container"></div>
+          </div>
+          <div id="clash-feed" class="space-y-4 overflow-y-auto max-h-[600px] pr-2"></div>
+        </div>
+
+        <div id="tab-content-contracts" class="tab-content w-full h-full p-5 space-y-4">
+          <div class="flex justify-between items-end mb-4 border-b border-white/5 pb-4">
+            <div>
+              <h2 class="font-display text-2xl font-bold text-white flex items-center gap-2">
+                <i class="fa-solid fa-scroll text-dc-violet"></i> Mission Database
+              </h2>
+              <p class="text-xs text-gray-400 mt-1">Purchase contracts using personal DC. Complete in-game objectives to earn massive payouts.</p>
+            </div>
+          </div>
+          <div id="contracts-feed" class="grid grid-cols-1 md:grid-cols-2 gap-4 overflow-y-auto max-h-[600px] pr-2"></div>
+        </div>
+
+        <div id="tab-content-hitlist" class="tab-content w-full h-full p-5 space-y-4">
+          <div class="flex justify-between items-end mb-4 border-b border-white/5 pb-4">
+            <div>
+              <h2 class="font-display text-2xl font-bold text-white flex items-center gap-2">
+                <i class="fa-solid fa-skull text-dc-neon"></i> Bounties
+              </h2>
+              <p class="text-xs text-gray-400 mt-1">High-stakes asymmetrical challenges. Hunt the top teams or post a bounty on yourselves.</p>
+            </div>
+            <div id="hitlist-action-container"></div>
+          </div>
+          <div id="hitlist-feed" class="space-y-6 overflow-y-auto max-h-[600px] pr-2"></div>
+        </div>
+
+        <div id="tab-content-royale" class="tab-content w-full h-full p-5 space-y-4">
+          <div class="flex justify-between items-end mb-4 border-b border-white/5 pb-4">
+            <div>
+              <h2 class="font-display text-2xl font-bold text-white flex items-center gap-2">
+                <i class="fa-solid fa-crown text-dc-gold"></i> Crown Royale
+              </h2>
+              <p class="text-xs text-gray-400 mt-1">Scheduled paid Battle Royale lobbies. Room ID drops at match time.</p>
+            </div>
+          </div>
+          <div id="royale-feed" class="grid grid-cols-1 md:grid-cols-2 gap-4 overflow-y-auto max-h-[600px] pr-2"></div>
+        </div>
+
+      </div>
+    </section>
+
+    {# ── RIGHT COLUMN ────────────────────────────────────────────── #}
+    <aside class="lg:col-span-3 flex flex-col gap-6" id="col-right">
+      <div class="glass-heavy rounded-2xl p-6 border-t-2 border-t-dc-success">
+        <div class="flex justify-between items-center mb-5">
+          <h3 class="text-[10px] uppercase font-bold text-gray-500 tracking-widest flex items-center gap-2">
+            <i class="fa-solid fa-list-check"></i> Objectives Matrix
+          </h3>
+        </div>
+        <div id="objectives-feed" class="space-y-4">
+          <div class="text-center py-6 text-xs text-gray-600">No active objectives.</div>
+        </div>
+      </div>
+
+      <div class="glass-heavy rounded-2xl p-6 flex-grow flex flex-col border-t-2 border-t-gray-600">
+        <div class="flex justify-between items-center mb-5">
+          <h3 class="text-[10px] uppercase font-bold text-gray-500 tracking-widest flex items-center gap-2">
+            <i class="fa-solid fa-satellite-dish animate-pulse text-dc-cyan"></i> Live Telemetry
+          </h3>
+        </div>
+        <div class="flex-grow overflow-y-auto pr-1 relative" id="activity-feed">
+          <div class="space-y-5 pt-2 pb-4" id="telemetry-list">
+            <div class="text-center py-6 text-xs text-gray-600">Telemetry idle.</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </div>
 </main>
 
-{# ── Confirmation modal (escrow lock warning) ────────────────────── #}
-<div id="confirm-modal" class="modal-shell hidden" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
-  <div class="modal-card">
-    <div class="flex items-center justify-between mb-4">
-      <h3 id="confirm-title" class="text-base font-black text-white">Confirm action</h3>
-      <button class="text-dc-textMuted hover:text-white text-2xl leading-none" data-action="cancel-modal">&times;</button>
+{# ── Create Crown Clash slide-over ──────────────────────────────── #}
+<div id="slide-over-backdrop" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[70] hidden-spa opacity-0 transition-all duration-300"></div>
+
+<div id="slide-over-create-clash" class="fixed top-0 right-0 h-full w-full max-w-lg bg-[#08080c] border-l border-white/10 shadow-[-20px_0_50px_rgba(0,0,0,0.9)] z-[80] transform translate-x-full transition-transform duration-500 flex flex-col">
+  <div class="glass-heavy p-6 border-b border-white/10 flex justify-between items-center relative overflow-hidden flex-shrink-0">
+    <div class="absolute -right-10 -top-10 w-40 h-40 bg-dc-cyan opacity-20 blur-[50px] rounded-full pointer-events-none"></div>
+    <div>
+      <h2 class="font-display text-3xl font-black text-white uppercase tracking-wider flex items-center gap-3">
+        <i class="fa-solid fa-bolt text-dc-cyan"></i> Issue Clash
+      </h2>
+      <p class="text-xs text-gray-400 mt-1 font-medium tracking-wide">Configure match parameters and lock escrow.</p>
     </div>
-    <p id="confirm-body" class="text-sm text-dc-textMuted leading-relaxed mb-2">…</p>
-    <p id="confirm-lock" class="text-xs text-dc-gold font-mono mb-6">…</p>
-    <div class="flex gap-3 justify-end">
-      <button class="btn-ghost px-4 py-2 rounded-xl text-sm font-bold" data-action="cancel-modal">Cancel</button>
-      <button id="confirm-go" class="btn-cta px-5 py-2 rounded-xl text-sm">Confirm &amp; Lock</button>
-    </div>
+    <button type="button" data-close-slide="create-clash" class="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-gray-400 hover:text-white transition-colors border border-white/10 hover:border-white/30">
+      <i class="fa-solid fa-times text-lg"></i>
+    </button>
   </div>
-</div>
 
-{# ── Create Crown Clash modal ────────────────────────────────────── #}
-<div id="modal-create-clash" class="modal-shell hidden" role="dialog" aria-modal="true" aria-labelledby="create-clash-title">
-  <div class="modal-card modal-form">
-    <div class="flex items-center justify-between mb-4">
-      <div>
-        <div class="text-[10px] font-bold uppercase tracking-[0.22em] text-cyan-300/90 mb-1">Crown Arena</div>
-        <h3 id="create-clash-title" class="text-lg font-black text-white">Issue a Crown Clash</h3>
+  <form id="form-create-clash" class="flex-grow overflow-y-auto" novalidate>
+    <div class="p-8 space-y-6">
+      <div class="bg-dc-cyan/10 border border-dc-cyan/30 rounded-xl p-4 flex items-start gap-4">
+        <i class="fa-solid fa-shield-halved text-dc-cyan text-xl mt-1"></i>
+        <div>
+          <p class="text-sm text-white font-bold mb-1" id="so-acting-as">Acting as: --</p>
+          <p class="text-[10px] text-gray-400 leading-relaxed uppercase tracking-wider">Entry fee locks from your personal wallet on submit. Opponent's matching stake locks on accept.</p>
+        </div>
       </div>
-      <button type="button" class="text-dc-textMuted hover:text-white text-2xl leading-none" data-close-modal="create-clash">&times;</button>
-    </div>
 
-    <p class="text-xs text-dc-textMuted leading-relaxed mb-4">
-      Both sides lock the entry fee at the same moment the opponent accepts. Winner takes the pot minus a 5% platform fee.
-    </p>
-
-    <form id="form-create-clash" novalidate>
-      <div class="field-row">
-        <label class="field-label" for="clash-team">Your team</label>
+      <div>
+        <label class="block text-[10px] uppercase font-bold text-gray-500 tracking-widest mb-2">Your Team</label>
         <select id="clash-team" name="challenger_team_id" class="field-select" required></select>
       </div>
 
-      <div class="field-row">
-        <label class="field-label" for="clash-opponent">Opponent team</label>
-        <select id="clash-opponent" name="challenged_team_id" class="field-select"></select>
-        <div class="field-hint" id="clash-opponent-hint">Leave blank to publish as an open challenge any team can accept.</div>
+      <div>
+        <label class="text-[10px] uppercase font-bold text-gray-500 tracking-widest mb-2 flex justify-between">
+          <span>Target Opponent</span>
+          <span class="text-dc-cyan">Open Radar (Optional)</span>
+        </label>
+        <select id="clash-opponent" name="challenged_team_id" class="field-select">
+          <option value="">— Open challenge (any team may accept) —</option>
+        </select>
+        <p class="text-[10px] text-gray-500 mt-1.5" id="clash-opponent-hint">Leave blank to broadcast on the open radar.</p>
       </div>
 
-      <div class="field-row grid-2">
+      <div>
+        <label class="block text-[10px] uppercase font-bold text-gray-500 tracking-widest mb-2">Game</label>
+        <select id="clash-game" name="game_id" class="field-select" required></select>
+      </div>
+
+      <div class="grid grid-cols-2 gap-4">
         <div>
-          <label class="field-label" for="clash-game">Game</label>
-          <select id="clash-game" name="game_id" class="field-select" required></select>
-        </div>
-        <div>
-          <label class="field-label" for="clash-format">Format</label>
+          <label class="block text-[10px] uppercase font-bold text-gray-500 tracking-widest mb-2">Match Format</label>
           <select id="clash-format" name="best_of" class="field-select">
             <option value="1">BO1 — Single map</option>
             <option value="3" selected>BO3 — Best of 3</option>
@@ -578,105 +477,127 @@
             <option value="7">BO7 — Best of 7</option>
           </select>
         </div>
+        <div>
+          <label class="block text-[10px] uppercase font-bold text-gray-500 tracking-widest mb-2">Headline</label>
+          <input id="clash-title" name="title" type="text" maxlength="120" placeholder="Friday Night Showdown" class="field-input" required>
+        </div>
       </div>
 
-      <div class="field-row grid-2">
-        <div>
-          <label class="field-label" for="clash-fee">Entry fee (DC)</label>
-          <input id="clash-fee" name="entry_fee_dc" type="number" min="1" max="1000" step="1"
-                 placeholder="100" class="field-input" required>
-          <div class="field-hint">Anti-whale cap: <strong class="text-amber-300">1,000 DC</strong> per side.</div>
+      <div class="bg-gradient-to-br from-[#1a1a10] to-black p-5 rounded-xl border border-dc-gold/30 relative overflow-hidden mt-8 shadow-[0_10px_30px_-10px_rgba(255,215,0,0.1)]">
+        <div class="absolute -left-10 -bottom-10 w-32 h-32 bg-dc-gold opacity-10 blur-2xl rounded-full pointer-events-none"></div>
+        <div class="flex justify-between items-end mb-4 relative z-10">
+          <label class="block text-[10px] uppercase font-bold text-dc-gold tracking-widest">Entry Fee (Per Team)</label>
+          <span class="text-[10px] uppercase font-bold text-gray-500 bg-black/50 px-2 py-1 rounded border border-white/10" id="so-wallet-bal">Bal: -- DC</span>
         </div>
-        <div>
-          <label class="field-label" for="clash-title">Title</label>
-          <input id="clash-title" name="title" type="text" maxlength="120"
-                 placeholder="Friday Night Showdown" class="field-input" required>
+        <div class="relative flex items-center mb-4 z-10">
+          <i class="fa-solid fa-coins absolute left-4 text-dc-gold text-xl z-10"></i>
+          <input id="clash-fee" name="entry_fee_dc" type="number" min="1" max="1000" step="1" value="300"
+                 class="field-input pl-12 font-display font-black text-3xl !text-white border-dc-gold/50 focus:border-dc-gold" required>
+        </div>
+        <p class="text-[10px] text-gray-500 mb-3 relative z-10">Anti-whale cap: <strong class="text-dc-gold">1,000 DC</strong> per side.</p>
+        <div class="bg-black/40 border border-white/5 p-3 rounded-lg flex justify-between items-center relative z-10">
+          <div class="flex items-center gap-2">
+            <div class="w-6 h-6 rounded-full bg-dc-gold/20 flex items-center justify-center border border-dc-gold/40">
+              <i class="fa-solid fa-trophy text-[10px] text-dc-gold"></i>
+            </div>
+            <span class="text-xs font-bold text-gray-300 uppercase tracking-widest">Total Prize Pot</span>
+          </div>
+          <span class="text-dc-gold font-display font-black text-2xl" id="clash-pot-display"><i class="fa-solid fa-coins text-sm mr-1"></i>600</span>
         </div>
       </div>
 
       <div id="clash-form-error" class="form-error hidden" role="alert"></div>
-
-      <div class="flex items-center justify-between gap-3 mt-5">
-        <span class="text-[11px] font-mono text-dc-textMuted" id="clash-pot-hint">Pot: 0 DC</span>
-        <div class="flex gap-2">
-          <button type="button" class="btn-ghost px-4 py-2 rounded-xl text-sm font-bold" data-close-modal="create-clash">Cancel</button>
-          <button type="submit" class="btn-cta px-5 py-2 rounded-xl text-sm" id="clash-submit">
-            <span class="submit-label">Issue Clash</span>
-            <i class="fa-solid fa-bolt-lightning ml-1.5 text-[10px]"></i>
-          </button>
-        </div>
-      </div>
-    </form>
-  </div>
-</div>
-
-{# ── Post Hitlist Bounty modal ───────────────────────────────────── #}
-<div id="modal-create-hitlist" class="modal-shell hidden" role="dialog" aria-modal="true" aria-labelledby="create-hitlist-title">
-  <div class="modal-card modal-form">
-    <div class="flex items-center justify-between mb-4">
-      <div>
-        <div class="text-[10px] font-bold uppercase tracking-[0.22em] text-rose-300/90 mb-1">The Hitlist</div>
-        <h3 id="create-hitlist-title" class="text-lg font-black text-white">Post a Hitlist Bounty</h3>
-      </div>
-      <button type="button" class="text-dc-textMuted hover:text-white text-2xl leading-none" data-close-modal="create-hitlist">&times;</button>
     </div>
 
-    <p class="text-xs text-dc-textMuted leading-relaxed mb-4">
-      Stake a reward on your own head. Challengers pay an entry fee per attempt. Beat them and you keep the entry fee. Lose and the challenger takes your reward.
-    </p>
+    <div class="p-6 border-t border-white/10 bg-[#050508] flex-shrink-0 sticky bottom-0">
+      <button type="submit" id="clash-submit" class="btn-cyber w-full bg-dc-cyan text-black font-black uppercase tracking-widest py-4 transition-all shadow-[0_0_20px_rgba(0,229,255,0.3)] hover:shadow-[0_0_30px_rgba(0,229,255,0.5)] flex justify-center items-center gap-3 text-lg">
+        <i class="fa-solid fa-lock"></i>
+        <span class="submit-label">Lock <span id="submit-btn-amt">300</span> DC &amp; Issue</span>
+      </button>
+      <p class="text-[9px] text-gray-500 text-center mt-4 uppercase tracking-widest font-mono">Platform fee (5%) deducted only from winning pot.</p>
+    </div>
+  </form>
+</div>
 
-    <form id="form-create-hitlist" novalidate>
-      <div class="field-row">
-        <label class="field-label" for="hitlist-team">Your team (issuer)</label>
+{# ── Post Hitlist Bounty slide-over ─────────────────────────────── #}
+<div id="slide-over-create-hitlist" class="fixed top-0 right-0 h-full w-full max-w-lg bg-[#08080c] border-l border-white/10 shadow-[-20px_0_50px_rgba(0,0,0,0.9)] z-[80] transform translate-x-full transition-transform duration-500 flex flex-col">
+  <div class="glass-heavy p-6 border-b border-white/10 flex justify-between items-center relative overflow-hidden flex-shrink-0">
+    <div class="absolute -right-10 -top-10 w-40 h-40 bg-dc-neon opacity-20 blur-[50px] rounded-full pointer-events-none"></div>
+    <div>
+      <h2 class="font-display text-3xl font-black text-white uppercase tracking-wider flex items-center gap-3">
+        <i class="fa-solid fa-skull text-dc-neon"></i> Post Bounty
+      </h2>
+      <p class="text-xs text-gray-400 mt-1 font-medium tracking-wide">Stake a reward on your own head. Challengers hunt you for the prize.</p>
+    </div>
+    <button type="button" data-close-slide="create-hitlist" class="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-gray-400 hover:text-white transition-colors border border-white/10 hover:border-white/30">
+      <i class="fa-solid fa-times text-lg"></i>
+    </button>
+  </div>
+
+  <form id="form-create-hitlist" class="flex-grow overflow-y-auto" novalidate>
+    <div class="p-8 space-y-6">
+      <div>
+        <label class="block text-[10px] uppercase font-bold text-gray-500 tracking-widest mb-2">Your Team (Issuer)</label>
         <select id="hitlist-team" name="issuer_team_id" class="field-select" required></select>
       </div>
-
-      <div class="field-row">
-        <label class="field-label" for="hitlist-game">Game</label>
+      <div>
+        <label class="block text-[10px] uppercase font-bold text-gray-500 tracking-widest mb-2">Game</label>
         <select id="hitlist-game" name="game_id" class="field-select" required></select>
       </div>
-
-      <div class="field-row">
-        <label class="field-label" for="hitlist-title">Bounty headline</label>
-        <input id="hitlist-title" name="title" type="text" maxlength="120"
-               placeholder="Can You Beat the Kings?" class="field-input" required>
+      <div>
+        <label class="block text-[10px] uppercase font-bold text-gray-500 tracking-widest mb-2">Bounty Headline</label>
+        <input id="hitlist-title" name="title" type="text" maxlength="120" placeholder="Can You Beat the Kings?" class="field-input" required>
       </div>
-
-      <div class="field-row grid-2">
-        <div>
-          <label class="field-label" for="hitlist-reward">Reward (DC)</label>
-          <input id="hitlist-reward" name="reward_amount_dc" type="number" min="1" step="1"
-                 placeholder="1000" class="field-input" required>
-          <div class="field-hint">Locked from your wallet at post time.</div>
-        </div>
-        <div>
-          <label class="field-label" for="hitlist-entry">Challenger entry fee (DC)</label>
-          <input id="hitlist-entry" name="challenger_entry_fee_dc" type="number" min="1" max="1000" step="1"
-                 placeholder="200" class="field-input" required>
-          <div class="field-hint">Cap: <strong class="text-amber-300">1,000 DC</strong> per challenger.</div>
+      <div class="bg-gradient-to-br from-[#1a0a0e] to-black p-5 rounded-xl border border-dc-neon/30 relative overflow-hidden mt-2 shadow-[0_10px_30px_-10px_rgba(255,0,85,0.1)]">
+        <div class="absolute -right-10 -bottom-10 w-32 h-32 bg-dc-neon opacity-10 blur-2xl rounded-full pointer-events-none"></div>
+        <div class="grid grid-cols-2 gap-4 relative z-10">
+          <div>
+            <label class="block text-[10px] uppercase font-bold text-dc-neon tracking-widest mb-2">Reward (DC)</label>
+            <input id="hitlist-reward" name="reward_amount_dc" type="number" min="1" step="1" value="1000" placeholder="1000" class="field-input" required>
+            <p class="text-[10px] text-gray-500 mt-1.5">Locked from your wallet immediately.</p>
+          </div>
+          <div>
+            <label class="block text-[10px] uppercase font-bold text-dc-gold tracking-widest mb-2">Challenger Entry (DC)</label>
+            <input id="hitlist-entry" name="challenger_entry_fee_dc" type="number" min="1" max="1000" step="1" value="200" placeholder="200" class="field-input" required>
+            <p class="text-[10px] text-gray-500 mt-1.5">Cap: 1,000 DC.</p>
+          </div>
         </div>
       </div>
-
       <div id="hitlist-form-error" class="form-error hidden" role="alert"></div>
+    </div>
 
-      <div class="flex items-center justify-end gap-2 mt-5">
-        <button type="button" class="btn-ghost px-4 py-2 rounded-xl text-sm font-bold" data-close-modal="create-hitlist">Cancel</button>
-        <button type="submit" class="btn-cta px-5 py-2 rounded-xl text-sm" id="hitlist-submit">
-          <span class="submit-label">Post Bounty</span>
-          <i class="fa-solid fa-crosshairs ml-1.5 text-[10px]"></i>
-        </button>
-      </div>
-    </form>
+    <div class="p-6 border-t border-white/10 bg-[#050508] flex-shrink-0 sticky bottom-0">
+      <button type="submit" id="hitlist-submit" class="btn-cyber w-full bg-dc-neon text-white font-black uppercase tracking-widest py-4 transition-all shadow-[0_0_20px_rgba(255,0,85,0.3)] hover:shadow-[0_0_30px_rgba(255,0,85,0.5)] flex justify-center items-center gap-3 text-lg">
+        <i class="fa-solid fa-skull"></i>
+        <span class="submit-label">Lock Reward &amp; Post Bounty</span>
+      </button>
+    </div>
+  </form>
+</div>
+
+{# ── Escrow confirmation modal ──────────────────────────────────── #}
+<div id="confirm-modal" class="modal-shell hidden-spa" role="dialog" aria-modal="true">
+  <div class="modal-card">
+    <div class="flex items-center justify-between mb-4">
+      <h3 id="confirm-title" class="text-base font-black text-white">Confirm action</h3>
+      <button type="button" class="text-gray-400 hover:text-white text-2xl leading-none" data-cancel-confirm>&times;</button>
+    </div>
+    <p id="confirm-body" class="text-sm text-gray-400 leading-relaxed mb-2">…</p>
+    <p id="confirm-lock" class="text-xs text-dc-gold font-mono mb-6 font-bold">…</p>
+    <div class="flex gap-3 justify-end">
+      <button type="button" class="px-4 py-2 rounded-xl text-sm font-bold bg-white/5 border border-white/10 text-white hover:bg-white/10" data-cancel-confirm>Cancel</button>
+      <button type="button" id="confirm-go" class="btn-cyber px-5 py-2 bg-dc-cyan text-black text-sm font-black uppercase tracking-widest">Confirm &amp; Lock</button>
+    </div>
   </div>
 </div>
 
-{# ── Toast shelf ─────────────────────────────────────────────────── #}
-<div id="toast-shelf" class="toast-shelf"></div>
+{# ── Toast shelf ────────────────────────────────────────────────── #}
+<div id="toast-container" class="fixed bottom-6 right-6 z-[100] flex flex-col gap-3 pointer-events-none"></div>
 
 {{ hub_context|json_script:"hub-context" }}
 
 {% endblock %}
 
 {% block extra_js %}
-<script defer src="{% static 'dashboard/competitive-hub.js' %}?v=20260507-1"></script>
+<script defer src="{% static 'dashboard/competitive-hub.js' %}?v=20260508-1"></script>
 {% endblock %}

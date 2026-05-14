@@ -226,7 +226,206 @@ def _resolve_hub_view_mode(request, tournament, registration):
     }
 
 
-def _is_registration_verified_for_critical_actions(registration, tournament):
+def _get_verification_policy(tournament):
+    config = tournament.config if isinstance(tournament.config, dict) else {}
+    return config.get('verification_policy') if isinstance(config.get('verification_policy'), dict) else {}
+
+
+def _free_entry_requires_team_verification(tournament):
+    policy = _get_verification_policy(tournament)
+    return bool(policy.get('free_entry_requires_team_verification', False))
+
+
+def _resolve_solo_ready_state(tournament, registration):
+    if not registration:
+        return False
+
+    reg_data = registration.registration_data or {}
+    custom_fields = reg_data.get('custom_fields') if isinstance(reg_data.get('custom_fields'), dict) else {}
+    game_id = (
+        reg_data.get('game_id')
+        or reg_data.get('in_game_id')
+        or custom_fields.get('in_game_id')
+        or custom_fields.get('game_id')
+        or ''
+    )
+    if str(game_id).strip():
+        return True
+
+    user = getattr(registration, 'user', None)
+    if user and tournament.game:
+        try:
+            from apps.user_profile.services.game_passport_service import GamePassportService
+
+            passport = GamePassportService.get_passport(user, tournament.game.slug)
+            return bool(passport and passport.ign)
+        except Exception:
+            return False
+
+    return False
+
+
+def _resolve_team_ready_state(tournament, registration):
+    if not registration:
+        return False
+
+    try:
+        from apps.games.services import game_service
+
+        rl = game_service.get_roster_limits(tournament.game)
+        min_roster = rl.get('min_team_size', 1)
+    except Exception:
+        min_roster = 1
+
+    snapshot = registration.lineup_snapshot or []
+    if isinstance(snapshot, list) and snapshot:
+        user_ids = [e.get('user_id') for e in snapshot if e.get('user_id')]
+        passport_map = {}
+        if tournament.game and user_ids:
+            try:
+                from apps.user_profile.services.game_passport_service import GamePassportService
+
+                passport_map = GamePassportService.get_passports_bulk(user_ids, tournament.game.slug)
+            except Exception:
+                passport_map = {}
+
+        starters = 0
+        missing_game = False
+        for entry in snapshot:
+            slot = str(entry.get('roster_slot') or 'STARTER').upper()
+            if slot in ('STARTER', ''):
+                starters += 1
+            elif slot != 'SUBSTITUTE':
+                continue
+
+            game_id = (entry.get('game_id') or entry.get('ign') or '').strip()
+            if not game_id:
+                uid = entry.get('user_id')
+                passport = passport_map.get(uid) if uid else None
+                if passport and passport.ign:
+                    game_id = passport.ign
+            if slot in ('STARTER', 'SUBSTITUTE') and not game_id:
+                missing_game = True
+
+        if starters < min_roster:
+            return False
+        if missing_game:
+            return False
+        return True
+
+    if not registration.team_id:
+        return False
+
+    from apps.organizations.models import TeamMembership
+
+    members = TeamMembership.objects.filter(
+        team_id=registration.team_id,
+        status=TeamMembership.Status.ACTIVE,
+    )
+    user_ids = [m.user_id for m in members]
+    passport_map = {}
+    if tournament.game and user_ids:
+        try:
+            from apps.user_profile.services.game_passport_service import GamePassportService
+
+            passport_map = GamePassportService.get_passports_bulk(user_ids, tournament.game.slug)
+        except Exception:
+            passport_map = {}
+
+    starters = 0
+    missing_game = False
+    for m in members:
+        slot = m.roster_slot or 'STARTER'
+        if m.role in ('HEAD_COACH', 'COACH'):
+            slot = 'COACH'
+        elif m.role == 'MANAGER' and m.roster_slot:
+            slot = m.roster_slot
+        slot = str(slot or '').upper()
+
+        if slot in ('STARTER', ''):
+            starters += 1
+        if slot in ('STARTER', 'SUBSTITUTE'):
+            passport = passport_map.get(m.user_id)
+            if not (passport and passport.ign):
+                missing_game = True
+
+    if starters < min_roster:
+        return False
+    if missing_game:
+        return False
+    return True
+
+
+def _resolve_free_entry_ready_state(tournament, registration, roster_ready=None, solo_ready=None):
+    if not _free_entry_requires_team_verification(tournament):
+        return True
+
+    is_team = tournament.participation_type == Tournament.TEAM
+    if is_team:
+        if roster_ready is None:
+            roster_ready = _resolve_team_ready_state(tournament, registration)
+        return bool(roster_ready)
+
+    if solo_ready is None:
+        solo_ready = _resolve_solo_ready_state(tournament, registration)
+    return bool(solo_ready)
+
+
+def _resolve_squad_comms_link(registration, team=None):
+    reg_data = registration.registration_data if registration else {}
+
+    def _clean(value):
+        return str(value or '').strip()
+
+    url = _clean(reg_data.get('discord_url'))
+    if url:
+        return url, 'Discord'
+
+    url = _clean(reg_data.get('comms_url'))
+    if url:
+        return url, 'Comms'
+
+    channels = reg_data.get('communication_channels')
+    if isinstance(channels, dict):
+        for key, value in channels.items():
+            url = _clean(value)
+            if url:
+                label = str(key or 'Comms').replace('_', ' ').title()
+                return url, label
+    if isinstance(channels, list):
+        for entry in channels:
+            if not isinstance(entry, dict):
+                continue
+            url = _clean(entry.get('url') or entry.get('link'))
+            if url:
+                label = entry.get('label') or entry.get('platform') or 'Comms'
+                return url, str(label)
+
+    if team:
+        url = _clean(getattr(team, 'discord_url', '') or getattr(team, 'comms_url', ''))
+        if url:
+            label = 'Discord' if _clean(getattr(team, 'discord_url', '')) else 'Comms'
+            return url, label
+
+    return '', ''
+
+
+def _build_missing_id_reminder(display_name, tournament_name, settings_url, hub_url, profile_url=''):
+    safe_name = str(display_name or 'player').strip()
+    safe_tournament = str(tournament_name or 'the tournament').strip()
+    lines = [
+        f"Hey {safe_name}, your Game ID is missing for {safe_tournament}.",
+        f"Please add your Game Passport here: {settings_url}.",
+    ]
+    if profile_url:
+        lines.append(f"Public passport page: {profile_url}.")
+    if hub_url:
+        lines.append(f"Return to the Hub to confirm: {hub_url}.")
+    lines.append("Let the captain know once it is updated.")
+    return " ".join(lines)
+
+
+def _is_registration_verified_for_critical_actions(registration, tournament, *, roster_ready=None, solo_ready=None):
     """Return True if critical Hub actions should be unlocked for this registration."""
     if not registration:
         return False
@@ -238,12 +437,17 @@ def _is_registration_verified_for_critical_actions(registration, tournament):
         return False
 
     if not tournament.has_entry_fee:
-        return True
+        return _resolve_free_entry_ready_state(
+            tournament,
+            registration,
+            roster_ready=roster_ready,
+            solo_ready=solo_ready,
+        )
 
     return False
 
 
-def _critical_lock_reason(registration, tournament):
+def _critical_lock_reason(registration, tournament, *, roster_ready=None, solo_ready=None):
     if not registration:
         return 'Registration required before critical actions are available.'
 
@@ -253,6 +457,19 @@ def _critical_lock_reason(registration, tournament):
         return 'You are currently on the waitlist. Full Hub actions unlock after call-up.'
 
     if not tournament.has_entry_fee:
+        if _free_entry_requires_team_verification(tournament):
+            is_team = tournament.participation_type == Tournament.TEAM
+            if is_team:
+                if roster_ready is None:
+                    roster_ready = _resolve_team_ready_state(tournament, registration)
+                if not roster_ready:
+                    return 'Roster verification required. Add starters and complete missing Game IDs to unlock Hub actions.'
+            else:
+                if solo_ready is None:
+                    solo_ready = _resolve_solo_ready_state(tournament, registration)
+                if not solo_ready:
+                    return 'Game ID verification required. Add your game passport to unlock Hub actions.'
+
         status_map = {
             Registration.NEEDS_REVIEW: 'Your registration is under manual review. Critical actions are locked for now.',
             Registration.SUBMITTED: 'Your registration submission is still processing. Critical actions are locked.',
@@ -276,17 +493,33 @@ def _critical_lock_reason(registration, tournament):
     return status_map.get(registration.status, 'Critical actions are currently locked for this registration state.')
 
 
-def _critical_actions_locked(user, tournament, registration):
+def _critical_actions_locked(user, tournament, registration, *, roster_ready=None, solo_ready=None):
     if _is_tournament_staff_or_organizer(user, tournament):
         return False
-    return not _is_registration_verified_for_critical_actions(registration, tournament)
+    return not _is_registration_verified_for_critical_actions(
+        registration,
+        tournament,
+        roster_ready=roster_ready,
+        solo_ready=solo_ready,
+    )
 
 
-def _forbidden_if_critical_locked(request, tournament, registration):
-    if _critical_actions_locked(request.user, tournament, registration):
+def _forbidden_if_critical_locked(request, tournament, registration, *, roster_ready=None, solo_ready=None):
+    if _critical_actions_locked(
+        request.user,
+        tournament,
+        registration,
+        roster_ready=roster_ready,
+        solo_ready=solo_ready,
+    ):
         return JsonResponse({
             'error': 'critical_actions_locked',
-            'reason': _critical_lock_reason(registration, tournament),
+            'reason': _critical_lock_reason(
+                registration,
+                tournament,
+                roster_ready=roster_ready,
+                solo_ready=solo_ready,
+            ),
         }, status=403)
     return None
 
@@ -340,9 +573,10 @@ def _build_hub_announcements(
     limit = max(1, int(limit or 20))
     offset = max(0, int(offset or 0))
 
+    fetch_limit = max(1, limit + offset)
     toc_rows = TournamentAnnouncement.objects.filter(
         tournament=tournament,
-    ).select_related('created_by').order_by('-created_at', '-id')[offset:offset + limit]
+    ).select_related('created_by').order_by('-created_at', '-id')[:fetch_limit]
 
     for row in toc_rows:
         visuals = _announcement_visuals_from_text(row.title, row.message, row.is_important)
@@ -360,6 +594,37 @@ def _build_hub_announcements(
             'sort_ts': (row.created_at.timestamp() if row.created_at else 0),
             'time_ago': _time_ago(row.created_at, now) if row.created_at else '',
         })
+
+    if user and getattr(user, 'is_authenticated', False):
+        alert_qs = Notification.objects.filter(
+            recipient=user,
+            tournament_id=tournament.id,
+            event='toc_alert',
+        ).order_by('-created_at')[:10]
+
+        for alert in alert_qs:
+            title_text = (getattr(alert, 'title', '') or 'TOC Alert').strip()
+            body_text = (
+                (getattr(alert, 'body', '') or '').strip()
+                or (getattr(alert, 'message', '') or '').strip()
+            )
+            is_important = str(getattr(alert, 'priority', '')).upper() in ('HIGH', 'CRITICAL')
+            visuals = _announcement_visuals_from_text(title_text, body_text, is_important)
+            items.append({
+                'id': f'alert-{alert.id}',
+                'title': title_text,
+                'message': body_text,
+                'type': visuals['type'],
+                'icon': visuals['icon'],
+                'symbol': visuals['symbol'],
+                'is_pinned': False,
+                'is_important': is_important,
+                'posted_by': 'Organizer',
+                'created_at': alert.created_at.isoformat() if alert.created_at else None,
+                'sort_ts': (alert.created_at.timestamp() if alert.created_at else 0),
+                'time_ago': _time_ago(alert.created_at, now) if alert.created_at else '',
+                'scope': 'personal',
+            })
 
     # Append derived lifecycle events (global + personal) only for SSR strips.
     if include_derived:
@@ -440,8 +705,8 @@ def _build_hub_announcements(
     items.sort(key=_announcement_sort_tuple, reverse=True)
 
     if include_derived:
-        return items[:limit + 20]  # allow extra rows for lifecycle strips
-    return items[:limit]
+        return items[offset:offset + limit + 20]  # allow extra rows for lifecycle strips
+    return items[offset:offset + limit]
 
 
 def _format_currency_amount(value):
@@ -1456,7 +1721,49 @@ def _build_hub_context(request, tournament, registration, query_suffix='', is_st
     # ── Roster / Squad ──────────────────────────────────
     squad = []
     squad_warnings = []
+    squad_missing_members = []
+    squad_missing_user_ids = set()
     igl_user_id = None
+    settings_url = request.build_absolute_uri('/me/settings/#passports')
+    hub_url = request.build_absolute_uri(
+        reverse('tournaments:tournament_hub', kwargs={'slug': tournament.slug})
+    )
+
+    def _append_missing_warning(member_data):
+        user_id = member_data.get('user_id')
+        if not user_id:
+            return
+
+        roster_slot = str(member_data.get('roster_slot') or '').upper()
+        if roster_slot not in ('STARTER', 'SUBSTITUTE'):
+            return
+
+        display_name = member_data.get('display_name') or member_data.get('username') or 'Player'
+        username = member_data.get('username') or ''
+        passport_url = f"/@{username}/#passports" if username else ''
+        reminder_text = _build_missing_id_reminder(
+            display_name,
+            tournament.name,
+            settings_url,
+            hub_url,
+            request.build_absolute_uri(passport_url) if passport_url else '',
+        )
+
+        warning = {
+            'message': 'Missing Game ID',
+            'user_id': user_id,
+            'membership_id': member_data.get('id') or 0,
+            'username': username,
+            'display_name': display_name,
+            'roster_slot': roster_slot,
+            'passport_url': passport_url,
+            'reminder_text': reminder_text,
+        }
+
+        squad_warnings.append(warning)
+        if user_id not in squad_missing_user_ids:
+            squad_missing_user_ids.add(user_id)
+            squad_missing_members.append(warning)
     if is_team and registration and registration.team_id:
         # Prefer lineup_snapshot from registration (frozen at registration time)
         lineup_snapshot = getattr(registration, 'lineup_snapshot', None) or []
@@ -1510,8 +1817,8 @@ def _build_hub_context(request, tournament, registration, query_suffix='', is_st
                 member_data = {
                     'id': tm.id if tm else 0,
                     'user_id': user_id,
-                    'username': entry.get('username', ''),
-                    'display_name': entry.get('display_name', '') or entry.get('username', 'Unknown'),
+                    'username': entry.get('username', '') or (user_obj.username if user_obj else ''),
+                    'display_name': entry.get('display_name', '') or entry.get('username', '') or (user_obj.username if user_obj else 'Unknown'),
                     'role': entry.get('role', 'PLAYER'),
                     'player_role': entry.get('player_role', ''),
                     'roster_slot': entry.get('roster_slot', 'STARTER'),
@@ -1522,10 +1829,8 @@ def _build_hub_context(request, tournament, registration, query_suffix='', is_st
                 }
                 squad.append(member_data)
 
-                if not has_passport and member_data['roster_slot'] in ('STARTER', 'SUBSTITUTE'):
-                    squad_warnings.append(
-                        f"{member_data['display_name']} is missing their Game ID"
-                    )
+                if not has_passport:
+                    _append_missing_warning(member_data)
         else:
             # ── Fallback: live TeamMembership (no snapshot) ──
             for m in members:
@@ -1566,10 +1871,8 @@ def _build_hub_context(request, tournament, registration, query_suffix='', is_st
                 }
                 squad.append(member_data)
 
-                if not has_passport and effective_roster_slot in ('STARTER', 'SUBSTITUTE'):
-                    squad_warnings.append(
-                        f"{member_data['display_name']} is missing their Game ID"
-                    )
+                if not has_passport:
+                    _append_missing_warning(member_data)
 
     # ── Game info ────────────────────────────────────────
     game_spec = None
@@ -1630,6 +1933,9 @@ def _build_hub_context(request, tournament, registration, query_suffix='', is_st
             igl_info = {'name': captain_member['display_name'], 'user_id': captain_igl_user_id}
 
     squad_ready = len(starters) >= min_roster and not squad_warnings
+    solo_ready = None
+    if registration and not is_team:
+        solo_ready = _resolve_solo_ready_state(tournament, registration)
 
     # ── Announcements ────────────────────────────────────
     announcements_with_lifecycle = _build_hub_announcements(
@@ -1654,9 +1960,31 @@ def _build_hub_context(request, tournament, registration, query_suffix='', is_st
     # ── User status label ────────────────────────────────
     user_status = _registration_status_label(registration, check_in)
 
-    hub_critical_locked = _critical_actions_locked(request.user, tournament, registration)
-    hub_payment_verified = _is_registration_verified_for_critical_actions(registration, tournament) if registration else False
-    hub_lock_reason = _critical_lock_reason(registration, tournament) if hub_critical_locked else ''
+    hub_critical_locked = _critical_actions_locked(
+        request.user,
+        tournament,
+        registration,
+        roster_ready=squad_ready if is_team else None,
+        solo_ready=solo_ready,
+    )
+    hub_payment_verified = (
+        _is_registration_verified_for_critical_actions(
+            registration,
+            tournament,
+            roster_ready=squad_ready if is_team else None,
+            solo_ready=solo_ready,
+        )
+        if registration else False
+    )
+    hub_lock_reason = (
+        _critical_lock_reason(
+            registration,
+            tournament,
+            roster_ready=squad_ready if is_team else None,
+            solo_ready=solo_ready,
+        )
+        if hub_critical_locked else ''
+    )
 
     # ── Status detail for modal ──────────────────────────
     status_detail = _build_status_detail(registration, check_in, tournament, now)
@@ -1814,6 +2142,8 @@ def _build_hub_context(request, tournament, registration, query_suffix='', is_st
 
         # Check if current user is captain/IGL
         is_captain = any(m['user_id'] == user.id and m['is_captain_igl'] for m in squad)
+
+    squad_comms_link, squad_comms_label = _resolve_squad_comms_link(registration, team=team)
 
     # ── Registration metadata (IGL / Coordinator) ─────
     registered_by_name = ''
@@ -1990,6 +2320,9 @@ def _build_hub_context(request, tournament, registration, query_suffix='', is_st
         'subs': subs,
         'coaches': coaches,
         'squad_warnings': squad_warnings,
+        'squad_missing_members': squad_missing_members,
+        'squad_comms_link': squad_comms_link,
+        'squad_comms_label': squad_comms_label,
         'squad_ready': squad_ready,
         'min_roster': min_roster,
         'max_roster': max_roster,
@@ -2020,6 +2353,8 @@ def _build_hub_context(request, tournament, registration, query_suffix='', is_st
         'api_announcements_url': f'/tournaments/{tournament.slug}/hub/api/announcements/{query_suffix}',
         'api_roster_url': f'/tournaments/{tournament.slug}/hub/api/roster/{query_suffix}',
         'api_squad_url': f'/tournaments/{tournament.slug}/hub/api/squad/{query_suffix}',
+        'api_squad_ping_url': f'/tournaments/{tournament.slug}/hub/api/squad/ping-missing/{query_suffix}',
+        'api_squad_set_captain_url': f'/tournaments/{tournament.slug}/hub/api/squad/set-captain/{query_suffix}',
         'api_resources_url': f'/tournaments/{tournament.slug}/hub/api/resources/{query_suffix}',
         'api_prize_claim_url': f'/tournaments/{tournament.slug}/hub/api/prize-claim/{query_suffix}',
         'api_bracket_url': f'/tournaments/{tournament.slug}/hub/api/bracket/{query_suffix}',
@@ -3006,6 +3341,15 @@ class HubSquadAPIView(LoginRequiredMixin, View):
                 exc,
             )
 
+        # Invalidate TOC participant caches so the participants tab reflects the
+        # new roster slot immediately rather than waiting for the cache bucket
+        # rotation (~8s).
+        try:
+            from apps.tournaments.api.toc.cache_utils import bump_toc_scopes
+            bump_toc_scopes(tournament.id, 'participants', 'participants_adv')
+        except Exception:
+            pass
+
         logger.info(
             "Hub squad swap: user=%s team=%d member=%d %s -> %s (tournament=%s)",
             request.user.username, registration.team_id, membership_id, old_slot, new_slot, slug
@@ -3017,6 +3361,278 @@ class HubSquadAPIView(LoginRequiredMixin, View):
             'old_slot': old_slot,
             'new_slot': new_slot,
             'display_name': membership.display_name or membership.user.get_full_name() or membership.user.username,
+        })
+
+
+class HubSquadSetCaptainAPIView(LoginRequiredMixin, View):
+    """
+    POST: change which team member is the tournament captain / IGL.
+
+    Body: {"membership_id": <int>}
+
+    Only the current captain or a tournament organizer/admin can perform this.
+    Updates `TeamMembership.is_tournament_captain` flags (clearing the previous
+    captain) and keeps `Registration.lineup_snapshot` in sync so the Hub squad
+    tab and TOC participants page display the same captain/IGL.
+    """
+
+    def post(self, request, slug):
+        tournament = get_object_or_404(Tournament, slug=slug)
+        registration = _get_user_registration(request.user, tournament)
+        is_staff = _is_tournament_staff_or_organizer(request.user, tournament)
+        if not registration and not is_staff:
+            return JsonResponse({'error': 'not_registered'}, status=403)
+
+        lock_resp = _forbidden_if_critical_locked(request, tournament, registration)
+        if lock_resp:
+            return lock_resp
+
+        if not registration or tournament.participation_type != 'team' or not registration.team_id:
+            return JsonResponse({'error': 'Not a team tournament'}, status=400)
+
+        from apps.organizations.models import Team, TeamMembership
+
+        # Authorize: current captain or tournament staff/organizer
+        if not is_staff:
+            try:
+                TeamMembership.objects.get(
+                    team_id=registration.team_id,
+                    user=request.user,
+                    status=TeamMembership.Status.ACTIVE,
+                    is_tournament_captain=True,
+                )
+            except TeamMembership.DoesNotExist:
+                return JsonResponse({'error': 'Only the team captain can reassign Captain/IGL.'}, status=403)
+
+        # Roster lock guard
+        try:
+            team = Team.objects.get(id=registration.team_id)
+            if getattr(team, 'roster_locked', False):
+                return JsonResponse({'error': 'Roster is locked. Changes are not allowed.'}, status=400)
+        except Team.DoesNotExist:
+            return JsonResponse({'error': 'Team not found'}, status=404)
+
+        try:
+            body = json.loads(request.body or '{}')
+            membership_id = int(body.get('membership_id'))
+        except (json.JSONDecodeError, AttributeError, TypeError, ValueError):
+            return JsonResponse({'error': 'Invalid membership_id'}, status=400)
+
+        try:
+            new_captain = TeamMembership.objects.select_related('user').get(
+                id=membership_id,
+                team_id=registration.team_id,
+                status=TeamMembership.Status.ACTIVE,
+            )
+        except TeamMembership.DoesNotExist:
+            return JsonResponse({'error': 'Team member not found'}, status=404)
+
+        # Only an active starter is eligible to be Captain/IGL.
+        if (new_captain.roster_slot or 'STARTER') != 'STARTER':
+            return JsonResponse({'error': 'Captain/IGL must be an active starter.'}, status=400)
+
+        # Atomically swap the captain flag.
+        previous_captains = TeamMembership.objects.filter(
+            team_id=registration.team_id,
+            is_tournament_captain=True,
+        ).exclude(id=new_captain.id)
+
+        for m in previous_captains:
+            if m.is_tournament_captain:
+                m.is_tournament_captain = False
+                m.save(update_fields=['is_tournament_captain'])
+
+        if not new_captain.is_tournament_captain:
+            new_captain.is_tournament_captain = True
+            new_captain.save(update_fields=['is_tournament_captain'])
+
+        # Keep lineup_snapshot.is_igl in sync.
+        try:
+            snapshot = registration.lineup_snapshot if isinstance(registration.lineup_snapshot, list) else None
+            if snapshot:
+                touched = False
+                for entry in snapshot:
+                    if not isinstance(entry, dict):
+                        continue
+                    target = (entry.get('user_id') == new_captain.user_id)
+                    if entry.get('is_igl') != target:
+                        entry['is_igl'] = target
+                        touched = True
+                if touched:
+                    registration.lineup_snapshot = snapshot
+                    registration.save(update_fields=['lineup_snapshot'])
+        except Exception as exc:
+            logger.warning(
+                "Failed to sync lineup snapshot after captain change (reg=%s): %s",
+                getattr(registration, 'id', None), exc,
+            )
+
+        # Bump TOC participant cache so the participants tab reflects the change.
+        try:
+            from apps.tournaments.api.toc.cache_utils import bump_toc_scopes
+            bump_toc_scopes(tournament.id, 'participants', 'participants_adv')
+        except Exception:
+            pass
+
+        display_name = (
+            new_captain.display_name
+            or (new_captain.user.get_full_name() if new_captain.user else '')
+            or (new_captain.user.username if new_captain.user else 'Unknown')
+        )
+        logger.info(
+            "Hub squad captain change: user=%s team=%d new_captain=%d (tournament=%s)",
+            request.user.username, registration.team_id, new_captain.id, slug,
+        )
+
+        return JsonResponse({
+            'success': True,
+            'membership_id': new_captain.id,
+            'user_id': new_captain.user_id,
+            'display_name': display_name,
+        })
+
+
+class HubSquadPingMissingAPIView(LoginRequiredMixin, View):
+    """POST: notify missing Game IDs for the current squad."""
+
+    def post(self, request, slug):
+        tournament = get_object_or_404(Tournament, slug=slug)
+        registration = _get_user_registration(request.user, tournament)
+        is_staff = _is_tournament_staff_or_organizer(request.user, tournament)
+        if not registration and not is_staff:
+            return JsonResponse({'error': 'not_registered'}, status=403)
+
+        if not registration or tournament.participation_type != 'team' or not registration.team_id:
+            return JsonResponse({'error': 'Not a team tournament'}, status=400)
+
+        if not is_staff:
+            from apps.organizations.models import TeamMembership
+            try:
+                TeamMembership.objects.get(
+                    team_id=registration.team_id,
+                    user=request.user,
+                    status=TeamMembership.Status.ACTIVE,
+                    is_tournament_captain=True,
+                )
+            except TeamMembership.DoesNotExist:
+                return JsonResponse({'error': 'Only the team captain can notify missing players'}, status=403)
+
+        try:
+            body = json.loads(request.body or '{}')
+            if not isinstance(body, dict):
+                body = {}
+        except (json.JSONDecodeError, ValueError, TypeError):
+            body = {}
+        target_user_id = body.get('user_id')
+        try:
+            target_user_id = int(target_user_id)
+        except (TypeError, ValueError):
+            target_user_id = None
+
+        from apps.organizations.models import TeamMembership
+        members = TeamMembership.objects.filter(
+            team_id=registration.team_id,
+            status=TeamMembership.Status.ACTIVE,
+        ).select_related('user')
+        member_user_ids = [m.user_id for m in members]
+
+        if target_user_id and target_user_id not in member_user_ids:
+            return JsonResponse({'error': 'Invalid target user'}, status=404)
+
+        lineup_snapshot = getattr(registration, 'lineup_snapshot', None) or []
+        user_ids = [e.get('user_id') for e in lineup_snapshot if e.get('user_id')] or member_user_ids
+
+        passport_map = {}
+        if tournament.game and user_ids:
+            try:
+                from apps.user_profile.services.game_passport_service import GamePassportService
+
+                passport_map = GamePassportService.get_passports_bulk(user_ids, tournament.game.slug)
+            except Exception:
+                passport_map = {}
+
+        def _has_game_id(entry, user_id):
+            game_id = str(entry.get('game_id') or entry.get('ign') or '').strip()
+            if not game_id:
+                passport = passport_map.get(user_id)
+                if passport and passport.ign:
+                    game_id = passport.ign
+            return bool(game_id)
+
+        missing_user_ids = set()
+
+        if lineup_snapshot and isinstance(lineup_snapshot, list):
+            for entry in lineup_snapshot:
+                user_id = entry.get('user_id')
+                if not user_id:
+                    continue
+                slot = str(entry.get('roster_slot') or 'STARTER').upper()
+                if slot not in ('STARTER', 'SUBSTITUTE'):
+                    continue
+                if not _has_game_id(entry, user_id):
+                    missing_user_ids.add(user_id)
+        else:
+            for member in members:
+                slot = member.roster_slot or 'STARTER'
+                if member.role in ('HEAD_COACH', 'COACH'):
+                    slot = 'COACH'
+                elif member.role == 'MANAGER':
+                    slot = member.roster_slot or 'SUBSTITUTE'
+                slot = str(slot or '').upper()
+                if slot not in ('STARTER', 'SUBSTITUTE'):
+                    continue
+                passport = passport_map.get(member.user_id)
+                if not (passport and passport.ign):
+                    missing_user_ids.add(member.user_id)
+
+        if target_user_id:
+            if target_user_id not in missing_user_ids:
+                return JsonResponse({
+                    'success': True,
+                    'sent_count': 0,
+                    'missing_count': 0,
+                    'message': 'Player already has a Game ID.',
+                })
+            missing_user_ids = {target_user_id}
+
+        if not missing_user_ids:
+            return JsonResponse({
+                'success': True,
+                'sent_count': 0,
+                'missing_count': 0,
+                'message': 'No missing Game IDs found.',
+            })
+
+        settings_url = request.build_absolute_uri('/me/settings/#passports')
+        hub_url = request.build_absolute_uri(
+            reverse('tournaments:tournament_hub', kwargs={'slug': tournament.slug})
+        )
+        subject = f"Action required: Add your Game ID for {tournament.name}"
+        body = (
+            f"Your Game ID is missing for {tournament.name}. "
+            f"Please add your Game Passport here: {settings_url}. "
+            f"Then return to the Hub to confirm: {hub_url}."
+        )
+
+        try:
+            from apps.tournaments.api.toc.notifications_service import TOCNotificationsService
+
+            TOCNotificationsService.send_notification(tournament, {
+                'subject': subject,
+                'body': body,
+                'target': list(missing_user_ids),
+                'event': 'announcement',
+                'url': hub_url,
+                'force_email': True,
+            })
+        except Exception:
+            logger.warning("Failed to ping missing Game IDs", exc_info=True)
+            return JsonResponse({'success': False, 'error': 'notification_failed'}, status=500)
+
+        return JsonResponse({
+            'success': True,
+            'sent_count': len(missing_user_ids),
+            'missing_count': len(missing_user_ids),
         })
 
 

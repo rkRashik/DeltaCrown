@@ -2170,6 +2170,9 @@
         // Dynamic comm channels
         syncDynamicCommsToReview();
 
+        // Team roster (re-render starters/subs/coaches from current step-2 state)
+        syncTeamRosterToReview();
+
         // Guest roster
         if (runtimeConfig.isGuestTeam) syncGuestRosterToReview();
 
@@ -2221,6 +2224,92 @@
             li.innerHTML = `<span class="text-gray-500">${label}:</span><strong class="text-white font-mono text-xs">${val}</strong>`;
             reviewList.appendChild(li);
         });
+    }
+
+    function syncTeamRosterToReview() {
+        // Rebuild the Review step's starter/sub/coach lists from the current
+        // state of the roster step's cards. Members can have been moved between
+        // slots after page render, and the IGL designation may have changed.
+        if (runtimeConfig.isGuestTeam || !runtimeConfig.isTeam) return;
+
+        const startersList = document.getElementById('review-starters-list');
+        const subsList = document.getElementById('review-subs-list');
+        const staffList = document.getElementById('review-staff-list');
+        if (!startersList && !subsList && !staffList) return;
+
+        const subsSection = document.getElementById('review-subs-section');
+        const staffSection = document.getElementById('review-staff-section');
+        const iglId = document.getElementById('igl-member-id')?.value || '';
+
+        const buildRow = (card, slotLabel, slotColorClass) => {
+            const memberId = card.dataset.memberId || '';
+            const name = card.dataset.memberDisplayName || card.dataset.memberUsername || 'Member';
+            const ign = card.dataset.memberGpInGameName || '';
+            const rank = card.dataset.memberGpRank || '';
+            const rankImg = card.dataset.memberGpRankImage || '';
+            const isCaptain = String(card.dataset.memberIsCaptain || '') === 'true';
+            const username = card.dataset.memberUsername || '';
+            const avatarImg = card.querySelector('img');
+            const avatarSrc = avatarImg ? avatarImg.getAttribute('src') : '';
+
+            const avatarHtml = avatarSrc
+                ? `<img src="${avatarSrc}" class="w-full h-full object-cover" alt="">`
+                : `<div class="w-full h-full bg-dc-card flex items-center justify-center text-[8px] font-bold text-white/40">${escapeHtml(username.slice(0, 2))}</div>`;
+
+            const captainCrown = isCaptain
+                ? '<i data-lucide="crown" class="w-3 h-3 text-dc-gold"></i>'
+                : '';
+            const iglBadge = (iglId && String(iglId) === String(memberId))
+                ? '<span class="review-igl-badge px-1 py-0.5 text-[8px] font-black uppercase rounded bg-amber-500/20 text-amber-400 border border-amber-500/30 ml-1">IGL</span>'
+                : '';
+
+            const subline = ign
+                ? `<span class="text-[10px] text-white/30 font-mono">${escapeHtml(ign)}${rank ? ' · ' + escapeHtml(rank) : ''}</span>`
+                : '';
+
+            return `<div class="flex items-center justify-between py-1.5 border-b border-white/5 last:border-0">
+                <div class="flex items-center gap-2">
+                    <div class="w-6 h-6 rounded-full overflow-hidden border border-white/10 shrink-0">${avatarHtml}</div>
+                    <div class="flex flex-col">
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-sm text-gray-300">${escapeHtml(name)}</span>
+                            ${captainCrown}${iglBadge}
+                        </div>
+                        ${subline}
+                    </div>
+                </div>
+                <span class="text-[10px] font-bold uppercase ${slotColorClass}" data-review-member-slot="${escapeHtml(String(memberId))}">${escapeHtml(slotLabel)}</span>
+            </div>`;
+        };
+
+        const cards = Array.from(document.querySelectorAll('[data-wizard-step="roster"] [data-member-id]'));
+        const starters = [], subs = [], coaches = [];
+        cards.forEach(card => {
+            const slot = card.dataset.memberRosterSlot || 'STARTER';
+            if (slot === 'SUBSTITUTE') subs.push(card);
+            else if (slot === 'COACH') coaches.push(card);
+            else starters.push(card);
+        });
+
+        if (startersList) startersList.innerHTML = starters.map(c => buildRow(c, 'Starter', 'text-emerald-400/50')).join('');
+        if (subsList) subsList.innerHTML = subs.map(c => buildRow(c, 'Sub', 'text-amber-400/50')).join('');
+        if (staffList) staffList.innerHTML = coaches.map(c => buildRow(c, 'Coach', 'text-purple-400/50')).join('');
+
+        if (subsSection) subsSection.classList.toggle('hidden', subs.length === 0);
+        if (staffSection) staffSection.classList.toggle('hidden', coaches.length === 0);
+
+        if (window.lucide && typeof window.lucide.createIcons === 'function') {
+            window.lucide.createIcons();
+        }
+    }
+
+    function escapeHtml(value) {
+        return String(value == null ? '' : value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
     }
 
     function syncGuestRosterToReview() {

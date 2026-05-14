@@ -1,12 +1,12 @@
 {% extends "tournaments/base.html" %}
 {% load static humanize %}
 
-{# ─────────────────────────────────────────────────────────
+{% comment %}
    Withdraw Registration
    Context: tournament, registration, can_withdraw,
             withdrawal_blocked_reason, refund_info
    Phase 4 Frontend Rebuild
-   ───────────────────────────────────────────────────────── #}
+{% endcomment %}
 
 {% block title %}Withdraw — {{ tournament.name }} | DeltaCrown{% endblock %}
 
