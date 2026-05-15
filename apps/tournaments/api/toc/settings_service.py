@@ -866,6 +866,85 @@ class TOCSettingsService:
             config[TOCSettingsService.LOBBY_POLICY_CONFIG_KEY] = lobby_policy
             tournament.config = config
 
+        # RP — lifecycle-aware status transition guard.
+        # The settings PUT previously blind-``setattr``'d any incoming
+        # ``status`` value, bypassing the formal state machine. An admin
+        # trying to flip a Completed tournament back to Live caused a 500
+        # downstream because the resulting state was illegal for various
+        # post-save listeners.
+        # Now: if status is changing, validate against the lifecycle graph
+        # and return a friendly 400 explaining why. Bypass auto-advance
+        # noise by checking only the explicit user-requested transition.
+        if "status" in data:
+            requested_status = str(data.get("status") or "").strip().lower()
+            current_status = str(getattr(tournament, "status", "") or "").strip().lower()
+            if requested_status and requested_status != current_status:
+                from apps.tournaments.services.lifecycle_service import (
+                    TournamentLifecycleService,
+                )
+                allowed = False
+                next_states: list[str] = []
+                rejection_reason = ""
+                try:
+                    next_states = sorted(
+                        TournamentLifecycleService.allowed_transitions(tournament)
+                    )
+                    can_go, why = TournamentLifecycleService.can_transition(
+                        tournament, requested_status,
+                    )
+                    allowed = bool(can_go)
+                    rejection_reason = (why or "") if not allowed else ""
+                except Exception:
+                    # Fall back to permissive — better to attempt save than
+                    # to block on a service-import failure. The original
+                    # save-time exception path will still surface if the
+                    # transition is illegal at DB level.
+                    allowed = True
+                if not allowed:
+                    suggestion_parts = []
+                    if current_status == "completed":
+                        suggestion_parts.append(
+                            "Completed tournaments can only be archived. "
+                            "Use the Clone Tournament action in Settings → "
+                            "Danger Zone to create a fresh event with the "
+                            "same configuration."
+                        )
+                    elif current_status in {"cancelled", "archived"}:
+                        suggestion_parts.append(
+                            f"{current_status.capitalize()} tournaments cannot be re-opened. "
+                            "Clone this tournament to create a new event."
+                        )
+                    elif next_states:
+                        suggestion_parts.append(
+                            "Valid next states: " + ", ".join(sorted(next_states)) + "."
+                        )
+                    suggestion = " ".join(suggestion_parts) if suggestion_parts else ""
+                    return {
+                        "error": {
+                            "type": "validation",
+                            "code": "invalid_lifecycle_transition",
+                            "message": (
+                                f"Cannot change tournament status from "
+                                f"'{current_status}' to '{requested_status}'. "
+                                + suggestion
+                            ).strip(),
+                            "fields": {
+                                "status": [
+                                    f"Direct transition from {current_status} "
+                                    f"to {requested_status} is not allowed."
+                                ],
+                            },
+                            "sections": {
+                                "settings-basic": [
+                                    "Tournament lifecycle transition rejected."
+                                ],
+                            },
+                            "current_status": current_status,
+                            "requested_status": requested_status,
+                            "allowed_next_states": next_states,
+                        }
+                    }
+
         changed: list[str] = []
         for key, value in data.items():
             if key in updatable and hasattr(tournament, key):
@@ -1282,14 +1361,205 @@ class TOCSettingsService:
 
     @staticmethod
     def get_map_pool(tournament: Tournament) -> list[dict]:
+        """Return the merged map pool view for the TOC Map Pool tab.
+
+        Merge strategy (RP-fix — Map Pool UX):
+          * Start from the game-level ``GameMapPool`` (apps/games — the
+            canonical source). These define WHICH maps exist for the game.
+          * For each game map, if the tournament has a corresponding
+            ``MapPoolEntry`` (matched by ``map_code``), the row's
+            ``is_active`` and ``order`` come from the override; otherwise
+            from the game default.
+          * Any ``MapPoolEntry`` row that does NOT correspond to a game
+            map is treated as a truly custom tournament-only map and is
+            appended at the end, eligible for deletion.
+
+        Row shape::
+
+            {
+              "id":          "<MapPoolEntry pk>" | "game:<GameMapPool pk>",
+              "map_name":    str,
+              "map_code":    str,
+              "image":       str,    # tournament override URL or empty
+              "is_active":   bool,
+              "is_competitive": bool,
+              "order":       int,
+              "source":      "tournament_enabled" | "tournament_disabled"
+                           | "game_default"
+                           | "custom",          # truly tournament-only
+              "has_override": bool,             # True if a MapPoolEntry row exists
+              "can_delete":  bool,              # True only for truly custom maps
+            }
+
+        Toggle action handles the "first time the organizer touches this
+        map" case by creating a ``MapPoolEntry`` mirroring the game
+        default. The organizer never deletes the underlying ``GameMapPool``
+        entry from here — that's an admin-side responsibility.
+        """
+        from apps.games.models.map_pool import GameMapPool
+
         try:
             cfg = tournament.game_match_config
         except GameMatchConfig.DoesNotExist:
-            return []
-        return list(
-            cfg.map_pool.values("id", "map_name", "map_code", "image", "is_active", "order")
-            .order_by("order", "map_name")
+            cfg = None
+
+        # Build a lookup of tournament-level overrides keyed by lowercase map_code.
+        override_by_code: dict[str, dict] = {}
+        if cfg is not None:
+            for row in cfg.map_pool.all().order_by("order", "map_name"):
+                code = str(row.map_code or "").strip().lower()
+                override_by_code[code] = {
+                    "id": str(row.id),
+                    "map_name": row.map_name,
+                    "map_code": row.map_code or "",
+                    "image": str(row.image or ""),
+                    "is_active": bool(row.is_active),
+                    "order": int(row.order or 0),
+                }
+
+        out: list[dict] = []
+        consumed_codes: set[str] = set()
+
+        # 1. Game-level maps, optionally overlaid by tournament overrides.
+        game = getattr(tournament, "game", None)
+        if game is not None:
+            game_rows = (
+                GameMapPool.objects
+                .filter(game=game)
+                .order_by("order", "map_name")
+            )
+            for g in game_rows:
+                code_l = str(g.map_code or "").strip().lower()
+                override = override_by_code.get(code_l)
+                if override:
+                    consumed_codes.add(code_l)
+                    is_active = override["is_active"]
+                    source = "tournament_enabled" if is_active else "tournament_disabled"
+                    out.append({
+                        "id": override["id"],          # real MapPoolEntry id
+                        "map_name": override["map_name"] or g.map_name,
+                        "map_code": g.map_code or "",
+                        "image": override["image"],
+                        "is_active": is_active,
+                        "is_competitive": bool(g.is_competitive),
+                        "order": override["order"] or int(g.order or 0),
+                        "source": source,
+                        "has_override": True,
+                        # Maps that mirror a game default are NEVER deleted
+                        # from TOC — only the global game admin can do that.
+                        # Toggling instead flips the override's is_active.
+                        "can_delete": False,
+                    })
+                else:
+                    out.append({
+                        "id": "game:" + str(g.id),    # synthetic
+                        "map_name": g.map_name,
+                        "map_code": g.map_code or "",
+                        "image": "",
+                        "is_active": bool(g.is_active),
+                        "is_competitive": bool(g.is_competitive),
+                        "order": int(g.order or 0),
+                        "source": "game_default",
+                        "has_override": False,
+                        "can_delete": False,
+                    })
+
+        # 2. Truly custom tournament maps — those with no game-level match.
+        if cfg is not None:
+            for row in cfg.map_pool.all().order_by("order", "map_name"):
+                code_l = str(row.map_code or "").strip().lower()
+                if code_l in consumed_codes:
+                    continue
+                out.append({
+                    "id": str(row.id),
+                    "map_name": row.map_name,
+                    "map_code": row.map_code or "",
+                    "image": str(row.image or ""),
+                    "is_active": bool(row.is_active),
+                    "is_competitive": True,
+                    "order": int(row.order or 0),
+                    "source": "custom",
+                    "has_override": True,
+                    "can_delete": True,
+                })
+
+        return out
+
+    @staticmethod
+    def _resolve_map_id(map_id: str) -> tuple[str, object]:
+        """Classify a map id from the FE.
+
+        Returns ``("custom", MapPoolEntry_pk_str)`` for real override rows,
+        or ``("game", GameMapPool_instance)`` for synthetic ``game:<pk>``
+        ids (first-time toggle on a game default).
+
+        Raises ``ValueError`` when the id is malformed or the underlying
+        row no longer exists.
+        """
+        from apps.games.models.map_pool import GameMapPool
+        raw = str(map_id or "").strip()
+        if not raw:
+            raise ValueError("Map id is required.")
+        if raw.startswith("game:"):
+            try:
+                gid = int(raw.split(":", 1)[1])
+            except (TypeError, ValueError):
+                raise ValueError("Invalid game map reference.")
+            try:
+                game_map = GameMapPool.objects.get(pk=gid)
+            except GameMapPool.DoesNotExist:
+                raise ValueError("Game map not found.")
+            return "game", game_map
+        return "custom", raw
+
+    @staticmethod
+    def toggle_map(tournament: Tournament, map_id: str, is_active: bool) -> dict:
+        """Enable/disable a map for this tournament — game-default safe.
+
+        For a real ``MapPoolEntry`` pk: just flip is_active.
+        For a synthetic ``game:<pk>`` id: lazily materialise a
+        ``MapPoolEntry`` row that mirrors the game default with the
+        requested is_active. Subsequent toggles hit the existing row.
+
+        Returns the resolved row id (always a real ``MapPoolEntry`` pk
+        after this call) so the FE can update its local state.
+        """
+        kind, target = TOCSettingsService._resolve_map_id(map_id)
+
+        if kind == "custom":
+            try:
+                entry = MapPoolEntry.objects.get(pk=target)
+            except MapPoolEntry.DoesNotExist:
+                raise ValueError("Map override not found.")
+            entry.is_active = bool(is_active)
+            entry.save(update_fields=["is_active"])
+            return {"id": str(entry.id), "is_active": entry.is_active, "source": (
+                "tournament_enabled" if entry.is_active else "tournament_disabled"
+            )}
+
+        # game-default path — first time the organizer touches this map.
+        game_map = target  # GameMapPool instance
+        cfg, _ = GameMatchConfig.objects.get_or_create(tournament=tournament)
+        # Idempotent: if a MapPoolEntry already exists with the same code,
+        # update it instead of creating a duplicate.
+        existing = cfg.map_pool.filter(map_code=game_map.map_code).first()
+        if existing:
+            existing.is_active = bool(is_active)
+            existing.save(update_fields=["is_active"])
+            return {"id": str(existing.id), "is_active": existing.is_active, "source": (
+                "tournament_enabled" if existing.is_active else "tournament_disabled"
+            )}
+        entry = MapPoolEntry.objects.create(
+            config=cfg,
+            map_name=game_map.map_name,
+            map_code=game_map.map_code,
+            image="",  # game-level images aren't copied; admin uploads tournament image separately
+            is_active=bool(is_active),
+            order=int(game_map.order or 0),
         )
+        return {"id": str(entry.id), "is_active": entry.is_active, "source": (
+            "tournament_enabled" if entry.is_active else "tournament_disabled"
+        )}
 
     @staticmethod
     def add_map(tournament: Tournament, data: dict) -> dict:
@@ -1306,8 +1576,30 @@ class TOCSettingsService:
         return {"id": str(entry.id), "map_name": entry.map_name}
 
     @staticmethod
-    def update_map(map_id: str, data: dict) -> dict:
-        entry = MapPoolEntry.objects.get(pk=map_id)
+    def update_map(map_id: str, data: dict, tournament: Tournament | None = None) -> dict:
+        """Update a map override row.
+
+        Synthetic ``game:<pk>`` ids are routed through ``toggle_map`` when
+        the only payload field is ``is_active`` (toggle from a game
+        default's first interaction). Anything else against a synthetic
+        id is rejected — game-level fields are read-only from TOC.
+        """
+        raw = str(map_id or "").strip()
+        if raw.startswith("game:"):
+            if tournament is None:
+                raise ValueError("Tournament context required to materialise game-default map.")
+            # Only the is_active flip is supported for game-default first-touch.
+            if set(data.keys()) - {"is_active"}:
+                raise ValueError(
+                    "Game-default maps cannot be edited from TOC. Toggle "
+                    "Enable/Disable instead, or manage the map globally in "
+                    "the games admin."
+                )
+            return TOCSettingsService.toggle_map(tournament, raw, bool(data.get("is_active")))
+        try:
+            entry = MapPoolEntry.objects.get(pk=raw)
+        except MapPoolEntry.DoesNotExist:
+            raise ValueError("Map override not found.")
         for field in ("map_name", "map_code", "image", "is_active", "order"):
             if field in data:
                 setattr(entry, field, data[field])
@@ -1316,7 +1608,15 @@ class TOCSettingsService:
 
     @staticmethod
     def delete_map(map_id: str) -> dict:
-        MapPoolEntry.objects.filter(pk=map_id).delete()
+        """Delete a custom MapPoolEntry. Refuses synthetic game-default ids —
+        game maps live in apps/games and are not deletable from TOC."""
+        raw = str(map_id or "").strip()
+        if raw.startswith("game:"):
+            raise ValueError(
+                "Game-default maps cannot be deleted from TOC. Disable "
+                "the map instead, or remove it globally via the games admin."
+            )
+        MapPoolEntry.objects.filter(pk=raw).delete()
         return {"deleted": True}
 
     @staticmethod

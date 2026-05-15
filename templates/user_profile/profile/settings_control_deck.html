@@ -300,7 +300,7 @@
                     <div class="space-y-1">
                         <button class="nav-btn" data-target="recruitment"><i class="fa-solid fa-briefcase w-5 text-center"></i> Career & LFT</button>
                         <button class="nav-btn" data-target="passports"><i class="fa-solid fa-gamepad w-5 text-center"></i> Game Passports</button>
-                        <a class="nav-btn" href="{% url 'dashboard:competitive_hub' %}" style="text-decoration: none; display: flex; align-items: center;"><i class="fa-solid fa-crown w-5 text-center"></i> Crown Arena</a>
+                        <a class="nav-btn" href="{% url 'dashboard:competitive_hub' %}" style="text-decoration: none; display: flex; align-items: center;"><i class="fa-solid fa-crown w-5 text-center"></i> Competitive Hub</a>
                         <button class="nav-btn" data-target="loadout"><i class="fa-solid fa-computer-mouse w-5 text-center"></i> Pro Loadout</button>
                     </div>
                 </div>
@@ -324,7 +324,7 @@
             <button class="mobile-nav-btn" data-target="about" data-nav="about">About</button>
             <button class="mobile-nav-btn" data-target="connections" data-nav="connections">Connections</button>
             <button class="mobile-nav-btn" data-target="recruitment" data-nav="recruitment">Career</button>
-            <a class="mobile-nav-btn" href="{% url 'dashboard:competitive_hub' %}" style="text-decoration: none;">Crown Arena</a>
+            <a class="mobile-nav-btn" href="{% url 'dashboard:competitive_hub' %}" style="text-decoration: none;">Competitive Hub</a>
             <button class="mobile-nav-btn" data-target="privacy" data-nav="privacy">Privacy</button>
             <button class="mobile-nav-btn" data-target="platform" data-nav="platform">Platform</button>
             <button class="mobile-nav-btn" data-target="passports" data-nav="passports">Games</button>
@@ -1447,30 +1447,30 @@
                         Crown <span class="bg-clip-text text-transparent bg-gradient-to-r from-indigo-300 via-fuchsia-300 to-amber-300">Arena</span>
                       </h2>
                       <p class="text-sm text-gray-300 leading-relaxed mb-6">
-                        Bounties &amp; matchmaking moved to a unified competitive hub.  Crown Contracts, Crown Clash, The Hitlist, and Crown Royale all run on the new DeltaCoin escrow engine — fully audited, anti-whale capped, and 100% scam-free.
+                        Competitive reward operations moved to the unified competitive hub. Missions, Showdown, Bounty, and Dropzone run on the DeltaCoin escrow engine with anti-whale caps and verified settlement.
                       </p>
                       <div class="grid grid-cols-2 gap-3 mb-6">
                         <div class="px-3 py-2.5 rounded-lg bg-white/[0.04] border border-white/[0.08] text-[12px]">
-                          <div class="text-[9px] font-bold uppercase tracking-widest text-indigo-300/80 mb-0.5">📜 Crown Contracts</div>
+                          <div class="text-[9px] font-bold uppercase tracking-widest text-indigo-300/80 mb-0.5">📜 Missions</div>
                           <div class="text-gray-300">Self-challenge missions</div>
                         </div>
                         <div class="px-3 py-2.5 rounded-lg bg-white/[0.04] border border-white/[0.08] text-[12px]">
-                          <div class="text-[9px] font-bold uppercase tracking-widest text-cyan-300/80 mb-0.5">⚔️ Crown Clash</div>
+                          <div class="text-[9px] font-bold uppercase tracking-widest text-cyan-300/80 mb-0.5">⚔️ Showdown</div>
                           <div class="text-gray-300">Head-to-head escrow matches</div>
                         </div>
                         <div class="px-3 py-2.5 rounded-lg bg-white/[0.04] border border-white/[0.08] text-[12px]">
-                          <div class="text-[9px] font-bold uppercase tracking-widest text-rose-300/80 mb-0.5">🎯 The Hitlist</div>
+                          <div class="text-[9px] font-bold uppercase tracking-widest text-rose-300/80 mb-0.5">🎯 Bounty</div>
                           <div class="text-gray-300">Issuer bounty board</div>
                         </div>
                         <div class="px-3 py-2.5 rounded-lg bg-white/[0.04] border border-white/[0.08] text-[12px]">
-                          <div class="text-[9px] font-bold uppercase tracking-widest text-amber-300/80 mb-0.5">👑 Crown Royale</div>
-                          <div class="text-gray-300">Paid Battle Royale lobbies</div>
+                          <div class="text-[9px] font-bold uppercase tracking-widest text-amber-300/80 mb-0.5">👑 Dropzone</div>
+                          <div class="text-gray-300">Dropzone custom lobbies</div>
                         </div>
                       </div>
                       <a href="{% url 'dashboard:competitive_hub' %}"
                          class="inline-flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-bold uppercase tracking-wider text-white transition-all"
                          style="background: linear-gradient(135deg, #6366F1, #8B5CF6); box-shadow: 0 8px 28px -6px rgba(99,102,241,.55);">
-                        Open Crown Arena
+                        Open Competitive Hub
                         <i class="fa-solid fa-arrow-right text-xs"></i>
                       </a>
                     </div>
@@ -2882,7 +2882,7 @@
             identity: 'Identity', about: 'About', connections: 'Connections',
             security: 'Security', privacy: 'Privacy & Visibility', platform: 'Platform',
             notifications: 'Notifications', recruitment: 'Career & LFT',
-            passports: 'Game Passports', matchmaking: 'Crown Arena',
+            passports: 'Game Passports', matchmaking: 'Competitive Hub',
             loadout: 'Pro Loadout', inventory: 'Inventory', stream: 'Live Feed',
             billing: 'Wallet', danger: 'Danger Zone'
         };

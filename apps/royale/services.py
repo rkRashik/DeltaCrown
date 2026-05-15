@@ -1,4 +1,4 @@
-"""Crown Royale service layer.
+"""Dropzone service layer.
 
 Slot reservation + payout for paid Battle Royale lobbies.  Match
 running, brackets, and check-in stay in apps.tournaments.
@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
 # Constants
 # ─────────────────────────────────────────────────────────────────────────────
 
-#: Anti-whale ceiling for Royale entry fees.
+#: Anti-whale ceiling for Dropzone entry fees.
 ROYALE_ENTRY_FEE_CAP_DC: int = 1_000
 
 #: Platform fee taken from the prize pot when a lobby settles.
@@ -105,7 +105,7 @@ def _resolve_prize_amounts(lobby: RoyaleLobby, total_pot: int) -> dict:
 # ─────────────────────────────────────────────────────────────────────────────
 
 class RoyaleService:
-    """Lifecycle service for Crown Royale lobbies."""
+    """Lifecycle service for Dropzone lobbies."""
 
     # ── Reservations ─────────────────────────────────────────────────────
 
@@ -153,7 +153,7 @@ class RoyaleService:
                 lobby.entry_fee_dc,
                 reference_id=lobby.royale_ref_id(f"entry:{entry.pk}"),
                 actor=user,
-                note=f"Crown Royale {lobby.reference_code} entry fee",
+                note=f"Dropzone {lobby.reference_code} entry fee",
             )
             entry.escrow_lock_txn = result.transactions[0]
             entry.save(update_fields=['escrow_lock_txn'])
@@ -164,7 +164,7 @@ class RoyaleService:
             lobby.save(update_fields=['status', 'updated_at'])
 
         logger.info(
-            "Royale slot reserved: %s by %s (lobby=%s, fee=%s DC)",
+            "Dropzone slot reserved: %s by %s (lobby=%s, fee=%s DC)",
             entry.pk, user.username, lobby.reference_code, lobby.entry_fee_dc,
         )
         return entry
@@ -192,7 +192,7 @@ class RoyaleService:
                 lobby.entry_fee_dc,
                 reference_id=lobby.royale_ref_id(f"entry:{entry.pk}"),
                 actor=actor,
-                note=f"Royale {lobby.reference_code} entry-fee refund",
+                note=f"Dropzone {lobby.reference_code} entry-fee refund",
             )
 
         entry.status = 'REFUNDED'
@@ -286,7 +286,7 @@ class RoyaleService:
                 platform_fee_pct=0,
                 reference_id=lobby.royale_ref_id(f"forfeit:{entry.pk}"),
                 actor=actor,
-                note=f"Royale {lobby.reference_code} no-show forfeit",
+                note=f"Dropzone {lobby.reference_code} no-show forfeit",
             )
             entry.payout_txn = payout.transactions[0]
             entry.resolved_at = timezone.now()
@@ -310,7 +310,7 @@ class RoyaleService:
                 platform_fee_pct=ROYALE_PLATFORM_FEE_PCT,
                 reference_id=lobby.royale_ref_id(f"prize:{entry.pk}"),
                 actor=actor,
-                note=f"Royale {lobby.reference_code} placement #{placement}",
+                note=f"Dropzone {lobby.reference_code} placement #{placement}",
             )
             entry.payout_txn = payout.transactions[0]
             entry.closure_reason = 'SETTLED_PRIZE'
@@ -331,7 +331,7 @@ class RoyaleService:
         lobby.save(update_fields=['status', 'closure_reason', 'updated_at'])
 
         logger.info(
-            "Royale lobby settled: %s (pot=%s DC, prizes=%s)",
+            "Dropzone lobby settled: %s (pot=%s DC, prizes=%s)",
             lobby.reference_code, total_pot_dc, prize_map,
         )
         return lobby
@@ -366,7 +366,7 @@ class RoyaleService:
                     lobby.entry_fee_dc,
                     reference_id=lobby.royale_ref_id(f"entry:{entry.pk}"),
                     actor=actor,
-                    note=f"Royale {lobby.reference_code} cancelled — refund",
+                    note=f"Dropzone {lobby.reference_code} cancelled — refund",
                 )
             entry.status = 'REFUNDED'
             entry.closure_reason = 'REFUNDED_LOBBY'
@@ -383,7 +383,151 @@ class RoyaleService:
         ])
 
         logger.info(
-            "Royale lobby cancelled: %s (reason=%s)",
+            "Dropzone lobby cancelled: %s (reason=%s)",
             lobby.reference_code, reason,
         )
         return lobby
+
+    # ── Admin/operator wrappers ─────────────────────────────────────────
+
+    @staticmethod
+    @transaction.atomic
+    def admin_mark_live(*, lobby_id, actor=None, note='') -> RoyaleLobby:
+        """Move a Dropzone lobby to LIVE without touching escrow."""
+        lobby = RoyaleLobby.objects.select_for_update().get(pk=lobby_id)
+        if lobby.status not in ('ANNOUNCED', 'FILLING', 'FULL'):
+            raise ValidationError("Only pre-match Dropzone lobbies can be marked live.")
+        lobby.status = 'LIVE'
+        if note:
+            lobby.closure_note = note
+        lobby.save(update_fields=['status', 'closure_note', 'updated_at'])
+        RoyaleService._log_dropzone_admin_action(
+            'dropzone.admin_marked_live',
+            lobby,
+            actor=actor,
+            note=note,
+        )
+        return lobby
+
+    @staticmethod
+    @transaction.atomic
+    def admin_close_reservations(*, lobby_id, actor=None, note='') -> RoyaleLobby:
+        """Close reservations by moving the lobby to FULL/locked state."""
+        lobby = RoyaleLobby.objects.select_for_update().get(pk=lobby_id)
+        if lobby.status not in ('ANNOUNCED', 'FILLING'):
+            raise ValidationError("Only open Dropzone lobbies can close reservations.")
+        lobby.status = 'FULL'
+        if note:
+            lobby.closure_note = note
+        lobby.save(update_fields=['status', 'closure_note', 'updated_at'])
+        RoyaleService._log_dropzone_admin_action(
+            'dropzone.reservations_closed',
+            lobby,
+            actor=actor,
+            note=note,
+        )
+        return lobby
+
+    @staticmethod
+    @transaction.atomic
+    def admin_record_scores_from_entries(*, lobby_id, actor=None) -> RoyaleLobby:
+        """Record scores using placement/kills already entered on lobby entries."""
+        lobby = RoyaleLobby.objects.select_for_update().get(pk=lobby_id)
+        scored_entries = list(
+            RoyaleEntry.objects
+            .select_for_update()
+            .filter(lobby=lobby, placement__isnull=False)
+            .values('id', 'placement', 'kills')
+        )
+        if not scored_entries:
+            raise ValidationError("No placements have been entered for this Dropzone lobby.")
+        scores = [
+            {
+                'entry_id': row['id'],
+                'placement': row['placement'],
+                'kills': row['kills'] or 0,
+            }
+            for row in scored_entries
+        ]
+        lobby = RoyaleService.record_scores(
+            lobby_id=lobby.pk,
+            scores=scores,
+            actor=actor,
+        )
+        RoyaleService._log_dropzone_admin_action(
+            'dropzone.scores_recorded',
+            lobby,
+            actor=actor,
+            extra={'score_count': len(scores)},
+        )
+        return lobby
+
+    @staticmethod
+    @transaction.atomic
+    def admin_settle_lobby(*, lobby_id, actor=None, note='') -> RoyaleLobby:
+        """Settle a Dropzone lobby through the normal payout service path."""
+        lobby = RoyaleService.settle_lobby(lobby_id=lobby_id, actor=actor)
+        if note:
+            lobby.closure_note = note
+            lobby.save(update_fields=['closure_note', 'updated_at'])
+        RoyaleService._log_dropzone_admin_action(
+            'dropzone.admin_settled',
+            lobby,
+            actor=actor,
+            note=note,
+        )
+        return lobby
+
+    @staticmethod
+    @transaction.atomic
+    def admin_cancel_lobby(
+        *,
+        lobby_id,
+        actor=None,
+        reason='CANCELLED_BY_ADMIN',
+        note='',
+    ) -> RoyaleLobby:
+        """Cancel/refund a Dropzone lobby through the normal refund service path."""
+        lobby = RoyaleService.cancel_lobby(
+            lobby_id=lobby_id,
+            reason=reason,
+            note=note,
+            actor=actor,
+        )
+        RoyaleService._log_dropzone_admin_action(
+            'dropzone.admin_cancelled',
+            lobby,
+            actor=actor,
+            note=note,
+            extra={'reason': reason},
+        )
+        return lobby
+
+    @staticmethod
+    def _log_dropzone_admin_action(event_name, lobby, *, actor=None, note='', extra=None):
+        """Persist a lightweight Dropzone operator audit event without blocking the action."""
+        try:
+            from apps.common.events.models import EventLog
+
+            EventLog.objects.create(
+                name=event_name,
+                payload={
+                    'lobby_id': str(lobby.pk),
+                    'reference_code': lobby.reference_code,
+                    'status': lobby.status,
+                    'closure_reason': lobby.closure_reason,
+                    'note': note,
+                    **(extra or {}),
+                },
+                occurred_at=timezone.now(),
+                user_id=getattr(actor, 'pk', None),
+                correlation_id=lobby.reference_code,
+                metadata={'source': 'royale.admin'},
+                status=EventLog.STATUS_PROCESSED,
+            )
+        except Exception:
+            logger.exception(
+                "Failed to write Dropzone admin audit event %s for %s",
+                event_name,
+                getattr(lobby, 'reference_code', lobby),
+            )

@@ -14,7 +14,7 @@
                     <i class="fa-solid fa-swords text-red-400"></i>
                     {{ page_title }}
                 </h1>
-                <p class="text-gray-400">Browse and accept open team challenges</p>
+                <p class="text-gray-400">Browse open Showdowns in the DeltaCrown competitive hub</p>
             </div>
             {% if user.is_authenticated %}
             <a href="{% url 'competition:match_report_form' %}"
@@ -50,7 +50,7 @@
             <div class="bg-white/5 rounded-2xl border border-white/10 hover:border-red-500/40 transition overflow-hidden">
                 <div class="bg-gradient-to-r from-red-600/10 to-orange-600/10 px-5 py-4 border-b border-white/10">
                     <div class="flex items-center justify-between">
-                        <span class="text-xs font-bold text-red-400 uppercase tracking-widest">Open Challenge</span>
+                        <span class="text-xs font-bold text-red-400 uppercase tracking-widest">Open Showdown</span>
                         {% if challenge.game %}
                         <span class="text-xs text-gray-400">{{ challenge.game.name }}</span>
                         {% endif %}
@@ -65,7 +65,7 @@
                             <p class="text-white font-bold">
                                 {{ challenge.challenger_team.name|default:"Unknown Team" }}
                             </p>
-                            <p class="text-xs text-gray-400">is looking for a challenger</p>
+                            <p class="text-xs text-gray-400">is looking for an opponent</p>
                         </div>
                     </div>
                     {% if challenge.message %}
@@ -73,7 +73,7 @@
                     {% endif %}
                     <a href="{% url 'competition:challenge_detail_page' challenge.reference_code %}"
                        class="block w-full text-center py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-bold transition">
-                        View Challenge
+                        View Showdown
                     </a>
                 </div>
             </div>
@@ -82,12 +82,12 @@
         {% else %}
         <div class="text-center py-24">
             <i class="fa-solid fa-swords text-5xl text-gray-600 mb-4"></i>
-            <h3 class="text-xl font-bold text-white mb-2">No Open Challenges</h3>
+            <h3 class="text-xl font-bold text-white mb-2">No Open Showdowns</h3>
             <p class="text-gray-400">
                 {% if selected_game %}
-                    No open challenges for {{ selected_game.name }} right now.
+                    No open Showdowns for {{ selected_game.name }} right now.
                 {% else %}
-                    There are no open challenges at the moment. Check back soon!
+                    There are no open Showdowns at the moment. Check back soon!
                 {% endif %}
             </p>
         </div>

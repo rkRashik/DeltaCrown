@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}Crown Arena — DeltaCrown{% endblock %}
+{% block title %}Competitive Hub - DeltaCrown{% endblock %}
 
 {% block extra_head %}
   <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -193,10 +193,10 @@
       <div class="max-w-3xl w-full">
         <div class="inline-flex items-center gap-2 px-3 py-1 bg-dc-cyan/10 border border-dc-cyan/30 rounded-full mb-6">
           <span class="w-2 h-2 rounded-full bg-dc-cyan animate-pulse"></span>
-          <span class="text-[10px] font-bold uppercase tracking-widest text-dc-cyan">Arena Live</span>
+          <span class="text-[10px] font-bold uppercase tracking-widest text-dc-cyan">Competitive Hub Live</span>
         </div>
         <h1 id="hero-title" class="font-display text-5xl md:text-7xl font-black text-white mb-4 leading-[1.1] tracking-tight uppercase">
-          Crown <span class="text-gradient-cyan">Arena</span>
+          DeltaCrown <span class="text-gradient-cyan">Competitive Hub</span>
         </h1>
         <p id="hero-desc" class="text-gray-400 text-base md:text-lg mb-8 max-w-2xl leading-relaxed font-medium">
           Initializing competitive engine&hellip;
@@ -277,13 +277,13 @@
         </a>
       </div>
 
-      {# Active Operations #}
+      {# My Operations #}
       <div class="glass-heavy rounded-2xl p-6 flex-grow flex flex-col">
         <div class="flex justify-between items-center mb-5">
           <h3 class="text-[10px] uppercase font-bold text-gray-500 tracking-widest flex items-center gap-2">
-            <i class="fa-solid fa-bars-progress"></i> Active Operations
+            <i class="fa-solid fa-bars-progress"></i> My Operations
           </h3>
-          <span class="bg-dc-cyan/20 border border-dc-cyan/30 text-dc-cyan text-[9px] px-2 py-0.5 rounded font-black tracking-widest" id="ops-count">-- RUNNING</span>
+          <span class="bg-dc-cyan/20 border border-dc-cyan/30 text-dc-cyan text-[9px] px-2 py-0.5 rounded font-black tracking-widest" id="ops-count">-- ACTIVE</span>
         </div>
         <div id="active-ops-container" class="space-y-3 flex-grow overflow-y-auto pr-1 min-h-[200px]">
           <div class="text-center py-8 text-xs text-gray-600">Loading&hellip;</div>
@@ -298,7 +298,7 @@
       <div class="glass-heavy rounded-2xl p-3 mb-4 flex flex-col sm:flex-row gap-3 z-30 relative border border-white/5">
         <div class="relative flex-grow">
           <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500"></i>
-          <input type="text" id="global-search" placeholder="Search teams, contracts, or players&hellip;"
+          <input type="text" id="global-search" placeholder="Search teams, missions, or players&hellip;"
                  class="w-full bg-black/40 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-dc-cyan/50 focus:bg-black/60 transition-colors font-medium placeholder-gray-600">
         </div>
         <div class="flex items-center gap-1 bg-black/40 p-1 rounded-xl border border-white/10 overflow-x-auto hide-scrollbar" id="game-filter-bar">
@@ -314,22 +314,22 @@
         <button class="tab-trigger active relative flex-1 min-w-[140px] glass-light border border-white/10 px-5 py-4 rounded-xl flex flex-col items-center justify-center transition-all group overflow-hidden" data-tab="clash">
           <div class="absolute inset-0 bg-gradient-to-t from-dc-cyan/20 to-transparent opacity-100 transition-opacity"></div>
           <i class="fa-solid fa-bolt text-xl mb-1.5 text-dc-cyan group-hover:scale-110 transition-transform relative z-10"></i>
-          <span class="font-bold text-sm tracking-wide text-white relative z-10">Crown Clash</span>
+          <span class="font-bold text-sm tracking-wide text-white relative z-10">Showdown</span>
         </button>
         <button class="tab-trigger relative flex-1 min-w-[140px] glass-light border border-transparent px-5 py-4 rounded-xl flex flex-col items-center justify-center transition-all group overflow-hidden" data-tab="contracts">
           <div class="absolute inset-0 bg-gradient-to-t from-dc-violet/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
           <i class="fa-solid fa-scroll text-xl mb-1.5 text-gray-500 group-hover:text-dc-violet transition-colors relative z-10"></i>
-          <span class="font-bold text-sm tracking-wide text-gray-400 group-hover:text-white relative z-10">Contract Board</span>
+          <span class="font-bold text-sm tracking-wide text-gray-400 group-hover:text-white relative z-10">Missions</span>
         </button>
         <button class="tab-trigger relative flex-1 min-w-[140px] glass-light border border-transparent px-5 py-4 rounded-xl flex flex-col items-center justify-center transition-all group overflow-hidden" data-tab="hitlist">
           <div class="absolute inset-0 bg-gradient-to-t from-dc-neon/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
           <i class="fa-solid fa-crosshairs text-xl mb-1.5 text-gray-500 group-hover:text-dc-neon transition-colors relative z-10"></i>
-          <span class="font-bold text-sm tracking-wide text-gray-400 group-hover:text-white relative z-10">The Hitlist</span>
+          <span class="font-bold text-sm tracking-wide text-gray-400 group-hover:text-white relative z-10">Bounty</span>
         </button>
         <button class="tab-trigger relative flex-1 min-w-[140px] glass-light border border-transparent px-5 py-4 rounded-xl flex flex-col items-center justify-center transition-all group overflow-hidden" data-tab="royale">
           <div class="absolute inset-0 bg-gradient-to-t from-dc-gold/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
           <i class="fa-solid fa-crown text-xl mb-1.5 text-gray-500 group-hover:text-dc-gold transition-colors relative z-10"></i>
-          <span class="font-bold text-sm tracking-wide text-gray-400 group-hover:text-white relative z-10">Crown Royale</span>
+          <span class="font-bold text-sm tracking-wide text-gray-400 group-hover:text-white relative z-10">Dropzone</span>
         </button>
       </div>
 
@@ -343,7 +343,7 @@
                 <span class="relative flex h-3 w-3 mr-1"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-dc-cyan opacity-75"></span><span class="relative inline-flex rounded-full h-3 w-3 bg-dc-cyan"></span></span>
                 Live Radar
               </h2>
-              <p class="text-xs text-gray-400 mt-1">Open matchmaking lobbies. Acceptance locks funds instantly.</p>
+              <p class="text-xs text-gray-400 mt-1">Open team reward matches. Acceptance locks the entry fee after confirmation.</p>
             </div>
             <div id="clash-action-container"></div>
           </div>
@@ -356,7 +356,7 @@
               <h2 class="font-display text-2xl font-bold text-white flex items-center gap-2">
                 <i class="fa-solid fa-scroll text-dc-violet"></i> Mission Database
               </h2>
-              <p class="text-xs text-gray-400 mt-1">Purchase contracts using personal DC. Complete in-game objectives to earn massive payouts.</p>
+              <p class="text-xs text-gray-400 mt-1">Start missions with personal DC. Complete in-game objectives to claim DeltaCoin rewards.</p>
             </div>
           </div>
           <div id="contracts-feed" class="grid grid-cols-1 md:grid-cols-2 gap-4 overflow-y-auto max-h-[600px] pr-2"></div>
@@ -366,9 +366,9 @@
           <div class="flex justify-between items-end mb-4 border-b border-white/5 pb-4">
             <div>
               <h2 class="font-display text-2xl font-bold text-white flex items-center gap-2">
-                <i class="fa-solid fa-skull text-dc-neon"></i> Bounties
+                <i class="fa-solid fa-skull text-dc-neon"></i> Bounty
               </h2>
-              <p class="text-xs text-gray-400 mt-1">High-stakes asymmetrical challenges. Hunt the top teams or post a bounty on yourselves.</p>
+              <p class="text-xs text-gray-400 mt-1">Skill-based team reward challenges. Place a bounty or claim one through verified play.</p>
             </div>
             <div id="hitlist-action-container"></div>
           </div>
@@ -379,9 +379,9 @@
           <div class="flex justify-between items-end mb-4 border-b border-white/5 pb-4">
             <div>
               <h2 class="font-display text-2xl font-bold text-white flex items-center gap-2">
-                <i class="fa-solid fa-crown text-dc-gold"></i> Crown Royale
+                <i class="fa-solid fa-crown text-dc-gold"></i> Dropzone
               </h2>
-              <p class="text-xs text-gray-400 mt-1">Scheduled paid Battle Royale lobbies. Room ID drops at match time.</p>
+              <p class="text-xs text-gray-400 mt-1">Large custom battle royale lobbies with slot reservation, room credentials, and scoring.</p>
             </div>
           </div>
           <div id="royale-feed" class="grid grid-cols-1 md:grid-cols-2 gap-4 overflow-y-auto max-h-[600px] pr-2"></div>
@@ -419,7 +419,7 @@
   </div>
 </main>
 
-{# ── Create Crown Clash slide-over ──────────────────────────────── #}
+{# Create Showdown slide-over #}
 <div id="slide-over-backdrop" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[70] hidden-spa opacity-0 transition-all duration-300"></div>
 
 <div id="slide-over-create-clash" class="fixed top-0 right-0 h-full w-full max-w-lg bg-[#08080c] border-l border-white/10 shadow-[-20px_0_50px_rgba(0,0,0,0.9)] z-[80] transform translate-x-full transition-transform duration-500 flex flex-col">
@@ -427,9 +427,9 @@
     <div class="absolute -right-10 -top-10 w-40 h-40 bg-dc-cyan opacity-20 blur-[50px] rounded-full pointer-events-none"></div>
     <div>
       <h2 class="font-display text-3xl font-black text-white uppercase tracking-wider flex items-center gap-3">
-        <i class="fa-solid fa-bolt text-dc-cyan"></i> Issue Clash
+        <i class="fa-solid fa-bolt text-dc-cyan"></i> Create Showdown
       </h2>
-      <p class="text-xs text-gray-400 mt-1 font-medium tracking-wide">Configure match parameters and lock escrow.</p>
+      <p class="text-xs text-gray-400 mt-1 font-medium tracking-wide">Configure match parameters and lock the entry fee.</p>
     </div>
     <button type="button" data-close-slide="create-clash" class="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-gray-400 hover:text-white transition-colors border border-white/10 hover:border-white/30">
       <i class="fa-solid fa-times text-lg"></i>
@@ -442,7 +442,7 @@
         <i class="fa-solid fa-shield-halved text-dc-cyan text-xl mt-1"></i>
         <div>
           <p class="text-sm text-white font-bold mb-1" id="so-acting-as">Acting as: --</p>
-          <p class="text-[10px] text-gray-400 leading-relaxed uppercase tracking-wider">Entry fee locks from your personal wallet on submit. Opponent's matching stake locks on accept.</p>
+          <p class="text-[10px] text-gray-400 leading-relaxed uppercase tracking-wider">Entry fee locks from the selected team wallet on submit. Opponent's matching entry fee locks on accept.</p>
         </div>
       </div>
 
@@ -500,7 +500,7 @@
             <div class="w-6 h-6 rounded-full bg-dc-gold/20 flex items-center justify-center border border-dc-gold/40">
               <i class="fa-solid fa-trophy text-[10px] text-dc-gold"></i>
             </div>
-            <span class="text-xs font-bold text-gray-300 uppercase tracking-widest">Total Prize Pot</span>
+            <span class="text-xs font-bold text-gray-300 uppercase tracking-widest">Reward Pool</span>
           </div>
           <span class="text-dc-gold font-display font-black text-2xl" id="clash-pot-display"><i class="fa-solid fa-coins text-sm mr-1"></i>600</span>
         </div>
@@ -512,14 +512,14 @@
     <div class="p-6 border-t border-white/10 bg-[#050508] flex-shrink-0 sticky bottom-0">
       <button type="submit" id="clash-submit" class="btn-cyber w-full bg-dc-cyan text-black font-black uppercase tracking-widest py-4 transition-all shadow-[0_0_20px_rgba(0,229,255,0.3)] hover:shadow-[0_0_30px_rgba(0,229,255,0.5)] flex justify-center items-center gap-3 text-lg">
         <i class="fa-solid fa-lock"></i>
-        <span class="submit-label">Lock <span id="submit-btn-amt">300</span> DC &amp; Issue</span>
+        <span class="submit-label">Lock <span id="submit-btn-amt">300</span> DC &amp; Create</span>
       </button>
-      <p class="text-[9px] text-gray-500 text-center mt-4 uppercase tracking-widest font-mono">Platform fee (5%) deducted only from winning pot.</p>
+      <p class="text-[9px] text-gray-500 text-center mt-4 uppercase tracking-widest font-mono">Platform fee (5%) applies only during reward settlement.</p>
     </div>
   </form>
 </div>
 
-{# ── Post Hitlist Bounty slide-over ─────────────────────────────── #}
+{# Place Bounty slide-over #}
 <div id="slide-over-create-hitlist" class="fixed top-0 right-0 h-full w-full max-w-lg bg-[#08080c] border-l border-white/10 shadow-[-20px_0_50px_rgba(0,0,0,0.9)] z-[80] transform translate-x-full transition-transform duration-500 flex flex-col">
   <div class="glass-heavy p-6 border-b border-white/10 flex justify-between items-center relative overflow-hidden flex-shrink-0">
     <div class="absolute -right-10 -top-10 w-40 h-40 bg-dc-neon opacity-20 blur-[50px] rounded-full pointer-events-none"></div>
@@ -527,7 +527,7 @@
       <h2 class="font-display text-3xl font-black text-white uppercase tracking-wider flex items-center gap-3">
         <i class="fa-solid fa-skull text-dc-neon"></i> Post Bounty
       </h2>
-      <p class="text-xs text-gray-400 mt-1 font-medium tracking-wide">Stake a reward on your own head. Challengers hunt you for the prize.</p>
+      <p class="text-xs text-gray-400 mt-1 font-medium tracking-wide">Place a skill-based reward challenge for other teams to claim.</p>
     </div>
     <button type="button" data-close-slide="create-hitlist" class="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-gray-400 hover:text-white transition-colors border border-white/10 hover:border-white/30">
       <i class="fa-solid fa-times text-lg"></i>
@@ -576,6 +576,47 @@
 </div>
 
 {# ── Escrow confirmation modal ──────────────────────────────────── #}
+<div id="showdown-result-modal" class="modal-shell hidden-spa" role="dialog" aria-modal="true">
+  <form id="form-showdown-result" class="modal-card">
+    <div class="flex items-start justify-between gap-4 mb-5">
+      <div>
+        <h3 class="font-display text-2xl font-black text-white uppercase tracking-wider">Submit Result</h3>
+        <p id="result-showdown-title" class="text-xs text-gray-400 mt-1">Showdown Result</p>
+      </div>
+      <button type="button" class="text-gray-400 hover:text-white text-2xl leading-none" data-close-result-modal>&times;</button>
+    </div>
+    <div id="showdown-result-form-error" class="form-error hidden" role="alert"></div>
+
+    <div class="space-y-4">
+      <label class="block">
+        <span class="block text-[10px] uppercase font-bold text-gray-500 tracking-widest mb-2">Result</span>
+        <select id="showdown-result-result" class="field-select"></select>
+      </label>
+
+      <div class="grid grid-cols-2 gap-3">
+        <label class="block">
+          <span id="showdown-result-challenger-label" class="block text-[10px] uppercase font-bold text-gray-500 tracking-widest mb-2">Challenger</span>
+          <input id="showdown-result-challenger-score" type="number" min="0" step="1" class="field-input" placeholder="0">
+        </label>
+        <label class="block">
+          <span id="showdown-result-challenged-label" class="block text-[10px] uppercase font-bold text-gray-500 tracking-widest mb-2">Opponent</span>
+          <input id="showdown-result-challenged-score" type="number" min="0" step="1" class="field-input" placeholder="0">
+        </label>
+      </div>
+
+      <label class="block">
+        <span class="block text-[10px] uppercase font-bold text-gray-500 tracking-widest mb-2">Evidence URL</span>
+        <input id="showdown-result-evidence" type="url" class="field-input" placeholder="https://">
+      </label>
+    </div>
+
+    <div class="flex gap-3 justify-end mt-6">
+      <button type="button" class="px-4 py-2 rounded-xl text-sm font-bold bg-white/5 border border-white/10 text-white hover:bg-white/10" data-close-result-modal>Cancel</button>
+      <button type="submit" class="btn-cyber px-5 py-2 bg-dc-cyan text-black text-sm font-black uppercase tracking-widest">Submit Result</button>
+    </div>
+  </form>
+</div>
+
 <div id="confirm-modal" class="modal-shell hidden-spa" role="dialog" aria-modal="true">
   <div class="modal-card">
     <div class="flex items-center justify-between mb-4">
@@ -583,6 +624,11 @@
       <button type="button" class="text-gray-400 hover:text-white text-2xl leading-none" data-cancel-confirm>&times;</button>
     </div>
     <p id="confirm-body" class="text-sm text-gray-400 leading-relaxed mb-2">…</p>
+    <div id="confirm-team-wrap" class="hidden-spa mb-4">
+      <label class="block text-[10px] uppercase font-bold text-gray-500 tracking-widest mb-2">Accepting Team</label>
+      <select id="confirm-team-select" class="field-select"></select>
+      <p class="text-[10px] text-gray-500 mt-1.5">Choose which managed team will accept this Showdown.</p>
+    </div>
     <p id="confirm-lock" class="text-xs text-dc-gold font-mono mb-6 font-bold">…</p>
     <div class="flex gap-3 justify-end">
       <button type="button" class="px-4 py-2 rounded-xl text-sm font-bold bg-white/5 border border-white/10 text-white hover:bg-white/10" data-cancel-confirm>Cancel</button>

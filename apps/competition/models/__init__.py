@@ -4,7 +4,7 @@ from .match_report import MatchReport
 from .match_verification import MatchVerification
 from .team_game_ranking_snapshot import TeamGameRankingSnapshot
 from .team_global_ranking_snapshot import TeamGlobalRankingSnapshot
-from .challenge import Challenge
+from .challenge import Challenge, ChallengeResultSubmission
 from .bounty import Bounty, BountyClaim
 
 __all__ = [
@@ -14,6 +14,7 @@ __all__ = [
     'TeamGameRankingSnapshot',
     'TeamGlobalRankingSnapshot',
     'Challenge',
+    'ChallengeResultSubmission',
     'Bounty',
     'BountyClaim',
 ]

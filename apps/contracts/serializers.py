@@ -1,11 +1,11 @@
-"""Crown Contracts API serializers."""
+"""Missions API serializers."""
 from __future__ import annotations
 
 from rest_framework import serializers
 
 
 class ContractTemplateSerializer(serializers.Serializer):
-    """Public catalog row for a Crown Contract mission."""
+    """Public catalog row for a Mission."""
 
     id = serializers.UUIDField(read_only=True)
     title = serializers.CharField(read_only=True)
@@ -43,7 +43,7 @@ class ContractTemplateSerializer(serializers.Serializer):
 
 
 class ContractEnrollmentSerializer(serializers.Serializer):
-    """A player's attempt at a contract.
+    """A player's attempt at a Mission.
 
     Always includes ``closure_reason`` + ``closure_note`` so the UI can
     render specific terminal-state messaging instead of a bare countdown.

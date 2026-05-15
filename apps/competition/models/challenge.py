@@ -8,11 +8,11 @@ Supports all 11 games across 4 game categories:
   SPORTS (FC26, EFB, RL)     → Direct match / BO series, 1v1 or team
 
 Challenge lifecycle:
-  OPEN → ACCEPTED → SCHEDULED → IN_PROGRESS → COMPLETED → SETTLED
-                  → DECLINED
-                  → EXPIRED (auto after deadline)
-                  → CANCELLED (by issuer before accept)
-                  → DISPUTED → ADMIN_RESOLVED
+  OPEN -> ACCEPTED -> SCHEDULED -> IN_PROGRESS -> PENDING_CONFIRMATION -> COMPLETED -> SETTLED
+                  -> DECLINED
+                  -> EXPIRED (auto after deadline)
+                  -> CANCELLED (by issuer before accept)
+                  -> DISPUTED -> ADMIN_RESOLVED
 """
 from django.conf import settings
 from django.db import models
@@ -73,7 +73,8 @@ class Challenge(SoftDeleteModel):
         ('ACCEPTED', 'Accepted — Awaiting schedule'),
         ('SCHEDULED', 'Scheduled — Match time set'),
         ('IN_PROGRESS', 'In Progress'),
-        ('COMPLETED', 'Completed — Result submitted'),
+        ('PENDING_CONFIRMATION', 'Pending confirmation — Result submitted'),
+        ('COMPLETED', 'Completed — Result confirmed'),
         ('SETTLED', 'Settled — Result verified & rewards distributed'),
         ('DECLINED', 'Declined by opponent'),
         ('EXPIRED', 'Expired — Deadline passed'),
@@ -497,3 +498,56 @@ class Challenge(SoftDeleteModel):
             },
         }
         return defaults.get(category, {})
+
+
+class ChallengeResultSubmission(models.Model):
+    """Per-team Showdown result confirmation.
+
+    A Showdown settles only when both teams submit the same winner and score.
+    Conflicting submissions move the parent Challenge to DISPUTED for review.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    challenge = models.ForeignKey(
+        Challenge,
+        on_delete=models.CASCADE,
+        related_name='result_submissions',
+    )
+    team = models.ForeignKey(
+        'organizations.Team',
+        on_delete=models.CASCADE,
+        related_name='challenge_result_submissions',
+    )
+    submitted_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='challenge_result_submissions',
+    )
+    result = models.CharField(
+        max_length=20,
+        choices=Challenge.RESULT_CHOICES,
+    )
+    score_details = models.JSONField(default=dict, blank=True)
+    evidence_url = models.URLField(max_length=500, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'competition_challenge_result_submission'
+        verbose_name = 'Challenge Result Submission'
+        verbose_name_plural = 'Challenge Result Submissions'
+        ordering = ['created_at']
+        indexes = [
+            models.Index(fields=['challenge', 'team']),
+            models.Index(fields=['team', '-created_at']),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=['challenge', 'team'],
+                name='unique_result_submission_per_challenge_team',
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.challenge.reference_code} / {self.team.name} / {self.result}"

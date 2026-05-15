@@ -1,4 +1,4 @@
-"""Crown Contracts service layer.
+"""Missions service layer.
 
 Responsibilities:
   * enroll(user, template) — atomic: lock entry fee + create ACTIVE row.
@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 # Constants
 # ─────────────────────────────────────────────────────────────────────────────
 
-#: Anti-whale ceiling: maximum DC a single Contract may charge for entry.
+#: Anti-whale ceiling: maximum DC a single Mission may charge for entry.
 CONTRACT_ENTRY_FEE_CAP_DC: int = 1_000
 
 #: Reward is paid from the platform treasury — fee is 0 here (no skim).
@@ -59,7 +59,7 @@ def _wallet_for_user(user) -> DeltaCrownWallet:
 # ─────────────────────────────────────────────────────────────────────────────
 
 class ContractService:
-    """Lifecycle service for Crown Contracts."""
+    """Lifecycle service for Missions."""
 
     # ── Enrollment ───────────────────────────────────────────────────────
 
@@ -68,10 +68,10 @@ class ContractService:
     def enroll(*, user, template: ContractTemplate) -> ContractEnrollment:
         """Enroll ``user`` in ``template``: lock entry fee, start clock."""
         if not template.is_currently_available:
-            raise ValidationError("Contract template is not currently available.")
+            raise ValidationError("Mission template is not currently available.")
         if template.entry_fee_dc > CONTRACT_ENTRY_FEE_CAP_DC:
             raise ValidationError(
-                f"Contract entry fee {template.entry_fee_dc} DC exceeds "
+                f"Mission entry fee {template.entry_fee_dc} DC exceeds "
                 f"the anti-whale cap of {CONTRACT_ENTRY_FEE_CAP_DC} DC."
             )
 
@@ -79,7 +79,7 @@ class ContractService:
         if ContractEnrollment.objects.filter(
             user=user, template=template, status='ACTIVE'
         ).exists():
-            raise ValidationError("You already have an active enrollment for this contract.")
+            raise ValidationError("You already have an active enrollment for this Mission.")
 
         deadline = timezone.now() + timedelta(hours=template.duration_hours)
         enrollment = ContractEnrollment.objects.create(
@@ -98,13 +98,13 @@ class ContractService:
                 template.entry_fee_dc,
                 reference_id=enrollment.contract_ref_id('entry'),
                 actor=user,
-                note=f"Crown Contract {enrollment.reference_code} entry fee",
+                note=f"Mission {enrollment.reference_code} entry fee",
             )
             enrollment.escrow_lock_txn = result.transactions[0]
             enrollment.save(update_fields=['escrow_lock_txn'])
 
         logger.info(
-            "Contract enrolled: %s by %s (template=%s, fee=%s DC)",
+            "Mission enrolled: %s by %s (template=%s, fee=%s DC)",
             enrollment.reference_code, user.username,
             template.title, template.entry_fee_dc,
         )
@@ -144,7 +144,7 @@ class ContractService:
                 template.entry_fee_dc,
                 reference_id=enrollment.contract_ref_id('entry'),
                 actor=actor,
-                note=f"Crown Contract {enrollment.reference_code} entry-fee refund (success)",
+                note=f"Mission {enrollment.reference_code} entry-fee refund (success)",
             )
 
         # Pay the reward (no platform fee — comes from treasury).
@@ -155,7 +155,7 @@ class ContractService:
                 platform_fee_pct=CONTRACT_PLATFORM_FEE_PCT,
                 reference_id=enrollment.contract_ref_id('reward'),
                 actor=actor,
-                note=f"Crown Contract {enrollment.reference_code} reward",
+                note=f"Mission {enrollment.reference_code} reward",
             )
             enrollment.reward_payout_txn = payout.transactions[0]
 
@@ -167,7 +167,7 @@ class ContractService:
         ])
 
         logger.info(
-            "Contract completed: %s (reward=%s DC)",
+            "Mission completed: %s (reward=%s DC)",
             enrollment.reference_code, template.reward_dc,
         )
         return enrollment
@@ -193,7 +193,7 @@ class ContractService:
                 platform_fee_pct=0,
                 reference_id=enrollment.contract_ref_id('forfeit'),
                 actor=actor,
-                note=f"Crown Contract {enrollment.reference_code} entry forfeited ({reason})",
+                note=f"Mission {enrollment.reference_code} entry forfeited ({reason})",
             )
 
         # Map reason → terminal status
@@ -207,7 +207,7 @@ class ContractService:
         ])
 
         logger.info(
-            "Contract %s: %s (reason=%s)",
+            "Mission %s: %s (reason=%s)",
             enrollment.status.lower(), enrollment.reference_code, reason,
         )
         return enrollment
@@ -230,7 +230,7 @@ class ContractService:
                 template.entry_fee_dc,
                 reference_id=enrollment.contract_ref_id('entry'),
                 actor=actor,
-                note=f"Crown Contract {enrollment.reference_code} voided by admin",
+                note=f"Mission {enrollment.reference_code} voided by admin",
             )
 
         enrollment.status = 'VOIDED'
@@ -240,8 +240,142 @@ class ContractService:
         enrollment.save(update_fields=[
             'status', 'closure_reason', 'closure_note', 'resolved_at',
         ])
-        logger.info("Contract voided: %s", enrollment.reference_code)
+        logger.info("Mission voided: %s", enrollment.reference_code)
         return enrollment
+
+    # ── Admin/operator wrappers ─────────────────────────────────────────
+
+    @staticmethod
+    @transaction.atomic
+    def admin_complete(*, enrollment_id, actor=None, note='') -> ContractEnrollment:
+        """Complete a Mission through the normal reward/refund service path."""
+        enrollment = ContractService.complete(enrollment_id=enrollment_id, actor=actor)
+        if note:
+            enrollment.closure_note = note
+            enrollment.save(update_fields=['closure_note'])
+        ContractService._log_mission_admin_action(
+            'mission.admin_completed',
+            enrollment,
+            actor=actor,
+            note=note,
+        )
+        return enrollment
+
+    @staticmethod
+    @transaction.atomic
+    def admin_fail(*, enrollment_id, actor=None, note='') -> ContractEnrollment:
+        """Fail a Mission through the normal entry-fee forfeit path."""
+        enrollment = ContractService.fail(
+            enrollment_id=enrollment_id,
+            reason='FAILED',
+            note=note,
+            actor=actor,
+        )
+        ContractService._log_mission_admin_action(
+            'mission.admin_failed',
+            enrollment,
+            actor=actor,
+            note=note,
+        )
+        return enrollment
+
+    @staticmethod
+    @transaction.atomic
+    def admin_void_refund(*, enrollment_id, actor=None, note='') -> ContractEnrollment:
+        """Void/refund a Mission through the normal remediation path."""
+        enrollment = ContractService.void(
+            enrollment_id=enrollment_id,
+            actor=actor,
+            note=note,
+        )
+        ContractService._log_mission_admin_action(
+            'mission.admin_void_refund',
+            enrollment,
+            actor=actor,
+            note=note,
+        )
+        return enrollment
+
+    @staticmethod
+    @transaction.atomic
+    def admin_expire(*, enrollment_id, actor=None, note='') -> ContractEnrollment:
+        """Expire a selected overdue Mission."""
+        enrollment = ContractEnrollment.objects.select_for_update().get(pk=enrollment_id)
+        if enrollment.status != 'ACTIVE':
+            raise ValidationError("Only active Missions can be expired.")
+        if enrollment.deadline_at >= timezone.now():
+            raise ValidationError("Only overdue Missions can be expired.")
+
+        enrollment = ContractService.fail(
+            enrollment_id=enrollment_id,
+            reason='EXPIRED',
+            note=note or 'Deadline passed without completion.',
+            actor=actor,
+        )
+        ContractService._log_mission_admin_action(
+            'mission.admin_expired',
+            enrollment,
+            actor=actor,
+            note=note,
+        )
+        return enrollment
+
+    @staticmethod
+    @transaction.atomic
+    def admin_record_progress(*, enrollment_id, actor=None, progress_patch=None, note='') -> ContractEnrollment:
+        """Record a minimal manual review marker in the Mission progress JSON."""
+        enrollment = ContractEnrollment.objects.select_for_update().get(pk=enrollment_id)
+        if enrollment.status != 'ACTIVE':
+            raise ValidationError("Cannot record progress on a non-active Mission.")
+        progress = dict(enrollment.progress or {})
+        manual_reviews = list(progress.get('manual_reviews') or [])
+        manual_reviews.append({
+            'reviewed_at': timezone.now().isoformat(),
+            'reviewed_by_id': getattr(actor, 'pk', None),
+            'note': note,
+        })
+        progress['manual_reviews'] = manual_reviews
+        if progress_patch:
+            progress.update(progress_patch)
+        enrollment.progress = progress
+        enrollment.save(update_fields=['progress'])
+        ContractService._log_mission_admin_action(
+            'mission.progress_recorded',
+            enrollment,
+            actor=actor,
+            note=note,
+        )
+        return enrollment
+
+    @staticmethod
+    def _log_mission_admin_action(event_name, enrollment, *, actor=None, note='', extra=None):
+        """Persist a lightweight Mission operator audit event without blocking the action."""
+        try:
+            from apps.common.events.models import EventLog
+
+            EventLog.objects.create(
+                name=event_name,
+                payload={
+                    'enrollment_id': str(enrollment.pk),
+                    'reference_code': enrollment.reference_code,
+                    'template_id': str(enrollment.template_id),
+                    'status': enrollment.status,
+                    'closure_reason': enrollment.closure_reason,
+                    'note': note,
+                    **(extra or {}),
+                },
+                occurred_at=timezone.now(),
+                user_id=getattr(actor, 'pk', None),
+                correlation_id=enrollment.reference_code,
+                metadata={'source': 'contracts.admin'},
+                status=EventLog.STATUS_PROCESSED,
+            )
+        except Exception:
+            logger.exception(
+                "Failed to write Mission admin audit event %s for %s",
+                event_name,
+                getattr(enrollment, 'reference_code', enrollment),
+            )
 
     # ── Periodic deadline sweep ──────────────────────────────────────────
 
@@ -271,5 +405,5 @@ class ContractService:
                     "expire_overdue: failed on %s", stub.reference_code,
                 )
         if count:
-            logger.info("Expired %d Crown Contract enrollments", count)
+            logger.info("Expired %d Mission enrollments", count)
         return count

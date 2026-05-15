@@ -34,7 +34,7 @@ DeltaCrown's next-generation competitive hub is organized around four short prod
 | Bounty | Open skill-based reward challenges and community rivalry boards |
 | Dropzone | Large battle royale custom lobbies with slots, room credentials, scoring, and settlement |
 
-These systems are built around structured rules, team authority, match rooms, proof, escrow, and admin review. The backend foundation is active, while the public product layer is being refined around the new naming, stronger settlement flows, and a unified user experience.
+These systems are built around structured rules, team authority, match rooms, proof, escrow, and admin review. The unified My Operations feed is active, and MVP admin controls now exist for Showdown result handling, Bounty claim verification, Missions verification, and Dropzone scoring/settlement. The public product layer is still being refined around proof upload, richer dispute review, public Dropzone detail, and deeper game API verification.
 
 ## Tournaments
 
@@ -152,13 +152,16 @@ DeltaCrown is an active product in development with substantial foundations alre
 - Player profiles and game passport direction
 - Crown Point ranking system
 - Economy and escrow services
-- Competitive hub foundation
-- Showdown, Missions, Bounty, and Dropzone backend foundations
+- Competitive hub foundation and unified My Operations feed
+- Showdown MVP result confirmation and admin control
+- Bounty admin claim verification/control MVP
+- Missions admin verification/control MVP
+- Dropzone admin scoring/settlement MVP
 - Team recruitment and early tryout workflow
 - Admin and moderation surfaces
 - Public-facing dashboards, community, and commerce direction
 
-Some systems are still evolving, especially the final competitive settlement lifecycle, admin control center, public naming cleanup, Dropzone scoring UX, Missions verification, and full Team HQ training workflows.
+Some systems are still evolving, especially public proof upload, richer dispute/review UI, public Dropzone detail, full Team HQ training workflows, deeper game API verification, and internal legacy naming cleanup.
 
 ## Supported Game Direction
 

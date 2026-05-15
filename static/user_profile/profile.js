@@ -733,15 +733,14 @@ document.addEventListener('DOMContentLoaded', () => {
 // UP-PHASE2D: Interactive Owner Flows
 // ============================================================================
 
+function routeCompetitiveActionsToHub() {
+    if (window.Toast) window.Toast.info('Competitive actions now live in the DeltaCrown competitive hub.');
+    window.location.href = '/dashboard/competitive/';
+}
+
 // Create Bounty Modal
 function openCreateBountyModal() {
-    if (!requireOwner('openCreateBountyModal')) return;
-    
-    const modal = safeGetById('createBountyModal');
-    if (!modal) return;
-    
-    modal.classList.remove('hidden');
-    document.body.style.overflow = 'hidden';
+    routeCompetitiveActionsToHub();
 }
 
 function closeCreateBountyModal() {
@@ -755,67 +754,12 @@ function closeCreateBountyModal() {
 }
 
 async function submitBounty() {
-    if (!requireOwner('submitBounty')) return;
-    
-    const form = safeGetById('createBountyForm');
-    const errorDiv = safeGetById('createBountyError');
-    const submitBtn = safeGetById('submitBountyBtn');
-    
-    errorDiv.classList.add('hidden');
-    submitBtn.disabled = true;
-    submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Creating...';
-    
-    const data = {
-        title: form.title.value,
-        game_id: form.game.value,
-        description: form.description.value,
-        stake_amount: parseInt(form.stake_amount.value),
-        expires_in_hours: parseInt(form.expires_in_hours.value),
-    };
-    
-    const result = await safeFetch('/api/bounties/create/', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data)
-    });
-    
-    submitBtn.disabled = false;
-    submitBtn.innerHTML = '<i class="fa-solid fa-plus mr-2"></i> Create Bounty';
-    
-    if (result && result.success) {
-        if (window.Toast) window.Toast.success(`Bounty created! ${result.stake_amount} DC locked in escrow.`);
-        closeCreateBountyModal();
-        location.reload();
-    } else if (result) {
-        errorDiv.textContent = result.error || 'Failed to create bounty';
-        errorDiv.classList.remove('hidden');
-    }
+    routeCompetitiveActionsToHub();
 }
 
 // Accept Bounty
 async function acceptBounty(bountyId, url) {
-    if (!requireOwner('acceptBounty')) return;
-    if (!confirm('Accept this bounty challenge?')) return;
-    
-    const btn = event.target.closest('button');
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Accepting...';
-    
-    debugLog('Accept bounty', { bountyId, url });
-    
-    const data = await safeFetch(url, {
-        method: 'POST'
-    });
-    
-    if (data && data.success) {
-        if (window.Toast) window.Toast.success(data.message);
-        location.reload();
-    } else {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fa-solid fa-handshake mr-2"></i> Accept';
-    }
+    routeCompetitiveActionsToHub();
 }
 
 // ============================================================================
@@ -1295,47 +1239,14 @@ document.addEventListener('keydown', (e) => {
 
 // Start Match
 async function startMatch(bountyId) {
-    if (!requireOwner('startMatch')) return;
-    if (!confirm('Start this match now? Both players should be ready.')) return;
-    
-    const btn = event.target;
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Starting...';
-    
-    const url = `/api/bounty/${bountyId}/start/`;
-    debugLog('Start match', { bountyId, url });
-    
-    const data = await safeFetch(url, { method: 'POST' });
-    
-    if (data && data.success) {
-        if (window.Toast) window.Toast.success(data.message);
-        location.reload();
-    } else {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fa-solid fa-play mr-2"></i> Start Match';
-    }
+    routeCompetitiveActionsToHub();
 }
 
 // Proof Submission Modal
 let currentProofBountyId = null;
 
 function openProofModal(bountyId, bountyTitle, creatorId, creatorName, acceptorId, acceptorName) {
-    if (!requireOwner('openProofModal')) return;
-    
-    currentProofBountyId = bountyId;
-    const titleEl = safeGetById('proofBountyTitle');
-    if (titleEl) titleEl.textContent = bountyTitle;
-    
-    // Populate winner dropdown
-    const winnerSelect = safeGetById('proofWinner');
-    winnerSelect.innerHTML = `
-        <option value="">Select winner...</option>
-        <option value="${creatorId}">${creatorName}</option>
-        <option value="${acceptorId}">${acceptorName}</option>
-    `;
-    
-    safeGetById('proofModal').classList.remove('hidden');
-    document.body.style.overflow = 'hidden';
+    routeCompetitiveActionsToHub();
 }
 
 function closeProofModal() {
@@ -1351,91 +1262,19 @@ function closeProofModal() {
 }
 
 async function submitProof() {
-    if (!requireOwner('submitProof')) return;
-    
-    const winnerId = safeGetById('proofWinner').value;
-    const proofUrl = safeGetById('proofUrl').value.trim();
-    const proofType = safeGetById('proofType').value;
-    const description = safeGetById('proofDescription').value.trim();
-    
-    if (!winnerId) {
-        if (window.Toast) window.Toast.warning('Please select a winner');
-        return;
-    }
-    
-    if (!proofUrl) {
-        if (window.Toast) window.Toast.warning('Please provide a proof URL');
-        return;
-    }
-    
-    const data = {
-        claimed_winner_id: parseInt(winnerId),
-        proof_url: proofUrl,
-        proof_type: proofType,
-        description: description
-    };
-    
-    const url = `/api/bounty/${currentProofBountyId}/proof/`;
-    debugLog('Submit proof', { bountyId: currentProofBountyId, url });
-    
-    const result = await safeFetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-    });
-    
-    if (result && result.success) {
-        if (window.Toast) window.Toast.success(result.message);
-        closeProofModal();
-        location.reload();
-    }
+    routeCompetitiveActionsToHub();
 }
 
 // Confirm Result
 async function confirmResult(bountyId) {
-    if (!requireOwner('confirmResult')) return;
-    if (!confirm('Confirm this result? Winner will receive 95% of stake (5% platform fee). This action cannot be undone.')) return;
-    
-    const btn = event.target;
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Confirming...';
-    
-    const url = `/api/bounty/${bountyId}/confirm/`;
-    debugLog('Confirm result', { bountyId, url });
-    
-    const data = await safeFetch(url, { method: 'POST' });
-    
-    if (data && data.success) {
-        if (window.Toast) window.Toast.success(data.message);
-        location.reload();
-    } else {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fa-solid fa-check mr-2"></i> Confirm Result';
-    }
+    routeCompetitiveActionsToHub();
 }
 
 // Dispute Modal
 let currentDisputeBountyId = null;
 
 function openDisputeModal(bountyId, bountyTitle) {
-    if (!requireOwner('openDisputeModal')) return;
-    
-    currentDisputeBountyId = bountyId;
-    const titleEl = safeGetById('disputeBountyTitle');
-    if (titleEl) titleEl.textContent = bountyTitle;
-    
-    const modal = safeGetById('disputeModal');
-    if (!modal) return;
-    
-    modal.classList.remove('hidden');
-    document.body.style.overflow = 'hidden';
-    
-    // Character counter
-    const textarea = safeGetById('disputeReason');
-    const counter = safeGetById('disputeCharCount');
-    textarea.addEventListener('input', () => {
-        counter.textContent = textarea.value.length;
-    });
+    routeCompetitiveActionsToHub();
 }
 
 function closeDisputeModal() {
@@ -1449,29 +1288,7 @@ function closeDisputeModal() {
 }
 
 async function submitDispute() {
-    if (!requireOwner('submitDispute')) return;
-    
-    const reason = safeGetById('disputeReason').value.trim();
-    
-    if (reason.length < 50) {
-        if (window.Toast) window.Toast.warning('Dispute reason must be at least 50 characters');
-        return;
-    }
-    
-    const data = { reason: reason };
-    const disputeUrl = `/api/bounty/${currentDisputeBountyId}/dispute/`;
-    
-    const result = await safeFetch(disputeUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-    });
-    
-    if (result && result.success) {
-        if (window.Toast) window.Toast.success(result.message);
-        closeDisputeModal();
-        location.reload();
-    }
+    routeCompetitiveActionsToHub();
 }
 
 // UP-PHASE2E-PART2: Endorsement Modal Functions
@@ -1842,6 +1659,9 @@ async function loadFollowersList() {
         `).join('');
     } else {
         container.innerHTML = `<div class="text-center py-12 text-red-500">${data?.error || 'Failed to load followers'}</div>`;
+    }
+    } catch (err) {
+        container.innerHTML = '<div class="text-center py-12 text-red-500">Failed to load followers</div>';
     }
 }
 

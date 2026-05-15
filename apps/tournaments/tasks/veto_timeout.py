@@ -37,6 +37,7 @@ from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 
 from celery import shared_task
+from django.db import transaction
 from django.utils import timezone
 
 logger = logging.getLogger(__name__)
@@ -168,27 +169,64 @@ def _auto_execute_one_step(match, workflow: Dict[str, Any]) -> Optional[str]:
 
 
 def _broadcast_workflow_update(match, event_name: str) -> None:
-    """Fire the standard ``match_room_event`` broadcast so connected clients
-    pull a fresh state snapshot on the next render tick.
+    """Fire the standard ``match_room_event`` broadcast WITH a fresh room
+    snapshot so connected clients update state on receipt.
 
-    Uses the existing channel-layer pipeline — the FE listens on
-    ``match_room_event`` and re-applies the room via ``applyRoom`` (full
-    state, idempotent). No new WS payload type introduced.
+    FE contract: ``applyRoom(eventPayload.room)`` is the only state-update
+    path on ``match_room_event``. If we send a broadcast without a ``room``
+    key, the FE drops it on the floor and the view stays stale. This is the
+    same contract the HTTP workflow handler observes.
+
+    Sweeper context has no request user, so we build the room with a
+    "system" access dict (no user-side, no admin). Per-side submission
+    masking is identical for both teams in this context — the auto-resolved
+    veto step doesn't reveal opposing submissions.
     """
     try:
         from channels.layers import get_channel_layer
         from asgiref.sync import async_to_sync
+        # Import here to avoid module-load circularity with the view module.
+        from apps.tournaments.views.match_room import (
+            _ensure_match_workflow,
+            _build_room_payload,
+        )
 
         channel_layer = get_channel_layer()
         if not channel_layer:
             return
+
+        # Rebuild the room snapshot for broadcast. ``persist=False`` so this
+        # read-side computation doesn't double-write state.
+        try:
+            lobby_info, workflow, runtime, _ = _ensure_match_workflow(match, persist=False)
+            fallback_access = {
+                "allowed": True,
+                "is_staff": False,
+                "is_official_staff": False,
+                "admin_mode": False,
+                "admin_token": "",
+                "user_side": None,
+                "user_id": None,
+                "denied_reason": None,
+            }
+            room_payload = _build_room_payload(match, fallback_access, lobby_info, workflow, runtime)
+        except Exception as exc:
+            logger.warning("veto_timeout: room snapshot build failed match=%s err=%s",
+                           getattr(match, "id", None), exc)
+            room_payload = None
+
+        payload: Dict[str, Any] = {"auto": True}
+        if room_payload:
+            payload["room"] = room_payload
+            payload["message"] = "Veto step auto-resolved by timeout."
+
         async_to_sync(channel_layer.group_send)(
             f"match_{match.id}",
             {
                 "type": "match_room_event",
                 "data": {
                     "event": event_name,
-                    "payload": {"auto": True},
+                    "payload": payload,
                     "match_id": match.id,
                     "timestamp": timezone.now().isoformat(),
                 },
@@ -227,7 +265,11 @@ def sweep_veto_timeouts(self) -> Dict[str, int]:
         .only("id", "lobby_info", "state")
     )
 
-    for match in qs.iterator(chunk_size=200):
+    # First pass: cheap pre-filter to collect candidate match IDs without
+    # holding any locks. We re-check each candidate under select_for_update
+    # below, so a stale pre-filter is harmless.
+    candidate_ids: List[int] = []
+    for match in qs.only("id", "lobby_info").iterator(chunk_size=200):
         try:
             lobby_info = match.lobby_info if isinstance(match.lobby_info, dict) else {}
             workflow = lobby_info.get(_WORKFLOW_KEY)
@@ -243,27 +285,62 @@ def sweep_veto_timeouts(self) -> Dict[str, int]:
             if not _is_step_expired(veto, now):
                 skipped += 1
                 continue
-
-            note = _auto_execute_one_step(match, workflow)
-            if not note:
-                skipped += 1
-                continue
-
-            lobby_info[_WORKFLOW_KEY] = workflow
-            match.lobby_info = lobby_info
-            match.save(update_fields=["lobby_info"])
-            _broadcast_workflow_update(match, "veto_auto_resolved")
-
-            swept += 1
-            logger.info(
-                "veto_timeout: auto-resolved step match=%s %s",
-                match.id, note,
-            )
+            candidate_ids.append(int(match.id))
         except Exception as exc:
             errors += 1
-            logger.exception(
-                "veto_timeout: sweeper error match=%s err=%s",
-                getattr(match, "id", None), exc,
-            )
+            logger.exception("veto_timeout: prefilter error match=%s err=%s",
+                             getattr(match, "id", None), exc)
+
+    if not candidate_ids:
+        return {"swept": 0, "skipped": skipped, "errors": errors}
+
+    # Second pass: process each candidate inside its own transaction with
+    # row-level locking. This serialises against the HTTP workflow handler
+    # so a participant's submit/veto action and the sweeper can't both
+    # rewrite ``lobby_info`` in a lost-update race.
+    from apps.tournaments.models import Match
+    for match_id in candidate_ids:
+        try:
+            with transaction.atomic():
+                match = (
+                    Match.objects
+                    .select_for_update()
+                    .only("id", "lobby_info", "state")
+                    .get(pk=match_id)
+                )
+                lobby_info = match.lobby_info if isinstance(match.lobby_info, dict) else {}
+                workflow = lobby_info.get(_WORKFLOW_KEY)
+                if not isinstance(workflow, dict):
+                    skipped += 1
+                    continue
+                veto = workflow.get("veto") if isinstance(workflow.get("veto"), dict) else None
+                # Re-check under lock — the HTTP handler may have already
+                # advanced the step between pre-filter and acquisition.
+                if (
+                    not veto
+                    or str(workflow.get("phase") or "") != "phase1"
+                    or str(workflow.get("mode") or "") != "veto"
+                    or not _is_step_expired(veto, timezone.now())
+                ):
+                    skipped += 1
+                    continue
+
+                note = _auto_execute_one_step(match, workflow)
+                if not note:
+                    skipped += 1
+                    continue
+
+                lobby_info[_WORKFLOW_KEY] = workflow
+                match.lobby_info = lobby_info
+                match.save(update_fields=["lobby_info"])
+
+            # Broadcast outside the transaction — channel-layer publish
+            # shouldn't be inside the DB lock.
+            _broadcast_workflow_update(match, "veto_auto_resolved")
+            swept += 1
+            logger.info("veto_timeout: auto-resolved step match=%s %s", match_id, note)
+        except Exception as exc:
+            errors += 1
+            logger.exception("veto_timeout: sweeper error match=%s err=%s", match_id, exc)
 
     return {"swept": swept, "skipped": skipped, "errors": errors}

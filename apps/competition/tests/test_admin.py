@@ -17,6 +17,9 @@ if COMPETITION_SCHEMA_READY:
         MatchVerificationAdmin,
         TeamGameRankingSnapshotAdmin,
         TeamGlobalRankingSnapshotAdmin,
+        ChallengeAdmin,
+        BountyAdmin,
+        BountyClaimAdmin,
     )
     from apps.competition.models import (
         GameRankingConfig,
@@ -24,6 +27,9 @@ if COMPETITION_SCHEMA_READY:
         MatchVerification,
         TeamGameRankingSnapshot,
         TeamGlobalRankingSnapshot,
+        Challenge,
+        Bounty,
+        BountyClaim,
     )
 
 
@@ -74,3 +80,72 @@ class TestCompetitionAdmin:
         
         assert 'team' in admin_instance.list_display
         assert 'global_tier' in admin_instance.list_filter
+
+    def test_challenge_admin_protects_lifecycle_and_escrow_fields(self):
+        """Showdown admin should expose service actions and protect direct edits."""
+        site = AdminSite()
+        admin_instance = ChallengeAdmin(Challenge, site)
+
+        action_names = [getattr(action, '__name__', action) for action in admin_instance.actions]
+        assert 'settle_confirmed_showdowns' in action_names
+        assert 'resolve_disputes_as_challenger_win' in action_names
+        assert 'void_refund_showdowns' in action_names
+        assert 'respawn_missing_match_rooms' in action_names
+
+        for field in [
+            'status',
+            'result',
+            'score_details',
+            'escrow_locked',
+            'challenger_lock_txn',
+            'challenged_lock_txn',
+            'payout_txn',
+            'settled_at',
+            'closure_reason',
+            'closure_note',
+        ]:
+            assert field in admin_instance.readonly_fields
+
+    def test_bounty_admin_protects_lifecycle_and_escrow_fields(self):
+        """Bounty admin should expose service actions and protect direct edits."""
+        site = AdminSite()
+        admin_instance = BountyAdmin(Bounty, site)
+
+        action_names = [getattr(action, '__name__', action) for action in admin_instance.actions]
+        assert 'void_refund_bounties' in action_names
+        assert 'expire_stale_bounties_action' in action_names
+
+        for field in [
+            'status',
+            'reward_amount_dc',
+            'escrow_locked',
+            'issuer_lock_txn',
+            'funded_by',
+            'claim_count',
+            'closure_reason',
+            'closure_note',
+        ]:
+            assert field in admin_instance.readonly_fields
+
+    def test_bounty_claim_admin_protects_lifecycle_and_escrow_fields(self):
+        """Bounty claim admin should verify/reject through service-backed actions."""
+        site = AdminSite()
+        admin_instance = BountyClaimAdmin(BountyClaim, site)
+
+        action_names = [getattr(action, '__name__', action) for action in admin_instance.actions]
+        assert 'approve_pending_claims' in action_names
+        assert 'reject_pending_claims' in action_names
+        assert 'respawn_missing_claim_match_rooms' in action_names
+
+        for field in [
+            'status',
+            'verified_by',
+            'verified_at',
+            'entry_fee_lock_txn',
+            'outcome_txn',
+            'funded_by',
+            'match',
+            'closure_reason',
+            'closure_note',
+        ]:
+            assert field in admin_instance.readonly_fields

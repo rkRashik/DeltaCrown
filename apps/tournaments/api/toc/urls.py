@@ -169,6 +169,7 @@ urlpatterns = [
     path('<slug:slug>/matches/<int:pk>/verify/', matches.MatchVerifyView.as_view(), name='match-verify'),
     path('<slug:slug>/matches/<int:pk>/series/', matches.MatchSeriesStatusView.as_view(), name='match-series-status'),
     path('<slug:slug>/matches/<int:pk>/series/game/', matches.MatchSeriesGameView.as_view(), name='match-series-game'),
+    path('<slug:slug>/matches/<int:pk>/submissions/<int:sub_id>/scan/', matches.MatchSubmissionOCRScanView.as_view(), name='match-submission-scan'),
     path('<slug:slug>/matches/<int:pk>/team-5v5-rosters/', matches.MatchTeam5v5RostersView.as_view(), name='match-team-5v5-rosters'),
     path('<slug:slug>/matches/<int:pk>/team-5v5-player-stats/', matches.MatchTeam5v5PlayerStatsView.as_view(), name='match-team-5v5-player-stats'),
     # Swiss system

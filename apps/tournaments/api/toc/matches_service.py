@@ -727,9 +727,58 @@ class TOCMatchesService:
             .order_by('submitted_at')
         )
 
-        # Serialize submissions
+        # RP-fix — Serialize submissions with full evidence surfaces.
+        # Previously only ``proof_screenshot_url`` (the external-URL field)
+        # was returned; the ``proof_screenshot`` ImageField (where
+        # participants actually upload from the match room) was dropped, so
+        # TOC's Evidence tab appeared empty even when both sides had
+        # screenshots. Also resolves each submission's side (1/2) for the
+        # FE so it can group "Team A submissions" vs "Team B submissions"
+        # without re-querying the match.
+        p1_team_id = getattr(match, 'participant1_id', None)
+        p2_team_id = getattr(match, 'participant2_id', None)
         subs_data = []
         for s in submissions:
+            file_url = ''
+            try:
+                if s.proof_screenshot:
+                    file_url = s.proof_screenshot.url or ''
+            except (ValueError, AttributeError):
+                file_url = ''
+            # The single ``screenshot_url`` field FE should consume — prefers
+            # uploaded image, falls back to external URL, empty when neither.
+            primary_url = file_url or (s.proof_screenshot_url or '')
+
+            # Resolve which side this submission belongs to. Falls back to
+            # raw_result_payload.side for staff overrides where team_id may
+            # be null.
+            side = None
+            if s.submitted_by_team_id is not None:
+                if s.submitted_by_team_id == p1_team_id:
+                    side = 1
+                elif s.submitted_by_team_id == p2_team_id:
+                    side = 2
+            if side is None and isinstance(s.raw_result_payload, dict):
+                raw_side = s.raw_result_payload.get('side')
+                try:
+                    raw_side = int(raw_side)
+                    if raw_side in (1, 2):
+                        side = raw_side
+                except (TypeError, ValueError):
+                    pass
+
+            # Extract per-side score from the payload so the FE doesn't have
+            # to parse raw JSON.
+            payload = s.raw_result_payload if isinstance(s.raw_result_payload, dict) else {}
+            try:
+                score_for = int(payload.get('score_for') or 0)
+            except (TypeError, ValueError):
+                score_for = 0
+            try:
+                score_against = int(payload.get('score_against') or 0)
+            except (TypeError, ValueError):
+                score_against = 0
+
             subs_data.append({
                 'id': s.id,
                 'submitted_by_user_id': s.submitted_by_user_id,
@@ -738,12 +787,33 @@ class TOCMatchesService:
                     or str(s.submitted_by_user_id)
                 ),
                 'submitted_by_team_id': s.submitted_by_team_id,
-                'raw_result_payload': s.raw_result_payload or {},
+                'side': side,
+                'score_for': score_for,
+                'score_against': score_against,
+                'raw_result_payload': payload,
+                # Canonical screenshot URL (uploaded file preferred, external URL fallback).
+                'screenshot_url': primary_url,
+                # Backwards-compat — keep the original field for any consumer
+                # that already reads it, plus expose the file URL separately.
                 'proof_screenshot_url': s.proof_screenshot_url or '',
+                'proof_screenshot_file_url': file_url,
                 'status': s.status,
+                'source': s.source,
                 'submitted_at': s.submitted_at.isoformat() if s.submitted_at else None,
+                'confirmed_at': s.confirmed_at.isoformat() if s.confirmed_at else None,
+                'finalized_at': s.finalized_at.isoformat() if s.finalized_at else None,
                 'submitter_notes': s.submitter_notes,
                 'organizer_notes': s.organizer_notes,
+                # P3 — OCR pipeline status surfaces. All five fields present so
+                # the FE can render scan-status badges without re-querying.
+                'ocr_status': getattr(s, 'ocr_status', '') or '',
+                'ocr_extracted': getattr(s, 'ocr_extracted', None) or {},
+                'ocr_confidence': getattr(s, 'ocr_confidence', None),
+                'ocr_error': getattr(s, 'ocr_error', '') or '',
+                'ocr_processed_at': (
+                    s.ocr_processed_at.isoformat()
+                    if getattr(s, 'ocr_processed_at', None) else None
+                ),
             })
 
         # Media

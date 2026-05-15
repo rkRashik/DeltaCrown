@@ -1,4 +1,4 @@
-"""Crown Contracts API views."""
+"""Missions API views."""
 from __future__ import annotations
 
 import logging
@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 
 class ContractTemplateListView(APIView):
-    """``GET /api/v1/contracts/templates/`` — list active mission catalog."""
+    """``GET /api/v1/contracts/templates/`` — list active Mission catalog."""
 
     permission_classes = [IsAuthenticated]
 
@@ -36,7 +36,7 @@ class ContractTemplateListView(APIView):
 
 
 class ContractEnrollView(APIView):
-    """``POST /api/v1/contracts/enroll/<id>/`` — pay entry fee + start mission."""
+    """``POST /api/v1/contracts/enroll/<id>/`` — pay entry fee + start Mission."""
 
     permission_classes = [IsAuthenticated]
 
@@ -67,7 +67,7 @@ class ContractEnrollView(APIView):
 
 
 class ContractEnrollmentDetailView(APIView):
-    """``GET /api/v1/contracts/enrollments/<id>/`` — single enrollment state."""
+    """``GET /api/v1/contracts/enrollments/<id>/`` — single Mission enrollment state."""
 
     permission_classes = [IsAuthenticated]
 
@@ -86,7 +86,7 @@ class ContractEnrollmentDetailView(APIView):
 
 
 class MyEnrollmentsView(APIView):
-    """``GET /api/v1/contracts/my/`` — list the current user's enrollments."""
+    """``GET /api/v1/contracts/my/`` — list the current user's Mission enrollments."""
 
     permission_classes = [IsAuthenticated]
 

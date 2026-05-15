@@ -5,6 +5,22 @@
   'use strict';
   if (!window.MatchRoom) return;
 
+  // Resolve game-aware select options for credential fields (server / mode).
+  // The backend resolver (apps.games.services.config_resolver.resolve_lobby_options)
+  // surfaces a {key: [{code, label}, ...]} dict in workflow.lobby_options.
+  // FE maps credential field keys to those option lists.
+  function _optionsForKey(c, key) {
+    var workflow = c.asObject(c.state.room.workflow);
+    var opts = c.asObject(workflow.lobby_options);
+    // Field naming convention: ``server`` reads from ``server_regions``,
+    // ``game_mode`` from ``game_modes``. Extra explicit keys (e.g.
+    // ``server_regions``) are supported as direct passthrough.
+    var keyMap = { server: 'server_regions', game_mode: 'game_modes' };
+    var listKey = keyMap[key] || key;
+    var list = opts[listKey];
+    return Array.isArray(list) ? list : [];
+  }
+
   function renderCredentialField(c, field, credentials, readonly) {
     var row = c.asObject(field);
     var key = String(row.key || '').trim();
@@ -12,13 +28,42 @@
     var id = c.credentialInputId(key);
     var label = String(row.label || c.credentialLabelForKey(key) || key);
     var value = String(credentials[key] || '');
-    var multiline = String(row.kind || '').toLowerCase() === 'textarea' || key === 'notes';
+    var kind = String(row.kind || '').toLowerCase();
+    var multiline = kind === 'textarea' || key === 'notes';
+    var options = (!multiline && !readonly) ? _optionsForKey(c, key) : [];
+
     if (multiline) {
       return '<label class="text-xs text-gray-400 md:col-span-2">' + c.esc(label) +
         '<textarea id="' + c.esc(id) + '" class="lobby-input mt-1 min-h-[84px]" ' + (readonly ? 'readonly' : '') + '>' + c.esc(value) + '</textarea></label>';
     }
+    if (options.length) {
+      // Game-aware select. Always include a "current value" pseudo-option at
+      // the top if the credential already has a value that isn't in options
+      // (admin custom value, legacy data) — don't silently drop it.
+      var hasMatchingOption = options.some(function (o) {
+        return String((o && o.code) || '').toLowerCase() === value.toLowerCase();
+      });
+      var optsHtml = '<option value=""' + (value ? '' : ' selected') + '>— Select —</option>';
+      if (value && !hasMatchingOption) {
+        optsHtml += '<option value="' + c.esc(value) + '" selected>' + c.esc(value) + ' (custom)</option>';
+      }
+      options.forEach(function (o) {
+        var code = String((o && o.code) || '');
+        var lbl  = String((o && o.label) || code);
+        var selected = (code.toLowerCase() === value.toLowerCase()) ? ' selected' : '';
+        optsHtml += '<option value="' + c.esc(code) + '"' + selected + '>' + c.esc(lbl) + '</option>';
+      });
+      return '<label class="text-xs text-gray-400">' + c.esc(label) +
+        '<select id="' + c.esc(id) + '" class="lobby-input mt-1">' + optsHtml + '</select></label>';
+    }
+    // Plain text fallback (e.g., lobby_code, password).
+    var placeholder = key === 'lobby_code' ? 'Game lobby code'
+                    : key === 'password'   ? 'Optional'
+                    : key === 'map'        ? 'Selected via veto'
+                    : '';
     return '<label class="text-xs text-gray-400">' + c.esc(label) +
-      '<input id="' + c.esc(id) + '" class="lobby-input mt-1" value="' + c.esc(value) + '" ' + (readonly ? 'readonly' : '') + ' /></label>';
+      '<input id="' + c.esc(id) + '" class="lobby-input mt-1" value="' + c.esc(value) + '" ' +
+      'placeholder="' + c.esc(placeholder) + '" ' + (readonly ? 'readonly' : '') + ' /></label>';
   }
 
   // Read-only display card used by the guest view once credentials are published.

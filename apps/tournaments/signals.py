@@ -510,28 +510,22 @@ def handle_tournament_status_change(sender, instance, created, **kwargs):
         f"participants={instance.registrations.filter(status='confirmed').count()}"
     )
 
-    def _enqueue_result_evidence_cleanup() -> None:
-        try:
-            from apps.tournaments.tasks.evidence_cleanup import purge_tournament_result_evidence_files_task
-
-            purge_tournament_result_evidence_files_task.delay(instance.id)
-        except Exception as exc:
-            logger.warning(
-                "Failed queueing async tournament evidence cleanup; running synchronously. tournament_id=%s err=%s",
-                instance.id,
-                exc,
-            )
-            try:
-                from apps.tournaments.services.evidence_cleanup import purge_tournament_result_evidence_files
-
-                purge_tournament_result_evidence_files(instance.id)
-            except Exception:
-                logger.exception(
-                    "Synchronous tournament evidence cleanup failed",
-                    extra={"tournament_id": instance.id},
-                )
-
-    transaction.on_commit(_enqueue_result_evidence_cleanup)
+    # Retention-policy change (RP — Evidence Lifecycle):
+    # Evidence is NO LONGER deleted immediately on tournament completion.
+    # Participant screenshots must remain visible in TOC Evidence until:
+    #   1. The tournament is COMPLETED (status transition handled here), AND
+    #   2. The EVIDENCE_RETENTION_DAYS retention window has elapsed, AND
+    #   3. The per-submission isn't disputed/pending/has-open-dispute.
+    # A daily beat task (``sweep_eligible_tournaments``) handles the actual
+    # purge once these conditions are all satisfied. The signal now just
+    # logs the completion event — no cleanup queued here.
+    logger.info(
+        "Tournament marked completed — evidence retained per policy (retention=%sd, "
+        "lifecycle-aware sweep will run via beat task). tournament_id=%s",
+        getattr(__import__("django.conf", fromlist=["settings"]).settings,
+                "EVIDENCE_RETENTION_DAYS", 30),
+        instance.id,
+    )
     
     # Get all confirmed participants
     confirmed_registrations = instance.registrations.filter(

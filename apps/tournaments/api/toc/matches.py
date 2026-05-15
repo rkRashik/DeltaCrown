@@ -410,6 +410,47 @@ class MatchSeriesGameView(TOCBaseView):
             return Response({'error': f'Invalid data: {e}'}, status=status.HTTP_400_BAD_REQUEST)
 
 
+class MatchSubmissionOCRScanView(TOCBaseView):
+    """
+    POST /api/toc/<slug>/matches/<pk>/submissions/<sub_id>/scan/
+
+    P3 — Admin-triggered OCR scan of a participant-uploaded result
+    screenshot. Routes the file through the appropriate screenshot
+    service based on game category, persists extraction results on the
+    submission row (``ocr_status`` / ``ocr_extracted`` / etc.), and
+    returns a summary for the FE to display.
+
+    Pass ``?force=1`` to re-run even when status is already 'completed'.
+    No automatic match-state advancement happens here — staff decides.
+    """
+
+    def post(self, request, slug, pk, sub_id):
+        from apps.tournaments.models.match import Match
+        from apps.tournaments.models.result_submission import MatchResultSubmission
+        from apps.tournaments.services.ocr_pipeline import run_ocr_for_submission
+
+        try:
+            match = Match.objects.get(pk=pk, tournament=self.tournament, is_deleted=False)
+        except Match.DoesNotExist:
+            return Response({"error": "Match not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        try:
+            submission = MatchResultSubmission.objects.get(pk=sub_id, match=match)
+        except MatchResultSubmission.DoesNotExist:
+            return Response({"error": "Submission not found for this match."},
+                            status=status.HTTP_404_NOT_FOUND)
+
+        force = str(request.GET.get("force") or request.data.get("force") or "").strip().lower() in {"1", "true", "yes"}
+        try:
+            result = run_ocr_for_submission(submission.id, force=force)
+        except Exception as exc:
+            return Response({"error": f"OCR pipeline failed: {exc}"},
+                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        bump_toc_scopes(self.tournament.id, "matches")
+        return Response(result)
+
+
 class MatchTeam5v5RostersView(TOCBaseView):
     """
     GET /api/toc/<slug>/matches/<pk>/team-5v5-rosters/

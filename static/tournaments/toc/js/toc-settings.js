@@ -18,7 +18,26 @@
     const toast = (m, t) => NS.toast?.(m, t);
     const _richTextEditors = new Map();
     const setVal = (container, field, value) => {
-        const el = container?.querySelector('[data-field="' + field + '"]');
+        // Defensive: accept (container, field, value) OR a misused
+        // (elementId, value) — older callers (applyScoringPreset, etc.)
+        // pass an element id as the first arg and only two arguments.
+        // Without this guard the string ``container`` has no
+        // ``querySelector`` and the entire settings UI crashes.
+        if (value === undefined && typeof container === 'string') {
+            const byId = document.getElementById(container);
+            if (!byId) return;
+            const v = field;
+            if (byId.type === 'checkbox') byId.checked = !!v;
+            else if (byId.tagName === 'TEXTAREA') {
+                const editor = _richTextEditors.get(byId);
+                if (editor) editor.setData(v || '');
+                else byId.value = v || '';
+            }
+            else byId.value = v ?? '';
+            return;
+        }
+        if (!container || typeof container.querySelector !== 'function') return;
+        const el = container.querySelector('[data-field="' + field + '"]');
         if (!el) return;
         if (el.type === 'checkbox') el.checked = !!value;
         else if (el.tagName === 'TEXTAREA') {
@@ -1234,21 +1253,71 @@
             const list = document.getElementById('map-pool-list');
             if (!list) return;
             if (!maps || !maps.length) {
-                list.innerHTML = '<p class="text-xs text-dc-text italic text-center py-4">No maps configured.</p>';
+                list.innerHTML = '<div class="text-center py-4">'
+                    + '<p class="text-xs text-dc-text italic">No maps configured for this game yet.</p>'
+                    + '<p class="text-[10px] text-dc-text/60 mt-1">Ask an admin to seed the game\'s map pool via Django admin (apps/games).</p>'
+                    + '</div>';
                 return;
             }
-            list.innerHTML = maps.map(m =>
-                '<div class="flex items-center justify-between py-2 px-3 bg-dc-surface/50 rounded-lg border border-dc-border">'
-                + '<div class="flex items-center gap-2">'
-                + '<span class="w-2 h-2 rounded-full ' + (m.is_active ? 'bg-dc-success' : 'bg-dc-text/30') + '"></span>'
-                + '<span class="text-sm text-white font-medium">' + esc(m.map_name) + '</span>'
-                + (m.map_code ? '<span class="text-[10px] text-dc-text font-mono">' + esc(m.map_code) + '</span>' : '')
-                + '</div>'
-                + '<div class="flex items-center gap-1">'
-                + '<button data-click="TOC.settings.toggleMap" data-click-args="[&quot;' + m.id + '&quot;, &quot; + !m.is_active + &quot;]" class="px-2 py-1 text-[10px] border border-dc-border rounded hover:bg-dc-surface transition-colors text-dc-text">' + (m.is_active ? 'Disable' : 'Enable') + '</button>'
-                + '<button data-click="TOC.settings.deleteMap" data-click-args="[&quot;' + m.id + '&quot;]" class="px-2 py-1 text-[10px] border border-dc-danger/30 text-dc-danger rounded hover:bg-dc-danger/10 transition-colors">Delete</button>'
-                + '</div></div>'
-            ).join('');
+            // RP-fix — Always show the helper banner. Map rows are merged
+            // from apps/games (canonical) + per-tournament overrides. The
+            // organizer toggles per-tournament; deletion of game-level
+            // maps is NOT allowed from TOC.
+            const banner = '<div class="mb-3 p-2.5 rounded-lg bg-dc-info/10 border border-dc-info/30 flex items-start gap-2">'
+                + '<i data-lucide="info" class="w-3.5 h-3.5 text-dc-info mt-0.5 shrink-0"></i>'
+                + '<div class="flex-1">'
+                + '<p class="text-[11px] text-dc-info font-bold">Tournament Map Pool</p>'
+                + '<p class="text-[10px] text-dc-text mt-0.5">These maps come from the game database. Changes here only affect this tournament. Use Enable/Disable to control which maps are available for veto; game-level edits happen in the games admin.</p>'
+                + '</div></div>';
+
+            // Source → label / badge mapping for clarity.
+            function _sourceMeta(source) {
+                switch (source) {
+                    case 'tournament_enabled':
+                        return { label: 'Tournament Enabled', cls: 'text-dc-success bg-dc-success/10 border-dc-success/30' };
+                    case 'tournament_disabled':
+                        return { label: 'Tournament Disabled', cls: 'text-amber-400 bg-amber-500/10 border-amber-500/30' };
+                    case 'game_default':
+                        return { label: 'Game Default', cls: 'text-dc-info bg-dc-info/10 border-dc-info/30' };
+                    case 'custom':
+                        return { label: 'Custom Override', cls: 'text-purple-300 bg-purple-500/10 border-purple-500/30' };
+                    default:
+                        return { label: source || '—', cls: 'text-dc-text bg-dc-surface border-dc-border' };
+                }
+            }
+
+            list.innerHTML = banner + maps.map(m => {
+                const idStr = String(m.id);
+                const meta = _sourceMeta(m.source);
+                const activeDot = m.is_active ? 'bg-dc-success' : 'bg-dc-text/30';
+                const rowDimmed = !m.is_active ? 'opacity-70' : '';
+
+                // Toggle: ALWAYS available (lazily materialises override for
+                // game-default rows on first click). Delete: ONLY for truly
+                // custom rows (server enforces this too).
+                const toggleBtn = '<button data-click="TOC.settings.toggleMap" '
+                    + 'data-click-args="[&quot;' + esc(idStr) + '&quot;,' + (!m.is_active) + ']" '
+                    + 'class="px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest border rounded transition-colors '
+                    + (m.is_active
+                        ? 'border-amber-500/40 text-amber-300 hover:bg-amber-500/10'
+                        : 'border-dc-success/40 text-dc-success hover:bg-dc-success/10')
+                    + '">' + (m.is_active ? 'Disable' : 'Enable') + '</button>';
+                const deleteBtn = m.can_delete
+                    ? '<button data-click="TOC.settings.deleteMap" data-click-args="[&quot;' + esc(idStr) + '&quot;]" '
+                      + 'class="px-2 py-1 text-[10px] border border-dc-danger/30 text-dc-danger rounded hover:bg-dc-danger/10 transition-colors">Delete</button>'
+                    : '';
+
+                return '<div class="flex items-center justify-between py-2 px-3 bg-dc-surface/50 rounded-lg border border-dc-border ' + rowDimmed + '">'
+                    + '<div class="flex items-center gap-2 min-w-0 flex-1">'
+                    + '<span class="w-2 h-2 rounded-full ' + activeDot + ' shrink-0"></span>'
+                    + '<span class="text-sm text-white font-medium truncate">' + esc(m.map_name) + '</span>'
+                    + (m.map_code ? '<span class="text-[10px] text-dc-text font-mono shrink-0">' + esc(m.map_code) + '</span>' : '')
+                    + '<span class="text-[9px] uppercase tracking-widest font-bold border rounded px-1.5 py-0.5 ' + meta.cls + '">' + meta.label + '</span>'
+                    + '</div>'
+                    + '<div class="flex items-center gap-1 shrink-0 ml-2">' + toggleBtn + deleteBtn + '</div>'
+                    + '</div>';
+            }).join('');
+            if (typeof lucide !== 'undefined') try { lucide.createIcons(); } catch (_) {}
         } catch (e) { console.warn('[TOC.settings] loadMapPool failed', e); }
     }
 
@@ -1270,14 +1339,33 @@
     }
 
     async function toggleMap (id, active) {
-        await API('settings/map-pool/' + id + '/', { method: 'PATCH', body: JSON.stringify({ is_active: active }) });
+        try {
+            await API('settings/map-pool/' + encodeURIComponent(id) + '/', {
+                method: 'PATCH',
+                body: JSON.stringify({ is_active: active }),
+            });
+            toast(active ? 'Map enabled for this tournament' : 'Map disabled for this tournament', 'success');
+        } catch (e) {
+            toast((e && e.payload && e.payload.error) || e?.message || 'Failed to toggle map', 'error');
+        }
         loadMapPool();
     }
 
     async function deleteMap (id) {
+        // Backend rejects synthetic ``game:<pk>`` ids — guard against any
+        // accidental UI regression that exposes Delete on a game default.
+        if (String(id || '').startsWith('game:')) {
+            toast('Game default maps cannot be deleted from TOC. Disable instead, or manage in games admin.', 'error');
+            return;
+        }
         if (!confirm('Delete this map?')) return;
-        await API('settings/map-pool/' + id + '/', { method: 'DELETE' });
-        loadMapPool(); toast('Map deleted', 'success');
+        try {
+            await API('settings/map-pool/' + encodeURIComponent(id) + '/', { method: 'DELETE' });
+            toast('Map deleted', 'success');
+        } catch (e) {
+            toast((e && e.payload && e.payload.error) || e?.message || 'Delete failed', 'error');
+        }
+        loadMapPool();
     }
 
     /* ==================================================================

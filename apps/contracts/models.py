@@ -1,4 +1,4 @@
-"""Crown Contracts — admin-curated self-challenges.
+"""Missions — admin-curated self-challenges.
 
 ContractTemplate is the catalog row (admin-configurable mission spec).
 ContractEnrollment is one user's attempt against a template, with its

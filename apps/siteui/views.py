@@ -1548,9 +1548,11 @@ def watch(request):
     selected_game = (request.GET.get("game") or "").strip().lower()
     search_query = (request.GET.get("q") or "").strip()
     selected_date = parse_date((request.GET.get("date") or "").strip())
-    selected_tab = (request.GET.get("tab") or "live").strip().lower()
-    if selected_tab not in {"live", "upcoming", "results"}:
-        selected_tab = "live"
+    # Honour explicit ?tab=... when set; otherwise we'll pick the first
+    # non-empty tab below so the user lands on something useful instead of
+    # a deserted "Live" page when no matches are live right now.
+    requested_tab = (request.GET.get("tab") or "").strip().lower()
+    selected_tab = requested_tab if requested_tab in {"live", "upcoming", "results"} else ""
 
     if _is_arena_async_request(request):
         payload = _build_arena_async_payload(
@@ -1577,6 +1579,19 @@ def watch(request):
     live_matches = match_payload["live_matches"]
     upcoming_matches = match_payload["upcoming_matches"]
     result_matches = match_payload["result_matches"]
+
+    # If the visitor didn't pin a specific tab, pick the first non-empty one
+    # so the Arena lands on actual content. Falls back to "live" when all
+    # three are empty (preserves the historical empty-state copy).
+    if not selected_tab:
+        if live_matches:
+            selected_tab = "live"
+        elif upcoming_matches:
+            selected_tab = "upcoming"
+        elif result_matches:
+            selected_tab = "results"
+        else:
+            selected_tab = "live"
 
     if selected_tab == "upcoming":
         selected_tab_matches = upcoming_matches

@@ -6,6 +6,7 @@ All business logic delegated to ChallengeService / BountyService.
 """
 import logging
 
+from django.core.exceptions import PermissionDenied
 from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -219,15 +220,21 @@ class ChallengeResultView(APIView):
     def post(self, request, challenge_id):
         ser = ChallengeResultSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
+        submitting_team = None
+        if ser.validated_data.get('submitting_team_id'):
+            submitting_team = get_object_or_404(Team, pk=ser.validated_data['submitting_team_id'])
 
         try:
             challenge = ChallengeService.submit_result(
                 challenge_id=challenge_id,
                 submitted_by=request.user,
+                submitting_team=submitting_team,
                 result=ser.validated_data['result'],
                 score_details=ser.validated_data.get('score_details', {}),
                 evidence_url=ser.validated_data.get('evidence_url', ''),
             )
+        except PermissionDenied as e:
+            return Response({'detail': str(e)}, status=status.HTTP_403_FORBIDDEN)
         except Exception as e:
             return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 

@@ -1,4 +1,4 @@
-"""Crown Royale API URL configuration."""
+"""Dropzone API URL configuration."""
 from django.urls import path
 
 from .views import (

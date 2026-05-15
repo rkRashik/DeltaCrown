@@ -1,4 +1,4 @@
-"""Crown Contracts API URL configuration."""
+"""Missions API URL configuration."""
 from django.urls import path
 
 from .views import (

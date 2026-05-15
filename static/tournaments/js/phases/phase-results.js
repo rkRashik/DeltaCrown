@@ -29,22 +29,96 @@
       (proof ? '<a class="inline-flex items-center gap-1 text-[10px] text-ac hover:underline" href="' + c.esc(proof) + '" target="_blank" rel="noopener"><i data-lucide="image" class="w-3 h-3"></i> View proof</a>' : '') + '</div>';
   }
 
-  function renderResultStatusBanner(c) {
+  function _nextStepCTAs(c) {
+    // CTA row rendered once the participant has submitted — gives them
+    // an explicit "what to do now" so they don't sit confused waiting.
+    var urls = c.asObject(c.state.room.urls);
+    var bracketHref = String(urls.bracket || urls.match_detail || '#');
+    var hubHref = String(urls.hub || urls.match_detail || '#');
+    return '<div class="mt-3 flex flex-wrap items-center gap-2">' +
+      '<a href="' + c.esc(hubHref) + '" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-white/20 text-[11px] font-bold uppercase tracking-widest text-white hover:bg-white/5 transition-colors active:scale-95">' +
+        '<i data-lucide="house" class="w-3.5 h-3.5"></i>Back to Hub' +
+      '</a>' +
+      '<a href="' + c.esc(bracketHref) + '" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-white/20 text-[11px] font-bold uppercase tracking-widest text-white hover:bg-white/5 transition-colors active:scale-95">' +
+        '<i data-lucide="git-branch" class="w-3.5 h-3.5"></i>View Bracket' +
+      '</a>' +
+      '<span class="text-[10px] text-gray-500 ml-1">or stay here for live updates</span>' +
+    '</div>';
+  }
+
+  function renderResultStatusBanner(c, hasSubmitted, oppSubmitted) {
     var workflow = c.asObject(c.state.room.workflow);
     var status = String(workflow.result_status || 'pending').toLowerCase();
+
+    // ── Verified / Finalized ────────────────────────────────────────────
     if (status === 'verified' || status === 'admin_overridden' || status === 'verified_draw' || status === 'admin_overridden_draw') {
-      return '<div class="mt-4 flex items-center gap-2 px-3 py-2.5 rounded-lg bg-green-500/10 border border-green-500/20">' +
-        '<i data-lucide="check-circle-2" class="w-4 h-4 text-green-400 shrink-0"></i>' +
-        '<span class="text-xs text-green-300 font-bold uppercase tracking-wide">Result verified — match will finalize</span></div>';
+      return '<div class="mt-4 rounded-xl border border-green-500/30 bg-gradient-to-br from-green-500/15 via-green-500/5 to-transparent p-4 reveal-pulse">' +
+        '<div class="flex items-start gap-3">' +
+          '<div class="w-9 h-9 rounded-lg bg-green-500/20 border border-green-400/30 flex items-center justify-center shrink-0">' +
+            '<i data-lucide="check-circle-2" class="w-5 h-5 text-green-300"></i>' +
+          '</div>' +
+          '<div class="flex-1 min-w-0">' +
+            '<p class="text-sm font-black text-green-300 uppercase tracking-widest">Result Verified</p>' +
+            '<p class="text-xs text-gray-200 mt-1">Match report archived. The bracket is being updated.</p>' +
+          '</div>' +
+        '</div>' +
+        _nextStepCTAs(c) +
+      '</div>';
     }
+
+    // ── Mismatch / staff review ─────────────────────────────────────────
     if (status === 'mismatch' || status === 'tie_pending_review' || status === 'admin_tie_pending_review') {
-      return '<div class="mt-4 flex items-center gap-2 px-3 py-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20">' +
-        '<i data-lucide="alert-triangle" class="w-4 h-4 text-amber-400 shrink-0"></i>' +
-        '<span class="text-xs text-amber-200 font-bold uppercase tracking-wide">Score mismatch — awaiting staff review</span></div>';
+      return '<div class="mt-4 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4">' +
+        '<div class="flex items-start gap-3">' +
+          '<div class="w-9 h-9 rounded-lg bg-amber-500/15 border border-amber-400/30 flex items-center justify-center shrink-0">' +
+            '<i data-lucide="alert-triangle" class="w-5 h-5 text-amber-300"></i>' +
+          '</div>' +
+          '<div class="flex-1 min-w-0">' +
+            '<p class="text-sm font-black text-amber-200 uppercase tracking-widest">Awaiting Staff Review</p>' +
+            '<p class="text-xs text-gray-200 mt-1">Score reports don\'t match. Your evidence has been preserved — tournament staff will review and finalize. You can leave the lobby; you\'ll be notified.</p>' +
+          '</div>' +
+        '</div>' +
+        _nextStepCTAs(c) +
+      '</div>';
     }
-    return '<div class="mt-4 flex items-center gap-2 px-3 py-2.5 rounded-lg bg-white/[0.03] border border-white/[0.06]">' +
-      '<i data-lucide="loader" class="w-4 h-4 text-gray-500 shrink-0 animate-spin"></i>' +
-      '<span class="text-xs text-gray-400 font-bold uppercase tracking-wide">Pending validation — both sides must submit</span></div>';
+
+    // ── Submitted, waiting for opponent ─────────────────────────────────
+    if (hasSubmitted && !oppSubmitted) {
+      return '<div class="mt-4 rounded-xl border border-emerald-500/25 bg-emerald-500/8 p-4">' +
+        '<div class="flex items-start gap-3">' +
+          '<div class="w-9 h-9 rounded-lg bg-emerald-500/15 border border-emerald-400/30 flex items-center justify-center shrink-0">' +
+            '<i data-lucide="check" class="w-5 h-5 text-emerald-300"></i>' +
+          '</div>' +
+          '<div class="flex-1 min-w-0">' +
+            '<p class="text-sm font-black text-emerald-200 uppercase tracking-widest">You\'re Done For Now</p>' +
+            '<p class="text-xs text-gray-200 mt-1">Your result is locked in. Waiting for your opponent to submit. You can leave the lobby — the match will auto-finalize when both reports match.</p>' +
+          '</div>' +
+        '</div>' +
+        _nextStepCTAs(c) +
+      '</div>';
+    }
+
+    // ── Both submitted, verifying ───────────────────────────────────────
+    if (hasSubmitted && oppSubmitted) {
+      return '<div class="mt-4 rounded-xl border border-ac/30 bg-ac/8 p-4">' +
+        '<div class="flex items-start gap-3">' +
+          '<div class="w-9 h-9 rounded-lg bg-ac/15 border border-ac/30 flex items-center justify-center shrink-0">' +
+            '<i data-lucide="loader" class="w-5 h-5 text-ac animate-spin"></i>' +
+          '</div>' +
+          '<div class="flex-1 min-w-0">' +
+            '<p class="text-sm font-black text-ac uppercase tracking-widest">Verifying Results</p>' +
+            '<p class="text-xs text-gray-200 mt-1">Both reports received. Cross-checking scores. If they match the result is finalized automatically; otherwise staff will review.</p>' +
+          '</div>' +
+        '</div>' +
+        _nextStepCTAs(c) +
+      '</div>';
+    }
+
+    // ── Nothing submitted yet ───────────────────────────────────────────
+    return '<div class="mt-4 flex items-center gap-3 px-4 py-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">' +
+      '<i data-lucide="info" class="w-4 h-4 text-gray-500 shrink-0"></i>' +
+      '<span class="text-xs text-gray-300">Submit your final score above. Scores stay blind until both sides report.</span>' +
+    '</div>';
   }
 
   window.MatchRoom.registerPhase('results', {
@@ -150,7 +224,7 @@
         renderOpponentSubmission(c, oppSubmission) +
         '</div></div>' +
 
-        renderResultStatusBanner(c) +
+        renderResultStatusBanner(c, step1Done, step2Done) +
         '</section>';
     },
 

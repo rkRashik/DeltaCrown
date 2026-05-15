@@ -1,4 +1,4 @@
-"""Crown Royale API views."""
+"""Dropzone API views."""
 from __future__ import annotations
 
 import logging

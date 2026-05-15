@@ -141,6 +141,18 @@ _heavy_schedule = {
         },
     },
 
+    # RP — Evidence retention sweep. Daily at 04:00 — finds tournaments
+    # completed >= EVIDENCE_RETENTION_DAYS ago (default 30) and purges
+    # their safe (non-disputed, confirmed) result screenshots. Respects
+    # all lifecycle protections in the cleanup service.
+    'sweep-eligible-evidence': {
+        'task': 'apps.tournaments.tasks.sweep_eligible_evidence',
+        'schedule': crontab(hour=4, minute=0),
+        'options': {
+            'expires': 3600,
+        },
+    },
+
     # Auto-close expired match lobbies every 2 minutes
     'auto-close-expired-lobbies': {
         'task': 'apps.tournaments.tasks.auto_close_expired_lobbies',

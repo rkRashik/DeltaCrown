@@ -19,10 +19,17 @@ from apps.api.views.challenge_views import (
     BountyClaimView,
     TeamBountiesView,
 )
+from apps.api.views.competitive_operations import MyCompetitiveOperationsView
 
 app_name = 'challenge_api'
 
 urlpatterns = [
+    path(
+        'competitive/my-operations/',
+        MyCompetitiveOperationsView.as_view(),
+        name='competitive-my-operations',
+    ),
+
     # ── Challenges ───────────────────────────────────────────────────────
     # List / Create
     path(

@@ -663,6 +663,8 @@
     },
 
     async submitSchedule() {
+      toast("Practice scheduling is coming soon. Training tools do not use DeltaCoin, escrow, or reward settlement.");
+      return;
       const btn = qs("#schedule-submit");
       const errEl = qs("#schedule-error");
       btn.disabled = true; btn.textContent = "Scheduling…";
@@ -697,6 +699,8 @@
     },
 
     async submitScrim() {
+      toast("Scrim finder is coming soon. Scrims are non-escrow practice matches by default.");
+      return;
       const btn = qs("#scrim-submit");
       const errEl = qs("#scrim-error");
       btn.disabled = true; btn.textContent = "Posting…";
@@ -729,6 +733,8 @@
     },
 
     async submitVod() {
+      toast("VOD review library is coming soon. Reviews are team notes, not reward operations.");
+      return;
       const btn = qs("#vod-submit");
       const errEl = qs("#vod-error");
       btn.disabled = true; btn.textContent = "Adding…";
@@ -761,6 +767,8 @@
     },
 
     async submitBounty() {
+      window.location.href = "/dashboard/competitive/#bounty";
+      return;
       const btn = qs("#bounty-submit");
       const errEl = qs("#bounty-error");
       btn.disabled = true; btn.textContent = "Creating…";

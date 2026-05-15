@@ -48,7 +48,9 @@ class GameRoleInline(TabularInline):
 class GameMapPoolInline(TabularInline):
     model = GameMapPool
     extra = 1
-    fields = ['map_name', 'map_code', 'is_active', 'is_competitive', 'order']
+    # Image first so the upload column is visible without scrolling the row.
+    fields = ['image', 'map_name', 'map_code', 'is_active', 'is_competitive', 'order']
+    classes = []  # Always expanded on the Game change page.
 
 
 @admin.register(Game)

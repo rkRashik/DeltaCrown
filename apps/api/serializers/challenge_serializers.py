@@ -76,6 +76,23 @@ class ChallengeDetailSerializer(ChallengeListSerializer):
     accepted_at = serializers.DateTimeField(read_only=True)
     completed_at = serializers.DateTimeField(read_only=True)
     settled_at = serializers.DateTimeField(read_only=True)
+    result_submissions = serializers.SerializerMethodField()
+
+    def get_result_submissions(self, obj):
+        submissions = getattr(obj, 'result_submissions', None)
+        if submissions is None:
+            return []
+        return [
+            {
+                'team_id': sub.team_id,
+                'team_name': getattr(sub.team, 'name', ''),
+                'result': sub.result,
+                'score_details': sub.score_details,
+                'evidence_url': sub.evidence_url,
+                'submitted_at': sub.created_at,
+            }
+            for sub in submissions.select_related('team').order_by('created_at')
+        ]
 
 
 class ChallengeCreateSerializer(serializers.Serializer):
@@ -121,6 +138,7 @@ class ChallengeAcceptSerializer(serializers.Serializer):
 
 class ChallengeResultSerializer(serializers.Serializer):
     """Input for submitting a challenge result."""
+    submitting_team_id = serializers.IntegerField(required=False)
     result = serializers.ChoiceField(
         choices=['CHALLENGER_WIN', 'CHALLENGED_WIN', 'DRAW'],
     )

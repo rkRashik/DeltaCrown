@@ -13,17 +13,17 @@
     <div class="absolute -bottom-16 -left-16 w-44 h-44 bg-fuchsia-500/10 rounded-full blur-3xl pointer-events-none"></div>
 
     <div class="relative z-10">
-      <div class="text-[10px] font-bold uppercase tracking-[0.22em] text-indigo-300/90 mb-2">Crown Arena</div>
+      <div class="text-[10px] font-bold uppercase tracking-[0.22em] text-indigo-300/90 mb-2">Competitive Hub</div>
       <h3 class="text-2xl font-display font-black text-white mb-2">
-        <span class="bg-clip-text text-transparent bg-gradient-to-r from-indigo-300 via-fuchsia-300 to-amber-300">Contracts</span>
+        <span class="bg-clip-text text-transparent bg-gradient-to-r from-indigo-300 via-fuchsia-300 to-amber-300">Missions</span>
       </h3>
       <p class="text-sm text-gray-400 leading-relaxed max-w-2xl">
-        Crown Contract attempts and milestone trophies live here.  Pay an entry fee, hit the goal in time, claim the reward &mdash; the entire flow runs on DeltaCoin escrow.
+        Mission attempts and milestone trophies live here. Pay an entry fee, hit the goal in time, and claim the DeltaCoin reward.
       </p>
       <div class="mt-5">
         <a href="{% url 'dashboard:competitive_hub' %}"
            class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-500/15 border border-indigo-500/40 text-indigo-100 hover:bg-indigo-500/25 hover:border-indigo-400/70 hover:text-white text-xs font-bold uppercase tracking-wider transition-all duration-300 hover:shadow-[0_0_28px_-4px_rgba(99,102,241,0.55)]">
-          Browse Contract Board
+          Browse Missions
           <i class="fa-solid fa-arrow-right text-[10px] transition-transform group-hover:translate-x-1"></i>
         </a>
       </div>
@@ -111,7 +111,7 @@
             ${esc(item.status_display || item.status)}
           </span>
         </div>
-        <h4 class="text-sm font-bold text-white mb-2 truncate">${esc(item.template_title || 'Crown Contract')}</h4>
+        <h4 class="text-sm font-bold text-white mb-2 truncate">${esc(item.template_title || 'Mission')}</h4>
         <div class="flex items-center gap-3 text-[11px] font-mono">
           <span class="text-amber-300">⨯ ${fee.toLocaleString()} DC</span>
           <span class="text-emerald-300">＋ ${reward.toLocaleString()} DC</span>
@@ -149,16 +149,16 @@
               </div>
             </div>
             <div>
-              <h4 class="text-base font-display font-black text-white mb-1.5">No Active Contracts</h4>
+              <h4 class="text-base font-display font-black text-white mb-1.5">No Active Missions</h4>
               <p class="text-xs text-gray-400 max-w-sm mx-auto leading-relaxed">
-                Self-challenges await on the Contract Board.  Pay a small DC entry fee, complete the goal in time, claim a bigger reward.
+                Skill-based Missions await in the competitive hub. Pay a small DC entry fee, complete the goal in time, and claim the reward.
               </p>
             </div>
             <a href="${esc(browseUrl)}"
                class="group inline-flex items-center gap-2 px-5 py-3 rounded-xl text-xs font-bold uppercase tracking-wider text-white transition-all duration-300"
                style="background: linear-gradient(135deg, #6366F1, #8B5CF6);
                       box-shadow: 0 8px 28px -6px rgba(99,102,241,.55), inset 0 1px 0 0 rgba(255,255,255,.18);">
-              <span class="relative">Browse Contracts</span>
+              <span class="relative">Browse Missions</span>
               <i class="fa-solid fa-arrow-right text-[10px] transition-transform group-hover:translate-x-1"></i>
             </a>
           </div>
@@ -178,7 +178,7 @@
     .catch(() => {
       grid.innerHTML = `
         <div class="md:col-span-2 rounded-xl p-6 border border-rose-500/40 bg-rose-500/[0.04] text-center text-sm text-rose-200 backdrop-blur-xl">
-          Could not load your Crown Contract enrollments.
+          Could not load your Mission enrollments.
         </div>`;
     });
 })();

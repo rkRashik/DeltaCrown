@@ -863,6 +863,12 @@
      RIGHT PANEL: Match Detail
   ============================================================ */
   async function selectMatch(id) {
+    // Defensive normalisation — accept a numeric id, a numeric string, or a
+    // match object. Earlier code-paths occasionally passed the whole match
+    // dict here which serialised to ``[object Object]`` inside the API URL.
+    if (id && typeof id === 'object') id = id.id;
+    id = Number(id);
+    if (!id) return;
     selectedMatchId = id;
 
     // Highlight selected card in list
@@ -2049,67 +2055,464 @@
     } catch (e) { toast(e.message || 'Failed to record game', 'error'); }
   }
 
-  /* -- Evidence Viewer Tab -- */
+  /* -- Evidence Viewer Tab --
+   * Renders the canonical Evidence panel from get_match_detail payload.
+   * Reads the RP-added submission fields (screenshot_url, side, score_for,
+   * score_against, source, confirmed_at, finalized_at) plus the existing
+   * media list + verification_status.
+   *
+   * Layout:
+   *   [Summary banner — match / mismatch / waiting / finalized]
+   *   [Side 1 card]    [Side 2 card]
+   *   [Free media list — admin-uploaded screenshots / evidence files]
+   *
+   * Each side card:
+   *   - Team name + side label
+   *   - Submitted score (large mono)
+   *   - Status badge + source tag
+   *   - Screenshot thumbnail (click to open lightbox); "No screenshot" state otherwise
+   *   - Timestamps (submitted / confirmed / finalized)
+   *
+   * BO3/BO5 note: we currently render the LATEST submission per side.
+   * Per-game evidence visualisation belongs to P3 (needs game_number
+   * column on MatchResultSubmission).
+   */
+  function _evidenceStatusBadge(status) {
+    var s = String(status || '').toLowerCase();
+    if (s === 'finalized') return { cls: 'bg-emerald-500/20 text-emerald-300 border-emerald-400/30', label: 'Finalized' };
+    if (s === 'confirmed') return { cls: 'bg-dc-success/20 text-dc-success border-dc-success/30', label: 'Confirmed' };
+    if (s === 'disputed')  return { cls: 'bg-dc-danger/20 text-dc-danger border-dc-danger/30', label: 'Disputed' };
+    if (s === 'rejected')  return { cls: 'bg-zinc-500/20 text-zinc-400 border-zinc-500/30', label: 'Rejected' };
+    if (s === 'pending')   return { cls: 'bg-dc-warning/20 text-dc-warning border-dc-warning/30', label: 'Pending' };
+    return { cls: 'bg-zinc-500/20 text-zinc-400 border-zinc-500/30', label: s || 'Unknown' };
+  }
+
+  function _evidenceSourceLabel(source) {
+    var s = String(source || '').toLowerCase();
+    if (s === 'manual' || s === '') return null;
+    if (s === 'admin_override') return { cls: 'text-yellow-300', label: 'Admin Override' };
+    if (s === 'ocr')            return { cls: 'text-purple-300', label: 'OCR' };
+    if (s === 'auto')           return { cls: 'text-blue-300', label: 'Auto' };
+    return { cls: 'text-dc-text', label: s };
+  }
+
+  function _evidenceLatestPerSide(subs) {
+    // Returns {1: latestSub|null, 2: latestSub|null}. Submissions are
+    // already ordered by submitted_at ascending from the backend; we
+    // pick the LAST one per side (most recent = current authoritative).
+    var bySide = { 1: null, 2: null };
+    subs.forEach(function (s) {
+      var side = parseInt(s && s.side, 10);
+      if (side !== 1 && side !== 2) return;
+      bySide[side] = s;
+    });
+    return bySide;
+  }
+
+  function _evidenceCard(side, sub, teamName) {
+    var sideLabel = side === 1 ? 'SIDE 1' : 'SIDE 2';
+    var sideCls = side === 1 ? 'text-blue-300 border-blue-400/30 bg-blue-500/5'
+                              : 'text-purple-300 border-purple-400/30 bg-purple-500/5';
+    var dotCls = side === 1 ? 'bg-blue-400 shadow-[0_0_8px_rgba(96,165,250,0.6)]'
+                             : 'bg-purple-400 shadow-[0_0_8px_rgba(192,132,252,0.6)]';
+
+    if (!sub) {
+      return '<div class="rounded-xl border ' + sideCls + ' p-4">' +
+        '<div class="flex items-center justify-between mb-3">' +
+          '<div class="flex items-center gap-2">' +
+            '<span class="w-2 h-2 rounded-full ' + dotCls + '"></span>' +
+            '<span class="text-[10px] font-black uppercase tracking-widest">' + sideLabel + '</span>' +
+          '</div>' +
+          '<span class="text-[10px] font-bold uppercase tracking-widest text-dc-text/50">Awaiting</span>' +
+        '</div>' +
+        '<p class="text-sm font-bold text-white truncate">' + esc(teamName || 'Side ' + side) + '</p>' +
+        '<div class="mt-3 flex items-center justify-center h-32 rounded-lg border border-dashed border-dc-border/40 bg-dc-bg/40">' +
+          '<div class="text-center">' +
+            '<i data-lucide="clock" class="w-6 h-6 text-dc-text/40 mx-auto mb-1"></i>' +
+            '<p class="text-[11px] text-dc-text/50">Waiting for submission</p>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+    }
+
+    var status = _evidenceStatusBadge(sub.status);
+    var sourceTag = _evidenceSourceLabel(sub.source);
+    var scoreFor = (sub.score_for != null) ? sub.score_for : '-';
+    var scoreAgainst = (sub.score_against != null) ? sub.score_against : '-';
+    var primaryUrl = String(sub.screenshot_url || sub.proof_screenshot_file_url || sub.proof_screenshot_url || '').trim();
+    var submittedAt = sub.submitted_at ? formatDateTime(sub.submitted_at) : '';
+    var confirmedAt = sub.confirmed_at ? formatDateTime(sub.confirmed_at) : '';
+    var finalizedAt = sub.finalized_at ? formatDateTime(sub.finalized_at) : '';
+
+    // Screenshot block — thumbnail-with-click or "no screenshot" state.
+    var screenshotBlock;
+    if (primaryUrl) {
+      screenshotBlock = '<button type="button" class="w-full mt-3 rounded-lg overflow-hidden border border-dc-border/40 hover:border-theme transition-colors group" ' +
+        'data-click="TOC.matches.openEvidenceLightbox" data-click-args="[&quot;' + esc(primaryUrl) + '&quot;,&quot;' + esc(teamName || 'Side ' + side) + '&quot;]">' +
+        '<div class="relative bg-dc-bg" style="aspect-ratio:16/9;">' +
+          '<img src="' + esc(primaryUrl) + '" alt="Evidence side ' + side + '" class="w-full h-full object-cover" loading="lazy" ' +
+          'onerror="this.parentNode.innerHTML=\'<div class=&quot;w-full h-full flex items-center justify-center text-dc-text/40 text-[11px] font-mono&quot;>Image unavailable</div>\';">' +
+          '<div class="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">' +
+            '<i data-lucide="zoom-in" class="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity"></i>' +
+          '</div>' +
+        '</div>' +
+      '</button>';
+    } else {
+      screenshotBlock = '<div class="mt-3 flex items-center justify-center h-32 rounded-lg border border-dashed border-amber-400/30 bg-amber-500/5">' +
+        '<div class="text-center">' +
+          '<i data-lucide="image-off" class="w-6 h-6 text-amber-300/60 mx-auto mb-1"></i>' +
+          '<p class="text-[11px] text-amber-200/80 font-bold">Score submitted — no screenshot</p>' +
+        '</div>' +
+      '</div>';
+    }
+
+    var notesBlock = '';
+    var notes = String(sub.submitter_notes || '').trim();
+    if (notes) {
+      notesBlock = '<div class="mt-3 pt-3 border-t border-dc-border/30">' +
+        '<p class="text-[9px] font-black uppercase tracking-widest text-dc-text/50 mb-1">Note</p>' +
+        '<p class="text-[11px] text-dc-text leading-relaxed">' + esc(notes) + '</p>' +
+      '</div>';
+    }
+
+    // P3 — OCR status block. Surfaces scan state and provides the
+    // "Scan Evidence" admin action when a screenshot is available.
+    var ocrBlock = _evidenceOcrBlock(sub, primaryUrl);
+
+    return '<div class="rounded-xl border ' + sideCls + ' p-4">' +
+      '<div class="flex items-center justify-between mb-3">' +
+        '<div class="flex items-center gap-2">' +
+          '<span class="w-2 h-2 rounded-full ' + dotCls + '"></span>' +
+          '<span class="text-[10px] font-black uppercase tracking-widest">' + sideLabel + '</span>' +
+        '</div>' +
+        '<span class="text-[10px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded border ' + status.cls + '">' + esc(status.label) + '</span>' +
+      '</div>' +
+      '<p class="text-sm font-bold text-white truncate" title="' + esc(teamName || 'Side ' + side) + '">' + esc(teamName || 'Side ' + side) + '</p>' +
+      // Submitted score
+      '<div class="mt-2 flex items-baseline gap-2">' +
+        '<span class="font-mono font-black text-white text-3xl tabular-nums">' + esc(String(scoreFor)) + '</span>' +
+        '<span class="text-dc-text/40 text-sm">vs</span>' +
+        '<span class="font-mono font-bold text-dc-text text-xl tabular-nums">' + esc(String(scoreAgainst)) + '</span>' +
+        (sourceTag ? '<span class="ml-auto text-[10px] font-bold uppercase tracking-widest ' + sourceTag.cls + '">' + esc(sourceTag.label) + '</span>' : '') +
+      '</div>' +
+      screenshotBlock +
+      // Timestamps
+      '<div class="mt-3 grid grid-cols-1 gap-1 text-[10px] text-dc-text/60 font-mono">' +
+        (submittedAt ? '<div class="flex items-center justify-between"><span>Submitted</span><span class="text-dc-text">' + esc(submittedAt) + '</span></div>' : '') +
+        (confirmedAt ? '<div class="flex items-center justify-between"><span>Confirmed</span><span class="text-dc-success">' + esc(confirmedAt) + '</span></div>' : '') +
+        (finalizedAt ? '<div class="flex items-center justify-between"><span>Finalized</span><span class="text-emerald-300">' + esc(finalizedAt) + '</span></div>' : '') +
+      '</div>' +
+      ocrBlock +
+      notesBlock +
+    '</div>';
+  }
+
+  // P3 — OCR status + scan-evidence button. Reads the new submission
+  // fields (ocr_status / ocr_extracted / ocr_confidence / ocr_error /
+  // ocr_processed_at). When a screenshot is attached, surfaces a "Scan
+  // Evidence" admin action that hits the new submission scan endpoint.
+  function _evidenceOcrBlock(sub, hasScreenshotUrl) {
+    var status = String(sub.ocr_status || '').toLowerCase();
+    var conf = sub.ocr_confidence;
+    var extracted = sub.ocr_extracted && typeof sub.ocr_extracted === 'object' ? sub.ocr_extracted : {};
+    var err = String(sub.ocr_error || '').trim();
+    var processedAt = sub.ocr_processed_at ? formatDateTime(sub.ocr_processed_at) : '';
+
+    // Map status to badge styles + label.
+    var badge;
+    if (!status || status === '') {
+      badge = { cls: 'bg-zinc-500/15 text-zinc-400 border-zinc-500/30', label: 'Not Scanned' };
+    } else if (status === 'pending' || status === 'running') {
+      badge = { cls: 'bg-blue-500/15 text-blue-300 border-blue-400/30', label: 'Scanning…' };
+    } else if (status === 'completed') {
+      badge = { cls: 'bg-emerald-500/15 text-emerald-300 border-emerald-400/30', label: 'OCR Complete' };
+    } else if (status === 'failed') {
+      badge = { cls: 'bg-rose-500/15 text-rose-300 border-rose-400/30', label: 'OCR Failed' };
+    } else if (status === 'skipped') {
+      badge = { cls: 'bg-zinc-500/15 text-zinc-400 border-zinc-500/30', label: 'Not Supported' };
+    } else {
+      badge = { cls: 'bg-zinc-500/15 text-zinc-400 border-zinc-500/30', label: status };
+    }
+
+    // Extracted-score summary (when present).
+    var extractedRow = '';
+    var extScoreA = null;
+    var extScoreB = null;
+    if (extracted && typeof extracted === 'object') {
+      // Common shapes: { participant1_score, participant2_score } (5v5 / sports)
+      if (extracted.participant1_score != null) extScoreA = extracted.participant1_score;
+      if (extracted.participant2_score != null) extScoreB = extracted.participant2_score;
+      // Fallback: sports service uses { home_score, away_score }
+      if (extScoreA == null && extracted.home_score != null) extScoreA = extracted.home_score;
+      if (extScoreB == null && extracted.away_score != null) extScoreB = extracted.away_score;
+    }
+
+    var subScore = (sub.score_for != null ? sub.score_for : '?') + '–' + (sub.score_against != null ? sub.score_against : '?');
+    var subVsExtracted = '';
+    if (status === 'completed' && extScoreA != null && extScoreB != null) {
+      var extScore = extScoreA + '–' + extScoreB;
+      var matchClass = (String(extScoreA) === String(sub.score_for) && String(extScoreB) === String(sub.score_against))
+        ? 'text-emerald-300'
+        : 'text-amber-300';
+      extractedRow = '<div class="mt-1.5 flex items-center justify-between text-[10px] font-mono">' +
+        '<span class="text-dc-text/70">Submitted: <span class="text-dc-text">' + esc(subScore) + '</span></span>' +
+        '<span class="' + matchClass + '">Extracted: ' + esc(extScore) + '</span>' +
+      '</div>';
+    }
+
+    // Confidence bar (only when known).
+    var confidenceRow = '';
+    if (status === 'completed' && conf != null) {
+      var pct = Math.max(0, Math.min(1, Number(conf))) * 100;
+      var confColor = pct >= 80 ? 'bg-emerald-400' : (pct >= 50 ? 'bg-amber-400' : 'bg-rose-400');
+      confidenceRow = '<div class="mt-1.5">' +
+        '<div class="flex items-center justify-between text-[9px] font-bold uppercase tracking-widest text-dc-text/60 mb-1">' +
+          '<span>Confidence</span><span>' + Math.round(pct) + '%</span>' +
+        '</div>' +
+        '<div class="h-1 bg-black/40 rounded-full overflow-hidden">' +
+          '<div class="h-full ' + confColor + '" style="width:' + pct.toFixed(1) + '%;"></div>' +
+        '</div>' +
+      '</div>';
+    }
+
+    var errorRow = '';
+    if (status === 'failed' && err) {
+      errorRow = '<p class="mt-1.5 text-[10px] text-rose-300/90 font-mono leading-snug">' + esc(err) + '</p>';
+    }
+
+    var processedRow = processedAt
+      ? '<p class="mt-1 text-[9px] text-dc-text/50 font-mono">Last scan: ' + esc(processedAt) + '</p>'
+      : '';
+
+    // Scan button — only when a screenshot exists and submission has an id.
+    var subId = (sub.id != null) ? String(sub.id) : '';
+    var scanBtn = '';
+    if (subId && hasScreenshotUrl) {
+      var matchId = (sub.match_id != null) ? String(sub.match_id) : '';
+      // matchId isn't in our serialized submission row; fall back to the
+      // currently selected match via state. The action uses TOC.matches.scanEvidence.
+      var force = (status === 'completed' || status === 'failed') ? '1' : '0';
+      var label = status === 'completed' ? 'Re-scan' : (status === 'failed' ? 'Retry Scan' : 'Scan Evidence');
+      scanBtn = '<button type="button" data-click="TOC.matches.scanEvidence" data-click-args="[' + subId + ',' + force + ']" ' +
+        'class="mt-2 w-full inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-md border border-theme/40 bg-theme/10 hover:bg-theme/20 text-theme text-[10px] font-black uppercase tracking-widest transition-colors active:scale-95">' +
+        '<i data-lucide="scan-line" class="w-3 h-3"></i>' + label +
+      '</button>';
+    }
+
+    return '<div class="mt-3 pt-3 border-t border-dc-border/30">' +
+      '<div class="flex items-center justify-between">' +
+        '<p class="text-[9px] font-black uppercase tracking-widest text-dc-text/50">OCR Status</p>' +
+        '<span class="text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded border ' + badge.cls + '">' + esc(badge.label) + '</span>' +
+      '</div>' +
+      extractedRow +
+      confidenceRow +
+      errorRow +
+      processedRow +
+      scanBtn +
+    '</div>';
+  }
+
+  function _evidenceSummaryBanner(side1Sub, side2Sub, vs) {
+    var bothSubmitted = !!(side1Sub && side2Sub);
+    var oneSide = !!side1Sub !== !!side2Sub;
+    var hasScreenshot1 = side1Sub && String(side1Sub.screenshot_url || side1Sub.proof_screenshot_file_url || side1Sub.proof_screenshot_url || '').trim().length > 0;
+    var hasScreenshot2 = side2Sub && String(side2Sub.screenshot_url || side2Sub.proof_screenshot_file_url || side2Sub.proof_screenshot_url || '').trim().length > 0;
+    var missingScreenshots = (side1Sub && !hasScreenshot1) || (side2Sub && !hasScreenshot2);
+
+    // Pure backend-driven verification first; fall back to client mirror check.
+    var code = vs && vs.code ? String(vs.code).toLowerCase() : '';
+    var label = vs && vs.label ? String(vs.label) : '';
+    var detail = vs && vs.detail ? String(vs.detail) : '';
+
+    if (!code && bothSubmitted) {
+      // Client-side mirror computation as a fallback if the backend didn't
+      // return verification_status (older response format).
+      var p1Match = (parseInt(side1Sub.score_for, 10) === parseInt(side2Sub.score_against, 10));
+      var p2Match = (parseInt(side1Sub.score_against, 10) === parseInt(side2Sub.score_for, 10));
+      code = (p1Match && p2Match) ? 'match' : 'mismatch';
+      label = (code === 'match') ? 'Scores Match' : 'Score Mismatch';
+    }
+
+    var bannerCls, iconName, iconCls;
+    if (code === 'finalized') {
+      bannerCls = 'border-emerald-400/30 bg-emerald-500/5'; iconName = 'check-circle-2'; iconCls = 'text-emerald-300';
+    } else if (code === 'mismatch') {
+      bannerCls = 'border-dc-danger/30 bg-dc-danger/5'; iconName = 'alert-triangle'; iconCls = 'text-dc-danger';
+    } else if (code === 'match') {
+      bannerCls = 'border-dc-success/30 bg-dc-success/5'; iconName = 'check-circle-2'; iconCls = 'text-dc-success';
+    } else if (oneSide) {
+      bannerCls = 'border-dc-warning/30 bg-dc-warning/5'; iconName = 'clock'; iconCls = 'text-dc-warning';
+      label = label || 'Waiting for opponent';
+      detail = detail || 'Only one side has submitted so far.';
+    } else {
+      bannerCls = 'border-dc-border/40 bg-dc-bg/40'; iconName = 'info'; iconCls = 'text-dc-text/60';
+      label = label || 'Pending evidence';
+      detail = detail || 'No submissions recorded yet.';
+    }
+
+    var warnings = '';
+    if (missingScreenshots) {
+      warnings = '<div class="mt-2 flex items-center gap-2 text-[11px] text-amber-200/90">' +
+        '<i data-lucide="image-off" class="w-3.5 h-3.5"></i>' +
+        '<span>One or both sides submitted without a screenshot.</span>' +
+      '</div>';
+    }
+
+    return '<div class="rounded-xl border ' + bannerCls + ' p-3">' +
+      '<div class="flex items-start gap-2.5">' +
+        '<div class="w-7 h-7 rounded-lg bg-black/30 border border-white/5 flex items-center justify-center shrink-0">' +
+          '<i data-lucide="' + iconName + '" class="w-3.5 h-3.5 ' + iconCls + '"></i>' +
+        '</div>' +
+        '<div class="flex-1 min-w-0">' +
+          '<p class="text-xs font-black uppercase tracking-widest ' + iconCls + '">' + esc(label || 'Status') + '</p>' +
+          (detail ? '<p class="text-[11px] text-dc-text mt-0.5 leading-relaxed">' + esc(detail) + '</p>' : '') +
+        '</div>' +
+      '</div>' +
+      warnings +
+    '</div>';
+  }
+
+  function _evidenceMediaSection(media) {
+    if (!media || !media.length) return '';
+    var items = media.map(function (m) {
+      var url = String(m.url || '').trim();
+      if (!url) return '';
+      var desc = String(m.description || m.media_type || 'Media').trim();
+      return '<button type="button" data-click="TOC.matches.openEvidenceLightbox" data-click-args="[&quot;' + esc(url) + '&quot;,&quot;' + esc(desc) + '&quot;]" ' +
+        'class="rounded-lg overflow-hidden border border-dc-border/40 hover:border-theme transition-colors group bg-dc-bg" style="aspect-ratio:16/9;">' +
+        '<div class="relative w-full h-full">' +
+          '<img src="' + esc(url) + '" alt="' + esc(desc) + '" class="w-full h-full object-cover" loading="lazy" ' +
+          'onerror="this.parentNode.innerHTML=\'<div class=&quot;w-full h-full flex items-center justify-center text-dc-text/40 text-[11px] font-mono&quot;>Image unavailable</div>\';">' +
+          '<div class="absolute inset-x-0 bottom-0 px-2 py-1 bg-gradient-to-t from-black/80 to-transparent">' +
+            '<p class="text-[10px] font-bold text-white truncate">' + esc(desc) + '</p>' +
+          '</div>' +
+        '</div>' +
+      '</button>';
+    }).filter(Boolean).join('');
+    if (!items) return '';
+    return '<div class="mt-4">' +
+      '<p class="text-[10px] font-black uppercase tracking-widest text-dc-text/60 mb-2">Admin-uploaded Evidence</p>' +
+      '<div class="grid grid-cols-2 md:grid-cols-3 gap-2">' + items + '</div>' +
+    '</div>';
+  }
+
   function renderEvidence(data) {
     var container = $('#evidence-container');
     var split = $('#evidence-split');
     var mismatch = $('#evidence-mismatch');
     if (!container) return;
 
+    // Hide the legacy split-screen + mismatch banner — new layout encapsulates both.
+    if (split) split.classList.add('hidden');
+    if (mismatch) mismatch.classList.add('hidden');
+
     var subs = data.submissions || [];
-    var media = (data.media || []).filter(function (x) { return x.is_evidence; });
+    var mediaAll = data.media || [];
+    var media = mediaAll.filter(function (x) { return x.is_evidence; });
     var vs = data.verification_status;
+    var match = data.match || {};
+    var teamA = String(match.participant1_name || 'Side 1');
+    var teamB = String(match.participant2_name || 'Side 2');
 
     if (subs.length === 0 && media.length === 0) {
       container.innerHTML = '<div class="text-center py-8">' +
         '<i data-lucide="image-off" class="w-10 h-10 text-dc-border mx-auto mb-2"></i>' +
-        '<p class="text-sm text-dc-text/50">No evidence submitted yet</p></div>';
-      if (split) split.classList.add('hidden');
-      if (mismatch) mismatch.classList.add('hidden');
+        '<p class="text-sm text-dc-text/50">No evidence submitted yet</p>' +
+        '<p class="text-[11px] text-dc-text/40 mt-1">Once participants submit results, screenshots will appear here.</p>' +
+      '</div>';
       if (typeof lucide !== 'undefined') lucide.createIcons();
       return;
     }
 
-    container.innerHTML = subs.map(function (s, idx) {
-      var statusCls = (s.status === 'confirmed' || s.status === 'finalized') ? 'bg-dc-success/20 text-dc-success' :
-        s.status === 'disputed' ? 'bg-dc-danger/20 text-dc-danger' : 'bg-dc-warning/20 text-dc-warning';
-      return '<div class="flex items-center gap-3 p-3 rounded-lg ' +
-        (idx === 0 ? 'bg-blue-500/5 border border-blue-500/20' : 'bg-purple-500/5 border border-purple-500/20') + '">' +
-        '<span class="text-xs font-bold uppercase tracking-widest ' +
-        (idx === 0 ? 'text-blue-400' : 'text-purple-400') + ' w-16 shrink-0">' +
-        (s.submitted_by_team_id ? (idx === 0 ? 'Capt. A' : 'Capt. B') : esc(s.submitted_by_name || 'Sub ' + (idx + 1))) + '</span>' +
-        '<span class="font-mono font-black text-white text-base flex-1 text-center">' +
-        ((s.raw_result_payload && s.raw_result_payload.score_p1 != null) ? s.raw_result_payload.score_p1 : '-') +
-        ' - ' +
-        ((s.raw_result_payload && s.raw_result_payload.score_p2 != null) ? s.raw_result_payload.score_p2 : '-') +
-        '</span>' +
-        '<span class="text-[11px] px-2 py-0.5 rounded font-bold uppercase tracking-wider ' + statusCls + '">' + esc(s.status) + '</span></div>';
-    }).join('');
+    var latest = _evidenceLatestPerSide(subs);
+    var summaryHTML = _evidenceSummaryBanner(latest[1], latest[2], vs);
+    var sideAHTML  = _evidenceCard(1, latest[1], teamA);
+    var sideBHTML  = _evidenceCard(2, latest[2], teamB);
+    var mediaHTML  = _evidenceMediaSection(media);
 
-    if (split) {
-      var imgA = (subs[0] && subs[0].proof_screenshot_url) || (media[0] && media[0].url);
-      var imgB = (subs[1] && subs[1].proof_screenshot_url) || (media[1] && media[1].url);
-      if (imgA || imgB) {
-        split.classList.remove('hidden');
-        var eA = $('#evidence-img-a');
-        var eB = $('#evidence-img-b');
-        if (eA) eA.innerHTML = imgA ? '<img src="' + esc(imgA) + '" class="w-full h-full object-contain" alt="Evidence A">' : '<i data-lucide="image" class="w-8 h-8 text-dc-border"></i>';
-        if (eB) eB.innerHTML = imgB ? '<img src="' + esc(imgB) + '" class="w-full h-full object-contain" alt="Evidence B">' : '<i data-lucide="image" class="w-8 h-8 text-dc-border"></i>';
+    container.innerHTML =
+      summaryHTML +
+      '<div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">' +
+        sideAHTML +
+        sideBHTML +
+      '</div>' +
+      mediaHTML;
+
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+  }
+
+  // P3 — Admin Scan Evidence action. POST to the submission-scan endpoint;
+  // refresh the match detail when done so the new OCR status shows up.
+  async function scanEvidence(submissionId, force) {
+    if (!submissionId) { toast('Submission id missing.', 'error'); return; }
+    // Normalize ``selectedMatchId`` defensively — guards against any caller
+    // that passes a match object instead of the numeric id.
+    var matchId = (selectedMatchId && typeof selectedMatchId === 'object')
+      ? selectedMatchId.id
+      : selectedMatchId;
+    matchId = Number(matchId);
+    if (!matchId) { toast('Select a match first.', 'error'); return; }
+    var forceParam = (force === 1 || force === '1' || force === true) ? '?force=1' : '';
+    var endpoint = 'matches/' + matchId + '/submissions/' + submissionId + '/scan/' + forceParam;
+    toast('Scanning evidence…', 'info');
+    try {
+      var resp = await API(endpoint, { method: 'POST' });
+      var status = String((resp && resp.ocr_status) || '').toLowerCase();
+      if (status === 'completed') {
+        toast('OCR complete.', 'success');
+      } else if (status === 'failed') {
+        toast('OCR failed: ' + String(resp.ocr_error || 'unknown error'), 'error');
+      } else if (status === 'skipped') {
+        toast('OCR skipped: ' + String(resp.ocr_error || 'no service for this game.'), 'info');
       } else {
-        split.classList.add('hidden');
+        toast('OCR status: ' + status, 'info');
       }
+    } catch (e) {
+      toast('Scan failed: ' + (parseApiError(e) || 'Unknown error'), 'error');
     }
+    // Force-refresh the match detail so the Evidence tab picks up new fields.
+    // selectMatch() expects a numeric id — passing the match object would
+    // serialise as ``[object Object]`` in the URL.
+    try {
+      await selectMatch(matchId);
+    } catch (_) { /* non-fatal */ }
+  }
 
-    if (mismatch && vs) {
-      if (vs.code === 'mismatch') {
-        mismatch.classList.remove('hidden');
-        var detail = $('#evidence-mismatch-detail');
-        if (detail) detail.textContent = vs.detail || 'Scores do not match between submissions';
-      } else {
-        mismatch.classList.add('hidden');
+  // Click-to-enlarge lightbox for evidence images.
+  function openEvidenceLightbox(url, caption) {
+    if (!url) return;
+    var existing = document.getElementById('toc-evidence-lightbox');
+    if (existing && existing.parentNode) existing.parentNode.removeChild(existing);
+
+    var overlay = document.createElement('div');
+    overlay.id = 'toc-evidence-lightbox';
+    overlay.className = 'fixed inset-0 z-[200] flex items-center justify-center bg-black/85 backdrop-blur-sm p-4';
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.innerHTML =
+      '<button type="button" data-evidence-close ' +
+        'class="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 flex items-center justify-center text-white transition-colors">' +
+        '<i data-lucide="x" class="w-5 h-5 pointer-events-none"></i>' +
+      '</button>' +
+      '<div class="max-w-5xl w-full max-h-[90vh] flex flex-col items-center gap-3">' +
+        (caption ? '<p class="text-xs font-bold text-white/80 uppercase tracking-widest">' + esc(caption) + '</p>' : '') +
+        '<img src="' + esc(url) + '" alt="' + esc(caption || 'Evidence') + '" class="max-w-full max-h-[80vh] object-contain rounded-lg shadow-2xl" ' +
+          'onerror="this.parentNode.innerHTML=\'<p class=&quot;text-white text-sm&quot;>Image could not be loaded.</p>\';" />' +
+      '</div>';
+
+    function close() {
+      if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+      document.removeEventListener('keydown', onKey);
+    }
+    function onKey(e) { if (e.key === 'Escape') close(); }
+
+    overlay.addEventListener('click', function (e) {
+      if (e.target === overlay || (e.target && e.target.hasAttribute && e.target.hasAttribute('data-evidence-close'))) {
+        close();
       }
-    }
-
+    });
+    document.addEventListener('keydown', onKey);
+    document.body.appendChild(overlay);
     if (typeof lucide !== 'undefined') lucide.createIcons();
   }
 
@@ -3001,6 +3404,10 @@
     onTeam5v5FilePicked: onTeam5v5FilePicked,
     extractTeam5v5AI: extractTeam5v5AI,
     saveTeam5v5Stats: saveTeam5v5Stats,
+    // Evidence Viewer lightbox (RP — TOC Evidence tab finish)
+    openEvidenceLightbox: openEvidenceLightbox,
+    // P3 — OCR scan action
+    scanEvidence: scanEvidence,
   };
 
   document.addEventListener('toc:tab-changed', function (e) {

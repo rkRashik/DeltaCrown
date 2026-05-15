@@ -114,6 +114,41 @@ class MatchResultSubmission(models.Model):
         )],
         help_text='Direct file upload of proof screenshot. Max 10MB recommended.'
     )
+
+    # ── P3 — OCR pipeline persistence (migration 0060) ────────────────
+    # All nullable / default-empty so old rows are unaffected and no
+    # backfill is needed. Status values mirrored in the migration help_text.
+    ocr_status = models.CharField(
+        max_length=20,
+        blank=True,
+        default='',
+        db_index=True,
+        help_text=(
+            "OCR pipeline state: '' (not attempted), 'pending', 'running', "
+            "'completed', 'failed', 'skipped'."
+        ),
+    )
+    ocr_extracted = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text='Game-specific extracted data (score / KDA / agents / etc.).',
+    )
+    ocr_confidence = models.FloatField(
+        null=True,
+        blank=True,
+        help_text='Overall extraction confidence 0..1. Null when not run.',
+    )
+    ocr_error = models.CharField(
+        max_length=500,
+        blank=True,
+        default='',
+        help_text="Short error message when ocr_status='failed'.",
+    )
+    ocr_processed_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text='Timestamp of the most recent OCR pipeline run.',
+    )
     
     # Status
     status = models.CharField(

@@ -215,6 +215,57 @@ def _resolve_admin_mode_request(request, match: Match) -> Tuple[bool, bool, str]
     admin_mode_requested = _is_truthy(getattr(request, "GET", {}).get("admin"))
     admin_token = str(getattr(request, "GET", {}).get("admin_token") or "").strip()
 
+    # RP.B — Participant-vs-admin separation.
+    # P0.C auto-promoted any ``is_official_staff`` user to admin mode so they
+    # could enter disputed lobbies from any entry point. Side effect: a staff
+    # user who is ALSO a participant of this match (test accounts, organizer
+    # playing their own bracket) saw the admin UI when they wanted the
+    # participant UX. Fix: skip auto-promotion when the visitor is a
+    # participant. Participants who genuinely need admin tools pass
+    # ``?admin=1`` explicitly. Pure moderators (not playing) still get
+    # auto-promoted as before.
+    user_is_participant = False
+    if user_id:
+        if user_id in (
+            getattr(match, "participant1_id", None),
+            getattr(match, "participant2_id", None),
+        ):
+            user_is_participant = True
+        else:
+            # Team-tournament path: participant1/2_id are team_ids; check via
+            # the user's confirmed registrations on this tournament.
+            try:
+                from apps.tournaments.models.registration import Registration
+                team_ids = set(
+                    Registration.objects
+                    .filter(
+                        tournament_id=getattr(match, "tournament_id", None),
+                        user_id=user_id,
+                        is_deleted=False,
+                    )
+                    .exclude(team_id=None)
+                    .values_list("team_id", flat=True)
+                )
+                # Also: TeamMembership for the registered team (covers lineup
+                # members who aren't the registrant).
+                if not team_ids:
+                    try:
+                        from apps.organizations.models import TeamMembership
+                        team_ids = set(
+                            TeamMembership.objects
+                            .filter(user_id=user_id, status=TeamMembership.Status.ACTIVE)
+                            .values_list("team_id", flat=True)
+                        )
+                    except Exception:
+                        team_ids = set()
+                if team_ids and (
+                    getattr(match, "participant1_id", 0) in team_ids
+                    or getattr(match, "participant2_id", 0) in team_ids
+                ):
+                    user_is_participant = True
+            except Exception:
+                pass
+
     # Fast path: explicit ``?admin=1`` with a still-valid token.
     if admin_mode_requested and validate_match_room_admin_token(
         session,
@@ -225,11 +276,11 @@ def _resolve_admin_mode_request(request, match: Match) -> Tuple[bool, bool, str]
     ):
         return True, True, admin_token
 
-    # P0.C — official staff are always authorized. Auto-issue a session token
-    # so any WebSocket admin checks downstream can validate without forcing the
-    # user to re-enter through ``/toc/`` first. This unblocks disputed-lobby
-    # access for organizers regardless of entry point.
-    if is_official_staff:
+    # P0.C — Auto-issue admin mode for staff who are NOT participants. The
+    # original deadlock (staff cannot enter disputed lobby) only matters for
+    # pure moderators; staff who are playing want the player UX. They can
+    # still escalate to admin view with ``?admin=1``.
+    if is_official_staff and not user_is_participant:
         issued_token = issue_match_room_admin_token(
             session,
             user_id=user_id,
@@ -239,9 +290,8 @@ def _resolve_admin_mode_request(request, match: Match) -> Tuple[bool, bool, str]
         if issued_token:
             return True, True, issued_token
 
-    # Legacy: ``?admin=1`` from TOC referer auto-issues. Preserved for callers
-    # that explicitly request admin mode while not yet flagged as staff
-    # (e.g. RBAC-delegated staff loaded outside the early staff check).
+    # Legacy: ``?admin=1`` from TOC referer auto-issues. Preserved so an
+    # organizer-playing-their-own-match can still escalate via TOC link.
     if admin_mode_requested and _is_toc_referer(request):
         issued_token = issue_match_room_admin_token(
             session,
@@ -1116,8 +1166,44 @@ def _resolve_lobby_policy(match: Match) -> Dict[str, Any]:
 
 
 def _resolve_phase_mode(match: Match, game_profile: Dict[str, Any]) -> str:
+    """Pick the phase pipeline (``veto`` / ``draft`` / ``direct``) for this match.
+
+    Resolution order (P2.D — pluggable):
+      1. ``GameMatchPipeline`` for the match's game: ``require_map_veto`` → veto;
+         archetype ``moba`` → draft; otherwise → direct. This is the canonical
+         per-game config — adding a new game means seeding a pipeline row.
+      2. Legacy ``PIPELINE_OVERRIDES`` dict (deprecated). Kept so existing
+         tournaments for games without a seeded pipeline keep working. Logs an
+         INFO line so the gap is visible in monitoring.
+      3. ``game_profile.phase_mode`` from lobby_policy_profile (last fallback).
+    """
+    game = getattr(getattr(match, "tournament", None), "game", None)
+    if game is not None:
+        try:
+            pipeline = getattr(game, "match_pipeline", None)
+            if pipeline is not None:
+                if bool(getattr(pipeline, "require_map_veto", False)):
+                    return "veto"
+                arch = ""
+                try:
+                    arch = str(pipeline.resolved_archetype() or "").lower()
+                except Exception:
+                    arch = str(getattr(pipeline, "archetype", "") or "").lower()
+                if arch == "moba":
+                    return "draft"
+                # Sports / duel_1v1 / battle_royale / tactical_fps without veto
+                # all enter the direct flow at the workflow level (BR has its
+                # own lobby pipeline elsewhere).
+                return "direct"
+        except Exception as exc:
+            logger.warning("phase mode resolution via GameMatchPipeline failed "
+                           "match=%s err=%s", getattr(match, "id", None), exc)
+
     canonical_key = str(game_profile.get("canonical_game_key") or "")
     if canonical_key in PIPELINE_OVERRIDES:
+        logger.info("phase mode using LEGACY PIPELINE_OVERRIDES fallback for "
+                    "canonical_game_key=%s — seed GameMatchPipeline to remove",
+                    canonical_key)
         return PIPELINE_OVERRIDES[canonical_key]
     return str(game_profile.get("phase_mode") or "direct")
 
@@ -1341,7 +1427,13 @@ def _ensure_match_workflow(match: Match, persist: bool = False) -> Tuple[Dict[st
     # Single resolution point — tournament override → game default → legacy
     # fallback dict, all inside config_resolver. If everything's empty, fall
     # back to placeholder labels so the UI can still render.
-    from apps.games.services.config_resolver import resolve_map_pool, resolve_map_pool_by_game_slug
+    from apps.games.services.config_resolver import (
+        resolve_map_pool,
+        resolve_map_pool_by_game_slug,
+        resolve_map_pool_meta,
+        resolve_game_branding,
+        resolve_lobby_options,
+    )
     map_pool = resolve_map_pool(match)
     if not map_pool and game_key:
         # Some pipelines normalize the game identifier to a canonical_game_key
@@ -1349,6 +1441,16 @@ def _ensure_match_workflow(match: Match, persist: bool = False) -> Tuple[Dict[st
         map_pool = resolve_map_pool_by_game_slug(game_key)
     if not map_pool:
         map_pool = ["Map 1", "Map 2", "Map 3", "Map 4", "Map 5"]
+    # RP.F — Rich map metadata for premium UX (image URLs + codes). Always a
+    # list aligned by name with ``map_pool``; entries may have empty
+    # image_url if the game/tournament hasn't seeded images yet.
+    map_pool_meta = resolve_map_pool_meta(match)
+    # Cover the case where map_pool came from the canonical_game_key fallback
+    # (rare) — ensure pool_meta still has entries.
+    if not map_pool_meta and map_pool:
+        map_pool_meta = [{"name": n, "code": "", "image_url": ""} for n in map_pool]
+    game_branding = resolve_game_branding(match)
+    lobby_options = resolve_lobby_options(match)
 
     policy = _resolve_lobby_policy(match)
     effective_policy = _safe_dict(policy.get("effective"))
@@ -1396,6 +1498,12 @@ def _ensure_match_workflow(match: Match, persist: bool = False) -> Tuple[Dict[st
         best_of=best_of,
         lobby_info=lobby_info,
     )
+    # RP.F — Workflow doesn't persist these (they're derived per request),
+    # but the room payload builder reads them. Attach to runtime for now;
+    # _build_room_payload consumes them.
+    runtime_map_pool_meta = map_pool_meta
+    runtime_game_branding = game_branding
+    runtime_lobby_options = lobby_options
 
     existing = _safe_dict(lobby_info.get(WORKFLOW_KEY))
     # Migration bridge: absorb old key once, then write under new key.
@@ -1473,6 +1581,13 @@ def _ensure_match_workflow(match: Match, persist: bool = False) -> Tuple[Dict[st
         "credential_schema": credential_schema,
         "best_of": best_of,
         "map_pool": map_pool,
+        # RP.F — rich map metadata + game branding from apps/games. FE reads
+        # these for image-aware veto cards and per-game theming. Always
+        # present; entries may have empty image_url when assets aren't
+        # seeded for the game yet.
+        "map_pool_meta": runtime_map_pool_meta,
+        "game_branding": runtime_game_branding,
+        "lobby_options": runtime_lobby_options,
         "phase_order": phase_order,
         "phase1_kind": phase1_kind,
         "policy": policy,
@@ -1749,7 +1864,13 @@ def _build_room_payload(
     is_host = user_side == 1
     workflow_payload = _safe_dict(workflow)
     workflow_payload["phase_order"] = _safe_list(runtime.get("phase_order"))
-    workflow_payload["phase1_kind"] = str(runtime.get("phase1_kind") or workflow_payload.get("phase1_kind") or "none")
+    _resolved_phase1_kind = str(runtime.get("phase1_kind") or workflow_payload.get("phase1_kind") or "none")
+    workflow_payload["phase1_kind"] = _resolved_phase1_kind
+    # P2.D — additive canonical alias. ``phase1_kind`` is preserved for the
+    # existing FE dispatcher; ``phase_kind`` is the same value under the
+    # name future FE code should switch to (P2.E migrates the FE; back-end
+    # broadcasts both forever for safety).
+    workflow_payload["phase_kind"] = _resolved_phase1_kind
     workflow_payload["policy"] = _safe_dict(runtime.get("policy"))
     check_in_payload = _safe_dict(runtime.get("check_in_window"))
     if workflow_payload["phase1_kind"] == "direct":
@@ -1777,6 +1898,14 @@ def _build_room_payload(
     # game results recorded via either path (workflow submit_result or
     # MatchService.submit_game_score) project consistently to clients.
     workflow_payload["series"] = _compute_series_view(match, workflow_payload)
+    # RP.F — Premium UX surfaces. ``map_pool_meta`` carries name+image+code
+    # objects from apps/games (single source of truth). ``game_branding``
+    # carries per-game colors + logo URL for consistent theming. Both are
+    # additive — older FE code that only reads ``workflow.veto.pool`` (names)
+    # keeps working.
+    workflow_payload["map_pool_meta"] = _safe_list(runtime.get("map_pool_meta"))
+    workflow_payload["game_branding"] = _safe_dict(runtime.get("game_branding"))
+    workflow_payload["lobby_options"] = _safe_dict(runtime.get("lobby_options"))
 
     participant_media = _participant_media_map(match)
     match_rules = _build_match_rules(match, runtime)
@@ -2297,6 +2426,9 @@ class MatchRoomWorkflowView(LoginRequiredMixin, View):
                         "participant2_score",
                         "winner_id",
                         "loser_id",
+                        # P2.C — persists per-game series records appended by
+                        # the BO3+ branch of submit_result / admin_override.
+                        "game_scores",
                         "updated_at",
                     ]
                 )
@@ -2707,12 +2839,40 @@ class MatchRoomWorkflowView(LoginRequiredMixin, View):
             lobby_info["game_mode"] = str(credentials.get("game_mode") or "")
             lobby_info["notes"] = str(credentials.get("notes") or "")
 
-            if phase in ("coin_toss", "phase1"):
+            # RP-fix — respect the configured setup gates. Previously
+            # ``save_credentials`` unconditionally advanced phase to
+            # ``lobby_setup`` from ``coin_toss``/``phase1``, which silently
+            # SKIPPED the map veto. The host could share credentials before
+            # the map was decided. Now we only advance when the prior gates
+            # are actually satisfied.
+            if phase == "lobby_setup":
+                pass  # Already in correct phase, just save.
+            elif is_staff and is_admin_mode:
+                # Admin override path — staff may correct stuck lobbies.
                 workflow["phase"] = "lobby_setup"
-            elif phase == "lobby_setup":
-                pass  # Already in correct phase
-            elif is_staff:
-                workflow["phase"] = "lobby_setup"  # Staff can save from any phase
+            elif phase == "coin_toss":
+                # Must resolve toss first if it's part of the order.
+                toss_resolved = self._parse_side(_safe_dict(workflow.get("coin_toss")).get("winner_side")) in (1, 2)
+                # In a veto pipeline the next gate after toss is veto — still
+                # block. In a direct pipeline (toss skipped or absent) we
+                # auto-advance.
+                if not toss_resolved and "coin_toss" in phase_order:
+                    raise ValueError("Resolve the coin toss before sharing lobby credentials.")
+                # Toss done; check the next gate.
+                if mode == "veto" and "phase1" in phase_order:
+                    raise ValueError("Complete map veto before sharing lobby credentials.")
+                workflow["phase"] = "lobby_setup"
+            elif phase == "phase1":
+                # phase1 is the meta-phase for veto / draft / direct setup.
+                veto_state = _safe_dict(workflow.get("veto"))
+                veto_done = bool(veto_state.get("selected_map"))
+                ready_state = _safe_dict(workflow.get("direct_ready"))
+                direct_ready_done = bool(ready_state.get("1")) and bool(ready_state.get("2"))
+                if mode == "veto" and not veto_done:
+                    raise ValueError("Complete map veto before sharing lobby credentials.")
+                if mode == "direct" and not direct_ready_done:
+                    raise ValueError("Both participants must mark Ready before sharing lobby credentials.")
+                workflow["phase"] = "lobby_setup"
             else:
                 raise ValueError("Credentials can only be saved during lobby setup phases.")
 
@@ -2763,7 +2923,20 @@ class MatchRoomWorkflowView(LoginRequiredMixin, View):
             if actor_side not in (1, 2):
                 raise ValueError("Only participating sides can submit results.")
 
-            if _latest_submission_for_side(actor_side):
+            # P2.C verification — terminal-state guard. A completed / forfeited
+            # / cancelled / disputed match must reject new submissions
+            # regardless of series state.
+            if match.state in (Match.COMPLETED, Match.CANCELLED, Match.FORFEIT, Match.DISPUTED):
+                raise ValueError("Match is already complete. No further results accepted.")
+
+            # P2.C verification — for BO3/BO5, only a PENDING submission from
+            # this side blocks. Once a game's submissions transition to
+            # CONFIRMED/FINALIZED (mirror resolved, game recorded), the side
+            # is free to submit for the next game. For BO1 this is identical
+            # to the legacy behaviour because BO1 never leaves CONFIRMED until
+            # FINALIZED, and both are non-PENDING.
+            _latest_active = _latest_submission_for_side(actor_side)
+            if _latest_active and _latest_active.status == MatchResultSubmission.STATUS_PENDING:
                 raise ValueError("Result already submitted. You cannot edit it. Contact admin for correction.")
 
             score_for = self._parse_int(payload.get("score_for"), "score_for")
@@ -2897,26 +3070,72 @@ class MatchRoomWorkflowView(LoginRequiredMixin, View):
                                 f"({p1_wins}-{p2_wins} series). Next map: "
                                 f"{series_view.get('current_map') or 'pending veto'}."
                             )
+                        # BO3+ branch is fully handled — fall through to the
+                        # common tail at the bottom of the handler (which sets
+                        # changed=True semantics and finalizes lobby_info).
                         changed = True
-                        return self._workflow_response(
-                            match=match,
-                            access=access,
-                            workflow=workflow,
-                            runtime=runtime,
-                            message=message,
-                            changed=changed,
-                        )
+                    else:
+                        # ─── BO1 path (unchanged behavior, wrapped in else) ───
+                        match.participant1_score = p1_score
+                        match.participant2_score = p2_score
 
-                    # ─── BO1 path (unchanged) ─────────────────────────────
-                    match.participant1_score = p1_score
-                    match.participant2_score = p2_score
+                        if p1_score == p2_score:
+                            draw_allowed = _draws_allowed_for_match(match)
+                            match.winner_id = None
+                            match.loser_id = None
 
-                    if p1_score == p2_score:
-                        draw_allowed = _draws_allowed_for_match(match)
-                        match.winner_id = None
-                        match.loser_id = None
+                            if draw_allowed:
+                                match.state = Match.COMPLETED
+                                if not match.completed_at:
+                                    match.completed_at = timezone.now()
 
-                        if draw_allowed:
+                                for side_sub in (sub_1, sub_2):
+                                    if not side_sub:
+                                        continue
+                                    side_sub.status = MatchResultSubmission.STATUS_FINALIZED
+                                    side_sub.confirmed_at = timezone.now()
+                                    side_sub.confirmed_by_user_id = access.get("user_id")
+                                    side_sub.finalized_at = timezone.now()
+                                    side_sub.save(
+                                        update_fields=[
+                                            "status",
+                                            "confirmed_at",
+                                            "confirmed_by_user",
+                                            "finalized_at",
+                                        ]
+                                    )
+
+                                workflow["result_status"] = "verified_draw"
+                                workflow["phase"] = "completed"
+                                workflow["final_result"] = {
+                                    "participant1_score": p1_score,
+                                    "participant2_score": p2_score,
+                                    "winner_side": 0,
+                                    "result_mode": "draw",
+                                    "verified_at": timezone.now().isoformat(),
+                                }
+                                message = "Result verified as draw."
+                            else:
+                                for side_sub in (sub_1, sub_2):
+                                    if not side_sub:
+                                        continue
+                                    side_sub.status = MatchResultSubmission.STATUS_CONFIRMED
+                                    side_sub.confirmed_at = timezone.now()
+                                    side_sub.confirmed_by_user_id = access.get("user_id")
+                                    side_sub.save(update_fields=["status", "confirmed_at", "confirmed_by_user"])
+
+                                workflow["result_status"] = "tie_pending_review"
+                                workflow["phase"] = "results"
+                                match.state = Match.PENDING_RESULT
+                                workflow["final_result"] = None
+                                message = "Scores match but ended tied. Staff review required."
+                        else:
+                            winner_side = 1 if p1_score > p2_score else 2
+                            winner_id = match.participant1_id if winner_side == 1 else match.participant2_id
+                            loser_id = match.participant2_id if winner_side == 1 else match.participant1_id
+
+                            match.winner_id = winner_id
+                            match.loser_id = loser_id
                             match.state = Match.COMPLETED
                             if not match.completed_at:
                                 match.completed_at = timezone.now()
@@ -2937,66 +3156,15 @@ class MatchRoomWorkflowView(LoginRequiredMixin, View):
                                     ]
                                 )
 
-                            workflow["result_status"] = "verified_draw"
+                            workflow["result_status"] = "verified"
                             workflow["phase"] = "completed"
                             workflow["final_result"] = {
                                 "participant1_score": p1_score,
                                 "participant2_score": p2_score,
-                                "winner_side": 0,
-                                "result_mode": "draw",
+                                "winner_side": winner_side,
                                 "verified_at": timezone.now().isoformat(),
                             }
-                            message = "Result verified as draw."
-                        else:
-                            for side_sub in (sub_1, sub_2):
-                                if not side_sub:
-                                    continue
-                                side_sub.status = MatchResultSubmission.STATUS_CONFIRMED
-                                side_sub.confirmed_at = timezone.now()
-                                side_sub.confirmed_by_user_id = access.get("user_id")
-                                side_sub.save(update_fields=["status", "confirmed_at", "confirmed_by_user"])
-
-                            workflow["result_status"] = "tie_pending_review"
-                            workflow["phase"] = "results"
-                            match.state = Match.PENDING_RESULT
-                            workflow["final_result"] = None
-                            message = "Scores match but ended tied. Staff review required."
-                    else:
-                        winner_side = 1 if p1_score > p2_score else 2
-                        winner_id = match.participant1_id if winner_side == 1 else match.participant2_id
-                        loser_id = match.participant2_id if winner_side == 1 else match.participant1_id
-
-                        match.winner_id = winner_id
-                        match.loser_id = loser_id
-                        match.state = Match.COMPLETED
-                        if not match.completed_at:
-                            match.completed_at = timezone.now()
-
-                        for side_sub in (sub_1, sub_2):
-                            if not side_sub:
-                                continue
-                            side_sub.status = MatchResultSubmission.STATUS_FINALIZED
-                            side_sub.confirmed_at = timezone.now()
-                            side_sub.confirmed_by_user_id = access.get("user_id")
-                            side_sub.finalized_at = timezone.now()
-                            side_sub.save(
-                                update_fields=[
-                                    "status",
-                                    "confirmed_at",
-                                    "confirmed_by_user",
-                                    "finalized_at",
-                                ]
-                            )
-
-                        workflow["result_status"] = "verified"
-                        workflow["phase"] = "completed"
-                        workflow["final_result"] = {
-                            "participant1_score": p1_score,
-                            "participant2_score": p2_score,
-                            "winner_side": winner_side,
-                            "verified_at": timezone.now().isoformat(),
-                        }
-                        message = "Result verified and match completed."
+                            message = "Result verified and match completed."
                 else:
                     for side_sub in (sub_1, sub_2):
                         if not side_sub:
@@ -3020,38 +3188,39 @@ class MatchRoomWorkflowView(LoginRequiredMixin, View):
             p1_score = self._parse_int(payload.get("participant1_score"), "participant1_score")
             p2_score = self._parse_int(payload.get("participant2_score"), "participant2_score")
 
-            match.participant1_score = p1_score
-            match.participant2_score = p2_score
-
-            if p1_score == p2_score:
-                match.winner_id = None
-                match.loser_id = None
-                draw_allowed = _draws_allowed_for_match(match)
-
-                if draw_allowed:
-                    match.state = Match.COMPLETED
-                    if not match.completed_at:
-                        match.completed_at = timezone.now()
-                    workflow["result_status"] = "admin_overridden_draw"
-                    workflow["phase"] = "completed"
-                    workflow["final_result"] = {
-                        "participant1_score": p1_score,
-                        "participant2_score": p2_score,
-                        "winner_side": 0,
-                        "result_mode": "draw",
-                        "verified_at": timezone.now().isoformat(),
-                    }
-                    message = "Admin override finalized as draw result."
-                else:
-                    match.state = Match.PENDING_RESULT
-                    workflow["result_status"] = "admin_tie_pending_review"
-                    workflow["phase"] = "results"
-                    workflow["final_result"] = None
-                    message = "Admin override saved as tied score."
-            else:
+            # ─── P2.C — Series-aware admin override ───────────────────────
+            # For BO3/BO5 the override takes ``p1_score`` / ``p2_score`` as
+            # SERIES WINS (not per-game). We don't backfill game_scores —
+            # the admin is intentionally short-circuiting series progression
+            # (typical use: opponent forfeited mid-series, dispute resolved
+            # in favour of one side). Existing match.game_scores entries are
+            # preserved so P3 OCR/dispute review can still inspect what was
+            # played up to the override point.
+            best_of_for_override = int(getattr(match, "best_of", 1) or 1)
+            if best_of_for_override > 1:
+                if p1_score == p2_score:
+                    raise ValueError("Series cannot end in a draw.")
+                if p1_score < 0 or p2_score < 0:
+                    raise ValueError("Series wins must be non-negative.")
+                wins_needed_override = _wins_needed_for(best_of_for_override)
+                if max(p1_score, p2_score) < wins_needed_override:
+                    raise ValueError(
+                        f"Series winner needs at least {wins_needed_override} wins for BO{best_of_for_override}."
+                    )
+                if p1_score + p2_score > best_of_for_override:
+                    raise ValueError(
+                        f"Combined wins ({p1_score}+{p2_score}={p1_score + p2_score}) "
+                        f"exceeds BO{best_of_for_override}."
+                    )
                 winner_side = 1 if p1_score > p2_score else 2
-                match.winner_id = match.participant1_id if winner_side == 1 else match.participant2_id
-                match.loser_id = match.participant2_id if winner_side == 1 else match.participant1_id
+                match.participant1_score = p1_score
+                match.participant2_score = p2_score
+                match.winner_id = (
+                    match.participant1_id if winner_side == 1 else match.participant2_id
+                )
+                match.loser_id = (
+                    match.participant2_id if winner_side == 1 else match.participant1_id
+                )
                 match.state = Match.COMPLETED
                 if not match.completed_at:
                     match.completed_at = timezone.now()
@@ -3061,51 +3230,143 @@ class MatchRoomWorkflowView(LoginRequiredMixin, View):
                     "participant1_score": p1_score,
                     "participant2_score": p2_score,
                     "winner_side": winner_side,
+                    "series_winner_slot": winner_side,
+                    "games": list(getattr(match, "game_scores", None) or []),
                     "verified_at": timezone.now().isoformat(),
                 }
-                message = "Admin override finalized the match result."
-
-            submission_status = (
-                MatchResultSubmission.STATUS_CONFIRMED
-                if p1_score == p2_score and match.state != Match.COMPLETED
-                else MatchResultSubmission.STATUS_FINALIZED
-            )
-
-            latest_submissions = MatchResultSubmission.objects.filter(match=match).order_by("-submitted_at")[:8]
-            for existing in latest_submissions:
-                existing.status = submission_status
-                existing.confirmed_at = timezone.now()
-                existing.confirmed_by_user_id = access.get("user_id")
-                if submission_status == MatchResultSubmission.STATUS_FINALIZED:
+                # Mark any open submissions as finalized for audit trail.
+                latest_submissions = MatchResultSubmission.objects.filter(
+                    match=match,
+                ).order_by("-submitted_at")[:8]
+                for existing in latest_submissions:
+                    existing.status = MatchResultSubmission.STATUS_FINALIZED
+                    existing.confirmed_at = timezone.now()
+                    existing.confirmed_by_user_id = access.get("user_id")
                     existing.finalized_at = timezone.now()
-                existing.save(
-                    update_fields=[
-                        "status",
-                        "confirmed_at",
-                        "confirmed_by_user",
-                        "finalized_at",
-                    ]
+                    existing.save(
+                        update_fields=[
+                            "status",
+                            "confirmed_at",
+                            "confirmed_by_user",
+                            "finalized_at",
+                        ]
+                    )
+                MatchResultSubmission.objects.create(
+                    match=match,
+                    submitted_by_user_id=access.get("user_id"),
+                    submitted_by_team_id=None,
+                    raw_result_payload={
+                        "score_p1": p1_score,
+                        "score_p2": p2_score,
+                        "admin_override": True,
+                        "series_override": True,
+                        "best_of": best_of_for_override,
+                        "resolved_at": timezone.now().isoformat(),
+                    },
+                    submitter_notes=str(payload.get("note") or "Series admin override."),
+                    status=MatchResultSubmission.STATUS_FINALIZED,
+                    source=MatchResultSubmission.SOURCE_ADMIN_OVERRIDE,
+                    confirmed_at=timezone.now(),
+                    confirmed_by_user_id=access.get("user_id"),
+                    finalized_at=timezone.now(),
+                )
+                message = (
+                    f"Series override finalized: side {winner_side} wins {p1_score}-{p2_score}."
+                )
+                changed = True
+                # Skip the BO1 admin-override block below.
+                _bo1_override_skip = True
+            else:
+                _bo1_override_skip = False
+
+            if not _bo1_override_skip:
+                # ─── BO1 admin override (unchanged behaviour, indented) ───
+                match.participant1_score = p1_score
+                match.participant2_score = p2_score
+
+                if p1_score == p2_score:
+                    match.winner_id = None
+                    match.loser_id = None
+                    draw_allowed = _draws_allowed_for_match(match)
+
+                    if draw_allowed:
+                        match.state = Match.COMPLETED
+                        if not match.completed_at:
+                            match.completed_at = timezone.now()
+                        workflow["result_status"] = "admin_overridden_draw"
+                        workflow["phase"] = "completed"
+                        workflow["final_result"] = {
+                            "participant1_score": p1_score,
+                            "participant2_score": p2_score,
+                            "winner_side": 0,
+                            "result_mode": "draw",
+                            "verified_at": timezone.now().isoformat(),
+                        }
+                        message = "Admin override finalized as draw result."
+                    else:
+                        match.state = Match.PENDING_RESULT
+                        workflow["result_status"] = "admin_tie_pending_review"
+                        workflow["phase"] = "results"
+                        workflow["final_result"] = None
+                        message = "Admin override saved as tied score."
+                else:
+                    winner_side = 1 if p1_score > p2_score else 2
+                    match.winner_id = match.participant1_id if winner_side == 1 else match.participant2_id
+                    match.loser_id = match.participant2_id if winner_side == 1 else match.participant1_id
+                    match.state = Match.COMPLETED
+                    if not match.completed_at:
+                        match.completed_at = timezone.now()
+                    workflow["result_status"] = "admin_overridden"
+                    workflow["phase"] = "completed"
+                    workflow["final_result"] = {
+                        "participant1_score": p1_score,
+                        "participant2_score": p2_score,
+                        "winner_side": winner_side,
+                        "verified_at": timezone.now().isoformat(),
+                    }
+                    message = "Admin override finalized the match result."
+
+                submission_status = (
+                    MatchResultSubmission.STATUS_CONFIRMED
+                    if p1_score == p2_score and match.state != Match.COMPLETED
+                    else MatchResultSubmission.STATUS_FINALIZED
                 )
 
-            MatchResultSubmission.objects.create(
-                match=match,
-                submitted_by_user_id=access.get("user_id"),
-                submitted_by_team_id=None,
-                raw_result_payload={
-                    "score_p1": p1_score,
-                    "score_p2": p2_score,
-                    "admin_override": True,
-                    "resolved_at": timezone.now().isoformat(),
-                },
-                submitter_notes=str(payload.get("note") or "Admin override from match room."),
-                status=submission_status,
-                source=MatchResultSubmission.SOURCE_ADMIN_OVERRIDE,
-                confirmed_at=timezone.now(),
-                confirmed_by_user_id=access.get("user_id"),
-                finalized_at=timezone.now() if submission_status == MatchResultSubmission.STATUS_FINALIZED else None,
-            )
+                latest_submissions = MatchResultSubmission.objects.filter(match=match).order_by("-submitted_at")[:8]
+                for existing in latest_submissions:
+                    existing.status = submission_status
+                    existing.confirmed_at = timezone.now()
+                    existing.confirmed_by_user_id = access.get("user_id")
+                    if submission_status == MatchResultSubmission.STATUS_FINALIZED:
+                        existing.finalized_at = timezone.now()
+                    existing.save(
+                        update_fields=[
+                            "status",
+                            "confirmed_at",
+                            "confirmed_by_user",
+                            "finalized_at",
+                        ]
+                    )
 
-            changed = True
+                MatchResultSubmission.objects.create(
+                    match=match,
+                    submitted_by_user_id=access.get("user_id"),
+                    submitted_by_team_id=None,
+                    raw_result_payload={
+                        "score_p1": p1_score,
+                        "score_p2": p2_score,
+                        "admin_override": True,
+                        "resolved_at": timezone.now().isoformat(),
+                    },
+                    submitter_notes=str(payload.get("note") or "Admin override from match room."),
+                    status=submission_status,
+                    source=MatchResultSubmission.SOURCE_ADMIN_OVERRIDE,
+                    confirmed_at=timezone.now(),
+                    confirmed_by_user_id=access.get("user_id"),
+                    finalized_at=timezone.now() if submission_status == MatchResultSubmission.STATUS_FINALIZED else None,
+                )
+
+                changed = True
 
         elif action == "advance_phase":
             if not is_staff or not access.get("admin_mode"):

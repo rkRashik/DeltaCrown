@@ -105,19 +105,34 @@ class MapPoolListView(TOCBaseView):
 
 
 class MapPoolDetailView(TOCBaseView):
-    """PUT/PATCH to update map / DELETE to remove."""
+    """PUT/PATCH to update map / DELETE to remove.
+
+    PATCH ``{"is_active": bool}`` on a synthetic ``game:<pk>`` id will
+    lazily materialise a ``MapPoolEntry`` mirroring the game default with
+    the toggled flag. DELETE on a synthetic id is rejected (game-level
+    maps are managed in the games admin).
+    """
 
     def put(self, request, slug, pk):
-        result = TOCSettingsService.update_map(str(pk), request.data)
-        return Response(result)
+        try:
+            result = TOCSettingsService.update_map(str(pk), request.data, tournament=self.tournament)
+            return Response(result)
+        except ValueError as exc:
+            return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
     def patch(self, request, slug, pk):
-        result = TOCSettingsService.update_map(str(pk), request.data)
-        return Response(result)
+        try:
+            result = TOCSettingsService.update_map(str(pk), request.data, tournament=self.tournament)
+            return Response(result)
+        except ValueError as exc:
+            return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, slug, pk):
-        result = TOCSettingsService.delete_map(str(pk))
-        return Response(result)
+        try:
+            result = TOCSettingsService.delete_map(str(pk))
+            return Response(result)
+        except ValueError as exc:
+            return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class MapPoolReorderView(TOCBaseView):

@@ -35,6 +35,9 @@ logger = logging.getLogger(__name__)
 __all__ = [
     "resolve_map_pool",
     "resolve_map_pool_by_game_slug",
+    "resolve_map_pool_meta",
+    "resolve_game_branding",
+    "resolve_lobby_options",
     "resolve_scoring_rule",
     "LEGACY_MAP_POOL_FALLBACKS",
 ]
@@ -153,6 +156,195 @@ def resolve_map_pool_by_game_slug(game_slug: str) -> List[str]:
     """
     slug = _normalize_slug(game_slug)
     return _game_map_pool(slug) or _legacy_map_pool(slug)
+
+
+# ── Rich map metadata (RP.F — premium UX integration) ──────────────────────
+
+def _serialize_image(image_field: Any) -> str:
+    """Render an Image/URL field to a usable URL string. Empty when missing."""
+    if image_field is None:
+        return ""
+    # Django ImageField has .url; URLField is a string.
+    try:
+        url = getattr(image_field, "url", None)
+        if url:
+            return str(url)
+    except (ValueError, AttributeError):
+        # ImageField without a stored file raises ValueError on .url.
+        pass
+    if isinstance(image_field, str):
+        return image_field
+    return ""
+
+
+def _tournament_map_pool_meta(tournament) -> List[Dict[str, str]]:
+    """Tier 1 — tournament-level ``MapPoolEntry`` rows as rich dicts."""
+    if tournament is None:
+        return []
+    try:
+        cfg = getattr(tournament, "game_match_config", None)
+        if not cfg:
+            return []
+        rows = (
+            cfg.map_pool
+               .filter(is_active=True)
+               .order_by("order", "map_name")
+        )
+        out: List[Dict[str, str]] = []
+        for row in rows:
+            name = str(row.map_name or "").strip()
+            if not name:
+                continue
+            out.append({
+                "name": name,
+                "code": str(getattr(row, "map_code", "") or "").strip(),
+                "image_url": _serialize_image(getattr(row, "image", None)),
+            })
+        return out
+    except Exception as exc:
+        logger.warning("resolve_map_pool_meta: tournament tier failed err=%s", exc)
+        return []
+
+
+def _game_map_pool_meta(game_slug: str) -> List[Dict[str, str]]:
+    """Tier 2 — game-level ``GameMapPool`` rows as rich dicts."""
+    slug = _normalize_slug(game_slug)
+    if not slug:
+        return []
+    try:
+        from apps.games.models.map_pool import GameMapPool
+        rows = (
+            GameMapPool.objects
+            .filter(game__slug=slug, is_active=True)
+            .order_by("order", "map_name")
+        )
+        out: List[Dict[str, str]] = []
+        for row in rows:
+            name = str(row.map_name or "").strip()
+            if not name:
+                continue
+            out.append({
+                "name": name,
+                "code": str(getattr(row, "map_code", "") or "").strip(),
+                "image_url": _serialize_image(getattr(row, "image", None)),
+            })
+        return out
+    except Exception as exc:
+        logger.warning("resolve_map_pool_meta: game tier failed err=%s", exc)
+        return []
+
+
+def resolve_map_pool_meta(tournament_or_match: Any) -> List[Dict[str, str]]:
+    """Return rich map metadata for premium UX rendering.
+
+    Each dict carries ``{"name", "code", "image_url"}``. Resolution follows
+    the same tier order as ``resolve_map_pool`` (tournament override → game
+    default → legacy fallback name-only). Always returns a list; consumers
+    on the FE iterate and render image-aware cards. The simpler
+    ``resolve_map_pool`` is preserved for callers that only need names
+    (BR scoring, leaderboard, etc.).
+    """
+    tournament = _tournament_from(tournament_or_match)
+    meta = _tournament_map_pool_meta(tournament)
+    if meta:
+        return meta
+
+    game = getattr(tournament, "game", None) if tournament is not None else None
+    game_slug = _normalize_slug(getattr(game, "slug", ""))
+    meta = _game_map_pool_meta(game_slug)
+    if meta:
+        return meta
+
+    # Legacy fallback — name-only entries, no image_url.
+    return [
+        {"name": name, "code": "", "image_url": ""}
+        for name in _legacy_map_pool(game_slug)
+    ]
+
+
+def resolve_lobby_options(tournament_or_match: Any) -> Dict[str, List[Dict[str, str]]]:
+    """Return select-option lists for lobby credential fields.
+
+    Lives on ``Game.tournament_config.extra_config['lobby_options']`` so an
+    admin can edit per-game options without code changes. Shape:
+
+        {
+          "server_regions": [{"code": "...", "label": "..."}, ...],
+          "game_modes":     [{"code": "...", "label": "..."}, ...]
+        }
+
+    Returns ``{}`` when nothing is configured — FE then falls back to plain
+    text inputs. Never raises.
+    """
+    tournament = _tournament_from(tournament_or_match)
+    game = getattr(tournament, "game", None) if tournament is not None else None
+    if game is None:
+        return {}
+    try:
+        cfg = getattr(game, "tournament_config", None)
+        if not cfg:
+            return {}
+        extra = cfg.extra_config if isinstance(cfg.extra_config, dict) else {}
+        raw = extra.get("lobby_options")
+        if not isinstance(raw, dict):
+            return {}
+        # Normalize: each value must be a list of {code, label} dicts.
+        out: Dict[str, List[Dict[str, str]]] = {}
+        for key, items in raw.items():
+            if not isinstance(items, list):
+                continue
+            cleaned: List[Dict[str, str]] = []
+            for item in items:
+                if isinstance(item, dict):
+                    code = str(item.get("code") or "").strip()
+                    label = str(item.get("label") or code).strip()
+                    if code:
+                        cleaned.append({"code": code, "label": label})
+                elif isinstance(item, str) and item.strip():
+                    val = item.strip()
+                    cleaned.append({"code": val, "label": val})
+            if cleaned:
+                out[str(key)] = cleaned
+        return out
+    except Exception as exc:
+        logger.warning("resolve_lobby_options failed err=%s", exc)
+        return {}
+
+
+def resolve_game_branding(tournament_or_match: Any) -> Dict[str, str]:
+    """Return per-game branding for the FE.
+
+    The ``Game`` model owns ``primary_color`` / ``accent_color`` / ``icon`` /
+    ``logo`` already; this resolver returns a compact dict so the FE doesn't
+    need to know the field names or handle missing-FK cases. Keys returned:
+
+        slug, display_name, short_code, category,
+        primary_color, secondary_color, accent_color,
+        logo_url, icon_url, banner_url
+
+    All keys are strings; empty string when missing. Single source for all
+    match-room / TOC / HUB game branding consumption.
+    """
+    tournament = _tournament_from(tournament_or_match)
+    game = getattr(tournament, "game", None) if tournament is not None else None
+    if game is None:
+        return {
+            "slug": "", "display_name": "", "short_code": "", "category": "",
+            "primary_color": "", "secondary_color": "", "accent_color": "",
+            "logo_url": "", "icon_url": "", "banner_url": "",
+        }
+    return {
+        "slug":            str(getattr(game, "slug", "") or "").strip(),
+        "display_name":    str(getattr(game, "display_name", "") or "").strip(),
+        "short_code":      str(getattr(game, "short_code", "") or "").strip(),
+        "category":        str(getattr(game, "category", "") or "").strip(),
+        "primary_color":   str(getattr(game, "primary_color", "") or "").strip(),
+        "secondary_color": str(getattr(game, "secondary_color", "") or "").strip(),
+        "accent_color":    str(getattr(game, "accent_color", "") or "").strip(),
+        "logo_url":        _serialize_image(getattr(game, "logo", None)),
+        "icon_url":        _serialize_image(getattr(game, "icon", None)),
+        "banner_url":      _serialize_image(getattr(game, "banner", None)),
+    }
 
 
 # ── Scoring rule resolution ─────────────────────────────────────────────────

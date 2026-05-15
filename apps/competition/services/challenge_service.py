@@ -19,7 +19,13 @@ from django.db import transaction
 from django.db.models import Q, Count, Sum, Case, When, Value, IntegerField
 from django.utils import timezone
 
-from apps.competition.models import Challenge, Bounty, BountyClaim, MatchReport
+from apps.competition.models import (
+    Bounty,
+    BountyClaim,
+    Challenge,
+    ChallengeResultSubmission,
+    MatchReport,
+)
 from apps.economy import escrow_service
 from apps.economy.exceptions import InsufficientFunds
 from apps.economy.models import DeltaCrownWallet
@@ -372,27 +378,158 @@ class ChallengeService:
         result,
         score_details=None,
         evidence_url='',
+        submitting_team=None,
     ):
         """
-        Submit the result of a completed challenge.
-        
-        Creates a MatchReport linked to this challenge for ranking integration.
-        """
-        challenge = Challenge.objects.select_for_update().get(pk=challenge_id)
+        Submit or confirm a Showdown result.
 
-        if challenge.status not in ('ACCEPTED', 'SCHEDULED', 'IN_PROGRESS'):
+        One authorized user from each team must submit the same winner and
+        score. Matching submissions settle through ``settle_challenge``.
+        Conflicting submissions move the challenge to DISPUTED.
+        """
+        challenge = (
+            Challenge.objects
+            .select_for_update()
+            .select_related('challenger_team', 'challenged_team', 'game')
+            .get(pk=challenge_id)
+        )
+
+        if challenge.status in ('SETTLED', 'DISPUTED', 'ADMIN_RESOLVED'):
+            raise ValidationError(f"Challenge is already {challenge.get_status_display()}.")
+        if challenge.status not in ('ACCEPTED', 'SCHEDULED', 'IN_PROGRESS', 'PENDING_CONFIRMATION', 'COMPLETED'):
             raise ValidationError(f"Cannot submit result for {challenge.get_status_display()} challenge.")
 
-        # Verify participant authority on either team.
-        is_challenger = ChallengeService._has_team_authority(submitted_by, challenge.challenger_team)
-        is_challenged = ChallengeService._has_team_authority(submitted_by, challenge.challenged_team)
-        if not (is_challenger or is_challenged):
+        submitting_team = ChallengeService._resolve_result_submitting_team(
+            submitted_by, challenge, submitting_team=submitting_team
+        )
+
+        if result not in ('CHALLENGER_WIN', 'CHALLENGED_WIN', 'DRAW'):
+            raise ValidationError(f"Invalid result: {result}")
+
+        score_details = score_details or {}
+        existing = ChallengeResultSubmission.objects.filter(
+            challenge=challenge,
+            team=submitting_team,
+        ).first()
+        if existing:
+            if (
+                existing.result == result
+                and existing.score_details == score_details
+                and (existing.evidence_url or '') == (evidence_url or '')
+            ):
+                return challenge
+            raise ValidationError("This team has already submitted a result for this Showdown.")
+
+        submission = ChallengeResultSubmission.objects.create(
+            challenge=challenge,
+            team=submitting_team,
+            submitted_by=submitted_by,
+            result=result,
+            score_details=score_details,
+            evidence_url=evidence_url or '',
+        )
+
+        submissions = list(
+            ChallengeResultSubmission.objects
+            .filter(challenge=challenge)
+            .select_related('team', 'submitted_by')
+            .order_by('created_at')
+        )
+
+        if len(submissions) < 2:
+            challenge.result = result
+            challenge.score_details = score_details
+            challenge.evidence_url = evidence_url or ''
+            challenge.status = 'PENDING_CONFIRMATION'
+            challenge.save(update_fields=[
+                'result', 'score_details', 'evidence_url',
+                'status', 'updated_at',
+            ])
+            logger.info(
+                "Challenge result submitted: %s result=%s team=%s by=%s",
+                challenge.reference_code, result, submitting_team.name, submitted_by.username,
+            )
+            return challenge
+
+        first, second = submissions[0], submissions[1]
+        if first.result != second.result or first.score_details != second.score_details:
+            challenge.status = 'DISPUTED'
+            challenge.closure_note = (
+                "Showdown result submissions did not match. "
+                "The result is pending admin review."
+            )
+            challenge.save(update_fields=['status', 'closure_note', 'updated_at'])
+            logger.info(
+                "Challenge result disputed: %s first=%s second=%s",
+                challenge.reference_code, first.result, second.result,
+            )
+            return challenge
+
+        match_report = ChallengeService._create_confirmed_match_report(
+            challenge,
+            result=first.result,
+            score_details=first.score_details,
+            evidence_url=first.evidence_url or second.evidence_url or '',
+            submitted_by=submitted_by,
+        )
+        challenge.result = first.result
+        challenge.score_details = first.score_details
+        challenge.evidence_url = first.evidence_url or second.evidence_url or ''
+        challenge.match_report = match_report
+        challenge.status = 'COMPLETED'
+        if not challenge.completed_at:
+            challenge.completed_at = timezone.now()
+        challenge.save(update_fields=[
+            'result', 'score_details', 'evidence_url', 'match_report',
+            'status', 'completed_at', 'updated_at',
+        ])
+
+        logger.info(
+            "Challenge result confirmed: %s result=%s (confirmed by %s)",
+            challenge.reference_code, first.result, submitted_by.username,
+        )
+        return ChallengeService.settle_challenge(
+            challenge_id=challenge.pk,
+            settled_by=submitted_by,
+        )
+
+    # ── Settle (distribute rewards) ──────────────────────────────────────
+
+    @staticmethod
+    def _resolve_result_submitting_team(user, challenge, *, submitting_team=None):
+        participant_teams = [challenge.challenger_team, challenge.challenged_team]
+        participant_ids = {team.pk for team in participant_teams if team is not None}
+
+        if submitting_team is not None:
+            if submitting_team.pk not in participant_ids:
+                raise ValidationError("Submitting team is not part of this Showdown.")
+            ChallengeService._verify_team_authority(
+                user, submitting_team, action='submit the Showdown result',
+            )
+            return submitting_team
+
+        authorized = [
+            team for team in participant_teams
+            if team is not None and ChallengeService._has_team_authority(user, team)
+        ]
+        if not authorized:
             raise PermissionDenied(
                 "Only the team owner, manager, or designated tournament captain "
                 "of either team can submit the match result."
             )
+        if len(authorized) > 1:
+            raise ValidationError("submitting_team_id is required when you manage both teams.")
+        return authorized[0]
 
-        # Map challenge result to MatchReport result
+    @staticmethod
+    def _create_confirmed_match_report(
+        challenge,
+        *,
+        result,
+        score_details=None,
+        evidence_url='',
+        submitted_by=None,
+    ):
         mr_result_map = {
             'CHALLENGER_WIN': 'WIN',
             'CHALLENGED_WIN': 'LOSS',
@@ -402,37 +539,17 @@ class ChallengeService:
         if not mr_result:
             raise ValidationError(f"Invalid result: {result}")
 
-        # Create linked MatchReport
-        match_report = MatchReport.objects.create(
+        return MatchReport.objects.create(
             game_id=challenge.game.short_code,
             match_type='CHALLENGE',
             team1=challenge.challenger_team,
             team2=challenge.challenged_team,
             result=mr_result,
-            evidence_url=evidence_url,
-            evidence_notes=f"Challenge {challenge.reference_code}",
+            evidence_url=evidence_url or '',
+            evidence_notes=f"Showdown {challenge.reference_code} confirmed result",
             submitted_by=submitted_by,
             played_at=timezone.now(),
         )
-
-        challenge.result = result
-        challenge.score_details = score_details or {}
-        challenge.evidence_url = evidence_url
-        challenge.match_report = match_report
-        challenge.status = 'COMPLETED'
-        challenge.completed_at = timezone.now()
-        challenge.save(update_fields=[
-            'result', 'score_details', 'evidence_url', 'match_report',
-            'status', 'completed_at', 'updated_at',
-        ])
-
-        logger.info(
-            "Challenge completed: %s result=%s (reported by %s)",
-            challenge.reference_code, result, submitted_by.username,
-        )
-        return challenge
-
-    # ── Settle (distribute rewards) ──────────────────────────────────────
 
     @staticmethod
     @transaction.atomic
@@ -510,6 +627,186 @@ class ChallengeService:
             challenge.closure_reason,
         )
         return challenge
+
+    @staticmethod
+    @transaction.atomic
+    def admin_settle_confirmed_showdown(*, challenge_id, resolved_by, note=''):
+        """Admin/operator settlement path for an already confirmed Showdown."""
+        challenge = ChallengeService.settle_challenge(
+            challenge_id=challenge_id,
+            settled_by=resolved_by,
+        )
+        if note:
+            challenge.closure_note = note
+            challenge.save(update_fields=['closure_note', 'updated_at'])
+        ChallengeService._log_showdown_admin_action(
+            'showdown.admin_settled',
+            challenge,
+            actor=resolved_by,
+            note=note,
+        )
+        return challenge
+
+    @staticmethod
+    @transaction.atomic
+    def admin_resolve_disputed_showdown(
+        *,
+        challenge_id,
+        resolved_by,
+        result,
+        score_details=None,
+        note='',
+    ):
+        """Resolve a disputed Showdown with an admin-selected result, then settle."""
+        challenge = (
+            Challenge.objects
+            .select_for_update()
+            .select_related('challenger_team', 'challenged_team', 'game')
+            .get(pk=challenge_id)
+        )
+
+        if challenge.status != 'DISPUTED':
+            raise ValidationError("Only disputed Showdowns can be resolved by this action.")
+        if challenge.payout_txn_id or challenge.status == 'SETTLED':
+            raise ValidationError("This Showdown has already been settled.")
+        if result not in ('CHALLENGER_WIN', 'CHALLENGED_WIN', 'DRAW'):
+            raise ValidationError(f"Invalid result: {result}")
+
+        if not challenge.match_report_id:
+            challenge.match_report = ChallengeService._create_confirmed_match_report(
+                challenge,
+                result=result,
+                score_details=score_details or challenge.score_details or {},
+                evidence_url=challenge.evidence_url or '',
+                submitted_by=resolved_by,
+            )
+        challenge.result = result
+        challenge.score_details = score_details or challenge.score_details or {}
+        challenge.status = 'COMPLETED'
+        challenge.completed_at = challenge.completed_at or timezone.now()
+        challenge.resolved_by = resolved_by
+        challenge.closure_reason = 'DISPUTE_RESOLVED'
+        challenge.closure_note = note or f"Dispute resolved by {resolved_by.username}."
+        challenge.save(update_fields=[
+            'result', 'score_details', 'status', 'completed_at', 'resolved_by',
+            'closure_reason', 'closure_note', 'match_report', 'updated_at',
+        ])
+
+        settled = ChallengeService.settle_challenge(
+            challenge_id=challenge.pk,
+            settled_by=resolved_by,
+        )
+        settled.closure_reason = 'DISPUTE_RESOLVED'
+        settled.closure_note = challenge.closure_note
+        settled.save(update_fields=['closure_reason', 'closure_note', 'updated_at'])
+        ChallengeService._log_showdown_admin_action(
+            'showdown.dispute_resolved',
+            settled,
+            actor=resolved_by,
+            note=settled.closure_note,
+            extra={'result': result},
+        )
+        return settled
+
+    @staticmethod
+    @transaction.atomic
+    def admin_void_refund_showdown(*, challenge_id, resolved_by, note=''):
+        """Void a Showdown and refund locked entry fees through escrow service."""
+        challenge = Challenge.objects.select_for_update().get(pk=challenge_id)
+
+        if challenge.status == 'SETTLED' or challenge.payout_txn_id:
+            raise ValidationError("Settled Showdowns cannot be voided by bulk admin action.")
+        if challenge.status in ('DECLINED', 'EXPIRED', 'CANCELLED', 'ADMIN_RESOLVED'):
+            raise ValidationError(f"Showdown is already closed as {challenge.get_status_display()}.")
+
+        if challenge.entry_fee_dc:
+            if challenge.escrow_locked:
+                ChallengeService._refund_both_sides(
+                    challenge,
+                    actor=resolved_by,
+                    note=note or f"Admin void refund for {challenge.reference_code}",
+                )
+            else:
+                ChallengeService._refund_challenger_if_locked(
+                    challenge,
+                    actor=resolved_by,
+                    note=note or f"Admin void refund for {challenge.reference_code}",
+                )
+
+        challenge.status = 'ADMIN_RESOLVED'
+        challenge.result = 'PENDING'
+        challenge.escrow_locked = False
+        challenge.resolved_by = resolved_by
+        challenge.settled_at = timezone.now()
+        challenge.closure_reason = 'ADMIN_VOID'
+        challenge.closure_note = note or f"Voided and refunded by {resolved_by.username}."
+        challenge.save(update_fields=[
+            'status', 'result', 'escrow_locked', 'resolved_by', 'settled_at',
+            'closure_reason', 'closure_note', 'updated_at',
+        ])
+        ChallengeService._log_showdown_admin_action(
+            'showdown.admin_void_refund',
+            challenge,
+            actor=resolved_by,
+            note=challenge.closure_note,
+        )
+        return challenge
+
+    @staticmethod
+    @transaction.atomic
+    def admin_respawn_match_room(*, challenge_id, actor):
+        """Respawn a missing synthetic match room if the Showdown is accepted."""
+        challenge = (
+            Challenge.objects
+            .select_for_update()
+            .select_related('challenger_team', 'challenged_team', 'game')
+            .get(pk=challenge_id)
+        )
+        if challenge.match_id:
+            return challenge.match
+        if challenge.status not in ('ACCEPTED', 'SCHEDULED', 'IN_PROGRESS', 'PENDING_CONFIRMATION', 'COMPLETED'):
+            raise ValidationError("Only accepted or active Showdowns can have match rooms.")
+        match = ChallengeService._spawn_clash_match_room(challenge, actor=actor)
+        if match is None:
+            raise ValidationError("Could not create a match room for this Showdown.")
+        challenge.match = match
+        challenge.save(update_fields=['match', 'updated_at'])
+        ChallengeService._log_showdown_admin_action(
+            'showdown.match_room_respawned',
+            challenge,
+            actor=actor,
+            extra={'match_id': match.pk},
+        )
+        return match
+
+    @staticmethod
+    def _log_showdown_admin_action(event_name, challenge, *, actor=None, note='', extra=None):
+        """Persist a lightweight operator audit event without blocking the action."""
+        try:
+            from apps.common.events.models import EventLog
+
+            EventLog.objects.create(
+                name=event_name,
+                payload={
+                    'challenge_id': str(challenge.pk),
+                    'reference_code': challenge.reference_code,
+                    'status': challenge.status,
+                    'result': challenge.result,
+                    'note': note,
+                    **(extra or {}),
+                },
+                occurred_at=timezone.now(),
+                user_id=getattr(actor, 'pk', None),
+                correlation_id=challenge.reference_code,
+                metadata={'source': 'competition.admin'},
+                status=EventLog.STATUS_PROCESSED,
+            )
+        except Exception:
+            logger.exception(
+                "Failed to write Showdown admin audit event %s for %s",
+                event_name,
+                getattr(challenge, 'reference_code', challenge),
+            )
 
     @staticmethod
     def _resolve_winner_user(challenge):
@@ -755,15 +1052,15 @@ class ChallengeService:
 
         now = timezone.now()
         scheduled_at = challenge.scheduled_at or (now + timedelta(hours=1))
-        slug = f"crown-clash-{challenge.reference_code.lower()}"
+        slug = f"showdown-{challenge.reference_code.lower()}"
 
-        tournament, _ = Tournament.objects.get_or_create(
+        tournament, created = Tournament.objects.get_or_create(
             slug=slug,
             defaults=dict(
-                name=f"Crown Clash · {challenger.name} vs {challenged.name}",
+                name=f"Showdown - {challenger.name} vs {challenged.name}",
                 description=(
-                    f"Auto-generated lobby host for Crown Clash "
-                    f"{challenge.reference_code}.  Hidden from public listings."
+                    f"Auto-generated match room host for Showdown "
+                    f"{challenge.reference_code}. Hidden from public listings."
                 ),
                 organizer=organizer,
                 game=challenge.game,
@@ -778,6 +1075,13 @@ class ChallengeService:
                 is_featured=False,
             ),
         )
+        if created:
+            tournament.name = f"Showdown - {challenger.name} vs {challenged.name}"
+            tournament.description = (
+                f"Auto-generated match room host for Showdown "
+                f"{challenge.reference_code}. Hidden from public listings."
+            )
+            tournament.save(update_fields=['name', 'description'])
 
         match, _ = Match.objects.get_or_create(
             tournament=tournament,
@@ -792,7 +1096,8 @@ class ChallengeService:
                 state=Match.SCHEDULED,
                 scheduled_time=scheduled_at,
                 lobby_info={
-                    'kind': 'crown_clash',
+                    'kind': 'showdown',
+                    'showdown_ref': challenge.reference_code,
                     'clash_ref': challenge.reference_code,
                     'best_of': challenge.best_of,
                     'entry_fee_dc': challenge.entry_fee_dc,
@@ -827,15 +1132,15 @@ class ChallengeService:
             return None
 
         now = timezone.now()
-        slug = f"hitlist-{bounty.reference_code.lower()}-claim-{str(claim.pk)[:8]}"
+        slug = f"bounty-{bounty.reference_code.lower()}-claim-{str(claim.pk)[:8]}"
 
-        tournament, _ = Tournament.objects.get_or_create(
+        tournament, created = Tournament.objects.get_or_create(
             slug=slug,
             defaults=dict(
-                name=f"Hitlist · {challenger.name} hunts {issuer.name}",
+                name=f"Bounty - {challenger.name} vs {issuer.name}",
                 description=(
-                    f"Auto-generated lobby host for Hitlist claim against "
-                    f"bounty {bounty.reference_code}.  Hidden from public listings."
+                    f"Auto-generated match room host for Bounty claim "
+                    f"{bounty.reference_code}. Hidden from public listings."
                 ),
                 organizer=organizer,
                 game=bounty.game,
@@ -850,6 +1155,13 @@ class ChallengeService:
                 is_featured=False,
             ),
         )
+        if created:
+            tournament.name = f"Bounty - {challenger.name} vs {issuer.name}"
+            tournament.description = (
+                f"Auto-generated match room host for Bounty claim "
+                f"{bounty.reference_code}. Hidden from public listings."
+            )
+            tournament.save(update_fields=['name', 'description'])
 
         match, _ = Match.objects.get_or_create(
             tournament=tournament,
@@ -864,7 +1176,7 @@ class ChallengeService:
                 state=Match.SCHEDULED,
                 scheduled_time=now + timedelta(hours=1),
                 lobby_info={
-                    'kind': 'hitlist',
+                    'kind': 'bounty',
                     'bounty_ref': bounty.reference_code,
                     'claim_id': str(claim.pk),
                     'reward_amount_dc': bounty.reward_amount_dc,
@@ -1167,6 +1479,173 @@ class BountyService:
     # ── Hitlist escrow helpers ───────────────────────────────────────────
 
     @staticmethod
+    @transaction.atomic
+    def admin_verify_claim(*, claim_id, verified_by, notes=''):
+        """Service-backed admin path for approving a pending Bounty claim."""
+        claim = BountyService.verify_claim(
+            claim_id=claim_id,
+            verified_by=verified_by,
+            approved=True,
+            notes=notes,
+        )
+        BountyService._log_bounty_admin_action(
+            'bounty.claim_verified',
+            claim.bounty,
+            claim=claim,
+            actor=verified_by,
+            note=notes,
+        )
+        return claim
+
+    @staticmethod
+    @transaction.atomic
+    def admin_reject_claim(*, claim_id, verified_by, notes=''):
+        """Service-backed admin path for rejecting a pending Bounty claim."""
+        claim = BountyService.verify_claim(
+            claim_id=claim_id,
+            verified_by=verified_by,
+            approved=False,
+            notes=notes,
+        )
+        BountyService._log_bounty_admin_action(
+            'bounty.claim_rejected',
+            claim.bounty,
+            claim=claim,
+            actor=verified_by,
+            note=notes,
+        )
+        return claim
+
+    @staticmethod
+    @transaction.atomic
+    def admin_void_refund_bounty(*, bounty_id, resolved_by, note=''):
+        """Void an active Bounty and refund any locked Bounty funds safely."""
+        bounty = Bounty.objects.select_for_update().get(pk=bounty_id)
+
+        if bounty.status in ('CLAIMED', 'VERIFIED', 'PAID'):
+            raise ValidationError("Settled or consumed Bounties cannot be voided by bulk admin action.")
+        if bounty.status in ('EXPIRED', 'CANCELLED'):
+            raise ValidationError(f"Bounty is already closed as {bounty.get_status_display()}.")
+
+        if bounty.is_hitlist and bounty.escrow_locked and bounty.issuer_lock_txn_id and bounty.reward_amount_dc:
+            wallet = _wallet_for_user(bounty.funded_by or bounty.created_by)
+            escrow_service.refund_funds(
+                wallet,
+                bounty.reward_amount_dc,
+                reference_id=bounty.hitlist_ref_id('issuer'),
+                actor=resolved_by,
+                note=note or f"Admin void refund for Bounty {bounty.reference_code}",
+            )
+            bounty.escrow_locked = False
+
+        if bounty.is_hitlist:
+            BountyService._refund_other_pending_claims(
+                bounty, except_pk=0, actor=resolved_by
+            )
+        else:
+            BountyService._close_pending_claims_without_escrow(
+                bounty,
+                closure_reason='VOIDED',
+                closure_note='Bounty voided by admin.',
+            )
+
+        bounty.status = 'CANCELLED'
+        bounty.closure_reason = 'ADMIN_VOID'
+        bounty.closure_note = note or f"Voided by {resolved_by.username}."
+        bounty.save(update_fields=[
+            'status', 'escrow_locked', 'closure_reason', 'closure_note',
+            'updated_at',
+        ])
+        BountyService._log_bounty_admin_action(
+            'bounty.admin_void_refund',
+            bounty,
+            actor=resolved_by,
+            note=bounty.closure_note,
+        )
+        return bounty
+
+    @staticmethod
+    @transaction.atomic
+    def admin_expire_bounty(*, bounty_id, actor=None, note=''):
+        """Expire a selected stale Bounty through the same refund path as the job."""
+        bounty = Bounty.objects.select_for_update().get(pk=bounty_id)
+
+        if bounty.status != 'ACTIVE':
+            raise ValidationError("Only active Bounties can be expired.")
+        if not bounty.expires_at or bounty.expires_at >= timezone.now():
+            raise ValidationError("Only stale Bounties past their deadline can be expired.")
+
+        if bounty.is_hitlist and bounty.escrow_locked and bounty.issuer_lock_txn_id and bounty.reward_amount_dc:
+            wallet = _wallet_for_user(bounty.funded_by or bounty.created_by)
+            escrow_service.refund_funds(
+                wallet,
+                bounty.reward_amount_dc,
+                reference_id=bounty.hitlist_ref_id('issuer'),
+                actor=actor,
+                note=note or f"Bounty {bounty.reference_code} expired refund",
+            )
+            bounty.escrow_locked = False
+
+        if bounty.is_hitlist:
+            BountyService._refund_other_pending_claims(
+                bounty, except_pk=0, actor=actor
+            )
+        else:
+            BountyService._close_pending_claims_without_escrow(
+                bounty,
+                closure_reason='EXPIRED',
+                closure_note='Bounty expired before verification.',
+            )
+
+        bounty.status = 'EXPIRED'
+        bounty.closure_reason = 'EXPIRED'
+        bounty.closure_note = note or bounty.closure_note
+        bounty.save(update_fields=[
+            'status', 'escrow_locked', 'closure_reason', 'closure_note',
+            'updated_at',
+        ])
+        BountyService._log_bounty_admin_action(
+            'bounty.admin_expired',
+            bounty,
+            actor=actor,
+            note=bounty.closure_note,
+        )
+        return bounty
+
+    @staticmethod
+    @transaction.atomic
+    def admin_respawn_claim_match_room(*, claim_id, actor):
+        """Respawn a missing Bounty claim match room when the claim supports one."""
+        claim = (
+            BountyClaim.objects
+            .select_for_update()
+            .select_related('bounty', 'bounty__issuer_team', 'bounty__game', 'claiming_team')
+            .get(pk=claim_id)
+        )
+        if claim.match_id:
+            return claim.match
+        if claim.status != 'PENDING':
+            raise ValidationError("Only pending Bounty claims can have match rooms respawned.")
+        if not claim.bounty.is_hitlist:
+            raise ValidationError("This Bounty claim does not use a match room.")
+
+        match = ChallengeService._spawn_hitlist_match_room(
+            claim.bounty, claim, actor=actor,
+        )
+        if match is None:
+            raise ValidationError("Could not create a match room for this Bounty claim.")
+        claim.match = match
+        claim.save(update_fields=['match'])
+        BountyService._log_bounty_admin_action(
+            'bounty.claim_match_room_respawned',
+            claim.bounty,
+            claim=claim,
+            actor=actor,
+            extra={'match_id': match.pk},
+        )
+        return match
+
+    @staticmethod
     def _hitlist_payout_to_challenger(bounty, claim, *, actor=None):
         """Approved-claim path: refund challenger's entry-fee + transfer reward."""
         # Refund challenger entry-fee (their stake comes back).
@@ -1237,6 +1716,48 @@ class BountyService:
                 logger.exception(
                     "_refund_other_pending_claims: failed on claim=%s", other.pk
                 )
+
+    @staticmethod
+    def _close_pending_claims_without_escrow(bounty, *, closure_reason, closure_note):
+        """Close pending non-escrow claims when their parent Bounty closes."""
+        BountyClaim.objects.select_for_update().filter(
+            bounty=bounty,
+            status='PENDING',
+        ).update(
+            status='REJECTED',
+            closure_reason=closure_reason,
+            closure_note=closure_note,
+        )
+
+    @staticmethod
+    def _log_bounty_admin_action(event_name, bounty, *, claim=None, actor=None, note='', extra=None):
+        """Persist a lightweight Bounty operator audit event without blocking the action."""
+        try:
+            from apps.common.events.models import EventLog
+
+            EventLog.objects.create(
+                name=event_name,
+                payload={
+                    'bounty_id': str(bounty.pk),
+                    'reference_code': bounty.reference_code,
+                    'bounty_status': bounty.status,
+                    'claim_id': str(claim.pk) if claim else None,
+                    'claim_status': claim.status if claim else None,
+                    'note': note,
+                    **(extra or {}),
+                },
+                occurred_at=timezone.now(),
+                user_id=getattr(actor, 'pk', None),
+                correlation_id=bounty.reference_code,
+                metadata={'source': 'competition.admin'},
+                status=EventLog.STATUS_PROCESSED,
+            )
+        except Exception:
+            logger.exception(
+                "Failed to write Bounty admin audit event %s for %s",
+                event_name,
+                getattr(bounty, 'reference_code', bounty),
+            )
 
     @staticmethod
     def get_team_bounties(team, status_filter=None, limit=10):
@@ -1314,3 +1835,4 @@ class BountyService:
         if count:
             logger.info("Expired %d stale bounties", count)
         return count
+

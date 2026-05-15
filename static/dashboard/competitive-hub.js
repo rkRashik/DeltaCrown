@@ -4,10 +4,11 @@
   const API = {
     contractsList:       '/api/v1/contracts/templates/',
     contractsEnroll:     (id) => `/api/v1/contracts/enroll/${id}/`,
-    contractsMy:         '/api/v1/contracts/my/',
+    myOperations:        '/api/v1/competitive/my-operations/',
     challengesList:      '/api/v1/challenges/',
     challengeCreate:     '/api/v1/challenges/',
     challengeAccept:     (id) => `/api/v1/challenges/${id}/accept/`,
+    challengeResult:     (id) => `/api/v1/challenges/${id}/result/`,
     bountiesList:        '/api/v1/bounties/',
     bountyCreate:        '/api/v1/bounties/',
     bountyClaim:         (id) => `/api/v1/bounties/${id}/claim/`,
@@ -27,8 +28,36 @@
     activeTab: 'clash',
     gameFilter: 'ALL',
     searchQuery: '',
-    data: { clashes: [], contracts: [], hitlist: [], royale: [], myContracts: [] },
-    loaded: { clashes: false, contracts: false, hitlist: false, royale: false, myContracts: false },
+    data: { clashes: [], contracts: [], hitlist: [], royale: [], myOperations: [] },
+    loaded: { clashes: false, contracts: false, hitlist: false, royale: false, myOperations: false },
+    resultOperation: null,
+  };
+
+  const TAB_ALIASES = {
+    clash: 'clash',
+    showdowns: 'clash',
+    showdown: 'clash',
+    'crown-clash': 'clash',
+    challenges: 'clash',
+    contracts: 'contracts',
+    contract: 'contracts',
+    missions: 'contracts',
+    mission: 'contracts',
+    'contract-board': 'contracts',
+    hitlist: 'hitlist',
+    'the-hitlist': 'hitlist',
+    bounty: 'hitlist',
+    bounties: 'hitlist',
+    royale: 'royale',
+    'crown-royale': 'royale',
+    dropzone: 'royale',
+  };
+
+  const TAB_HASH = {
+    clash: 'showdown',
+    contracts: 'missions',
+    hitlist: 'bounty',
+    royale: 'dropzone',
   };
 
   // ── CSRF / fetch helpers ──────────────────────────────────────────
@@ -106,21 +135,45 @@
   // ── Confirmation modal ────────────────────────────────────────────
 
   let _confirmDeferred = null;
+  let _confirmConfig = {};
 
-  function openConfirm({ title, body, lockNote }) {
+  function openConfirm({ title, body, lockNote, teamChoices = [], selectedTeamId = '' }) {
     return new Promise((resolve) => {
       _confirmDeferred = resolve;
+      _confirmConfig = { teamChoices };
       document.getElementById('confirm-title').textContent = title || 'Confirm action';
       document.getElementById('confirm-body').textContent = body || '';
       document.getElementById('confirm-lock').textContent = lockNote || '';
+      const teamWrap = document.getElementById('confirm-team-wrap');
+      const teamSelect = document.getElementById('confirm-team-select');
+      if (teamWrap && teamSelect) {
+        if (teamChoices.length > 1) {
+          fillSelect(teamSelect, teamChoices, { placeholder: '-- Select accepting team --', selectedId: selectedTeamId });
+          teamWrap.classList.remove('hidden-spa');
+        } else {
+          teamSelect.innerHTML = '';
+          teamWrap.classList.add('hidden-spa');
+        }
+      }
       const m = document.getElementById('confirm-modal');
       m.classList.remove('hidden-spa');
     });
   }
 
   function closeConfirm(result) {
+    let value = !!result;
+    if (result && (_confirmConfig.teamChoices || []).length > 1) {
+      const teamSelect = document.getElementById('confirm-team-select');
+      const teamId = teamSelect ? teamSelect.value : '';
+      if (!teamId) {
+        toast('Select the team that will accept this Showdown.', 'error');
+        return;
+      }
+      value = { confirmed: true, teamId };
+    }
     document.getElementById('confirm-modal').classList.add('hidden-spa');
-    if (_confirmDeferred) { _confirmDeferred(!!result); _confirmDeferred = null; }
+    if (_confirmDeferred) { _confirmDeferred(value); _confirmDeferred = null; }
+    _confirmConfig = {};
   }
 
   // ── Slide-over helpers ────────────────────────────────────────────
@@ -169,7 +222,7 @@
     document.getElementById('ctx-name').textContent = id.name || id.display_name || '—';
     document.getElementById('ctx-role').textContent = id.role_label || 'Agent';
 
-    document.getElementById('wallet-type-label').textContent = team ? `${team.name} — Treasury proxy` : 'Personal Wallet';
+    document.getElementById('wallet-type-label').textContent = team ? `${team.name} - Team authority` : 'Personal Wallet';
     document.getElementById('wallet-balance').textContent = (Number(wallet.cached_balance || 0)).toLocaleString();
     document.getElementById('wallet-escrow').textContent = `${Number(wallet.escrow_locked_dc || 0).toLocaleString()} DC`;
 
@@ -185,12 +238,12 @@
 
     if (HUB.user_state === 'TEAM_CAPTAIN' && HUB.primary_team) {
       titleEl.innerHTML = `Command <span class="text-gradient-cyan">Center</span>`;
-      descEl.innerHTML = `Operating as <strong class="text-white">${esc(HUB.primary_team.name)}</strong>. Issue a Crown Clash to rival teams or hunt high-value bounties.`;
+      descEl.innerHTML = `Operating as <strong class="text-white">${esc(HUB.primary_team.name)}</strong>. Create Showdowns with rival teams or manage Bounty challenges.`;
       actionsEl.innerHTML = `
         <button type="button" data-open-slide="create-clash" class="btn-cyber bg-dc-cyan hover:bg-cyan-400 text-black px-8 py-3.5 font-bold uppercase tracking-widest shadow-[0_0_20px_rgba(0,229,255,0.4)] flex items-center gap-2">
-          <i class="fa-solid fa-bolt"></i> Issue a Clash
+          <i class="fa-solid fa-bolt"></i> Create Showdown
         </button>
-        <button type="button" data-go-tab="hitlist" class="glass-light text-white px-8 py-3.5 rounded-lg font-bold uppercase tracking-wider hover:bg-white/10 transition-colors border border-white/20">
+        <button type="button" data-go-tab="bounty" class="glass-light text-white px-8 py-3.5 rounded-lg font-bold uppercase tracking-wider hover:bg-white/10 transition-colors border border-white/20">
           View Bounties
         </button>`;
       visEl.innerHTML = `
@@ -202,21 +255,21 @@
         </div>`;
     } else if (HUB.user_state === 'TEAM_MEMBER') {
       titleEl.innerHTML = `Roster <span class="text-gradient-cyan">Member</span>`;
-      descEl.innerHTML = `You're on <strong class="text-white">${esc((HUB.primary_team && HUB.primary_team.name) || 'a team')}</strong>. Only captains and managers can issue clashes &mdash; check the open radar below.`;
+      descEl.innerHTML = `You're on <strong class="text-white">${esc((HUB.primary_team && HUB.primary_team.name) || 'a team')}</strong>. Only captains and managers can create Showdowns - check the open radar below.`;
       actionsEl.innerHTML = `
         <button type="button" disabled class="glass-heavy text-gray-500 px-8 py-3.5 rounded-lg font-bold uppercase tracking-widest cursor-not-allowed border border-white/5 flex items-center gap-2">
-          <i class="fa-solid fa-lock text-xs"></i> Clash Issue Locked
+          <i class="fa-solid fa-lock text-xs"></i> Showdown Locked
         </button>
-        <button type="button" data-go-tab="contracts" class="glass-light text-white px-8 py-3.5 rounded-lg font-bold uppercase tracking-wider hover:bg-white/10 transition-colors border border-white/20">
-          Browse Contracts
+        <button type="button" data-go-tab="missions" class="glass-light text-white px-8 py-3.5 rounded-lg font-bold uppercase tracking-wider hover:bg-white/10 transition-colors border border-white/20">
+          Browse Missions
         </button>`;
       visEl.innerHTML = '';
     } else {
       titleEl.innerHTML = `Solo <span class="text-gradient-violet">Operative</span>`;
-      descEl.innerHTML = `Welcome, Agent. Purchase contracts from the database, complete objectives in-game, and earn DC straight to your wallet.`;
+      descEl.innerHTML = `Welcome, Agent. Start Missions from the database, complete objectives in-game, and earn DC straight to your wallet.`;
       actionsEl.innerHTML = `
-        <button type="button" data-go-tab="contracts" class="btn-cyber bg-dc-violet hover:bg-purple-500 text-white px-8 py-3.5 font-bold uppercase tracking-widest shadow-[0_0_20px_rgba(138,43,226,0.5)] flex items-center gap-2">
-          <i class="fa-solid fa-scroll"></i> Browse Contracts
+        <button type="button" data-go-tab="missions" class="btn-cyber bg-dc-violet hover:bg-purple-500 text-white px-8 py-3.5 font-bold uppercase tracking-widest shadow-[0_0_20px_rgba(138,43,226,0.5)] flex items-center gap-2">
+          <i class="fa-solid fa-scroll"></i> Browse Missions
         </button>`;
       visEl.innerHTML = `
         <div class="glass-light rounded-xl p-4 border border-dc-violet/30 w-full relative overflow-hidden">
@@ -234,7 +287,7 @@
     if (HUB.can_issue) {
       clashBox.innerHTML = `
         <button type="button" data-open-slide="create-clash" class="bg-dc-cyan/10 hover:bg-dc-cyan text-dc-cyan hover:text-black border border-dc-cyan/30 px-5 py-2 font-bold text-xs uppercase tracking-widest rounded transition-all shadow-[0_0_15px_rgba(0,229,255,0.1)]">
-          Issue Clash
+          Create Showdown
         </button>`;
       hitlistBox.innerHTML = `
         <button type="button" data-open-slide="create-hitlist" class="btn-cyber bg-dc-neon/10 hover:bg-dc-neon text-dc-neon hover:text-white border border-dc-neon/30 px-5 py-2 font-bold text-xs uppercase tracking-widest rounded transition-all shadow-[0_0_15px_rgba(255,0,85,0.2)]">
@@ -242,21 +295,30 @@
         </button>`;
     } else {
       const reason = HUB.primary_team ? 'Captain authority required' : 'Team required';
-      clashBox.innerHTML = `<button disabled title="${esc(reason)}" class="bg-white/5 border border-white/10 text-gray-500 px-5 py-2 font-bold text-xs uppercase tracking-widest rounded cursor-not-allowed"><i class="fa-solid fa-lock mr-1"></i> Issue Clash</button>`;
+      clashBox.innerHTML = `<button disabled title="${esc(reason)}" class="bg-white/5 border border-white/10 text-gray-500 px-5 py-2 font-bold text-xs uppercase tracking-widest rounded cursor-not-allowed"><i class="fa-solid fa-lock mr-1"></i> Create Showdown</button>`;
       hitlistBox.innerHTML = `<button disabled title="${esc(reason)}" class="bg-white/5 border border-white/10 text-gray-500 px-5 py-2 font-bold text-xs uppercase tracking-widest rounded cursor-not-allowed"><i class="fa-solid fa-lock mr-1"></i> Post Bounty</button>`;
     }
   }
 
   // ── Tab switching ─────────────────────────────────────────────────
 
-  function switchTab(name) {
-    STATE.activeTab = name;
+  function normalizeTab(name) {
+    const key = String(name || '').replace(/^#/, '').trim().toLowerCase();
+    return TAB_ALIASES[key] || (['clash', 'contracts', 'hitlist', 'royale'].includes(key) ? key : 'clash');
+  }
+
+  function switchTab(name, opts = {}) {
+    const tab = normalizeTab(name);
+    STATE.activeTab = tab;
     document.querySelectorAll('.tab-trigger').forEach((t) => {
-      t.classList.toggle('active', t.dataset.tab === name);
+      t.classList.toggle('active', t.dataset.tab === tab);
     });
     document.querySelectorAll('.tab-content').forEach((c) => {
-      c.classList.toggle('active', c.id === `tab-content-${name}`);
+      c.classList.toggle('active', c.id === `tab-content-${tab}`);
     });
+    if (opts.updateHash && TAB_HASH[tab]) {
+      history.replaceState(null, '', `${window.location.pathname}${window.location.search}#${TAB_HASH[tab]}`);
+    }
   }
 
   function setGameFilter(code) {
@@ -328,8 +390,8 @@
       feed.innerHTML = emptyState({
         icon: 'fa-radar',
         title: 'Radar Silent',
-        sub: 'No open Crown Clashes match your filters right now.',
-        ctaText: HUB.can_issue ? 'Issue a Clash' : null,
+        sub: 'No open Showdowns match your filters right now.',
+        ctaText: HUB.can_issue ? 'Create Showdown' : null,
         ctaTab: null,
       });
       return;
@@ -356,7 +418,7 @@
             <div>
               <div class="flex items-center gap-2 mb-0.5">
                 <h3 class="font-bold text-white text-xl leading-tight">${esc(c.challenger_team_name || 'Team')}</h3>
-                ${isHigh ? `<span class="bg-dc-gold/20 text-dc-gold text-[9px] px-1.5 py-0.5 rounded font-black uppercase tracking-widest border border-dc-gold/30">High Stakes</span>` : ''}
+                ${isHigh ? `<span class="bg-dc-gold/20 text-dc-gold text-[9px] px-1.5 py-0.5 rounded font-black uppercase tracking-widest border border-dc-gold/30">Featured</span>` : ''}
               </div>
               <p class="text-xs text-gray-400 font-medium">${esc(c.game_short_code || '')} &bull; ${esc(c.challenged_team_name || 'Open Radar')}</p>
               ${closureHtml(c)}
@@ -368,14 +430,14 @@
               <span class="inline-block px-3 py-1 bg-white/5 border border-white/10 rounded-lg text-xs font-bold text-white">BO${c.best_of || 1}</span>
             </div>
             <div class="text-center">
-              <p class="text-[10px] uppercase font-bold ${isHigh ? 'text-dc-gold' : 'text-gray-500'} tracking-widest mb-1">Total Pot</p>
+              <p class="text-[10px] uppercase font-bold ${isHigh ? 'text-dc-gold' : 'text-gray-500'} tracking-widest mb-1">Reward Pool</p>
               <p class="font-display font-black text-2xl ${isHigh ? 'text-dc-gold' : 'text-white'} leading-none">
                 <i class="fa-solid fa-coins text-sm mr-1 ${isHigh ? '' : 'text-dc-gold'}"></i>${pot.toLocaleString()}
               </p>
             </div>
           </div>
           <div class="flex-shrink-0 w-full lg:w-auto relative z-10">
-            <button ${btnState} data-accept-clash="${esc(c.id)}" data-fee="${Number(c.entry_fee_dc)}"
+            <button ${btnState} data-accept-clash="${esc(c.id)}" data-fee="${Number(c.entry_fee_dc)}" data-challenger-team="${esc(c.challenger_team_id || '')}"
                     class="w-full lg:w-auto ${btnClass} border px-8 py-3 rounded-xl text-sm font-bold uppercase tracking-wider transition-all">
               ${btnText} <span class="ml-1 opacity-70">(${Number(c.entry_fee_dc).toLocaleString()} DC)</span>
             </button>
@@ -388,7 +450,7 @@
     const feed = document.getElementById('contracts-feed');
     const list = applyFilters(STATE.data.contracts);
     if (!list.length) {
-      feed.innerHTML = `<div class="col-span-full">${emptyState({ icon: 'fa-scroll', title: 'No Missions Available', sub: 'Mission board is quiet. Check back when fresh contracts drop.' })}</div>`;
+      feed.innerHTML = `<div class="col-span-full">${emptyState({ icon: 'fa-scroll', title: 'No Missions Available', sub: 'Mission board is quiet. Check back when fresh objectives drop.' })}</div>`;
       return;
     }
     feed.innerHTML = list.map((t) => {
@@ -413,13 +475,13 @@
               </div>
               <i class="fa-solid fa-arrow-right text-gray-600 text-xs"></i>
               <div class="text-right">
-                <p class="text-[9px] uppercase font-bold text-dc-gold mb-0.5 tracking-widest">Payout</p>
+                <p class="text-[9px] uppercase font-bold text-dc-gold mb-0.5 tracking-widest">Reward</p>
                 <p class="font-bold text-dc-gold text-xl leading-none"><i class="fa-solid fa-coins text-[10px] mr-1"></i> ${reward.toLocaleString()}</p>
               </div>
             </div>
             <button type="button" data-enroll-contract="${esc(t.id)}" data-fee="${fee}"
                     class="w-full bg-white/5 hover:bg-white text-white hover:text-black border border-white/10 hover:border-white py-2.5 rounded-lg text-xs font-bold uppercase tracking-widest transition-all">
-              Buy Contract
+              Start Mission
             </button>
           </div>
         </div>`;
@@ -432,8 +494,8 @@
     if (!list.length) {
       feed.innerHTML = emptyState({
         icon: 'fa-skull',
-        title: 'No Bounties Issued',
-        sub: 'The kings are silent. Top teams: stake your reputation and dare anyone to take you down.',
+        title: 'No Bounties Open',
+        sub: 'No open Bounty challenges match your filters right now.',
       });
       return;
     }
@@ -444,7 +506,7 @@
       const canHunt = HUB.can_issue && !closed && b.is_claimable;
       const btnState = canHunt ? '' : 'disabled';
       const btnClass = canHunt ? 'bg-dc-neon hover:bg-red-600 text-white shadow-[0_0_20px_rgba(255,0,85,0.3)]' : 'bg-black/40 border border-white/5 text-gray-600 cursor-not-allowed';
-      const btnText = canHunt ? 'Hunt Target' : (HUB.primary_team ? '<i class="fa-solid fa-lock mr-1"></i> Captain Only' : '<i class="fa-solid fa-lock mr-1"></i> Team Reqd');
+      const btnText = canHunt ? 'Claim Bounty' : (HUB.primary_team ? '<i class="fa-solid fa-lock mr-1"></i> Captain Only' : '<i class="fa-solid fa-lock mr-1"></i> Team Reqd');
       return `
         <div class="glass-heavy accent-neon rounded-2xl p-6 relative overflow-hidden group fade-enter border border-white/5 transition-all">
           <div class="absolute inset-0 bg-gradient-to-r from-dc-neon/10 to-transparent z-0 opacity-40"></div>
@@ -455,7 +517,7 @@
                 <div class="w-28 h-28 rounded-full border-2 border-dc-neon relative z-10 bg-gradient-to-br from-dc-neon/30 to-black flex items-center justify-center text-white font-display font-black text-2xl">
                   ${esc((b.issuer_team_name || '?').slice(0, 2).toUpperCase())}
                 </div>
-                <div class="absolute -bottom-2 left-1/2 transform -translate-x-1/2 bg-black text-dc-neon text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded border border-dc-neon whitespace-nowrap">Target</div>
+                <div class="absolute -bottom-2 left-1/2 transform -translate-x-1/2 bg-black text-dc-neon text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded border border-dc-neon whitespace-nowrap">Bounty</div>
               </div>
               <h3 class="font-bold text-2xl text-white">${esc(b.issuer_team_name || 'Team')}</h3>
               <p class="text-xs font-bold text-dc-cyan uppercase tracking-widest mt-1">${esc(b.game_short_code || '')}</p>
@@ -516,7 +578,7 @@
           <div class="relative z-10">
             <div class="flex items-start justify-between gap-3 mb-3">
               <div>
-                <p class="text-[10px] font-bold uppercase tracking-widest text-dc-gold mb-1">${esc(l.game_short_code || 'ROYALE')}</p>
+                <p class="text-[10px] font-bold uppercase tracking-widest text-dc-gold mb-1">${esc(l.game_short_code || 'DROPZONE')}</p>
                 <h3 class="font-display font-black text-white text-2xl leading-tight">${esc(l.title)}</h3>
               </div>
               <span class="px-2 py-1 rounded bg-white/5 border border-white/10 text-[9px] font-bold uppercase tracking-widest text-gray-300">${esc(l.status_display || l.status)}</span>
@@ -548,28 +610,76 @@
   function renderActiveOps() {
     const box = document.getElementById('active-ops-container');
     const counter = document.getElementById('ops-count');
-    const mine = STATE.data.myContracts || [];
-    const active = mine.filter((m) => m.status === 'ACTIVE');
-    if (counter) counter.textContent = `${active.length} RUNNING`;
-    if (!active.length) {
-      box.innerHTML = `<p class="text-center py-6 text-xs text-gray-600">No active contracts. Browse the Mission Database.</p>`;
+    if (!box) return;
+    const operations = STATE.data.myOperations || [];
+    if (counter) counter.textContent = `${operations.length} ACTIVE`;
+    if (!operations.length) {
+      box.innerHTML = `<div class="text-center py-6 px-3">
+        <p class="text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">No operations yet</p>
+        <p class="text-[11px] leading-relaxed text-gray-600">Start a Mission, create a Showdown, claim a Bounty, or reserve a Dropzone slot.</p>
+      </div>`;
       return;
     }
-    box.innerHTML = active.slice(0, 6).map((m) => {
-      const deadline = m.deadline_at ? new Date(m.deadline_at) : null;
-      const remainMs = deadline ? deadline - new Date() : 0;
-      const remainH = remainMs > 0 ? Math.floor(remainMs / 3600000) : 0;
+    box.innerHTML = operations.slice(0, 8).map((op) => {
+      const typeMeta = operationTypeMeta(op.type);
+      const actionUrl = op.next_action_url || op.match_room_url || op.detail_url || '#';
+      const opStatus = String(op.status || '').toUpperCase();
+      const isPrimarySubmit = op.type === 'showdown' && op.next_action_label === 'Submit Result';
+      const canSecondarySubmit = op.type === 'showdown' && !op.match_room_url && ['ACCEPTED', 'SCHEDULED', 'IN_PROGRESS'].includes(opStatus);
+      const game = op.game && (op.game.short_code || op.game.name) ? (op.game.short_code || op.game.name) : 'ANY';
+      const scheduled = op.scheduled_at || op.starts_at;
+      const scheduledText = scheduled ? new Date(scheduled).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+      const fee = Number(op.entry_fee_dc || 0);
+      const reward = op.reward_dc != null ? `${Number(op.reward_dc || 0).toLocaleString()} DC reward` : (op.reward_summary || '');
+      const actionClass = op.is_action_required ? 'text-dc-cyan border-dc-cyan/30 bg-dc-cyan/10' : 'text-gray-300 border-white/10 bg-white/5';
       return `
-        <div class="bg-black/40 rounded-lg p-3 border border-white/5 hover:border-dc-violet/40 transition group">
-          <div class="flex items-center justify-between mb-1">
-            <p class="text-xs font-bold text-white truncate">${esc(m.template_title || 'Contract')}</p>
-            <span class="text-[9px] font-mono text-dc-violet">${remainH}h left</span>
+        <div class="bg-black/40 rounded-lg p-3 border border-white/5 hover:border-white/15 transition group">
+          <div class="flex items-start justify-between gap-2 mb-2">
+            <div class="min-w-0">
+              <div class="flex items-center gap-2 mb-1">
+                <span class="w-1.5 h-1.5 rounded-full ${typeMeta.dot}"></span>
+                <span class="text-[9px] font-black uppercase tracking-widest ${typeMeta.text}">${typeMeta.label}</span>
+              </div>
+              <p class="text-xs font-bold text-white truncate">${esc(op.title || typeMeta.label)}</p>
+            </div>
+            <span class="text-[9px] font-mono text-gray-500 uppercase">${esc(op.status || '')}</span>
           </div>
-          <div class="flex items-center gap-3 text-[10px] font-mono">
-            <span class="text-dc-gold">${Number(m.template_reward_dc || 0).toLocaleString()} DC reward</span>
+          <div class="flex items-center gap-2 flex-wrap text-[10px] font-mono text-gray-500 mb-3">
+            <span>${esc(game)}</span>
+            ${op.team_name ? `<span class="text-gray-700">&middot;</span><span>${esc(op.team_name)}</span>` : ''}
+            ${scheduledText ? `<span class="text-gray-700">&middot;</span><span>${esc(scheduledText)}</span>` : ''}
+            ${fee ? `<span class="text-gray-700">&middot;</span><span>${fee.toLocaleString()} DC entry</span>` : ''}
+            ${reward ? `<span class="text-gray-700">&middot;</span><span class="text-dc-gold">${esc(reward)}</span>` : ''}
           </div>
+          ${isPrimarySubmit ? `
+            <button type="button" data-submit-showdown-result="${esc(op.id)}" class="inline-flex items-center justify-center gap-2 w-full rounded-md border px-3 py-2 text-[10px] font-black uppercase tracking-widest ${actionClass}">
+              <i class="fa-solid fa-flag-checkered"></i>
+              Submit Result
+            </button>
+          ` : `
+            <a href="${esc(actionUrl)}" class="inline-flex items-center justify-center gap-2 w-full rounded-md border px-3 py-2 text-[10px] font-black uppercase tracking-widest ${actionClass}">
+              ${op.is_action_required ? '<i class="fa-solid fa-bolt"></i>' : '<i class="fa-solid fa-arrow-right"></i>'}
+              ${esc(op.next_action_label || 'View Details')}
+            </a>
+          `}
+          ${canSecondarySubmit ? `
+            <button type="button" data-submit-showdown-result="${esc(op.id)}" class="inline-flex items-center justify-center gap-2 w-full rounded-md border border-white/10 bg-white/[0.03] px-3 py-2 mt-2 text-[10px] font-black uppercase tracking-widest text-gray-300 hover:text-white hover:border-dc-cyan/30">
+              <i class="fa-solid fa-flag-checkered"></i>
+              Submit Result
+            </button>
+          ` : ''}
         </div>`;
     }).join('');
+  }
+
+  function operationTypeMeta(type) {
+    const map = {
+      showdown: { label: 'Showdown', dot: 'bg-dc-cyan', text: 'text-dc-cyan' },
+      mission: { label: 'Missions', dot: 'bg-dc-violet', text: 'text-dc-violet' },
+      bounty: { label: 'Bounty', dot: 'bg-dc-neon', text: 'text-dc-neon' },
+      dropzone: { label: 'Dropzone', dot: 'bg-dc-gold', text: 'text-dc-gold' },
+    };
+    return map[type] || { label: 'Operation', dot: 'bg-gray-500', text: 'text-gray-400' };
   }
 
   function renderAllFeeds() {
@@ -605,34 +715,53 @@
     STATE.loaded.royale = true;
     renderRoyaleFeed();
   }
-  async function loadMyContracts() {
-    try { STATE.data.myContracts = await jsonFetch(API.contractsMy); }
-    catch { STATE.data.myContracts = []; }
-    STATE.loaded.myContracts = true;
+  async function loadMyOperations() {
+    try {
+      const body = await jsonFetch(API.myOperations);
+      STATE.data.myOperations = Array.isArray(body) ? body : (body.results || []);
+    }
+    catch { STATE.data.myOperations = []; }
+    STATE.loaded.myOperations = true;
     renderActiveOps();
   }
 
   // ── Action handlers ───────────────────────────────────────────────
 
-  async function onAcceptClash(id, fee) {
+  async function onAcceptClash(id, fee, challengerTeamId) {
+    const choices = authorityTeamOptions(challengerTeamId);
+    if (!choices.length) {
+      toast('No eligible managed team can accept this Showdown.', 'error');
+      return;
+    }
     const ok = await openConfirm({
-      title: 'Accept this Crown Clash?',
-      body: 'Your stake locks immediately on accept. Winner takes the pot minus a 5% platform fee.',
+      title: 'Accept this Showdown?',
+      body: 'Your selected team entry fee locks on accept. Settlement follows the verified match result.',
       lockNote: `This will lock ${Number(fee).toLocaleString()} DC in escrow.`,
+      teamChoices: choices,
+      selectedTeamId: choices.length === 1 ? choices[0].id : '',
     });
     if (!ok) return;
+    const acceptingTeamId = choices.length === 1 ? choices[0].id : ok.teamId;
+    if (!acceptingTeamId) {
+      toast('Select an accepting team before confirming.', 'error');
+      return;
+    }
     try {
-      const updated = await jsonFetch(API.challengeAccept(id), { method: 'POST', body: '{}' });
-      toast(`Locked ${Number(fee).toLocaleString()} DC. Pot now ${Number(updated.prize_pot_dc || 0).toLocaleString()} DC. Match room spawned.`, 'success');
+      const updated = await jsonFetch(API.challengeAccept(id), {
+        method: 'POST',
+        body: JSON.stringify({ accepting_team_id: Number(acceptingTeamId) }),
+      });
+      toast(`Locked ${Number(fee).toLocaleString()} DC. Reward pool now ${Number(updated.prize_pot_dc || 0).toLocaleString()} DC. Match room spawned.`, 'success');
       await loadClashes();
+      await loadMyOperations();
     } catch (err) { handleApiError(err); }
   }
 
   async function onHuntBounty(id, fee) {
-    if (!HUB.primary_team) { toast('You need a team to hunt bounties.', 'error'); return; }
+    if (!HUB.primary_team) { toast('You need a team to claim bounties.', 'error'); return; }
     const ok = await openConfirm({
-      title: 'Submit Hitlist claim?',
-      body: 'Your entry fee locks in escrow. Beat the issuer to win the bounty (minus 5% fee). Lose, and your entry fee transfers to them.',
+      title: 'Claim this Bounty?',
+      body: 'Your entry fee locks in escrow. Beat the issuer under the posted rules to claim the Bounty reward.',
       lockNote: `This will lock ${Number(fee).toLocaleString()} DC in escrow.`,
     });
     if (!ok) return;
@@ -641,14 +770,15 @@
         method: 'POST',
         body: JSON.stringify({ claiming_team_id: HUB.primary_team.id }),
       });
-      toast('Claim submitted. Match room spawning.', 'success');
+      toast('Bounty claim submitted. Match room spawning.', 'success');
       await loadHitlist();
+      await loadMyOperations();
     } catch (err) { handleApiError(err); }
   }
 
   async function onReserveRoyale(id, fee) {
     const ok = await openConfirm({
-      title: 'Reserve a Crown Royale slot?',
+      title: 'Reserve a Dropzone slot?',
       body: 'The entry fee locks in escrow. Room ID drops at match start. Cancel before match start to refund.',
       lockNote: `This will lock ${Number(fee).toLocaleString()} DC in escrow.`,
     });
@@ -657,21 +787,95 @@
       await jsonFetch(API.royaleReserve(id), { method: 'POST', body: '{}' });
       toast('Slot reserved. See you at match time.', 'success');
       await loadRoyale();
+      await loadMyOperations();
     } catch (err) { handleApiError(err); }
   }
 
   async function onEnrollContract(id, fee) {
     const ok = await openConfirm({
-      title: 'Enroll in this Crown Contract?',
-      body: 'Entry fee locks in escrow and is forfeit if you miss the deadline. Hit the goal to claim the reward.',
+      title: 'Start this Mission?',
+      body: 'Entry fee locks in escrow. Complete the objective before the deadline to claim the reward.',
       lockNote: `This will lock ${Number(fee).toLocaleString()} DC in escrow.`,
     });
     if (!ok) return;
     try {
       await jsonFetch(API.contractsEnroll(id), { method: 'POST', body: '{}' });
       toast('Enrolled. Goal active.', 'success');
-      await loadMyContracts();
+      await loadMyOperations();
     } catch (err) { handleApiError(err); }
+  }
+
+  function openResultModal(op) {
+    STATE.resultOperation = op;
+    const modal = document.getElementById('showdown-result-modal');
+    if (!modal) return;
+    document.getElementById('result-showdown-title').textContent = op.title || 'Showdown Result';
+    const challenger = op.challenger_team_name || 'Challenger';
+    const challenged = op.challenged_team_name || 'Opponent';
+    const resultSel = document.getElementById('showdown-result-result');
+    resultSel.innerHTML = `
+      <option value="">-- Select result --</option>
+      <option value="CHALLENGER_WIN">${esc(challenger)} won</option>
+      <option value="CHALLENGED_WIN">${esc(challenged)} won</option>
+      <option value="DRAW">Draw</option>`;
+    document.getElementById('showdown-result-challenger-label').textContent = challenger;
+    document.getElementById('showdown-result-challenged-label').textContent = challenged;
+    document.getElementById('showdown-result-challenger-score').value = '';
+    document.getElementById('showdown-result-challenged-score').value = '';
+    document.getElementById('showdown-result-evidence').value = '';
+    showFormError('showdown-result', '');
+    modal.classList.remove('hidden-spa');
+  }
+
+  function closeResultModal() {
+    const modal = document.getElementById('showdown-result-modal');
+    if (modal) modal.classList.add('hidden-spa');
+    STATE.resultOperation = null;
+  }
+
+  async function onSubmitShowdownResult(e) {
+    e.preventDefault();
+    const op = STATE.resultOperation;
+    if (!op) return;
+    showFormError('showdown-result', '');
+
+    const resultEl = document.getElementById('showdown-result-result');
+    const challengerScoreEl = document.getElementById('showdown-result-challenger-score');
+    const challengedScoreEl = document.getElementById('showdown-result-challenged-score');
+    const evidenceEl = document.getElementById('showdown-result-evidence');
+
+    const result = resultEl.value;
+    const challengerScore = challengerScoreEl.value === '' ? null : Number(challengerScoreEl.value);
+    const challengedScore = challengedScoreEl.value === '' ? null : Number(challengedScoreEl.value);
+    const evidenceUrl = (evidenceEl.value || '').trim();
+
+    if (!result) return showFormError('showdown-result', 'Select the result.');
+    if (challengerScore == null || challengedScore == null || Number.isNaN(challengerScore) || Number.isNaN(challengedScore)) {
+      return showFormError('showdown-result', 'Enter both team scores.');
+    }
+
+    try {
+      await jsonFetch(API.challengeResult(op.id), {
+        method: 'POST',
+        body: JSON.stringify({
+          submitting_team_id: op.team_id || undefined,
+          result,
+          score_details: {
+            challenger: challengerScore,
+            challenged: challengedScore,
+          },
+          evidence_url: evidenceUrl,
+        }),
+      });
+      toast('Showdown result submitted.', 'success');
+      closeResultModal();
+      await loadClashes();
+      await loadMyOperations();
+    } catch (err) {
+      handleApiError(err);
+      const detail = err && err.body && err.body.detail;
+      showFormError('showdown-result', detail || 'Could not submit result.');
+    }
   }
 
   // ── Create-clash form ─────────────────────────────────────────────
@@ -692,6 +896,16 @@
       id: t.id,
       label: t.tag ? `${t.name} [${t.tag}]` : t.name,
     }));
+  }
+
+  function authorityTeamOptions(excludeTeamId = '') {
+    const excluded = String(excludeTeamId || '');
+    return (HUB.my_teams || [])
+      .filter((t) => !excluded || String(t.id) !== excluded)
+      .map((t) => ({
+        id: t.id,
+        label: t.tag ? `${t.name} [${t.tag}]` : t.name,
+      }));
   }
   function gameOptions() {
     return (HUB.games || []).map((g) => ({
@@ -745,7 +959,7 @@
       if (oppHint) oppHint.textContent = `Pre-filled from ${label}. Direct challenge.`;
     } else {
       oppSel.disabled = false;
-      oppSel.innerHTML = '<option value="">— Open challenge (any team may accept) —</option>';
+      oppSel.innerHTML = '<option value="">-- Open Showdown (any team may accept) --</option>';
       if (oppHint) oppHint.textContent = 'Leave blank to broadcast on the open radar.';
     }
 
@@ -781,13 +995,13 @@
 
     if (!teamId)        { teamSel.classList.add('is-invalid');  return showFormError('clash', 'Select your team.'); }
     if (!gameId)        { gameSel.classList.add('is-invalid');  return showFormError('clash', 'Select a game.'); }
-    if (!title)         { titleEl.classList.add('is-invalid');  return showFormError('clash', 'Give the clash a title.'); }
+    if (!title)         { titleEl.classList.add('is-invalid');  return showFormError('clash', 'Give the Showdown a title.'); }
     if (!fee || fee < 1){ feeEl.classList.add('is-invalid');    return showFormError('clash', 'Entry fee must be at least 1 DC.'); }
     if (fee > 1000)     { feeEl.classList.add('is-invalid');    return showFormError('clash', 'Anti-whale cap: max 1,000 DC.'); }
 
     const ok = await openConfirm({
-      title: 'Issue this Crown Clash?',
-      body: 'Your stake locks immediately. Opponent matches on accept. Refunded on decline / cancel / expire.',
+      title: 'Create this Showdown?',
+      body: 'Your entry fee locks immediately. Opponent matches on accept. Refunded on decline, cancel, or expiry.',
       lockNote: `This will lock ${fee.toLocaleString()} DC in escrow now.`,
     });
     if (!ok) return;
@@ -806,9 +1020,10 @@
     try {
       setSubmitting('clash-submit', true, 'Locking…');
       await jsonFetch(API.challengeCreate, { method: 'POST', body: JSON.stringify(payload) });
-      toast(`Crown Clash issued. ${fee.toLocaleString()} DC locked.`, 'success');
+      toast(`Showdown created. ${fee.toLocaleString()} DC locked.`, 'success');
       closeSlideOver('create-clash');
       await loadClashes();
+      await loadMyOperations();
     } catch (err) {
       const code = err && err.body && err.body.code;
       if (code === 'INSUFFICIENT_FUNDS') showFormError('clash', err.body.detail || 'Not enough DeltaCoins.');
@@ -857,8 +1072,8 @@
     if (entry > 1000){ entryEl.classList.add('is-invalid');   return showFormError('hitlist', 'Anti-whale cap: max 1,000 DC entry.'); }
 
     const ok = await openConfirm({
-      title: 'Post this Hitlist Bounty?',
-      body: 'Your reward locks immediately. Each challenger pays the entry fee per attempt.',
+      title: 'Place this Bounty?',
+      body: 'Your Bounty reward locks immediately. Each challenger pays the entry fee per attempt.',
       lockNote: `This will lock ${reward.toLocaleString()} DC in escrow now.`,
     });
     if (!ok) return;
@@ -879,9 +1094,10 @@
     try {
       setSubmitting('hitlist-submit', true, 'Locking…');
       await jsonFetch(API.bountyCreate, { method: 'POST', body: JSON.stringify(payload) });
-      toast(`Hitlist bounty posted. ${reward.toLocaleString()} DC locked.`, 'success');
+      toast(`Bounty posted. ${reward.toLocaleString()} DC locked.`, 'success');
       closeSlideOver('create-hitlist');
       await loadHitlist();
+      await loadMyOperations();
     } catch (err) {
       const code = err && err.body && err.body.code;
       if (code === 'INSUFFICIENT_FUNDS') showFormError('hitlist', err.body.detail || 'Not enough DeltaCoins.');
@@ -899,13 +1115,13 @@
     const teamId = params.get('challenge_team_id');
     const teamName = params.get('challenge_team_name') || '';
     if (teamId && HUB.can_issue) {
-      switchTab('clash');
+      switchTab('showdown', { updateHash: true });
       openSlideOver('create-clash', { opponentId: teamId, opponentName: teamName });
       return;
     }
     const action = (params.get('action') || '').toLowerCase();
-    if (action === 'create-clash' && HUB.can_issue) { switchTab('clash'); openSlideOver('create-clash'); }
-    if (action === 'create-hitlist' && HUB.can_issue) { switchTab('hitlist'); openSlideOver('create-hitlist'); }
+    if (['create-clash', 'create-showdown', 'showdown'].includes(action) && HUB.can_issue) { switchTab('showdown', { updateHash: true }); openSlideOver('create-clash'); }
+    if (['create-hitlist', 'create-bounty', 'bounty'].includes(action) && HUB.can_issue) { switchTab('bounty', { updateHash: true }); openSlideOver('create-hitlist'); }
   }
 
   // ── Event binding ─────────────────────────────────────────────────
@@ -914,7 +1130,7 @@
     // Tab triggers (delegated)
     document.getElementById('tab-triggers').addEventListener('click', (e) => {
       const btn = e.target.closest('[data-tab]');
-      if (btn) switchTab(btn.dataset.tab);
+      if (btn) switchTab(btn.dataset.tab, { updateHash: true });
     });
 
     // Game filter
@@ -944,10 +1160,10 @@
       if (closeSlide) { closeSlideOver(closeSlide.dataset.closeSlide); return; }
 
       const goTab = target.closest('[data-go-tab]');
-      if (goTab && goTab.dataset.goTab) { switchTab(goTab.dataset.goTab); return; }
+      if (goTab && goTab.dataset.goTab) { switchTab(goTab.dataset.goTab, { updateHash: true }); return; }
 
       const accept = target.closest('[data-accept-clash]');
-      if (accept && !accept.disabled) { onAcceptClash(accept.dataset.acceptClash, accept.dataset.fee); return; }
+      if (accept && !accept.disabled) { onAcceptClash(accept.dataset.acceptClash, accept.dataset.fee, accept.dataset.challengerTeam); return; }
 
       const hunt = target.closest('[data-hunt-bounty]');
       if (hunt && !hunt.disabled) { onHuntBounty(hunt.dataset.huntBounty, hunt.dataset.fee); return; }
@@ -957,6 +1173,17 @@
 
       const enroll = target.closest('[data-enroll-contract]');
       if (enroll) { onEnrollContract(enroll.dataset.enrollContract, enroll.dataset.fee); return; }
+
+      const resultBtn = target.closest('[data-submit-showdown-result]');
+      if (resultBtn) {
+        const op = (STATE.data.myOperations || []).find((item) => item.id === resultBtn.dataset.submitShowdownResult);
+        if (op && op.match_room_url) { window.location.href = op.match_room_url; return; }
+        if (op) openResultModal(op);
+        return;
+      }
+
+      const closeResult = target.closest('[data-close-result-modal]');
+      if (closeResult) { closeResultModal(); return; }
 
       const cancelConfirm = target.closest('[data-cancel-confirm]');
       if (cancelConfirm) { closeConfirm(false); return; }
@@ -981,6 +1208,7 @@
     document.addEventListener('keydown', (e) => {
       if (e.key !== 'Escape') return;
       if (_confirmDeferred) { closeConfirm(false); return; }
+      if (STATE.resultOperation) { closeResultModal(); return; }
       closeSlideOver('create-clash');
       closeSlideOver('create-hitlist');
     });
@@ -990,6 +1218,8 @@
     if (clashForm) clashForm.addEventListener('submit', onSubmitClash);
     const hitForm = document.getElementById('form-create-hitlist');
     if (hitForm) hitForm.addEventListener('submit', onSubmitHitlist);
+    const resultForm = document.getElementById('form-showdown-result');
+    if (resultForm) resultForm.addEventListener('submit', onSubmitShowdownResult);
 
     // Live pot calc
     const fee = document.getElementById('clash-fee');
@@ -1003,9 +1233,10 @@
     renderHero();
     renderActionPermissions();
     bindEvents();
-    switchTab('clash');
+    switchTab(window.location.hash ? window.location.hash.slice(1) : 'showdown');
+    window.addEventListener('hashchange', () => switchTab(window.location.hash.slice(1) || 'showdown'));
     // Fetch all in parallel
-    Promise.all([loadClashes(), loadContracts(), loadHitlist(), loadRoyale(), loadMyContracts()])
+    Promise.all([loadClashes(), loadContracts(), loadHitlist(), loadRoyale(), loadMyOperations()])
       .then(() => applyUrlPrefill());
   }
 

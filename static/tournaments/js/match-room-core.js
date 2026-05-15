@@ -691,7 +691,7 @@
     targets.forEach(function (t) {
       if (t === 'presence') renderPresence();
       else if (t === 'chat') renderChat();
-      else if (t === 'engine') renderEngine();
+      else if (t === 'engine' || t === 'kickoff') renderEngine();
       else if (t === 'header') renderHeader();
       else if (t === 'socket') updateSocketPill();
       else if (t === 'waiting') updateWaitingOverlay();
@@ -945,10 +945,122 @@
   // =====================================================================
   //  ENGINE RENDERER — delegates to phase modules
   // =====================================================================
+  // P2.E.3 — Series progression block. Rendered above the phase card when
+  // best_of > 1. Reads workflow.series populated by the server (P2.C).
+  function renderSeriesBlock() {
+    var series = asObject(asObject(state.room.workflow).series);
+    var bestOf = toInt(series.best_of, 1);
+    if (bestOf <= 1) return '';
+    var p1Wins = toInt(series.p1_wins, 0);
+    var p2Wins = toInt(series.p2_wins, 0);
+    var winsNeeded = toInt(series.wins_needed, Math.floor(bestOf / 2) + 1);
+    var currentGame = toInt(series.current_game, 1);
+    var games = asList(series.games);
+    var isComplete = bool(series.is_complete, false);
+    var winnerSlot = toInt(series.series_winner_slot, 0);
+
+    // Build per-game pills. Total slots = best_of.
+    var pills = [];
+    for (var i = 0; i < bestOf; i++) {
+      var gameNum = i + 1;
+      var played = games[i] && typeof games[i] === 'object' ? games[i] : null;
+      var classes = ['series-game-pill'];
+      var mapText = '';
+      var scoreText = '';
+      if (played) {
+        var ws = toInt(played.winner_slot, 0);
+        if (ws === 1) classes.push('won-side-1');
+        else if (ws === 2) classes.push('won-side-2');
+        mapText = esc(String(played.map || '—'));
+        scoreText = String(toInt(played.p1, 0)) + '–' + String(toInt(played.p2, 0));
+      } else if (gameNum === currentGame && !isComplete) {
+        classes.push('current');
+        mapText = esc(String(series.current_map || 'TBD'));
+        scoreText = 'LIVE';
+      } else {
+        classes.push('upcoming');
+        mapText = '—';
+        scoreText = '·';
+      }
+      pills.push(
+        '<div class="' + classes.join(' ') + '">' +
+          '<span class="game-num">GAME ' + gameNum + '</span>' +
+          '<span class="map-name">' + mapText + '</span>' +
+          '<span class="game-score">' + scoreText + '</span>' +
+        '</div>'
+      );
+    }
+
+    var headerRight;
+    if (isComplete && winnerSlot) {
+      headerRight = '<span class="text-[10px] font-black uppercase tracking-widest text-ac">Series Complete</span>';
+    } else {
+      headerRight = '<span class="text-[10px] font-bold uppercase tracking-widest text-gray-500">First to ' + winsNeeded + '</span>';
+    }
+
+    return '<section class="series-progress">' +
+      '<div class="header">' +
+        '<span class="bo-label">Best of ' + bestOf + '</span>' +
+        headerRight +
+      '</div>' +
+      '<div class="flex items-center justify-center">' +
+        '<span class="score-readout"><span class="' + (p1Wins > p2Wins ? 'text-ac' : '') + '">' + p1Wins + '</span>' +
+        '<span class="sep">—</span>' +
+        '<span class="' + (p2Wins > p1Wins ? 'text-ac' : '') + '">' + p2Wins + '</span></span>' +
+      '</div>' +
+      '<div class="games-row">' + pills.join('') + '</div>' +
+    '</section>';
+  }
+
+  // P2.E.5 — Persistent match metadata strip. Always visible while the
+  // match is in active play phases. Compact horizontal bar with map,
+  // server, game mode, lobby code. Read-only — credentials are edited
+  // in the lobby_setup phase block.
+  function renderMetadataStrip() {
+    var workflow = asObject(state.room.workflow);
+    var creds = asObject(workflow.credentials);
+    var series = asObject(workflow.series);
+    var phase = currentPhase();
+    // Only show once lobby is being set up or beyond. Hides during
+    // pre-match phases (coin_toss, veto) to avoid empty fields confusion.
+    if (phase === 'coin_toss' || phase === 'phase1') return '';
+    var map = String(series.current_map || creds.map || '').trim();
+    var server = String(creds.server || '').trim();
+    var gameMode = String(creds.game_mode || '').trim();
+    var lobbyCode = String(creds.lobby_code || '').trim();
+    if (!map && !server && !gameMode && !lobbyCode) return '';
+
+    function _pill(icon, label, value, mono) {
+      if (!value) return '';
+      var valCls = mono ? 'font-mono text-sm font-bold' : 'text-sm font-bold';
+      return '<div class="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-black/30 border border-white/5">' +
+        '<i data-lucide="' + icon + '" class="w-3.5 h-3.5 text-gray-500 flex-shrink-0"></i>' +
+        '<div class="min-w-0">' +
+          '<p class="text-[9px] font-black uppercase tracking-widest text-gray-500 leading-none">' + label + '</p>' +
+          '<p class="' + valCls + ' text-white truncate leading-tight mt-0.5">' + esc(value) + '</p>' +
+        '</div>' +
+      '</div>';
+    }
+
+    return '<section class="glass-panel rounded-xl px-3 py-2.5 flex flex-wrap gap-2 items-stretch">' +
+      _pill('map', 'Map', map) +
+      _pill('globe', 'Server', server) +
+      _pill('gamepad-2', 'Mode', gameMode) +
+      _pill('hash', 'Lobby Code', lobbyCode, true) +
+    '</section>';
+  }
+
   function renderEngine() {
     if (!elements.engineContainer) return;
     var phase = currentPhase();
     var blocks = [];
+    // P2.E.3 — Series progress sits at the very top for BO3+ matches so the
+    // operator and players see series state regardless of the active phase.
+    var seriesBlock = renderSeriesBlock();
+    if (seriesBlock) blocks.push(seriesBlock);
+    // P2.E.5 — Match metadata strip for active play phases.
+    var metaBlock = renderMetadataStrip();
+    if (metaBlock) blocks.push(metaBlock);
     var showCheckInGate = phase === 'coin_toss' || phase === 'phase1' || phase === 'lobby_setup';
     if (showCheckInGate) blocks.push(renderCheckInBlock());
 
@@ -1174,15 +1286,91 @@
     return String(minutes).padStart(2, '0') + ':' + String(seconds).padStart(2, '0');
   }
 
+  // RP.C — Auto-forfeit / pre-match status renderer. Three exclusive states:
+  //   prematch  → match scheduled time is in the future; show "Match starts at X"
+  //   active    → check-in / forfeit window is currently running; show countdown
+  //   expired   → window has passed (timer would show 00:00); show "Window Closed"
+  // The previous implementation always rendered a live countdown which fell
+  // back to 00:00 the moment the deadline passed, producing the developer-y
+  // "Auto-Forfeit Countdown 00:00" the participant tester saw.
+  function _statusElements() {
+    return {
+      wrap:     document.getElementById('waiting-status-block'),
+      prematch: document.getElementById('waiting-status-prematch'),
+      active:   document.getElementById('waiting-status-active'),
+      expired:  document.getElementById('waiting-status-expired'),
+      preTime:  document.getElementById('waiting-prematch-time'),
+      preRel:   document.getElementById('waiting-prematch-relative'),
+      timerEl:  document.getElementById('waiting-noshow-timer'),
+    };
+  }
+  function _hideAllStatusStates(els) {
+    if (els.prematch) els.prematch.classList.add('hidden-state');
+    if (els.active)   els.active.classList.add('hidden-state');
+    if (els.expired)  els.expired.classList.add('hidden-state');
+  }
+  function _showStatusState(els, key) {
+    if (!els.wrap) return;
+    els.wrap.classList.remove('hidden-state');
+    _hideAllStatusStates(els);
+    var target = els[key];
+    if (target) target.classList.remove('hidden-state');
+  }
+  function _formatRelative(deltaMs) {
+    var absMs = Math.abs(deltaMs);
+    var mins = Math.round(absMs / 60000);
+    if (mins < 1) return 'in less than a minute';
+    if (mins < 60) return 'in ' + mins + ' minute' + (mins === 1 ? '' : 's');
+    var hrs = Math.round(mins / 60);
+    if (hrs < 24) return 'in ' + hrs + ' hour' + (hrs === 1 ? '' : 's');
+    var days = Math.round(hrs / 24);
+    return 'in ' + days + ' day' + (days === 1 ? '' : 's');
+  }
+
   function renderNoShowTimer() {
-    if (!elements.waitingNoShowTimer) return;
-    var deadline = state.noShowDeadlineMs || resolveNoShowDeadlineMs();
-    elements.waitingNoShowTimer.textContent = formatCountdown(Math.max(0, deadline - nowMs()));
+    var els = _statusElements();
+    if (!els.wrap) return;
+
+    var match = asObject(state.room.match);
+    var checkIn = asObject(state.room.check_in);
+    var scheduledMs = parseTimestamp(match.scheduled_time);
+    var checkInClose = parseTimestamp(checkIn.closes_at);
+    var now = nowMs();
+
+    // Pre-match: scheduled time exists and is in the future.
+    if (scheduledMs > 0 && scheduledMs > now) {
+      _showStatusState(els, 'prematch');
+      if (els.preTime) els.preTime.textContent = formatLocalTime(match.scheduled_time) || '—';
+      if (els.preRel)  els.preRel.textContent  = 'Lobby unlocks ' + _formatRelative(scheduledMs - now);
+      return;
+    }
+
+    // Active forfeit window: check-in close is in the future AND meaningfully
+    // active. We require check-in to be marked open OR within 30 minutes to
+    // avoid showing a stale forfeit countdown.
+    var checkInIsLive = checkInClose > 0 && checkInClose > now
+                        && (bool(checkIn.is_open, false) || (checkInClose - now) < 30 * 60 * 1000);
+    if (checkInIsLive) {
+      _showStatusState(els, 'active');
+      if (els.timerEl) els.timerEl.textContent = formatCountdown(Math.max(0, checkInClose - now));
+      return;
+    }
+
+    // Window expired: there WAS a check-in close, but it's now in the past
+    // (and the match isn't yet completed). Show informational state — no
+    // countdown.
+    var matchState = String(match.state || '').toLowerCase();
+    var terminal = matchState === 'completed' || matchState === 'forfeit' || matchState === 'cancelled';
+    if (checkInClose > 0 && checkInClose <= now && !terminal) {
+      _showStatusState(els, 'expired');
+      return;
+    }
+
+    // Nothing meaningful to show — keep the block hidden entirely.
+    els.wrap.classList.add('hidden-state');
   }
 
   function ensureNoShowTicker() {
-    var nextDeadline = resolveNoShowDeadlineMs();
-    if (!state.noShowDeadlineMs || Math.abs(state.noShowDeadlineMs - nextDeadline) > 5000) state.noShowDeadlineMs = nextDeadline;
     if (!state.noShowTimer) state.noShowTimer = window.setInterval(renderNoShowTimer, 1000);
     renderNoShowTimer();
   }
@@ -2036,9 +2224,32 @@
   function openOverrideModal() {
     if (!bool(asObject(state.room.me).admin_mode, false)) { showToast('Admin mode required.', 'error'); return; }
     var match = asObject(state.room.match);
-    if (elements.overrideP1) elements.overrideP1.value = String(toInt(asObject(match.participant1).score, 0));
-    if (elements.overrideP2) elements.overrideP2.value = String(toInt(asObject(match.participant2).score, 0));
+    var p1 = asObject(match.participant1);
+    var p2 = asObject(match.participant2);
+    var p1Name = String(p1.name || p1.team_name || p1.username || 'Side 1');
+    var p2Name = String(p2.name || p2.team_name || p2.username || 'Side 2');
+    if (elements.overrideP1) elements.overrideP1.value = String(toInt(p1.score, 0));
+    if (elements.overrideP2) elements.overrideP2.value = String(toInt(p2.score, 0));
     if (elements.overrideNote) elements.overrideNote.value = '';
+    // P2.E.4 — populate participant-aware labels + BO context.
+    var p1Label = document.getElementById('override-p1-label');
+    var p2Label = document.getElementById('override-p2-label');
+    var p1Hint = document.getElementById('override-p1-hint');
+    var p2Hint = document.getElementById('override-p2-hint');
+    var ctxEl = document.getElementById('override-context');
+    if (p1Label) p1Label.textContent = p1Name + ' score';
+    if (p2Label) p2Label.textContent = p2Name + ' score';
+    var bestOf = toInt(match.best_of, 1);
+    if (p1Hint) p1Hint.textContent = bestOf > 1 ? '(series wins)' : '';
+    if (p2Hint) p2Hint.textContent = bestOf > 1 ? '(series wins)' : '';
+    if (ctxEl) {
+      if (bestOf > 1) {
+        var winsNeeded = Math.floor(bestOf / 2) + 1;
+        ctxEl.innerHTML = 'BO' + bestOf + ' — winner needs <strong class="text-yellow-300">' + winsNeeded + '</strong> wins. Existing per-game records preserved.';
+      } else {
+        ctxEl.textContent = 'BO1 — single-match score override.';
+      }
+    }
     if (elements.overrideModal) { elements.overrideModal.classList.remove('hidden-state'); elements.overrideModal.classList.add('flex'); }
   }
 
@@ -2298,6 +2509,21 @@
   // =====================================================================
   //  INIT
   // =====================================================================
+  // P2.E.2 — Phase tick driver. Active phase modules can expose ``onTick(ctx)``
+  // to update presentational fragments (countdowns, etc.) every second
+  // without re-rendering the whole engine block. Keeps animations smooth
+  // and avoids re-running the entire phase render every 1s.
+  function _runPhaseTick() {
+    try {
+      var phase = currentPhase();
+      var mod = phaseRegistry[phase];
+      if (!mod && phase === 'phase1') {
+        mod = phase1Kind() === 'direct' ? phaseRegistry['direct_ready'] : phaseRegistry['map_veto'];
+      }
+      if (mod && typeof mod.onTick === 'function') mod.onTick(ctx());
+    } catch (_) { /* tick is best-effort */ }
+  }
+
   function init() {
     setGlobalFocusMode(true);
     state.lastWaitingLocked = waitingLocked();
@@ -2306,6 +2532,10 @@
     ensureNoShowTicker();
     renderAll();
     loadTimePreferences().then(function () { scheduleRender('full'); }).catch(function () { });
+    // 1-second tick for phase-driven countdowns (veto timer).
+    if (!state.phaseTickTimer) {
+      state.phaseTickTimer = window.setInterval(_runPhaseTick, 1000);
+    }
     initMobileTopNavBehavior();
     connectSocket();
     startPresenceHeartbeat();
