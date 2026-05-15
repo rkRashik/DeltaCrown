@@ -419,6 +419,11 @@ class MatchTeam5v5RostersView(TOCBaseView):
     independently of) running the AI OCR. Same shape as the
     ``participant{1,2}_candidates`` arrays in the OCR response.
 
+    Also returns previously-saved ``MatchPlayerStat`` rows under
+    ``participant{1,2}_players`` (same shape as the OCR response's player
+    arrays) so the grid pre-fills with stored stats on revisit. Empty arrays
+    when nothing has been saved yet — the frontend treats them as "no AI run".
+
     Response 200:
         {
           "match_id": <int>,
@@ -427,12 +432,15 @@ class MatchTeam5v5RostersView(TOCBaseView):
           "participant2_id":   <int|None>,
           "participant2_name": "<str>",
           "participant1_candidates": [{"user_id": <int>, "label": "<str>"}, ...],
-          "participant2_candidates": [{"user_id": <int>, "label": "<str>"}, ...]
+          "participant2_candidates": [{"user_id": <int>, "label": "<str>"}, ...],
+          "participant1_players":    [{"user_id": <int>, "agent": "<str>", "kills": <int>, ...}, ...],
+          "participant2_players":    [...]
         }
     """
 
     def get(self, request, slug, pk):
         from apps.tournaments.models.match import Match
+        from apps.tournaments.models.match_player_stats import MatchPlayerStat
         from apps.tournaments.services.team_5v5_screenshot_service import (
             build_team_rosters,
         )
@@ -452,6 +460,35 @@ class MatchTeam5v5RostersView(TOCBaseView):
             participant1_id=match.participant1_id,
             participant2_id=match.participant2_id,
         )
+
+        # Pre-load saved stats — split by team_id so the grid panels can pre-fill.
+        # Order matches the table default (-acs) so the highest-impact row shows
+        # at the top of each panel, like a real scoreboard.
+        saved = list(MatchPlayerStat.objects.filter(match=match).order_by('-acs'))
+
+        def _serialize(team_id):
+            out = []
+            for s in saved:
+                if s.team_id != team_id:
+                    continue
+                extra = s.extra_stats if isinstance(s.extra_stats, dict) else {}
+                out.append({
+                    "user_id":     s.player_id,
+                    "agent":       s.agent or "",
+                    "kills":       s.kills,
+                    "deaths":      s.deaths,
+                    "assists":     s.assists,
+                    "acs":         int(s.acs),
+                    "econ":        int(extra.get("econ") or 0),
+                    "fb":          s.first_kills,
+                    "plants":      s.plants,
+                    "defuses":     s.defuses,
+                    # The grid uses this to decide whether to render the row
+                    # "locked" (green border). Saved stats are always locked.
+                    "mapping_confidence": "high",
+                })
+            return out
+
         return Response({
             "match_id":                match.id,
             "participant1_id":         match.participant1_id,
@@ -460,4 +497,138 @@ class MatchTeam5v5RostersView(TOCBaseView):
             "participant2_name":       match.participant2_name or "",
             "participant1_candidates": team1,
             "participant2_candidates": team2,
+            "participant1_players":    _serialize(match.participant1_id),
+            "participant2_players":    _serialize(match.participant2_id),
+        })
+
+
+class MatchTeam5v5PlayerStatsView(TOCBaseView):
+    """
+    POST /api/toc/<slug>/matches/<pk>/team-5v5-player-stats/
+
+    Persists the per-player KDA grid for a 5v5 team match. The request body is
+    the grid state — same shape as the OCR response's ``participant{1,2}_players``
+    arrays — and replaces all existing ``MatchPlayerStat`` rows for this match
+    in a single transaction. The grid IS the source of truth; if the admin
+    removed a row, it goes away.
+
+    Request body:
+        {
+          "participant1_players": [
+            {"user_id": <int>, "agent": "<str>", "kills": <int>, "deaths": <int>,
+             "assists": <int>, "acs": <int>, "econ": <int>, "fb": <int>,
+             "plants": <int>, "defuses": <int>},
+            ... up to 5
+          ],
+          "participant2_players": [... up to 5]
+        }
+
+    Rows without a ``user_id`` are silently skipped (the admin left the
+    dropdown empty — no DB identity to persist against). The unique
+    constraint is (match, player), so each user appears at most once per side.
+
+    Response 200:
+        {
+          "match_id": <int>,
+          "saved_count": <int>,        # total rows actually written
+          "participant1_saved": <int>, # per-side breakdown
+          "participant2_saved": <int>
+        }
+    """
+
+    # Field-by-field clamps mirror the OCR validator ceilings. Anything higher
+    # is operator error, not a real game.
+    _MAX_KDA = 99
+    _MAX_ACS = 200_000  # MLBB gold can hit ~30k; Valorant ACS ~400 — give headroom.
+
+    def _clamp_int(self, raw, low, high):
+        try:
+            n = int(raw or 0)
+        except (TypeError, ValueError):
+            return low
+        if n < low:
+            return low
+        if n > high:
+            return high
+        return n
+
+    def post(self, request, slug, pk):
+        from django.db import transaction
+        from apps.tournaments.models.match import Match
+        from apps.tournaments.models.match_player_stats import MatchPlayerStat
+
+        try:
+            match = Match.objects.get(
+                id=int(pk),
+                tournament=self.tournament,
+                is_deleted=False,
+            )
+        except (Match.DoesNotExist, TypeError, ValueError):
+            return Response({"error": "Match not found."},
+                            status=status.HTTP_404_NOT_FOUND)
+
+        body = request.data if isinstance(request.data, dict) else {}
+        p1_raw = body.get("participant1_players") or []
+        p2_raw = body.get("participant2_players") or []
+        if not isinstance(p1_raw, list) or not isinstance(p2_raw, list):
+            return Response(
+                {"error": "participant1_players and participant2_players must be lists."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        def _normalize(rows, team_id):
+            """Yield (player_id, row_dict) for valid rows; skip those without a user_id."""
+            seen_users = set()
+            for row in rows:
+                if not isinstance(row, dict):
+                    continue
+                try:
+                    user_id = int(row.get("user_id") or 0)
+                except (TypeError, ValueError):
+                    continue
+                if user_id <= 0 or user_id in seen_users:
+                    continue
+                seen_users.add(user_id)
+
+                # ``econ`` has no first-class column; route it through extra_stats.
+                # Keep any pre-existing JSON the admin might have set elsewhere — but
+                # since we replace the whole row, just start fresh.
+                extra = {"econ": self._clamp_int(row.get("econ"), 0, self._MAX_KDA)}
+                yield user_id, {
+                    "team_id":     team_id,
+                    "agent":       str(row.get("agent") or "")[:30],
+                    "kills":       self._clamp_int(row.get("kills"),   0, self._MAX_KDA),
+                    "deaths":      self._clamp_int(row.get("deaths"),  0, self._MAX_KDA),
+                    "assists":     self._clamp_int(row.get("assists"), 0, self._MAX_KDA),
+                    "acs":         self._clamp_int(row.get("acs"),     0, self._MAX_ACS),
+                    "first_kills": self._clamp_int(row.get("fb"),      0, self._MAX_KDA),
+                    "plants":      self._clamp_int(row.get("plants"),  0, self._MAX_KDA),
+                    "defuses":     self._clamp_int(row.get("defuses"), 0, self._MAX_KDA),
+                    "extra_stats": extra,
+                }
+
+        p1_rows = list(_normalize(p1_raw, match.participant1_id))
+        p2_rows = list(_normalize(p2_raw, match.participant2_id))
+
+        # Cross-side dedupe — same user can't appear on both teams in one match.
+        # Drop conflicts from side 2 (side 1 wins on tie; admin can re-pick).
+        side1_users = {uid for uid, _ in p1_rows}
+        p2_rows = [(uid, payload) for uid, payload in p2_rows if uid not in side1_users]
+
+        with transaction.atomic():
+            MatchPlayerStat.objects.filter(match=match).delete()
+            created = 0
+            for uid, payload in p1_rows + p2_rows:
+                MatchPlayerStat.objects.create(
+                    match=match,
+                    player_id=uid,
+                    **payload,
+                )
+                created += 1
+
+        return Response({
+            "match_id":           match.id,
+            "saved_count":        created,
+            "participant1_saved": len(p1_rows),
+            "participant2_saved": len(p2_rows),
         })

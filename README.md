@@ -1,336 +1,199 @@
-# 👑 DeltaCrown  
-### From the Delta to the Crown — Where Champions Rise.
+# DeltaCrown
 
-> **Founded by Redwanul Rashik in 2025, DeltaCrown is a full-scale esports ecosystem designed to power tournaments, teams, rankings, payments, analytics, communities, and digital economies — transforming competitive gaming from a scattered hobby into a respected profession.**
+**From the Delta to the Crown - Where Champions Rise.**
 
----
+DeltaCrown is a Bangladesh-first, globally ambitious esports platform for tournaments, teams, rankings, player identity, community, and competitive rewards.
 
-## 📖 Our Vision
+It is built for the full competitive lifecycle: discovering games, forming teams, joining tournaments, proving results, climbing rankings, earning rewards, developing talent, and building a lasting esports identity.
 
-To build a world where geography does not define destiny—where a gamer playing on a mobile phone in a remote corner of Bangladesh has the same trusted path to global glory as a pro player on the main stage. We are building the bridge that takes talent from the shadows to the spotlight.
+## What DeltaCrown Is
 
-### Our Mission
+DeltaCrown is not just a bracket tool or a profile site. It is a connected esports ecosystem.
 
-To transform esports from a scattered hobby into a respected profession. We provide the digital foundation—tournaments, team structures, and verified careers—that empowers the next generation to own their journey, from their first match to their legacy.
+The platform brings together:
 
-### Core Belief
+- Tournaments and match operations
+- Teams and esports organizations
+- Player profiles and game passports
+- Crown Point rankings and seasons
+- DeltaCoin utility economy
+- Competitive reward operations
+- Team recruitment and training workflows
+- Community, content, commerce, and admin systems
 
-We believe that **talent is universal, but opportunity is not**. By replacing fragmentation with a unified system, we turn "just a game" into a sustainable future for players, creators, and communities everywhere.
+The product direction is premium, competitive, community-driven, and skill-focused, while staying accessible for Bangladesh-first gamers.
 
----
+## Competitive Ecosystem
 
-## 🏆 What Is DeltaCrown?
+DeltaCrown's next-generation competitive hub is organized around four short product names:
 
-DeltaCrown is a **complete esports ecosystem** that connects:
+| Feature | What It Does |
+| --- | --- |
+| Showdown | Head-to-head competitive reward matches for teams or players |
+| Missions | Solo skill challenges, progression goals, and reward tasks |
+| Bounty | Open skill-based reward challenges and community rivalry boards |
+| Dropzone | Large battle royale custom lobbies with slots, room credentials, scoring, and settlement |
 
-- 🎮 Tournaments  
-- 👥 Teams & Players  
-- 📊 Rankings & Analytics  
-- 🧠 Coaching & Talent Development  
-- 🌐 Community & Content  
-- 🛒 Esports-focused E-commerce  
-- 🪙 Digital Economy (DeltaCoin)  
+These systems are built around structured rules, team authority, match rooms, proof, escrow, and admin review. The backend foundation is active, while the public product layer is being refined around the new naming, stronger settlement flows, and a unified user experience.
 
-All designed to work **together**, not separately.
+## Tournaments
 
-> **Think of DeltaCrown as the operating system of esports.**
+The tournament engine supports professional event workflows:
 
----
+- Single elimination
+- Double elimination
+- Round robin
+- Swiss
+- Group to playoff
+- Battle royale lobby formats
+- Solo and team participation
+- Registration and eligibility checks
+- Match rooms and scheduling
+- Check-in and result submission
+- Dispute handling
+- Prize and DeltaCoin configuration
+- Certificates and historical records
 
-## 🔥 Why DeltaCrown Exists
+Tournaments are designed to create lasting competitive history, not one-time event pages.
 
-Most platforms solve **one problem**.
+## Teams and Organizations
 
-DeltaCrown solves **the entire esports lifecycle**.
+DeltaCrown treats teams as persistent esports entities.
 
-| Traditional Platforms | DeltaCrown |
-|----------------------|------------|
-| One-time tournaments | Persistent competitive history |
-| Temporary teams | Professional team organizations |
-| No career progression | Player & team legacy |
-| Fragmented tools | Unified ecosystem |
-| No local payment support | Global + local payment systems |
+Teams can manage:
 
----
+- Rosters
+- Owners, managers, coaches, analysts, players, and substitutes
+- Tournament captain permissions
+- Branding and public identity
+- Recruitment positions
+- Join requests and tryout scheduling
+- Social links, milestones, sponsors, and media
+- Rankings and match history
 
-## 🎮 Supported Games
+Organizations can own multiple teams and build a professional brand across games.
 
-DeltaCrown currently supports **11 competitive games**:
+## Rankings
 
-- Call of Duty®: Mobile  
-- Counter-Strike 2  
-- Dota 2  
-- EA SPORTS FC™ 26  
-- Free Fire  
-- Mobile Legends: Bang Bang  
-- PUBG MOBILE  
-- Rocket League  
-- Tom Clancy's Rainbow Six® Siege  
-- VALORANT  
-- eFootball™ 2026  
+DeltaCrown uses Crown Points as the public ranking language.
 
-The platform is **game-agnostic by design**, allowing new titles to be added without rebuilding the core system.
+Teams progress through:
 
----
+- Rookie
+- Challenger
+- Elite
+- Master
+- Legend
+- The Crown
 
-## 🏆 Tournaments — The Core Engine
+The ranking direction includes verified match results, tournament placement rewards, seasons, activity score, anti-farming controls, same-opponent diminishing returns, daily match caps, and internal ELO-style balancing.
 
-Tournaments are the heartbeat of DeltaCrown.
+The public experience stays easy to understand: points, tiers, ranks, activity, and history.
 
-Organizers can manage tournaments with:
+## Player Identity
 
-- Single / Double Elimination  
-- Round Robin  
-- Swiss Format  
-- Group → Playoffs  
-- Solo & Team-based competitions  
+Players build competitive profiles that can grow over time.
 
-DeltaCrown handles:
+Profiles support:
 
-- Smart registration & eligibility checks  
-- Automated bracket generation  
-- Match scheduling  
-- Result submission & verification  
-- Dispute resolution  
-- Prize distribution  
-- Game statistics & analytics  
+- Public identity and display branding
+- Game passports and linked game identities
+- Preferred games and playstyle signals
+- Team affiliations
+- Achievements and certificates
+- Match history and reputation direction
+- Privacy and account safety controls
 
-Every tournament contributes to:
+The goal is to help players build a credible esports record, not just a username.
 
-- Player & team rankings  
-- Match history  
-- Performance analytics  
-- DeltaCoin rewards  
+## DeltaCoin
 
-**Tournaments don’t disappear — they build legacy.**
+DeltaCoin is DeltaCrown's closed-loop utility and reward currency.
 
----
+It is used inside the platform for participation, entries, rewards, platform services, progression, and future store or premium experiences. DeltaCoin is positioned as an internal platform utility, not a financial asset.
 
-## 👥 Teams — Professional Esports Organizations
+The economy layer includes wallet records, transaction history, escrow locking, refunds, payout helpers, treasury support, local payment method fields, and wallet security direction.
 
-Teams on DeltaCrown are not casual groups.
+## Team HQ and Training
 
-They function like **real esports organizations**, with:
+Team HQ is the operating space for teams.
 
-- Players  
-- Captains  
-- Managers  
-- Coaches  
-- Referees & staff  
+Training workflows are separate from competitive reward operations by default:
 
-Each team includes:
+- Scrim: team vs team practice match
+- Tryout: evaluation session for applicants or invited players
+- Practice: internal team training
+- VOD Review: review notes, clips, and improvement tracking
 
-- Persistent identity across games  
-- Ranking progression  
-- Tournament & match history  
-- Sponsor visibility  
-- Team dashboards  
-- Branding & merchandise support  
+The current platform includes recruitment and tryout foundations, with richer scrim, practice, and review systems planned as Team HQ evolves.
 
-Teams grow, evolve, and build reputation over time.
+## Architecture
 
----
+DeltaCrown is built as a modular Django platform.
 
-## 🎯 Players — Careers, Not Usernames
+Core stack direction:
 
-Players build **competitive identities**, not just profiles.
+- Django backend
+- Django REST Framework APIs
+- PostgreSQL/Supabase database direction
+- Redis/Upstash caching direction
+- Tailwind CSS frontend
+- Vanilla JavaScript for dashboard and interaction layers
+- Domain apps for tournaments, organizations, profiles, rankings, economy, competitive operations, missions/contracts, Dropzone, admin, moderation, notifications, commerce, and community
 
-Each player can:
+Sensitive flows are organized through service layers, especially for escrow, rankings, tournament operations, and competitive lifecycle actions.
 
-- Join or create teams  
-- Compete across multiple games  
-- Track detailed stats & match history  
-- Earn achievements & DeltaCoin  
-- Build a long-term esports résumé  
+## Current Project State
 
-Every match matters.  
-Every result is remembered.
+DeltaCrown is an active product in development with substantial foundations already implemented:
 
----
+- Tournament engine and match lifecycle
+- Team and organization management
+- Player profiles and game passport direction
+- Crown Point ranking system
+- Economy and escrow services
+- Competitive hub foundation
+- Showdown, Missions, Bounty, and Dropzone backend foundations
+- Team recruitment and early tryout workflow
+- Admin and moderation surfaces
+- Public-facing dashboards, community, and commerce direction
 
-## 🧠 Coaching & Talent Development
+Some systems are still evolving, especially the final competitive settlement lifecycle, admin control center, public naming cleanup, Dropzone scoring UX, Missions verification, and full Team HQ training workflows.
 
-DeltaCrown treats esports like real sports.
+## Supported Game Direction
 
-- Coaches can mentor teams and players  
-- Analysts track performance trends  
-- Players can hire tutors  
-- Teams can build structured training systems  
+DeltaCrown is game-agnostic by design and currently targets major competitive categories:
 
-This transforms esports from **competition-only** into **career development**.
+- FPS: Valorant, CS2, CODM, Rainbow Six
+- MOBA: Dota 2, Mobile Legends
+- Battle Royale: PUBG Mobile, Free Fire
+- Sports and arcade competition: eFootball, EA FC, Rocket League
 
----
+New games can be added through the platform's game configuration layer without rebuilding the whole ecosystem.
 
-## 🤝 Networking: Players, Teams, Sponsors
+## Product Vision
 
-DeltaCrown is also a **connection hub**.
+DeltaCrown is building the infrastructure layer for competitive gaming communities.
 
-- Competitive players discover teams  
-- Teams scout talent  
-- Sponsors find organizations  
-- Coaches find students  
-- Communities grow around competition  
+The long-term direction includes:
 
-This creates a living esports network — not isolated users.
+- Stronger mobile-first experiences
+- Deeper team operations
+- Better ranking and season systems
+- Richer training and scouting workflows
+- Sponsor and commerce opportunities
+- Local and regional tournament ecosystems
+- Global expansion from a Bangladesh-first foundation
 
----
+DeltaCrown exists to make esports more professional, more trusted, and more accessible.
 
-## 🌐 Community & Content
+## Contact
 
-DeltaCrown includes a built-in community layer:
+**Founder:** Redwanul Rashik  
+**Founded:** 2025  
+**Email:** deltacrownhq@gmail.com  
+**Tagline:** From the Delta to the Crown - Where Champions Rise.
 
-- Blogs & articles  
-- Strategy guides  
-- Match highlights  
-- Team announcements  
-- Esports news  
+## License
 
-Players, teams, fans, and creators share one home.
-
----
-
-## 🛒 Esports Commerce & Sponsorship
-
-DeltaCrown includes a full esports-focused marketplace:
-
-- Team merchandise  
-- Gaming accessories  
-- Digital products  
-- Subscriptions  
-
-Teams can monetize.  
-Brands can connect.  
-Fans can support organizations they love.
-
----
-
-## 💳 Payments — Global & Local Friendly
-
-DeltaCrown supports **both international and local payment systems**, including:
-
-- 💳 Card payments  
-- 🏦 Bank transfer  
-- 📱 bKash  
-- 📱 Nagad  
-- 📱 Rocket  
-
-This makes the platform accessible in **emerging esports markets**, not just global hubs.
-
----
-
-## 🪙 DeltaCoin — A Competitive Digital Economy
-
-DeltaCoin is DeltaCrown’s internal digital currency.
-
-Earn DeltaCoin by:
-
-- Participating in tournaments  
-- Winning matches  
-- Achieving milestones  
-- Engaging with the community  
-
-Use DeltaCoin for:
-
-- Store purchases  
-- Subscriptions  
-- Platform services  
-
-DeltaCoin rewards **skill, effort, and consistency**.
-
----
-
-## ⚙️ Built for Scale, Not Demos
-
-DeltaCrown is engineered as **infrastructure**, not a prototype.
-
-- Game-agnostic tournament engine  
-- Event-driven architecture  
-- Persistent data models  
-- Service-layer backend design  
-- Extensible APIs  
-- Real-time updates  
-
-New features and games integrate without breaking existing systems.
-
----
-
-## 📊 Current Status
-
-DeltaCrown is **nearing production readiness**, with:
-
-- ✔ Full tournament lifecycle  
-- ✔ Team & player systems  
-- ✔ Rankings & analytics  
-- ✔ Admin & moderation tools  
-- ✔ Payment integration (global + local)  
-- ✔ Community & content systems  
-- ✔ Developer documentation & planning  
-
-This is a **serious platform**, not a concept demo.
-
----
-
-## 🚀 The Vision Ahead
-
-DeltaCrown is evolving toward:
-
-- Mobile apps (iOS & Android)  
-- White-label esports platforms  
-- Sponsor marketplaces  
-- Streaming integrations  
-- Coaching certifications  
-- Global expansion  
-
-The mission is simple:
-
-> **Make esports professional, accessible, and sustainable — everywhere.**
-
----
-
-## 🌍 Why DeltaCrown Matters
-
-Esports is one of the fastest-growing industries in the world.
-
-DeltaCrown provides the missing foundation:
-
-- For players to build careers  
-- For teams to become organizations  
-- For communities to thrive  
-- For sponsors to invest confidently  
-
-This is not just software.
-
-**This is infrastructure for the future of esports.**
-
----
-
-## 🏁 Final Words
-
-DeltaCrown is where:
-
-- Champions rise  
-- Teams become legends  
-- Communities grow  
-- Careers begin  
-
-🎮 **Welcome to the future of competitive gaming.**
-
----
-
-## � Contact & Support
-
-- **Founder:** Redwanul Rashik  
-- **Founded:** 2025  
-- **Email:** deltacrownhq@gmail.com  
-- **Tagline:** From the Delta to the Crown — Where Champions Rise.  
-
----
-
-## �📌 License & Contribution
-
-- License: MIT  
-- Contributions: Welcome  
-- Documentation: Extensive and evolving  
-
----
-
+MIT

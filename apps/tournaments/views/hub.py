@@ -2646,13 +2646,21 @@ def _normalize_media_url(value):
 
 
 def _get_avatar_url(user):
-    """Return user avatar URL or fallback."""
+    """Return user avatar URL or generated fallback.
+
+    Null-safe: team registrations have ``user=None``; callers pass
+    ``reg.user`` directly and must not crash. Returns a generic neutral
+    placeholder when the user is missing.
+    """
+    if not user:
+        return "https://ui-avatars.com/api/?name=%3F%3F&background=0A0A0E&color=fff&size=64"
     try:
         if user.profile and user.profile.avatar:
             return _normalize_media_url(user.profile.avatar.url)
     except Exception:
         pass
-    return f"https://ui-avatars.com/api/?name={user.username[:2]}&background=0A0A0E&color=fff&size=64"
+    initials = (getattr(user, 'username', '') or '??')[:2]
+    return f"https://ui-avatars.com/api/?name={initials}&background=0A0A0E&color=fff&size=64"
 
 
 def _build_participant_media_map(tournament, participant_ids):

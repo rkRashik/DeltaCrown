@@ -321,15 +321,23 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
         query_params = parse_qs(query_string, keep_blank_values=False)
         admin_requested = str((query_params.get("admin") or [""])[0]).strip().lower() in {"1", "true", "yes", "y", "on"}
         admin_token = str((query_params.get("admin_token") or [""])[0]).strip()
-        if self.is_official_staff and admin_requested:
-            session = self.scope.get("session")
-            self.is_admin_mode = validate_match_room_admin_token(
-                session,
-                token=admin_token,
-                user_id=self.user.id,
-                tournament_id=match.tournament_id,
-                match_id=self.match_id,
-            )
+        if self.is_official_staff:
+            # P0.C — official staff are always admin in the WS context. The HTTP
+            # view already auto-issues a session token; we still try to validate
+            # it (preserves the audit trail) but do NOT gate admin mode on it.
+            # Without this, staff connecting from a non-TOC entry point (chat,
+            # notification email) hit the "rejected non-participant" branch on
+            # disputed lobbies.
+            self.is_admin_mode = True
+            if admin_requested and admin_token:
+                session = self.scope.get("session")
+                _ = validate_match_room_admin_token(
+                    session,
+                    token=admin_token,
+                    user_id=self.user.id,
+                    tournament_id=match.tournament_id,
+                    match_id=self.match_id,
+                )
 
         if self.is_admin_mode:
             self.is_participant = False

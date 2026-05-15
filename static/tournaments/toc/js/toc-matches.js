@@ -1646,6 +1646,69 @@
     }
   }
 
+  function _team5v5ReadSide(side) {
+    // Read the live grid state for one side ('a' or 'b'). Empty player picks
+    // are still included so the backend can skip them — keeps the UI a faithful
+    // mirror of what would be saved.
+    var rows = document.querySelectorAll('[data-team5v5-row][data-team5v5-side="' + side + '"]');
+    var out = [];
+    rows.forEach(function (tr) {
+      var sel = tr.querySelector('[data-team5v5-player]');
+      var uid = sel ? Number(sel.value || 0) : 0;
+      var row = { user_id: uid > 0 ? uid : null };
+      tr.querySelectorAll('[data-team5v5-stat]').forEach(function (inp) {
+        var key = inp.getAttribute('data-team5v5-stat');
+        if (!key) return;
+        if (key === 'agent') {
+          row[key] = inp.value || '';
+        } else {
+          row[key] = Number(inp.value || 0);
+        }
+      });
+      out.push(row);
+    });
+    return out;
+  }
+
+  async function saveTeam5v5Stats() {
+    if (!selectedMatchId) { toast('Select a match first.', 'error'); return; }
+    var btn = $('#team-5v5-save-btn');
+    var span = btn ? btn.querySelector('span') : null;
+    var origText = span ? span.textContent : 'Save Player Stats';
+
+    var payload = {
+      participant1_players: _team5v5ReadSide('a'),
+      participant2_players: _team5v5ReadSide('b'),
+    };
+    var totalPicked = payload.participant1_players.concat(payload.participant2_players)
+      .filter(function (r) { return r.user_id != null; }).length;
+    if (totalPicked === 0) {
+      toast('Pick at least one player before saving.', 'info');
+      return;
+    }
+
+    if (btn) {
+      btn.disabled = true;
+      btn.classList.add('opacity-70', 'cursor-wait');
+      if (span) span.textContent = 'Saving…';
+    }
+    try {
+      var resp = await API.post('matches/' + selectedMatchId + '/team-5v5-player-stats/', payload);
+      toast('Saved ' + (resp.saved_count || 0) + ' player stat row(s).', 'success');
+      // Refresh cached saved-stats so a subsequent match-reselect shows what
+      // we just wrote (not the stale AI snapshot we cached after extract).
+      delete _team5v5RosterCache[selectedMatchId];
+    } catch (e) {
+      toast('Save failed: ' + (parseApiError(e) || 'Unknown error'), 'error');
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.classList.remove('opacity-70', 'cursor-wait');
+        if (span) span.textContent = origText;
+      }
+    }
+  }
+
 
   /* ============================================================
      AI Score Extractor (Gemini Vision OCR for 1v1 sports screens)
@@ -2937,6 +3000,7 @@
     // 5v5 Team KDA Grid (MOBA / Tactical Shooter OCR)
     onTeam5v5FilePicked: onTeam5v5FilePicked,
     extractTeam5v5AI: extractTeam5v5AI,
+    saveTeam5v5Stats: saveTeam5v5Stats,
   };
 
   document.addEventListener('toc:tab-changed', function (e) {

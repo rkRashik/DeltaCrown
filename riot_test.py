@@ -1,10 +1,10 @@
 import requests
 
-# Ekhane apnar Riot Developer Portal theke pawa "Development API Key" ta boshan
-API_KEY = "RGAPI-2456eb51-7456-497b-9d41-c31e41653136"
 
-GAME_NAME = "1W Pandaaa"
-TAG_LINE = "8787"
+API_KEY = ""
+
+GAME_NAME = ""
+TAG_LINE = ""
 
 headers = {
     "X-Riot-Token": API_KEY

@@ -67,25 +67,11 @@ PIPELINE_OVERRIDES = {
     "efootball": "direct",
 }
 
-# Legacy hardcoded map pools — used as fallback when GameMapPool table is empty.
-_LEGACY_MAP_POOLS = {
-    "valorant": ["Ascent", "Bind", "Haven", "Split", "Icebox", "Lotus", "Sunset"],
-    "r6siege": ["Clubhouse", "Coastline", "Border", "Kafe", "Villa", "Chalet"],
-    "r6": ["Clubhouse", "Coastline", "Border", "Kafe", "Villa", "Chalet"],
-    "cs2": ["Mirage", "Inferno", "Dust II", "Nuke", "Ancient", "Anubis", "Vertigo"],
-}
-
-
-def _get_map_pool_for_game(game_slug: str) -> list:
-    """Return map pool from DB (GameMapPool), falling back to legacy dict."""
-    try:
-        from apps.games.models.map_pool import GameMapPool
-        db_maps = GameMapPool.get_active_maps_by_slug(game_slug)
-        if db_maps:
-            return db_maps
-    except Exception:
-        pass
-    return list(_LEGACY_MAP_POOLS.get(game_slug, []))
+# Map pool resolution lives in apps.games.services.config_resolver — the single
+# canonical read path. Any tournament-level override (MapPoolEntry rows the
+# organizer configures in TOC settings) takes precedence over the game-level
+# default (GameMapPool rows). The legacy hardcoded dict is the emergency
+# fallback inside the resolver — NOT here.
 
 DEFAULT_CREDENTIAL_SCHEMA = [
     {"key": "lobby_code", "label": "Lobby Code", "kind": "text", "required": True},
@@ -204,15 +190,33 @@ def _is_toc_referer(request) -> bool:
 
 
 def _resolve_admin_mode_request(request, match: Match) -> Tuple[bool, bool, str]:
-    admin_mode_requested = _is_truthy(getattr(request, "GET", {}).get("admin"))
-    if not admin_mode_requested:
-        return False, False, ""
+    """Resolve admin/staff mode for the match-room view.
 
-    admin_token = str(getattr(request, "GET", {}).get("admin_token") or "").strip()
+    Returns ``(admin_mode_requested, admin_mode_authorized, admin_token)``.
+
+    P0.C fix — admins must always be able to access a disputed / awaiting-review
+    lobby, even when arriving from a notification email, a chat link, or a
+    bookmark (no ``?admin=1``, no TOC referer). Without this, the staff lobby
+    deadlocks because ``resolve_participant_lobby_access`` denies on terminal
+    states. Token issuance is preserved for WebSocket admin-role validation.
+    """
     session = getattr(request, "session", None)
-    user_id = getattr(getattr(request, "user", None), "id", None)
+    user = getattr(request, "user", None)
+    user_id = getattr(user, "id", None)
+    tournament = getattr(match, "tournament", None)
+    organizer_id = getattr(tournament, "organizer_id", None)
+    is_official_staff = bool(
+        user
+        and getattr(user, "is_authenticated", False)
+        and (getattr(user, "is_staff", False)
+             or (organizer_id and organizer_id == user_id))
+    )
 
-    if validate_match_room_admin_token(
+    admin_mode_requested = _is_truthy(getattr(request, "GET", {}).get("admin"))
+    admin_token = str(getattr(request, "GET", {}).get("admin_token") or "").strip()
+
+    # Fast path: explicit ``?admin=1`` with a still-valid token.
+    if admin_mode_requested and validate_match_room_admin_token(
         session,
         token=admin_token,
         user_id=user_id,
@@ -221,7 +225,11 @@ def _resolve_admin_mode_request(request, match: Match) -> Tuple[bool, bool, str]
     ):
         return True, True, admin_token
 
-    if _is_toc_referer(request):
+    # P0.C — official staff are always authorized. Auto-issue a session token
+    # so any WebSocket admin checks downstream can validate without forcing the
+    # user to re-enter through ``/toc/`` first. This unblocks disputed-lobby
+    # access for organizers regardless of entry point.
+    if is_official_staff:
         issued_token = issue_match_room_admin_token(
             session,
             user_id=user_id,
@@ -231,7 +239,20 @@ def _resolve_admin_mode_request(request, match: Match) -> Tuple[bool, bool, str]
         if issued_token:
             return True, True, issued_token
 
-    return True, False, ""
+    # Legacy: ``?admin=1`` from TOC referer auto-issues. Preserved for callers
+    # that explicitly request admin mode while not yet flagged as staff
+    # (e.g. RBAC-delegated staff loaded outside the early staff check).
+    if admin_mode_requested and _is_toc_referer(request):
+        issued_token = issue_match_room_admin_token(
+            session,
+            user_id=user_id,
+            tournament_id=getattr(match, "tournament_id", None),
+            match_id=getattr(match, "id", None),
+        )
+        if issued_token:
+            return True, True, issued_token
+
+    return admin_mode_requested, False, ""
 
 
 def _safe_dict(value: Any) -> Dict[str, Any]:
@@ -746,6 +767,12 @@ def _deep_merge_dict(base: Dict[str, Any], incoming: Dict[str, Any]) -> Dict[str
 
 
 def _default_veto_sequence(best_of: int) -> List[Dict[str, Any]]:
+    """Hardcoded fallback used when no ``VetoConfiguration`` exists for the game.
+
+    Kept as a defensive last resort so existing tournaments without seeded
+    veto configs keep working. New game support should add a
+    ``VetoConfiguration`` row rather than extending this function.
+    """
     if best_of >= 3:
         return [
             {"side": 1, "action": "ban"},
@@ -762,6 +789,228 @@ def _default_veto_sequence(best_of: int) -> List[Dict[str, Any]]:
         {"side": 2, "action": "ban"},
         {"side": 1, "action": "pick"},
     ]
+
+
+# Default veto step timer (seconds). Overridden per-game via VetoConfiguration.
+VETO_DEFAULT_STEP_SECONDS = 30
+
+
+# ─── P2.C — BO3/BO5 series progression helpers ─────────────────────────────
+# These read/write ``match.game_scores`` (the canonical per-game record) and
+# project a ``workflow.series`` view for client consumption. The workflow
+# series block is a *derived* read-model — its single source of truth is
+# ``match.game_scores`` so OCR cross-validation (P3) can record per-game
+# evidence against the same canonical structure.
+
+def _wins_needed_for(best_of: int) -> int:
+    """Threshold per BO format. BO1=1, BO3=2, BO5=3, etc."""
+    try:
+        bo = int(best_of or 1)
+    except (TypeError, ValueError):
+        bo = 1
+    if bo < 1:
+        bo = 1
+    return (bo // 2) + 1
+
+
+def _compute_series_view(match: Match, workflow: Dict[str, Any]) -> Dict[str, Any]:
+    """Project a series view from ``match.game_scores``.
+
+    Returns a dict shaped for the FE renderer + the workflow snapshot:
+        {best_of, wins_needed, p1_wins, p2_wins,
+         current_game, current_map, next_map, games[], is_complete,
+         series_winner_slot}
+
+    ``games`` is the raw per-game list as stored on Match. ``current_map`` is
+    what game ``current_game`` is being played on (or just finished if the
+    series is complete). ``next_map`` is what game N+1 will use — drawn from
+    ``workflow.veto.picks`` first, then the first remaining unbanned map.
+    """
+    best_of = int(getattr(match, "best_of", 1) or 1)
+    wins_needed = _wins_needed_for(best_of)
+    games = list(getattr(match, "game_scores", None) or [])
+    if not isinstance(games, list):
+        games = []
+    p1_wins = sum(1 for g in games if isinstance(g, dict) and g.get("winner_slot") == 1)
+    p2_wins = sum(1 for g in games if isinstance(g, dict) and g.get("winner_slot") == 2)
+    is_complete = p1_wins >= wins_needed or p2_wins >= wins_needed
+    series_winner_slot = None
+    if p1_wins >= wins_needed:
+        series_winner_slot = 1
+    elif p2_wins >= wins_needed:
+        series_winner_slot = 2
+
+    current_game = len(games) + 1 if not is_complete else len(games)
+
+    # Map binding — picks list from veto first, then remaining pool.
+    veto = workflow.get("veto") if isinstance(workflow.get("veto"), dict) else {}
+    picks: List[str] = [str(m) for m in (veto.get("picks") or []) if str(m or "").strip()]
+    pool: List[str] = [str(m) for m in (veto.get("pool") or []) if str(m or "").strip()]
+    bans = set(str(m) for m in (veto.get("bans") or []))
+
+    def _map_for_game(game_idx_1based: int) -> str:
+        """Game 1 → picks[0], game 2 → picks[1], … fallback to first remaining."""
+        if game_idx_1based >= 1 and game_idx_1based - 1 < len(picks):
+            return picks[game_idx_1based - 1]
+        used = set(picks) | bans | {str(g.get("map") or "") for g in games if isinstance(g, dict)}
+        remaining = [m for m in pool if m and m not in used]
+        if remaining:
+            return remaining[0]
+        # Last resort: whatever credentials currently carry, or empty.
+        creds = workflow.get("credentials") or {}
+        return str(creds.get("map") or "")
+
+    if is_complete and games:
+        current_map = str(games[-1].get("map") or "") if isinstance(games[-1], dict) else ""
+        next_map = ""
+    else:
+        current_map = _map_for_game(current_game)
+        next_map = _map_for_game(current_game + 1) if not is_complete else ""
+
+    return {
+        "best_of": best_of,
+        "wins_needed": wins_needed,
+        "p1_wins": p1_wins,
+        "p2_wins": p2_wins,
+        "current_game": current_game,
+        "current_map": current_map,
+        "next_map": next_map,
+        "games": games,
+        "is_complete": is_complete,
+        "series_winner_slot": series_winner_slot,
+    }
+
+
+def _record_series_game(
+    match: Match,
+    workflow: Dict[str, Any],
+    *,
+    p1_score: int,
+    p2_score: int,
+    winner_slot: int,
+) -> Dict[str, Any]:
+    """Append a per-game result to ``match.game_scores`` and return the
+    refreshed series view. Caller is responsible for ``match.save()``.
+
+    Records the map alongside the score so OCR / dispute review (P3) can
+    cross-reference evidence to a specific game in the series.
+    """
+    games_raw = getattr(match, "game_scores", None) or []
+    if not isinstance(games_raw, list):
+        games_raw = []
+    games = list(games_raw)
+    next_game_number = len(games) + 1
+    series_view_before = _compute_series_view(match, workflow)
+    current_map = series_view_before.get("current_map") or ""
+
+    games.append({
+        "game": next_game_number,
+        "p1": int(p1_score),
+        "p2": int(p2_score),
+        "winner_slot": int(winner_slot),
+        "map": str(current_map),
+        "recorded_at": timezone.now().isoformat(),
+    })
+    match.game_scores = games
+    return _compute_series_view(match, workflow)
+
+
+def _reset_workflow_for_next_game(workflow: Dict[str, Any], series_view: Dict[str, Any]) -> None:
+    """Mutate ``workflow`` in place to start the next game in a series.
+
+    - Clears ``result_submissions`` for both sides (new submissions per game).
+    - Sets ``credentials.map`` to the next map from the series view.
+    - Resets ``phase`` to ``lobby_setup`` so participants re-share lobby code.
+    - Sets ``result_status`` back to ``pending``.
+
+    Does NOT touch ``match.state`` — the caller decides whether the overall
+    match remains LIVE (series continuing) or transitions.
+    """
+    workflow["result_submissions"] = {"1": None, "2": None}
+    workflow["result_status"] = "pending"
+    next_map = str(series_view.get("current_map") or "")
+    creds = workflow.get("credentials") if isinstance(workflow.get("credentials"), dict) else {}
+    creds["map"] = next_map
+    workflow["credentials"] = creds
+    if "lobby_setup" in (workflow.get("phase_order") or []):
+        workflow["phase"] = "lobby_setup"
+    workflow["final_result"] = None
+
+
+def _resolve_veto_template(match: Match, best_of: int) -> Tuple[List[Dict[str, Any]], int, bool]:
+    """Return ``(sequence, time_per_action_seconds, auto_random_on_timeout)``.
+
+    Resolution order:
+      1. Active ``VetoConfiguration`` for the match's game (domain="map").
+      2. Hardcoded ``_default_veto_sequence(best_of)`` fallback with defaults.
+
+    The VetoConfiguration ``sequence`` may use a per-step ``count`` to compress
+    "side A bans 2" into one entry — we expand it to one workflow step per
+    ban/pick because the workflow tracker (``step`` index, ``last_action``) is
+    one-action-per-index.
+    """
+    game = getattr(getattr(match, "tournament", None), "game", None)
+    if game is not None:
+        try:
+            from apps.games.models.rules import VetoConfiguration
+            cfg = (
+                VetoConfiguration.objects
+                .filter(game=game, domain="map", is_active=True)
+                .order_by("-updated_at")
+                .first()
+            )
+            if cfg and isinstance(cfg.sequence, list) and cfg.sequence:
+                expanded: List[Dict[str, Any]] = []
+                for raw_step in cfg.sequence:
+                    if not isinstance(raw_step, dict):
+                        continue
+                    action = str(raw_step.get("action") or "ban").strip().lower()
+                    if action not in {"ban", "pick"}:
+                        continue
+                    team = str(raw_step.get("team") or "A").strip().upper()
+                    side = 1 if team in {"A", "1"} else 2
+                    try:
+                        count = max(1, int(raw_step.get("count") or 1))
+                    except (TypeError, ValueError):
+                        count = 1
+                    for _ in range(count):
+                        expanded.append({"side": side, "action": action})
+                if expanded:
+                    return (
+                        expanded,
+                        int(cfg.time_per_action_seconds or VETO_DEFAULT_STEP_SECONDS),
+                        bool(cfg.auto_random_on_timeout),
+                    )
+        except Exception as exc:
+            logger.warning("veto template resolution failed match=%s err=%s",
+                           getattr(match, "id", None), exc)
+    return _default_veto_sequence(best_of), VETO_DEFAULT_STEP_SECONDS, True
+
+
+def _veto_step_expires_at(veto: Dict[str, Any]) -> Optional[str]:
+    """Compute ``step_expires_at`` ISO timestamp for the *current* veto step.
+
+    Returns None when the sequence is complete (no further step to time out)
+    or when timeout fallback is disabled. Called whenever the veto step
+    advances so the sweeper can detect inactivity without scanning sequence
+    state itself.
+    """
+    sequence = veto.get("sequence") or []
+    try:
+        step = int(veto.get("step") or 0)
+    except (TypeError, ValueError):
+        step = 0
+    if step >= len(sequence):
+        return None
+    if not bool(veto.get("auto_random_on_timeout", True)):
+        return None
+    try:
+        seconds = int(veto.get("time_per_action_seconds") or VETO_DEFAULT_STEP_SECONDS)
+    except (TypeError, ValueError):
+        seconds = VETO_DEFAULT_STEP_SECONDS
+    if seconds <= 0:
+        return None
+    return (timezone.now() + timedelta(seconds=seconds)).isoformat()
 
 
 def _normalize_round_overrides(raw_overrides: Any) -> Dict[str, Dict[str, bool]]:
@@ -1016,26 +1265,6 @@ def _resolve_presence_snapshot(workflow: Dict[str, Any], match: Match) -> Dict[s
     return result
 
 
-def _load_config_map_pool(match: Match) -> List[str]:
-    cfg = None
-    try:
-        cfg = match.tournament.game_match_config
-    except Exception:
-        cfg = None
-
-    if not cfg:
-        return []
-
-    try:
-        return [
-            row[0]
-            for row in cfg.map_pool.filter(is_active=True).order_by("order", "map_name").values_list("map_name")
-            if str(row[0] or "").strip()
-        ]
-    except Exception:
-        return []
-
-
 def _build_default_workflow(
     *,
     match: Match,
@@ -1056,7 +1285,8 @@ def _build_default_workflow(
         "notes": str(lobby_info.get("notes") or ""),
     }
 
-    return {
+    veto_sequence, veto_time, veto_auto = _resolve_veto_template(match, best_of)
+    base = {
         "phase": _phase_for_match_state(match, phase_order),
         "phase_order": list(phase_order),
         "phase1_kind": phase1_kind,
@@ -1067,13 +1297,23 @@ def _build_default_workflow(
             "performed_at": None,
         },
         "veto": {
-            "sequence": _default_veto_sequence(best_of),
+            "sequence": veto_sequence,
             "step": 0,
             "pool": list(map_pool),
             "bans": [],
             "picks": [],
             "selected_map": credentials["map"],
             "last_action": None,
+            # P2.B — server-authoritative timer fields. ``step_expires_at``
+            # remains None until the first veto step actually begins (set
+            # when phase enters phase1, or by the veto_action handler after
+            # each step advance). ``time_per_action_seconds`` /
+            # ``auto_random_on_timeout`` mirror the game's
+            # ``VetoConfiguration`` so the sweeper task has everything it
+            # needs without a second query.
+            "time_per_action_seconds": veto_time,
+            "auto_random_on_timeout": veto_auto,
+            "step_expires_at": None,
         },
         "direct_ready": {"1": False, "2": False},
         "presence": {"1": {}, "2": {}},
@@ -1083,6 +1323,11 @@ def _build_default_workflow(
         "result_status": "pending",
         "final_result": None,
     }
+    # P2.C — series view. Always present (BO1 is just a trivial series of 1).
+    # Derived from match.game_scores so it stays consistent if game results
+    # are written via the separate MatchService.submit_game_score path too.
+    base["series"] = _compute_series_view(match, base)
+    return base
 
 
 def _ensure_match_workflow(match: Match, persist: bool = False) -> Tuple[Dict[str, Any], Dict[str, Any], Dict[str, Any], bool]:
@@ -1093,9 +1338,15 @@ def _ensure_match_workflow(match: Match, persist: bool = False) -> Tuple[Dict[st
     phase_mode = _resolve_phase_mode(match, game_profile)
 
     best_of = int(getattr(match, "best_of", 1) or 1)
-    map_pool = _load_config_map_pool(match)
-    if not map_pool:
-        map_pool = _get_map_pool_for_game(game_key) or _get_map_pool_for_game(game_slug)
+    # Single resolution point — tournament override → game default → legacy
+    # fallback dict, all inside config_resolver. If everything's empty, fall
+    # back to placeholder labels so the UI can still render.
+    from apps.games.services.config_resolver import resolve_map_pool, resolve_map_pool_by_game_slug
+    map_pool = resolve_map_pool(match)
+    if not map_pool and game_key:
+        # Some pipelines normalize the game identifier to a canonical_game_key
+        # distinct from game.slug; cover that path too.
+        map_pool = resolve_map_pool_by_game_slug(game_key)
     if not map_pool:
         map_pool = ["Map 1", "Map 2", "Map 3", "Map 4", "Map 5"]
 
@@ -1522,6 +1773,10 @@ def _build_room_payload(
 
     workflow_payload["result_submissions"] = masked_submissions
     workflow_payload["result_visibility"] = result_visibility
+    # P2.C — always recompute series view from canonical match.game_scores so
+    # game results recorded via either path (workflow submit_result or
+    # MatchService.submit_game_score) project consistently to clients.
+    workflow_payload["series"] = _compute_series_view(match, workflow_payload)
 
     participant_media = _participant_media_map(match)
     match_rules = _build_match_rules(match, runtime)
@@ -2282,6 +2537,14 @@ class MatchRoomWorkflowView(LoginRequiredMixin, View):
 
             if phase == "coin_toss":
                 workflow["phase"] = _next_phase("coin_toss")
+                # If the next phase is phase1 with veto, this is the first
+                # moment a step is actually waiting on a participant — start
+                # the timer now so the sweeper has something to time against.
+                if str(workflow.get("phase")) == "phase1":
+                    veto_state = _safe_dict(workflow.get("veto"))
+                    if not veto_state.get("step_expires_at"):
+                        veto_state["step_expires_at"] = _veto_step_expires_at(veto_state)
+                        workflow["veto"] = veto_state
 
             changed = True
             message = f"Coin toss resolved. Side {winner_side} won first control."
@@ -2304,8 +2567,13 @@ class MatchRoomWorkflowView(LoginRequiredMixin, View):
             veto = _safe_dict(workflow.get("veto"))
             sequence = veto.get("sequence")
             if not isinstance(sequence, list) or not sequence:
-                sequence = _default_veto_sequence(int(runtime["best_of"]))
+                # Defensive on-demand init for workflows that predate
+                # _build_default_workflow seeding the timer fields.
+                resolved_seq, resolved_time, resolved_auto = _resolve_veto_template(match, int(runtime["best_of"]))
+                sequence = resolved_seq
                 veto["sequence"] = sequence
+                veto.setdefault("time_per_action_seconds", resolved_time)
+                veto.setdefault("auto_random_on_timeout", resolved_auto)
 
             step = int(veto.get("step") or 0)
             if step >= len(sequence):
@@ -2351,6 +2619,10 @@ class MatchRoomWorkflowView(LoginRequiredMixin, View):
                     veto["selected_map"] = remaining[0]
                     if remaining[0] not in picks:
                         picks.append(remaining[0])
+
+            # P2.B — re-prime (or clear) the per-step timer. Returns None when
+            # the sequence is complete; sweeper task skips matches with None.
+            veto["step_expires_at"] = _veto_step_expires_at(veto)
 
             workflow["veto"] = veto
 
@@ -2546,6 +2818,96 @@ class MatchRoomWorkflowView(LoginRequiredMixin, View):
                 if mirrored:
                     p1_score = int(side_1.get("score_for", 0))
                     p2_score = int(side_1.get("score_against", 0))
+                    best_of = int(getattr(match, "best_of", 1) or 1)
+
+                    # ─── P2.C — BO3/BO5 per-game progression ─────────────
+                    # When best_of > 1, the mirrored submission represents
+                    # ONE game in the series, not a whole match. Append to
+                    # match.game_scores via the canonical helper, then either
+                    # advance to the next game or finalize the series.
+                    if best_of > 1:
+                        if p1_score == p2_score:
+                            raise ValueError(
+                                "Individual games in a series cannot end in a draw."
+                            )
+                        game_winner = 1 if p1_score > p2_score else 2
+                        # Confirm the per-game submission rows so OCR / dispute
+                        # paths in P3 can attribute evidence to a specific game.
+                        for side_sub in (sub_1, sub_2):
+                            if not side_sub:
+                                continue
+                            side_sub.status = MatchResultSubmission.STATUS_CONFIRMED
+                            side_sub.confirmed_at = timezone.now()
+                            side_sub.confirmed_by_user_id = access.get("user_id")
+                            side_sub.save(update_fields=["status", "confirmed_at", "confirmed_by_user"])
+                        series_view = _record_series_game(
+                            match,
+                            workflow,
+                            p1_score=p1_score,
+                            p2_score=p2_score,
+                            winner_slot=game_winner,
+                        )
+                        wins_needed = int(series_view["wins_needed"])
+                        p1_wins = int(series_view["p1_wins"])
+                        p2_wins = int(series_view["p2_wins"])
+
+                        if p1_wins >= wins_needed or p2_wins >= wins_needed:
+                            # Series complete — series score = game wins per side.
+                            match.participant1_score = p1_wins
+                            match.participant2_score = p2_wins
+                            winner_side = 1 if p1_wins > p2_wins else 2
+                            match.winner_id = (
+                                match.participant1_id if winner_side == 1 else match.participant2_id
+                            )
+                            match.loser_id = (
+                                match.participant2_id if winner_side == 1 else match.participant1_id
+                            )
+                            match.state = Match.COMPLETED
+                            if not match.completed_at:
+                                match.completed_at = timezone.now()
+                            for side_sub in (sub_1, sub_2):
+                                if not side_sub:
+                                    continue
+                                side_sub.status = MatchResultSubmission.STATUS_FINALIZED
+                                side_sub.finalized_at = timezone.now()
+                                side_sub.save(update_fields=["status", "finalized_at"])
+                            workflow["result_status"] = "verified"
+                            workflow["phase"] = "completed"
+                            workflow["final_result"] = {
+                                "participant1_score": p1_wins,
+                                "participant2_score": p2_wins,
+                                "winner_side": winner_side,
+                                "series_winner_slot": winner_side,
+                                "games": list(series_view.get("games") or []),
+                                "verified_at": timezone.now().isoformat(),
+                            }
+                            message = (
+                                f"Series complete — side {winner_side} wins "
+                                f"{p1_wins}-{p2_wins}."
+                            )
+                        else:
+                            # Game recorded; advance to next game.
+                            _reset_workflow_for_next_game(workflow, series_view)
+                            # Series continues — overall match stays in
+                            # PENDING_RESULT/LIVE depending on prior state.
+                            if match.state == Match.PENDING_RESULT:
+                                match.state = Match.LIVE
+                            message = (
+                                f"Game {len(series_view['games'])} recorded "
+                                f"({p1_wins}-{p2_wins} series). Next map: "
+                                f"{series_view.get('current_map') or 'pending veto'}."
+                            )
+                        changed = True
+                        return self._workflow_response(
+                            match=match,
+                            access=access,
+                            workflow=workflow,
+                            runtime=runtime,
+                            message=message,
+                            changed=changed,
+                        )
+
+                    # ─── BO1 path (unchanged) ─────────────────────────────
                     match.participant1_score = p1_score
                     match.participant2_score = p2_score
 

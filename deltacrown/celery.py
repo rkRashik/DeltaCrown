@@ -6,6 +6,7 @@ Heavy / high-frequency tasks are gated behind ENABLE_CELERY_BEAT env-var
 so staging or free-tier deploys can disable them entirely.
 """
 import os
+from datetime import timedelta
 from celery import Celery
 from celery.schedules import crontab
 
@@ -124,6 +125,19 @@ _heavy_schedule = {
         'schedule': crontab(minute='*/2'),
         'options': {
             'expires': 120,
+        },
+    },
+
+    # P2.B — Veto step timeout sweeper. 10-second cadence so participants
+    # see auto-pick within 10s of their timer running out. Task itself is
+    # filtered to active match states (SCHEDULED/CHECK_IN/READY) so most
+    # runs scan an empty queryset and exit fast. ``expires=20`` drops stale
+    # runs if the worker is briefly congested.
+    'sweep-veto-timeouts': {
+        'task': 'apps.tournaments.tasks.sweep_veto_timeouts',
+        'schedule': timedelta(seconds=10),
+        'options': {
+            'expires': 20,
         },
     },
 

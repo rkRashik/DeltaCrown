@@ -18,6 +18,7 @@ from datetime import timedelta
 
 from apps.tournaments.models import Tournament, Match, Registration
 from apps.notifications.models import Notification
+from apps.notifications.services import notify as _notify_users
 
 User = get_user_model()
 
@@ -56,34 +57,134 @@ class TournamentNotificationService:
                 pass
 
         return recipients
-    
+
+    # ------------------------------------------------------------------
+    # P0 helpers — recipient resolution for solo vs team registrations.
+    #
+    # The Registration model enforces `user XOR team_id`. Team registrations
+    # have `user=None`; code that reads `.user` directly crashes. These helpers
+    # are the single resolution point for "who should get this notification?"
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _iter_lineup_user_ids(registration: Registration):
+        """Yield distinct user_ids from a registration's lineup_snapshot.
+
+        Tolerates missing snapshots and malformed entries silently — a notif
+        path must never crash on bad data.
+        """
+        snapshot = getattr(registration, 'lineup_snapshot', None) or []
+        if not isinstance(snapshot, list):
+            return
+        seen: set = set()
+        for entry in snapshot:
+            if not isinstance(entry, dict):
+                continue
+            try:
+                uid = int(entry.get('user_id') or 0)
+            except (TypeError, ValueError):
+                continue
+            if uid <= 0 or uid in seen:
+                continue
+            seen.add(uid)
+            yield uid
+
+    @staticmethod
+    def _resolve_recipients(registration: Registration) -> List:
+        """Return User objects to notify for a fan-out notification.
+
+        Solo / guest team: ``[registration.user]``
+        Team: every distinct player listed in ``lineup_snapshot``
+        Malformed (no user, no team, or empty snapshot): ``[]``
+
+        Uses a single ``User.in_bulk`` for team mode — does not loop the DB.
+        """
+        if getattr(registration, 'user_id', None):
+            user = getattr(registration, 'user', None)
+            return [user] if user is not None else []
+        if not getattr(registration, 'team_id', None):
+            return []
+        uids = list(TournamentNotificationService._iter_lineup_user_ids(registration))
+        if not uids:
+            return []
+        return [u for u in User.objects.in_bulk(uids).values() if u is not None]
+
+    @staticmethod
+    def _resolve_primary_contact(registration: Registration):
+        """Return the single User who is the registration's contact.
+
+        Used by notifications that target ONE person per registration —
+        payment confirmations, waitlist offer, refund receipt, rejection
+        explanation. Solo regs: the user. Team regs: the tournament captain
+        (TeamMembership.is_tournament_captain=True). Falls back to the first
+        player in lineup_snapshot. Returns None if nothing resolves — caller
+        must early-return.
+        """
+        if getattr(registration, 'user_id', None):
+            return getattr(registration, 'user', None)
+        team_id = getattr(registration, 'team_id', None)
+        if not team_id:
+            return None
+        try:
+            from apps.organizations.models import TeamMembership
+            m = (
+                TeamMembership.objects
+                .filter(
+                    team_id=team_id,
+                    is_tournament_captain=True,
+                    status=TeamMembership.Status.ACTIVE,
+                )
+                .select_related('user')
+                .first()
+            )
+            if m and m.user_id:
+                return m.user
+        except Exception:
+            pass
+        for uid in TournamentNotificationService._iter_lineup_user_ids(registration):
+            try:
+                return User.objects.filter(id=uid).first()
+            except Exception:
+                return None
+        return None
+
     @staticmethod
     def notify_registration_confirmed(registration: Registration):
-        """Send confirmation email when registration is approved"""
+        """Confirm registration to every player on the roster.
+
+        Solo regs notify the registrant. Team regs fan out to all
+        ``lineup_snapshot`` players (in-app) and email the captain only.
+        """
         tournament = registration.tournament
-        user = registration.user
-        
-        # Create in-app notification
-        Notification.objects.create(
-            user=user,
+        recipients = TournamentNotificationService._resolve_recipients(registration)
+        if not recipients:
+            return
+
+        _notify_users(
+            recipients=recipients,
+            event='registration_confirmed',
             title=f"Registration Confirmed: {tournament.name}",
-            message=f"Your registration for {tournament.name} has been confirmed! Good luck!",
-            notification_type='tournament',
-            link=f"/tournaments/{tournament.slug}/",
-            icon='🎮'
+            body=f"Your registration for {tournament.name} has been confirmed. Good luck!",
+            url=f"/tournaments/{tournament.slug}/",
+            tournament=tournament,
         )
-        
-        # Send email
-        subject = f"✅ Registration Confirmed - {tournament.name}"
-        html_message = render_to_string('tournaments/emails/registration_confirmed.html', {
-            'user': user,
-            'tournament': tournament,
-            'registration': registration
-        })
-        
-        send_mass_mail([
-            (subject, '', settings.DEFAULT_FROM_EMAIL, [user.email])
-        ], html_message=html_message, fail_silently=True)
+
+        contact = TournamentNotificationService._resolve_primary_contact(registration)
+        if not contact or not getattr(contact, 'email', ''):
+            return
+        try:
+            html_message = render_to_string('tournaments/emails/registration_confirmed.html', {
+                'user': contact,
+                'tournament': tournament,
+                'registration': registration,
+            })
+            send_mass_mail([
+                (f"✅ Registration Confirmed - {tournament.name}", '',
+                 settings.DEFAULT_FROM_EMAIL, [contact.email])
+            ], html_message=html_message, fail_silently=True)
+        except Exception:
+            # Email is best-effort; in-app already delivered.
+            pass
     
     @staticmethod
     def notify_match_scheduled(match: Match):
@@ -454,91 +555,90 @@ class TournamentNotificationService:
     
     @staticmethod
     def notify_added_to_waitlist(registration: Registration):
+        """Notify the registration contact they've been waitlisted.
+
+        Single-recipient (captain for team regs) — waitlist is for the
+        registration as a unit, not per-player.
         """
-        Notify participant they've been added to the waitlist.
-        
-        Args:
-            registration: Registration that was waitlisted
-        """
-        user = registration.user
         tournament = registration.tournament
-        
-        # Create in-app notification
-        Notification.objects.create(
-            user=user,
+        contact = TournamentNotificationService._resolve_primary_contact(registration)
+        if not contact:
+            return
+
+        position = getattr(registration, 'waitlist_position', '') or ''
+        _notify_users(
+            recipients=[contact],
+            event='waitlist_added',
             title=f"Added to Waitlist: {tournament.name}",
-            message=f"Tournament is full. You're #{registration.waitlist_position} on the waitlist. We'll notify you if a spot opens up!",
-            notification_type='tournament',
-            link=f"/tournaments/{tournament.slug}/",
-            icon='⏳'
+            body=(
+                f"Tournament is full. You're #{position} on the waitlist. "
+                "We'll notify you if a spot opens up."
+            ),
+            url=f"/tournaments/{tournament.slug}/",
+            tournament=tournament,
         )
-        
-        # Send email
+
+        if not getattr(contact, 'email', ''):
+            return
         from django.core.mail import send_mail
-        from django.conf import settings
-        
-        subject = f"Waitlisted - {tournament.name}"
-        message = f"Hi {user.username},\n\nThe tournament '{tournament.name}' is currently full. You've been added to the waitlist at position #{registration.waitlist_position}.\n\nWe'll notify you immediately if a spot becomes available!\n\nBest regards,\nThe DeltaCrown Team"
-        
         try:
             send_mail(
-                subject=subject,
-                message=message,
+                subject=f"Waitlisted - {tournament.name}",
+                message=(
+                    f"Hi {contact.username},\n\n"
+                    f"The tournament '{tournament.name}' is currently full. "
+                    f"You've been added to the waitlist at position #{position}.\n\n"
+                    "We'll notify you immediately if a spot becomes available!\n\n"
+                    "Best regards,\nThe DeltaCrown Team"
+                ),
                 from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[user.email],
-                fail_silently=True
+                recipient_list=[contact.email],
+                fail_silently=True,
             )
         except Exception:
-            pass  # Don't fail if email fails
+            pass
     
     @staticmethod
     def notify_payment_pending(registration: Registration):
+        """Notify the contact that their payment is being verified.
+
+        Single-recipient (captain for team regs) — payment is registrant-scoped.
         """
-        Notify participant their payment is being verified.
-        
-        Args:
-            registration: Registration with pending payment
-        """
-        user = registration.user
         tournament = registration.tournament
-        payment = registration.payment
-        
-        # Create in-app notification
-        Notification.objects.create(
-            user=user,
+        contact = TournamentNotificationService._resolve_primary_contact(registration)
+        if not contact:
+            return
+
+        _notify_users(
+            recipients=[contact],
+            event='payment_pending',
             title=f"Payment Received: {tournament.name}",
-            message="Your payment proof is being reviewed. You'll be notified once verified (usually 1-6 hours).",
-            notification_type='tournament',
-            link=f"/tournaments/{tournament.slug}/",
-            icon='⏱'
+            body="Your payment proof is being reviewed. You'll be notified once verified (usually 1-6 hours).",
+            url=f"/tournaments/{tournament.slug}/",
+            tournament=tournament,
         )
-        
-        # Send email
+
+        if not getattr(contact, 'email', ''):
+            return
         from django.core.mail import send_mail
-        from django.template.loader import render_to_string
-        from django.conf import settings
-        
-        subject = f"Payment Received - {tournament.name}"
-        
-        html_message = render_to_string('tournaments/emails/payment_pending.html', {
-            'user': user,
-            'tournament': tournament,
-            'registration': registration,
-            'payment': payment,
-            'registration_url': f"{settings.SITE_URL}/tournaments/{tournament.slug}/"
-        })
-        
         try:
+            html_message = render_to_string('tournaments/emails/payment_pending.html', {
+                'user': contact,
+                'tournament': tournament,
+                'registration': registration,
+                'payment': getattr(registration, 'payment', None),
+                'registration_url': f"{settings.SITE_URL}/tournaments/{tournament.slug}/",
+            })
             send_mail(
-                subject=subject,
+                subject=f"Payment Received - {tournament.name}",
                 message="Your payment proof has been received and is being verified.",
                 from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[user.email],
+                recipient_list=[contact.email],
                 html_message=html_message,
-                fail_silently=True
+                fail_silently=True,
             )
         except Exception:
-            pass  # Don't fail if email fails
+            pass
     
     @staticmethod
     def notify_payment_submitted_organizer(registration: Registration):
@@ -576,34 +676,37 @@ class TournamentNotificationService:
             registration: Registration whose payment was rejected
             reason: Rejection reason shown to the participant
         """
-        user = registration.user
-        if not user:
-            return
-
         tournament = registration.tournament
+        contact = TournamentNotificationService._resolve_primary_contact(registration)
+        if not contact:
+            return
         detail = f" Reason: {reason}" if reason else ""
 
-        Notification.objects.create(
-            user=user,
+        _notify_users(
+            recipients=[contact],
+            event='payment_rejected',
             title=f"❌ Payment Rejected: {tournament.name}",
-            message=f"Your payment for {tournament.name} was rejected.{detail} Please resubmit with a valid proof.",
-            notification_type='tournament',
-            link=f"/tournaments/registration/{registration.id}/payment/complete/",
-            icon='❌',
-            priority='high',
+            body=(
+                f"Your payment for {tournament.name} was rejected.{detail} "
+                "Please resubmit with a valid proof."
+            ),
+            url=f"/tournaments/registration/{registration.id}/payment/complete/",
+            tournament=tournament,
         )
 
+        if not getattr(contact, 'email', ''):
+            return
         from django.core.mail import send_mail
         try:
             send_mail(
                 subject=f"Payment Rejected – {tournament.name}",
                 message=(
-                    f"Hi {user.username},\n\n"
+                    f"Hi {contact.username},\n\n"
                     f"Your payment for {tournament.name} was rejected.{detail}\n\n"
-                    f"Please log in and resubmit your payment proof.\n\nDeltaCrown Team"
+                    "Please log in and resubmit your payment proof.\n\nDeltaCrown Team"
                 ),
                 from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[user.email],
+                recipient_list=[contact.email],
                 fail_silently=True,
             )
         except Exception:
@@ -618,33 +721,37 @@ class TournamentNotificationService:
             registration: Registration that was refunded
             refund_amount: Optional human-readable amount string (e.g. "৳500")
         """
-        user = registration.user
-        if not user:
-            return
-
         tournament = registration.tournament
+        contact = TournamentNotificationService._resolve_primary_contact(registration)
+        if not contact:
+            return
         amount_str = f" of {refund_amount}" if refund_amount else ""
 
-        Notification.objects.create(
-            user=user,
+        _notify_users(
+            recipients=[contact],
+            event='refund_processed',
             title=f"💰 Refund Processed: {tournament.name}",
-            message=f"Your refund{amount_str} for {tournament.name} has been processed. It may take 3-5 business days to reflect.",
-            notification_type='tournament',
-            link=f"/tournaments/{tournament.slug}/",
-            icon='💰',
+            body=(
+                f"Your refund{amount_str} for {tournament.name} has been processed. "
+                "It may take 3-5 business days to reflect."
+            ),
+            url=f"/tournaments/{tournament.slug}/",
+            tournament=tournament,
         )
 
+        if not getattr(contact, 'email', ''):
+            return
         from django.core.mail import send_mail
         try:
             send_mail(
                 subject=f"Refund Processed – {tournament.name}",
                 message=(
-                    f"Hi {user.username},\n\n"
+                    f"Hi {contact.username},\n\n"
                     f"Your refund{amount_str} for {tournament.name} has been processed.\n"
-                    f"Please allow 3-5 business days for it to appear.\n\nDeltaCrown Team"
+                    "Please allow 3-5 business days for it to appear.\n\nDeltaCrown Team"
                 ),
                 from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[user.email],
+                recipient_list=[contact.email],
                 fail_silently=True,
             )
         except Exception:
@@ -815,41 +922,41 @@ class TournamentNotificationService:
             registration: Registration that was disqualified
             reason: Human-readable disqualification reason
         """
-        user = registration.user
         tournament = registration.tournament
+        recipients = TournamentNotificationService._resolve_recipients(registration)
+        if not recipients:
+            return
 
-        # In-app notification
-        Notification.objects.create(
-            user=user,
+        reason_clause = (f"Reason: {reason}" if reason
+                         else "Please contact the organizer for details.")
+        _notify_users(
+            recipients=recipients,
+            event='registration_disqualified',
             title=f"Registration Disqualified: {tournament.name}",
-            message=(
+            body=(
                 f"Your registration for {tournament.name} has been disqualified. "
-                + (f"Reason: {reason}" if reason else "Please contact the organizer for details.")
+                f"{reason_clause}"
             ),
-            notification_type='tournament',
-            link=f"/tournaments/{tournament.slug}/",
-            icon='🚫',
-            priority='high'
+            url=f"/tournaments/{tournament.slug}/",
+            tournament=tournament,
         )
 
-        # Email notification
+        # Email captain only to avoid mass-emailing the whole roster.
+        contact = TournamentNotificationService._resolve_primary_contact(registration)
+        if not contact or not getattr(contact, 'email', ''):
+            return
         from django.core.mail import send_mail
-        from django.conf import settings
-
-        subject = f"Registration Disqualified — {tournament.name}"
-        body = (
-            f"Hi {user.get_full_name() or user.username},\n\n"
-            f"Your registration for {tournament.name} has been disqualified.\n"
-            + (f"Reason: {reason}\n\n" if reason else "\n")
-            + "Please contact the tournament organizer if you have questions."
-        )
-
         try:
             send_mail(
-                subject=subject,
-                message=body,
+                subject=f"Registration Disqualified — {tournament.name}",
+                message=(
+                    f"Hi {contact.get_full_name() or contact.username},\n\n"
+                    f"Your registration for {tournament.name} has been disqualified.\n"
+                    + (f"Reason: {reason}\n\n" if reason else "\n")
+                    + "Please contact the tournament organizer if you have questions."
+                ),
                 from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[user.email],
+                recipient_list=[contact.email],
                 fail_silently=True,
             )
         except Exception:

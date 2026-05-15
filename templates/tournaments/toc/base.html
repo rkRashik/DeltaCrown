@@ -1754,6 +1754,11 @@
                                         {# Two team panels — populated by JS. #}
                                         <div id="team-5v5-panel-a" class="rounded-lg border border-dc-border/50 bg-dc-bg/40 overflow-hidden"></div>
                                         <div id="team-5v5-panel-b" class="rounded-lg border border-dc-border/50 bg-dc-bg/40 overflow-hidden"></div>
+                                        <div class="flex items-center justify-end pt-1">
+                                            <button id="team-5v5-save-btn" type="button" data-click="TOC.matches.saveTeam5v5Stats" class="px-3 py-2 bg-emerald-500/15 border border-emerald-500/30 text-emerald-200 text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-emerald-500/25 transition-colors flex items-center gap-1.5">
+                                                <i data-lucide="save" class="w-3.5 h-3.5"></i><span>Save Player Stats</span>
+                                            </button>
+                                        </div>
                                     </div>
 
                                     {% comment %}AI Score Extractor — Gemini Vision OCR for sports / 1v1 result screens. Hidden on BR lobby sessions (those use the dedicated BR endpoint).{% endcomment %}
