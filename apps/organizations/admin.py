@@ -22,6 +22,12 @@ from apps.organizations.models import (
     TeamRanking,
     TeamRankingAdjustmentLog,
     TeamActivityLog,
+    ScrimRequest,
+    ScrimBooking,
+    TryoutApplication,
+    TryoutSession,
+    PracticeSession,
+    VodReview,
 )
 
 
@@ -381,6 +387,154 @@ class TeamActivityLogAdmin(ModelAdmin):
     def has_delete_permission(self, request, obj=None):
         """Disable deleting activity logs."""
         return False
+
+
+@admin.register(ScrimRequest)
+class ScrimRequestAdmin(ModelAdmin):
+    """Admin visibility for non-reward Team HQ scrim requests."""
+
+    list_display = [
+        'id',
+        'requesting_team',
+        'accepted_team',
+        'game',
+        'format',
+        'scheduled_at',
+        'visibility',
+        'status',
+    ]
+    list_filter = ['status', 'visibility', 'format', 'game', 'scheduled_at']
+    search_fields = ['requesting_team__name', 'accepted_team__name', 'title', 'notes']
+    raw_id_fields = ['requesting_team', 'accepted_team', 'game', 'created_by']
+    readonly_fields = ['created_at', 'updated_at']
+    ordering = ['-scheduled_at']
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related(
+            'requesting_team', 'accepted_team', 'game', 'created_by',
+        )
+
+
+@admin.register(ScrimBooking)
+class ScrimBookingAdmin(ModelAdmin):
+    """Admin visibility for booked scrims."""
+
+    list_display = [
+        'id',
+        'requesting_team',
+        'accepted_team',
+        'scheduled_at',
+        'status',
+        'match_room_link',
+        'created_at',
+    ]
+    list_filter = ['status', 'scheduled_at', 'created_at']
+    search_fields = ['requesting_team__name', 'accepted_team__name', 'room_details']
+    raw_id_fields = ['scrim_request', 'requesting_team', 'accepted_team', 'accepted_by', 'match']
+    readonly_fields = ['created_at', 'updated_at', 'match_room_link']
+    ordering = ['-scheduled_at']
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related(
+            'requesting_team', 'accepted_team', 'scrim_request', 'match', 'match__tournament',
+        )
+
+    def match_room_link(self, obj):
+        if not obj.match_id or not obj.match.tournament_id:
+            return '-'
+        return format_html(
+            '<a href="/tournaments/{}/matches/{}/room/" target="_blank">Match Room #{}</a>',
+            obj.match.tournament.slug,
+            obj.match_id,
+            obj.match_id,
+        )
+    match_room_link.short_description = 'Match Room'
+
+
+@admin.register(TryoutApplication)
+class TryoutApplicationAdmin(ModelAdmin):
+    """Admin visibility for canonical tryout applications."""
+
+    list_display = [
+        'id',
+        'team',
+        'applicant',
+        'preferred_role',
+        'rank_tier',
+        'status',
+        'reviewed_by',
+        'created_at',
+    ]
+    list_filter = ['status', 'game', 'created_at']
+    search_fields = ['team__name', 'applicant__username', 'ign', 'preferred_role', 'rank_tier']
+    raw_id_fields = ['team', 'applicant', 'invited_by', 'game', 'reviewed_by']
+    readonly_fields = ['created_at', 'updated_at']
+    ordering = ['-created_at']
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related(
+            'team', 'applicant', 'invited_by', 'game', 'reviewed_by',
+        )
+
+
+@admin.register(TryoutSession)
+class TryoutSessionAdmin(ModelAdmin):
+    """Admin visibility for scheduled tryout sessions."""
+
+    list_display = ['id', 'team', 'applicant', 'scheduled_at', 'status', 'match_room_link']
+    list_filter = ['status', 'scheduled_at']
+    search_fields = ['team__name', 'applicant__username', 'format', 'review_notes']
+    raw_id_fields = ['application', 'team', 'applicant', 'scheduled_by', 'match']
+    readonly_fields = ['created_at', 'updated_at', 'match_room_link']
+    ordering = ['-scheduled_at']
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related(
+            'application', 'team', 'applicant', 'scheduled_by', 'match', 'match__tournament',
+        )
+
+    def match_room_link(self, obj):
+        if not obj.match_id or not obj.match.tournament_id:
+            return '-'
+        return format_html(
+            '<a href="/tournaments/{}/matches/{}/room/" target="_blank">Match Room #{}</a>',
+            obj.match.tournament.slug,
+            obj.match_id,
+            obj.match_id,
+        )
+    match_room_link.short_description = 'Match Room'
+
+
+@admin.register(PracticeSession)
+class PracticeSessionAdmin(ModelAdmin):
+    """Admin visibility for internal team practice sessions."""
+
+    list_display = ['id', 'team', 'title', 'game', 'session_type', 'scheduled_at', 'status']
+    list_filter = ['status', 'session_type', 'game', 'scheduled_at']
+    search_fields = ['team__name', 'title', 'focus', 'goals']
+    raw_id_fields = ['team', 'game', 'created_by', 'match']
+    filter_horizontal = ['participants']
+    readonly_fields = ['created_at', 'updated_at']
+    ordering = ['-scheduled_at']
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('team', 'game', 'created_by')
+
+
+@admin.register(VodReview)
+class VodReviewAdmin(ModelAdmin):
+    """Admin visibility for Team HQ VOD reviews."""
+
+    list_display = ['id', 'team', 'title', 'category', 'reviewer', 'visibility', 'status', 'created_at']
+    list_filter = ['status', 'visibility', 'category', 'created_at']
+    search_fields = ['team__name', 'title', 'notes', 'external_url']
+    raw_id_fields = ['team', 'reviewer', 'linked_match']
+    filter_horizontal = ['assigned_players']
+    readonly_fields = ['created_at', 'updated_at']
+    ordering = ['-created_at']
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('team', 'reviewer', 'linked_match')
 
 
 # ============================================================================

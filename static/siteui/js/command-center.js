@@ -37,6 +37,9 @@ document.addEventListener('alpine:init', () => {
       // Challenges & Bounties state
       challenges:     raw.challenges     || [],
       bounties:       raw.bounties       || [],
+      teamApplications: raw.teamApplications || [],
+      teamApplicationsLoading: false,
+      teamApplicationsError: '',
 
       // Polling state
       _notifPollTimer: null,
@@ -46,6 +49,7 @@ document.addEventListener('alpine:init', () => {
         this._refreshRelativeTimes();
         this._startClockUpdates();
         this._startNotifPolling();
+        this.loadTeamApplications();
       },
 
       destroy() {
@@ -153,6 +157,83 @@ document.addEventListener('alpine:init', () => {
             window.showToast({ type: 'error', message: 'Network error. Please try again.' });
           }
         }
+      },
+
+      async loadTeamApplications() {
+        this.teamApplicationsLoading = true;
+        this.teamApplicationsError = '';
+        try {
+          const res = await fetch('/api/vnext/me/team-applications/', {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            credentials: 'same-origin',
+          });
+          const data = await res.json();
+          if (!res.ok || !data.success) {
+            throw new Error(data.error || 'Unable to load team applications.');
+          }
+          this.teamApplications = Array.isArray(data.results) ? data.results : [];
+        } catch (err) {
+          console.warn('[CC] team applications failed', err);
+          this.teamApplicationsError = err && err.message ? err.message : 'Unable to load team applications.';
+        } finally {
+          this.teamApplicationsLoading = false;
+        }
+      },
+
+      async handleTeamApplicationAction(item, action) {
+        if (!action || !action.url || !action.action) return;
+        try {
+          const res = await fetch(action.url, {
+            method: 'POST',
+            headers: {
+              'X-CSRFToken': this._csrf(),
+              'Content-Type': 'application/json',
+              'X-Requested-With': 'XMLHttpRequest',
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify({ action: action.action }),
+          });
+          const data = await res.json();
+          if (!res.ok || !data.success) {
+            throw new Error(data.error || 'Action failed.');
+          }
+          if (window.showToast) {
+            window.showToast({ type: 'success', message: data.message || 'Application updated.' });
+          }
+          await this.loadTeamApplications();
+        } catch (err) {
+          console.error('[CC] team application action failed', err);
+          if (window.showToast) {
+            window.showToast({ type: 'error', message: err && err.message ? err.message : 'Action failed.' });
+          }
+        }
+      },
+
+      teamApplicationStatusClass(item) {
+        const status = item && item.status ? item.status : '';
+        if (status === 'Offer Sent') return 'bg-dc-warning/10 text-dc-warning border border-dc-warning/20';
+        if (status === 'Accepted / Signed') return 'bg-dc-success/10 text-dc-success border border-dc-success/20';
+        if (status === 'Declined / Not Selected' || status === 'Withdrawn / Closed') return 'bg-white/[0.04] text-dc-textMuted border border-white/[0.08]';
+        if (status === 'Tryout Scheduled') return 'bg-dc-accent/10 text-dc-accent border border-dc-accent/20';
+        return 'bg-white/[0.06] text-white border border-white/[0.1]';
+      },
+
+      teamApplicationIcon(item) {
+        if (!item || item.source_type !== 'tryout') return 'fa-solid fa-user-plus';
+        if (item.status === 'Tryout Scheduled') return 'fa-solid fa-calendar-check';
+        if (item.status === 'Offer Sent') return 'fa-solid fa-file-signature';
+        return 'fa-solid fa-crosshairs';
+      },
+
+      formatDateTime(value) {
+        const date = this._parseIsoDate(value);
+        if (!date) return '';
+        return date.toLocaleString([], {
+          month: 'short',
+          day: 'numeric',
+          hour: 'numeric',
+          minute: '2-digit',
+        });
       },
 
       navigateAction(item) {

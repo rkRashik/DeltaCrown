@@ -10,6 +10,7 @@ from urllib.parse import quote
 from django.contrib.auth.models import User
 from django.conf import settings
 from django.utils.html import escape
+from django.utils import timezone
 from django.core.cache import cache
 
 from apps.organizations.models import Team  # vNext Team model (Phase 2B migration)
@@ -141,6 +142,7 @@ def get_team_detail_context(
         ),
         'follow': _build_follow_context(team, viewer),
         'page': _build_page_context(team, request),
+        'training': _build_training_context(team, viewer, is_private_restricted),
     }
     
     return context
@@ -760,6 +762,214 @@ def _build_recruitment_context(team: Team, is_restricted: bool) -> Dict[str, Any
     }
 
 
+def _build_training_context(team: Team, viewer: Optional[User], is_restricted: bool) -> Dict[str, Any]:
+    """
+    Public-safe Team HQ training summary.
+
+    Exposes only discovery data that belongs on a public team page. Private
+    training notes, room details, review notes, and internal sessions stay in
+    the Team HQ API.
+    """
+    context = {
+        'tryouts_enabled': False,
+        'general_recruitment_enabled': False,
+        'has_open_positions': False,
+        'active_tryout_application': None,
+        'active_join_request': None,
+        'applicant_status': None,
+        'public_scrims': [],
+        'has_public_scrims': False,
+    }
+    if is_restricted:
+        return context
+
+    try:
+        from apps.organizations.models.join_request import TeamJoinRequest
+        from apps.organizations.models.training import (
+            ScrimRequest,
+            TrainingVisibility,
+            TryoutApplication,
+        )
+
+        has_open_positions = False
+        try:
+            from apps.organizations.models.recruitment import RecruitmentPosition
+            has_open_positions = RecruitmentPosition.objects.filter(team=team, is_active=True).exists()
+        except Exception:
+            has_open_positions = False
+
+        is_recruiting = bool(getattr(team, 'is_recruiting', False))
+        context['has_open_positions'] = has_open_positions
+        context['tryouts_enabled'] = bool(is_recruiting and has_open_positions)
+        context['general_recruitment_enabled'] = bool(is_recruiting)
+
+        if viewer and viewer.is_authenticated:
+            tracked_tryout_statuses = [
+                TryoutApplication.Status.PENDING,
+                TryoutApplication.Status.REVIEWING,
+                TryoutApplication.Status.INVITED,
+                TryoutApplication.Status.SCHEDULED,
+                TryoutApplication.Status.OBSERVATION,
+                TryoutApplication.Status.ACCEPTED,
+                TryoutApplication.Status.REJECTED,
+            ]
+            app = (
+                TryoutApplication.objects.filter(
+                    team=team,
+                    applicant=viewer,
+                    status__in=tracked_tryout_statuses,
+                )
+                .select_related('game', 'join_request')
+                .prefetch_related('sessions')
+                .order_by('-created_at')
+                .first()
+            )
+            if app:
+                session = next(iter(app.sessions.all()), None)
+                context['active_tryout_application'] = {
+                    'id': app.pk,
+                    'status': app.status,
+                    'status_label': app.get_status_display(),
+                    'game': app.game.display_name if app.game_id else _safe_game_context(team).get('name', ''),
+                    'created_at': app.created_at,
+                    'scheduled_at': session.scheduled_at if session else None,
+                    'session_status': session.status if session else '',
+                }
+                context['applicant_status'] = _build_tryout_applicant_status(app, team, session)
+
+            active_join_statuses = [
+                TeamJoinRequest.Status.PENDING,
+                TeamJoinRequest.Status.TRYOUT_SCHEDULED,
+                TeamJoinRequest.Status.TRYOUT_COMPLETED,
+                TeamJoinRequest.Status.OFFER_SENT,
+                TeamJoinRequest.Status.ACCEPTED,
+                TeamJoinRequest.Status.DECLINED,
+            ]
+            join_request = (
+                TeamJoinRequest.objects.filter(
+                    team=team,
+                    user=viewer,
+                    status__in=active_join_statuses,
+                )
+                .order_by('-created_at')
+                .first()
+            )
+            if join_request:
+                context['active_join_request'] = {
+                    'id': join_request.pk,
+                    'status': join_request.status,
+                    'status_label': join_request.get_status_display(),
+                    'created_at': join_request.created_at,
+                    'scheduled_at': join_request.tryout_date,
+                    'applied_position': join_request.applied_position,
+                }
+                if not context['applicant_status']:
+                    context['applicant_status'] = _build_join_applicant_status(join_request)
+
+        public_scrims = (
+            ScrimRequest.objects.filter(
+                requesting_team=team,
+                status=ScrimRequest.Status.OPEN,
+                visibility=TrainingVisibility.PUBLIC,
+                scheduled_at__gte=timezone.now(),
+            )
+            .select_related('game')
+            .order_by('scheduled_at')[:3]
+        )
+        context['public_scrims'] = [
+            {
+                'id': scrim.pk,
+                'game': scrim.game.display_name if scrim.game_id else _safe_game_context(team).get('name', ''),
+                'format': scrim.format,
+                'skill_level': scrim.skill_level,
+                'server_region': scrim.server_region,
+                'scheduled_at': scrim.scheduled_at,
+            }
+            for scrim in public_scrims
+        ]
+        context['has_public_scrims'] = bool(context['public_scrims'])
+    except Exception:
+        pass
+
+    return context
+
+
+def _build_tryout_applicant_status(app, team: Team, session=None) -> Dict[str, Any]:
+    join_request = getattr(app, 'join_request', None)
+    if join_request:
+        status = _build_join_applicant_status(join_request)
+        status.update({
+            'kind': 'tryout',
+            'game': app.game.display_name if app.game_id else _safe_game_context(team).get('name', ''),
+            'tryout_application_id': app.pk,
+        })
+        return status
+
+    label_map = {
+        'PENDING': 'Tryout Applied',
+        'REVIEWING': 'Under Review',
+        'INVITED': 'Tryout Invite',
+        'SCHEDULED': 'Tryout Scheduled',
+        'OBSERVATION': 'Under Review',
+        'ACCEPTED': 'Offer Sent',
+        'REJECTED': 'Not Selected',
+    }
+    detail_map = {
+        'PENDING': 'Your tryout application is waiting for team review.',
+        'REVIEWING': 'The team is reviewing your application.',
+        'INVITED': 'The team has invited you for a tryout.',
+        'SCHEDULED': 'Your tryout session has been scheduled.',
+        'OBSERVATION': 'The team is keeping your application under observation.',
+        'ACCEPTED': 'The team accepted your tryout evaluation. Follow the join process for roster membership.',
+        'REJECTED': 'The team did not select this application.',
+    }
+    return {
+        'has_any': True,
+        'kind': 'tryout',
+        'title': label_map.get(app.status, app.get_status_display()),
+        'status': app.status,
+        'status_label': app.get_status_display(),
+        'detail': detail_map.get(app.status, ''),
+        'game': app.game.display_name if app.game_id else _safe_game_context(team).get('name', ''),
+        'scheduled_at': session.scheduled_at if session else None,
+        'created_at': app.created_at,
+    }
+
+
+def _build_join_applicant_status(join_request) -> Dict[str, Any]:
+    label_map = {
+        'PENDING': 'Join Request Pending',
+        'TRYOUT_SCHEDULED': 'Tryout Scheduled',
+        'TRYOUT_COMPLETED': 'Tryout Completed',
+        'OFFER_SENT': 'Offer Sent',
+        'ACCEPTED': 'Offer Accepted',
+        'DECLINED': 'Offer Declined',
+    }
+    detail_map = {
+        'PENDING': 'Your join request is waiting for team review.',
+        'TRYOUT_SCHEDULED': 'A tryout has been scheduled through the join pipeline.',
+        'TRYOUT_COMPLETED': 'Your tryout is complete and waiting for team decision.',
+        'OFFER_SENT': 'The team has sent a membership offer.',
+        'ACCEPTED': 'You accepted the offer and joined the team roster.',
+        'DECLINED': 'You declined this team offer.',
+    }
+    return {
+        'has_any': True,
+        'kind': 'join_request',
+        'join_request_id': join_request.pk,
+        'title': label_map.get(join_request.status, join_request.get_status_display()),
+        'status': join_request.status,
+        'status_label': join_request.get_status_display(),
+        'detail': detail_map.get(join_request.status, ''),
+        'scheduled_at': join_request.tryout_date,
+        'created_at': join_request.created_at,
+        'applied_position': join_request.applied_position,
+        'can_accept_offer': join_request.status == 'OFFER_SENT',
+        'can_decline_offer': join_request.status == 'OFFER_SENT',
+        'offer_action_url': f'/api/vnext/teams/{join_request.team.slug}/apply/offers/{join_request.pk}/',
+    }
+
+
 def _build_sponsors_context(team: Team, is_restricted: bool) -> List[Dict[str, Any]]:
     """
     Build sponsors list from team.metadata['sponsors'].
@@ -782,13 +992,26 @@ def _build_pending_actions_context(
     
     Privacy: Returns all-false for anonymous or unauthorized viewers.
     """
-    if not viewer or not viewer.is_authenticated or not is_authorized:
+    if not viewer or not viewer.is_authenticated:
         return {
             'can_request_to_join': False,
             'has_pending_invite': False,
             'has_pending_request': False,
             'pending_invite_id': None,
             'pending_request_id': None,
+            'pending_request_status': None,
+            'pending_request_status_label': '',
+            'pending_join_request_count': 0,
+        }
+    if _is_private_team(team) and not is_authorized:
+        return {
+            'can_request_to_join': False,
+            'has_pending_invite': False,
+            'has_pending_request': False,
+            'pending_invite_id': None,
+            'pending_request_id': None,
+            'pending_request_status': None,
+            'pending_request_status_label': '',
             'pending_join_request_count': 0,
         }
     
@@ -806,8 +1029,14 @@ def _build_pending_actions_context(
     
     # Check for pending join request (vNext TeamJoinRequest)
     from apps.organizations.models.join_request import TeamJoinRequest
+    active_join_statuses = [
+        TeamJoinRequest.Status.PENDING,
+        TeamJoinRequest.Status.TRYOUT_SCHEDULED,
+        TeamJoinRequest.Status.TRYOUT_COMPLETED,
+        TeamJoinRequest.Status.OFFER_SENT,
+    ]
     pending_request = TeamJoinRequest.objects.filter(
-        team=team, user=viewer, status='PENDING',
+        team=team, user=viewer, status__in=active_join_statuses,
     ).first()
     
     # User can request to join if: not a member, no pending invite, no pending request, team is recruiting
@@ -832,6 +1061,8 @@ def _build_pending_actions_context(
         'has_pending_request': pending_request is not None,
         'pending_invite_id': pending_invite.id if pending_invite else None,
         'pending_request_id': pending_request.id if pending_request else None,
+        'pending_request_status': pending_request.status if pending_request else None,
+        'pending_request_status_label': pending_request.get_status_display() if pending_request else '',
         'pending_join_request_count': pending_jr_count,
     }
 
@@ -1150,7 +1381,7 @@ def _build_challenges_context(team: Team, is_restricted: bool) -> Dict[str, Any]
             opponent_name = opponent.name if opponent else 'Open Challenge'
 
             # Category for UI styling
-            category = 'wager' if c.challenge_type == 'WAGER' else (
+            category = 'showdown' if c.challenge_type == 'WAGER' else (
                 'community' if c.challenge_type == 'OPEN' else 'direct'
             )
 

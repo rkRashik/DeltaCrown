@@ -41,6 +41,15 @@ if not _MINIMAL_TEST_APPS:
     from .join_request import TeamJoinRequest
     from .recruitment import RecruitmentPosition, RecruitmentRequirement
     from .journey import TeamJourneyMilestone
+    from .training import (
+        PracticeSession,
+        ScrimBooking,
+        ScrimRequest,
+        TrainingVisibility,
+        TryoutApplication,
+        TryoutSession,
+        VodReview,
+    )
 
     __all__.extend([
         'OrganizationProfile',
@@ -60,4 +69,11 @@ if not _MINIMAL_TEST_APPS:
         'RecruitmentPosition',
         'RecruitmentRequirement',
         'TeamJourneyMilestone',
+        'TrainingVisibility',
+        'ScrimRequest',
+        'ScrimBooking',
+        'TryoutApplication',
+        'TryoutSession',
+        'PracticeSession',
+        'VodReview',
     ])

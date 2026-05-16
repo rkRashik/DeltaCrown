@@ -3,9 +3,9 @@
 Responsibilities:
   * enroll(user, template) — atomic: lock entry fee + create ACTIVE row.
   * record_progress(enrollment, **counters) — verification-engine hook.
-  * complete(enrollment) — payout reward + refund stake.
-  * fail(enrollment) / expire(enrollment) / cancel(enrollment) — forfeit stake.
-  * void(enrollment, reason) — admin remediation, refund stake.
+  * complete(enrollment) — payout reward + refund entry fee.
+  * fail(enrollment) / expire(enrollment) / cancel(enrollment) — close entry fee.
+  * void(enrollment, reason) — admin remediation, refund entry fee.
 """
 from __future__ import annotations
 
@@ -13,14 +13,16 @@ import logging
 from datetime import timedelta
 
 from django.core.exceptions import ValidationError
+from django.core.validators import URLValidator
 from django.db import transaction
 from django.utils import timezone
 
+from apps.common.validators import validate_payment_proof_upload
 from apps.economy import escrow_service
 from apps.economy.models import DeltaCrownWallet
 from apps.economy.services import get_master_treasury
 
-from .models import ContractEnrollment, ContractTemplate
+from .models import ContractEnrollment, ContractProofSubmission, ContractTemplate
 
 
 logger = logging.getLogger(__name__)
@@ -137,7 +139,7 @@ class ContractService:
         wallet = _wallet_for_user(enrollment.user)
         template = enrollment.template
 
-        # Refund the entry-fee stake.
+        # Refund the entry fee.
         if enrollment.escrow_lock_txn_id and template.entry_fee_dc:
             escrow_service.refund_funds(
                 wallet,
@@ -215,7 +217,7 @@ class ContractService:
     @staticmethod
     @transaction.atomic
     def void(*, enrollment_id, actor=None, note='') -> ContractEnrollment:
-        """Admin remediation: refund the entry-fee stake."""
+        """Admin remediation: refund the entry fee."""
         enrollment = ContractEnrollment.objects.select_for_update().select_related('template').get(
             pk=enrollment_id
         )
@@ -346,6 +348,82 @@ class ContractService:
             note=note,
         )
         return enrollment
+
+    @staticmethod
+    @transaction.atomic
+    def submit_proof(
+        *,
+        enrollment_id,
+        user,
+        proof_url: str = '',
+        notes: str = '',
+        proof_file=None,
+    ) -> ContractProofSubmission:
+        """Submit Mission proof for manual review without resolving rewards."""
+        enrollment = ContractEnrollment.objects.select_for_update().get(pk=enrollment_id)
+        if enrollment.user_id != getattr(user, 'id', None):
+            raise ValidationError("Not allowed to submit proof for this Mission.")
+        if enrollment.status != 'ACTIVE':
+            raise ValidationError("Proof can only be submitted for active Missions.")
+        proof_url = (proof_url or '').strip()
+        if not proof_url and not proof_file:
+            raise ValidationError("Proof URL or proof file is required.")
+        if proof_url:
+            URLValidator()(proof_url)
+        if proof_file:
+            validate_payment_proof_upload(proof_file)
+        pending_exists = ContractProofSubmission.objects.filter(
+            enrollment=enrollment,
+            status='PENDING_REVIEW',
+        ).exists()
+        if pending_exists:
+            raise ValidationError("A proof submission is already waiting for review.")
+
+        proof_kwargs = {
+            'enrollment': enrollment,
+            'submitted_by': user,
+            'proof_url': proof_url,
+            'notes': (notes or '').strip(),
+        }
+        if proof_file:
+            proof_kwargs['proof_file'] = proof_file
+        proof = ContractProofSubmission.objects.create(**proof_kwargs)
+        ContractService._log_mission_admin_action(
+            'mission.proof_submitted',
+            enrollment,
+            actor=user,
+            note='Mission proof submitted.',
+            extra={'proof_id': str(proof.pk)},
+        )
+        return proof
+
+    @staticmethod
+    @transaction.atomic
+    def review_proof(*, proof_id, actor, decision: str, note: str = '') -> ContractProofSubmission:
+        """Accept/reject Mission proof without auto-completing the Mission."""
+        proof = (
+            ContractProofSubmission.objects.select_for_update()
+            .select_related('enrollment')
+            .get(pk=proof_id)
+        )
+        if proof.status != 'PENDING_REVIEW':
+            raise ValidationError("Only pending proof can be reviewed.")
+        if decision not in {'ACCEPTED', 'REJECTED'}:
+            raise ValidationError("Invalid proof review decision.")
+
+        proof.status = decision
+        proof.reviewed_by = actor
+        proof.reviewed_at = timezone.now()
+        proof.review_note = note or ''
+        proof.save(update_fields=['status', 'reviewed_by', 'reviewed_at', 'review_note', 'updated_at'])
+        ContractService._log_mission_admin_action(
+            'mission.proof_reviewed',
+            proof.enrollment,
+            actor=actor,
+            note=note,
+            extra={'proof_id': str(proof.pk), 'decision': decision},
+        )
+        return proof
 
     @staticmethod
     def _log_mission_admin_action(event_name, enrollment, *, actor=None, note='', extra=None):

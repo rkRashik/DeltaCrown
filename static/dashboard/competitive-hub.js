@@ -568,6 +568,7 @@
       const fillPct = max ? Math.min(100, Math.round((taken / max) * 100)) : 0;
       const splits = (l.prize_distribution && l.prize_distribution.splits) || {};
       const mode = (l.prize_distribution && l.prize_distribution.mode) || 'PERCENT';
+      const lobbyUrl = `/dashboard/competitive/dropzone/lobbies/${esc(l.id)}/`;
       const splitChips = Object.keys(splits).sort((a, b) => +a - +b).slice(0, 5).map((k) =>
         `<span class="font-mono text-[10px] text-dc-gold">#${esc(k)}: ${esc(splits[k])}${mode === 'PERCENT' ? '%' : ' DC'}</span>`
       ).join('<span class="text-gray-700">&middot;</span>');
@@ -598,10 +599,15 @@
               <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-dc-gold/15 border border-dc-gold/30 text-dc-gold text-[11px] font-mono font-bold"><i class="fa-solid fa-coins"></i> ${fee} DC / slot</span>
               ${splitChips ? `<div class="flex items-center gap-1.5">${splitChips}</div>` : ''}
             </div>
-            <button ${canReserve ? '' : 'disabled'} data-reserve-royale="${esc(l.id)}" data-fee="${fee}"
-                    class="btn-cyber w-full bg-dc-gold hover:bg-yellow-400 text-black font-black uppercase tracking-widest py-3 transition-all ${canReserve ? '' : 'opacity-50 cursor-not-allowed'}">
-              Reserve Slot
-            </button>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <a href="${lobbyUrl}" class="inline-flex items-center justify-center rounded-lg border border-dc-gold/25 bg-dc-gold/10 px-3 py-3 text-xs font-black uppercase tracking-widest text-dc-gold hover:bg-dc-gold/20">
+                View Lobby
+              </a>
+              <button ${canReserve ? '' : 'disabled'} data-reserve-royale="${esc(l.id)}" data-fee="${fee}"
+                      class="btn-cyber w-full bg-dc-gold hover:bg-yellow-400 text-black font-black uppercase tracking-widest py-3 transition-all ${canReserve ? '' : 'opacity-50 cursor-not-allowed'}">
+                Reserve Slot
+              </button>
+            </div>
           </div>
         </div>`;
     }).join('');
@@ -632,6 +638,10 @@
       const fee = Number(op.entry_fee_dc || 0);
       const reward = op.reward_dc != null ? `${Number(op.reward_dc || 0).toLocaleString()} DC reward` : (op.reward_summary || '');
       const actionClass = op.is_action_required ? 'text-dc-cyan border-dc-cyan/30 bg-dc-cyan/10' : 'text-gray-300 border-white/10 bg-white/5';
+      const detailUrl = op.detail_url || '';
+      const showDetailLink = detailUrl && detailUrl !== actionUrl;
+      const lobbyDetailUrl = op.lobby_detail_url || '';
+      const reviewLabel = op.review_state_label || '';
       return `
         <div class="bg-black/40 rounded-lg p-3 border border-white/5 hover:border-white/15 transition group">
           <div class="flex items-start justify-between gap-2 mb-2">
@@ -651,6 +661,7 @@
             ${fee ? `<span class="text-gray-700">&middot;</span><span>${fee.toLocaleString()} DC entry</span>` : ''}
             ${reward ? `<span class="text-gray-700">&middot;</span><span class="text-dc-gold">${esc(reward)}</span>` : ''}
           </div>
+          ${reviewLabel ? `<div class="mb-3 rounded-md border border-white/5 bg-white/[0.03] px-2.5 py-2 text-[10px] font-bold uppercase tracking-widest text-gray-400">${esc(reviewLabel)}</div>` : ''}
           ${isPrimarySubmit ? `
             <button type="button" data-submit-showdown-result="${esc(op.id)}" class="inline-flex items-center justify-center gap-2 w-full rounded-md border px-3 py-2 text-[10px] font-black uppercase tracking-widest ${actionClass}">
               <i class="fa-solid fa-flag-checkered"></i>
@@ -662,6 +673,18 @@
               ${esc(op.next_action_label || 'View Details')}
             </a>
           `}
+          ${showDetailLink ? `
+            <a href="${esc(detailUrl)}" class="mt-2 inline-flex items-center justify-center gap-2 w-full rounded-md border border-white/10 bg-white/[0.03] px-3 py-2 text-[10px] font-black uppercase tracking-widest text-gray-300 hover:text-white hover:border-dc-cyan/30">
+              <i class="fa-solid fa-list-check"></i>
+              View Detail Timeline
+            </a>
+          ` : ''}
+          ${lobbyDetailUrl ? `
+            <a href="${esc(lobbyDetailUrl)}" class="mt-2 inline-flex items-center justify-center gap-2 w-full rounded-md border border-dc-gold/20 bg-dc-gold/10 px-3 py-2 text-[10px] font-black uppercase tracking-widest text-dc-gold hover:bg-dc-gold/20">
+              <i class="fa-solid fa-map-location-dot"></i>
+              View Lobby
+            </a>
+          ` : ''}
           ${canSecondarySubmit ? `
             <button type="button" data-submit-showdown-result="${esc(op.id)}" class="inline-flex items-center justify-center gap-2 w-full rounded-md border border-white/10 bg-white/[0.03] px-3 py-2 mt-2 text-[10px] font-black uppercase tracking-widest text-gray-300 hover:text-white hover:border-dc-cyan/30">
               <i class="fa-solid fa-flag-checkered"></i>
@@ -678,6 +701,10 @@
       mission: { label: 'Missions', dot: 'bg-dc-violet', text: 'text-dc-violet' },
       bounty: { label: 'Bounty', dot: 'bg-dc-neon', text: 'text-dc-neon' },
       dropzone: { label: 'Dropzone', dot: 'bg-dc-gold', text: 'text-dc-gold' },
+      scrim: { label: 'Scrim', dot: 'bg-emerald-400', text: 'text-emerald-300' },
+      tryout: { label: 'Tryout', dot: 'bg-blue-400', text: 'text-blue-300' },
+      practice: { label: 'Practice', dot: 'bg-cyan-400', text: 'text-cyan-300' },
+      vod_review: { label: 'VOD Review', dot: 'bg-purple-400', text: 'text-purple-300' },
     };
     return map[type] || { label: 'Operation', dot: 'bg-gray-500', text: 'text-gray-400' };
   }

@@ -169,6 +169,7 @@ urlpatterns = [
     path('<slug:slug>/matches/<int:pk>/verify/', matches.MatchVerifyView.as_view(), name='match-verify'),
     path('<slug:slug>/matches/<int:pk>/series/', matches.MatchSeriesStatusView.as_view(), name='match-series-status'),
     path('<slug:slug>/matches/<int:pk>/series/game/', matches.MatchSeriesGameView.as_view(), name='match-series-game'),
+    path('<slug:slug>/matches/<int:pk>/evidence-action/', matches.MatchEvidenceActionView.as_view(), name='match-evidence-action'),
     path('<slug:slug>/matches/<int:pk>/submissions/<int:sub_id>/scan/', matches.MatchSubmissionOCRScanView.as_view(), name='match-submission-scan'),
     path('<slug:slug>/matches/<int:pk>/team-5v5-rosters/', matches.MatchTeam5v5RostersView.as_view(), name='match-team-5v5-rosters'),
     path('<slug:slug>/matches/<int:pk>/team-5v5-player-stats/', matches.MatchTeam5v5PlayerStatsView.as_view(), name='match-team-5v5-player-stats'),
@@ -196,6 +197,7 @@ urlpatterns = [
     # ── Map Pool (S8-B3) ──
     path('<slug:slug>/settings/map-pool/', settings.MapPoolListView.as_view(), name='settings-map-pool'),
     path('<slug:slug>/settings/map-pool/reorder/', settings.MapPoolReorderView.as_view(), name='settings-map-pool-reorder'),
+    path('<slug:slug>/settings/map-pool/toggle/', settings.MapPoolToggleView.as_view(), name='settings-map-pool-toggle'),
     path('<slug:slug>/settings/map-pool/<str:pk>/', settings.MapPoolDetailView.as_view(), name='settings-map-pool-detail'),
 
     # ── Veto (S8-B4) ──

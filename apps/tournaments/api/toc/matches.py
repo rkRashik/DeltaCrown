@@ -410,6 +410,274 @@ class MatchSeriesGameView(TOCBaseView):
             return Response({'error': f'Invalid data: {e}'}, status=status.HTTP_400_BAD_REQUEST)
 
 
+class MatchEvidenceActionView(TOCBaseView):
+    """
+    POST /api/toc/<slug>/matches/<pk>/evidence-action/
+
+    P3.4 — Admin review actions on the Evidence tab. Every action writes
+    an audit entry and preserves evidence. Available ``action`` values:
+
+    ``mark_review``       — Flag for staff review (result_status=staff_review_required).
+    ``accept_ocr``        — Override submission scores with OCR extracted values
+                            and mark side's submission confirmed.
+    ``use_submitted``     — Discard OCR suggestion; keep participant submitted scores
+                            and mark submission confirmed.
+    ``request_resubmit``  — Reject a side's submission (status=rejected) so they
+                            can upload again. Param: ``side`` (1 or 2).
+    ``rescan``            — Re-run OCR on both sides. Wraps the existing scan
+                            endpoint logic.
+    ``clear_review_flag`` — Remove review flag from workflow (back to pending).
+    """
+
+    def post(self, request, slug, pk):
+        from apps.tournaments.models.match import Match
+        from apps.tournaments.models.result_submission import MatchResultSubmission
+        from apps.tournaments.services.evidence_flagging import (
+            _write_audit_entry,
+            _broadcast_evidence_update,
+        )
+
+        try:
+            match = Match.objects.get(pk=pk, tournament=self.tournament, is_deleted=False)
+        except Match.DoesNotExist:
+            return Response({"error": "Match not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        body = request.data if isinstance(request.data, dict) else {}
+        action = str(body.get("action") or "").strip().lower()
+        note = str(body.get("note") or "").strip()[:500]
+        user_id = getattr(request.user, "id", None)
+
+        WORKFLOW_KEY = "match_lobby_workflow"
+
+        def _get_workflow():
+            li = match.lobby_info if isinstance(match.lobby_info, dict) else {}
+            from apps.tournaments.views.match_room import _safe_dict
+            return li, _safe_dict(li.get(WORKFLOW_KEY))
+
+        def _save_workflow(li, wf):
+            li[WORKFLOW_KEY] = wf
+            match.lobby_info = li
+            match.save(update_fields=["lobby_info", "updated_at"])
+
+        if action == "mark_review":
+            li, wf = _get_workflow()
+            wf["result_status"] = "staff_review_required"
+            _save_workflow(li, wf)
+            _write_audit_entry(
+                match=match, action="mark_review",
+                detail=f"Flagged for staff review by {request.user.username}. {note}",
+                user_id=user_id,
+            )
+            _broadcast_evidence_update(match)
+            bump_toc_scopes(self.tournament.id, "matches")
+            return Response({"updated": True, "result_status": "staff_review_required"})
+
+        if action == "clear_review_flag":
+            li, wf = _get_workflow()
+            cur = str(wf.get("result_status") or "")
+            if cur in {"staff_review_required", "ocr_review_needed"}:
+                wf["result_status"] = "pending"
+            _save_workflow(li, wf)
+            _write_audit_entry(match=match, action="review_flag_cleared",
+                               detail=f"Review flag cleared by {request.user.username}. {note}",
+                               user_id=user_id)
+            _broadcast_evidence_update(match)
+            bump_toc_scopes(self.tournament.id, "matches")
+            return Response({"updated": True})
+
+        if action in {"accept_ocr", "use_submitted"}:
+            side = int(body.get("side") or 0)
+            if side not in (1, 2):
+                return Response({"error": "side (1 or 2) is required."}, status=status.HTTP_400_BAD_REQUEST)
+            team_id = match.participant1_id if side == 1 else match.participant2_id
+            sub = (
+                MatchResultSubmission.objects
+                .filter(match=match, submitted_by_team_id=team_id)
+                .order_by("-submitted_at")
+                .first()
+            )
+            if not sub:
+                return Response({"error": f"No submission found for side {side}."}, status=status.HTTP_404_NOT_FOUND)
+
+            if action == "accept_ocr":
+                from apps.tournaments.services.evidence_flagging import _extracted_p1_p2
+                ep1, ep2 = _extracted_p1_p2(sub.ocr_extracted or {})
+                if ep1 is None or ep2 is None:
+                    return Response({"error": "No extracted scores available. Run scan first."}, status=status.HTTP_400_BAD_REQUEST)
+                # 1 — Update the submission row with OCR scores.
+                payload = sub.raw_result_payload if isinstance(sub.raw_result_payload, dict) else {}
+                payload["score_p1"] = ep1
+                payload["score_p2"] = ep2
+                payload["accepted_from_ocr"] = True
+                sub.raw_result_payload = payload
+                # score_for/against from each side's POV: side1.for=p1, side2.for=p2.
+                sub.score_for     = ep1 if side == 1 else ep2
+                sub.score_against = ep2 if side == 1 else ep1
+                sub.status = MatchResultSubmission.STATUS_CONFIRMED
+                sub.confirmed_at = timezone.now()
+                sub.confirmed_by_user_id = user_id
+                sub.save(update_fields=[
+                    "raw_result_payload", "score_for", "score_against",
+                    "status", "confirmed_at", "confirmed_by_user",
+                ])
+                # 2 — Sync workflow.result_submissions[side] so match-room
+                #     and TOC both reflect the accepted score on the next
+                #     lobby_info read. Without this, the participant's
+                #     original (rejected) scores stay in the workflow dict.
+                li, wf = _get_workflow()
+                rs = wf.get("result_submissions") if isinstance(wf.get("result_submissions"), dict) else {}
+                rs[str(side)] = {
+                    "submission_id": sub.id,
+                    "score_for":     int(sub.score_for),
+                    "score_against": int(sub.score_against),
+                    "submitted_at":  sub.submitted_at.isoformat() if sub.submitted_at else None,
+                    "note":          sub.submitter_notes or "",
+                    "accepted_from_ocr": True,
+                }
+                wf["result_submissions"] = rs
+                # If BOTH sides are now confirmed, update result_status to
+                # reflect the accepted state for re-verification.
+                other_side_str = "2" if side == 1 else "1"
+                other_rs = rs.get(other_side_str)
+                if isinstance(other_rs, dict):
+                    wf["result_status"] = "ocr_accepted_pending_verify"
+                _save_workflow(li, wf)
+                _write_audit_entry(
+                    match=match, action="accept_ocr",
+                    detail=f"Side {side} OCR result accepted ({ep1}–{ep2}) by {request.user.username}. Workflow updated. {note}",
+                    user_id=user_id,
+                )
+            else:  # use_submitted
+                sub.status = MatchResultSubmission.STATUS_CONFIRMED
+                sub.confirmed_at = timezone.now()
+                sub.confirmed_by_user_id = user_id
+                sub.save(update_fields=["status", "confirmed_at", "confirmed_by_user"])
+                # Sync workflow submission so both surfaces show the same scores.
+                li, wf = _get_workflow()
+                rs = wf.get("result_submissions") if isinstance(wf.get("result_submissions"), dict) else {}
+                rs[str(side)] = {
+                    "submission_id": sub.id,
+                    "score_for":     int(sub.score_for) if sub.score_for is not None else 0,
+                    "score_against": int(sub.score_against) if sub.score_against is not None else 0,
+                    "submitted_at":  sub.submitted_at.isoformat() if sub.submitted_at else None,
+                    "note":          sub.submitter_notes or "",
+                }
+                wf["result_submissions"] = rs
+                _save_workflow(li, wf)
+                _write_audit_entry(
+                    match=match, action="use_submitted",
+                    detail=f"Side {side} submitted scores confirmed (OCR discarded) by {request.user.username}. Workflow updated. {note}",
+                    user_id=user_id,
+                )
+
+            _broadcast_evidence_update(match)
+            bump_toc_scopes(self.tournament.id, "matches")
+            return Response({"updated": True, "submission_id": sub.id, "action": action})
+
+        if action == "request_resubmit":
+            side = int(body.get("side") or 0)
+            if side not in (1, 2):
+                return Response({"error": "side (1 or 2) is required."}, status=status.HTTP_400_BAD_REQUEST)
+            team_id = match.participant1_id if side == 1 else match.participant2_id
+            sub = (
+                MatchResultSubmission.objects
+                .filter(match=match, submitted_by_team_id=team_id)
+                .order_by("-submitted_at")
+                .first()
+            )
+            if sub:
+                sub.status = MatchResultSubmission.STATUS_REJECTED
+                sub.save(update_fields=["status"])
+            # Clear the workflow submission for this side so participant can resubmit.
+            li, wf = _get_workflow()
+            subs_wf = wf.get("result_submissions") or {}
+            subs_wf[str(side)] = None
+            wf["result_submissions"] = subs_wf
+            wf["result_status"] = "pending"
+            _save_workflow(li, wf)
+            _write_audit_entry(
+                match=match, action="request_resubmit",
+                detail=f"Side {side} resubmission requested by {request.user.username}. {note}",
+                user_id=user_id,
+            )
+            _broadcast_evidence_update(match)
+            bump_toc_scopes(self.tournament.id, "matches")
+            return Response({"updated": True, "side": side})
+
+        if action == "rescan":
+            # B3 — async rescan: enqueue Celery worker tasks, return
+            # immediately. Long OCR calls (30-90s) must not block the
+            # admin HTTP request. Evidence tab will update on the next
+            # poll/refresh once the tasks complete (WS broadcast fires).
+            from apps.tournaments.tasks.evidence_cleanup import run_ocr_and_compare_task
+            p1_id = match.participant1_id
+            p2_id = match.participant2_id
+            queued_ids = []
+            skipped_ids = []
+            for team_id in (p1_id, p2_id):
+                if not team_id:
+                    continue
+                sub = (
+                    MatchResultSubmission.objects
+                    .filter(match=match, submitted_by_team_id=team_id)
+                    .only("id", "proof_screenshot", "proof_screenshot_url", "ocr_status")
+                    .order_by("-submitted_at")
+                    .first()
+                )
+                if not sub:
+                    continue
+                has_screenshot = bool(
+                    (getattr(sub, "proof_screenshot", None) and sub.proof_screenshot.name)
+                    or (sub.proof_screenshot_url or "").strip()
+                )
+                if not has_screenshot:
+                    skipped_ids.append(sub.id)
+                    continue
+                # Mark pending immediately so the FE can show scanning
+                # state before the worker picks up the task.
+                MatchResultSubmission.objects.filter(pk=sub.id).update(
+                    ocr_status="pending"
+                )
+                try:
+                    task_result = run_ocr_and_compare_task.apply_async(
+                        args=[sub.id],
+                        kwargs={"force": True},
+                    )
+                    queued_ids.append({"submission_id": sub.id,
+                                       "task_id": getattr(task_result, "id", None)})
+                except Exception as exc:
+                    # Worker unavailable — fall back to synchronous scan
+                    # so the admin gets some result.
+                    from apps.tournaments.services.ocr_pipeline import run_ocr_for_submission
+                    from apps.tournaments.services.evidence_flagging import (
+                        check_and_flag_evidence_after_ocr,
+                    )
+                    try:
+                        run_ocr_for_submission(sub.id, force=True)
+                        check_and_flag_evidence_after_ocr(sub.id)
+                    except Exception as inner_exc:
+                        skipped_ids.append({"submission_id": sub.id, "error": str(inner_exc)})
+            _write_audit_entry(
+                match=match, action="rescan_queued",
+                detail=f"Evidence rescan queued by {request.user.username}. "
+                       f"queued={len(queued_ids)} skipped={len(skipped_ids)}. {note}",
+                user_id=user_id,
+            )
+            _broadcast_evidence_update(match)
+            bump_toc_scopes(self.tournament.id, "matches")
+            return Response({
+                "scan_queued": True,
+                "queued": queued_ids,
+                "skipped": skipped_ids,
+                "message": "Scan tasks queued. Evidence tab will update when scans complete.",
+            })
+
+        return Response(
+            {"error": f"Unknown action '{action}'. Valid: mark_review, clear_review_flag, accept_ocr, use_submitted, request_resubmit, rescan."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+
 class MatchSubmissionOCRScanView(TOCBaseView):
     """
     POST /api/toc/<slug>/matches/<pk>/submissions/<sub_id>/scan/

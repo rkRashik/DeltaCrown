@@ -4,6 +4,7 @@ from django.urls import path
 from .views import (
     ContractEnrollmentDetailView,
     ContractEnrollView,
+    ContractProofListCreateView,
     ContractTemplateListView,
     MyEnrollmentsView,
 )
@@ -26,6 +27,11 @@ urlpatterns = [
         'enrollments/<uuid:enrollment_id>/',
         ContractEnrollmentDetailView.as_view(),
         name='enrollment-detail',
+    ),
+    path(
+        'enrollments/<uuid:enrollment_id>/proofs/',
+        ContractProofListCreateView.as_view(),
+        name='enrollment-proofs',
     ),
     path(
         'my/',

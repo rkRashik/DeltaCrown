@@ -2288,15 +2288,23 @@
     var subId = (sub.id != null) ? String(sub.id) : '';
     var scanBtn = '';
     if (subId && hasScreenshotUrl) {
-      var matchId = (sub.match_id != null) ? String(sub.match_id) : '';
-      // matchId isn't in our serialized submission row; fall back to the
-      // currently selected match via state. The action uses TOC.matches.scanEvidence.
+      // matchId isn't in our serialized submission row; the handler reads
+      // selectedMatchId from module state.
       var force = (status === 'completed' || status === 'failed') ? '1' : '0';
       var label = status === 'completed' ? 'Re-scan' : (status === 'failed' ? 'Retry Scan' : 'Scan Evidence');
-      scanBtn = '<button type="button" data-click="TOC.matches.scanEvidence" data-click-args="[' + subId + ',' + force + ']" ' +
+      // ``data-scan-btn-sub`` lets the scanning-overlay renderer find this
+      // button reliably without DOM traversal heuristics.
+      scanBtn = '<button type="button" data-scan-btn-sub="' + esc(subId) + '" data-click="TOC.matches.scanEvidence" data-click-args="[' + subId + ',' + force + ']" ' +
         'class="mt-2 w-full inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-md border border-theme/40 bg-theme/10 hover:bg-theme/20 text-theme text-[10px] font-black uppercase tracking-widest transition-colors active:scale-95">' +
         '<i data-lucide="scan-line" class="w-3 h-3"></i>' + label +
       '</button>';
+      // P3.5 — 5v5 grid population from OCR (only when extraction available).
+      if (status === 'completed' && extracted && extracted.participant1_players) {
+        scanBtn += '<button type="button" data-click="TOC.matches.populateGridFromOCR" data-click-args="[' + subId + ']" ' +
+          'class="mt-1 w-full inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-md border border-purple-400/40 bg-purple-500/10 hover:bg-purple-500/20 text-purple-200 text-[10px] font-black uppercase tracking-widest transition-colors active:scale-95">' +
+          '<i data-lucide="grid-3x3" class="w-3 h-3"></i>Populate Scorecard' +
+        '</button>';
+      }
     }
 
     return '<div class="mt-3 pt-3 border-t border-dc-border/30">' +
@@ -2396,6 +2404,335 @@
     '</div>';
   }
 
+  // P3 — Cross-check summary. Compares submitted scores AND extracted (OCR)
+  // scores between both sides and produces a single admin recommendation.
+  // Pure client-side logic for now; the eventual backend rule can replace
+  // this block by reading verification_status.code.
+  function _crossCheckSummary(side1, side2, teamA, teamB) {
+    function _intOr(v, def) {
+      var n = parseInt(v, 10);
+      return isFinite(n) ? n : def;
+    }
+    function _extractedScores(sub) {
+      // Returns [p1Score, p2Score] from a submission's ocr_extracted, or [null, null].
+      if (!sub) return [null, null];
+      var ext = sub.ocr_extracted && typeof sub.ocr_extracted === 'object' ? sub.ocr_extracted : {};
+      var a = ext.participant1_score != null ? ext.participant1_score
+            : (ext.home_score != null ? ext.home_score : null);
+      var b = ext.participant2_score != null ? ext.participant2_score
+            : (ext.away_score != null ? ext.away_score : null);
+      return [a, b];
+    }
+    function _hasScreenshot(sub) {
+      if (!sub) return false;
+      return !!String(sub.screenshot_url || sub.proof_screenshot_file_url || sub.proof_screenshot_url || '').trim();
+    }
+    var has1 = !!side1, has2 = !!side2;
+    var s1Submitted = has1 ? [_intOr(side1.score_for, null), _intOr(side1.score_against, null)] : [null, null];
+    var s2Submitted = has2 ? [_intOr(side2.score_for, null), _intOr(side2.score_against, null)] : [null, null];
+    var s1Status = has1 ? String(side1.ocr_status || '').toLowerCase() : '';
+    var s2Status = has2 ? String(side2.ocr_status || '').toLowerCase() : '';
+    var s1Ext = _extractedScores(side1);
+    var s2Ext = _extractedScores(side2);
+    var s1HasShot = _hasScreenshot(side1);
+    var s2HasShot = _hasScreenshot(side2);
+
+    // Compute consistency flags.
+    // Submitted scores: side1.for vs side2.against; side1.against vs side2.for
+    var submittedConsistent = null;
+    if (has1 && has2 && s1Submitted[0] != null && s1Submitted[1] != null
+        && s2Submitted[0] != null && s2Submitted[1] != null) {
+      submittedConsistent = (s1Submitted[0] === s2Submitted[1] && s1Submitted[1] === s2Submitted[0]);
+    }
+
+    // Side A's submitted == side A's OCR (their own perspective).
+    var s1SubMatchesOcr = null;
+    if (has1 && s1Status === 'completed' && s1Ext[0] != null && s1Ext[1] != null
+        && s1Submitted[0] != null && s1Submitted[1] != null) {
+      s1SubMatchesOcr = (s1Submitted[0] === s1Ext[0] && s1Submitted[1] === s1Ext[1]);
+    }
+    var s2SubMatchesOcr = null;
+    if (has2 && s2Status === 'completed' && s2Ext[0] != null && s2Ext[1] != null
+        && s2Submitted[0] != null && s2Submitted[1] != null) {
+      // Side B is participant2 — their score_for is the participant2 score.
+      s2SubMatchesOcr = (s2Submitted[0] === s2Ext[1] && s2Submitted[1] === s2Ext[0]);
+    }
+
+    // Both OCRs agree on which side scored what?
+    var ocrCrossConsistent = null;
+    if (s1Status === 'completed' && s2Status === 'completed'
+        && s1Ext[0] != null && s1Ext[1] != null && s2Ext[0] != null && s2Ext[1] != null) {
+      ocrCrossConsistent = (s1Ext[0] === s2Ext[0] && s1Ext[1] === s2Ext[1]);
+    }
+
+    // Determine recommendation tone + label + reason.
+    var tone, label, reason, icon;
+    if (!has1 && !has2) {
+      return null; // nothing to compare — outer empty state handles it.
+    }
+    if (!has1 || !has2) {
+      tone = 'amber'; icon = 'clock';
+      label = 'Waiting for both submissions';
+      reason = 'Only one side has submitted so far. Once both submissions are in, OCR and cross-check will run.';
+    } else if (!s1HasShot || !s2HasShot) {
+      tone = 'amber'; icon = 'image-off';
+      label = 'Missing screenshot';
+      reason = 'One or both sides submitted without a screenshot. Cross-check cannot run on text only.';
+    } else if (s1Status === 'failed' || s2Status === 'failed') {
+      tone = 'red'; icon = 'x-circle';
+      label = 'OCR failed on one side';
+      reason = 'A scan failed. Click Retry Scan on the affected side, then re-check.';
+    } else if (s1Status !== 'completed' || s2Status !== 'completed') {
+      tone = 'amber'; icon = 'scan-line';
+      label = 'Waiting for scan';
+      reason = 'Scan both screenshots to enable cross-check.';
+    } else if (submittedConsistent === true && ocrCrossConsistent === true
+               && s1SubMatchesOcr === true && s2SubMatchesOcr === true) {
+      tone = 'green'; icon = 'shield-check';
+      label = 'Evidence consistent';
+      reason = 'Both submissions agree with each other AND with both extracted OCR results. Safe to verify.';
+    } else if (submittedConsistent === false) {
+      tone = 'red'; icon = 'alert-triangle';
+      label = 'Submitted scores disagree';
+      reason = 'The two sides reported different scores. Staff review required.';
+    } else if (ocrCrossConsistent === false) {
+      tone = 'red'; icon = 'alert-triangle';
+      label = 'Screenshots disagree';
+      reason = 'Both submissions agree, but the two screenshots extract different scores. Manual review required.';
+    } else if (s1SubMatchesOcr === false || s2SubMatchesOcr === false) {
+      tone = 'amber'; icon = 'alert-triangle';
+      label = 'Submitted vs extracted mismatch';
+      reason = 'Submitted scores agree with each other, but at least one side\'s screenshot extracts a different score. Verify which is correct.';
+    } else {
+      tone = 'amber'; icon = 'help-circle';
+      label = 'Comparison inconclusive';
+      reason = 'Some checks could not run. Manual review recommended.';
+    }
+
+    var toneClasses = {
+      green: 'border-emerald-400/40 bg-emerald-500/8',
+      amber: 'border-amber-400/40 bg-amber-500/8',
+      red:   'border-rose-400/40 bg-rose-500/8',
+    }[tone] || 'border-dc-border bg-dc-bg/40';
+    var iconClasses = {
+      green: 'text-emerald-300',
+      amber: 'text-amber-300',
+      red:   'text-rose-300',
+    }[tone] || 'text-dc-text';
+
+    // Detail table — Side A vs Side B rows for submitted + extracted.
+    function _scoreCell(a, b) {
+      if (a == null || b == null) return '<span class="text-dc-text/40">—</span>';
+      return '<span class="font-mono font-bold text-white tabular-nums">' + esc(String(a)) + '–' + esc(String(b)) + '</span>';
+    }
+    function _matchBadge(matchFlag) {
+      if (matchFlag === true)  return '<span class="text-[9px] uppercase tracking-widest text-emerald-300 font-bold">Match</span>';
+      if (matchFlag === false) return '<span class="text-[9px] uppercase tracking-widest text-rose-300 font-bold">Mismatch</span>';
+      return '<span class="text-[9px] uppercase tracking-widest text-dc-text/40">—</span>';
+    }
+
+    var detailTable =
+      '<div class="mt-3 grid grid-cols-[1fr_auto_auto_auto] gap-x-3 gap-y-1.5 text-[11px]">' +
+        // Header row
+        '<span class="text-[9px] font-black uppercase tracking-widest text-dc-text/50">Comparison</span>' +
+        '<span class="text-[9px] font-black uppercase tracking-widest text-dc-text/50 text-center">Side A</span>' +
+        '<span class="text-[9px] font-black uppercase tracking-widest text-dc-text/50 text-center">Side B</span>' +
+        '<span class="text-[9px] font-black uppercase tracking-widest text-dc-text/50 text-right">Status</span>' +
+        // Submitted row
+        '<span class="text-dc-text">Submitted</span>' +
+        '<span class="text-center">' + _scoreCell(s1Submitted[0], s1Submitted[1]) + '</span>' +
+        '<span class="text-center">' + _scoreCell(s2Submitted[0], s2Submitted[1]) + '</span>' +
+        '<span class="text-right">' + _matchBadge(submittedConsistent) + '</span>' +
+        // OCR row
+        '<span class="text-dc-text">Extracted</span>' +
+        '<span class="text-center">' + _scoreCell(s1Ext[0], s1Ext[1]) + '</span>' +
+        '<span class="text-center">' + _scoreCell(s2Ext[0], s2Ext[1]) + '</span>' +
+        '<span class="text-right">' + _matchBadge(ocrCrossConsistent) + '</span>' +
+        // Per-side sub vs ocr row
+        '<span class="text-dc-text">Submitted vs Extracted</span>' +
+        '<span class="text-center">' + _matchBadge(s1SubMatchesOcr) + '</span>' +
+        '<span class="text-center">' + _matchBadge(s2SubMatchesOcr) + '</span>' +
+        '<span class="text-right"></span>' +
+      '</div>';
+
+    return '<div class="mt-3 rounded-xl border ' + toneClasses + ' p-3">' +
+      '<div class="flex items-start gap-2.5">' +
+        '<div class="w-7 h-7 rounded-lg bg-black/30 border border-white/5 flex items-center justify-center shrink-0">' +
+          '<i data-lucide="' + icon + '" class="w-3.5 h-3.5 ' + iconClasses + '"></i>' +
+        '</div>' +
+        '<div class="flex-1 min-w-0">' +
+          '<p class="text-xs font-black uppercase tracking-widest ' + iconClasses + '">' + esc(label) + '</p>' +
+          '<p class="text-[11px] text-dc-text mt-0.5 leading-relaxed">' + esc(reason) + '</p>' +
+        '</div>' +
+      '</div>' +
+      detailTable +
+    '</div>';
+  }
+
+  function _adminReviewActions(matchId) {
+    // Compact admin action row shown above the side cards (staff only —
+    // the JS caller should check is_staff before rendering).
+    var mid = String(matchId || '');
+    return '<div class="mt-3 flex flex-wrap items-center gap-1.5">' +
+      '<span class="text-[9px] font-black uppercase tracking-widest text-dc-text/50 mr-1">Admin actions:</span>' +
+      '<button type="button" data-click="TOC.matches.evidenceAction" data-click-args="[&quot;' + mid + '&quot;,&quot;mark_review&quot;]" ' +
+        'class="px-2 py-1 text-[9px] font-bold uppercase tracking-widest border border-amber-500/40 text-amber-300 rounded hover:bg-amber-500/10 transition-colors">Flag Review</button>' +
+      '<button type="button" data-click="TOC.matches.evidenceAction" data-click-args="[&quot;' + mid + '&quot;,&quot;clear_review_flag&quot;]" ' +
+        'class="px-2 py-1 text-[9px] font-bold uppercase tracking-widest border border-dc-border text-dc-text rounded hover:bg-dc-surface transition-colors">Clear Flag</button>' +
+      '<button type="button" data-click="TOC.matches.evidenceAction" data-click-args="[&quot;' + mid + '&quot;,&quot;rescan&quot;]" ' +
+        'class="px-2 py-1 text-[9px] font-bold uppercase tracking-widest border border-theme/40 text-theme rounded hover:bg-theme/10 transition-colors flex items-center gap-1">' +
+        '<i data-lucide="scan-line" class="w-3 h-3"></i>Rescan All</button>' +
+    '</div>';
+  }
+
+  // P3.4 — dispatch admin evidence action to backend.
+  // After the action completes, re-selects the match AND switches the
+  // detail panel back to the Evidence tab so the admin can see the
+  // updated comparison, timeline, and scores without manual tab clicks.
+  async function evidenceAction(matchId, action, opts) {
+    var options = (opts && typeof opts === 'object') ? opts : {};
+    var matchIdNum = Number(matchId) || Number(selectedMatchId);
+    if (!matchIdNum) { toast('Select a match first.', 'error'); return; }
+    var body = Object.assign({ action: action }, options);
+
+    // Prompt-for-note actions: mark_review, accept_ocr, use_submitted,
+    // request_resubmit. Other actions (clear_review_flag, rescan) proceed
+    // silently.
+    var noteActions = { mark_review: 'Note (optional):', accept_ocr: 'Note (optional):',
+                        use_submitted: 'Note (optional):', request_resubmit: 'Reason (optional):' };
+    if (noteActions[action] !== undefined) {
+      var note = window.prompt(noteActions[action]);
+      if (note === null) return;  // User cancelled prompt — bail out.
+      if (note) body.note = note;
+    }
+
+    try {
+      var resp = await API('matches/' + matchIdNum + '/evidence-action/', {
+        method: 'POST',
+        body: JSON.stringify(body),
+      });
+      if (action === 'rescan') {
+        var queued = (resp && resp.queued && resp.queued.length) || 0;
+        toast(queued > 0
+          ? 'Rescan queued for ' + queued + ' screenshot(s). Evidence tab will update automatically.'
+          : 'Rescan queued (no new screenshots found).',
+          queued > 0 ? 'info' : 'warning');
+      } else {
+        toast('Done.', 'success');
+      }
+    } catch (e) {
+      toast(parseApiError(e) || 'Action failed.', 'error');
+      return;
+    }
+
+    // B4 — Re-select the match to pull fresh data, then switch back to
+    // the Evidence tab. selectMatch renders the full detail (submissions,
+    // comparison, timeline); switchDetailTab makes Evidence the active pane.
+    try {
+      await selectMatch(matchIdNum);
+      switchDetailTab('evidence');
+    } catch (_) { /* non-fatal */ }
+  }
+
+  // P3.2 — Render the cross-check block from a backend evidence_comparison dict.
+  // Mirrors the client-side _crossCheckSummary layout but driven by server data.
+  function _crossCheckSummaryFromBackend(cmp, teamA, teamB) {
+    if (!cmp || !cmp.state) return '';
+    var state = String(cmp.state || '');
+    var rec   = String(cmp.recommendation || '');
+    var reason = String(cmp.reason || '');
+    var s1 = cmp.side1 || {};
+    var s2 = cmp.side2 || {};
+
+    var tone, icon;
+    if (rec === 'safe_to_verify') { tone = 'green'; icon = 'shield-check'; }
+    else if (rec === 'needs_staff_review') { tone = 'red'; icon = 'alert-triangle'; }
+    else if (rec === 'rescan_needed') { tone = 'red'; icon = 'x-circle'; }
+    else { tone = 'amber'; icon = 'clock'; }
+
+    var toneClasses = { green:'border-emerald-400/40 bg-emerald-500/8', amber:'border-amber-400/40 bg-amber-500/8', red:'border-rose-400/40 bg-rose-500/8' }[tone] || 'border-dc-border bg-dc-bg/40';
+    var iconCls = { green:'text-emerald-300', amber:'text-amber-300', red:'text-rose-300' }[tone] || 'text-dc-text';
+    var label = {
+      consistent:'Evidence Consistent', mismatch_submitted:'Submitted Scores Disagree',
+      mismatch_ocr:'Screenshots Disagree', mismatch_submitted_vs_ocr:'Submitted vs Extracted Mismatch',
+      waiting_both:'Waiting for Both Submissions', waiting_one:'Waiting for Opponent',
+      waiting_scan:'Scan Evidence to Compare', ocr_failed:'OCR Failed — Rescan Needed',
+      missing_screenshot:'Missing Screenshot', inconclusive:'Comparison Inconclusive',
+    }[state] || esc(state);
+
+    function _sv(v) { return v == null ? '<span class="text-dc-text/40">—</span>' : '<span class="font-mono font-bold text-white tabular-nums">' + esc(String(v)) + '</span>'; }
+    function _mb(v) {
+      if (v === true)  return '<span class="text-[9px] uppercase tracking-widest text-emerald-300 font-bold">Match</span>';
+      if (v === false) return '<span class="text-[9px] uppercase tracking-widest text-rose-300 font-bold">Mismatch</span>';
+      return '<span class="text-[9px] uppercase tracking-widest text-dc-text/40">—</span>';
+    }
+    function _score(sub) { return _sv(sub.submitted_for) + '<span class="text-dc-text/40 mx-1">–</span>' + _sv(sub.submitted_against); }
+    function _ocr(sub)   { return _sv(sub.ocr_p1)       + '<span class="text-dc-text/40 mx-1">–</span>' + _sv(sub.ocr_p2); }
+
+    var detail =
+      '<div class="mt-3 grid grid-cols-[1fr_auto_auto_auto] gap-x-3 gap-y-1.5 text-[11px]">' +
+        '<span class="text-[9px] font-black uppercase tracking-widest text-dc-text/50">Comparison</span>' +
+        '<span class="text-[9px] font-black uppercase tracking-widest text-dc-text/50 text-center">' + esc(teamA) + '</span>' +
+        '<span class="text-[9px] font-black uppercase tracking-widest text-dc-text/50 text-center">' + esc(teamB) + '</span>' +
+        '<span class="text-[9px] font-black uppercase tracking-widest text-dc-text/50 text-right">Status</span>' +
+        '<span class="text-dc-text">Submitted</span>' +
+        '<span class="text-center">' + _score(s1) + '</span>' +
+        '<span class="text-center">' + _score(s2) + '</span>' +
+        '<span class="text-right">' + _mb(cmp.submitted_consistent) + '</span>' +
+        '<span class="text-dc-text">Extracted</span>' +
+        '<span class="text-center">' + _ocr(s1) + '</span>' +
+        '<span class="text-center">' + _ocr(s2) + '</span>' +
+        '<span class="text-right">' + _mb(cmp.ocr_cross_consistent) + '</span>' +
+        '<span class="text-dc-text">Sub vs OCR</span>' +
+        '<span class="text-center">' + _mb(cmp.side1_sub_matches_ocr) + '</span>' +
+        '<span class="text-center">' + _mb(cmp.side2_sub_matches_ocr) + '</span>' +
+        '<span class="text-right"></span>' +
+      '</div>';
+
+    return '<div class="mt-3 rounded-xl border ' + toneClasses + ' p-3">' +
+      '<div class="flex items-start gap-2.5">' +
+        '<div class="w-7 h-7 rounded-lg bg-black/30 border border-white/5 flex items-center justify-center shrink-0">' +
+          '<i data-lucide="' + icon + '" class="w-3.5 h-3.5 ' + iconCls + '"></i>' +
+        '</div>' +
+        '<div class="flex-1 min-w-0">' +
+          '<p class="text-xs font-black uppercase tracking-widest ' + iconCls + '">' + label + '</p>' +
+          (reason ? '<p class="text-[11px] text-dc-text mt-0.5 leading-relaxed">' + esc(reason) + '</p>' : '') +
+        '</div>' +
+      '</div>' +
+      detail +
+    '</div>';
+  }
+
+  // B5 — Group submissions by game_number for BO3/BO5 display.
+  // Returns {grouped: bool, games: [{game_number, side1, side2}]}
+  function _groupByGame(subs) {
+    var hasGameNums = subs.some(function (s) { return s && s.game_number != null; });
+    if (!hasGameNums) return { grouped: false, games: null };
+
+    // Build a lookup: game_number → {side1: latest_sub, side2: latest_sub}
+    var byGame = {};
+    subs.forEach(function (s) {
+      if (!s) return;
+      var gn = s.game_number != null ? Number(s.game_number) : 0;
+      if (!byGame[gn]) byGame[gn] = { 1: null, 2: null };
+      var sideKey = s.side === 1 ? 1 : (s.side === 2 ? 2 : 0);
+      if (!sideKey) return;
+      var existing = byGame[gn][sideKey];
+      if (!existing || (s.submitted_at && (!existing.submitted_at || s.submitted_at >= existing.submitted_at))) {
+        byGame[gn][sideKey] = s;
+      }
+    });
+
+    // Sort by game_number; game_number=0 (unset) goes to a "misc" section.
+    var games = Object.keys(byGame)
+      .map(Number)
+      .sort(function (a, b) { return a - b; })
+      .map(function (gn) {
+        return { game_number: gn, side1: byGame[gn][1], side2: byGame[gn][2] };
+      });
+    return { grouped: true, games: games };
+  }
+
   function renderEvidence(data) {
     var container = $('#evidence-container');
     var split = $('#evidence-split');
@@ -2426,23 +2763,171 @@
 
     var latest = _evidenceLatestPerSide(subs);
     var summaryHTML = _evidenceSummaryBanner(latest[1], latest[2], vs);
-    var sideAHTML  = _evidenceCard(1, latest[1], teamA);
-    var sideBHTML  = _evidenceCard(2, latest[2], teamB);
+
+    // P3.2 — use backend evidence_comparison when available; fall back to
+    // client-side logic for older responses without the field.
+    var backendCmp = (data.evidence_comparison && typeof data.evidence_comparison === 'object')
+      ? data.evidence_comparison : null;
+    var crossCheckHTML;
+    if (backendCmp && backendCmp.state) {
+      crossCheckHTML = _crossCheckSummaryFromBackend(backendCmp, teamA, teamB) || '';
+    } else {
+      crossCheckHTML = _crossCheckSummary(latest[1], latest[2], teamA, teamB) || '';
+    }
+
+    // Admin actions row — only rendered when match has a numeric id (i.e.
+    // we're inside an actual match detail, not a stale cache render).
+    var matchId = match.id ? Number(match.id) : null;
+    var adminActionsHTML = matchId ? _adminReviewActions(matchId) : '';
+
+    // B5 — Per-game grouping for BO3/BO5. Submissions with game_number are
+    // rendered as a sequence of labeled game blocks. Without game_number
+    // the existing side-by-side layout is used (BO1 unchanged).
+    var grouping = _groupByGame(subs);
+    var cardsHTML;
+    if (grouping.grouped) {
+      cardsHTML = grouping.games.map(function (g) {
+        var gameLabel = g.game_number > 0 ? 'Game ' + g.game_number : 'Ungrouped';
+        var mapName = (g.side1 || g.side2)
+          ? String(
+              (g.side1 && g.side1.raw_result_payload && g.side1.raw_result_payload.map)
+              || (g.side2 && g.side2.raw_result_payload && g.side2.raw_result_payload.map)
+              || '')
+          : '';
+        return '<div class="mt-3">' +
+          '<div class="flex items-center gap-2 mb-2">' +
+            '<span class="text-[9px] font-black uppercase tracking-widest text-dc-text/60 border border-dc-border/60 rounded px-2 py-0.5">' + esc(gameLabel) + '</span>' +
+            (mapName ? '<span class="text-[9px] text-dc-text/60 font-mono">' + esc(mapName) + '</span>' : '') +
+          '</div>' +
+          '<div class="grid grid-cols-1 md:grid-cols-2 gap-3">' +
+            _evidenceCard(1, g.side1, teamA) +
+            _evidenceCard(2, g.side2, teamB) +
+          '</div>' +
+        '</div>';
+      }).join('');
+    } else {
+      // BO1 or no game_number — original side-by-side layout.
+      cardsHTML = '<div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">' +
+        _evidenceCard(1, latest[1], teamA) +
+        _evidenceCard(2, latest[2], teamB) +
+      '</div>';
+    }
+
     var mediaHTML  = _evidenceMediaSection(media);
+
+    // Evidence timeline (audit trail) — from backend when present.
+    var timelineHTML = '';
+    var timeline = data.evidence_timeline;
+    if (Array.isArray(timeline) && timeline.length) {
+      var rows = timeline.slice().reverse().map(function (e) {
+        var ts = e.ts ? formatDateTime(e.ts) : '';
+        var who = e.automated ? 'System' : (e.user_id ? 'User #' + e.user_id : 'Admin');
+        return '<div class="flex items-start gap-2 py-1.5 border-b border-dc-border/20 last:border-0">' +
+          '<i data-lucide="' + (e.automated ? 'cpu' : 'user') + '" class="w-3 h-3 text-dc-text/50 mt-0.5 shrink-0"></i>' +
+          '<div class="flex-1 min-w-0">' +
+            '<p class="text-[11px] text-dc-text leading-snug">' + esc(e.detail || e.action) + '</p>' +
+            '<p class="text-[9px] text-dc-text/50 mt-0.5">' + esc(who) + ' · ' + esc(ts) + '</p>' +
+          '</div>' +
+        '</div>';
+      }).join('');
+      timelineHTML = '<div class="mt-4">' +
+        '<p class="text-[9px] font-black uppercase tracking-widest text-dc-text/50 mb-2">Evidence Audit Trail</p>' +
+        '<div class="space-y-0">' + rows + '</div>' +
+      '</div>';
+    }
 
     container.innerHTML =
       summaryHTML +
-      '<div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">' +
-        sideAHTML +
-        sideBHTML +
-      '</div>' +
-      mediaHTML;
+      adminActionsHTML +
+      crossCheckHTML +
+      cardsHTML +
+      mediaHTML +
+      timelineHTML;
 
     if (typeof lucide !== 'undefined') lucide.createIcons();
   }
 
-  // P3 — Admin Scan Evidence action. POST to the submission-scan endpoint;
-  // refresh the match detail when done so the new OCR status shows up.
+  // P3 — Admin Scan Evidence action.
+  //
+  // Drives a per-card scanning state while the backend OCR pipeline runs.
+  // Frontend animates a soft progress bar + cycled stage messages (the OCR
+  // call typically takes 30-90s on Gemini Flash, so a passive spinner
+  // would feel broken). All copy is platform-native — no vendor names.
+
+  var _scanStages = [
+    { at: 0,  msg: 'Preparing evidence…' },
+    { at: 8,  msg: 'Reading scoreboard layout…' },
+    { at: 22, msg: 'Detecting teams…' },
+    { at: 38, msg: 'Extracting score…' },
+    { at: 55, msg: 'Matching roster…' },
+    { at: 72, msg: 'Comparing result…' },
+    { at: 88, msg: 'Saving extraction…' },
+  ];
+
+  function _setScanCardState(submissionId, opts) {
+    // opts: {phase: 'scanning'|'done'|'error', pct, message, error}
+    var btn = document.querySelector('[data-scan-btn-sub="' + submissionId + '"]');
+    var overlay = document.querySelector('[data-scan-overlay-sub="' + submissionId + '"]');
+    if (!btn || !overlay) return;
+
+    if (opts.phase === 'scanning') {
+      btn.disabled = true;
+      btn.classList.add('opacity-60', 'cursor-wait');
+      overlay.classList.remove('hidden');
+      var msgEl = overlay.querySelector('[data-scan-msg]');
+      var pctEl = overlay.querySelector('[data-scan-pct]');
+      var fillEl = overlay.querySelector('[data-scan-fill]');
+      if (msgEl) msgEl.textContent = opts.message || 'Scanning…';
+      if (pctEl) pctEl.textContent = Math.floor(opts.pct || 0) + '%';
+      if (fillEl) fillEl.style.width = (opts.pct || 0).toFixed(1) + '%';
+      overlay.classList.remove('border-rose-400/40', 'bg-rose-500/8');
+      overlay.classList.remove('border-emerald-400/40', 'bg-emerald-500/8');
+      overlay.classList.add('border-theme/40', 'bg-theme/8');
+    } else if (opts.phase === 'done') {
+      var msgEl2 = overlay.querySelector('[data-scan-msg]');
+      var pctEl2 = overlay.querySelector('[data-scan-pct]');
+      var fillEl2 = overlay.querySelector('[data-scan-fill]');
+      if (msgEl2) msgEl2.textContent = 'Scan complete';
+      if (pctEl2) pctEl2.textContent = '100%';
+      if (fillEl2) fillEl2.style.width = '100%';
+      overlay.classList.remove('border-theme/40', 'bg-theme/8', 'border-rose-400/40', 'bg-rose-500/8');
+      overlay.classList.add('border-emerald-400/40', 'bg-emerald-500/8');
+    } else if (opts.phase === 'error') {
+      var msgEl3 = overlay.querySelector('[data-scan-msg]');
+      if (msgEl3) msgEl3.textContent = opts.error || 'Scan failed';
+      overlay.classList.remove('border-theme/40', 'bg-theme/8', 'border-emerald-400/40', 'bg-emerald-500/8');
+      overlay.classList.add('border-rose-400/40', 'bg-rose-500/8');
+    }
+  }
+
+  function _renderScanOverlay(submissionId) {
+    // Injects the scanning overlay block above the OCR badge in the card.
+    // Idempotent — returns existing element if already mounted.
+    var existing = document.querySelector('[data-scan-overlay-sub="' + submissionId + '"]');
+    if (existing) return existing;
+    var card = document.querySelector('[data-scan-btn-sub="' + submissionId + '"]')?.closest('.rounded-xl');
+    if (!card) return null;
+    var ocrSection = card.querySelector('.border-t');
+    if (!ocrSection) return null;
+    var overlay = document.createElement('div');
+    overlay.setAttribute('data-scan-overlay-sub', String(submissionId));
+    overlay.className = 'mt-3 rounded-lg border border-theme/40 bg-theme/8 p-3';
+    overlay.innerHTML =
+      '<div class="flex items-center justify-between mb-2">' +
+        '<span class="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-theme">' +
+          '<i data-lucide="scan-line" class="w-3.5 h-3.5 animate-pulse"></i>' +
+          '<span data-scan-msg>Preparing evidence…</span>' +
+        '</span>' +
+        '<span class="text-[10px] font-mono font-bold tabular-nums text-theme" data-scan-pct>0%</span>' +
+      '</div>' +
+      '<div class="h-1 bg-black/40 rounded-full overflow-hidden">' +
+        '<div class="h-full bg-gradient-to-r from-theme to-purple-400 transition-all duration-500 ease-out" data-scan-fill style="width:0%;"></div>' +
+      '</div>';
+    ocrSection.parentNode.insertBefore(overlay, ocrSection);
+    if (typeof lucide !== 'undefined') try { lucide.createIcons({nodes:[overlay]}); } catch(_){}
+    return overlay;
+  }
+
   async function scanEvidence(submissionId, force) {
     if (!submissionId) { toast('Submission id missing.', 'error'); return; }
     // Normalize ``selectedMatchId`` defensively — guards against any caller
@@ -2454,28 +2939,87 @@
     if (!matchId) { toast('Select a match first.', 'error'); return; }
     var forceParam = (force === 1 || force === '1' || force === true) ? '?force=1' : '';
     var endpoint = 'matches/' + matchId + '/submissions/' + submissionId + '/scan/' + forceParam;
-    toast('Scanning evidence…', 'info');
-    try {
-      var resp = await API(endpoint, { method: 'POST' });
-      var status = String((resp && resp.ocr_status) || '').toLowerCase();
-      if (status === 'completed') {
-        toast('OCR complete.', 'success');
-      } else if (status === 'failed') {
-        toast('OCR failed: ' + String(resp.ocr_error || 'unknown error'), 'error');
-      } else if (status === 'skipped') {
-        toast('OCR skipped: ' + String(resp.ocr_error || 'no service for this game.'), 'info');
-      } else {
-        toast('OCR status: ' + status, 'info');
+
+    // Mount the scanning overlay above the OCR section, then drive it
+    // with a timed soft progress bar + cycled stage messages.
+    _renderScanOverlay(submissionId);
+    _setScanCardState(submissionId, {phase: 'scanning', pct: 0, message: _scanStages[0].msg});
+    var startedAt = Date.now();
+    var ticker = window.setInterval(function () {
+      var elapsed = (Date.now() - startedAt) / 1000;
+      // Approach 95% over ~75s; cap there until response arrives.
+      var pct;
+      if (elapsed < 60)      pct = (elapsed / 60) * 85;
+      else if (elapsed < 90) pct = 85 + ((elapsed - 60) / 30) * 10;
+      else                    pct = 95;
+      // Pick the latest stage whose ``at`` percentage has been crossed.
+      var stage = _scanStages[0];
+      for (var i = _scanStages.length - 1; i >= 0; i--) {
+        if (pct >= _scanStages[i].at) { stage = _scanStages[i]; break; }
       }
+      _setScanCardState(submissionId, {phase: 'scanning', pct: pct, message: stage.msg});
+    }, 600);
+
+    var resp = null;
+    var errorMsg = '';
+    try {
+      resp = await API(endpoint, { method: 'POST', timeout: 120000 });
     } catch (e) {
-      toast('Scan failed: ' + (parseApiError(e) || 'Unknown error'), 'error');
+      errorMsg = parseApiError(e) || 'Unknown error';
     }
-    // Force-refresh the match detail so the Evidence tab picks up new fields.
-    // selectMatch() expects a numeric id — passing the match object would
-    // serialise as ``[object Object]`` in the URL.
+    window.clearInterval(ticker);
+
+    var status = String((resp && resp.ocr_status) || '').toLowerCase();
+    if (status === 'completed') {
+      _setScanCardState(submissionId, {phase: 'done'});
+      toast('Evidence scanned.', 'success');
+    } else if (status === 'failed') {
+      _setScanCardState(submissionId, {phase: 'error', error: 'Scan failed: ' + String(resp.ocr_error || 'unknown error')});
+      toast('Scan failed: ' + String(resp.ocr_error || 'unknown error'), 'error');
+    } else if (status === 'skipped') {
+      _setScanCardState(submissionId, {phase: 'error', error: 'Skipped: ' + String(resp.ocr_error || 'no service for this game.')});
+      toast('Scan skipped: ' + String(resp.ocr_error || 'no service for this game.'), 'info');
+    } else if (errorMsg) {
+      _setScanCardState(submissionId, {phase: 'error', error: errorMsg});
+      toast('Scan failed: ' + errorMsg, 'error');
+    } else {
+      _setScanCardState(submissionId, {phase: 'error', error: 'Unexpected response (status=' + status + ')'});
+      toast('Unexpected scan response.', 'error');
+    }
+
+    // Refresh match detail so updated OCR fields render (this also blows
+    // away our overlay — the card is re-rendered from the new payload).
     try {
       await selectMatch(matchId);
     } catch (_) { /* non-fatal */ }
+  }
+
+  // P3.5 — Populate the 5v5 KDA grid from a submission's OCR extraction.
+  // Called when admin clicks "Populate Scorecard from OCR" in the Evidence
+  // tab. Reuses the existing ``_applyTeam5v5AIResult`` renderer so the
+  // same passport-IGN matching + confidence display logic applies.
+  // Only available for matches where the 5v5 grid section is present.
+  function populateGridFromOCR(submissionId) {
+    if (!submissionId) { toast('Submission id missing.', 'error'); return; }
+    // Find the submission in the currently rendered match detail.
+    if (!selectedMatchDetail || !selectedMatchDetail.submissions) {
+      toast('Match detail not loaded.', 'error');
+      return;
+    }
+    var sub = selectedMatchDetail.submissions.find(function (s) {
+      return String(s.id) === String(submissionId);
+    });
+    if (!sub) { toast('Submission not found.', 'error'); return; }
+    var ext = sub.ocr_extracted;
+    if (!ext || typeof ext !== 'object') {
+      toast('No OCR extraction available. Run Scan Evidence first.', 'error');
+      return;
+    }
+    // The ocr_extracted shape from team_5v5_screenshot_service is compatible
+    // with _applyTeam5v5AIResult's expected shape. Candidate arrays may be
+    // present if the extraction was run with roster hints.
+    _applyTeam5v5AIResult(ext);
+    toast('Scorecard pre-filled from OCR extraction. Review and save.', 'success');
   }
 
   // Click-to-enlarge lightbox for evidence images.
@@ -3406,8 +3950,10 @@
     saveTeam5v5Stats: saveTeam5v5Stats,
     // Evidence Viewer lightbox (RP — TOC Evidence tab finish)
     openEvidenceLightbox: openEvidenceLightbox,
-    // P3 — OCR scan action
+    // P3 — OCR scan action + review actions + scorecard population
     scanEvidence: scanEvidence,
+    evidenceAction: evidenceAction,
+    populateGridFromOCR: populateGridFromOCR,
   };
 
   document.addEventListener('toc:tab-changed', function (e) {

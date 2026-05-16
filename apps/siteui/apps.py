@@ -14,7 +14,7 @@ class SiteUIConfig(AppConfig):
         import sys
         if 'migrate' in sys.argv or 'makemigrations' in sys.argv:
             return
-        
+
         # NEW: Register event handlers
         try:
             from .events import register_siteui_event_handlers
@@ -22,3 +22,9 @@ class SiteUIConfig(AppConfig):
             logger.debug("Site UI event handlers registered")
         except Exception as e:
             logger.error(f"❌ Failed to register site UI event handlers: {e}")
+
+        # Register deployment-safety checks (media storage, etc.)
+        try:
+            from . import checks  # noqa: F401
+        except Exception as e:
+            logger.error(f"❌ Failed to register siteui system checks: {e}")

@@ -627,9 +627,7 @@
       const observer = new MutationObserver(() => {
         if (section.classList.contains("is-active") && !this._loaded) {
           this._loaded = true;
-          this.loadChallenges();
-          this.loadBounties();
-          this.loadStats();
+          this.loadData();
         }
       });
       observer.observe(section, { attributes: true, attributeFilter: ["class"] });
@@ -658,6 +656,15 @@
 
       const vodForm = document.getElementById("add-vod-form");
       if (vodForm) vodForm.addEventListener("submit", (e) => { e.preventDefault(); this.submitVod(); });
+
+      const tryoutForm = document.getElementById("add-tryout-form");
+      if (tryoutForm) tryoutForm.addEventListener("submit", (e) => { e.preventDefault(); this.submitTryout(); });
+
+      const reviewTryoutForm = document.getElementById("review-tryout-form");
+      if (reviewTryoutForm) reviewTryoutForm.addEventListener("submit", (e) => { e.preventDefault(); this.submitTryoutReview(); });
+
+      const scheduleTryoutForm = document.getElementById("schedule-tryout-form");
+      if (scheduleTryoutForm) scheduleTryoutForm.addEventListener("submit", (e) => { e.preventDefault(); this.submitTryoutSchedule(); });
     },
 
     // ── Sub-tab Navigation ──
@@ -671,6 +678,24 @@
       });
       const panel = document.getElementById(`training-panel-${tab}`);
       if (panel) panel.classList.remove("hidden");
+    },
+
+    async loadData() {
+      const section = document.getElementById("training");
+      const slug = section?.dataset.teamSlug;
+      if (!slug) return;
+
+      try {
+        const data = await api(`training/`, { method: "GET" });
+        this.renderScrims(data.scrims || []);
+        this.renderOpenScrims(data.open_scrims || []);
+        this.renderTryouts(data.tryout_applications || []);
+        this.renderSessions(data.practice_sessions || []);
+        this.renderVods(data.vod_reviews || []);
+        this.updateTrainingStats(data.stats || {});
+      } catch (err) {
+        toast(err.message || "Could not load training data.", "error");
+      }
     },
 
     // ── Load Challenges ──
@@ -1025,8 +1050,6 @@
     },
 
     async submitSchedule() {
-      toast("Practice scheduling is coming soon. Training tools do not use DeltaCoin, escrow, or reward settlement.");
-      return;
       const btn = qs("#schedule-submit");
       const errEl = qs("#schedule-error");
       btn.disabled = true; btn.textContent = "Scheduling…";
@@ -1035,11 +1058,11 @@
           title: qs("#schedule-title")?.value.trim(),
           date: qs("#schedule-date")?.value,
           time: qs("#schedule-time")?.value,
-          duration: qs("#schedule-duration")?.value,
-          type: qs("#schedule-type")?.value,
-          notes: qs("#schedule-notes")?.value.trim(),
+          duration_minutes: parseInt(qs("#schedule-duration")?.value) || 60,
+          session_type: qs("#schedule-type")?.value,
+          goals: qs("#schedule-notes")?.value.trim(),
         };
-        const data = await api("training/schedule/", {
+        const data = await api("training/practice/", {
           method: "POST",
           body: JSON.stringify(payload),
         });
@@ -1061,8 +1084,6 @@
     },
 
     async submitScrim() {
-      toast("Scrim finder is coming soon. Scrims are non-escrow practice matches by default.");
-      return;
       const btn = qs("#scrim-submit");
       const errEl = qs("#scrim-error");
       btn.disabled = true; btn.textContent = "Posting…";
@@ -1071,6 +1092,8 @@
           date: qs("#scrim-date")?.value,
           time: qs("#scrim-time")?.value,
           format: qs("#scrim-format")?.value,
+          server_region: qs("#scrim-region")?.value.trim(),
+          skill_level: qs("#scrim-skill")?.value.trim(),
           notes: qs("#scrim-notes")?.value.trim(),
         };
         const data = await api("training/scrims/", {
@@ -1083,7 +1106,7 @@
       } catch (err) {
         errEl.textContent = err.message; errEl.classList.remove("hidden");
       } finally {
-        btn.disabled = false; btn.textContent = "Post LFG";
+        btn.disabled = false; btn.textContent = "Post Scrim";
       }
     },
 
@@ -1094,16 +1117,48 @@
       Modal.open("modal-add-vod");
     },
 
+    openTryoutModal() {
+      const form = document.getElementById("add-tryout-form");
+      if (form) form.reset();
+      qs("#tryout-error")?.classList.add("hidden");
+      Modal.open("modal-add-tryout");
+    },
+
+    async submitTryout() {
+      const btn = qs("#tryout-submit");
+      const errEl = qs("#tryout-error");
+      btn.disabled = true; btn.textContent = "Submitting...";
+      try {
+        const payload = {
+          applicant_user_id: qs("#tryout-applicant-id")?.value || undefined,
+          ign: qs("#tryout-ign")?.value.trim(),
+          preferred_role: qs("#tryout-role")?.value.trim(),
+          rank_tier: qs("#tryout-rank")?.value.trim(),
+          availability: qs("#tryout-availability")?.value.trim(),
+          notes: qs("#tryout-notes")?.value.trim(),
+        };
+        const data = await api("training/tryouts/", {
+          method: "POST",
+          body: JSON.stringify(payload),
+        });
+        toast(data.message || "Tryout application added.");
+        Modal.close("modal-add-tryout");
+        this.loadData();
+      } catch (err) {
+        errEl.textContent = err.message; errEl.classList.remove("hidden");
+      } finally {
+        btn.disabled = false; btn.textContent = "Submit";
+      }
+    },
+
     async submitVod() {
-      toast("VOD review library is coming soon. Reviews are team notes, not reward operations.");
-      return;
       const btn = qs("#vod-submit");
       const errEl = qs("#vod-error");
       btn.disabled = true; btn.textContent = "Adding…";
       try {
         const payload = {
           title: qs("#vod-title")?.value.trim(),
-          url: qs("#vod-url")?.value.trim(),
+          external_url: qs("#vod-url")?.value.trim(),
           category: qs("#vod-category")?.value,
           notes: qs("#vod-notes")?.value.trim(),
         };
@@ -1194,6 +1249,171 @@
         </a>
       `).join("");
       if (window.lucide) lucide.createIcons({ nodes: [grid] });
+    },
+
+    renderOpenScrims(scrims) {
+      const container = qs("#open-scrim-list");
+      if (!container) return;
+      if (!scrims.length) {
+        container.innerHTML = '<div class="rounded-xl border border-white/10 bg-white/[0.03] p-4 text-sm text-white/45">No open scrims available.</div>';
+        return;
+      }
+      container.innerHTML = scrims.map(s => `
+        <div class="rounded-xl border border-emerald-500/15 bg-emerald-500/5 p-3 flex items-center gap-3" data-scrim data-status="${esc(s.status)}" data-type="${esc(s.format)}">
+          <div class="min-w-0 flex-1">
+            <p class="text-sm font-semibold">${esc(s.requesting_team_name)} · ${esc(s.format)}</p>
+            <p class="text-xs text-white/40">${esc(s.date || "")} ${esc(s.time || "")} · ${esc(s.server_region || "Region open")} · ${esc(s.skill_level || "Any level")}</p>
+            <p class="text-[11px] text-white/35 mt-1 line-clamp-2">${esc(s.notes || "No notes")}</p>
+          </div>
+          <button type="button" data-click="ManageHQ.Training.acceptScrim" data-click-args='[${s.id}]'
+                  class="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-[10px] font-bold text-white">Accept</button>
+        </div>
+      `).join("");
+      if (window.lucide) lucide.createIcons({ nodes: [container] });
+    },
+
+    async acceptScrim(id) {
+      try {
+        const data = await api(`training/scrims/${id}/accept/`, { method: "POST", body: "{}" });
+        toast(data.message || "Scrim accepted.");
+        this.loadData();
+      } catch (err) {
+        toast(err.message, "error");
+      }
+    },
+
+    renderTryouts(tryouts) {
+      const container = qs("#tryout-list");
+      if (!container) return;
+      if (!tryouts.length) {
+        container.innerHTML = '<div class="rounded-xl border border-white/10 bg-white/[0.03] p-4 text-sm text-white/45">No tryout applications yet.</div>';
+        return;
+      }
+      container.innerHTML = tryouts.map(t => `
+        <div class="rounded-xl border border-blue-500/15 bg-blue-500/5 p-3 flex items-center gap-3">
+          <div class="h-10 w-10 rounded-lg bg-blue-500/15 grid place-items-center shrink-0">
+            <i data-lucide="user-round-check" class="w-4 h-4 text-blue-300"></i>
+          </div>
+          <div class="min-w-0 flex-1">
+            <p class="text-sm font-semibold">${esc(t.applicant_username)} ${t.ign ? `· ${esc(t.ign)}` : ""}</p>
+            <p class="text-xs text-white/40">${esc(t.preferred_role || "Role open")} · ${esc(t.rank_tier || "Rank open")} · ${esc(t.availability || "Availability not set")}</p>
+            ${t.notes ? `<p class="text-[11px] text-white/35 mt-1 line-clamp-2">${esc(t.notes)}</p>` : ""}
+            ${t.join_request_id ? `<p class="text-[10px] text-emerald-300 mt-1 font-bold uppercase tracking-wider">Moved to Join Pipeline · ${esc(t.join_request_status_label || t.join_request_status || "Offer Sent")}</p>` : ""}
+          </div>
+          <div class="shrink-0 flex flex-col gap-1 items-end">
+            <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-500/15 text-blue-300">${esc(t.status)}</span>
+            <div class="flex gap-1">
+              <button type="button" data-click="ManageHQ.Training.openTryoutScheduleModal" data-click-args='[${t.id}]' class="px-2 py-1 rounded bg-white/10 hover:bg-white/15 text-[10px] font-bold">Schedule</button>
+              <button type="button" data-click="ManageHQ.Training.openTryoutReviewModal" data-click-args='[${t.id}]' class="px-2 py-1 rounded bg-blue-600 hover:bg-blue-500 text-[10px] font-bold text-white">Review</button>
+              ${t.join_request_id || ["REJECTED", "WITHDRAWN"].includes(t.status) ? "" : `<button type="button" data-click="ManageHQ.Training.sendTryoutOffer" data-click-args='[${t.id}]' class="px-2 py-1 rounded bg-emerald-600 hover:bg-emerald-500 text-[10px] font-bold text-white">Send Offer</button>`}
+            </div>
+          </div>
+        </div>
+      `).join("");
+      if (window.lucide) lucide.createIcons({ nodes: [container] });
+    },
+
+    openTryoutReviewModal(id) {
+      const form = document.getElementById("review-tryout-form");
+      if (form) form.reset();
+      const idInput = qs("#review-tryout-id");
+      if (idInput) idInput.value = id;
+      qs("#review-tryout-error")?.classList.add("hidden");
+      Modal.open("modal-review-tryout");
+    },
+
+    async submitTryoutReview() {
+      const id = qs("#review-tryout-id")?.value;
+      const action = qs("#review-tryout-status")?.value || "REVIEW";
+      const notes = qs("#review-tryout-notes")?.value.trim() || "";
+      const btn = qs("#review-tryout-submit");
+      const errEl = qs("#review-tryout-error");
+      if (!id) return;
+      if (btn) { btn.disabled = true; btn.textContent = "Saving..."; }
+      try {
+        const data = await api(`training/tryouts/${id}/review/`, {
+          method: "POST",
+          body: JSON.stringify({ action, notes }),
+        });
+        toast(data.message || "Tryout updated.");
+        Modal.close("modal-review-tryout");
+        this.loadData();
+      } catch (err) {
+        if (errEl) { errEl.textContent = err.message; errEl.classList.remove("hidden"); }
+        else toast(err.message, "error");
+      } finally {
+        if (btn) { btn.disabled = false; btn.textContent = "Save Review"; }
+      }
+    },
+
+    openTryoutScheduleModal(id) {
+      const form = document.getElementById("schedule-tryout-form");
+      if (form) form.reset();
+      const idInput = qs("#schedule-tryout-id");
+      if (idInput) idInput.value = id;
+      qs("#schedule-tryout-error")?.classList.add("hidden");
+      Modal.open("modal-schedule-tryout");
+    },
+
+    async submitTryoutSchedule() {
+      const id = qs("#schedule-tryout-id")?.value;
+      const date = qs("#schedule-tryout-date")?.value;
+      const time = qs("#schedule-tryout-time")?.value;
+      const format = qs("#schedule-tryout-format")?.value.trim() || "";
+      const roomDetails = qs("#schedule-tryout-room")?.value.trim() || "";
+      const btn = qs("#schedule-tryout-submit");
+      const errEl = qs("#schedule-tryout-error");
+      if (!id) return;
+      if (!date || !time) {
+        if (errEl) { errEl.textContent = "Date and time are required."; errEl.classList.remove("hidden"); }
+        return;
+      }
+      if (btn) { btn.disabled = true; btn.textContent = "Scheduling..."; }
+      try {
+        const data = await api(`training/tryouts/${id}/schedule/`, {
+          method: "POST",
+          body: JSON.stringify({ date, time, format, room_details: roomDetails }),
+        });
+        toast(data.message || "Tryout scheduled.");
+        Modal.close("modal-schedule-tryout");
+        this.loadData();
+      } catch (err) {
+        if (errEl) { errEl.textContent = err.message; errEl.classList.remove("hidden"); }
+        else toast(err.message, "error");
+      } finally {
+        if (btn) { btn.disabled = false; btn.textContent = "Schedule Tryout"; }
+      }
+    },
+
+    async sendTryoutOffer(id) {
+      if (!id) return;
+      try {
+        const data = await api(`training/tryouts/${id}/offer/`, {
+          method: "POST",
+          body: JSON.stringify({}),
+        });
+        toast(data.message || "Join offer moved into the roster pipeline.");
+        this.loadData();
+      } catch (err) {
+        toast(err.message || "Could not send join offer.", "error");
+      }
+    },
+
+    updateTrainingStats(stats) {
+      const el = (id, val) => { const e = document.getElementById(id); if (e) e.textContent = val; };
+      el("scrim-stat-total", stats.open_scrims || 0);
+      el("tryout-stat-total", stats.pending_tryouts || 0);
+      el("practice-stat-total", stats.upcoming_practice || 0);
+      el("vod-stat-total", stats.open_vods || 0);
+    },
+
+    _formatTime(ts) {
+      if (!ts) return "";
+      try {
+        return new Date(ts).toLocaleString([], { dateStyle: "short", timeStyle: "short" });
+      } catch {
+        return "";
+      }
     },
 
     renderBounties(bounties) {
@@ -3234,6 +3454,10 @@
       cancelChallenge:   (id) => Training.cancelChallenge(id),
       openResultModal:   (id) => Training.openResultModal(id),
       submitResult:      (id, result) => Training.submitResult(id, result),
+      openTryoutReviewModal: (id) => Training.openTryoutReviewModal(id),
+      submitTryoutReview: () => Training.submitTryoutReview(),
+      openTryoutScheduleModal: (id) => Training.openTryoutScheduleModal(id),
+      submitTryoutSchedule: () => Training.submitTryoutSchedule(),
     },
     // Community & Media
     Community: {

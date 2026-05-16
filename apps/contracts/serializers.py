@@ -85,3 +85,36 @@ class ContractEnrollmentSerializer(serializers.Serializer):
         source='get_closure_reason_display', read_only=True, allow_blank=True
     )
     closure_note = serializers.CharField(read_only=True, allow_blank=True)
+
+
+class ContractProofSubmissionSerializer(serializers.Serializer):
+    """Public-safe Mission proof state."""
+
+    id = serializers.UUIDField(read_only=True)
+    enrollment_id = serializers.UUIDField(source='enrollment.id', read_only=True)
+    proof_url = serializers.URLField(read_only=True)
+    proof_file_url = serializers.SerializerMethodField()
+    notes = serializers.CharField(read_only=True, allow_blank=True)
+    status = serializers.CharField(read_only=True)
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    submitted_at = serializers.DateTimeField(read_only=True)
+    reviewed_at = serializers.DateTimeField(read_only=True, allow_null=True)
+
+    def get_proof_file_url(self, obj):
+        try:
+            return obj.proof_file.url if obj.proof_file else ''
+        except Exception:
+            return ''
+
+
+class ContractProofSubmitSerializer(serializers.Serializer):
+    """Mission proof submission input."""
+
+    proof_url = serializers.URLField(required=False, allow_blank=True, max_length=500)
+    proof_file = serializers.FileField(required=False, allow_empty_file=False)
+    notes = serializers.CharField(required=False, allow_blank=True, max_length=3000)
+
+    def validate(self, attrs):
+        if not (attrs.get('proof_url') or attrs.get('proof_file')):
+            raise serializers.ValidationError("Proof URL or proof file is required.")
+        return attrs

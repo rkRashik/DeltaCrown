@@ -2582,9 +2582,36 @@ def apply_to_team(request, slug):
 
     from apps.organizations.models.join_request import TeamJoinRequest
 
-    # Check for existing pending request
-    if TeamJoinRequest.objects.filter(team=team, user=request.user, status='PENDING').exists():
-        return JsonResponse({'error': 'You already have a pending application'}, status=400)
+    # Check for existing active join pipeline request.
+    active_join_statuses = [
+        TeamJoinRequest.Status.PENDING,
+        TeamJoinRequest.Status.TRYOUT_SCHEDULED,
+        TeamJoinRequest.Status.TRYOUT_COMPLETED,
+        TeamJoinRequest.Status.OFFER_SENT,
+    ]
+    if TeamJoinRequest.objects.filter(team=team, user=request.user, status__in=active_join_statuses).exists():
+        return JsonResponse({'error': 'You already have an active join request for this team.'}, status=400)
+
+    # Avoid parallel join + tryout applications for the same team.
+    try:
+        from apps.organizations.models.training import TryoutApplication
+        active_tryout_statuses = [
+            TryoutApplication.Status.PENDING,
+            TryoutApplication.Status.REVIEWING,
+            TryoutApplication.Status.INVITED,
+            TryoutApplication.Status.SCHEDULED,
+            TryoutApplication.Status.OBSERVATION,
+        ]
+        if TryoutApplication.objects.filter(
+            team=team,
+            applicant=request.user,
+            status__in=active_tryout_statuses,
+        ).exists():
+            return JsonResponse({
+                'error': 'You already have an active tryout application for this team. Track it from the team page.'
+            }, status=400)
+    except Exception:
+        pass
 
     try:
         data = json.loads(request.body)
@@ -2657,6 +2684,95 @@ def withdraw_application(request, slug):
 
 
 @api_login_required
+@transaction.atomic
+@require_http_methods(["POST"])
+def offer_action(request, slug, request_id):
+    """POST /api/vnext/teams/<slug>/apply/offers/<id>/ - applicant accepts or declines an offer."""
+    team = get_object_or_404(Team, slug=slug, status=TeamStatus.ACTIVE)
+    from apps.organizations.models.join_request import TeamJoinRequest
+    from apps.organizations.models.training import TryoutApplication
+    from django.utils import timezone
+
+    jr = get_object_or_404(
+        TeamJoinRequest.objects.select_for_update().prefetch_related('tryout_applications'),
+        pk=request_id,
+        team=team,
+        user=request.user,
+    )
+    if jr.status != TeamJoinRequest.Status.OFFER_SENT:
+        return JsonResponse({'error': 'This offer is no longer active.'}, status=400)
+
+    try:
+        data = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        data = {}
+    action = (data.get('action') or '').lower()
+    if action not in ('accept', 'decline'):
+        return JsonResponse({'error': 'action must be "accept" or "decline"'}, status=400)
+
+    if action == 'decline':
+        jr.status = TeamJoinRequest.Status.DECLINED
+        jr.reviewed_at = timezone.now()
+        jr.save(update_fields=['status', 'reviewed_at', 'updated_at'])
+        jr.tryout_applications.update(status=TryoutApplication.Status.REJECTED, updated_at=timezone.now())
+        return JsonResponse({'success': True, 'status': jr.status, 'message': 'Offer declined.'})
+
+    from apps.organizations.models import TeamMembership
+    from apps.organizations.choices import MembershipRole, MembershipStatus
+
+    membership = TeamMembership.objects.filter(
+        team=team,
+        user=request.user,
+        status=MembershipStatus.ACTIVE,
+    ).first()
+    created = False
+    if not membership:
+        membership = TeamMembership.objects.create(
+            team=team,
+            user=request.user,
+            role=MembershipRole.PLAYER,
+            status=MembershipStatus.ACTIVE,
+        )
+        created = True
+
+    jr.status = TeamJoinRequest.Status.ACCEPTED
+    jr.reviewed_at = timezone.now()
+    jr.save(update_fields=['status', 'reviewed_at', 'updated_at'])
+    jr.tryout_applications.update(status=TryoutApplication.Status.ACCEPTED, updated_at=timezone.now())
+
+    try:
+        from apps.notifications.models import Notification
+        admin_memberships = TeamMembership.objects.filter(
+            team=team,
+            status=MembershipStatus.ACTIVE,
+            role__in=[MembershipRole.OWNER, MembershipRole.MANAGER],
+        ).select_related('user')
+        for membership_row in admin_memberships:
+            Notification.objects.create(
+                recipient=membership_row.user,
+                type=Notification.Type.JOIN_REQUEST_ACCEPTED,
+                title=f"@{request.user.username} accepted {team.name}'s offer",
+                body=f"@{request.user.username} accepted the roster offer and joined {team.name}.",
+                url=f"/teams/{team.slug}/manage/#join-requests",
+                action_label="View Pipeline",
+                action_url=f"/teams/{team.slug}/manage/#join-requests",
+                category="team",
+                action_object_id=jr.pk,
+                action_type="join_request",
+            )
+    except Exception:
+        pass
+
+    return JsonResponse({
+        'success': True,
+        'status': jr.status,
+        'membership_id': membership.pk,
+        'created_membership': created,
+        'message': 'Offer accepted. You are now on the roster.',
+    })
+
+
+@api_login_required
 @require_http_methods(["GET"])
 def list_join_requests(request, slug):
     """GET /api/vnext/teams/<slug>/join-requests/ â€” list pending join requests (admin only)."""
@@ -2668,8 +2784,8 @@ def list_join_requests(request, slug):
     from apps.organizations.models.join_request import TeamJoinRequest
 
     requests_qs = TeamJoinRequest.objects.filter(
-        team=team, status__in=['PENDING', 'TRYOUT_SCHEDULED', 'TRYOUT_COMPLETED', 'OFFER_SENT'],
-    ).select_related('user', 'user__profile').order_by('-created_at')
+        team=team, status__in=['PENDING', 'TRYOUT_SCHEDULED', 'TRYOUT_COMPLETED', 'OFFER_SENT', 'ACCEPTED', 'DECLINED'],
+    ).select_related('user', 'user__profile').prefetch_related('tryout_applications').order_by('-created_at')
 
     items = []
     for jr in requests_qs:
@@ -2682,6 +2798,7 @@ def list_join_requests(request, slug):
                 display_name = jr.user.profile.display_name
         except Exception:
             pass
+        origin_tryout = next(iter(jr.tryout_applications.all()), None)
         items.append({
             'id': jr.pk,
             'user_id': jr.user_id,
@@ -2693,6 +2810,8 @@ def list_join_requests(request, slug):
             'applied_position': jr.applied_position,
             'tryout_date': jr.tryout_date.isoformat() if jr.tryout_date else None,
             'tryout_notes': jr.tryout_notes,
+            'origin': 'tryout' if origin_tryout else 'join_request',
+            'origin_tryout_application_id': origin_tryout.pk if origin_tryout else None,
             'created_at': jr.created_at.isoformat(),
         })
 
@@ -2719,8 +2838,6 @@ def review_join_request(request, slug, request_id):
     from apps.organizations.models.join_request import TeamJoinRequest
     from django.utils import timezone
 
-    jr = get_object_or_404(TeamJoinRequest, pk=request_id, team=team, status='PENDING')
-
     try:
         data = json.loads(request.body)
     except (json.JSONDecodeError, ValueError):
@@ -2731,6 +2848,7 @@ def review_join_request(request, slug, request_id):
         return JsonResponse({'error': 'action must be "accept" or "decline"'}, status=400)
 
     if action == 'accept':
+        jr = get_object_or_404(TeamJoinRequest, pk=request_id, team=team, status='PENDING')
         # Create membership
         from apps.organizations.models import TeamMembership
         from apps.organizations.choices import MembershipRole
@@ -2774,6 +2892,12 @@ def review_join_request(request, slug, request_id):
         return JsonResponse({'success': True, 'message': f'{jr.user.username} has been added to the team!'})
 
     else:  # decline
+        jr = get_object_or_404(
+            TeamJoinRequest,
+            pk=request_id,
+            team=team,
+            status__in=['PENDING', 'TRYOUT_SCHEDULED', 'TRYOUT_COMPLETED', 'OFFER_SENT'],
+        )
         jr.status = 'DECLINED'
         jr.reviewed_by = request.user
         jr.reviewed_at = timezone.now()
@@ -3052,7 +3176,7 @@ def advance_tryout(request, slug, request_id):
     Advance through tryout lifecycle:
       TRYOUT_SCHEDULED â†’ TRYOUT_COMPLETED
       TRYOUT_COMPLETED â†’ OFFER_SENT
-      OFFER_SENT â†’ ACCEPTED (creates membership)
+      OFFER_SENT â†’ applicant action required
     """
     team = get_object_or_404(Team, slug=slug, status=TeamStatus.ACTIVE)
     has_perm, reason = _check_manage_permissions(team, request.user)
@@ -3078,21 +3202,10 @@ def advance_tryout(request, slug, request_id):
     }
 
     if jr.status == 'OFFER_SENT':
-        # Final step â€” sign the player (create membership)
-        from apps.organizations.models import TeamMembership
-        if not team.vnext_memberships.filter(user=jr.user, status='ACTIVE').exists():
-            TeamMembership.objects.create(
-                team=team,
-                user=jr.user,
-                role=MembershipRole.PLAYER,
-                status='ACTIVE',
-                invited_by=request.user,
-            )
-        jr.status = 'ACCEPTED'
-        jr.reviewed_by = request.user
-        jr.reviewed_at = timezone.now()
-        jr.save(update_fields=['status', 'tryout_notes', 'reviewed_by', 'reviewed_at', 'updated_at'])
-        return JsonResponse({'success': True, 'status': 'ACCEPTED', 'message': f'{jr.user.username} signed!'})
+        return JsonResponse({
+            'error': 'Offer is waiting for applicant acceptance.',
+            'status': jr.status,
+        }, status=400)
 
     if jr.status not in TRANSITIONS:
         return JsonResponse({'error': f'Cannot advance from status {jr.status}'}, status=400)

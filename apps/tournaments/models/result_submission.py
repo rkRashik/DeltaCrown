@@ -115,6 +115,17 @@ class MatchResultSubmission(models.Model):
         help_text='Direct file upload of proof screenshot. Max 10MB recommended.'
     )
 
+    # ── P3.6 — Per-game evidence tracking (migration 0061) ───────────
+    game_number = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text=(
+            "1-indexed game in a BO3/BO5 series (null for BO1). "
+            "Used to group per-game evidence in the Evidence tab."
+        ),
+    )
+
     # ── P3 — OCR pipeline persistence (migration 0060) ────────────────
     # All nullable / default-empty so old rows are unaffected and no
     # backfill is needed. Status values mirrored in the migration help_text.

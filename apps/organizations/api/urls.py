@@ -28,7 +28,7 @@ Endpoints:
 
 from django.urls import path
 from apps.organizations.api import views, hub_endpoints
-from apps.organizations.api.views import team_manage, user_history
+from apps.organizations.api.views import team_manage, training, user_history
 
 app_name = 'organizations_api'
 
@@ -72,6 +72,21 @@ urlpatterns = [
     path('teams/<str:slug>/search-players/', team_manage.search_players, name='team_manage_search_players'),
     path('teams/<str:slug>/activity/', team_manage.activity_timeline, name='team_manage_activity'),
     path('teams/<str:slug>/payment-methods/', team_manage.update_payment_methods, name='team_manage_payment_methods'),
+
+    # Applicant-facing team application history
+    path('me/team-applications/', training.my_team_applications, name='my_team_applications'),
+
+    # Team HQ Training Operations (non-reward workflows)
+    path('teams/<str:slug>/training/', training.training_overview, name='team_training_overview'),
+    path('teams/<str:slug>/training/scrims/', training.scrim_requests, name='team_training_scrims'),
+    path('teams/<str:slug>/training/scrims/<int:scrim_id>/accept/', training.accept_scrim, name='team_training_scrim_accept'),
+    path('teams/<str:slug>/training/tryouts/', training.tryout_applications, name='team_training_tryouts'),
+    path('teams/<str:slug>/training/tryouts/status/', training.tryout_status, name='team_training_tryout_status'),
+    path('teams/<str:slug>/training/tryouts/<int:application_id>/review/', training.review_tryout, name='team_training_tryout_review'),
+    path('teams/<str:slug>/training/tryouts/<int:application_id>/schedule/', training.schedule_tryout_session, name='team_training_tryout_schedule'),
+    path('teams/<str:slug>/training/tryouts/<int:application_id>/offer/', training.send_tryout_join_offer, name='team_training_tryout_offer'),
+    path('teams/<str:slug>/training/practice/', training.practice_sessions, name='team_training_practice'),
+    path('teams/<str:slug>/training/vods/', training.vod_reviews, name='team_training_vods'),
     
     # Discord integration (Phase B)
     path('teams/<str:slug>/discord/', team_manage.discord_config, name='team_discord_config'),
@@ -91,6 +106,7 @@ urlpatterns = [
     # Join Requests — public applications (Phase B)
     path('teams/<str:slug>/apply/', team_manage.apply_to_team, name='team_apply'),
     path('teams/<str:slug>/apply/withdraw/', team_manage.withdraw_application, name='team_withdraw_application'),
+    path('teams/<str:slug>/apply/offers/<int:request_id>/', team_manage.offer_action, name='team_offer_action'),
     path('teams/<str:slug>/join-requests/', team_manage.list_join_requests, name='team_join_requests'),
     path('teams/<str:slug>/join-requests/<int:request_id>/review/', team_manage.review_join_request, name='team_review_join_request'),
     

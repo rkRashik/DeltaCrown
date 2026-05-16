@@ -5,7 +5,7 @@ from django.utils import timezone
 from rest_framework.test import APIClient
 
 from apps.competition.models import Bounty, BountyClaim, Challenge
-from apps.contracts.models import ContractEnrollment, ContractTemplate
+from apps.contracts.models import ContractEnrollment, ContractProofSubmission, ContractTemplate
 from apps.organizations.choices import MembershipRole
 from apps.organizations.tests.factories import (
     GameFactory,
@@ -95,8 +95,41 @@ def test_my_operations_includes_user_mission_enrollment(api_client, game):
     mission = next(item for item in items if item["id"] == str(enrollment.id))
     assert mission["type"] == "mission"
     assert mission["title"] == "Daily Survival Run"
-    assert mission["next_action_label"] == "Track Mission"
+    assert mission["next_action_label"] == "Submit Proof"
+    assert mission["detail_url"] == f"/dashboard/competitive/missions/{enrollment.id}/"
+    assert mission["next_action_url"] == mission["detail_url"]
     assert mission["is_action_required"] is True
+
+
+@pytest.mark.django_db
+def test_my_operations_reflects_mission_proof_review_state(api_client, game):
+    user = UserFactory()
+    template = ContractTemplate.objects.create(
+        title="Proof Review Mission",
+        game=game,
+        entry_fee_dc=25,
+        reward_dc=100,
+        duration_hours=24,
+    )
+    enrollment = ContractEnrollment.objects.create(
+        user=user,
+        template=template,
+        status="ACTIVE",
+        deadline_at=timezone.now() + timedelta(hours=24),
+    )
+    ContractProofSubmission.objects.create(
+        enrollment=enrollment,
+        submitted_by=user,
+        proof_url="https://example.com/proof.png",
+    )
+
+    response = authenticate(api_client, user).get(ENDPOINT)
+
+    assert response.status_code == 200
+    item = next(item for item in response.json()["results"] if item["id"] == str(enrollment.id))
+    assert item["next_action_label"] == "Proof Under Review"
+    assert item["latest_proof_status"] == "PENDING_REVIEW"
+    assert item["is_action_required"] is False
 
 
 @pytest.mark.django_db
@@ -242,7 +275,7 @@ def test_my_operations_routes_linked_showdown_result_to_match_room(api_client, g
     assert response.status_code == 200
     item = next(item for item in response.json()["results"] if item["id"] == str(showdown.id))
     assert item["match_room_url"] == f"/tournaments/{match.tournament.slug}/matches/{match.id}/room/"
-    assert item["next_action_label"] == "Submit Result in Match Room"
+    assert item["next_action_label"] == "Submit Proof in Match Room"
     assert item["next_action_url"] == item["match_room_url"]
     assert item["submit_result_url"] is None
     assert item["linked_result_state"] == "result_needed"

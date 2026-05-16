@@ -5,14 +5,20 @@ import logging
 
 from django.shortcuts import get_object_or_404
 from rest_framework import status
+from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.economy.exceptions import InsufficientFunds
 
-from .models import ContractEnrollment, ContractTemplate
-from .serializers import ContractEnrollmentSerializer, ContractTemplateSerializer
+from .models import ContractEnrollment, ContractProofSubmission, ContractTemplate
+from .serializers import (
+    ContractEnrollmentSerializer,
+    ContractProofSubmissionSerializer,
+    ContractProofSubmitSerializer,
+    ContractTemplateSerializer,
+)
 from .services import ContractService
 
 
@@ -83,6 +89,43 @@ class ContractEnrollmentDetailView(APIView):
                 status=status.HTTP_403_FORBIDDEN,
             )
         return Response(ContractEnrollmentSerializer(enrollment).data)
+
+
+class ContractProofListCreateView(APIView):
+    """``GET|POST /api/v1/contracts/enrollments/<id>/proofs/``."""
+
+    permission_classes = [IsAuthenticated]
+    parser_classes = [JSONParser, MultiPartParser, FormParser]
+
+    def get(self, request, enrollment_id):
+        enrollment = get_object_or_404(
+            ContractEnrollment.objects.select_related('user'),
+            pk=enrollment_id,
+        )
+        if enrollment.user_id != request.user.id and not request.user.is_staff:
+            return Response({'detail': 'Not allowed.'}, status=status.HTTP_403_FORBIDDEN)
+        proofs = ContractProofSubmission.objects.filter(enrollment=enrollment).select_related(
+            'enrollment', 'submitted_by', 'reviewed_by'
+        )
+        return Response(ContractProofSubmissionSerializer(proofs, many=True).data)
+
+    def post(self, request, enrollment_id):
+        serializer = ContractProofSubmitSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            proof = ContractService.submit_proof(
+                enrollment_id=enrollment_id,
+                user=request.user,
+                proof_url=serializer.validated_data.get('proof_url', ''),
+                notes=serializer.validated_data.get('notes', ''),
+                proof_file=serializer.validated_data.get('proof_file'),
+            )
+        except Exception as e:
+            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(
+            ContractProofSubmissionSerializer(proof).data,
+            status=status.HTTP_201_CREATED,
+        )
 
 
 class MyEnrollmentsView(APIView):

@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 # Defaults (overridable via settings)
 # ---------------------------------------------------------------------------
 _DEFAULT_ALLOWED_IMAGE_TYPES = ('image/jpeg', 'image/png', 'image/webp')
-_DEFAULT_MAX_IMAGE_SIZE = 5 * 1024 * 1024   # 5 MB
+_DEFAULT_MAX_IMAGE_SIZE = 10 * 1024 * 1024  # 10 MB
 _DEFAULT_MAX_PROOF_SIZE = 10 * 1024 * 1024  # 10 MB
 
 # Magic-number → MIME mapping for fast sniffing without python-magic.

@@ -1,1644 +1,960 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}DeltaCrown - Esports{% endblock %}
+{% block title %}DeltaCrown — The Esports Operating System{% endblock %}
+{% block og_title %}DeltaCrown — Where Champions Rise{% endblock %}
+{% block og_description %}Verified tournaments, real teams, escrow-backed reward matches, and a Crown Points ladder. One platform, eleven titles, zero scattered chats.{% endblock %}
+{% block og_image %}{% static 'siteui/og/default.png' %}{% endblock %}
+{% block twitter_title %}DeltaCrown — Where Champions Rise{% endblock %}
+{% block twitter_description %}Verified tournaments, real teams, escrow-backed reward matches, and a Crown Points ladder.{% endblock %}
+{% block twitter_image %}{% static 'siteui/og/default.png' %}{% endblock %}
 
 {% block extra_css %}
-<!-- Tailwind CSS CDN (Production: Use compiled version) -->
-<script src="https://cdn.tailwindcss.com"></script>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'siteui/css/home.css' %}">
+{% endblock %}
 
-<script nonce="{{ request.csp_nonce }}">
-    tailwind.config = {
-        theme: {
-            extend: {
-                colors: {
-                    'dc-cyan': '#06b6d4',
-                    'dc-purple': '#8b5cf6',
-                    'dc-gold': '#facc15',
-                    'dc-dark': '#0a0a0a',
-                },
-                fontFamily: {
-                    'sans': ['Inter', 'system-ui', 'sans-serif'],
-                    'display': ['Space Grotesk', 'sans-serif'],
-                },
-                animation: {
-                    'float': 'float 3s ease-in-out infinite',
-                    'slide-up': 'slideUp 0.5s ease-out',
-                    'fade-in': 'fadeIn 0.6s ease-out',
-                    'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-                },
-                keyframes: {
-                    float: {
-                        '0%, 100%': { transform: 'translateY(0)' },
-                        '50%': { transform: 'translateY(-10px)' },
-                    },
-                    slideUp: {
-                        '0%': { transform: 'translateY(20px)', opacity: '0' },
-                        '100%': { transform: 'translateY(0)', opacity: '1' },
-                    },
-                    fadeIn: {
-                        '0%': { opacity: '0' },
-                        '100%': { opacity: '1' },
-                    },
-                }
-            }
-        }
-    }
-</script>
-
-<style>
-    body {
-        font-family: 'Inter', system-ui, sans-serif;
-        background: #0a0a0a;
-    }
-    
-    .glass-effect {
-        background: rgba(255, 255, 255, 0.03);
-        backdrop-filter: blur(12px);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-    }
-    
-    .glass-effect:hover {
-        background: rgba(255, 255, 255, 0.06);
-        border-color: rgba(6, 182, 212, 0.3);
-    }
-    
-    .gradient-text {
-        background: linear-gradient(135deg, #06b6d4 0%, #8b5cf6 50%, #facc15 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-    }
-    
-    .hero-grid {
-        background-image: 
-            linear-gradient(rgba(6, 182, 212, 0.03) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(6, 182, 212, 0.03) 1px, transparent 1px);
-        background-size: 50px 50px;
-        animation: grid-move 20s linear infinite;
-    }
-    
-    @keyframes grid-move {
-        0% { background-position: 0 0; }
-        100% { background-position: 50px 50px; }
-    }
-    
-    .stat-card {
-        position: relative;
-        overflow: hidden;
-    }
-    
-    .stat-card::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: -100%;
-        width: 100%;
-        height: 100%;
-        background: linear-gradient(90deg, transparent, rgba(6, 182, 212, 0.1), transparent);
-        animation: shimmer 3s infinite;
-    }
-    
-    @keyframes shimmer {
-        100% { left: 100%; }
-    }
-</style>
+{% block extra_head %}
+<script nonce="{{ request.csp_nonce }}">document.body.classList.add('home-page');</script>
 {% endblock %}
 
 {% block content %}
 
-<!-- ============================================
-     NEWSPAPER-STYLE HERO: THE FRONTPAGE
-     ============================================ -->
-<section class="relative min-h-screen bg-gradient-to-b from-dc-dark via-gray-900 to-dc-dark overflow-hidden">
-    <!-- Animated Grid Background -->
-    <div class="hero-grid absolute inset-0 opacity-30"></div>
-    
-    <!-- Glowing Orbs -->
-    <div class="absolute top-20 left-10 w-96 h-96 bg-dc-cyan rounded-full filter blur-3xl opacity-10 animate-pulse-slow"></div>
-    <div class="absolute bottom-20 right-10 w-96 h-96 bg-dc-purple rounded-full filter blur-3xl opacity-10 animate-pulse-slow" style="animation-delay: 1.5s;"></div>
-    
-    <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16">
-        
-        <!-- Breaking News Banner -->
-        <div class="mb-8 animate-slide-up">
-            <div class="inline-flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-dc-cyan/20 to-dc-purple/20 border border-dc-cyan/30 rounded-full">
-                <span class="relative flex h-3 w-3">
-                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-dc-cyan opacity-75"></span>
-                    <span class="relative inline-flex rounded-full h-3 w-3 bg-dc-cyan"></span>
-                </span>
-                <span class="text-dc-cyan font-bold text-sm uppercase tracking-wider">Live Platform</span>
-                <span class="text-gray-200 text-sm">{{ live_stats.players_count }}+ Active Players</span>
-            </div>
-        </div>
-        
-        <!-- Main Headline -->
-        <div class="grid lg:grid-cols-2 gap-12 items-center mb-16">
-            <!-- Left: Headline -->
-            <div class="space-y-6 animate-fade-in">
-                <h1 class="font-display text-5xl sm:text-6xl lg:text-7xl font-black leading-tight">
-                    <span class="text-white">From the</span><br>
-                    <span class="gradient-text">Delta</span>
-                    <span class="text-white">to the</span><br>
-                    <span class="gradient-text">Crown</span>
-                </h1>
-                
-                <p class="text-xl sm:text-2xl text-gray-200 font-medium leading-relaxed">
-                    Bangladesh's first <span class="text-dc-cyan font-bold">complete esports ecosystem</span> 
-                    — where aspiring gamers become professional athletes
-                </p>
-                
-                <div class="flex flex-wrap gap-4 pt-4">
-                    <a href="/tournaments/" class="group inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-dc-cyan to-dc-purple text-white font-bold rounded-xl hover:shadow-2xl hover:shadow-dc-cyan/50 transition-all duration-300 hover:scale-[1.02]">
-                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/><path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm9.707 5.707a1 1 0 00-1.414-1.414L9 12.586l-1.293-1.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
-                        Join Tournament
-                        <svg class="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
-                    </a>
-                    
-                    <a href="/teams/" class="inline-flex items-center gap-2 px-8 py-4 bg-white/5 border border-white/10 text-white font-bold rounded-xl hover:bg-white/10 hover:border-dc-cyan/50 transition-all duration-300">
-                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z"/></svg>
-                        Browse Teams
-                    </a>
-                </div>
-            </div>
-            
-            <!-- Right: Live Stats Dashboard -->
-            <div class="grid grid-cols-2 gap-4 animate-slide-up" style="animation-delay: 0.2s;">
-                <!-- Active Players -->
-                <div class="stat-card glass-effect rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-300">
-                    <div class="flex items-center gap-3 mb-3">
-                        <div class="w-12 h-12 bg-dc-cyan/20 rounded-xl flex items-center justify-center">
-                            <svg class="w-6 h-6 text-dc-cyan" fill="currentColor" viewBox="0 0 20 20"><path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"/></svg>
-                        </div>
-                        <div>
-                            <p class="text-gray-400 text-sm font-medium">Active Players</p>
-                            <p class="text-white text-2xl font-display font-bold" id="player-count">{{ live_stats.players_count }}+</p>
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-2 text-gray-500 text-sm">
-                        <span class="relative flex h-2 w-2">
-                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                            <span class="relative inline-flex rounded-full h-2 w-2 bg-green-400"></span>
-                        </span>
-                        Growing daily
-                    </div>
-                </div>
-                
-                <!-- Live Tournaments -->
-                <div class="stat-card glass-effect rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-300">
-                    <div class="flex items-center gap-3 mb-3">
-                        <div class="w-12 h-12 bg-dc-purple/20 rounded-xl flex items-center justify-center">
-                            <svg class="w-6 h-6 text-dc-purple" fill="currentColor" viewBox="0 0 20 20"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/><path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm9.707 5.707a1 1 0 00-1.414-1.414L9 12.586l-1.293-1.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
-                        </div>
-                        <div>
-                            <p class="text-gray-400 text-sm font-medium">Active Tournaments</p>
-                            <p class="text-white text-2xl font-display font-bold">{{ live_stats.tournaments_count }}</p>
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-2 text-dc-cyan text-sm">
-                        <span class="relative flex h-2 w-2">
-                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-dc-cyan opacity-75"></span>
-                            <span class="relative inline-flex rounded-full h-2 w-2 bg-dc-cyan"></span>
-                        </span>
-                        Live Now
-                    </div>
-                </div>
-                
-                <!-- Registered Teams -->
-                <div class="stat-card glass-effect rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-300">
-                    <div class="flex items-center gap-3 mb-3">
-                        <div class="w-12 h-12 bg-dc-gold/20 rounded-xl flex items-center justify-center">
-                            <svg class="w-6 h-6 text-dc-gold" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M3 6a3 3 0 013-3h10a1 1 0 01.8 1.6L14.25 8l2.55 3.4A1 1 0 0116 13H6a1 1 0 00-1 1v3a1 1 0 11-2 0V6z" clip-rule="evenodd"/></svg>
-                        </div>
-                        <div>
-                            <p class="text-gray-400 text-sm font-medium">Registered Teams</p>
-                            <p class="text-white text-2xl font-display font-bold">{{ live_stats.teams_count }}+</p>
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-2 text-gray-400 text-sm">
-                        Across {{ live_stats.games_count }} games
-                    </div>
-                </div>
-                
-                <!-- Prize Pool -->
-                <div class="stat-card glass-effect rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-300">
-                    <div class="flex items-center gap-3 mb-3">
-                        <div class="w-12 h-12 bg-green-500/20 rounded-xl flex items-center justify-center">
-                            <svg class="w-6 h-6 text-green-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/></svg>
-                        </div>
-                        <div>
-                            <p class="text-gray-400 text-sm font-medium">Total Prizes</p>
-                            <p class="text-white text-2xl font-display font-bold">{{ live_stats.total_prize_pool }}</p>
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-2 text-green-400 text-sm">
-                        {% if live_stats.tournaments_count > 0 %}Active tournaments{% else %}Coming soon{% endif %}
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Platform Guarantees - What Sets Us Apart -->
-        <div class="glass-effect rounded-2xl p-6 animate-fade-in" style="animation-delay: 0.4s;">
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <!-- Guarantee 1: Admin Verified -->
-                <div class="flex flex-col items-center text-center gap-3">
-                    <div class="w-14 h-14 bg-gradient-to-br from-dc-cyan to-dc-purple rounded-xl flex items-center justify-center">
-                        <svg class="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
-                    </div>
-                    <div>
-                        <p class="text-white font-bold text-base">Admin Verified</p>
-                        <p class="text-gray-400 text-sm leading-relaxed">Every tournament verified by our moderation team</p>
-                    </div>
-                </div>
-                
-                <!-- Guarantee 2: Fair Play -->
-                <div class="flex flex-col items-center text-center gap-3">
-                    <div class="w-14 h-14 bg-gradient-to-br from-dc-purple to-dc-gold rounded-xl flex items-center justify-center">
-                        <svg class="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1.323l3.954 1.582 1.599-.8a1 1 0 01.894 1.79l-1.233.616 1.738 5.42a1 1 0 01-.285 1.05A3.989 3.989 0 0115 15a3.989 3.989 0 01-2.667-1.019 1 1 0 01-.285-1.05l1.715-5.349L11 6.477V16h2a1 1 0 110 2H7a1 1 0 110-2h2V6.477L6.237 7.582l1.715 5.349a1 1 0 01-.285 1.05A3.989 3.989 0 015 15a3.989 3.989 0 01-2.667-1.019 1 1 0 01-.285-1.05l1.738-5.42-1.233-.617a1 1 0 01.894-1.788l1.599.799L9 4.323V3a1 1 0 011-1z" clip-rule="evenodd"/></svg>
-                    </div>
-                    <div>
-                        <p class="text-white font-bold text-base">Fair Play Guaranteed</p>
-                        <p class="text-gray-400 text-sm leading-relaxed">Zero tolerance for cheating, skill-based competition</p>
-                    </div>
-                </div>
-                
-                <!-- Guarantee 3: Community Driven -->
-                <div class="flex flex-col items-center text-center gap-3">
-                    <div class="w-14 h-14 bg-gradient-to-br from-dc-gold to-dc-cyan rounded-xl flex items-center justify-center">
-                        <svg class="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20"><path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z"/></svg>
-                    </div>
-                    <div>
-                        <p class="text-white font-bold text-base">Community Driven</p>
-                        <p class="text-gray-400 text-sm leading-relaxed">Built by gamers, for the Bangladesh esports community</p>
-                    </div>
-                </div>
-                
-                <!-- Guarantee 4: Instant Support -->
-                <div class="flex flex-col items-center text-center gap-3">
-                    <div class="w-14 h-14 bg-gradient-to-br from-green-500 to-dc-cyan rounded-xl flex items-center justify-center">
-                        <svg class="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-2 0c0 .993-.241 1.929-.668 2.754l-1.524-1.525a3.997 3.997 0 00.078-2.183l1.562-1.562C15.802 8.249 16 9.1 16 10zm-5.165 3.913l1.58 1.58A5.98 5.98 0 0110 16a5.976 5.976 0 01-2.516-.552l1.562-1.562a4.006 4.006 0 001.789.027zm-4.677-2.796a4.002 4.002 0 01-.041-2.08l-.08.08-1.53-1.533A5.98 5.98 0 004 10c0 .954.223 1.856.619 2.657l1.54-1.54zm1.088-6.45A5.974 5.974 0 0110 4c.954 0 1.856.223 2.657.619l-1.54 1.54a4.002 4.002 0 00-2.346.033L7.246 4.668zM12 10a2 2 0 11-4 0 2 2 0 014 0z" clip-rule="evenodd"/></svg>
-                    </div>
-                    <div>
-                        <p class="text-white font-bold text-base">Instant Support</p>
-                        <p class="text-gray-400 text-sm leading-relaxed">24/7 moderator assistance via Discord and platform chat</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
+<div class="home-progress-rail"><div class="home-progress-bar" id="homeProgressBar"></div></div>
 
-<!-- ============================================
-     WHY DELTACROWN - VALUE PROPOSITION
-     ============================================ -->
-<section class="relative py-24 bg-dc-dark">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="text-center mb-16">
-            <div class="inline-flex items-center gap-2 px-4 py-2 bg-dc-cyan/10 border border-dc-cyan/30 rounded-full text-dc-cyan font-bold text-sm uppercase tracking-wider mb-4">
-                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
-                Why Choose Us
-            </div>
-            <h2 class="font-display text-5xl font-black text-white mb-6">
-                Bangladesh's Most <span class="gradient-text">Trusted</span> Platform
-            </h2>
-            <p class="text-xl text-gray-200 max-w-3xl mx-auto">
-                Professional esports infrastructure built for competitive gaming excellence
-            </p>
-        </div>
-        
-        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <!-- Verified Tournaments -->
-            <div class="glass-effect rounded-2xl p-8 hover:scale-[1.02] transition-transform duration-300">
-                <div class="w-16 h-16 bg-green-500/20 rounded-2xl flex items-center justify-center mb-6">
-                    <svg class="w-8 h-8 text-green-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
-                </div>
-                <h3 class="font-display text-2xl font-bold text-white mb-3">Verified Tournaments</h3>
-                <p class="text-gray-400">All tournaments admin-verified. No scams, no fake prizes. Every event is monitored for fair play and integrity.</p>
-            </div>
-            
-            <!-- Instant Payouts -->
-            <div class="glass-effect rounded-2xl p-8 hover:scale-[1.02] transition-transform duration-300">
-                <div class="w-16 h-16 bg-dc-cyan/20 rounded-2xl flex items-center justify-center mb-6">
-                    <svg class="w-8 h-8 text-dc-cyan" fill="currentColor" viewBox="0 0 20 20"><path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"/></svg>
-                </div>
-                <h3 class="font-display text-2xl font-bold text-white mb-3">Instant Payouts</h3>
-                <p class="text-gray-400">Prize money via bKash/Nagad within 24 hours. No delays, no excuses. Winners get paid fast.</p>
-            </div>
-            
-            <!-- Professional Certificates -->
-            <div class="glass-effect rounded-2xl p-8 hover:scale-[1.02] transition-transform duration-300">
-                <div class="w-16 h-16 bg-dc-purple/20 rounded-2xl flex items-center justify-center mb-6">
-                    <svg class="w-8 h-8 text-dc-purple" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v3.586l-1.293-1.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V8z" clip-rule="evenodd"/></svg>
-                </div>
-                <h3 class="font-display text-2xl font-bold text-white mb-3">Pro Certificates</h3>
-                <p class="text-gray-400">Shareable digital certificates for all winners. Build your esports portfolio and showcase achievements.</p>
-            </div>
-            
-            <!-- Anti-Cheat System -->
-            <div class="glass-effect rounded-2xl p-8 hover:scale-[1.02] transition-transform duration-300">
-                <div class="w-16 h-16 bg-dc-cyan/20 rounded-2xl flex items-center justify-center mb-6">
-                    <svg class="w-8 h-8 text-dc-cyan" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
-                </div>
-                <h3 class="font-display text-2xl font-bold text-white mb-3">Anti-Cheat & Fair Play</h3>
-                <p class="text-gray-400">Strict monitoring and moderation. Cheaters get banned. Skill-based competition guaranteed.</p>
-            </div>
-            
-            <!-- ELO Rankings -->
-            <div class="glass-effect rounded-2xl p-8 hover:scale-[1.02] transition-transform duration-300">
-                <div class="w-16 h-16 bg-dc-gold/20 rounded-2xl flex items-center justify-center mb-6">
-                    <svg class="w-8 h-8 text-dc-gold" fill="currentColor" viewBox="0 0 20 20"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"/></svg>
-                </div>
-                <h3 class="font-display text-2xl font-bold text-white mb-3">DCRS Team Rankings</h3>
-                <p class="text-gray-400">Track your team's DCRS tier from Rookie to The Crown. Performance-based rankings that reflect real competitive achievement.</p>
-            </div>
-            
-            <!-- 24/7 Support -->
-            <div class="glass-effect rounded-2xl p-8 hover:scale-[1.02] transition-transform duration-300">
-                <div class="w-16 h-16 bg-dc-purple/20 rounded-2xl flex items-center justify-center mb-6">
-                    <svg class="w-8 h-8 text-dc-purple" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-2 0c0 .993-.241 1.929-.668 2.754l-1.524-1.525a3.997 3.997 0 00.078-2.183l1.562-1.562C15.802 8.249 16 9.1 16 10zm-5.165 3.913l1.58 1.58A5.98 5.98 0 0110 16a5.976 5.976 0 01-2.516-.552l1.562-1.562a4.006 4.006 0 001.789.027zm-4.677-2.796a4.002 4.002 0 01-.041-2.08l-.08.08-1.53-1.533A5.98 5.98 0 004 10c0 .954.223 1.856.619 2.657l1.54-1.54zm1.088-6.45A5.974 5.974 0 0110 4c.954 0 1.856.223 2.657.619l-1.54 1.54a4.002 4.002 0 00-2.346.033L7.246 4.668zM12 10a2 2 0 11-4 0 2 2 0 014 0z" clip-rule="evenodd"/></svg>
-                </div>
-                <h3 class="font-display text-2xl font-bold text-white mb-3">24/7 Moderator Support</h3>
-                <p class="text-gray-400">Need help? Our moderation team is always online. Fast dispute resolution and tournament support.</p>
-            </div>
-        </div>
-    </div>
-</section>
+<div class="home-backdrop" aria-hidden="true">
+  <div class="grid-bg"></div>
+  <div class="grid-fine"></div>
+  <div class="vignette"></div>
+  <div class="blob blob-violet"></div>
+  <div class="blob blob-teal"></div>
+  <div class="blob blob-gold"></div>
+  <div class="scanlines"></div>
+  <div class="grain"></div>
+</div>
 
-<!-- ============================================
-     FEATURED TOURNAMENT SPOTLIGHT
-     ============================================ -->
-{% if featured_tournament %}
-<section class="relative py-24 bg-gradient-to-r from-dc-cyan/10 via-dc-purple/10 to-dc-gold/10">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="glass-effect rounded-3xl overflow-hidden">
-            <div class="grid lg:grid-cols-2 gap-8">
-                <!-- Left: Tournament Banner -->
-                <div class="relative h-96 lg:h-auto">
-                    {% if featured_tournament.banner_image %}
-                    <img src="{{ featured_tournament.banner_image }}" alt="{{ featured_tournament.name }}" class="absolute inset-0 w-full h-full object-cover">
-                    {% elif featured_tournament.game_card_image %}
-                    <img src="{{ featured_tournament.game_card_image }}" alt="{{ featured_tournament.name }} - game card" class="absolute inset-0 w-full h-full object-cover">
-                    {% elif featured_tournament.game_banner_image %}
-                    <img src="{{ featured_tournament.game_banner_image }}" alt="{{ featured_tournament.name }} - game banner" class="absolute inset-0 w-full h-full object-cover">
-                    {% else %}
-                    <div class="absolute inset-0 bg-gradient-to-br from-dc-cyan to-dc-purple flex items-center justify-center">
-                        <svg class="w-32 h-32 text-white/20" fill="currentColor" viewBox="0 0 20 20"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/><path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm9.707 5.707a1 1 0 00-1.414-1.414L9 12.586l-1.293-1.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
-                    </div>
-                    {% endif %}
-                    <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
-                    <div class="absolute top-4 left-4">
-                        <span class="px-4 py-2 bg-dc-gold text-black font-bold text-sm rounded-full flex items-center gap-2">
-                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-                            FEATURED TOURNAMENT
-                        </span>
-                    </div>
-                </div>
-                
-                <!-- Right: Tournament Details -->
-                <div class="p-8 flex flex-col justify-center">
-                    <div class="mb-4">
-                        <span class="px-3 py-1 bg-dc-cyan/20 border border-dc-cyan/30 text-dc-cyan text-xs font-bold rounded-full">{{ featured_tournament.game_display }}</span>
-                    </div>
-                    
-                    <h2 class="font-display text-4xl font-black text-white mb-4">
-                        {{ featured_tournament.name }}
-                    </h2>
-                    
-                <div class="text-gray-200 text-lg mb-6">
-                    <!-- Tournament Stats Grid -->
-                    <div class="grid grid-cols-3 gap-4 mb-6">
-                        <div class="bg-gray-800/50 rounded-lg p-4 text-center">
-                            <p class="text-gray-400 text-xs mb-1">Prize Pool</p>
-                            <p class="text-white font-display font-bold text-2xl">{{ featured_tournament.prize_pool }}</p>
-                        </div>
-                        <div class="bg-gray-800/50 rounded-lg p-4 text-center">
-                            <p class="text-gray-400 text-xs mb-1">Teams Registered</p>
-                            <p class="text-white font-display font-bold text-2xl">{% if featured_tournament.max_teams %}{{ featured_tournament.registration_count }}/{{ featured_tournament.max_teams }}{% else %}{{ featured_tournament.registration_count }}{% endif %}</p>
-                        </div>
-                        <div class="bg-gray-800/50 rounded-lg p-4 text-center">
-                            <p class="text-gray-400 text-xs mb-1">Time Left</p>
-                            <p class="text-white font-display font-bold text-2xl" data-deadline="{{ featured_tournament.registration_deadline|date:'c' }}">
-                                {% if featured_tournament.days_left %}{{ featured_tournament.days_left }}d{% else %}Closed{% endif %}
-                            </p>
-                        </div>
-                    </div>
-                    
-                    <!-- Registration Progress -->
-                    {% if featured_tournament.max_teams and featured_tournament.registration_count %}
-                        {% widthratio featured_tournament.registration_count featured_tournament.max_teams 100 as fill_pct %}
-                        <div class="mb-6">
-                            <div class="flex justify-between text-sm text-gray-400 mb-2">
-                                <span>Registration Progress</span>
-                                <span>{{ fill_pct }}% Full</span>
-                            </div>
-                            <div class="w-full bg-gray-800 rounded-full h-3 overflow-hidden">
-                                <div class="h-full rounded-full transition-all duration-500 {% if fill_pct >= 80 %}bg-gradient-to-r from-orange-500 to-red-500{% elif fill_pct >= 50 %}bg-gradient-to-r from-yellow-500 to-orange-500{% else %}bg-gradient-to-r from-green-500 to-cyan-500{% endif %}" style="width: {{ fill_pct }}%"></div>
-                            </div>
-                        </div>
-                    {% endif %}
-                    
-                    <div class="flex gap-4">
-                        <a href="{{ featured_tournament.registration_action_url|default:featured_tournament.url }}" class="flex-1 px-8 py-4 {% if featured_tournament.eligibility_status == 'full_waitlist' %}bg-gradient-to-r from-amber-400 to-amber-500 text-black hover:shadow-2xl hover:shadow-amber-400/40{% else %}bg-gradient-to-r from-dc-cyan to-dc-purple text-white hover:shadow-2xl hover:shadow-dc-cyan/50{% endif %} font-bold text-center rounded-xl transition-all duration-300 hover:scale-[1.02]">
-                            {{ featured_tournament.registration_action_label|default:'View Details' }}
-                        </a>
-                        <a href="{{ featured_tournament.url }}" class="px-8 py-4 bg-white/5 border border-white/10 text-white font-bold rounded-xl hover:bg-white/10 transition-all">
-                            View Details
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-{% endif %}
+<div id="top">
 
-<!-- ============================================
-     ACHIEVEMENT MILESTONES - ANIMATED COUNTERS
-     ============================================ -->
-<section class="relative py-24 bg-gradient-to-b from-dc-dark to-gray-900 overflow-hidden">
-    <!-- Animated Background -->
-    <div class="absolute inset-0 opacity-10">
-        <div class="absolute inset-0" style="background-image: radial-gradient(circle, rgba(6, 182, 212, 0.4) 1px, transparent 1px); background-size: 40px 40px;"></div>
-    </div>
-    
-    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="text-center mb-16">
-            <div class="inline-flex items-center gap-2 px-4 py-2 bg-dc-gold/10 border border-dc-gold/30 rounded-full text-dc-gold font-bold text-sm uppercase tracking-wider mb-4">
-                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-                By The Numbers
-            </div>
-            <h2 class="font-display text-5xl font-black text-white mb-6">
-                Built on <span class="gradient-text">Trust & Community</span>
-            </h2>
-            <p class="text-xl text-gray-200 max-w-3xl mx-auto">
-                Every metric reflects our commitment to Bangladesh's esports growth since 2025
-            </p>
-        </div>
-        
-        <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-            <!-- Milestone 1: Prize Money -->
-            <div class="relative group">
-                <div class="glass-effect rounded-2xl p-8 text-center hover:scale-[1.02] transition-all duration-300">
-                    <div class="absolute inset-0 bg-gradient-to-br from-dc-cyan/10 to-transparent rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                    <div class="relative">
-                        <div class="w-16 h-16 bg-dc-cyan/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <svg class="w-8 h-8 text-dc-cyan" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/></svg>
-                        </div>
-                        <p class="text-dc-cyan font-display font-black text-5xl mb-2 counter-animate" data-target="{{ live_stats.total_prize_pool|default:'0' }}" data-prefix="৳" data-suffix="+">৳0</p>
-                        <p class="text-gray-200 font-bold text-lg mb-2">Prize Money</p>
-                        <p class="text-gray-500 text-sm">Since Launch</p>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Milestone 2: Matches Completed -->
-            <div class="relative group">
-                <div class="glass-effect rounded-2xl p-8 text-center hover:scale-[1.02] transition-all duration-300">
-                    <div class="absolute inset-0 bg-gradient-to-br from-dc-purple/10 to-transparent rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                    <div class="relative">
-                        <div class="w-16 h-16 bg-dc-purple/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <svg class="w-8 h-8 text-dc-purple" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/></svg>
-                        </div>
-                        <p class="text-dc-purple font-display font-black text-5xl mb-2 counter-animate" data-target="{{ live_stats.matches_count|default:'0' }}" data-suffix="+">0</p>
-                        <p class="text-gray-200 font-bold text-lg mb-2">Matches Played</p>
-                        <p class="text-gray-500 text-sm">Fair & Verified</p>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Milestone 3: Active Players -->
-            <div class="relative group">
-                <div class="glass-effect rounded-2xl p-8 text-center hover:scale-[1.02] transition-all duration-300">
-                    <div class="absolute inset-0 bg-gradient-to-br from-dc-gold/10 to-transparent rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                    <div class="relative">
-                        <div class="w-16 h-16 bg-dc-gold/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <svg class="w-8 h-8 text-dc-gold" fill="currentColor" viewBox="0 0 20 20"><path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"/></svg>
-                        </div>
-                        <p class="text-dc-gold font-display font-black text-5xl mb-2 counter-animate" data-target="{{ live_stats.players_count|default:'0' }}" data-suffix="+">0</p>
-                        <p class="text-gray-200 font-bold text-lg mb-2">Active Players</p>
-                        <p class="text-gray-500 text-sm">And Growing Daily</p>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Milestone 4: Zero Disputes -->
-            <div class="relative group">
-                <div class="glass-effect rounded-2xl p-8 text-center hover:scale-[1.02] transition-all duration-300">
-                    <div class="absolute inset-0 bg-gradient-to-br from-green-500/10 to-transparent rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                    <div class="relative">
-                        <div class="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <svg class="w-8 h-8 text-green-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
-                        </div>
-                        <p class="text-green-400 font-display font-black text-5xl mb-2">0</p>
-                        <p class="text-gray-200 font-bold text-lg mb-2">Payment Disputes</p>
-                        <p class="text-gray-500 text-sm">100% Payout Rate</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
+<!-- ============================================================ HERO ============================================================ -->
+<section class="hero">
+  <div class="hero-orbit" aria-hidden="true">
+    <div class="orbit-ring r1"></div>
+    <div class="orbit-ring r2"></div>
+    <div class="orbit-ring r3"></div>
+    <span class="orbit-dot d1"></span>
+    <span class="orbit-dot d2"></span>
+    <span class="orbit-dot d3"></span>
+  </div>
 
-<!-- ============================================
-     VISUAL ECOSYSTEM MAP
-     ============================================ -->
-{% if sections_enabled.pillars %}
-<section class="relative py-24 bg-gradient-to-b from-dc-dark to-gray-900">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        
-        <!-- Section Header -->
-        <div class="text-center mb-16">
-            <div class="inline-flex items-center gap-2 px-4 py-2 bg-dc-cyan/10 border border-dc-cyan/30 rounded-full text-dc-cyan font-bold text-sm uppercase tracking-wider mb-4">
-                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clip-rule="evenodd"/></svg>
-                Complete Ecosystem
-            </div>
-            <h2 class="font-display text-5xl font-black text-white mb-6">
-                Eight Pillars, <span class="gradient-text">One Platform</span>
-            </h2>
-            <p class="text-xl text-gray-200 max-w-3xl mx-auto">
-                From tournaments to teams, payments to prizes—everything an esports athlete needs in one interconnected system
-            </p>
+  <div class="hero-shell">
+    <div class="hero-left">
+      <div class="hero-pills">
+        <span class="pill pill-live">
+          <span class="dot dot-live"></span>
+          <span class="tac">{% if v3.hero_stats.tournaments_active %}{{ v3.hero_stats.tournaments_active }}{% else %}38{% endif %} tournaments live</span>
+        </span>
+        <span class="pill">
+          <span class="tac">Season 3 · open registration</span>
+        </span>
+      </div>
+
+      <h1 class="hero-h1">
+        <span class="line"><span class="word">FROM</span> <span class="word">THE</span> <span class="word word-muted">DELTA</span></span>
+        <span class="line"><span class="word">TO</span> <span class="word">THE</span> <span class="word word-grad">CROWN</span></span>
+      </h1>
+
+      <p class="hero-sub">
+        The operating system for competitive gaming. Verified tournaments,
+        real teams, escrow-backed reward matches, and a ladder that
+        actually counts — across eleven titles.
+      </p>
+
+      <div class="hero-cta">
+        <a href="/account/signup/" class="btn btn-primary btn-lg">
+          <span>Create your account</span>
+          <i class="fa-solid fa-arrow-right"></i>
+        </a>
+        <a href="{% if v3.any_live_url %}{{ v3.any_live_url }}{% else %}/tournaments/{% endif %}" class="btn btn-ghost btn-lg">
+          Enter the Arena
+        </a>
+      </div>
+
+      <div class="hero-trust">
+        <div class="trust-item"><b>Free</b> to compete</div>
+        <div class="trust-item"><b>0</b> entry wall</div>
+        {% if v3.hero_stats.active_prize_label %}
+        <div class="trust-item"><b>{{ v3.hero_stats.active_prize_label }}</b> active prize pool</div>
+        {% endif %}
+        {% if v3.hero_stats.teams %}
+        <div class="trust-item"><b>{{ v3.hero_stats.teams }}</b> verified teams</div>
+        {% endif %}
+      </div>
+
+      <div class="hero-stats">
+        <div class="hero-stat">
+          <div class="hero-stat-label">Players</div>
+          <div class="hero-stat-val">
+            {% if v3.hero_stats.players %}<span class="counter" data-target="{{ v3.hero_stats.players }}">0</span>{% else %}<span class="muted">—</span>{% endif %}
+          </div>
+          <div class="hero-stat-foot">All time</div>
         </div>
-        
-        <!-- Interactive Ecosystem Grid -->
-        <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {% for pillar in pillars.items %}
-            <a href="{{ pillar.link }}" class="group glass-effect rounded-2xl p-6 hover:scale-[1.02] transition-all duration-300 relative overflow-hidden">
-                <!-- Hover Glow Effect -->
-                <div class="absolute inset-0 bg-gradient-to-br from-dc-cyan/0 to-dc-purple/0 group-hover:from-dc-cyan/10 group-hover:to-dc-purple/10 transition-all duration-300"></div>
-                
-                <div class="relative">
-                    <!-- Icon -->
-                    <div class="text-5xl mb-4 transform group-hover:scale-110 group-hover:rotate-6 transition-transform duration-300">
-                        {{ pillar.icon }}
-                    </div>
-                    
-                    <!-- Title -->
-                    <h3 class="font-display text-xl font-bold text-white mb-2 group-hover:text-dc-cyan transition-colors">
-                        {{ pillar.title }}
-                    </h3>
-                    
-                    <!-- Description -->
-                    <p class="text-gray-400 text-sm mb-4">
-                        {{ pillar.description }}
-                    </p>
-                    
-                    <!-- Arrow -->
-                    <div class="flex items-center gap-2 text-dc-cyan font-semibold text-sm">
-                        <span>Explore</span>
-                        <svg class="w-4 h-4 group-hover:translate-x-2 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
-                    </div>
+        <div class="hero-stat">
+          <div class="hero-stat-label">Tournaments</div>
+          <div class="hero-stat-val">
+            {% if v3.hero_stats.tournaments_total %}<span class="counter" data-target="{{ v3.hero_stats.tournaments_total }}">0</span>{% else %}<span class="muted">—</span>{% endif %}
+          </div>
+          <div class="hero-stat-foot {% if v3.hero_stats.tournaments_active %}text-live{% endif %}">
+            {% if v3.hero_stats.tournaments_active %}{{ v3.hero_stats.tournaments_active }} live now{% else %}All time{% endif %}
+          </div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-label">Teams</div>
+          <div class="hero-stat-val">
+            {% if v3.hero_stats.teams %}<span class="counter" data-target="{{ v3.hero_stats.teams }}">0</span>{% else %}<span class="muted">—</span>{% endif %}
+          </div>
+          <div class="hero-stat-foot">{{ v3.hero_stats.games_count|default:"11" }} titles</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-label">Prizes paid</div>
+          <div class="hero-stat-val">
+            {% if v3.hero_stats.lifetime_prize_label %}
+              <span class="grad-text" style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:30px;">{{ v3.hero_stats.lifetime_prize_label }}</span>
+            {% else %}
+              <span class="muted" style="font-size:18px;">Starting up</span>
+            {% endif %}
+          </div>
+          <div class="hero-stat-foot">Lifetime</div>
+        </div>
+      </div>
+    </div>
+
+    <aside class="hero-right">
+      <!-- LIVE FEED -->
+      <div class="livecard hud-4">
+        <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
+        <div class="beam"></div>
+        <div class="livecard-head">
+          {% if v3.live_ribbon %}
+          <span class="pill pill-red"><span class="dot dot-red"></span><span class="tac">LIVE · {{ v3.live_ribbon|length }} match{{ v3.live_ribbon|length|pluralize }}</span></span>
+          {% elif v3.recent_ribbon %}
+          <span class="pill" style="border-color:rgba(255,255,255,0.14);"><span class="tac" style="color:var(--mute);">RECENT RESULTS</span></span>
+          {% else %}
+          <span class="pill"><span class="tac" style="color:var(--mute);">MATCH CENTRE</span></span>
+          {% endif %}
+          <a href="/arena/" class="tac" style="font-size:10px;color:var(--mute);letter-spacing:.12em;">VIEW ALL →</a>
+        </div>
+        <div class="ribbon-window">
+          <div id="ribbon" class="ribbon-track">
+            {% if v3.live_ribbon %}
+              {% for m in v3.live_ribbon %}
+              <div class="match">
+                <div class="match-head">
+                  <span class="grad-text tac">{{ m.game }}</span>
+                  <span class="mono">{{ m.tag }}</span>
+                  <span class="mono live-time">{{ m.time_label }}</span>
                 </div>
-            </a>
+                <div class="match-score">
+                  <div class="team t-r">
+                    <div class="t-info"><div class="name">{{ m.team_a }}</div><div class="tac sub">TEAM A</div></div>
+                    <span class="team-logo logo-gold tlogo-sm"><span>{{ m.team_a|slice:":2"|upper }}</span></span>
+                  </div>
+                  <div class="score">
+                    <span {% if m.score_a > m.score_b %}class="hi"{% endif %}>{{ m.score_a }}</span>
+                    <span class="sep">:</span>
+                    <span {% if m.score_b > m.score_a %}class="hi"{% endif %}>{{ m.score_b }}</span>
+                  </div>
+                  <div class="team">
+                    <span class="team-logo logo-teal tlogo-sm"><span>{{ m.team_b|slice:":2"|upper }}</span></span>
+                    <div class="t-info"><div class="name">{{ m.team_b }}</div><div class="tac sub">TEAM B</div></div>
+                  </div>
+                </div>
+                <div class="match-foot">
+                  <span class="mono">{{ m.map_label }}</span>
+                  <a href="{{ m.match_url }}" class="tac watch">Watch <i class="fa-solid fa-arrow-right"></i></a>
+                </div>
+              </div>
+              {% endfor %}
+            {% elif v3.recent_ribbon %}
+              {% for m in v3.recent_ribbon %}
+              <div class="match">
+                <div class="match-head">
+                  <span class="grad-text tac">{{ m.game }}</span>
+                  <span class="mono">{{ m.tag }}</span>
+                  <span class="mono" style="color:var(--mute);">{{ m.time_label }}</span>
+                </div>
+                <div class="match-score">
+                  <div class="team t-r">
+                    <div class="t-info"><div class="name">{{ m.team_a }}</div><div class="tac sub">{% if m.winner == m.team_a %}WINNER{% else %}TEAM A{% endif %}</div></div>
+                    <span class="team-logo {% if m.winner == m.team_a %}logo-gold{% else %}logo-teal{% endif %} tlogo-sm"><span>{{ m.team_a|slice:":2"|upper }}</span></span>
+                  </div>
+                  <div class="score">
+                    <span {% if m.score_a > m.score_b %}class="hi"{% endif %}>{{ m.score_a }}</span>
+                    <span class="sep">:</span>
+                    <span {% if m.score_b > m.score_a %}class="hi"{% endif %}>{{ m.score_b }}</span>
+                  </div>
+                  <div class="team">
+                    <span class="team-logo {% if m.winner == m.team_b %}logo-gold{% else %}logo-teal{% endif %} tlogo-sm"><span>{{ m.team_b|slice:":2"|upper }}</span></span>
+                    <div class="t-info"><div class="name">{{ m.team_b }}</div><div class="tac sub">{% if m.winner == m.team_b %}WINNER{% else %}TEAM B{% endif %}</div></div>
+                  </div>
+                </div>
+                <div class="match-foot">
+                  <span class="mono">{{ m.map_label }}</span>
+                  <a href="{{ m.match_url }}" class="tac watch">Details <i class="fa-solid fa-arrow-right"></i></a>
+                </div>
+              </div>
+              {% endfor %}
+            {% else %}
+            <!-- No matches yet — show an invitation state -->
+            <div class="match" style="justify-content:center;align-items:center;text-align:center;gap:16px;">
+              <div style="padding:24px 16px;">
+                <div style="font-size:32px;margin-bottom:12px;opacity:.35;">🎮</div>
+                <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:18px;margin-bottom:8px;">No active matches</div>
+                <div style="color:var(--mute);font-size:13px;margin-bottom:18px;">Tournaments are warming up. Enter one to make it live.</div>
+                <a href="/tournaments/" class="btn btn-ghost btn-sm">Browse tournaments</a>
+              </div>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+        <div class="livecard-foot">
+          <div id="channels" class="channels">
+            {% if v3.live_ribbon %}
+              {% for m in v3.live_ribbon %}<button class="ch" data-i="{{ forloop.counter0 }}"></button>{% endfor %}
+            {% elif v3.recent_ribbon %}
+              {% for m in v3.recent_ribbon %}<button class="ch" data-i="{{ forloop.counter0 }}"></button>{% endfor %}
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <!-- FEATURED EVENT MINI -->
+      {% if v3.featured_tournament %}
+      <a href="{{ v3.featured_tournament.view_url }}" class="featuredmini hud-4">
+        <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
+        <div class="fm-poster">
+          {% if v3.featured_tournament.poster_url %}
+          <img src="{{ v3.featured_tournament.poster_url }}" alt="{{ v3.featured_tournament.name }}"/>
+          {% else %}
+          <img src="{% static 'img/games/posters/valorant.jpg' %}" alt=""/>
+          {% endif %}
+        </div>
+        <div class="fm-body">
+          <div class="fm-top">
+            <span class="tac fm-tag gold"><i class="fa-solid fa-star"></i> FEATURED</span>
+            <span class="mono fm-game">{{ v3.featured_tournament.game_name }} · {{ v3.featured_tournament.format_label|upper }}</span>
+          </div>
+          <div class="fm-name">{{ v3.featured_tournament.name|upper }}</div>
+          <div class="fm-stats">
+            <div><span class="mono">Prize</span> <span class="grad-text bold">{{ v3.featured_tournament.prize_pool_label }}</span></div>
+            <div><span class="mono">Slots</span> {{ v3.featured_tournament.slot_count }}/{{ v3.featured_tournament.slot_max }}</div>
+            {% if v3.featured_tournament.deadline_label %}
+            <div><span class="mono">{{ v3.featured_tournament.deadline_label }}</span> <span class="gold" id="cdSmall">…</span></div>
+            {% endif %}
+          </div>
+          <div class="fm-bar"><div class="fm-bar-fill" style="width:{{ v3.featured_tournament.slot_fill_pct }}%"></div></div>
+        </div>
+        <span class="fm-arrow"><i class="fa-solid fa-arrow-right"></i></span>
+      </a>
+      {% else %}
+      <a href="/tournaments/" class="featuredmini hud-4">
+        <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
+        <div class="fm-poster" style="display:grid;place-items:center;background:rgba(139,92,246,0.08);"><i class="fa-solid fa-trophy" style="font-size:28px;color:var(--violet);opacity:.6;"></i></div>
+        <div class="fm-body">
+          <div class="fm-top"><span class="tac fm-tag" style="color:var(--mute);">TOURNAMENTS</span></div>
+          <div class="fm-name" style="font-size:14px;color:var(--paper-2);">No featured event right now</div>
+          <div class="fm-stats"><div><span class="mono">Browse all open registrations →</span></div></div>
+        </div>
+        <span class="fm-arrow"><i class="fa-solid fa-arrow-right"></i></span>
+      </a>
+      {% endif %}
+
+      <!-- UPCOMING SCHEDULE -->
+      <div class="schedule hud-4">
+        <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
+        <div class="schedule-head">
+          <span class="tac">COMING UP</span>
+          <a href="/tournaments/" class="mono" style="color:var(--mute);transition:color .2s ease;" onmouseover="this.style.color='var(--paper)'" onmouseout="this.style.color='var(--mute)'">All →</a>
+        </div>
+        <ul class="schedule-list">
+          {% if v3.upcoming_tournaments %}
+            {% for t in v3.upcoming_tournaments|slice:":4" %}
+            <li>
+              <span class="mono time" {% if t.tournament_start_iso %}data-ts="{{ t.tournament_start_iso }}"{% endif %}>
+                {% if t.scheduled_time %}{{ t.scheduled_time }}{% elif t.scheduled %}{{ t.scheduled }}{% else %}TBD{% endif %}
+              </span>
+              {% if t.poster_url %}
+              <img class="game-icon" src="{{ t.poster_url }}" alt="{{ t.game_name }}"/>
+              {% else %}
+              <span class="game-icon" style="background:rgba(255,255,255,0.05);display:inline-block;border-radius:6px;"></span>
+              {% endif %}
+              <span class="meet">{{ t.name }}</span>
+              <span class="mono stage">{{ t.format_label }}</span>
+            </li>
             {% endfor %}
-        </div>
-    </div>
-</section>
-{% endif %}
+          {% else %}
+          <li style="grid-column:1/-1;padding:20px 0;text-align:center;">
+            <div style="color:var(--mute);font-size:12px;margin-bottom:8px;">No upcoming events scheduled</div>
+            <a href="/tournaments/" class="btn btn-ghost btn-sm" style="font-size:11px;">Browse tournaments</a>
+          </li>
+          {% endif %}
+        </ul>
+      </div>
+    </aside>
+  </div>
 
-<!-- ============================================
-     11 GAMES VISUAL SHOWCASE
-     ============================================ -->
-{% if sections_enabled.games %}
-<section class="relative py-24 bg-gray-900">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        
-        <div class="text-center mb-16">
-            <div class="inline-flex items-center gap-2 px-4 py-2 bg-dc-purple/10 border border-dc-purple/30 rounded-full text-dc-purple font-bold text-sm uppercase tracking-wider mb-4">
-                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M12.395 2.553a1 1 0 00-1.45-.385c-.345.23-.614.558-.822.88-.214.33-.403.713-.57 1.116-.334.804-.614 1.768-.84 2.734a31.365 31.365 0 00-.613 3.58 2.64 2.64 0 01-.945-1.067c-.328-.68-.398-1.534-.398-2.654A1 1 0 005.05 6.05 6.981 6.981 0 003 11a7 7 0 1011.95-4.95c-.592-.591-.98-.985-1.348-1.467-.363-.476-.724-1.063-1.207-2.03zM12.12 15.12A3 3 0 017 13s.879.5 2.5.5c0-1 .5-4 1.25-4.5.5 1 .786 1.293 1.371 1.879A2.99 2.99 0 0113 13a2.99 2.99 0 01-.879 2.121z" clip-rule="evenodd"/></svg>
-                Multi-Game Platform
+  <div class="scroll-cue hud-4" aria-hidden="true">
+    <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
+    <div class="scroll-key">
+      <span class="scroll-key-cap">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <path d="M7 2v9m0 0L3 7m4 4l4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </span>
+      <span class="scroll-key-pulse"></span>
+    </div>
+    <div class="scroll-cue-body">
+      <span class="tac scroll-cue-label">SCROLL</span>
+      <span class="mono scroll-cue-sub">to engage</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ TICKER ============================================================ -->
+<section class="ticker" aria-hidden="true">
+  <div class="ticker-track">
+    {% for item in v3.ticker_items %}
+      {% if item.kind == "live" %}<span><b class="live-flag">LIVE</b> {{ item.text }}</span>
+      {% elif item.kind == "tournament" %}<span><b class="event-flag">EVENT</b> {{ item.text }}</span>
+      {% elif item.kind == "signup" %}<span><b class="up-flag">▲</b> {{ item.text }}</span>
+      {% else %}<span>{{ item.text }}</span>{% endif %}
+      <span class="sep">//</span>
+    {% empty %}
+    <span><b class="live-flag">LIVE</b> Matches running now · check the Arena</span><span class="sep">//</span>
+    <span><b class="event-flag">EVENT</b> Tournaments open for registration</span><span class="sep">//</span>
+    <span><b class="up-flag">▲</b> Crown Points ladder active · Season 3</span><span class="sep">//</span>
+    <span>Escrow-backed reward operations · 100% payout rate</span><span class="sep">//</span>
+    <span>11 titles · mobile to PC · game-agnostic engine</span><span class="sep">//</span>
+    {% endfor %}
+    {% for item in v3.ticker_items %}
+      {% if item.kind == "live" %}<span><b class="live-flag">LIVE</b> {{ item.text }}</span>
+      {% elif item.kind == "tournament" %}<span><b class="event-flag">EVENT</b> {{ item.text }}</span>
+      {% elif item.kind == "signup" %}<span><b class="up-flag">▲</b> {{ item.text }}</span>
+      {% else %}<span>{{ item.text }}</span>{% endif %}
+      <span class="sep">//</span>
+    {% endfor %}
+  </div>
+</section>
+
+<!-- ============================================================ WHY ============================================================ -->
+<section class="why reveal">
+  <div class="section-bound">
+    <div class="why-head">
+      <h2 class="section-h2">SCATTERED CHATS DON'T BUILD CAREERS<br/><span class="grad-text">VERIFIED COMPETITION DOES</span></h2>
+      <p class="section-lead">The same matches you already play — finally with rules, proof, escrow, and a ranking that actually counts.</p>
+    </div>
+    <div class="compare-grid">
+      <div class="compare-col cc-old">
+        <div class="cc-head"><span class="tac">Without DeltaCrown</span><span class="mono">The way it usually goes</span></div>
+        <ul class="cc-list">
+          {% for row in v3.comparison_rows %}
+          <li>
+            <span class="cc-ico old"><i class="fa-solid {{ row.old_icon }}"></i></span>
+            <div><b>{{ row.old_title }}</b><p>{{ row.old_blurb }}</p></div>
+          </li>
+          {% empty %}
+          <li><span class="cc-ico old"><i class="fa-solid fa-comments"></i></span><div><b>Discord &amp; DMs</b><p>"Send screenshot bro" · no structure, no record.</p></div></li>
+          <li><span class="cc-ico old"><i class="fa-solid fa-handshake-slash"></i></span><div><b>Verbal prize pools</b><p>Promised on stream, halfway paid out — if at all.</p></div></li>
+          <li><span class="cc-ico old"><i class="fa-solid fa-user-secret"></i></span><div><b>Stand-in subs mid-tournament</b><p>Fake rosters. Boosted accounts. No verification.</p></div></li>
+          <li><span class="cc-ico old"><i class="fa-solid fa-circle-question"></i></span><div><b>Disputed results</b><p>No referee. No log. Whoever screams loudest wins.</p></div></li>
+          {% endfor %}
+        </ul>
+      </div>
+      <div class="compare-arrow" aria-hidden="true">
+        <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+          <circle cx="24" cy="24" r="23" stroke="rgba(139,92,246,0.4)" stroke-width="1"/>
+          <path d="M14 24h20m0 0l-7-7m7 7l-7 7" stroke="url(#a-grad)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <defs><linearGradient id="a-grad" x1="14" y1="24" x2="34" y2="24" gradientUnits="userSpaceOnUse"><stop stop-color="#06b6d4"/><stop offset="0.5" stop-color="#8b5cf6"/><stop offset="1" stop-color="#facc15"/></linearGradient></defs>
+        </svg>
+      </div>
+      <div class="compare-col cc-new">
+        <div class="cc-head"><span class="pill pill-live"><span class="dot dot-live"></span><span class="tac">With DeltaCrown</span></span><span class="mono">The way it should be</span></div>
+        <ul class="cc-list">
+          {% for row in v3.comparison_rows %}
+          <li>
+            <span class="cc-ico new {% cycle 'teal' 'violet' 'gold' 'teal' 'violet' %}"><i class="fa-solid {{ row.new_icon }}"></i></span>
+            <div><b>{{ row.new_title }}</b><p>{{ row.new_blurb }}</p></div>
+          </li>
+          {% empty %}
+          <li><span class="cc-ico new teal"><i class="fa-solid fa-square-poll-vertical"></i></span><div><b>Match rooms</b><p>One page per match. Live score, chat, dispute, replay link.</p></div></li>
+          <li><span class="cc-ico new violet"><i class="fa-solid fa-vault"></i></span><div><b>Escrow payouts</b><p>Pot locked at registration. Released only on verified result.</p></div></li>
+          <li><span class="cc-ico new gold"><i class="fa-solid fa-id-badge"></i></span><div><b>Verified rosters</b><p>Real players, real game IDs, locked at start.</p></div></li>
+          <li><span class="cc-ico new teal"><i class="fa-solid fa-chart-line"></i></span><div><b>Crown Points ladder</b><p>Every verified match feeds your rank. Cross-game, anti-farmed.</p></div></li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ FEATURED TOURNAMENT ============================================================ -->
+<section id="featured" class="arena reveal">
+  <div class="arena-bg">
+    {% if v3.featured_tournament and v3.featured_tournament.poster_url %}
+    <img src="{{ v3.featured_tournament.poster_url }}" alt="" class="arena-img"/>
+    {% else %}
+    <img src="{% static 'img/games/posters/valorant.jpg' %}" alt="" class="arena-img"/>
+    {% endif %}
+    <div class="arena-veil"></div>
+    <div class="arena-scan"></div>
+  </div>
+  <div class="arena-shell">
+    {% if v3.featured_tournament %}
+    <div class="arena-row-top">
+      <span class="pill pill-live"><span class="dot dot-live"></span><span class="tac">{% if v3.featured_tournament.is_live %}Live now{% else %}Registration open{% endif %}</span></span>
+      <span class="mono">{{ v3.featured_tournament.game_name }} · {{ v3.featured_tournament.format_label|upper }}</span>
+      <span class="mono">PRIZE POOL {{ v3.featured_tournament.prize_pool_label }}</span>
+    </div>
+    <h2 class="arena-h2">THE BRACKET IS LIVE<br/><span class="grad-text">YOUR SLOT IS OPEN</span></h2>
+    <div class="arena-name">{{ v3.featured_tournament.name|upper }}</div>
+    <div class="arena-stats">
+      <div class="aerial"><div class="tac">Prize Pool</div><div class="big grad-text">{{ v3.featured_tournament.prize_pool_label }}</div></div>
+      <div class="aerial"><div class="tac">Slots Filled</div><div class="big">{{ v3.featured_tournament.slot_count }}<span class="muted">/{{ v3.featured_tournament.slot_max }}</span></div></div>
+      <div class="aerial"><div class="tac">Format</div><div class="big">{{ v3.featured_tournament.format_label|upper }}</div></div>
+      <div class="aerial"><div class="tac">{{ v3.featured_tournament.deadline_label|default:"Closes In" }}</div><div class="big gold mono-cd" id="cdBig" data-deadline="{{ v3.featured_tournament.deadline_iso }}">—</div></div>
+    </div>
+    <div class="arena-bar"><div class="arena-bar-fill" style="width:{{ v3.featured_tournament.slot_fill_pct }}%"></div></div>
+    <div class="arena-cta">
+      <a href="{{ v3.featured_tournament.register_url }}" class="btn btn-primary btn-lg">Register Squad <i class="fa-solid fa-arrow-right"></i></a>
+      <a href="{{ v3.featured_tournament.view_url }}" class="btn btn-ghost btn-lg">View Bracket</a>
+      <a href="/teams/" class="join-team"><i class="fa-solid fa-people-group"></i> Need a team? Find one →</a>
+    </div>
+    {% else %}
+    <h2 class="arena-h2">THE STAGE IS SET<br/><span class="grad-text">YOUR MOMENT IS COMING</span></h2>
+    <div class="arena-name">DELTACROWN · OPEN COMPETITION</div>
+    <div class="arena-cta" style="margin-top:40px;">
+      <a href="/tournaments/" class="btn btn-primary btn-lg">Browse Tournaments <i class="fa-solid fa-arrow-right"></i></a>
+      <a href="/teams/" class="btn btn-ghost btn-lg">Find a Team</a>
+    </div>
+    {% endif %}
+
+    <!-- Upcoming grid -->
+    {% if v3.upcoming_tournaments %}
+    <div class="up-row">
+      <div class="up-row-head">
+        <span class="tac">NEXT UP</span>
+        <a href="/tournaments/" class="tac more">View all <i class="fa-solid fa-arrow-right"></i></a>
+      </div>
+      <div class="up-grid">
+        {% for t in v3.upcoming_tournaments|slice:":4" %}
+        <a class="upcard hud-4" href="{{ t.url }}">
+          <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
+          <div class="up-img">
+            {% if t.poster_url %}<img src="{{ t.poster_url }}" alt="{{ t.name }}"/>
+            {% else %}<img src="{% static 'img/games/posters/valorant.jpg' %}" alt=""/>{% endif %}
+          </div>
+          <div class="up-body">
+            <span class="tac up-tag">{{ t.game_name }} · {{ t.format_label }}</span>
+            <div class="up-name">{{ t.name|upper }}</div>
+            <div class="up-foot">
+              <span class="mono">{{ t.scheduled|default:"TBD" }}</span>
+              <span class="mono">{% if t.is_free %}FREE{% else %}{{ t.prize_label }}{% endif %}</span>
             </div>
-            <h2 class="font-display text-5xl font-black text-white mb-6">
-                <span class="gradient-text">{{ games.items|length }} Games</span>, Unlimited Possibilities
-            </h2>
-            <p class="text-xl text-gray-200 max-w-3xl mx-auto">
-                From mobile to PC, MOBA to FPS—game-agnostic infrastructure built for competitive gaming
-            </p>
+          </div>
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</section>
+
+<!-- ============================================================ GAME ROSTER ============================================================ -->
+<section id="games" class="games reveal">
+  <div class="games-head section-bound">
+    <h2 class="section-h2">ELEVEN TITLES<br/><span class="grad-text">ONE COMPETITIVE LAYER</span></h2>
+    <p class="section-lead">Every game ships with its own tournament engine, ruleset, and live ladder. Drag to scroll. Hover to focus. Click to enter.</p>
+  </div>
+  <div class="game-rail" id="gameRail">
+    <div class="game-track">
+      {% for g in v3.game_posters %}
+      <a class="gcard" href="{{ g.url }}">
+        <div class="gcard-img">
+          {% if g.poster_url %}
+          <img src="{{ g.poster_url }}" alt="{{ g.name }}"/>
+          {% else %}
+          <img src="{% static 'img/games/posters/valorant.jpg' %}" alt="{{ g.name }}"/>
+          {% endif %}
         </div>
-        
-        <!-- Games Grid with Real Data -->
-        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {% for game in games.items %}
-            <a href="/tournaments/?game={{ game.slug }}" class="group glass-effect rounded-2xl p-6 text-center hover:scale-[1.02] transition-all duration-300 cursor-pointer relative overflow-hidden">
-                <!-- Background Image -->
-                {% if game.card_image %}
-                <div class="absolute inset-0 opacity-20 group-hover:opacity-30 transition-opacity">
-                    <img src="{{ game.card_image }}" alt="{{ game.display_name }}" class="w-full h-full object-cover">
-                </div>
+        <div class="gcard-mask"></div>
+        <div class="gcard-index mono">{% if g.index < 10 %}0{% endif %}{{ g.index }}</div>
+        {% if g.live_count %}<div class="gcard-live"><b class="live">●</b> {{ g.live_count }} LIVE</div>{% endif %}
+        <div class="gcard-meta">
+          <div class="tac gcard-tag">{{ g.meta|upper }}</div>
+          <div class="gcard-name">{{ g.name|upper }}</div>
+          {% if g.event_count %}
+          <div class="gcard-stats"><span class="mono">{{ g.event_count }} EVENTS</span></div>
+          {% endif %}
+        </div>
+        <span class="gcard-cta tac">Enter <i class="fa-solid fa-arrow-right"></i></span>
+      </a>
+      {% empty %}
+      <a class="gcard" href="/tournaments/?game=valorant"><div class="gcard-img"><img src="{% static 'img/games/posters/valorant.jpg' %}" alt="Valorant"/></div><div class="gcard-mask"></div><div class="gcard-index mono">01</div><div class="gcard-meta"><div class="gcard-name">VALORANT</div></div><span class="gcard-cta tac">Enter <i class="fa-solid fa-arrow-right"></i></span></a>
+      <a class="gcard" href="/tournaments/?game=cs2"><div class="gcard-img"><img src="{% static 'img/games/posters/cs2.jpg' %}" alt="CS2"/></div><div class="gcard-mask"></div><div class="gcard-index mono">02</div><div class="gcard-meta"><div class="gcard-name">CS2</div></div><span class="gcard-cta tac">Enter <i class="fa-solid fa-arrow-right"></i></span></a>
+      <a class="gcard" href="/tournaments/?game=dota2"><div class="gcard-img"><img src="{% static 'img/games/posters/dota2.jpg' %}" alt="Dota 2"/></div><div class="gcard-mask"></div><div class="gcard-index mono">03</div><div class="gcard-meta"><div class="gcard-name">DOTA 2</div></div><span class="gcard-cta tac">Enter <i class="fa-solid fa-arrow-right"></i></span></a>
+      <a class="gcard" href="/tournaments/?game=pubg-mobile"><div class="gcard-img"><img src="{% static 'img/games/posters/pubg.jpg' %}" alt="PUBG Mobile"/></div><div class="gcard-mask"></div><div class="gcard-index mono">04</div><div class="gcard-meta"><div class="gcard-name">PUBG MOBILE</div></div><span class="gcard-cta tac">Enter <i class="fa-solid fa-arrow-right"></i></span></a>
+      <a class="gcard" href="/tournaments/?game=free-fire"><div class="gcard-img"><img src="{% static 'img/games/posters/freefire.jpg' %}" alt="Free Fire"/></div><div class="gcard-mask"></div><div class="gcard-index mono">05</div><div class="gcard-meta"><div class="gcard-name">FREE FIRE</div></div><span class="gcard-cta tac">Enter <i class="fa-solid fa-arrow-right"></i></span></a>
+      <a class="gcard" href="/tournaments/?game=mobile-legends"><div class="gcard-img"><img src="{% static 'img/games/posters/mlbb.jpg' %}" alt="MLBB"/></div><div class="gcard-mask"></div><div class="gcard-index mono">06</div><div class="gcard-meta"><div class="gcard-name">MOBILE LEGENDS</div></div><span class="gcard-cta tac">Enter <i class="fa-solid fa-arrow-right"></i></span></a>
+      {% endfor %}
+      <a class="gcard gcard-empty" href="/tournaments/">
+        <div class="gcard-mask gcard-mask-empty"></div>
+        <div class="gcard-empty-body">
+          <span class="tac">YOUR TITLE</span>
+          <span class="grad-text gcard-name">NEXT.</span>
+          <span class="mono">GAME-AGNOSTIC ENGINE</span>
+          <span class="tac more">Request integration <i class="fa-solid fa-arrow-right"></i></span>
+        </div>
+      </a>
+    </div>
+  </div>
+  <div class="games-foot section-bound">
+    <div class="rail-progress" id="railProgress"><div class="rail-progress-fill" id="railFill"></div></div>
+    <div class="rail-ctrl">
+      <button class="rail-btn" data-dir="-1" aria-label="Scroll left"><i class="fa-solid fa-arrow-left"></i></button>
+      <button class="rail-btn" data-dir="1" aria-label="Scroll right"><i class="fa-solid fa-arrow-right"></i></button>
+      <a href="/tournaments/" class="tac more-link">Browse all events <i class="fa-solid fa-arrow-right"></i></a>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ ECOSYSTEM ============================================================ -->
+<section id="ecosystem" class="ecosystem reveal">
+  <div class="section-bound">
+    <div class="eco-headline">
+      <h2 class="section-h2">ONE PLATFORM<br/><span class="grad-text">EIGHT CONNECTED PILLARS</span></h2>
+      <p class="section-lead">Built like infrastructure — not a tournament app. Every pillar talks to the others. A match becomes a payout, a payout becomes a rank, a rank becomes recognition.</p>
+    </div>
+    <div class="eco-count" aria-hidden="true">
+      <span class="eco-count-line"></span>
+      <span class="eco-count-pips"><span class="pip"></span><span class="pip"></span><span class="pip"></span><span class="pip"></span><span class="pip"></span><span class="pip"></span><span class="pip"></span><span class="pip"></span></span>
+      <span class="tac eco-count-label"><b>8</b> PILLARS · ONE CONNECTED PLATFORM</span>
+      <span class="eco-count-line"></span>
+    </div>
+    <div class="bento">
+      {% for module in v3.ecosystem_modules %}
+      {% if forloop.first %}
+      <article class="bento-cell bento-feature" data-color="{{ module.color }}">
+        <span class="bento-num">{{ forloop.counter }} <span class="of">/ {{ v3.ecosystem_modules|length }}</span></span>
+        <div class="bento-feature-img" style="background-image:url('{% static 'img/games/posters/valorant.jpg' %}')"></div>
+        <div class="bento-feature-mask"></div>
+        <div class="bento-feature-body">
+          <div class="bento-ico {{ module.color }}"><i class="fa-solid {{ module.icon }}"></i></div>
+          <div class="bento-name">{{ module.name }}</div>
+          <p>{{ module.blurb }}</p>
+        </div>
+      </article>
+      {% elif forloop.counter == 6 %}
+      <article class="bento-cell bento-coin" data-color="{{ module.color }}">
+        <span class="bento-num">{{ forloop.counter }} <span class="of">/ {{ v3.ecosystem_modules|length }}</span></span>
+        <div class="bento-coin-orbit" aria-hidden="true">
+          <div class="ring ring-a"></div>
+          <div class="ring ring-b"></div>
+          <div class="coin-disc"><span>D</span></div>
+        </div>
+        <div class="bento-coin-body">
+          <div class="bento-name">{{ module.name }}</div>
+          <p>{{ module.blurb }}</p>
+        </div>
+      </article>
+      {% else %}
+      <article class="bento-cell" data-color="{{ module.color }}">
+        <span class="bento-num">{{ forloop.counter }} <span class="of">/ {{ v3.ecosystem_modules|length }}</span></span>
+        <div class="bento-ico {{ module.color }}"><i class="fa-solid {{ module.icon }}"></i></div>
+        <div class="bento-name">{{ module.name }}</div>
+        <p>{{ module.blurb }}</p>
+      </article>
+      {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ COMPETITIVE HUB ============================================================ -->
+<section class="hub reveal">
+  <div class="section-bound">
+    <div class="hub-head">
+      <h2 class="section-h2">COMPETE EVERY DAY<br/><span class="grad-text">FOUR WAYS TO PLAY</span></h2>
+      <p class="section-lead">Beyond the tournament calendar, the Hub keeps reward matches running every day — escrow-backed, rules-enforced, dispute-aware.</p>
+    </div>
+    <div class="hub-grid">
+      {% for pillar in v3.competitive_pillars %}
+      <a class="hubcard hud-4" href="{{ pillar.url }}" data-tone="{{ pillar.color }}">
+        <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
+        <div class="hub-ico {{ pillar.color }}"><i class="fa-solid {{ pillar.icon }}"></i></div>
+        <div class="hub-name">{{ pillar.name }}</div>
+        <p>{{ pillar.tagline }}</p>
+        <p style="margin-top:0;font-size:12px;">{{ pillar.blurb }}</p>
+        <span class="hub-cta">Enter <i class="fa-solid fa-arrow-right"></i></span>
+      </a>
+      {% empty %}
+      <a class="hubcard hud-4" href="/dashboard/competitive/" data-tone="teal">
+        <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
+        <div class="hub-ico teal"><i class="fa-solid fa-bolt"></i></div>
+        <div class="hub-name">Showdown</div>
+        <p>Head-to-head reward matches. Escrow-locked from the start.</p>
+        <span class="hub-cta">Enter <i class="fa-solid fa-arrow-right"></i></span>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ CROWN POINTS ============================================================ -->
+<section id="ladder" class="ascend reveal">
+  <div class="section-bound">
+    <div class="ascend-head">
+      <h2 class="section-h2">EVERY MATCH IS A STEP<br/><span class="grad-text">SOME STEPS MAKE LEGENDS</span></h2>
+      <p class="section-lead">Crown Points — a single, cross-game performance score scaled by opponent strength, anti-farming protected, and seasonally reset. Verified results only.</p>
+    </div>
+
+    <!-- Tier Rail -->
+    <div class="tier-rail">
+      <div class="tier-line"></div>
+      <ol class="tier-nodes">
+        {% for tier in v3.tier_rail %}
+        <li class="tier-node {{ tier.color }}{% if tier.is_crown %} tier-crown{% endif %}" data-active="{% if tier.active %}1{% else %}0{% endif %}">
+          <div class="ring"><div class="core"></div></div>
+          <div class="name {% if tier.is_crown %}grad-text{% endif %}">{{ tier.name }}</div>
+          <div class="mono range">{{ tier.range }}</div>
+        </li>
+        {% empty %}
+        <li class="tier-node teal" data-active="0"><div class="ring"><div class="core"></div></div><div class="name">Rookie</div><div class="mono range">0 – 100 CP</div></li>
+        <li class="tier-node teal" data-active="0"><div class="ring"><div class="core"></div></div><div class="name">Challenger</div><div class="mono range">100 – 500</div></li>
+        <li class="tier-node violet" data-active="1"><div class="ring"><div class="core"></div></div><div class="name">Elite</div><div class="mono range">500 – 2K</div></li>
+        <li class="tier-node violet" data-active="0"><div class="ring"><div class="core"></div></div><div class="name">Master</div><div class="mono range">2K – 8K</div></li>
+        <li class="tier-node gold" data-active="0"><div class="ring"><div class="core"></div></div><div class="name">Legend</div><div class="mono range">8K – 30K</div></li>
+        <li class="tier-node gold tier-crown" data-active="0"><div class="ring"><div class="core"></div></div><div class="name grad-text">The Crown</div><div class="mono range">30K+</div></li>
+        {% endfor %}
+      </ol>
+    </div>
+
+    <!-- Leaderboard + Spotlight + Activity -->
+    <div class="ascend-grid">
+      <div class="board hud-4">
+        <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
+        <div class="board-head">
+          <span class="tac">TOP TEAMS</span>
+          <span class="mono">· Crown Points · This season</span>
+          <a href="/teams/" class="tac more">Full ladder <i class="fa-solid fa-arrow-right"></i></a>
+        </div>
+        <ol class="board-list">
+          {% for team in v3.top_teams %}
+          <li class="board-row">
+            <span class="mono rank {{ team.rank_color }}">{{ team.rank_label }}</span>
+            {% if team.team_logo %}
+            <span class="team-logo logo-{{ team.rank_color }}" style="overflow:hidden;padding:0;">
+              <img src="{{ team.team_logo }}" alt="{{ team.team_name }}" style="width:100%;height:100%;object-fit:cover;border-radius:9px;">
+            </span>
+            {% else %}
+            <span class="team-logo logo-{{ team.rank_color }}"><span>{{ team.team_name|slice:":2"|upper }}</span></span>
+            {% endif %}
+            <div class="board-team">
+              <div class="board-name">{{ team.team_name|upper }}</div>
+              <div class="mono meta">{{ team.meta }}</div>
+            </div>
+            <span class="tier-chip {{ team.tier_color }}">{{ team.tier_label }}</span>
+            <span class="mono cp">{{ team.cp_label }}</span>
+            <span class="mono delta {% if team.change > 0 %}up{% elif team.change < 0 %}down{% else %}same{% endif %}">
+              {% if team.change > 0 %}▲{{ team.change }}{% elif team.change < 0 %}▼{{ team.change|cut:"-" }}{% else %}—{% endif %}
+            </span>
+          </li>
+          {% empty %}
+          <li class="board-row"><span class="mono rank gold">#01</span><span class="team-logo logo-gold"><span>—</span></span><div class="board-team"><div class="board-name">No teams yet</div><div class="mono meta">Be the first to compete</div></div><span class="tier-chip teal">—</span><span class="mono cp">—</span><span class="mono delta same">—</span></li>
+          {% endfor %}
+        </ol>
+      </div>
+
+      <div class="ascend-side">
+        <!-- Player Spotlight -->
+        <div class="spotlight hud-4">
+          <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
+          <div class="spot-head">
+            <span class="tac gold"><i class="fa-solid fa-star"></i> SPOTLIGHT</span>
+            <span class="mono">· Season 3</span>
+          </div>
+          {% if v3.player_spotlight %}
+          <div class="spot-body">
+            <div class="spot-avatar">
+              <div class="spot-avatar-ring">
+                {% if v3.player_spotlight.avatar_url %}
+                <img src="{{ v3.player_spotlight.avatar_url }}" alt="{{ v3.player_spotlight.display_name }}" style="width:74px;height:74px;border-radius:50%;object-fit:cover;">
+                {% else %}
+                <span class="brand grad-text">{{ v3.player_spotlight.initials }}</span>
                 {% endif %}
-                
-                <!-- Gradient Overlay -->
-                <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-                
-                <!-- Content -->
-                <div class="relative z-10">
-                    {% if game.icon %}
-                        <img src="{{ game.icon }}" alt="{{ game.display_name }}" class="w-16 h-16 mx-auto mb-3 transform group-hover:scale-110 transition-transform"  data-fallback="hide-show-next">
-                        <div class="text-4xl mb-3 hidden transform group-hover:scale-110 transition-transform">🎮</div>
-                    {% elif game.logo %}
-                        <img src="{{ game.logo }}" alt="{{ game.display_name }}" class="w-16 h-16 mx-auto mb-3 transform group-hover:scale-110 transition-transform"  data-fallback="hide-show-next">
-                        <div class="text-4xl mb-3 hidden transform group-hover:scale-110 transition-transform">🎮</div>
-                    {% else %}
-                        <div class="text-4xl mb-3 transform group-hover:scale-110 transition-transform">🎮</div>
-                    {% endif %}
-                    
-                    <h3 class="font-display font-bold text-white text-lg mb-2">{{ game.display_name }}</h3>
-                    
-                    <div class="flex flex-wrap gap-2 justify-center">
-                        {% for platform in game.platforms %}
-                        <span class="px-2 py-1 bg-dc-cyan/20 border border-dc-cyan/30 text-dc-cyan text-xs font-semibold rounded-full">
-                            {{ platform }}
-                        </span>
-                        {% endfor %}
-                    </div>
-                </div>
-            </a>
-            {% endfor %}
+              </div>
+              <span class="spot-badge">TOP</span>
+            </div>
+            <div class="spot-info">
+              <div class="spot-name">{{ v3.player_spotlight.display_name|upper }}</div>
+              <div class="mono spot-sub">{{ v3.player_spotlight.subtitle }}</div>
+              <div class="spot-cta" style="margin-top:14px;">
+                <a href="{{ v3.player_spotlight.profile_url }}" class="btn btn-ghost btn-sm">View profile</a>
+                <a href="{{ v3.player_spotlight.team_url }}" class="tac more">View team <i class="fa-solid fa-arrow-right"></i></a>
+              </div>
+            </div>
+          </div>
+          {% else %}
+          <div class="spot-body">
+            <div class="spot-info" style="padding:8px 0;">
+              <div class="spot-name" style="font-size:15px;color:var(--mute);">Compete to earn the spotlight</div>
+              <div class="mono spot-sub" style="margin-top:8px;">The top-ranked captain each season appears here.</div>
+              <div class="spot-cta" style="margin-top:14px;">
+                <a href="/tournaments/" class="btn btn-primary btn-sm">Enter a tournament <i class="fa-solid fa-arrow-right"></i></a>
+              </div>
+            </div>
+          </div>
+          {% endif %}
         </div>
-    </div>
-</section>
-{% endif %}
 
-<!-- ============================================
-     LIVE PLATFORM ACTIVITY FEED
-     ============================================ -->
-<section class="relative py-16 bg-gradient-to-b from-gray-900 to-dc-dark">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        
-        <div class="grid lg:grid-cols-2 gap-12">
-            <!-- Left: Active Tournaments -->
-            {% if sections_enabled.tournaments and tournaments.items %}
-            <div>
-                <div class="flex items-center justify-between mb-8">
-                    <h2 class="font-display text-3xl font-black text-white">
-                        <span class="gradient-text">Live</span> Tournaments
-                    </h2>
-                    <a href="/tournaments/" class="text-dc-cyan hover:text-dc-purple font-semibold flex items-center gap-2 transition-colors">
-                        View All
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
-                    </a>
-                </div>
-                
-                <div class="space-y-4">
-                    {% if tournaments.items %}
-                        {% for tournament in tournaments.items %}
-                        <div class="glass-effect rounded-2xl p-6 hover:border-dc-cyan/50 transition-colors">
-                            <div class="flex items-start justify-between mb-4">
-                                <div class="flex-1">
-                                    <h3 class="font-display font-bold text-white text-lg mb-2">{{ tournament.name }}</h3>
-                                    <p class="text-gray-400 text-sm">Prize Pool: {{ tournament.prize_pool }} • {% if tournament.max_teams %}{{ tournament.registration_count }}/{{ tournament.max_teams }} Teams{% else %}{{ tournament.registration_count }} Teams{% endif %}</p>
-                                </div>
-                                <div class="flex flex-col gap-2">
-                                    {% if tournament.status == 'live' %}
-                                    <span class="px-3 py-1 bg-green-500/20 border border-green-500/30 text-green-400 text-xs font-bold rounded-full">LIVE</span>
-                                    {% elif tournament.status == 'registration_open' %}
-                                    <span class="px-3 py-1 bg-dc-cyan/20 border border-dc-cyan/30 text-dc-cyan text-xs font-bold rounded-full">OPEN</span>
-                                    {% else %}
-                                    <span class="px-3 py-1 bg-purple-500/20 border border-purple-500/30 text-purple-400 text-xs font-bold rounded-full">UPCOMING</span>
-                                    {% endif %}
-                                    {% if tournament.max_teams and tournament.registration_count %}
-                                        {% widthratio tournament.registration_count tournament.max_teams 100 as fill_percentage %}
-                                        {% if fill_percentage >= 80 %}
-                                        <span class="px-2 py-1 bg-red-500/20 border border-red-500/30 text-red-400 text-xs font-bold rounded-full animate-pulse">ALMOST FULL</span>
-                                        {% endif %}
-                                    {% endif %}
-                                </div>
-                            </div>
-                            <!-- Registration Progress Bar -->
-                            {% if tournament.max_teams and tournament.registration_count %}
-                                {% widthratio tournament.registration_count tournament.max_teams 100 as fill_percentage %}
-                                <div class="mb-3">
-                                    <div class="flex justify-between text-xs text-gray-400 mb-1">
-                                        <span>Registration Progress</span>
-                                        <span>{{ fill_percentage }}% Full</span>
-                                    </div>
-                                    <div class="w-full bg-gray-800 rounded-full h-2 overflow-hidden">
-                                        <div class="h-full rounded-full transition-all duration-500 {% if fill_percentage >= 80 %}bg-gradient-to-r from-orange-500 to-red-500{% elif fill_percentage >= 50 %}bg-gradient-to-r from-yellow-500 to-orange-500{% else %}bg-gradient-to-r from-green-500 to-cyan-500{% endif %}" style="width: {{ fill_percentage }}%"></div>
-                                    </div>
-                                </div>
-                            {% endif %}
-                            
-                            <div class="flex items-center gap-4">
-                                <div class="flex-1 bg-gray-800/50 rounded-lg p-3">
-                                    {% if tournament.registration_deadline %}
-                                        <p class="text-gray-400 text-xs mb-1">Registration Closes</p>
-                                        <p class="text-white font-bold" data-deadline="{{ tournament.registration_deadline|date:'c' }}">
-                                            {% if tournament.days_left is not None %}
-                                                {% if tournament.days_left == 0 %}Last day!{% elif tournament.days_left == 1 %}1 day left{% else %}{{ tournament.days_left }} days left{% endif %}
-                                            {% else %}
-                                                {{ tournament.registration_deadline|date:"M j, Y" }}
-                                            {% endif %}
-                                        </p>
-                                    {% elif tournament.tournament_start %}
-                                        <p class="text-gray-400 text-xs mb-1">Starts</p>
-                                        <p class="text-white font-bold">{{ tournament.tournament_start|date:"M j, Y" }}</p>
-                                    {% else %}
-                                        <p class="text-gray-400 text-xs mb-1">Status</p>
-                                        <p class="text-white font-bold">{{ tournament.status_display }}</p>
-                                    {% endif %}
-                                </div>
-                                <a href="{{ tournament.registration_action_url|default:tournament.url }}" class="px-6 py-3 {% if tournament.eligibility_status == 'full_waitlist' %}bg-amber-400 hover:bg-amber-300 text-black{% else %}bg-dc-cyan hover:bg-dc-purple text-white{% endif %} font-bold rounded-lg transition-colors">
-                                    {{ tournament.registration_action_label|default:'Details' }}
-                                </a>
-                            </div>
-                        </div>
-                        {% endfor %}
-                    {% else %}
-                        <div class="glass-effect rounded-2xl p-8 text-center">
-                            <div class="text-gray-400 mb-4">
-                                <svg class="w-16 h-16 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
-                            </div>
-                            <h3 class="font-display font-bold text-white text-lg mb-2">No Active Tournaments</h3>
-                            <p class="text-gray-400">Check back soon for upcoming competitions!</p>
-                        </div>
-                    {% endif %}
-                </div>
-            </div>
-            {% endif %}
-            
-            <!-- Right: Top Teams -->
-            {% if sections_enabled.teams and teams.items %}
-            <div>
-                <div class="flex items-center justify-between mb-8">
-                    <h2 class="font-display text-3xl font-black text-white">
-                        Top <span class="gradient-text">Teams</span>
-                    </h2>
-                    <a href="/teams/" class="text-dc-cyan hover:text-dc-purple font-semibold flex items-center gap-2 transition-colors">
-                        View All
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
-                    </a>
-                </div>
-                
-                <div class="space-y-4">
-                    {% if teams.items %}
-                        {% for team in teams.items %}
-                        <div class="glass-effect rounded-2xl p-6 hover:border-dc-cyan/50 transition-colors">
-                            <div class="flex items-center gap-4">
-                                <div class="w-12 h-12 {% if team.rank == 1 %}bg-gradient-to-br from-dc-gold to-yellow-600{% elif team.rank == 2 %}bg-gradient-to-br from-gray-400 to-gray-600{% elif team.rank == 3 %}bg-gradient-to-br from-orange-600 to-orange-800{% else %}bg-gradient-to-br from-dc-cyan to-dc-purple{% endif %} rounded-full flex items-center justify-center font-display font-black text-white text-xl">
-                                    {{ team.rank }}
-                                </div>
-                                <div class="flex-1">
-                                    <a href="{{ team.url }}" class="font-display font-bold text-white text-lg mb-1 hover:text-dc-cyan transition-colors">
-                                        {{ team.name }}{% if team.tag %} ({{ team.tag }}){% endif %}
-                                    </a>
-                                    <p class="text-gray-400 text-sm">{{ team.total_points }} points • {{ team.game_display }}</p>
-                                </div>
-                                <div class="text-right">
-                                    {% if team.weekly_change > 0 %}
-                                        <p class="text-green-400 font-bold">+{{ team.weekly_change }}</p>
-                                        <p class="text-gray-500 text-xs">This week</p>
-                                    {% elif team.weekly_change < 0 %}
-                                        <p class="text-red-400 font-bold">{{ team.weekly_change }}</p>
-                                        <p class="text-gray-500 text-xs">This week</p>
-                                    {% else %}
-                                        <p class="text-gray-500 font-bold">—</p>
-                                        <p class="text-gray-500 text-xs">No change</p>
-                                    {% endif %}
-                                </div>
-                            </div>
-                        </div>
-                        {% endfor %}
-                    {% else %}
-                        <div class="glass-effect rounded-2xl p-8 text-center">
-                            <div class="text-gray-400 mb-4">
-                                <svg class="w-16 h-16 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
-                            </div>
-                            <h3 class="font-display font-bold text-white text-lg mb-2">No Teams Yet</h3>
-                            <p class="text-gray-400">Be the first to create a competitive team!</p>
-                        </div>
-                    {% endif %}
-                </div>
-            </div>
-            {% endif %}
-        </div>
-    </div>
-</section>
-
-<!-- ============================================
-     PAYMENTS & DELTACOIN ECONOMY
-     ============================================ -->
-{% if sections_enabled.payments or sections_enabled.deltacoin %}
-<section class="relative py-24 bg-dc-dark">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        
-        <div class="grid lg:grid-cols-2 gap-12">
-            <!-- Left: Local Payments -->
-            {% if sections_enabled.payments %}
-            <div>
-                <div class="inline-flex items-center gap-2 px-4 py-2 bg-dc-gold/10 border border-dc-gold/30 rounded-full text-dc-gold font-bold text-sm uppercase tracking-wider mb-6">
-                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/></svg>
-                    Local Payments
-                </div>
-                <h2 class="font-display text-4xl font-black text-white mb-4">
-                    Bangladesh-<span class="gradient-text">First</span> Infrastructure
-                </h2>
-                <p class="text-xl text-gray-200 mb-8">
-                    Pay with the methods you trust. Compete with confidence.
-                </p>
-                
-                <div class="grid grid-cols-2 gap-4">
-                    <!-- bKash -->
-                    <div class="group glass-effect rounded-2xl p-6 text-center hover:scale-[1.02] transition-all duration-300 cursor-pointer">
-                        <div class="relative h-16 mb-4 flex items-center justify-center">
-                            <img src="{% static 'img/payment/logos/BKash.svg' %}" alt="bKash" class="h-12 w-auto opacity-80 group-hover:opacity-100 transition-opacity">
-                        </div>
-                        <h3 class="font-bold text-white mb-1">bKash</h3>
-                        <p class="text-gray-400 text-sm">Instant payments</p>
-                    </div>
-                    
-                    <!-- Nagad -->
-                    <div class="group glass-effect rounded-2xl p-6 text-center hover:scale-[1.02] transition-all duration-300 cursor-pointer">
-                        <div class="relative h-16 mb-4 flex items-center justify-center">
-                            <img src="{% static 'img/payment/logos/Nagad.svg' %}" alt="Nagad" class="h-12 w-auto opacity-80 group-hover:opacity-100 transition-opacity">
-                        </div>
-                        <h3 class="font-bold text-white mb-1">Nagad</h3>
-                        <p class="text-gray-400 text-sm">Fast & secure</p>
-                    </div>
-                    
-                    <!-- Rocket -->
-                    <div class="group glass-effect rounded-2xl p-6 text-center hover:scale-[1.02] transition-all duration-300 cursor-pointer">
-                        <div class="relative h-16 mb-4 flex items-center justify-center">
-                            <img src="{% static 'img/payment/logos/rocket_logo.svg' %}" alt="Rocket" class="h-12 w-auto opacity-80 group-hover:opacity-100 transition-opacity">
-                        </div>
-                        <h3 class="font-bold text-white mb-1">Rocket</h3>
-                        <p class="text-gray-400 text-sm">Reliable transfers</p>
-                    </div>
-                    
-                    <!-- Bank Transfer -->
-                    <div class="group glass-effect rounded-2xl p-6 text-center hover:scale-[1.02] transition-all duration-300 cursor-pointer">
-                        <div class="relative h-16 mb-4 flex items-center justify-center">
-                            <div class="text-4xl">🏦</div>
-                        </div>
-                        <h3 class="font-bold text-white mb-1">Bank Transfer</h3>
-                        <p class="text-gray-400 text-sm">Direct deposits</p>
-                    </div>
-                </div>
-                
-                <div class="mt-6 p-4 bg-green-500/10 border border-green-500/20 rounded-xl">
-                    <p class="text-gray-200 text-sm">
-                        <svg class="w-5 h-5 inline text-green-400 mr-2" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
-                        {{ payments.trust_message }}
-                    </p>
-                </div>
-            </div>
-            {% endif %}
-            
-            <!-- Right: DeltaCoin Economy -->
-            {% if sections_enabled.deltacoin %}
-            <div>
-                <div class="inline-flex items-center gap-2 px-4 py-2 bg-dc-gold/10 border border-dc-gold/30 rounded-full text-dc-gold font-bold text-sm uppercase tracking-wider mb-6">
-                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"/></svg>
-                    Platform Currency
-                </div>
-                <h2 class="font-display text-4xl font-black text-white mb-4">
-                    <span class="gradient-text">DeltaCoin</span> Economy
-                </h2>
-                <p class="text-xl text-gray-200 mb-8">
-                    Earn by competing. Spend on upgrades. Build your legacy.
-                </p>
-                
-                <!-- Interactive Cycle Diagram -->
-                <div class="glass-effect rounded-2xl p-8 mb-6">
-                    <div class="flex items-center justify-between mb-6">
-                        <div class="text-center flex-1">
-                            <div class="w-16 h-16 bg-dc-cyan/20 rounded-full flex items-center justify-center mx-auto mb-2">
-                                <span class="text-3xl">📈</span>
-                            </div>
-                            <p class="text-white font-bold text-sm">EARN</p>
-                        </div>
-                        <svg class="w-8 h-8 text-dc-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
-                        <div class="text-center flex-1">
-                            <div class="w-16 h-16 bg-dc-purple/20 rounded-full flex items-center justify-center mx-auto mb-2">
-                                <span class="text-3xl">🎮</span>
-                            </div>
-                            <p class="text-white font-bold text-sm">PLAY</p>
-                        </div>
-                        <svg class="w-8 h-8 text-dc-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
-                        <div class="text-center flex-1">
-                            <div class="w-16 h-16 bg-dc-gold/20 rounded-full flex items-center justify-center mx-auto mb-2">
-                                <span class="text-3xl">💰</span>
-                            </div>
-                            <p class="text-white font-bold text-sm">SPEND</p>
-                        </div>
-                    </div>
-                    
-                    <div class="grid grid-cols-2 gap-4">
-                        <div class="bg-gray-800/50 rounded-lg p-4">
-                            <h4 class="text-dc-cyan font-bold mb-2 flex items-center gap-2">
-                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clip-rule="evenodd"/></svg>
-                                Earn
-                            </h4>
-                            <ul class="text-gray-200 text-sm space-y-1">
-                                {% for method in deltacoin.earn_methods|slice:":3" %}
-                                <li>• {{ method }}</li>
-                                {% endfor %}
-                            </ul>
-                        </div>
-                        <div class="bg-gray-800/50 rounded-lg p-4">
-                            <h4 class="text-dc-gold font-bold mb-2 flex items-center gap-2">
-                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM7 9a1 1 0 000 2h6a1 1 0 100-2H7z" clip-rule="evenodd"/></svg>
-                                Spend
-                            </h4>
-                            <ul class="text-gray-200 text-sm space-y-1">
-                                {% for option in deltacoin.spend_options|slice:":3" %}
-                                <li>• {{ option }}</li>
-                                {% endfor %}
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            {% endif %}
-        </div>
-    </div>
-</section>
-{% endif %}
-
-<!-- ============================================
-     RECENT MATCH RESULTS
-     ============================================ -->
-{% if recent_matches %}
-<section class="relative py-24 bg-dc-dark">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex items-center justify-between mb-12">
-            <div>
-                <div class="inline-flex items-center gap-2 px-4 py-2 bg-dc-purple/10 border border-dc-purple/30 rounded-full text-dc-purple font-bold text-sm uppercase tracking-wider mb-4">
-                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/></svg>
-                    Just Finished
-                </div>
-                <h2 class="font-display text-3xl sm:text-4xl font-black text-white">
-                    Recent <span class="gradient-text">Match Results</span>
-                </h2>
-            </div>
-            <a href="/matches/" class="px-6 py-3 bg-white/5 border border-white/10 text-white font-bold rounded-xl hover:bg-white/10 transition-all">
-                View All Matches →
-            </a>
-        </div>
-        
-        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {% for match in recent_matches %}
-            <a href="{{ match.url }}" class="group glass-effect rounded-2xl p-6 hover:scale-[1.02] transition-all duration-300">
-                <!-- Tournament & Game Info -->
-                <div class="flex items-center gap-2 mb-4">
-                    <span class="px-3 py-1 bg-dc-cyan/20 border border-dc-cyan/30 text-dc-cyan text-xs font-bold rounded-full">
-                        {{ match.tournament.game }}
-                    </span>
-                    <span class="text-gray-400 text-xs">{{ match.time_ago }}</span>
-                </div>
-                
-                <!-- Match Details -->
-                <div class="flex items-center justify-between mb-4">
-                    <!-- Team A -->
-                    <div class="flex flex-col items-center flex-1">
-                        {% if match.team_a.logo %}
-                        <img src="{{ match.team_a.logo }}" alt="{{ match.team_a.name }}" class="w-16 h-16 rounded-full object-cover mb-2">
-                        {% else %}
-                        <div class="w-16 h-16 rounded-full bg-gradient-to-br from-dc-cyan to-dc-purple flex items-center justify-center mb-2">
-                            <span class="text-2xl font-bold text-white">{{ match.team_a.name|slice:":1" }}</span>
-                        </div>
-                        {% endif %}
-                        <p class="font-bold text-white text-sm text-center {% if match.winner == 'team_a' %}text-dc-gold{% endif %}">
-                            {{ match.team_a.name }}
-                        </p>
-                    </div>
-                    
-                    <!-- Score -->
-                    <div class="px-6">
-                        <div class="text-center">
-                            <p class="text-3xl font-display font-black text-white">
-                                <span class="{% if match.winner == 'team_a' %}text-dc-gold{% endif %}">{{ match.team_a.score }}</span>
-                                <span class="text-gray-500 mx-2">-</span>
-                                <span class="{% if match.winner == 'team_b' %}text-dc-gold{% endif %}">{{ match.team_b.score }}</span>
-                            </p>
-                            <p class="text-xs text-gray-500 mt-1">FINAL</p>
-                        </div>
-                    </div>
-                    
-                    <!-- Team B -->
-                    <div class="flex flex-col items-center flex-1">
-                        {% if match.team_b.logo %}
-                        <img src="{{ match.team_b.logo }}" alt="{{ match.team_b.name }}" class="w-16 h-16 rounded-full object-cover mb-2">
-                        {% else %}
-                        <div class="w-16 h-16 rounded-full bg-gradient-to-br from-dc-purple to-dc-gold flex items-center justify-center mb-2">
-                            <span class="text-2xl font-bold text-white">{{ match.team_b.name|slice:":1" }}</span>
-                        </div>
-                        {% endif %}
-                        <p class="font-bold text-white text-sm text-center {% if match.winner == 'team_b' %}text-dc-gold{% endif %}">
-                            {{ match.team_b.name }}
-                        </p>
-                    </div>
-                </div>
-                
-                <!-- Tournament Name -->
-                <div class="pt-4 border-t border-white/10">
-                    <p class="text-gray-400 text-sm text-center">
-                        {{ match.tournament.name|truncatewords:6 }}
-                    </p>
-                </div>
-            </a>
-            {% endfor %}
-        </div>
-    </div>
-</section>
-{% endif %}
-
-<!-- ============================================
-     COMMUNITY ACTIVITY TICKER
-     ============================================ -->
-<section class="relative py-4 bg-gradient-to-r from-dc-cyan/10 via-dc-purple/10 to-dc-gold/10 border-y border-white/10 overflow-hidden">
-    <div class="flex items-center gap-8 animate-marquee whitespace-nowrap">
-        {% if recent_matches %}
-            {% for match in recent_matches %}
-            <div class="flex items-center gap-2 text-gray-200">
-                <svg class="w-4 h-4 text-dc-cyan" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/></svg>
-                <span class="font-bold text-white">{{ match.team_a.name }}</span> vs <span class="font-bold text-white">{{ match.team_b.name }}</span>
-                <span class="text-dc-gold font-bold">{{ match.team_a.score }}-{{ match.team_b.score }}</span>
-                <span class="text-gray-500">•</span>
-            </div>
-            {% endfor %}
-        {% endif %}
-        
-        {% if tournaments.items %}
-            {% for tournament in tournaments.items %}
-            <div class="flex items-center gap-2 text-gray-200">
-                <svg class="w-4 h-4 text-green-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/><path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm9.707 5.707a1 1 0 00-1.414-1.414L9 12.586l-1.293-1.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
-                <span class="font-bold text-dc-cyan">{{ tournament.name }}</span> is now open
-                <span class="text-gray-500">•</span>
-            </div>
-            {% endfor %}
-        {% endif %}
-    </div>
-</section>
-
-<!-- Add CSS for Marquee Animation & Custom Scrollbar -->
-<style>
-@keyframes marquee {
-    0% { transform: translateX(0); }
-    100% { transform: translateX(-50%); }
-}
-.animate-marquee {
-    animation: marquee 60s linear infinite;
-    will-change: transform;
-    transform: translateZ(0);
-}
-.animate-marquee:hover {
-    animation-play-state: paused;
-}
-
-/* Custom Scrollbar */
-::-webkit-scrollbar {
-    width: 12px;
-}
-::-webkit-scrollbar-track {
-    background: rgba(15, 23, 42, 0.5);
-}
-::-webkit-scrollbar-thumb {
-    background: linear-gradient(180deg, #06b6d4 0%, #a855f7 50%, #eab308 100%);
-    border-radius: 6px;
-    border: 2px solid rgba(15, 23, 42, 0.5);
-}
-::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(180deg, #0891b2 0%, #9333ea 50%, #ca8a04 100%);
-}
-
-/* Mobile typography boost */
-@media (max-width: 768px) {
-    body {
-        font-size: 17px;
-    }
-    .btn, a[href]:not(.text-sm) {
-        min-height: 48px;
-        display: inline-flex;
-        align-items: center;
-    }
-}
-</style>
-
-<!-- ============================================
-     TESTIMONIALS - WINNER STORIES
-     ============================================ -->
-<section class="relative py-24 bg-gradient-to-b from-gray-900 to-dc-dark">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="text-center mb-16">
-            <div class="inline-flex items-center gap-2 px-4 py-2 bg-dc-gold/10 border border-dc-gold/30 rounded-full text-dc-gold font-bold text-sm uppercase tracking-wider mb-4">
-                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-                Winner Stories
-            </div>
-            <h2 class="font-display text-5xl font-black text-white mb-6">
-                Real Winners, <span class="gradient-text">Real Stories</span>
-            </h2>
-            <p class="text-xl text-gray-200 max-w-3xl mx-auto">
-                Hear from champions who've competed and won on DeltaCrown
-            </p>
-        </div>
-        
-        <div class="grid md:grid-cols-3 gap-8">
-            {% for testimonial in testimonials %}
-            <div class="glass-effect rounded-2xl p-8 hover:scale-[1.02] transition-all duration-300">
-                <div class="flex items-center gap-2 mb-4">
-                    <span class="text-dc-gold text-2xl">
-                        {% for i in "12345" %}
-                            {% if forloop.counter <= testimonial.rating %}⭐{% else %}☆{% endif %}
-                        {% endfor %}
-                    </span>
-                </div>
-                <p class="text-gray-200 italic leading-relaxed mb-6">
-                    "{{ testimonial.testimonial_text }}"
-                </p>
-                <div class="flex items-center gap-4">
-                    <div class="w-12 h-12 bg-gradient-to-br from-dc-cyan to-dc-purple rounded-full flex items-center justify-center text-white font-bold text-xl">
-                        {{ testimonial.avatar_text|default:testimonial.name.0|upper }}
-                    </div>
-                    <div>
-                        <p class="text-white font-bold">{{ testimonial.name }}</p>
-                        {% if testimonial.team_name %}
-                        <p class="text-gray-500 text-sm">{{ testimonial.team_name }}</p>
-                        {% endif %}
-                        {% if testimonial.prize_won %}
-                        <p class="text-dc-gold text-xs font-bold mt-1">{{ testimonial.prize_won }}</p>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
+        <!-- Activity Feed -->
+        <div class="activity hud-4">
+          <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
+          <div class="activity-head">
+            <span class="pill pill-live"><span class="dot dot-live"></span><span class="tac">ACTIVITY FEED</span></span>
+            <span class="mono">recent</span>
+          </div>
+          <ul class="activity-list">
+            {% for item in v3.activity_feed %}
+            <li>
+              <span class="mono kind {{ item.kind_color }}">{{ item.kind }}</span>
+              <span class="msg"><b>{{ item.highlight }}</b> {{ item.text }}</span>
+              <span class="mono t">{{ item.time_label }}</span>
+            </li>
             {% empty %}
-            <div class="col-span-3 text-center py-24">
-                <div class="inline-flex items-center gap-3 px-6 py-4 bg-white/5 border border-white/10 rounded-xl">
-                    <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
-                    <p class="text-gray-400 text-lg">No testimonials yet. Be the first winner to share your story!</p>
-                </div>
-            </div>
+            <li><span class="mono kind teal">INFO</span><span class="msg">Platform is live · be the first to compete today</span><span class="mono t">—</span></li>
             {% endfor %}
+          </ul>
         </div>
+      </div>
     </div>
+  </div>
 </section>
 
-<!-- Continue with rest of sections... -->
-
-<!-- ============================================
-     FAQ SECTION - EXPANDABLE CARD GRID
-     ============================================ -->
-<section class="relative py-24 bg-gradient-to-b from-gray-900 via-dc-dark to-gray-900 overflow-hidden">
-    <!-- Animated Background Effects -->
-    <div class="absolute inset-0 opacity-30">
-        <div class="absolute top-20 left-10 w-96 h-96 bg-dc-cyan/20 rounded-full blur-3xl animate-pulse"></div>
-        <div class="absolute bottom-20 right-10 w-96 h-96 bg-dc-purple/20 rounded-full blur-3xl animate-pulse" style="animation-delay: 1.5s;"></div>
+<!-- ============================================================ PERSONAS ============================================================ -->
+<section class="personas reveal">
+  <div class="section-bound">
+    <div class="personas-head">
+      <h2 class="section-h2">ONE PLATFORM<br/><span class="grad-text">FOUR WAYS IN</span></h2>
+      <p class="section-lead">Whether you're climbing the ladder, building a roster, running events, or backing the next wave of talent — there's a clean entry point here.</p>
     </div>
-    
-    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <!-- Header -->
-        <div class="text-center mb-16">
-            <div class="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-dc-cyan/10 via-dc-purple/10 to-dc-cyan/10 border border-dc-cyan/30 rounded-full text-dc-cyan font-bold text-sm uppercase tracking-wider mb-6 backdrop-blur-sm">
-                <svg class="w-4 h-4 animate-pulse" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"/></svg>
-                Got Questions?
-            </div>
-            <h2 class="font-display text-5xl md:text-6xl font-black text-white mb-6 leading-tight">
-                Frequently Asked <span class="gradient-text">Questions</span>
-            </h2>
-            <p class="text-xl text-gray-300 max-w-2xl mx-auto">
-                Tap any card to see the answer
-            </p>
+    <div class="persona-tabs" role="tablist">
+      {% for p in v3.personas %}
+      <button class="ptab{% if forloop.first %} active{% endif %}" role="tab" aria-selected="{% if forloop.first %}true{% else %}false{% endif %}" data-target="{{ p.id }}">
+        <i class="fa-solid {{ p.icon }} {{ p.color }}"></i>
+        <div>
+          <div class="ptab-name">{{ p.name|upper }}</div>
+          <div class="mono">{{ p.primary_cta.text }}</div>
         </div>
-        
-        {% if featured_faqs %}
-        <!-- Card Grid -->
-        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
-            {% for faq in featured_faqs %}
-            <div class="faq-card group cursor-pointer" data-click="toggleFAQCard" data-click-pass-el>
-                <div class="relative h-full bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6 hover:bg-white/[0.07] hover:border-dc-cyan/40 hover:scale-[1.02] transition-all duration-300 ease-out overflow-hidden">
-                    <!-- Gradient Accent -->
-                    <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-dc-cyan via-dc-purple to-dc-cyan opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                    
-                    <!-- Category Badge -->
-                    <div class="flex items-center justify-between mb-4">
-                        <span class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-dc-purple/20 to-dc-cyan/20 border border-dc-purple/30 text-dc-cyan text-xs font-bold rounded-lg uppercase tracking-wide">
-                            {{ faq.get_category_display }}
-                        </span>
-                        <div class="faq-icon w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center group-hover:bg-dc-cyan/20 transition-all duration-300">
-                            <svg class="faq-plus w-5 h-5 text-gray-400 group-hover:text-dc-cyan transition-all duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-                            </svg>
-                        </div>
-                    </div>
-                    
-                    <!-- Question -->
-                    <h3 class="text-white font-display font-bold text-lg leading-snug mb-3 min-h-[3.5rem] flex items-center">
-                        {{ faq.question }}
-                    </h3>
-                    
-                    <!-- Decorative Line -->
-                    <div class="w-12 h-0.5 bg-gradient-to-r from-dc-cyan to-transparent mb-4 opacity-50"></div>
-                    
-                    <!-- Answer (Hidden Initially) -->
-                    <div class="faq-answer-content overflow-hidden transition-all duration-500 ease-out" style="max-height: 0; opacity: 0;">
-                        <div class="pt-2 pb-1">
-                            <div class="text-gray-300 text-sm leading-relaxed space-y-2">
-                                {{ faq.answer|safe }}
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Read More Hint -->
-                    <div class="faq-hint mt-4 flex items-center gap-2 text-dc-cyan text-sm font-semibold opacity-70 group-hover:opacity-100 transition-opacity duration-300">
-                        <span>Click to read answer</span>
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
-                    </div>
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-        {% else %}
-        <!-- Empty State -->
-        <div class="text-center py-16 glass-effect rounded-3xl border border-white/10 max-w-2xl mx-auto">
-            <div class="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-dc-cyan/20 to-dc-purple/20 flex items-center justify-center">
-                <svg class="w-10 h-10 text-dc-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-            </div>
-            <p class="text-gray-400 text-lg font-medium">No FAQs available at the moment.</p>
-            <p class="text-gray-500 text-sm mt-2">Check back soon for answers to common questions!</p>
-        </div>
-        {% endif %}
-        
-        <!-- CTA Footer -->
-        <div class="text-center">
-            <div class="inline-block glass-effect rounded-3xl p-8 border border-white/10">
-                <p class="text-gray-300 text-lg mb-6 font-medium">Still have questions?</p>
-                <div class="flex flex-col sm:flex-row gap-4 justify-center">
-                    <a href="/faq/" class="group inline-flex items-center gap-3 px-8 py-4 bg-white/5 border border-white/10 text-white font-bold rounded-xl hover:bg-white/10 hover:border-dc-cyan/50 hover:scale-[1.02] transition-all duration-300">
-                        <svg class="w-5 h-5 text-dc-cyan" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"/></svg>
-                        <span>Browse All FAQs</span>
-                    </a>
-                    <a href="/contact/" class="group inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-dc-cyan to-dc-purple text-white font-bold rounded-xl hover:shadow-2xl hover:shadow-dc-cyan/50 hover:scale-[1.02] transition-all duration-300">
-                        <span>Contact Support</span>
-                        <svg class="w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
-                    </a>
-                </div>
-            </div>
-        </div>
+      </button>
+      {% endfor %}
     </div>
+    <div class="persona-panels">
+      {% for p in v3.personas %}
+      <div class="persona-panel{% if forloop.first %} active{% endif %}" id="{{ p.id }}">
+        <div class="persona-headline">
+          <i class="fa-solid {{ p.icon }} {{ p.color }} big-ico"></i>
+          <div>
+            <h3>{{ p.headline_html|safe }}</h3>
+          </div>
+        </div>
+        <ul class="persona-bullets">
+          {% for bullet in p.bullets %}
+          <li><i class="fa-solid fa-check {{ p.color }}"></i> {{ bullet }}</li>
+          {% endfor %}
+        </ul>
+        <div class="persona-cta">
+          <a href="{{ p.primary_cta.url }}" class="btn btn-primary">{{ p.primary_cta.text }} <i class="fa-solid fa-arrow-right"></i></a>
+          <a href="{{ p.secondary_cta.url }}" class="btn btn-ghost">{{ p.secondary_cta.text }}</a>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
 </section>
 
-<!-- FAQ Card JavaScript -->
-<script nonce="{{ request.csp_nonce }}">
-function toggleFAQCard(card) {
-    const answerContent = card.querySelector('.faq-answer-content');
-    const plusIcon = card.querySelector('.faq-plus');
-    const hint = card.querySelector('.faq-hint');
-    const isExpanded = answerContent.style.maxHeight && answerContent.style.maxHeight !== '0px';
-    
-    // Close all other cards
-    document.querySelectorAll('.faq-card').forEach(otherCard => {
-        if (otherCard !== card) {
-            const otherAnswer = otherCard.querySelector('.faq-answer-content');
-            const otherPlus = otherCard.querySelector('.faq-plus');
-            const otherHint = otherCard.querySelector('.faq-hint');
-            
-            otherAnswer.style.maxHeight = '0px';
-            otherAnswer.style.opacity = '0';
-            otherPlus.style.transform = 'rotate(0deg)';
-            otherHint.style.display = 'flex';
-        }
-    });
-    
-    // Toggle current card
-    if (isExpanded) {
-        answerContent.style.maxHeight = '0px';
-        answerContent.style.opacity = '0';
-        plusIcon.style.transform = 'rotate(0deg)';
-        hint.style.display = 'flex';
-    } else {
-        answerContent.style.maxHeight = answerContent.scrollHeight + 'px';
-        answerContent.style.opacity = '1';
-        plusIcon.style.transform = 'rotate(45deg)';
-        hint.style.display = 'none';
-    }
-}
-</script>
-
-<!-- ============================================
-     FINAL CTA - JOIN NOW
-     ============================================ -->
-<section class="relative py-24 bg-gradient-to-br from-dc-dark via-dc-cyan/10 to-dc-purple/10 overflow-hidden">
-    <div class="absolute inset-0">
-        <div class="absolute top-0 left-1/4 w-96 h-96 bg-dc-cyan/20 rounded-full blur-3xl animate-pulse"></div>
-        <div class="absolute bottom-0 right-1/4 w-96 h-96 bg-dc-purple/20 rounded-full blur-3xl animate-pulse" style="animation-delay: 1s;"></div>
+<!-- ============================================================ PATH TO PRO ============================================================ -->
+<section id="path" class="path reveal">
+  <div class="section-bound">
+    <div class="path-head">
+      <h2 class="section-h2">FOUR STAGES<br/><span class="grad-text">ZERO SHORTCUTS</span></h2>
+      <p class="section-lead">From your first verified match to a sponsored career. Every step is structured — and verifiable.</p>
     </div>
-    
-    <div class="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <div class="inline-flex items-center gap-2 px-4 py-2 bg-dc-gold/10 border border-dc-gold/30 rounded-full text-dc-gold font-bold text-sm uppercase tracking-wider mb-8">
-            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.707l-3-3a1 1 0 00-1.414 1.414L10.586 9H7a1 1 0 100 2h3.586l-1.293 1.293a1 1 0 101.414 1.414l3-3a1 1 0 000-1.414z" clip-rule="evenodd"/></svg>
-            Start Your Journey
-        </div>
-        
-        <h2 class="font-display text-5xl sm:text-6xl lg:text-7xl font-black text-white mb-6 leading-tight">
-            Ready to <span class="gradient-text">Compete</span>?<br>
-            Join <span class="text-dc-cyan">{{ live_stats.players_count }}+</span> Players Today
-        </h2>
-        
-        <p class="text-xl sm:text-2xl text-gray-200 mb-12 max-w-3xl mx-auto leading-relaxed">
-            Sign up in 60 seconds. No credit card required. Start competing in fair, transparent tournaments with real prize money.
-        </p>
-        
-        <div class="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-            <a href="/signup/" class="group inline-flex items-center justify-center gap-3 px-12 py-5 bg-gradient-to-r from-dc-cyan to-dc-purple text-white font-bold text-lg rounded-xl hover:shadow-2xl hover:shadow-dc-cyan/50 transition-all duration-300 hover:scale-[1.02]">
-                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/></svg>
-                Create Free Account
-                <svg class="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
-            </a>
-            
-            <a href="/tournaments/" class="inline-flex items-center justify-center gap-3 px-12 py-5 bg-white/5 border-2 border-white/20 text-white font-bold text-lg rounded-xl hover:bg-white/10 hover:border-dc-cyan/50 transition-all duration-300">
-                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/><path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm9.707 5.707a1 1 0 00-1.414-1.414L9 12.586l-1.293-1.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
-                Browse Tournaments
-            </a>
-        </div>
-        
-        <div class="flex flex-wrap items-center justify-center gap-8 text-gray-400">
-            <div class="flex items-center gap-2">
-                <svg class="w-5 h-5 text-green-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
-                <span>No Credit Card Required</span>
-            </div>
-            <div class="flex items-center gap-2">
-                <svg class="w-5 h-5 text-green-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
-                <span>Free to Join</span>
-            </div>
-            <div class="flex items-center gap-2">
-                <svg class="w-5 h-5 text-green-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
-                <span>Cancel Anytime</span>
-            </div>
-        </div>
+    <div class="path-rail" id="pathRail">
+      <svg class="path-svg" viewBox="0 0 1200 220" preserveAspectRatio="none">
+        <defs><linearGradient id="pgrad" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#06b6d4"/><stop offset="50%" stop-color="#8b5cf6"/><stop offset="100%" stop-color="#facc15"/></linearGradient></defs>
+        <path d="M0,110 C 150,30 300,190 450,110 S 750,30 900,110 S 1200,190 1200,110" stroke="rgba(255,255,255,0.08)" stroke-width="2" fill="none"/>
+        <path id="pathLine" d="M0,110 C 150,30 300,190 450,110 S 750,30 900,110 S 1200,190 1200,110" stroke="url(#pgrad)" stroke-width="2.5" fill="none" stroke-dasharray="2400" stroke-dashoffset="2400" filter="drop-shadow(0 0 6px rgba(139,92,246,0.6))"/>
+      </svg>
+      <div class="path-steps">
+        {% for stage in v3.path_stages %}
+        <article class="step" data-color="{{ stage.color }}">
+          <div class="step-pin{% if stage.color == 'grad' %} grad{% endif %}"></div>
+          <div class="step-icon {{ stage.color }}"><i class="fa-solid {{ stage.icon }}"></i></div>
+          <div class="step-num mono">STAGE {{ stage.num }}</div>
+          <div class="step-name {% if stage.color == 'grad' %}grad-text{% endif %}">{{ stage.title }}</div>
+          <p>{{ stage.blurb }}</p>
+          {% if stage.tag %}<div class="mono" style="margin-top:8px;font-size:9px;color:var(--mute);">{{ stage.tag }}</div>{% endif %}
+        </article>
+        {% empty %}
+        <article class="step" data-color="teal"><div class="step-pin"></div><div class="step-icon teal"><i class="fa-solid fa-user-plus"></i></div><div class="step-num mono">STAGE 01</div><div class="step-name">Sign Up &amp; Verify</div><p>Free account. Link your game IDs. Get your Crown Tag.</p></article>
+        <article class="step" data-color="violet"><div class="step-pin"></div><div class="step-icon violet"><i class="fa-solid fa-bolt"></i></div><div class="step-num mono">STAGE 02</div><div class="step-name">Compete to Climb</div><p>Tournaments, Showdowns, Missions, Bounties — every result counts.</p></article>
+        <article class="step" data-color="gold"><div class="step-pin"></div><div class="step-icon gold"><i class="fa-solid fa-users"></i></div><div class="step-num mono">STAGE 03</div><div class="step-name">Find a Team</div><p>Join a roster, scout free agents, or start your own organization.</p></article>
+        <article class="step" data-color="grad"><div class="step-pin grad"></div><div class="step-icon grad"><i class="fa-solid fa-crown"></i></div><div class="step-num mono">STAGE 04</div><div class="step-name grad-text">Build a Career</div><p>Verified results attract sponsors. A record that travels with you.</p></article>
+        {% endfor %}
+      </div>
     </div>
+  </div>
 </section>
 
-<!-- ============================================
-     ROADMAP TIMELINE
-     ============================================ -->
-{% if sections_enabled.roadmap %}
-<section class="relative py-24 bg-gradient-to-b from-gray-900 to-dc-dark">
-    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-        
-        <div class="text-center mb-16">
-            <div class="inline-flex items-center gap-2 px-4 py-2 bg-dc-purple/10 border border-dc-purple/30 rounded-full text-dc-purple font-bold text-sm uppercase tracking-wider mb-4">
-                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/></svg>
-                Our Journey
-            </div>
-            <h2 class="font-display text-4xl sm:text-5xl font-black text-white mb-6">
-                The <span class="gradient-text">Vision</span> Ahead
-            </h2>
-            <p class="text-xl text-gray-200">
-                Evolving toward global scale while staying rooted in emerging markets
-            </p>
-        </div>
-        
-        <!-- Timeline -->
-        <div class="relative">
-            <!-- Vertical Line -->
-            <div class="absolute left-8 top-0 bottom-0 w-0.5 bg-gradient-to-b from-dc-cyan via-dc-purple to-dc-gold"></div>
-            
-            <div class="space-y-8">
-                {% for item in roadmap.items %}
-                <div class="relative pl-20">
-                    <!-- Timeline Dot -->
-                    <div class="absolute left-0 w-16 h-16 rounded-full flex items-center justify-center
-                        {% if item.status == 'COMPLETED' %}bg-green-500/20 border-2 border-green-500{% elif item.status == 'IN_PROGRESS' %}bg-dc-gold/20 border-2 border-dc-gold{% else %}bg-dc-purple/20 border-2 border-dc-purple{% endif %}">
-                        {% if item.status == 'COMPLETED' %}
-                        <svg class="w-8 h-8 text-green-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-                        {% elif item.status == 'IN_PROGRESS' %}
-                        <svg class="w-8 h-8 text-dc-gold" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/></svg>
-                        {% else %}
-                        <svg class="w-8 h-8 text-dc-purple" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"/></svg>
-                        {% endif %}
-                    </div>
-                    
-                    <!-- Content Card -->
-                    <div class="glass-effect rounded-2xl p-6">
-                        <div class="flex items-start justify-between mb-2">
-                            <h3 class="font-display font-bold text-white text-xl">{{ item.title }}</h3>
-                            <span class="px-3 py-1 text-xs font-bold rounded-full
-                                {% if item.status == 'COMPLETED' %}bg-green-500/20 text-green-400{% elif item.status == 'IN_PROGRESS' %}bg-dc-gold/20 text-dc-gold{% else %}bg-dc-purple/20 text-dc-purple{% endif %}">
-                                {% if item.status == 'COMPLETED' %}COMPLETED{% elif item.status == 'IN_PROGRESS' %}IN PROGRESS{% else %}PLANNED{% endif %}
-                            </span>
-                        </div>
-                        <p class="text-gray-400">{{ item.description }}</p>
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
-        </div>
+<!-- ============================================================ RUN AN EVENT ============================================================ -->
+<section id="organize" class="organize reveal">
+  <div class="section-bound">
+    <div class="organize-head">
+      <h2 class="section-h2">RUN YOUR OWN EVENT<br/><span class="grad-text">THE ENGINE HANDLES THE REST</span></h2>
+      <p class="section-lead">From a 16-team weekend cup to a 256-squad battle royale league. Built-in match rooms, dispute review, and platform-managed payouts — so you focus on the community, not the spreadsheet.</p>
     </div>
+    <ol class="org-steps">
+      {% for step in v3.organizer_steps %}
+      <li class="org-step hud-4">
+        <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
+        <div class="org-num">0{{ forloop.counter }}</div>
+        <div class="org-icon gold"><i class="fa-solid {{ step.icon }}"></i></div>
+        <div class="org-name">{{ step.title }}</div>
+        <p>{{ step.blurb }}</p>
+      </li>
+      {% empty %}
+      <li class="org-step hud-4"><span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span><div class="org-num">01</div><div class="org-icon gold"><i class="fa-solid fa-screwdriver-wrench"></i></div><div class="org-name">Configure the format</div><p>Pick from SE, DE, Swiss, RR, group → playoff, or BR. Set slot count, fees, prize split, and rules.</p></li>
+      <li class="org-step hud-4"><span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span><div class="org-num">02</div><div class="org-icon gold"><i class="fa-solid fa-bullhorn"></i></div><div class="org-name">Open registration</div><p>Get a branded page, a shareable link, and verified-only sign-ups. Escrow opens with the gates.</p></li>
+      <li class="org-step hud-4"><span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span><div class="org-num">03</div><div class="org-icon gold"><i class="fa-solid fa-broadcast-tower"></i></div><div class="org-name">Run match day</div><p>Match rooms auto-spawn. Refs &amp; mods watch the live queue. Disputes route to review.</p></li>
+      <li class="org-step hud-4"><span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span><div class="org-num">04</div><div class="org-icon gold"><i class="fa-solid fa-vault"></i></div><div class="org-name">Settle &amp; payout</div><p>Verified result triggers escrow release. Platform handles transfers, receipts, and audit trail.</p></li>
+      {% endfor %}
+    </ol>
+    <div class="organize-cta">
+      <a href="/tournaments/" class="btn btn-primary">Browse tournaments <i class="fa-solid fa-arrow-right"></i></a>
+      <a href="/about/" class="btn btn-ghost">Read platform docs</a>
+      <div class="mono organize-note">Open to verified community organizers</div>
+    </div>
+  </div>
 </section>
-{% endif %}
 
-<!-- ============================================
-     FINAL CTA - JOIN THE REVOLUTION
-     ============================================ -->
-{% if sections_enabled.final_cta %}
-<section class="relative py-24 bg-gradient-to-br from-dc-cyan/10 via-dc-dark to-dc-purple/10 overflow-hidden">
-    <!-- Animated Background -->
-    <div class="absolute inset-0 opacity-20">
-        <div class="absolute top-0 left-1/4 w-96 h-96 bg-dc-cyan rounded-full filter blur-3xl animate-pulse-slow"></div>
-        <div class="absolute bottom-0 right-1/4 w-96 h-96 bg-dc-purple rounded-full filter blur-3xl animate-pulse-slow" style="animation-delay: 2s;"></div>
+<!-- ============================================================ TRUST STATS ============================================================ -->
+<section class="trust reveal">
+  <div class="section-bound">
+    <div class="trust-head">
+      <h2 class="section-h2">TRUST ISN'T CLAIMED<br/><span class="grad-text">IT'S AUDITED</span></h2>
+      <p class="section-lead">Every reward operation runs through escrow. Every result through verification. Every adjustment into an immutable audit log.</p>
     </div>
-    
-    <div class="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <h2 class="font-display text-5xl sm:text-6xl font-black text-white mb-6">
-            Ready to <span class="gradient-text">Compete</span>?
-        </h2>
-        <p class="text-2xl text-gray-200 mb-12 max-w-2xl mx-auto">
-            Join thousands of gamers building their esports careers on DeltaCrown—where talent meets opportunity
-        </p>
-        
-        <div class="flex flex-wrap gap-6 justify-center">
-            <a href="{{ final_cta.primary_cta.url }}" class="group inline-flex items-center gap-3 px-10 py-5 bg-gradient-to-r from-dc-cyan to-dc-purple text-white font-bold text-lg rounded-xl hover:shadow-2xl hover:shadow-dc-cyan/50 transition-all duration-300 hover:scale-[1.02]">
-                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path d="M8 9a3 3 0 100-6 3 3 0 000 6zM8 11a6 6 0 016 6H2a6 6 0 016-6zM16 7a1 1 0 10-2 0v1h-1a1 1 0 100 2h1v1a1 1 0 102 0v-1h1a1 1 0 100-2h-1V7z"/></svg>
-                {{ final_cta.primary_cta.text }}
-                <svg class="w-6 h-6 group-hover:translate-x-2 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
-            </a>
-            
-            <a href="{{ final_cta.secondary_cta.url }}" class="inline-flex items-center gap-3 px-10 py-5 bg-white/5 border-2 border-white/10 text-white font-bold text-lg rounded-xl hover:bg-white/10 hover:border-dc-cyan/50 transition-all duration-300">
-                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/><path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"/></svg>
-                {{ final_cta.secondary_cta.text }}
-            </a>
-        </div>
-        
-        <!-- Trust Indicators -->
-        <div class="mt-16 flex flex-wrap items-center justify-center gap-12">
-            <div class="text-center">
-                <p class="text-white font-display font-bold text-3xl mb-1">{{ live_stats.players_count }}+</p>
-                <p class="text-gray-400 text-sm">Active Players</p>
-            </div>
-            <div class="text-center">
-                <p class="text-white font-display font-bold text-3xl mb-1">{{ live_stats.teams_count }}+</p>
-                <p class="text-gray-400 text-sm">Registered Teams</p>
-            </div>
-            <div class="text-center">
-                <p class="text-white font-display font-bold text-3xl mb-1">{{ live_stats.games_count }}</p>
-                <p class="text-gray-400 text-sm">Supported Games</p>
-            </div>
-            <div class="text-center">
-                <p class="text-white font-display font-bold text-3xl mb-1">{{ live_stats.total_prize_pool }}</p>
-                <p class="text-gray-400 text-sm">Prize Pool</p>
-            </div>
-        </div>
+    <div class="trust-grid">
+      <div class="trust-cell"><div class="big-num">{{ v3.platform.payout_rate|default:"100" }}<span class="grad-text">%</span></div><div class="tac">Payout rate</div><p>Zero disputed prizes since launch</p></div>
+      <div class="trust-cell"><div class="big-num">{{ v3.platform.avg_dispute_min|default:"11m" }}<span class="grad-text"></span></div><div class="tac">Avg dispute time</div><p>Median, across all 11 titles</p></div>
+      <div class="trust-cell"><div class="big-num">24<span class="grad-text">/7</span></div><div class="tac">Mod coverage</div><p>Discord + on-platform staff</p></div>
+      <div class="trust-cell"><div class="big-num">{{ v3.platform.uptime|default:"99.98" }}<span class="grad-text">%</span></div><div class="tac">Platform uptime</div><p>Trailing 90 days</p></div>
     </div>
+  </div>
 </section>
-{% endif %}
+
+<!-- ============================================================ TESTIMONIALS ============================================================ -->
+<section class="quotes reveal">
+  <div class="section-bound">
+    <div class="quotes-head">
+      <h2 class="section-h2">WHAT TEAMS SAY<br/><span class="grad-text">AFTER THEIR FIRST CUP</span></h2>
+    </div>
+    <div class="quotes-grid">
+      {% for t in v3.testimonials %}
+      <figure class="quote hud-4">
+        <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
+        <i class="fa-solid fa-quote-left q-mark {{ t.color }}"></i>
+        <blockquote>{{ t.quote }}</blockquote>
+        <figcaption>
+          <div class="q-name">{{ t.name }}</div>
+          <div class="tac q-ctx">{{ t.context }}</div>
+        </figcaption>
+      </figure>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ ROADMAP ============================================================ -->
+<section class="roadmap reveal">
+  <div class="section-bound">
+    <div class="roadmap-head">
+      <h2 class="section-h2">THE PLATFORM IS ALIVE<br/><span class="grad-text">AND IT'S MOVING</span></h2>
+    </div>
+    <div class="road-grid">
+      {% for item in v3.roadmap %}
+      <article class="road hud-4">
+        <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
+        <div class="road-head {% if item.tone == 'live' %}live{% elif item.tone == 'next' %}violet{% else %}gold{% endif %}">
+          {% if item.tone == 'live' %}<span class="dot dot-live"></span>
+          {% elif item.tone == 'next' %}<i class="fa-solid fa-hourglass-half"></i>
+          {% else %}<i class="fa-solid fa-binoculars"></i>{% endif %}
+          <span class="tac">{{ item.phase|upper }}</span>
+        </div>
+        <ul><li>{{ item.items }}</li></ul>
+      </article>
+      {% empty %}
+      <article class="road hud-4">
+        <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
+        <div class="road-head live"><span class="dot dot-live"></span><span class="tac">SHIPPING NOW · Q2</span></div>
+        <ul><li>Crown Points cross-game ladder</li><li>Mobile match-room overhaul</li><li>Coach booking marketplace</li><li>Per-match watch-party rooms</li></ul>
+      </article>
+      <article class="road hud-4">
+        <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
+        <div class="road-head violet"><i class="fa-solid fa-hourglass-half"></i><span class="tac">NEXT · Q3</span></div>
+        <ul><li>Sponsorship marketplace (beta)</li><li>Org-level dashboards</li><li>Public organizer API</li><li>Team-level Crown Points</li></ul>
+      </article>
+      <article class="road hud-4">
+        <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
+        <div class="road-head gold"><i class="fa-solid fa-binoculars"></i><span class="tac">HORIZON · Q4+</span></div>
+        <ul><li>National qualifier circuit</li><li>College &amp; university league</li><li>Coach &amp; analyst certification</li><li>Cross-region match-making</li></ul>
+      </article>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ OUTRO CTA ============================================================ -->
+<section class="outro">
+  <div class="outro-grain"></div>
+  <div class="outro-shell">
+    <div class="outro-mark">
+      <img src="{% static 'img/DeltaCrown_wordmark.svg' %}" alt="DeltaCrown"/>
+    </div>
+    <h2 class="outro-h">
+      YOUR LEGACY<br/>
+      <span class="grad-text glow-text">BEGINS HERE</span>
+    </h2>
+    <p class="outro-sub">Talent is universal. Opportunity shouldn't be what decides who plays at the top. Join the platform built to change that.</p>
+    <div class="outro-cta">
+      <a href="/account/signup/" class="btn btn-primary btn-xl">Create your account <i class="fa-solid fa-arrow-right"></i></a>
+      <a href="{% if v3.any_live_url %}{{ v3.any_live_url }}{% else %}/tournaments/?status=live{% endif %}" class="btn btn-ghost btn-xl">
+        <i class="fa-solid fa-circle-play" style="color:#FF4655"></i> Watch live
+      </a>
+    </div>
+    <div class="outro-trail tac">FROM THE DELTA · TO THE CROWN</div>
+  </div>
+</section>
+
+</div><!-- #top -->
 
 {% endblock %}
 
 {% block extra_js %}
 <script nonce="{{ request.csp_nonce }}">
-// Intersection Observer for Scroll Animations
-document.addEventListener('DOMContentLoaded', function() {
-    const animateOnScroll = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                entry.target.style.opacity = '1';
-                entry.target.style.transform = 'translateY(0)';
-            }
-        });
-    }, {
-        threshold: 0.1
-    });
-    
-    // Apply to all glass cards
-    document.querySelectorAll('.glass-effect').forEach(el => {
-        el.style.opacity = '0';
-        el.style.transform = 'translateY(20px)';
-        el.style.transition = 'all 0.6s ease-out';
-        animateOnScroll.observe(el);
-    });
-    
-    // Counter Animation
-    function animateCounter(element, target) {
-        let current = 0;
-        const increment = target / 100;
-        const timer = setInterval(() => {
-            current += increment;
-            if (current >= target) {
-                current = target;
-                clearInterval(timer);
-            }
-            element.textContent = Math.floor(current).toLocaleString() + '+';
-        }, 20);
-    }
-    
-    // Animate player count
-    const playerCountEl = document.getElementById('player-count');
-    if (playerCountEl) {
-        const observer = new IntersectionObserver((entries) => {
-            if (entries[0].isIntersecting) {
-                const target = parseInt(playerCountEl.textContent.replace(/,|\+/g, ''));
-                animateCounter(playerCountEl, target);
-                observer.disconnect();
-            }
-        });
-        observer.observe(playerCountEl);
-    }
-    
-    // ========== COUNTDOWN TIMERS ==========
-    function updateCountdowns() {
-        document.querySelectorAll('[data-deadline]').forEach(el => {
-            const deadline = new Date(el.dataset.deadline);
-            const now = new Date();
-            const diff = deadline - now;
-            
-            if (diff <= 0) {
-                el.textContent = 'Registration Closed';
-                el.classList.add('text-red-400');
-                return;
-            }
-            
-            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-            const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-            
-            if (days > 0) {
-                el.textContent = `${days}d ${hours}h ${minutes}m`;
-            } else if (hours > 0) {
-                el.textContent = `${hours}h ${minutes}m`;
-                el.classList.add('text-dc-gold');
-            } else {
-                el.textContent = `${minutes}m remaining`;
-                el.classList.add('text-red-400', 'animate-pulse');
-            }
-        });
-    }
-    
-    // Update countdowns every 30 seconds
-    updateCountdowns();
-    setInterval(updateCountdowns, 30000);
-    
-    // ========== FAQ ACCORDION ==========
-    document.querySelectorAll('.faq-toggle').forEach(button => {
-        button.addEventListener('click', function() {
-            const content = this.nextElementSibling;
-            const icon = this.querySelector('svg');
-            const isOpen = !content.classList.contains('hidden');
-            
-            // Close all other FAQs
-            document.querySelectorAll('.faq-content').forEach(el => {
-                el.classList.add('hidden');
-            });
-            document.querySelectorAll('.faq-toggle svg').forEach(svg => {
-                svg.style.transform = 'rotate(0deg)';
-            });
-            
-            // Toggle current FAQ
-            if (!isOpen) {
-                content.classList.remove('hidden');
-                icon.style.transform = 'rotate(180deg)';
-            }
-        });
-    });
-    
-    // ========== MILESTONE COUNTERS ==========
-    const milestoneObserver = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                const el = entry.target;
-                
-                // Run animation only once
-                if (el.dataset.animated === 'true') return;
-                el.dataset.animated = 'true';
-                
-                const target = parseInt(el.dataset.target.replace(/,/g, ''));
-                const prefix = el.dataset.prefix || '';
-                const suffix = el.dataset.suffix || '';
-                let current = 0;
-                const increment = target / 50;
-                const duration = 2000; // 2 seconds
-                const stepTime = duration / 50;
-                
-                const timer = setInterval(() => {
-                    current += increment;
-                    if (current >= target) {
-                        current = target;
-                        clearInterval(timer);
-                    }
-                    el.textContent = prefix + Math.floor(current).toLocaleString() + suffix;
-                }, stepTime);
-                
-                milestoneObserver.unobserve(el);
-            }
-        });
-    }, { threshold: 0.5 });
-    
-    document.querySelectorAll('.counter-animate').forEach(el => {
-        milestoneObserver.observe(el);
-    });
-    
-    // ========== MARQUEE VISIBILITY OPTIMIZATION ==========
-    document.addEventListener('visibilitychange', function() {
-        const marquee = document.querySelector('.animate-marquee');
-        if (marquee) {
-            if (document.hidden) {
-                marquee.style.animationPlayState = 'paused';
-            } else {
-                marquee.style.animationPlayState = 'running';
-            }
-        }
-    });});
+  {% if v3.featured_tournament and v3.featured_tournament.deadline_iso %}
+  window.DC_DEADLINE = "{{ v3.featured_tournament.deadline_iso }}";
+  {% else %}
+  window.DC_DEADLINE = null;
+  {% endif %}
 </script>
+<script src="{% static 'siteui/js/home.js' %}"></script>
 {% endblock %}

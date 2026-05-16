@@ -19,6 +19,8 @@ from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
+from apps.common.validators import validate_payment_proof_upload
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Template — admin-curated mission catalog
@@ -262,3 +264,76 @@ class ContractEnrollment(models.Model):
     @property
     def is_expired(self) -> bool:
         return self.status == 'ACTIVE' and timezone.now() > self.deadline_at
+
+
+def _mission_proof_upload_to(instance, filename):
+    """UUID-based Mission proof path to avoid leaking original filenames."""
+    ext = filename.rsplit('.', 1)[-1].lower() if '.' in filename else 'bin'
+    return f"mission_proofs/{uuid.uuid4().hex}.{ext}"
+
+
+class ContractProofSubmission(models.Model):
+    """User-submitted Mission proof for manual/operator review."""
+
+    STATUS_CHOICES = [
+        ('PENDING_REVIEW', 'Pending Review'),
+        ('ACCEPTED', 'Accepted'),
+        ('REJECTED', 'Rejected'),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+
+    enrollment = models.ForeignKey(
+        ContractEnrollment,
+        on_delete=models.CASCADE,
+        related_name='proofs',
+    )
+    submitted_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name='mission_proof_submissions',
+    )
+    proof_url = models.URLField(max_length=500, blank=True, default='')
+    proof_file = models.FileField(
+        upload_to=_mission_proof_upload_to,
+        validators=[validate_payment_proof_upload],
+        blank=True,
+        default='',
+        help_text='Optional uploaded image proof. URL-only submissions remain supported.',
+    )
+    notes = models.TextField(blank=True, default='')
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='PENDING_REVIEW',
+        db_index=True,
+    )
+    reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='mission_proofs_reviewed',
+    )
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    review_note = models.TextField(
+        blank=True,
+        default='',
+        help_text='Private operator note. Do not expose publicly.',
+    )
+    submitted_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'contracts_proof_submission'
+        verbose_name = 'Mission Proof Submission'
+        verbose_name_plural = 'Mission Proof Submissions'
+        ordering = ['-submitted_at']
+        indexes = [
+            models.Index(fields=['enrollment', '-submitted_at']),
+            models.Index(fields=['status', '-submitted_at']),
+            models.Index(fields=['submitted_by', '-submitted_at']),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.enrollment.reference_code} proof by {self.submitted_by_id} ({self.status})"

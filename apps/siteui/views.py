@@ -23,9 +23,11 @@ from .utils.embeds import build_embed_url
 
 
 def home(request):
-    """DeltaCrown homepage - Modern newspaper-style esports platform."""
+    """DeltaCrown homepage — Command Center design (home_v3)."""
     from .homepage_context import get_homepage_context
+    from .homepage_v3_context import get_homepage_v3_context
     context = get_homepage_context()
+    context.update(get_homepage_v3_context(request))
     return render(request, "home.html", context)
 
 

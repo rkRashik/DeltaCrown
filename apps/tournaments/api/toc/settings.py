@@ -144,6 +144,31 @@ class MapPoolReorderView(TOCBaseView):
         return Response(result)
 
 
+class MapPoolToggleView(TOCBaseView):
+    """POST {"map_id": str, "is_active": bool} — toggle a tournament's
+    map availability. Handles synthetic ``game:<pk>`` ids by lazily
+    materialising a ``MapPoolEntry`` mirroring the game default.
+
+    Lives at a dedicated route (no path-param colon gymnastics) so the
+    request can't be ambiguously decoded by URL converters / middleware.
+    """
+
+    def post(self, request, slug):
+        body = request.data if isinstance(request.data, dict) else {}
+        map_id = str(body.get("map_id") or "").strip()
+        if not map_id:
+            return Response({"error": "map_id is required."}, status=status.HTTP_400_BAD_REQUEST)
+        is_active_raw = body.get("is_active")
+        if is_active_raw is None:
+            return Response({"error": "is_active is required."}, status=status.HTTP_400_BAD_REQUEST)
+        is_active = bool(is_active_raw)
+        try:
+            result = TOCSettingsService.toggle_map(self.tournament, map_id, is_active)
+            return Response(result)
+        except ValueError as exc:
+            return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
+
 # ------------------------------------------------------------------
 # S8-B4: Veto Sessions
 # ------------------------------------------------------------------

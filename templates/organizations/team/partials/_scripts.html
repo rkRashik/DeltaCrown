@@ -182,6 +182,99 @@ document.addEventListener("DOMContentLoaded", () => {
   window.addEventListener("resize", adjustSidebarPosition);
 
   // ── APPLY MODAL — Request to Join ──────────────────────────────────────
+  const tryoutModal = document.getElementById("dc-tryout-modal");
+  const tryoutForm = document.getElementById("dc-tryout-form");
+  const tryoutSubmitBtn = document.getElementById("dc-tryout-submit");
+  const tryoutErrorEl = document.getElementById("dc-tryout-error");
+  const tryoutSuccessEl = document.getElementById("dc-tryout-success");
+
+  function setTryoutMessage(type, message) {
+    if (tryoutErrorEl) tryoutErrorEl.classList.add("hidden");
+    if (tryoutSuccessEl) tryoutSuccessEl.classList.add("hidden");
+    const el = type === "success" ? tryoutSuccessEl : tryoutErrorEl;
+    if (!el) return;
+    el.textContent = message;
+    el.classList.remove("hidden");
+  }
+
+  document.querySelectorAll(".dc-open-tryout-modal").forEach(btn => {
+    btn.addEventListener("click", () => {
+      if (!tryoutModal) return;
+      tryoutModal.classList.remove("hidden");
+      document.body.style.overflow = "hidden";
+      document.getElementById("dc-tryout-ign")?.focus();
+    });
+  });
+
+  document.querySelectorAll(".dc-tryout-modal-close").forEach(el => {
+    el.addEventListener("click", () => {
+      if (!tryoutModal) return;
+      tryoutModal.classList.add("hidden");
+      document.body.style.overflow = "";
+    });
+  });
+
+  if (tryoutForm) {
+    tryoutForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const slug = tryoutForm.dataset.teamSlug;
+      if (!slug) return;
+
+      const links = (document.getElementById("dc-tryout-links")?.value || "")
+        .split(/\r?\n/)
+        .map(v => v.trim())
+        .filter(Boolean);
+      const payload = {
+        game_id: tryoutForm.dataset.gameId || undefined,
+        ign: (document.getElementById("dc-tryout-ign")?.value || "").trim(),
+        preferred_role: (document.getElementById("dc-tryout-role")?.value || "").trim(),
+        rank_tier: (document.getElementById("dc-tryout-rank")?.value || "").trim(),
+        availability: (document.getElementById("dc-tryout-availability")?.value || "").trim(),
+        profile_links: links,
+        notes: (document.getElementById("dc-tryout-notes")?.value || "").trim(),
+      };
+
+      if (!payload.ign) {
+        setTryoutMessage("error", "IGN or game ID is required.");
+        return;
+      }
+
+      const originalText = tryoutSubmitBtn?.textContent || "Submit Tryout";
+      if (tryoutSubmitBtn) {
+        tryoutSubmitBtn.disabled = true;
+        tryoutSubmitBtn.textContent = "Submitting...";
+      }
+      try {
+        const resp = await fetch(`/api/vnext/teams/${encodeURIComponent(slug)}/training/tryouts/`, {
+          method: "POST",
+          headers: {
+            "X-CSRFToken": getCookie("csrftoken"),
+            "Content-Type": "application/json",
+          },
+          credentials: "same-origin",
+          body: JSON.stringify(payload),
+        });
+        if (resp.status === 401) {
+          window.location.href = "/account/login/?next=" + encodeURIComponent(window.location.pathname);
+          return;
+        }
+        const data = await resp.json();
+        if (!resp.ok || data.success === false) {
+          throw new Error(data.error || data.message || "Could not submit tryout application.");
+        }
+        setTryoutMessage("success", data.message || "Tryout application submitted.");
+        setTimeout(() => window.location.reload(), 1200);
+      } catch (err) {
+        setTryoutMessage("error", err.message || "Network error. Please try again.");
+      } finally {
+        if (tryoutSubmitBtn) {
+          tryoutSubmitBtn.disabled = false;
+          tryoutSubmitBtn.textContent = originalText;
+        }
+      }
+    });
+  }
+
   const applyModal = document.getElementById("dc-apply-modal");
   const applyMessageEl = document.getElementById("dc-apply-message");
   const applyPositionEl = document.getElementById("dc-apply-position");
@@ -319,6 +412,41 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // ── INVITE ACCEPT / DECLINE ───────────────────────────────────────────
+  document.querySelectorAll(".dc-offer-action").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const url = btn.dataset.offerUrl;
+      const action = btn.dataset.action;
+      if (!url || !action) return;
+      if (action === "decline" && !confirm("Decline this team offer?")) return;
+      const original = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = action === "accept" ? "ACCEPTING..." : "DECLINING...";
+      try {
+        const resp = await fetch(url, {
+          method: "POST",
+          headers: {
+            "X-CSRFToken": getCookie("csrftoken"),
+            "Content-Type": "application/json",
+          },
+          credentials: "same-origin",
+          body: JSON.stringify({ action }),
+        });
+        const data = await resp.json();
+        if (!resp.ok || data.success === false) {
+          throw new Error(data.error || data.message || "Could not update offer.");
+        }
+        btn.textContent = action === "accept" ? "ACCEPTED" : "DECLINED";
+        setTimeout(() => window.location.reload(), 900);
+      } catch (err) {
+        btn.textContent = err.message || "ERROR";
+        setTimeout(() => {
+          btn.textContent = original;
+          btn.disabled = false;
+        }, 2500);
+      }
+    });
+  });
+
   document.querySelectorAll(".dc-invite-accept").forEach(btn => {
     btn.addEventListener("click", async () => {
       const inviteId = btn.dataset.inviteId;

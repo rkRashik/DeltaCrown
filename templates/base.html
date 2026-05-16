@@ -13,7 +13,15 @@
     </script>
     {% endif %}
     <!-- Preconnect for Google auth fonts/icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    {# Canonical platform font stack — load once for every page. #}
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700;800&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+    {# Preload the first-paint weights (Inter 500/700 for body/UI, Space Grotesk 700/800 for hero) #}
+    <link rel="preload" as="font" type="font/woff2" crossorigin
+      href="https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMa1ZL7.woff2">
+    <link rel="preload" as="font" type="font/woff2" crossorigin
+      href="https://fonts.gstatic.com/s/spacegrotesk/v15/V8mDoQDjQSkFtoMM3T6r8E7mF71Q-gOoraIAEj7aUUM.woff2">
     <meta name="theme-color" content="#0b1220">
 
     <!-- Basic OG -->
@@ -22,6 +30,11 @@
     <meta property="og:title" content="{% block og_title %}DeltaCrown{% endblock %}">
     <meta property="og:image" content="{% block og_image %}{% static 'siteui/og/default.png' %}{% endblock %}">
     <meta property="og:description" content="{% block og_description %}DeltaCrown — The Esports Operating System{% endblock %}">
+    {# Twitter card mirrors the OG values so Discord / Twitter / Slack render previews properly. #}
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{% block twitter_title %}{% endblock %}">
+    <meta name="twitter:description" content="{% block twitter_description %}{% endblock %}">
+    <meta name="twitter:image" content="{% block twitter_image %}{% endblock %}">
 
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />

@@ -15,6 +15,7 @@
                 Scouting Grounds
             </h1>
             <p class="text-sm text-white/40 mt-0.5">Recruit talent for <span class="text-white/60 font-medium">{{ team.name }}</span></p>
+            <p class="text-xs text-white/35 mt-1">Join Requests are the roster pipeline. Gameplay-first evaluations live in Team Training &rarr; Tryouts.</p>
         </div>
         <div class="flex items-center gap-3">
             <span id="jr-count-badge" class="hidden text-xs font-bold px-3 py-1.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/20">
@@ -260,6 +261,8 @@
     .tryout-badge--scheduled { background: rgba(96,165,250,.12); color: #60a5fa; border: 1px solid rgba(96,165,250,.2); }
     .tryout-badge--completed { background: rgba(167,139,250,.12); color: #a78bfa; border: 1px solid rgba(167,139,250,.2); }
     .tryout-badge--offer { background: rgba(52,211,153,.12); color: #34d399; border: 1px solid rgba(52,211,153,.2); }
+    .tryout-badge--signed { background: rgba(20,184,166,.12); color: #5eead4; border: 1px solid rgba(20,184,166,.2); }
+    .tryout-badge--declined { background: rgba(248,113,113,.12); color: #f87171; border: 1px solid rgba(248,113,113,.2); }
 </style>
 
 <script nonce="{{ request.csp_nonce }}">
@@ -284,13 +287,14 @@
         PENDING:           { label: "Pending",    css: "tryout-badge--pending",   next: null },
         TRYOUT_SCHEDULED:  { label: "Tryout Set",  css: "tryout-badge--scheduled", next: "advance" },
         TRYOUT_COMPLETED:  { label: "Tryout Done", css: "tryout-badge--completed", next: "advance" },
-        OFFER_SENT:        { label: "Offer Sent",  css: "tryout-badge--offer",     next: "advance" },
+        OFFER_SENT:        { label: "Offer Sent",  css: "tryout-badge--offer",     next: null },
+        ACCEPTED:          { label: "Signed",      css: "tryout-badge--signed",    next: null },
+        DECLINED:          { label: "Declined",    css: "tryout-badge--declined",  next: null },
     };
 
     const NEXT_LABELS = {
         TRYOUT_SCHEDULED: "Mark Complete",
         TRYOUT_COMPLETED: "Send Offer",
-        OFFER_SENT: "Sign Player",
     };
 
     // ── Tab switching ──
@@ -369,6 +373,7 @@
             const msg = r.message ? `<p class="text-xs text-white/40 italic mt-1 truncate max-w-xs">"${esc(r.message)}"</p>` : '';
             const pos = r.applied_position ? `<span class="text-[10px] text-blue-300 ml-2">\u2192 ${esc(r.applied_position)}</span>` : '';
             const tryoutInfo = r.tryout_date ? `<span class="text-[10px] text-white/30 ml-2">\ud83d\udcc5 ${new Date(r.tryout_date).toLocaleDateString(undefined, {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})}</span>` : '';
+            const origin = r.origin === 'tryout' ? `<span class="text-[9px] px-1.5 py-0.5 rounded bg-blue-500/10 border border-blue-500/20 text-blue-300 font-bold uppercase tracking-wider">From Tryout</span>` : '';
 
             // Action buttons based on status
             let actions = '';
@@ -406,6 +411,7 @@
                             <div class="flex items-center gap-2 flex-wrap">
                                 <p class="text-sm font-semibold text-white truncate">${esc(r.display_name)}</p>
                                 <span class="tryout-badge ${meta.css}">${meta.label}</span>
+                                ${origin}
                                 ${pos}
                             </div>
                             <div class="flex items-center gap-1 flex-wrap">

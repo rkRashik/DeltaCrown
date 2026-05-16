@@ -1,73 +1,129 @@
 {% comment %}
-Training Lab — Challenges, Bounties, Practice scheduling, Scrim finder, VOD library.
-Section 7.4 of the Master Plan. Fully interactive with real Challenge & Bounty API.
+Team HQ Training Lab: non-reward team operations.
+Scrims, tryouts, practice, and VOD reviews are operational team workflows.
 {% endcomment %}
 <section id="training" class="hq-section space-y-4" aria-label="Team training"
          data-team-id="{{ team.pk }}" data-team-slug="{{ team.slug }}" data-game-id="{{ team.game_id }}">
 
-    {# Team training hero #}
-    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+    <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3">
         <div>
             <h2 class="text-lg font-bold flex items-center gap-2">
-                <i data-lucide="swords" class="w-5 h-5 text-indigo-300"></i>
+                <i data-lucide="crosshair" class="w-5 h-5 text-teal-300"></i>
                 Team Training
             </h2>
-            <p class="text-sm text-white/50 mt-0.5">Scrim, tryout, practice, and VOD review workflows are team operations, not escrow or reward flows.</p>
+            <p class="text-sm text-white/50 mt-0.5">
+                Scrims, tryouts, practice, and VOD review are team operations for scheduling, evaluation, and improvement tracking.
+            </p>
+        </div>
+        <div class="flex flex-wrap gap-2">
+            <button type="button" data-click="ManageHQ.Training.openScrimModal"
+                    class="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition">
+                <i data-lucide="swords" class="w-4 h-4 inline-block mr-1"></i> Post Scrim
+            </button>
+            <button type="button" data-click="ManageHQ.Training.openTryoutModal"
+                    class="px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition">
+                <i data-lucide="user-plus" class="w-4 h-4 inline-block mr-1"></i> Add Tryout
+            </button>
+            <button type="button" data-click="ManageHQ.Training.openScheduleModal"
+                    class="px-3 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold transition">
+                <i data-lucide="calendar-plus" class="w-4 h-4 inline-block mr-1"></i> Schedule Practice
+            </button>
+            <button type="button" data-click="ManageHQ.Training.openVodModal"
+                    class="px-3 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold transition">
+                <i data-lucide="video" class="w-4 h-4 inline-block mr-1"></i> Add VOD
+            </button>
         </div>
     </div>
 
-    {# ── Centralised CTA card ──────────────────────────────────────── #}
-    <div class="relative rounded-2xl overflow-hidden p-6 sm:p-8"
-         style="background: linear-gradient(135deg, rgba(99,102,241,.20), rgba(255,70,85,.10) 60%, rgba(255,215,0,.08));
-                border: 1px solid rgba(99,102,241,.40);
-                box-shadow: 0 0 32px -6px rgba(99,102,241,.45), inset 0 1px 0 0 rgba(255,255,255,.06);
-                backdrop-filter: blur(20px);">
-        <div class="absolute -top-16 -right-16 w-56 h-56 bg-indigo-500/15 rounded-full blur-3xl pointer-events-none"></div>
-        <div class="absolute -bottom-16 -left-16 w-48 h-48 bg-amber-400/10 rounded-full blur-3xl pointer-events-none"></div>
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div class="rounded-xl border border-emerald-500/15 bg-emerald-500/5 p-4">
+            <div class="text-[10px] uppercase tracking-widest text-emerald-300/70 font-bold">Open Scrims</div>
+            <div id="scrim-stat-total" class="text-2xl font-black mt-1">0</div>
+        </div>
+        <div class="rounded-xl border border-blue-500/15 bg-blue-500/5 p-4">
+            <div class="text-[10px] uppercase tracking-widest text-blue-300/70 font-bold">Tryouts</div>
+            <div id="tryout-stat-total" class="text-2xl font-black mt-1">0</div>
+        </div>
+        <div class="rounded-xl border border-cyan-500/15 bg-cyan-500/5 p-4">
+            <div class="text-[10px] uppercase tracking-widest text-cyan-300/70 font-bold">Practice</div>
+            <div id="practice-stat-total" class="text-2xl font-black mt-1">0</div>
+        </div>
+        <div class="rounded-xl border border-purple-500/15 bg-purple-500/5 p-4">
+            <div class="text-[10px] uppercase tracking-widest text-purple-300/70 font-bold">VOD Reviews</div>
+            <div id="vod-stat-total" class="text-2xl font-black mt-1">0</div>
+        </div>
+    </div>
 
-        <div class="relative z-10">
-            <div class="text-[10px] font-bold uppercase tracking-[0.22em] text-indigo-300/90 mb-2">DeltaCrown / Team HQ</div>
-            <h3 class="text-2xl sm:text-3xl font-display font-black text-white leading-tight mb-3">
-                Run your team through the
-                <span class="bg-clip-text text-transparent bg-gradient-to-r from-indigo-300 via-fuchsia-300 to-amber-300">Training Lab</span>
-            </h3>
-            <p class="text-sm text-white/70 leading-relaxed max-w-2xl mb-5">
-                Practice sessions, scrim requests, tryout reviews, and VOD notes are being separated from reward operations. These tools do not use DeltaCoin, escrow, reward pools, or settlement by default.
-            </p>
+    <div class="rounded-2xl border border-white/10 bg-white/[0.03] overflow-hidden">
+        <div class="flex flex-wrap gap-1 p-2 border-b border-white/10 bg-white/[0.02]">
+            <button type="button" data-tab="scrims" data-click="ManageHQ.Training.switchSubTab" data-click-args='["scrims"]'
+                    class="training-sub-tab px-3 py-2 rounded-lg bg-white/10 text-white text-xs font-bold transition">Scrims</button>
+            <button type="button" data-tab="tryouts" data-click="ManageHQ.Training.switchSubTab" data-click-args='["tryouts"]'
+                    class="training-sub-tab px-3 py-2 rounded-lg text-white/50 hover:text-white text-xs font-bold transition">Tryouts</button>
+            <button type="button" data-tab="practice" data-click="ManageHQ.Training.switchSubTab" data-click-args='["practice"]'
+                    class="training-sub-tab px-3 py-2 rounded-lg text-white/50 hover:text-white text-xs font-bold transition">Practice</button>
+            <button type="button" data-tab="vods" data-click="ManageHQ.Training.switchSubTab" data-click-args='["vods"]'
+                    class="training-sub-tab px-3 py-2 rounded-lg text-white/50 hover:text-white text-xs font-bold transition">VOD Review</button>
+        </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
-                <a href="{% url 'dashboard:competitive_hub' %}#showdown" class="group block p-4 rounded-xl bg-white/[0.04] border border-white/[0.08] hover:border-cyan-400/40 transition-all">
-                    <div class="text-[10px] font-bold uppercase tracking-widest text-cyan-300/80">Showdown</div>
-                    <div class="text-sm font-bold text-white mt-1">Manage Showdowns</div>
-                    <div class="text-[11px] text-white/50 mt-1">Official head-to-head reward matches live in the competitive hub.</div>
-                </a>
-                <a href="{% url 'dashboard:competitive_hub' %}#bounty" class="group block p-4 rounded-xl bg-white/[0.04] border border-white/[0.08] hover:border-rose-400/40 transition-all">
-                    <div class="text-[10px] font-bold uppercase tracking-widest text-rose-300/80">Bounty</div>
-                    <div class="text-sm font-bold text-white mt-1">View Bounty Board</div>
-                    <div class="text-[11px] text-white/50 mt-1">Skill-based team reward challenges live in the competitive hub.</div>
-                </a>
-                <a href="{% url 'dashboard:competitive_hub' %}#dropzone" class="group block p-4 rounded-xl bg-white/[0.04] border border-white/[0.08] hover:border-amber-400/40 transition-all">
-                    <div class="text-[10px] font-bold uppercase tracking-widest text-amber-300/80">Dropzone</div>
-                    <div class="text-sm font-bold text-white mt-1">Dropzone Reservations</div>
-                    <div class="text-[11px] text-white/50 mt-1">Large custom battle royale lobbies live in the competitive hub.</div>
-                </a>
+        <div class="p-4">
+            <div id="training-panel-scrims" class="training-panel grid grid-cols-1 xl:grid-cols-2 gap-4">
+                <div>
+                    <div class="flex items-center justify-between gap-2 mb-3">
+                        <h3 class="text-sm font-bold">Your Scrim Requests</h3>
+                        <span class="text-[10px] text-white/40">Team vs team practice</span>
+                    </div>
+                    <div id="scrim-list" class="space-y-2">
+                        <div class="rounded-xl border border-white/10 bg-white/[0.03] p-4 text-sm text-white/45">No scrim requests yet.</div>
+                    </div>
+                </div>
+                <div>
+                    <div class="flex items-center justify-between gap-2 mb-3">
+                        <h3 class="text-sm font-bold">Scrim Finder</h3>
+                        <span class="text-[10px] text-white/40">Open requests from other teams</span>
+                    </div>
+                    <div id="open-scrim-list" class="space-y-2">
+                        <div class="rounded-xl border border-white/10 bg-white/[0.03] p-4 text-sm text-white/45">No open scrims available.</div>
+                    </div>
+                </div>
             </div>
 
-            <a href="{% url 'dashboard:competitive_hub' %}"
-               class="inline-flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-bold uppercase tracking-wider text-white transition-all"
-               style="background: linear-gradient(135deg, #6366F1, #8B5CF6); box-shadow: 0 8px 28px -6px rgba(99,102,241,.55);">
-                Open Competitive Hub
-                <i data-lucide="arrow-right" class="w-4 h-4"></i>
-            </a>
+            <div id="training-panel-tryouts" class="training-panel hidden">
+                <div class="flex items-center justify-between gap-2 mb-3">
+                    <h3 class="text-sm font-bold">Tryout Management</h3>
+                    <span class="text-[10px] text-white/40">Gameplay evaluations, separate from Join Requests</span>
+                </div>
+                <div id="tryout-list" class="space-y-2">
+                    <div class="rounded-xl border border-white/10 bg-white/[0.03] p-4 text-sm text-white/45">No tryout applications yet.</div>
+                </div>
+            </div>
+
+            <div id="training-panel-practice" class="training-panel hidden">
+                <div class="flex items-center justify-between gap-2 mb-3">
+                    <h3 class="text-sm font-bold">Practice Calendar</h3>
+                    <span class="text-[10px] text-white/40">Internal team sessions</span>
+                </div>
+                <div id="upcoming-sessions" class="space-y-2">
+                    <div class="rounded-xl border border-white/10 bg-white/[0.03] p-4 text-sm text-white/45">No practice sessions scheduled.</div>
+                </div>
+            </div>
+
+            <div id="training-panel-vods" class="training-panel hidden">
+                <div class="flex items-center justify-between gap-2 mb-3">
+                    <h3 class="text-sm font-bold">VOD Review Library</h3>
+                    <span class="text-[10px] text-white/40">Private team review notes</span>
+                </div>
+                <div id="vod-library-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                    <div class="rounded-xl border border-white/10 bg-white/[0.03] p-4 text-sm text-white/45">No VOD reviews yet.</div>
+                </div>
+            </div>
         </div>
     </div>
-
 </section>
-
 
 <div id="modal-schedule-practice" class="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm hidden items-center justify-center p-4"
      role="dialog" aria-modal="true" aria-labelledby="modal-schedule-title"
-    data-click-self="ManageHQ.closeModal" data-click-args='["modal-schedule-practice"]'>
+     data-click-self="ManageHQ.closeModal" data-click-args='["modal-schedule-practice"]'>
     <div class="bg-[#0f1525] border border-white/15 rounded-2xl w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto" data-stop-propagation>
         <div class="flex items-center justify-between p-4 border-b border-white/10">
             <h3 id="modal-schedule-title" class="font-bold text-base">Schedule Practice Session</h3>
@@ -78,60 +134,54 @@ Section 7.4 of the Master Plan. Fully interactive with real Challenge & Bounty A
         <form id="schedule-practice-form" class="p-4 space-y-4">
             <div>
                 <label class="block text-xs text-white/60 mb-1.5 font-medium">Session Title</label>
-                <input id="schedule-title" type="text" placeholder="e.g. Map review — Ascent"
-                       class="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/15 text-sm placeholder-white/30 focus:border-white/30 focus:outline-none transition" required>
+                <input id="schedule-title" type="text" placeholder="e.g. Map review - Ascent" class="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/15 text-sm placeholder-white/30 focus:border-white/30 focus:outline-none transition" required>
             </div>
             <div class="grid grid-cols-2 gap-3">
                 <div>
                     <label class="block text-xs text-white/60 mb-1.5 font-medium">Date</label>
-                    <input id="schedule-date" type="date"
-                           class="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/15 text-sm focus:border-white/30 focus:outline-none transition" required>
+                    <input id="schedule-date" type="date" class="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/15 text-sm focus:border-white/30 focus:outline-none transition" required>
                 </div>
                 <div>
                     <label class="block text-xs text-white/60 mb-1.5 font-medium">Time</label>
-                    <input id="schedule-time" type="time"
-                           class="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/15 text-sm focus:border-white/30 focus:outline-none transition" required>
+                    <input id="schedule-time" type="time" class="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/15 text-sm focus:border-white/30 focus:outline-none transition" required>
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs text-white/60 mb-1.5 font-medium">Duration</label>
+                    <select id="schedule-duration" class="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/15 text-sm focus:border-white/30 focus:outline-none transition">
+                        <option value="60" selected>1 hour</option>
+                        <option value="90">1.5 hours</option>
+                        <option value="120">2 hours</option>
+                        <option value="180">3 hours</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs text-white/60 mb-1.5 font-medium">Type</label>
+                    <select id="schedule-type" class="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/15 text-sm focus:border-white/30 focus:outline-none transition">
+                        <option value="practice">Practice</option>
+                        <option value="review">VOD Review</option>
+                        <option value="strategy">Strategy</option>
+                        <option value="warmup">Warmup</option>
+                    </select>
                 </div>
             </div>
             <div>
-                <label class="block text-xs text-white/60 mb-1.5 font-medium">Duration</label>
-                <select id="schedule-duration" class="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/15 text-sm focus:border-white/30 focus:outline-none transition">
-                    <option value="30">30 minutes</option>
-                    <option value="60" selected>1 hour</option>
-                    <option value="90">1.5 hours</option>
-                    <option value="120">2 hours</option>
-                    <option value="180">3 hours</option>
-                </select>
-            </div>
-            <div>
-                <label class="block text-xs text-white/60 mb-1.5 font-medium">Type</label>
-                <select id="schedule-type" class="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/15 text-sm focus:border-white/30 focus:outline-none transition">
-                    <option value="practice">Practice</option>
-                    <option value="review">VOD Review</option>
-                    <option value="strategy">Strategy Session</option>
-                    <option value="warmup">Warmup</option>
-                </select>
-            </div>
-            <div>
-                <label class="block text-xs text-white/60 mb-1.5 font-medium">Notes (optional)</label>
-                <textarea id="schedule-notes" rows="2" placeholder="Any extra details…"
-                          class="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/15 text-sm placeholder-white/30 focus:border-white/30 focus:outline-none transition resize-none"></textarea>
+                <label class="block text-xs text-white/60 mb-1.5 font-medium">Goals</label>
+                <textarea id="schedule-notes" rows="2" placeholder="Focus, drills, map pool, or roster notes" class="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/15 text-sm placeholder-white/30 focus:border-white/30 focus:outline-none transition resize-none"></textarea>
             </div>
             <div id="schedule-error" class="hidden text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2"></div>
             <div class="flex gap-2 pt-2">
-                <button type="button" data-click="ManageHQ.closeModal" data-click-args='["modal-schedule-practice"]'
-                        class="flex-1 px-4 py-2.5 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 transition text-sm font-medium">Cancel</button>
-                <button type="button" id="schedule-submit" disabled title="Practice scheduling is coming soon"
-                        class="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium text-white bg-cyan-600/40 cursor-not-allowed transition">Coming Soon</button>
+                <button type="button" data-click="ManageHQ.closeModal" data-click-args='["modal-schedule-practice"]' class="flex-1 px-4 py-2.5 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 transition text-sm font-medium">Cancel</button>
+                <button type="submit" id="schedule-submit" class="flex-1 px-4 py-2.5 rounded-xl text-sm font-bold text-white bg-cyan-600 hover:bg-cyan-500 transition">Schedule</button>
             </div>
         </form>
     </div>
 </div>
 
-{# ── Post LFG (Scrim) Modal ── #}
 <div id="modal-post-scrim" class="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm hidden items-center justify-center p-4"
      role="dialog" aria-modal="true" aria-labelledby="modal-scrim-title"
-    data-click-self="ManageHQ.closeModal" data-click-args='["modal-post-scrim"]'>
+     data-click-self="ManageHQ.closeModal" data-click-args='["modal-post-scrim"]'>
     <div class="bg-[#0f1525] border border-white/15 rounded-2xl w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto" data-stop-propagation>
         <div class="flex items-center justify-between p-4 border-b border-white/10">
             <h3 id="modal-scrim-title" class="font-bold text-base">Post Scrim Request</h3>
@@ -142,82 +192,203 @@ Section 7.4 of the Master Plan. Fully interactive with real Challenge & Bounty A
         <form id="post-scrim-form" class="p-4 space-y-4">
             <div class="grid grid-cols-2 gap-3">
                 <div>
-                    <label class="block text-xs text-white/60 mb-1.5 font-medium">Preferred Date</label>
-                    <input id="scrim-date" type="date"
-                           class="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/15 text-sm focus:border-white/30 focus:outline-none transition" required>
+                    <label class="block text-xs text-white/60 mb-1.5 font-medium">Date</label>
+                    <input id="scrim-date" type="date" class="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/15 text-sm focus:border-white/30 focus:outline-none transition" required>
                 </div>
                 <div>
                     <label class="block text-xs text-white/60 mb-1.5 font-medium">Time</label>
-                    <input id="scrim-time" type="time"
-                           class="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/15 text-sm focus:border-white/30 focus:outline-none transition" required>
+                    <input id="scrim-time" type="time" class="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/15 text-sm focus:border-white/30 focus:outline-none transition" required>
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs text-white/60 mb-1.5 font-medium">Format</label>
+                    <select id="scrim-format" class="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/15 text-sm focus:border-white/30 focus:outline-none transition">
+                        <option value="BO1">BO1</option>
+                        <option value="BO3" selected>BO3</option>
+                        <option value="BO5">BO5</option>
+                        <option value="CUSTOM">Custom</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs text-white/60 mb-1.5 font-medium">Server / Region</label>
+                    <input id="scrim-region" type="text" placeholder="Singapore / BD" class="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/15 text-sm placeholder-white/30 focus:border-white/30 focus:outline-none transition">
                 </div>
             </div>
             <div>
-                <label class="block text-xs text-white/60 mb-1.5 font-medium">Format</label>
-                <select id="scrim-format" class="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/15 text-sm focus:border-white/30 focus:outline-none transition">
-                    <option value="bo1">Best of 1</option>
-                    <option value="bo3" selected>Best of 3</option>
-                    <option value="bo5">Best of 5</option>
-                </select>
+                <label class="block text-xs text-white/60 mb-1.5 font-medium">Skill Preference</label>
+                <input id="scrim-skill" type="text" placeholder="e.g. Diamond+, Tier 2, semi-pro" class="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/15 text-sm placeholder-white/30 focus:border-white/30 focus:outline-none transition">
             </div>
             <div>
-                <label class="block text-xs text-white/60 mb-1.5 font-medium">Maps / Notes</label>
-                <textarea id="scrim-notes" rows="2" placeholder="e.g. Looking for scrim on Haven + Bind, any rank"
-                          class="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/15 text-sm placeholder-white/30 focus:border-white/30 focus:outline-none transition resize-none"></textarea>
+                <label class="block text-xs text-white/60 mb-1.5 font-medium">Notes</label>
+                <textarea id="scrim-notes" rows="2" placeholder="Maps, lobby preference, roster notes" class="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/15 text-sm placeholder-white/30 focus:border-white/30 focus:outline-none transition resize-none"></textarea>
             </div>
             <div id="scrim-error" class="hidden text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2"></div>
             <div class="flex gap-2 pt-2">
-                <button type="button" data-click="ManageHQ.closeModal" data-click-args='["modal-post-scrim"]'
-                        class="flex-1 px-4 py-2.5 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 transition text-sm font-medium">Cancel</button>
-                <button type="button" id="scrim-submit" disabled title="Scrim finder is coming soon"
-                        class="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium text-white bg-emerald-600/40 cursor-not-allowed transition">Coming Soon</button>
+                <button type="button" data-click="ManageHQ.closeModal" data-click-args='["modal-post-scrim"]' class="flex-1 px-4 py-2.5 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 transition text-sm font-medium">Cancel</button>
+                <button type="submit" id="scrim-submit" class="flex-1 px-4 py-2.5 rounded-xl text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-500 transition">Post Scrim</button>
             </div>
         </form>
     </div>
 </div>
 
-{# ── Add VOD Modal ── #}
-<div id="modal-add-vod" class="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm hidden items-center justify-center p-4"
-     role="dialog" aria-modal="true" aria-labelledby="modal-vod-title"
-    data-click-self="ManageHQ.closeModal" data-click-args='["modal-add-vod"]'>
+<div id="modal-add-tryout" class="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm hidden items-center justify-center p-4"
+     role="dialog" aria-modal="true" aria-labelledby="modal-tryout-title"
+     data-click-self="ManageHQ.closeModal" data-click-args='["modal-add-tryout"]'>
     <div class="bg-[#0f1525] border border-white/15 rounded-2xl w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto" data-stop-propagation>
         <div class="flex items-center justify-between p-4 border-b border-white/10">
-            <h3 id="modal-vod-title" class="font-bold text-base">Add VOD</h3>
+            <h3 id="modal-tryout-title" class="font-bold text-base">Add Tryout Application</h3>
+            <button data-click="ManageHQ.closeModal" data-click-args='["modal-add-tryout"]' aria-label="Close" class="h-8 w-8 rounded-lg hover:bg-white/10 transition grid place-items-center">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+        <form id="add-tryout-form" class="p-4 space-y-4">
+            <p class="text-xs text-white/45">Players can apply from team surfaces. Managers may also record an applicant here for review.</p>
+            <div>
+                <label class="block text-xs text-white/60 mb-1.5 font-medium">Applicant User ID (manager invite only)</label>
+                <input id="tryout-applicant-id" type="number" min="1" placeholder="Leave blank to apply as yourself" class="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/15 text-sm placeholder-white/30 focus:border-white/30 focus:outline-none transition">
+            </div>
+            <div>
+                <label class="block text-xs text-white/60 mb-1.5 font-medium">IGN</label>
+                <input id="tryout-ign" type="text" placeholder="In-game name" class="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/15 text-sm placeholder-white/30 focus:border-white/30 focus:outline-none transition">
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs text-white/60 mb-1.5 font-medium">Role</label>
+                    <input id="tryout-role" type="text" placeholder="IGL / Duelist" class="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/15 text-sm placeholder-white/30 focus:border-white/30 focus:outline-none transition">
+                </div>
+                <div>
+                    <label class="block text-xs text-white/60 mb-1.5 font-medium">Rank</label>
+                    <input id="tryout-rank" type="text" placeholder="Rank / tier" class="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/15 text-sm placeholder-white/30 focus:border-white/30 focus:outline-none transition">
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs text-white/60 mb-1.5 font-medium">Availability</label>
+                <input id="tryout-availability" type="text" placeholder="Fri-Sat evening, Dhaka time" class="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/15 text-sm placeholder-white/30 focus:border-white/30 focus:outline-none transition">
+            </div>
+            <div>
+                <label class="block text-xs text-white/60 mb-1.5 font-medium">Notes</label>
+                <textarea id="tryout-notes" rows="2" placeholder="Profile links, strengths, expectations" class="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/15 text-sm placeholder-white/30 focus:border-white/30 focus:outline-none transition resize-none"></textarea>
+            </div>
+            <div id="tryout-error" class="hidden text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2"></div>
+            <div class="flex gap-2 pt-2">
+                <button type="button" data-click="ManageHQ.closeModal" data-click-args='["modal-add-tryout"]' class="flex-1 px-4 py-2.5 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 transition text-sm font-medium">Cancel</button>
+                <button type="submit" id="tryout-submit" class="flex-1 px-4 py-2.5 rounded-xl text-sm font-bold text-white bg-blue-600 hover:bg-blue-500 transition">Submit</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="modal-review-tryout" class="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm hidden items-center justify-center p-4"
+     role="dialog" aria-modal="true" aria-labelledby="modal-review-tryout-title"
+     data-click-self="ManageHQ.closeModal" data-click-args='["modal-review-tryout"]'>
+    <div class="bg-[#0f1525] border border-white/15 rounded-2xl w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto" data-stop-propagation>
+        <div class="flex items-center justify-between p-4 border-b border-white/10">
+            <h3 id="modal-review-tryout-title" class="font-bold text-base">Review Tryout Application</h3>
+            <button data-click="ManageHQ.closeModal" data-click-args='["modal-review-tryout"]' aria-label="Close" class="h-8 w-8 rounded-lg hover:bg-white/10 transition grid place-items-center">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+        <form id="review-tryout-form" class="p-4 space-y-4">
+            <input id="review-tryout-id" type="hidden">
+            <div>
+                <label class="block text-xs text-white/60 mb-1.5 font-medium">Decision</label>
+                <select id="review-tryout-status" class="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/15 text-sm focus:border-white/30 focus:outline-none transition">
+                    <option value="REVIEW">Keep Reviewing</option>
+                    <option value="OBSERVE">Observation</option>
+                    <option value="ACCEPT">Accept</option>
+                    <option value="REJECT">Reject</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs text-white/60 mb-1.5 font-medium">Review Notes</label>
+                <textarea id="review-tryout-notes" rows="4" placeholder="Decision reason, strengths, gaps, or next steps" class="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/15 text-sm placeholder-white/30 focus:border-white/30 focus:outline-none transition resize-none"></textarea>
+                <p class="text-[11px] text-white/35 mt-1.5">Accept marks the tryout evaluation result. Use Join Requests or team invites for the actual roster offer.</p>
+            </div>
+            <div id="review-tryout-error" class="hidden text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2"></div>
+            <div class="flex gap-2 pt-2">
+                <button type="button" data-click="ManageHQ.closeModal" data-click-args='["modal-review-tryout"]' class="flex-1 px-4 py-2.5 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 transition text-sm font-medium">Cancel</button>
+                <button type="submit" id="review-tryout-submit" class="flex-1 px-4 py-2.5 rounded-xl text-sm font-bold text-white bg-blue-600 hover:bg-blue-500 transition">Save Review</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="modal-schedule-tryout" class="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm hidden items-center justify-center p-4"
+     role="dialog" aria-modal="true" aria-labelledby="modal-schedule-tryout-title"
+     data-click-self="ManageHQ.closeModal" data-click-args='["modal-schedule-tryout"]'>
+    <div class="bg-[#0f1525] border border-white/15 rounded-2xl w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto" data-stop-propagation>
+        <div class="flex items-center justify-between p-4 border-b border-white/10">
+            <h3 id="modal-schedule-tryout-title" class="font-bold text-base">Schedule Tryout Session</h3>
+            <button data-click="ManageHQ.closeModal" data-click-args='["modal-schedule-tryout"]' aria-label="Close" class="h-8 w-8 rounded-lg hover:bg-white/10 transition grid place-items-center">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+        <form id="schedule-tryout-form" class="p-4 space-y-4">
+            <input id="schedule-tryout-id" type="hidden">
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs text-white/60 mb-1.5 font-medium">Date</label>
+                    <input id="schedule-tryout-date" type="date" class="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/15 text-sm focus:border-white/30 focus:outline-none transition" required>
+                </div>
+                <div>
+                    <label class="block text-xs text-white/60 mb-1.5 font-medium">Time</label>
+                    <input id="schedule-tryout-time" type="time" class="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/15 text-sm focus:border-white/30 focus:outline-none transition" required>
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs text-white/60 mb-1.5 font-medium">Format / Focus</label>
+                <input id="schedule-tryout-format" type="text" placeholder="BO3 scrim, role test, aim + comms review" class="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/15 text-sm placeholder-white/30 focus:border-white/30 focus:outline-none transition">
+            </div>
+            <div>
+                <label class="block text-xs text-white/60 mb-1.5 font-medium">Private Room / Session Details</label>
+                <textarea id="schedule-tryout-room" rows="3" placeholder="Lobby details, Discord channel, or private instructions" class="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/15 text-sm placeholder-white/30 focus:border-white/30 focus:outline-none transition resize-none"></textarea>
+            </div>
+            <div id="schedule-tryout-error" class="hidden text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2"></div>
+            <div class="flex gap-2 pt-2">
+                <button type="button" data-click="ManageHQ.closeModal" data-click-args='["modal-schedule-tryout"]' class="flex-1 px-4 py-2.5 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 transition text-sm font-medium">Cancel</button>
+                <button type="submit" id="schedule-tryout-submit" class="flex-1 px-4 py-2.5 rounded-xl text-sm font-bold text-white bg-cyan-600 hover:bg-cyan-500 transition">Schedule Tryout</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="modal-add-vod" class="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm hidden items-center justify-center p-4"
+     role="dialog" aria-modal="true" aria-labelledby="modal-vod-title"
+     data-click-self="ManageHQ.closeModal" data-click-args='["modal-add-vod"]'>
+    <div class="bg-[#0f1525] border border-white/15 rounded-2xl w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto" data-stop-propagation>
+        <div class="flex items-center justify-between p-4 border-b border-white/10">
+            <h3 id="modal-vod-title" class="font-bold text-base">Add VOD Review</h3>
             <button data-click="ManageHQ.closeModal" data-click-args='["modal-add-vod"]' aria-label="Close" class="h-8 w-8 rounded-lg hover:bg-white/10 transition grid place-items-center">
                 <i data-lucide="x" class="w-4 h-4"></i>
             </button>
         </div>
         <form id="add-vod-form" class="p-4 space-y-4">
             <div>
-                <label class="block text-xs text-white/60 mb-1.5 font-medium">Video Title</label>
-                <input id="vod-title" type="text" placeholder="e.g. Playoffs vs Team Liquid — Map 3"
-                       class="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/15 text-sm placeholder-white/30 focus:border-white/30 focus:outline-none transition" required>
+                <label class="block text-xs text-white/60 mb-1.5 font-medium">Title</label>
+                <input id="vod-title" type="text" placeholder="e.g. Scrim review - Map 2" class="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/15 text-sm placeholder-white/30 focus:border-white/30 focus:outline-none transition" required>
             </div>
             <div>
-                <label class="block text-xs text-white/60 mb-1.5 font-medium">URL (YouTube / Twitch / Google Drive)</label>
-                <input id="vod-url" type="url" placeholder="https://youtube.com/watch?v=..."
-                       class="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/15 text-sm placeholder-white/30 focus:border-white/30 focus:outline-none transition" required>
+                <label class="block text-xs text-white/60 mb-1.5 font-medium">URL</label>
+                <input id="vod-url" type="url" placeholder="https://youtube.com/watch?v=..." class="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/15 text-sm placeholder-white/30 focus:border-white/30 focus:outline-none transition" required>
             </div>
             <div>
                 <label class="block text-xs text-white/60 mb-1.5 font-medium">Category</label>
                 <select id="vod-category" class="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/15 text-sm focus:border-white/30 focus:outline-none transition">
-                    <option value="match">Official Match</option>
                     <option value="scrim">Scrim</option>
-                    <option value="analysis">Analysis / Review</option>
-                    <option value="highlight">Highlight Reel</option>
+                    <option value="official">Official Match</option>
+                    <option value="analysis" selected>Analysis</option>
+                    <option value="highlight">Highlight</option>
                 </select>
             </div>
             <div>
-                <label class="block text-xs text-white/60 mb-1.5 font-medium">Notes (optional)</label>
-                <textarea id="vod-notes" rows="2" placeholder="Key timestamps, takeaways…"
-                          class="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/15 text-sm placeholder-white/30 focus:border-white/30 focus:outline-none transition resize-none"></textarea>
+                <label class="block text-xs text-white/60 mb-1.5 font-medium">Notes</label>
+                <textarea id="vod-notes" rows="2" placeholder="Key timestamps, review notes, improvement points" class="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/15 text-sm placeholder-white/30 focus:border-white/30 focus:outline-none transition resize-none"></textarea>
             </div>
             <div id="vod-error" class="hidden text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2"></div>
             <div class="flex gap-2 pt-2">
-                <button type="button" data-click="ManageHQ.closeModal" data-click-args='["modal-add-vod"]'
-                        class="flex-1 px-4 py-2.5 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 transition text-sm font-medium">Cancel</button>
-                <button type="button" id="vod-submit" disabled title="VOD review library is coming soon"
-                        class="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium text-white bg-purple-600/40 cursor-not-allowed transition">Coming Soon</button>
+                <button type="button" data-click="ManageHQ.closeModal" data-click-args='["modal-add-vod"]' class="flex-1 px-4 py-2.5 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 transition text-sm font-medium">Cancel</button>
+                <button type="submit" id="vod-submit" class="flex-1 px-4 py-2.5 rounded-xl text-sm font-bold text-white bg-purple-600 hover:bg-purple-500 transition">Add VOD</button>
             </div>
         </form>
     </div>

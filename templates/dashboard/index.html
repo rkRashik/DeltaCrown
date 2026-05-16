@@ -744,6 +744,84 @@
             <p class="text-[11px] text-dc-textMuted mb-5 max-w-[260px]">Enter Showdowns, Missions, Bounty challenges, or Dropzone events from the competitive hub.</p>
           </div>
         </div>
+
+        {# Team Applications Inbox #}
+        <div class="premium-card p-6 sm:p-8 animate-slide-up stagger-5">
+          <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-6">
+            <div>
+              <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                <i class="fa-solid fa-id-card-clip text-dc-success"></i> My Team Applications
+              </h2>
+              <p class="text-sm text-dc-textMuted mt-1">Track join requests, tryouts, and roster offers in one place.</p>
+            </div>
+            <button type="button"
+                    @click="loadTeamApplications()"
+                    class="btn-glass px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider inline-flex items-center justify-center gap-2">
+              <i class="fa-solid fa-rotate text-[10px]" :class="teamApplicationsLoading ? 'animate-spin' : ''"></i>
+              Refresh
+            </button>
+          </div>
+
+          <div x-show="teamApplicationsError" class="mb-4 p-3 rounded-xl border border-dc-danger/20 bg-dc-danger/10 text-xs text-rose-100" x-text="teamApplicationsError"></div>
+
+          <div x-show="teamApplicationsLoading && teamApplications.length === 0" class="space-y-3">
+            <template x-for="idx in [1,2,3]" :key="idx">
+              <div class="h-24 rounded-xl bg-white/[0.04] border border-white/[0.06] animate-pulse"></div>
+            </template>
+          </div>
+
+          <div x-show="!teamApplicationsLoading && teamApplications.length === 0" class="flex flex-col items-center justify-center py-10 text-center">
+            <div class="w-14 h-14 rounded-2xl bg-white/[0.03] border border-white/[0.08] flex items-center justify-center mb-4">
+              <i class="fa-solid fa-id-badge text-2xl text-dc-textMuted"></i>
+            </div>
+            <h4 class="font-bold text-white text-sm mb-1">No Team Applications Yet</h4>
+            <p class="text-[11px] text-dc-textMuted mb-5 max-w-[280px]">Apply for tryouts or request to join a recruiting team, then track every status here.</p>
+            <a href="{% url 'organizations:vnext_hub' %}" class="bg-white/[0.08] hover:bg-white/[0.14] text-white text-xs font-bold px-4 py-2 rounded-lg border border-white/[0.1] transition-all no-underline">
+              Explore Teams
+            </a>
+          </div>
+
+          <div x-show="teamApplications.length > 0" class="space-y-3">
+            <template x-for="item in teamApplications.slice(0,8)" :key="item.id">
+              <div class="p-4 rounded-xl bg-black/40 border border-white/[0.06] hover:border-white/[0.15] transition-all">
+                <div class="flex items-start gap-4">
+                  <a :href="item.team_url || '#'" class="w-11 h-11 rounded-xl border border-white/[0.1] bg-white/[0.04] overflow-hidden shrink-0 flex items-center justify-center no-underline">
+                    <img x-show="item.team && item.team.logo_url" :src="item.team.logo_url" class="w-full h-full object-cover" alt="">
+                    <i x-show="!item.team || !item.team.logo_url" :class="teamApplicationIcon(item)" class="text-dc-textMuted"></i>
+                  </a>
+                  <div class="min-w-0 flex-1">
+                    <div class="flex flex-wrap items-center gap-2 mb-1">
+                      <a :href="item.team_url || '#'" class="text-sm font-bold text-white hover:text-dc-accent transition-colors no-underline truncate" x-text="item.team_name"></a>
+                      <span class="text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider"
+                            :class="teamApplicationStatusClass(item)"
+                            x-text="item.status"></span>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-2 text-[10px] text-dc-textMuted">
+                      <span x-text="item.source_type === 'tryout' ? 'Tryout' : 'Join Request'"></span>
+                      <span x-show="item.game" class="text-white/[0.2]">&middot;</span>
+                      <span x-show="item.game" x-text="item.game"></span>
+                      <span x-show="item.role" class="text-white/[0.2]">&middot;</span>
+                      <span x-show="item.role" x-text="item.role"></span>
+                      <span x-show="item.scheduled_at" class="text-white/[0.2]">&middot;</span>
+                      <span x-show="item.scheduled_at" x-text="formatDateTime(item.scheduled_at)"></span>
+                    </div>
+                    <p x-show="item.applicant_safe_note" class="text-[11px] text-gray-400 mt-2 line-clamp-2" x-text="item.applicant_safe_note"></p>
+                    <div x-show="item.actions && item.actions.length" class="flex flex-wrap gap-2 mt-3">
+                      <template x-for="action in item.actions" :key="action.action">
+                        <button type="button"
+                                @click.prevent.stop="handleTeamApplicationAction(item, action)"
+                                class="px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all border"
+                                :class="action.style === 'primary' ? 'bg-dc-success text-black border-dc-success hover:bg-emerald-300' : 'bg-white/[0.04] text-white border-white/[0.12] hover:bg-white/[0.1]'"
+                                x-text="action.label">
+                        </button>
+                      </template>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </template>
+          </div>
+        </div>
       </div>
 
       {# ── RIGHT COLUMN (4 cols) ── #}

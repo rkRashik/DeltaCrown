@@ -1,0 +1,320 @@
+{% extends "base.html" %}
+
+{% block title %}{{ detail_type }} Detail - DeltaCrown{% endblock %}
+
+{% block extra_css %}
+<style>
+  body { background: #050509; color: #e5e7eb; }
+  .comp-shell { min-height: calc(100vh - 80px); background:
+    radial-gradient(circle at top left, rgba(0, 229, 255, .10), transparent 32rem),
+    radial-gradient(circle at top right, rgba(255, 0, 85, .08), transparent 30rem),
+    #050509; }
+  .comp-panel { background: rgba(10, 10, 16, .78); border: 1px solid rgba(255,255,255,.09); backdrop-filter: blur(16px); }
+  .comp-card { background: rgba(255,255,255,.035); border: 1px solid rgba(255,255,255,.08); }
+  .accent-cyan { color: #00e5ff; }
+  .accent-violet { color: #8a2be2; }
+  .accent-neon { color: #ff0055; }
+  .accent-gold { color: #ffd700; }
+  .timeline-dot { width: .65rem; height: .65rem; border-radius: 999px; background: rgba(255,255,255,.25); }
+  .timeline-dot.done { background: #00fa9a; box-shadow: 0 0 14px rgba(0,250,154,.45); }
+  .timeline-dot.active { background: #00e5ff; box-shadow: 0 0 14px rgba(0,229,255,.55); }
+</style>
+{% endblock %}
+
+{% block content %}
+<main class="comp-shell px-4 py-8 sm:px-6 lg:px-8">
+  <div class="mx-auto max-w-6xl">
+    <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
+      <a href="{{ hub_url|default:'/dashboard/competitive/' }}" class="text-xs font-bold uppercase tracking-[0.22em] text-gray-400 hover:text-white">Back to Competitive Hub</a>
+      <span class="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.2em] text-gray-300">{{ detail_type }}</span>
+    </div>
+
+    <section class="comp-panel rounded-2xl p-5 sm:p-7">
+      <div class="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+        <div>
+          <p class="mb-2 text-xs font-black uppercase tracking-[0.28em] accent-{{ accent|default:'cyan' }}">{{ status_label }}</p>
+          <h1 class="text-3xl font-black tracking-tight text-white sm:text-5xl">{{ page_title }}</h1>
+          <p class="mt-3 max-w-2xl text-sm leading-6 text-gray-400">Track status, linked Match Room, proof/review progress, and result visibility for this competitive operation.</p>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          {% if primary_action and primary_action.url %}
+            <a href="{{ primary_action.url }}" class="rounded-lg bg-cyan-400 px-4 py-2 text-xs font-black uppercase tracking-widest text-black hover:bg-cyan-300">{{ primary_action.label }}</a>
+          {% endif %}
+          <a href="{{ hub_url|default:'/dashboard/competitive/' }}" class="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-xs font-black uppercase tracking-widest text-white hover:bg-white/10">View Hub</a>
+        </div>
+      </div>
+
+      <div class="mt-7 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {% for card in summary_cards %}
+          <div class="comp-card rounded-xl p-4">
+            <p class="text-[10px] font-black uppercase tracking-[0.22em] text-gray-500">{{ card.label }}</p>
+            <p class="mt-2 text-sm font-bold text-white">{{ card.value|default:"-" }}</p>
+          </div>
+        {% endfor %}
+      </div>
+    </section>
+
+    <div class="mt-6 grid gap-6 lg:grid-cols-[1.15fr_.85fr]">
+      <section class="comp-panel rounded-2xl p-5 sm:p-6">
+        <div class="mb-5 flex items-center justify-between gap-3">
+          <div>
+            <h2 class="text-lg font-black text-white">Status Timeline</h2>
+            <p class="text-xs text-gray-500">A compact view of where this operation stands.</p>
+          </div>
+        </div>
+        <div class="space-y-4">
+          {% for item in timeline %}
+            <div class="flex gap-3">
+              <div class="pt-1"><span class="timeline-dot {{ item.state }}"></span></div>
+              <div class="min-w-0">
+                <p class="text-sm font-bold text-white">{{ item.label }}</p>
+                {% if item.at %}<p class="text-xs text-gray-500">{{ item.at }}</p>{% endif %}
+                {% if item.note %}<p class="mt-1 text-xs leading-5 text-gray-400">{{ item.note }}</p>{% endif %}
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </section>
+
+      <aside class="space-y-6">
+        <section class="comp-panel rounded-2xl p-5 sm:p-6">
+          <h2 class="text-lg font-black text-white">Review State</h2>
+          <p class="mt-2 text-sm font-bold accent-{{ accent|default:'cyan' }}">{{ proof_state.label }}</p>
+          <p class="mt-2 text-xs leading-5 text-gray-400">{{ proof_state.description }}</p>
+          <div class="mt-4 grid grid-cols-2 gap-3">
+            <div class="comp-card rounded-lg p-3">
+              <p class="text-[10px] uppercase tracking-widest text-gray-500">Submissions</p>
+              <p class="mt-1 text-lg font-black text-white">{{ proof_state.submission_count|default:0 }}</p>
+            </div>
+            <div class="comp-card rounded-lg p-3">
+              <p class="text-[10px] uppercase tracking-widest text-gray-500">Open Reviews</p>
+              <p class="mt-1 text-lg font-black text-white">{{ proof_state.open_dispute_count|default:0 }}</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="comp-panel rounded-2xl p-5 sm:p-6">
+          <h2 class="text-lg font-black text-white">Participants</h2>
+          <div class="mt-4 space-y-3">
+            {% for person in participants %}
+              <div class="comp-card rounded-lg p-3">
+                <p class="text-[10px] uppercase tracking-widest text-gray-500">{{ person.label }}</p>
+                <p class="mt-1 text-sm font-bold text-white">{{ person.name|default:"-" }}</p>
+              </div>
+            {% endfor %}
+          </div>
+        </section>
+      </aside>
+    </div>
+
+    {% if dropzone %}
+      <section class="comp-panel mt-6 rounded-2xl p-5 sm:p-6">
+        <h2 class="text-lg font-black text-white">Dropzone Entry</h2>
+        <div class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div class="comp-card rounded-lg p-3"><p class="text-[10px] uppercase tracking-widest text-gray-500">Entry</p><p class="mt-1 text-sm font-bold text-white">{{ dropzone.entry_status }}</p></div>
+          <div class="comp-card rounded-lg p-3"><p class="text-[10px] uppercase tracking-widest text-gray-500">Lobby</p><p class="mt-1 text-sm font-bold text-white">{{ dropzone.lobby_status }}</p></div>
+          <div class="comp-card rounded-lg p-3"><p class="text-[10px] uppercase tracking-widest text-gray-500">Placement</p><p class="mt-1 text-sm font-bold text-white">{{ dropzone.placement|default:"Pending" }}</p></div>
+          <div class="comp-card rounded-lg p-3"><p class="text-[10px] uppercase tracking-widest text-gray-500">Kills</p><p class="mt-1 text-sm font-bold text-white">{{ dropzone.kills|default:"Pending" }}</p></div>
+        </div>
+        <div class="mt-4 comp-card rounded-xl p-4">
+          <p class="text-[10px] font-black uppercase tracking-[0.22em] text-gray-500">Room Credentials</p>
+          {% if dropzone.credentials_visible %}
+            <div class="mt-3 grid gap-3 sm:grid-cols-2">
+              <div><p class="text-xs text-gray-500">Room ID</p><p class="font-mono text-sm font-bold text-white">{{ dropzone.room_id }}</p></div>
+              <div><p class="text-xs text-gray-500">Password</p><p class="font-mono text-sm font-bold text-white">{{ dropzone.room_password }}</p></div>
+            </div>
+          {% else %}
+            <p class="mt-2 text-sm text-gray-400">{{ dropzone.credential_status }}</p>
+          {% endif %}
+        </div>
+        {% if dropzone.rules_summary %}
+          <div class="mt-4 flex flex-wrap gap-2">
+            {% for rule in dropzone.rules_summary %}
+              <span class="rounded-full border border-yellow-300/25 bg-yellow-300/10 px-3 py-1 text-[11px] font-bold text-yellow-200">{{ rule }}</span>
+            {% endfor %}
+          </div>
+        {% endif %}
+      </section>
+    {% endif %}
+
+    {% if mission %}
+      <section class="comp-panel mt-6 rounded-2xl p-5 sm:p-6">
+        <h2 class="text-lg font-black text-white">Mission Progress</h2>
+        {% if mission.description %}
+          <p class="mt-2 max-w-3xl text-sm leading-6 text-gray-400">{{ mission.description }}</p>
+        {% endif %}
+        <div class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div class="comp-card rounded-lg p-3">
+            <p class="text-[10px] uppercase tracking-widest text-gray-500">Goal Type</p>
+            <p class="mt-1 text-sm font-bold text-white">{{ mission.goal_type }}</p>
+          </div>
+          <div class="comp-card rounded-lg p-3">
+            <p class="text-[10px] uppercase tracking-widest text-gray-500">Time</p>
+            <p class="mt-1 text-sm font-bold text-white">{{ mission.time_remaining }}</p>
+          </div>
+          <div class="comp-card rounded-lg p-3">
+            <p class="text-[10px] uppercase tracking-widest text-gray-500">Closure</p>
+            <p class="mt-1 text-sm font-bold text-white">{{ mission.closure|default:"Open" }}</p>
+          </div>
+          <div class="comp-card rounded-lg p-3">
+            <p class="text-[10px] uppercase tracking-widest text-gray-500">Review</p>
+            <p class="mt-1 text-sm font-bold text-white">{{ proof_state.label }}</p>
+          </div>
+        </div>
+        <div class="mt-4 grid gap-3 sm:grid-cols-2">
+          {% for row in mission.progress_rows %}
+            <div class="comp-card rounded-lg p-3">
+              <p class="text-[10px] uppercase tracking-widest text-gray-500">{{ row.label }}</p>
+              <p class="mt-1 text-sm font-bold text-white">{{ row.value }}</p>
+            </div>
+          {% endfor %}
+        </div>
+        <div class="mt-5 grid gap-4 lg:grid-cols-[.9fr_1.1fr]">
+          <div class="comp-card rounded-xl p-4">
+            <h3 class="text-sm font-black text-white">Submit Proof</h3>
+            {% if mission.can_submit_proof %}
+              <form method="post" enctype="multipart/form-data" class="mt-4 space-y-3">
+                {% csrf_token %}
+                <div>
+                  <label class="mb-1 block text-[10px] font-black uppercase tracking-widest text-gray-500" for="mission-proof-url">Proof URL</label>
+                  <input id="mission-proof-url" name="proof_url" type="url" placeholder="https://... (optional if uploading an image)"
+                         class="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white placeholder:text-gray-600 focus:border-cyan-300 focus:outline-none">
+                </div>
+                <div>
+                  <label class="mb-1 block text-[10px] font-black uppercase tracking-widest text-gray-500" for="mission-proof-file">Proof Image</label>
+                  <input id="mission-proof-file" name="proof_file" type="file" accept="image/jpeg,image/png,image/webp"
+                         class="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-gray-300 file:mr-3 file:rounded-md file:border-0 file:bg-white/10 file:px-3 file:py-1.5 file:text-xs file:font-bold file:text-white focus:border-cyan-300 focus:outline-none">
+                  <p class="mt-1 text-[11px] text-gray-500">Upload an image proof or provide a URL. Images are validated before review.</p>
+                </div>
+                <div>
+                  <label class="mb-1 block text-[10px] font-black uppercase tracking-widest text-gray-500" for="mission-proof-notes">Notes</label>
+                  <textarea id="mission-proof-notes" name="notes" rows="4" placeholder="Add match ID, screenshot context, or result notes."
+                            class="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white placeholder:text-gray-600 focus:border-cyan-300 focus:outline-none"></textarea>
+                </div>
+                <button type="submit" class="rounded-lg bg-violet-500 px-4 py-2 text-xs font-black uppercase tracking-widest text-white hover:bg-violet-400">Submit Proof</button>
+              </form>
+            {% else %}
+              <p class="mt-3 text-sm leading-6 text-gray-400">Proof submission is unavailable while a proof is under review or after the Mission closes.</p>
+            {% endif %}
+          </div>
+          <div class="comp-card rounded-xl p-4">
+            <h3 class="text-sm font-black text-white">Latest Proof</h3>
+            {% if mission.proofs %}
+              <div class="mt-4 space-y-3">
+                {% for proof in mission.proofs %}
+                  <div class="rounded-lg border border-white/10 bg-black/30 p-3">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                      <p class="text-xs font-black uppercase tracking-widest text-gray-300">{{ proof.status }}</p>
+                      <p class="text-xs text-gray-500">{{ proof.submitted_at }}</p>
+                    </div>
+                    {% if proof.proof_url %}
+                      <a href="{{ proof.proof_url }}" target="_blank" rel="noopener" class="mt-2 inline-flex text-xs font-bold text-cyan-300 hover:text-cyan-200">Open proof URL</a>
+                    {% endif %}
+                    {% if proof.proof_file_url %}
+                      <a href="{{ proof.proof_file_url }}" target="_blank" rel="noopener" class="ml-3 mt-2 inline-flex text-xs font-bold text-violet-300 hover:text-violet-200">Open uploaded proof</a>
+                    {% endif %}
+                    {% if proof.notes %}<p class="mt-2 text-xs leading-5 text-gray-400">{{ proof.notes }}</p>{% endif %}
+                    {% if proof.reviewed_at %}<p class="mt-2 text-[11px] text-gray-500">Reviewed {{ proof.reviewed_at }}</p>{% endif %}
+                  </div>
+                {% endfor %}
+              </div>
+            {% else %}
+              <p class="mt-3 text-sm text-gray-500">No Mission proof has been submitted yet.</p>
+            {% endif %}
+          </div>
+        </div>
+      </section>
+    {% endif %}
+
+    {% if dropzone_lobby %}
+      <section class="comp-panel mt-6 rounded-2xl p-5 sm:p-6">
+        <div class="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+          <div>
+            <h2 class="text-lg font-black text-white">Dropzone Lobby</h2>
+            <p class="mt-1 text-xs text-gray-500">Lobby-level schedule, rules, entry state, and results.</p>
+          </div>
+          {% if dropzone_lobby.user_entry_url %}
+            <a href="{{ dropzone_lobby.user_entry_url }}" class="rounded-lg border border-yellow-300/25 bg-yellow-300/10 px-4 py-2 text-xs font-black uppercase tracking-widest text-yellow-200 hover:bg-yellow-300/20">View Entry</a>
+          {% endif %}
+        </div>
+
+        <div class="mt-4 comp-card rounded-xl p-4">
+          <p class="text-[10px] font-black uppercase tracking-[0.22em] text-gray-500">Room Credentials</p>
+          {% if dropzone_lobby.credentials_visible %}
+            <div class="mt-3 grid gap-3 sm:grid-cols-2">
+              <div><p class="text-xs text-gray-500">Room ID</p><p class="font-mono text-sm font-bold text-white">{{ dropzone_lobby.room_id }}</p></div>
+              <div><p class="text-xs text-gray-500">Password</p><p class="font-mono text-sm font-bold text-white">{{ dropzone_lobby.room_password }}</p></div>
+            </div>
+          {% else %}
+            <p class="mt-2 text-sm text-gray-400">{{ dropzone_lobby.credential_status }}</p>
+          {% endif %}
+        </div>
+
+        {% if dropzone_lobby.reward_rules %}
+          <div class="mt-4 flex flex-wrap gap-2">
+            {% for rule in dropzone_lobby.reward_rules %}
+              <span class="rounded-full border border-yellow-300/25 bg-yellow-300/10 px-3 py-1 text-[11px] font-bold text-yellow-200">{{ rule }}</span>
+            {% endfor %}
+          </div>
+        {% endif %}
+
+        {% if dropzone_lobby.show_results %}
+          <div class="mt-5 overflow-hidden rounded-xl border border-white/10">
+            <table class="min-w-full divide-y divide-white/10 text-left text-sm">
+              <thead class="bg-white/[0.04] text-[10px] uppercase tracking-widest text-gray-500">
+                <tr>
+                  <th class="px-4 py-3">Player</th>
+                  <th class="px-4 py-3">Placement</th>
+                  <th class="px-4 py-3">Kills</th>
+                  <th class="px-4 py-3">Status</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-white/5">
+                {% for row in dropzone_lobby.result_entries %}
+                  <tr class="{% if row.is_current_user %}bg-yellow-300/10{% endif %}">
+                    <td class="px-4 py-3 font-bold text-white">{{ row.player }}</td>
+                    <td class="px-4 py-3 text-gray-300">{{ row.placement|default:"Pending" }}</td>
+                    <td class="px-4 py-3 text-gray-300">{{ row.kills|default:"Pending" }}</td>
+                    <td class="px-4 py-3 text-gray-400">{{ row.status }}</td>
+                  </tr>
+                {% empty %}
+                  <tr><td colspan="4" class="px-4 py-5 text-sm text-gray-500">Scores have not been published yet.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <p class="mt-4 text-sm text-gray-500">Results will appear after operators record placement and kill scores.</p>
+        {% endif %}
+      </section>
+    {% endif %}
+
+    <section class="comp-panel mt-6 rounded-2xl p-5 sm:p-6">
+      <h2 class="text-lg font-black text-white">Proof And Result Activity</h2>
+      {% if submissions %}
+        <div class="mt-4 grid gap-3">
+          {% for sub in submissions %}
+            <div class="comp-card rounded-xl p-4">
+              <div class="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p class="text-sm font-bold text-white">{{ sub.team|default:"Submission" }}</p>
+                  <p class="mt-1 text-xs text-gray-500">{{ sub.status }}{% if sub.result %} - {{ sub.result }}{% endif %}</p>
+                </div>
+                {% if sub.submitted_at %}<span class="text-xs text-gray-500">{{ sub.submitted_at }}</span>{% endif %}
+              </div>
+              {% if sub.proof_url %}
+                <a href="{{ sub.proof_url }}" target="_blank" rel="noopener" class="mt-3 inline-flex text-xs font-bold text-cyan-300 hover:text-cyan-200">Open proof</a>
+              {% endif %}
+              {% if sub.detail_url %}
+                <a href="{{ sub.detail_url }}" class="ml-3 mt-3 inline-flex text-xs font-bold text-gray-300 hover:text-white">View claim</a>
+              {% endif %}
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="mt-3 text-sm text-gray-500">No proof or result activity has been submitted yet.</p>
+      {% endif %}
+    </section>
+  </div>
+</main>
+{% endblock %}

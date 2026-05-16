@@ -858,6 +858,49 @@ class TOCMatchesService:
         # ── Verification status (smart mismatch detection) ──
         verification_status = cls._compute_verification_status(match, submissions)
 
+        # ── P3.2 — Backend OCR evidence comparison (authoritative source). ──
+        # FE renders from this dict instead of reimplementing comparison logic.
+        # We pass the two latest per-side submissions.
+        sub_by_side: dict[int, MatchResultSubmission] = {}
+        for s in submissions:
+            # side is the resolved value we computed above; here we re-derive
+            # it quickly from the serialized data since we already have it.
+            pass  # build below from the stored objects
+        # Rebuild per-side lookup from the DB objects (same logic as serializer).
+        p1_team = getattr(match, 'participant1_id', None)
+        p2_team = getattr(match, 'participant2_id', None)
+        sub_by_team: dict = {}
+        for s in submissions:
+            tid = s.submitted_by_team_id
+            if tid not in sub_by_team or (s.submitted_at and (
+                sub_by_team[tid].submitted_at is None
+                or s.submitted_at >= sub_by_team[tid].submitted_at
+            )):
+                sub_by_team[tid] = s
+        side1_sub = sub_by_team.get(p1_team) if p1_team else None
+        side2_sub = sub_by_team.get(p2_team) if p2_team else None
+
+        evidence_comparison: dict = {}
+        try:
+            from apps.tournaments.services.evidence_flagging import (
+                compute_evidence_comparison,
+            )
+            evidence_comparison = compute_evidence_comparison(side1_sub, side2_sub, match=match)
+        except Exception as _cmp_err:
+            evidence_comparison = {
+                "state": "inconclusive",
+                "recommendation": "pending",
+                "reason": str(_cmp_err),
+            }
+
+        # Evidence timeline (audit entries written by flagging service).
+        evidence_timeline = []
+        try:
+            raw_tl = match.lobby_info.get("evidence_timeline") or []
+            evidence_timeline = list(raw_tl) if isinstance(raw_tl, list) else []
+        except Exception:
+            pass
+
         return {
             'match': cls._serialize_match(
                 match,
@@ -869,6 +912,9 @@ class TOCMatchesService:
             'disputes': disputes,
             'notes': notes,
             'verification_status': verification_status,
+            # P3.2 — OCR comparison payload (FE reads from this, not JS logic).
+            'evidence_comparison': evidence_comparison,
+            'evidence_timeline': evidence_timeline,
         }
 
     @classmethod

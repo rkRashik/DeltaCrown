@@ -1,6 +1,7 @@
 """Unified competitive operations feed for the dashboard hub."""
 from __future__ import annotations
 
+from datetime import timedelta
 from typing import Any
 
 from django.db.models import Q
@@ -14,6 +15,7 @@ from apps.competition.models import Bounty, BountyClaim, Challenge
 from apps.contracts.models import ContractEnrollment
 from apps.organizations.choices import MembershipRole, MembershipStatus
 from apps.organizations.models.membership import TeamMembership
+from apps.organizations.models.training import PracticeSession, ScrimBooking, TryoutApplication, TryoutSession, VodReview
 from apps.royale.models import RoyaleEntry
 
 
@@ -31,6 +33,32 @@ TERMINAL_BOUNTY_CLAIM_STATUSES = {"VERIFIED", "REJECTED", "PAID"}
 TERMINAL_DROPZONE_STATUSES = {"SCORED", "NO_SHOW", "REFUNDED", "VOIDED"}
 MATCH_REVIEW_STATUSES = {"mismatch", "tie_pending_review", "admin_tie_pending_review"}
 MATCH_VERIFIED_STATUSES = {"verified", "verified_draw", "admin_overridden", "admin_overridden_draw"}
+
+
+def _detail_url(item_type: str, item_id: Any) -> str:
+    routes = {
+        "showdown": "/dashboard/competitive/showdowns/{}/",
+        "mission": "/dashboard/competitive/missions/{}/",
+        "bounty": "/dashboard/competitive/bounties/{}/",
+        "bounty_claim": "/dashboard/competitive/bounty-claims/{}/",
+        "dropzone_lobby": "/dashboard/competitive/dropzone/lobbies/{}/",
+        "dropzone": "/dashboard/competitive/dropzone/entries/{}/",
+    }
+    return routes[item_type].format(item_id)
+
+
+def _review_state_label(linked_result: dict[str, Any] | None) -> str | None:
+    state = (linked_result or {}).get("state")
+    labels = {
+        "under_review": "Under Review",
+        "finalized": "Result Confirmed",
+        "viewer_submitted": "Proof Under Review",
+        "opponent_submitted": "Result Submitted",
+        "result_needed": "Result Needed",
+        "room_ready": "Match Room Ready",
+        "missing": "Match Room Pending",
+    }
+    return labels.get(state)
 
 
 def _iso(value: Any) -> str | None:
@@ -193,6 +221,7 @@ class MyCompetitiveOperationsView(APIView):
         operations.extend(self._mission_items(request.user))
         operations.extend(self._bounty_items(authority_team_ids))
         operations.extend(self._dropzone_items(request.user))
+        operations.extend(self._team_ops_items(request.user, authority_team_ids))
 
         operations.sort(key=lambda item: item.get("created_at") or "", reverse=True)
         return Response({"count": len(operations), "results": operations})
@@ -243,6 +272,9 @@ class MyCompetitiveOperationsView(APIView):
                 match_url,
                 linked_result=linked_result,
             )
+            detail_url = _detail_url("showdown", showdown.id)
+            if action_url == HUB_URLS["showdown"] and label != "Submit Result":
+                action_url = detail_url
             items.append(
                 _base_item(
                     item_id=str(showdown.id),
@@ -259,11 +291,12 @@ class MyCompetitiveOperationsView(APIView):
                     next_action_label=label,
                     next_action_url=action_url,
                     match_room_url=match_url,
-                    detail_url=HUB_URLS["showdown"],
+                    detail_url=detail_url,
                     is_action_required=required,
                     linked_match_id=getattr(showdown.match, "id", None),
                     linked_match_state=linked_result["match_state"],
                     linked_result_state=linked_result["state"],
+                    review_state_label=_review_state_label(linked_result),
                     linked_result_status=linked_result["result_status"],
                     linked_result_submission_count=linked_result["submission_count"],
                     linked_open_dispute_count=linked_result["open_dispute_count"],
@@ -278,14 +311,25 @@ class MyCompetitiveOperationsView(APIView):
         enrollments = (
             ContractEnrollment.objects.filter(user=user)
             .select_related("template", "template__game")
+            .prefetch_related("proofs")
             .order_by("-enrolled_at")[:50]
         )
 
         items = []
         for enrollment in enrollments:
             template = enrollment.template
-            if enrollment.status == "ACTIVE":
+            latest_proof = next(iter(enrollment.proofs.all()), None)
+            if enrollment.status == "ACTIVE" and latest_proof and latest_proof.status == "PENDING_REVIEW":
+                label = "Proof Under Review"
+                required = False
+            elif enrollment.status == "ACTIVE" and latest_proof and latest_proof.status == "REJECTED":
+                label = "Proof Rejected"
+                required = True
+            elif enrollment.status == "ACTIVE" and latest_proof and latest_proof.status == "ACCEPTED":
                 label = "Track Mission"
+                required = False
+            elif enrollment.status == "ACTIVE":
+                label = "Submit Proof"
                 required = True
             elif enrollment.status == "COMPLETED":
                 label = "View Result"
@@ -308,6 +352,7 @@ class MyCompetitiveOperationsView(APIView):
             else:
                 label = "View Details"
                 required = False
+            detail_url = _detail_url("mission", enrollment.id)
 
             items.append(
                 _base_item(
@@ -322,9 +367,13 @@ class MyCompetitiveOperationsView(APIView):
                     scheduled_at=enrollment.deadline_at,
                     created_at=enrollment.enrolled_at,
                     next_action_label=label,
-                    next_action_url=HUB_URLS["mission"],
-                    detail_url=HUB_URLS["mission"],
+                    next_action_url=detail_url,
+                    detail_url=detail_url,
                     is_action_required=required,
+                    progress=enrollment.progress,
+                    deadline_at=_iso(enrollment.deadline_at),
+                    latest_proof_status=getattr(latest_proof, "status", None),
+                    latest_proof_submitted_at=_iso(getattr(latest_proof, "submitted_at", None)),
                 )
             )
         return items
@@ -344,6 +393,7 @@ class MyCompetitiveOperationsView(APIView):
                 label = "View Result"
             else:
                 label = "View Bounty"
+            detail_url = _detail_url("bounty", bounty.id)
             items.append(
                 _base_item(
                     item_id=f"issued:{bounty.id}",
@@ -357,8 +407,8 @@ class MyCompetitiveOperationsView(APIView):
                     reward_summary=bounty.reward_description or None,
                     created_at=bounty.created_at,
                     next_action_label=label,
-                    next_action_url=HUB_URLS["bounty"],
-                    detail_url=HUB_URLS["bounty"],
+                    next_action_url=detail_url,
+                    detail_url=detail_url,
                     is_action_required=False,
                 )
             )
@@ -389,6 +439,9 @@ class MyCompetitiveOperationsView(APIView):
                 match_url,
                 linked_result=linked_result,
             )
+            detail_url = _detail_url("bounty_claim", claim.id)
+            if action_url == HUB_URLS["bounty"]:
+                action_url = detail_url
             items.append(
                 _base_item(
                     item_id=f"claim:{claim.id}",
@@ -403,13 +456,14 @@ class MyCompetitiveOperationsView(APIView):
                     scheduled_at=getattr(claim.challenge, "scheduled_at", None),
                     created_at=claim.claimed_at,
                     next_action_label=label,
-                    next_action_url=action_url,
+                    next_action_url=action_url or detail_url,
                     match_room_url=match_url,
-                    detail_url=HUB_URLS["bounty"],
+                    detail_url=detail_url,
                     is_action_required=required,
                     linked_match_id=getattr(claim_match, "id", None),
                     linked_match_state=linked_result["match_state"],
                     linked_result_state=linked_result["state"],
+                    review_state_label=_review_state_label(linked_result),
                     linked_result_status=linked_result["result_status"],
                     linked_result_submission_count=linked_result["submission_count"],
                     linked_open_dispute_count=linked_result["open_dispute_count"],
@@ -444,6 +498,8 @@ class MyCompetitiveOperationsView(APIView):
             else:
                 label = "View Entry"
                 required = False
+            detail_url = _detail_url("dropzone", entry.id)
+            lobby_detail_url = _detail_url("dropzone_lobby", lobby.id)
 
             items.append(
                 _base_item(
@@ -457,12 +513,187 @@ class MyCompetitiveOperationsView(APIView):
                     scheduled_at=lobby.scheduled_at,
                     created_at=entry.reserved_at,
                     next_action_label=label,
-                    next_action_url=HUB_URLS["dropzone"],
-                    detail_url=HUB_URLS["dropzone"],
+                    next_action_url=detail_url,
+                    detail_url=detail_url,
                     is_action_required=required,
+                    lobby_detail_url=lobby_detail_url,
+                    room_credentials_ready=credentials_ready,
+                    lobby_status=lobby.status,
+                    placement=entry.placement,
+                    kills=entry.kills,
                 )
             )
         return items
+
+    def _team_ops_items(self, user, team_ids: list[int]) -> list[dict[str, Any]]:
+        items: list[dict[str, Any]] = []
+        now = timezone.now()
+
+        if team_ids:
+            scrims = (
+                ScrimBooking.objects.filter(
+                    Q(requesting_team_id__in=team_ids) | Q(accepted_team_id__in=team_ids),
+                    status__in=["ACCEPTED"],
+                    scheduled_at__gte=now - timedelta(hours=2),
+                )
+                .select_related("requesting_team", "accepted_team", "scrim_request__game", "match__tournament")
+                .order_by("scheduled_at")[:20]
+            )
+            for booking in scrims:
+                team = booking.requesting_team if booking.requesting_team_id in team_ids else booking.accepted_team
+                room_url = _match_room_url(booking.match)
+                items.append(
+                    _base_item(
+                        item_id=f"scrim:{booking.pk}",
+                        item_type="scrim",
+                        title=f"Scrim: {booking.requesting_team.name} vs {booking.accepted_team.name}",
+                        status=booking.status,
+                        game=booking.scrim_request.game,
+                        team_name=team.name,
+                        team_id=team.pk,
+                        scheduled_at=booking.scheduled_at,
+                        created_at=booking.created_at,
+                        next_action_label="Enter Match Room" if room_url else "View Training",
+                        next_action_url=room_url or f"/teams/{team.slug}/manage/#training",
+                        match_room_url=room_url,
+                        detail_url=f"/teams/{team.slug}/manage/#training",
+                        is_action_required=bool(room_url),
+                    )
+                )
+
+        tryout_filter = Q(applicant=user)
+        if team_ids:
+            tryout_filter |= Q(team_id__in=team_ids)
+        tryout_apps = (
+            TryoutApplication.objects.filter(tryout_filter)
+            .filter(status__in=["PENDING", "REVIEWING", "INVITED", "SCHEDULED", "OBSERVATION", "ACCEPTED", "REJECTED"])
+            .select_related("team", "applicant", "game", "join_request")
+            .prefetch_related("sessions")
+            .order_by("-created_at")[:20]
+        )
+        for app in tryout_apps:
+            is_manager_item = app.team_id in team_ids
+            session = next(iter(app.sessions.all()), None)
+            label = self._tryout_action_label(app, is_manager_item)
+            action_url = f"/teams/{app.team.slug}/manage/#training" if is_manager_item else f"/teams/{app.team.slug}/"
+            items.append(
+                _base_item(
+                    item_id=f"tryout:{app.pk}",
+                    item_type="tryout",
+                    title=f"Tryout: {app.applicant.username} -> {app.team.name}",
+                    status=app.status,
+                    game=app.game,
+                    team_name=app.team.name,
+                    team_id=app.team_id,
+                    scheduled_at=getattr(session, "scheduled_at", None),
+                    created_at=app.created_at,
+                    next_action_label=label,
+                    next_action_url=action_url,
+                    detail_url=action_url,
+                    is_action_required=(
+                        (is_manager_item and app.status in {"PENDING", "REVIEWING", "SCHEDULED"})
+                        or (
+                            not is_manager_item
+                            and getattr(app, "join_request", None)
+                            and app.join_request.status == "OFFER_SENT"
+                        )
+                    ),
+                )
+            )
+
+        practice_filter = Q(participants=user)
+        if team_ids:
+            practice_filter |= Q(team_id__in=team_ids)
+        practices = (
+            PracticeSession.objects.filter(
+                practice_filter,
+                status="SCHEDULED",
+                scheduled_at__gte=now,
+            )
+            .select_related("team", "game")
+            .distinct()
+            .order_by("scheduled_at")[:20]
+        )
+        for session in practices:
+            items.append(
+                _base_item(
+                    item_id=f"practice:{session.pk}",
+                    item_type="practice",
+                    title=session.title,
+                    status=session.status,
+                    game=session.game,
+                    team_name=session.team.name,
+                    team_id=session.team_id,
+                    scheduled_at=session.scheduled_at,
+                    created_at=session.created_at,
+                    next_action_label="View Practice",
+                    next_action_url=f"/teams/{session.team.slug}/manage/#training",
+                    detail_url=f"/teams/{session.team.slug}/manage/#training",
+                    is_action_required=False,
+                )
+            )
+
+        vod_filter = Q(assigned_players=user)
+        if team_ids:
+            vod_filter |= Q(team_id__in=team_ids)
+        vods = (
+            VodReview.objects.filter(
+                vod_filter,
+                status="OPEN",
+            )
+            .select_related("team", "linked_match__tournament")
+            .distinct()
+            .order_by("-created_at")[:20]
+        )
+        for vod in vods:
+            items.append(
+                _base_item(
+                    item_id=f"vod:{vod.pk}",
+                    item_type="vod_review",
+                    title=vod.title,
+                    status=vod.status,
+                    game=None,
+                    team_name=vod.team.name,
+                    team_id=vod.team_id,
+                    created_at=vod.created_at,
+                    next_action_label="Review VOD",
+                    next_action_url=f"/teams/{vod.team.slug}/manage/#training",
+                    detail_url=f"/teams/{vod.team.slug}/manage/#training",
+                    is_action_required=True,
+                )
+            )
+        return items
+
+    def _tryout_action_label(self, app, is_manager_item: bool) -> str:
+        join_request = getattr(app, "join_request", None)
+        if not is_manager_item and join_request:
+            join_labels = {
+                "OFFER_SENT": "Accept Offer",
+                "ACCEPTED": "Offer Accepted",
+                "DECLINED": "Offer Declined",
+            }
+            if join_request.status in join_labels:
+                return join_labels[join_request.status]
+        if is_manager_item and join_request:
+            manager_join_labels = {
+                "OFFER_SENT": "Offer Sent",
+                "ACCEPTED": "Signed",
+                "DECLINED": "Applicant Declined",
+            }
+            if join_request.status in manager_join_labels:
+                return manager_join_labels[join_request.status]
+        if is_manager_item and app.status in {"PENDING", "REVIEWING", "SCHEDULED", "OBSERVATION"}:
+            return "Review Tryout"
+        applicant_labels = {
+            "PENDING": "Tryout Applied",
+            "REVIEWING": "Under Review",
+            "INVITED": "Tryout Invite",
+            "SCHEDULED": "Tryout Scheduled",
+            "OBSERVATION": "Under Review",
+            "ACCEPTED": "Offer Sent",
+            "REJECTED": "Not Selected",
+        }
+        return applicant_labels.get(app.status, "View Tryout")
 
     def _showdown_action(
         self,
@@ -483,7 +714,7 @@ class MyCompetitiveOperationsView(APIView):
         if match_url and linked_state == "viewer_submitted":
             return "Proof Under Review", match_url, False
         if match_url and linked_state in {"opponent_submitted", "result_needed"}:
-            return "Submit Result in Match Room", match_url, True
+            return "Submit Proof in Match Room", match_url, True
 
         if status == "OPEN":
             return "Waiting for opponent", HUB_URLS["showdown"], False
@@ -521,7 +752,7 @@ class MyCompetitiveOperationsView(APIView):
         if match_url and linked_state in {"finalized", "viewer_submitted"}:
             return "Proof Under Review", match_url, False
         if match_url and linked_state in {"opponent_submitted", "result_needed"}:
-            return "Submit Result in Match Room", match_url, True
+            return "Submit Proof in Match Room", match_url, True
 
         if status == "PENDING":
             if match_url:

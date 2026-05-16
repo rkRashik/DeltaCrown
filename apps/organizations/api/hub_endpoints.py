@@ -331,29 +331,29 @@ def active_scrims(request):
         try:
             from apps.organizations.models import ScrimRequest
             
-            # Query active scrim requests
+            # Query active canonical Team HQ scrim requests.
             scrims_qs = ScrimRequest.objects.filter(
-                status='ACTIVE',
-                expires_at__gt=timezone.now()
-            ).select_related('team', 'game')
+                status='OPEN',
+                scheduled_at__gt=timezone.now()
+            ).select_related('requesting_team', 'game')
             
             if game_filter:
                 scrims_qs = scrims_qs.filter(game__slug=game_filter)
             
             if region_filter:
-                scrims_qs = scrims_qs.filter(region=region_filter)
+                scrims_qs = scrims_qs.filter(server_region__icontains=region_filter)
             
             scrims_qs = scrims_qs.order_by('-created_at')[:limit]
             
             scrims = []
             for scrim in scrims_qs:
                 scrims.append({
-                    'title': f"{scrim.team.name} looking for scrim",
+                    'title': f"{scrim.requesting_team.name} looking for scrim",
                     'game_id': scrim.game.id if scrim.game else None,
-                    'region': scrim.region or 'Any',
-                    'start_time': scrim.preferred_time.isoformat() if scrim.preferred_time else None,
+                    'region': scrim.server_region or 'Any',
+                    'start_time': scrim.scheduled_at.isoformat() if scrim.scheduled_at else None,
                     'format': getattr(scrim, 'format', '5v5'),
-                    'url': scrim.team.get_absolute_url(),
+                    'url': scrim.requesting_team.get_absolute_url(),
                 })
             
             response_data = {

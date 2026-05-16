@@ -2624,7 +2624,44 @@ class MatchRoomWorkflowView(LoginRequiredMixin, View):
             if proof_file is not None:
                 submission.proof_screenshot = proof_file
 
+            # P3.6 — tag with the current game number in a BO3/BO5 series.
+            best_of_sub = int(getattr(match, "best_of", 1) or 1)
+            if best_of_sub > 1:
+                games_played = len(list(getattr(match, "game_scores", None) or []))
+                submission.game_number = games_played + 1  # 1-indexed current game
+            else:
+                submission.game_number = None
+
             submission.save()
+
+            # P3.1 — Auto-OCR: enqueue via Celery **worker** (not beat) after
+            # save so the participant's HTTP response is never delayed.
+            # Requires a running ``celery -A deltacrown worker`` process.
+            # Without a worker the task queues in the broker and will run
+            # when a worker comes online. Manual Scan Evidence always works
+            # regardless of worker status (synchronous path in ocr_pipeline).
+            if proof_file is not None or proof_url:
+                try:
+                    from apps.tournaments.tasks.evidence_cleanup import (
+                        run_ocr_and_compare_task,
+                    )
+                    result = run_ocr_and_compare_task.delay(submission.id)
+                    logger.info(
+                        "Auto-OCR queued submission=%s task_id=%s "
+                        "(requires celery worker, not beat)",
+                        submission.id,
+                        getattr(result, "id", "unknown"),
+                    )
+                except Exception as _enqueue_err:
+                    # Worker unavailable or broker down — graceful degradation.
+                    # Participant submission still saved; admin can use manual
+                    # Scan Evidence button in the TOC Evidence tab.
+                    logger.warning(
+                        "Auto-OCR enqueue failed submission=%s err=%s "
+                        "— manual Scan Evidence available via TOC",
+                        submission.id, _enqueue_err,
+                    )
+
             return submission
 
         changed = False

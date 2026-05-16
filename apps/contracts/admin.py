@@ -3,7 +3,7 @@ from django.contrib import messages
 from django.db.models import Count
 from django.utils import timezone
 
-from .models import ContractEnrollment, ContractTemplate
+from .models import ContractEnrollment, ContractProofSubmission, ContractTemplate
 from .services import ContractService
 
 
@@ -224,3 +224,86 @@ class ContractEnrollmentAdmin(admin.ModelAdmin):
             ),
             "Recorded manual progress reviews",
         )
+
+
+@admin.register(ContractProofSubmission)
+class ContractProofSubmissionAdmin(admin.ModelAdmin):
+    """Review surface for Mission proof submissions."""
+
+    list_display = (
+        "enrollment_ref", "mission_title", "submitted_by", "status",
+        "has_uploaded_file", "submitted_at", "reviewed_by", "reviewed_at",
+    )
+    list_filter = ("status", "enrollment__template__game")
+    search_fields = (
+        "enrollment__reference_code",
+        "enrollment__template__title",
+        "submitted_by__username",
+        "proof_url",
+    )
+    readonly_fields = (
+        "enrollment", "submitted_by", "proof_url", "proof_file", "notes", "status",
+        "reviewed_by", "reviewed_at", "review_note", "submitted_at", "updated_at",
+    )
+    raw_id_fields = ("enrollment", "submitted_by", "reviewed_by")
+    date_hierarchy = "submitted_at"
+    actions = ("accept_selected_proofs", "reject_selected_proofs")
+
+    fieldsets = (
+        ("Proof", {
+            "fields": ("enrollment", "submitted_by", "proof_url", "proof_file", "notes", "status"),
+        }),
+        ("Review", {
+            "fields": ("reviewed_by", "reviewed_at", "review_note"),
+            "description": "Reviewing proof does not complete the Mission or settle rewards.",
+        }),
+        ("Timestamps", {
+            "fields": ("submitted_at", "updated_at"),
+            "classes": ("collapse",),
+        }),
+    )
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related(
+            "enrollment", "enrollment__template", "submitted_by", "reviewed_by",
+        )
+
+    @admin.display(description="Enrollment")
+    def enrollment_ref(self, obj):
+        return obj.enrollment.reference_code
+
+    @admin.display(description="Mission")
+    def mission_title(self, obj):
+        return obj.enrollment.template.title
+
+    @admin.display(description="File", boolean=True)
+    def has_uploaded_file(self, obj):
+        return bool(obj.proof_file)
+
+    def _review_action(self, request, queryset, decision):
+        success = 0
+        failed = 0
+        for proof in queryset:
+            try:
+                ContractService.review_proof(
+                    proof_id=proof.pk,
+                    actor=request.user,
+                    decision=decision,
+                    note=f"{decision.title()} from Django admin by {request.user.username}.",
+                )
+                success += 1
+            except Exception as exc:
+                failed += 1
+                self.message_user(request, f"{proof.pk}: {exc}", level=messages.ERROR)
+        if success:
+            self.message_user(request, f"Reviewed proofs: {success}", level=messages.SUCCESS)
+        if failed:
+            self.message_user(request, f"Failed reviews: {failed}", level=messages.WARNING)
+
+    @admin.action(description="Accept selected Mission proof")
+    def accept_selected_proofs(self, request, queryset):
+        self._review_action(request, queryset, "ACCEPTED")
+
+    @admin.action(description="Reject selected Mission proof")
+    def reject_selected_proofs(self, request, queryset):
+        self._review_action(request, queryset, "REJECTED")

@@ -1292,9 +1292,10 @@
                 const activeDot = m.is_active ? 'bg-dc-success' : 'bg-dc-text/30';
                 const rowDimmed = !m.is_active ? 'opacity-70' : '';
 
-                // Toggle: ALWAYS available (lazily materialises override for
-                // game-default rows on first click). Delete: ONLY for truly
-                // custom rows (server enforces this too).
+                // Per safe-default rule: TOC never deletes maps. Only toggle
+                // is exposed. Global map management lives in Django admin.
+                // Toggle lazily materialises a tournament-level MapPoolEntry
+                // for game-default rows on first click.
                 const toggleBtn = '<button data-click="TOC.settings.toggleMap" '
                     + 'data-click-args="[&quot;' + esc(idStr) + '&quot;,' + (!m.is_active) + ']" '
                     + 'class="px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest border rounded transition-colors '
@@ -1302,10 +1303,6 @@
                         ? 'border-amber-500/40 text-amber-300 hover:bg-amber-500/10'
                         : 'border-dc-success/40 text-dc-success hover:bg-dc-success/10')
                     + '">' + (m.is_active ? 'Disable' : 'Enable') + '</button>';
-                const deleteBtn = m.can_delete
-                    ? '<button data-click="TOC.settings.deleteMap" data-click-args="[&quot;' + esc(idStr) + '&quot;]" '
-                      + 'class="px-2 py-1 text-[10px] border border-dc-danger/30 text-dc-danger rounded hover:bg-dc-danger/10 transition-colors">Delete</button>'
-                    : '';
 
                 return '<div class="flex items-center justify-between py-2 px-3 bg-dc-surface/50 rounded-lg border border-dc-border ' + rowDimmed + '">'
                     + '<div class="flex items-center gap-2 min-w-0 flex-1">'
@@ -1314,7 +1311,7 @@
                     + (m.map_code ? '<span class="text-[10px] text-dc-text font-mono shrink-0">' + esc(m.map_code) + '</span>' : '')
                     + '<span class="text-[9px] uppercase tracking-widest font-bold border rounded px-1.5 py-0.5 ' + meta.cls + '">' + meta.label + '</span>'
                     + '</div>'
-                    + '<div class="flex items-center gap-1 shrink-0 ml-2">' + toggleBtn + deleteBtn + '</div>'
+                    + '<div class="flex items-center gap-1 shrink-0 ml-2">' + toggleBtn + '</div>'
                     + '</div>';
             }).join('');
             if (typeof lucide !== 'undefined') try { lucide.createIcons(); } catch (_) {}
@@ -1339,10 +1336,13 @@
     }
 
     async function toggleMap (id, active) {
+        // Routed via the dedicated ``/settings/map-pool/toggle/`` endpoint
+        // so synthetic ``game:<pk>`` ids never hit a path-converter that
+        // could reject them with 400. JSON body keeps the contract clean.
         try {
-            await API('settings/map-pool/' + encodeURIComponent(id) + '/', {
-                method: 'PATCH',
-                body: JSON.stringify({ is_active: active }),
+            await API('settings/map-pool/toggle/', {
+                method: 'POST',
+                body: JSON.stringify({ map_id: String(id), is_active: !!active }),
             });
             toast(active ? 'Map enabled for this tournament' : 'Map disabled for this tournament', 'success');
         } catch (e) {
@@ -1351,21 +1351,12 @@
         loadMapPool();
     }
 
-    async function deleteMap (id) {
-        // Backend rejects synthetic ``game:<pk>`` ids — guard against any
-        // accidental UI regression that exposes Delete on a game default.
-        if (String(id || '').startsWith('game:')) {
-            toast('Game default maps cannot be deleted from TOC. Disable instead, or manage in games admin.', 'error');
-            return;
-        }
-        if (!confirm('Delete this map?')) return;
-        try {
-            await API('settings/map-pool/' + encodeURIComponent(id) + '/', { method: 'DELETE' });
-            toast('Map deleted', 'success');
-        } catch (e) {
-            toast((e && e.payload && e.payload.error) || e?.message || 'Delete failed', 'error');
-        }
-        loadMapPool();
+    // RP-fix — TOC never deletes maps. Kept for backward compat on the
+    // namespace but UI never renders the trigger. If it does get called
+    // (e.g., from a stale data-click attribute on a cached page), it
+    // shows a clear message and bails.
+    async function deleteMap (_id) {
+        toast('Maps cannot be deleted from TOC. Manage maps in the games admin.', 'info');
     }
 
     /* ==================================================================
