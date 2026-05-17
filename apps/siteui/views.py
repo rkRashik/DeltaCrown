@@ -606,11 +606,13 @@ def first_attr(obj: Any, names: Iterable[str], default=None):
                 v = v()
             except Exception:
                 continue
-        if hasattr(v, "url"):  # FileField or ImageField
-            try:
-                return v.url
-            except Exception:
-                pass
+        try:
+            url = v.url  # FileField/ImageField — raises ValueError if empty
+            if url:
+                return url
+            continue
+        except (AttributeError, ValueError):
+            pass
         if v not in (None, ""):
             return v
     return default
@@ -760,8 +762,29 @@ def _build_arena_async_payload(
     else:
         tab_matches = match_payload["live_matches"]
 
+    # Cross-tab: when upcoming is empty for a date, fetch results for that date.
+    # The frontend displays them as "Completed Today" within the Fixtures view
+    # so users understand what happened rather than seeing an empty screen.
+    completed_groups = []
+    has_results_for_date = False
+    if selected_tab == "upcoming" and not tab_matches and selected_date:
+        cross_payload = _fetch_arena_matches(
+            request,
+            selected_game=selected_game,
+            search_query=search_query,
+            selected_date=selected_date,
+            include_logos=True,
+            only_tab="results",
+        )
+        result_matches = cross_payload.get("result_matches", [])
+        has_results_for_date = bool(result_matches)
+        if result_matches:
+            completed_groups = _group_matches_by_tournament(result_matches)
+
     return {
         "groups": _group_matches_by_tournament(tab_matches),
+        "has_results_for_date": has_results_for_date,
+        "completed_groups": completed_groups,
     }
 
 

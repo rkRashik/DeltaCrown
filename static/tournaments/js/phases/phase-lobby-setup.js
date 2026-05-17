@@ -21,6 +21,13 @@
     return Array.isArray(list) ? list : [];
   }
 
+  function _vetoSelectedMap(c) {
+    var workflow = c.asObject(c.state.room.workflow);
+    var veto = c.asObject(workflow.veto);
+    var series = c.asObject(workflow.series);
+    return String(veto.selected_map || series.current_map || '').trim();
+  }
+
   function renderCredentialField(c, field, credentials, readonly) {
     var row = c.asObject(field);
     var key = String(row.key || '').trim();
@@ -32,14 +39,47 @@
     var multiline = kind === 'textarea' || key === 'notes';
     var options = (!multiline && !readonly) ? _optionsForKey(c, key) : [];
 
+    // Map field — lock it when the veto or series already selected a map.
+    // The host cannot override a veto-decided map via the credentials form.
+    if (key === 'map') {
+      var vetoMap = _vetoSelectedMap(c);
+      var displayMap = vetoMap || value;
+      if (vetoMap) {
+        // Locked chip — premium veto-locked state
+        var workflow2 = c.asObject(c.state.room.workflow);
+        var meta = c.asObject(workflow2.map_pool_meta);
+        var mapMeta = null;
+        if (Array.isArray(workflow2.map_pool_meta)) {
+          workflow2.map_pool_meta.forEach(function(m) {
+            if (m && String(m.name||'').toLowerCase() === vetoMap.toLowerCase()) mapMeta = m;
+          });
+        }
+        var imgHtml = mapMeta && mapMeta.image_url
+          ? '<div class="w-10 h-10 rounded-lg overflow-hidden shrink-0 border border-ac/30"><img src="' + c.esc(mapMeta.image_url) + '" class="w-full h-full object-cover" alt=""></div>'
+          : '<div class="w-10 h-10 rounded-lg bg-ac/10 border border-ac/20 flex items-center justify-center shrink-0"><i data-lucide="map" class="w-4 h-4 text-ac/70"></i></div>';
+        return '<div class="md:col-span-2">' +
+          '<p class="text-[10px] font-black uppercase tracking-wider text-gray-500 mb-1.5">' + c.esc(label) + '</p>' +
+          '<div class="flex items-center gap-3 px-4 py-3 rounded-xl bg-ac/5 border border-ac/25">' +
+            imgHtml +
+            '<div class="min-w-0 flex-1">' +
+              '<p class="text-xs font-black text-white">' + c.esc(displayMap) + '</p>' +
+              '<p class="text-[10px] text-ac/70 mt-0.5 flex items-center gap-1"><i data-lucide="lock" class="w-2.5 h-2.5"></i> Selected by Map Veto</p>' +
+            '</div>' +
+          '</div>' +
+          '<input type="hidden" id="' + c.esc(id) + '" value="' + c.esc(displayMap) + '" />' +
+          '</div>';
+      }
+      // No veto map — regular editable field but with "Selected via veto" placeholder
+      return '<label class="text-xs text-gray-400">' + c.esc(label) +
+        '<input id="' + c.esc(id) + '" class="lobby-input mt-1" value="' + c.esc(value) + '" ' +
+        'placeholder="Selected via veto (or enter manually)" ' + (readonly ? 'readonly' : '') + ' /></label>';
+    }
+
     if (multiline) {
       return '<label class="text-xs text-gray-400 md:col-span-2">' + c.esc(label) +
         '<textarea id="' + c.esc(id) + '" class="lobby-input mt-1 min-h-[84px]" ' + (readonly ? 'readonly' : '') + '>' + c.esc(value) + '</textarea></label>';
     }
     if (options.length) {
-      // Game-aware select. Always include a "current value" pseudo-option at
-      // the top if the credential already has a value that isn't in options
-      // (admin custom value, legacy data) — don't silently drop it.
       var hasMatchingOption = options.some(function (o) {
         return String((o && o.code) || '').toLowerCase() === value.toLowerCase();
       });
@@ -50,16 +90,14 @@
       options.forEach(function (o) {
         var code = String((o && o.code) || '');
         var lbl  = String((o && o.label) || code);
-        var selected = (code.toLowerCase() === value.toLowerCase()) ? ' selected' : '';
-        optsHtml += '<option value="' + c.esc(code) + '"' + selected + '>' + c.esc(lbl) + '</option>';
+        var sel = (code.toLowerCase() === value.toLowerCase()) ? ' selected' : '';
+        optsHtml += '<option value="' + c.esc(code) + '"' + sel + '>' + c.esc(lbl) + '</option>';
       });
       return '<label class="text-xs text-gray-400">' + c.esc(label) +
         '<select id="' + c.esc(id) + '" class="lobby-input mt-1">' + optsHtml + '</select></label>';
     }
-    // Plain text fallback (e.g., lobby_code, password).
     var placeholder = key === 'lobby_code' ? 'Game lobby code'
                     : key === 'password'   ? 'Optional'
-                    : key === 'map'        ? 'Selected via veto'
                     : '';
     return '<label class="text-xs text-gray-400">' + c.esc(label) +
       '<input id="' + c.esc(id) + '" class="lobby-input mt-1" value="' + c.esc(value) + '" ' +
@@ -112,14 +150,23 @@
     render: function (c) {
       var workflow = c.asObject(c.state.room.workflow);
       var creds = c.asObject(workflow.credentials);
+      var policy = c.asObject(workflow.policy);
       var me = c.asObject(c.state.room.me);
       var host = c.participantForSide(1);
       var hostName = String(host.name || 'Host');
       var schema = c.credentialSchema();
       var isHost = c.bool(me.is_host, false);
       var isStaff = c.bool(me.is_staff, false);
-      // Staff (admins/organizers) can view & edit credentials on behalf of the host
-      var canEdit = isHost || isStaff;
+      var mySide = c.mySide();
+
+      // Credential policy: who is responsible for publishing room details.
+      var credPolicy = String(policy.credential_policy || 'host').toLowerCase();
+      // "host" → Side 1 (host team) sets credentials
+      // "organizer" → Organizer/staff sets credentials via TOC; participants see read-only
+      // "staff" → Only staff/admin can set credentials
+      var canEdit = (credPolicy === 'host' && (isHost || isStaff))
+                 || (credPolicy === 'organizer' && isStaff)
+                 || (credPolicy === 'staff' && isStaff);
       var canStartLive = c.bool(isHost || me.is_staff, false);
       var disabled = c.waitingLocked() || c.state.requestBusy;
 
@@ -151,30 +198,48 @@
             '</div>'
           : '';
 
+        // Policy-aware section header
+        var policyBadge = credPolicy === 'organizer'
+          ? '<span class="text-[9px] px-2 py-0.5 rounded-full bg-blue-500/15 border border-blue-400/25 text-blue-300 font-black uppercase tracking-widest ml-2">Organizer Sets Credentials</span>'
+          : credPolicy === 'staff'
+          ? '<span class="text-[9px] px-2 py-0.5 rounded-full bg-purple-500/15 border border-purple-400/25 text-purple-300 font-black uppercase tracking-widest ml-2">Staff Sets Credentials</span>'
+          : '';
+        var policyNote = credPolicy === 'organizer'
+          ? 'Organizer-managed room — you are entering credentials on behalf of participants.'
+          : credPolicy === 'staff'
+          ? 'Staff-managed room — participants will see credentials once published here.'
+          : 'You are Host (Side 1). Share room details so both players can join the same match instance.';
+
         return '<section class="glass-panel rounded-2xl p-5 md:p-7 border-t-4 border-ac">' +
-          '<p class="text-[10px] font-black uppercase tracking-widest text-gray-500">Host Broadcast</p>' +
+          '<div class="flex items-center gap-2 mb-1">' +
+          '<p class="text-[10px] font-black uppercase tracking-widest text-gray-500">Lobby Setup</p>' +
+          policyBadge +
+          '</div>' +
           '<h3 class="text-xl md:text-2xl font-black text-white">Share Match Room Credentials</h3>' +
-          '<p class="text-xs text-gray-400 mt-1 mb-4">You are Host (Side 1). Share room details so both players can join the same match instance.</p>' +
+          '<p class="text-xs text-gray-400 mt-1 mb-4">' + c.esc(policyNote) + '</p>' +
           publishedBadge +
           '<form id="credentials-form" class="mt-2 grid grid-cols-1 md:grid-cols-2 gap-3">' + fieldsHtml +
           '<div class="md:col-span-2 flex flex-wrap items-center justify-end gap-2 pt-1">' +
-          '<button type="submit" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-ac text-black text-xs font-black uppercase tracking-wider ' + (disabled ? 'opacity-50 cursor-not-allowed' : 'active:scale-95') + '" ' + (disabled ? 'disabled' : '') + '>' +
-          '<i data-lucide="send" class="w-3.5 h-3.5"></i>' + (hasCredentials ? 'Update &amp; Reshare' : 'Share With Opponent') + '</button>' +
-          '<button type="button" data-action="start-live" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border text-xs font-bold uppercase tracking-wider ' +
-          (hasCredentials ? 'border-emerald-400/40 bg-emerald-500/15 text-emerald-200 ' : 'border-white/25 bg-white/5 text-white ') +
-          ((!canStartLive || startLiveBlocked) ? 'opacity-50 cursor-not-allowed' : 'active:scale-95') + '" ' + ((!canStartLive || startLiveBlocked) ? 'disabled' : '') + '>' +
+          '<button type="submit" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-ac text-black text-xs font-black uppercase tracking-wider shadow-[0_0_16px_rgba(var(--ar),var(--ag),var(--ab),0.25)] ' + (disabled ? 'opacity-50 cursor-not-allowed' : 'hover:brightness-110 active:scale-95 transition-all') + '" ' + (disabled ? 'disabled' : '') + '>' +
+          '<i data-lucide="send" class="w-3.5 h-3.5"></i>' + (hasCredentials ? 'Update &amp; Reshare' : 'Publish Room Details') + '</button>' +
+          '<button type="button" data-action="start-live" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border text-xs font-bold uppercase tracking-wider transition-all ' +
+          (hasCredentials ? 'border-emerald-400/40 bg-emerald-500/15 text-emerald-200 shadow-[0_0_12px_rgba(52,211,153,0.15)] ' : 'border-white/20 bg-white/5 text-white/70 ') +
+          ((!canStartLive || startLiveBlocked) ? 'opacity-50 cursor-not-allowed' : 'hover:brightness-110 active:scale-95') + '" ' + ((!canStartLive || startLiveBlocked) ? 'disabled' : '') + '>' +
           '<i data-lucide="flag" class="w-3.5 h-3.5"></i>' +
           (beforeKickoff ? '<span>Live in <span data-kickoff-countdown="' + c.esc(kickoffIso) + '" class="tabular-nums font-black text-ac">' + c.esc(countdownText) + '</span></span>' : 'Mark Match Live') +
           '</button>' +
           '</div></form></section>';
       }
 
-      // ── Guest view ────────────────────────────────────────────────────
+      // ── Guest / read-only view ─────────────────────────────────────────
       if (hasCredentials) {
-        // Credentials received — show them in read-only card grid with copy buttons
         var credsHtml = schema.map(function (f) {
           return renderCredentialDisplay(c, f, creds);
         }).filter(Boolean).join('');
+
+        var publisherLabel = credPolicy === 'organizer' ? 'Organizer'
+                          : credPolicy === 'staff'     ? 'Staff'
+                          : c.esc(hostName);
 
         return '<section class="glass-panel rounded-2xl p-5 md:p-7 border-t-4 border-emerald-400/60">' +
           '<div class="flex items-center justify-between mb-5">' +
@@ -184,28 +249,31 @@
           '<p class="text-[10px] font-black uppercase tracking-widest text-emerald-400">Room Ready</p>' +
           '</div>' +
           '<h3 class="text-xl md:text-2xl font-black text-white">Match Room Details</h3>' +
-          '<p class="text-xs text-gray-400 mt-1">' + c.esc(hostName) + ' shared the room. Join the lobby, then come back to report your result.</p>' +
+          '<p class="text-xs text-gray-400 mt-1">' + publisherLabel + ' published the room. Join the lobby, then return to submit your result.</p>' +
           '</div>' +
           '<div class="shrink-0 w-12 h-12 rounded-xl bg-emerald-500/15 border border-emerald-400/25 flex items-center justify-center">' +
           '<i data-lucide="door-open" class="w-6 h-6 text-emerald-300"></i>' +
           '</div>' +
           '</div>' +
           '<div class="space-y-2">' + credsHtml + '</div>' +
-          '<p class="text-[10px] text-gray-600 mt-4 text-center">Once both players finish the game, return here to submit your result.</p>' +
+          '<p class="text-[10px] text-gray-500 mt-4 text-center">After the game ends, return here to submit your result score.</p>' +
           '</section>';
       }
 
-      // No credentials yet — waiting for host  
+      // No credentials yet — waiting for the designated publisher
+      var waitingPublisher = credPolicy === 'organizer' ? 'Organizer'
+                          : credPolicy === 'staff'     ? 'Staff'
+                          : hostName + ' (Host)';
       return '<section class="glass-panel rounded-2xl p-6 md:p-8 border-t-4 border-ac">' +
-        '<p class="text-[10px] font-black uppercase tracking-widest text-gray-500">Guest View</p>' +
-        '<div class="flex flex-col items-center justify-center text-center py-4 md:py-8">' +
-        '<div class="relative w-14 h-14 mb-5">' +
-        '<div class="absolute inset-0 rounded-full border-4 border-white/10"></div>' +
-        '<div class="absolute inset-0 rounded-full border-4 border-t-transparent animate-spin border-ac"></div>' +
+        '<p class="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-4">Lobby Setup</p>' +
+        '<div class="flex flex-col items-center justify-center text-center py-6 md:py-10">' +
+        '<div class="relative w-16 h-16 mb-5">' +
+        '<div class="absolute inset-0 rounded-full border-2 border-white/8"></div>' +
+        '<div class="absolute inset-0 rounded-full border-2 border-t-ac/70 border-r-transparent border-b-transparent border-l-transparent animate-spin" style="animation-duration:1.4s"></div>' +
         '<div class="absolute inset-0 flex items-center justify-center">' +
-        '<i data-lucide="radar" class="w-5 h-5 text-ac animate-pulse"></i></div></div>' +
-        '<h3 class="text-xl md:text-2xl font-black text-white">Awaiting Host Room Details</h3>' +
-        '<p class="text-xs md:text-sm text-gray-400 mt-2 max-w-md">' + c.esc(hostName) + ' (Side 1) is setting up the room. Stay on this screen — details will appear automatically.</p>' +
+        '<i data-lucide="wifi" class="w-5 h-5 text-ac/70"></i></div></div>' +
+        '<h3 class="text-xl font-black text-white">Waiting for Room Details</h3>' +
+        '<p class="text-xs text-gray-400 mt-2 max-w-xs">' + c.esc(waitingPublisher) + ' is setting up the lobby. Details will appear here automatically.</p>' +
         '</div></section>';
     },
 

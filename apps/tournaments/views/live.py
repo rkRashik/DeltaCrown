@@ -463,7 +463,14 @@ def _looks_like_image(url, media_type):
     return any(lowered.endswith(ext) for ext in _IMAGE_EXTENSIONS)
 
 
-def _collect_match_media(match, presentation):
+def _collect_match_media(match, presentation, *, public_only: bool = False):
+    """Collect media items for the match center.
+
+    When ``public_only=True`` (public match report page), evidence screenshots
+    uploaded by participants are excluded — those are admin/TOC-only material.
+    Only MatchMedia rows with ``is_evidence=False`` and the featured URL are
+    returned for public consumers.
+    """
     entries = []
 
     featured = _safe_text(presentation.get('featured_media_url'), fallback='', max_length=500)
@@ -515,53 +522,51 @@ def _collect_match_media(match, presentation):
             'created_at': row.created_at,
         })
 
-    # Always surface the latest captain-submitted screenshot as evidence — even
-    # if a screenshot already exists in MatchMedia, the result-submission proof
-    # is the source of truth for "what the team reported" and is what manual
-    # review needs side-by-side. Dedupe by URL to avoid showing the same proof
-    # twice when an organizer also pinned it as MatchMedia.
-    try:
-        from apps.tournaments.models import MatchResultSubmission
-        submissions = list(
-            MatchResultSubmission.objects
-            .filter(match=match)
-            .order_by('-submitted_at')[:4]
-        )
-    except (ImportError, DatabaseError):
-        submissions = []
-
-    seen_urls = {entry['url'] for entry in entries}
-    for sub in submissions:
-        proof_url = _safe_text(getattr(sub, 'proof_screenshot_url', ''), fallback='', max_length=500)
-        if not proof_url:
-            try:
-                proof_field = getattr(sub, 'proof_screenshot', None)
-                proof_url = reverse('dashboard:competitive_match_proof_file', args=[sub.pk]) if proof_field else ''
-            except (AttributeError, ValueError):
-                proof_url = ''
-        if not proof_url or proof_url in seen_urls:
-            continue
-        seen_urls.add(proof_url)
-
-        submitter_name = ''
+    # Evidence screenshots from MatchResultSubmission are admin/TOC-only.
+    # Skip entirely for public-facing consumers (public_only=True).
+    if not public_only:
         try:
-            submitter_name = _safe_text(
-                getattr(getattr(sub, 'submitted_by_user', None), 'username', ''),
-                fallback='', max_length=64,
+            from apps.tournaments.models import MatchResultSubmission
+            submissions = list(
+                MatchResultSubmission.objects
+                .filter(match=match)
+                .order_by('-submitted_at')[:4]
             )
-        except (AttributeError, DatabaseError):
-            submitter_name = ''
+        except (ImportError, DatabaseError):
+            submissions = []
 
-        entries.append({
-            'id': f'submission-{sub.pk}',
-            'media_type': 'evidence',
-            'url': proof_url,
-            'description': f"Captain proof — {submitter_name}" if submitter_name else 'Result submission evidence',
-            'is_image': _looks_like_image(proof_url, 'evidence'),
-            'is_evidence': True,
-            'submitter': submitter_name,
-            'created_at': getattr(sub, 'submitted_at', None),
-        })
+        seen_urls = {entry['url'] for entry in entries}
+        for sub in submissions:
+            proof_url = _safe_text(getattr(sub, 'proof_screenshot_url', ''), fallback='', max_length=500)
+            if not proof_url:
+                try:
+                    proof_field = getattr(sub, 'proof_screenshot', None)
+                    proof_url = reverse('dashboard:competitive_match_proof_file', args=[sub.pk]) if proof_field else ''
+                except (AttributeError, ValueError):
+                    proof_url = ''
+            if not proof_url or proof_url in seen_urls:
+                continue
+            seen_urls.add(proof_url)
+
+            submitter_name = ''
+            try:
+                submitter_name = _safe_text(
+                    getattr(getattr(sub, 'submitted_by_user', None), 'username', ''),
+                    fallback='', max_length=64,
+                )
+            except (AttributeError, DatabaseError):
+                submitter_name = ''
+
+            entries.append({
+                'id': f'submission-{sub.pk}',
+                'media_type': 'evidence',
+                'url': proof_url,
+                'description': f"Captain proof — {submitter_name}" if submitter_name else 'Result submission evidence',
+                'is_image': _looks_like_image(proof_url, 'evidence'),
+                'is_evidence': True,
+                'submitter': submitter_name,
+                'created_at': getattr(sub, 'submitted_at', None),
+            })
 
     return entries
 
@@ -1232,18 +1237,54 @@ class MatchDetailView(DetailView):
                 f.name == 'is_deleted' for f in MatchPlayerStat._meta.get_fields()
             )
 
-            player_stats_qs = MatchPlayerStat.objects.filter(match=match)
+            player_stats_qs = (
+                MatchPlayerStat.objects
+                .filter(match=match)
+                .select_related('player')
+            )
             if has_match_stat_soft_delete:
                 player_stats_qs = player_stats_qs.filter(is_deleted=False)
             player_stats_qs = player_stats_qs.order_by('-acs')
 
-            team1_stats = []
-            team2_stats = []
-            for ps in player_stats_qs:
-                stat_dict = {
+            # Build a passport IGN map for players to surface game IDs.
+            game_slug = match.tournament.game.slug if (
+                getattr(match, 'tournament', None) and
+                getattr(match.tournament, 'game', None)
+            ) else ''
+            player_ids = [ps.player_id for ps in player_stats_qs if ps.player_id]
+            passport_ign_map = {}
+            if game_slug and player_ids:
+                try:
+                    from apps.user_profile.services.game_passport_service import GamePassportService
+                    bulk = GamePassportService.get_passports_bulk(player_ids, game_slug)
+                    passport_ign_map = {uid: (p.ign or '') for uid, p in bulk.items()}
+                except Exception:
+                    pass
+
+            def _resolve_player_display(ps):
+                """Return (username, display_name, avatar_url) from player FK + passport."""
+                user = getattr(ps, 'player', None)
+                username = getattr(user, 'username', '') or ''
+                full_name = (getattr(user, 'get_full_name', lambda: '')() or '').strip()
+                ign = passport_ign_map.get(ps.player_id, '') if ps.player_id else ''
+                display = ign or full_name or username or 'Unknown Player'
+                avatar_url = ''
+                try:
+                    profile = getattr(user, 'profile', None)
+                    av = getattr(profile, 'avatar', None)
+                    if av:
+                        avatar_url = av.url
+                except (AttributeError, ValueError):
+                    pass
+                return username or 'unknown', display, avatar_url
+
+            def _serialize_stat(ps):
+                username, display_name, avatar_url = _resolve_player_display(ps)
+                return {
                     'id': ps.id,
-                    'player_name': ps.player_name,
-                    'display_name': ps.display_name or ps.player_name,
+                    'player_name': username,
+                    'display_name': display_name,
+                    'avatar_url': avatar_url,
                     'agent': ps.agent or '',
                     'kills': ps.kills or 0,
                     'deaths': ps.deaths or 0,
@@ -1251,12 +1292,17 @@ class MatchDetailView(DetailView):
                     'kd_ratio': float(ps.kd_ratio) if ps.kd_ratio else 0.0,
                     'acs': float(ps.acs) if ps.acs else 0.0,
                     'adr': float(ps.adr) if ps.adr else 0.0,
-                    'hs_pct': float(ps.hs_pct) if ps.hs_pct else 0.0,
+                    'hs_pct': float(ps.headshot_pct) if ps.headshot_pct else 0.0,
                     'first_kills': ps.first_kills or 0,
                     'first_deaths': ps.first_deaths or 0,
                     'clutches': ps.clutches or 0,
                     'is_mvp': ps.is_mvp,
                 }
+
+            team1_stats = []
+            team2_stats = []
+            for ps in player_stats_qs:
+                stat_dict = _serialize_stat(ps)
                 if ps.team_id == match.participant1_id:
                     team1_stats.append(stat_dict)
                 elif ps.team_id == match.participant2_id:
@@ -1264,34 +1310,10 @@ class MatchDetailView(DetailView):
 
             # If team_id matching fails, split by order
             if not team1_stats and not team2_stats and player_stats_qs.exists():
-                all_stats = [s for s in player_stats_qs]
+                all_stats = list(player_stats_qs)
                 mid = len(all_stats) // 2
-                for ps in all_stats[:mid]:
-                    team1_stats.append({
-                        'player_name': ps.player_name,
-                        'display_name': ps.display_name or ps.player_name,
-                        'agent': ps.agent or '', 'kills': ps.kills or 0,
-                        'deaths': ps.deaths or 0, 'assists': ps.assists or 0,
-                        'kd_ratio': float(ps.kd_ratio) if ps.kd_ratio else 0.0,
-                        'acs': float(ps.acs) if ps.acs else 0.0,
-                        'adr': float(ps.adr) if ps.adr else 0.0,
-                        'hs_pct': float(ps.hs_pct) if ps.hs_pct else 0.0,
-                        'first_kills': ps.first_kills or 0, 'first_deaths': ps.first_deaths or 0,
-                        'clutches': ps.clutches or 0, 'is_mvp': ps.is_mvp,
-                    })
-                for ps in all_stats[mid:]:
-                    team2_stats.append({
-                        'player_name': ps.player_name,
-                        'display_name': ps.display_name or ps.player_name,
-                        'agent': ps.agent or '', 'kills': ps.kills or 0,
-                        'deaths': ps.deaths or 0, 'assists': ps.assists or 0,
-                        'kd_ratio': float(ps.kd_ratio) if ps.kd_ratio else 0.0,
-                        'acs': float(ps.acs) if ps.acs else 0.0,
-                        'adr': float(ps.adr) if ps.adr else 0.0,
-                        'hs_pct': float(ps.hs_pct) if ps.hs_pct else 0.0,
-                        'first_kills': ps.first_kills or 0, 'first_deaths': ps.first_deaths or 0,
-                        'clutches': ps.clutches or 0, 'is_mvp': ps.is_mvp,
-                    })
+                team1_stats = [_serialize_stat(ps) for ps in all_stats[:mid]]
+                team2_stats = [_serialize_stat(ps) for ps in all_stats[mid:]]
 
             context['team1_stats'] = sorted(team1_stats, key=lambda x: -x['acs'])
             context['team2_stats'] = sorted(team2_stats, key=lambda x: -x['acs'])
@@ -1304,9 +1326,14 @@ class MatchDetailView(DetailView):
                 map_stats_qs = MatchMapPlayerStat.objects.filter(match_stat__match=match)
                 if has_match_stat_soft_delete:
                     map_stats_qs = map_stats_qs.filter(match_stat__is_deleted=False)
-                map_stats_qs = map_stats_qs.select_related('match_stat').order_by('map_number', '-kills')
+                map_stats_qs = map_stats_qs.select_related('match_stat', 'match_stat__player').order_by('map_number', '-kills')
             else:
-                map_stats_qs = MatchMapPlayerStat.objects.filter(match=match).select_related('player').order_by('map_number', '-kills')
+                map_stats_qs = (
+                    MatchMapPlayerStat.objects
+                    .filter(match=match)
+                    .select_related('player')
+                    .order_by('map_number', '-kills')
+                )
 
             map_player_stats = {}
             for mps in map_stats_qs:
@@ -1319,28 +1346,69 @@ class MatchDetailView(DetailView):
                     }
 
                 if uses_match_stat_relation:
-                    player_name = mps.match_stat.display_name or mps.match_stat.player_name
-                    team_id = mps.match_stat.team_id
+                    ms = getattr(mps, 'match_stat', None)
+                    if ms:
+                        p_user = getattr(ms, 'player', None)
+                        p_username = getattr(p_user, 'username', '') or ''
+                        p_ign = passport_ign_map.get(ms.player_id, '') if ms.player_id else ''
+                        player_name = p_ign or p_username or 'Unknown Player'
+                        team_id = ms.team_id
+                    else:
+                        player_name = 'Unknown Player'
+                        team_id = None
                 else:
-                    player_name = mps.player.username if getattr(mps, 'player', None) else ''
+                    p_user = getattr(mps, 'player', None)
+                    p_username = getattr(p_user, 'username', '') or ''
+                    p_ign = passport_ign_map.get(getattr(mps, 'player_id', None), '') if getattr(mps, 'player_id', None) else ''
+                    player_name = p_ign or p_username or 'Unknown Player'
                     team_id = getattr(mps, 'team_id', None)
 
                 map_player_stats[mn]['players'].append({
                     'player_name': player_name,
                     'team_id': team_id,
-                    'kills': mps.kills or 0, 'deaths': mps.deaths or 0, 'assists': mps.assists or 0,
-                    'acs': float(mps.acs) if mps.acs else 0.0,
-                    'adr': float(mps.adr) if mps.adr else 0.0,
+                    'kills': mps.kills or 0,
+                    'deaths': mps.deaths or 0,
+                    'assists': mps.assists or 0,
+                    'acs': float(mps.acs) if getattr(mps, 'acs', None) else 0.0,
+                    'adr': float(mps.adr) if getattr(mps, 'adr', None) else 0.0,
                 })
             context['map_player_stats'] = sorted(map_player_stats.values(), key=lambda x: x['map_number'])
         except ImportError:
             context['team1_stats'] = []
             context['team2_stats'] = []
             context['map_player_stats'] = []
+        except Exception as _stat_err:
+            import logging as _logging
+            _logging.getLogger(__name__).warning(
+                "match detail: player stats load failed match=%s err=%s", match.id, _stat_err
+            )
+            context.setdefault('team1_stats', [])
+            context.setdefault('team2_stats', [])
+            context.setdefault('map_player_stats', [])
 
-        # MVP
-        mvp_stat = next((s for s in (context.get('team1_stats', []) + context.get('team2_stats', [])) if s.get('is_mvp')), None)
+        # MVP — explicit flag first, then highest ACS, then highest kills.
+        all_player_stats = context.get('team1_stats', []) + context.get('team2_stats', [])
+        mvp_stat = next((s for s in all_player_stats if s.get('is_mvp')), None)
+        if not mvp_stat and all_player_stats:
+            by_acs = sorted(all_player_stats, key=lambda s: (-s.get('acs', 0), -s.get('kills', 0)))
+            if by_acs:
+                # Mark the top performer in-place so the template can highlight them.
+                by_acs[0]['computed_mvp'] = True
+                mvp_stat = by_acs[0]
         context['mvp'] = mvp_stat
+
+        # Match metadata for report page — map, server, mode from lobby_info/workflow.
+        lobby_info = match.lobby_info if isinstance(match.lobby_info, dict) else {}
+        workflow = lobby_info.get('workflow') if isinstance(lobby_info.get('workflow'), dict) else {}
+        veto = workflow.get('veto') if isinstance(workflow.get('veto'), dict) else {}
+        series = workflow.get('series') if isinstance(workflow.get('series'), dict) else {}
+        context['match_metadata'] = {
+            'map': str(lobby_info.get('map') or veto.get('selected_map') or series.get('current_map') or '').strip(),
+            'server': str(lobby_info.get('server') or '').strip(),
+            'game_mode': str(lobby_info.get('game_mode') or '').strip(),
+            'best_of': context.get('best_of', 1),
+            'match_room_url': reverse('tournaments:match_room', kwargs={'slug': match.tournament.slug, 'match_id': match.id}),
+        }
 
         # Is participant?
         lobby_window_opens_at = None
@@ -1376,7 +1444,7 @@ class MatchDetailView(DetailView):
         viewer = self.request.user if self.request.user.is_authenticated else None
         presentation = _resolve_match_center_presentation(match, request=self.request)
         poll_payload = _build_fan_pulse_payload(match, presentation, viewer=viewer)
-        media_items = _collect_match_media(match, presentation)
+        media_items = _collect_match_media(match, presentation, public_only=True)
 
         team1_name = (
             (context.get('team1') or {}).get('name')
@@ -1457,22 +1525,30 @@ class MatchDetailView(DetailView):
             'is_br_layout': is_br_layout,
         }
 
+        # Dynamic tab visibility:
+        # - Timeline tab only shown if there are more than 2 meaningful events (not just scheduled + completed).
+        # - Media tab only shown if there are actual public media items or a stream.
+        timeline = context.get('timeline', [])
+        has_meaningful_timeline = len(timeline) > 3
+        stream_payload = presentation.get('stream') if isinstance(presentation.get('stream'), dict) else _resolve_embed_stream(match.stream_url, request=self.request)
+        has_public_media = bool(media_items) or (stream_payload and stream_payload.get('has_stream'))
+
         context['match_presentation'] = {
             'enabled': bool(presentation.get('enabled')),
             'theme': _safe_text(presentation.get('theme'), fallback='cyber', max_length=24),
             'headline': _safe_text(presentation.get('headline'), fallback=f'{team1_name} vs {team2_name}', max_length=120),
             'subline': _safe_text(presentation.get('subline'), fallback=f"{context['round_label']} • Match {match.match_number}", max_length=120),
-            'show_timeline': bool(presentation.get('show_timeline')),
-            'show_media': bool(presentation.get('show_media')),
+            'show_timeline': bool(presentation.get('show_timeline')) and has_meaningful_timeline,
+            'show_media': bool(presentation.get('show_media')) and has_public_media,
             'show_stats': bool(presentation.get('show_stats')),
             'show_fan_pulse': bool(presentation.get('show_fan_pulse')),
             'auto_refresh_seconds': _safe_int(presentation.get('auto_refresh_seconds'), fallback=20, minimum=10, maximum=120),
         }
 
         context['match_media'] = {
-            'stream': presentation.get('stream') if isinstance(presentation.get('stream'), dict) else _resolve_embed_stream(match.stream_url, request=self.request),
+            'stream': stream_payload,
             'items': media_items,
-            'has_items': bool(media_items),
+            'has_items': has_public_media,
         }
 
         context['match_stats'] = {

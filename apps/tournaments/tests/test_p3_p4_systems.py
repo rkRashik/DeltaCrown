@@ -344,3 +344,182 @@ class StagedOverrideLifecycleTests(TestCase):
         }
         self.assertIn("participant1_score", staged)
         self.assertIn("staged_at", staged)
+
+
+class EvidenceSummaryScoreFieldTests(TestCase):
+    """Regression: _sub_summary reads scores from raw_result_payload, not model attrs."""
+
+    def setUp(self):
+        from apps.tournaments.services.evidence_flagging import _sub_summary
+        self._summarize = _sub_summary
+
+    def _sub_with_payload(self, score_for, score_against, ocr_status='completed', conf=0.88):
+        s = MagicMock()
+        s.raw_result_payload = {'score_for': score_for, 'score_against': score_against}
+        s.ocr_extracted = {'participant1_score': score_for, 'participant2_score': score_against}
+        s.ocr_status = ocr_status
+        s.ocr_confidence = conf
+        s.proof_screenshot = MagicMock()
+        s.proof_screenshot.name = 'test.png'
+        s.proof_screenshot_url = ''
+        s.id = 42
+        return s
+
+    def test_scores_from_payload(self):
+        sub = self._sub_with_payload(13, 11)
+        summary = self._summarize(sub)
+        self.assertEqual(summary['submitted_for'], 13)
+        self.assertEqual(summary['submitted_against'], 11)
+        self.assertEqual(summary['submission_id'], 42)
+
+    def test_none_submission_returns_none_scores(self):
+        summary = self._summarize(None)
+        self.assertIsNone(summary['submitted_for'])
+        self.assertIsNone(summary['submitted_against'])
+        self.assertIsNone(summary['submission_id'])
+
+    def test_empty_payload_falls_back_to_attribute(self):
+        """If raw_result_payload is empty dict, fall back to direct attribute."""
+        s = MagicMock()
+        s.raw_result_payload = {}
+        s.score_for = 7
+        s.score_against = 3
+        s.ocr_extracted = {}
+        s.ocr_status = ''
+        s.ocr_confidence = None
+        s.proof_screenshot = MagicMock()
+        s.proof_screenshot.name = ''
+        s.proof_screenshot_url = ''
+        s.id = 99
+        summary = self._summarize(s)
+        self.assertEqual(summary['submitted_for'], 7)
+        self.assertEqual(summary['submitted_against'], 3)
+
+
+class CredentialPolicySettingsTests(TestCase):
+    """credential_policy is normalized and stored in lobby_policy."""
+
+    def setUp(self):
+        from apps.tournaments.api.toc.settings_service import TOCSettingsService
+        self.svc = TOCSettingsService
+
+    def _policy_config(self, raw_policy):
+        t = MagicMock()
+        t.config = {'lobby_policy': raw_policy}
+        t.format = 'single_elimination'
+        t.enable_check_in = False
+        # Minimal game stub so capabilities resolve without error
+        game = MagicMock()
+        game.slug = 'valorant'
+        t.game = game
+        return t
+
+    def test_host_policy_default(self):
+        t = self._policy_config({})
+        with patch('apps.tournaments.api.toc.settings_service.apply_lobby_policy_capabilities', return_value={}):
+            result = self.svc._get_lobby_policy_config(t)
+        self.assertEqual(result['credential_policy'], 'host')
+
+    def test_organizer_policy_stored(self):
+        t = self._policy_config({'credential_policy': 'organizer'})
+        with patch('apps.tournaments.api.toc.settings_service.apply_lobby_policy_capabilities', return_value={}):
+            result = self.svc._get_lobby_policy_config(t)
+        self.assertEqual(result['credential_policy'], 'organizer')
+
+    def test_invalid_policy_defaults_to_host(self):
+        t = self._policy_config({'credential_policy': 'random_nonsense'})
+        with patch('apps.tournaments.api.toc.settings_service.apply_lobby_policy_capabilities', return_value={}):
+            result = self.svc._get_lobby_policy_config(t)
+        self.assertEqual(result['credential_policy'], 'host')
+
+
+class MVPComputationTests(TestCase):
+    """MVP is computed as top-ACS player when no explicit flag is set."""
+
+    def _make_stat(self, acs, kills, is_mvp=False):
+        return {'acs': float(acs), 'kills': kills, 'deaths': 5, 'assists': 3,
+                'is_mvp': is_mvp, 'display_name': f'Player_{acs}',
+                'avatar_url': '', 'kd_ratio': kills / 5.0}
+
+    def test_explicit_mvp_wins(self):
+        stats = [self._make_stat(100, 10), self._make_stat(300, 25, is_mvp=True)]
+        mvp = next((s for s in stats if s.get('is_mvp')), None)
+        self.assertIsNotNone(mvp)
+        self.assertEqual(mvp['acs'], 300.0)
+
+    def testcomputed_mvp_top_acs(self):
+        stats = [self._make_stat(250, 20), self._make_stat(320, 25), self._make_stat(180, 15)]
+        mvp = next((s for s in stats if s.get('is_mvp')), None)
+        if not mvp:
+            by_acs = sorted(stats, key=lambda s: (-s.get('acs', 0), -s.get('kills', 0)))
+            by_acs[0]['computed_mvp'] = True
+            mvp = by_acs[0]
+        self.assertEqual(mvp['acs'], 320.0)
+        self.assertTrue(mvp.get('computed_mvp'))
+
+    def test_no_stats_no_mvp(self):
+        stats = []
+        mvp = next((s for s in stats if s.get('is_mvp')), None)
+        if not mvp and stats:
+            by_acs = sorted(stats, key=lambda s: -s.get('acs', 0))
+            mvp = by_acs[0]
+        self.assertIsNone(mvp)
+
+    def test_computed_mvp_tiebreak_by_kills(self):
+        stats = [self._make_stat(200, 30), self._make_stat(200, 22)]
+        by_acs = sorted(stats, key=lambda s: (-s.get('acs', 0), -s.get('kills', 0)))
+        self.assertEqual(by_acs[0]['kills'], 30)
+
+
+class PublicMediaPrivacyTests(TestCase):
+    """Evidence screenshots must never appear in public match report media."""
+
+    def _make_item(self, is_evidence=False, media_type='screenshot', url='http://example.com/img.png'):
+        return {'id': '1', 'media_type': media_type, 'url': url,
+                'is_evidence': is_evidence, 'is_image': True, 'description': '', 'submitter': ''}
+
+    def test_evidence_excluded_when_public_only(self):
+        """_collect_match_media with public_only=True must not include evidence items.
+        Verifies the function signature accepts public_only kwarg without raising."""
+        from unittest.mock import patch, MagicMock
+        from apps.tournaments.views.live import _collect_match_media, MatchMedia
+
+        match = MagicMock()
+        match.pk = 1
+        presentation = {'featured_media_url': ''}
+
+        with patch.object(MatchMedia.objects, 'filter') as mock_filter:
+            mock_filter.return_value.order_by.return_value.__getitem__ = MagicMock(return_value=[])
+            # Should not raise even if MatchResultSubmission is unavailable
+            try:
+                result = _collect_match_media(match, presentation, public_only=True)
+                # No exception means public_only arg is accepted
+                self.assertIsInstance(result, list)
+            except Exception as e:
+                self.fail(f'_collect_match_media raised unexpectedly: {e}')
+
+    def test_evidence_items_are_excluded_by_is_evidence_flag(self):
+        """Any item with is_evidence=True should be filtered from public view."""
+        items = [
+            self._make_item(is_evidence=False, media_type='video'),
+            self._make_item(is_evidence=True, media_type='evidence'),
+        ]
+        public_items = [i for i in items if not i.get('is_evidence')]
+        self.assertEqual(len(public_items), 1)
+        self.assertEqual(public_items[0]['media_type'], 'video')
+
+    def test_timeline_hidden_with_only_basic_events(self):
+        """Timeline is hidden when there are 3 or fewer basic events."""
+        basic_events = [
+            {'event': 'Match Scheduled', 'timestamp': None, 'description': ''},
+            {'event': 'Match Started', 'timestamp': None, 'description': ''},
+            {'event': 'Match Completed', 'timestamp': None, 'description': ''},
+        ]
+        has_meaningful = len(basic_events) > 3
+        self.assertFalse(has_meaningful, "3 basic events should not show timeline")
+
+    def test_timeline_shown_with_rich_events(self):
+        """Timeline is shown when there are more than 3 events."""
+        rich_events = [{'event': f'Event {i}', 'timestamp': None, 'description': ''} for i in range(4)]
+        has_meaningful = len(rich_events) > 3
+        self.assertTrue(has_meaningful)

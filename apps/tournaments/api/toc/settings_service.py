@@ -262,11 +262,18 @@ class TOCSettingsService:
             default=False,
         )
 
+        # credential_policy controls who sets lobby credentials.
+        # Values: "host" (default), "organizer", "staff"
+        raw_cred_policy = str(raw_policy.get("credential_policy") or "host").strip().lower()
+        if raw_cred_policy not in {"host", "organizer", "staff"}:
+            raw_cred_policy = "host"
+
         return {
             "require_check_in": bool(flags.get("require_check_in")),
             "require_coin_toss": bool(flags.get("require_coin_toss")),
             "require_map_veto": bool(flags.get("require_map_veto")),
             "require_match_evidence": require_match_evidence,
+            "credential_policy": raw_cred_policy,
             "check_in_per_round": TOCSettingsService._coerce_bool(
                 raw_policy.get("require_check_in_per_round", checkin_cfg.get("per_round", False)),
                 default=False,
@@ -649,6 +656,7 @@ class TOCSettingsService:
                 "require_coin_toss": lobby_policy["require_coin_toss"],
                 "require_map_veto": lobby_policy["require_map_veto"],
                 "require_match_evidence": lobby_policy["require_match_evidence"],
+                "credential_policy": lobby_policy.get("credential_policy", "host"),
                 "check_in_per_round": lobby_policy["check_in_per_round"],
                 "lobby_round_overrides": lobby_policy["lobby_round_overrides"],
                 "lobby_capabilities": lobby_policy["lobby_capabilities"],
@@ -811,6 +819,13 @@ class TOCSettingsService:
                 data.get("require_match_evidence"),
                 default=False,
             )
+            config_changed = True
+
+        if "credential_policy" in data:
+            raw_cp = str(data.get("credential_policy") or "host").strip().lower()
+            if raw_cp not in {"host", "organizer", "staff"}:
+                raw_cp = "host"
+            lobby_policy["credential_policy"] = raw_cp
             config_changed = True
 
         if "check_in_per_round" in data:

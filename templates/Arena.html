@@ -811,8 +811,14 @@ document.addEventListener("DOMContentLoaded", () => {
           let safeGroups = [];
           if (data.groups && Array.isArray(data.groups)) safeGroups = data.groups;
           else if (data.groups && typeof data.groups === 'object') safeGroups = Object.keys(data.groups).map(k => ({ grouper: k, list: data.groups[k] }));
-          
-          renderMatches(safeGroups, state.tab);
+
+          let completedGroups = [];
+          if (data.completed_groups && Array.isArray(data.completed_groups)) completedGroups = data.completed_groups;
+
+          renderMatches(safeGroups, state.tab, {
+            hasResultsForDate: !!data.has_results_for_date,
+            completedGroups,
+          });
           
           // Update Browser URL seamlessly
           const newUrl = new URL(window.location.href);
@@ -829,12 +835,45 @@ document.addEventListener("DOMContentLoaded", () => {
       }
   }
 
-  function renderMatches(groups, tab) {
+  function renderMatches(groups, tab, opts) {
+      opts = opts || {};
+      const completedGroups = opts.completedGroups || [];
+
       if (!groups || groups.length === 0) {
+          // Upcoming tab with no upcoming but completed matches today — show them inline.
+          // Inject a header banner then delegate to renderMatches with the results tab style.
+          if (tab === 'upcoming' && completedGroups.length > 0) {
+              const banner = document.createElement('div');
+              banner.className = 'flex items-center gap-3 mb-4 px-1 w-full';
+              banner.innerHTML = `
+                <div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/25">
+                  <i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-emerald-400"></i>
+                  <span class="text-[10px] font-black uppercase tracking-widest text-emerald-300">All Matches Completed Today</span>
+                </div>
+                <div class="h-px flex-1 bg-white/5"></div>
+                <button onclick="switchTab('results')" class="text-[10px] font-bold text-slate-400 hover:text-white underline underline-offset-2 transition-colors">Full Results →</button>`;
+              matchContainer.innerHTML = '';
+              matchContainer.appendChild(banner);
+              if (typeof lucide !== 'undefined') lucide.createIcons({ nodes: [banner] });
+              // Render completed groups as 'results' style into the same container
+              renderMatchGroupsInto(matchContainer, completedGroups, 'results');
+              return;
+          }
+
           let icon = tab === 'live' ? 'crosshair' : (tab === 'upcoming' ? 'calendar-x' : 'history');
-          let text = tab === 'live' ? 'No Active Operations' : (tab === 'upcoming' ? 'Radar Clear' : 'No Intel Found');
-          let subText = tab === 'live' ? 'Check back later for live broadcasts.' : `No finalized match data available for ${document.getElementById("date-display-text")?.textContent || state.date}.`;
-          
+          let text = tab === 'live' ? 'No Active Operations' : (tab === 'upcoming' ? 'No Upcoming Matches' : 'No Results Found');
+          let dateLabel = document.getElementById("date-display-text")?.textContent || state.date || 'this date';
+          let subText = tab === 'live'
+              ? 'Check back later for live broadcasts.'
+              : (tab === 'upcoming'
+                  ? `No scheduled matches for ${dateLabel}.`
+                  : `No completed matches found for ${dateLabel}.`);
+          let ctaHtml = '';
+          if (tab === 'upcoming' && opts.hasResultsForDate) {
+              ctaHtml = `<button onclick="switchTab('results')" class="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white/10 hover:bg-white/15 text-white text-sm font-semibold transition-colors"><i data-lucide="trophy" class="w-4 h-4"></i>View Results</button>`;
+          } else if (tab === 'upcoming' && state.date) {
+              ctaHtml = `<p class="text-xs text-slate-500 mt-2">Try the <button onclick="switchTab('results')" class="underline hover:text-slate-300">Results tab</button> or select a different date.</p>`;
+          }
           matchContainer.innerHTML = `
               <div class="text-center py-20 arena-glass rounded-2xl w-full">
                   <div class="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-4">
@@ -842,6 +881,7 @@ document.addEventListener("DOMContentLoaded", () => {
                   </div>
                   <h3 class="text-xl font-black text-white uppercase tracking-wide mb-1">${text}</h3>
                   <p class="text-sm font-medium text-slate-400">${subText}</p>
+                  ${ctaHtml}
               </div>`;
           if (typeof lucide !== 'undefined') lucide.createIcons();
           return;
@@ -963,38 +1003,51 @@ document.addEventListener("DOMContentLoaded", () => {
                                 </div>
                               </div>`;
               } else {
+                  // Results tab — premium result card
+                  let scA = m.score_a != null ? m.score_a : '-';
+                  let scB = m.score_b != null ? m.score_b : '-';
+                  let winnerTextA = aWin ? 'color:#00f0ff;font-weight:900' : (bWin ? 'opacity:0.45' : '');
+                  let winnerTextB = bWin ? 'color:#00f0ff;font-weight:900' : (aWin ? 'opacity:0.45' : '');
+                  let scAStyle = aWin ? 'color:#00f0ff' : '';
+                  let scBStyle = bWin ? 'color:#00f0ff' : '';
                   colGame = `<div class="card-col-game">
                                 ${badgeHtml}
                         ${matchTimeStatus}
                         ${stateChipHtml}
                         ${metaRow}
                              </div>`;
-                  let scA = m.score_a != null ? m.score_a : '-';
-                  let scB = m.score_b != null ? m.score_b : '-';
                   colTeams = `<div class="card-col-teams">
-                                <div class="team-wrap right ${aClass}">
+                                <div class="team-wrap right ${aClass}" style="${winnerTextA}">
                           <div class="team-tag">${teamALogoInner}</div>
                                     <span class="team-name">${escapeHtml(m.team_a)}</span>
+                                    ${aWin ? '<span style="font-size:8px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;color:#00f0ff;margin-left:4px">W</span>' : ''}
                                 </div>
                                 <div class="score-block">
-                                    <div class="score-numbers"><span>${scA}</span><span class="score-dash">-</span><span>${scB}</span></div>
-                                    <div class="score-subtext">${escapeHtml(detailsSubtext)}</div>
+                                    <div class="score-numbers"><span style="${scAStyle}">${scA}</span><span class="score-dash">–</span><span style="${scBStyle}">${scB}</span></div>
+                                    <div class="score-subtext">Final</div>
                                 </div>
-                                <div class="team-wrap ${bClass}">
+                                <div class="team-wrap ${bClass}" style="${winnerTextB}">
+                                    ${bWin ? '<span style="font-size:8px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;color:#00f0ff;margin-right:4px">W</span>' : ''}
                                     <span class="team-name">${escapeHtml(m.team_b)}</span>
                           <div class="team-tag">${teamBLogoInner}</div>
                                 </div>
                               </div>`;
+                  // Results always get a "Match Report" CTA
+                  colAction = `<div class="card-col-action">
+                      <span class="action-btn" style="background:rgba(0,240,255,0.08);border-color:rgba(0,240,255,0.2);color:#00f0ff;">
+                          Report <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                      </span>
+                  </div>`;
               }
 
-              if (m.stream_url || m.embed_url) {
+              if (tab !== 'results' && (m.stream_url || m.embed_url)) {
                   let streamToUse = m.embed_url || m.stream_url;
                   colAction = `<div class="card-col-action">
                                 <span class="action-btn" data-arena-open-stream data-stream-embed="${escapeHtml(streamToUse)}" data-raw-url="${escapeHtml(m.stream_url)}">
-                                    Tracker <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                                    Watch <i data-lucide="chevron-right" class="w-4 h-4"></i>
                                 </span>
                                </div>`;
-              } else {
+              } else if (tab !== 'results') {
                   colAction = `<div class="card-col-action"><span class="action-btn">Details <i data-lucide="chevron-right" class="w-4 h-4"></i></span></div>`;
               }
 
@@ -1006,6 +1059,66 @@ document.addEventListener("DOMContentLoaded", () => {
       matchContainer.innerHTML = html;
       if (typeof lucide !== 'undefined') lucide.createIcons();
   }
+
+  // Build and append match group HTML into a container element.
+  // Extracted so renderMatches can delegate to it and the "completed today" banner
+  // can reuse the same rendering pipeline.
+  function renderMatchGroupsInto(container, groups, tab) {
+      let html = '';
+      groups.forEach(group => {
+          let groupIcon = group.game_icon_url || (group.list && group.list.length > 0 ? group.list[0].game_icon_url : '');
+          let gameIconHtml = groupIcon
+            ? `<img src="${escapeHtml(groupIcon)}" class="w-5 h-5 rounded-sm object-cover">`
+            : `<i data-lucide="trophy" class="w-5 h-5 text-slate-400"></i>`;
+          html += `
+          <div class="match-group-container w-full">
+              <div class="match-group-header group-toggle-btn">
+                  <div class="flex items-center gap-3">${gameIconHtml}
+                      <span class="text-sm font-black text-white uppercase tracking-wide">${escapeHtml(group.grouper)}</span>
+                  </div>
+                  <div class="w-8 h-8 rounded-full flex items-center justify-center hover:bg-white/5 transition-colors">
+                      <i data-lucide="chevron-up" class="w-4 h-4 text-slate-500 transition-transform duration-300 group-content-chevron"></i>
+                  </div>
+              </div>
+              <div class="flex flex-col group-content-list origin-top transition-all duration-300">`;
+          (group.list || []).forEach(m => {
+              let aWin = (m.score_a > m.score_b);
+              let bWin = (m.score_b > m.score_a);
+              let aClass = aWin ? 'is-winner' : (bWin ? 'is-loser' : '');
+              let bClass = bWin ? 'is-winner' : (aWin ? 'is-loser' : '');
+              let teamATag = escapeHtml((m.team_a_tag || m.team_a || '').substring(0,3));
+              let teamBTag = escapeHtml((m.team_b_tag || m.team_b || '').substring(0,3));
+              let teamALogoInner = m.team_a_logo ? `<img src="${escapeHtml(m.team_a_logo)}" class="fall-img">` : teamATag;
+              let teamBLogoInner = m.team_b_logo ? `<img src="${escapeHtml(m.team_b_logo)}" class="fall-img">` : teamBTag;
+              let scA = m.score_a != null ? m.score_a : '-';
+              let scB = m.score_b != null ? m.score_b : '-';
+              let winnerTextA = aWin ? 'color:#00f0ff;font-weight:900' : (bWin ? 'opacity:0.45' : '');
+              let winnerTextB = bWin ? 'color:#00f0ff;font-weight:900' : (aWin ? 'opacity:0.45' : '');
+              let colTeams = `<div class="card-col-teams">
+                <div class="team-wrap right is-winner" style="${winnerTextA}"><div class="team-tag">${teamALogoInner}</div><span class="team-name">${escapeHtml(m.team_a)}</span></div>
+                <div class="score-block"><div class="score-numbers"><span>${scA}</span><span class="score-dash">–</span><span>${scB}</span></div><div class="score-subtext">Final</div></div>
+                <div class="team-wrap ${bClass}" style="${winnerTextB}"><span class="team-name">${escapeHtml(m.team_b)}</span><div class="team-tag">${teamBLogoInner}</div></div>
+              </div>`;
+              let colGame = `<div class="card-col-game"><span class="game-badge">${escapeHtml(m.game_name||'')}</span>${m.bo_label?`<span class="game-badge" style="color:#aaa;">${escapeHtml(m.bo_label)}</span>`:''}</div>`;
+              let colAction = `<div class="card-col-action"><span class="action-btn" style="background:rgba(0,240,255,0.08);border-color:rgba(0,240,255,0.2);color:#00f0ff;">Report <i data-lucide="chevron-right" class="w-4 h-4"></i></span></div>`;
+              html += `<a href="${m.match_url || '#'}" class="wide-match-card">${colGame}${colTeams}${colAction}</a>`;
+          });
+          html += `</div></div>`;
+      });
+      const wrap = document.createElement('div');
+      wrap.className = 'w-full';
+      wrap.innerHTML = html;
+      container.appendChild(wrap);
+      if (typeof lucide !== 'undefined') lucide.createIcons({ nodes: [wrap] });
+  }
+
+  function switchTab(tabName) {
+      if (!['live','upcoming','results'].includes(tabName)) return;
+      state.tab = tabName;
+      syncUI();
+      fetchArenaData();
+  }
+  window.switchTab = switchTab;
 
   // Event Listeners for Nav
   tabButtons.forEach(btn => {

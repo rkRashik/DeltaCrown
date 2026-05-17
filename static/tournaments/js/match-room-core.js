@@ -2406,6 +2406,11 @@
     if (requiresMatchEvidence() && !proofFile) { showToast('Evidence image is required before submitting.', 'error'); return; }
     if (proofFile && !String(proofFile.type || '').toLowerCase().startsWith('image/')) { showToast('Only image files are allowed for evidence upload.', 'error'); return; }
     if (proofFile && Number(proofFile.size || 0) > (10 * 1024 * 1024)) { showToast('Evidence image exceeds 10MB limit.', 'error'); return; }
+
+    // Immediately lock the submit button to prevent double-submit while request is in flight.
+    var submitBtn = document.querySelector('#result-submit-form button[type="submit"]');
+    if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = proofFile ? 'Uploading…' : 'Submitting…'; }
+
     var formData = new FormData();
     formData.append('action', 'submit_result');
     formData.append('score_for', String(scoreFor));
@@ -2413,7 +2418,14 @@
     formData.append('note', valueOf('result-note'));
     if (proofUrl) formData.append('proof_screenshot_url', proofUrl);
     if (proofFile) formData.append('proof', proofFile);
-    await sendWorkflowMultipartAction(formData);
+    try {
+      await sendWorkflowMultipartAction(formData);
+    } finally {
+      // Re-enable only if still showing (server response will replace the form on success).
+      if (submitBtn && submitBtn.isConnected && !submitBtn.disabled) {
+        submitBtn.textContent = 'Submit Score';
+      }
+    }
   }
 
   // =====================================================================

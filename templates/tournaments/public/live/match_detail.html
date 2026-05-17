@@ -191,14 +191,30 @@
                             </div>
                         </div>
                         {% endif %}
+                        {# Map / server / mode / BO metadata chips #}
+                        {% with md=match_metadata %}
+                        {% if md.map or md.server or md.game_mode or md.best_of > 1 %}
+                        <div class="flex flex-wrap items-center justify-center gap-2 mt-4">
+                          {% if md.best_of > 1 %}<span class="px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-[10px] font-black text-[#00f0ff] uppercase tracking-wider">BO{{ md.best_of }}</span>{% endif %}
+                          {% if md.map %}<span class="px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-[10px] font-bold text-gray-300 flex items-center gap-1.5"><i data-lucide="map" class="w-2.5 h-2.5"></i> {{ md.map }}</span>{% endif %}
+                          {% if md.server %}<span class="px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-[10px] font-bold text-gray-400 flex items-center gap-1.5"><i data-lucide="server" class="w-2.5 h-2.5"></i> {{ md.server }}</span>{% endif %}
+                          {% if md.game_mode %}<span class="px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-[10px] font-bold text-gray-400">{{ md.game_mode }}</span>{% endif %}
+                          {% if match_core.state == 'completed' %}<span class="px-2.5 py-1 rounded-full bg-emerald-500/12 border border-emerald-500/25 text-[10px] font-black text-emerald-300 flex items-center gap-1.5"><i data-lucide="shield-check" class="w-2.5 h-2.5"></i> Verified</span>{% endif %}
+                        </div>
+                        {% endif %}
+                        {% endwith %}
                     </div>
                 </div>
             </div>
 
             <div class="mc-tabs flex items-center gap-6 md:gap-8 border-b border-white/10 overflow-x-auto no-scrollbar px-2 md:px-0">
-                <button type="button" data-mc-tab="overview" class="is-active pb-3 text-xs md:text-sm font-black uppercase tracking-widest whitespace-nowrap">Overview & Stats</button>
+                <button type="button" data-mc-tab="overview" class="is-active pb-3 text-xs md:text-sm font-black uppercase tracking-widest whitespace-nowrap">Overview &amp; Stats</button>
+                {% if match_presentation.show_timeline %}
                 <button type="button" data-mc-tab="timeline" class="pb-3 text-xs md:text-sm font-black uppercase tracking-widest whitespace-nowrap">Timeline</button>
+                {% endif %}
+                {% if match_presentation.show_media %}
                 <button type="button" data-mc-tab="media" class="pb-3 text-xs md:text-sm font-black uppercase tracking-widest whitespace-nowrap">Media</button>
+                {% endif %}
             </div>
 
             <div id="mc-tab-overview" class="mc-tab-panel is-active match-glass rounded-2xl overflow-hidden border-t border-t-white/10">
@@ -232,38 +248,37 @@
                 {% endif %}
             </div>
 
+            {% if match_presentation.show_timeline %}
             <div id="mc-tab-timeline" class="mc-tab-panel match-glass rounded-2xl overflow-hidden border-t border-t-white/10">
                 <div class="match-glass-header px-4 md:px-6 py-4 flex items-center gap-3">
                     <i data-lucide="clock-3" class="w-4 h-4 text-gray-400"></i>
-                    <h3 class="text-xs md:text-sm font-black text-white uppercase tracking-widest">Timeline Intel</h3>
+                    <h3 class="text-xs md:text-sm font-black text-white uppercase tracking-widest">Match Story</h3>
                 </div>
-                {% if match_presentation.show_timeline %}
-                <div class="p-5 md:p-6 space-y-4" id="mc-timeline-list">
+                <div class="p-5 md:p-6 space-y-3" id="mc-timeline-list">
                     {% for event in timeline %}
-                    <div class="rounded-xl border border-white/10 bg-black/30 px-4 py-3">
-                        <div class="flex items-center justify-between gap-4">
-                            <p class="text-sm font-bold text-white">{{ event.event }}</p>
-                            {% if event.timestamp %}
-                            <span class="text-[10px] text-gray-500 font-mono">{{ event.timestamp|date:'M d, g:i A' }}</span>
-                            {% endif %}
+                    <div class="flex items-start gap-3 px-4 py-3 rounded-xl bg-black/30 border border-white/[0.06]">
+                        <div class="w-7 h-7 rounded-full bg-white/5 border border-white/10 flex items-center justify-center shrink-0 mt-0.5">
+                            <i data-lucide="{{ event.icon|default:'circle' }}" class="w-3.5 h-3.5 text-gray-400"></i>
                         </div>
-                        <p class="text-xs text-gray-400 mt-1">{{ event.description }}</p>
+                        <div class="min-w-0 flex-1">
+                            <p class="text-sm font-bold text-white">{{ event.event }}</p>
+                            <p class="text-xs text-gray-400 mt-0.5">{{ event.description }}</p>
+                        </div>
+                        {% if event.timestamp %}
+                        <span class="text-[10px] text-gray-600 font-mono shrink-0 mt-1">{{ event.timestamp|date:'M d · g:i A' }}</span>
+                        {% endif %}
                     </div>
-                    {% empty %}
-                    <p class="text-sm text-gray-500">No timeline events yet.</p>
                     {% endfor %}
                 </div>
-                {% else %}
-                <div class="p-6 text-sm text-gray-400">Timeline is hidden for this match by Match Center settings.</div>
-                {% endif %}
             </div>
+            {% endif %}
 
+            {% if match_presentation.show_media %}
             <div id="mc-tab-media" class="mc-tab-panel match-glass rounded-2xl overflow-hidden border-t border-t-white/10">
                 <div class="match-glass-header px-4 md:px-6 py-4 flex items-center gap-3">
                     <i data-lucide="film" class="w-4 h-4 text-gray-400"></i>
-                    <h3 class="text-xs md:text-sm font-black text-white uppercase tracking-widest">Media Deck</h3>
+                    <h3 class="text-xs md:text-sm font-black text-white uppercase tracking-widest">Highlights &amp; Media</h3>
                 </div>
-                {% if match_presentation.show_media %}
                 <div class="p-5 md:p-6 space-y-3">
                     {% if match_media.stream.source_url %}
                     <a href="{{ match_media.stream.source_url }}" target="_blank" rel="noopener" class="flex items-center justify-between rounded-xl border border-cyan-500/25 bg-cyan-500/10 px-4 py-3 text-sm text-cyan-200 hover:border-cyan-400/50 transition-colors">
@@ -272,38 +287,38 @@
                     </a>
                     {% endif %}
                     {% for item in match_media.items %}
+                    {% if not item.is_evidence %}
                         {% if item.is_image %}
                         <a href="{{ item.url }}" target="_blank" rel="noopener" class="block rounded-xl border border-white/10 bg-black/30 overflow-hidden hover:border-white/20 transition-colors group">
                             <div class="relative aspect-video bg-black/40">
                                 <img src="{{ item.url }}" alt="{{ item.description|default:item.media_type }}" loading="lazy" class="w-full h-full object-contain bg-black">
-                                {% if item.is_evidence %}
-                                <span class="absolute top-2 left-2 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest bg-amber-300/90 text-black">Evidence</span>
-                                {% endif %}
                                 <span class="absolute top-2 right-2 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-widest bg-black/70 text-gray-200 border border-white/10">{{ item.media_type|title }}</span>
                             </div>
                             <div class="px-3 py-2 flex items-center justify-between text-xs">
-                                <span class="text-gray-200 truncate">{{ item.description|default:item.media_type|title }}{% if item.submitter %} <span class="text-gray-500">· {{ item.submitter }}</span>{% endif %}</span>
+                                <span class="text-gray-200 truncate">{{ item.description|default:item.media_type|title }}</span>
                                 <i data-lucide="arrow-up-right" class="w-3.5 h-3.5 text-gray-500 group-hover:text-white"></i>
                             </div>
                         </a>
                         {% else %}
                         <a href="{{ item.url }}" target="_blank" rel="noopener" class="flex items-center justify-between rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-sm text-gray-200 hover:border-white/20 transition-colors">
                             <span class="inline-flex items-center gap-2">
-                                <i data-lucide="paperclip" class="w-4 h-4 text-gray-400"></i>
-                                {{ item.description|default:item.media_type|title }}{% if item.submitter %} <span class="text-gray-500">· {{ item.submitter }}</span>{% endif %}
-                                {% if item.is_evidence %}<span class="ml-1 px-1.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest bg-amber-300/90 text-black">Evidence</span>{% endif %}
+                                <i data-lucide="play-circle" class="w-4 h-4 text-gray-400"></i>
+                                {{ item.description|default:item.media_type|title }}
                             </span>
                             <i data-lucide="arrow-up-right" class="w-4 h-4"></i>
                         </a>
                         {% endif %}
+                    {% endif %}
                     {% empty %}
-                    <p class="text-sm text-gray-500">No media entries have been attached yet.</p>
+                    <div class="text-center py-10">
+                        <i data-lucide="video-off" class="w-8 h-8 text-gray-700 mx-auto mb-3"></i>
+                        <p class="text-sm font-bold text-gray-500">Highlights not published yet.</p>
+                        <p class="text-[11px] text-gray-600 mt-1">Organizer will add VODs and highlights after the match.</p>
+                    </div>
                     {% endfor %}
                 </div>
-                {% else %}
-                <div class="p-6 text-sm text-gray-400">Media is hidden for this match by Match Center settings.</div>
-                {% endif %}
             </div>
+            {% endif %}
         </section>
 
         <aside class="lg:col-span-4 space-y-6">

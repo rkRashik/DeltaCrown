@@ -74,16 +74,35 @@ def _sub_summary(sub: Optional[MatchResultSubmission]) -> dict:
             "ocr_p1": None, "ocr_p2": None, "ocr_status": "",
             "ocr_confidence": None, "has_screenshot": False,
         }
-    def _i(v): return int(v) if v is not None else None
+    def _i(v):
+        try:
+            return int(v) if v is not None else None
+        except (TypeError, ValueError):
+            return None
     ep1, ep2 = _extracted_p1_p2(sub.ocr_extracted or {})
     has_shot = bool(
         (getattr(sub, "proof_screenshot", None) and sub.proof_screenshot.name)
         or (sub.proof_screenshot_url or "").strip()
     )
+    # Scores are stored in raw_result_payload (canonical) but fall back to
+    # any direct attribute for test mocks and legacy paths.
+    payload = sub.raw_result_payload if isinstance(sub.raw_result_payload, dict) else {}
+    score_for     = _i(payload.get("score_for")) if payload else None
+    score_against = _i(payload.get("score_against")) if payload else None
+    if score_for is None:
+        try:
+            score_for = _i(getattr(sub, "score_for", None))
+        except Exception:
+            pass
+    if score_against is None:
+        try:
+            score_against = _i(getattr(sub, "score_against", None))
+        except Exception:
+            pass
     return {
         "submission_id": sub.id,
-        "submitted_for":     _i(sub.score_for),
-        "submitted_against": _i(sub.score_against),
+        "submitted_for":     score_for,
+        "submitted_against": score_against,
         "ocr_p1": ep1, "ocr_p2": ep2,
         "ocr_status": str(sub.ocr_status or ""),
         "ocr_confidence": sub.ocr_confidence,

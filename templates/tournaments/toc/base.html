@@ -2921,6 +2921,15 @@
                             <label class="flex items-center gap-2 text-sm text-dc-text cursor-pointer"><input data-field="enable_fan_voting" type="checkbox" class="rounded border-dc-border bg-dc-surface text-theme"> Enable Fan Voting</label>
                         </div>
                         <p id="lobby-capability-hint" class="hidden mt-3 text-[11px] text-dc-text/80"></p>
+                        <div class="mt-4 pt-3 border-t border-dc-border">
+                            <label class="block text-xs text-dc-text mb-1 font-semibold">Match Room Credentials — Who Sets Them?</label>
+                            <select data-field="credential_policy" class="w-full sm:w-64 bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50">
+                                <option value="host">Host (Side 1 team sets lobby code)</option>
+                                <option value="organizer">Organizer (TOC publishes details)</option>
+                                <option value="staff">Staff / Admin only</option>
+                            </select>
+                            <p class="text-[10px] text-dc-text/60 mt-1.5">Controls who fills in lobby code, password, server, and map in the Match Room. Host is the default.</p>
+                        </div>
                         <div id="check-in-window" class="mt-4 pt-3 border-t border-dc-border grid grid-cols-1 sm:grid-cols-2 gap-4 hidden">
                             <div>
                                 <label class="block text-xs text-dc-text mb-1">Check-In Opens (min before start)</label>

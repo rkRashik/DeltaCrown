@@ -158,12 +158,14 @@
         <h4 class="text-sm font-bold text-white">Missing Game IDs</h4>
         <p class="text-xs text-gray-500 mt-1">Send alerts or adjust roster slots to clear readiness.</p>
       </div>
-      {% if is_captain and not roster_locked %}
+      {% if is_captain or is_staff_or_organizer %}
+      {% if not roster_locked %}
       <button class="px-3 py-2 rounded-lg bg-[#FFB800]/15 hover:bg-[#FFB800]/25 text-xs font-bold text-[#FFB800] border border-[#FFB800]/30 transition"
               {% if hub_critical_locked %}disabled title="Locked until verification"{% endif %}
               data-click="HubEngine.pingMissingIds">
         <i data-lucide="bell" class="w-3 h-3 inline"></i> Ping All Missing IDs
       </button>
+      {% endif %}
       {% endif %}
     </div>
     <div class="mt-4 space-y-3">
@@ -179,18 +181,24 @@
           <p class="text-[11px] text-gray-500">{{ warning.message }}</p>
         </div>
         <div class="flex items-center gap-2 shrink-0 flex-wrap justify-end">
-          {% if is_captain and not roster_locked %}
+          {% comment %}Send Alert: shown to captain (for any member) or organizer/staff (for any member){% endcomment %}
+          {% if is_captain or is_staff_or_organizer %}
+          {% if not roster_locked %}
           <button class="px-2 py-1 rounded bg-white/5 hover:bg-white/10 border border-white/10 text-[10px] text-gray-300"
                   {% if hub_critical_locked %}disabled title="Locked until verification"{% endif %}
                   data-click="HubEngine.pingMissingIds" data-click-args='[{{ warning.user_id }}]'>
-            Send Alert
+            <i data-lucide="bell" class="w-2.5 h-2.5 inline"></i> Send Alert
           </button>
           {% endif %}
-          {% if warning.passport_url %}
+          {% endif %}
+          {% comment %}Passport: only shown to the member whose passport is missing (self-service fix){% endcomment %}
+          {% if warning.passport_url and warning.user_id == request.user.id %}
           <a href="{{ warning.passport_url }}" target="_blank" rel="noopener"
              class="px-2 py-1 rounded bg-[#00F0FF]/10 hover:bg-[#00F0FF]/20 border border-[#00F0FF]/20 text-[10px] text-[#00F0FF]">
-            Passport
+            <i data-lucide="fingerprint" class="w-2.5 h-2.5 inline"></i> Add Game ID
           </a>
+          {% elif is_staff_or_organizer and warning.username %}
+          <span class="text-[10px] text-gray-500 px-2 py-1 rounded border border-white/5">Needs Game ID</span>
           {% endif %}
           {% if is_captain and not roster_locked and warning.membership_id and warning.roster_slot %}
           <button class="text-[10px] px-2 py-1 rounded bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300"

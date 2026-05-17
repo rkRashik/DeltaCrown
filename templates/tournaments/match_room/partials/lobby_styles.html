@@ -795,6 +795,41 @@
   .veto-history-row .map-name { color: #e2e8f0; flex: 1; }
   .veto-history-row .auto-tag { color: #888; font-size: 0.62rem; }
 
+  /* Premium veto turn strip variants */
+  .veto-turn-strip {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.9rem 1.1rem;
+    border-radius: 0.85rem;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(0,0,0,0.35);
+    transition: border-color 0.2s ease;
+  }
+  .veto-turn-mine {
+    border-color: rgba(var(--ar),var(--ag),var(--ab),0.35);
+    background: linear-gradient(135deg, rgba(var(--ar),var(--ag),var(--ab),0.07) 0%, rgba(0,0,0,0.35) 100%);
+    box-shadow: 0 0 20px rgba(var(--ar),var(--ag),var(--ab),0.08);
+  }
+  .veto-turn-done {
+    border-color: rgba(var(--ar),var(--ag),var(--ab),0.4);
+    background: linear-gradient(135deg, rgba(var(--ar),var(--ag),var(--ab),0.09) 0%, rgba(0,0,0,0.35) 100%);
+    animation: revealPulse 0.6s ease;
+  }
+  .veto-turn-pending {
+    border-color: rgba(251,191,36,0.25);
+    background: linear-gradient(135deg, rgba(251,191,36,0.05) 0%, rgba(0,0,0,0.35) 100%);
+  }
+  .veto-turn-wait {
+    opacity: 0.9;
+  }
+  @keyframes revealPulse {
+    0%   { box-shadow: 0 0 0 0 rgba(var(--ar),var(--ag),var(--ab),0.3); }
+    60%  { box-shadow: 0 0 0 12px rgba(var(--ar),var(--ag),var(--ab),0); }
+    100% { box-shadow: none; }
+  }
+
   /* Series progression bar — P2.C state surfaces here. */
   .series-progress {
     display: flex;

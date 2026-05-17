@@ -1,57 +1,237 @@
-<div class="overflow-x-auto no-scrollbar">
-    <table class="w-full mc-stat-table min-w-[700px]">
-        <thead class="bg-black/40">
-            <tr>
-                <th>Player</th>
-                <th>ACS</th>
-                <th>K</th>
-                <th>D</th>
-                <th>A</th>
-                <th>K/D</th>
-                <th>HS%</th>
-                <th>FK</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for s in match_stats.team1 %}
-            <tr>
-                <td>
-                    <div class="flex items-center gap-3">
-                        <div class="w-6 h-6 rounded bg-white/10 border border-white/10 flex items-center justify-center text-[8px]">{{ s.display_name|truncatechars:1|upper }}</div>
-                        <span class="font-bold {% if s.is_mvp %}text-yellow-300{% else %}text-white{% endif %}">{{ s.display_name }}{% if s.is_mvp %} <span class="text-[10px]">MVP</span>{% endif %}</span>
-                    </div>
-                </td>
-                <td class="text-white font-bold">{{ s.acs|floatformat:0 }}</td>
-                <td class="text-cyan-300">{{ s.kills }}</td>
-                <td class="text-red-300">{{ s.deaths }}</td>
-                <td>{{ s.assists }}</td>
-                <td class="{% if s.kd_ratio >= 1.0 %}text-emerald-300{% else %}text-red-300{% endif %}">{{ s.kd_ratio|floatformat:2 }}</td>
-                <td>{{ s.hs_pct|floatformat:0 }}%</td>
-                <td>{{ s.first_kills }}</td>
-            </tr>
-            {% endfor %}
-            {% for s in match_stats.team2 %}
-            <tr>
-                <td>
-                    <div class="flex items-center gap-3">
-                        <div class="w-6 h-6 rounded bg-white/10 border border-white/10 flex items-center justify-center text-[8px]">{{ s.display_name|truncatechars:1|upper }}</div>
-                        <span class="font-bold {% if s.is_mvp %}text-yellow-300{% else %}text-white{% endif %}">{{ s.display_name }}{% if s.is_mvp %} <span class="text-[10px]">MVP</span>{% endif %}</span>
-                    </div>
-                </td>
-                <td class="text-white font-bold">{{ s.acs|floatformat:0 }}</td>
-                <td class="text-cyan-300">{{ s.kills }}</td>
-                <td class="text-red-300">{{ s.deaths }}</td>
-                <td>{{ s.assists }}</td>
-                <td class="{% if s.kd_ratio >= 1.0 %}text-emerald-300{% else %}text-red-300{% endif %}">{{ s.kd_ratio|floatformat:2 }}</td>
-                <td>{{ s.hs_pct|floatformat:0 }}%</td>
-                <td>{{ s.first_kills }}</td>
-            </tr>
-            {% endfor %}
-            {% if not match_stats.team1 and not match_stats.team2 %}
-            <tr>
-                <td colspan="8" class="text-center text-gray-500 py-8">No player analytics uploaded yet.</td>
-            </tr>
-            {% endif %}
-        </tbody>
-    </table>
+{% load humanize %}
+{# Premium match scoreboard — team-separated, sortable, Valorant-style #}
+
+{% with team1=match_stats.team1 team2=match_stats.team2 mvp=match_stats.mvp %}
+
+{# ── MVP Card ──────────────────────────────────────────────────────────── #}
+{% if mvp %}
+<div class="px-4 md:px-6 py-5 border-b border-white/[0.06]">
+  <p class="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-3">
+    {% if mvp.is_mvp %}Match MVP{% else %}Top Performer{% endif %}
+  </p>
+  <div class="flex items-center gap-4 p-4 rounded-xl bg-gradient-to-r from-yellow-500/8 to-transparent border border-yellow-400/20">
+    <div class="relative shrink-0">
+      {% if mvp.avatar_url %}
+      <img src="{{ mvp.avatar_url }}" alt="{{ mvp.display_name }}" class="w-12 h-12 rounded-xl object-cover border-2 border-yellow-400/40">
+      {% else %}
+      <div class="w-12 h-12 rounded-xl bg-yellow-500/15 border-2 border-yellow-400/30 flex items-center justify-center">
+        <span class="text-lg font-black text-yellow-300">{{ mvp.display_name|first|upper }}</span>
+      </div>
+      {% endif %}
+      <div class="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-yellow-400 flex items-center justify-center border-2 border-black">
+        <i data-lucide="star" class="w-2.5 h-2.5 text-black fill-black" style="fill:currentColor;"></i>
+      </div>
+    </div>
+    <div class="min-w-0 flex-1">
+      <p class="text-sm font-black text-white truncate">{{ mvp.display_name }}</p>
+      {% if mvp.agent %}<p class="text-[10px] text-gray-400">{{ mvp.agent }}</p>{% endif %}
+    </div>
+    <div class="shrink-0 flex items-center gap-4 text-right">
+      {% if mvp.acs %}
+      <div><p class="text-xs font-black text-yellow-300">{{ mvp.acs|floatformat:0 }}</p><p class="text-[9px] text-gray-500 uppercase tracking-wider">ACS</p></div>
+      {% endif %}
+      <div><p class="text-xs font-black text-white">{{ mvp.kills }}/{{ mvp.deaths }}/{{ mvp.assists }}</p><p class="text-[9px] text-gray-500 uppercase tracking-wider">K/D/A</p></div>
+      {% if mvp.kd_ratio %}
+      <div><p class="text-xs font-black {% if mvp.kd_ratio >= 1.0 %}text-emerald-300{% else %}text-red-300{% endif %}">{{ mvp.kd_ratio|floatformat:2 }}</p><p class="text-[9px] text-gray-500 uppercase tracking-wider">K/D</p></div>
+      {% endif %}
+    </div>
+  </div>
 </div>
+{% endif %}
+
+{# ── Sort Controls ─────────────────────────────────────────────────────── #}
+{% if team1 or team2 %}
+<div class="px-4 md:px-6 py-3 border-b border-white/[0.05] flex items-center gap-2 overflow-x-auto no-scrollbar">
+  <span class="text-[9px] font-black uppercase tracking-widest text-gray-600 shrink-0">Sort:</span>
+  <button type="button" class="stat-sort-btn shrink-0 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider border transition-all bg-[#00f0ff]/10 border-[#00f0ff]/30 text-[#00f0ff]" data-sort="acs">ACS</button>
+  <button type="button" class="stat-sort-btn shrink-0 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider border transition-all border-white/10 text-gray-500 hover:border-white/20 hover:text-gray-300" data-sort="kills">Kills</button>
+  <button type="button" class="stat-sort-btn shrink-0 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider border transition-all border-white/10 text-gray-500 hover:border-white/20 hover:text-gray-300" data-sort="kd">K/D</button>
+  <button type="button" class="stat-sort-btn shrink-0 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider border transition-all border-white/10 text-gray-500 hover:border-white/20 hover:text-gray-300" data-sort="deaths">Deaths</button>
+  <button type="button" class="stat-sort-btn shrink-0 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider border transition-all border-white/10 text-gray-500 hover:border-white/20 hover:text-gray-300" data-sort="first_kills">First Kills</button>
+</div>
+{% endif %}
+
+{# ── Team 1 scoreboard ────────────────────────────────────────────────── #}
+{% if team1 %}
+<div class="team-section" data-team="1">
+  <div class="flex items-center gap-3 px-4 md:px-6 py-3 bg-[#00f0ff]/[0.04] border-b border-[#00f0ff]/10">
+    {% if match_assets.team1_logo_url %}
+    <img src="{{ match_assets.team1_logo_url }}" alt="{{ match_core.participant1_name }}" class="w-5 h-5 rounded object-cover">
+    {% endif %}
+    <span class="text-[10px] font-black uppercase tracking-widest text-[#00f0ff]">{{ match_core.participant1_name }}</span>
+    {% if match_core.winner_id == match_core.participant1_id %}
+    <span class="ml-auto text-[9px] font-black px-2 py-0.5 rounded-full bg-[#00f0ff]/15 border border-[#00f0ff]/30 text-[#00f0ff] uppercase tracking-widest">Winner</span>
+    {% endif %}
+  </div>
+  <div class="overflow-x-auto">
+    <table class="w-full mc-stat-table min-w-[640px]">
+      <thead>
+        <tr class="bg-[#00f0ff]/[0.02]">
+          <th class="text-left pl-4 md:pl-6">Player</th>
+          <th data-col="acs">ACS</th>
+          <th data-col="kills">K</th>
+          <th data-col="deaths">D</th>
+          <th data-col="assists">A</th>
+          <th data-col="kd">K/D</th>
+          <th data-col="hs_pct">HS%</th>
+          <th data-col="first_kills">FB</th>
+        </tr>
+      </thead>
+      <tbody class="team-tbody" data-team="1">
+        {% for s in team1 %}
+        <tr class="stat-row hover:bg-[#00f0ff]/[0.03] transition-colors {% if s.is_mvp or s.computed_mvp %}border-l-2 border-l-yellow-400/60{% endif %}"
+            data-acs="{{ s.acs }}" data-kills="{{ s.kills }}" data-deaths="{{ s.deaths }}"
+            data-assists="{{ s.assists }}" data-kd="{{ s.kd_ratio }}" data-first_kills="{{ s.first_kills }}">
+          <td class="text-left pl-4 md:pl-6">
+            <div class="flex items-center gap-2.5">
+              {% if s.avatar_url %}
+              <img src="{{ s.avatar_url }}" alt="{{ s.display_name }}" class="w-7 h-7 rounded-lg object-cover shrink-0 border border-white/10">
+              {% else %}
+              <div class="w-7 h-7 rounded-lg bg-[#00f0ff]/10 border border-[#00f0ff]/20 flex items-center justify-center shrink-0">
+                <span class="text-[9px] font-black text-[#00f0ff]">{{ s.display_name|first|upper }}</span>
+              </div>
+              {% endif %}
+              <div class="min-w-0">
+                <span class="text-xs font-bold {% if s.is_mvp or s.computed_mvp %}text-yellow-300{% else %}text-white{% endif %} truncate block">
+                  {{ s.display_name }}{% if s.is_mvp or s.computed_mvp %} <span class="text-[9px] text-yellow-400/80">★</span>{% endif %}
+                </span>
+                {% if s.agent %}<span class="text-[9px] text-gray-500">{{ s.agent }}</span>{% endif %}
+              </div>
+            </div>
+          </td>
+          <td class="font-black text-white">{{ s.acs|floatformat:0 }}</td>
+          <td class="text-[#00f0ff] font-bold">{{ s.kills }}</td>
+          <td class="text-red-300 font-bold">{{ s.deaths }}</td>
+          <td class="text-gray-300">{{ s.assists }}</td>
+          <td class="{% if s.kd_ratio >= 1.0 %}text-emerald-300{% else %}text-red-300{% endif %} font-bold">{{ s.kd_ratio|floatformat:2 }}</td>
+          <td class="text-gray-300">{{ s.hs_pct|floatformat:0 }}%</td>
+          <td class="text-gray-300">{{ s.first_kills }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+{# ── Team 2 scoreboard ────────────────────────────────────────────────── #}
+{% if team2 %}
+<div class="team-section border-t border-white/[0.06]" data-team="2">
+  <div class="flex items-center gap-3 px-4 md:px-6 py-3 bg-[#ff003c]/[0.04] border-b border-[#ff003c]/10">
+    {% if match_assets.team2_logo_url %}
+    <img src="{{ match_assets.team2_logo_url }}" alt="{{ match_core.participant2_name }}" class="w-5 h-5 rounded object-cover">
+    {% endif %}
+    <span class="text-[10px] font-black uppercase tracking-widest text-[#ff5a83]">{{ match_core.participant2_name }}</span>
+    {% if match_core.winner_id == match_core.participant2_id %}
+    <span class="ml-auto text-[9px] font-black px-2 py-0.5 rounded-full bg-[#ff003c]/15 border border-[#ff003c]/30 text-[#ff5a83] uppercase tracking-widest">Winner</span>
+    {% endif %}
+  </div>
+  <div class="overflow-x-auto">
+    <table class="w-full mc-stat-table min-w-[640px]">
+      <thead>
+        <tr class="bg-[#ff003c]/[0.02]">
+          <th class="text-left pl-4 md:pl-6">Player</th>
+          <th data-col="acs">ACS</th>
+          <th data-col="kills">K</th>
+          <th data-col="deaths">D</th>
+          <th data-col="assists">A</th>
+          <th data-col="kd">K/D</th>
+          <th data-col="hs_pct">HS%</th>
+          <th data-col="first_kills">FB</th>
+        </tr>
+      </thead>
+      <tbody class="team-tbody" data-team="2">
+        {% for s in team2 %}
+        <tr class="stat-row hover:bg-[#ff003c]/[0.03] transition-colors {% if s.is_mvp or s.computed_mvp %}border-l-2 border-l-yellow-400/60{% endif %}"
+            data-acs="{{ s.acs }}" data-kills="{{ s.kills }}" data-deaths="{{ s.deaths }}"
+            data-assists="{{ s.assists }}" data-kd="{{ s.kd_ratio }}" data-first_kills="{{ s.first_kills }}">
+          <td class="text-left pl-4 md:pl-6">
+            <div class="flex items-center gap-2.5">
+              {% if s.avatar_url %}
+              <img src="{{ s.avatar_url }}" alt="{{ s.display_name }}" class="w-7 h-7 rounded-lg object-cover shrink-0 border border-white/10">
+              {% else %}
+              <div class="w-7 h-7 rounded-lg bg-[#ff003c]/10 border border-[#ff003c]/20 flex items-center justify-center shrink-0">
+                <span class="text-[9px] font-black text-[#ff5a83]">{{ s.display_name|first|upper }}</span>
+              </div>
+              {% endif %}
+              <div class="min-w-0">
+                <span class="text-xs font-bold {% if s.is_mvp or s.computed_mvp %}text-yellow-300{% else %}text-white{% endif %} truncate block">
+                  {{ s.display_name }}{% if s.is_mvp or s.computed_mvp %} <span class="text-[9px] text-yellow-400/80">★</span>{% endif %}
+                </span>
+                {% if s.agent %}<span class="text-[9px] text-gray-500">{{ s.agent }}</span>{% endif %}
+              </div>
+            </div>
+          </td>
+          <td class="font-black text-white">{{ s.acs|floatformat:0 }}</td>
+          <td class="text-[#00f0ff] font-bold">{{ s.kills }}</td>
+          <td class="text-red-300 font-bold">{{ s.deaths }}</td>
+          <td class="text-gray-300">{{ s.assists }}</td>
+          <td class="{% if s.kd_ratio >= 1.0 %}text-emerald-300{% else %}text-red-300{% endif %} font-bold">{{ s.kd_ratio|floatformat:2 }}</td>
+          <td class="text-gray-300">{{ s.hs_pct|floatformat:0 }}%</td>
+          <td class="text-gray-300">{{ s.first_kills }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+{% if not team1 and not team2 %}
+<div class="px-6 py-12 text-center">
+  <i data-lucide="bar-chart-2" class="w-8 h-8 text-gray-700 mx-auto mb-3"></i>
+  <p class="text-sm font-bold text-gray-500">Stats not published yet.</p>
+  <p class="text-[11px] text-gray-600 mt-1">Player statistics will appear here once the organizer uploads the scoreboard.</p>
+</div>
+{% endif %}
+
+{% endwith %}
+
+<script nonce="{{ request.csp_nonce }}">
+(function() {
+  'use strict';
+  var sortBtns = document.querySelectorAll('.stat-sort-btn');
+  var currentSort = 'acs';
+  var sortDir = -1; // descending by default
+
+  function parseNum(el, attr) {
+    return parseFloat(el.getAttribute('data-' + attr) || '0') || 0;
+  }
+
+  function sortTeam(tbody, col) {
+    var rows = Array.from(tbody.querySelectorAll('.stat-row'));
+    rows.sort(function(a, b) {
+      var av = parseNum(a, col), bv = parseNum(b, col);
+      // Deaths sorted ascending (fewer = better); all others descending.
+      return col === 'deaths' ? (av - bv) * sortDir : (bv - av) * sortDir;
+    });
+    rows.forEach(function(r) { tbody.appendChild(r); });
+  }
+
+  function applySort(col) {
+    // Toggle direction when clicking the same column; reset to descending for new column.
+    if (col === currentSort) { sortDir *= -1; } else { sortDir = 1; }
+    currentSort = col;
+    document.querySelectorAll('.team-tbody').forEach(function(tbody) { sortTeam(tbody, col); });
+    sortBtns.forEach(function(btn) {
+      var active = btn.getAttribute('data-sort') === col;
+      btn.classList.toggle('bg-[#00f0ff]/10', active);
+      btn.classList.toggle('border-[#00f0ff]/30', active);
+      btn.classList.toggle('text-[#00f0ff]', active);
+      btn.classList.toggle('border-white/10', !active);
+      btn.classList.toggle('text-gray-500', !active);
+    });
+  }
+
+  // Initialise: sort by ACS descending immediately.
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() { applySort('acs'); });
+  } else {
+    applySort('acs');
+  }
+
+  sortBtns.forEach(function(btn) {
+    btn.addEventListener('click', function() { applySort(btn.getAttribute('data-sort')); });
+  });
+})();
+</script>

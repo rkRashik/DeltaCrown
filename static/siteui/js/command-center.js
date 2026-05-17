@@ -34,9 +34,12 @@ document.addEventListener('alpine:init', () => {
       inboxFilter:    raw.inboxFilter    || 'all',
       showLFT:        false,
 
-      // Challenges & Bounties state
+      // Competitive intelligence state
       challenges:     raw.challenges     || [],
       bounties:       raw.bounties       || [],
+      myOperations:   raw.myOperations   || [],
+      competitiveLoading: false,
+      competitiveError: '',
       teamApplications: raw.teamApplications || [],
       teamApplicationsLoading: false,
       teamApplicationsError: '',
@@ -49,6 +52,7 @@ document.addEventListener('alpine:init', () => {
         this._refreshRelativeTimes();
         this._startClockUpdates();
         this._startNotifPolling();
+        this.loadCompetitiveOperations();
         this.loadTeamApplications();
       },
 
@@ -70,6 +74,58 @@ document.addEventListener('alpine:init', () => {
 
       get activeBountyCount() {
         return this.bounties.filter(b => ['OPEN', 'ACCEPTED', 'IN_PROGRESS'].includes(b.statusRaw)).length;
+      },
+
+      get competitiveNeedsAction() {
+        return this._operationsByState('needs_action');
+      },
+
+      get competitiveUnderReview() {
+        return this._operationsByState('review');
+      },
+
+      get competitiveWaiting() {
+        return this._operationsByState('waiting');
+      },
+
+      get competitiveCompleted() {
+        return this._operationsByState('completed');
+      },
+
+      get competitivePriority() {
+        const seen = new Set();
+        const ordered = [
+          ...this.competitiveNeedsAction,
+          ...this.competitiveUnderReview,
+          ...this._operationsByState('upcoming'),
+          ...this.competitiveWaiting,
+          ...this.competitiveCompleted,
+        ];
+        return ordered.filter((op) => {
+          const key = `${op.type || 'op'}:${op.id}`;
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+      },
+
+      get competitiveGuidance() {
+        if (this.competitiveLoading && this.myOperations.length === 0) {
+          return 'Loading your current competitive priorities.';
+        }
+        if (this.competitiveNeedsAction.length) {
+          return `${this.competitiveNeedsAction.length} operation${this.competitiveNeedsAction.length === 1 ? '' : 's'} need action now.`;
+        }
+        if (this.competitiveUnderReview.length) {
+          return 'Some results or proof are under review. Track progress from the Dispute Center.';
+        }
+        if (this.competitivePriority.length) {
+          return 'Your active operations are stable. Keep an eye on Match Room and proof deadlines.';
+        }
+        if (this.teams.length) {
+          return 'No active competitive operations. Start with a Showdown, Mission, Bounty, or Dropzone reservation.';
+        }
+        return 'Join or create a team to unlock team-based competitive operations.';
       },
 
       // ── Methods ──
@@ -178,6 +234,71 @@ document.addEventListener('alpine:init', () => {
         } finally {
           this.teamApplicationsLoading = false;
         }
+      },
+
+      async loadCompetitiveOperations() {
+        this.competitiveLoading = true;
+        this.competitiveError = '';
+        try {
+          const res = await fetch('/api/v1/competitive/my-operations/', {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            credentials: 'same-origin',
+          });
+          const data = await res.json();
+          if (!res.ok) {
+            throw new Error(data.detail || data.error || 'Unable to load competitive operations.');
+          }
+          const results = Array.isArray(data.results) ? data.results : (Array.isArray(data.operations) ? data.operations : []);
+          this.myOperations = results;
+        } catch (err) {
+          console.warn('[CC] competitive operations failed', err);
+          this.competitiveError = err && err.message ? err.message : 'Unable to load competitive operations.';
+        } finally {
+          this.competitiveLoading = false;
+        }
+      },
+
+      competitiveTypeMeta(type) {
+        const key = String(type || '').toLowerCase();
+        if (key === 'showdown') return { label: 'Showdown', icon: 'fa-solid fa-bolt', tone: 'text-cyan-300', bg: 'bg-cyan-400/10 border-cyan-300/20' };
+        if (key === 'mission') return { label: 'Mission', icon: 'fa-solid fa-flag-checkered', tone: 'text-violet-300', bg: 'bg-violet-400/10 border-violet-300/20' };
+        if (key === 'bounty') return { label: 'Bounty', icon: 'fa-solid fa-crosshairs', tone: 'text-rose-300', bg: 'bg-rose-400/10 border-rose-300/20' };
+        if (key === 'dropzone') return { label: 'Dropzone', icon: 'fa-solid fa-parachute-box', tone: 'text-amber-300', bg: 'bg-amber-400/10 border-amber-300/20' };
+        return { label: 'Team Ops', icon: 'fa-solid fa-shield-halved', tone: 'text-emerald-300', bg: 'bg-emerald-400/10 border-emerald-300/20' };
+      },
+
+      competitiveStatusClass(op) {
+        const bucket = this._operationBucket(op);
+        if (bucket === 'needs_action') return 'bg-cyan-400/10 text-cyan-100 border border-cyan-300/20';
+        if (bucket === 'review') return 'bg-amber-400/10 text-amber-100 border border-amber-300/20';
+        if (bucket === 'completed') return 'bg-emerald-400/10 text-emerald-100 border border-emerald-300/20';
+        return 'bg-white/[0.05] text-slate-200 border border-white/[0.08]';
+      },
+
+      competitiveActionUrl(op) {
+        if (!op) return '/dashboard/competitive/';
+        return op.next_action_url || op.detail_url || op.match_room_url || '/dashboard/competitive/';
+      },
+
+      competitiveTime(op) {
+        if (!op) return '';
+        const value = op.starts_at || op.scheduled_at || op.created_at || '';
+        return value ? this.formatDateTime(value) : '';
+      },
+
+      _operationsByState(state) {
+        return (this.myOperations || []).filter((op) => this._operationBucket(op) === state);
+      },
+
+      _operationBucket(op) {
+        if (!op) return 'waiting';
+        const status = String(op.status || '').toLowerCase();
+        const label = String(op.next_action_label || '').toLowerCase();
+        if (op.is_action_required || /submit|accept|decline|confirm|reserve|claim|review needed/.test(label)) return 'needs_action';
+        if (/review|dispute|proof|confirmation|pending/.test(status) || /review|confirmation|proof/.test(label)) return 'review';
+        if (/complete|settled|signed|accepted|closed|refunded|failed|rejected|declined/.test(status) || /result/.test(label)) return 'completed';
+        if (/scheduled|starts|upcoming|room|match/.test(label) || op.starts_at || op.scheduled_at) return 'upcoming';
+        return 'waiting';
       },
 
       async handleTeamApplicationAction(item, action) {

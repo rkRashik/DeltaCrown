@@ -25,48 +25,49 @@
   const HUB = readHubContext();
 
   const STATE = {
-    activeTab: 'clash',
+    activeTab: 'showdown',
     gameFilter: 'ALL',
+    gameManuallySelected: false,
     searchQuery: '',
-    data: { clashes: [], contracts: [], hitlist: [], royale: [], myOperations: [] },
-    loaded: { clashes: false, contracts: false, hitlist: false, royale: false, myOperations: false },
+    operatingTeamId: String((HUB.primary_team && HUB.primary_team.id) || ((HUB.my_teams || [])[0] && (HUB.my_teams || [])[0].id) || ''),
+    targetOpponent: null,
+    data: { showdown: [], missions: [], bounty: [], dropzone: [], myOperations: [] },
+    loaded: { showdown: false, missions: false, bounty: false, dropzone: false, myOperations: false },
     resultOperation: null,
   };
 
   const TAB_ALIASES = {
-    clash: 'clash',
-    showdowns: 'clash',
-    showdown: 'clash',
-    'crown-clash': 'clash',
-    challenges: 'clash',
-    contracts: 'contracts',
-    contract: 'contracts',
-    missions: 'contracts',
-    mission: 'contracts',
-    'contract-board': 'contracts',
-    hitlist: 'hitlist',
-    'the-hitlist': 'hitlist',
-    bounty: 'hitlist',
-    bounties: 'hitlist',
-    royale: 'royale',
-    'crown-royale': 'royale',
-    dropzone: 'royale',
-    operations: 'operations',
-    operation: 'operations',
-    'my-operations': 'operations',
-    ops: 'operations',
-    review: 'review',
-    reviews: 'review',
-    disputes: 'review',
+    clash: 'showdown',
+    showdowns: 'showdown',
+    showdown: 'showdown',
+    'crown-clash': 'showdown',
+    challenges: 'showdown',
+    contracts: 'missions',
+    contract: 'missions',
+    missions: 'missions',
+    mission: 'missions',
+    'contract-board': 'missions',
+    hitlist: 'bounty',
+    'the-hitlist': 'bounty',
+    bounty: 'bounty',
+    bounties: 'bounty',
+    royale: 'dropzone',
+    'crown-royale': 'dropzone',
+    dropzone: 'dropzone',
+    operations: 'showdown',
+    operation: 'showdown',
+    'my-operations': 'showdown',
+    ops: 'showdown',
+    review: 'showdown',
+    reviews: 'showdown',
+    disputes: 'showdown',
   };
 
   const TAB_HASH = {
-    clash: 'showdown',
-    contracts: 'missions',
-    hitlist: 'bounty',
-    royale: 'dropzone',
-    operations: 'my-operations',
-    review: 'review',
+    showdown: 'showdown',
+    missions: 'missions',
+    bounty: 'bounty',
+    dropzone: 'dropzone',
   };
 
   // ── CSRF / fetch helpers ──────────────────────────────────────────
@@ -187,12 +188,39 @@
 
   // ── Slide-over helpers ────────────────────────────────────────────
 
+  function activeDrawerPanels() {
+    return Array.from(document.querySelectorAll('#slide-over-create-clash, #slide-over-create-hitlist'))
+      .filter((el) => el instanceof HTMLElement && !el.classList.contains('translate-x-full'));
+  }
+
+  function isGuideOpen() {
+    const guide = document.getElementById('guide-modal');
+    return !!guide && !guide.classList.contains('hidden-spa');
+  }
+
+  function lockPageScroll() {
+    document.body.classList.add('overflow-hidden');
+  }
+
+  function unlockPageScrollIfIdle() {
+    if (!activeDrawerPanels().length && !isGuideOpen()) {
+      document.body.classList.remove('overflow-hidden');
+    }
+  }
+
+  function closeGuideModal() {
+    const guide = document.getElementById('guide-modal');
+    if (guide) guide.classList.add('hidden-spa');
+    unlockPageScrollIfIdle();
+  }
+
   function openSlideOver(name, opts = {}) {
     const backdrop = document.getElementById('slide-over-backdrop');
     const panel = document.getElementById(`slide-over-${name}`);
     if (!backdrop || !panel) return;
     if (name === 'create-clash') resetClashForm(opts);
     if (name === 'create-hitlist') resetHitlistForm(opts);
+    lockPageScroll();
     backdrop.classList.remove('hidden-spa');
     requestAnimationFrame(() => {
       backdrop.classList.remove('opacity-0');
@@ -208,14 +236,75 @@
     if (!backdrop || !panel) return;
     backdrop.classList.add('opacity-0');
     panel.classList.add('translate-x-full');
-    setTimeout(() => backdrop.classList.add('hidden-spa'), 500);
+    setTimeout(() => {
+      if (!activeDrawerPanels().length) backdrop.classList.add('hidden-spa');
+      unlockPageScrollIfIdle();
+    }, 500);
   }
 
   // ── Hero / identity hydration ─────────────────────────────────────
 
+  function selectedTeam() {
+    const teams = (HUB.all_teams && HUB.all_teams.length) ? HUB.all_teams : (HUB.my_teams || []);
+    return teams.find((t) => String(t.id) === String(STATE.operatingTeamId)) || HUB.primary_team || null;
+  }
+
+  function canIssueSelectedTeam() {
+    const team = selectedTeam();
+    if (!team) return false;
+    return (HUB.my_teams || []).some((t) => String(t.id) === String(team.id));
+  }
+
+  function syncOpenTeamSelects() {
+    ['clash-team', 'hitlist-team'].forEach((id) => {
+      const el = document.getElementById(id);
+      if (!el || !STATE.operatingTeamId) return;
+      if (Array.from(el.options).some((opt) => String(opt.value) === String(STATE.operatingTeamId))) {
+        el.value = String(STATE.operatingTeamId);
+      }
+    });
+  }
+
+  function setOperatingTeam(teamId) {
+    STATE.operatingTeamId = String(teamId || '');
+    const team = selectedTeam();
+    if (team) HUB.primary_team = team;
+    renderHero();
+    hydrateLeftColumn();
+    renderActionPermissions();
+    renderActiveOps();
+    renderAllFeeds();
+    syncOpenTeamSelects();
+    if (!STATE.gameManuallySelected) {
+      setGameFilter(defaultGameForSelectedTeam(), { manual: false });
+    }
+    const hint = document.getElementById('operating-team-hint');
+    if (hint) hint.textContent = team ? `${team.name} scopes team-based Showdown, Bounty, and operations. Missions remain solo.` : 'Choose the team context for team-based operations. Missions remain solo.';
+  }
+
+  function hydrateTeamSwitcher() {
+    const wrap = document.getElementById('operating-team-switcher');
+    const select = document.getElementById('operating-team-select');
+    const hint = document.getElementById('operating-team-hint');
+    const teams = ((HUB.all_teams && HUB.all_teams.length) ? HUB.all_teams : (HUB.my_teams || [])).map((t) => ({
+      id: t.id,
+      label: `${t.tag ? `${t.name} [${t.tag}]` : t.name}${t.can_issue ? '' : ' - member'}`,
+    }));
+    if (!wrap || !select || teams.length < 2) return;
+    if (!STATE.operatingTeamId && teams[0]) STATE.operatingTeamId = String(teams[0].id);
+    fillSelect(select, teams, { selectedId: STATE.operatingTeamId });
+    wrap.classList.remove('hidden-spa');
+    const team = selectedTeam();
+    if (hint) {
+      hint.textContent = team
+        ? `${team.name || team.label} scopes team-based Showdown, Bounty, and operations. Missions remain solo.`
+        : 'Choose the team context for team-based operations. Missions remain solo.';
+    }
+  }
+
   function hydrateLeftColumn() {
     const id = HUB.identity || {};
-    const team = HUB.primary_team;
+    const team = selectedTeam();
     const wallet = HUB.wallet || {};
 
     const avatarBox = document.getElementById('ctx-avatar');
@@ -236,7 +325,7 @@
     document.getElementById('wallet-escrow').textContent = `${Number(wallet.escrow_locked_dc || 0).toLocaleString()} DC`;
 
     document.getElementById('ctx-stat-1').textContent = '—';
-    document.getElementById('ctx-stat-2').textContent = HUB.can_issue ? 'CAPTAIN' : (team ? 'MEMBER' : 'SOLO');
+    document.getElementById('ctx-stat-2').textContent = canIssueSelectedTeam() ? 'CAPTAIN' : (team ? 'MEMBER' : 'SOLO');
   }
 
   function renderHero() {
@@ -244,10 +333,11 @@
     const descEl = document.getElementById('hero-desc');
     const actionsEl = document.getElementById('hero-actions');
     const visEl = document.getElementById('hero-visualizer');
+    const team = selectedTeam();
 
-    if (HUB.user_state === 'TEAM_CAPTAIN' && HUB.primary_team) {
+    if (team && canIssueSelectedTeam()) {
       titleEl.innerHTML = `Command <span class="text-gradient-cyan">Center</span>`;
-      descEl.innerHTML = `Operating as <strong class="text-white">${esc(HUB.primary_team.name)}</strong>. Create Showdowns with rival teams or manage Bounty challenges.`;
+      descEl.innerHTML = `Operating as <strong class="text-white">${esc(team.name)}</strong>. Create Showdowns with rival teams or post Bounties for challengers to claim.`;
       actionsEl.innerHTML = `
         <button type="button" data-open-slide="create-clash" class="btn-cyber bg-dc-cyan hover:bg-cyan-400 text-black px-8 py-3.5 font-bold uppercase tracking-widest shadow-[0_0_20px_rgba(0,229,255,0.4)] flex items-center gap-2">
           <i class="fa-solid fa-bolt"></i> Create Showdown
@@ -259,12 +349,12 @@
         <div class="glass-light rounded-xl p-4 border border-dc-cyan/30 w-full relative overflow-hidden group">
           <div class="absolute inset-0 bg-dc-cyan opacity-10 blur-xl group-hover:opacity-20 transition-opacity"></div>
           <p class="text-[10px] text-dc-cyan uppercase font-bold tracking-widest mb-1 relative z-10">Team Authority</p>
-          <p class="font-display font-black text-3xl text-white relative z-10">${esc(HUB.primary_team.role || 'CAPTAIN')}</p>
-          <p class="text-xs text-gray-400 mt-2 relative z-10">${esc(HUB.primary_team.name)}</p>
+          <p class="font-display font-black text-3xl text-white relative z-10">${esc(team.role || 'CAPTAIN')}</p>
+          <p class="text-xs text-gray-400 mt-2 relative z-10">${esc(team.name)}</p>
         </div>`;
     } else if (HUB.user_state === 'TEAM_MEMBER') {
       titleEl.innerHTML = `Roster <span class="text-gradient-cyan">Member</span>`;
-      descEl.innerHTML = `You're on <strong class="text-white">${esc((HUB.primary_team && HUB.primary_team.name) || 'a team')}</strong>. Only captains and managers can create Showdowns - check the open radar below.`;
+      descEl.innerHTML = `You're on <strong class="text-white">${esc((team && team.name) || 'a team')}</strong>. Only captains and managers can create team reward operations. Missions remain available as the solo path.`;
       actionsEl.innerHTML = `
         <button type="button" disabled class="glass-heavy text-gray-500 px-8 py-3.5 rounded-lg font-bold uppercase tracking-widest cursor-not-allowed border border-white/5 flex items-center gap-2">
           <i class="fa-solid fa-lock text-xs"></i> Showdown Locked
@@ -292,8 +382,15 @@
   function renderActionPermissions() {
     const clashBox = document.getElementById('clash-action-container');
     const hitlistBox = document.getElementById('hitlist-action-container');
+    const dockCreate = document.getElementById('dock-create-showdown');
+    const team = selectedTeam();
 
-    if (HUB.can_issue) {
+    if (canIssueSelectedTeam()) {
+      if (dockCreate) {
+        dockCreate.removeAttribute('aria-disabled');
+        dockCreate.classList.remove('opacity-50', 'cursor-not-allowed');
+        dockCreate.title = 'Create a Showdown from your authorized team.';
+      }
       clashBox.innerHTML = `
         <button type="button" data-open-slide="create-clash" class="bg-dc-cyan/10 hover:bg-dc-cyan text-dc-cyan hover:text-black border border-dc-cyan/30 px-5 py-2 font-bold text-xs uppercase tracking-widest rounded transition-all shadow-[0_0_15px_rgba(0,229,255,0.1)]">
           Create Showdown
@@ -303,7 +400,14 @@
           Post Bounty
         </button>`;
     } else {
-      const reason = HUB.primary_team ? 'Captain authority required' : 'Team required';
+      const reason = team ? 'Captain authority required for selected team' : 'Team required';
+      if (dockCreate) {
+        dockCreate.setAttribute('aria-disabled', 'true');
+        dockCreate.classList.add('opacity-50', 'cursor-not-allowed');
+        dockCreate.title = reason;
+        const sub = dockCreate.querySelector('p:last-child');
+        if (sub) sub.textContent = reason;
+      }
       clashBox.innerHTML = `<button disabled title="${esc(reason)}" class="bg-white/5 border border-white/10 text-gray-500 px-5 py-2 font-bold text-xs uppercase tracking-widest rounded cursor-not-allowed"><i class="fa-solid fa-lock mr-1"></i> Create Showdown</button>`;
       hitlistBox.innerHTML = `<button disabled title="${esc(reason)}" class="bg-white/5 border border-white/10 text-gray-500 px-5 py-2 font-bold text-xs uppercase tracking-widest rounded cursor-not-allowed"><i class="fa-solid fa-lock mr-1"></i> Post Bounty</button>`;
     }
@@ -313,14 +417,14 @@
 
   function normalizeTab(name) {
     const key = String(name || '').replace(/^#/, '').trim().toLowerCase();
-    return TAB_ALIASES[key] || (['clash', 'contracts', 'hitlist', 'royale', 'operations', 'review'].includes(key) ? key : 'clash');
+    return TAB_ALIASES[key] || (['showdown', 'missions', 'bounty', 'dropzone'].includes(key) ? key : 'showdown');
   }
 
   function switchTab(name, opts = {}) {
     const tab = normalizeTab(name);
     STATE.activeTab = tab;
     document.querySelectorAll('.tab-trigger').forEach((t) => {
-      t.classList.toggle('active', t.dataset.tab === tab);
+      t.classList.toggle('active', normalizeTab(t.dataset.tab) === tab);
     });
     document.querySelectorAll('.tab-content').forEach((c) => {
       c.classList.toggle('active', c.id === `tab-content-${tab}`);
@@ -330,23 +434,72 @@
     }
   }
 
-  function setGameFilter(code) {
-    STATE.gameFilter = code || 'ALL';
-    document.querySelectorAll('.game-filter-btn').forEach((b) => {
-      const active = b.dataset.game === STATE.gameFilter;
-      b.classList.toggle('active', active);
-      b.classList.toggle('bg-white/10', active);
+  function gameList() {
+    return HUB.games || [];
+  }
+
+  function gameByCode(code) {
+    const wanted = String(code || '').toUpperCase();
+    return gameList().find((g) => String(g.short_code || '').toUpperCase() === wanted) || null;
+  }
+
+  function gameById(id) {
+    const wanted = String(id || '');
+    return gameList().find((g) => String(g.id) === wanted) || null;
+  }
+
+  function defaultGameForSelectedTeam() {
+    const team = selectedTeam();
+    const teamGame = team && team.game_id ? gameById(team.game_id) : null;
+    return teamGame ? String(teamGame.short_code || '').toUpperCase() : (gameList()[0] ? String(gameList()[0].short_code || '').toUpperCase() : 'ALL');
+  }
+
+  function smartDefaultGameCode() {
+    const preferred = HUB.preferred_game_id ? gameById(HUB.preferred_game_id) : null;
+    if (preferred) return String(preferred.short_code || '').toUpperCase();
+    return defaultGameForSelectedTeam();
+  }
+
+  function gameIconHtml(game, fallbackCode) {
+    const code = fallbackCode || (game && game.short_code) || 'ALL';
+    const url = game && (game.icon_url || game.logo_url);
+    if (url) return `<img src="${esc(url)}" alt="${esc(code)}" class="h-8 w-8 rounded-lg object-cover border border-white/10">`;
+    return `<span class="h-8 w-8 rounded-lg border border-white/10 bg-white/[0.06] grid place-items-center text-[10px] font-black uppercase text-white">${esc(code === 'ALL' ? 'All' : code)}</span>`;
+  }
+
+  function updateGameSelectorUI() {
+    const game = STATE.gameFilter === 'ALL' ? null : gameByCode(STATE.gameFilter);
+    const icon = document.getElementById('selected-game-icon');
+    const name = document.getElementById('selected-game-name');
+    const code = document.getElementById('selected-game-code');
+    if (icon) icon.innerHTML = gameIconHtml(game, STATE.gameFilter);
+    if (name) name.textContent = game ? (game.name || game.short_code || 'Game') : 'All Games';
+    if (code) code.textContent = game ? (game.short_code || 'Game') : 'Global filter';
+    document.querySelectorAll('.game-option').forEach((b) => {
+      const active = String(b.dataset.gameCode || 'ALL').toUpperCase() === String(STATE.gameFilter || 'ALL').toUpperCase();
+      b.classList.toggle('bg-dc-cyan/10', active);
       b.classList.toggle('text-white', active);
-      b.classList.toggle('text-gray-500', !active);
     });
+  }
+
+  function closeGameSelector() {
+    const menu = document.getElementById('game-selector-menu');
+    if (menu) menu.classList.add('hidden-spa');
+  }
+
+  function setGameFilter(code, opts = {}) {
+    STATE.gameFilter = code || 'ALL';
+    if (opts.manual) STATE.gameManuallySelected = true;
+    updateGameSelectorUI();
     renderAllFeeds();
   }
 
   function filterByGame(items) {
     if (STATE.gameFilter === 'ALL') return items;
+    const selected = String(STATE.gameFilter || '').toUpperCase();
     return items.filter((it) => {
       const code = String(it.game_short_code || (it.template && it.template.game_short_code) || '').toUpperCase();
-      return code === STATE.gameFilter;
+      return code === selected;
     });
   }
 
@@ -393,14 +546,14 @@
   // ── Feed renderers ────────────────────────────────────────────────
 
   function renderClashFeed() {
-    const feed = document.getElementById('clash-feed');
-    const list = applyFilters((STATE.data.clashes || []).filter((c) => Number(c.entry_fee_dc || 0) > 0));
+    const feed = document.getElementById('showdown-feed');
+    const list = applyFilters((STATE.data.showdown || []).filter((c) => Number(c.entry_fee_dc || 0) > 0));
     if (!list.length) {
       feed.innerHTML = emptyState({
         icon: 'fa-radar',
         title: 'Radar Silent',
         sub: 'No open Showdowns match your filters right now.',
-        ctaText: HUB.can_issue ? 'Create Showdown' : null,
+        ctaText: canIssueSelectedTeam() ? 'Create Showdown' : null,
         ctaTab: null,
       });
       return;
@@ -409,7 +562,7 @@
       const pot = Number(c.prize_pot_dc || (c.entry_fee_dc * 2));
       const closed = !!c.closure_reason;
       const isHigh = Number(c.entry_fee_dc) >= 1000;
-      const canAccept = HUB.can_issue && !closed && c.status === 'OPEN' && !c.challenged_team_id;
+      const canAccept = canIssueSelectedTeam() && !closed && c.status === 'OPEN' && !c.challenged_team_id;
       const btnState = canAccept ? '' : 'disabled';
       const btnClass = canAccept
         ? 'bg-white/10 hover:bg-dc-cyan hover:text-black border-white/20 hover:border-dc-cyan text-white'
@@ -456,8 +609,8 @@
   }
 
   function renderContractsFeed() {
-    const feed = document.getElementById('contracts-feed');
-    const list = applyFilters(STATE.data.contracts);
+    const feed = document.getElementById('missions-feed');
+    const list = applyFilters(STATE.data.missions);
     if (!list.length) {
       feed.innerHTML = `<div class="col-span-full">${emptyState({ icon: 'fa-scroll', title: 'No Missions Available', sub: 'Mission board is quiet. Check back when fresh objectives drop.' })}</div>`;
       return;
@@ -465,6 +618,8 @@
     feed.innerHTML = list.map((t) => {
       const fee = Number(t.entry_fee_dc || 0);
       const reward = Number(t.reward_dc || 0);
+      const missionText = `${t.title || ''} ${t.goal_type_display || ''} ${t.reset_period || ''} ${t.frequency || ''}`.toLowerCase();
+      const cadence = missionText.includes('daily') ? 'Daily' : (missionText.includes('weekly') ? 'Weekly' : 'Admin Curated');
       return `
         <div class="glass-heavy accent-violet rounded-2xl p-1 relative overflow-hidden group fade-enter border border-white/5 transition-all">
           <div class="absolute inset-0 bg-gradient-to-br from-dc-violet/10 to-transparent opacity-40 z-0"></div>
@@ -473,7 +628,10 @@
               <div class="w-12 h-12 bg-dc-violet/20 rounded-xl flex items-center justify-center border border-dc-violet/30 text-dc-violet">
                 <i class="fa-solid fa-scroll text-xl"></i>
               </div>
-              <span class="bg-black/80 text-gray-300 text-[9px] font-bold uppercase tracking-widest px-2.5 py-1 rounded border border-white/10">${esc(t.goal_type_display || 'MISSION')}</span>
+              <div class="flex flex-col items-end gap-1">
+                <span class="bg-dc-violet/10 text-dc-violet text-[9px] font-bold uppercase tracking-widest px-2.5 py-1 rounded border border-dc-violet/25">${esc(cadence)}</span>
+                <span class="bg-black/80 text-gray-300 text-[9px] font-bold uppercase tracking-widest px-2.5 py-1 rounded border border-white/10">${esc(t.goal_type_display || 'MISSION')}</span>
+              </div>
             </div>
             <h3 class="font-display text-2xl font-bold text-white mb-2 group-hover:text-dc-violet transition-colors">${esc(t.title)}</h3>
             <p class="text-sm text-gray-400 mb-6 flex-grow leading-relaxed font-medium line-clamp-3">${esc(t.description || '')}</p>
@@ -498,8 +656,8 @@
   }
 
   function renderHitlistFeed() {
-    const feed = document.getElementById('hitlist-feed');
-    const list = applyFilters((STATE.data.hitlist || []).filter((b) => !!b.is_hitlist));
+    const feed = document.getElementById('bounty-feed');
+    const list = applyFilters((STATE.data.bounty || []).filter((b) => !!b.is_hitlist));
     if (!list.length) {
       feed.innerHTML = emptyState({
         icon: 'fa-skull',
@@ -512,10 +670,12 @@
       const reward = Number(b.reward_amount_dc || 0);
       const entry = Number(b.challenger_entry_fee_dc || 0);
       const closed = !!b.closure_reason;
-      const canHunt = HUB.can_issue && !closed && b.is_claimable;
+      const team = selectedTeam();
+      const isOwnBounty = team && b.issuer_team_id && String(b.issuer_team_id) === String(team.id);
+      const canHunt = canIssueSelectedTeam() && !closed && b.is_claimable && !isOwnBounty;
       const btnState = canHunt ? '' : 'disabled';
       const btnClass = canHunt ? 'bg-dc-neon hover:bg-red-600 text-white shadow-[0_0_20px_rgba(255,0,85,0.3)]' : 'bg-black/40 border border-white/5 text-gray-600 cursor-not-allowed';
-      const btnText = canHunt ? 'Claim Bounty' : (HUB.primary_team ? '<i class="fa-solid fa-lock mr-1"></i> Captain Only' : '<i class="fa-solid fa-lock mr-1"></i> Team Reqd');
+      const btnText = canHunt ? 'Claim Bounty' : (isOwnBounty ? '<i class="fa-solid fa-shield-halved mr-1"></i> Your Bounty' : (selectedTeam() ? '<i class="fa-solid fa-lock mr-1"></i> Captain Only' : '<i class="fa-solid fa-lock mr-1"></i> Team Reqd'));
       return `
         <div class="glass-heavy accent-neon rounded-2xl p-6 relative overflow-hidden group fade-enter border border-white/5 transition-all">
           <div class="absolute inset-0 bg-gradient-to-r from-dc-neon/10 to-transparent z-0 opacity-40"></div>
@@ -560,8 +720,8 @@
   }
 
   function renderRoyaleFeed() {
-    const feed = document.getElementById('royale-feed');
-    const list = applyFilters(STATE.data.royale);
+    const feed = document.getElementById('dropzone-feed');
+    const list = applyFilters(STATE.data.dropzone);
     if (!list.length) {
       feed.innerHTML = `<div class="col-span-full">${emptyState({ icon: 'fa-crown', title: 'No Lobbies Scheduled', sub: 'Custom rooms drop on the schedule. Check back soon.' })}</div>`;
       return;
@@ -585,6 +745,7 @@
         `<span class="font-mono text-[10px] text-dc-gold">#${esc(k)}: ${esc(splits[k])}${mode === 'PERCENT' ? '%' : ' DC'}</span>`
       ).join('<span class="text-gray-700">&middot;</span>');
       const canReserve = !closed && remaining > 0;
+      const urgency = canReserve && remaining <= Math.max(3, Math.ceil(max * 0.12));
       return `
         <div class="glass-heavy accent-gold rounded-3xl p-5 md:p-6 relative overflow-hidden group fade-enter border border-white/5 transition-all ${featured ? 'md:col-span-2' : ''}">
           <div class="absolute inset-0 opacity-60 pointer-events-none" style="background: linear-gradient(135deg, rgba(255,215,0,.10), transparent 38%), radial-gradient(circle at 86% 18%, rgba(0,229,255,.08), transparent 32%);"></div>
@@ -595,6 +756,7 @@
                   <div class="flex items-center gap-2 mb-2">
                     <span class="px-2.5 py-1 rounded-full bg-dc-gold/15 border border-dc-gold/30 text-dc-gold text-[9px] font-black uppercase tracking-widest">${esc(l.game_short_code || 'DROPZONE')}</span>
                     ${featured ? '<span class="px-2.5 py-1 rounded-full bg-dc-cyan/10 border border-dc-cyan/25 text-dc-cyan text-[9px] font-black uppercase tracking-widest">Featured Lobby</span>' : ''}
+                    ${urgency ? '<span class="px-2.5 py-1 rounded-full bg-dc-neon/10 border border-dc-neon/25 text-dc-neon text-[9px] font-black uppercase tracking-widest">Filling Fast</span>' : ''}
                   </div>
                   <h3 class="font-display font-black text-white text-3xl leading-tight">${esc(l.title)}</h3>
                 </div>
@@ -606,11 +768,11 @@
                 ${[1, 2, 3, 4, 5].map((i) => `<span class="${i <= phase ? 'is-on' : ''}"></span>`).join('')}
               </div>
               <div class="grid grid-cols-3 gap-2 mb-4">
-                <div class="rounded-2xl border border-white/8 bg-black/30 p-3">
+                <div class="rounded-2xl border border-white/[0.08] bg-black/30 p-3">
                   <p class="text-[9px] uppercase tracking-widest text-gray-500 font-black">Slots</p>
                   <p class="font-display text-2xl font-black text-white">${taken}<span class="text-sm text-gray-500">/${max}</span></p>
                 </div>
-                <div class="rounded-2xl border border-white/8 bg-black/30 p-3">
+                <div class="rounded-2xl border border-white/[0.08] bg-black/30 p-3">
                   <p class="text-[9px] uppercase tracking-widest text-gray-500 font-black">Left</p>
                   <p class="font-display text-2xl font-black text-dc-cyan">${remaining}</p>
                 </div>
@@ -632,11 +794,21 @@
                 ${splitChips ? `<div class="flex items-center gap-1.5 flex-wrap">${splitChips}</div>` : '<span class="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Reward distribution pending</span>'}
               </div>
             </div>
-            <div class="flex flex-col justify-between rounded-3xl border border-white/8 bg-black/35 p-4">
+            <div class="flex flex-col justify-between rounded-3xl border border-white/[0.08] bg-black/35 p-4">
               <div>
                 <p class="text-[10px] uppercase tracking-widest text-gray-500 font-black mb-2">Room Reveal</p>
                 <p class="text-sm text-gray-300 leading-relaxed">${status.includes('LIVE') || status.includes('READY') ? 'Room details may be available to reserved entrants on the detail page.' : 'Room credentials stay hidden until the configured reveal window.'}</p>
-                <div class="mt-4 rounded-2xl border border-white/8 bg-white/[0.03] p-3">
+                <div class="mt-4 grid grid-cols-2 gap-2">
+                  <div class="rounded-2xl border border-white/[0.08] bg-black/30 p-3">
+                    <p class="text-[9px] uppercase tracking-widest text-gray-500 font-black">Queue State</p>
+                    <p class="mt-1 text-xs font-black uppercase ${urgency ? 'text-dc-neon' : 'text-dc-cyan'}">${urgency ? 'Filling Fast' : (canReserve ? 'Open' : 'Closed')}</p>
+                  </div>
+                  <div class="rounded-2xl border border-white/[0.08] bg-black/30 p-3">
+                    <p class="text-[9px] uppercase tracking-widest text-gray-500 font-black">Launch</p>
+                    <p class="mt-1 text-xs font-black text-white">${schedText ? esc(schedText) : 'TBA'}</p>
+                  </div>
+                </div>
+                <div class="mt-4 rounded-2xl border border-white/[0.08] bg-white/[0.03] p-3">
                   <p class="text-[10px] uppercase tracking-widest text-gray-500 font-black">Results Preview</p>
                   <p class="text-xs text-gray-400 mt-1">${phase >= 4 ? 'Scoring/review is in progress or complete. Open lobby details for standings.' : 'Leaderboard appears after scoring starts.'}</p>
                 </div>
@@ -665,8 +837,36 @@
     return op.is_action_required || /review|dispute|proof|confirmation|rejected|conflict/.test(haystack);
   }
 
+  function isTerminalOp(op) {
+    return /SETTLED|COMPLETED|PAID|REJECTED|REFUNDED|VOIDED|CANCELLED|EXPIRED|SIGNED|DECLINED/i.test(op.status || '');
+  }
+
+  function hasMatchRoomReady(op) {
+    const label = `${op.status || ''} ${op.next_action_label || ''}`.toLowerCase();
+    return !!op.match_room_url || /match room|room details|enter/.test(label);
+  }
+
+  function operationMatchesSelectedTeam(op) {
+    if (!STATE.operatingTeamId) return true;
+    if (['mission', 'dropzone'].includes(String(op.type || ''))) return true;
+    const team = selectedTeam();
+    const selectedName = team && team.name ? String(team.name).toLowerCase() : '';
+    const selectedId = String(STATE.operatingTeamId);
+    if (op.team_id != null && String(op.team_id) === selectedId) return true;
+    if (op.issuer_team_id != null && String(op.issuer_team_id) === selectedId) return true;
+    if (op.claiming_team_id != null && String(op.claiming_team_id) === selectedId) return true;
+    if (op.challenger_team_id != null && String(op.challenger_team_id) === selectedId) return true;
+    if (op.challenged_team_id != null && String(op.challenged_team_id) === selectedId) return true;
+    if (selectedName && op.team_name && String(op.team_name).toLowerCase() === selectedName) return true;
+    return false;
+  }
+
+  function scopedOperations() {
+    return (STATE.data.myOperations || []).filter(operationMatchesSelectedTeam);
+  }
+
   function renderCommandMetrics() {
-    const operations = STATE.data.myOperations || [];
+    const operations = scopedOperations();
     const now = Date.now();
     const upcoming = operations.filter((op) => {
       const dt = op.scheduled_at || op.starts_at;
@@ -682,6 +882,172 @@
     set('metric-team-ops', teamOps.toLocaleString());
     set('metric-rewards', rewards ? `${rewards.toLocaleString()}` : '0');
     set('ctx-stat-1', operations.length ? operations.length.toLocaleString() : '0');
+    renderGuidance();
+    renderEcosystemFlow();
+    renderTelemetry();
+  }
+
+  function guidanceItems() {
+    const ops = scopedOperations();
+    const reviews = ops.filter(isReviewOp);
+    const needsAction = ops.filter((op) => !!op.is_action_required);
+    const openShowdowns = (STATE.data.showdown || []).filter((c) => Number(c.entry_fee_dc || 0) > 0 && c.status === 'OPEN');
+    const openBounties = (STATE.data.bounty || []).filter((b) => !!b.is_hitlist && b.is_claimable);
+    const dropzones = STATE.data.dropzone || [];
+    const reservableDropzone = dropzones.find((l) => {
+      const max = Number(l.capacity || l.max_slots || 0);
+      const taken = Number(l.reserved_count || l.entries_count || 0);
+      const status = String(l.status || '').toUpperCase();
+      return max > taken && !/SETTLED|CANCELLED|CLOSED|COMPLETED/.test(status);
+    });
+    const items = [];
+
+    if (needsAction.length) {
+      items.push({
+        type: 'action',
+        icon: 'fa-bolt',
+        color: 'text-dc-cyan',
+        title: `${needsAction.length} operation${needsAction.length === 1 ? '' : 's'} need action`,
+        body: 'Result, proof, room, or offer steps are waiting in My Operations.',
+        tab: 'operations',
+      });
+    }
+    if (reviews.length) {
+      items.push({
+        type: 'review',
+        icon: 'fa-shield-halved',
+        color: 'text-dc-neon',
+        title: 'Review state detected',
+        body: 'Proof, confirmation, or dispute items are being tracked in the review layer.',
+        tab: 'review',
+      });
+    }
+    if (!ops.some((op) => op.type === 'showdown')) {
+      items.push({
+        type: 'showdown',
+        icon: 'fa-bolt',
+        color: 'text-dc-cyan',
+        title: 'You do not have an active Showdown',
+        body: canIssueSelectedTeam() ? 'Create one from your authorized team or accept an open radar match.' : 'Captain or manager authority is required for Showdowns.',
+        tab: 'showdown',
+      });
+    }
+    if (canIssueSelectedTeam() && openBounties.length) {
+      items.push({
+        type: 'bounty',
+        icon: 'fa-crosshairs',
+        color: 'text-dc-neon',
+        title: 'Bounty board has claimable rewards',
+        body: 'Your team can claim an open Bounty if the rules and entry fee fit.',
+        tab: 'bounty',
+      });
+    }
+    if (reservableDropzone) {
+      items.push({
+        type: 'dropzone',
+        icon: 'fa-map-location-dot',
+        color: 'text-dc-gold',
+        title: 'Dropzone reservations are open',
+        body: `${reservableDropzone.title || 'A lobby'} still has slots available.`,
+        tab: 'dropzone',
+      });
+    }
+    if (!HUB.primary_team) {
+      items.push({
+        type: 'mission',
+        icon: 'fa-scroll',
+        color: 'text-dc-violet',
+        title: 'Solo path available',
+        body: 'Missions are the fastest way to participate without team authority.',
+        tab: 'missions',
+      });
+    }
+    if (!items.length) {
+      items.push({
+        type: 'ready',
+        icon: 'fa-circle-check',
+        color: 'text-dc-success',
+        title: 'Command state is clear',
+        body: openShowdowns.length ? 'Open Showdowns are available if you want the next match.' : 'Browse Missions, Bounty, or Dropzone to start a new operation.',
+        tab: openShowdowns.length ? 'showdown' : 'missions',
+      });
+    }
+    return items.slice(0, 4);
+  }
+
+  function renderGuidance() {
+    const feed = document.getElementById('guidance-feed');
+    const side = document.getElementById('objectives-feed');
+    const items = guidanceItems();
+    const html = items.map((item) => `
+      <button type="button" data-go-tab="${esc(item.tab)}" class="guidance-card ${item.color} text-left p-4 hover:bg-white/[0.045] transition group">
+        <div class="flex items-start gap-3">
+          <div class="h-9 w-9 rounded-xl border border-white/10 bg-white/[0.04] grid place-items-center shrink-0">
+            <i class="fa-solid ${item.icon} text-sm"></i>
+          </div>
+          <div class="min-w-0">
+            <p class="text-sm font-black text-white leading-snug">${esc(item.title)}</p>
+            <p class="mt-1 text-[11px] leading-relaxed text-gray-400">${esc(item.body)}</p>
+          </div>
+          <i class="fa-solid fa-arrow-right text-[10px] text-gray-600 group-hover:text-white ml-auto mt-1"></i>
+        </div>
+      </button>`).join('');
+    if (feed) feed.innerHTML = html;
+    if (side) side.innerHTML = items.slice(0, 3).map((item) => `
+      <button type="button" data-go-tab="${esc(item.tab)}" class="w-full text-left rounded-2xl border border-white/[0.08] bg-white/[0.03] p-3 hover:bg-white/[0.06] transition">
+        <div class="flex items-center gap-3">
+          <i class="fa-solid ${item.icon} ${item.color}"></i>
+          <div class="min-w-0">
+            <p class="text-xs font-bold text-white truncate">${esc(item.title)}</p>
+            <p class="text-[10px] text-gray-500 truncate">${esc(item.body)}</p>
+          </div>
+        </div>
+      </button>`).join('');
+  }
+
+  function renderEcosystemFlow() {
+    const el = document.getElementById('ecosystem-flow');
+    if (!el) return;
+    const flows = [
+      { tab: 'showdown', icon: 'fa-bolt', color: 'text-dc-cyan', label: 'Showdown', steps: ['Create', 'Match Room', 'Result', 'Review', 'Settled'] },
+      { tab: 'missions', icon: 'fa-scroll', color: 'text-dc-violet', label: 'Missions', steps: ['Start', 'Progress', 'Proof', 'Review', 'Reward'] },
+      { tab: 'bounty', icon: 'fa-crosshairs', color: 'text-dc-neon', label: 'Bounty', steps: ['Place', 'Claim', 'Match Room', 'Verify', 'Settle'] },
+      { tab: 'dropzone', icon: 'fa-map-location-dot', color: 'text-dc-gold', label: 'Dropzone', steps: ['Reserve', 'Reveal', 'Lobby', 'Scoring', 'Results'] },
+    ];
+    el.innerHTML = flows.map((flow) => `
+      <button type="button" data-go-tab="${esc(flow.tab)}" class="w-full flow-node hover:border-white/20 transition text-left">
+        <div class="flex flex-col sm:flex-row sm:items-center gap-3">
+          <div class="flex items-center gap-2 w-32 shrink-0">
+            <i class="fa-solid ${flow.icon} ${flow.color}"></i>
+            <span class="text-xs font-black text-white uppercase tracking-widest">${esc(flow.label)}</span>
+          </div>
+          <div class="flex-1 grid grid-cols-5 gap-1.5">
+            ${flow.steps.map((step, index) => `
+              <span class="rounded-lg border border-white/[0.08] bg-white/[0.035] px-2 py-1.5 text-center text-[9px] font-bold uppercase tracking-wider ${index === 0 ? flow.color : 'text-gray-500'}">${esc(step)}</span>
+            `).join('')}
+          </div>
+        </div>
+      </button>`).join('');
+  }
+
+  function renderTelemetry() {
+    const el = document.getElementById('telemetry-list');
+    if (!el) return;
+    const ops = scopedOperations().slice(0, 6);
+    const recent = ops.length ? ops : [
+      { type: 'showdown', title: 'Showdown flow ready', next_action_label: 'Open Radar', status: 'READY' },
+      { type: 'mission', title: 'Mission proof/review available', next_action_label: 'Browse Missions', status: 'READY' },
+      { type: 'dropzone', title: 'Dropzone lobby browser online', next_action_label: 'View Dropzone', status: 'READY' },
+    ];
+    el.innerHTML = recent.map((op) => {
+      const meta = operationTypeMeta(op.type);
+      return `
+        <div class="relative pl-5 pb-4 border-l border-white/10 last:pb-0">
+          <span class="absolute -left-1.5 top-1 h-3 w-3 rounded-full ${meta.dot} shadow-[0_0_12px_currentColor]"></span>
+          <p class="text-xs font-bold text-white">${esc(op.next_action_label || op.status || 'Updated')}</p>
+          <p class="text-[11px] text-gray-500 mt-0.5">${esc(op.title || meta.label)}</p>
+        </div>`;
+    }).join('');
   }
 
   function operationProgressIndex(op) {
@@ -756,11 +1122,12 @@
   function renderActiveOps() {
     const box = document.getElementById('active-ops-container');
     const counter = document.getElementById('ops-count');
-    const operations = STATE.data.myOperations || [];
+    const operations = scopedOperations();
     if (counter) counter.textContent = `${operations.length} ACTIVE`;
     renderCommandMetrics();
     renderOperationsWorkspace();
     renderReviewWorkspace();
+    renderReviewAlert();
     if (!box) return;
     if (!operations.length) {
       box.innerHTML = `<div class="text-center py-6 px-3">
@@ -769,25 +1136,80 @@
       </div>`;
       return;
     }
-    box.innerHTML = operations.slice(0, 8).map((op) => renderOperationCard(op, { compact: true })).join('');
+    const groups = [
+      { label: 'Needs Action', list: operations.filter((op) => !!op.is_action_required) },
+      { label: 'Match Room Ready', list: operations.filter((op) => !op.is_action_required && !isReviewOp(op) && !isTerminalOp(op) && hasMatchRoomReady(op)) },
+      { label: 'Waiting', list: operations.filter((op) => !op.is_action_required && !isReviewOp(op) && !isTerminalOp(op) && !hasMatchRoomReady(op)) },
+      { label: 'Under Review', list: operations.filter((op) => !op.is_action_required && !isTerminalOp(op) && isReviewOp(op)) },
+      { label: 'Completed', list: operations.filter(isTerminalOp).slice(0, 3) },
+    ].filter((group) => group.list.length);
+    box.innerHTML = groups.map((group) => `
+      <div>
+        <div class="mb-2 flex items-center justify-between">
+          <p class="text-[9px] font-black uppercase tracking-[0.18em] text-gray-500">${esc(group.label)}</p>
+          <span class="rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[9px] font-mono text-gray-500">${group.list.length}</span>
+        </div>
+        <div class="space-y-2">${group.list.slice(0, 4).map((op) => renderOperationCard(op, { compact: true })).join('')}</div>
+      </div>`).join('');
+  }
+
+  function renderReviewAlert() {
+    const alert = document.getElementById('review-alert');
+    if (!alert) return;
+    const reviewOps = scopedOperations().filter(isReviewOp);
+    if (!reviewOps.length) {
+      alert.classList.add('hidden-spa');
+      alert.innerHTML = '';
+      return;
+    }
+    alert.classList.remove('hidden-spa');
+    alert.innerHTML = `
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div class="flex items-start gap-3">
+          <div class="h-10 w-10 rounded-xl border border-dc-neon/25 bg-dc-neon/10 grid place-items-center text-dc-neon shrink-0">
+            <i class="fa-solid fa-shield-halved"></i>
+          </div>
+          <div>
+            <p class="text-sm font-black text-white">${reviewOps.length} item${reviewOps.length === 1 ? '' : 's'} under review</p>
+            <p class="text-xs text-gray-400 mt-0.5">Proof, result confirmation, or dispute progress is available from your operations rail.</p>
+          </div>
+        </div>
+        <a href="/dashboard/competitive/disputes/" class="inline-flex items-center justify-center rounded-xl border border-dc-neon/25 bg-dc-neon/10 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-dc-neon hover:bg-dc-neon/20">
+          Open Disputes
+        </a>
+      </div>`;
   }
 
   function renderOperationsWorkspace() {
     const box = document.getElementById('operations-workspace');
     if (!box) return;
-    const operations = STATE.data.myOperations || [];
+    const operations = scopedOperations();
     if (!operations.length) {
       box.innerHTML = `<div class="xl:col-span-2">${emptyState({ icon: 'fa-layer-group', title: 'No Operations Running', sub: 'Start a Mission, create a Showdown, claim a Bounty, reserve a Dropzone slot, or schedule team ops to build your command feed.' })}</div>`;
       return;
     }
-    const priority = operations.slice().sort((a, b) => Number(!!b.is_action_required) - Number(!!a.is_action_required));
-    box.innerHTML = priority.map((op) => renderOperationCard(op)).join('');
+    const groups = [
+      { key: 'needs', label: 'Needs Action', list: operations.filter((op) => !!op.is_action_required) },
+      { key: 'rooms', label: 'Live / Match Room Ready', list: operations.filter((op) => !op.is_action_required && !isReviewOp(op) && !isTerminalOp(op) && hasMatchRoomReady(op)) },
+      { key: 'waiting', label: 'Waiting', list: operations.filter((op) => !op.is_action_required && !isReviewOp(op) && !isTerminalOp(op) && !hasMatchRoomReady(op)) },
+      { key: 'review', label: 'Under Review', list: operations.filter((op) => !op.is_action_required && !isTerminalOp(op) && isReviewOp(op)) },
+      { key: 'closed', label: 'Completed', list: operations.filter(isTerminalOp) },
+    ].filter((group) => group.list.length);
+    box.innerHTML = groups.map((group) => `
+      <div class="xl:col-span-2">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-[10px] uppercase tracking-[0.24em] font-black text-gray-500">${esc(group.label)}</h3>
+          <span class="rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[9px] font-mono text-gray-500">${group.list.length}</span>
+        </div>
+        <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">${group.list.map((op) => renderOperationCard(op)).join('')}</div>
+      </div>
+    `).join('');
   }
 
   function renderReviewWorkspace() {
     const box = document.getElementById('review-workspace');
     if (!box) return;
-    const reviewOps = (STATE.data.myOperations || []).filter(isReviewOp);
+    const reviewOps = scopedOperations().filter(isReviewOp);
     if (!reviewOps.length) {
       box.innerHTML = emptyState({
         icon: 'fa-shield-halved',
@@ -823,27 +1245,27 @@
   // ── Data fetchers ─────────────────────────────────────────────────
 
   async function loadClashes() {
-    try { STATE.data.clashes = await jsonFetch(API.challengesList); }
-    catch { STATE.data.clashes = []; }
-    STATE.loaded.clashes = true;
+    try { STATE.data.showdown = await jsonFetch(API.challengesList); }
+    catch { STATE.data.showdown = []; }
+    STATE.loaded.showdown = true;
     renderClashFeed();
   }
   async function loadContracts() {
-    try { STATE.data.contracts = await jsonFetch(API.contractsList); }
-    catch { STATE.data.contracts = []; }
-    STATE.loaded.contracts = true;
+    try { STATE.data.missions = await jsonFetch(API.contractsList); }
+    catch { STATE.data.missions = []; }
+    STATE.loaded.missions = true;
     renderContractsFeed();
   }
   async function loadHitlist() {
-    try { STATE.data.hitlist = await jsonFetch(API.bountiesList); }
-    catch { STATE.data.hitlist = []; }
-    STATE.loaded.hitlist = true;
+    try { STATE.data.bounty = await jsonFetch(API.bountiesList); }
+    catch { STATE.data.bounty = []; }
+    STATE.loaded.bounty = true;
     renderHitlistFeed();
   }
   async function loadRoyale() {
-    try { STATE.data.royale = await jsonFetch(API.royaleList); }
-    catch { STATE.data.royale = []; }
-    STATE.loaded.royale = true;
+    try { STATE.data.dropzone = await jsonFetch(API.royaleList); }
+    catch { STATE.data.dropzone = []; }
+    STATE.loaded.dropzone = true;
     renderRoyaleFeed();
   }
   async function loadMyOperations() {
@@ -869,7 +1291,7 @@
       body: 'Your selected team entry fee locks on accept. Settlement follows the verified match result.',
       lockNote: `This will lock ${Number(fee).toLocaleString()} DC in escrow.`,
       teamChoices: choices,
-      selectedTeamId: choices.length === 1 ? choices[0].id : '',
+      selectedTeamId: choices.some((team) => String(team.id) === String(STATE.operatingTeamId)) ? STATE.operatingTeamId : (choices.length === 1 ? choices[0].id : ''),
     });
     if (!ok) return;
     const acceptingTeamId = choices.length === 1 ? choices[0].id : ok.teamId;
@@ -889,17 +1311,18 @@
   }
 
   async function onHuntBounty(id, fee) {
-    if (!HUB.primary_team) { toast('You need a team to claim bounties.', 'error'); return; }
+    const team = selectedTeam();
+    if (!team) { toast('You need a team to claim Bounties.', 'error'); return; }
     const ok = await openConfirm({
       title: 'Claim this Bounty?',
-      body: 'Your entry fee locks in escrow. Beat the issuer under the posted rules to claim the Bounty reward.',
+      body: `${team.name} will challenge the issuer under the posted rules. Your entry fee locks for verification.`,
       lockNote: `This will lock ${Number(fee).toLocaleString()} DC in escrow.`,
     });
     if (!ok) return;
     try {
       await jsonFetch(API.bountyClaim(id), {
         method: 'POST',
-        body: JSON.stringify({ claiming_team_id: HUB.primary_team.id }),
+        body: JSON.stringify({ claiming_team_id: team.id }),
       });
       toast('Bounty claim submitted. Match room spawning.', 'success');
       await loadHitlist();
@@ -910,8 +1333,8 @@
   async function onReserveRoyale(id, fee) {
     const ok = await openConfirm({
       title: 'Reserve a Dropzone slot?',
-      body: 'The entry fee locks in escrow. Room ID drops at match start. Cancel before match start to refund.',
-      lockNote: `This will lock ${Number(fee).toLocaleString()} DC in escrow.`,
+      body: 'Your entry fee is locked for the event. Room ID drops at match start. Cancel before match start to refund.',
+      lockNote: `This will lock ${Number(fee).toLocaleString()} DC as the event entry.`,
     });
     if (!ok) return;
     try {
@@ -1033,6 +1456,11 @@
     const excluded = String(excludeTeamId || '');
     return (HUB.my_teams || [])
       .filter((t) => !excluded || String(t.id) !== excluded)
+      .sort((a, b) => {
+        if (String(a.id) === String(STATE.operatingTeamId)) return -1;
+        if (String(b.id) === String(STATE.operatingTeamId)) return 1;
+        return 0;
+      })
       .map((t) => ({
         id: t.id,
         label: t.tag ? `${t.name} [${t.tag}]` : t.name,
@@ -1099,7 +1527,9 @@
     document.getElementById('clash-format').value = '3';
     document.getElementById('clash-fee').value = '300';
     document.getElementById('clash-title').value = '';
-    if (myTeams.length === 1) document.getElementById('clash-team').value = String(myTeams[0].id);
+    const selectedId = STATE.operatingTeamId && myTeams.some((t) => String(t.id) === String(STATE.operatingTeamId)) ? STATE.operatingTeamId : '';
+    if (selectedId) document.getElementById('clash-team').value = String(selectedId);
+    else if (myTeams.length === 1) document.getElementById('clash-team').value = String(myTeams[0].id);
     document.getElementById('so-acting-as').textContent = `Acting as: ${HUB.primary_team ? HUB.primary_team.name : '—'}`;
     document.getElementById('so-wallet-bal').textContent = `Bal: ${Number((HUB.wallet || {}).cached_balance || 0).toLocaleString()} DC`;
     showFormError('clash', '');
@@ -1175,7 +1605,9 @@
     document.getElementById('form-create-hitlist').reset();
     document.getElementById('hitlist-reward').value = '1000';
     document.getElementById('hitlist-entry').value = '200';
-    if (myTeams.length === 1) document.getElementById('hitlist-team').value = String(myTeams[0].id);
+    const selectedId = STATE.operatingTeamId && myTeams.some((t) => String(t.id) === String(STATE.operatingTeamId)) ? STATE.operatingTeamId : '';
+    if (selectedId) document.getElementById('hitlist-team').value = String(selectedId);
+    else if (myTeams.length === 1) document.getElementById('hitlist-team').value = String(myTeams[0].id);
     showFormError('hitlist', '');
   }
 
@@ -1204,7 +1636,7 @@
 
     const ok = await openConfirm({
       title: 'Place this Bounty?',
-      body: 'Your Bounty reward locks immediately. Each challenger pays the entry fee per attempt.',
+      body: 'Your selected team posts this Bounty for challengers to claim. The Bounty reward locks immediately.',
       lockNote: `This will lock ${reward.toLocaleString()} DC in escrow now.`,
     });
     if (!ok) return;
@@ -1243,16 +1675,26 @@
   function applyUrlPrefill() {
     let params;
     try { params = new URLSearchParams(window.location.search); } catch { return; }
-    const teamId = params.get('challenge_team_id');
-    const teamName = params.get('challenge_team_name') || '';
-    if (teamId && HUB.can_issue) {
+    const teamId = params.get('target_team_id') || params.get('challenge_team_id');
+    const teamName = params.get('target_team_name') || params.get('challenge_team_name') || '';
+    if (teamId) STATE.targetOpponent = { opponentId: teamId, opponentName: teamName };
+    const banner = document.getElementById('target-context-banner');
+    if (teamId && banner) {
+      banner.classList.remove('hidden-spa');
+      banner.innerHTML = `
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <span><strong class="text-white">Challenging ${esc(teamName || `Team #${teamId}`)}</strong> through Showdown. Select your operating team, then create the match.</span>
+          <button type="button" data-open-slide="create-clash" class="inline-flex items-center justify-center rounded-xl border border-dc-cyan/30 bg-dc-cyan/10 px-3 py-2 text-[10px] font-black uppercase tracking-widest text-dc-cyan hover:bg-dc-cyan hover:text-black">Create Showdown</button>
+        </div>`;
+    }
+    if (teamId && canIssueSelectedTeam()) {
       switchTab('showdown', { updateHash: true });
       openSlideOver('create-clash', { opponentId: teamId, opponentName: teamName });
       return;
     }
     const action = (params.get('action') || '').toLowerCase();
-    if (['create-clash', 'create-showdown', 'showdown'].includes(action) && HUB.can_issue) { switchTab('showdown', { updateHash: true }); openSlideOver('create-clash'); }
-    if (['create-hitlist', 'create-bounty', 'bounty'].includes(action) && HUB.can_issue) { switchTab('bounty', { updateHash: true }); openSlideOver('create-hitlist'); }
+    if (['create-clash', 'create-showdown', 'showdown'].includes(action) && canIssueSelectedTeam()) { switchTab('showdown', { updateHash: true }); openSlideOver('create-clash'); }
+    if (['create-hitlist', 'create-bounty', 'bounty'].includes(action) && canIssueSelectedTeam()) { switchTab('bounty', { updateHash: true }); openSlideOver('create-hitlist'); }
   }
 
   // ── Event binding ─────────────────────────────────────────────────
@@ -1264,11 +1706,15 @@
       if (btn) switchTab(btn.dataset.tab, { updateHash: true });
     });
 
-    // Game filter
-    document.getElementById('game-filter-bar').addEventListener('click', (e) => {
-      const btn = e.target.closest('[data-game]');
-      if (btn) setGameFilter(btn.dataset.game);
-    });
+    // Game selector
+    const gameTrigger = document.getElementById('game-selector-trigger');
+    const gameMenu = document.getElementById('game-selector-menu');
+    if (gameTrigger && gameMenu) {
+      gameTrigger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        gameMenu.classList.toggle('hidden-spa');
+      });
+    }
 
     // Search
     const search = document.getElementById('global-search');
@@ -1279,15 +1725,52 @@
       });
     }
 
+    const teamSwitcher = document.getElementById('operating-team-select');
+    if (teamSwitcher) {
+      teamSwitcher.addEventListener('change', (e) => setOperatingTeam(e.target.value));
+    }
+
     // Global delegated clicks for: open/close slide, go-tab, accept/hunt/reserve/enroll
     document.body.addEventListener('click', (e) => {
       const target = e.target;
       if (!(target instanceof Element)) return;
 
-      const openSlide = target.closest('[data-open-slide]');
-      if (openSlide) { openSlideOver(openSlide.dataset.openSlide); return; }
+      const gameOption = target.closest('.game-option');
+      if (gameOption) {
+        setGameFilter(String(gameOption.dataset.gameCode || 'ALL').toUpperCase(), { manual: true });
+        closeGameSelector();
+        return;
+      }
 
-      const closeSlide = target.closest('[data-close-slide]');
+      const openSlide = target.closest('[data-open-slide]');
+      if (openSlide) {
+        const slide = openSlide.dataset.openSlide;
+        if ((slide === 'create-clash' || slide === 'create-hitlist') && !canIssueSelectedTeam()) {
+          toast(selectedTeam() ? 'Captain or manager authority is required.' : 'Join or create a team before starting team reward operations.', 'error');
+          return;
+        }
+        const opts = slide === 'create-clash' && STATE.targetOpponent ? STATE.targetOpponent : {};
+        openSlideOver(slide, opts);
+        return;
+      }
+
+      const openGuide = target.closest('[data-open-guide]');
+      if (openGuide) {
+        const guide = document.getElementById('guide-modal');
+        if (guide) {
+          guide.classList.remove('hidden-spa');
+          lockPageScroll();
+        }
+        return;
+      }
+
+      const closeGuide = target.closest('[data-close-guide]');
+      if (closeGuide) {
+        closeGuideModal();
+        return;
+      }
+
+    const closeSlide = target.closest('[data-close-slide]');
       if (closeSlide) { closeSlideOver(closeSlide.dataset.closeSlide); return; }
 
       const goTab = target.closest('[data-go-tab]');
@@ -1307,7 +1790,7 @@
 
       const resultBtn = target.closest('[data-submit-showdown-result]');
       if (resultBtn) {
-        const op = (STATE.data.myOperations || []).find((item) => item.id === resultBtn.dataset.submitShowdownResult);
+        const op = scopedOperations().find((item) => item.id === resultBtn.dataset.submitShowdownResult);
         if (op && op.match_room_url) { window.location.href = op.match_room_url; return; }
         if (op) openResultModal(op);
         return;
@@ -1320,12 +1803,27 @@
       if (cancelConfirm) { closeConfirm(false); return; }
     });
 
+    document.addEventListener('click', (e) => {
+      const target = e.target;
+      if (target instanceof Element && target.closest('#game-selector')) return;
+      closeGameSelector();
+    });
+
     // Backdrop click to close slide
     const backdrop = document.getElementById('slide-over-backdrop');
     if (backdrop) {
       backdrop.addEventListener('click', () => {
         closeSlideOver('create-clash');
         closeSlideOver('create-hitlist');
+      });
+    }
+
+    const guideModal = document.getElementById('guide-modal');
+    if (guideModal) {
+      guideModal.addEventListener('click', (e) => {
+        if (e.target === guideModal) {
+          closeGuideModal();
+        }
       });
     }
 
@@ -1340,6 +1838,7 @@
       if (e.key !== 'Escape') return;
       if (_confirmDeferred) { closeConfirm(false); return; }
       if (STATE.resultOperation) { closeResultModal(); return; }
+      if (isGuideOpen()) { closeGuideModal(); return; }
       closeSlideOver('create-clash');
       closeSlideOver('create-hitlist');
     });
@@ -1360,6 +1859,9 @@
   // ── Init ──────────────────────────────────────────────────────────
 
   function init() {
+    document.body.classList.remove('overflow-hidden');
+    hydrateTeamSwitcher();
+    setGameFilter(smartDefaultGameCode(), { manual: false });
     hydrateLeftColumn();
     renderHero();
     renderActionPermissions();
@@ -1368,7 +1870,7 @@
     window.addEventListener('hashchange', () => switchTab(window.location.hash.slice(1) || 'showdown'));
     // Fetch all in parallel
     Promise.all([loadClashes(), loadContracts(), loadHitlist(), loadRoyale(), loadMyOperations()])
-      .then(() => applyUrlPrefill());
+      .then(() => { renderGuidance(); renderEcosystemFlow(); renderTelemetry(); applyUrlPrefill(); });
   }
 
   if (document.readyState === 'loading') {

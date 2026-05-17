@@ -90,14 +90,15 @@
       var p2 = _participant(c, 2);
       var winnerName = winnerSide === 1 ? p1.name : (winnerSide === 2 ? p2.name : '');
 
-      // Coin shell — two faces visible via existing .coin-wrap/.coin CSS
-      // (preserve-3d). Initial monograms come from team names so participants
-      // see their identity reflected in the toss artifact.
+      // Coin shell — two faces use a crown icon (front) + shield icon (back)
+      // to look like a real competitive coin, not random team initials.
+      var crownSvg = '<svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 20h20M4 20l2-8 4 4 2-8 2 8 4-4 2 8"/></svg>';
+      var shieldSvg = '<svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>';
       var coinShellHTML =
         '<div class="coin-wrap" style="width:96px;height:96px;">' +
-          '<div class="coin' + (isResolved ? '' : '') + '" id="toss-coin">' +
-            '<div class="coin-face coin-a">' + c.esc(_initial(p1.name)) + '</div>' +
-            '<div class="coin-face coin-b">' + c.esc(_initial(p2.name)) + '</div>' +
+          '<div class="coin" id="toss-coin">' +
+            '<div class="coin-face coin-a" style="font-size:0;">' + crownSvg + '</div>' +
+            '<div class="coin-face coin-b" style="font-size:0;">' + shieldSvg + '</div>' +
           '</div>' +
         '</div>';
 
@@ -156,13 +157,14 @@
 
     onAction: async function (action, trigger, c) {
       if (action !== 'coin-toss') return false;
-      // Trigger the existing .coinFlip keyframe before the network round-trip.
+      // Disable CTA and start flip animation before the network round-trip.
+      var btn = document.querySelector('[data-action="coin-toss"]');
+      if (btn) { btn.disabled = true; btn.textContent = 'Flipping…'; }
       try {
         var coin = document.getElementById('toss-coin');
         if (coin) {
           coin.classList.remove('flip');
-          /* eslint-disable-next-line no-unused-expressions */
-          coin.offsetWidth;
+          void coin.offsetWidth;
           coin.classList.add('flip');
         }
       } catch (_) { /* animation is best-effort */ }

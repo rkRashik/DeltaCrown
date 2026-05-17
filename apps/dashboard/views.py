@@ -105,6 +105,7 @@ def competitive_hub_view(request: HttpRequest) -> HttpResponse:
             'tag': getattr(t, 'tag', '') or '',
             'role': primary.role,
             'is_captain': bool(getattr(primary, 'is_tournament_captain', False)),
+            'can_issue': bool(primary.role in ('OWNER', 'MANAGER') or getattr(primary, 'is_tournament_captain', False)),
         }
 
     # ── 3. Identity card ──
@@ -163,31 +164,46 @@ def competitive_hub_view(request: HttpRequest) -> HttpResponse:
         pass
 
     # ── 5. Teams the user has authority on (for create modals) ──
+    all_teams = []
     my_teams = []
     for m in memberships:
         if not m.team:
             continue
-        if not (m.role in ('OWNER', 'MANAGER') or getattr(m, 'is_tournament_captain', False)):
-            continue
-        my_teams.append({
+        can_issue = m.role in ('OWNER', 'MANAGER') or getattr(m, 'is_tournament_captain', False)
+        team_payload = {
             'id': m.team.pk,
             'name': m.team.name,
             'slug': getattr(m.team, 'slug', '') or '',
             'tag': getattr(m.team, 'tag', '') or '',
             'game_id': m.game_id,
             'role': m.role,
-        })
+            'is_captain': bool(getattr(m, 'is_tournament_captain', False)),
+            'can_issue': bool(can_issue),
+        }
+        all_teams.append(team_payload)
+        if not can_issue:
+            continue
+        my_teams.append(team_payload)
 
     # ── 6. Active games ──
     games = []
     try:
         Game = _safe_model('games.Game')
         if Game:
-            for g in Game.objects.filter(is_active=True).only('id', 'display_name', 'short_code'):
+            def _media_url(field):
+                try:
+                    return field.url if field and getattr(field, 'url', None) else ''
+                except Exception:
+                    return ''
+
+            for g in Game.objects.filter(is_active=True).only('id', 'display_name', 'short_code', 'slug', 'icon', 'logo'):
                 games.append({
                     'id': g.pk,
                     'name': getattr(g, 'display_name', '') or g.short_code or '',
                     'short_code': g.short_code or '',
+                    'slug': getattr(g, 'slug', '') or '',
+                    'icon_url': _media_url(getattr(g, 'icon', None)),
+                    'logo_url': _media_url(getattr(g, 'logo', None)),
                 })
     except Exception:
         games = []
@@ -199,8 +215,10 @@ def competitive_hub_view(request: HttpRequest) -> HttpResponse:
             "identity": identity,
             "primary_team": primary_team,
             "wallet": wallet_snapshot,
+            "all_teams": all_teams,
             "my_teams": my_teams,
             "games": games,
+            "preferred_game_id": getattr(profile, 'primary_game_id', None) if profile else None,
         },
     })
 

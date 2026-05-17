@@ -153,6 +153,9 @@ const HubEngine = (() => {
   let _standingsCache    = null;
   let _matchesCache      = null;
   let _matchesCacheFetchedAt = 0;
+  let _scheduleMatchesCache = null;
+  let _scheduleMatchesFetchedAt = 0;
+  const _SCHEDULE_CACHE_TTL_MS = 30000;
   let _participantsCache = null;
   let _participantsAll   = [];  // for search filtering
   let _participantsSort = 'joined_desc';
@@ -301,11 +304,7 @@ const HubEngine = (() => {
     }
 
     if (typeof window.showToast === 'function') {
-      try {
-        window.showToast(safeMessage, safeType);
-      } catch (err) {
-        window.showToast(safeMessage);
-      }
+      window.showToast({ type: safeType, message: safeMessage });
       return;
     }
 
@@ -511,7 +510,7 @@ const HubEngine = (() => {
 
   function _invalidateMatchCaches() {
     _matchesCache = null;
-    _scheduleMatchesCache = null;
+    _scheduleMatchesCache = null; _scheduleMatchesFetchedAt = 0;
     _matchesCacheFetchedAt = 0;
   }
 
@@ -647,6 +646,7 @@ const HubEngine = (() => {
         _dismissOutcomeShareModal();
         closeMobileSidebar();
         closeRescheduleModal();
+        closeReportModal();
         closeAlertConfirmModal();
         closeAlertModal();
         closeContactModal();
@@ -871,22 +871,26 @@ const HubEngine = (() => {
       _fetchStandings();
     }
     if (normalizedTab === 'matches') {
-      const _matchStale = !_matchesCache || (Date.now() - _matchesCacheFetchedAt) > 15000;
-      if (_matchStale) _fetchMatches();
+      const _matchStale = !_matchesCache || (Date.now() - _matchesCacheFetchedAt) > 30000;
+      if (_matchStale) {
+        _fetchMatches();
+      } else {
+        // Instant re-render from cache — no network roundtrip.
+        _renderMatches(_matchesCache);
+      }
+      // Schedule section: TTL-guarded, reuses cache when fresh.
+      _fetchScheduleMatches();
     }
     if (normalizedTab === 'participants' && !_participantsCache) {
       _fetchParticipants({ reset: true });
     }
     if (normalizedTab === 'lobby') {
-      const _lobbyStale = !_matchesCache || (Date.now() - _matchesCacheFetchedAt) > 15000;
+      const _lobbyStale = !_matchesCache || (Date.now() - _matchesCacheFetchedAt) > 30000;
       if (_lobbyStale) {
         _fetchMatches();
       } else {
         _renderMobileLobby(_matchesCache);
       }
-    }
-    if (normalizedTab === 'matches') {
-      _fetchScheduleMatches();
     }
     if (normalizedTab === 'standings' && !_participantsCache) {
       _fetchParticipants({ reset: true });
@@ -2113,7 +2117,7 @@ const HubEngine = (() => {
             ? `<span class="hub-badge hub-badge-${p.claim_status === 'paid' ? 'live' : p.claim_status === 'rejected' ? 'danger' : 'warning'}">${_esc(p.claim_status)}</span>`
             : '';
           const claimBtn = !p.claimed
-            ? `<button class="prize-claim-btn" data-click="HubEngine.openPrizeModal" data-click-args="[&quot;${p.id}&quot;,&quot;${_esc(p.amount)}&quot;,&quot;${_esc(p.placement_display)}&quot;]">Claim Prize</button>`
+            ? `<button class="prize-claim-btn" data-click="HubEngine.openPrizeModal" data-click-args='["${p.id}&quot;,&quot;${_esc(p.amount)}&quot;,&quot;${_esc(p.placement_display)}"]'>Claim Prize</button>`
             : '';
 
           html += `
@@ -3613,9 +3617,9 @@ const HubEngine = (() => {
               <p class="text-xs text-gray-300 mt-1">${_esc(opponent)} proposed ${_esc(proposedAt)}.</p>
             </div>
             <div class="flex flex-wrap gap-2 lg:justify-end">
-              <button data-click="HubEngine.respondReschedule" data-click-args="[&quot;${matchId}&quot;,&quot;accept&quot;]" class='px-3 py-1.5 rounded-lg border border-[#00FF66]/35 bg-[#00FF66]/12 text-[#66FFAE] text-[10px] font-black uppercase tracking-wider hover:bg-[#00FF66]/20 transition-colors'>Accept</button>
-              ${canCounter ? `<button data-click="HubEngine.respondReschedule" data-click-args="[&quot;${matchId}&quot;,&quot;counter&quot;]" class='px-3 py-1.5 rounded-lg border border-blue-400/35 bg-blue-400/15 text-blue-100 text-[10px] font-black uppercase tracking-wider hover:bg-blue-400/25 transition-colors'>Propose New Time</button>` : ''}
-              <button data-click="HubEngine.respondReschedule" data-click-args="[&quot;${matchId}&quot;,&quot;reject&quot;]" class='px-3 py-1.5 rounded-lg border border-[#FF2A55]/35 bg-[#FF2A55]/12 text-[#FF97AA] text-[10px] font-black uppercase tracking-wider hover:bg-[#FF2A55]/20 transition-colors'>Reject</button>
+              <button data-click="HubEngine.respondReschedule" data-click-args='["${matchId}&quot;,&quot;accept"]' class='px-3 py-1.5 rounded-lg border border-[#00FF66]/35 bg-[#00FF66]/12 text-[#66FFAE] text-[10px] font-black uppercase tracking-wider hover:bg-[#00FF66]/20 transition-colors'>Accept</button>
+              ${canCounter ? `<button data-click="HubEngine.respondReschedule" data-click-args='["${matchId}&quot;,&quot;counter"]' class='px-3 py-1.5 rounded-lg border border-blue-400/35 bg-blue-400/15 text-blue-100 text-[10px] font-black uppercase tracking-wider hover:bg-blue-400/25 transition-colors'>Propose New Time</button>` : ''}
+              <button data-click="HubEngine.respondReschedule" data-click-args='["${matchId}&quot;,&quot;reject"]' class='px-3 py-1.5 rounded-lg border border-[#FF2A55]/35 bg-[#FF2A55]/12 text-[#FF97AA] text-[10px] font-black uppercase tracking-wider hover:bg-[#FF2A55]/20 transition-colors'>Reject</button>
             </div>
           </div>
         </div>`;
@@ -7053,7 +7057,9 @@ const HubEngine = (() => {
         const hMatch = clickHandler.match(/^([\w.]+)\((.*)\)$/s);
         if (hMatch) {
           clickAttrs = `data-click="${hMatch[1]}"`;
-          if (hMatch[2].trim()) clickAttrs += ` data-click-args="[${hMatch[2].trim()}]"`;
+          // Use single quotes for the outer attribute so inner double-quoted strings (e.g. "1363") are
+          // preserved as valid HTML. Double-quoting inside double-quoted attributes silently truncates.
+          if (hMatch[2].trim()) clickAttrs += ` data-click-args='[${hMatch[2].trim()}]'`;
         }
       }
       return `<button ${clickAttrs} class='${buttonBase} hub-match-cta-${tone}${disabledClass}'${disabledAttr}>${iconHtml}${_esc(label)}</button>`;
@@ -7061,14 +7067,35 @@ const HubEngine = (() => {
 
     const buttons = [];
 
-    if (lobbyClosed && !terminalState) {
-      // Only show reschedule contact button when lobby is closed
+    if (terminalState) {
+      // Completed/forfeit/disputed — always show report button regardless of match_url presence.
+      // openMatchReport() opens an in-page preview and falls back to URL construction internally.
+      if (stateRaw === 'completed') {
+        buttons.push(makeButton('View Match Report', `HubEngine.openMatchReport(${matchId})`, 'neutral', { icon: 'trophy' }));
+      } else if (['forfeit','cancelled','disputed'].includes(stateRaw)) {
+        buttons.push(makeButton('View Match Details', `HubEngine.openMatchReport(${matchId})`, 'neutral', { icon: 'file-text' }));
+      }
+    } else if (lobbyClosed) {
+      // Lobby window expired, match not terminal
       buttons.push(makeButton('Request Reschedule', `HubEngine.requestExpiredLobbyReschedule(${matchId})`, 'warning', { icon: 'calendar-x' }));
     } else if (hasLobby) {
       if (lobbyOpen) {
         buttons.push(makeButton('Enter Match Room', `HubEngine.openMatchLobby(${matchId})`, 'primary', { icon: 'log-in' }));
+      } else {
+        // Lobby not open yet — show unlock countdown notice
+        const opensAt = lobbyWindow.opensAt;
+        const startsIn = lobbyWindow.startsInSeconds;
+        let openNotice = '';
+        if (typeof startsIn === 'number' && startsIn > 0) {
+          const mins = Math.ceil(startsIn / 60);
+          openNotice = `Room opens in ${mins}m`;
+        } else if (opensAt) {
+          openNotice = `Opens at ${opensAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
+        }
+        if (openNotice) {
+          notices.push(`<div class="flex items-center gap-2 p-2.5 rounded-lg border border-white/10 bg-white/[0.03]"><i data-lucide="lock" class="w-3.5 h-3.5 text-slate-500 shrink-0"></i><p class="text-[11px] text-slate-400">${_esc(openNotice)}</p></div>`);
+        }
       }
-      // No "unlocks in" notice — that info is in the footer metadata
     }
 
     // Reschedule buttons (only if lobby not closed — closed state has its own CTA)
@@ -7310,8 +7337,15 @@ const HubEngine = (() => {
           const p2AvatarHtml = _renderAvatarInner(p2Name, p2Logo, 'text-[10px] font-black text-white flex items-center justify-center', 'w-full h-full object-cover');
 
           const hasDetail = Array.isArray(m.game_scores) && m.game_scores.length > 0;
-          const cursorCls = hasDetail ? 'cursor-pointer' : '';
-          const clickAttr = hasDetail ? `data-click="HubEngine.openMapViewer" data-click-args="[window._hubMatchHistory[${mi}]]"` : '';
+          const stateRaw = String(m.state || '').toLowerCase();
+          const isCompletedHistory = ['completed','forfeit','disputed'].includes(stateRaw);
+          // Clickable: prefer map viewer when game_scores exist, else open in-page report for completed.
+          const cursorCls = (hasDetail || isCompletedHistory) ? 'cursor-pointer' : '';
+          const clickAttr = hasDetail
+            ? `data-click="HubEngine.openMapViewer" data-click-args="[window._hubMatchHistory[${mi}]]"`
+            : isCompletedHistory
+              ? `data-click="HubEngine.openMatchReport" data-click-args='["${m.id || ''}"]'`
+              : '';
 
           html += `
             <div class="premium-card p-4 flex flex-col md:flex-row items-center justify-between gap-4 border-l-4 bg-black/40 hover:bg-black/60 transition ${cursorCls}" style="border-left-color:${borderColor}" ${clickAttr}>
@@ -7757,10 +7791,10 @@ const HubEngine = (() => {
       <h3 class="text-lg font-bold text-white mb-2" style="font-family:Outfit,sans-serif;">${_esc(title)}</h3>
       <p class="text-sm text-gray-500 max-w-xl">${_esc(message)}</p>
       <div class="mt-4 flex flex-wrap items-center justify-center gap-2">
-        <button class="px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-gray-300 hover:text-white transition-colors" data-click="HubEngine.switchTab" data-click-args="[&quot;schedule&quot;]">
+        <button class="px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-gray-300 hover:text-white transition-colors" data-click="HubEngine.switchTab" data-click-args='["schedule"]'>
           View Schedule
         </button>
-        <button class="px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-gray-300 hover:text-white transition-colors" data-click="HubEngine.switchTab" data-click-args="[&quot;bracket&quot;]">
+        <button class="px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-gray-300 hover:text-white transition-colors" data-click="HubEngine.switchTab" data-click-args='["bracket"]'>
           Check Bracket Status
         </button>
       </div>
@@ -7771,8 +7805,9 @@ const HubEngine = (() => {
 
   // ──────────────────────────────────────────────────────────
   // S27: Schedule Tab — Match-Level Schedule
+  // (_scheduleMatchesCache, _scheduleMatchesFetchedAt, _SCHEDULE_CACHE_TTL_MS
+  //  declared at top of module — see variable block above.)
   // ──────────────────────────────────────────────────────────
-  let _scheduleMatchesCache = null;
 
   async function _fetchScheduleMatches() {
     const url = _shell?.dataset.apiMatches;
@@ -7783,23 +7818,35 @@ const HubEngine = (() => {
     const list     = document.getElementById('schedule-match-list');
     if (!skeleton && !empty && !list) return; // no schedule match section
 
+    // Serve from cache without showing skeleton if data is fresh — instant re-render.
+    const isFresh = _scheduleMatchesCache && (Date.now() - _scheduleMatchesFetchedAt) < _SCHEDULE_CACHE_TTL_MS;
+    if (isFresh) {
+      _renderScheduleMatches(_scheduleMatchesCache);
+      return;
+    }
+
     if (skeleton) skeleton.classList.remove('hidden');
     if (empty) empty.classList.add('hidden');
     if (list) list.classList.add('hidden');
 
     try {
-      let data = _scheduleMatchesCache;
-      if (!data) {
+      // If the matches tab already fetched fresh data, reuse it for schedule
+      // to avoid a duplicate round-trip to the same endpoint.
+      let data = null;
+      const matchesFresh = _matchesCache && (Date.now() - _matchesCacheFetchedAt) < _SCHEDULE_CACHE_TTL_MS;
+      if (matchesFresh && _shell?.dataset.isStaffView === 'true') {
+        data = _matchesCache;
+      } else {
         const requestUrl = new URL(url, window.location.origin);
         if (_shell?.dataset.isStaffView !== 'true') {
           requestUrl.searchParams.set('scope', 'all');
         }
-
         const resp = await fetch(requestUrl.toString(), { credentials: 'same-origin' });
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
         data = await resp.json();
-        _scheduleMatchesCache = data;
       }
+      _scheduleMatchesCache = data;
+      _scheduleMatchesFetchedAt = Date.now();
       _renderScheduleMatches(data);
     } catch (err) {
       console.warn('[Hub] Schedule matches fetch failed:', err.message);
@@ -7906,7 +7953,7 @@ const HubEngine = (() => {
         const textCls = isActive ? 'text-[#00F0FF]' : isToday ? 'text-white' : 'text-gray-400';
         const subCls = isActive ? 'text-[#00F0FF]' : isToday ? 'text-[#00F0FF]' : 'text-gray-500';
 
-        tapeHtml += `<button data-click="HubEngine.scheduleSelectDay" data-click-args="[&quot;${_esc(dayKey)}&quot;]" class="shrink-0 px-4 py-3 rounded-xl border text-center transition-all min-w-[72px] ${activeCls} relative" data-tape-day="${_esc(dayKey)}">
+        tapeHtml += `<button data-click="HubEngine.scheduleSelectDay" data-click-args='["${_esc(dayKey)}"]' class="shrink-0 px-4 py-3 rounded-xl border text-center transition-all min-w-[72px] ${activeCls} relative" data-tape-day="${_esc(dayKey)}">
           ${hasLive ? '<span class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#FF2A55] animate-pulse"></span>' : ''}
           <div class="font-mono text-[10px] uppercase tracking-widest ${subCls}">${dayLabel}</div>
           <div class="font-mono font-bold text-sm ${textCls}">${dateLabel}</div>
@@ -8038,8 +8085,11 @@ const HubEngine = (() => {
           centerContent = `<span class="font-display font-black text-sm text-gray-600 shrink-0 bg-black/50 px-3 py-1.5 rounded-lg border border-white/5">VS</span>`;
         }
 
+        const schedCardClick = isCompleted
+          ? `data-click="HubEngine.openMatchReport" data-click-args='["${m.id || ''}"]'`
+          : '';
         html += `
-          <div class="premium-card p-5 border-l-4 mb-4 hover:bg-white/5 transition group" style="border-left-color:${color}">
+          <div class="premium-card p-5 border-l-4 mb-4 hover:bg-white/5 transition group${isCompleted ? ' cursor-pointer' : ''}" style="border-left-color:${color}" ${schedCardClick}>
             <div class="flex flex-col md:flex-row items-center gap-6 relative z-10">
               <div class="w-full md:w-32 text-center border-b md:border-b-0 md:border-r border-white/10 pb-4 md:pb-0 md:pr-6 shrink-0">
                 <p class="font-mono font-bold text-3xl text-white">${_esc(time)}</p>
@@ -8091,7 +8141,7 @@ const HubEngine = (() => {
 
   // Public helper for refresh button
   function refreshScheduleMatches() {
-    _scheduleMatchesCache = null;
+    _scheduleMatchesCache = null; _scheduleMatchesFetchedAt = 0;
     _scheduleSelectedDay = null;
     _fetchScheduleMatches();
   }
@@ -8099,17 +8149,201 @@ const HubEngine = (() => {
   function openMatchLobby(matchId) {
     const match = _findMatchById(matchId);
     if (!match || !match.match_room_url) {
-      _emitToast('warning', 'Match lobby is not available for this card yet.');
+      _emitToast('warning', 'Match room is not available yet.');
       return;
     }
-
+    const stateRaw = String(match.state || '').toLowerCase();
+    const terminal = ['completed', 'forfeit', 'cancelled', 'disputed'].includes(stateRaw);
+    if (terminal) {
+      openMatchReport(matchId);
+      return;
+    }
     const lobbyWindow = _resolveLobbyWindow(match);
     if (!lobbyWindow.isOpen) {
-      _emitToast('info', `Lobby opens ${lobbyWindow.minutesBefore} minutes before scheduled match time.`);
+      const mins = lobbyWindow.minutesBefore || 30;
+      const opensAt = lobbyWindow.opensAt;
+      if (opensAt) {
+        _emitToast('info', `Room opens at ${opensAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}.`);
+      } else {
+        _emitToast('info', `Room opens ${mins} minutes before match time.`);
+      }
       return;
     }
-
     _openMatchRoom(match.match_room_url);
+  }
+
+  // ── In-page Match Report Modal ──────────────────────────────────────────
+  // Opens a glass overlay with team/score/map/MVP data pulled directly from
+  // the cached match payload — no extra network round-trip required.
+
+  function _resolveReportUrl(match) {
+    let url = (match && match.match_url) || '';
+    if (!url && match) {
+      const slug = _shell?.dataset.slug || '';
+      const mid = match.id || '';
+      if (slug && mid) url = `/tournaments/${slug}/matches/${mid}/`;
+    }
+    return url;
+  }
+
+  function openMatchReport(rawMatchId) {
+    // Defensively normalise matchId to a plain numeric/string id — guard against
+    // objects, arrays, or truncated attribute values like "[" from bad HTML quoting.
+    let matchId = rawMatchId;
+    if (matchId && typeof matchId === 'object') {
+      // If an object was somehow passed, try to extract its id property.
+      matchId = matchId.id || matchId;
+    }
+    matchId = String(matchId || '').replace(/[^0-9a-zA-Z_-]/g, '').trim();
+    if (!matchId || matchId === 'undefined' || matchId === 'null') {
+      _emitToast('info', 'Match report is being prepared.');
+      return;
+    }
+    const match = _findMatchById(matchId);
+    if (match) {
+      _openReportModal(match);
+    } else {
+      // Cache miss: navigate directly using safely constructed URL.
+      const slug = _shell?.dataset.slug || '';
+      const url = (slug && matchId) ? `/tournaments/${slug}/matches/${matchId}/` : '';
+      if (url) { window.location.href = url; }
+      else { _emitToast('info', 'Match report is being prepared.'); }
+    }
+  }
+
+  function _openReportModal(match) {
+    const modal = document.getElementById('hub-report-modal');
+    const backdrop = document.getElementById('hub-report-modal-backdrop');
+    const panel = document.getElementById('hub-report-modal-panel');
+    if (!modal) { window.location.href = _resolveReportUrl(match) || '#'; return; }
+
+    const li = (match.lobby_info && typeof match.lobby_info === 'object') ? match.lobby_info : {};
+    const mapName    = String(li.map || li.map_name || '').trim();
+    const server     = String(li.server || '').trim();
+    const gameMode   = String(li.game_mode || '').trim();
+    const bestOf     = Number(match.best_of || 1);
+    const state      = String(match.state || '').toLowerCase();
+    const isTerminal = ['completed','forfeit','cancelled','disputed'].includes(state);
+
+    // Determine P1/P2 display context (participant vs staff view)
+    const isMyMatch = Boolean(match.is_my_match && !match.is_staff_view);
+    const p1Name = match.is_staff_view ? (match.p1_name || 'TBD') : (isMyMatch ? 'You' : (match.p1_name || 'TBD'));
+    const p2Name = match.is_staff_view ? (match.p2_name || 'TBD') : (isMyMatch ? (match.opponent_name || 'TBD') : (match.p2_name || 'TBD'));
+    const p1Logo = match.p1_logo_url || '';
+    const p2Logo = match.is_staff_view ? (match.p2_logo_url || '') : (match.opponent_logo_url || match.p2_logo_url || '');
+    const p1Score = isMyMatch ? (match.your_score ?? match.p1_score ?? '-') : (match.p1_score ?? '-');
+    const p2Score = isMyMatch ? (match.opponent_score ?? match.p2_score ?? '-') : (match.p2_score ?? '-');
+
+    const winnerSide = Number(match.winner_side || 0);
+    const isDraw = isTerminal && !winnerSide;
+    const p1Wins = winnerSide === 1;
+    const p2Wins = winnerSide === 2;
+
+    // ── Populate DOM ────────────────────────────────────────────────────
+    function _setEl(id, text) { const e = document.getElementById(id); if (e) e.textContent = text; }
+    function _setHref(id, href) { const e = document.getElementById(id); if (e) e.href = href || '#'; }
+    function _show(id) { const e = document.getElementById(id); if (e) e.classList.remove('hidden'); }
+    function _hide(id) { const e = document.getElementById(id); if (e) e.classList.add('hidden'); }
+
+    // State badge
+    const stateBadge = document.getElementById('hub-report-modal-state-badge');
+    if (stateBadge) {
+      stateBadge.textContent = state === 'completed' ? 'Verified' : (match.result_state_label || match.state_display || state);
+      stateBadge.className = 'text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full border ' +
+        (state === 'completed' ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300'
+        : 'bg-white/5 border-white/10 text-gray-400');
+    }
+    _setEl('hub-report-modal-round', (match.round_name || '') + (match.match_number ? ` · #${match.match_number}` : ''));
+
+    // Team 1
+    const t1Logo = document.getElementById('hub-report-t1-logo');
+    if (t1Logo) {
+      if (p1Logo) {
+        t1Logo.innerHTML = `<img src="${_esc(p1Logo)}" alt="${_esc(p1Name)}" class="w-full h-full object-cover">`;
+      } else {
+        t1Logo.innerHTML = `<span class="text-xl font-black text-[#00f0ff]">${_esc(p1Name.charAt(0).toUpperCase())}</span>`;
+      }
+      t1Logo.style.borderColor = p1Wins ? 'rgba(0,240,255,0.6)' : 'rgba(255,255,255,0.08)';
+      t1Logo.style.boxShadow = p1Wins ? '0 0 20px rgba(0,240,255,0.2)' : '';
+    }
+    _setEl('hub-report-t1-name', p1Name);
+    const t1Badge = document.getElementById('hub-report-t1-badge');
+    if (t1Badge) {
+      t1Badge.classList.toggle('hidden', !p1Wins && !isDraw);
+      t1Badge.textContent = isDraw ? 'Draw' : 'Victory';
+    }
+
+    // Team 2
+    const t2Logo = document.getElementById('hub-report-t2-logo');
+    if (t2Logo) {
+      if (p2Logo) {
+        t2Logo.innerHTML = `<img src="${_esc(p2Logo)}" alt="${_esc(p2Name)}" class="w-full h-full object-cover">`;
+      } else {
+        t2Logo.innerHTML = `<span class="text-xl font-black text-gray-500">${_esc(p2Name.charAt(0).toUpperCase())}</span>`;
+      }
+      t2Logo.style.borderColor = p2Wins ? 'rgba(0,240,255,0.6)' : 'rgba(255,255,255,0.08)';
+      t2Logo.style.boxShadow = p2Wins ? '0 0 20px rgba(0,240,255,0.2)' : '';
+    }
+    _setEl('hub-report-t2-name', p2Name);
+    const t2Badge = document.getElementById('hub-report-t2-badge');
+    if (t2Badge) {
+      t2Badge.classList.toggle('hidden', !p2Wins && !isDraw);
+      t2Badge.textContent = isDraw ? 'Draw' : 'Victory';
+    }
+
+    // Scores
+    const sc1El = document.getElementById('hub-report-score-1');
+    const sc2El = document.getElementById('hub-report-score-2');
+    if (sc1El) { sc1El.textContent = String(p1Score); sc1El.style.color = p1Wins ? 'var(--ac,#00f0ff)' : p2Wins ? 'rgba(255,255,255,0.25)' : '#aaa'; }
+    if (sc2El) { sc2El.textContent = String(p2Score); sc2El.style.color = p2Wins ? 'var(--ac,#00f0ff)' : p1Wins ? 'rgba(255,255,255,0.25)' : '#aaa'; }
+    _setEl('hub-report-bo-label', bestOf > 1 ? `Best of ${bestOf}` : '');
+
+    // Metadata chips
+    const metaEl = document.getElementById('hub-report-meta');
+    if (metaEl) {
+      const chipCls = 'inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-[10px] font-bold text-gray-400';
+      let chips = '';
+      if (bestOf > 1) chips += `<span class="${chipCls}" style="color:var(--ac,#00f0ff);border-color:rgba(0,240,255,0.2);background:rgba(0,240,255,0.06);">BO${bestOf}</span>`;
+      if (mapName) chips += `<span class="${chipCls}"><i data-lucide="map" class="w-2.5 h-2.5"></i>${_esc(mapName)}</span>`;
+      if (server) chips += `<span class="${chipCls}"><i data-lucide="server" class="w-2.5 h-2.5"></i>${_esc(server)}</span>`;
+      if (gameMode) chips += `<span class="${chipCls}">${_esc(gameMode)}</span>`;
+      metaEl.innerHTML = chips;
+    }
+
+    // MVP from match payload — hub API doesn't include it yet, so show nothing for now.
+    _hide('hub-report-mvp');
+
+    // Links
+    const reportUrl = _resolveReportUrl(match);
+    const bracketUrl = (_shell?.dataset.slug) ? `/tournaments/${_shell.dataset.slug}/bracket/` : '';
+    _setHref('hub-report-full-link', reportUrl);
+    const bracketEl = document.getElementById('hub-report-bracket-link');
+    if (bracketEl && bracketUrl) {
+      bracketEl.href = bracketUrl;
+      bracketEl.classList.remove('hidden');
+    }
+
+    // ── Show modal ───────────────────────────────────────────────────────
+    modal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    requestAnimationFrame(() => {
+      if (backdrop) backdrop.style.opacity = '1';
+      if (panel) { panel.style.transform = 'translateY(0)'; panel.style.opacity = '1'; }
+      if (typeof lucide !== 'undefined') lucide.createIcons({ nodes: [modal] });
+    });
+  }
+
+  function closeReportModal() {
+    const modal = document.getElementById('hub-report-modal');
+    const backdrop = document.getElementById('hub-report-modal-backdrop');
+    const panel = document.getElementById('hub-report-modal-panel');
+    if (!modal) return;
+    if (backdrop) backdrop.style.opacity = '0';
+    if (panel) { panel.style.transform = 'translateY(100%)'; panel.style.opacity = '0'; }
+    setTimeout(() => {
+      modal.classList.add('hidden');
+      document.body.style.overflow = '';
+    }, 300);
   }
 
   function _setRescheduleModalBusy(isBusy) {
@@ -9016,7 +9250,7 @@ const HubEngine = (() => {
         _bracketCache = null;
         _standingsCache = null;
         _matchesCache = null;
-        _scheduleMatchesCache = null;
+        _scheduleMatchesCache = null; _scheduleMatchesFetchedAt = 0;
         _matchesCacheFetchedAt = 0;
         _refreshActiveTab(['bracket', 'standings', 'matches', 'schedule']);
         _pollState({ force: true });
@@ -9028,7 +9262,7 @@ const HubEngine = (() => {
         _matchesCache = null;
         _standingsCache = null;
         _bracketCache = null;
-        _scheduleMatchesCache = null;
+        _scheduleMatchesCache = null; _scheduleMatchesFetchedAt = 0;
         _matchesCacheFetchedAt = 0;
         _refreshActiveTab(['bracket', 'standings', 'matches', 'schedule']);
         _pollState({ force: true });
@@ -9039,7 +9273,7 @@ const HubEngine = (() => {
 
       case 'match_update':
         _matchesCache = null;
-        _scheduleMatchesCache = null;
+        _scheduleMatchesCache = null; _scheduleMatchesFetchedAt = 0;
         _matchesCacheFetchedAt = 0;
         _refreshActiveTab(['matches', 'schedule']);
         _pollState({ force: true });
@@ -9972,6 +10206,8 @@ const HubEngine = (() => {
     refreshScheduleMatches,
     scheduleSelectDay,
     openMatchLobby,
+    openMatchReport,
+    closeReportModal,
     openRescheduleProposal,
     requestExpiredLobbyReschedule,
     closeRescheduleModal,

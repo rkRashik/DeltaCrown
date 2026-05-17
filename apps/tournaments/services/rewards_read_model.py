@@ -134,6 +134,7 @@ class TournamentRewardsReadModel:
         except Exception:
             return bool(str(getattr(tournament, 'status', '') or '') in ('completed', 'archived'))
 
+    @classmethod
     def _build_context(
         cls,
         tournament: Tournament,

@@ -169,6 +169,52 @@
     transform: translateY(-2px);
     border-color: rgba(255,255,255,.18);
   }
+  .guidance-card {
+    position: relative;
+    overflow: hidden;
+    border-radius: 18px;
+    background: linear-gradient(145deg, rgba(255,255,255,.07), rgba(255,255,255,.018));
+    border: 1px solid rgba(255,255,255,.085);
+  }
+  .guidance-card::before {
+    content: '';
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 3px;
+    background: currentColor;
+    opacity: .75;
+  }
+  .flow-node {
+    min-width: 0;
+    border-radius: 16px;
+    border: 1px solid rgba(255,255,255,.08);
+    background: rgba(0,0,0,.26);
+    padding: .85rem;
+  }
+  .action-dock-card {
+    position: relative;
+    overflow: hidden;
+    border-radius: 22px;
+    background: linear-gradient(145deg, rgba(255,255,255,.075), rgba(255,255,255,.02));
+    border: 1px solid rgba(255,255,255,.085);
+    transition: transform .22s ease, border-color .22s ease, background .22s ease;
+  }
+  .action-dock-card:hover {
+    transform: translateY(-3px);
+    border-color: rgba(255,255,255,.2);
+    background: linear-gradient(145deg, rgba(255,255,255,.105), rgba(255,255,255,.035));
+  }
+  .guide-chip {
+    border: 1px solid rgba(255,255,255,.1);
+    background: rgba(255,255,255,.045);
+    border-radius: 999px;
+    padding: .45rem .7rem;
+    font-size: .68rem;
+    font-weight: 800;
+    letter-spacing: .11em;
+    text-transform: uppercase;
+    color: rgba(226,232,240,.8);
+  }
 
   /* Accent rings on cards */
   .accent-cyan   { border-color: rgba(0,229,255,.18) !important; }
@@ -211,8 +257,9 @@
   .form-error.hidden { display: none; }
 
   /* Confirmation modal */
-  .modal-shell { position: fixed; inset: 0; background: rgba(0,0,0,.7); backdrop-filter: blur(8px); z-index: 90; display: flex; align-items: center; justify-content: center; padding: 1rem; }
+  .modal-shell { position: fixed; inset: 0; background: rgba(0,0,0,.7); backdrop-filter: blur(8px); z-index: 140; display: flex; align-items: center; justify-content: center; padding: 1rem; }
   .modal-card { max-width: 28rem; width: 100%; padding: 1.75rem; border-radius: 24px; background: linear-gradient(180deg, rgba(20,20,28,.95), rgba(10,10,15,.98)); border: 1px solid rgba(255,255,255,.10); box-shadow: 0 24px 64px -12px rgba(0,0,0,.8), 0 0 60px -10px rgba(0,229,255,.30); }
+  .modal-card.modal-wide { max-width: 48rem; }
 </style>
 {% endblock %}
 
@@ -224,44 +271,60 @@
 <main class="max-w-[1920px] mx-auto min-h-screen flex flex-col pt-6 pb-20 px-4 sm:px-6 lg:px-8 relative" id="main-app">
 
   {# ── HERO ───────────────────────────────────────────────────────────── #}
-  <section id="smart-hero" class="relative w-full rounded-[2.5rem] overflow-hidden glass-heavy mb-8 flex-shrink-0 transition-all duration-500 min-h-[340px] flex items-center border-t-2 border-t-dc-cyan/30">
+  <section id="smart-hero" class="relative w-full rounded-[2rem] overflow-hidden glass-heavy mb-5 flex-shrink-0 transition-all duration-500 min-h-[250px] flex items-center border border-white/10">
     <div id="hero-bg" class="absolute inset-0 z-0 opacity-40 mix-blend-screen bg-cover bg-center transition-all duration-700"
          style="background-image: url('https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=2070&auto=format&fit=crop');"></div>
     <div class="absolute inset-0 bg-gradient-to-r from-dc-bg via-dc-bg/95 to-transparent z-10"></div>
 
-    <div class="relative z-20 w-full px-8 md:px-16 lg:px-24 py-12 flex flex-col md:flex-row items-center justify-between gap-10">
+    <div class="relative z-20 w-full px-6 md:px-10 lg:px-14 py-8 flex flex-col md:flex-row items-center justify-between gap-8">
       <div class="max-w-3xl w-full">
-        <div class="inline-flex items-center gap-2 px-3 py-1 bg-dc-cyan/10 border border-dc-cyan/30 rounded-full mb-6">
+        <div class="inline-flex items-center gap-2 px-3 py-1 bg-dc-cyan/10 border border-dc-cyan/30 rounded-full mb-4">
           <span class="w-2 h-2 rounded-full bg-dc-cyan animate-pulse"></span>
           <span class="text-[10px] font-bold uppercase tracking-widest text-dc-cyan">Competitive Hub Live</span>
         </div>
-        <h1 id="hero-title" class="font-display text-5xl md:text-7xl font-black text-white mb-4 leading-[1.1] tracking-tight uppercase">
+        <h1 id="hero-title" class="font-display text-4xl md:text-6xl font-black text-white mb-3 leading-[1.05] tracking-tight uppercase">
           DeltaCrown <span class="text-gradient-cyan">Competitive Hub</span>
         </h1>
-        <p id="hero-desc" class="text-gray-400 text-base md:text-lg mb-8 max-w-2xl leading-relaxed font-medium">
+        <p id="hero-desc" class="text-gray-400 text-sm md:text-base mb-5 max-w-2xl leading-relaxed font-medium">
           Initializing competitive engine&hellip;
         </p>
-        <div id="hero-actions" class="flex flex-wrap items-center gap-4"></div>
-        <div id="hero-command-strip" class="grid grid-cols-2 md:grid-cols-5 gap-3 mt-8 max-w-4xl">
-          <div class="command-metric p-4">
+        <div class="flex flex-wrap items-center gap-3">
+          <div id="hero-actions" class="flex flex-wrap items-center gap-3"></div>
+          <button type="button" data-open-guide class="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.05] px-4 py-3 text-[10px] font-black uppercase tracking-widest text-gray-300 hover:text-white hover:bg-white/[0.09] transition">
+            <i class="fa-solid fa-circle-question text-dc-cyan"></i> How this works
+          </button>
+        </div>
+        <div id="operating-team-switcher" class="hidden-spa mt-5 max-w-xl rounded-2xl border border-white/10 bg-black/35 p-3">
+          <div class="flex flex-col sm:flex-row sm:items-center gap-3">
+            <div class="min-w-0 flex-1">
+              <label for="operating-team-select" class="block text-[9px] uppercase tracking-[0.22em] text-gray-500 font-black mb-1">Operating Team</label>
+              <select id="operating-team-select" class="field-select !py-2.5 text-sm"></select>
+            </div>
+            <div class="sm:w-56">
+              <p id="operating-team-hint" class="text-[10px] leading-relaxed text-gray-400">Team context controls Showdown, Bounty, and team-scoped operations. Missions stay solo.</p>
+            </div>
+          </div>
+        </div>
+        <div id="hero-command-strip" class="grid grid-cols-2 md:grid-cols-5 gap-2 mt-6 max-w-4xl">
+          <div class="command-metric p-3">
             <p class="text-[9px] uppercase tracking-widest text-gray-500 font-black">Active Ops</p>
-            <p id="metric-active-ops" class="font-display text-3xl font-black text-white leading-none mt-1">--</p>
+            <p id="metric-active-ops" class="font-display text-2xl font-black text-white leading-none mt-1">--</p>
           </div>
-          <div class="command-metric p-4">
+          <div class="command-metric p-3">
             <p class="text-[9px] uppercase tracking-widest text-gray-500 font-black">Upcoming</p>
-            <p id="metric-upcoming" class="font-display text-3xl font-black text-dc-cyan leading-none mt-1">--</p>
+            <p id="metric-upcoming" class="font-display text-2xl font-black text-dc-cyan leading-none mt-1">--</p>
           </div>
-          <div class="command-metric p-4">
+          <div class="command-metric p-3">
             <p class="text-[9px] uppercase tracking-widest text-gray-500 font-black">Review</p>
-            <p id="metric-review" class="font-display text-3xl font-black text-dc-neon leading-none mt-1">--</p>
+            <p id="metric-review" class="font-display text-2xl font-black text-dc-neon leading-none mt-1">--</p>
           </div>
-          <div class="command-metric p-4">
+          <div class="command-metric p-3">
             <p class="text-[9px] uppercase tracking-widest text-gray-500 font-black">Team Ops</p>
-            <p id="metric-team-ops" class="font-display text-3xl font-black text-emerald-300 leading-none mt-1">--</p>
+            <p id="metric-team-ops" class="font-display text-2xl font-black text-emerald-300 leading-none mt-1">--</p>
           </div>
-          <div class="command-metric p-4 col-span-2 md:col-span-1">
+          <div class="command-metric p-3 col-span-2 md:col-span-1">
             <p class="text-[9px] uppercase tracking-widest text-gray-500 font-black">Rewards</p>
-            <p id="metric-rewards" class="font-display text-3xl font-black text-dc-gold leading-none mt-1">--</p>
+            <p id="metric-rewards" class="font-display text-2xl font-black text-dc-gold leading-none mt-1">--</p>
           </div>
         </div>
       </div>
@@ -269,11 +332,34 @@
     </div>
   </section>
 
+  <section class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6" id="action-dock">
+    <button type="button" data-open-slide="create-clash" id="dock-create-showdown" class="action-dock-card p-4 text-left">
+      <i class="fa-solid fa-bolt text-dc-cyan mb-3"></i>
+      <p class="text-sm font-black text-white">Create Showdown</p>
+      <p class="text-[10px] text-gray-500 mt-1">Team vs team challenge</p>
+    </button>
+    <button type="button" data-go-tab="missions" class="action-dock-card p-4 text-left">
+      <i class="fa-solid fa-scroll text-dc-violet mb-3"></i>
+      <p class="text-sm font-black text-white">Browse Missions</p>
+      <p class="text-[10px] text-gray-500 mt-1">Solo progression path</p>
+    </button>
+    <button type="button" data-go-tab="bounty" class="action-dock-card p-4 text-left">
+      <i class="fa-solid fa-crosshairs text-dc-neon mb-3"></i>
+      <p class="text-sm font-black text-white">Open Bounty Board</p>
+      <p class="text-[10px] text-gray-500 mt-1">Post or claim team rewards</p>
+    </button>
+    <button type="button" data-go-tab="dropzone" class="action-dock-card p-4 text-left">
+      <i class="fa-solid fa-parachute-box text-dc-gold mb-3"></i>
+      <p class="text-sm font-black text-white">Enter Dropzone</p>
+      <p class="text-[10px] text-gray-500 mt-1">Reserve battle royale slots</p>
+    </button>
+  </section>
+
   {# ── 3-COLUMN ARENA CORE ────────────────────────────────────────────── #}
-  <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 flex-grow relative" id="arena-core-grid">
+  <div class="grid grid-cols-1 xl:grid-cols-12 gap-6 flex-grow relative" id="arena-core-grid">
 
     {# ── LEFT COLUMN ─────────────────────────────────────────────── #}
-    <aside class="lg:col-span-3 flex flex-col gap-6" id="col-left">
+    <aside class="hidden" id="col-left">
 
       {# Operating Entity #}
       <div class="glass-heavy rounded-2xl p-6 relative overflow-hidden border-t-2 border-t-dc-violet group">
@@ -345,70 +431,94 @@
           <h3 class="text-[10px] uppercase font-bold text-gray-500 tracking-widest flex items-center gap-2">
             <i class="fa-solid fa-bars-progress"></i> My Operations
           </h3>
-          <span class="bg-dc-cyan/20 border border-dc-cyan/30 text-dc-cyan text-[9px] px-2 py-0.5 rounded font-black tracking-widest" id="ops-count">-- ACTIVE</span>
+          <span class="bg-dc-cyan/20 border border-dc-cyan/30 text-dc-cyan text-[9px] px-2 py-0.5 rounded font-black tracking-widest" id="ops-count-legacy">-- ACTIVE</span>
         </div>
-        <div id="active-ops-container" class="space-y-3 flex-grow overflow-y-auto pr-1 min-h-[200px]">
+        <div id="active-ops-container-legacy" class="space-y-3 flex-grow overflow-y-auto pr-1 min-h-[200px]">
           <div class="text-center py-8 text-xs text-gray-600">Loading&hellip;</div>
         </div>
       </div>
     </aside>
 
     {# ── CENTER COLUMN ───────────────────────────────────────────── #}
-    <section class="lg:col-span-6 flex flex-col min-h-[800px]" id="col-center">
+    <section class="xl:col-span-8 2xl:col-span-9 flex flex-col min-h-[760px]" id="col-center">
 
       {# Search + game filter #}
       <div class="glass-heavy rounded-2xl p-3 mb-4 flex flex-col sm:flex-row gap-3 z-30 relative border border-white/5">
-        <div class="relative flex-grow">
-          <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500"></i>
+        <div class="relative flex-grow min-w-0">
+          <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 text-sm leading-none pointer-events-none"></i>
           <input type="text" id="global-search" placeholder="Search teams, missions, or players&hellip;"
-                 class="w-full bg-black/40 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-dc-cyan/50 focus:bg-black/60 transition-colors font-medium placeholder-gray-600">
+                 class="h-12 w-full bg-black/40 border border-white/10 rounded-xl pl-11 pr-4 text-sm text-white focus:outline-none focus:border-dc-cyan/50 focus:bg-black/60 transition-colors font-medium placeholder-gray-600">
         </div>
-        <div class="flex items-center gap-1 bg-black/40 p-1 rounded-xl border border-white/10 overflow-x-auto hide-scrollbar" id="game-filter-bar">
-          <button class="game-filter-btn active px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider bg-white/10 text-white transition-all whitespace-nowrap" data-game="ALL">All</button>
-          {% for g in hub_context.games %}
-          <button class="game-filter-btn px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider text-gray-500 hover:text-white transition-all whitespace-nowrap" data-game="{{ g.short_code }}">{{ g.short_code }}</button>
-          {% endfor %}
+        <div id="game-selector" class="relative w-full sm:w-[300px]" aria-label="Game selector">
+          <button type="button" id="game-selector-trigger"
+                  class="h-12 w-full rounded-xl border border-white/10 bg-black/45 px-3 text-left hover:border-dc-cyan/30 transition flex items-center justify-between gap-3">
+            <span class="flex min-w-0 items-center gap-3">
+              <span id="selected-game-icon" class="h-8 w-8 rounded-lg border border-white/10 bg-white/[0.06] grid place-items-center text-[10px] font-black uppercase text-white">All</span>
+              <span class="min-w-0">
+                <span id="selected-game-name" class="block truncate text-sm font-black text-white">All Games</span>
+                <span id="selected-game-code" class="block text-[9px] font-black uppercase tracking-[0.18em] text-gray-500">Global filter</span>
+              </span>
+            </span>
+            <i class="fa-solid fa-chevron-down text-xs text-gray-500"></i>
+          </button>
+          <div id="game-selector-menu" class="hidden-spa absolute right-0 top-[calc(100%+0.5rem)] z-[60] w-full overflow-hidden rounded-2xl border border-white/10 bg-[#07070b]/95 shadow-2xl backdrop-blur-xl">
+            <button type="button" class="game-option flex w-full items-center gap-3 px-3 py-3 text-left hover:bg-white/[0.06] transition" data-game-code="ALL" data-game-name="All Games" data-game-id="" data-game-icon="">
+              <span class="h-9 w-9 rounded-lg border border-white/10 bg-white/[0.06] grid place-items-center text-[10px] font-black uppercase text-white">All</span>
+              <span>
+                <span class="block text-sm font-black text-white">All Games</span>
+                <span class="block text-[9px] font-black uppercase tracking-[0.18em] text-gray-500">Global filter</span>
+              </span>
+            </button>
+            {% for g in hub_context.games %}
+            <button type="button" class="game-option flex w-full items-center gap-3 px-3 py-3 text-left hover:bg-white/[0.06] transition" data-game-code="{{ g.short_code }}" data-game-name="{{ g.name }}" data-game-id="{{ g.id }}" data-game-icon="{% firstof g.icon_url g.logo_url '' %}">
+              {% if g.icon_url %}
+              <img src="{{ g.icon_url }}" alt="{{ g.short_code }}" class="h-9 w-9 rounded-lg object-cover border border-white/10">
+              {% elif g.logo_url %}
+              <img src="{{ g.logo_url }}" alt="{{ g.short_code }}" class="h-9 w-9 rounded-lg object-cover border border-white/10">
+              {% else %}
+              <span class="h-9 w-9 rounded-lg border border-white/10 bg-white/[0.06] grid place-items-center text-[10px] font-black uppercase text-white">{{ g.short_code }}</span>
+              {% endif %}
+              <span class="min-w-0">
+                <span class="block truncate text-sm font-black text-white">{{ g.name }}</span>
+                <span class="block text-[9px] font-black uppercase tracking-[0.18em] text-gray-500">{{ g.short_code }}</span>
+              </span>
+            </button>
+            {% endfor %}
+          </div>
         </div>
       </div>
+      <div id="target-context-banner" class="hidden-spa mb-4 rounded-2xl border border-dc-cyan/25 bg-dc-cyan/10 px-4 py-3 text-sm text-cyan-100"></div>
 
       {# Tab triggers #}
       <div class="flex gap-2 mb-6 z-20 overflow-x-auto hide-scrollbar pb-2" id="tab-triggers">
-        <button class="tab-trigger active relative flex-1 min-w-[140px] glass-light border border-white/10 px-5 py-4 rounded-xl flex flex-col items-center justify-center transition-all group overflow-hidden" data-tab="clash">
+        <button class="tab-trigger active relative flex-1 min-w-[140px] glass-light border border-white/10 px-5 py-4 rounded-xl flex flex-col items-center justify-center transition-all group overflow-hidden" data-tab="showdown">
           <div class="absolute inset-0 bg-gradient-to-t from-dc-cyan/20 to-transparent opacity-100 transition-opacity"></div>
           <i class="fa-solid fa-bolt text-xl mb-1.5 text-dc-cyan group-hover:scale-110 transition-transform relative z-10"></i>
           <span class="font-bold text-sm tracking-wide text-white relative z-10">Showdown</span>
         </button>
-        <button class="tab-trigger relative flex-1 min-w-[140px] glass-light border border-transparent px-5 py-4 rounded-xl flex flex-col items-center justify-center transition-all group overflow-hidden" data-tab="contracts">
+        <button class="tab-trigger relative flex-1 min-w-[140px] glass-light border border-transparent px-5 py-4 rounded-xl flex flex-col items-center justify-center transition-all group overflow-hidden" data-tab="missions">
           <div class="absolute inset-0 bg-gradient-to-t from-dc-violet/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
           <i class="fa-solid fa-scroll text-xl mb-1.5 text-gray-500 group-hover:text-dc-violet transition-colors relative z-10"></i>
           <span class="font-bold text-sm tracking-wide text-gray-400 group-hover:text-white relative z-10">Missions</span>
         </button>
-        <button class="tab-trigger relative flex-1 min-w-[140px] glass-light border border-transparent px-5 py-4 rounded-xl flex flex-col items-center justify-center transition-all group overflow-hidden" data-tab="hitlist">
+        <button class="tab-trigger relative flex-1 min-w-[140px] glass-light border border-transparent px-5 py-4 rounded-xl flex flex-col items-center justify-center transition-all group overflow-hidden" data-tab="bounty">
           <div class="absolute inset-0 bg-gradient-to-t from-dc-neon/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
           <i class="fa-solid fa-crosshairs text-xl mb-1.5 text-gray-500 group-hover:text-dc-neon transition-colors relative z-10"></i>
           <span class="font-bold text-sm tracking-wide text-gray-400 group-hover:text-white relative z-10">Bounty</span>
         </button>
-        <button class="tab-trigger relative flex-1 min-w-[140px] glass-light border border-transparent px-5 py-4 rounded-xl flex flex-col items-center justify-center transition-all group overflow-hidden" data-tab="royale">
+        <button class="tab-trigger relative flex-1 min-w-[140px] glass-light border border-transparent px-5 py-4 rounded-xl flex flex-col items-center justify-center transition-all group overflow-hidden" data-tab="dropzone">
           <div class="absolute inset-0 bg-gradient-to-t from-dc-gold/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-          <i class="fa-solid fa-crown text-xl mb-1.5 text-gray-500 group-hover:text-dc-gold transition-colors relative z-10"></i>
+          <i class="fa-solid fa-parachute-box text-xl mb-1.5 text-gray-500 group-hover:text-dc-gold transition-colors relative z-10"></i>
           <span class="font-bold text-sm tracking-wide text-gray-400 group-hover:text-white relative z-10">Dropzone</span>
         </button>
-        <button class="tab-trigger relative flex-1 min-w-[140px] glass-light border border-transparent px-5 py-4 rounded-xl flex flex-col items-center justify-center transition-all group overflow-hidden" data-tab="operations">
-          <div class="absolute inset-0 bg-gradient-to-t from-emerald-400/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-          <i class="fa-solid fa-layer-group text-xl mb-1.5 text-gray-500 group-hover:text-emerald-300 transition-colors relative z-10"></i>
-          <span class="font-bold text-sm tracking-wide text-gray-400 group-hover:text-white relative z-10">My Operations</span>
-        </button>
-        <button class="tab-trigger relative flex-1 min-w-[140px] glass-light border border-transparent px-5 py-4 rounded-xl flex flex-col items-center justify-center transition-all group overflow-hidden" data-tab="review">
-          <div class="absolute inset-0 bg-gradient-to-t from-red-400/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-          <i class="fa-solid fa-shield-halved text-xl mb-1.5 text-gray-500 group-hover:text-red-300 transition-colors relative z-10"></i>
-          <span class="font-bold text-sm tracking-wide text-gray-400 group-hover:text-white relative z-10">Review</span>
-        </button>
       </div>
+
+      <div id="review-alert" class="hidden-spa mb-4 rounded-2xl border border-dc-neon/25 bg-dc-neon/10 p-4"></div>
 
       {# Tab content container #}
       <div class="relative flex-grow bg-black/20 rounded-3xl border border-white/5 p-1 overflow-hidden" id="tab-container-main">
 
-        <div id="tab-content-clash" class="tab-content active w-full h-full p-5 space-y-4">
+        <div id="tab-content-showdown" class="tab-content active w-full h-full p-5 space-y-4">
           <div class="flex justify-between items-end mb-4 border-b border-white/5 pb-4">
             <div>
               <h2 class="font-display text-2xl font-bold text-white flex items-center gap-2">
@@ -419,103 +529,97 @@
             </div>
             <div id="clash-action-container"></div>
           </div>
-          <div id="clash-feed" class="space-y-4 overflow-y-auto max-h-[600px] pr-2"></div>
+          <div id="showdown-feed" class="space-y-4 overflow-y-auto max-h-[600px] pr-2"></div>
         </div>
 
-        <div id="tab-content-contracts" class="tab-content w-full h-full p-5 space-y-4">
+        <div id="tab-content-missions" class="tab-content w-full h-full p-5 space-y-4">
           <div class="flex justify-between items-end mb-4 border-b border-white/5 pb-4">
             <div>
               <h2 class="font-display text-2xl font-bold text-white flex items-center gap-2">
                 <i class="fa-solid fa-scroll text-dc-violet"></i> Mission Database
               </h2>
-              <p class="text-xs text-gray-400 mt-1">Start missions with personal DC. Complete in-game objectives to claim DeltaCoin rewards.</p>
+              <p class="text-xs text-gray-400 mt-1">Admin-curated solo objectives, daily rewards, weekly missions, proof review, and progression rewards.</p>
             </div>
           </div>
-          <div id="contracts-feed" class="grid grid-cols-1 md:grid-cols-2 gap-4 overflow-y-auto max-h-[600px] pr-2"></div>
+          <div id="missions-feed" class="grid grid-cols-1 md:grid-cols-2 gap-4 overflow-y-auto max-h-[600px] pr-2"></div>
         </div>
 
-        <div id="tab-content-hitlist" class="tab-content w-full h-full p-5 space-y-4">
+        <div id="tab-content-bounty" class="tab-content w-full h-full p-5 space-y-4">
           <div class="flex justify-between items-end mb-4 border-b border-white/5 pb-4">
             <div>
               <h2 class="font-display text-2xl font-bold text-white flex items-center gap-2">
                 <i class="fa-solid fa-skull text-dc-neon"></i> Bounty
               </h2>
-              <p class="text-xs text-gray-400 mt-1">Skill-based team reward challenges. Place a bounty or claim one through verified play.</p>
+              <p class="text-xs text-gray-400 mt-1">Post a Bounty for challengers to claim, or claim one through verified team play.</p>
             </div>
             <div id="hitlist-action-container"></div>
           </div>
-          <div id="hitlist-feed" class="space-y-6 overflow-y-auto max-h-[600px] pr-2"></div>
+          <div id="bounty-feed" class="space-y-6 overflow-y-auto max-h-[600px] pr-2"></div>
         </div>
 
-        <div id="tab-content-royale" class="tab-content w-full h-full p-5 space-y-4">
+        <div id="tab-content-dropzone" class="tab-content w-full h-full p-5 space-y-4">
           <div class="flex justify-between items-end mb-4 border-b border-white/5 pb-4">
             <div>
               <h2 class="font-display text-2xl font-bold text-white flex items-center gap-2">
-                <i class="fa-solid fa-crown text-dc-gold"></i> Dropzone
+                <i class="fa-solid fa-parachute-box text-dc-gold"></i> Dropzone
               </h2>
               <p class="text-xs text-gray-400 mt-1">Large custom battle royale lobbies with slot reservation, room credentials, and scoring.</p>
             </div>
           </div>
-          <div id="royale-feed" class="grid grid-cols-1 md:grid-cols-2 gap-4 overflow-y-auto max-h-[600px] pr-2"></div>
-        </div>
-
-        <div id="tab-content-operations" class="tab-content w-full h-full p-5 space-y-4">
-          <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-4 border-b border-white/5 pb-4">
-            <div>
-              <h2 class="font-display text-2xl font-bold text-white flex items-center gap-2">
-                <i class="fa-solid fa-layer-group text-emerald-300"></i> My Operations
-              </h2>
-              <p class="text-xs text-gray-400 mt-1">One timeline across competitive and team operations. Follow the next action, review state, and Match Room links.</p>
-            </div>
-            <a href="{% url 'dashboard:competitive_dispute_center' %}" class="inline-flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2 text-[10px] font-black uppercase tracking-widest text-gray-300 hover:text-white hover:border-dc-cyan/40">
-              <i class="fa-solid fa-shield-halved"></i> Dispute Center
-            </a>
-          </div>
-          <div id="operations-workspace" class="grid grid-cols-1 xl:grid-cols-2 gap-4"></div>
-        </div>
-
-        <div id="tab-content-review" class="tab-content w-full h-full p-5 space-y-4">
-          <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-4 border-b border-white/5 pb-4">
-            <div>
-              <h2 class="font-display text-2xl font-bold text-white flex items-center gap-2">
-                <i class="fa-solid fa-shield-halved text-dc-neon"></i> Review / Disputes
-              </h2>
-              <p class="text-xs text-gray-400 mt-1">Proof, result confirmation, and dispute states that need attention.</p>
-            </div>
-            <div class="flex flex-wrap gap-2">
-              <a href="{% url 'dashboard:competitive_dispute_center' %}" class="inline-flex items-center justify-center gap-2 rounded-xl border border-dc-neon/25 bg-dc-neon/10 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-dc-neon hover:bg-dc-neon/20">
-                Open Center
-              </a>
-              {% if request.user.is_staff %}
-              <a href="{% url 'dashboard:competitive_review_workspace' %}" class="inline-flex items-center justify-center gap-2 rounded-xl border border-dc-cyan/25 bg-dc-cyan/10 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-dc-cyan hover:bg-dc-cyan/20">
-                Staff Queue
-              </a>
-              {% endif %}
-            </div>
-          </div>
-          <div id="review-workspace" class="space-y-4"></div>
+          <div id="dropzone-feed" class="space-y-4 overflow-y-auto max-h-[660px] pr-2"></div>
         </div>
 
       </div>
     </section>
 
     {# ── RIGHT COLUMN ────────────────────────────────────────────── #}
-    <aside class="lg:col-span-3 flex flex-col gap-6" id="col-right">
-      <div class="glass-heavy rounded-2xl p-6 border-t-2 border-t-dc-success">
-        <div class="flex justify-between items-center mb-5">
+    <aside class="xl:col-span-4 2xl:col-span-3 flex flex-col gap-5" id="col-right">
+      <div class="glass-heavy rounded-2xl p-5 border border-white/10">
+        <div class="flex justify-between items-center mb-4">
           <h3 class="text-[10px] uppercase font-bold text-gray-500 tracking-widest flex items-center gap-2">
-            <i class="fa-solid fa-list-check"></i> Objectives Matrix
+            <i class="fa-solid fa-bars-progress"></i> My Operations
           </h3>
+          <span class="bg-dc-cyan/20 border border-dc-cyan/30 text-dc-cyan text-[9px] px-2 py-0.5 rounded font-black tracking-widest" id="ops-count">-- ACTIVE</span>
         </div>
-        <div id="objectives-feed" class="space-y-4">
-          <div class="text-center py-6 text-xs text-gray-600">No active objectives.</div>
+        <div id="active-ops-container" class="space-y-3 max-h-[430px] overflow-y-auto pr-1">
+          <div class="text-center py-8 text-xs text-gray-600">Loading&hellip;</div>
         </div>
       </div>
 
-      <div class="glass-heavy rounded-2xl p-6 flex-grow flex flex-col border-t-2 border-t-gray-600">
+      <div class="glass-heavy rounded-2xl p-5 border border-white/10">
+        <div class="flex items-center justify-between gap-3 mb-4">
+          <h3 class="text-[10px] uppercase font-bold text-gray-500 tracking-widest flex items-center gap-2">
+            <i class="fa-solid fa-compass text-dc-cyan"></i> Smart Assist
+          </h3>
+          <button type="button" data-open-guide class="text-[10px] font-black uppercase tracking-widest text-dc-cyan hover:text-white">Guide</button>
+        </div>
+        <div id="objectives-feed" class="space-y-3">
+          <div class="text-center py-5 text-xs text-gray-600">Guidance is loading.</div>
+        </div>
+      </div>
+
+      {% if request.user.is_staff %}
+      <div class="glass-heavy rounded-2xl p-5 border border-dc-gold/20 bg-dc-gold/[0.035]">
+        <div class="flex items-center justify-between gap-3 mb-4">
+          <h3 class="text-[10px] uppercase font-bold text-dc-gold tracking-widest flex items-center gap-2">
+            <i class="fa-solid fa-screwdriver-wrench"></i> Operator Creation
+          </h3>
+          <a href="/dashboard/competitive/review/" class="text-[10px] font-black uppercase tracking-widest text-dc-gold hover:text-white">Queue</a>
+        </div>
+        <p class="text-[11px] text-gray-400 leading-relaxed mb-3">Mission templates and Dropzone lobbies are staff-created. Showdown and Bounty actions are service-backed and controlled by team authority.</p>
+        <div class="grid grid-cols-2 gap-2">
+          <a href="/admin/contracts/contracttemplate/" class="rounded-xl border border-white/10 bg-black/25 px-3 py-2 text-[10px] font-black uppercase tracking-widest text-gray-300 hover:text-white hover:border-dc-gold/40">Missions</a>
+          <a href="/admin/royale/royalelobby/" class="rounded-xl border border-white/10 bg-black/25 px-3 py-2 text-[10px] font-black uppercase tracking-widest text-gray-300 hover:text-white hover:border-dc-gold/40">Dropzone</a>
+          <a href="/admin/competition/challenge/" class="rounded-xl border border-white/10 bg-black/25 px-3 py-2 text-[10px] font-black uppercase tracking-widest text-gray-300 hover:text-white hover:border-dc-gold/40">Showdown</a>
+          <a href="/admin/competition/bountyclaim/" class="rounded-xl border border-white/10 bg-black/25 px-3 py-2 text-[10px] font-black uppercase tracking-widest text-gray-300 hover:text-white hover:border-dc-gold/40">Claims</a>
+        </div>
+      </div>
+      {% endif %}
+
+      <div class="glass-heavy rounded-2xl p-5 flex-grow flex flex-col border border-white/10">
         <div class="flex justify-between items-center mb-5">
           <h3 class="text-[10px] uppercase font-bold text-gray-500 tracking-widest flex items-center gap-2">
-            <i class="fa-solid fa-satellite-dish animate-pulse text-dc-cyan"></i> Live Telemetry
+            <i class="fa-solid fa-wave-square text-dc-cyan"></i> Recent Signals
           </h3>
         </div>
         <div class="flex-grow overflow-y-auto pr-1 relative" id="activity-feed">
@@ -528,10 +632,43 @@
   </div>
 </main>
 
-{# Create Showdown slide-over #}
-<div id="slide-over-backdrop" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[70] hidden-spa opacity-0 transition-all duration-300"></div>
+<div id="guide-modal" class="modal-shell hidden-spa">
+  <div class="modal-card modal-wide">
+    <div class="flex items-start justify-between gap-4 mb-5">
+      <div>
+        <p class="text-[10px] uppercase tracking-[0.24em] text-dc-cyan font-black mb-1">Competitive Guide</p>
+        <h2 class="font-display text-3xl font-black text-white leading-none">How DeltaCrown operations flow</h2>
+        <p class="text-sm text-gray-400 mt-3">Short version only. Start from an action, follow the Match Room or proof step, then track review and settlement from My Operations.</p>
+      </div>
+      <button type="button" data-close-guide class="h-10 w-10 rounded-xl border border-white/10 bg-white/[0.04] text-gray-400 hover:text-white hover:bg-white/[0.08]">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+    <div class="grid sm:grid-cols-2 gap-3">
+      <div class="rounded-2xl border border-cyan-300/20 bg-cyan-300/[0.06] p-4">
+        <div class="flex items-center gap-2 text-cyan-200 font-black mb-2"><i class="fa-solid fa-bolt"></i> Showdown</div>
+        <div class="flex flex-wrap gap-2"><span class="guide-chip">Challenge</span><span class="guide-chip">Match Room</span><span class="guide-chip">Result</span><span class="guide-chip">Review</span><span class="guide-chip">Settlement</span></div>
+      </div>
+      <div class="rounded-2xl border border-violet-300/20 bg-violet-300/[0.06] p-4">
+        <div class="flex items-center gap-2 text-violet-200 font-black mb-2"><i class="fa-solid fa-scroll"></i> Missions</div>
+        <div class="flex flex-wrap gap-2"><span class="guide-chip">Start</span><span class="guide-chip">Progress</span><span class="guide-chip">Proof</span><span class="guide-chip">Review</span></div>
+      </div>
+      <div class="rounded-2xl border border-rose-300/20 bg-rose-300/[0.06] p-4">
+        <div class="flex items-center gap-2 text-rose-200 font-black mb-2"><i class="fa-solid fa-crosshairs"></i> Bounty</div>
+        <div class="flex flex-wrap gap-2"><span class="guide-chip">Place</span><span class="guide-chip">Claim</span><span class="guide-chip">Match Room</span><span class="guide-chip">Verification</span></div>
+      </div>
+      <div class="rounded-2xl border border-amber-300/20 bg-amber-300/[0.06] p-4">
+        <div class="flex items-center gap-2 text-amber-200 font-black mb-2"><i class="fa-solid fa-parachute-box"></i> Dropzone</div>
+        <div class="flex flex-wrap gap-2"><span class="guide-chip">Reserve</span><span class="guide-chip">Reveal</span><span class="guide-chip">Lobby</span><span class="guide-chip">Scoring</span><span class="guide-chip">Results</span></div>
+      </div>
+    </div>
+  </div>
+</div>
 
-<div id="slide-over-create-clash" class="fixed top-0 right-0 h-full w-full max-w-lg bg-[#08080c] border-l border-white/10 shadow-[-20px_0_50px_rgba(0,0,0,0.9)] z-[80] transform translate-x-full transition-transform duration-500 flex flex-col">
+{# Create Showdown slide-over #}
+<div id="slide-over-backdrop" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[120] hidden-spa opacity-0 transition-all duration-300"></div>
+
+<div id="slide-over-create-clash" class="fixed inset-y-0 right-0 h-dvh w-full max-w-xl bg-[#08080c] border-l border-white/10 shadow-[-20px_0_50px_rgba(0,0,0,0.9)] z-[130] transform translate-x-full transition-transform duration-500 flex flex-col">
   <div class="glass-heavy p-6 border-b border-white/10 flex justify-between items-center relative overflow-hidden flex-shrink-0">
     <div class="absolute -right-10 -top-10 w-40 h-40 bg-dc-cyan opacity-20 blur-[50px] rounded-full pointer-events-none"></div>
     <div>
@@ -545,7 +682,7 @@
     </button>
   </div>
 
-  <form id="form-create-clash" class="flex-grow overflow-y-auto" novalidate>
+  <form id="form-create-clash" class="flex-grow overflow-y-auto overscroll-contain" novalidate>
     <div class="p-8 space-y-6">
       <div class="bg-dc-cyan/10 border border-dc-cyan/30 rounded-xl p-4 flex items-start gap-4">
         <i class="fa-solid fa-shield-halved text-dc-cyan text-xl mt-1"></i>
@@ -629,7 +766,7 @@
 </div>
 
 {# Place Bounty slide-over #}
-<div id="slide-over-create-hitlist" class="fixed top-0 right-0 h-full w-full max-w-lg bg-[#08080c] border-l border-white/10 shadow-[-20px_0_50px_rgba(0,0,0,0.9)] z-[80] transform translate-x-full transition-transform duration-500 flex flex-col">
+<div id="slide-over-create-hitlist" class="fixed inset-y-0 right-0 h-dvh w-full max-w-xl bg-[#08080c] border-l border-white/10 shadow-[-20px_0_50px_rgba(0,0,0,0.9)] z-[130] transform translate-x-full transition-transform duration-500 flex flex-col">
   <div class="glass-heavy p-6 border-b border-white/10 flex justify-between items-center relative overflow-hidden flex-shrink-0">
     <div class="absolute -right-10 -top-10 w-40 h-40 bg-dc-neon opacity-20 blur-[50px] rounded-full pointer-events-none"></div>
     <div>
@@ -643,11 +780,12 @@
     </button>
   </div>
 
-  <form id="form-create-hitlist" class="flex-grow overflow-y-auto" novalidate>
+  <form id="form-create-hitlist" class="flex-grow overflow-y-auto overscroll-contain" novalidate>
     <div class="p-8 space-y-6">
       <div>
         <label class="block text-[10px] uppercase font-bold text-gray-500 tracking-widest mb-2">Your Team (Issuer)</label>
         <select id="hitlist-team" name="issuer_team_id" class="field-select" required></select>
+        <p class="text-[10px] text-gray-500 mt-1.5">This team posts the Bounty on itself. Another team claims it by challenging and completing the criteria.</p>
       </div>
       <div>
         <label class="block text-[10px] uppercase font-bold text-gray-500 tracking-widest mb-2">Game</label>
@@ -754,5 +892,5 @@
 {% endblock %}
 
 {% block extra_js %}
-<script defer src="{% static 'dashboard/competitive-hub.js' %}?v=20260508-1"></script>
+<script defer src="{% static 'dashboard/competitive-hub.js' %}?v=20260517-phase9a"></script>
 {% endblock %}

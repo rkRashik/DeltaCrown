@@ -679,6 +679,10 @@
       this._setText("team-comp-stat-rooms", rooms);
       this._setText("team-comp-stat-review", review.length);
       this._setText("team-comp-stat-rewards", rewards ? rewards.toLocaleString() : "0");
+      this._setText("team-comp-mode-live", active.length);
+      this._setText("team-comp-mode-review", review.length);
+      this._setText("team-comp-mode-rooms", rooms);
+      this._setText("team-comp-mode-history", history.length);
       this._renderActive(active);
       this._renderHistory(history);
       this._renderFeed(ops);
@@ -795,23 +799,46 @@
     _renderFeed(ops) {
       const el = qs("#team-comp-feed");
       if (!el) return;
-      if (!ops.length) {
-        el.innerHTML = `<div class="rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-sm text-white/45">Competitive feed is quiet.</div>`;
-        return;
+      const guidance = this._guidanceItems(ops);
+      el.innerHTML = guidance.map((item) => `
+        <button type="button" ${item.href ? `onclick="window.location.href='${esc(item.href)}'"` : ""} class="w-full text-left flex items-start gap-3 rounded-2xl border ${item.border} ${item.bg} p-3 hover:bg-white/[0.07] transition">
+          <div class="h-8 w-8 rounded-xl bg-black/25 border border-white/10 grid place-items-center shrink-0">
+            <i data-lucide="${item.icon}" class="w-4 h-4 ${item.color}"></i>
+          </div>
+          <div class="min-w-0">
+            <p class="text-sm font-bold text-white/95">${esc(item.title)}</p>
+            <p class="text-[11px] text-white/45 mt-0.5 leading-relaxed">${esc(item.body)}</p>
+          </div>
+        </button>`).join("");
+    },
+
+    _guidanceItems(ops) {
+      const active = ops.filter((op) => !this._isTerminal(op));
+      const review = ops.filter((op) => this._needsReview(op));
+      const rooms = ops.filter((op) => !!op.match_room_url);
+      const items = [];
+      if (review.length) {
+        items.push({ icon: "shield-alert", color: "text-red-300", border: "border-red-400/20", bg: "bg-red-400/10", title: `${review.length} operation${review.length === 1 ? "" : "s"} need review attention`, body: "Open the Dispute Center or linked detail pages before settlement decisions.", href: "/dashboard/competitive/disputes/" });
       }
-      el.innerHTML = ops.slice(0, 10).map((op) => {
-        const meta = this._meta(op.type);
-        return `
-          <div class="flex items-start gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-3">
-            <div class="h-8 w-8 rounded-xl ${meta.bg} border ${meta.border} grid place-items-center shrink-0">
-              <i data-lucide="${meta.icon}" class="w-4 h-4 ${meta.color}"></i>
-            </div>
-            <div class="min-w-0">
-              <p class="text-sm font-semibold text-white/90">${esc(op.next_action_label || op.status || "Updated")}</p>
-              <p class="text-[11px] text-white/42 mt-0.5">${esc(op.title || meta.label)}</p>
-            </div>
-          </div>`;
-      }).join("");
+      if (rooms.length) {
+        items.push({ icon: "door-open", color: "text-cyan-300", border: "border-cyan-400/20", bg: "bg-cyan-400/10", title: "Match Rooms are ready", body: "Captains should enter rooms from active operation cards and complete result/proof steps." });
+      }
+      if (!active.length) {
+        items.push({ icon: "zap", color: "text-cyan-300", border: "border-cyan-400/20", bg: "bg-cyan-400/10", title: "No live competitive operations", body: "Create a Showdown, place a Bounty, or browse Dropzone from the action launcher.", href: "/dashboard/competitive/#showdown" });
+      }
+      items.push({ icon: "settings", color: "text-violet-300", border: "border-violet-400/20", bg: "bg-violet-400/10", title: "Policy controls are service-enforced", body: "Owner/manager settings below control captain permissions, caps, games, scrim visibility, and tryouts." });
+      return items.slice(0, 4);
+    },
+
+    focusMode(mode) {
+      const map = {
+        live: "#team-comp-active-list",
+        review: "#team-comp-feed",
+        rooms: "#team-comp-active-list",
+        history: "#team-comp-history",
+      };
+      const el = document.querySelector(map[mode] || "#team-comp-active-list");
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
     },
 
     _renderSettings() {
@@ -3729,6 +3756,7 @@
     Competition: {
       refresh: () => Competition.refresh(),
       saveSettings: () => Competition.saveSettings(),
+      focusMode: (mode) => Competition.focusMode(mode),
     },
     // Self-Edit (player edits own card)
     openSelfEditModal: (id, name, pr, slot, dn, img) => SelfEdit.open(id, name, pr, slot, dn, img),

@@ -1398,13 +1398,133 @@
       </div>
       {% endif %}
 
-      {# Competitive Hub #}
-      <div class="rounded-3xl bg-gradient-to-br from-[#0A0A0F] to-[#1a1015] border border-red-500/20 overflow-hidden">
+      {# Competitive Identity #}
+      <div class="rounded-3xl bg-[#070A12] border border-white/10 overflow-hidden shadow-[0_24px_70px_-40px_rgba(34,211,238,.55)]">
+        <div class="relative px-5 py-5 border-b border-white/10 overflow-hidden">
+          <div class="absolute inset-0 opacity-70 pointer-events-none" style="background:linear-gradient(135deg,rgba(34,211,238,.14),transparent 48%),linear-gradient(90deg,rgba(255,255,255,.05),transparent 70%);"></div>
+          <div class="relative flex items-start justify-between gap-3">
+            <div>
+              <p class="text-[9px] uppercase tracking-[0.22em] text-cyan-300 font-black mb-1">Competitive Identity</p>
+              <h4 class="text-white font-display font-black text-xl leading-none">{{ team.name }}</h4>
+              <p class="mt-2 text-[11px] text-slate-400 leading-relaxed">Challenge availability, public scrims, tryout signals, and recent competitive activity.</p>
+            </div>
+            <span class="px-2 py-1 rounded-full bg-white/5 border border-white/10 text-[8px] font-black uppercase tracking-widest text-slate-300">
+              {% if training.tryouts_enabled %}Tryouts Open{% elif training.has_public_scrims %}Scrim Ready{% elif challenges.open_count %}Active{% else %}Standby{% endif %}
+            </span>
+          </div>
+        </div>
+        <div class="p-4 space-y-4">
+          <div class="grid grid-cols-3 gap-2">
+            <div class="rounded-2xl border border-white/10 bg-white/[0.035] p-3">
+              <p class="text-[8px] uppercase tracking-widest text-slate-500 font-black">Live Ops</p>
+              <p class="mt-1 text-2xl font-black text-white">{{ challenges.items|length|default:"0" }}</p>
+            </div>
+            <div class="rounded-2xl border border-emerald-400/15 bg-emerald-400/10 p-3">
+              <p class="text-[8px] uppercase tracking-widest text-emerald-200/70 font-black">Scrims</p>
+              <p class="mt-1 text-2xl font-black text-emerald-200">{{ training.public_scrims|length|default:"0" }}</p>
+            </div>
+            <div class="rounded-2xl border border-cyan-400/15 bg-cyan-400/10 p-3">
+              <p class="text-[8px] uppercase tracking-widest text-cyan-200/70 font-black">Status</p>
+              <p class="mt-1 text-xs font-black text-white uppercase">{% if challenges.open_count %}Open{% elif team.is_recruiting %}Recruiting{% else %}Invite{% endif %}</p>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 gap-2">
+            {% if competitive_actions.can_challenge %}
+            <a href="{{ competitive_actions.challenge_url }}"
+               class="group flex items-center justify-between gap-3 rounded-2xl border border-cyan-400/35 bg-cyan-400/10 px-4 py-3 no-underline hover:bg-cyan-400/15 transition">
+              <span>
+                <span class="block text-[9px] font-black uppercase tracking-[0.2em] text-cyan-300">Public Challenge Action</span>
+                <span class="block text-sm font-bold text-white mt-0.5">Challenge Team</span>
+                <span class="block text-[10px] text-slate-400 mt-0.5">Creates a Showdown against {{ team.name }} from your authorized team.</span>
+              </span>
+              <i class="fa-solid fa-arrow-right text-cyan-200 text-xs group-hover:translate-x-1 transition-transform"></i>
+            </a>
+            {% elif not user.is_authenticated %}
+            <a href="{% url 'account:login' %}?next={{ request.path }}"
+               class="flex items-center justify-between gap-3 rounded-2xl border border-cyan-400/20 bg-cyan-400/10 px-4 py-3 no-underline">
+              <span>
+                <span class="block text-[9px] font-black uppercase tracking-[0.2em] text-cyan-300">Challenge Access</span>
+                <span class="block text-sm font-bold text-white mt-0.5">Sign in to challenge or apply</span>
+              </span>
+              <i class="fa-solid fa-arrow-right text-cyan-200 text-xs"></i>
+            </a>
+            {% else %}
+            <div class="rounded-2xl border border-white/10 bg-white/[0.035] px-4 py-3">
+              <p class="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500">Challenge Access</p>
+              <p class="mt-1 text-sm font-bold text-white">{{ competitive_actions.reason|default:"Join or manage another team to challenge this roster." }}</p>
+            </div>
+            {% endif %}
+            {% if competitive_actions.has_open_bounty %}
+            <a href="{{ competitive_actions.bounty_url }}" class="flex items-center justify-between gap-3 rounded-2xl border border-red-400/20 bg-red-400/10 px-4 py-3 no-underline hover:bg-red-400/15 transition">
+              <span>
+                <span class="block text-sm font-bold text-white">Claim this team’s Bounty</span>
+                <span class="block text-[10px] text-slate-400 mt-0.5">{{ competitive_actions.open_bounty_count }} open Bounty challenge{{ competitive_actions.open_bounty_count|pluralize }} available.</span>
+              </span>
+              <span class="text-[9px] uppercase tracking-widest text-red-300 font-black">Bounty</span>
+            </a>
+            {% elif user.is_authenticated %}
+            <a href="{% url 'dashboard:competitive_hub' %}#bounty" class="flex items-center justify-between gap-3 rounded-2xl border border-red-400/15 bg-red-400/5 px-4 py-3 no-underline hover:bg-red-400/10 transition">
+              <span>
+                <span class="block text-sm font-bold text-white">View Bounties</span>
+                <span class="block text-[10px] text-slate-400 mt-0.5">Post a Bounty for your own team or claim open Bounties.</span>
+              </span>
+              <span class="text-[9px] uppercase tracking-widest text-red-300 font-black">Board</span>
+            </a>
+            {% endif %}
+            {% if training.has_public_scrims %}
+            <a href="#public-scrims" class="flex items-center justify-between gap-3 rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 no-underline hover:bg-emerald-400/15 transition">
+              <span class="text-sm font-bold text-white">Request Scrim through Team HQ</span>
+              <span class="text-[9px] uppercase tracking-widest text-emerald-300 font-black">Practice</span>
+            </a>
+            {% endif %}
+            {% if training.tryouts_enabled and viewer.role == 'PUBLIC' and not training.applicant_status.has_any %}
+            <button class="flex items-center justify-between gap-3 rounded-2xl border border-blue-400/20 bg-blue-400/10 px-4 py-3 hover:bg-blue-400/15 transition dc-open-tryout-modal"
+                    data-team-slug="{{ team.slug }}">
+              <span class="text-sm font-bold text-white">Apply for Tryout</span>
+              <span class="text-[9px] uppercase tracking-widest text-blue-300 font-black">Recruiting</span>
+            </button>
+            {% endif %}
+          </div>
+          <div class="rounded-2xl border border-white/10 bg-black/25 p-3">
+            <div class="flex items-center justify-between mb-2">
+              <p class="text-[9px] uppercase tracking-widest text-slate-500 font-black">Recent Activity</p>
+              <a href="{% url 'dashboard:competitive_hub' %}?target_team_id={{ team.id }}&amp;target_team_slug={{ team.slug|urlencode }}&amp;target_team_name={{ team.name|urlencode }}#showdown" class="text-[9px] uppercase tracking-widest text-cyan-300 font-black no-underline">Open Hub</a>
+            </div>
+            {% if challenges.items %}
+            <div class="space-y-2">
+              {% for challenge in challenges.items|slice:":3" %}
+              <div class="flex items-center justify-between gap-3 rounded-xl border border-white/5 bg-white/[0.03] px-3 py-2">
+                <div class="min-w-0">
+                  <p class="truncate text-xs font-bold text-white">{{ challenge.title }}</p>
+                  <p class="text-[10px] text-slate-500">{% if challenge.format %}{{ challenge.format }} &middot; {% endif %}{{ challenge.status|default:"Open" }}</p>
+                </div>
+                <span class="shrink-0 rounded-lg border border-cyan-400/20 bg-cyan-400/10 px-2 py-1 text-[8px] font-black uppercase tracking-widest text-cyan-200">Showdown</span>
+              </div>
+              {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-[11px] leading-relaxed text-slate-500">No public Showdowns are active right now. Authorized teams can start from the Competitive Hub.</p>
+            {% endif %}
+          </div>
+          <div class="rounded-2xl border border-white/10 bg-black/25 p-3">
+            <p class="text-[9px] uppercase tracking-widest text-slate-500 font-black mb-2">Operation Flow</p>
+            <div class="grid grid-cols-4 gap-1.5 text-center">
+              <span class="rounded-lg bg-cyan-400/10 border border-cyan-400/15 px-2 py-1.5 text-[8px] font-bold text-cyan-200 uppercase">Showdown</span>
+              <span class="rounded-lg bg-red-400/10 border border-red-400/15 px-2 py-1.5 text-[8px] font-bold text-red-200 uppercase">Bounty</span>
+              <span class="rounded-lg bg-amber-400/10 border border-amber-400/15 px-2 py-1.5 text-[8px] font-bold text-amber-200 uppercase">Dropzone</span>
+              <span class="rounded-lg bg-emerald-400/10 border border-emerald-400/15 px-2 py-1.5 text-[8px] font-bold text-emerald-200 uppercase">Scrim</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {# Competitive Activity #}
+      <div class="hidden rounded-3xl bg-gradient-to-br from-[#0A0A0F] to-[#1a1015] border border-red-500/20 overflow-hidden">
         <div class="bg-gradient-to-r from-red-600/10 to-orange-600/10 px-5 py-4 border-b border-red-500/20">
           <div class="flex items-center justify-between mb-1">
             <h4 class="text-white font-display font-bold text-sm flex items-center gap-2">
               <svg class="w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-              Competitive Hub
+              Competitive Activity
             </h4>
             {% if challenges.open_count %}
             <span class="px-2 py-0.5 rounded-full bg-green-500/10 border border-green-500/30 text-green-400 text-[8px] font-bold uppercase tracking-wider animate-pulse">
@@ -1415,9 +1535,9 @@
           <p class="text-[10px] text-slate-400">Missions · Showdown · Bounty · Dropzone</p>
         </div>
 
-        {% if user.is_authenticated and team.id != user_active_team_id %}
+        {% if competitive_actions.can_challenge %}
         <div class="px-4 pt-4">
-          <a href="{% url 'dashboard:competitive_hub' %}?challenge_team_id={{ team.id }}&amp;challenge_team_name={{ team.name|urlencode }}"
+          <a href="{{ competitive_actions.challenge_url }}"
              class="group relative flex items-center justify-between gap-3 px-4 py-3 rounded-xl no-underline transition-all duration-300 overflow-hidden"
              style="background: linear-gradient(135deg, rgba(34,211,238,.18), rgba(99,102,241,.10));
                     border: 1px solid rgba(34,211,238,.45);
@@ -1430,7 +1550,7 @@
                 <i class="fa-solid fa-bolt-lightning text-white text-xs"></i>
               </span>
               <span>
-                <span class="block text-[10px] font-bold uppercase tracking-[0.18em] text-cyan-300/90 leading-none mb-0.5">Direct Challenge</span>
+                <span class="block text-[10px] font-bold uppercase tracking-[0.18em] text-cyan-300/90 leading-none mb-0.5">Challenge Flow</span>
                 <span class="block text-sm font-bold text-white leading-none">Create Showdown</span>
               </span>
             </span>
@@ -1472,19 +1592,21 @@
                 <div class="w-6 h-6 rounded bg-white/5 border border-white/10 border-dashed flex items-center justify-center text-[8px] text-slate-500">?</div>
               </div>
               <div class="text-right">
-                <div class="text-[8px] text-slate-500 uppercase font-bold">Prize{% if challenge.prize_type == 'cp' %} (CP){% endif %}</div>
-                <div class="text-lg font-display font-bold text-yellow-400">{% if challenge.prize_type == 'cp' %}{{ challenge.prize_amount }} CP{% else %}${{ challenge.prize_amount }}{% endif %}</div>
+                <div class="text-[8px] text-slate-500 uppercase font-bold">Reward{% if challenge.prize_type == 'cp' %} (CP){% endif %}</div>
+                <div class="text-lg font-display font-bold text-yellow-400">{% if challenge.prize_type == 'cp' %}{{ challenge.prize_amount }} CP{% else %}{{ challenge.prize_amount }} DC{% endif %}</div>
               </div>
             </div>
             {% endif %}
 
             <div class="flex gap-2">
-              <button class="flex-1 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white text-[9px] font-bold uppercase tracking-widest transition shadow-lg dc-challenge-accept" data-challenge-id="{{ challenge.id }}">
-                Accept
-              </button>
-              <button class="px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition dc-challenge-info" data-challenge-id="{{ challenge.id }}">
+              <a href="{% url 'dashboard:competitive_hub' %}?showdown_id={{ challenge.id }}"
+                 class="flex-1 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white text-[9px] font-bold uppercase tracking-widest transition shadow-lg text-center no-underline">
+                Open Hub
+              </a>
+              <a href="{% url 'dashboard:competitive_hub' %}?showdown_id={{ challenge.id }}"
+                 class="px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition no-underline">
                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-              </button>
+              </a>
             </div>
 
             {% if challenge.expires_at %}
@@ -1509,8 +1631,8 @@
                 <div class="text-[8px] text-slate-500 uppercase font-bold tracking-wider">Losses</div>
               </div>
               <div>
-                <div class="text-lg font-display font-bold text-yellow-400">${{ challenges.stats.total_earned|default:"0" }}</div>
-                <div class="text-[8px] text-slate-500 uppercase font-bold tracking-wider">Earned</div>
+                <div class="text-lg font-display font-bold text-yellow-400">{{ challenges.stats.total_earned|default:"0" }} DC</div>
+                <div class="text-[8px] text-slate-500 uppercase font-bold tracking-wider">Rewards</div>
               </div>
             </div>
           </div>
@@ -1525,10 +1647,11 @@
           </div>
           {% endif %}
 
-          <button class="w-full py-2.5 rounded-lg bg-red-600/90 hover:bg-red-600 text-white text-[9px] font-bold uppercase tracking-wider transition shadow-[0_0_15px_rgba(220,38,38,0.3)] flex items-center justify-center gap-2 dc-issue-challenge" data-team-slug="{{ team.slug }}">
+          <a href="{% url 'dashboard:competitive_hub' %}?challenge_team_id={{ team.id }}&amp;challenge_team_name={{ team.name|urlencode }}"
+             class="w-full py-2.5 rounded-lg bg-red-600/90 hover:bg-red-600 text-white text-[9px] font-bold uppercase tracking-wider transition shadow-[0_0_15px_rgba(220,38,38,0.3)] flex items-center justify-center gap-2 no-underline">
             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
             Open Competitive Hub
-          </button>
+          </a>
         </div>
       </div>
 

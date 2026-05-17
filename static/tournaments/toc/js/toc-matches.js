@@ -773,6 +773,28 @@
 
         (canOpenRoom ? '<div class="mt-2 flex items-center justify-center">' + liveCta + '</div>' : '') +
 
+        // Row 4: Map/server/mode/BO metadata chips
+        (function() {
+          var li = (m.lobby_info && typeof m.lobby_info === 'object') ? m.lobby_info : {};
+          var chips = [];
+          var mapName = String(li.map || li.map_name || '').trim();
+          var server  = String(li.server || '').trim();
+          var mode    = String(li.game_mode || '').trim();
+          var boVal   = Number(m.best_of || 1);
+          if (boVal > 1) chips.push('<span class="toc-meta-chip toc-meta-chip--bo">BO' + boVal + '</span>');
+          if (mapName)   chips.push('<span class="toc-meta-chip"><i data-lucide="map" class="w-2.5 h-2.5 inline"></i> ' + esc(mapName) + '</span>');
+          if (server)    chips.push('<span class="toc-meta-chip"><i data-lucide="server" class="w-2.5 h-2.5 inline"></i> ' + esc(server) + '</span>');
+          if (mode)      chips.push('<span class="toc-meta-chip">' + esc(mode) + '</span>');
+          // Evidence/review state
+          var wf = li._workflow || {};
+          var resultStatus = String((typeof li === 'object' && li.workflow && li.workflow.result_status) || '').trim();
+          if (!resultStatus && m._workflow_result_status) resultStatus = String(m._workflow_result_status);
+          if (resultStatus === 'ocr_review_needed' || resultStatus === 'staff_review_required') {
+            chips.push('<span class="toc-meta-chip toc-meta-chip--warn"><i data-lucide="eye" class="w-2.5 h-2.5 inline"></i> Review Needed</span>');
+          }
+          return chips.length ? '<div class="mt-2 flex flex-wrap gap-1">' + chips.join('') + '</div>' : '';
+        })() +
+
         '</div>';
   }
 

@@ -143,6 +143,7 @@ def get_team_detail_context(
         'follow': _build_follow_context(team, viewer),
         'page': _build_page_context(team, request),
         'training': _build_training_context(team, viewer, is_private_restricted),
+        'competitive_actions': _build_competitive_actions_context(team, viewer),
     }
     
     return context
@@ -352,6 +353,65 @@ def _build_permissions(team: Team, viewer: Optional[User], role: str) -> Dict[st
         'can_report_matches': False,
         'is_member': False,
     }
+
+
+def _build_competitive_actions_context(team: Team, viewer: Optional[User]) -> Dict[str, Any]:
+    """Viewer-specific public challenge/Bounty CTA state for team detail."""
+    context = {
+        'can_challenge': False,
+        'reason': 'Login required',
+        'challenge_url': '',
+        'has_open_bounty': False,
+        'open_bounty_count': 0,
+        'bounty_url': '/dashboard/competitive/#bounty',
+        'managed_team_count': 0,
+    }
+    if not viewer or not viewer.is_authenticated:
+        return context
+
+    try:
+        from django.db.models import Q
+        from apps.organizations.models import TeamMembership
+        from apps.organizations.choices import MembershipStatus
+
+        managed = list(
+            TeamMembership.objects
+            .filter(user=viewer, status=MembershipStatus.ACTIVE)
+            .filter(Q(role__in=['OWNER', 'MANAGER']) | Q(is_tournament_captain=True))
+            .exclude(team=team)
+            .select_related('team')
+            .only('id', 'team_id', 'role', 'is_tournament_captain', 'team__id')
+        )
+        context['managed_team_count'] = len(managed)
+        if managed:
+            context['can_challenge'] = True
+            context['reason'] = ''
+            context['challenge_url'] = (
+                f"/dashboard/competitive/?target_team_id={team.pk}"
+                f"&target_team_slug={quote(getattr(team, 'slug', '') or '')}"
+                f"&target_team_name={quote(getattr(team, 'name', '') or '')}#showdown"
+            )
+        else:
+            context['reason'] = 'Captain or manager authority on another team required'
+    except Exception:
+        context['reason'] = 'Challenge eligibility could not be verified'
+
+    try:
+        from apps.competition.models import Bounty
+        open_count = Bounty.objects.filter(
+            issuer_team=team,
+            is_hitlist=True,
+            status='ACTIVE',
+            is_public=True,
+        ).count()
+        context['open_bounty_count'] = open_count
+        context['has_open_bounty'] = open_count > 0
+        if open_count:
+            context['bounty_url'] = '/dashboard/competitive/#bounty'
+    except Exception:
+        pass
+
+    return context
 
 
 def _build_ui_context(team: Team, role: str) -> Dict[str, Any]:
@@ -656,7 +716,154 @@ def _build_leaderboard_stats_context(team: Team, is_restricted: bool) -> Dict[st
 
     defaults['trophies_count'] = defaults['tournaments_won']
 
+    # --- Canonical competitive results (Showdown + tournament matches + Bounty outcomes) ---
+    canonical = _build_canonical_competitive_stats(team)
+    if canonical['matches_played'] > defaults['matches_played']:
+        defaults['matches_played'] = canonical['matches_played']
+        defaults['matches_won'] = canonical['matches_won']
+        defaults['matches_lost'] = canonical['matches_lost']
+        defaults['matches_drawn'] = canonical['matches_drawn']
+        defaults['win_rate'] = canonical['win_rate']
+        defaults['recent_form'] = canonical['recent_form'] or defaults['recent_form']
+        defaults['current_streak'] = canonical['current_streak']
+        defaults['streak_type'] = canonical['streak_type']
+        defaults['longest_win_streak'] = max(defaults['longest_win_streak'], canonical['longest_win_streak'])
+    defaults['showdown_matches'] = canonical['showdown_matches']
+    defaults['bounty_matches'] = canonical['bounty_matches']
+    defaults['dropzone_placements'] = canonical['dropzone_placements']
+
     return defaults
+
+
+def _build_canonical_competitive_stats(team: Team) -> Dict[str, Any]:
+    """
+    Compute public-safe competitive result stats from canonical systems.
+
+    Dropzone is intentionally tracked separately because current entries are
+    user-based placements, not team-vs-team win/loss records.
+    """
+    import logging
+    from django.db.models import Q
+
+    logger = logging.getLogger(__name__)
+    results = []
+    showdown_count = 0
+    bounty_count = 0
+    dropzone_placements = 0
+
+    try:
+        from apps.competition.models import Challenge
+        challenges = (
+            Challenge.objects
+            .filter(
+                Q(challenger_team=team) | Q(challenged_team=team),
+                status__in=['COMPLETED', 'SETTLED', 'ADMIN_RESOLVED'],
+            )
+            .exclude(result='PENDING')
+            .only('id', 'challenger_team_id', 'challenged_team_id', 'result', 'updated_at')
+            .order_by('-updated_at')
+        )
+        for challenge in challenges:
+            if challenge.result == 'DRAW':
+                outcome = 'D'
+            elif (
+                challenge.challenger_team_id == team.pk and challenge.result == 'CHALLENGER_WIN'
+            ) or (
+                challenge.challenged_team_id == team.pk and challenge.result == 'CHALLENGED_WIN'
+            ):
+                outcome = 'W'
+            else:
+                outcome = 'L'
+            results.append((challenge.updated_at, outcome))
+            showdown_count += 1
+    except Exception as exc:
+        logger.debug("Canonical Showdown stats lookup failed for %s: %s", team.slug, exc)
+
+    try:
+        from apps.competition.models import BountyClaim
+        claims = (
+            BountyClaim.objects
+            .filter(
+                Q(bounty__issuer_team=team) | Q(claiming_team=team),
+                bounty__is_hitlist=True,
+                status__in=['VERIFIED', 'PAID', 'REJECTED'],
+            )
+            .select_related('bounty')
+            .only('id', 'status', 'claiming_team_id', 'verified_at', 'claimed_at', 'bounty__issuer_team_id')
+            .order_by('-verified_at', '-claimed_at')
+        )
+        for claim in claims:
+            if claim.status in ('VERIFIED', 'PAID'):
+                outcome = 'W' if claim.claiming_team_id == team.pk else 'L'
+            else:
+                outcome = 'L' if claim.claiming_team_id == team.pk else 'W'
+            results.append((claim.verified_at or claim.claimed_at, outcome))
+            bounty_count += 1
+    except Exception as exc:
+        logger.debug("Canonical Bounty stats lookup failed for %s: %s", team.slug, exc)
+
+    try:
+        from apps.tournaments.models import Match
+        matches = (
+            Match.objects
+            .filter(
+                Q(participant1_id=team.id) | Q(participant2_id=team.id),
+                state__in=['COMPLETED', 'completed', 'DONE', 'done'],
+            )
+            .only('id', 'participant1_id', 'participant2_id', 'winner_id', 'updated_at')
+            .order_by('-updated_at')
+        )
+        for match in matches:
+            winner_id = getattr(match, 'winner_id', None)
+            if not winner_id:
+                outcome = 'D'
+            else:
+                outcome = 'W' if str(winner_id) == str(team.id) else 'L'
+            results.append((match.updated_at, outcome))
+    except Exception as exc:
+        logger.debug("Canonical tournament stats lookup failed for %s: %s", team.slug, exc)
+
+    results.sort(key=lambda row: row[0] or timezone.now(), reverse=True)
+    form = [outcome for _, outcome in results[:10]]
+    wins = sum(1 for _, outcome in results if outcome == 'W')
+    losses = sum(1 for _, outcome in results if outcome == 'L')
+    draws = sum(1 for _, outcome in results if outcome == 'D')
+    total = wins + losses + draws
+
+    current_streak = 0
+    streak_type = ''
+    if form:
+        streak_type = form[0] if form[0] in ('W', 'L') else ''
+        if streak_type:
+            for outcome in form:
+                if outcome == streak_type:
+                    current_streak += 1
+                else:
+                    break
+
+    longest = 0
+    run = 0
+    for _, outcome in sorted(results, key=lambda row: row[0] or timezone.now()):
+        if outcome == 'W':
+            run += 1
+            longest = max(longest, run)
+        else:
+            run = 0
+
+    return {
+        'matches_played': total,
+        'matches_won': wins,
+        'matches_lost': losses,
+        'matches_drawn': draws,
+        'win_rate': round((wins / total) * 100, 1) if total else 0.0,
+        'recent_form': form,
+        'current_streak': current_streak,
+        'streak_type': streak_type,
+        'longest_win_streak': longest,
+        'showdown_matches': showdown_count,
+        'bounty_matches': bounty_count,
+        'dropzone_placements': dropzone_placements,
+    }
 
 
 def _build_streams_context(team: Team, is_restricted: bool) -> List[Dict[str, Any]]:

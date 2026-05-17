@@ -93,3 +93,30 @@ body.toc-shell {
 .hidden-view {
   display: none !important;
 }
+
+/* ── Match card metadata chips (map / server / mode / BO) ── */
+.toc-meta-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 9px;
+  font-weight: 700;
+  font-family: 'Space Grotesk', monospace;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  color: #999;
+}
+.toc-meta-chip--bo {
+  background: rgba(var(--theme-r,0),var(--theme-g,240),var(--theme-b,255),0.08);
+  border-color: rgba(var(--theme-r,0),var(--theme-g,240),var(--theme-b,255),0.2);
+  color: var(--dc-theme, #00F0FF);
+}
+.toc-meta-chip--warn {
+  background: rgba(251,191,36,0.08);
+  border-color: rgba(251,191,36,0.25);
+  color: #fbbf24;
+}

@@ -825,6 +825,7 @@
                 setVal(feat, 'require_coin_toss', s.features.require_coin_toss);
                 setVal(feat, 'require_map_veto', s.features.require_map_veto);
                 setVal(feat, 'require_match_evidence', s.features.require_match_evidence);
+                setVal(feat, 'credential_policy', s.features.credential_policy || 'host');
                 setVal(feat, 'check_in_per_round', s.features.check_in_per_round);
                 setVal(feat, 'enable_dynamic_seeding', s.features.enable_dynamic_seeding);
                 setVal(feat, 'enable_live_updates', s.features.enable_live_updates);

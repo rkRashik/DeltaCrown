@@ -157,42 +157,95 @@
       var myTurn = staff || side === expectedSide;
       var actionLocked = c.waitingLocked() || c.state.requestBusy;
       var sequenceDone = step >= sequence.length;
+      var stepsRemaining = sequenceDone ? 0 : (sequence.length - step);
 
       var expectedSideName = _participantName(c, expectedSide);
-      var actionVerb = expectedAction === 'pick' ? 'picks' : 'bans';
-      var actionCopy = expectedAction === 'pick' ? 'Pick' : 'Ban';
+      var mySideName = side ? _participantName(c, side) : '';
 
-      // Timer block.
+      // Timer
       var totalSeconds = c.toInt(veto.time_per_action_seconds, 30);
       var remaining = _secondsRemaining(veto.step_expires_at);
+      var timedOut = remaining !== null && remaining === 0;
       var timerHTML = (!sequenceDone && remaining !== null) ? _renderTimer(remaining, totalSeconds) : '';
 
-      // Turn strip — the dominant visual element.
+      // ── Premium turn strip ────────────────────────────────────────────
       var turnStrip;
       if (sequenceDone) {
-        turnStrip = '<div class="flex items-center gap-3 p-3 md:p-4 rounded-xl bg-black/40 border border-ac/30 reveal-pulse">' +
-          '<i data-lucide="check-circle-2" class="w-5 h-5 md:w-6 md:h-6 text-ac"></i>' +
-          '<div class="flex-1 min-w-0">' +
-            '<p class="text-[10px] font-black uppercase tracking-widest text-gray-500">Veto Complete</p>' +
-            '<p class="text-base md:text-lg font-black text-white">' +
-              (selectedMap ? c.esc(selectedMap) + ' locked' : 'Sequence finished') +
-            '</p>' +
-          '</div>' +
-        '</div>';
+        var lockedMapImg = selectedMap && metaIndex[selectedMap.toLowerCase()] && metaIndex[selectedMap.toLowerCase()].image_url
+          ? metaIndex[selectedMap.toLowerCase()].image_url : '';
+        turnStrip =
+          '<div class="veto-turn-strip veto-turn-done">' +
+            '<div class="flex items-center gap-3">' +
+              (lockedMapImg
+                ? '<div class="w-10 h-10 rounded-lg overflow-hidden shrink-0 border border-ac/40"><img src="' + c.esc(lockedMapImg) + '" class="w-full h-full object-cover"></div>'
+                : '<div class="w-10 h-10 rounded-full bg-ac/15 border border-ac/30 flex items-center justify-center shrink-0"><i data-lucide="check-circle-2" class="w-5 h-5 text-ac"></i></div>') +
+              '<div class="min-w-0">' +
+                '<p class="text-[10px] font-black uppercase tracking-widest text-ac/70">Map Locked</p>' +
+                '<p class="text-base md:text-lg font-black text-white truncate">' + (selectedMap ? c.esc(selectedMap) : 'Sequence complete') + '</p>' +
+              '</div>' +
+            '</div>' +
+            '<span class="shrink-0 px-3 py-1 rounded-full bg-ac/15 border border-ac/30 text-[10px] font-black text-ac uppercase tracking-widest">Veto Complete</span>' +
+          '</div>';
+      } else if (timedOut) {
+        turnStrip =
+          '<div class="veto-turn-strip veto-turn-pending">' +
+            '<div class="flex items-center gap-2.5">' +
+              '<span class="w-2 h-2 rounded-full bg-amber-300 animate-pulse shrink-0"></span>' +
+              '<div class="min-w-0">' +
+                '<p class="text-[10px] font-black uppercase tracking-widest text-amber-400/80">Timer Expired</p>' +
+                '<p class="text-sm md:text-base font-black text-white">Waiting for system auto-pick…</p>' +
+                '<p class="text-[10px] text-gray-500 mt-0.5">The server will auto-ban a random available map shortly.</p>' +
+              '</div>' +
+            '</div>' +
+          '</div>';
+      } else if (myTurn && !actionLocked) {
+        var banExplain = expectedAction === 'ban'
+          ? 'Select a map to remove it from the pool permanently.'
+          : 'Select the map you want to play on.';
+        turnStrip =
+          '<div class="veto-turn-strip veto-turn-mine">' +
+            '<div class="flex items-center gap-3">' +
+              '<span class="side-indicator side-' + (expectedSide === 1 ? 'a' : 'b') + ' is-active shrink-0"><span class="dot"></span>' + c.esc(expectedSideName) + '</span>' +
+              '<div class="min-w-0 flex-1">' +
+                '<p class="text-[10px] font-black uppercase tracking-widest text-ac/80">Your Turn — Step ' + (step + 1) + ' of ' + sequence.length + '</p>' +
+                '<p class="text-sm md:text-base font-black text-white">' + (expectedAction === 'ban' ? 'Ban a map' : 'Pick your map') + '</p>' +
+                '<p class="text-[11px] text-gray-400 mt-0.5">' + c.esc(banExplain) + '</p>' +
+              '</div>' +
+            '</div>' +
+            timerHTML +
+          '</div>';
       } else {
-        turnStrip = '<div class="flex items-center gap-3 p-3 md:p-4 rounded-xl bg-black/40 border border-white/10">' +
-          '<span class="side-indicator side-' + (expectedSide === 1 ? 'a' : 'b') + ' is-active">' +
-            '<span class="dot"></span>' + c.esc(expectedSideName) +
-          '</span>' +
-          '<div class="flex-1 min-w-0">' +
-            '<p class="text-[10px] font-black uppercase tracking-widest text-gray-500">Step ' + (step + 1) + ' of ' + sequence.length + '</p>' +
-            '<p class="text-base md:text-lg font-black text-white">' +
-              c.esc(expectedSideName) + ' ' + actionVerb + ' a map' +
-              (myTurn ? ' <span class="text-ac">— your move</span>' : '') +
-            '</p>' +
-          '</div>' +
-          timerHTML +
-        '</div>';
+        var waitExplain = myTurn ? 'Waiting for opponent to respond…' : c.esc(expectedSideName) + (expectedAction === 'ban' ? ' is banning a map.' : ' is picking the map.');
+        turnStrip =
+          '<div class="veto-turn-strip veto-turn-wait">' +
+            '<div class="flex items-center gap-3">' +
+              '<span class="side-indicator side-' + (expectedSide === 1 ? 'a' : 'b') + ' shrink-0"><span class="dot"></span>' + c.esc(expectedSideName) + '</span>' +
+              '<div class="min-w-0 flex-1">' +
+                '<p class="text-[10px] font-black uppercase tracking-widest text-gray-500">Step ' + (step + 1) + ' of ' + sequence.length + ' · ' + stepsRemaining + ' step' + (stepsRemaining === 1 ? '' : 's') + ' left</p>' +
+                '<p class="text-sm md:text-base font-black text-gray-300">' + (side === 0 || !side ? c.esc(expectedSideName) + (expectedAction === 'ban' ? ' is banning' : ' is picking') : waitExplain) + '</p>' +
+              '</div>' +
+            '</div>' +
+            timerHTML +
+          '</div>';
+      }
+
+      // ── Helper copy ───────────────────────────────────────────────────
+      var helperNote = '';
+      if (!sequenceDone && !timedOut) {
+        var totalBans = sequence.filter(function(s) { return String(s.action||'ban').toLowerCase() === 'ban'; }).length;
+        var totalPicks = sequence.filter(function(s) { return String(s.action||'ban').toLowerCase() === 'pick'; }).length;
+        var doneBans = c.asList(veto.bans).length;
+        var donePicks = c.asList(veto.picks).length;
+        var parts = [];
+        if (totalBans > doneBans) parts.push((totalBans - doneBans) + ' ban' + (totalBans - doneBans > 1 ? 's' : '') + ' remaining');
+        if (totalPicks > donePicks) parts.push((totalPicks - donePicks) + ' pick' + (totalPicks - donePicks > 1 ? 's' : '') + ' remaining');
+        if (parts.length) {
+          helperNote = '<div class="flex items-center gap-2 mt-3 mb-1 text-[10px] text-gray-500">' +
+            '<i data-lucide="info" class="w-3 h-3 shrink-0"></i>' +
+            '<span>' + c.esc(parts.join(' · ')) +
+            (veto.auto_random_on_timeout !== false ? ' · Auto-pick after ' + totalSeconds + 's timeout' : '') +
+            '</span></div>';
+        }
       }
 
       // Map cards.
@@ -202,7 +255,7 @@
         var meta = metaIndex[clean.toLowerCase()] || null;
         var isBanned = !!bansSet[clean.toLowerCase()];
         var isPicked = !!picksSet[clean.toLowerCase()] || (selectedMap && clean === selectedMap);
-        var selectable = !isBanned && !isPicked && !sequenceDone && myTurn && !actionLocked;
+        var selectable = !isBanned && !isPicked && !sequenceDone && myTurn && !actionLocked && !timedOut;
         return _mapCard(c, clean, meta, isBanned, isPicked, selectable);
       }).join('');
 
@@ -210,22 +263,25 @@
 
       return '' +
         '<section class="glass-panel rounded-2xl p-4 md:p-6 border-t-4 border-ac">' +
-          '<div class="flex flex-col md:flex-row md:items-center justify-between gap-2 mb-4">' +
+          '<div class="flex items-start justify-between gap-3 mb-4">' +
             '<div>' +
-              '<p class="text-[10px] font-black uppercase tracking-widest text-gray-500">Map Veto</p>' +
-              '<h3 class="text-xl md:text-2xl font-black text-white">Battle for the Map</h3>' +
-              '<p class="text-[11px] text-gray-400 mt-1">' + (sequenceDone ? 'Lobby unlocks with the selected map.' : 'Resolve bans and picks to lock the battleground.') + '</p>' +
+              '<p class="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-0.5">Phase · Map Veto</p>' +
+              '<h3 class="text-xl md:text-2xl font-black text-white leading-tight">Lock the Battleground</h3>' +
             '</div>' +
-            '<span class="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Pool: ' + pool.length + ' map' + (pool.length === 1 ? '' : 's') + '</span>' +
+            '<div class="text-right shrink-0">' +
+              '<p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest">' + pool.length + ' map' + (pool.length !== 1 ? 's' : '') + ' in pool</p>' +
+              (sequenceDone ? '' : '<p class="text-[10px] text-gray-600 mt-0.5">' + stepsRemaining + ' step' + (stepsRemaining !== 1 ? 's' : '') + ' left</p>') +
+            '</div>' +
           '</div>' +
           turnStrip +
-          '<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-4">' +
-            (cards || '<p class="text-xs text-gray-400">No maps configured for this game. Contact tournament staff.</p>') +
+          helperNote +
+          '<div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5 mt-4">' +
+            (cards || '<div class="col-span-3 py-10 text-center text-xs text-gray-500 border border-dashed border-white/10 rounded-xl">No maps configured — contact tournament staff.</div>') +
           '</div>' +
           (historyHTML
-            ? '<div class="mt-5">' +
-                '<p class="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-2">Veto History</p>' +
-                '<div class="flex flex-col gap-1.5">' + historyHTML + '</div>' +
+            ? '<div class="mt-5 pt-4 border-t border-white/[0.06]">' +
+                '<p class="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-2.5">Veto Log</p>' +
+                '<div class="flex flex-col gap-1">' + historyHTML + '</div>' +
               '</div>'
             : '') +
         '</section>';

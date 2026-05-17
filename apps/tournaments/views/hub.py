@@ -5137,6 +5137,7 @@ class HubMatchesAPIView(LoginRequiredMixin, View):
                 and schedule_state_mutable
             )
             match_room_url = reverse('tournaments:match_room', kwargs={'slug': tournament.slug, 'match_id': m.id})
+            match_detail_url = reverse('tournaments:match_detail', kwargs={'slug': tournament.slug, 'match_id': m.id})
 
             # Canonical participant slots — node-first via MatchReadModel.
             if _canonical_view:
@@ -5188,6 +5189,7 @@ class HubMatchesAPIView(LoginRequiredMixin, View):
                 'is_my_match': is_my_match,
                 'lobby_info': lobby_info,
                 'match_room_url': match_room_url if (is_my_match or is_staff_view) else '',
+                'match_url': match_detail_url,
                 'scheduled_at': m.scheduled_time.isoformat() if m.scheduled_time else None,
                 'lobby_window_opens_at': lobby_window_opens_at_dt.isoformat() if lobby_window_opens_at_dt else None,
                 'lobby_window_open': bool(lobby_window_open),

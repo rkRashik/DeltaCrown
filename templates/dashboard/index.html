@@ -5,7 +5,7 @@
 
 {% block extra_head %}
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet">
-<script defer src="{% static 'siteui/js/command-center.js' %}?v=20260313-hotfix2"></script>
+<script defer src="{% static 'siteui/js/command-center.js' %}?v=20260517-phase9a"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/intersect@3.x.x/dist/cdn.min.js"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/csp@3.x.x/dist/cdn.min.js"></script>
 <script nonce="{{ request.csp_nonce }}">
@@ -640,24 +640,116 @@
           <div class="flex justify-between items-end mb-6">
             <div>
               <h2 class="text-xl font-bold text-white flex items-center gap-2">
-                <i class="fa-solid fa-crosshairs text-dc-danger"></i> Challenges & Bounties
+                <i class="fa-solid fa-radar text-dc-accent"></i> Competitive Command
               </h2>
-              <p class="text-sm text-dc-textMuted mt-1">Active Showdowns, Bounty activity, and team training updates.</p>
+              <p class="text-sm text-dc-textMuted mt-1" x-text="competitiveGuidance"></p>
             </div>
             <div class="flex items-center gap-3">
-              <span x-show="activeChallengeCount + activeBountyCount > 0" class="text-[10px] font-bold text-white bg-dc-danger px-2 py-0.5 rounded shadow-glow-danger" x-text="(activeChallengeCount + activeBountyCount) + ' ACTIVE'"></span>
+              <span x-show="competitiveNeedsAction.length > 0" class="text-[10px] font-bold text-white bg-dc-accent px-2 py-0.5 rounded shadow-glow" x-text="competitiveNeedsAction.length + ' ACTION'"></span>
+              <a href="{% url 'dashboard:competitive_hub' %}" class="text-[10px] font-bold text-white bg-white/[0.08] hover:bg-white/[0.14] px-3 py-1.5 rounded-lg border border-white/[0.1] transition-all no-underline">Open Hub</a>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+            <div class="rounded-2xl border border-cyan-300/15 bg-cyan-300/[0.06] px-4 py-3">
+              <div class="text-[9px] uppercase tracking-[0.16em] text-cyan-100/70 font-bold">Needs Action</div>
+              <div class="text-xl font-black text-white" x-text="competitiveNeedsAction.length"></div>
+            </div>
+            <div class="rounded-2xl border border-amber-300/15 bg-amber-300/[0.06] px-4 py-3">
+              <div class="text-[9px] uppercase tracking-[0.16em] text-amber-100/70 font-bold">Under Review</div>
+              <div class="text-xl font-black text-white" x-text="competitiveUnderReview.length"></div>
+            </div>
+            <div class="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3">
+              <div class="text-[9px] uppercase tracking-[0.16em] text-dc-textMuted font-bold">Waiting</div>
+              <div class="text-xl font-black text-white" x-text="competitiveWaiting.length"></div>
+            </div>
+            <div class="rounded-2xl border border-emerald-300/15 bg-emerald-300/[0.06] px-4 py-3">
+              <div class="text-[9px] uppercase tracking-[0.16em] text-emerald-100/70 font-bold">Completed</div>
+              <div class="text-xl font-black text-white" x-text="competitiveCompleted.length"></div>
+            </div>
+          </div>
+
+          <div x-show="competitiveError" class="mb-4 rounded-2xl border border-dc-danger/20 bg-dc-danger/10 px-4 py-3 text-xs text-rose-100" x-text="competitiveError"></div>
+
+          <div x-show="competitiveLoading && myOperations.length === 0" class="grid md:grid-cols-2 gap-3 mb-6">
+            <template x-for="idx in [1,2,3,4]" :key="idx">
+              <div class="h-24 rounded-2xl bg-white/[0.04] border border-white/[0.06] animate-pulse"></div>
+            </template>
+          </div>
+
+          <div x-show="competitivePriority.length > 0" class="grid xl:grid-cols-[1.2fr_.8fr] gap-4 mb-6">
+            <div class="space-y-3">
+              <div class="text-[10px] text-dc-textMuted uppercase font-bold tracking-wider">Priority Operations</div>
+              <template x-for="op in competitivePriority.slice(0,5)" :key="(op.type || 'op') + '-' + op.id">
+                <button type="button"
+                        @click="navigateTo(competitiveActionUrl(op))"
+                        class="w-full text-left p-4 rounded-2xl bg-black/40 border border-white/[0.08] hover:border-cyan-300/30 hover:bg-white/[0.05] transition-all group">
+                  <div class="flex items-start gap-4">
+                    <div class="w-11 h-11 rounded-2xl border flex items-center justify-center shrink-0" :class="competitiveTypeMeta(op.type).bg">
+                      <i :class="competitiveTypeMeta(op.type).icon + ' ' + competitiveTypeMeta(op.type).tone"></i>
+                    </div>
+                    <div class="min-w-0 flex-1">
+                      <div class="flex flex-wrap items-center gap-2 mb-1">
+                        <span class="text-[10px] font-black uppercase tracking-[0.16em]" :class="competitiveTypeMeta(op.type).tone" x-text="competitiveTypeMeta(op.type).label"></span>
+                        <span class="text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider" :class="competitiveStatusClass(op)" x-text="op.status || 'Active'"></span>
+                      </div>
+                      <h4 class="text-sm font-bold text-white truncate" x-text="op.title || 'Competitive operation'"></h4>
+                      <div class="mt-2 flex flex-wrap items-center gap-2 text-[10px] text-dc-textMuted">
+                        <span x-show="op.game" x-text="op.game"></span>
+                        <span x-show="op.team_name" class="text-white/[0.18]">&middot;</span>
+                        <span x-show="op.team_name" x-text="op.team_name"></span>
+                        <span x-show="competitiveTime(op)" class="text-white/[0.18]">&middot;</span>
+                        <span x-show="competitiveTime(op)" x-text="competitiveTime(op)"></span>
+                      </div>
+                    </div>
+                    <div class="hidden sm:flex flex-col items-end gap-2 shrink-0">
+                      <span class="text-[10px] font-bold text-white" x-text="op.next_action_label || 'View Details'"></span>
+                      <i class="fa-solid fa-arrow-right text-cyan-200 text-xs transition-transform group-hover:translate-x-1"></i>
+                    </div>
+                  </div>
+                </button>
+              </template>
+            </div>
+
+            <div class="rounded-2xl border border-cyan-300/15 bg-cyan-300/[0.05] p-4">
+              <div class="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-100 mb-3">Ecosystem Flow</div>
+              <div class="grid grid-cols-2 gap-2 text-[10px]">
+                <div class="rounded-xl bg-black/30 border border-white/[0.06] p-3">
+                  <div class="text-white font-bold">Showdown</div>
+                  <div class="text-dc-textMuted mt-1">Create -> Match Room -> Result -> Settlement</div>
+                </div>
+                <div class="rounded-xl bg-black/30 border border-white/[0.06] p-3">
+                  <div class="text-white font-bold">Missions</div>
+                  <div class="text-dc-textMuted mt-1">Enroll -> Progress -> Proof -> Review</div>
+                </div>
+                <div class="rounded-xl bg-black/30 border border-white/[0.06] p-3">
+                  <div class="text-white font-bold">Bounty</div>
+                  <div class="text-dc-textMuted mt-1">Claim -> Match Room -> Verify -> Reward</div>
+                </div>
+                <div class="rounded-xl bg-black/30 border border-white/[0.06] p-3">
+                  <div class="text-white font-bold">Dropzone</div>
+                  <div class="text-dc-textMuted mt-1">Reserve -> Reveal -> Score -> Results</div>
+                </div>
+              </div>
+              <div class="mt-3 rounded-xl bg-black/30 border border-white/[0.06] p-3 flex items-center justify-between gap-3">
+                <div>
+                  <div class="text-white font-bold text-xs">Team Applications</div>
+                  <div class="text-dc-textMuted mt-1 text-[10px]">Tryouts, join requests, and offers are tracked below.</div>
+                </div>
+                <span class="rounded-lg border border-emerald-300/20 bg-emerald-300/10 px-2 py-1 text-[10px] font-black text-emerald-100" x-text="teamApplications.length"></span>
+              </div>
             </div>
           </div>
 
           {# Challenges #}
-          <div x-show="challenges.length > 0" class="mb-6">
-            <div class="text-[10px] text-dc-textMuted uppercase font-bold tracking-wider mb-3">Challenges</div>
+          <div x-show="competitivePriority.length === 0 && challenges.length > 0" class="mb-6">
+            <div class="text-[10px] text-dc-textMuted uppercase font-bold tracking-wider mb-3">Showdown Signals</div>
             <div class="space-y-3">
               <template x-for="ch in challenges" :key="ch.id">
                 <div class="flex items-center gap-4 p-4 rounded-xl bg-black/40 border border-white/[0.06] hover:border-white/[0.15] transition-all group">
                   <div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border"
                        :class="{
-                         'bg-dc-warning/10 border-dc-warning/20': ch.isCrownClash,
+                         'bg-dc-warning/10 border-dc-warning/20': ch.type === 'SHOWDOWN',
                          'bg-dc-danger/10 border-dc-danger/20': ch.type === 'BOUNTY',
                          'bg-dc-accent/10 border-dc-accent/20': ch.type === 'SCRIM',
                          'bg-purple-400/10 border-purple-400/20': ch.type === 'DUEL'
@@ -695,8 +787,8 @@
           </div>
 
           {# Bounties #}
-          <div x-show="bounties.length > 0" class="mb-4">
-            <div class="text-[10px] text-dc-textMuted uppercase font-bold tracking-wider mb-3">Bounties</div>
+          <div x-show="competitivePriority.length === 0 && bounties.length > 0" class="mb-4">
+            <div class="text-[10px] text-dc-textMuted uppercase font-bold tracking-wider mb-3">Bounty Signals</div>
             <div class="space-y-3">
               <template x-for="b in bounties" :key="b.id">
                 <div class="flex items-center gap-4 p-4 rounded-xl bg-black/40 border border-white/[0.06] hover:border-white/[0.15] transition-all group">
@@ -727,7 +819,7 @@
                     </div>
                   </div>
                   <div class="text-right shrink-0">
-                    <div class="text-sm font-mono font-bold text-dc-warning" x-text="(b.entryFee ?? b.entry_fee_dc ?? b['sta' + 'ke'] ?? 0).toLocaleString() + ' DC entry'"></div>
+                    <div class="text-sm font-mono font-bold text-dc-warning" x-text="(b.entryFee ?? b.entry_fee_dc ?? 0).toLocaleString() + ' DC entry'"></div>
                     <div class="text-[10px] text-dc-success" x-text="'Reward: ' + b.payout.toLocaleString() + ' DC'"></div>
                   </div>
                 </div>
@@ -736,7 +828,7 @@
           </div>
 
           {# Empty state #}
-          <div x-show="challenges.length === 0 && bounties.length === 0" class="flex flex-col items-center justify-center py-10 text-center">
+          <div x-show="!competitiveLoading && competitivePriority.length === 0 && challenges.length === 0 && bounties.length === 0" class="flex flex-col items-center justify-center py-10 text-center">
             <div class="w-14 h-14 rounded-2xl bg-white/[0.03] border border-white/[0.08] flex items-center justify-center mb-4">
               <i class="fa-solid fa-crosshairs text-2xl text-dc-textMuted"></i>
             </div>

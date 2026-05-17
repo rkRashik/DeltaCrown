@@ -754,10 +754,10 @@
         <div class="flex items-center gap-2">
             {% if view_as_spectator %}
             <i data-lucide="eye" class="w-3.5 h-3.5 text-blue-400"></i>
-            <span>Spectator Preview — admin controls hidden. This is how the public sees this page.</span>
+            <span>Spectator Preview â€” admin controls hidden. This is how the public sees this page.</span>
             {% else %}
             <i data-lucide="shield-check" class="w-3.5 h-3.5 text-yellow-400"></i>
-            <span>Organizer View — you are seeing admin controls.</span>
+            <span>Organizer View â€” you are seeing admin controls.</span>
             {% endif %}
         </div>
         {% if view_as_spectator %}
@@ -877,7 +877,7 @@
                         <div>
                             <p class="text-[10px] font-bold text-gray-300 uppercase tracking-widest mb-2 flex items-center gap-2"><i data-lucide="trophy" class="w-4 h-4 text-dc-gold"></i> Prize Pool</p>
                             <div class="flex items-baseline gap-2">
-                                <p class="font-display font-black text-4xl lg:text-[2.9rem] text-white tracking-tight">{% if tournament.prize_pool %}৳{{ tournament.prize_pool|floatformat:0|intcomma }}{% else %}TBA{% endif %}</p>
+                                <p class="font-display font-black text-4xl lg:text-[2.9rem] text-white tracking-tight">{% if tournament.prize_pool %}à§³{{ tournament.prize_pool|floatformat:0|intcomma }}{% else %}TBA{% endif %}</p>
                                 {% if tournament.prize_deltacoin %}
                                 <p class="text-xs font-bold text-dc-cyan bg-dc-cyan/10 px-2 py-1 rounded">+ {{ tournament.prize_deltacoin|intcomma }} DC</p>
                                 {% endif %}
@@ -1094,7 +1094,7 @@
                         <div class="glass-panel p-5 rounded-2xl flex flex-col justify-center">
                             <i data-lucide="monitor" class="w-5 h-5 text-gray-500 mb-3"></i>
                             <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Platform / Mode</p>
-                            <p class="font-bold text-white text-sm">{{ tournament_platform_label }} • {{ tournament_mode_label }}</p>
+                            <p class="font-bold text-white text-sm">{{ tournament_platform_label }} â€¢ {{ tournament_mode_label }}</p>
                         </div>
                         <div class="glass-panel p-5 rounded-2xl flex flex-col justify-center border-l-2 theme-border">
                             <i data-lucide="wallet" class="w-5 h-5 theme-text mb-3"></i>
@@ -1132,7 +1132,7 @@
                         </div>
                         {% endif %}
 
-                        {% comment %}P4-C.3 — Map pool preview from apps/games{% endcomment %}
+                        {% comment %}P4-C.3 â€” Map pool preview from apps/games{% endcomment %}
                         {% if map_pool_preview %}
                         <div class="glass-panel p-5 rounded-2xl flex flex-col justify-center md:col-span-2">
                             <i data-lucide="map" class="w-5 h-5 text-gray-500 mb-3"></i>
@@ -1332,7 +1332,15 @@
 
                                         <div class="divide-y divide-white/5">
                                             {% for match in phase_group.list %}
+                                            {% if match.id and match.ui_status == 'completed' %}
+                                            <article class="px-4 py-3 hover:bg-white/[0.02] transition-colors cursor-pointer"
+                                              data-report-href="{% url 'tournaments:match_detail' tournament.slug match.id %}">
+                                            {% elif match.id and match.ui_status == 'live' %}
+                                            <article class="px-4 py-3 hover:bg-white/[0.02] transition-colors cursor-pointer"
+                                              data-report-href="{% url 'tournaments:match_detail' tournament.slug match.id %}">
+                                            {% else %}
                                             <article class="px-4 py-3 hover:bg-white/[0.02] transition-colors">
+                                            {% endif %}
                                                 <div class="flex flex-col md:flex-row md:items-center gap-3 md:gap-4">
                                                     <div class="md:w-40 shrink-0">
                                                         <p class="text-[10px] font-bold uppercase tracking-widest text-gray-500">Kickoff</p>
@@ -1345,14 +1353,20 @@
                                                         <p class="text-sm font-semibold text-white truncate">{{ match.team1_name }} <span class="text-gray-500">vs</span> {{ match.team2_name }}</p>
                                                     </div>
 
-                                                    <div class="md:w-36 shrink-0 md:text-right">
+                                                    <div class="md:w-40 shrink-0 md:text-right flex flex-col items-end gap-1.5">
                                                         <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest {% if match.ui_status == 'live' %}match-state-live{% elif match.ui_status == 'completed' %}match-state-completed{% else %}match-state-upcoming{% endif %}">{{ match.ui_status }}</span>
                                                         {% if match.ui_status == 'completed' %}
-                                                        <p class="mt-1 text-[11px] font-bold text-gray-300">FT {{ match.score1|default:0 }}-{{ match.score2|default:0 }}</p>
+                                                        <p class="text-[11px] font-bold text-gray-300">{{ match.score1|default:0 }} â€“ {{ match.score2|default:0 }}</p>
+                                                        {% if match.id %}
+                                                        <a href="{% url 'tournaments:match_detail' tournament.slug match.id %}" class="inline-flex items-center gap-1 text-[10px] font-bold text-[#00f0ff]/80 hover:text-[#00f0ff] transition-colors">
+                                                            <i data-lucide="file-text" class="w-2.5 h-2.5"></i> Match Report
+                                                        </a>
+                                                        {% endif %}
                                                         {% elif match.ui_status == 'live' %}
-                                                        <p class="mt-1 text-[11px] font-bold theme-text">In progress now</p>
+                                                        <p class="text-[11px] font-bold theme-text">In progress now</p>
+                                                        {% if match.id %}<a href="{% url 'tournaments:match_detail' tournament.slug match.id %}" class="text-[10px] font-bold text-[#00f0ff]/80 hover:text-[#00f0ff] transition-colors">Watch Live</a>{% endif %}
                                                         {% else %}
-                                                        <p class="mt-1 text-[11px] text-gray-400">Scheduled fixture</p>
+                                                        <p class="text-[11px] text-gray-400">Scheduled fixture</p>
                                                         {% endif %}
                                                     </div>
                                                 </div>
@@ -1563,7 +1577,7 @@
                             <div class="absolute top-0 right-0 w-96 h-96 bg-dc-gold/10 rounded-full blur-[100px] pointer-events-none"></div>
 
                             <p class="font-gaming text-dc-gold font-bold uppercase tracking-[0.3em] mb-4 flex items-center gap-2"><i data-lucide="trophy" class="w-4 h-4"></i> Guaranteed Prize Pool</p>
-                            <h1 class="font-display font-black text-7xl md:text-9xl text-white tracking-tighter drop-shadow-[0_0_30px_rgba(255,215,0,0.15)] mb-4">{% if tournament.prize_pool %}৳{{ tournament.prize_pool|floatformat:0|intcomma }}{% else %}TBA{% endif %}</h1>
+                            <h1 class="font-display font-black text-7xl md:text-9xl text-white tracking-tighter drop-shadow-[0_0_30px_rgba(255,215,0,0.15)] mb-4">{% if tournament.prize_pool %}à§³{{ tournament.prize_pool|floatformat:0|intcomma }}{% else %}TBA{% endif %}</h1>
 
                             {% if tournament.prize_deltacoin %}
                             <div class="flex items-center gap-3 bg-white/5 border border-white/10 px-6 py-2 rounded-full backdrop-blur-md mt-2">
@@ -1593,7 +1607,7 @@
                         <div id="prize-engine-placements" class="divide-y divide-white/5">
                             {# If completed and results are in, show real winners; otherwise show prize structure. #}
                             {% if is_completed_phase and podium %}
-                            {# — Results published: show actual winner names + amounts — #}
+                            {# â€” Results published: show actual winner names + amounts â€” #}
                             {% for winner in podium|slice:":3" %}
                             <div class="flex items-center justify-between p-6 hover:bg-white/[0.02] transition-colors group">
                                 <div class="flex items-center gap-6">
@@ -1601,15 +1615,15 @@
                                     <span class="font-bold text-white text-base">{% if winner.team %}{{ winner.team.name }}{% elif winner.player %}{{ winner.player.username }}{% else %}TBA{% endif %}</span>
                                 </div>
                                 <div class="flex items-center gap-8">
-                                    <span class="font-display font-bold text-2xl text-white">{% if winner.prize_amount %}৳{{ winner.prize_amount|floatformat:0|intcomma }}{% else %}TBA{% endif %}</span>
+                                    <span class="font-display font-bold text-2xl text-white">{% if winner.prize_amount %}à§³{{ winner.prize_amount|floatformat:0|intcomma }}{% else %}TBA{% endif %}</span>
                                 </div>
                             </div>
                             {% endfor %}
                             {% else %}
-                            {# — Not yet completed: show prize structure with placement + prize amount — #}
+                            {# â€” Not yet completed: show prize structure with placement + prize amount â€” #}
                             <div class="flex items-center justify-between p-6 hover:bg-white/[0.02] transition-colors group">
                                 <div class="flex items-center gap-6">
-                                    <div class="w-12 h-12 rounded-xl bg-dc-gold/10 border border-dc-gold/30 flex items-center justify-center font-display font-bold text-dc-gold text-lg">🥇</div>
+                                    <div class="w-12 h-12 rounded-xl bg-dc-gold/10 border border-dc-gold/30 flex items-center justify-center font-display font-bold text-dc-gold text-lg">ðŸ¥‡</div>
                                     <div>
                                         <span class="font-bold text-white text-base">1st Place</span>
                                         <p class="text-[10px] text-gray-500 uppercase tracking-widest mt-0.5">Champion</p>
@@ -1619,7 +1633,7 @@
                             </div>
                             <div class="flex items-center justify-between p-6 hover:bg-white/[0.02] transition-colors group">
                                 <div class="flex items-center gap-6">
-                                    <div class="w-12 h-12 rounded-xl bg-gray-400/10 border border-gray-400/30 flex items-center justify-center font-display font-bold text-gray-300 text-lg">🥈</div>
+                                    <div class="w-12 h-12 rounded-xl bg-gray-400/10 border border-gray-400/30 flex items-center justify-center font-display font-bold text-gray-300 text-lg">ðŸ¥ˆ</div>
                                     <div>
                                         <span class="font-bold text-white text-base">2nd Place</span>
                                         <p class="text-[10px] text-gray-500 uppercase tracking-widest mt-0.5">Runner Up</p>
@@ -1629,7 +1643,7 @@
                             </div>
                             <div class="flex items-center justify-between p-6 hover:bg-white/[0.02] transition-colors group">
                                 <div class="flex items-center gap-6">
-                                    <div class="w-12 h-12 rounded-xl bg-amber-700/10 border border-amber-700/30 flex items-center justify-center font-display font-bold text-amber-600 text-lg">🥉</div>
+                                    <div class="w-12 h-12 rounded-xl bg-amber-700/10 border border-amber-700/30 flex items-center justify-center font-display font-bold text-amber-600 text-lg">ðŸ¥‰</div>
                                     <div>
                                         <span class="font-bold text-white text-base">3rd Place</span>
                                         <p class="text-[10px] text-gray-500 uppercase tracking-widest mt-0.5">Third Place</p>
@@ -1641,7 +1655,7 @@
                         </div>
                     </div>
 
-                    {# Special Awards — populated dynamically when configured by organizer. #}
+                    {# Special Awards â€” populated dynamically when configured by organizer. #}
                     <div id="prize-engine-standings-wrap" class="hidden glass-panel rounded-[2rem] overflow-hidden">
                         <div class="px-8 py-5 border-b border-white/5 bg-white/[0.02] flex items-center gap-3">
                             <i data-lucide="list-ordered" class="w-4 h-4 text-dc-cyan"></i>
@@ -1665,7 +1679,7 @@
                     </div>
                     </div>
 
-                    {# Renderer: static/tournaments/js/detail-prize-engine.js — no inline script #}
+                    {# Renderer: static/tournaments/js/detail-prize-engine.js â€” no inline script #}
                 </div>
                 {% endif %}
 
@@ -1991,7 +2005,7 @@
                                                     {% if match.ui_status == 'live' %}
                                                     <span class="bk-badge-live"><span class="bk-dot"></span> LIVE</span>
                                                     {% elif match.ui_status == 'completed' %}
-                                                    <span class="bk-badge-ft">FT</span>
+                                                    {% if match.id %}<a href="{% url 'tournaments:match_detail' tournament.slug match.id %}" class="bk-badge-ft hover:opacity-80 transition-opacity" title="View Match Report">FT ↗</a>{% else %}<span class="bk-badge-ft">FT</span>{% endif %}
                                                     {% elif match.team1_name == 'TBD' and match.team2_name == 'TBD' %}
                                                     <span class="bk-badge-up bk-badge-tbd">TBD</span>
                                                     {% elif match.starts_at_display %}
@@ -2013,7 +2027,7 @@
                                                         </div>
                                                         <span class="bk-name" {% if match.team1_name == 'TBD' %}style="color:#4B5563;font-style:italic;"{% endif %}>{{ match.team1_name|default:'TBD' }}</span>
                                                     </div>
-                                                    <span class="bk-sc">{% if match.ui_status == 'live' or match.ui_status == 'completed' %}{{ match.score1|default:'-' }}{% else %}–{% endif %}</span>
+                                                    <span class="bk-sc">{% if match.ui_status == 'live' or match.ui_status == 'completed' %}{{ match.score1|default:'-' }}{% else %}â€“{% endif %}</span>
                                                 </div>
 
                                                 <div class="bk-vs">VS</div>
@@ -2030,7 +2044,7 @@
                                                         </div>
                                                         <span class="bk-name" {% if match.team2_name == 'TBD' %}style="color:#4B5563;font-style:italic;"{% endif %}>{{ match.team2_name|default:'TBD' }}</span>
                                                     </div>
-                                                    <span class="bk-sc">{% if match.ui_status == 'live' or match.ui_status == 'completed' %}{{ match.score2|default:'-' }}{% else %}–{% endif %}</span>
+                                                    <span class="bk-sc">{% if match.ui_status == 'live' or match.ui_status == 'completed' %}{{ match.score2|default:'-' }}{% else %}â€“{% endif %}</span>
                                                 </div>
                                             </article>
                                             {% endfor %}
@@ -2055,7 +2069,7 @@
                                                     {% if match.ui_status == 'live' %}
                                                     <span class="bk-badge-live"><span class="bk-dot"></span> LIVE</span>
                                                     {% elif match.ui_status == 'completed' %}
-                                                    <span class="bk-badge-ft">FT</span>
+                                                    {% if match.id %}<a href="{% url 'tournaments:match_detail' tournament.slug match.id %}" class="bk-badge-ft hover:opacity-80 transition-opacity" title="View Match Report">FT ↗</a>{% else %}<span class="bk-badge-ft">FT</span>{% endif %}
                                                     {% elif match.team1_name == 'TBD' and match.team2_name == 'TBD' %}
                                                     <span class="bk-badge-up bk-badge-tbd">TBD</span>
                                                     {% elif match.starts_at_display %}
@@ -2077,7 +2091,7 @@
                                                         </div>
                                                         <span class="bk-name" {% if match.team1_name == 'TBD' %}style="color:#4B5563;font-style:italic;"{% endif %}>{{ match.team1_name|default:'TBD' }}</span>
                                                     </div>
-                                                    <span class="bk-sc">{% if match.ui_status == 'live' or match.ui_status == 'completed' %}{{ match.score1|default:'-' }}{% else %}–{% endif %}</span>
+                                                    <span class="bk-sc">{% if match.ui_status == 'live' or match.ui_status == 'completed' %}{{ match.score1|default:'-' }}{% else %}â€“{% endif %}</span>
                                                 </div>
 
                                                 <div class="bk-vs">VS</div>
@@ -2094,7 +2108,7 @@
                                                         </div>
                                                         <span class="bk-name" {% if match.team2_name == 'TBD' %}style="color:#4B5563;font-style:italic;"{% endif %}>{{ match.team2_name|default:'TBD' }}</span>
                                                     </div>
-                                                    <span class="bk-sc">{% if match.ui_status == 'live' or match.ui_status == 'completed' %}{{ match.score2|default:'-' }}{% else %}–{% endif %}</span>
+                                                    <span class="bk-sc">{% if match.ui_status == 'live' or match.ui_status == 'completed' %}{{ match.score2|default:'-' }}{% else %}â€“{% endif %}</span>
                                                 </div>
                                             </article>
                                             {% endfor %}
@@ -2118,7 +2132,7 @@
                                                     {% if match.ui_status == 'live' %}
                                                     <span class="bk-badge-live"><span class="bk-dot"></span> LIVE</span>
                                                     {% elif match.ui_status == 'completed' %}
-                                                    <span class="bk-badge-ft">FT</span>
+                                                    {% if match.id %}<a href="{% url 'tournaments:match_detail' tournament.slug match.id %}" class="bk-badge-ft hover:opacity-80 transition-opacity" title="View Match Report">FT ↗</a>{% else %}<span class="bk-badge-ft">FT</span>{% endif %}
                                                     {% elif match.team1_name == 'TBD' and match.team2_name == 'TBD' %}
                                                     <span class="bk-badge-up bk-badge-tbd">TBD</span>
                                                     {% elif match.starts_at_display %}
@@ -2140,7 +2154,7 @@
                                                         </div>
                                                         <span class="bk-name" {% if match.team1_name == 'TBD' %}style="color:#4B5563;font-style:italic;"{% endif %}>{{ match.team1_name|default:'TBD' }}</span>
                                                     </div>
-                                                    <span class="bk-sc">{% if match.ui_status == 'live' or match.ui_status == 'completed' %}{{ match.score1|default:'-' }}{% else %}–{% endif %}</span>
+                                                    <span class="bk-sc">{% if match.ui_status == 'live' or match.ui_status == 'completed' %}{{ match.score1|default:'-' }}{% else %}â€“{% endif %}</span>
                                                 </div>
 
                                                 <div class="bk-vs">VS</div>
@@ -2157,7 +2171,7 @@
                                                         </div>
                                                         <span class="bk-name" {% if match.team2_name == 'TBD' %}style="color:#4B5563;font-style:italic;"{% endif %}>{{ match.team2_name|default:'TBD' }}</span>
                                                     </div>
-                                                    <span class="bk-sc">{% if match.ui_status == 'live' or match.ui_status == 'completed' %}{{ match.score2|default:'-' }}{% else %}–{% endif %}</span>
+                                                    <span class="bk-sc">{% if match.ui_status == 'live' or match.ui_status == 'completed' %}{{ match.score2|default:'-' }}{% else %}â€“{% endif %}</span>
                                                 </div>
                                             </article>
                                             {% endfor %}
@@ -2265,7 +2279,7 @@
                                             <span class="text-2xl text-gray-600">-</span>
                                             <span class="font-display font-black text-6xl {% if match.team2_is_winner %}theme-text{% else %}text-white{% endif %}">{{ match.score2|default:'-' }}</span>
                                         </div>
-                                        <p class="mt-2 text-[11px] font-semibold theme-text">Live now • score feed active</p>
+                                        <p class="mt-2 text-[11px] font-semibold theme-text">Live now â€¢ score feed active</p>
                                     </div>
                                 </div>
 
@@ -2864,8 +2878,8 @@ document.addEventListener('alpine:init', function () {
                 var p1NameStyle = p1Name === 'TBD' ? ' style="color:#4B5563;font-style:italic;"' : '';
                 var p2NameStyle = p2Name === 'TBD' ? ' style="color:#4B5563;font-style:italic;"' : '';
 
-                var p1Score = (isLive || isDone) ? (p1 && p1.score != null ? String(p1.score) : '-') : '–';
-                var p2Score = (isLive || isDone) ? (p2 && p2.score != null ? String(p2.score) : '-') : '–';
+                var p1Score = (isLive || isDone) ? (p1 && p1.score != null ? String(p1.score) : '-') : 'â€“';
+                var p2Score = (isLive || isDone) ? (p2 && p2.score != null ? String(p2.score) : '-') : 'â€“';
 
                 var p1WinAccent = p1IsWinner && isDone
                     ? '<div style="width:3px;align-self:stretch;border-radius:2px;background:#00FF66;box-shadow:0 0 8px rgba(0,255,102,0.3);flex-shrink:0;"></div>'
@@ -3469,4 +3483,18 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 </script>
 <script src="{% static 'tournaments/js/results-achievements-engine.js' %}?v=20260427b"></script>
+<script nonce="{{ request.csp_nonce }}">
+(function() {
+  // Delegate clicks on match articles that have data-report-href to navigate
+  // to the match report page. Ignores clicks that originate from <a> or <button>
+  // so nested links (Match Report, Watch Live) still work independently.
+  document.addEventListener('click', function(e) {
+    var article = e.target.closest('article[data-report-href]');
+    if (!article) return;
+    if (e.target.closest('a') || e.target.closest('button')) return;
+    var href = article.getAttribute('data-report-href');
+    if (href) window.location.href = href;
+  });
+})();
+</script>
 {% endblock %}

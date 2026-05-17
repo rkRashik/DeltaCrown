@@ -66,6 +66,34 @@
                     <p class="text-[11px] text-white/40 mt-1">Proof and disputes</p>
                 </a>
             </div>
+
+            <div class="mt-5 grid grid-cols-2 lg:grid-cols-5 gap-2">
+                <button type="button" data-click="ManageHQ.Competition.focusMode" data-click-args='["live"]'
+                        class="team-comp-mode rounded-2xl border border-cyan-400/15 bg-black/25 p-3 text-left hover:bg-cyan-400/10 transition">
+                    <p class="text-[9px] uppercase tracking-widest text-cyan-200/70 font-black">Live Operations</p>
+                    <p id="team-comp-mode-live" class="mt-1 text-xl font-black text-white">--</p>
+                </button>
+                <button type="button" data-click="ManageHQ.Competition.focusMode" data-click-args='["review"]'
+                        class="team-comp-mode rounded-2xl border border-red-400/15 bg-black/25 p-3 text-left hover:bg-red-400/10 transition">
+                    <p class="text-[9px] uppercase tracking-widest text-red-200/70 font-black">Pending Review</p>
+                    <p id="team-comp-mode-review" class="mt-1 text-xl font-black text-white">--</p>
+                </button>
+                <button type="button" data-click="ManageHQ.Competition.focusMode" data-click-args='["rooms"]'
+                        class="team-comp-mode rounded-2xl border border-violet-400/15 bg-black/25 p-3 text-left hover:bg-violet-400/10 transition">
+                    <p class="text-[9px] uppercase tracking-widest text-violet-200/70 font-black">Match Rooms</p>
+                    <p id="team-comp-mode-rooms" class="mt-1 text-xl font-black text-white">--</p>
+                </button>
+                <button type="button" data-click="ManageHQ.Competition.focusMode" data-click-args='["history"]'
+                        class="team-comp-mode rounded-2xl border border-amber-400/15 bg-black/25 p-3 text-left hover:bg-amber-400/10 transition">
+                    <p class="text-[9px] uppercase tracking-widest text-amber-200/70 font-black">History</p>
+                    <p id="team-comp-mode-history" class="mt-1 text-xl font-black text-white">--</p>
+                </button>
+                <button type="button" data-click="setActiveRoute" data-click-args='["training"]'
+                        class="team-comp-mode rounded-2xl border border-emerald-400/15 bg-black/25 p-3 text-left hover:bg-emerald-400/10 transition">
+                    <p class="text-[9px] uppercase tracking-widest text-emerald-200/70 font-black">Training</p>
+                    <p class="mt-1 text-xl font-black text-white">HQ</p>
+                </button>
+            </div>
         </div>
     </div>
 
@@ -109,14 +137,33 @@
                 <div class="p-5 border-b border-white/10">
                     <h3 class="text-base font-black text-white flex items-center gap-2">
                         <i data-lucide="radio" class="w-5 h-5 text-emerald-300"></i>
-                        Competitive Activity Feed
+                        Tactical Guidance
                     </h3>
-                    <p class="text-xs text-white/45 mt-1">Latest actions and next steps from the team operation stream.</p>
+                    <p class="text-xs text-white/45 mt-1">Role-aware next steps, blocked states, and operation flow hints for this team.</p>
                 </div>
                 <div id="team-comp-feed" class="p-4 space-y-3">
                     <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-sm text-white/45">Waiting for feed data...</div>
                 </div>
             </div>
+
+            <details class="rounded-3xl border border-white/10 bg-card shadow-soft overflow-hidden group">
+                <summary class="cursor-pointer p-5 list-none flex items-center justify-between gap-3">
+                    <span>
+                        <span class="text-base font-black text-white flex items-center gap-2">
+                            <i data-lucide="route" class="w-5 h-5 text-cyan-300"></i>
+                            Operation Guide
+                        </span>
+                        <span class="block text-xs text-white/45 mt-1">Compact flow reference for managers and captains.</span>
+                    </span>
+                    <i data-lucide="chevron-down" class="w-4 h-4 text-white/40 transition group-open:rotate-180"></i>
+                </summary>
+                <div class="px-4 pb-4 space-y-2 text-[11px]">
+                    <div class="rounded-2xl border border-cyan-400/15 bg-cyan-400/10 p-3 text-cyan-100/75"><strong class="text-white">Showdown</strong> &middot; create, accept, Match Room, result, confirmation, settlement.</div>
+                    <div class="rounded-2xl border border-red-400/15 bg-red-400/10 p-3 text-red-100/75"><strong class="text-white">Bounty</strong> &middot; place, claim, Match Room, admin verification, settlement.</div>
+                    <div class="rounded-2xl border border-amber-400/15 bg-amber-400/10 p-3 text-amber-100/75"><strong class="text-white">Dropzone</strong> &middot; reserve, room reveal, scoring, results.</div>
+                    <div class="rounded-2xl border border-emerald-400/15 bg-emerald-400/10 p-3 text-emerald-100/75"><strong class="text-white">Scrim/Tryout</strong> &middot; training operations, no reward settlement by default.</div>
+                </div>
+            </details>
 
             <div class="rounded-3xl border border-white/10 bg-card shadow-soft overflow-hidden">
                 <div class="p-5 border-b border-white/10">
