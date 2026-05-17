@@ -1138,7 +1138,7 @@ def _fetch_arena_matches(
             Tournament.REGISTRATION_CLOSED,
             Tournament.LIVE,
             Tournament.COMPLETED,
-            Tournament.ARCHIVED,
+            # ARCHIVED intentionally excluded — archived tournaments are hidden from public surfaces.
         ],
     ).select_related("tournament", "tournament__game")
 

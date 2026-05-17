@@ -10,8 +10,11 @@ Admins for:
 from django.contrib import admin, messages
 from unfold.admin import ModelAdmin, TabularInline
 from django.utils.html import format_html
-from django.urls import reverse
+from django.urls import path, reverse
 from django.utils.safestring import mark_safe
+from django.http import HttpResponseRedirect
+from django.contrib.admin.views.decorators import staff_member_required
+from django.utils.decorators import method_decorator
 
 from ..models import GameProfile, GameProfileAlias, GameProfileConfig
 from ..services.audit import AuditService
@@ -107,7 +110,9 @@ class GameProfileAdmin(ModelAdmin):
         'game',
         'in_game_name',
         'identity_key',
-        'verification_status_badge',  # Phase 9A-30: Add verification status
+        'verification_status_badge',
+        'riot_puuid_short',
+        'attempt_info',
         'visibility',
         'is_lft',
         'is_pinned',
@@ -400,12 +405,14 @@ class GameProfileAdmin(ModelAdmin):
             )
     
     actions = [
-        'verify_passports',  # Phase 9A-30: Verification actions
+        'verify_passports',
         'flag_passports',
         'reset_verification',
+        'riot_verify_selected',
+        'riot_retry_all_pending',
         'unlock_identity_changes',
         'pin_passports',
-        'unpin_passports'
+        'unpin_passports',
     ]
     
     # Phase 9A-30: Verification display method
@@ -425,6 +432,33 @@ class GameProfileAdmin(ModelAdmin):
             obj.verification_status
         )
     verification_status_badge.short_description = 'Verification'
+
+    def riot_puuid_short(self, obj):
+        """Show first 8 chars of Riot PUUID if verified."""
+        provider = obj.provider_data if isinstance(obj.provider_data, dict) else {}
+        riot = provider.get("riot") if isinstance(provider.get("riot"), dict) else {}
+        puuid = str(riot.get("puuid") or "").strip()
+        if puuid:
+            return format_html('<span title="{}">{}&hellip;</span>', puuid, puuid[:8])
+        return "—"
+    riot_puuid_short.short_description = "PUUID"
+
+    def attempt_info(self, obj):
+        """Show attempt count and last attempt timestamp."""
+        count = obj.verification_attempt_count or 0
+        last = obj.last_verification_attempt_at
+        if last:
+            import datetime
+            ago = (datetime.datetime.now(datetime.timezone.utc) - last).total_seconds()
+            if ago < 3600:
+                ago_str = f"{int(ago // 60)}m ago"
+            elif ago < 86400:
+                ago_str = f"{int(ago // 3600)}h ago"
+            else:
+                ago_str = last.strftime("%m-%d")
+            return f"{count}× ({ago_str})"
+        return f"{count}×" if count else "—"
+    attempt_info.short_description = "Attempts"
     
     # Phase 9A-30: Verification actions
     def verify_passports(self, request, queryset):
@@ -506,7 +540,66 @@ class GameProfileAdmin(ModelAdmin):
             )
         self.message_user(request, f"Reset verification for {count} passport(s) to PENDING.", level=messages.INFO)
     reset_verification.short_description = "↻ Reset verification to PENDING"
-    
+
+    def riot_verify_selected(self, request, queryset):
+        """
+        Enqueue Riot API verification for selected Valorant passports.
+        Skips already-verified passports. Useful after rotating RIOT_API_KEY.
+        """
+        from apps.games.tasks.riot_verification_tasks import verify_game_passport_task
+        from apps.games.services.riot_verification_service import is_valorant_passport
+
+        enqueued = 0
+        skipped_verified = 0
+        skipped_non_val = 0
+
+        for passport in queryset.select_related("game"):
+            game_slug = getattr(passport.game, "slug", "") if passport.game else ""
+            if not is_valorant_passport(game_slug):
+                skipped_non_val += 1
+                continue
+            if passport.verification_status == "VERIFIED":
+                skipped_verified += 1
+                continue
+            try:
+                verify_game_passport_task.delay(passport.id)
+                enqueued += 1
+            except Exception:
+                # Celery not available — run inline
+                from apps.games.services.riot_verification_service import _verify_inline
+                _verify_inline(passport.id)
+                enqueued += 1
+
+        msg = f"Queued {enqueued} Valorant passport(s) for Riot verification."
+        if skipped_verified:
+            msg += f" {skipped_verified} already verified (skipped)."
+        if skipped_non_val:
+            msg += f" {skipped_non_val} non-Valorant (skipped)."
+        self.message_user(request, msg, messages.INFO)
+    riot_verify_selected.short_description = "🎮 Riot: Verify selected Valorant passports via API"
+
+    def riot_retry_all_pending(self, request, queryset):
+        """
+        Enqueue retry for ALL pending/failed/unavailable Valorant passports globally.
+        Ignores the queryset selection — runs across the full table.
+        Use after rotating RIOT_API_KEY on Render.
+        """
+        try:
+            from apps.games.tasks.riot_verification_tasks import retry_pending_riot_passports_task
+            retry_pending_riot_passports_task.delay()
+            self.message_user(
+                request,
+                "Bulk Riot re-verification task enqueued. All pending/failed Valorant passports will be retried.",
+                messages.SUCCESS,
+            )
+        except Exception as exc:
+            self.message_user(
+                request,
+                f"Could not enqueue bulk task ({exc}). If Celery is unavailable, use 'Retry selected' instead.",
+                messages.WARNING,
+            )
+    riot_retry_all_pending.short_description = "🔄 Riot: Retry ALL pending Valorant verifications (use after API key rotation)"
+
     def unlock_identity_changes(self, request, queryset):
         """Admin action to unlock identity changes"""
         count = queryset.update(locked_until=None)
@@ -543,6 +636,126 @@ class GameProfileAdmin(ModelAdmin):
         count = queryset.update(is_pinned=False, pinned_order=None)
         self.message_user(request, f"Unpinned {count} passport(s).", level=messages.SUCCESS)
     unpin_passports.short_description = "Unpin passports"
+
+    # ── Per-object Riot verification (P7-B) ─────────────────────────────────
+
+    def get_urls(self):
+        urls = super().get_urls()
+        custom = [
+            path(
+                "<int:object_id>/verify-riot/",
+                self.admin_site.admin_view(self.verify_riot_view),
+                name="user_profile_gameprofile_verify_riot",
+            ),
+        ]
+        return custom + urls
+
+    def change_view(self, request, object_id, form_url="", extra_context=None):
+        """Inject Riot verification context into the change page."""
+        extra_context = extra_context or {}
+        try:
+            from apps.games.services.riot_verification_service import is_valorant_passport
+            obj = self.get_object(request, object_id)
+            if obj is not None:
+                game_slug = getattr(obj.game, "slug", "") if obj.game else ""
+                extra_context["is_valorant_passport"] = is_valorant_passport(game_slug)
+                extra_context["riot_verify_url"] = reverse(
+                    "admin:user_profile_gameprofile_verify_riot",
+                    args=[object_id],
+                )
+                extra_context["passport_verification_status"] = obj.verification_status
+                extra_context["passport_verification_error"] = obj.verification_error or ""
+                extra_context["passport_attempt_count"] = obj.verification_attempt_count or 0
+                extra_context["passport_last_attempt"] = obj.last_verification_attempt_at
+        except Exception:
+            pass
+        return super().change_view(request, object_id, form_url=form_url, extra_context=extra_context)
+
+    def verify_riot_view(self, request, object_id):
+        """
+        Per-object admin view: run synchronous Riot verification and redirect back.
+
+        URL: /admin/user_profile/gameprofile/<id>/verify-riot/
+        POST only — accessed via button on the change page.
+        """
+        from apps.games.services.riot_verification_service import (
+            apply_verification_result,
+            is_valorant_passport,
+            parse_riot_id,
+            verify_riot_id,
+        )
+        from django.utils import timezone
+
+        change_url = reverse("admin:user_profile_gameprofile_change", args=[object_id])
+
+        # Only POST accepted (button submits a form).
+        if request.method != "POST":
+            return HttpResponseRedirect(change_url)
+
+        try:
+            obj = GameProfile.objects.select_related("game").get(pk=object_id)
+        except GameProfile.DoesNotExist:
+            self.message_user(request, "Passport not found.", level=messages.ERROR)
+            return HttpResponseRedirect(change_url)
+
+        # Permission: staff only (admin_view wrapper already enforces this, belt + braces).
+        if not request.user.is_staff:
+            self.message_user(request, "Permission denied.", level=messages.ERROR)
+            return HttpResponseRedirect(change_url)
+
+        game_slug = getattr(obj.game, "slug", "") if obj.game else ""
+        if not is_valorant_passport(game_slug):
+            self.message_user(
+                request,
+                f"Riot verification only applies to Valorant passports (this is {game_slug or 'unknown'}).",
+                level=messages.WARNING,
+            )
+            return HttpResponseRedirect(change_url)
+
+        raw_id = f"{obj.ign or ''}#{obj.discriminator or ''}".strip("#")
+        game_name, tag_line = parse_riot_id(raw_id)
+        if not game_name or not tag_line:
+            self.message_user(
+                request,
+                f"Riot ID format is invalid: '{raw_id}'. Expected 'gameName#tagLine'.",
+                level=messages.ERROR,
+            )
+            return HttpResponseRedirect(change_url)
+
+        # Run synchronous verification — admin gets immediate feedback.
+        result = verify_riot_id(game_name, tag_line)
+        apply_verification_result(obj, result)
+
+        status = result["status"]
+        if status == "VERIFIED":
+            puuid = (result.get("puuid") or "")[:16]
+            self.message_user(
+                request,
+                f"✅ Riot ID '{raw_id}' verified successfully. PUUID: {puuid}…",
+                level=messages.SUCCESS,
+            )
+        elif status == "FAILED":
+            self.message_user(
+                request,
+                f"❌ Riot ID '{raw_id}' not found on Riot servers. Passport marked as FAILED — user can edit and resubmit.",
+                level=messages.ERROR,
+            )
+        elif status == "RATE_LIMITED":
+            self.message_user(
+                request,
+                "⚠️ Riot API rate limit hit. Passport marked as RATE_LIMITED — retry in a moment or let the background task handle it.",
+                level=messages.WARNING,
+            )
+        else:
+            # API_UNAVAILABLE
+            self.message_user(
+                request,
+                "⚠️ Riot verification could not run (API key missing/expired or service error). "
+                "Update RIOT_API_KEY in Render env vars and retry. Passport is marked pending.",
+                level=messages.WARNING,
+            )
+
+        return HttpResponseRedirect(change_url)
 
 
 # ============================================================================

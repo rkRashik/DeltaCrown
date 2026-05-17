@@ -493,7 +493,18 @@ def create_game_passport_api(request):
                 identity_key=identity_key,  # Phase 9A-23: Set identity_key explicitly
                 in_game_name=in_game_name_value,  # Phase 9A-23: Required field (never empty)
             )
-            
+
+            # P7-B: Enqueue Riot ID verification for Valorant passports asynchronously.
+            # Never blocks the HTTP response — graceful if Celery is unavailable.
+            try:
+                from apps.games.services.riot_verification_service import (
+                    enqueue_or_verify_sync, is_valorant_passport,
+                )
+                if is_valorant_passport(game.slug):
+                    enqueue_or_verify_sync(passport.id)
+            except Exception:
+                pass  # Verification is best-effort at create time
+
             if settings.DEBUG:
                 logger.info(
                     f"[GP CREATE] [{request_id}] SUCCESS PassportID={passport.id}, "
@@ -754,7 +765,18 @@ def update_game_passport_api(request):
         passport.is_pinned = pinned
         passport.metadata = metadata
         passport.save()
-        
+
+        # P7-B: Re-verify on IGN/discriminator change for Valorant passports.
+        try:
+            from apps.games.services.riot_verification_service import (
+                enqueue_or_verify_sync, is_valorant_passport,
+            )
+            game_slug = getattr(passport.game, "slug", "") if passport.game else ""
+            if is_valorant_passport(game_slug):
+                enqueue_or_verify_sync(passport.id)
+        except Exception:
+            pass
+
         return success_response({'passport': GameProfileSerializer(passport).data})
     
     except Exception as e:

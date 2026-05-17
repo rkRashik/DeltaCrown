@@ -430,8 +430,9 @@ class TournamentAdmin(SafeUploadMixin, ModelAdmin):
     )
     
     actions = [
-        'publish_tournaments', 'open_registration', 'close_registration', 
-        'cancel_tournaments', 'feature_tournaments', 'import_rules_from_pdf_action',
+        'publish_tournaments', 'open_registration', 'close_registration',
+        'cancel_tournaments', 'archive_tournaments', 'unarchive_tournaments',
+        'feature_tournaments', 'import_rules_from_pdf_action',
         'transition_to_knockout_stage_action'
     ]
     
@@ -633,6 +634,27 @@ class TournamentAdmin(SafeUploadMixin, ModelAdmin):
         ).update(status=Tournament.CANCELLED)
         self.message_user(request, f'{updated} tournament(s) cancelled.', messages.INFO)
     
+    @admin.action(description='📦 Archive selected tournaments (safe — hides from public, data preserved)')
+    def archive_tournaments(self, request, queryset):
+        """
+        Safely archive tournaments.
+        Sets status=archived, hides from public listings, Arena, homepage, and discovery.
+        All match data, evidence, registrations, and results are preserved.
+        Admin/TOC access remains fully functional.
+        """
+        updated = queryset.exclude(status=Tournament.ARCHIVED).update(status=Tournament.ARCHIVED)
+        skipped = queryset.filter(status=Tournament.ARCHIVED).count()
+        msg = f'{updated} tournament(s) archived and hidden from public surfaces.'
+        if skipped:
+            msg += f' {skipped} already archived (skipped).'
+        self.message_user(request, msg, messages.SUCCESS)
+
+    @admin.action(description='📤 Unarchive selected tournaments (restore to completed/public)')
+    def unarchive_tournaments(self, request, queryset):
+        """Restore archived tournaments to completed status so they appear publicly again."""
+        updated = queryset.filter(status=Tournament.ARCHIVED).update(status=Tournament.COMPLETED)
+        self.message_user(request, f'{updated} tournament(s) restored to completed status.', messages.INFO)
+
     @admin.action(description='⭐ Feature selected tournaments')
     def feature_tournaments(self, request, queryset):
         """Mark tournaments as featured/official"""

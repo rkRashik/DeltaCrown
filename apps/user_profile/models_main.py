@@ -1866,14 +1866,21 @@ class GameProfile(models.Model):
     )
     
     # Phase 8B: Verification status upgrade
-    VERIFICATION_PENDING = 'PENDING'
-    VERIFICATION_VERIFIED = 'VERIFIED'
-    VERIFICATION_FLAGGED = 'FLAGGED'
-    
+    VERIFICATION_PENDING       = 'PENDING'
+    VERIFICATION_VERIFIED      = 'VERIFIED'
+    VERIFICATION_FLAGGED       = 'FLAGGED'
+    # Riot API verification states (P7-B)
+    VERIFICATION_FAILED        = 'FAILED'         # 404 — Riot ID does not exist
+    VERIFICATION_API_UNAVAILABLE = 'API_UNAVAILABLE'  # 401/403/5xx/timeout
+    VERIFICATION_RATE_LIMITED  = 'RATE_LIMITED'   # 429 — queued for retry
+
     VERIFICATION_STATUS_CHOICES = [
-        (VERIFICATION_PENDING, 'Pending Verification'),
-        (VERIFICATION_VERIFIED, 'Verified'),
-        (VERIFICATION_FLAGGED, 'Flagged for Review'),
+        (VERIFICATION_PENDING,         'Pending Verification'),
+        (VERIFICATION_VERIFIED,        'Verified'),
+        (VERIFICATION_FLAGGED,         'Flagged for Review'),
+        (VERIFICATION_FAILED,          'Failed — Invalid ID'),
+        (VERIFICATION_API_UNAVAILABLE, 'API Unavailable — Retry Queued'),
+        (VERIFICATION_RATE_LIMITED,    'Rate Limited — Retry Queued'),
     ]
     
     verification_status = models.CharField(
@@ -1902,10 +1909,27 @@ class GameProfile(models.Model):
         help_text="Admin who verified this passport"
     )
     
+    # P7-B: Riot API verification tracking fields (migration 0044)
+    verification_error = models.CharField(
+        max_length=300,
+        blank=True,
+        default="",
+        help_text="User-safe error reason for failed/unavailable verification. Never expose raw API errors here.",
+    )
+    last_verification_attempt_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Timestamp of the most recent Riot API verification attempt.",
+    )
+    verification_attempt_count = models.PositiveSmallIntegerField(
+        default=0,
+        help_text="Cumulative verification attempts (for retry throttling and admin triage).",
+    )
+
     # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
     class Meta:
         unique_together = [['user', 'game']]
         ordering = ['-is_pinned', '-pinned_order', 'sort_order', '-updated_at']

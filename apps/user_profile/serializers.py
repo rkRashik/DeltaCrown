@@ -278,6 +278,32 @@ class GameProfileSerializer(serializers.ModelSerializer):
         cooldown_map = self.context.get("cooldown_map", {})
         return cooldown_map.get(obj.id)
 
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        # P7-B: Add user-safe verification badge copy.
+        # verification_error is internal only — expose a user-safe badge instead.
+        status = str(data.get("verification_status") or "PENDING").upper()
+        _BADGE = {
+            "VERIFIED":        {"label": "Verified",          "state": "verified"},
+            "PENDING":         {"label": "Verifying",         "state": "pending"},
+            "FAILED":          {"label": "Invalid Riot ID",   "state": "failed"},
+            "API_UNAVAILABLE": {"label": "Verification Queued", "state": "pending"},
+            "RATE_LIMITED":    {"label": "Verification Queued", "state": "pending"},
+            "FLAGGED":         {"label": "Under Review",       "state": "pending"},
+        }
+        badge = _BADGE.get(status, {"label": "Verifying", "state": "pending"})
+        data["verification_badge"] = badge
+        # User-safe message — never expose raw API errors
+        if status == "FAILED":
+            data["verification_message"] = "Riot ID not found. Please check your game name and tag and try again."
+        elif status in ("API_UNAVAILABLE", "RATE_LIMITED"):
+            data["verification_message"] = "Verification is queued. We'll verify your Riot ID automatically once the verification service is available."
+        elif status == "VERIFIED":
+            data["verification_message"] = "Your Riot ID has been verified."
+        else:
+            data["verification_message"] = ""
+        return data
+
     def get_api_synced(self, obj):
         metadata = obj.metadata if isinstance(obj.metadata, dict) else {}
         return bool(metadata.get("api_synced"))
