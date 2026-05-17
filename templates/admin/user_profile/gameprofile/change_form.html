@@ -103,6 +103,7 @@
       </div>
       <div class="riot-diag-row"><strong>Region endpoint:</strong> {{ riot_diag.region }}</div>
       <div class="riot-diag-row"><strong>Riot ID (current):</strong> {{ riot_diag.current_riot_id }}</div>
+      <div class="riot-diag-row"><strong>User-Agent:</strong> {{ riot_diag.user_agent }}</div>
       {% if riot_diag.last_http_status %}
       <div class="riot-diag-row">
         <strong>Last HTTP status:</strong>
@@ -110,6 +111,13 @@
           {{ riot_diag.last_http_status }}
         </span>
         {% if riot_diag.last_code %}&nbsp;({{ riot_diag.last_code }}){% endif %}
+      </div>
+      {% endif %}
+      {% if riot_diag.is_cloudflare_blocked %}
+      <div class="riot-diag-row" style="background:#3b1a00;border-radius:4px;padding:4px 6px;">
+        <span class="warn">⚠ Cloudflare 1010 blocked this request — WAF / IP / request-signature issue.
+        Try changing RIOT_API_USER_AGENT. If local works but Render fails, the Render egress IP is blocked.
+        Check Ray-ID in the response body below and contact Riot support if needed.</span>
       </div>
       {% endif %}
       {% if riot_diag.last_error_body %}

@@ -659,6 +659,8 @@ class GameProfileAdmin(ModelAdmin):
                 _api_key,
                 _region_base,
                 _key_diagnostic,
+                _user_agent,
+                CODE_CLOUDFLARE_1010,
             )
             obj = self.get_object(request, object_id)
             if obj is not None:
@@ -677,16 +679,18 @@ class GameProfileAdmin(ModelAdmin):
                 key_present = bool(_api_key())
                 provider = obj.provider_data if isinstance(obj.provider_data, dict) else {}
                 riot_data = provider.get("riot") if isinstance(provider.get("riot"), dict) else {}
+                last_code = riot_data.get("last_code", "")
                 extra_context["riot_diag"] = {
                     "key_configured": key_present,
                     "key_diag": _key_diagnostic(),
                     "region": _region_base(),
+                    "user_agent": _user_agent(),
                     "last_http_status": riot_data.get("last_http_status"),
-                    "last_code": riot_data.get("last_code"),
+                    "last_code": last_code,
+                    "is_cloudflare_blocked": last_code == CODE_CLOUDFLARE_1010,
                     "last_admin_msg": riot_data.get("last_admin_msg", ""),
                     "last_error_body": riot_data.get("last_error_body", ""),
                     "puuid_prefix": (riot_data.get("puuid") or "")[:12] or "—",
-                    # What Riot ID we would verify from current fields
                     "current_riot_id": (
                         f"{obj.ign}#{obj.discriminator}"
                         if obj.ign and obj.discriminator
@@ -711,6 +715,7 @@ class GameProfileAdmin(ModelAdmin):
             CODE_MISSING_KEY,
             CODE_INVALID_KEY_401,
             CODE_FORBIDDEN_403,
+            CODE_CLOUDFLARE_1010,
             CODE_NOT_FOUND_404,
             CODE_RATE_LIMITED_429,
             CODE_SERVER_5XX,
@@ -798,11 +803,25 @@ class GameProfileAdmin(ModelAdmin):
                 level=messages.ERROR,
             )
 
+        elif code == CODE_CLOUDFLARE_1010:
+            self.message_user(
+                request,
+                "🛡️ Riot/Cloudflare blocked this server request with Error 1010 "
+                "(browser_signature_banned / access denied). "
+                "The API key is loaded and the endpoint was reached — "
+                "this is a WAF / IP reputation / request-signature issue, NOT a missing key. "
+                "Try: (1) Change RIOT_API_USER_AGENT env var to a different value and redeploy; "
+                "(2) Run 'python manage.py riot_api_selftest' locally with the same key — "
+                "if local works but Render fails, Render's egress IP is blocked by Riot/Cloudflare; "
+                "(3) Contact Riot support with the Ray-ID from the diagnostic panel below.",
+                level=messages.WARNING,
+            )
+
         elif code == CODE_FORBIDDEN_403:
             self.message_user(
                 request,
-                "🔑 Riot API returned 403 Forbidden. "
-                "The key is loaded and reachable — Riot rejected access to the Account-V1 endpoint. "
+                "🔑 Riot API returned 403 Forbidden (normal Riot response, not Cloudflare). "
+                "The key is loaded — Riot rejected access to Account-V1. "
                 "Go to developer.riotgames.com → your application → enable the 'Account' product (Account-V1). "
                 "For personal/dev keys this should already be available. "
                 "For production keys, Account-V1 approval must be requested. "

@@ -27,7 +27,7 @@ class Command(BaseCommand):
             "--riot-id",
             type=str,
             default="",
-            help='Combined Riot ID to test, e.g. "1W ProfXoR#SIUU"',
+            help='Combined Riot ID, e.g. "1W ProfXoR#SIUU"',
         )
         parser.add_argument(
             "--game-name",
@@ -41,13 +41,17 @@ class Command(BaseCommand):
             default="",
             help='Riot tag line (tagLine), e.g. "SIUU"',
         )
+        parser.add_argument(
+            "--region",
+            type=str,
+            default="",
+            help='Override RIOT_ACCOUNT_REGION for this run (asia/americas/europe/sea)',
+        )
 
     def handle(self, *args, **options):
         import os
         import urllib.parse
-        import urllib.request
-        import urllib.error
-        import json
+        import requests as _requests
 
         from apps.games.services.riot_verification_service import (
             parse_riot_id,
@@ -55,6 +59,10 @@ class Command(BaseCommand):
             _key_diagnostic,
             _region_base,
             _timeout,
+            _user_agent,
+            _is_cloudflare_1010,
+            CODE_CLOUDFLARE_1010,
+            _REGION_BASE,
         )
 
         self.stdout.write(self.style.MIGRATE_HEADING("\n── Riot API Self-Test ──────────────────────────────────────"))
@@ -77,8 +85,16 @@ class Command(BaseCommand):
             ))
             return
 
+        ua = _user_agent()
+        # Allow --region override for cross-region testing.
+        region_override = (options.get("region") or "").strip().lower()
+        if region_override and region_override in _REGION_BASE:
+            region_base = _REGION_BASE[region_override]
+            self.stdout.write(f"    (region overridden to: {region_override})")
+
         self.stdout.write(f"    RIOT_ACCOUNT_REGION : {region_env}")
         self.stdout.write(f"    Base URL            : {region_base}")
+        self.stdout.write(f"    User-Agent          : {ua}")
         self.stdout.write(f"    Timeout             : {timeout_s}s")
 
         # ── B. Resolve Riot ID ────────────────────────────────────────────
@@ -116,20 +132,25 @@ class Command(BaseCommand):
         url = f"{region_base}/riot/account/v1/accounts/by-riot-id/{encoded_name}/{encoded_tag}"
         self.stdout.write(f"    URL      : {url}")
 
-        # ── C. API call ────────────────────────────────────────────────────
+        # ── C. API call (via requests, same as the production service) ──────
         self.stdout.write("\n[C] Riot API call")
-        headers = {"X-Riot-Token": key, "Accept": "application/json"}
+        headers = {
+            "X-Riot-Token":  key,
+            "Accept":        "application/json",
+            "User-Agent":    ua,
+            "Cache-Control": "no-cache",
+        }
 
         try:
-            req = urllib.request.Request(url, headers=headers)
-            with urllib.request.urlopen(req, timeout=timeout_s) as resp:
-                status_code = resp.getcode()
-                body_raw    = resp.read().decode("utf-8", errors="replace")
-                try:
-                    body = json.loads(body_raw)
-                except json.JSONDecodeError:
-                    body = {"raw": body_raw[:300]}
+            resp     = _requests.get(url, headers=headers, timeout=timeout_s)
+            body_raw = resp.text or ""
+            status_code = resp.status_code
 
+            if resp.ok:
+                try:
+                    body = resp.json()
+                except Exception:
+                    body = {}
                 puuid = str(body.get("puuid") or "").strip()
                 self.stdout.write(self.style.SUCCESS(f"    HTTP status : {status_code} OK"))
                 if puuid:
@@ -139,80 +160,76 @@ class Command(BaseCommand):
                     ))
                 else:
                     self.stdout.write(self.style.WARNING(
-                        "    200 returned but PUUID is empty — unusual, check Riot response."
+                        "    200 returned but PUUID is empty — unusual. Body: " + body_raw[:200]
                     ))
-                    self.stdout.write(f"    Body: {body_raw[:300]}")
+                return
 
-        except urllib.error.HTTPError as exc:
-            status_code = exc.code
-            try:
-                body_raw = exc.read().decode("utf-8", errors="replace")[:500]
-            except Exception:
-                body_raw = "(could not read body)"
-
+            # Non-2xx
             self.stdout.write(self.style.ERROR(f"    HTTP status : {status_code}"))
-            self.stdout.write(f"    Body        : {body_raw}")
+            self.stdout.write(f"    Body        : {body_raw[:500]}")
 
-            # ── D. Recommendation ─────────────────────────────────────────
-            self.stdout.write("\n[D] Recommendation")
-            if status_code == 404:
-                self.stdout.write(self.style.WARNING(
-                    f"    Riot ID '{game_name}#{tag_line}' was not found on {region_base}.\n"
-                    "    Check spelling — gameName and tagLine are case-insensitive but must be exact.\n"
-                    "    Also confirm the correct RIOT_ACCOUNT_REGION for this account's region."
-                ))
-            elif status_code == 401:
+            # ── D. Classification + recommendation ────────────────────────
+            self.stdout.write("\n[D] Classification & Recommendation")
+
+            if status_code == 403 and _is_cloudflare_1010(body_raw):
                 self.stdout.write(self.style.ERROR(
-                    "    API key was rejected (401 Unauthorized).\n"
-                    "    The key may have expired (development keys last 24 h).\n"
-                    "    → Regenerate the key at developer.riotgames.com and update RIOT_API_KEY in Render."
+                    f"    Code        : {CODE_CLOUDFLARE_1010}"
+                ))
+                self.stdout.write(self.style.WARNING(
+                    "\n    Cloudflare Error 1010 (browser_signature_banned).\n"
+                    "    The key is loaded and the endpoint was reached,\n"
+                    "    but Cloudflare/Riot WAF blocked the request based on\n"
+                    "    request signature / IP reputation / User-Agent.\n"
+                    "\n"
+                    "    Steps to resolve:\n"
+                    "    1. Change RIOT_API_USER_AGENT env var and redeploy.\n"
+                    "    2. Run this selftest LOCALLY with the same key:\n"
+                    f"       RIOT_API_KEY=<key> python manage.py riot_api_selftest --riot-id \"{game_name}#{tag_line}\"\n"
+                    "       If local works → Render egress IP is blocked.\n"
+                    "       If local also fails → request signature issue.\n"
+                    "    3. Extract the Ray-ID from the body above and file a\n"
+                    "       Riot developer support ticket.\n"
+                    "    4. Passport stays PENDING — do not mark user's Riot ID invalid.\n"
                 ))
             elif status_code == 403:
                 self.stdout.write(self.style.ERROR(
-                    "    403 Forbidden — the key is valid but lacks Account-V1 access.\n"
-                    "\n"
-                    "    Possible causes:\n"
-                    "    1. Personal/Development key: go to developer.riotgames.com → Dashboard\n"
-                    "       → make sure 'Account' (Account-V1) is listed in your app's Products.\n"
-                    "       If it is not, edit the app and add Account-V1.\n"
-                    "\n"
-                    "    2. Production key: the application must have Account-V1 approved.\n"
-                    "       Submit a production key request at developer.riotgames.com.\n"
-                    "\n"
-                    "    3. Routing region mismatch: the region must match the player's account.\n"
-                    "       APAC players → RIOT_ACCOUNT_REGION=asia (default).\n"
-                    "       EU players   → RIOT_ACCOUNT_REGION=europe.\n"
-                    "       NA players   → RIOT_ACCOUNT_REGION=americas.\n"
-                    "\n"
-                    "    4. The Riot ID may belong to a different routing region.\n"
-                    "       Try: python manage.py riot_api_selftest "
-                    f'--riot-id "{game_name}#{tag_line}" '
-                    "after setting RIOT_ACCOUNT_REGION=americas or europe."
+                    "    Code        : riot_403_forbidden\n"
+                    "    403 Forbidden (normal Riot response — not Cloudflare).\n"
+                    "    The key is valid but the application lacks Account-V1 access.\n"
+                    "    → go to developer.riotgames.com → app → enable 'Account' product."
+                ))
+            elif status_code == 404:
+                self.stdout.write(self.style.WARNING(
+                    f"    Code        : riot_404_not_found\n"
+                    f"    Riot ID '{game_name}#{tag_line}' was not found on {region_base}.\n"
+                    "    Check spelling / region. Try --region americas or --region europe."
+                ))
+            elif status_code == 401:
+                self.stdout.write(self.style.ERROR(
+                    "    Code        : riot_401_invalid_key\n"
+                    "    API key rejected (401 Unauthorized). Key expired or invalid.\n"
+                    "    → Regenerate at developer.riotgames.com → update RIOT_API_KEY in Render."
                 ))
             elif status_code == 429:
                 self.stdout.write(self.style.WARNING(
-                    "    Rate limited (429). Wait a minute and retry."
+                    "    Code        : riot_429_rate_limited\n"
+                    "    Rate limited. Wait a minute and retry."
                 ))
             elif 500 <= status_code < 600:
                 self.stdout.write(self.style.WARNING(
-                    f"    Riot server error ({status_code}). This is a Riot-side outage. Retry later."
+                    f"    Code        : riot_5xx_service_error\n"
+                    f"    Riot server error ({status_code}). Retry later."
                 ))
             else:
-                self.stdout.write(
-                    f"    Unexpected HTTP {status_code}. Body: {body_raw[:200]}"
-                )
+                self.stdout.write(f"    Unexpected HTTP {status_code}.")
 
-        except urllib.error.URLError as exc:
-            self.stdout.write(self.style.ERROR(f"    Network error: {exc.reason}"))
-            self.stdout.write("\n[D] Recommendation")
-            self.stdout.write("    Check server outbound connectivity to api.riotgames.com on port 443.")
-
-        except TimeoutError:
+        except _requests.exceptions.Timeout:
             self.stdout.write(self.style.ERROR(f"    Timeout after {timeout_s}s"))
-            self.stdout.write(
-                f"\n[D] Recommendation\n"
-                "    Increase RIOT_API_TIMEOUT_SECONDS or check network connectivity."
-            )
+            self.stdout.write("\n[D] Recommendation\n    Increase RIOT_API_TIMEOUT_SECONDS or check connectivity.")
+
+        except _requests.exceptions.ConnectionError as exc:
+            self.stdout.write(self.style.ERROR(f"    Connection error: {type(exc).__name__}"))
+            self.stdout.write("\n[D] Recommendation\n    Check server outbound connectivity to api.riotgames.com on port 443.")
 
         except Exception as exc:
             self.stdout.write(self.style.ERROR(f"    Unexpected error: {type(exc).__name__}: {exc}"))
