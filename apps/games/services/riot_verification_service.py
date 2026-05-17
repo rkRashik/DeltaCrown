@@ -141,6 +141,7 @@ def _make_result(
     error: str = "",
     admin_msg: str = "",
     http_status: Optional[int] = None,
+    error_body: str = "",
 ) -> dict:
     return {
         "status":      status,
@@ -149,6 +150,7 @@ def _make_result(
         "error":       error,
         "admin_msg":   admin_msg,
         "http_status": http_status,
+        "error_body":  error_body[:500] if error_body else "",
     }
 
 
@@ -189,6 +191,14 @@ def verify_riot_id(game_name: str, tag_line: str) -> dict:
 
     headers = {"X-Riot-Token": key, "Accept": "application/json"}
 
+    def _read_error_body(exc_obj, limit: int = 500) -> str:
+        """Safely read the response body from an HTTPError — never raises."""
+        try:
+            raw = exc_obj.read().decode("utf-8", errors="replace")
+            return raw[:limit].strip()
+        except Exception:
+            return ""
+
     try:
         req = urllib.request.Request(url, headers=headers)
         with urllib.request.urlopen(req, timeout=_timeout()) as resp:
@@ -206,37 +216,57 @@ def verify_riot_id(game_name: str, tag_line: str) -> dict:
             )
 
     except urllib.error.HTTPError as exc:
-        code = exc.code
+        http_code = exc.code
+        error_body = _read_error_body(exc)
         logger.warning(
-            "riot_verification: HTTP %d for game=%s tag=%s url=%s",
-            code, game_name, tag_line, url,
+            "riot_verification: HTTP %d for game=%s tag=%s url=%s body=%r",
+            http_code, game_name, tag_line, url, error_body[:120],
         )
 
-        if code == 404:
+        if http_code == 404:
             return _make_result(
                 status="FAILED",
                 code=CODE_NOT_FOUND_404,
                 error="Riot ID not found. Please check your game name and tag and try again.",
-                admin_msg=f"Riot API returned 404 for '{game_name}#{tag_line}'. Riot ID does not exist on this account region ({region_base}).",
+                admin_msg=(
+                    f"Riot API returned 404 for '{game_name}#{tag_line}'. "
+                    f"Riot ID does not exist on this account region ({region_base}). "
+                    f"Riot response: {error_body or '(empty)'}"
+                ),
                 http_status=404,
+                error_body=error_body,
             )
-        if code == 401:
+        if http_code == 401:
             return _make_result(
                 status="API_UNAVAILABLE",
                 code=CODE_INVALID_KEY_401,
-                error="Verification service temporarily unavailable. Your Riot ID will be verified automatically.",
-                admin_msg="Riot API rejected the key with 401 Unauthorized. The RIOT_API_KEY is invalid or expired. Update the key in Render env vars and redeploy.",
+                error="Verification is queued. We'll retry once the verification service is available.",
+                admin_msg=(
+                    "Riot API rejected the key with 401 Unauthorized. "
+                    "The RIOT_API_KEY is invalid or has expired. "
+                    "Update the key in Render env vars and redeploy. "
+                    f"Riot response: {error_body or '(empty)'}"
+                ),
                 http_status=401,
+                error_body=error_body,
             )
-        if code == 403:
+        if http_code == 403:
             return _make_result(
                 status="API_UNAVAILABLE",
                 code=CODE_FORBIDDEN_403,
-                error="Verification service temporarily unavailable. Your Riot ID will be verified automatically.",
-                admin_msg="Riot API returned 403 Forbidden. Check that the key has access to the Riot Account-V1 endpoint and the correct product/application settings in the Riot developer portal.",
+                error="Verification is queued. We'll retry once the verification service is available.",
+                admin_msg=(
+                    "Riot API returned 403 Forbidden. "
+                    "The key is loaded and reachable, but Riot rejected access to this endpoint. "
+                    "Fix: go to developer.riotgames.com → your application → ensure 'Account' (Account-V1) "
+                    "product is enabled. If using a personal/dev key, it should work by default — "
+                    "if using a production key, the application must have Account-V1 approved. "
+                    f"Riot response: {error_body or '(empty)'}"
+                ),
                 http_status=403,
+                error_body=error_body,
             )
-        if code == 429:
+        if http_code == 429:
             logger.warning("riot_verification: rate limited (429) for game=%s", game_name)
             return _make_result(
                 status="RATE_LIMITED",
@@ -244,22 +274,24 @@ def verify_riot_id(game_name: str, tag_line: str) -> dict:
                 error="Verification is rate-limited. Your Riot ID has been queued and will be verified shortly.",
                 admin_msg="Riot API returned 429 Too Many Requests. Wait a moment and retry.",
                 http_status=429,
+                error_body=error_body,
             )
-        if 500 <= code < 600:
+        if 500 <= http_code < 600:
             return _make_result(
                 status="API_UNAVAILABLE",
                 code=CODE_SERVER_5XX,
                 error="Riot verification service is temporarily down. Your Riot ID will be verified automatically.",
-                admin_msg=f"Riot API returned {code} server error. This is a Riot-side outage — retry later.",
-                http_status=code,
+                admin_msg=f"Riot API returned {http_code} server error. This is a Riot-side outage — retry later.",
+                http_status=http_code,
+                error_body=error_body,
             )
-        # Other unexpected HTTP codes
         return _make_result(
             status="API_UNAVAILABLE",
             code=CODE_UNEXPECTED,
             error="Verification service temporarily unavailable. Your Riot ID will be verified automatically.",
-            admin_msg=f"Riot API returned unexpected HTTP {code}.",
-            http_status=code,
+            admin_msg=f"Riot API returned unexpected HTTP {http_code}. Body: {error_body or '(empty)'}",
+            http_status=http_code,
+            error_body=error_body,
         )
 
     except urllib.error.URLError as exc:
@@ -310,6 +342,7 @@ def apply_verification_result(passport, result: dict) -> None:
     puuid      = result.get("puuid")
     http_code  = result.get("http_status")
     admin_msg  = result.get("admin_msg", "")
+    error_body = result.get("error_body", "")
 
     status_map = {
         "VERIFIED":        GameProfile.VERIFICATION_VERIFIED,
@@ -339,6 +372,11 @@ def apply_verification_result(passport, result: dict) -> None:
         riot_data["last_code"] = result["code"]
     if admin_msg:
         riot_data["last_admin_msg"] = admin_msg[:500]
+    # Store safe Riot response body (no API key ever in response body).
+    if error_body:
+        riot_data["last_error_body"] = error_body[:500]
+    else:
+        riot_data.pop("last_error_body", None)
 
     provider["riot"] = riot_data
     passport.provider_data = provider

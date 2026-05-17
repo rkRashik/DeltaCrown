@@ -102,6 +102,7 @@
         {% else %}<span class="bad">✗ MISSING from env — server restart required after adding to Render</span>{% endif %}
       </div>
       <div class="riot-diag-row"><strong>Region endpoint:</strong> {{ riot_diag.region }}</div>
+      <div class="riot-diag-row"><strong>Riot ID (current):</strong> {{ riot_diag.current_riot_id }}</div>
       {% if riot_diag.last_http_status %}
       <div class="riot-diag-row">
         <strong>Last HTTP status:</strong>
@@ -111,8 +112,11 @@
         {% if riot_diag.last_code %}&nbsp;({{ riot_diag.last_code }}){% endif %}
       </div>
       {% endif %}
+      {% if riot_diag.last_error_body %}
+      <div class="riot-diag-row"><strong>Riot response body:</strong> <span class="warn">{{ riot_diag.last_error_body }}</span></div>
+      {% endif %}
       {% if riot_diag.last_admin_msg %}
-      <div class="riot-diag-row"><strong>Last detail:</strong> {{ riot_diag.last_admin_msg }}</div>
+      <div class="riot-diag-row" style="white-space:pre-wrap;word-break:break-word;"><strong>Detail:</strong> {{ riot_diag.last_admin_msg }}</div>
       {% endif %}
       {% if riot_diag.puuid_prefix and riot_diag.puuid_prefix != "—" %}
       <div class="riot-diag-row"><strong>PUUID prefix:</strong> {{ riot_diag.puuid_prefix }}…</div>

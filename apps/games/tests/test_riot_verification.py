@@ -132,7 +132,12 @@ class ResolveRiotIdPartsTests(unittest.TestCase):
 class RiotVerifyHTTPStatusTests(unittest.TestCase):
     """Each HTTP status maps to the correct granular code and status."""
 
-    def _call(self, http_code=None, puuid=None, network_exc=None):
+    def _make_http_err(self, code, body=b""):
+        import io, urllib.error
+        fp = io.BytesIO(body) if body else None
+        return urllib.error.HTTPError(None, code, "err", {}, fp)
+
+    def _call(self, http_code=None, puuid=None, network_exc=None, body=b""):
         import json, urllib.error
         from apps.games.services.riot_verification_service import verify_riot_id
 
@@ -140,7 +145,7 @@ class RiotVerifyHTTPStatusTests(unittest.TestCase):
             if network_exc:
                 raise network_exc
             if http_code and http_code != 200:
-                raise urllib.error.HTTPError(None, http_code, "err", {}, None)
+                raise self._make_http_err(http_code, body)
             resp = MagicMock()
             resp.read.return_value = json.dumps({"puuid": puuid or "p-uuid"}).encode()
             resp.__enter__ = lambda s: s
@@ -158,13 +163,15 @@ class RiotVerifyHTTPStatusTests(unittest.TestCase):
         self.assertEqual(r["puuid"], "test-puuid")
         self.assertEqual(r["http_status"], 200)
 
-    def test_404_failed(self):
+    def test_404_failed_with_body(self):
         from apps.games.services.riot_verification_service import CODE_NOT_FOUND_404
-        r = self._call(http_code=404)
+        body = b'{"status":{"message":"Data not found","status_code":404}}'
+        r = self._call(http_code=404, body=body)
         self.assertEqual(r["status"], "FAILED")
         self.assertEqual(r["code"], CODE_NOT_FOUND_404)
         self.assertEqual(r["http_status"], 404)
         self.assertIn("not found", r["error"].lower())
+        self.assertIn("Data not found", r["error_body"])
 
     def test_401_api_unavailable_with_key_code(self):
         from apps.games.services.riot_verification_service import CODE_INVALID_KEY_401
@@ -173,12 +180,27 @@ class RiotVerifyHTTPStatusTests(unittest.TestCase):
         self.assertEqual(r["code"], CODE_INVALID_KEY_401)
         self.assertIn("401", r["admin_msg"])
 
-    def test_403_forbidden_code(self):
+    def test_403_forbidden_includes_portal_guidance(self):
         from apps.games.services.riot_verification_service import CODE_FORBIDDEN_403
-        r = self._call(http_code=403)
+        body = b'{"status":{"message":"Forbidden","status_code":403}}'
+        r = self._call(http_code=403, body=body)
         self.assertEqual(r["status"], "API_UNAVAILABLE")
         self.assertEqual(r["code"], CODE_FORBIDDEN_403)
-        self.assertIn("403", r["admin_msg"])
+        self.assertEqual(r["http_status"], 403)
+        # Admin message must mention the portal action
+        self.assertIn("Account-V1", r["admin_msg"])
+        self.assertIn("developer.riotgames.com", r["admin_msg"])
+        # Error body must be captured
+        self.assertIn("Forbidden", r["error_body"])
+        # User-facing error must remain calm — no mention of 403 or API key
+        self.assertNotIn("403", r["error"])
+        self.assertNotIn("API key", r["error"])
+
+    def test_403_stores_error_body(self):
+        """error_body from Riot must be captured in the result."""
+        riot_body = b'{"status":{"message":"Forbidden","status_code":403}}'
+        r = self._call(http_code=403, body=riot_body)
+        self.assertIn("Forbidden", r["error_body"])
 
     def test_429_rate_limited(self):
         from apps.games.services.riot_verification_service import CODE_RATE_LIMITED_429
@@ -204,6 +226,21 @@ class RiotVerifyHTTPStatusTests(unittest.TestCase):
         r = self._call(network_exc=urllib.error.URLError("connection refused"))
         self.assertEqual(r["status"], "API_UNAVAILABLE")
         self.assertEqual(r["code"], CODE_URL_ERROR)
+
+    def test_error_body_never_exposes_api_key(self):
+        """Even if Riot echoes our key, we must not store or return it."""
+        secret = "RGAPI-secret-should-not-leak"
+        body = b'{"message":"forbidden"}'
+        import urllib.error, io
+        fp = io.BytesIO(body)
+        exc = urllib.error.HTTPError(None, 403, "Forbidden", {}, fp)
+
+        with patch.dict("os.environ", {"RIOT_API_KEY": secret}):
+            with patch("urllib.request.urlopen", side_effect=exc):
+                from apps.games.services.riot_verification_service import verify_riot_id
+                r = verify_riot_id("Player", "TAG")
+        self.assertNotIn(secret, r["error_body"])
+        self.assertNotIn(secret, r["admin_msg"])
 
 
 class MissingKeyTests(unittest.TestCase):

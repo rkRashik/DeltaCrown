@@ -684,7 +684,14 @@ class GameProfileAdmin(ModelAdmin):
                     "last_http_status": riot_data.get("last_http_status"),
                     "last_code": riot_data.get("last_code"),
                     "last_admin_msg": riot_data.get("last_admin_msg", ""),
+                    "last_error_body": riot_data.get("last_error_body", ""),
                     "puuid_prefix": (riot_data.get("puuid") or "")[:12] or "—",
+                    # What Riot ID we would verify from current fields
+                    "current_riot_id": (
+                        f"{obj.ign}#{obj.discriminator}"
+                        if obj.ign and obj.discriminator
+                        else obj.in_game_name or "—"
+                    ),
                 }
         except Exception:
             pass
@@ -795,7 +802,11 @@ class GameProfileAdmin(ModelAdmin):
             self.message_user(
                 request,
                 "🔑 Riot API returned 403 Forbidden. "
-                "Check that the API key has access to the Riot Account-V1 endpoint in the Riot developer portal.",
+                "The key is loaded and reachable — Riot rejected access to the Account-V1 endpoint. "
+                "Go to developer.riotgames.com → your application → enable the 'Account' product (Account-V1). "
+                "For personal/dev keys this should already be available. "
+                "For production keys, Account-V1 approval must be requested. "
+                "Check the diagnostic panel below for the Riot response body.",
                 level=messages.ERROR,
             )
 
