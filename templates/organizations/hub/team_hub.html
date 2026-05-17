@@ -1041,9 +1041,13 @@ body::after {
         {% for game in available_games %}
         <button class="game-chip {% if selected_game_slug == game.slug %}active{% endif %}" data-game="{{ game.slug }}">
             {% if game.icon %}
-            <img src="{{ game.icon.url }}" alt="{{ game.display_name }}" loading="lazy">
+            <img src="{{ game.icon.url }}" alt="{{ game.display_name }}" loading="lazy"
+                 onerror="this.onerror=null;this.style.display='none';this.nextElementSibling.style.display=''">
+            <span style="display:none">🎮</span>
             {% elif game.logo %}
-            <img src="{{ game.logo.url }}" alt="{{ game.display_name }}" loading="lazy">
+            <img src="{{ game.logo.url }}" alt="{{ game.display_name }}" loading="lazy"
+                 onerror="this.onerror=null;this.style.display='none';this.nextElementSibling.style.display=''">
+            <span style="display:none">🎮</span>
             {% else %}
             <span>🎮</span>
             {% endif %}
@@ -1070,9 +1074,11 @@ body::after {
                 data-game="{{ game.slug }}" style="{% if game.primary_color %}--gc: {{ game.primary_color }}{% endif %}">
             <!-- Blurred cover background -->
             {% if game.card_image %}
-            <img src="{{ game.card_image.url }}" class="game-card-bg absolute inset-0 w-full h-full object-cover transition-all" alt="" loading="lazy">
+            <img src="{{ game.card_image.url }}" class="game-card-bg absolute inset-0 w-full h-full object-cover transition-all" alt="" loading="lazy"
+                 onerror="this.onerror=null;this.style.display='none'">
             {% elif game.banner %}
-            <img src="{{ game.banner.url }}" class="game-card-bg absolute inset-0 w-full h-full object-cover transition-all" alt="" loading="lazy">
+            <img src="{{ game.banner.url }}" class="game-card-bg absolute inset-0 w-full h-full object-cover transition-all" alt="" loading="lazy"
+                 onerror="this.onerror=null;this.style.display='none'">
             {% else %}
             <div class="absolute inset-0 bg-gradient-to-b from-gray-800/60 to-transparent"></div>
             {% endif %}
@@ -1080,9 +1086,13 @@ body::after {
             <!-- Content -->
             <div class="game-card-content relative h-full flex flex-col items-center justify-center gap-2 p-3">
                 {% if game.logo %}
-                <img src="{{ game.logo.url }}" alt="{{ game.display_name }}" class="w-11 h-11 object-contain drop-shadow-lg" loading="lazy">
+                <img src="{{ game.logo.url }}" alt="{{ game.display_name }}" class="w-11 h-11 object-contain drop-shadow-lg" loading="lazy"
+                     onerror="this.onerror=null;this.style.display='none';this.nextElementSibling.style.display='flex'">
+                <div class="w-11 h-11 rounded-lg flex items-center justify-center text-xl" style="display:none">🎮</div>
                 {% elif game.icon %}
-                <img src="{{ game.icon.url }}" alt="{{ game.display_name }}" class="w-11 h-11 object-contain drop-shadow-lg" loading="lazy">
+                <img src="{{ game.icon.url }}" alt="{{ game.display_name }}" class="w-11 h-11 object-contain drop-shadow-lg" loading="lazy"
+                     onerror="this.onerror=null;this.style.display='none';this.nextElementSibling.style.display='flex'">
+                <div class="w-11 h-11 rounded-lg flex items-center justify-center text-xl" style="display:none">🎮</div>
                 {% else %}
                 <div class="w-11 h-11 rounded-lg flex items-center justify-center text-xl">🎮</div>
                 {% endif %}

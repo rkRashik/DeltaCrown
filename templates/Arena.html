@@ -316,7 +316,9 @@
         {% for g in games %}
           <button data-arena-game="{{ g.slug }}" class="arena-chip {% if selected_game == g.slug %}active{% endif %}">
             {% if g.icon %}
-              <img src="{{ g.icon.url }}" alt="{{ g.name }}">
+              <img src="{{ g.icon.url }}" alt="{{ g.name }}"
+                   onerror="this.onerror=null;this.style.display='none';this.nextElementSibling.style.display='flex'">
+              <div class="w-4 h-4 rounded-[4px] bg-slate-700 flex items-center justify-center text-[8px] text-white" style="display:none">{{ g.name|slice:":2" }}</div>
             {% else %}
               <div class="w-4 h-4 rounded-[4px] bg-slate-700 flex items-center justify-center text-[8px] text-white">{{ g.name|slice:":2" }}</div>
             {% endif %}

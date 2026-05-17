@@ -2263,6 +2263,32 @@ if _HAS_UNFOLD:
                     },
                 ],
             },
+
+            # ── System Operations ──────────────────────────────────────────────
+            {
+                "title": "System Operations",
+                "separator": True,
+                "items": [
+                    {
+                        "title": "Maintenance",
+                        "icon": "build",
+                        "link": "/admin/maintenance/",
+                        "permission": lambda request: request.user.is_superuser or request.user.has_perm("games.can_run_maintenance_tasks"),
+                    },
+                    {
+                        "title": "Media Cleanup",
+                        "icon": "cleaning_services",
+                        "link": reverse_lazy("admin:games_mediacleanupcandidate_changelist"),
+                        "permission": lambda request: request.user.is_superuser or request.user.has_perm("games.can_run_maintenance_tasks"),
+                    },
+                    {
+                        "title": "Maintenance Logs",
+                        "icon": "history",
+                        "link": reverse_lazy("admin:games_maintenancerunlog_changelist"),
+                        "permission": lambda request: request.user.is_superuser or request.user.has_perm("games.can_run_maintenance_tasks"),
+                    },
+                ],
+            },
         ],
     },
 

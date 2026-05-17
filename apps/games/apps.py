@@ -7,5 +7,4 @@ class GamesConfig(AppConfig):
     verbose_name = 'Games'
     
     def ready(self):
-        """Import signal handlers, etc."""
-        pass
+        import apps.games.signals_media  # noqa: F401 — registers pre/post_save handlers

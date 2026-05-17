@@ -57,10 +57,13 @@ urlpatterns = [
     path("admin/game-passports/", include("apps.user_profile.urls_admin")),
     
     # Competition admin status (safe, no model queries)
-    path("admin/competition/status/", 
+    path("admin/competition/status/",
          staff_member_required(competition_admin_status),
          name="competition_status"),
-    
+
+    # System maintenance panel — before admin catch-all
+    path("admin/maintenance/", include(("apps.games.urls_maintenance", "maintenance"), namespace="maintenance")),
+
     path("admin/", admin.site.urls),
     path("account/", include(("apps.accounts.urls", "account"), namespace="account")),
 

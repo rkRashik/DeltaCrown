@@ -28,6 +28,7 @@ from django.apps import apps as django_apps
 from django.templatetags.static import static
 from django.db.utils import ProgrammingError, OperationalError
 from apps.games.services.game_service import game_service
+from apps.common.media_urls import field_file_url
 
 # ============================================================================
 # BACKWARDS COMPATIBILITY LAYER
@@ -48,10 +49,10 @@ def _build_legacy_games_dict():
                 'name': game.name,
                 'display_name': game.name,
                 'slug': game.slug,
-                'logo': game.logo.url if game.logo else '',
-                'card': game.card_image.url if game.card_image else '',
-                'icon': game.icon.url if game.icon else '',
-                'banner': game.banner.url if game.banner else '',
+                'logo': field_file_url(game.logo),
+                'card': field_file_url(game.card_image),
+                'icon': field_file_url(game.icon),
+                'banner': field_file_url(game.banner),
                 'color_primary': game.primary_color or '#7c3aed',
                 'color_secondary': game.secondary_color or '#1a1a1a',
                 'category': game.category,

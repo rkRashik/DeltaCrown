@@ -424,7 +424,9 @@
     const tab = normalizeTab(name);
     STATE.activeTab = tab;
     document.querySelectorAll('.tab-trigger').forEach((t) => {
-      t.classList.toggle('active', normalizeTab(t.dataset.tab) === tab);
+      const active = normalizeTab(t.dataset.tab) === tab;
+      t.classList.toggle('active', active);
+      t.setAttribute('aria-selected', active ? 'true' : 'false');
     });
     document.querySelectorAll('.tab-content').forEach((c) => {
       c.classList.toggle('active', c.id === `tab-content-${tab}`);
@@ -455,6 +457,10 @@
   }
 
   function smartDefaultGameCode() {
+    try {
+      const sticky = localStorage.getItem('dc_competitive_game_filter');
+      if (sticky === 'ALL' || gameByCode(sticky)) return String(sticky).toUpperCase();
+    } catch {}
     const preferred = HUB.preferred_game_id ? gameById(HUB.preferred_game_id) : null;
     if (preferred) return String(preferred.short_code || '').toUpperCase();
     return defaultGameForSelectedTeam();
@@ -463,8 +469,8 @@
   function gameIconHtml(game, fallbackCode) {
     const code = fallbackCode || (game && game.short_code) || 'ALL';
     const url = game && (game.icon_url || game.logo_url);
-    if (url) return `<img src="${esc(url)}" alt="${esc(code)}" class="h-8 w-8 rounded-lg object-cover border border-white/10">`;
-    return `<span class="h-8 w-8 rounded-lg border border-white/10 bg-white/[0.06] grid place-items-center text-[10px] font-black uppercase text-white">${esc(code === 'ALL' ? 'All' : code)}</span>`;
+    if (url) return `<img src="${esc(url)}" alt="${esc(code)}" class="h-9 w-9 rounded-xl object-cover border border-white/10 shadow-[0_10px_24px_-18px_rgba(0,229,255,.8)]">`;
+    return `<span class="h-9 w-9 rounded-xl border border-white/10 bg-white/[0.06] grid place-items-center text-[10px] font-black uppercase text-white">${esc(code === 'ALL' ? 'All' : code)}</span>`;
   }
 
   function updateGameSelectorUI() {
@@ -478,18 +484,27 @@
     document.querySelectorAll('.game-option').forEach((b) => {
       const active = String(b.dataset.gameCode || 'ALL').toUpperCase() === String(STATE.gameFilter || 'ALL').toUpperCase();
       b.classList.toggle('bg-dc-cyan/10', active);
+      b.classList.toggle('border-l-2', active);
+      b.classList.toggle('border-dc-cyan', active);
       b.classList.toggle('text-white', active);
+      b.setAttribute('aria-selected', active ? 'true' : 'false');
     });
   }
 
   function closeGameSelector() {
     const menu = document.getElementById('game-selector-menu');
-    if (menu) menu.classList.add('hidden-spa');
+    const trigger = document.getElementById('game-selector-trigger');
+    if (menu) menu.classList.remove('is-open');
+    if (menu) menu.setAttribute('aria-hidden', 'true');
+    if (trigger) trigger.setAttribute('aria-expanded', 'false');
   }
 
   function setGameFilter(code, opts = {}) {
     STATE.gameFilter = code || 'ALL';
     if (opts.manual) STATE.gameManuallySelected = true;
+    if (opts.manual) {
+      try { localStorage.setItem('dc_competitive_game_filter', String(STATE.gameFilter || 'ALL').toUpperCase()); } catch {}
+    }
     updateGameSelectorUI();
     renderAllFeeds();
   }
@@ -531,14 +546,16 @@
 
   function emptyState({ icon, title, sub, ctaText, ctaTab }) {
     return `
-      <div class="glass-light rounded-xl p-10 text-center relative overflow-hidden">
-        <div class="absolute inset-0 pointer-events-none opacity-[0.15]"
-             style="background-image: linear-gradient(rgba(255,255,255,.06) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.06) 1px, transparent 1px); background-size: 28px 28px; -webkit-mask-image: radial-gradient(circle at center, black 30%, transparent 75%); mask-image: radial-gradient(circle at center, black 30%, transparent 75%);"></div>
+      <div class="surface-card rounded-3xl p-8 sm:p-10 text-center relative overflow-hidden">
+        <div class="absolute inset-0 pointer-events-none opacity-[0.12]"
+             style="background-image: linear-gradient(rgba(255,255,255,.06) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.06) 1px, transparent 1px); background-size: 30px 30px; -webkit-mask-image: radial-gradient(circle at center, black 24%, transparent 74%); mask-image: radial-gradient(circle at center, black 24%, transparent 74%);"></div>
         <div class="relative">
-          <i class="fa-solid ${icon} text-4xl text-gray-600 mb-3"></i>
+          <div class="mx-auto mb-4 h-16 w-16 rounded-3xl border border-white/10 bg-white/[0.045] grid place-items-center shadow-[0_18px_50px_-34px_rgba(0,229,255,.8)]">
+            <i class="fa-solid ${icon} text-2xl text-gray-400"></i>
+          </div>
           <p class="font-display text-xl font-black text-white mb-1">${esc(title)}</p>
           <p class="text-gray-400 text-sm max-w-md mx-auto leading-relaxed mb-5">${esc(sub)}</p>
-          ${ctaText ? `<button type="button" data-go-tab="${esc(ctaTab || '')}" class="btn-cyber inline-flex items-center gap-2 bg-dc-cyan/15 border border-dc-cyan/40 text-dc-cyan hover:bg-dc-cyan hover:text-black px-5 py-2 text-xs font-bold uppercase tracking-widest transition-all">${esc(ctaText)} <i class="fa-solid fa-arrow-right text-[10px]"></i></button>` : ''}
+          ${ctaText ? `<button type="button" data-go-tab="${esc(ctaTab || '')}" class="interactive-lift inline-flex items-center gap-2 rounded-xl bg-dc-cyan/15 border border-dc-cyan/35 text-dc-cyan hover:bg-dc-cyan hover:text-black px-5 py-2.5 text-xs font-bold uppercase tracking-widest transition-all">${esc(ctaText)} <i class="fa-solid fa-arrow-right text-[10px]"></i></button>` : ''}
         </div>
       </div>`;
   }
@@ -994,9 +1011,9 @@
       </button>`).join('');
     if (feed) feed.innerHTML = html;
     if (side) side.innerHTML = items.slice(0, 3).map((item) => `
-      <button type="button" data-go-tab="${esc(item.tab)}" class="w-full text-left rounded-2xl border border-white/[0.08] bg-white/[0.03] p-3 hover:bg-white/[0.06] transition">
+      <button type="button" data-go-tab="${esc(item.tab)}" class="interactive-lift w-full text-left rounded-2xl border border-white/[0.08] bg-white/[0.03] p-3 hover:bg-white/[0.06] hover:border-white/[0.15] transition">
         <div class="flex items-center gap-3">
-          <i class="fa-solid ${item.icon} ${item.color}"></i>
+          <span class="h-9 w-9 rounded-xl border border-white/10 bg-black/25 grid place-items-center shrink-0"><i class="fa-solid ${item.icon} ${item.color}"></i></span>
           <div class="min-w-0">
             <p class="text-xs font-bold text-white truncate">${esc(item.title)}</p>
             <p class="text-[10px] text-gray-500 truncate">${esc(item.body)}</p>
@@ -1079,7 +1096,7 @@
     const pad = compact ? 'p-3' : 'p-5';
     const titleSize = compact ? 'text-xs' : 'text-base';
     return `
-      <div class="premium-card rounded-2xl ${pad} transition-all group relative overflow-hidden">
+      <div class="premium-card rounded-2xl ${pad} transition-all group relative overflow-hidden hover:-translate-y-0.5">
         <div class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
         <div class="flex items-start justify-between gap-3 mb-3">
           <div class="min-w-0">
@@ -1104,11 +1121,11 @@
         </div>
         ${reviewLabel ? `<div class="mb-3 rounded-xl border border-white/5 bg-white/[0.035] px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-gray-400">${esc(reviewLabel)}</div>` : ''}
         ${isPrimarySubmit ? `
-          <button type="button" data-submit-showdown-result="${esc(op.id)}" class="inline-flex items-center justify-center gap-2 w-full rounded-xl border px-3 py-2 text-[10px] font-black uppercase tracking-widest ${actionClass}">
+          <button type="button" data-submit-showdown-result="${esc(op.id)}" class="interactive-lift inline-flex items-center justify-center gap-2 w-full rounded-xl border px-3 py-2.5 text-[10px] font-black uppercase tracking-widest ${actionClass}">
             <i class="fa-solid fa-flag-checkered"></i> Submit Result
           </button>
         ` : `
-          <a href="${esc(actionUrl)}" class="inline-flex items-center justify-center gap-2 w-full rounded-xl border px-3 py-2 text-[10px] font-black uppercase tracking-widest ${actionClass}">
+          <a href="${esc(actionUrl)}" class="interactive-lift inline-flex items-center justify-center gap-2 w-full rounded-xl border px-3 py-2.5 text-[10px] font-black uppercase tracking-widest ${actionClass}">
             ${op.is_action_required ? '<i class="fa-solid fa-bolt"></i>' : '<i class="fa-solid fa-arrow-right"></i>'}
             ${esc(op.next_action_label || 'View Details')}
           </a>
@@ -1130,8 +1147,9 @@
     renderReviewAlert();
     if (!box) return;
     if (!operations.length) {
-      box.innerHTML = `<div class="text-center py-6 px-3">
-        <p class="text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">No operations yet</p>
+      box.innerHTML = `<div class="rounded-2xl border border-white/10 bg-white/[0.025] text-center py-7 px-4">
+        <div class="mx-auto mb-3 h-11 w-11 rounded-2xl border border-white/10 bg-white/[0.04] grid place-items-center text-gray-500"><i class="fa-solid fa-satellite-dish"></i></div>
+        <p class="text-xs font-bold uppercase tracking-widest text-gray-400 mb-2">No operations yet</p>
         <p class="text-[11px] leading-relaxed text-gray-600">Start a Mission, create a Showdown, claim a Bounty, or reserve a Dropzone slot.</p>
       </div>`;
       return;
@@ -1144,9 +1162,9 @@
       { label: 'Completed', list: operations.filter(isTerminalOp).slice(0, 3) },
     ].filter((group) => group.list.length);
     box.innerHTML = groups.map((group) => `
-      <div>
-        <div class="mb-2 flex items-center justify-between">
-          <p class="text-[9px] font-black uppercase tracking-[0.18em] text-gray-500">${esc(group.label)}</p>
+      <div class="rounded-2xl border border-white/[0.055] bg-black/20 p-2.5">
+        <div class="mb-2.5 flex items-center justify-between">
+          <p class="text-[9px] font-black uppercase tracking-[0.18em] text-gray-400">${esc(group.label)}</p>
           <span class="rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[9px] font-mono text-gray-500">${group.list.length}</span>
         </div>
         <div class="space-y-2">${group.list.slice(0, 4).map((op) => renderOperationCard(op, { compact: true })).join('')}</div>
@@ -1712,7 +1730,9 @@
     if (gameTrigger && gameMenu) {
       gameTrigger.addEventListener('click', (e) => {
         e.stopPropagation();
-        gameMenu.classList.toggle('hidden-spa');
+        const isOpen = gameMenu.classList.toggle('is-open');
+        gameMenu.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
+        gameTrigger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
       });
     }
 

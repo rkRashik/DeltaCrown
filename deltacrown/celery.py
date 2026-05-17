@@ -47,6 +47,7 @@ app.autodiscover_tasks()
 # processes tasks dispatched on-demand, but no cron-like jobs fire.
 # ---------------------------------------------------------------------------
 _beat_enabled = os.getenv('ENABLE_CELERY_BEAT', '0') == '1'
+_media_cleanup_beat_enabled = os.getenv('ENABLE_MEDIA_CLEANUP_BEAT', '0') == '1'
 
 # ---------------------------------------------------------------------------
 # Lightweight tasks — always scheduled (cheap, infrequent)
@@ -342,6 +343,15 @@ _heavy_schedule = {
         'options': {'expires': 3600},
     },
 }
+
+# Media cleanup — requires ENABLE_CELERY_BEAT=1 AND ENABLE_MEDIA_CLEANUP_BEAT=1.
+# Runs nightly at 06:00 UTC; deletes eligible MediaCleanupCandidate rows (48h+ old).
+if _beat_enabled and _media_cleanup_beat_enabled:
+    _heavy_schedule['cleanup-eligible-game-media'] = {
+        'task': 'apps.games.tasks.media_cleanup.cleanup_eligible_game_media',
+        'schedule': crontab(hour=6, minute=0),
+        'options': {'expires': 3600},
+    }
 
 # Assemble the final beat schedule
 if _beat_enabled:

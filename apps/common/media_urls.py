@@ -10,6 +10,7 @@ import os
 from urllib.parse import urlparse
 
 from django.conf import settings
+from django.templatetags.static import static as _static
 
 
 def _media_url_prefix() -> str:
@@ -116,3 +117,59 @@ def field_file_url(file_field) -> str:
         )
     except Exception:
         return ""
+
+
+def safe_game_image_url(field, fallback_static: str = "") -> str:
+    """Return a game ImageField URL, falling back to a static asset path on failure.
+
+    Does NOT call storage.exists() — use storage_file_exists() separately for
+    audit purposes. Designed for request-time rendering where remote API calls
+    (e.g. Cloudinary) would be too slow.
+
+    Args:
+        field: ImageField / FileField instance.
+        fallback_static: Static file path (relative to STATIC_ROOT) to use when
+            the field is empty or .url raises. Converted via django.staticfiles static().
+
+    Returns:
+        URL string, or empty string if both field and fallback are unavailable.
+    """
+    name = getattr(field, "name", "") or ""
+    if name:
+        try:
+            url = field.url
+            if url:
+                return url
+        except Exception:
+            pass
+    if fallback_static:
+        try:
+            return _static(fallback_static)
+        except Exception:
+            return fallback_static
+    return ""
+
+
+def storage_file_exists(field_or_name) -> bool:
+    """Check whether a file exists in the configured default storage backend.
+
+    For local FileSystemStorage this is a cheap stat call.
+    For Cloudinary/S3 this makes a remote API call — only call from management
+    commands or admin views, never on every HTTP request.
+
+    Args:
+        field_or_name: ImageField/FileField instance, or raw name string.
+
+    Returns:
+        True if the storage backend confirms the file exists, False otherwise.
+    """
+    from django.core.files.storage import default_storage
+
+    try:
+        name = getattr(field_or_name, "name", field_or_name) or ""
+        if not name:
+            return False
+        name = str(name).strip().replace("\\", "/")
+        return bool(default_storage.exists(name))
+    except Exception:
+        return False

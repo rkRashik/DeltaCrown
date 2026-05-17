@@ -1,6 +1,11 @@
 """
-Games API endpoints for frontend
+Games views package.
+
+Public API views (games_list, game_identity_schema) live here so that
+apps.games.views.games_list continues to resolve after the views/ package
+was introduced alongside admin_maintenance.py.
 """
+
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from apps.games.models import Game
@@ -12,15 +17,8 @@ logger = logging.getLogger(__name__)
 
 @require_http_methods(["GET"])
 def games_list(request):
-    """
-    Get list of all active games.
-    
-    Returns:
-        JSON: List of games with basic info
-    """
     try:
         games = Game.objects.filter(is_active=True).order_by('name')
-        
         games_data = [{
             'id': game.id,
             'name': game.name,
@@ -33,36 +31,19 @@ def games_list(request):
             'icon': field_file_url(game.icon) or None,
             'logo': field_file_url(game.logo) or None,
         } for game in games]
-        
         return JsonResponse(games_data, safe=False)
-    
     except Exception as e:
-        logger.error(f"Error fetching games list: {e}")
-        return JsonResponse({
-            'error': 'Failed to fetch games'
-        }, status=500)
+        logger.error("Error fetching games list: %s", e)
+        return JsonResponse({'error': 'Failed to fetch games'}, status=500)
 
 
 @require_http_methods(["GET"])
 def game_identity_schema(request, game_id):
-    """
-    Get identity schema for a specific game.
-    
-    Returns JSON with required fields for game passport creation.
-    """
     try:
         game = Game.objects.get(id=game_id, is_active=True)
-        
-        # Get identity configuration from GamePlayerIdentityConfig
         from apps.games.models import GamePlayerIdentityConfig
-        identity_configs = GamePlayerIdentityConfig.objects.filter(
-            game=game
-        ).order_by('order')
-        
-        fields = []
-        
-        # ALWAYS include IGN field first
-        fields.append({
+        identity_configs = GamePlayerIdentityConfig.objects.filter(game=game).order_by('order')
+        fields = [{
             'field_name': 'ign',
             'label': 'In-Game Name (IGN)',
             'type': 'text',
@@ -72,11 +53,9 @@ def game_identity_schema(request, game_id):
             'help_text': 'Your display name in the game',
             'min_length': 2,
             'max_length': 50,
-        })
-        
-        # Add game-specific identity fields (Steam ID, Riot ID, etc.)
+        }]
         for config in identity_configs:
-            field = {
+            fields.append({
                 'field_name': config.field_name,
                 'label': config.display_name,
                 'type': config.field_type.lower(),
@@ -88,64 +67,38 @@ def game_identity_schema(request, game_id):
                 'max_length': config.max_length,
                 'validation': config.validation_regex,
                 'validation_error': config.validation_error_message,
-            }
-            fields.append(field)
-        
-        # Add optional dropdown fields CONDITIONALLY based on game features
+            })
         optional_fields = []
-        
-        # Platform dropdown - only if game has multiple platforms
         if game.platforms and len(game.platforms) > 1:
             optional_fields.append({
-                'field_name': 'platform',
-                'label': 'Platform',
-                'type': 'select',
+                'field_name': 'platform', 'label': 'Platform', 'type': 'select',
                 'required': False,
                 'choices': [{'value': p, 'label': p} for p in game.platforms],
-                'help_text': 'Which platform do you play on?'
+                'help_text': 'Which platform do you play on?',
             })
-        
-        # Region dropdown - only if game has_servers flag is True
         if game.has_servers and hasattr(game, 'roster_config') and game.roster_config and game.roster_config.has_regions:
             regions = game.roster_config.available_regions
             if regions:
                 optional_fields.append({
-                    'field_name': 'region',
-                    'label': 'Region/Server',
-                    'type': 'select',
+                    'field_name': 'region', 'label': 'Region/Server', 'type': 'select',
                     'required': False,
                     'choices': [{'value': r.get('code', r.get('name', '')), 'label': r.get('name', r.get('code', ''))} for r in regions],
-                    'help_text': 'Your game region or server'
+                    'help_text': 'Your game region or server',
                 })
-        
-        # Rank dropdown - only if game has_rank_system flag is True
-        if game.has_rank_system and game.available_ranks and len(game.available_ranks) > 0:
+        if game.has_rank_system and game.available_ranks:
             optional_fields.append({
-                'field_name': 'rank',
-                'label': 'Rank/Tier',
-                'type': 'select',
-                'required': False,
-                'choices': game.available_ranks,
-                'help_text': 'Your current rank or tier (optional)'
+                'field_name': 'rank', 'label': 'Rank/Tier', 'type': 'select',
+                'required': False, 'choices': game.available_ranks,
+                'help_text': 'Your current rank or tier (optional)',
             })
-        
         return JsonResponse({
-            'game': {
-                'id': game.id,
-                'name': game.name,
-                'display_name': game.display_name,
-                'icon': field_file_url(game.icon) or None,
-            },
+            'game': {'id': game.id, 'name': game.name, 'display_name': game.display_name,
+                     'icon': field_file_url(game.icon) or None},
             'fields': fields,
-            'optional_fields': optional_fields
+            'optional_fields': optional_fields,
         })
-    
     except Game.DoesNotExist:
-        return JsonResponse({
-            'error': 'Game not found'
-        }, status=404)
+        return JsonResponse({'error': 'Game not found'}, status=404)
     except Exception as e:
-        logger.error(f"Error fetching game schema for game_id={game_id}: {e}")
-        return JsonResponse({
-            'error': 'Failed to fetch game schema'
-        }, status=500)
+        logger.error("Error fetching game schema for game_id=%s: %s", game_id, e)
+        return JsonResponse({'error': 'Failed to fetch game schema'}, status=500)
