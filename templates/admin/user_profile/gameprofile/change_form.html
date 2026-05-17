@@ -8,120 +8,127 @@
 {{ schema_matrix|json_script:"gp-schema-matrix" }}
 
 <style>
-  /* GP-2D: Visual feedback for required fields */
-  .gp-required-field label:after {
-    content: " *";
-    color: red;
-    font-weight: bold;
-  }
-  /* Hide fields that are not applicable for selected game */
-  .gp-hidden-field {
-    display: none !important;
-  }
-  /* Identity preview box */
+  .gp-required-field label:after { content: " *"; color: red; font-weight: bold; }
+  .gp-hidden-field { display: none !important; }
   #gp-identity-preview {
-    background: #f8f9fa;
-    border: 1px solid #dee2e6;
-    border-radius: 4px;
-    padding: 12px;
-    margin: 10px 0;
-    font-family: monospace;
-    color: #495057;
+    background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 4px;
+    padding: 12px; margin: 10px 0; font-family: monospace; color: #495057;
   }
   #gp-identity-preview .label { font-weight: bold; color: #007bff; }
   #gp-identity-preview .value { color: #28a745; }
 
-  /* P7-B: Riot verification button & status banner */
-  .riot-verify-banner {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex-wrap: wrap;
-    background: #0f1117;
-    border: 1px solid #2a2d3e;
-    border-radius: 8px;
-    padding: 12px 16px;
-    margin: 0 0 16px;
+  /* P7-B: Riot verification banner */
+  .riot-banner {
+    display: flex; align-items: flex-start; gap: 14px; flex-wrap: wrap;
+    background: #0c0e16; border: 1px solid #1e2130; border-radius: 8px;
+    padding: 14px 16px; margin: 0 0 18px;
   }
-  .riot-verify-status {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 4px 10px;
-    border-radius: 20px;
-    font-size: 11px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
+  .riot-banner-left { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 240px; }
+  .riot-status-chip {
+    display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px;
+    border-radius: 20px; font-size: 11px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .06em; width: fit-content;
   }
-  .riot-status-VERIFIED      { background: #14532d; color: #86efac; }
-  .riot-status-PENDING       { background: #422006; color: #fcd34d; }
-  .riot-status-FAILED        { background: #450a0a; color: #fca5a5; }
-  .riot-status-API_UNAVAILABLE,
-  .riot-status-RATE_LIMITED  { background: #1e1b4b; color: #a5b4fc; }
-  .riot-status-FLAGGED       { background: #450a0a; color: #fca5a5; }
+  .chip-VERIFIED      { background:#14532d; color:#86efac; }
+  .chip-PENDING       { background:#3b2a10; color:#fcd34d; }
+  .chip-FAILED        { background:#450a0a; color:#fca5a5; }
+  .chip-API_UNAVAILABLE, .chip-RATE_LIMITED { background:#1e1b4b; color:#a5b4fc; }
+  .chip-FLAGGED       { background:#450a0a; color:#fca5a5; }
+  .riot-error-text    { font-size: 11px; color: #f87171; margin-top: 2px; }
+  .riot-meta          { font-size: 11px; color: #6b7280; }
+  .riot-verify-form   { display:inline; }
   .riot-verify-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 7px 14px;
-    border-radius: 6px;
-    font-size: 12px;
-    font-weight: 700;
-    cursor: pointer;
-    border: none;
-    text-decoration: none;
-    transition: opacity .15s;
+    display:inline-flex; align-items:center; gap:5px; padding:8px 16px;
+    border-radius:6px; font-size:12px; font-weight:700; cursor:pointer;
+    border:none; text-decoration:none; transition:opacity .15s;
+    background:#4f46e5; color:#fff; white-space:nowrap;
   }
-  .riot-verify-btn:hover { opacity: .85; }
-  .riot-verify-btn-primary { background: #6366f1; color: #fff; }
-  .riot-verify-btn-reverify { background: #374151; color: #d1d5db; border: 1px solid #4b5563; }
-  .riot-verify-meta { font-size: 11px; color: #6b7280; }
-  .riot-verify-error { font-size: 11px; color: #f87171; }
+  .riot-verify-btn:hover { opacity:.85; }
+  .riot-verify-btn.reverify { background:#374151; color:#d1d5db; border:1px solid #4b5563; }
+
+  /* P7-B: Diagnostic panel */
+  .riot-diag {
+    background:#0a0c14; border:1px solid #1a1d2e; border-radius:6px;
+    padding:10px 14px; font-family:monospace; font-size:11px; color:#6b7280;
+    margin-top:10px;
+  }
+  .riot-diag strong { color:#9ca3af; }
+  .riot-diag .ok  { color:#4ade80; }
+  .riot-diag .bad { color:#f87171; }
+  .riot-diag .warn { color:#fbbf24; }
+  .riot-diag-row { margin:2px 0; }
 </style>
 {% endblock %}
 
+{# P7-B: Remove the dead GET link from object-tools — button is in the content banner below #}
 {% block object-tools-items %}
 {{ block.super }}
-{# P7-B: Per-object Riot verification button — only for Valorant passports #}
-{% if is_valorant_passport and original %}
-<li>
-  <a href="{{ riot_verify_url }}" style="background:#6366f1;color:#fff;padding:6px 12px;border-radius:5px;font-size:12px;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:5px;">
-    {% if passport_verification_status == "VERIFIED" %}🔄 Re-verify with Riot{% else %}🎮 Verify with Riot{% endif %}
-  </a>
-</li>
-{% endif %}
 {% endblock %}
 
 {% block content %}
-{# P7-B: Riot verification status banner — shown below object tools, above form fields #}
+{# P7-B: Riot verification banner — only for Valorant passports on existing objects #}
 {% if is_valorant_passport and original %}
-<div class="riot-verify-banner">
-  <span class="riot-verify-status riot-status-{{ passport_verification_status }}">
-    {% if passport_verification_status == "VERIFIED" %}✓ Verified
-    {% elif passport_verification_status == "FAILED" %}✗ Invalid Riot ID
-    {% elif passport_verification_status == "API_UNAVAILABLE" %}⏸ API Unavailable
-    {% elif passport_verification_status == "RATE_LIMITED" %}⏳ Rate Limited
-    {% elif passport_verification_status == "FLAGGED" %}⚑ Flagged
-    {% else %}⏱ Pending Verification
-    {% endif %}
-  </span>
+<div class="riot-banner">
+  <div class="riot-banner-left">
+    <div>
+      <span class="riot-status-chip chip-{{ passport_verification_status }}">
+        {% if passport_verification_status == "VERIFIED" %}✓ Verified
+        {% elif passport_verification_status == "FAILED" %}✗ Invalid Riot ID
+        {% elif passport_verification_status == "API_UNAVAILABLE" %}⏸ API Unavailable
+        {% elif passport_verification_status == "RATE_LIMITED" %}⏳ Rate Limited
+        {% elif passport_verification_status == "FLAGGED" %}⚑ Flagged
+        {% else %}⏱ Pending Verification
+        {% endif %}
+      </span>
+    </div>
 
-  <form method="post" action="{{ riot_verify_url }}" style="margin:0;display:inline;">
+    {% if passport_attempt_count %}
+    <div class="riot-meta">
+      {{ passport_attempt_count }} attempt{{ passport_attempt_count|pluralize }}
+      {% if passport_last_attempt %} · last {{ passport_last_attempt|timesince }} ago{% endif %}
+    </div>
+    {% endif %}
+
+    {% if passport_verification_error %}
+    <div class="riot-error-text">{{ passport_verification_error }}</div>
+    {% endif %}
+
+    {# Diagnostic panel — admin-only #}
+    {% if riot_diag %}
+    <div class="riot-diag">
+      <div class="riot-diag-row">
+        <strong>API key:</strong>
+        {% if riot_diag.key_configured %}<span class="ok">✓ configured</span> ({{ riot_diag.key_diag }})
+        {% else %}<span class="bad">✗ MISSING from env — server restart required after adding to Render</span>{% endif %}
+      </div>
+      <div class="riot-diag-row"><strong>Region endpoint:</strong> {{ riot_diag.region }}</div>
+      {% if riot_diag.last_http_status %}
+      <div class="riot-diag-row">
+        <strong>Last HTTP status:</strong>
+        <span class="{% if riot_diag.last_http_status == 200 %}ok{% elif riot_diag.last_http_status >= 500 %}warn{% else %}bad{% endif %}">
+          {{ riot_diag.last_http_status }}
+        </span>
+        {% if riot_diag.last_code %}&nbsp;({{ riot_diag.last_code }}){% endif %}
+      </div>
+      {% endif %}
+      {% if riot_diag.last_admin_msg %}
+      <div class="riot-diag-row"><strong>Last detail:</strong> {{ riot_diag.last_admin_msg }}</div>
+      {% endif %}
+      {% if riot_diag.puuid_prefix and riot_diag.puuid_prefix != "—" %}
+      <div class="riot-diag-row"><strong>PUUID prefix:</strong> {{ riot_diag.puuid_prefix }}…</div>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+
+  {# Verify button — POST form, never GET #}
+  <form method="post" action="{{ riot_verify_url }}" class="riot-verify-form">
     {% csrf_token %}
-    <button type="submit" class="riot-verify-btn {% if passport_verification_status == 'VERIFIED' %}riot-verify-btn-reverify{% else %}riot-verify-btn-primary{% endif %}">
+    <button type="submit"
+            class="riot-verify-btn {% if passport_verification_status == 'VERIFIED' %}reverify{% endif %}">
       {% if passport_verification_status == "VERIFIED" %}🔄 Re-verify with Riot{% else %}🎮 Verify with Riot API{% endif %}
     </button>
   </form>
-
-  <div>
-    {% if passport_attempt_count %}
-    <span class="riot-verify-meta">{{ passport_attempt_count }} attempt{{ passport_attempt_count|pluralize }}{% if passport_last_attempt %} · last {{ passport_last_attempt|timesince }} ago{% endif %}</span>
-    {% endif %}
-    {% if passport_verification_error %}
-    <div class="riot-verify-error">{{ passport_verification_error }}</div>
-    {% endif %}
-  </div>
 </div>
 {% endif %}
 {{ block.super }}

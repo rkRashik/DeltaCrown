@@ -651,10 +651,15 @@ class GameProfileAdmin(ModelAdmin):
         return custom + urls
 
     def change_view(self, request, object_id, form_url="", extra_context=None):
-        """Inject Riot verification context into the change page."""
+        """Inject Riot verification context + diagnostics into the change page."""
         extra_context = extra_context or {}
         try:
-            from apps.games.services.riot_verification_service import is_valorant_passport
+            from apps.games.services.riot_verification_service import (
+                is_valorant_passport,
+                _api_key,
+                _region_base,
+                _key_diagnostic,
+            )
             obj = self.get_object(request, object_id)
             if obj is not None:
                 game_slug = getattr(obj.game, "slug", "") if obj.game else ""
@@ -667,29 +672,50 @@ class GameProfileAdmin(ModelAdmin):
                 extra_context["passport_verification_error"] = obj.verification_error or ""
                 extra_context["passport_attempt_count"] = obj.verification_attempt_count or 0
                 extra_context["passport_last_attempt"] = obj.last_verification_attempt_at
+
+                # Diagnostic context — shown in admin only, never to users.
+                key_present = bool(_api_key())
+                provider = obj.provider_data if isinstance(obj.provider_data, dict) else {}
+                riot_data = provider.get("riot") if isinstance(provider.get("riot"), dict) else {}
+                extra_context["riot_diag"] = {
+                    "key_configured": key_present,
+                    "key_diag": _key_diagnostic(),
+                    "region": _region_base(),
+                    "last_http_status": riot_data.get("last_http_status"),
+                    "last_code": riot_data.get("last_code"),
+                    "last_admin_msg": riot_data.get("last_admin_msg", ""),
+                    "puuid_prefix": (riot_data.get("puuid") or "")[:12] or "—",
+                }
         except Exception:
             pass
         return super().change_view(request, object_id, form_url=form_url, extra_context=extra_context)
 
     def verify_riot_view(self, request, object_id):
         """
-        Per-object admin view: run synchronous Riot verification and redirect back.
-
+        Per-object Riot verification — synchronous, POST only.
         URL: /admin/user_profile/gameprofile/<id>/verify-riot/
-        POST only — accessed via button on the change page.
+        Shows granular admin feedback messages per error code.
         """
         from apps.games.services.riot_verification_service import (
             apply_verification_result,
             is_valorant_passport,
-            parse_riot_id,
+            resolve_riot_id_parts,
             verify_riot_id,
+            CODE_MISSING_KEY,
+            CODE_INVALID_KEY_401,
+            CODE_FORBIDDEN_403,
+            CODE_NOT_FOUND_404,
+            CODE_RATE_LIMITED_429,
+            CODE_SERVER_5XX,
+            CODE_TIMEOUT,
+            CODE_URL_ERROR,
+            CODE_BAD_FORMAT,
         )
-        from django.utils import timezone
 
         change_url = reverse("admin:user_profile_gameprofile_change", args=[object_id])
 
-        # Only POST accepted (button submits a form).
         if request.method != "POST":
+            # Dead GET — just redirect, do not run verification.
             return HttpResponseRedirect(change_url)
 
         try:
@@ -698,7 +724,6 @@ class GameProfileAdmin(ModelAdmin):
             self.message_user(request, "Passport not found.", level=messages.ERROR)
             return HttpResponseRedirect(change_url)
 
-        # Permission: staff only (admin_view wrapper already enforces this, belt + braces).
         if not request.user.is_staff:
             self.message_user(request, "Permission denied.", level=messages.ERROR)
             return HttpResponseRedirect(change_url)
@@ -707,51 +732,106 @@ class GameProfileAdmin(ModelAdmin):
         if not is_valorant_passport(game_slug):
             self.message_user(
                 request,
-                f"Riot verification only applies to Valorant passports (this is {game_slug or 'unknown'}).",
+                f"Riot verification only applies to Valorant passports (this is '{game_slug or 'unknown'}').",
                 level=messages.WARNING,
             )
             return HttpResponseRedirect(change_url)
 
-        raw_id = f"{obj.ign or ''}#{obj.discriminator or ''}".strip("#")
-        game_name, tag_line = parse_riot_id(raw_id)
+        game_name, tag_line = resolve_riot_id_parts(obj)
         if not game_name or not tag_line:
             self.message_user(
                 request,
-                f"Riot ID format is invalid: '{raw_id}'. Expected 'gameName#tagLine'.",
+                f"Cannot resolve Riot ID from this passport. "
+                f"IGN='{obj.ign or '—'}', Discriminator='{obj.discriminator or '—'}', "
+                f"in_game_name='{obj.in_game_name or '—'}'. "
+                f"At least one of ign+discriminator or in_game_name='gameName#tagLine' must be set.",
                 level=messages.ERROR,
             )
             return HttpResponseRedirect(change_url)
 
-        # Run synchronous verification — admin gets immediate feedback.
         result = verify_riot_id(game_name, tag_line)
         apply_verification_result(obj, result)
 
-        status = result["status"]
+        code       = result.get("code", "")
+        status     = result["status"]
+        admin_msg  = result.get("admin_msg", "")
+        riot_id    = f"{game_name}#{tag_line}"
+        http_code  = result.get("http_status")
+        http_label = f" (HTTP {http_code})" if http_code else ""
+
         if status == "VERIFIED":
             puuid = (result.get("puuid") or "")[:16]
             self.message_user(
                 request,
-                f"✅ Riot ID '{raw_id}' verified successfully. PUUID: {puuid}…",
+                f"✅ '{riot_id}' verified. PUUID prefix: {puuid}{'…' if puuid else '(empty)'}",
                 level=messages.SUCCESS,
             )
-        elif status == "FAILED":
+
+        elif code == CODE_NOT_FOUND_404:
             self.message_user(
                 request,
-                f"❌ Riot ID '{raw_id}' not found on Riot servers. Passport marked as FAILED — user can edit and resubmit.",
+                f"❌ Riot ID '{riot_id}' was not found on Riot servers{http_label}. "
+                f"Passport marked FAILED — user can edit their Riot ID and resubmit.",
                 level=messages.ERROR,
             )
-        elif status == "RATE_LIMITED":
+
+        elif code == CODE_MISSING_KEY:
             self.message_user(
                 request,
-                "⚠️ Riot API rate limit hit. Passport marked as RATE_LIMITED — retry in a moment or let the background task handle it.",
+                "🔑 RIOT_API_KEY is not loaded in the running server process. "
+                "Add or update RIOT_API_KEY in Render environment variables, then redeploy/restart the server before retrying.",
+                level=messages.ERROR,
+            )
+
+        elif code == CODE_INVALID_KEY_401:
+            self.message_user(
+                request,
+                "🔑 Riot API rejected the key with 401 Unauthorized. "
+                "The RIOT_API_KEY is invalid or has expired. Update it in Render env vars and redeploy.",
+                level=messages.ERROR,
+            )
+
+        elif code == CODE_FORBIDDEN_403:
+            self.message_user(
+                request,
+                "🔑 Riot API returned 403 Forbidden. "
+                "Check that the API key has access to the Riot Account-V1 endpoint in the Riot developer portal.",
+                level=messages.ERROR,
+            )
+
+        elif code == CODE_RATE_LIMITED_429:
+            self.message_user(
+                request,
+                f"⏳ Riot API rate limit hit{http_label}. Wait a moment and retry.",
                 level=messages.WARNING,
             )
-        else:
-            # API_UNAVAILABLE
+
+        elif code == CODE_SERVER_5XX:
             self.message_user(
                 request,
-                "⚠️ Riot verification could not run (API key missing/expired or service error). "
-                "Update RIOT_API_KEY in Render env vars and retry. Passport is marked pending.",
+                f"⚠️ Riot servers returned an error{http_label}. This is a Riot-side outage — retry later.",
+                level=messages.WARNING,
+            )
+
+        elif code == CODE_TIMEOUT:
+            self.message_user(
+                request,
+                "⚠️ Riot API request timed out. Retry later or increase RIOT_API_TIMEOUT_SECONDS.",
+                level=messages.WARNING,
+            )
+
+        elif code == CODE_URL_ERROR:
+            self.message_user(
+                request,
+                f"⚠️ Network or URL error reaching Riot API. {admin_msg}",
+                level=messages.WARNING,
+            )
+
+        else:
+            # Fallback for any other API_UNAVAILABLE sub-code
+            self.message_user(
+                request,
+                f"⚠️ Verification could not run{http_label}. {admin_msg or 'Check server logs for details.'}",
                 level=messages.WARNING,
             )
 
