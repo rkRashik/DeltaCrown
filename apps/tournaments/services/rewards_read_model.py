@@ -117,6 +117,23 @@ class TournamentRewardsReadModel:
     # ------------------------------------------------------------------
 
     @classmethod
+    @staticmethod
+    def _build_context_is_completed(tournament) -> bool:
+        """Lightweight completion check — avoids loading the full context."""
+        from apps.tournaments.services.placement_service import (
+            is_tournament_effectively_completed,
+        )
+        from apps.tournaments.services.completion_truth import (
+            get_tournament_completion_payload,
+        )
+        try:
+            return bool(
+                get_tournament_completion_payload(tournament).get('completed')
+                or is_tournament_effectively_completed(tournament)
+            )
+        except Exception:
+            return bool(str(getattr(tournament, 'status', '') or '') in ('completed', 'archived'))
+
     def _build_context(
         cls,
         tournament: Tournament,
@@ -941,6 +958,17 @@ class TournamentRewardsReadModel:
                 or (resolved_recipient or {}).get('avatar_url')
                 or ''
             )
+            # P4.1 — "Awaiting assignment" is only meaningful AFTER the
+            # tournament has concluded. Before completion the recipient has
+            # not been chosen yet; showing "Awaiting assignment" implies
+            # something went wrong rather than that the award simply hasn't
+            # been assigned yet. Templates gate on ``awaiting_recipient`` and
+            # ``pre_completion_pending`` to choose the right copy.
+            try:
+                tournament_completed = cls._build_context_is_completed(tournament)
+            except Exception:
+                tournament_completed = False
+            pre_completion_pending = awaiting_recipient and not tournament_completed
             row = {
                 'id': award.get('id') or '',
                 'title': award.get('title') or '',
@@ -950,11 +978,16 @@ class TournamentRewardsReadModel:
                 'fiat': cls._int(award.get('fiat')),
                 'coins': cls._int(award.get('coins')),
                 'reward_text': award.get('reward_text') or '',
-                'recipient_name': recipient_name or 'Awaiting assignment',
+                # When pre-completion, suppress the "Awaiting assignment" copy so
+                # the public-facing prize board doesn't look broken. Templates
+                # check ``awaiting_recipient`` + ``pre_completion_pending`` to
+                # decide how to render the recipient slot.
+                'recipient_name': (recipient_name or ('Awaiting assignment' if not pre_completion_pending else '')),
                 'image_url': image_url,
                 'logo_url': (resolved_recipient or {}).get('logo_url') or image_url,
                 'avatar_url': (resolved_recipient or {}).get('avatar_url') or image_url,
                 'awaiting_recipient': awaiting_recipient,
+                'pre_completion_pending': pre_completion_pending,
             }
             if include_internal:
                 row['recipient_id'] = recipient_id or None

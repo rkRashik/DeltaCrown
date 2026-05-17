@@ -295,6 +295,13 @@ class TournamentDetailView(DetailView):
         context['tournament_mode_label'] = tournament.get_mode_display()
         context['tournament_participation_label'] = tournament.get_participation_type_display()
         context['is_group_playoff'] = tournament.format == Tournament.GROUP_PLAYOFF
+        # P4-C.3 — Game-aware map pool preview. Uses apps/games as canonical
+        # source; respects tournament-level overrides (organizer customisation).
+        try:
+            from apps.games.services.config_resolver import resolve_map_pool
+            context['map_pool_preview'] = resolve_map_pool(tournament)[:8]
+        except Exception:
+            context['map_pool_preview'] = []
 
         detail_widgets = _get_tournament_detail_widgets(
             tournament,
@@ -997,10 +1004,20 @@ class TournamentDetailView(DetailView):
             team2_is_winner = winner == 2
             winner_name = p1_name if team1_is_winner else p2_name if team2_is_winner else ''
 
+            # P4-C.5 — Participant-friendly state labels. `status_label`
+            # shown on public-facing match cards — avoid internal system names.
+            _STATE_LABELS = {
+                'live':           'LIVE',
+                'pending_result': 'Awaiting Result',
+                'disputed':       'Staff Review',
+                'completed':      'FT',
+                'forfeit':        'FORFEIT',
+                'cancelled':      'CANCELLED',
+            }
             if ui_status == 'live':
-                status_label = 'LIVE'
+                status_label = _STATE_LABELS.get(str(match.state or ''), 'LIVE')
             elif ui_status == 'completed':
-                status_label = 'FT'
+                status_label = _STATE_LABELS.get(str(match.state or ''), 'FT')
             else:
                 status_label = 'UPCOMING'
 

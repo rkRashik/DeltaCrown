@@ -173,17 +173,17 @@ class Bounty(SoftDeleteModel):
         help_text="True once the issuer's DC have been locked into escrow."
     )
 
-    # ── The Hitlist ──────────────────────────────────────────────────────
-    # When is_hitlist is True, this bounty acts as a "kings vs challengers"
+    # ── Bounty Board ─────────────────────────────────────────────────────
+    # When is_hitlist is True, this bounty acts as a skill-based team challenge
     # match.  Challenger teams pay challenger_entry_fee_dc per claim attempt.
     is_hitlist = models.BooleanField(
         default=False,
         db_index=True,
-        help_text="True if this bounty is published on The Hitlist (paid challenges)."
+        help_text="True if this bounty is published on the Bounty board."
     )
     challenger_entry_fee_dc = models.PositiveIntegerField(
         default=0,
-        help_text="DC each challenger team locks per claim attempt (Hitlist only)."
+        help_text="DC each challenger team locks per Bounty claim attempt."
     )
 
     # Audit trail link to issuer's reward lock transaction.
@@ -269,7 +269,7 @@ class Bounty(SoftDeleteModel):
         )
 
     def hitlist_ref_id(self, suffix: str = '') -> str:
-        """Stable escrow reference_id for this Hitlist bounty.
+        """Stable escrow reference_id for this Bounty.
 
         ``suffix`` allows per-side or per-claim distinction:
             ''            → issuer reward lock / settlement
@@ -353,13 +353,13 @@ class BountyClaim(SoftDeleteModel):
     verified_at = models.DateTimeField(null=True, blank=True)
     admin_notes = models.TextField(blank=True)
 
-    # ── Hitlist escrow audit ─────────────────────────────────────────────
+    # ── Bounty escrow audit ──────────────────────────────────────────────
     entry_fee_lock_txn = models.ForeignKey(
         'economy.DeltaCrownTransaction',
         on_delete=models.SET_NULL,
         null=True, blank=True,
         related_name='+',
-        help_text="Challenger's entry-fee lock transaction (Hitlist only)."
+        help_text="Challenger's entry-fee lock transaction (Bounty board only)."
     )
     outcome_txn = models.ForeignKey(
         'economy.DeltaCrownTransaction',
@@ -380,7 +380,7 @@ class BountyClaim(SoftDeleteModel):
         on_delete=models.SET_NULL,
         null=True, blank=True,
         related_name='+',
-        help_text="Match Room spawned when this Hitlist claim was submitted."
+        help_text="Match Room spawned when this Bounty claim was submitted."
     )
 
     # ── Closure (UI: never rely on a generic countdown) ──────────────────

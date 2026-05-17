@@ -196,9 +196,12 @@
       var fiatTxt = a.fiat ? money(data, a.fiat) : '';
       var coinsTxt = a.coins ? fmt(a.coins) + ' DC' : '';
       var rewardTxt = a.reward_text ? esc(a.reward_text) : (fiatTxt || coinsTxt || 'Award');
+      // P4.1 — pre_completion_pending means no recipient yet and tournament not done.
       var recipient = a.recipient_name
         ? '<p class="text-[10px] text-[#FFB800] mt-3 uppercase tracking-widest">Recipient: ' + esc(a.recipient_name) + '</p>'
-        : '<p class="text-[10px] text-gray-500 mt-3 uppercase tracking-widest">Awaiting assignment</p>';
+        : (a.pre_completion_pending
+            ? '' // don't show "Awaiting assignment" before tournament completes
+            : '<p class="text-[10px] text-gray-500 mt-3 uppercase tracking-widest">Awaiting assignment</p>');
       return [
         '<div class="rounded-2xl hub-glass border border-white/5 p-5 group hover:border-[#7000FF]/30 transition-all">',
         '<div class="flex items-start justify-between mb-4">',
@@ -228,9 +231,14 @@
     if (!rows.length || !grid) return;
     show('prize-engine-achievements-wrap');
     grid.innerHTML = rows.map(function (a) {
+      // P4.1 — suppress "Awaiting assignment" before tournament completes.
+      // pre_completion_pending=true means no recipient yet AND not completed;
+      // showing "Awaiting assignment" pre-completion looks like a bug.
       var recipient = a.recipient_name
         ? '<p class="text-[10px] text-[#FFB800] mt-2 uppercase tracking-widest">' + esc(a.recipient_name) + '</p>'
-        : (a.awaiting_recipient ? '<p class="text-[10px] text-gray-500 mt-2 uppercase tracking-widest">Awaiting assignment</p>' : '');
+        : (a.awaiting_recipient && !a.pre_completion_pending
+            ? '<p class="text-[10px] text-gray-500 mt-2 uppercase tracking-widest">Awaiting assignment</p>'
+            : '');
       return [
         '<div class="rounded-2xl hub-glass border border-white/5 p-5">',
         '<div class="flex items-start gap-3">',

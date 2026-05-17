@@ -180,9 +180,43 @@ class MatchForceCompleteView(TOCBaseView):
 
 
 class MatchResetView(TOCBaseView):
-    """Reset scores and match verification artifacts."""
+    """Reset scores and match verification artifacts — requires explicit confirmation.
+
+    P3 — Reset is a high-risk action. The backend enforces a confirmation
+    payload so that neither a stale browser tab nor an accidental click can
+    trigger the operation.
+
+    Required request body::
+
+        {
+          "confirm_reset": true,
+          "confirmation_text": "RESET"
+        }
+
+    ``confirmation_text`` is case-insensitive; the backend uppercases before
+    comparing. Anything else returns HTTP 400 with a clear validation message.
+    """
+
+    _REQUIRED_TEXT = "RESET"
 
     def post(self, request, slug, pk):
+        body = request.data if isinstance(request.data, dict) else {}
+        confirm_reset = bool(body.get("confirm_reset"))
+        raw_text = str(body.get("confirmation_text") or "").strip().upper()
+
+        if not confirm_reset or raw_text != self._REQUIRED_TEXT:
+            return Response(
+                {
+                    "error": (
+                        "Reset requires explicit confirmation. "
+                        f"Provide confirm_reset=true and "
+                        f'confirmation_text="{self._REQUIRED_TEXT}".'
+                    ),
+                    "code": "confirmation_required",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         data = TOCMatchesService.reset_match(pk, self.tournament, user_id=request.user.id)
         bump_toc_scopes(self.tournament.id, 'matches', 'disputes', 'overview', 'analytics')
         return Response(data)
@@ -492,7 +526,7 @@ class MatchEvidenceActionView(TOCBaseView):
             team_id = match.participant1_id if side == 1 else match.participant2_id
             sub = (
                 MatchResultSubmission.objects
-                .filter(match=match, submitted_by_team_id=team_id)
+                .filter(match=match, submitted_by_team_id=team_id, is_archived=False)
                 .order_by("-submitted_at")
                 .first()
             )
@@ -581,7 +615,7 @@ class MatchEvidenceActionView(TOCBaseView):
             team_id = match.participant1_id if side == 1 else match.participant2_id
             sub = (
                 MatchResultSubmission.objects
-                .filter(match=match, submitted_by_team_id=team_id)
+                .filter(match=match, submitted_by_team_id=team_id, is_archived=False)
                 .order_by("-submitted_at")
                 .first()
             )
@@ -619,7 +653,7 @@ class MatchEvidenceActionView(TOCBaseView):
                     continue
                 sub = (
                     MatchResultSubmission.objects
-                    .filter(match=match, submitted_by_team_id=team_id)
+                    .filter(match=match, submitted_by_team_id=team_id, is_archived=False)
                     .only("id", "proof_screenshot", "proof_screenshot_url", "ocr_status")
                     .order_by("-submitted_at")
                     .first()
@@ -672,8 +706,170 @@ class MatchEvidenceActionView(TOCBaseView):
                 "message": "Scan tasks queued. Evidence tab will update when scans complete.",
             })
 
+        if action == "verify_result":
+            # Runs the full confirmation pipeline via TOCMatchesService so
+            # bracket advance, notifications, completion hooks, and analytics
+            # all fire correctly — NOT a direct score flip.
+            #
+            # Score resolution priority:
+            #   1. workflow.staged_override (admin-staged via override_score)
+            #   2. workflow.result_submissions[1/2] (participant-submitted)
+            #   3. match.participant1/2_score (legacy fallback)
+            from apps.tournaments.api.toc.matches_service import TOCMatchesService
+            li, wf = _get_workflow()
+
+            p1_score = None
+            p2_score = None
+            score_source = ""
+
+            # 1. Staged admin override takes priority.
+            staged = wf.get("staged_override") if isinstance(wf.get("staged_override"), dict) else {}
+            if staged.get("participant1_score") is not None:
+                try:
+                    p1_score = int(staged["participant1_score"])
+                    p2_score = int(staged["participant2_score"])
+                    score_source = "staged_override"
+                except (TypeError, ValueError):
+                    pass
+
+            # 2. Participant submissions.
+            if p1_score is None:
+                rs = wf.get("result_submissions") or {}
+                s1_rs = rs.get("1") or {}
+                s2_rs = rs.get("2") or {}
+                if isinstance(s1_rs, dict) and s1_rs.get("score_for") is not None:
+                    try:
+                        p1_score = int(s1_rs["score_for"])
+                        p2_score = int(s1_rs["score_against"])
+                        score_source = "participant_submission"
+                    except (TypeError, ValueError):
+                        pass
+
+            # 3. Match model direct (fallback).
+            if p1_score is None and match.participant1_score is not None:
+                p1_score = match.participant1_score
+                p2_score = match.participant2_score
+                score_source = "match_model"
+
+            if p1_score is None or p2_score is None:
+                return Response(
+                    {
+                        "error": (
+                            "No scores available to verify. Participants must submit scores, "
+                            "or use 'Stage Score Override' first."
+                        ),
+                        "code": "missing_scores",
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            # Build a descriptive notes string so the pipeline audit trail
+            # (ResultVerificationLog, audit_service timeline) clearly shows
+            # the origin — e.g. "Result verified from Evidence Review via
+            # staged_override" rather than the vague "other" fallback.
+            verify_notes_parts = [
+                "Result verified from Evidence Review",
+                f"via {score_source.replace('_', ' ')}",
+            ]
+            if note:
+                verify_notes_parts.append(note)
+            verify_notes = ". ".join(verify_notes_parts)
+
+            try:
+                result = TOCMatchesService.verify_match(
+                    match_id=match.id,
+                    tournament=self.tournament,
+                    action="confirm",
+                    user_id=user_id,
+                    p1_score=p1_score,
+                    p2_score=p2_score,
+                    # ``notes`` is passed through to _action_confirm; the pipeline
+                    # stores it in ResultVerificationLog.notes so the audit trail
+                    # shows human-readable origin rather than a blank or "other".
+                    notes=verify_notes,
+                    reason_code="other",  # confirm path ignores reason_code; note carries detail
+                )
+            except Exception as exc:
+                return Response(
+                    {"error": f"Verification pipeline failed: {exc}"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            # Clear any staged override now that result is confirmed.
+            if score_source == "staged_override":
+                li2, wf2 = _get_workflow()
+                if "staged_override" in wf2:
+                    wf2.pop("staged_override")
+                    _save_workflow(li2, wf2)
+
+            _write_audit_entry(
+                match=match, action="verify_result",
+                detail=(
+                    f"Result verified ({p1_score}–{p2_score}) by "
+                    f"{request.user.username}. Score source: {score_source}. {note}"
+                ),
+                user_id=user_id,
+            )
+            _broadcast_evidence_update(match)
+            bump_toc_scopes(self.tournament.id, "matches")
+            return Response({"updated": True, "verified": True,
+                             "score_source": score_source, "result": result})
+
+        if action == "override_score":
+            # B1 — Stage-only override. Does NOT run the bracket/completion
+            # pipeline. Admin must subsequently click "Verify Result" to
+            # finalize through the canonical path.
+            #
+            # Separating staging from finalization means:
+            #   * Bracket advances exactly once (in verify_result).
+            #   * Notifications / analytics fire once via the pipeline.
+            #   * The audit trail clearly shows two steps: stage → verify.
+            p1 = body.get("participant1_score")
+            p2 = body.get("participant2_score")
+            try:
+                p1_score = int(p1)
+                p2_score = int(p2)
+            except (TypeError, ValueError):
+                return Response(
+                    {"error": "participant1_score and participant2_score must be integers."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            li, wf = _get_workflow()
+            # Record the staged override — verify_result will consume this.
+            wf["staged_override"] = {
+                "participant1_score": p1_score,
+                "participant2_score": p2_score,
+                "note": note,
+                "by_user_id": user_id,
+                "by_username": request.user.username,
+                "staged_at": timezone.now().isoformat(),
+            }
+            wf["result_status"] = "score_staged_for_override"
+            # Do NOT write to match.participant1_score / match.participant2_score
+            # and do NOT set final_result — the match is NOT yet finalized.
+            _save_workflow(li, wf)
+
+            _write_audit_entry(
+                match=match, action="stage_score_override",
+                detail=(
+                    f"Score override STAGED ({p1_score}–{p2_score}) by "
+                    f"{request.user.username}. Bracket unchanged. "
+                    f"Click Verify Result to finalize. {note}"
+                ),
+                user_id=user_id,
+            )
+            _broadcast_evidence_update(match)
+            bump_toc_scopes(self.tournament.id, "matches")
+            return Response({
+                "staged": True,
+                "participant1_score": p1_score,
+                "participant2_score": p2_score,
+                "message": "Score staged. Bracket unchanged. Click Verify Result to finalize through the pipeline.",
+            })
+
         return Response(
-            {"error": f"Unknown action '{action}'. Valid: mark_review, clear_review_flag, accept_ocr, use_submitted, request_resubmit, rescan."},
+            {"error": f"Unknown action '{action}'. Valid: mark_review, clear_review_flag, accept_ocr, use_submitted, request_resubmit, rescan, verify_result, override_score."},
             status=status.HTTP_400_BAD_REQUEST,
         )
 

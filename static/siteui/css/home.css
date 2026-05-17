@@ -152,8 +152,9 @@
 .match-score .team.t-r .t-info { text-align:right; }
 .match-score .team .t-info .name { font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:17px; line-height:1.1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .match-score .team .t-info .sub { font-size:10px; color:var(--mute); margin-top:3px; }
-.team-logo.tlogo-sm { width:34px; height:34px; border-radius:8px; flex-shrink:0; }
-.team-logo.tlogo-sm span { font-size:11px; }
+.team-logo.tlogo-sm { width:46px; height:46px; border-radius:10px; flex-shrink:0; overflow:hidden; }
+.team-logo.tlogo-sm span { font-size:13px; }
+.team-logo.tlogo-sm img { width:100%; height:100%; object-fit:cover; border-radius:9px; image-rendering:-webkit-optimize-contrast; }
 .score { font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:44px; line-height:1; letter-spacing:-0.02em; text-align:center; font-variant-numeric:tabular-nums; }
 .score .hi{color:var(--gold)} .score .sep{color:var(--dim);margin:0 8px}
 .match-foot { display:flex; align-items:center; justify-content:space-between; font-size:12px; }
@@ -195,17 +196,7 @@
 .schedule-list .meet em{color:var(--mute);font-style:normal;padding:0 4px}
 .schedule-list .stage{color:var(--mute);font-size:10px}
 
-/* ── SCROLL CUE ── */
-.scroll-cue { position:absolute; left:50%; transform:translateX(-50%); bottom:28px; z-index:3; display:inline-flex; align-items:center; gap:12px; padding:10px 14px 10px 12px; border-radius:10px; background:rgba(6,7,13,0.6); border:1px solid var(--line-2); backdrop-filter:blur(10px); opacity:0; animation:cueIn 1.2s 1.6s cubic-bezier(.2,.7,.2,1) forwards; pointer-events:none; user-select:none; white-space:nowrap; }
-@keyframes cueIn{to{opacity:1}}
-.scroll-key{position:relative;width:30px;height:30px;flex-shrink:0}
-.scroll-key-cap{position:relative;z-index:2;display:grid;place-items:center;width:30px;height:30px;border-radius:7px;background:linear-gradient(180deg,rgba(255,255,255,0.12),rgba(255,255,255,0.02));border:1px solid var(--line-2);color:var(--paper);box-shadow:0 2px 0 rgba(0,0,0,0.5),inset 0 -2px 0 rgba(0,0,0,0.4);animation:keyPress 2.2s ease-in-out infinite}
-@keyframes keyPress{0%,65%,100%{transform:translateY(0);box-shadow:0 2px 0 rgba(0,0,0,0.5),inset 0 -2px 0 rgba(0,0,0,0.4)}75%,85%{transform:translateY(2px);box-shadow:0 0 0 rgba(0,0,0,0.5),inset 0 -1px 0 rgba(0,0,0,0.4)}}
-.scroll-key-pulse{position:absolute;inset:0;border-radius:7px;border:1px solid var(--violet);animation:keyHalo 2.2s ease-out infinite;pointer-events:none}
-@keyframes keyHalo{0%{transform:scale(1);opacity:.6;border-color:var(--teal)}60%{transform:scale(1.6);opacity:0;border-color:var(--violet)}100%{transform:scale(1.6);opacity:0}}
-.scroll-cue-body{display:flex;flex-direction:column;align-items:flex-start;line-height:1}
-.scroll-cue-label{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:.22em;color:var(--paper)}
-.scroll-cue-sub{font-size:9px;letter-spacing:.18em;color:var(--mute);margin-top:4px}
+/* scroll-cue removed */
 
 @media(max-width:1024px){.hero-shell{grid-template-columns:1fr;gap:40px}.hero-orbit{display:none}}
 @media(max-width:640px){.hero{padding:84px 18px 56px}.hero-stats{grid-template-columns:repeat(2,1fr)}.hero-trust{gap:14px}}
@@ -632,6 +623,104 @@
 .foot-links a:hover{color:var(--paper)}
 .foot-meta{font-size:11px}
 
+/* ── RESULT WINNER LABEL ── */
+.result-winner { color:var(--gold); font-size:9px; letter-spacing:.18em; margin-top:2px; }
+
+/* ── SCHEDULE ALL LINK (replaces inline event handlers) ── */
+.schedule-all-link { font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:10px; text-transform:uppercase; color:var(--mute); letter-spacing:.12em; transition:color .2s ease; }
+.schedule-all-link:hover { color:var(--paper); }
+
+/* ── PERFORMANCE: content-visibility for below-fold sections ── */
+.why,.games,.ecosystem,.hub,.ascend,.economy,.personas,.path,.organize,.trust,.quotes,.roadmap,.outro {
+  content-visibility: auto;
+  contain-intrinsic-size: 0 600px;
+}
+
+/* ── BACK TO TOP BUTTON ── */
+.home-back-top {
+  position: fixed;
+  bottom: 28px; right: 24px;
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  background: rgba(11,13,23,0.85);
+  border: 1px solid var(--line-2);
+  color: var(--paper);
+  font-size: 16px;
+  backdrop-filter: blur(10px);
+  cursor: pointer;
+  display: grid; place-items: center;
+  opacity: 0; transform: translateY(8px);
+  transition: opacity .3s ease, transform .3s ease, border-color .25s ease, background .25s ease;
+  pointer-events: none;
+  z-index: 90;
+}
+.home-back-top.visible { opacity:1; transform:translateY(0); pointer-events:auto; }
+.home-back-top:hover { border-color:rgba(139,92,246,0.6); background:rgba(139,92,246,0.12); }
+@media(max-width:767px){.home-back-top{ bottom:76px; }} /* clear mobile bottom nav */
+
+/* ── MOBILE: hero right panel horizontal scroll strip ── */
+@media(max-width:1023px){
+  .hero-right {
+    display: flex;
+    flex-direction: row;
+    gap: 12px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    padding-bottom: 8px;
+  }
+  .hero-right::-webkit-scrollbar { display:none; }
+  .hero-right > * {
+    flex: 0 0 calc(min(340px, 90vw));
+    scroll-snap-align: start;
+  }
+}
+
+/* ── MOBILE: full-width CTA buttons < 480px ── */
+@media(max-width:480px){
+  .hero-cta, .outro-cta, .persona-cta, .arena-cta, .organize-cta {
+    flex-direction: column;
+  }
+  .hero-cta .btn, .outro-cta .btn, .persona-cta .btn, .arena-cta .btn {
+    width: 100%;
+    justify-content: center;
+  }
+  .btn-xl { padding:16px 24px; }
+}
+
+/* ── MOBILE: game rail dots indicator ── */
+.rail-dots { display:none; }
+@media(max-width:767px){
+  .rail-dots {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 16px;
+  }
+  .rail-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--line-2);
+    transition: background .25s ease, transform .25s ease;
+  }
+  .rail-dot.active {
+    background: linear-gradient(90deg, var(--teal), var(--violet));
+    transform: scale(1.25);
+  }
+}
+
+/* ── TABLET: hero two-col overflow fix ── */
+@media(min-width:768px) and (max-width:1023px){
+  .hero { padding-bottom: 80px; }
+  .hero-stats { grid-template-columns: repeat(2,1fr); }
+}
+
+/* ── SECTION DIVIDERS ── */
+.why,.games,.ecosystem,.hub,.ascend,.economy,.personas,.path,.organize,.trust,.quotes,.roadmap {
+  border-top:1px solid var(--line);
+}
+
 /* ── REDUCED MOTION ── */
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important}}
 
@@ -662,6 +751,8 @@ body.home-page {
   -webkit-font-smoothing:antialiased;
   text-rendering:optimizeLegibility;
   overflow-x:hidden;
+  /* Override tailwind's --nav-height-desktop/mobile body padding — hero section handles its own top clearance */
+  padding-top:0 !important;
 }
 body.home-page ::selection{background:var(--violet);color:#fff}
 body.home-page a{color:inherit;text-decoration:none}

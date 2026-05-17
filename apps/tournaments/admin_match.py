@@ -345,7 +345,7 @@ class MatchIntegrityCheckAdmin(ModelAdmin):
 # DisputeRecord admin (replaces legacy DisputeAdmin)
 # ---------------------------------------------------------------------------
 
-from apps.tournaments.models.dispute import DisputeRecord, DisputeEvidence
+from apps.tournaments.models.dispute import DisputeRecord, DisputeEvidence, DisputeNote
 
 
 class DisputeEvidenceInline(TabularInline):
@@ -353,6 +353,13 @@ class DisputeEvidenceInline(TabularInline):
     extra = 0
     readonly_fields = ['uploaded_by', 'created_at']
     fields = ['evidence_type', 'url', 'evidence_file', 'notes', 'uploaded_by', 'created_at']
+
+
+class DisputeNoteInline(TabularInline):
+    model = DisputeNote
+    extra = 0
+    readonly_fields = ['author', 'created_at']
+    fields = ['visibility', 'body', 'author', 'created_at']
 
 
 @admin.register(DisputeRecord)
@@ -363,7 +370,7 @@ class DisputeRecordAdmin(ModelAdmin):
     readonly_fields = ['id', 'opened_at', 'updated_at']
     list_select_related = ['submission', 'opened_by_user', 'resolved_by_user']
     ordering = ['-opened_at']
-    inlines = [DisputeEvidenceInline]
+    inlines = [DisputeEvidenceInline, DisputeNoteInline]
     fieldsets = (
         (None, {
             'fields': ('submission', 'status', 'reason_code', 'flagged_by_system'),

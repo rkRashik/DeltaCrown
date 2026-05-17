@@ -61,7 +61,8 @@ def api_login_required(view_func):
         )
     return _wrapped
 
-from apps.organizations.models import Team, TeamMembership, TeamMembershipEvent, TeamInvite
+from apps.games.models import Game
+from apps.organizations.models import Team, TeamCompetitiveSettings, TeamMembership, TeamMembershipEvent, TeamInvite
 from apps.organizations.choices import MembershipRole, MembershipStatus, TeamStatus, MembershipEventType, RosterSlot
 from apps.accounts.models import User
 from apps.organizations.services.hub_cache import invalidate_hub_cache
@@ -127,6 +128,126 @@ def _get_user_role(team, user):
         return membership.role
     except TeamMembership.DoesNotExist:
         return 'GUEST'
+
+
+def _can_view_competitive_settings(team, user):
+    if not user.is_authenticated:
+        return False
+    if user.is_superuser or team.created_by_id == user.id:
+        return True
+    return team.vnext_memberships.filter(user=user, status=MembershipStatus.ACTIVE).exists()
+
+
+def _can_edit_competitive_settings(team, user):
+    if not user.is_authenticated:
+        return False
+    if user.is_superuser or team.created_by_id == user.id:
+        return True
+    return team.vnext_memberships.filter(
+        user=user,
+        status=MembershipStatus.ACTIVE,
+        role__in=[MembershipRole.OWNER, MembershipRole.MANAGER],
+    ).exists()
+
+
+def _competitive_settings_payload(settings_obj, *, team, user):
+    allowed_games = list(settings_obj.allowed_games.all().values("id", "slug", "name", "display_name"))
+    available_games = list(
+        Game.objects.filter(is_active=True)
+        .order_by("name")
+        .values("id", "slug", "name", "display_name")[:100]
+    )
+    return {
+        "showdown_create_policy": settings_obj.showdown_create_policy,
+        "bounty_create_policy": settings_obj.bounty_create_policy,
+        "max_showdown_entry_fee_dc": settings_obj.max_showdown_entry_fee_dc,
+        "max_bounty_reward_dc": settings_obj.max_bounty_reward_dc,
+        "bounty_approval_required_above_dc": settings_obj.bounty_approval_required_above_dc,
+        "allowed_games": allowed_games,
+        "allowed_game_ids": [item["id"] for item in allowed_games],
+        "allow_public_scrim_availability": settings_obj.allow_public_scrim_availability,
+        "allow_public_tryout_applications": settings_obj.allow_public_tryout_applications,
+        "policy_choices": [
+            {"value": value, "label": label}
+            for value, label in TeamCompetitiveSettings.AuthorityPolicy.choices
+        ],
+        "available_games": available_games,
+        "can_edit": _can_edit_competitive_settings(team, user),
+    }
+
+
+def _non_negative_int(value, field_name):
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"{field_name} must be a whole number.") from exc
+    if parsed < 0:
+        raise ValueError(f"{field_name} cannot be negative.")
+    return parsed
+
+
+@require_http_methods(["GET", "PATCH", "PUT"])
+@api_login_required
+def competitive_settings(request, slug):
+    team = get_object_or_404(Team, slug=slug)
+    if not _can_view_competitive_settings(team, request.user):
+        return JsonResponse({"success": False, "error": "You are not allowed to view these settings."}, status=403)
+
+    settings_obj, _ = TeamCompetitiveSettings.objects.get_or_create(team=team)
+
+    if request.method in ("PATCH", "PUT"):
+        if not _can_edit_competitive_settings(team, request.user):
+            return JsonResponse({"success": False, "error": "Only team owners and managers can edit competitive settings."}, status=403)
+
+        try:
+            data = json.loads(request.body.decode("utf-8") or "{}")
+            policies = {choice[0] for choice in TeamCompetitiveSettings.AuthorityPolicy.choices}
+            if "showdown_create_policy" in data:
+                if data["showdown_create_policy"] not in policies:
+                    raise ValueError("Invalid Showdown authority policy.")
+                settings_obj.showdown_create_policy = data["showdown_create_policy"]
+            if "bounty_create_policy" in data:
+                if data["bounty_create_policy"] not in policies:
+                    raise ValueError("Invalid Bounty authority policy.")
+                settings_obj.bounty_create_policy = data["bounty_create_policy"]
+            if "max_showdown_entry_fee_dc" in data:
+                settings_obj.max_showdown_entry_fee_dc = _non_negative_int(data["max_showdown_entry_fee_dc"], "Max Showdown entry fee")
+            if "max_bounty_reward_dc" in data:
+                settings_obj.max_bounty_reward_dc = _non_negative_int(data["max_bounty_reward_dc"], "Max Bounty reward")
+            if "bounty_approval_required_above_dc" in data:
+                settings_obj.bounty_approval_required_above_dc = _non_negative_int(
+                    data["bounty_approval_required_above_dc"],
+                    "Bounty approval threshold",
+                )
+            if "allow_public_scrim_availability" in data:
+                settings_obj.allow_public_scrim_availability = bool(data["allow_public_scrim_availability"])
+            if "allow_public_tryout_applications" in data:
+                settings_obj.allow_public_tryout_applications = bool(data["allow_public_tryout_applications"])
+
+            settings_obj.save()
+
+            allowed_ids = data.get("allowed_game_ids", data.get("allowed_games", None))
+            if allowed_ids is not None:
+                ids = []
+                for item in allowed_ids:
+                    ids.append(_non_negative_int(item, "Allowed game ID"))
+                games = Game.objects.filter(pk__in=ids, is_active=True)
+                settings_obj.allowed_games.set(games)
+            invalidate_hub_cache(game_id=team.game_id)
+            try:
+                from apps.organizations.services.cache_invalidation import safe_cache_delete_pattern
+                safe_cache_delete_pattern(f"team_detail:{team.slug}:*")
+                safe_cache_delete_pattern("active_scrims_*")
+            except Exception:
+                pass
+        except (TypeError, ValueError, json.JSONDecodeError) as exc:
+            return JsonResponse({"success": False, "error": str(exc)}, status=400)
+
+    return JsonResponse({
+        "success": True,
+        "team": {"id": team.pk, "name": team.name, "slug": team.slug},
+        "settings": _competitive_settings_payload(settings_obj, team=team, user=request.user),
+    })
 
 
 @require_http_methods(["GET"])

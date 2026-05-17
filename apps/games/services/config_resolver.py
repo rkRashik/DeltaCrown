@@ -112,12 +112,36 @@ def _game_map_pool(game_slug: str) -> List[str]:
 
 
 def _legacy_map_pool(game_slug: str) -> List[str]:
-    """Tier 3 — emergency fallback dict. Should be hit rarely; logs when used."""
+    """Tier 3 — emergency fallback dict.
+
+    P5.7 — This path means neither a tournament-level ``MapPoolEntry`` nor a
+    game-level ``GameMapPool`` row exists for this game. Admin action needed:
+
+      1. Seed ``GameMapPool`` rows via Django admin → apps/games → GameMapPool
+         (or run ``python manage.py seed_games`` if that command exists).
+      2. Once seeded, this fallback is bypassed and the INFO log stops appearing.
+
+    Remove condition: when all production games have ``GameMapPool`` rows seeded,
+    this dict can be removed and the list replaced with ``return []``.
+
+    LEGACY_MAP_POOL_FALLBACKS covers: valorant, cs2, r6siege, r6.
+    Missing: mlbb, pubgm, freefire, efootball, codm, dota2, ea-fc, rocketleague.
+    """
     slug = _normalize_slug(game_slug)
     maps = LEGACY_MAP_POOL_FALLBACKS.get(slug, [])
     if maps:
-        logger.info("resolve_map_pool: using LEGACY fallback for game_slug=%s — "
-                    "seed GameMapPool to remove this dependency", slug)
+        logger.info(
+            "resolve_map_pool: LEGACY fallback used for game_slug=%s "
+            "(GameMapPool empty — seed via admin to remove this fallback). "
+            "Removal condition: all games have GameMapPool rows seeded.",
+            slug,
+        )
+    else:
+        logger.debug(
+            "resolve_map_pool: no fallback for game_slug=%s "
+            "(not in LEGACY_MAP_POOL_FALLBACKS and GameMapPool empty)",
+            slug,
+        )
     return list(maps)
 
 

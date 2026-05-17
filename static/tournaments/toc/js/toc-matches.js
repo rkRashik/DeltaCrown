@@ -869,6 +869,11 @@
     if (id && typeof id === 'object') id = id.id;
     id = Number(id);
     if (!id) return;
+    // Stop OCR polling when selecting a different match — the poll guard
+    // would catch it on the next tick, but this is cleaner and immediate.
+    if (_ocrPollMatchId && _ocrPollMatchId !== id) {
+      _stopOcrPolling();
+    }
     selectedMatchId = id;
 
     // Highlight selected card in list
@@ -920,6 +925,8 @@
   }
 
   function clearDetail() {
+    // Stop any in-progress OCR poll — user navigated away.
+    _stopOcrPolling();
     selectedMatchId = null;
     selectedMatchDetail = null;
     var empty = $('#match-detail-empty');
@@ -2569,19 +2576,78 @@
     '</div>';
   }
 
-  function _adminReviewActions(matchId) {
-    // Compact admin action row shown above the side cards (staff only —
-    // the JS caller should check is_staff before rendering).
+  function _adminReviewActions(matchId, comparison, workflowStatus, stagedOverride) {
+    // Context-aware admin action row. Shows different primary actions based
+    // on the backend comparison state and workflow_result_status.
     var mid = String(matchId || '');
-    return '<div class="mt-3 flex flex-wrap items-center gap-1.5">' +
-      '<span class="text-[9px] font-black uppercase tracking-widest text-dc-text/50 mr-1">Admin actions:</span>' +
-      '<button type="button" data-click="TOC.matches.evidenceAction" data-click-args="[&quot;' + mid + '&quot;,&quot;mark_review&quot;]" ' +
-        'class="px-2 py-1 text-[9px] font-bold uppercase tracking-widest border border-amber-500/40 text-amber-300 rounded hover:bg-amber-500/10 transition-colors">Flag Review</button>' +
-      '<button type="button" data-click="TOC.matches.evidenceAction" data-click-args="[&quot;' + mid + '&quot;,&quot;clear_review_flag&quot;]" ' +
-        'class="px-2 py-1 text-[9px] font-bold uppercase tracking-widest border border-dc-border text-dc-text rounded hover:bg-dc-surface transition-colors">Clear Flag</button>' +
-      '<button type="button" data-click="TOC.matches.evidenceAction" data-click-args="[&quot;' + mid + '&quot;,&quot;rescan&quot;]" ' +
-        'class="px-2 py-1 text-[9px] font-bold uppercase tracking-widest border border-theme/40 text-theme rounded hover:bg-theme/10 transition-colors flex items-center gap-1">' +
-        '<i data-lucide="scan-line" class="w-3 h-3"></i>Rescan All</button>' +
+    var safe = comparison && comparison.safe_to_verify;
+    var needsReview = comparison && comparison.requires_review;
+    var state = String((comparison && comparison.state) || '');
+    var wStatus = String(workflowStatus || '');
+
+    // B3 — Determine whether "Verify Result" should be available.
+    // Scores must exist (either from comparison data or a staged override).
+    var s1 = (comparison && comparison.side1) || {};
+    var s2 = (comparison && comparison.side2) || {};
+    var scoresExist = (s1.submitted_for != null && s2.submitted_for != null)
+      || (stagedOverride && stagedOverride.participant1_score != null);
+    // Verify is available when: (OCR says safe AND scores exist) OR (staged override pending).
+    var canVerify = (safe && scoresExist)
+      || wStatus === 'score_staged_for_override'
+      || wStatus === 'ocr_verified_candidate'
+      || wStatus === 'ocr_accepted_pending_verify';
+
+    function _btn(action, label, borderCls, textCls, bgCls, icon, disabled) {
+      var disabledAttr = disabled ? ' disabled title="Scores required before verifying"' : '';
+      var disabledCls  = disabled ? ' opacity-50 cursor-not-allowed' : '';
+      return '<button type="button"' + (disabled ? '' : ' data-click="TOC.matches.evidenceAction" data-click-args="[&quot;' + mid + '&quot;,&quot;' + action + '&quot;]"') +
+        disabledAttr +
+        ' class="px-2 py-1 text-[9px] font-bold uppercase tracking-widest border ' + borderCls + ' ' + textCls + ' rounded transition-colors ' + bgCls + disabledCls +
+        ' flex items-center gap-1">' +
+        (icon ? '<i data-lucide="' + icon + '" class="w-3 h-3"></i>' : '') + label + '</button>';
+    }
+
+    // Staged override banner (shown when a score has been staged but not yet verified).
+    var stagedBanner = '';
+    if (wStatus === 'score_staged_for_override' && stagedOverride && stagedOverride.participant1_score != null) {
+      var sp1 = stagedOverride.participant1_score;
+      var sp2 = stagedOverride.participant2_score;
+      var stagedBy = stagedOverride.by_username ? ' by ' + esc(stagedOverride.by_username) : '';
+      stagedBanner = '<div class="mb-2 p-2 rounded-lg border border-amber-400/30 bg-amber-500/8 text-[10px] text-amber-200 flex items-center gap-1.5">' +
+        '<i data-lucide="clock" class="w-3 h-3"></i>' +
+        '<span>Score override staged: <strong>' + esc(String(sp1)) + '–' + esc(String(sp2)) + '</strong>' + stagedBy + '. Bracket unchanged. Click Verify Result to finalize.</span>' +
+      '</div>';
+    }
+
+    var primaryActions = '';
+    // Verify Result — primary action when evidence is clean or score is staged.
+    if (canVerify) {
+      primaryActions = _btn('verify_result', 'Verify Result',
+        'border-emerald-500/50', 'text-emerald-200', 'hover:bg-emerald-500/15', 'shield-check', false);
+    } else {
+      // Show Verify as disabled with tooltip when scores missing.
+      primaryActions = _btn('verify_result', 'Verify Result',
+        'border-dc-border/40', 'text-dc-text/40', '', 'shield-check', true);
+    }
+
+    // Stage Score Override — always available for admin.
+    primaryActions += _btn('override_score', 'Stage Score Override',
+      'border-amber-400/40', 'text-amber-200', 'hover:bg-amber-500/10', 'pen-line', false);
+
+    // Flag Review for unsafe evidence.
+    if (needsReview || state.startsWith('mismatch')) {
+      primaryActions += _btn('mark_review', 'Flag Review',
+        'border-rose-400/40', 'text-rose-300', 'hover:bg-rose-500/10', 'flag', false);
+    }
+
+    var secondaryActions =
+      _btn('rescan', 'Rescan All', 'border-theme/40', 'text-theme', 'hover:bg-theme/10', 'scan-line', false) +
+      _btn('clear_review_flag', 'Clear Flag', 'border-dc-border', 'text-dc-text', 'hover:bg-dc-surface', null, false);
+
+    return '<div class="mt-3">' +
+      '<p class="text-[9px] font-black uppercase tracking-widest text-dc-text/50 mb-1.5">Admin Actions</p>' +
+      stagedBanner +
+      '<div class="flex flex-wrap items-center gap-1.5">' + primaryActions + secondaryActions + '</div>' +
     '</div>';
   }
 
@@ -2614,8 +2680,8 @@
       if (action === 'rescan') {
         var queued = (resp && resp.queued && resp.queued.length) || 0;
         toast(queued > 0
-          ? 'Rescan queued for ' + queued + ' screenshot(s). Evidence tab will update automatically.'
-          : 'Rescan queued (no new screenshots found).',
+          ? 'Scanning in background — Evidence tab will update automatically.'
+          : 'Rescan queued (no screenshots found to scan).',
           queued > 0 ? 'info' : 'warning');
       } else {
         toast('Done.', 'success');
@@ -2625,13 +2691,21 @@
       return;
     }
 
-    // B4 — Re-select the match to pull fresh data, then switch back to
-    // the Evidence tab. selectMatch renders the full detail (submissions,
-    // comparison, timeline); switchDetailTab makes Evidence the active pane.
+    // B4 — Re-select the match to pull fresh data immediately (shows
+    // the pending/scanning state), then switch to Evidence tab.
     try {
       await selectMatch(matchIdNum);
       switchDetailTab('evidence');
     } catch (_) { /* non-fatal */ }
+
+    // Start auto-refresh poll for rescan (async OCR). Other actions
+    // are synchronous and the re-select above is sufficient.
+    if (action === 'rescan' && selectedMatchDetail) {
+      var pendingNow = _ocrPendingIn((selectedMatchDetail && selectedMatchDetail.submissions) || []);
+      if (pendingNow) {
+        _startOcrPolling(matchIdNum);
+      }
+    }
   }
 
   // P3.2 — Render the cross-check block from a backend evidence_comparison dict.
@@ -2669,9 +2743,32 @@
     function _score(sub) { return _sv(sub.submitted_for) + '<span class="text-dc-text/40 mx-1">–</span>' + _sv(sub.submitted_against); }
     function _ocr(sub)   { return _sv(sub.ocr_p1)       + '<span class="text-dc-text/40 mx-1">–</span>' + _sv(sub.ocr_p2); }
 
+    // Per-check checklist (from checks[] array when available).
+    var checksArr = (cmp.checks && Array.isArray(cmp.checks)) ? cmp.checks : [];
+    var checklistRows = checksArr.map(function (ch) {
+      var st = String(ch.status || '');
+      var dotCls = { pass:'text-emerald-400', fail:'text-rose-400', warning:'text-amber-400',
+                     pending:'text-dc-text/40 animate-pulse', unknown:'text-dc-text/30' }[st] || 'text-dc-text/30';
+      var iconName = { pass:'check', fail:'x', warning:'alert-triangle',
+                       pending:'clock', unknown:'minus' }[st] || 'minus';
+      return '<div class="flex items-start gap-2 py-1">' +
+        '<i data-lucide="' + iconName + '" class="w-3 h-3 ' + dotCls + ' shrink-0 mt-0.5"></i>' +
+        '<div class="flex-1 min-w-0">' +
+          '<span class="text-[10px] font-bold text-dc-text">' + esc(ch.label || ch.id) + '</span>' +
+          (ch.detail ? '<p class="text-[9px] text-dc-text/60 mt-0.5 leading-snug">' + esc(ch.detail) + '</p>' : '') +
+        '</div>' +
+      '</div>';
+    }).join('');
+
+    // Staff message (more detailed than reason).
+    var staffMsg = cmp.staff_message && cmp.staff_message !== cmp.reason
+      ? '<p class="mt-2 text-[11px] text-dc-text/80 leading-relaxed border-t border-dc-border/30 pt-2">' + esc(cmp.staff_message) + '</p>'
+      : '';
+
     var detail =
-      '<div class="mt-3 grid grid-cols-[1fr_auto_auto_auto] gap-x-3 gap-y-1.5 text-[11px]">' +
-        '<span class="text-[9px] font-black uppercase tracking-widest text-dc-text/50">Comparison</span>' +
+      '<div class="mt-3 grid grid-cols-[1fr_auto_auto_auto] gap-x-3 gap-y-1.5 text-[11px] border-t border-dc-border/30 pt-3">' +
+        '<span class="text-[9px] font-black uppercase tracking-widest text-dc-text/50 col-span-4 mb-1">Score Comparison</span>' +
+        '<span class="text-[9px] font-black uppercase tracking-widest text-dc-text/50">Check</span>' +
         '<span class="text-[9px] font-black uppercase tracking-widest text-dc-text/50 text-center">' + esc(teamA) + '</span>' +
         '<span class="text-[9px] font-black uppercase tracking-widest text-dc-text/50 text-center">' + esc(teamB) + '</span>' +
         '<span class="text-[9px] font-black uppercase tracking-widest text-dc-text/50 text-right">Status</span>' +
@@ -2687,7 +2784,14 @@
         '<span class="text-center">' + _mb(cmp.side1_sub_matches_ocr) + '</span>' +
         '<span class="text-center">' + _mb(cmp.side2_sub_matches_ocr) + '</span>' +
         '<span class="text-right"></span>' +
-      '</div>';
+      '</div>' +
+      (checklistRows
+        ? '<div class="mt-3 space-y-0 border-t border-dc-border/30 pt-3">' +
+            '<p class="text-[9px] font-black uppercase tracking-widest text-dc-text/50 mb-1">Check Details</p>' +
+            checklistRows +
+          '</div>'
+        : '') +
+      staffMsg;
 
     return '<div class="mt-3 rounded-xl border ' + toneClasses + ' p-3">' +
       '<div class="flex items-start gap-2.5">' +
@@ -2778,26 +2882,78 @@
     // Admin actions row — only rendered when match has a numeric id (i.e.
     // we're inside an actual match detail, not a stale cache render).
     var matchId = match.id ? Number(match.id) : null;
-    var adminActionsHTML = matchId ? _adminReviewActions(matchId) : '';
+    var workflowStatus = String(data.workflow_result_status || '');
+    var stagedOverride = (data.staged_override && typeof data.staged_override === 'object') ? data.staged_override : null;
+    var adminActionsHTML = matchId ? _adminReviewActions(matchId, backendCmp, workflowStatus, stagedOverride) : '';
 
-    // B5 — Per-game grouping for BO3/BO5. Submissions with game_number are
-    // rendered as a sequence of labeled game blocks. Without game_number
-    // the existing side-by-side layout is used (BO1 unchanged).
-    var grouping = _groupByGame(subs);
+    // B2/B5 — Per-game grouping for BO3/BO5. Backend provides evidence_games[]
+    // (computed via compute_per_game_comparison) when any submission has
+    // game_number. Fall back to client-side grouping for BO1 or legacy.
+    var backendGames = (Array.isArray(data.evidence_games) && data.evidence_games.length)
+      ? data.evidence_games : null;
+    var grouping = backendGames ? { grouped: true, games: null } : _groupByGame(subs);
     var cardsHTML;
     if (grouping.grouped) {
-      cardsHTML = grouping.games.map(function (g) {
-        var gameLabel = g.game_number > 0 ? 'Game ' + g.game_number : 'Ungrouped';
-        var mapName = (g.side1 || g.side2)
-          ? String(
-              (g.side1 && g.side1.raw_result_payload && g.side1.raw_result_payload.map)
-              || (g.side2 && g.side2.raw_result_payload && g.side2.raw_result_payload.map)
-              || '')
-          : '';
+      // Build a lookup of submissions by id for the backend evidence_games path.
+      var subById = {};
+      subs.forEach(function (s) { if (s && s.id != null) subById[String(s.id)] = s; });
+
+      var gameList = backendGames || grouping.games;
+      cardsHTML = gameList.map(function (g) {
+        var gn = g.game_number;
+        var gameLabel = gn > 0 ? 'Game ' + gn : 'Ungrouped (Legacy)';
+        // Backend evidence_games path: g.side1/side2 are summary dicts (not full subs).
+        // Client grouping path: g.side1/side2 are full submission objects.
+        // Use submission id to find the full sub object for rendering.
+        var _resolveFullSub = function (sideData) {
+          if (!sideData) return null;
+          // Backend summary has submission_id; client obj has id directly.
+          var sid = sideData.submission_id || sideData.id;
+          return sid ? (subById[String(sid)] || sideData) : sideData;
+        };
+        var mapName = g.map || '';
+        var p1 = _resolveFullSub(g.side1), p2 = _resolveFullSub(g.side2);
+        if (!mapName && p1 && p1.raw_result_payload && p1.raw_result_payload.map) mapName = String(p1.raw_result_payload.map);
+        if (!mapName && p2 && p2.raw_result_payload && p2.raw_result_payload.map) mapName = String(p2.raw_result_payload.map);
+
+        // Per-game OCR state badge. Backend state (from compute_per_game_comparison)
+        // takes priority; falls back to simple client-side status check.
+        var gameOcrState = '';
+        var backendState = String(g.state || '');
+        if (backendState) {
+          var badgeMap = {
+            consistent:              { txt:'text-emerald-300', icon:'check-circle-2', label:'Consistent' },
+            mismatch_submitted:      { txt:'text-rose-300',    icon:'alert-triangle',  label:'Score Mismatch' },
+            mismatch_ocr:            { txt:'text-rose-300',    icon:'alert-triangle',  label:'OCR Mismatch' },
+            mismatch_submitted_vs_ocr:{ txt:'text-rose-300',   icon:'alert-triangle',  label:'Sub≠OCR' },
+            ocr_failed:              { txt:'text-rose-400',    icon:'x-circle',        label:'Scan Failed' },
+            waiting_scan:            { txt:'text-dc-text/50',  icon:'clock',           label:'Awaiting Scan' },
+            waiting_one:             { txt:'text-dc-text/50',  icon:'clock',           label:'Awaiting Submission' },
+            missing_screenshot:      { txt:'text-amber-300',   icon:'image-off',       label:'Missing Screenshot' },
+          };
+          var bm = badgeMap[backendState];
+          if (bm) {
+            gameOcrState = '<span class="text-[9px] uppercase tracking-widest font-bold ' + bm.txt + ' flex items-center gap-1">' +
+              '<i data-lucide="' + bm.icon + '" class="w-3 h-3"></i>' + bm.label + '</span>';
+          }
+        } else if (p1 || p2) {
+          // Client-side fallback for when backend evidence_games isn't available.
+          var s1st = String((p1 && p1.ocr_status) || '');
+          var s2st = String((p2 && p2.ocr_status) || '');
+          if (s1st === 'failed' || s2st === 'failed') {
+            gameOcrState = '<span class="text-[9px] uppercase tracking-widest font-bold text-rose-400">Scan Failed</span>';
+          } else if (s1st === 'pending' || s2st === 'pending' || s1st === 'running' || s2st === 'running') {
+            gameOcrState = '<span class="text-[9px] uppercase tracking-widest font-bold text-dc-text/60 animate-pulse">Scanning…</span>';
+          }
+        }
+
         return '<div class="mt-3">' +
-          '<div class="flex items-center gap-2 mb-2">' +
-            '<span class="text-[9px] font-black uppercase tracking-widest text-dc-text/60 border border-dc-border/60 rounded px-2 py-0.5">' + esc(gameLabel) + '</span>' +
-            (mapName ? '<span class="text-[9px] text-dc-text/60 font-mono">' + esc(mapName) + '</span>' : '') +
+          '<div class="flex items-center justify-between mb-2">' +
+            '<div class="flex items-center gap-2">' +
+              '<span class="text-[9px] font-black uppercase tracking-widest border border-dc-border/60 text-dc-text/60 rounded px-2 py-0.5">' + esc(gameLabel) + '</span>' +
+              (mapName ? '<span class="text-[9px] text-dc-text/60 font-mono">' + esc(mapName) + '</span>' : '') +
+            '</div>' +
+            (gameOcrState ? '<div>' + gameOcrState + '</div>' : '') +
           '</div>' +
           '<div class="grid grid-cols-1 md:grid-cols-2 gap-3">' +
             _evidenceCard(1, g.side1, teamA) +
@@ -2806,7 +2962,7 @@
         '</div>';
       }).join('');
     } else {
-      // BO1 or no game_number — original side-by-side layout.
+      // BO1 or no game_number — clean side-by-side layout.
       cardsHTML = '<div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">' +
         _evidenceCard(1, latest[1], teamA) +
         _evidenceCard(2, latest[2], teamB) +
@@ -2836,15 +2992,175 @@
       '</div>';
     }
 
+    // Archived evidence section — submissions from previous match attempts
+    // that were soft-archived by reset. Rendered muted, collapsed by default.
+    var archivedSubs = (Array.isArray(data.archived_submissions) && data.archived_submissions.length)
+      ? data.archived_submissions : [];
+    var archivedHTML = '';
+    if (archivedSubs.length) {
+      var archivedCards = archivedSubs.map(function (s) {
+        var imgUrl = String(s.screenshot_url || '').trim();
+        var thumb = imgUrl
+          ? '<button type="button" data-click="TOC.matches.openEvidenceLightbox" data-click-args="[&quot;' + esc(imgUrl) + '&quot;,&quot;Archived evidence&quot;]" ' +
+              'class="w-full mt-2 rounded-lg overflow-hidden border border-dc-border/30 group">' +
+              '<div class="relative" style="aspect-ratio:16/9;">' +
+                '<img src="' + esc(imgUrl) + '" alt="Archived" class="w-full h-full object-cover opacity-70 group-hover:opacity-90 transition-opacity" loading="lazy" ' +
+                'onerror="this.parentNode.innerHTML=\'<div class=&quot;w-full h-full flex items-center justify-center text-dc-text/30 text-[10px]&quot;>Image unavailable</div>\';" />' +
+              '</div>' +
+            '</button>'
+          : '<div class="mt-2 flex items-center justify-center h-16 rounded-lg border border-dashed border-dc-border/30 text-dc-text/30 text-[10px]">No screenshot</div>';
+        var sf = s.score_for != null ? s.score_for : '?';
+        var sa = s.score_against != null ? s.score_against : '?';
+        var sideLabel = s.side === 1 ? ('Side 1 · ' + esc(teamA)) : (s.side === 2 ? ('Side 2 · ' + esc(teamB)) : 'Unknown side');
+        var archivedAt = s.archived_at ? formatDateTime(s.archived_at) : '';
+        return '<div class="rounded-lg border border-dc-border/25 bg-dc-bg/30 p-3 opacity-80">' +
+          '<div class="flex items-center justify-between mb-1">' +
+            '<span class="text-[9px] font-black uppercase tracking-widest text-dc-text/50">' + sideLabel + '</span>' +
+            '<span class="text-[9px] font-bold uppercase tracking-widest text-zinc-500 bg-zinc-500/10 border border-zinc-500/20 rounded px-1.5 py-0.5">Archived</span>' +
+          '</div>' +
+          '<p class="text-sm font-mono font-bold text-dc-text/70 tabular-nums">' + esc(String(sf)) + '–' + esc(String(sa)) + '</p>' +
+          thumb +
+          '<p class="text-[9px] text-dc-text/40 mt-1.5 font-mono">' + esc(archivedAt) + '</p>' +
+          (s.archived_reason ? '<p class="text-[9px] text-dc-text/40 leading-snug">' + esc(s.archived_reason) + '</p>' : '') +
+        '</div>';
+      }).join('');
+      archivedHTML = '<details class="mt-4 group">' +
+        '<summary class="cursor-pointer flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-dc-text/50 hover:text-dc-text transition-colors select-none">' +
+          '<i data-lucide="clock" class="w-3.5 h-3.5 shrink-0"></i>' +
+          'Previous Attempt Evidence (' + archivedSubs.length + ')' +
+          '<i data-lucide="chevron-right" class="w-3.5 h-3.5 shrink-0 group-open:rotate-90 transition-transform"></i>' +
+        '</summary>' +
+        '<div class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">' + archivedCards + '</div>' +
+      '</details>';
+    }
+
     container.innerHTML =
       summaryHTML +
       adminActionsHTML +
       crossCheckHTML +
       cardsHTML +
       mediaHTML +
+      archivedHTML +
       timelineHTML;
 
     if (typeof lucide !== 'undefined') lucide.createIcons();
+  }
+
+  // ── OCR auto-refresh polling ─────────────────────────────────────────────
+  //
+  // The TOC SPA has no WebSocket — it uses HTTP polling with cache-stamp
+  // invalidation. When an async OCR task is queued (rescan action), the
+  // backend bumps the matches cache scope when the task completes. The
+  // short-lived poller here catches that and re-renders the Evidence tab
+  // without a manual refresh.
+  //
+  // Design:
+  //  * Starts ONLY for the specific match whose scan was queued.
+  //  * Polls GET matches/<id>/detail/ every 4 seconds.
+  //  * Stops automatically when no submission is in pending/running OCR.
+  //  * Hard cap of 90 polls (~6 min) prevents infinite loops if worker dies.
+  //  * On completion: re-renders Evidence tab in-place, shows one toast.
+  //  * While in-flight: updates submission cards' scanning overlay each tick.
+  //  * If user navigates away (selectedMatchId changes): next tick detects
+  //    the mismatch and stops silently.
+
+  var _ocrPollTimer    = null;
+  var _ocrPollMatchId  = null;
+  var _ocrPollCount    = 0;
+  var _OCR_POLL_MAX    = 90;   // 90 × 4s = 6 min safety ceiling
+  var _OCR_POLL_MS     = 4000; // 4-second cadence (generous for Gemini Flash)
+  var _ocrToastFired   = false; // prevent duplicate completion toasts per session
+
+  function _ocrPendingIn(submissions) {
+    return (submissions || []).some(function (s) {
+      var st = String(s && s.ocr_status || '').toLowerCase();
+      return st === 'pending' || st === 'running';
+    });
+  }
+
+  function _startOcrPolling(matchId) {
+    var numericId = Number(matchId);
+    if (!numericId) return;
+    // If we're already polling this match, don't restart.
+    if (_ocrPollTimer && _ocrPollMatchId === numericId) return;
+    _stopOcrPolling();
+    _ocrPollMatchId = numericId;
+    _ocrPollCount   = 0;
+    _ocrToastFired  = false;
+    _ocrPollTimer   = window.setInterval(function () {
+      _ocrPollTick(numericId);
+    }, _OCR_POLL_MS);
+  }
+
+  function _stopOcrPolling() {
+    if (_ocrPollTimer) {
+      window.clearInterval(_ocrPollTimer);
+      _ocrPollTimer = null;
+    }
+    _ocrPollMatchId = null;
+    _ocrPollCount   = 0;
+  }
+
+  async function _ocrPollTick(matchId) {
+    // Guard 1 — user navigated to a different match while poll was running.
+    if (Number(selectedMatchId) !== matchId && selectedMatchId !== null) {
+      _stopOcrPolling();
+      return;
+    }
+    // Guard 2 — safety ceiling.
+    _ocrPollCount++;
+    if (_ocrPollCount > _OCR_POLL_MAX) {
+      _stopOcrPolling();
+      if (!_ocrToastFired) {
+        _ocrToastFired = true;
+        toast('OCR scan is taking longer than expected — verify Celery worker is running.', 'warning');
+      }
+      return;
+    }
+
+    var data;
+    try {
+      data = await API.get('matches/' + matchId + '/detail/');
+    } catch (_) {
+      // Network hiccup — silent retry on next tick.
+      return;
+    }
+
+    var subs = (data && data.submissions) || [];
+    var stillActive = _ocrPendingIn(subs);
+
+    if (stillActive) {
+      // OCR still running — update the Evidence tab in-place so the scanning
+      // overlay stays current (new tick may have advanced the stage messages).
+      if (Number(selectedMatchId) === matchId) {
+        selectedMatchDetail = data;
+        renderEvidence(data);
+        switchDetailTab('evidence');
+      }
+      return; // continue polling
+    }
+
+    // All scans have settled (completed / failed / skipped / empty).
+    _stopOcrPolling();
+
+    if (Number(selectedMatchId) === matchId) {
+      selectedMatchDetail = data;
+      renderEvidence(data);
+      switchDetailTab('evidence');
+
+      if (!_ocrToastFired) {
+        _ocrToastFired = true;
+        var anyFailed  = subs.some(function (s) { return String(s.ocr_status || '') === 'failed'; });
+        var anyDone    = subs.some(function (s) { return String(s.ocr_status || '') === 'completed'; });
+        if (anyFailed && !anyDone) {
+          toast('Evidence scan failed — check OCR error in the Evidence tab.', 'error');
+        } else if (anyFailed) {
+          toast('Evidence scan complete (one or more sides failed). Review the Evidence tab.', 'warning');
+        } else if (anyDone) {
+          toast('Evidence scan complete.', 'success');
+        }
+      }
+    }
   }
 
   // P3 — Admin Scan Evidence action.
@@ -2994,14 +3310,21 @@
     } catch (_) { /* non-fatal */ }
   }
 
-  // P3.5 — Populate the 5v5 KDA grid from a submission's OCR extraction.
-  // Called when admin clicks "Populate Scorecard from OCR" in the Evidence
-  // tab. Reuses the existing ``_applyTeam5v5AIResult`` renderer so the
-  // same passport-IGN matching + confidence display logic applies.
-  // Only available for matches where the 5v5 grid section is present.
+  // P3.5 — 5v5 scorecard: preview + confirm before applying OCR data.
+  //
+  // Shows a modal preview of the extracted players + scores before
+  // populating the KDA grid, so the admin can confirm before overwriting.
+  // The preview highlights matched vs unmatched players and the extracted
+  // score so they can judge accuracy quickly.
+  //
+  // After confirming: calls _applyTeam5v5AIResult with the OCR data
+  // (existing function that handles roster matching + confidence labels).
+  // Admin must still click "Save Player Stats" to persist.
+
+  var _5v5PreviewSubId = null; // submission id pending confirmation
+
   function populateGridFromOCR(submissionId) {
     if (!submissionId) { toast('Submission id missing.', 'error'); return; }
-    // Find the submission in the currently rendered match detail.
     if (!selectedMatchDetail || !selectedMatchDetail.submissions) {
       toast('Match detail not loaded.', 'error');
       return;
@@ -3015,11 +3338,112 @@
       toast('No OCR extraction available. Run Scan Evidence first.', 'error');
       return;
     }
-    // The ocr_extracted shape from team_5v5_screenshot_service is compatible
-    // with _applyTeam5v5AIResult's expected shape. Candidate arrays may be
-    // present if the extraction was run with roster hints.
-    _applyTeam5v5AIResult(ext);
-    toast('Scorecard pre-filled from OCR extraction. Review and save.', 'success');
+    // If no participant player data in extraction, skip preview and apply directly.
+    if (!ext.participant1_players && !ext.participant2_players) {
+      _applyTeam5v5AIResult(ext);
+      toast('Scorecard pre-filled. Review rows and save.', 'success');
+      return;
+    }
+
+    _5v5PreviewSubId = submissionId;
+    _showGridPreviewModal(ext, sub);
+  }
+
+  function _showGridPreviewModal(ext, sub) {
+    var existing = document.getElementById('5v5-preview-modal');
+    if (existing && existing.parentNode) existing.parentNode.removeChild(existing);
+
+    var p1Score = ext.participant1_score != null ? ext.participant1_score : '?';
+    var p2Score = ext.participant2_score != null ? ext.participant2_score : '?';
+    var confidence = sub && sub.ocr_confidence != null
+      ? Math.round(Number(sub.ocr_confidence) * 100) + '%'
+      : 'unknown';
+
+    function _playerRows(players, sideLabel) {
+      if (!Array.isArray(players) || !players.length) {
+        return '<p class="text-[11px] text-dc-text/50 italic py-2">No player data.</p>';
+      }
+      return players.map(function (p) {
+        var matched = p && p.user_id != null;
+        var conf = String(p && p.mapping_confidence || '');
+        var ign = String((p && p.ign) || '—');
+        var label = matched
+          ? '<span class="text-emerald-400">' + esc(p.matched_label || ign) + '</span>'
+          : '<span class="text-amber-300">' + esc(ign) + ' <span class="text-[9px]">(no match)</span></span>';
+        var stats = p
+          ? (String(p.kills||0) + '/' + String(p.deaths||0) + '/' + String(p.assists||0) +
+             ' ACS:' + String(p.acs||0))
+          : '—';
+        return '<div class="flex items-center gap-3 py-1 border-b border-dc-border/20 last:border-0 text-[11px]">' +
+          '<span class="w-1.5 h-1.5 rounded-full shrink-0 ' + (matched ? 'bg-emerald-400' : 'bg-amber-400') + '"></span>' +
+          '<span class="flex-1 min-w-0">' + label + '</span>' +
+          '<span class="font-mono text-dc-text shrink-0">' + esc(stats) + '</span>' +
+        '</div>';
+      }).join('');
+    }
+
+    var p1rows = _playerRows(ext.participant1_players, 'Side 1');
+    var p2rows = _playerRows(ext.participant2_players, 'Side 2');
+
+    var modal = document.createElement('div');
+    modal.id = '5v5-preview-modal';
+    modal.className = 'fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4';
+    modal.innerHTML =
+      '<div class="w-full max-w-2xl bg-dc-panel border border-dc-border rounded-2xl overflow-hidden shadow-2xl">' +
+        '<div class="flex items-center justify-between px-5 py-3.5 border-b border-dc-border">' +
+          '<div>' +
+            '<h3 class="text-sm font-black text-white uppercase tracking-widest">Preview: Populate 5v5 Scorecard</h3>' +
+            '<p class="text-[10px] text-dc-text/60 mt-0.5">Extracted score: ' + esc(String(p1Score)) + '–' + esc(String(p2Score)) + ' · Confidence: ' + esc(confidence) + '</p>' +
+          '</div>' +
+          '<button type="button" id="5v5-preview-close" class="w-8 h-8 rounded-lg bg-dc-bg border border-dc-border flex items-center justify-center hover:bg-white/5">' +
+            '<i data-lucide="x" class="w-4 h-4 text-dc-text"></i>' +
+          '</button>' +
+        '</div>' +
+        '<div class="p-5 grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[60vh] overflow-y-auto">' +
+          '<div>' +
+            '<p class="text-[9px] font-black uppercase tracking-widest text-dc-text/50 mb-2">Side 1 Players</p>' +
+            p1rows +
+          '</div>' +
+          '<div>' +
+            '<p class="text-[9px] font-black uppercase tracking-widest text-dc-text/50 mb-2">Side 2 Players</p>' +
+            p2rows +
+          '</div>' +
+        '</div>' +
+        '<div class="flex items-center justify-between px-5 py-3.5 border-t border-dc-border bg-dc-bg/60">' +
+          '<p class="text-[10px] text-amber-300/90 flex items-center gap-1.5">' +
+            '<i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i>' +
+            'Unmatched players (amber) will be shown as empty rows for manual assignment.' +
+          '</p>' +
+          '<div class="flex items-center gap-2">' +
+            '<button type="button" id="5v5-preview-cancel" class="px-3 py-2 rounded-lg border border-dc-border text-[11px] font-bold uppercase tracking-widest text-dc-text hover:bg-dc-surface transition-colors">Cancel</button>' +
+            '<button type="button" id="5v5-preview-apply" class="px-4 py-2 rounded-lg bg-purple-500/20 border border-purple-500/40 text-purple-200 text-[11px] font-black uppercase tracking-widest hover:bg-purple-500/30 transition-colors flex items-center gap-1.5">' +
+              '<i data-lucide="grid-3x3" class="w-3.5 h-3.5"></i>Apply to Scorecard' +
+            '</button>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+
+    document.body.appendChild(modal);
+    if (typeof lucide !== 'undefined') try { lucide.createIcons(); } catch (_) {}
+
+    var closeBtn = document.getElementById('5v5-preview-close');
+    var cancelBtn = document.getElementById('5v5-preview-cancel');
+    var applyBtn = document.getElementById('5v5-preview-apply');
+    var _closeModal = function () { if (modal.parentNode) modal.parentNode.removeChild(modal); };
+
+    if (closeBtn) closeBtn.addEventListener('click', _closeModal);
+    if (cancelBtn) cancelBtn.addEventListener('click', _closeModal);
+    if (applyBtn) applyBtn.addEventListener('click', function () {
+      _closeModal();
+      _applyTeam5v5AIResult(ext);
+      toast('Scorecard populated from OCR. Unmatched rows are empty — assign manually. Save when ready.', 'success');
+    });
+    modal.addEventListener('click', function (e) {
+      if (e.target === modal) _closeModal();
+    });
+    document.addEventListener('keydown', function esc(e) {
+      if (e.key === 'Escape') { _closeModal(); document.removeEventListener('keydown', esc); }
+    });
   }
 
   // Click-to-enlarge lightbox for evidence images.
@@ -3242,22 +3666,134 @@
     } catch (e) { toast(e.message || 'Failed', 'error'); }
   }
 
+  // ── Reset Match — safety confirmation modal (P3 hardening) ─────────────
+  // One-click reset is blocked. Admin must read the consequences panel and
+  // type "RESET" before the backend accepts the request. Evidence screenshots
+  // are SOFT-ARCHIVED (not deleted) so they remain available for audit.
+
   function resetMatch() {
     if (!selectedMatchId) { toast('No match selected', 'error'); return; }
     var matchId = selectedMatchId;
-    TOC.dangerConfirm({
-      title: 'Reset Match',
-      message: 'Scores and match state will be cleared completely. This cannot be undone.',
-      confirmText: 'Reset Match',
-      onConfirm: async function () {
-        try {
-          await API.post('matches/' + matchId + '/reset/');
-          toast('Match reset', 'info');
-          refresh();
-          selectMatch(matchId);
-        } catch (e) { toast(e.message || 'Failed', 'error'); }
-      },
+    var m = (allMatches || []).find(function (x) { return x.id === matchId; }) || {};
+    var matchDetail = selectedMatchDetail ? (selectedMatchDetail.match || {}) : {};
+    var p1 = esc(matchDetail.participant1_name || m.participant1_name || 'Side 1');
+    var p2 = esc(matchDetail.participant2_name || m.participant2_name || 'Side 2');
+    var sc1 = matchDetail.participant1_score != null ? matchDetail.participant1_score : (m.participant1_score != null ? m.participant1_score : '—');
+    var sc2 = matchDetail.participant2_score != null ? matchDetail.participant2_score : (m.participant2_score != null ? m.participant2_score : '—');
+    var matchState = String(matchDetail.state || m.state || '').toLowerCase();
+    var wfStatus = String((selectedMatchDetail && selectedMatchDetail.workflow_result_status) || '');
+
+    // Build context-specific warnings.
+    var warnings = [];
+    if (matchState === 'completed') warnings.push('Match is already COMPLETED. Bracket may have advanced.');
+    if (wfStatus === 'verified' || matchState === 'completed') warnings.push('Result was verified. Resetting will undo this.');
+    if (wfStatus.includes('staged') || wfStatus.includes('ocr')) warnings.push('Evidence review/OCR in progress. Review will be cleared.');
+    if (wfStatus.includes('review')) warnings.push('Flagged for staff review. Flag will be cleared.');
+    var subs = (selectedMatchDetail && selectedMatchDetail.submissions) || [];
+    if (subs.length > 0) warnings.push('Both teams\'s submitted evidence will be ARCHIVED (not deleted). Screenshots remain visible in audit.');
+
+    var warningHtml = warnings.map(function (w) {
+      return '<div class="flex items-start gap-1.5 text-[11px] text-amber-200">' +
+        '<i data-lucide="alert-triangle" class="w-3.5 h-3.5 shrink-0 mt-0.5"></i>' +
+        '<span>' + esc(w) + '</span>' +
+      '</div>';
+    }).join('');
+
+    var existing = document.getElementById('toc-reset-match-modal');
+    if (existing && existing.parentNode) existing.parentNode.removeChild(existing);
+
+    var modal = document.createElement('div');
+    modal.id = 'toc-reset-match-modal';
+    modal.className = 'fixed inset-0 z-[200] flex items-center justify-center bg-black/85 backdrop-blur-sm p-4';
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.innerHTML =
+      '<div class="w-full max-w-md bg-dc-panel border border-dc-danger/40 rounded-2xl overflow-hidden shadow-2xl">' +
+        '<div class="px-5 py-4 border-b border-dc-border flex items-center gap-3" style="background:linear-gradient(90deg,rgba(239,68,68,.12) 0%,transparent 100%)">' +
+          '<div class="w-10 h-10 rounded-xl bg-dc-danger/20 border border-dc-danger/40 flex items-center justify-center shrink-0">' +
+            '<i data-lucide="rotate-ccw" class="w-5 h-5 text-dc-danger"></i>' +
+          '</div>' +
+          '<div>' +
+            '<h3 class="text-sm font-black text-white uppercase tracking-widest">Reset Match</h3>' +
+            '<p class="text-[10px] text-dc-text/60 mt-0.5">High-risk operation — read carefully before confirming.</p>' +
+          '</div>' +
+        '</div>' +
+        '<div class="p-5 space-y-4">' +
+          '<div class="p-3 rounded-xl bg-dc-bg/60 border border-dc-border/40 flex items-center gap-3">' +
+            '<div class="flex-1 min-w-0">' +
+              '<p class="text-[9px] font-black uppercase tracking-widest text-dc-text/50 mb-1">Match</p>' +
+              '<p class="text-sm font-black text-white">' + p1 + '<span class="text-dc-text/40 mx-2">vs</span>' + p2 + '</p>' +
+            '</div>' +
+            '<div class="text-right shrink-0">' +
+              '<p class="text-[9px] font-black uppercase tracking-widest text-dc-text/50 mb-1">Score</p>' +
+              '<p class="font-mono font-black text-white tabular-nums">' + esc(String(sc1)) + '–' + esc(String(sc2)) + '</p>' +
+            '</div>' +
+          '</div>' +
+          '<div class="space-y-2 p-3 rounded-xl border border-amber-400/20 bg-amber-500/6">' +
+            '<p class="text-[9px] font-black uppercase tracking-widest text-amber-300/80 mb-2">Consequences</p>' +
+            '<div class="space-y-1.5">' + (warningHtml || '<p class="text-[11px] text-dc-text/60">Match state will be reset. Participants can re-submit.</p>') + '</div>' +
+            '<p class="text-[11px] text-dc-text/60 mt-2 pt-2 border-t border-dc-border/30">Previous evidence screenshots are SOFT-ARCHIVED. They remain visible in the Evidence tab under "Previous Attempt Evidence".</p>' +
+          '</div>' +
+          '<div>' +
+            '<label class="text-[10px] font-black uppercase tracking-widest text-dc-text/60 block mb-1.5">Type <span class="text-dc-danger font-mono">RESET</span> to confirm</label>' +
+            '<input id="reset-confirm-input" type="text" maxlength="10" autocomplete="off" spellcheck="false" ' +
+              'class="w-full bg-dc-bg border-2 border-dc-danger/30 rounded-lg px-3 py-2.5 text-sm font-mono text-white focus:border-dc-danger outline-none transition-colors text-center uppercase tracking-widest" ' +
+              'placeholder="Type RESET" />' +
+          '</div>' +
+          '<div class="flex items-center gap-2">' +
+            '<button id="reset-cancel-btn" class="flex-1 py-2.5 rounded-lg border border-dc-border text-[11px] font-bold uppercase tracking-widest text-dc-text hover:bg-dc-surface transition-colors">Cancel</button>' +
+            '<button id="reset-confirm-btn" disabled class="flex-1 py-2.5 rounded-lg border border-dc-danger/40 bg-dc-danger/15 text-dc-danger text-[11px] font-black uppercase tracking-widest transition-colors opacity-40 cursor-not-allowed flex items-center justify-center gap-1.5">' +
+              '<i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>Confirm Reset' +
+            '</button>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+
+    document.body.appendChild(modal);
+    if (typeof lucide !== 'undefined') try { lucide.createIcons(); } catch (_) {}
+
+    var confirmInput = document.getElementById('reset-confirm-input');
+    var confirmBtn   = document.getElementById('reset-confirm-btn');
+    var cancelBtn    = document.getElementById('reset-cancel-btn');
+
+    function _close() { if (modal.parentNode) modal.parentNode.removeChild(modal); }
+
+    if (confirmInput) confirmInput.addEventListener('input', function () {
+      var ready = confirmInput.value.trim().toUpperCase() === 'RESET';
+      confirmBtn.disabled = !ready;
+      confirmBtn.classList.toggle('opacity-40', !ready);
+      confirmBtn.classList.toggle('cursor-not-allowed', !ready);
+      confirmBtn.classList.toggle('cursor-pointer', ready);
+      confirmBtn.classList.toggle('hover:bg-dc-danger/25', ready);
     });
+    if (cancelBtn) cancelBtn.addEventListener('click', _close);
+    if (confirmBtn) confirmBtn.addEventListener('click', async function () {
+      if (confirmInput.value.trim().toUpperCase() !== 'RESET') return;
+      confirmBtn.disabled = true;
+      confirmBtn.textContent = 'Resetting…';
+      try {
+        await API.post('matches/' + matchId + '/reset/', JSON.stringify({
+          confirm_reset: true,
+          confirmation_text: 'RESET',
+        }));
+        _close();
+        toast('Match reset. Previous evidence archived.', 'info');
+        refresh();
+        selectMatch(matchId);
+        switchDetailTab('evidence');
+      } catch (e) {
+        var msg = (e && e.payload && e.payload.error) || e?.message || 'Reset failed';
+        toast(msg, 'error');
+        confirmBtn.disabled = false;
+        confirmBtn.innerHTML = '<i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>Confirm Reset';
+        if (typeof lucide !== 'undefined') try { lucide.createIcons(); } catch (_) {}
+      }
+    });
+    modal.addEventListener('click', function (e) { if (e.target === modal) _close(); });
+    document.addEventListener('keydown', function esc(e) {
+      if (e.key === 'Escape') { _close(); document.removeEventListener('keydown', esc); }
+    });
+    if (confirmInput) setTimeout(function () { confirmInput.focus(); }, 80);
   }
 
   /* ============================================================
@@ -3954,6 +4490,9 @@
     scanEvidence: scanEvidence,
     evidenceAction: evidenceAction,
     populateGridFromOCR: populateGridFromOCR,
+    // Polling control (exposed for testing / programmatic triggers)
+    startOcrPolling: _startOcrPolling,
+    stopOcrPolling: _stopOcrPolling,
   };
 
   document.addEventListener('toc:tab-changed', function (e) {

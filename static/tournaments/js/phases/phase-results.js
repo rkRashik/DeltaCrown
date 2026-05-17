@@ -50,6 +50,58 @@
     var workflow = c.asObject(c.state.room.workflow);
     var status = String(workflow.result_status || 'pending').toLowerCase();
 
+    // ── Score staged for admin override ────────────────────────────────
+    if (status === 'score_staged_for_override') {
+      return '<div class="mt-4 rounded-xl border border-amber-500/30 bg-amber-500/8 p-4">' +
+        '<div class="flex items-start gap-3">' +
+          '<div class="w-9 h-9 rounded-lg bg-amber-500/15 border border-amber-400/30 flex items-center justify-center shrink-0">' +
+            '<i data-lucide="clock" class="w-5 h-5 text-amber-300"></i>' +
+          '</div>' +
+          '<div class="flex-1 min-w-0">' +
+            '<p class="text-sm font-black text-amber-200 uppercase tracking-widest">Score Override Staged</p>' +
+            '<p class="text-xs text-gray-200 mt-1">A tournament admin has staged a score override. The bracket has not advanced yet. The result will be confirmed shortly once an admin verifies it.</p>' +
+          '</div>' +
+        '</div>' +
+        _nextStepCTAs(c) +
+      '</div>';
+    }
+
+    // ── Staff review states (P3) ────────────────────────────────────────
+    if (status === 'ocr_review_needed' || status === 'staff_review_required' || status === 'consistent_low_confidence') {
+      var reviewReason = status === 'consistent_low_confidence'
+        ? 'Your screenshots were scanned but extraction confidence is low. Staff will verify before confirming.'
+        : 'Your submitted evidence is under staff review. The result will be confirmed or queried once reviewed.';
+      return '<div class="mt-4 rounded-xl border border-amber-500/30 bg-amber-500/8 p-4">' +
+        '<div class="flex items-start gap-3">' +
+          '<div class="w-9 h-9 rounded-lg bg-amber-500/15 border border-amber-400/30 flex items-center justify-center shrink-0">' +
+            '<i data-lucide="shield" class="w-5 h-5 text-amber-300"></i>' +
+          '</div>' +
+          '<div class="flex-1 min-w-0">' +
+            '<p class="text-sm font-black text-amber-200 uppercase tracking-widest">Staff Review In Progress</p>' +
+            '<p class="text-xs text-gray-200 mt-1">' + reviewReason + '</p>' +
+            '<p class="text-[11px] text-amber-200/70 mt-2">You can safely leave the lobby. You\'ll be notified once the result is confirmed.</p>' +
+          '</div>' +
+        '</div>' +
+        _nextStepCTAs(c) +
+      '</div>';
+    }
+
+    // ── OCR verified candidate (safe to verify) ─────────────────────────
+    if (status === 'ocr_verified_candidate' || status === 'ocr_accepted_pending_verify') {
+      return '<div class="mt-4 rounded-xl border border-emerald-500/30 bg-emerald-500/8 p-4">' +
+        '<div class="flex items-start gap-3">' +
+          '<div class="w-9 h-9 rounded-lg bg-emerald-500/15 border border-emerald-400/30 flex items-center justify-center shrink-0">' +
+            '<i data-lucide="check-circle-2" class="w-5 h-5 text-emerald-300"></i>' +
+          '</div>' +
+          '<div class="flex-1 min-w-0">' +
+            '<p class="text-sm font-black text-emerald-200 uppercase tracking-widest">Evidence Consistent</p>' +
+            '<p class="text-xs text-gray-200 mt-1">Both submissions and screenshots agree. A staff member will confirm the final result shortly.</p>' +
+          '</div>' +
+        '</div>' +
+        _nextStepCTAs(c) +
+      '</div>';
+    }
+
     // ── Verified / Finalized ────────────────────────────────────────────
     if (status === 'verified' || status === 'admin_overridden' || status === 'verified_draw' || status === 'admin_overridden_draw') {
       return '<div class="mt-4 rounded-xl border border-green-500/30 bg-gradient-to-br from-green-500/15 via-green-500/5 to-transparent p-4 reveal-pulse">' +

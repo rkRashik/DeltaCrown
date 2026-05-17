@@ -14,6 +14,7 @@ import re
 from typing import Any, Dict, List, Optional
 
 from django.db.models import Q
+from django.urls import reverse
 from django.utils import timezone
 
 from apps.tournaments.models.dispute import DisputeRecord, DisputeEvidence
@@ -96,6 +97,7 @@ class TOCDisputesService:
                 'id': e.id,
                 'evidence_type': e.evidence_type,
                 'url': e.url,
+                'file_url': reverse("dashboard:competitive_dispute_evidence_file", args=[e.pk]) if e.evidence_file else None,
                 'notes': e.notes,
                 'uploaded_by_id': e.uploaded_by_id,
                 'created_at': e.created_at.isoformat(),
@@ -249,8 +251,8 @@ class TOCDisputesService:
         return {
             'id': ev.id,
             'evidence_type': ev.evidence_type,
-            'url': ev.url or (ev.evidence_file.url if ev.evidence_file else ''),
-            'file_url': ev.evidence_file.url if ev.evidence_file else None,
+            'url': ev.url,
+            'file_url': reverse("dashboard:competitive_dispute_evidence_file", args=[ev.pk]) if ev.evidence_file else None,
             'notes': ev.notes,
             'created_at': ev.created_at.isoformat(),
         }

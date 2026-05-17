@@ -28,7 +28,7 @@ class Challenge(SoftDeleteModel):
     A competitive challenge between two teams for a specific game.
     
     The challenger_team issues the challenge; the challenged_team accepts/declines.
-    Optionally includes a prize (Crown Points or USD wager) and custom
+    Optionally includes a platform reward and custom
     game-specific format settings.
     """
 
@@ -94,7 +94,7 @@ class Challenge(SoftDeleteModel):
         ('DIRECT', 'Direct Challenge — Named opponent'),
         ('OPEN', 'Open Challenge — Any team can accept'),
         ('RANKED', 'Ranked Challenge — Affects rankings'),
-        ('WAGER', 'Wager Match — Prize pool at stake'),
+        ('WAGER', 'Reward Match — Entry fee locked'),
         ('SCRIM', 'Scrim / Practice — No ranking impact'),
     ]
     challenge_type = models.CharField(
@@ -143,7 +143,7 @@ class Challenge(SoftDeleteModel):
         help_text="Preferred server region (e.g., 'NA-East', 'EU-West', 'SEA')"
     )
 
-    # ── Prize / Wager ────────────────────────────────────────────────────
+    # ── Reward / Entry Fee ───────────────────────────────────────────────
     PRIZE_TYPE_CHOICES = [
         ('NONE', 'No Prize'),
         ('CP', 'Crown Points'),
@@ -272,18 +272,18 @@ class Challenge(SoftDeleteModel):
     )
 
     # ── Economy / Escrow ─────────────────────────────────────────────────
-    # Legacy field kept for back-compat (predates Crown Clash).  All new
-    # Crown Clash code uses ``entry_fee_dc`` instead.
+    # Legacy field kept for back-compat. All new Showdown code uses
+    # ``entry_fee_dc`` instead.
     wager_amount_dc = models.PositiveIntegerField(
         default=0,
-        help_text="[Legacy] Replaced by entry_fee_dc for new Crown Clash matches."
+        help_text="[Legacy] Replaced by entry_fee_dc for new Showdown matches."
     )
     escrow_locked = models.BooleanField(
         default=False,
         help_text="True once ALL participants have had their escrow funds locked."
     )
 
-    # Crown Clash entry fee — each participant locks this many DC into escrow.
+    # Showdown entry fee — each participant locks this many DC into escrow.
     # Total prize pot = entry_fee_dc * 2 once both sides are locked.
     entry_fee_dc = models.PositiveIntegerField(
         default=0,
@@ -349,14 +349,14 @@ class Challenge(SoftDeleteModel):
         on_delete=models.SET_NULL,
         null=True, blank=True,
         related_name='+',
-        help_text="User whose personal wallet funded the challenger team's stake."
+        help_text="User whose personal wallet funded the challenger team's locked entry."
     )
     funded_by_challenged = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
         null=True, blank=True,
         related_name='+',
-        help_text="User whose personal wallet funded the challenged team's stake."
+        help_text="User whose personal wallet funded the challenged team's locked entry."
     )
 
     # ── Match Room (synthetic tournament-backed lobby) ────────────────
@@ -365,7 +365,7 @@ class Challenge(SoftDeleteModel):
         on_delete=models.SET_NULL,
         null=True, blank=True,
         related_name='+',
-        help_text="Match Room spawned when this Crown Clash is accepted."
+        help_text="Match Room spawned when this Showdown is accepted."
     )
 
     # Managers — default excludes soft-deleted rows
@@ -419,7 +419,7 @@ class Challenge(SoftDeleteModel):
 
     @property
     def is_crown_clash(self) -> bool:
-        """A Challenge is a Crown Clash when it carries a non-zero entry fee."""
+        """A Challenge is a Showdown when it carries a non-zero entry fee."""
         return self.entry_fee_dc > 0
 
     @property
@@ -430,7 +430,7 @@ class Challenge(SoftDeleteModel):
         return self.entry_fee_dc * 2 if self.escrow_locked else self.entry_fee_dc
 
     def clash_ref_id(self, side: str = '') -> str:
-        """Stable escrow reference_id for this Crown Clash.
+        """Stable escrow reference_id for this Showdown.
 
         ``side`` is one of 'challenger' / 'challenged' for per-side locks,
         or '' for the settlement-level reference.

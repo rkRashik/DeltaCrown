@@ -594,6 +594,8 @@
      ═══════════════════════════════════════════════════════════════════════ */
   const Competition = {
     _loaded: false,
+    _operations: [],
+    _settings: null,
 
     init() {
       // Lazy-load when section becomes visible
@@ -609,8 +611,313 @@
     },
 
     async loadData() {
-      // Competition data will come from P1 API endpoint when available.
-      // For now we leave the static placeholders.
+      const section = document.getElementById("competition");
+      if (!section) return;
+      this._setLoading();
+      try {
+        const [opsResult, settingsResult] = await Promise.allSettled([
+          api("/api/v1/competitive/my-operations/", { method: "GET" }),
+          api("competitive-settings/", { method: "GET" }),
+        ]);
+        if (opsResult.status === "rejected") throw opsResult.reason;
+        const body = opsResult.value;
+        const all = Array.isArray(body) ? body : (body.results || []);
+        const teamId = String(section.dataset.teamId || "");
+        const teamName = String(section.dataset.teamName || "").toLowerCase();
+        this._operations = all.filter((op) => {
+          const opTeamId = String(op.team_id || "");
+          const opTeamName = String(op.team_name || "").toLowerCase();
+          return (teamId && opTeamId === teamId) || (teamName && opTeamName === teamName);
+        });
+        if (settingsResult.status === "fulfilled") {
+          this._settings = settingsResult.value.settings || null;
+        } else {
+          this._settings = null;
+          this._settingsState(settingsResult.reason?.message || "Could not load competitive settings.", "error");
+        }
+        this.render();
+      } catch (err) {
+        this._setError(err.message || "Could not load competitive operations.");
+      }
+    },
+
+    refresh() {
+      this.loadData();
+    },
+
+    _setLoading() {
+      const skeleton = `
+        <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+          <div class="h-3 w-24 rounded bg-white/10 animate-pulse mb-3"></div>
+          <div class="h-5 w-3/4 rounded bg-white/10 animate-pulse mb-4"></div>
+          <div class="h-2 w-full rounded bg-white/10 animate-pulse"></div>
+        </div>`;
+      const active = qs("#team-comp-active-list");
+      const history = qs("#team-comp-history");
+      const feed = qs("#team-comp-feed");
+      if (active) active.innerHTML = skeleton + skeleton;
+      if (history) history.innerHTML = skeleton;
+      if (feed) feed.innerHTML = skeleton;
+    },
+
+    _setError(message) {
+      const html = `<div class="rounded-2xl border border-red-400/20 bg-red-400/10 p-5 text-sm text-red-100/80">${esc(message)}</div>`;
+      ["team-comp-active-list", "team-comp-history", "team-comp-feed"].forEach((id) => {
+        const el = document.getElementById(id);
+        if (el) el.innerHTML = html;
+      });
+    },
+
+    render() {
+      const ops = this._operations || [];
+      const active = ops.filter((op) => !this._isTerminal(op));
+      const history = ops.filter((op) => this._isTerminal(op));
+      const review = ops.filter((op) => this._needsReview(op));
+      const rooms = ops.filter((op) => !!op.match_room_url).length;
+      const rewards = ops.reduce((sum, op) => sum + Number(op.reward_dc || 0), 0);
+      this._setText("team-comp-stat-active", active.length);
+      this._setText("team-comp-stat-rooms", rooms);
+      this._setText("team-comp-stat-review", review.length);
+      this._setText("team-comp-stat-rewards", rewards ? rewards.toLocaleString() : "0");
+      this._renderActive(active);
+      this._renderHistory(history);
+      this._renderFeed(ops);
+      this._renderSettings();
+      if (window.lucide) lucide.createIcons();
+    },
+
+    _setText(id, value) {
+      const el = document.getElementById(id);
+      if (el) el.textContent = value;
+    },
+
+    _isTerminal(op) {
+      const status = String(op.status || "").toUpperCase();
+      return /SETTLED|COMPLETED|PAID|REJECTED|REFUNDED|VOIDED|CANCELLED|EXPIRED|SIGNED|DECLINED/.test(status);
+    },
+
+    _needsReview(op) {
+      const haystack = `${op.status || ""} ${op.next_action_label || ""} ${op.review_state_label || ""}`.toLowerCase();
+      return !!op.is_action_required || /review|dispute|proof|confirmation|rejected|conflict/.test(haystack);
+    },
+
+    _meta(type) {
+      return {
+        showdown: { label: "Showdown", icon: "zap", color: "text-cyan-300", bg: "bg-cyan-400/10", border: "border-cyan-400/20" },
+        bounty: { label: "Bounty", icon: "crosshair", color: "text-red-300", bg: "bg-red-400/10", border: "border-red-400/20" },
+        dropzone: { label: "Dropzone", icon: "map", color: "text-amber-300", bg: "bg-amber-400/10", border: "border-amber-400/20" },
+        mission: { label: "Missions", icon: "target", color: "text-violet-300", bg: "bg-violet-400/10", border: "border-violet-400/20" },
+        scrim: { label: "Scrim", icon: "swords", color: "text-emerald-300", bg: "bg-emerald-400/10", border: "border-emerald-400/20" },
+        tryout: { label: "Tryout", icon: "user-check", color: "text-blue-300", bg: "bg-blue-400/10", border: "border-blue-400/20" },
+        practice: { label: "Practice", icon: "calendar", color: "text-teal-300", bg: "bg-teal-400/10", border: "border-teal-400/20" },
+        vod_review: { label: "VOD Review", icon: "video", color: "text-purple-300", bg: "bg-purple-400/10", border: "border-purple-400/20" },
+      }[type] || { label: "Operation", icon: "activity", color: "text-white/70", bg: "bg-white/10", border: "border-white/15" };
+    },
+
+    _progress(op) {
+      const text = `${op.status || ""} ${op.next_action_label || ""} ${op.review_state_label || ""}`.toLowerCase();
+      if (/settled|completed|signed|accepted|view result|confirmed/.test(text)) return 5;
+      if (/review|dispute|proof|confirmation|scoring/.test(text)) return 4;
+      if (/match room|scheduled|room details|awaiting results/.test(text)) return 3;
+      if (/accepted|reserved|active|track/.test(text)) return 2;
+      return 1;
+    },
+
+    _operationCard(op) {
+      const meta = this._meta(op.type);
+      const game = op.game && (op.game.short_code || op.game.name) ? (op.game.short_code || op.game.name) : "ANY";
+      const dt = op.scheduled_at || op.starts_at || op.created_at;
+      const when = dt ? new Date(dt).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "";
+      const actionUrl = op.next_action_url || op.match_room_url || op.detail_url || "/dashboard/competitive/#my-operations";
+      const detailUrl = op.detail_url || actionUrl;
+      const reward = op.reward_dc ? `${Number(op.reward_dc).toLocaleString()} DC` : (op.reward_summary || "");
+      const progress = this._progress(op);
+      return `
+        <div class="rounded-2xl border ${meta.border} ${meta.bg} p-4 hover:bg-white/[0.07] transition group">
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0">
+              <div class="flex items-center gap-2 mb-1">
+                <i data-lucide="${meta.icon}" class="w-4 h-4 ${meta.color}"></i>
+                <span class="text-[10px] font-black uppercase tracking-widest ${meta.color}">${meta.label}</span>
+              </div>
+              <h4 class="text-sm font-bold text-white truncate">${esc(op.title || meta.label)}</h4>
+            </div>
+            <span class="text-[10px] uppercase tracking-widest text-white/40 font-mono">${esc(op.status || "")}</span>
+          </div>
+          <div class="${meta.color} grid grid-cols-5 gap-1 mt-3 mb-3">
+            ${[1, 2, 3, 4, 5].map((i) => `<span class="h-1 rounded-full ${i <= progress ? "bg-current shadow-[0_0_10px_currentColor]" : "bg-white/10"}"></span>`).join("")}
+          </div>
+          <div class="flex flex-wrap items-center gap-2 text-[11px] text-white/45 mb-3">
+            <span>${esc(game)}</span>
+            ${when ? `<span>&middot;</span><span>${esc(when)}</span>` : ""}
+            ${op.entry_fee_dc ? `<span>&middot;</span><span>${Number(op.entry_fee_dc).toLocaleString()} DC entry</span>` : ""}
+            ${reward ? `<span>&middot;</span><span class="text-amber-300">${esc(reward)}</span>` : ""}
+          </div>
+          ${op.review_state_label ? `<div class="mb-3 rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-[10px] font-black uppercase tracking-widest text-white/55">${esc(op.review_state_label)}</div>` : ""}
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <a href="${esc(actionUrl)}" class="rounded-xl border border-white/10 bg-white/[0.06] px-3 py-2 text-center text-[10px] font-black uppercase tracking-widest text-white/80 hover:text-white hover:bg-white/[0.1] transition">${esc(op.next_action_label || "Open")}</a>
+            <a href="${esc(detailUrl)}" class="rounded-xl border border-cyan-400/15 bg-cyan-400/10 px-3 py-2 text-center text-[10px] font-black uppercase tracking-widest text-cyan-200 hover:bg-cyan-400/15 transition">Details</a>
+          </div>
+        </div>`;
+    },
+
+    _renderActive(active) {
+      const el = qs("#team-comp-active-list");
+      if (!el) return;
+      if (!active.length) {
+        el.innerHTML = `<div class="xl:col-span-2 rounded-2xl border border-white/10 bg-white/[0.03] p-6 text-center text-sm text-white/45">No active competitive operations for this team. Use the quick actions above to start from the Competitive Hub.</div>`;
+        return;
+      }
+      el.innerHTML = active.slice(0, 8).map((op) => this._operationCard(op)).join("");
+    },
+
+    _renderHistory(history) {
+      const el = qs("#team-comp-history");
+      if (!el) return;
+      if (!history.length) {
+        el.innerHTML = `<div class="rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-sm text-white/45">No completed competitive records yet.</div>`;
+        return;
+      }
+      el.innerHTML = history.slice(0, 8).map((op) => {
+        const meta = this._meta(op.type);
+        return `
+          <a href="${esc(op.detail_url || op.next_action_url || "/dashboard/competitive/#my-operations")}" class="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-3 hover:bg-white/[0.06] transition">
+            <div class="h-9 w-9 rounded-xl ${meta.bg} border ${meta.border} grid place-items-center shrink-0"><i data-lucide="${meta.icon}" class="w-4 h-4 ${meta.color}"></i></div>
+            <div class="min-w-0 flex-1">
+              <p class="text-sm font-bold text-white truncate">${esc(op.title || meta.label)}</p>
+              <p class="text-[11px] text-white/40">${esc(meta.label)} &middot; ${esc(op.status || "Closed")}</p>
+            </div>
+            <i data-lucide="chevron-right" class="w-4 h-4 text-white/30"></i>
+          </a>`;
+      }).join("");
+    },
+
+    _renderFeed(ops) {
+      const el = qs("#team-comp-feed");
+      if (!el) return;
+      if (!ops.length) {
+        el.innerHTML = `<div class="rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-sm text-white/45">Competitive feed is quiet.</div>`;
+        return;
+      }
+      el.innerHTML = ops.slice(0, 10).map((op) => {
+        const meta = this._meta(op.type);
+        return `
+          <div class="flex items-start gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+            <div class="h-8 w-8 rounded-xl ${meta.bg} border ${meta.border} grid place-items-center shrink-0">
+              <i data-lucide="${meta.icon}" class="w-4 h-4 ${meta.color}"></i>
+            </div>
+            <div class="min-w-0">
+              <p class="text-sm font-semibold text-white/90">${esc(op.next_action_label || op.status || "Updated")}</p>
+              <p class="text-[11px] text-white/42 mt-0.5">${esc(op.title || meta.label)}</p>
+            </div>
+          </div>`;
+      }).join("");
+    },
+
+    _renderSettings() {
+      const settings = this._settings;
+      const form = qs("#team-comp-settings-form");
+      if (!form || !settings) return;
+      const canEdit = !!settings.can_edit;
+      const setValue = (id, value) => {
+        const el = qs(`#${id}`);
+        if (el) el.value = value ?? "";
+      };
+      const setChecked = (id, value) => {
+        const el = qs(`#${id}`);
+        if (el) el.checked = !!value;
+      };
+      setValue("team-comp-showdown-policy", settings.showdown_create_policy || "owner_manager_captain");
+      setValue("team-comp-bounty-policy", settings.bounty_create_policy || "owner_manager_captain");
+      setValue("team-comp-max-showdown", settings.max_showdown_entry_fee_dc ?? 1000);
+      setValue("team-comp-max-bounty", settings.max_bounty_reward_dc ?? 10000);
+      setValue("team-comp-bounty-approval", settings.bounty_approval_required_above_dc ?? 0);
+      setChecked("team-comp-public-scrim", settings.allow_public_scrim_availability !== false);
+      setChecked("team-comp-public-tryout", settings.allow_public_tryout_applications !== false);
+
+      const gamesEl = qs("#team-comp-allowed-games");
+      if (gamesEl) {
+        const selected = new Set((settings.allowed_game_ids || []).map(String));
+        const games = settings.available_games || [];
+        gamesEl.innerHTML = games.map((game) => {
+          const label = game.display_name || game.name || game.slug || `Game #${game.id}`;
+          const isSelected = selected.has(String(game.id)) ? " selected" : "";
+          return `<option value="${esc(game.id)}"${isSelected}>${esc(label)}</option>`;
+        }).join("");
+      }
+
+      form.querySelectorAll("input, select, button").forEach((el) => {
+        if (el.id === "team-comp-settings-save") {
+          el.disabled = !canEdit;
+          return;
+        }
+        el.disabled = !canEdit;
+      });
+      const lock = qs("#team-comp-settings-lock");
+      if (lock) {
+        lock.textContent = canEdit
+          ? "Owners and managers can edit these service-enforced policies."
+          : "Read-only. Only team owners and managers can edit competitive settings.";
+      }
+    },
+
+    _settingsState(message, type = "info") {
+      const el = qs("#team-comp-settings-state");
+      if (!el) return;
+      el.textContent = message || "";
+      el.classList.toggle("hidden", !message);
+      el.classList.toggle("border-red-400/20", type === "error");
+      el.classList.toggle("bg-red-400/10", type === "error");
+      el.classList.toggle("text-red-100/80", type === "error");
+      el.classList.toggle("border-emerald-400/20", type === "success");
+      el.classList.toggle("bg-emerald-400/10", type === "success");
+      el.classList.toggle("text-emerald-100/80", type === "success");
+    },
+
+    async saveSettings() {
+      const settings = this._settings;
+      if (!settings?.can_edit) {
+        toast("Only team owners and managers can edit competitive settings.", "error");
+        return;
+      }
+      const gamesEl = qs("#team-comp-allowed-games");
+      const selectedGames = gamesEl
+        ? Array.from(gamesEl.selectedOptions).map((option) => Number(option.value)).filter(Boolean)
+        : [];
+      const payload = {
+        showdown_create_policy: qs("#team-comp-showdown-policy")?.value || "owner_manager_captain",
+        bounty_create_policy: qs("#team-comp-bounty-policy")?.value || "owner_manager_captain",
+        max_showdown_entry_fee_dc: Number(qs("#team-comp-max-showdown")?.value || 0),
+        max_bounty_reward_dc: Number(qs("#team-comp-max-bounty")?.value || 0),
+        bounty_approval_required_above_dc: Number(qs("#team-comp-bounty-approval")?.value || 0),
+        allowed_game_ids: selectedGames,
+        allow_public_scrim_availability: !!qs("#team-comp-public-scrim")?.checked,
+        allow_public_tryout_applications: !!qs("#team-comp-public-tryout")?.checked,
+      };
+      const saveBtn = qs("#team-comp-settings-save");
+      const original = saveBtn?.textContent || "Save Settings";
+      if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.textContent = "Saving...";
+      }
+      try {
+        const data = await api("competitive-settings/", {
+          method: "PATCH",
+          body: JSON.stringify(payload),
+        });
+        this._settings = data.settings || this._settings;
+        this._renderSettings();
+        this._settingsState("Competitive settings saved and will be enforced by Showdown/Bounty services.", "success");
+        toast("Competitive settings saved.", "success");
+      } catch (err) {
+        this._settingsState(err.message || "Could not save competitive settings.", "error");
+        toast(err.message || "Could not save settings.", "error");
+      } finally {
+        if (saveBtn) {
+          saveBtn.disabled = !this._settings?.can_edit;
+          saveBtn.textContent = original;
+        }
+      }
     },
   };
 
@@ -3398,6 +3705,9 @@
     // Core
     api,
     toast,
+    goCompetitiveHub: (hash) => { window.location.href = `/dashboard/competitive/#${hash || "my-operations"}`; },
+    openCompetitiveOperations: () => { window.location.href = "/dashboard/competitive/#my-operations"; },
+    openCompetitiveShowdown: () => { window.location.href = "/dashboard/competitive/#showdown"; },
     // Roster
     openInviteModal:   ()                        => Roster.openInviteModal(),
     cancelInvite:      (id, btn)                 => Roster.cancelInvite(id, btn),
@@ -3415,6 +3725,11 @@
     closeMemberInfo:   (e)                        => MemberInfo.close(e),
     // Command Center
     loadMoreActivity:  ()                        => Command.loadMore(),
+    // Competitive Control Center
+    Competition: {
+      refresh: () => Competition.refresh(),
+      saveSettings: () => Competition.saveSettings(),
+    },
     // Self-Edit (player edits own card)
     openSelfEditModal: (id, name, pr, slot, dn, img) => SelfEdit.open(id, name, pr, slot, dn, img),
     previewSelfPhoto:  (input)                   => SelfEdit.previewPhoto(input),

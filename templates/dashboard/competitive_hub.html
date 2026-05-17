@@ -130,6 +130,46 @@
   .tab-trigger.active i { color: #fff; }
   .tab-trigger.active span { color: #fff; }
 
+  .command-metric {
+    position: relative;
+    overflow: hidden;
+    border-radius: 18px;
+    background: linear-gradient(135deg, rgba(255,255,255,.075), rgba(255,255,255,.018));
+    border: 1px solid rgba(255,255,255,.085);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
+  }
+  .command-metric::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: .36;
+    pointer-events: none;
+    background: linear-gradient(110deg, transparent 0%, rgba(255,255,255,.08) 48%, transparent 60%);
+    transform: translateX(-120%);
+    transition: transform .7s cubic-bezier(.16,1,.3,1);
+  }
+  .command-metric:hover::after { transform: translateX(120%); }
+  .status-rail {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: .35rem;
+  }
+  .status-rail span {
+    height: 4px;
+    border-radius: 999px;
+    background: rgba(255,255,255,.10);
+  }
+  .status-rail span.is-on { background: currentColor; box-shadow: 0 0 12px currentColor; }
+  .premium-card {
+    background: linear-gradient(145deg, rgba(255,255,255,.075), rgba(255,255,255,.018));
+    border: 1px solid rgba(255,255,255,.08);
+    box-shadow: 0 20px 60px -28px rgba(0,0,0,.9), inset 0 1px 0 rgba(255,255,255,.05);
+  }
+  .premium-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(255,255,255,.18);
+  }
+
   /* Accent rings on cards */
   .accent-cyan   { border-color: rgba(0,229,255,.18) !important; }
   .accent-cyan:hover   { border-color: rgba(0,229,255,.55) !important; box-shadow: 0 16px 56px -14px rgba(0,229,255,.50), 0 0 28px -4px rgba(0,229,255,.35); }
@@ -202,6 +242,28 @@
           Initializing competitive engine&hellip;
         </p>
         <div id="hero-actions" class="flex flex-wrap items-center gap-4"></div>
+        <div id="hero-command-strip" class="grid grid-cols-2 md:grid-cols-5 gap-3 mt-8 max-w-4xl">
+          <div class="command-metric p-4">
+            <p class="text-[9px] uppercase tracking-widest text-gray-500 font-black">Active Ops</p>
+            <p id="metric-active-ops" class="font-display text-3xl font-black text-white leading-none mt-1">--</p>
+          </div>
+          <div class="command-metric p-4">
+            <p class="text-[9px] uppercase tracking-widest text-gray-500 font-black">Upcoming</p>
+            <p id="metric-upcoming" class="font-display text-3xl font-black text-dc-cyan leading-none mt-1">--</p>
+          </div>
+          <div class="command-metric p-4">
+            <p class="text-[9px] uppercase tracking-widest text-gray-500 font-black">Review</p>
+            <p id="metric-review" class="font-display text-3xl font-black text-dc-neon leading-none mt-1">--</p>
+          </div>
+          <div class="command-metric p-4">
+            <p class="text-[9px] uppercase tracking-widest text-gray-500 font-black">Team Ops</p>
+            <p id="metric-team-ops" class="font-display text-3xl font-black text-emerald-300 leading-none mt-1">--</p>
+          </div>
+          <div class="command-metric p-4 col-span-2 md:col-span-1">
+            <p class="text-[9px] uppercase tracking-widest text-gray-500 font-black">Rewards</p>
+            <p id="metric-rewards" class="font-display text-3xl font-black text-dc-gold leading-none mt-1">--</p>
+          </div>
+        </div>
       </div>
       <div id="hero-visualizer" class="hidden lg:flex flex-col items-end justify-center w-72 flex-shrink-0"></div>
     </div>
@@ -331,6 +393,16 @@
           <i class="fa-solid fa-crown text-xl mb-1.5 text-gray-500 group-hover:text-dc-gold transition-colors relative z-10"></i>
           <span class="font-bold text-sm tracking-wide text-gray-400 group-hover:text-white relative z-10">Dropzone</span>
         </button>
+        <button class="tab-trigger relative flex-1 min-w-[140px] glass-light border border-transparent px-5 py-4 rounded-xl flex flex-col items-center justify-center transition-all group overflow-hidden" data-tab="operations">
+          <div class="absolute inset-0 bg-gradient-to-t from-emerald-400/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+          <i class="fa-solid fa-layer-group text-xl mb-1.5 text-gray-500 group-hover:text-emerald-300 transition-colors relative z-10"></i>
+          <span class="font-bold text-sm tracking-wide text-gray-400 group-hover:text-white relative z-10">My Operations</span>
+        </button>
+        <button class="tab-trigger relative flex-1 min-w-[140px] glass-light border border-transparent px-5 py-4 rounded-xl flex flex-col items-center justify-center transition-all group overflow-hidden" data-tab="review">
+          <div class="absolute inset-0 bg-gradient-to-t from-red-400/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+          <i class="fa-solid fa-shield-halved text-xl mb-1.5 text-gray-500 group-hover:text-red-300 transition-colors relative z-10"></i>
+          <span class="font-bold text-sm tracking-wide text-gray-400 group-hover:text-white relative z-10">Review</span>
+        </button>
       </div>
 
       {# Tab content container #}
@@ -385,6 +457,43 @@
             </div>
           </div>
           <div id="royale-feed" class="grid grid-cols-1 md:grid-cols-2 gap-4 overflow-y-auto max-h-[600px] pr-2"></div>
+        </div>
+
+        <div id="tab-content-operations" class="tab-content w-full h-full p-5 space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-4 border-b border-white/5 pb-4">
+            <div>
+              <h2 class="font-display text-2xl font-bold text-white flex items-center gap-2">
+                <i class="fa-solid fa-layer-group text-emerald-300"></i> My Operations
+              </h2>
+              <p class="text-xs text-gray-400 mt-1">One timeline across competitive and team operations. Follow the next action, review state, and Match Room links.</p>
+            </div>
+            <a href="{% url 'dashboard:competitive_dispute_center' %}" class="inline-flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2 text-[10px] font-black uppercase tracking-widest text-gray-300 hover:text-white hover:border-dc-cyan/40">
+              <i class="fa-solid fa-shield-halved"></i> Dispute Center
+            </a>
+          </div>
+          <div id="operations-workspace" class="grid grid-cols-1 xl:grid-cols-2 gap-4"></div>
+        </div>
+
+        <div id="tab-content-review" class="tab-content w-full h-full p-5 space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-4 border-b border-white/5 pb-4">
+            <div>
+              <h2 class="font-display text-2xl font-bold text-white flex items-center gap-2">
+                <i class="fa-solid fa-shield-halved text-dc-neon"></i> Review / Disputes
+              </h2>
+              <p class="text-xs text-gray-400 mt-1">Proof, result confirmation, and dispute states that need attention.</p>
+            </div>
+            <div class="flex flex-wrap gap-2">
+              <a href="{% url 'dashboard:competitive_dispute_center' %}" class="inline-flex items-center justify-center gap-2 rounded-xl border border-dc-neon/25 bg-dc-neon/10 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-dc-neon hover:bg-dc-neon/20">
+                Open Center
+              </a>
+              {% if request.user.is_staff %}
+              <a href="{% url 'dashboard:competitive_review_workspace' %}" class="inline-flex items-center justify-center gap-2 rounded-xl border border-dc-cyan/25 bg-dc-cyan/10 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-dc-cyan hover:bg-dc-cyan/20">
+                Staff Queue
+              </a>
+              {% endif %}
+            </div>
+          </div>
+          <div id="review-workspace" class="space-y-4"></div>
         </div>
 
       </div>

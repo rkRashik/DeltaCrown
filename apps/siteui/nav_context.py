@@ -24,9 +24,9 @@ def nav_context(request) -> Dict[str, Any]:
     nav_user_can_create_event = False
     nav_primary_items: List[Dict[str, Any]] = []
 
+    nav_live_count: int = 0
+
     if not nav_live:
-        # Live: any tournament with stream url and currently within start/end window.
-        # Cache briefly since this value is global and expensive to recompute on every request.
         try:
             T = apps.get_model("tournaments", "Tournament")
             nav_live = T.objects.filter(
@@ -38,6 +38,17 @@ def nav_context(request) -> Dict[str, Any]:
             safe_cache_set('siteui:nav_live:v1', nav_live, 30)
         except Exception:
             pass
+
+    # Live match count for Arena badge (cached 60s to be lightweight)
+    try:
+        cached_count = safe_cache_get('siteui:nav_live_count:v1')
+        if cached_count is None:
+            M = apps.get_model("tournaments", "Match")
+            cached_count = M.objects.filter(is_deleted=False, state="live").count()
+            safe_cache_set('siteui:nav_live_count:v1', cached_count, 60)
+        nav_live_count = int(cached_count or 0)
+    except Exception:
+        nav_live_count = 0
 
     # Notifications unread count (if app installed and user authenticated)
     # UP PHASE 3: Include pending follow requests in count
@@ -104,6 +115,7 @@ def nav_context(request) -> Dict[str, Any]:
 
     return {
         "nav_live": nav_live,
+        "nav_live_count": nav_live_count,
         "nav_unread_count": nav_unread_count,
         "nav_user_can_create_event": nav_user_can_create_event,
         "nav_primary_items": nav_primary_items,

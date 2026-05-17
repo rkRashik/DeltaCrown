@@ -4211,6 +4211,14 @@ class HubBracketAPIView(LoginRequiredMixin, View):
                 'match_number': m.match_number,
                 'state': m.state,
                 'state_display': m.get_state_display(),
+                'result_state_label': {
+                    'pending_result': 'Awaiting Result',
+                    'disputed':       'Staff Review',
+                    'completed':      'Completed',
+                    'forfeit':        'Forfeit',
+                    'cancelled':      'Cancelled',
+                    'live':           'Live',
+                }.get(str(m.state or ''), m.get_state_display()),
                 'phase': phase_value,
                 'source': _cview.get('source', 'match'),
                 'bracket_node_id': _cview.get('bracket_node_id'),
@@ -5151,6 +5159,14 @@ class HubMatchesAPIView(LoginRequiredMixin, View):
                 'match_number': m.match_number,
                 'state': m.state,
                 'state_display': m.get_state_display(),
+                'result_state_label': {
+                    'pending_result': 'Awaiting Result',
+                    'disputed':       'Staff Review',
+                    'completed':      'Completed',
+                    'forfeit':        'Forfeit',
+                    'cancelled':      'Cancelled',
+                    'live':           'Live',
+                }.get(str(m.state or ''), m.get_state_display()),
                 'phase': 'group_stage' if not is_knockout_match else 'knockout_stage',
                 'stage': 'knockout' if is_knockout_match else 'group',
                 'is_knockout': is_knockout_match,
@@ -5859,6 +5875,37 @@ class HubParticipantsAPIView(LoginRequiredMixin, View):
                     is_deleted=False,
                 ).exists()
 
+                # P4-C.2 — Surface lineup_snapshot for team participant cards.
+                # The lineup_snapshot is a frozen tournament-specific roster
+                # captured at registration time — authoritative for this event.
+                lineup_members = []
+                captain_name = ''
+                snapshot = reg.lineup_snapshot if isinstance(reg.lineup_snapshot, list) else []
+                for entry in snapshot:
+                    if not isinstance(entry, dict):
+                        continue
+                    uid = entry.get('user_id')
+                    if not uid:
+                        continue
+                    slot = str(entry.get('roster_slot') or entry.get('role') or 'STARTER').upper()
+                    lineup_members.append({
+                        'user_id': uid,
+                        'username': str(entry.get('username') or entry.get('display_name') or f'User #{uid}'),
+                        'slot': slot,  # STARTER / SUBSTITUTE
+                        'is_starter': slot == 'STARTER',
+                    })
+                # Captain: first STARTER if no explicit captain flag, or from TM query.
+                try:
+                    cap = TM.objects.filter(
+                        team_id=reg.team_id,
+                        is_tournament_captain=True,
+                        status=TM.Status.ACTIVE,
+                    ).only('user').select_related('user').first()
+                    if cap and cap.user:
+                        captain_name = cap.user.username or cap.user.get_full_name() or ''
+                except Exception:
+                    captain_name = ''
+
                 return {
                     'id': reg.id,
                     'type': 'team',
@@ -5871,6 +5918,8 @@ class HubParticipantsAPIView(LoginRequiredMixin, View):
                     'seed': reg.seed_number if hasattr(reg, 'seed_number') else None,
                     'member_count': member_count,
                     'member_avatars': member_avatars,
+                    'lineup': lineup_members,           # from lineup_snapshot
+                    'captain_name': captain_name,
                     'verified': verified,
                     'status_label': status_label,
                     'checked_in': checked_in,
@@ -5878,8 +5927,14 @@ class HubParticipantsAPIView(LoginRequiredMixin, View):
             except Team.DoesNotExist:
                 return None
         else:
+            # P4.2 — Defensive guard: team tournaments can have registrations
+            # where reg.user is None (team_id set, user=None per the XOR
+            # constraint). If somehow a registration with neither user nor team
+            # reaches the solo branch, bail gracefully instead of crashing.
+            if reg.user is None:
+                return None
             avatar_url = _get_avatar_url(reg.user) if include_profile_avatars else ''
-            user_slug = getattr(reg.user, 'username', '')
+            user_slug = getattr(reg.user, 'username', '') or ''
             checked_in_user_ids = prefetch.get('checked_in_user_ids', set())
             checked_in = reg.user_id in checked_in_user_ids if checked_in_user_ids else CheckIn.objects.filter(
                 tournament=tournament,
@@ -5887,11 +5942,14 @@ class HubParticipantsAPIView(LoginRequiredMixin, View):
                 is_checked_in=True,
                 is_deleted=False,
             ).exists()
+            full_name = (reg.user.get_full_name() or '').strip()
+            display_name = full_name or reg.user.username or 'Participant'
+            tag = (reg.user.username or display_name or '??')[:3].upper()
             return {
                 'id': reg.id,
                 'type': 'solo',
-                'name': reg.user.get_full_name() or reg.user.username,
-                'tag': reg.user.username[:3].upper(),
+                'name': display_name,
+                'tag': tag,
                 'logo_url': avatar_url,
                 'profile_avatar_url': avatar_url,
                 'detail_url': f'/profile/{user_slug}/' if user_slug else '',

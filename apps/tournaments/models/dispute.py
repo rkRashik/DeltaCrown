@@ -313,3 +313,47 @@ class DisputeEvidence(SoftDeleteModel):
     
     def __str__(self):
         return f"{self.get_evidence_type_display()} for Dispute #{self.dispute_id}"
+
+
+class DisputeNote(models.Model):
+    """Lightweight timeline note for a tournament Match Room dispute."""
+
+    VISIBILITY_INTERNAL_STAFF = "internal_staff"
+    VISIBILITY_PARTICIPANT_SAFE = "participant_safe"
+
+    VISIBILITY_CHOICES = [
+        (VISIBILITY_INTERNAL_STAFF, "Internal staff"),
+        (VISIBILITY_PARTICIPANT_SAFE, "Participant safe"),
+    ]
+
+    dispute = models.ForeignKey(
+        DisputeRecord,
+        on_delete=models.CASCADE,
+        related_name="notes",
+    )
+    author = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="tournament_dispute_notes",
+    )
+    body = models.TextField(max_length=2000)
+    visibility = models.CharField(
+        max_length=24,
+        choices=VISIBILITY_CHOICES,
+        default=VISIBILITY_PARTICIPANT_SAFE,
+        db_index=True,
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "tournaments_dispute_note"
+        ordering = ["created_at"]
+        indexes = [
+            models.Index(fields=["dispute", "created_at"], name="disp_note_dispute_created_idx"),
+            models.Index(fields=["visibility"], name="disp_note_visibility_idx"),
+        ]
+
+    def __str__(self):
+        return f"Note for Dispute #{self.dispute_id}"

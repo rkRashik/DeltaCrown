@@ -436,6 +436,7 @@ TEMPLATES = [
                 "apps.notifications.context_processors.notification_counts",
                 "apps.common.context.ui_settings",
                 "apps.common.context_processors.game_assets_context",
+                "apps.common.context_processors.static_version",  # P5.2 — {{ STATIC_VERSION }}
                 "apps.common.context_homepage.homepage_context",
                 "apps.siteui.context.site_settings",
                 "apps.siteui.nav_context.nav_context",

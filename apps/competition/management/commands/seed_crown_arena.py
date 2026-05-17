@@ -152,8 +152,8 @@ class Command(BaseCommand):
             except Exception as e:
                 self._err(f"Contract '{spec['title']}': {e}")
 
-        # ── (2) Crown Clashes (via service) ───────────────────────────────
-        self._hdr("[2/4] Crown Clash (via ChallengeService)")
+        # ── (2) Showdowns (via service) ──────────────────────────────────
+        self._hdr("[2/4] Showdown (via ChallengeService)")
         ENTRY_FEE = 300
         open_clash_title = "Friday Night Showdown"
         direct_clash_title = "Neon District Qualifiers"
@@ -205,7 +205,7 @@ class Command(BaseCommand):
                         f"— {ENTRY_FEE} DC × 2 (status={direct_clash.status}, "
                         f"vs {captain_b['team'].name})"
                     )
-                # Accept (transitions OPEN → ACCEPTED, locks opponent stake, spawns Match Room).
+                # Accept (transitions OPEN -> ACCEPTED, locks opponent entry, spawns Match Room).
                 if direct_clash.status == "OPEN":
                     accepted = ChallengeService.accept_challenge(
                         challenge_id=direct_clash.pk,
@@ -227,8 +227,8 @@ class Command(BaseCommand):
         except Exception as e:
             self._err(f"Direct clash '{direct_clash_title}': {e}")
 
-        # ── (3) The Hitlist (via service) ────────────────────────────────
-        self._hdr("[3/4] The Hitlist (via BountyService)")
+        # ── (3) Bounty (via service) ─────────────────────────────────────
+        self._hdr("[3/4] Bounty (via BountyService)")
         hitlist_title = "Can You Beat the Kings?"
         try:
             existing = Bounty.objects.filter(
@@ -266,8 +266,8 @@ class Command(BaseCommand):
         except Exception as e:
             self._err(f"Hitlist '{hitlist_title}': {e}")
 
-        # ── (4) Crown Royale ─────────────────────────────────────────────
-        self._hdr("[4/4] Crown Royale")
+        # ── (4) Dropzone ─────────────────────────────────────────────────
+        self._hdr("[4/4] Dropzone")
         try:
             tournament = (
                 Tournament.objects
@@ -380,7 +380,7 @@ class Command(BaseCommand):
         except DeltaCrownWallet.DoesNotExist:
             self._err(
                 f"User '{user.username}' has no DeltaCrownWallet — cannot fund.  "
-                "Crown Clash creation will fail downstream."
+                "Showdown creation will fail downstream."
             )
             return
 

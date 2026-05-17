@@ -1792,7 +1792,7 @@ def _safe_submission_proof_url(submission: MatchResultSubmission) -> str:
     proof = getattr(submission, "proof_screenshot", None)
     if proof:
         try:
-            return _normalize_media_url(str(proof.url or ""))
+            return reverse("dashboard:competitive_match_proof_file", args=[submission.pk])
         except Exception:
             pass
     return _normalize_media_url(str(submission.proof_screenshot_url or ""))
@@ -2573,8 +2573,12 @@ class MatchRoomWorkflowView(LoginRequiredMixin, View):
             team_id = _submission_team_id_for_side(match, side)
             if not team_id:
                 return None
+            # Exclude archived submissions (from prior match resets) — only
+            # the ACTIVE submission for this side is relevant for result processing.
             return (
-                MatchResultSubmission.objects.filter(match=match, submitted_by_team_id=team_id)
+                MatchResultSubmission.objects.filter(
+                    match=match, submitted_by_team_id=team_id, is_archived=False,
+                )
                 .order_by("-submitted_at")
                 .first()
             )
@@ -3369,7 +3373,7 @@ class MatchRoomWorkflowView(LoginRequiredMixin, View):
                     else MatchResultSubmission.STATUS_FINALIZED
                 )
 
-                latest_submissions = MatchResultSubmission.objects.filter(match=match).order_by("-submitted_at")[:8]
+                latest_submissions = MatchResultSubmission.objects.filter(match=match, is_archived=False).order_by("-submitted_at")[:8]
                 for existing in latest_submissions:
                     existing.status = submission_status
                     existing.confirmed_at = timezone.now()

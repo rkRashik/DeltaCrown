@@ -334,7 +334,11 @@ def active_scrims(request):
             # Query active canonical Team HQ scrim requests.
             scrims_qs = ScrimRequest.objects.filter(
                 status='OPEN',
+                visibility='PUBLIC',
                 scheduled_at__gt=timezone.now()
+            ).filter(
+                models.Q(requesting_team__competitive_settings__allow_public_scrim_availability=True)
+                | models.Q(requesting_team__competitive_settings__isnull=True)
             ).select_related('requesting_team', 'game')
             
             if game_filter:

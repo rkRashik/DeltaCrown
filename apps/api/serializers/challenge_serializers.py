@@ -52,7 +52,7 @@ class ChallengeListSerializer(serializers.Serializer):
     is_open_challenge = serializers.BooleanField(read_only=True)
     is_featured = serializers.BooleanField(read_only=True)
 
-    # ── Crown Clash escrow fields ───────────────────────────────────────
+    # ── Showdown escrow fields ──────────────────────────────────────────
     entry_fee_dc = serializers.IntegerField(read_only=True)
     prize_pot_dc = serializers.IntegerField(read_only=True)
     is_crown_clash = serializers.BooleanField(read_only=True)
@@ -119,12 +119,12 @@ class ChallengeCreateSerializer(serializers.Serializer):
     scheduled_at = serializers.DateTimeField(required=False, allow_null=True, default=None)
     expires_at = serializers.DateTimeField(required=False, allow_null=True, default=None)
     is_public = serializers.BooleanField(default=True)
-    # Crown Clash entry fee.  When > 0 the issuer's wallet is debited at
-    # creation time and the opponent's matching stake is locked on accept.
+    # Showdown entry fee. When > 0 the issuer's wallet is debited at
+    # creation time and the opponent's matching entry is locked on accept.
     entry_fee_dc = serializers.IntegerField(
         default=0,
         min_value=0,
-        help_text="DeltaCoins each side locks into escrow (Crown Clash). 0 = no entry fee."
+        help_text="DeltaCoins each side locks into escrow for Showdown. 0 = no entry fee."
     )
 
 
@@ -194,7 +194,7 @@ class BountyListSerializer(serializers.Serializer):
     created_at = serializers.DateTimeField(read_only=True)
     is_featured = serializers.BooleanField(read_only=True)
 
-    # ── Hitlist escrow fields ───────────────────────────────────────────
+    # ── Bounty escrow fields ───────────────────────────────────────────
     is_hitlist = serializers.BooleanField(read_only=True)
     reward_amount_dc = serializers.IntegerField(read_only=True)
     challenger_entry_fee_dc = serializers.IntegerField(read_only=True)
@@ -228,7 +228,7 @@ class BountyCreateSerializer(serializers.Serializer):
     max_claims = serializers.IntegerField(default=1, min_value=1)
     expires_at = serializers.DateTimeField(required=False, allow_null=True, default=None)
     is_public = serializers.BooleanField(default=True)
-    # ── Hitlist mode ────────────────────────────────────────────────────
+    # ── Bounty mode ────────────────────────────────────────────────────
     is_hitlist = serializers.BooleanField(
         default=False,
         help_text="When true, locks reward_amount_dc from the issuer immediately."
@@ -236,12 +236,12 @@ class BountyCreateSerializer(serializers.Serializer):
     reward_amount_dc = serializers.IntegerField(
         default=0,
         min_value=0,
-        help_text="DeltaCoins the issuer locks as the prize (Hitlist only)."
+        help_text="DeltaCoins the issuer locks as the Bounty reward."
     )
     challenger_entry_fee_dc = serializers.IntegerField(
         default=0,
         min_value=0,
-        help_text="DeltaCoins each challenger team locks per claim (Hitlist only)."
+        help_text="DeltaCoins each challenger team locks per Bounty claim."
     )
 
 

@@ -212,6 +212,24 @@
     font-size: 9px; font-weight: 800; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.05em;
   }
   .br-badge { color: var(--arena-gold); background: rgba(250, 204, 21, 0.1); border-color: rgba(250, 204, 21, 0.3); }
+  /* P4-C.1 — Meta chips for map/server/BO */
+  .arena-meta-row { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 6px; }
+  .arena-meta-chip {
+    display: inline-flex; align-items: center; gap: 2px; padding: 1px 5px; border-radius: 3px;
+    background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+    font-size: 8px; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.04em;
+    white-space: nowrap; overflow: hidden; max-width: 100px; text-overflow: ellipsis;
+  }
+  .arena-state-chip-review {
+    padding: 2px 6px; border-radius: 4px; font-size: 8px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em;
+    background: rgba(249,115,22,0.12); border: 1px solid rgba(249,115,22,0.3); color: #fb923c;
+    display: inline-block; margin-top: 4px;
+  }
+  .arena-state-chip-verified {
+    padding: 2px 6px; border-radius: 4px; font-size: 8px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em;
+    background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.25); color: #4ade80;
+    display: inline-block; margin-top: 4px;
+  }
 
   .status-text, .match-time-status { font-size: 0.7rem; font-weight: 700; color: #64748b; margin-top: 6px; }
   .status-text.live, .match-time-status.live-text { color: var(--arena-magenta); animation: pulse 2s infinite; font-weight: 900; }
@@ -858,9 +876,21 @@ document.addEventListener("DOMContentLoaded", () => {
               let bClass = bWin ? 'is-winner' : (aWin ? 'is-loser' : '');
               
                 let gameLabel = (m.game_name || '').trim();
-              let badgeHtml = m.is_br ? `<span class="game-badge br-badge"><i data-lucide="crosshair" class="w-2.5 h-2.5 inline mr-1"></i> BR</span>` : `<span class="game-badge">${escapeHtml(gameLabel)}</span>`;
+              // P4.3 — Game badge with optional BO suffix (BO3/BO5).
+              let boBadge = m.bo_label ? `<span class="game-badge" style="background:rgba(255,255,255,0.05);border-color:rgba(255,255,255,0.1);color:#aaa;">${escapeHtml(m.bo_label)}</span>` : '';
+              let badgeHtml = m.is_br
+                ? `<span class="game-badge br-badge"><i data-lucide="crosshair" class="w-2.5 h-2.5 inline mr-1"></i> BR</span>${boBadge}`
+                : `<span class="game-badge">${escapeHtml(gameLabel)}</span>${boBadge}`;
               
-              let detailsSubtext = m.details || m.subtext || (tab === 'live' ? 'In Progress' : (tab === 'upcoming' ? 'Scheduled' : 'Final'));
+              // P4.3 — Prefer explicit game-aware copy over generic fallback.
+              let reviewCopy = (m.result_state_label === 'Staff Review') ? 'Staff Review' : '';
+              let mapCopy = m.map ? ('on ' + m.map) : '';
+              let boInfo = m.bo_label ? ('[' + m.bo_label + ']') : '';
+              let detailsSubtext = reviewCopy
+                || m.details
+                || m.subtext
+                || (boInfo && mapCopy ? (boInfo + ' ' + mapCopy) : (boInfo || mapCopy))
+                || (tab === 'live' ? 'In Progress' : (tab === 'upcoming' ? 'Scheduled' : 'Final'));
                 let isLiveCard = tab === 'live' || Boolean(m.is_live);
                 let matchTimeStatus = isLiveCard
                   ? `<div class="match-time-status live-text">LIVE NOW</div>`
@@ -874,6 +904,20 @@ document.addEventListener("DOMContentLoaded", () => {
                   ? `<img src="${escapeHtml(m.team_b_logo)}" alt="${escapeHtml(m.team_b || 'Team B')}" class="fall-img">`
                   : teamBTag;
 
+              // P4-C.1 — meta chips for map / server / review state
+              let metaChips = '';
+              if (m.map) metaChips += `<span class="arena-meta-chip" title="${escapeHtml(m.map)}">🗺 ${escapeHtml(m.map.length > 12 ? m.map.slice(0,12) + '…' : m.map)}</span>`;
+              if (m.server) metaChips += `<span class="arena-meta-chip" title="${escapeHtml(m.server)}">${escapeHtml(m.server.length > 12 ? m.server.slice(0,12) + '…' : m.server)}</span>`;
+              let metaRow = metaChips ? `<div class="arena-meta-row">${metaChips}</div>` : '';
+              let stateChipHtml = '';
+              if (m.result_state_label === 'Staff Review') {
+                stateChipHtml = `<div class="arena-state-chip-review">Staff Review</div>`;
+              } else if (m.result_state_label === 'Awaiting Result') {
+                stateChipHtml = `<div class="arena-state-chip-review">Awaiting Result</div>`;
+              } else if (m.result_state_label === 'Completed') {
+                stateChipHtml = `<div class="arena-state-chip-verified">Completed</div>`;
+              }
+
               let colGame = '';
               let colTeams = '';
               let colAction = '';
@@ -882,6 +926,7 @@ document.addEventListener("DOMContentLoaded", () => {
                   colGame = `<div class="card-col-game">
                                 ${badgeHtml}
                         ${matchTimeStatus}
+                        ${metaRow}
                              </div>`;
                   colTeams = `<div class="card-col-teams">
                                 <div class="team-wrap right">
@@ -901,6 +946,7 @@ document.addEventListener("DOMContentLoaded", () => {
                   colGame = `<div class="card-col-game">
                                 ${badgeHtml}
                         ${matchTimeStatus}
+                        ${metaRow}
                              </div>`;
                   colTeams = `<div class="card-col-teams">
                                 <div class="team-wrap right">
@@ -920,6 +966,8 @@ document.addEventListener("DOMContentLoaded", () => {
                   colGame = `<div class="card-col-game">
                                 ${badgeHtml}
                         ${matchTimeStatus}
+                        ${stateChipHtml}
+                        ${metaRow}
                              </div>`;
                   let scA = m.score_a != null ? m.score_a : '-';
                   let scB = m.score_b != null ? m.score_b : '-';

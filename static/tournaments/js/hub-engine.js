@@ -7233,14 +7233,19 @@ const HubEngine = (() => {
                   </div>
                 </div>
 
-                <!-- Bottom row: Metadata + Action controls -->
-                <div class="flex flex-wrap items-center gap-x-4 gap-y-1 mt-3 pt-3 border-t border-white/5 text-[11px]">
+                <!-- Bottom row: Metadata + Action controls (P5.4 — BO/map/server chips) -->
+                <div class="flex flex-wrap items-center gap-x-3 gap-y-1.5 mt-3 pt-3 border-t border-white/5 text-[11px]">
                   <div class="flex items-center gap-1.5 text-gray-400">
                     <i data-lucide="calendar-clock" class="w-3 h-3 text-[#00F0FF]/70"></i>
                     <span class="font-mono">${_esc(kickoffLabel)}</span>
                   </div>
+                  ${m.best_of && m.best_of > 1 ? `<span class="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-widest bg-white/5 border border-white/10 text-gray-500">BO${m.best_of}</span>` : ''}
+                  ${m.lobby_info?.map ? `<div class="flex items-center gap-1 text-gray-500"><i data-lucide="map-pin" class="w-3 h-3"></i><span class="font-mono text-[10px]">${_esc(m.lobby_info.map)}</span></div>` : ''}
+                  ${m.lobby_info?.server ? `<span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-white/4 border border-white/8 text-gray-600">${_esc(m.lobby_info.server)}</span>` : ''}
                   ${lobbyCode ? `<div class="flex items-center gap-1.5 text-[#00F0FF]"><i data-lucide="key-round" class="w-3 h-3"></i><span class="font-mono">Room ${_esc(lobbyCode)}</span></div>` : ''}
                   ${(lobbyClosed && !isLive) ? '<div class="flex items-center gap-1.5 text-[#FF2A55]"><i data-lucide="timer-off" class="w-3 h-3"></i><span class="font-mono">Expired</span></div>' : ''}
+                  ${m.result_state_label === 'Staff Review' ? '<span class="px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest bg-orange-500/12 border border-orange-500/30 text-orange-400">Staff Review</span>' : ''}
+                  ${m.result_state_label === 'Awaiting Result' ? '<span class="px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest bg-orange-500/8 border border-orange-500/20 text-orange-500/80">Awaiting Result</span>' : ''}
                 </div>
 
                 ${_renderMatchActionControls(m)}
@@ -7987,9 +7992,12 @@ const HubEngine = (() => {
         const isCompleted = m.state === 'completed' || m.state === 'forfeit';
         const isParticipantOwnMatch = Boolean(m.is_my_match && !m.is_staff_view);
 
-        const stateLabel = m.state_display || m.state || 'Scheduled';
+        // P4.5 — Prefer participant-friendly copy for review/pending states.
+        const stateLabel = m.result_state_label || m.state_display || m.state || 'Scheduled';
         const stateBadgeClass = isLive ? 'bg-[#FF2A55]/10 text-[#FF2A55] border-[#FF2A55]/30'
                               : m.state === 'ready' ? 'bg-[#00FF66]/10 text-[#00FF66] border-[#00FF66]/30'
+                              : m.state === 'disputed' ? 'bg-orange-500/10 text-orange-400 border-orange-500/30'
+                              : m.state === 'pending_result' ? 'bg-orange-500/10 text-orange-400 border-orange-500/30'
                               : isCompleted ? 'bg-white/5 text-gray-400 border-white/10'
                               : 'bg-[#FFB800]/10 text-[#FFB800] border-[#FFB800]/30';
 
@@ -8736,18 +8744,43 @@ const HubEngine = (() => {
         seedBadge = `<div class="absolute top-3 right-3 font-mono text-[10px] font-bold px-2 py-0.5 rounded-md border ${p.seed <= 4 ? 'bg-[#FFB800]/10 border-[#FFB800]/30 text-[#FFB800]' : 'bg-white/5 border-white/10 text-gray-500'}">#${p.seed}</div>`;
       }
 
-      // Stacked member avatars (team mode)
-      let avatarStack = '';
-      if (isTeam && p.member_avatars && p.member_avatars.length > 0) {
-        avatarStack = '<div class="flex -space-x-2 overflow-hidden mt-3">';
-        p.member_avatars.slice(0, 3).forEach(ma => {
-          if (ma.avatar_url) {
-            avatarStack += `<img class="inline-block h-8 w-8 rounded-full ring-2 ring-[#08080C] object-cover" src="${_esc(ma.avatar_url)}" alt="${_esc(ma.initial)}" loading="lazy" decoding="async" data-fallback-text="${_esc(ma.initial)}" data-fallback-class="inline-flex h-8 w-8 rounded-full ring-2 ring-[#08080C] bg-gray-800 items-center justify-center text-[10px] font-bold text-white">`;
-          } else {
-            avatarStack += `<div class="inline-flex h-8 w-8 rounded-full ring-2 ring-[#08080C] bg-gray-800 items-center justify-center text-[10px] font-bold text-white">${_esc(ma.initial)}</div>`;
-          }
-        });
-        avatarStack += '</div>';
+      // P4-C.2 — Team lineup from lineup_snapshot (tournament-specific roster).
+      // Preferred over generic TeamMembership avatars for participant cards.
+      let lineupSection = '';
+      const lineup = Array.isArray(p.lineup) ? p.lineup : [];
+      if (isTeam && lineup.length > 0) {
+        const starters = lineup.filter(m => m.is_starter);
+        const subs     = lineup.filter(m => !m.is_starter);
+        const captainName = p.captain_name || '';
+
+        // Up to 3 visible starters + overflow count.
+        const visible = starters.slice(0, 3);
+        const overflow = starters.length - visible.length + subs.length;
+        let names = visible.map(m => {
+          const cap = captainName && m.username === captainName;
+          return `<span class="flex items-center gap-0.5">${_esc(m.username)}${cap ? '<span class="text-[#FFB800] text-[8px] ml-0.5">C</span>' : ''}</span>`;
+        }).join('<span class="text-gray-600">·</span>');
+        if (overflow > 0) names += `<span class="text-gray-600">+${overflow}</span>`;
+
+        lineupSection = `<div class="mt-2 flex flex-wrap items-center gap-1 text-[10px] font-mono text-gray-400 min-w-0">${names}</div>`;
+        if (subs.length > 0) {
+          lineupSection += `<div class="text-[9px] text-gray-600 mt-0.5 font-mono">${subs.length} substitute${subs.length !== 1 ? 's' : ''}</div>`;
+        }
+      } else {
+        // Fallback: stacked TeamMembership avatars (when lineup_snapshot absent).
+        let avatarStack = '';
+        if (isTeam && p.member_avatars && p.member_avatars.length > 0) {
+          avatarStack = '<div class="flex -space-x-2 overflow-hidden mt-3">';
+          p.member_avatars.slice(0, 3).forEach(ma => {
+            if (ma.avatar_url) {
+              avatarStack += `<img class="inline-block h-8 w-8 rounded-full ring-2 ring-[#08080C] object-cover" src="${_esc(ma.avatar_url)}" alt="${_esc(ma.initial)}" loading="lazy" decoding="async">`;
+            } else {
+              avatarStack += `<div class="inline-flex h-8 w-8 rounded-full ring-2 ring-[#08080C] bg-gray-800 items-center justify-center text-[10px] font-bold text-white">${_esc(ma.initial)}</div>`;
+            }
+          });
+          avatarStack += '</div>';
+          lineupSection = avatarStack;
+        }
       }
 
       // Logo / avatar (prefer logo_url, fall back to profile_avatar_url)
@@ -8778,7 +8811,7 @@ const HubEngine = (() => {
               ${memberCount}
             </div>
           </div>
-          ${avatarStack}
+          ${lineupSection}
         </${tag}>`;
     });
 

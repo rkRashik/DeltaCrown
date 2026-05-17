@@ -115,6 +115,27 @@ class MatchResultSubmission(models.Model):
         help_text='Direct file upload of proof screenshot. Max 10MB recommended.'
     )
 
+    # ── P3 — Soft-archive (migration 0062) ───────────────────────────
+    # Replaces hard-delete on match reset. Archived submissions are excluded
+    # from all active result/OCR/comparison queries but remain visible to
+    # admins so participant-uploaded evidence is never destroyed.
+    is_archived = models.BooleanField(
+        default=False,
+        db_index=True,
+        help_text=(
+            "True when archived (e.g. by match reset). Excluded from active "
+            "queries; still visible in the Evidence tab audit section."
+        ),
+    )
+    archived_at = models.DateTimeField(
+        null=True, blank=True,
+        help_text="Timestamp when the submission was archived.",
+    )
+    archived_reason = models.CharField(
+        max_length=300, blank=True, default="",
+        help_text="Human-readable reason for archival.",
+    )
+
     # ── P3.6 — Per-game evidence tracking (migration 0061) ───────────
     game_number = models.PositiveSmallIntegerField(
         null=True,

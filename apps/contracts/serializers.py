@@ -1,6 +1,7 @@
 """Missions API serializers."""
 from __future__ import annotations
 
+from django.urls import reverse
 from rest_framework import serializers
 
 
@@ -101,8 +102,10 @@ class ContractProofSubmissionSerializer(serializers.Serializer):
     reviewed_at = serializers.DateTimeField(read_only=True, allow_null=True)
 
     def get_proof_file_url(self, obj):
+        if not getattr(obj, 'proof_file', None):
+            return ''
         try:
-            return obj.proof_file.url if obj.proof_file else ''
+            return reverse('dashboard:competitive_proof_file', args=[obj.pk])
         except Exception:
             return ''
 

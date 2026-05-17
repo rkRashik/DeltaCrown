@@ -1131,6 +1131,19 @@
                             <p class="font-bold text-white text-sm">{{ game_spec.tournament_config.default_scoring_type|cut:"_" }}</p>
                         </div>
                         {% endif %}
+
+                        {% comment %}P4-C.3 — Map pool preview from apps/games{% endcomment %}
+                        {% if map_pool_preview %}
+                        <div class="glass-panel p-5 rounded-2xl flex flex-col justify-center md:col-span-2">
+                            <i data-lucide="map" class="w-5 h-5 text-gray-500 mb-3"></i>
+                            <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Map Pool</p>
+                            <div class="flex flex-wrap gap-1.5">
+                                {% for map_name in map_pool_preview %}
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold text-gray-300 bg-white/5 border border-white/10">{{ map_name }}</span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endif %}
                     </div>
 
                     <div class="glass-extreme p-8 rounded-[2rem] border-white/5">

@@ -54,10 +54,12 @@
   /* ---------- Live ribbon (hero) ---------- */
   var ribbon = $('#ribbon');
   var channels = $('#channels');
-  var liveCh = $('#liveCh');
   var matchCount = ribbon ? ribbon.children.length : 0;
   var matchHeight = 234;
   var idx = 0;
+  var isMobileDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+  var ribbonInterval = isMobileDevice ? 6500 : 4400; // slower on mobile for readability
+
   function setMatch(i) {
     if (!ribbon || matchCount === 0) return;
     idx = ((i % matchCount) + matchCount) % matchCount;
@@ -69,17 +71,16 @@
           : 'rgba(255,255,255,0.08)';
       });
     }
-    if (liveCh) liveCh.textContent = String(idx + 1).padStart(2, '0');
   }
   if (matchCount > 0) {
     setMatch(0);
-    var liveTimer = setInterval(function () { setMatch(idx + 1); }, 4400);
+    var liveTimer = setInterval(function () { setMatch(idx + 1); }, ribbonInterval);
     if (channels) {
       Array.prototype.forEach.call(channels.children, function (c) {
         c.addEventListener('click', function () {
           clearInterval(liveTimer);
           setMatch(parseInt(c.dataset.i, 10));
-          liveTimer = setInterval(function () { setMatch(idx + 1); }, 4400);
+          liveTimer = setInterval(function () { setMatch(idx + 1); }, ribbonInterval);
         });
       });
     }
@@ -227,6 +228,63 @@
   window.addEventListener('resize', onScroll, { passive: true });
   updateProgress(); updatePath(); updateArena(); updateBentoFeat(); updateNav();
 
+  /* ---------- Back to top button ---------- */
+  var backTopBtn = $('#homeBackTop');
+  if (backTopBtn) {
+    var showThreshold = document.documentElement.scrollHeight * 0.15;
+    function updateBackTop() {
+      if (window.scrollY > showThreshold) backTopBtn.classList.add('visible');
+      else backTopBtn.classList.remove('visible');
+    }
+    backTopBtn.addEventListener('click', function () {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+    window.addEventListener('scroll', updateBackTop, { passive: true });
+    updateBackTop();
+  }
+
+  /* ---------- Ticker touch pause ---------- */
+  var tickerTrackEl = $('.ticker-track');
+  if (tickerTrackEl && isMobileDevice) {
+    tickerTrackEl.addEventListener('touchstart', function () {
+      tickerTrackEl.style.animationPlayState = 'paused';
+    }, { passive: true });
+    tickerTrackEl.addEventListener('touchend', function () {
+      tickerTrackEl.style.animationPlayState = 'running';
+    }, { passive: true });
+  }
+
+  /* ---------- Game rail keyboard navigation ---------- */
+  var gameRailEl = $('#gameRail');
+  if (gameRailEl) {
+    gameRailEl.setAttribute('tabindex', '0');
+    gameRailEl.addEventListener('keydown', function (e) {
+      if (e.key === 'ArrowRight') { gameRailEl.scrollBy({ left: 340, behavior: 'smooth' }); e.preventDefault(); }
+      if (e.key === 'ArrowLeft')  { gameRailEl.scrollBy({ left: -340, behavior: 'smooth' }); e.preventDefault(); }
+    });
+  }
+
+  /* ---------- Mobile rail dots ---------- */
+  var railDotsEl = $('#railDots');
+  if (railDotsEl && gameRailEl && isMobileDevice) {
+    var cards = $$('.gcard', gameRailEl);
+    var cardWidth = cards.length > 0 ? cards[0].offsetWidth + 18 : 338;
+    var visibleCount = Math.ceil(gameRailEl.offsetWidth / cardWidth) || 1;
+    var dotCount = Math.max(1, Math.ceil(cards.length / visibleCount));
+    for (var di = 0; di < dotCount; di++) {
+      var dot = document.createElement('div');
+      dot.className = 'rail-dot' + (di === 0 ? ' active' : '');
+      railDotsEl.appendChild(dot);
+    }
+    gameRailEl.addEventListener('scroll', function () {
+      var maxScroll = gameRailEl.scrollWidth - gameRailEl.clientWidth;
+      var dotIdx = maxScroll > 0 ? Math.round((gameRailEl.scrollLeft / maxScroll) * (dotCount - 1)) : 0;
+      $$('.rail-dot', railDotsEl).forEach(function (d, i) {
+        d.classList.toggle('active', i === dotIdx);
+      });
+    }, { passive: true });
+  }
+
   /* ---------- Smooth anchor scroll ---------- */
   $$('a[href^="#"]').forEach(function (a) {
     a.addEventListener('click', function (e) {
@@ -239,4 +297,79 @@
       window.scrollTo({ top: target.getBoundingClientRect().top + window.scrollY - 96, behavior: 'smooth' });
     });
   });
+
+  /* ---------- Real-time homepage WebSocket ---------- */
+  (function () {
+    if (!window.WebSocket) return;
+
+    var tickerTrack = $('.ticker-track');
+    var navBadge = document.getElementById('nav-live-badge');
+    var reconnectDelay = 5000;
+    var maxDelay = 60000;
+    var ws;
+
+    function buildTickerHTML(items) {
+      if (!items || !items.length) return '';
+      return items.map(function (item) {
+        var flag = '';
+        if (item.kind === 'live')       flag = '<b class="live-flag">LIVE</b> ';
+        else if (item.kind === 'tournament') flag = '<b class="event-flag">EVENT</b> ';
+        else if (item.kind === 'signup')    flag = '<b class="up-flag">▲</b> ';
+        return '<span>' + flag + item.text + '</span><span class="sep">//</span>';
+      }).join('');
+    }
+
+    function applyUpdate(data) {
+      /* Update ticker */
+      if (data.ticker && data.ticker.length && tickerTrack) {
+        tickerTrack.innerHTML = buildTickerHTML(data.ticker);
+      }
+
+      /* Update Arena nav badge */
+      var count = data.live_count || 0;
+      if (navBadge) {
+        if (count > 0) {
+          navBadge.textContent = count + ' LIVE';
+          navBadge.style.display = '';
+        } else {
+          navBadge.style.display = 'none';
+        }
+      }
+    }
+
+    function connect() {
+      var proto = location.protocol === 'https:' ? 'wss' : 'ws';
+      var url = proto + '://' + location.host + '/ws/homepage/live/';
+      try { ws = new WebSocket(url); } catch (e) { return; }
+
+      ws.onmessage = function (evt) {
+        try {
+          var data = JSON.parse(evt.data);
+          if (data.type === 'live_update') applyUpdate(data);
+        } catch (e) {}
+      };
+
+      ws.onclose = function () {
+        /* Exponential back-off reconnect */
+        setTimeout(function () {
+          reconnectDelay = Math.min(reconnectDelay * 1.5, maxDelay);
+          connect();
+        }, reconnectDelay);
+      };
+
+      ws.onerror = function () { ws.close(); };
+    }
+
+    /* Only connect when the page is visible */
+    if (document.visibilityState !== 'hidden') {
+      connect();
+    }
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState === 'visible' && (!ws || ws.readyState > 1)) {
+        reconnectDelay = 5000;
+        connect();
+      }
+    });
+  })();
+
 })();

@@ -60,6 +60,7 @@ urlpatterns = [
     path('teams/<str:slug>/members/<int:membership_id>/status/', team_manage.change_member_status, name='team_manage_change_status'),
     path('teams/<str:slug>/members/<int:membership_id>/roster-photo/', team_manage.upload_roster_photo, name='team_manage_roster_photo'),
     path('teams/<str:slug>/settings/', team_manage.update_settings, name='team_manage_update_settings'),
+    path('teams/<str:slug>/competitive-settings/', team_manage.competitive_settings, name='team_manage_competitive_settings'),
     path('teams/<str:slug>/profile/', team_manage.update_profile, name='team_manage_update_profile'),
     path('teams/<str:slug>/owner-privacy/', team_manage.toggle_owner_privacy, name='team_manage_owner_privacy'),
     path('teams/<str:slug>/roster/lock/', team_manage.toggle_roster_lock, name='team_manage_roster_lock'),

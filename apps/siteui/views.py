@@ -25,9 +25,9 @@ from .utils.embeds import build_embed_url
 def home(request):
     """DeltaCrown homepage — Command Center design (home_v3)."""
     from .homepage_context import get_homepage_context
-    from .homepage_v3_context import get_homepage_v3_context
+    from .homepage_extras import get_homepage_extras
     context = get_homepage_context()
-    context.update(get_homepage_v3_context(request))
+    context.update(get_homepage_extras(request))
     return render(request, "home.html", context)
 
 
@@ -1036,6 +1036,24 @@ def _serialize_match_for_arena(match, request, logo_payload=None):
     match_url = _safe_reverse("tournaments:match_detail", slug=match.tournament.slug, match_id=match.id)
     details = _resolve_arena_match_details(match)
 
+    # P4.3 — Extract map/server from lobby_info for game-aware card display.
+    lobby_info = match.lobby_info if isinstance(match.lobby_info, dict) else {}
+    li_map    = str(lobby_info.get("map") or "").strip()
+    li_server = str(lobby_info.get("server") or "").strip()
+    # Human-readable result/review state for participant-facing copy.
+    state_str = str(match.state or "").lower()
+    result_state_label = {
+        "pending_result": "Awaiting Result",
+        "disputed":       "Staff Review",
+        "completed":      "Completed",
+        "forfeit":        "Forfeit",
+        "cancelled":      "Cancelled",
+        "live":           "Live",
+    }.get(state_str, "")
+
+    best_of_val = getattr(match, "best_of", None)
+    bo_label = f"BO{best_of_val}" if isinstance(best_of_val, int) and best_of_val > 1 else ""
+
     return {
         "id": match.id,
         "tournament_name": match.tournament.name,
@@ -1056,11 +1074,15 @@ def _serialize_match_for_arena(match, request, logo_payload=None):
         "has_score": has_score,
         "state": match.state,
         "state_label": match.get_state_display(),
+        "result_state_label": result_state_label,
         "is_live": match.state == "live",
         "scheduled_time": match.scheduled_time,
         "round_number": match.round_number,
         "match_number": match.match_number,
         "best_of": match.best_of,
+        "bo_label": bo_label,          # "BO3" / "" for display
+        "map": li_map,                 # veto-selected map (empty when not played yet)
+        "server": li_server,           # selected server/region
         "stream_url": stream_url,
         "embed_url": embed_url,
         "stream_embed_url": embed_url,

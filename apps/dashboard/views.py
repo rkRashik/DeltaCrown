@@ -1,5 +1,7 @@
 from __future__ import annotations
 from datetime import datetime, timedelta
+import mimetypes
+from pathlib import Path
 from typing import Iterable, Optional
 from urllib.parse import quote
 
@@ -10,7 +12,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ImproperlyConfigured
 from django.db import models
 from django.db.models import Q, Count, Sum
-from django.http import Http404, HttpRequest, HttpResponse
+from django.http import FileResponse, Http404, HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
 from django.urls import NoReverseMatch, reverse
 from django.utils import timezone
@@ -342,31 +344,183 @@ def _file_url(file_field) -> str:
         return ""
 
 
+def _mission_proof_file_url(proof) -> str:
+    if not proof or not getattr(proof, "proof_file", None):
+        return ""
+    try:
+        return reverse("dashboard:competitive_proof_file", args=[proof.pk])
+    except Exception:
+        return ""
+
+
+def _can_view_mission_proof(user, proof) -> bool:
+    if not user or not user.is_authenticated or not proof:
+        return False
+    if getattr(user, "is_staff", False) or getattr(user, "is_superuser", False):
+        return True
+    enrollment = getattr(proof, "enrollment", None)
+    return bool(enrollment and enrollment.user_id == user.id)
+
+
+def _can_view_match_submission_file(user, submission) -> bool:
+    if not user or not user.is_authenticated or not submission:
+        return False
+    if getattr(user, "is_staff", False) or getattr(user, "is_superuser", False):
+        return True
+    if getattr(submission, "submitted_by_user_id", None) == user.id:
+        return True
+    team_ids = _active_team_ids_for_user(user)
+    if getattr(submission, "submitted_by_team_id", None) in team_ids:
+        return True
+    match = getattr(submission, "match", None)
+    return bool(
+        match
+        and (
+            getattr(match, "participant1_id", None) in team_ids
+            or getattr(match, "participant2_id", None) in team_ids
+            or getattr(match, "participant1_id", None) == user.id
+            or getattr(match, "participant2_id", None) == user.id
+        )
+    )
+
+
+def _can_view_dispute_evidence_file(user, evidence) -> bool:
+    if not user or not user.is_authenticated or not evidence:
+        return False
+    if getattr(user, "is_staff", False) or getattr(user, "is_superuser", False):
+        return True
+    if getattr(evidence, "uploaded_by_id", None) == user.id:
+        return True
+    dispute = getattr(evidence, "dispute", None)
+    if not dispute:
+        return False
+    if getattr(dispute, "opened_by_user_id", None) == user.id:
+        return True
+    return _can_view_match_submission_file(user, getattr(dispute, "submission", None))
+
+
+def _can_view_match_media_file(user, media) -> bool:
+    if not user or not user.is_authenticated or not media:
+        return False
+    if getattr(user, "is_staff", False) or getattr(user, "is_superuser", False):
+        return True
+    if getattr(media, "uploaded_by_id", None) == user.id:
+        return True
+    match = getattr(media, "match", None)
+    if not match:
+        return False
+    team_ids = _active_team_ids_for_user(user)
+    return bool(
+        getattr(match, "participant1_id", None) in team_ids
+        or getattr(match, "participant2_id", None) in team_ids
+        or getattr(match, "participant1_id", None) == user.id
+        or getattr(match, "participant2_id", None) == user.id
+    )
+
+
+def _match_submission_file_url(submission) -> str:
+    if not submission or not getattr(submission, "proof_screenshot", None):
+        return ""
+    try:
+        return reverse("dashboard:competitive_match_proof_file", args=[submission.pk])
+    except Exception:
+        return ""
+
+
+def _dispute_evidence_file_url(evidence) -> str:
+    if not evidence or not getattr(evidence, "evidence_file", None):
+        return ""
+    try:
+        return reverse("dashboard:competitive_dispute_evidence_file", args=[evidence.pk])
+    except Exception:
+        return ""
+
+
+def _match_media_file_url(media) -> str:
+    if not media or not getattr(media, "file", None):
+        return ""
+    try:
+        return reverse("dashboard:competitive_match_media_file", args=[media.pk])
+    except Exception:
+        return ""
+
+
+def _file_response_for_field(file_field, *, prefix: str) -> FileResponse:
+    try:
+        file_field.open("rb")
+    except Exception as exc:
+        logger.warning("Unable to open protected competitive file %s: %s", getattr(file_field, "name", ""), exc)
+        raise Http404("File not found.") from exc
+    filename = Path(file_field.name).name or prefix
+    content_type = mimetypes.guess_type(filename)[0] or "application/octet-stream"
+    response = FileResponse(file_field, content_type=content_type)
+    response["Content-Disposition"] = f'inline; filename="{filename}"'
+    response["X-Content-Type-Options"] = "nosniff"
+    return response
+
+
+def _can_add_dispute_note(user, dispute) -> bool:
+    if not user or not user.is_authenticated or not dispute:
+        return False
+    if getattr(user, "is_staff", False) or getattr(user, "is_superuser", False):
+        return True
+    if getattr(dispute, "opened_by_user_id", None) == user.id:
+        return True
+    return _can_view_match_submission_file(user, getattr(dispute, "submission", None))
+
+
+def _dispute_note_cards(dispute, *, staff_scope: bool) -> list[dict]:
+    notes = getattr(dispute, "notes", None)
+    if not notes:
+        return []
+    qs = notes.all()
+    if not staff_scope:
+        qs = qs.filter(visibility="participant_safe")
+    return [
+        {
+            "author": note.author.get_username() if note.author_id else "System",
+            "body": note.body,
+            "visibility": _status_label(note.visibility),
+            "created_at": _format_dt(note.created_at),
+            "is_internal": note.visibility == "internal_staff",
+        }
+        for note in qs[:6]
+    ]
+
+
+def _match_dispute_notes(match, *, user) -> list[dict]:
+    if not match:
+        return []
+    staff_scope = bool(getattr(user, "is_staff", False) or getattr(user, "is_superuser", False))
+    notes: list[dict] = []
+    for submission in getattr(match, "result_submissions", []).all():
+        for dispute in getattr(submission, "disputes", []).all():
+            notes.extend(_dispute_note_cards(dispute, staff_scope=staff_scope))
+    return notes[:8]
+
+
 def _submission_cards(submissions) -> list[dict]:
     cards = []
     for submission in submissions:
         team_name = getattr(getattr(submission, "team", None), "name", "") or ""
         if not team_name and getattr(submission, "submitted_by_team_id", None):
             team_name = f"Team #{submission.submitted_by_team_id}"
+        uploaded_file_url = _match_submission_file_url(submission)
         cards.append({
             "team": team_name or "Submitted team",
             "status": _status_label(getattr(submission, "status", "")),
             "result": _status_label(getattr(submission, "result", "")),
             "score": getattr(submission, "score_details", None) or getattr(submission, "raw_result_payload", None) or {},
             "proof_url": getattr(submission, "evidence_url", "") or getattr(submission, "proof_screenshot_url", ""),
+            "proof_file_url": uploaded_file_url,
             "submitted_at": _format_dt(getattr(submission, "created_at", None)),
         })
     return cards
 
 
-@staff_member_required
-def competitive_review_workspace_view(request: HttpRequest) -> HttpResponse:
-    """Lightweight staff workspace for review-needed competitive operations.
-
-    The page intentionally links to existing Django admin/service-backed
-    controls instead of duplicating settlement or dispute actions here.
-    """
+def _competitive_review_groups(user, *, staff_scope: bool) -> list[dict]:
     groups: list[dict] = []
+    team_ids = _active_team_ids_for_user(user)
 
     def add_group(label: str, accent: str, items: list[dict]) -> None:
         groups.append({
@@ -380,11 +534,12 @@ def competitive_review_workspace_view(request: HttpRequest) -> HttpResponse:
         from apps.competition.models import Challenge
 
         items = []
-        qs = (
-            Challenge.objects.filter(status="DISPUTED")
-            .select_related("challenger_team", "challenged_team", "game")
-            .order_by("-updated_at")[:25]
-        )
+        qs = Challenge.objects.filter(status="DISPUTED")
+        if not staff_scope:
+            qs = qs.filter(
+                Q(challenger_team_id__in=team_ids) | Q(challenged_team_id__in=team_ids)
+            )
+        qs = qs.select_related("challenger_team", "challenged_team", "game").order_by("-updated_at")[:25]
         for showdown in qs:
             teams = " vs ".join(
                 name for name in [
@@ -399,7 +554,7 @@ def competitive_review_workspace_view(request: HttpRequest) -> HttpResponse:
                 "status": _status_label(showdown.status),
                 "submitted_at": _format_dt(getattr(showdown, "updated_at", None)),
                 "evidence": "Result conflict requires staff review.",
-                "admin_url": _admin_change_url(showdown),
+                "admin_url": _admin_change_url(showdown) if staff_scope else "",
                 "detail_url": reverse("dashboard:competitive_showdown_detail", args=[showdown.pk]),
                 "action_label": "Resolve in Admin",
             })
@@ -412,11 +567,11 @@ def competitive_review_workspace_view(request: HttpRequest) -> HttpResponse:
         from apps.contracts.models import ContractProofSubmission
 
         items = []
-        qs = (
-            ContractProofSubmission.objects.filter(status="PENDING_REVIEW")
-            .select_related("enrollment", "enrollment__template", "submitted_by")
-            .order_by("-submitted_at")[:50]
-        )
+        statuses = ["PENDING_REVIEW"] if staff_scope else ["PENDING_REVIEW", "REJECTED"]
+        qs = ContractProofSubmission.objects.filter(status__in=statuses)
+        if not staff_scope:
+            qs = qs.filter(enrollment__user=user)
+        qs = qs.select_related("enrollment", "enrollment__template", "submitted_by").order_by("-submitted_at")[:50]
         for proof in qs:
             evidence_bits = []
             if proof.proof_url:
@@ -431,8 +586,8 @@ def competitive_review_workspace_view(request: HttpRequest) -> HttpResponse:
                 "submitted_at": _format_dt(proof.submitted_at),
                 "evidence": f"Proof submitted: {', '.join(evidence_bits) if evidence_bits else 'notes only'}",
                 "proof_url": proof.proof_url,
-                "proof_file_url": _file_url(proof.proof_file),
-                "admin_url": _admin_change_url(proof),
+                "proof_file_url": _mission_proof_file_url(proof),
+                "admin_url": _admin_change_url(proof) if staff_scope else "",
                 "detail_url": reverse("dashboard:competitive_mission_detail", args=[proof.enrollment_id]),
                 "action_label": "Review Proof",
             })
@@ -445,11 +600,12 @@ def competitive_review_workspace_view(request: HttpRequest) -> HttpResponse:
         from apps.competition.models import BountyClaim
 
         items = []
-        qs = (
-            BountyClaim.objects.filter(status="PENDING")
-            .select_related("bounty", "bounty__issuer_team", "claiming_team")
-            .order_by("-claimed_at")[:50]
-        )
+        qs = BountyClaim.objects.filter(status="PENDING")
+        if not staff_scope:
+            qs = qs.filter(
+                Q(claiming_team_id__in=team_ids) | Q(bounty__issuer_team_id__in=team_ids)
+            )
+        qs = qs.select_related("bounty", "bounty__issuer_team", "claiming_team").order_by("-claimed_at")[:50]
         for claim in qs:
             subject = " vs ".join(
                 name for name in [
@@ -465,7 +621,7 @@ def competitive_review_workspace_view(request: HttpRequest) -> HttpResponse:
                 "submitted_at": _format_dt(claim.claimed_at),
                 "evidence": "Claim evidence submitted." if claim.evidence_url else "Claim waiting for operator verification.",
                 "proof_url": claim.evidence_url,
-                "admin_url": _admin_change_url(claim),
+                "admin_url": _admin_change_url(claim) if staff_scope else "",
                 "detail_url": reverse("dashboard:competitive_bounty_claim_detail", args=[claim.pk]),
                 "action_label": "Verify Claim",
             })
@@ -478,14 +634,16 @@ def competitive_review_workspace_view(request: HttpRequest) -> HttpResponse:
         from apps.royale.models import RoyaleLobby
 
         items = []
+        qs = RoyaleLobby.objects.filter(status__in=["SCORING"])
+        if not staff_scope:
+            qs = qs.filter(entries__user=user).distinct()
         qs = (
-            RoyaleLobby.objects.filter(status__in=["SCORING"])
-            .select_related("game")
-            .annotate(_reserved_count=Count(
-                "entries",
-                filter=Q(entries__status__in=["RESERVED", "CONFIRMED", "SCORED", "NO_SHOW"]),
-            ))
-            .order_by("-scheduled_at")[:25]
+            qs.select_related("game")
+              .annotate(_reserved_count=Count(
+                  "entries",
+                  filter=Q(entries__status__in=["RESERVED", "CONFIRMED", "SCORED", "NO_SHOW"]),
+              ))
+              .order_by("-scheduled_at")[:25]
         )
         for lobby in qs:
             reserved_count = getattr(lobby, "_reserved_count", None)
@@ -496,7 +654,7 @@ def competitive_review_workspace_view(request: HttpRequest) -> HttpResponse:
                 "status": _status_label(lobby.status),
                 "submitted_at": _format_dt(lobby.scheduled_at),
                 "evidence": f"{reserved_count if reserved_count is not None else lobby.reserved_count}/{lobby.slot_capacity} slots reserved; scores require operator review.",
-                "admin_url": _admin_change_url(lobby),
+                "admin_url": _admin_change_url(lobby) if staff_scope else "",
                 "detail_url": reverse("dashboard:competitive_dropzone_lobby_detail", args=[lobby.pk]),
                 "action_label": "Open Scoring",
             })
@@ -509,14 +667,22 @@ def competitive_review_workspace_view(request: HttpRequest) -> HttpResponse:
         from apps.tournaments.models import DisputeRecord
 
         items = []
+        qs = DisputeRecord.objects.filter(status__in=["open", "under_review", "escalated"])
+        if not staff_scope:
+            qs = qs.filter(
+                Q(opened_by_user=user)
+                | Q(opened_by_team_id__in=team_ids)
+                | Q(submission__submitted_by_user=user)
+                | Q(submission__submitted_by_team_id__in=team_ids)
+            )
         qs = (
-            DisputeRecord.objects.filter(status__in=["open", "under_review", "escalated"])
-            .select_related(
+            qs.select_related(
                 "submission",
                 "submission__match",
                 "submission__match__tournament",
                 "opened_by_user",
             )
+            .prefetch_related("notes")
             .order_by("-opened_at")[:25]
         )
         for dispute in qs:
@@ -532,19 +698,172 @@ def competitive_review_workspace_view(request: HttpRequest) -> HttpResponse:
                 "status": _status_label(dispute.status),
                 "submitted_at": _format_dt(dispute.opened_at),
                 "evidence": dispute.get_reason_code_display(),
-                "admin_url": _admin_change_url(dispute),
+                "admin_url": _admin_change_url(dispute) if staff_scope else "",
                 "detail_url": detail_url,
                 "action_label": "Review Dispute",
+                "note_target": "tournament_dispute",
+                "note_object_id": dispute.pk,
+                "can_add_note": _can_add_dispute_note(user, dispute),
+                "notes": _dispute_note_cards(dispute, staff_scope=staff_scope),
             })
         add_group("Tournament Match Disputes", "cyan", items)
     except Exception:
         logger.debug("Review workspace: tournament dispute query failed", exc_info=True)
         add_group("Tournament Match Disputes", "cyan", [])
 
+    return groups
+
+
+@login_required
+def competitive_proof_file_view(request: HttpRequest, proof_id) -> HttpResponse:
+    from apps.contracts.models import ContractProofSubmission
+
+    proof = (
+        ContractProofSubmission.objects.select_related("enrollment", "submitted_by")
+        .filter(pk=proof_id)
+        .first()
+    )
+    if not proof or not proof.proof_file:
+        raise Http404("Proof file not found.")
+    if not _can_view_mission_proof(request.user, proof):
+        raise Http404("Proof file not found.")
+
+    return _file_response_for_field(proof.proof_file, prefix=f"mission-proof-{proof.pk}")
+
+
+@login_required
+def competitive_match_proof_file_view(request: HttpRequest, submission_id) -> HttpResponse:
+    from apps.tournaments.models import MatchResultSubmission
+
+    submission = (
+        MatchResultSubmission.objects.select_related("match", "submitted_by_user")
+        .filter(pk=submission_id)
+        .first()
+    )
+    if not submission or not submission.proof_screenshot:
+        raise Http404("Proof file not found.")
+    if not _can_view_match_submission_file(request.user, submission):
+        raise Http404("Proof file not found.")
+    return _file_response_for_field(
+        submission.proof_screenshot,
+        prefix=f"match-proof-{submission.pk}",
+    )
+
+
+@login_required
+def competitive_dispute_evidence_file_view(request: HttpRequest, evidence_id) -> HttpResponse:
+    from apps.tournaments.models import DisputeEvidence
+
+    evidence = (
+        DisputeEvidence.objects.select_related(
+            "dispute",
+            "dispute__submission",
+            "dispute__submission__match",
+            "uploaded_by",
+        )
+        .filter(pk=evidence_id)
+        .first()
+    )
+    if not evidence or not evidence.evidence_file:
+        raise Http404("Evidence file not found.")
+    if not _can_view_dispute_evidence_file(request.user, evidence):
+        raise Http404("Evidence file not found.")
+    return _file_response_for_field(
+        evidence.evidence_file,
+        prefix=f"dispute-evidence-{evidence.pk}",
+    )
+
+
+@login_required
+def competitive_match_media_file_view(request: HttpRequest, media_id) -> HttpResponse:
+    from apps.tournaments.models import MatchMedia
+
+    media = MatchMedia.objects.select_related("match").filter(pk=media_id).first()
+    if not media or not media.file:
+        raise Http404("Match media file not found.")
+    if not _can_view_match_media_file(request.user, media):
+        raise Http404("Match media file not found.")
+    return _file_response_for_field(media.file, prefix=f"match-media-{media.pk}")
+
+
+@login_required
+def competitive_dispute_center_view(request: HttpRequest) -> HttpResponse:
+    staff_scope = bool(request.user.is_staff or request.user.is_superuser)
+    if request.method == "POST":
+        item_type = (request.POST.get("item_type") or "").strip()
+        note_body = (request.POST.get("note") or "").strip()
+        visibility = (request.POST.get("visibility") or "participant_safe").strip()
+        if item_type != "tournament_dispute" or not note_body:
+            messages.error(request, "Could not add the dispute note.")
+            return redirect("dashboard:competitive_dispute_center")
+        if not staff_scope:
+            visibility = "participant_safe"
+        if visibility not in {"participant_safe", "internal_staff"}:
+            visibility = "participant_safe"
+        try:
+            from apps.tournaments.models import DisputeNote, DisputeRecord
+
+            dispute = (
+                DisputeRecord.objects.select_related(
+                    "submission",
+                    "submission__match",
+                    "opened_by_user",
+                )
+                .filter(pk=request.POST.get("object_id"))
+                .first()
+            )
+            if not dispute or not _can_add_dispute_note(request.user, dispute):
+                raise Http404("Dispute not found.")
+            DisputeNote.objects.create(
+                dispute=dispute,
+                author=request.user,
+                body=note_body[:2000],
+                visibility=visibility,
+            )
+            messages.success(request, "Dispute note added.")
+        except Http404:
+            messages.error(request, "Dispute not found.")
+        except Exception as exc:
+            logger.exception("Failed to add dispute note")
+            messages.error(request, str(exc))
+        return redirect("dashboard:competitive_dispute_center")
+
+    groups = _competitive_review_groups(request.user, staff_scope=staff_scope)
     total_count = sum(group["count"] for group in groups)
     return render(request, "dashboard/competitive_review.html", {
         "review_groups": groups,
         "total_count": total_count,
+        "workspace_title": "Dispute Center",
+        "workspace_eyebrow": "Competitive Review",
+        "workspace_badge": "Staff Queue" if staff_scope else "Your Items",
+        "workspace_description": (
+            "Open reviews, disputes, and proof checks connected to your teams and Missions. "
+            "Staff see the full queue; participants only see related items."
+        ),
+        "is_staff_workspace": staff_scope,
+        "dispute_center_url": "",
+        "hub_url": reverse("dashboard:competitive_hub"),
+    })
+
+
+@staff_member_required
+def competitive_review_workspace_view(request: HttpRequest) -> HttpResponse:
+    """Staff queue linking to existing service-backed admin controls."""
+    groups = _competitive_review_groups(request.user, staff_scope=True)
+    total_count = sum(group["count"] for group in groups)
+    return render(request, "dashboard/competitive_review.html", {
+        "review_groups": groups,
+        "total_count": total_count,
+        "workspace_title": "Review Workspace",
+        "workspace_eyebrow": "Competitive Operations",
+        "workspace_badge": "Staff Only",
+        "workspace_description": (
+            "A lightweight staff queue for competitive items that need operator attention. "
+            "Settlement, refunds, verification, and dispute decisions stay in service-backed Django admin actions."
+        ),
+        "is_staff_workspace": True,
+        "dispute_center_url": reverse("dashboard:competitive_dispute_center"),
+        "hub_url": reverse("dashboard:competitive_hub"),
     })
 
 
@@ -554,7 +873,7 @@ def competitive_showdown_detail_view(request: HttpRequest, challenge_id) -> Http
 
     showdown = (
         Challenge.objects.select_related("challenger_team", "challenged_team", "game", "match__tournament")
-        .prefetch_related("result_submissions__team", "match__result_submissions__disputes")
+        .prefetch_related("result_submissions__team", "match__result_submissions__disputes__notes")
         .filter(pk=challenge_id)
         .first()
     )
@@ -592,6 +911,11 @@ def competitive_showdown_detail_view(request: HttpRequest, challenge_id) -> Http
         "page_title": showdown.title or f"Showdown {showdown.reference_code}",
         "status_label": _status_label(showdown.status),
         "primary_action": {"label": "Enter Match Room", "url": match_url} if match_url else None,
+        "review_action": (
+            {"label": "Open Dispute Center", "url": reverse("dashboard:competitive_dispute_center")}
+            if showdown.status == "DISPUTED" or review_state["state"] == "under_review"
+            else None
+        ),
         "hub_url": "/dashboard/competitive/#showdown",
         "summary_cards": [
             {"label": "Game", "value": getattr(showdown.game, "display_name", None) or getattr(showdown.game, "name", "")},
@@ -604,6 +928,7 @@ def competitive_showdown_detail_view(request: HttpRequest, challenge_id) -> Http
             {"label": "Opponent Team", "name": getattr(showdown.challenged_team, "name", "Waiting for opponent")},
         ],
         "proof_state": review_state,
+        "review_notes": _match_dispute_notes(showdown.match, user=request.user),
         "timeline": timeline,
         "submissions": _submission_cards(submissions),
     })
@@ -640,6 +965,11 @@ def competitive_bounty_detail_view(request: HttpRequest, bounty_id) -> HttpRespo
         "accent": "neon",
         "page_title": bounty.title,
         "status_label": _status_label(bounty.status),
+        "review_action": (
+            {"label": "Open Dispute Center", "url": reverse("dashboard:competitive_dispute_center")}
+            if any(claim.status == "PENDING" for claim in bounty.claims.all())
+            else None
+        ),
         "hub_url": "/dashboard/competitive/#bounty",
         "summary_cards": [
             {"label": "Game", "value": getattr(bounty.game, "display_name", None) or getattr(bounty.game, "name", "")},
@@ -773,6 +1103,11 @@ def competitive_mission_detail_view(request: HttpRequest, enrollment_id) -> Http
         "accent": "violet",
         "page_title": template.title,
         "status_label": _status_label(enrollment.status),
+        "review_action": (
+            {"label": "Open Dispute Center", "url": reverse("dashboard:competitive_dispute_center")}
+            if latest_proof and latest_proof.status in {"PENDING_REVIEW", "REJECTED"}
+            else None
+        ),
         "hub_url": "/dashboard/competitive/#missions",
         "summary_cards": [
             {"label": "Game", "value": getattr(template.game, "display_name", None) or getattr(template.game, "name", "")},
@@ -804,7 +1139,7 @@ def competitive_mission_detail_view(request: HttpRequest, enrollment_id) -> Http
                 {
                     "status": _status_label(proof.status),
                     "proof_url": proof.proof_url,
-                    "proof_file_url": _file_url(proof.proof_file),
+                    "proof_file_url": _mission_proof_file_url(proof),
                     "notes": proof.notes,
                     "submitted_at": _format_dt(proof.submitted_at),
                     "reviewed_at": _format_dt(proof.reviewed_at),
@@ -830,7 +1165,7 @@ def competitive_bounty_claim_detail_view(request: HttpRequest, claim_id) -> Http
             "challenge__match__tournament",
             "match__tournament",
         )
-        .prefetch_related("match__result_submissions__disputes", "challenge__match__result_submissions__disputes")
+        .prefetch_related("match__result_submissions__disputes__notes", "challenge__match__result_submissions__disputes__notes")
         .filter(pk=claim_id)
         .first()
     )
@@ -853,6 +1188,11 @@ def competitive_bounty_claim_detail_view(request: HttpRequest, claim_id) -> Http
         "page_title": claim.bounty.title,
         "status_label": _status_label(claim.status),
         "primary_action": {"label": "Enter Match Room", "url": match_url} if match_url else None,
+        "review_action": (
+            {"label": "Open Dispute Center", "url": reverse("dashboard:competitive_dispute_center")}
+            if claim.status == "PENDING" or review_state["state"] == "under_review"
+            else None
+        ),
         "hub_url": "/dashboard/competitive/#bounty",
         "summary_cards": [
             {"label": "Game", "value": getattr(claim.bounty.game, "display_name", None) or getattr(claim.bounty.game, "name", "")},
@@ -865,6 +1205,7 @@ def competitive_bounty_claim_detail_view(request: HttpRequest, claim_id) -> Http
             {"label": "Claiming Team", "name": getattr(claim.claiming_team, "name", "Team")},
         ],
         "proof_state": review_state,
+        "review_notes": _match_dispute_notes(match, user=request.user),
         "timeline": [
             _timeline_item("Bounty Placed", "done", claim.bounty.created_at),
             _timeline_item("Claim Submitted", "done", claim.claimed_at),
@@ -937,6 +1278,11 @@ def competitive_dropzone_lobby_detail_view(request: HttpRequest, lobby_id) -> Ht
         "accent": "gold",
         "page_title": lobby.title,
         "status_label": _status_label(lobby.status),
+        "review_action": (
+            {"label": "Open Dispute Center", "url": reverse("dashboard:competitive_dispute_center")}
+            if lobby.status == "SCORING"
+            else None
+        ),
         "hub_url": "/dashboard/competitive/#dropzone",
         "summary_cards": [
             {"label": "Game", "value": getattr(lobby.game, "display_name", None) or getattr(lobby.game, "name", "")},
@@ -1026,6 +1372,11 @@ def competitive_dropzone_entry_detail_view(request: HttpRequest, entry_id) -> Ht
         "accent": "gold",
         "page_title": lobby.title,
         "status_label": _status_label(entry.status),
+        "review_action": (
+            {"label": "Open Dispute Center", "url": reverse("dashboard:competitive_dispute_center")}
+            if lobby.status == "SCORING"
+            else None
+        ),
         "hub_url": "/dashboard/competitive/#dropzone",
         "summary_cards": [
             {"label": "Game", "value": getattr(lobby.game, "display_name", None) or getattr(lobby.game, "name", "")},

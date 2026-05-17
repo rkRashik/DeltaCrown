@@ -1,10 +1,10 @@
-"""Crown Royale — scheduled paid Battle Royale lobbies.
+"""Dropzone — scheduled Battle Royale custom lobbies.
 
-A RoyaleLobby is a thin reservation/payout layer wrapping a real
+A RoyaleLobby is a thin reservation/reward layer wrapping a real
 ``apps.tournaments.Tournament`` row, which provides the admin UI,
-brackets, and check-in flow.  Players pay a per-slot entry fee in
-DeltaCoin; the prize pot is distributed by admin-configurable
-placement splits when the lobby settles.
+brackets, and check-in flow. Players reserve slots with a DeltaCoin
+entry fee; rewards are distributed by admin-configurable placement
+splits when the lobby settles.
 """
 from __future__ import annotations
 

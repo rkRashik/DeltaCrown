@@ -51,6 +51,13 @@
     royale: 'royale',
     'crown-royale': 'royale',
     dropzone: 'royale',
+    operations: 'operations',
+    operation: 'operations',
+    'my-operations': 'operations',
+    ops: 'operations',
+    review: 'review',
+    reviews: 'review',
+    disputes: 'review',
   };
 
   const TAB_HASH = {
@@ -58,6 +65,8 @@
     contracts: 'missions',
     hitlist: 'bounty',
     royale: 'dropzone',
+    operations: 'my-operations',
+    review: 'review',
   };
 
   // ── CSRF / fetch helpers ──────────────────────────────────────────
@@ -304,7 +313,7 @@
 
   function normalizeTab(name) {
     const key = String(name || '').replace(/^#/, '').trim().toLowerCase();
-    return TAB_ALIASES[key] || (['clash', 'contracts', 'hitlist', 'royale'].includes(key) ? key : 'clash');
+    return TAB_ALIASES[key] || (['clash', 'contracts', 'hitlist', 'royale', 'operations', 'review'].includes(key) ? key : 'clash');
   }
 
   function switchTab(name, opts = {}) {
@@ -557,7 +566,7 @@
       feed.innerHTML = `<div class="col-span-full">${emptyState({ icon: 'fa-crown', title: 'No Lobbies Scheduled', sub: 'Custom rooms drop on the schedule. Check back soon.' })}</div>`;
       return;
     }
-    feed.innerHTML = list.map((l) => {
+    feed.innerHTML = list.map((l, idx) => {
       const fee = Number(l.entry_fee_per_slot_dc || 0);
       const max = Number(l.max_slots || 0);
       const taken = Number(l.reserved_slots || 0);
@@ -569,56 +578,190 @@
       const splits = (l.prize_distribution && l.prize_distribution.splits) || {};
       const mode = (l.prize_distribution && l.prize_distribution.mode) || 'PERCENT';
       const lobbyUrl = `/dashboard/competitive/dropzone/lobbies/${esc(l.id)}/`;
+      const status = String(l.status || '').toUpperCase();
+      const phase = status.includes('SETTLED') || status.includes('SCORED') ? 5 : status.includes('SCOR') || status.includes('LIVE') ? 4 : status.includes('READY') || status.includes('REVEAL') ? 3 : taken > 0 ? 2 : 1;
+      const featured = idx === 0 || fillPct >= 70;
       const splitChips = Object.keys(splits).sort((a, b) => +a - +b).slice(0, 5).map((k) =>
         `<span class="font-mono text-[10px] text-dc-gold">#${esc(k)}: ${esc(splits[k])}${mode === 'PERCENT' ? '%' : ' DC'}</span>`
       ).join('<span class="text-gray-700">&middot;</span>');
       const canReserve = !closed && remaining > 0;
       return `
-        <div class="glass-heavy accent-gold rounded-2xl p-6 relative overflow-hidden group fade-enter border border-white/5 transition-all">
-          <div class="absolute -top-12 -right-12 w-40 h-40 bg-dc-gold opacity-10 blur-3xl rounded-full pointer-events-none"></div>
-          <div class="relative z-10">
-            <div class="flex items-start justify-between gap-3 mb-3">
-              <div>
-                <p class="text-[10px] font-bold uppercase tracking-widest text-dc-gold mb-1">${esc(l.game_short_code || 'DROPZONE')}</p>
-                <h3 class="font-display font-black text-white text-2xl leading-tight">${esc(l.title)}</h3>
+        <div class="glass-heavy accent-gold rounded-3xl p-5 md:p-6 relative overflow-hidden group fade-enter border border-white/5 transition-all ${featured ? 'md:col-span-2' : ''}">
+          <div class="absolute inset-0 opacity-60 pointer-events-none" style="background: linear-gradient(135deg, rgba(255,215,0,.10), transparent 38%), radial-gradient(circle at 86% 18%, rgba(0,229,255,.08), transparent 32%);"></div>
+          <div class="relative z-10 grid ${featured ? 'lg:grid-cols-[1.15fr_.85fr]' : 'grid-cols-1'} gap-5">
+            <div>
+              <div class="flex items-start justify-between gap-3 mb-4">
+                <div>
+                  <div class="flex items-center gap-2 mb-2">
+                    <span class="px-2.5 py-1 rounded-full bg-dc-gold/15 border border-dc-gold/30 text-dc-gold text-[9px] font-black uppercase tracking-widest">${esc(l.game_short_code || 'DROPZONE')}</span>
+                    ${featured ? '<span class="px-2.5 py-1 rounded-full bg-dc-cyan/10 border border-dc-cyan/25 text-dc-cyan text-[9px] font-black uppercase tracking-widest">Featured Lobby</span>' : ''}
+                  </div>
+                  <h3 class="font-display font-black text-white text-3xl leading-tight">${esc(l.title)}</h3>
+                </div>
+                <span class="px-2 py-1 rounded bg-white/5 border border-white/10 text-[9px] font-bold uppercase tracking-widest text-gray-300">${esc(l.status_display || l.status)}</span>
               </div>
-              <span class="px-2 py-1 rounded bg-white/5 border border-white/10 text-[9px] font-bold uppercase tracking-widest text-gray-300">${esc(l.status_display || l.status)}</span>
-            </div>
             ${closureHtml(l)}
-            ${closed ? '' : (sched ? `<p class="text-xs text-gray-400 mb-3 font-mono"><i class="fa-solid fa-clock text-dc-cyan mr-1"></i> ${esc(schedText)}</p>` : '')}
-            <div class="mb-3">
-              <div class="flex items-center justify-between text-[10px] font-mono text-gray-500 mb-1.5">
-                <span>${taken}/${max} slots</span>
-                <span>${remaining} left</span>
+              ${closed ? '' : (sched ? `<p class="text-xs text-gray-400 mb-4 font-mono"><i class="fa-solid fa-clock text-dc-cyan mr-1"></i> ${esc(schedText)}</p>` : '')}
+              <div class="status-rail text-dc-gold mb-4" aria-label="Dropzone lifecycle">
+                ${[1, 2, 3, 4, 5].map((i) => `<span class="${i <= phase ? 'is-on' : ''}"></span>`).join('')}
               </div>
-              <div class="h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
-                <div class="h-full" style="width: ${fillPct}%; background: linear-gradient(90deg, #00e5ff, #ffd700); box-shadow: 0 0 8px rgba(0,229,255,.6)"></div>
+              <div class="grid grid-cols-3 gap-2 mb-4">
+                <div class="rounded-2xl border border-white/8 bg-black/30 p-3">
+                  <p class="text-[9px] uppercase tracking-widest text-gray-500 font-black">Slots</p>
+                  <p class="font-display text-2xl font-black text-white">${taken}<span class="text-sm text-gray-500">/${max}</span></p>
+                </div>
+                <div class="rounded-2xl border border-white/8 bg-black/30 p-3">
+                  <p class="text-[9px] uppercase tracking-widest text-gray-500 font-black">Left</p>
+                  <p class="font-display text-2xl font-black text-dc-cyan">${remaining}</p>
+                </div>
+                <div class="rounded-2xl border border-dc-gold/20 bg-dc-gold/10 p-3">
+                  <p class="text-[9px] uppercase tracking-widest text-dc-gold/70 font-black">Entry</p>
+                  <p class="font-display text-2xl font-black text-dc-gold">${fee}</p>
+                </div>
+              </div>
+              <div class="mb-4">
+                <div class="flex items-center justify-between text-[10px] font-mono text-gray-500 mb-1.5">
+                  <span>Capacity</span>
+                  <span>${fillPct}% filled</span>
+                </div>
+                <div class="h-2 rounded-full bg-white/[0.06] overflow-hidden">
+                  <div class="h-full" style="width: ${fillPct}%; background: linear-gradient(90deg, #00e5ff, #ffd700); box-shadow: 0 0 12px rgba(255,215,0,.55)"></div>
+                </div>
+              </div>
+              <div class="flex items-center gap-2 flex-wrap">
+                ${splitChips ? `<div class="flex items-center gap-1.5 flex-wrap">${splitChips}</div>` : '<span class="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Reward distribution pending</span>'}
               </div>
             </div>
-            <div class="flex items-center gap-2 flex-wrap mb-4">
-              <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-dc-gold/15 border border-dc-gold/30 text-dc-gold text-[11px] font-mono font-bold"><i class="fa-solid fa-coins"></i> ${fee} DC / slot</span>
-              ${splitChips ? `<div class="flex items-center gap-1.5">${splitChips}</div>` : ''}
-            </div>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              <a href="${lobbyUrl}" class="inline-flex items-center justify-center rounded-lg border border-dc-gold/25 bg-dc-gold/10 px-3 py-3 text-xs font-black uppercase tracking-widest text-dc-gold hover:bg-dc-gold/20">
-                View Lobby
-              </a>
-              <button ${canReserve ? '' : 'disabled'} data-reserve-royale="${esc(l.id)}" data-fee="${fee}"
-                      class="btn-cyber w-full bg-dc-gold hover:bg-yellow-400 text-black font-black uppercase tracking-widest py-3 transition-all ${canReserve ? '' : 'opacity-50 cursor-not-allowed'}">
-                Reserve Slot
-              </button>
+            <div class="flex flex-col justify-between rounded-3xl border border-white/8 bg-black/35 p-4">
+              <div>
+                <p class="text-[10px] uppercase tracking-widest text-gray-500 font-black mb-2">Room Reveal</p>
+                <p class="text-sm text-gray-300 leading-relaxed">${status.includes('LIVE') || status.includes('READY') ? 'Room details may be available to reserved entrants on the detail page.' : 'Room credentials stay hidden until the configured reveal window.'}</p>
+                <div class="mt-4 rounded-2xl border border-white/8 bg-white/[0.03] p-3">
+                  <p class="text-[10px] uppercase tracking-widest text-gray-500 font-black">Results Preview</p>
+                  <p class="text-xs text-gray-400 mt-1">${phase >= 4 ? 'Scoring/review is in progress or complete. Open lobby details for standings.' : 'Leaderboard appears after scoring starts.'}</p>
+                </div>
+              </div>
+              <div class="grid grid-cols-1 gap-2 mt-5">
+                <a href="${lobbyUrl}" class="inline-flex items-center justify-center rounded-xl border border-dc-gold/25 bg-dc-gold/10 px-3 py-3 text-xs font-black uppercase tracking-widest text-dc-gold hover:bg-dc-gold/20">
+                  View Lobby
+                </a>
+                <button ${canReserve ? '' : 'disabled'} data-reserve-royale="${esc(l.id)}" data-fee="${fee}"
+                        class="btn-cyber w-full bg-dc-gold hover:bg-yellow-400 text-black font-black uppercase tracking-widest py-3 transition-all ${canReserve ? '' : 'opacity-50 cursor-not-allowed'}">
+                  Reserve Slot
+                </button>
+              </div>
             </div>
           </div>
         </div>`;
     }).join('');
   }
 
+  function isTeamOp(op) {
+    return ['scrim', 'tryout', 'practice', 'vod_review'].includes(String(op.type || ''));
+  }
+
+  function isReviewOp(op) {
+    const haystack = `${op.status || ''} ${op.next_action_label || ''} ${op.review_state_label || ''}`.toLowerCase();
+    return op.is_action_required || /review|dispute|proof|confirmation|rejected|conflict/.test(haystack);
+  }
+
+  function renderCommandMetrics() {
+    const operations = STATE.data.myOperations || [];
+    const now = Date.now();
+    const upcoming = operations.filter((op) => {
+      const dt = op.scheduled_at || op.starts_at;
+      return dt && new Date(dt).getTime() >= now;
+    }).length;
+    const review = operations.filter(isReviewOp).length;
+    const teamOps = operations.filter(isTeamOp).length;
+    const rewards = operations.reduce((sum, op) => sum + Number(op.reward_dc || 0), 0);
+    const set = (id, value) => { const el = document.getElementById(id); if (el) el.textContent = value; };
+    set('metric-active-ops', operations.length.toLocaleString());
+    set('metric-upcoming', upcoming.toLocaleString());
+    set('metric-review', review.toLocaleString());
+    set('metric-team-ops', teamOps.toLocaleString());
+    set('metric-rewards', rewards ? `${rewards.toLocaleString()}` : '0');
+    set('ctx-stat-1', operations.length ? operations.length.toLocaleString() : '0');
+  }
+
+  function operationProgressIndex(op) {
+    const label = `${op.status || ''} ${op.next_action_label || ''} ${op.review_state_label || ''}`.toLowerCase();
+    if (/settled|completed|signed|accepted|view result|confirmed/.test(label)) return 5;
+    if (/review|dispute|proof|confirmation|scoring/.test(label)) return 4;
+    if (/match room|scheduled|room details|awaiting results/.test(label)) return 3;
+    if (/accepted|reserved|active|track/.test(label)) return 2;
+    return 1;
+  }
+
+  function renderOperationCard(op, { compact = false } = {}) {
+    const typeMeta = operationTypeMeta(op.type);
+    const actionUrl = op.next_action_url || op.match_room_url || op.detail_url || '#';
+    const opStatus = String(op.status || '').toUpperCase();
+    const isPrimarySubmit = op.type === 'showdown' && op.next_action_label === 'Submit Result';
+    const canSecondarySubmit = op.type === 'showdown' && !op.match_room_url && ['ACCEPTED', 'SCHEDULED', 'IN_PROGRESS'].includes(opStatus);
+    const game = op.game && (op.game.short_code || op.game.name) ? (op.game.short_code || op.game.name) : 'ANY';
+    const scheduled = op.scheduled_at || op.starts_at;
+    const scheduledText = scheduled ? new Date(scheduled).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+    const fee = Number(op.entry_fee_dc || 0);
+    const reward = op.reward_dc != null ? `${Number(op.reward_dc || 0).toLocaleString()} DC reward` : (op.reward_summary || '');
+    const actionClass = op.is_action_required ? 'text-dc-cyan border-dc-cyan/30 bg-dc-cyan/10' : 'text-gray-300 border-white/10 bg-white/5';
+    const detailUrl = op.detail_url || '';
+    const showDetailLink = detailUrl && detailUrl !== actionUrl;
+    const lobbyDetailUrl = op.lobby_detail_url || '';
+    const reviewLabel = op.review_state_label || '';
+    const progress = operationProgressIndex(op);
+    const pad = compact ? 'p-3' : 'p-5';
+    const titleSize = compact ? 'text-xs' : 'text-base';
+    return `
+      <div class="premium-card rounded-2xl ${pad} transition-all group relative overflow-hidden">
+        <div class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
+        <div class="flex items-start justify-between gap-3 mb-3">
+          <div class="min-w-0">
+            <div class="flex items-center gap-2 mb-1">
+              <span class="w-2 h-2 rounded-full ${typeMeta.dot} ${op.is_action_required ? 'animate-pulse' : ''}"></span>
+              <span class="text-[9px] font-black uppercase tracking-widest ${typeMeta.text}">${typeMeta.label}</span>
+              ${isTeamOp(op) ? '<span class="text-[9px] px-2 py-0.5 rounded-full border border-emerald-400/20 bg-emerald-400/10 text-emerald-300 font-black uppercase tracking-widest">Team Ops</span>' : ''}
+            </div>
+            <p class="${titleSize} font-bold text-white truncate">${esc(op.title || typeMeta.label)}</p>
+          </div>
+          <span class="text-[9px] font-mono text-gray-500 uppercase shrink-0">${esc(op.status || '')}</span>
+        </div>
+        <div class="status-rail ${typeMeta.text} mb-3" aria-hidden="true">
+          ${[1, 2, 3, 4, 5].map((i) => `<span class="${i <= progress ? 'is-on' : ''}"></span>`).join('')}
+        </div>
+        <div class="flex items-center gap-2 flex-wrap text-[10px] font-mono text-gray-500 mb-3">
+          <span>${esc(game)}</span>
+          ${op.team_name ? `<span class="text-gray-700">&middot;</span><span>${esc(op.team_name)}</span>` : ''}
+          ${scheduledText ? `<span class="text-gray-700">&middot;</span><span>${esc(scheduledText)}</span>` : ''}
+          ${fee ? `<span class="text-gray-700">&middot;</span><span>${fee.toLocaleString()} DC entry</span>` : ''}
+          ${reward ? `<span class="text-gray-700">&middot;</span><span class="text-dc-gold">${esc(reward)}</span>` : ''}
+        </div>
+        ${reviewLabel ? `<div class="mb-3 rounded-xl border border-white/5 bg-white/[0.035] px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-gray-400">${esc(reviewLabel)}</div>` : ''}
+        ${isPrimarySubmit ? `
+          <button type="button" data-submit-showdown-result="${esc(op.id)}" class="inline-flex items-center justify-center gap-2 w-full rounded-xl border px-3 py-2 text-[10px] font-black uppercase tracking-widest ${actionClass}">
+            <i class="fa-solid fa-flag-checkered"></i> Submit Result
+          </button>
+        ` : `
+          <a href="${esc(actionUrl)}" class="inline-flex items-center justify-center gap-2 w-full rounded-xl border px-3 py-2 text-[10px] font-black uppercase tracking-widest ${actionClass}">
+            ${op.is_action_required ? '<i class="fa-solid fa-bolt"></i>' : '<i class="fa-solid fa-arrow-right"></i>'}
+            ${esc(op.next_action_label || 'View Details')}
+          </a>
+        `}
+        ${showDetailLink ? `<a href="${esc(detailUrl)}" class="mt-2 inline-flex items-center justify-center gap-2 w-full rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-[10px] font-black uppercase tracking-widest text-gray-300 hover:text-white hover:border-dc-cyan/30"><i class="fa-solid fa-list-check"></i> View Detail Timeline</a>` : ''}
+        ${lobbyDetailUrl ? `<a href="${esc(lobbyDetailUrl)}" class="mt-2 inline-flex items-center justify-center gap-2 w-full rounded-xl border border-dc-gold/20 bg-dc-gold/10 px-3 py-2 text-[10px] font-black uppercase tracking-widest text-dc-gold hover:bg-dc-gold/20"><i class="fa-solid fa-map-location-dot"></i> View Lobby</a>` : ''}
+        ${canSecondarySubmit ? `<button type="button" data-submit-showdown-result="${esc(op.id)}" class="inline-flex items-center justify-center gap-2 w-full rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 mt-2 text-[10px] font-black uppercase tracking-widest text-gray-300 hover:text-white hover:border-dc-cyan/30"><i class="fa-solid fa-flag-checkered"></i> Submit Result</button>` : ''}
+      </div>`;
+  }
+
   function renderActiveOps() {
     const box = document.getElementById('active-ops-container');
     const counter = document.getElementById('ops-count');
-    if (!box) return;
     const operations = STATE.data.myOperations || [];
     if (counter) counter.textContent = `${operations.length} ACTIVE`;
+    renderCommandMetrics();
+    renderOperationsWorkspace();
+    renderReviewWorkspace();
+    if (!box) return;
     if (!operations.length) {
       box.innerHTML = `<div class="text-center py-6 px-3">
         <p class="text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">No operations yet</p>
@@ -626,73 +769,34 @@
       </div>`;
       return;
     }
-    box.innerHTML = operations.slice(0, 8).map((op) => {
-      const typeMeta = operationTypeMeta(op.type);
-      const actionUrl = op.next_action_url || op.match_room_url || op.detail_url || '#';
-      const opStatus = String(op.status || '').toUpperCase();
-      const isPrimarySubmit = op.type === 'showdown' && op.next_action_label === 'Submit Result';
-      const canSecondarySubmit = op.type === 'showdown' && !op.match_room_url && ['ACCEPTED', 'SCHEDULED', 'IN_PROGRESS'].includes(opStatus);
-      const game = op.game && (op.game.short_code || op.game.name) ? (op.game.short_code || op.game.name) : 'ANY';
-      const scheduled = op.scheduled_at || op.starts_at;
-      const scheduledText = scheduled ? new Date(scheduled).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
-      const fee = Number(op.entry_fee_dc || 0);
-      const reward = op.reward_dc != null ? `${Number(op.reward_dc || 0).toLocaleString()} DC reward` : (op.reward_summary || '');
-      const actionClass = op.is_action_required ? 'text-dc-cyan border-dc-cyan/30 bg-dc-cyan/10' : 'text-gray-300 border-white/10 bg-white/5';
-      const detailUrl = op.detail_url || '';
-      const showDetailLink = detailUrl && detailUrl !== actionUrl;
-      const lobbyDetailUrl = op.lobby_detail_url || '';
-      const reviewLabel = op.review_state_label || '';
-      return `
-        <div class="bg-black/40 rounded-lg p-3 border border-white/5 hover:border-white/15 transition group">
-          <div class="flex items-start justify-between gap-2 mb-2">
-            <div class="min-w-0">
-              <div class="flex items-center gap-2 mb-1">
-                <span class="w-1.5 h-1.5 rounded-full ${typeMeta.dot}"></span>
-                <span class="text-[9px] font-black uppercase tracking-widest ${typeMeta.text}">${typeMeta.label}</span>
-              </div>
-              <p class="text-xs font-bold text-white truncate">${esc(op.title || typeMeta.label)}</p>
-            </div>
-            <span class="text-[9px] font-mono text-gray-500 uppercase">${esc(op.status || '')}</span>
-          </div>
-          <div class="flex items-center gap-2 flex-wrap text-[10px] font-mono text-gray-500 mb-3">
-            <span>${esc(game)}</span>
-            ${op.team_name ? `<span class="text-gray-700">&middot;</span><span>${esc(op.team_name)}</span>` : ''}
-            ${scheduledText ? `<span class="text-gray-700">&middot;</span><span>${esc(scheduledText)}</span>` : ''}
-            ${fee ? `<span class="text-gray-700">&middot;</span><span>${fee.toLocaleString()} DC entry</span>` : ''}
-            ${reward ? `<span class="text-gray-700">&middot;</span><span class="text-dc-gold">${esc(reward)}</span>` : ''}
-          </div>
-          ${reviewLabel ? `<div class="mb-3 rounded-md border border-white/5 bg-white/[0.03] px-2.5 py-2 text-[10px] font-bold uppercase tracking-widest text-gray-400">${esc(reviewLabel)}</div>` : ''}
-          ${isPrimarySubmit ? `
-            <button type="button" data-submit-showdown-result="${esc(op.id)}" class="inline-flex items-center justify-center gap-2 w-full rounded-md border px-3 py-2 text-[10px] font-black uppercase tracking-widest ${actionClass}">
-              <i class="fa-solid fa-flag-checkered"></i>
-              Submit Result
-            </button>
-          ` : `
-            <a href="${esc(actionUrl)}" class="inline-flex items-center justify-center gap-2 w-full rounded-md border px-3 py-2 text-[10px] font-black uppercase tracking-widest ${actionClass}">
-              ${op.is_action_required ? '<i class="fa-solid fa-bolt"></i>' : '<i class="fa-solid fa-arrow-right"></i>'}
-              ${esc(op.next_action_label || 'View Details')}
-            </a>
-          `}
-          ${showDetailLink ? `
-            <a href="${esc(detailUrl)}" class="mt-2 inline-flex items-center justify-center gap-2 w-full rounded-md border border-white/10 bg-white/[0.03] px-3 py-2 text-[10px] font-black uppercase tracking-widest text-gray-300 hover:text-white hover:border-dc-cyan/30">
-              <i class="fa-solid fa-list-check"></i>
-              View Detail Timeline
-            </a>
-          ` : ''}
-          ${lobbyDetailUrl ? `
-            <a href="${esc(lobbyDetailUrl)}" class="mt-2 inline-flex items-center justify-center gap-2 w-full rounded-md border border-dc-gold/20 bg-dc-gold/10 px-3 py-2 text-[10px] font-black uppercase tracking-widest text-dc-gold hover:bg-dc-gold/20">
-              <i class="fa-solid fa-map-location-dot"></i>
-              View Lobby
-            </a>
-          ` : ''}
-          ${canSecondarySubmit ? `
-            <button type="button" data-submit-showdown-result="${esc(op.id)}" class="inline-flex items-center justify-center gap-2 w-full rounded-md border border-white/10 bg-white/[0.03] px-3 py-2 mt-2 text-[10px] font-black uppercase tracking-widest text-gray-300 hover:text-white hover:border-dc-cyan/30">
-              <i class="fa-solid fa-flag-checkered"></i>
-              Submit Result
-            </button>
-          ` : ''}
-        </div>`;
-    }).join('');
+    box.innerHTML = operations.slice(0, 8).map((op) => renderOperationCard(op, { compact: true })).join('');
+  }
+
+  function renderOperationsWorkspace() {
+    const box = document.getElementById('operations-workspace');
+    if (!box) return;
+    const operations = STATE.data.myOperations || [];
+    if (!operations.length) {
+      box.innerHTML = `<div class="xl:col-span-2">${emptyState({ icon: 'fa-layer-group', title: 'No Operations Running', sub: 'Start a Mission, create a Showdown, claim a Bounty, reserve a Dropzone slot, or schedule team ops to build your command feed.' })}</div>`;
+      return;
+    }
+    const priority = operations.slice().sort((a, b) => Number(!!b.is_action_required) - Number(!!a.is_action_required));
+    box.innerHTML = priority.map((op) => renderOperationCard(op)).join('');
+  }
+
+  function renderReviewWorkspace() {
+    const box = document.getElementById('review-workspace');
+    if (!box) return;
+    const reviewOps = (STATE.data.myOperations || []).filter(isReviewOp);
+    if (!reviewOps.length) {
+      box.innerHTML = emptyState({
+        icon: 'fa-shield-halved',
+        title: 'Review Queue Clear',
+        sub: 'No visible proof, confirmation, or dispute items need your action right now.',
+      });
+      return;
+    }
+    box.innerHTML = reviewOps.map((op) => renderOperationCard(op)).join('');
   }
 
   function operationTypeMeta(type) {

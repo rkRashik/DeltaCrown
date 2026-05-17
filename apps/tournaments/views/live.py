@@ -488,7 +488,7 @@ def _collect_match_media(match, presentation):
     for row in media_rows:
         file_url = ''
         try:
-            file_url = row.file.url if row.file else ''
+            file_url = reverse('dashboard:competitive_match_media_file', args=[row.pk]) if row.file else ''
         except (AttributeError, ValueError):
             file_url = ''
 
@@ -536,7 +536,7 @@ def _collect_match_media(match, presentation):
         if not proof_url:
             try:
                 proof_field = getattr(sub, 'proof_screenshot', None)
-                proof_url = proof_field.url if proof_field else ''
+                proof_url = reverse('dashboard:competitive_match_proof_file', args=[sub.pk]) if proof_field else ''
             except (AttributeError, ValueError):
                 proof_url = ''
         if not proof_url or proof_url in seen_urls:

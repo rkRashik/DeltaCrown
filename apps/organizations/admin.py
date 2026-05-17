@@ -18,6 +18,7 @@ from apps.organizations.models import (
     OrganizationMembership,
     OrganizationRanking,
     Team,  # vNext canonical Team model
+    TeamCompetitiveSettings,
     TeamMembership,
     TeamRanking,
     TeamRankingAdjustmentLog,
@@ -87,6 +88,24 @@ class OrganizationProfileInline(StackedInline):
             'fields': ('brand_color',)
         }),
     )
+
+
+class TeamCompetitiveSettingsInline(StackedInline):
+    """Inline competitive policy controls for Team HQ enforcement."""
+    model = TeamCompetitiveSettings
+    extra = 0
+    can_delete = False
+    fields = (
+        'showdown_create_policy',
+        'bounty_create_policy',
+        'max_showdown_entry_fee_dc',
+        'max_bounty_reward_dc',
+        'bounty_approval_required_above_dc',
+        'allowed_games',
+        'allow_public_scrim_availability',
+        'allow_public_tryout_applications',
+    )
+    filter_horizontal = ('allowed_games',)
 
 
 @admin.register(Organization)
@@ -238,6 +257,7 @@ class TeamAdmin(SafeUploadMixin, ModelAdmin):
     raw_id_fields = ['created_by', 'organization']
     ordering = ['-created_at']
     readonly_fields = ['created_at', 'updated_at']
+    inlines = [TeamCompetitiveSettingsInline]
     
     fieldsets = (
         ('Basic Information', {

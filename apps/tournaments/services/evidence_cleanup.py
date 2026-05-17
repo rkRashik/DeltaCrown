@@ -96,7 +96,10 @@ def _submission_is_protected(submission) -> tuple[bool, str]:
 
     Protections:
       - status in PENDING / DISPUTED / REJECTED
-      - confirmed_at is null
+      - confirmed_at is null (never reached a verified state)
+      - is_archived is True (soft-archived by match reset; always preserved
+        until explicitly eligible — archivals from reset must not be purged
+        while the related match/tournament could still be contested)
       - any related DisputeRecord exists with non-resolved status
       - the related match itself is in DISPUTED state
     """
@@ -105,6 +108,12 @@ def _submission_is_protected(submission) -> tuple[bool, str]:
         return True, f"submission_status={status}"
     if getattr(submission, "confirmed_at", None) is None:
         return True, "no_confirmed_at"
+    # Archived submissions are permanently preserved until the tournament
+    # retention window expires AND the match is in a fully resolved state.
+    # We protect them here so a reset-then-complete flow cannot accidentally
+    # purge screenshots from a contested match attempt.
+    if getattr(submission, "is_archived", False):
+        return True, "submission_archived"
 
     # Check related match state.
     match = getattr(submission, "match", None)
@@ -193,7 +202,7 @@ def purge_tournament_result_evidence_files(
         .exclude(proof_screenshot="")
         .select_related("match")
         .only("id", "proof_screenshot", "status", "confirmed_at",
-              "match__id", "match__state")
+              "is_archived", "match__id", "match__state")
         .order_by("id")
     )
 

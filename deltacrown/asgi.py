@@ -27,6 +27,9 @@ django_asgi_app = get_asgi_application()
 # Import WebSocket routing and middleware after Django setup
 from apps.tournaments.realtime.routing import websocket_urlpatterns as tournament_ws_urls
 from apps.organizations.realtime.routing import websocket_urlpatterns as team_ws_urls
+from apps.siteui.consumers import HomepageLiveConsumer
+from django.urls import path as ws_path
+homepage_ws_urls = [ws_path("ws/homepage/live/", HomepageLiveConsumer.as_asgi())]
 from apps.tournaments.realtime.middleware import JWTAuthMiddleware
 from apps.tournaments.realtime.middleware_ratelimit import RateLimitMiddleware
 from django.conf import settings
@@ -38,7 +41,7 @@ from django.conf import settings
 websocket_app = AllowedHostsOriginValidator(
     AuthMiddlewareStack(
         JWTAuthMiddleware(
-            URLRouter(tournament_ws_urls + team_ws_urls)
+            URLRouter(homepage_ws_urls + tournament_ws_urls + team_ws_urls)
         )
     )
 )

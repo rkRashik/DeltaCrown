@@ -1,9 +1,9 @@
-"""Homepage v3 (Command Center) context builder.
+"""Homepage live-data context builder.
 
-Builds the data shape consumed by templates/home.html — the design ported
-from `Documents/Planning_homepage/.../home_v3_command-center.html`.
+Builds the dynamic data shape consumed by templates/home.html:
+live ribbon, game posters, leaderboard, featured tournament, ticker, etc.
 
-Cached for 5 minutes via apps.siteui.cache_safe.
+Cached for 10 minutes via apps.siteui.cache_safe.
 """
 
 from __future__ import annotations
@@ -57,7 +57,7 @@ def _img_url(field) -> str:
 
 
 def _poster_for_game(game) -> str:
-    """Prefer card_image then banner, then handoff JPG fallback."""
+    """Prefer card_image → banner → handoff JPG → icon → empty."""
     if game is None:
         return ""
     url = _img_url(getattr(game, "card_image", None))
@@ -70,7 +70,24 @@ def _poster_for_game(game) -> str:
     fname = _POSTER_FALLBACK.get(slug)
     if fname:
         return f"/static/img/games/posters/{fname}"
-    return ""
+    # Last resort: use the game icon as the poster (will be styled differently)
+    url = _img_url(getattr(game, "icon", None))
+    return url
+
+
+def _icon_for_game(game) -> str:
+    """Return the game icon URL (small logo for schedule/schedule strips)."""
+    if game is None:
+        return ""
+    return _img_url(getattr(game, "icon", None))
+
+
+def _color_for_game(game) -> str:
+    """Return the game's primary_color for fallback card backgrounds."""
+    if game is None:
+        return "#1a1a2e"
+    color = getattr(game, "primary_color", "") or ""
+    return color if color.startswith("#") else "#1a1a2e"
 
 
 def _format_compact(n: int) -> str:
@@ -196,6 +213,46 @@ def _hero_stats() -> Dict[str, Any]:
     }
 
 
+def _get_participant_logo(match, slot: str) -> str:
+    """Return a logo URL for a match participant (team or player)."""
+    pid = getattr(match, f"participant{slot}_id", None)
+    if not pid:
+        return ""
+    try:
+        p_type = str(getattr(match.tournament, "participation_type", "") or "").lower()
+        if p_type == "team":
+            Team = _safe_model("organizations", "Team")
+            if Team is not None:
+                team = Team.objects.filter(pk=pid).only("logo").first()
+                if team:
+                    return _img_url(getattr(team, "logo", None))
+        else:
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+            user = User.objects.filter(pk=pid).select_related("profile").first()
+            if user:
+                profile = getattr(user, "profile", None)
+                return _img_url(getattr(profile, "avatar", None)) if profile else ""
+    except Exception:
+        pass
+    return ""
+
+
+def _batch_team_logos(team_ids: list) -> dict:
+    """Return {team_id: logo_url} for a batch of team IDs in one query."""
+    if not team_ids:
+        return {}
+    logos = {}
+    try:
+        Team = _safe_model("organizations", "Team")
+        if Team is not None:
+            for team in Team.objects.filter(pk__in=team_ids).only("id", "logo"):
+                logos[team.id] = _img_url(getattr(team, "logo", None))
+    except Exception:
+        pass
+    return logos
+
+
 def _live_ribbon(limit: int = 5) -> List[Dict[str, Any]]:
     Match = _safe_model("tournaments", "Match")
     if Match is None:
@@ -208,41 +265,49 @@ def _live_ribbon(limit: int = 5) -> List[Dict[str, Any]]:
         )
     except Exception:
         rows = []
+    if not rows:
+        return []
+
+    # Batch-load team logos in one query (avoid N+1)
+    team_ids = [
+        m.participant1_id for m in rows
+        if m.participant1_id and str(getattr(m.tournament, "participation_type", "")).lower() == "team"
+    ] + [
+        m.participant2_id for m in rows
+        if m.participant2_id and str(getattr(m.tournament, "participation_type", "")).lower() == "team"
+    ]
+    logo_map = _batch_team_logos(list(set(team_ids)))
 
     out = []
     for m in rows:
         game = getattr(m.tournament, "game", None) if m.tournament else None
-        game_name = ""
-        if game is not None:
-            game_name = (game.display_name or game.name or "").strip()
-        platforms = []
-        if game and getattr(game, "platforms", None):
-            try:
-                platforms = list(game.platforms)[:1]
-            except Exception:
-                platforms = []
+        game_name = (game.display_name or game.name or "").strip() if game else ""
         type_label = ""
         if game and hasattr(game, "get_game_type_display"):
             try:
                 type_label = game.get_game_type_display() or ""
             except Exception:
-                type_label = ""
-        tag = " · ".join([p for p in platforms if p] + ([type_label] if type_label else [])) or "Live"
-
+                pass
         bo = getattr(m, "best_of", None)
         rn = getattr(m, "round_number", None)
         round_parts = []
         if isinstance(bo, int) and bo > 1:
             round_parts.append(f"BO{bo}")
         if rn:
-            round_parts.append(f"Round {rn}")
-        round_label = " · ".join(round_parts) or "In progress"
+            round_parts.append(f"Rd {rn}")
+        round_label = " · ".join(round_parts) or (type_label or "In progress")
+
+        p_type = str(getattr(m.tournament, "participation_type", "") or "").lower()
+        a_logo = logo_map.get(m.participant1_id, "") if p_type == "team" else ""
+        b_logo = logo_map.get(m.participant2_id, "") if p_type == "team" else ""
 
         out.append({
             "game": (game_name or "MATCH").upper(),
-            "tag": tag.upper(),
+            "tag": (type_label or "Live").upper(),
             "team_a": (m.participant1_name or "Team A").strip(),
             "team_b": (m.participant2_name or "Team B").strip(),
+            "team_a_logo": a_logo,
+            "team_b_logo": b_logo,
             "score_a": m.participant1_score or 0,
             "score_b": m.participant2_score or 0,
             "map_label": round_label,
@@ -266,17 +331,24 @@ def _recent_ribbon(limit: int = 4) -> List[Dict[str, Any]]:
     except Exception:
         rows = []
 
+    if not rows:
+        return []
+
+    # Batch logos — one DB query for all participants
+    team_ids = [
+        pid for m in rows
+        for pid in (m.participant1_id, m.participant2_id)
+        if pid and str(getattr(m.tournament, "participation_type", "")).lower() == "team"
+    ]
+    logo_map = _batch_team_logos(list(set(team_ids)))
+
     out = []
     for m in rows:
         game = getattr(m.tournament, "game", None) if m.tournament else None
-        game_name = ""
-        if game is not None:
-            game_name = (game.display_name or game.name or "").strip()
-
+        game_name = (game.display_name or game.name or "").strip() if game else ""
         a = m.participant1_score or 0
         b = m.participant2_score or 0
         winner = (m.participant1_name or "A") if a >= b else (m.participant2_name or "B")
-
         bo = getattr(m, "best_of", None)
         rn = getattr(m, "round_number", None)
         round_parts = []
@@ -285,12 +357,17 @@ def _recent_ribbon(limit: int = 4) -> List[Dict[str, Any]]:
         if rn:
             round_parts.append(f"Rd {rn}")
         round_label = " · ".join(round_parts) or "Completed"
+        p_type = str(getattr(m.tournament, "participation_type", "") or "").lower()
+        a_logo = logo_map.get(m.participant1_id, "") if p_type == "team" else ""
+        b_logo = logo_map.get(m.participant2_id, "") if p_type == "team" else ""
 
         out.append({
             "game": (game_name or "MATCH").upper(),
             "tag": round_label.upper(),
             "team_a": (m.participant1_name or "Team A").strip(),
             "team_b": (m.participant2_name or "Team B").strip(),
+            "team_a_logo": a_logo,
+            "team_b_logo": b_logo,
             "score_a": a,
             "score_b": b,
             "map_label": _short_time_ago(getattr(m, "completed_at", None)) + " ago",
@@ -331,6 +408,8 @@ def _game_posters(limit: int = 12) -> List[Dict[str, Any]]:
             "name": g.display_name or g.name,
             "meta": " · ".join(meta_parts) or "Esports",
             "poster_url": _poster_for_game(g),
+            "icon_url": _icon_for_game(g),
+            "primary_color": _color_for_game(g),
             "url": f"/tournaments/?game={g.slug}",
             "live_count": 0,
             "event_count": 0,
@@ -1189,8 +1268,8 @@ def _path_stages() -> List[Dict[str, str]]:
 
 # --- Public entry point ----------------------------------------------------
 
-def get_homepage_v3_context(request=None) -> Dict[str, Any]:
-    """Build the v3 homepage context (cached 5 minutes)."""
+def get_homepage_extras(request=None) -> Dict[str, Any]:
+    """Build the homepage live-data context (cached 10 minutes)."""
     cache_key = "homepage_extras"
     cached = safe_cache_get(cache_key)
     if cached is not None:
@@ -1238,5 +1317,5 @@ def get_homepage_v3_context(request=None) -> Dict[str, Any]:
             },
         }
     }
-    safe_cache_set(cache_key, context, 300)
+    safe_cache_set(cache_key, context, 600)
     return context

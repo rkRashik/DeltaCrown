@@ -158,7 +158,7 @@
             command:     { title: "Command Center",      sub: "Real-time team overview" },
             roster:      { title: "Roster Ops",          sub: "Players & staff management" },
             'join-requests': { title: "Scouting Grounds", sub: "Recruit talent & review applications" },
-            competition: { title: "Competition Hub",     sub: "Tournaments & matches" },
+            competition: { title: "Competitive",         sub: "Showdowns, Bounty, Dropzone and match control" },
             training:    { title: "Training Lab",        sub: "Practice & scrims" },
             community:   { title: "Community & Media",   sub: "Announcements & content" },
             profile:     { title: "Team Profile",        sub: "Public identity editor" },
@@ -237,7 +237,8 @@
                 { label: 'Invite', icon: 'user-plus', onclick: "ManageHQ.openInviteModal()", color: 'blue' },
             ],
             competition: [
-                { label: 'Find Tournament', icon: 'trophy', onclick: "setActiveRoute('competition')", color: 'amber' },
+                { label: 'Open Hub', icon: 'external-link', onclick: "ManageHQ.openCompetitiveOperations", color: 'cyan' },
+                { label: 'Showdown', icon: 'zap', onclick: "ManageHQ.openCompetitiveShowdown", color: 'amber' },
             ],
             training: [
                 { label: 'New Session', icon: 'calendar-plus', onclick: "ManageHQ.Training.openScheduleModal()", color: 'cyan' },

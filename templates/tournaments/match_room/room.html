@@ -959,12 +959,12 @@
 {# <script defer src="{% static 'tournaments/js/match-room.js' %}"></script> #}
 
 {# Modular match-room pipeline: core orchestrator + phase modules #}
-<script defer src="{% static 'tournaments/js/match-room-core.js' %}?v=20260516a"></script>
-<script defer src="{% static 'tournaments/js/phases/phase-coin-toss.js' %}?v=20260516a"></script>
-<script defer src="{% static 'tournaments/js/phases/phase-direct-ready.js' %}?v=20260516a"></script>
-<script defer src="{% static 'tournaments/js/phases/phase-map-veto.js' %}?v=20260516a"></script>
-<script defer src="{% static 'tournaments/js/phases/phase-lobby-setup.js' %}?v=20260516a"></script>
-<script defer src="{% static 'tournaments/js/phases/phase-live.js' %}?v=20260516a"></script>
-<script defer src="{% static 'tournaments/js/phases/phase-results.js' %}?v=20260516a"></script>
-<script defer src="{% static 'tournaments/js/phases/phase-completed.js' %}?v=20260516a"></script>
+<script defer src="{% static 'tournaments/js/match-room-core.js' %}?v={{ STATIC_VERSION }}"></script>
+<script defer src="{% static 'tournaments/js/phases/phase-coin-toss.js' %}?v={{ STATIC_VERSION }}"></script>
+<script defer src="{% static 'tournaments/js/phases/phase-direct-ready.js' %}?v={{ STATIC_VERSION }}"></script>
+<script defer src="{% static 'tournaments/js/phases/phase-map-veto.js' %}?v={{ STATIC_VERSION }}"></script>
+<script defer src="{% static 'tournaments/js/phases/phase-lobby-setup.js' %}?v={{ STATIC_VERSION }}"></script>
+<script defer src="{% static 'tournaments/js/phases/phase-live.js' %}?v={{ STATIC_VERSION }}"></script>
+<script defer src="{% static 'tournaments/js/phases/phase-results.js' %}?v={{ STATIC_VERSION }}"></script>
+<script defer src="{% static 'tournaments/js/phases/phase-completed.js' %}?v={{ STATIC_VERSION }}"></script>
 {% endblock %}

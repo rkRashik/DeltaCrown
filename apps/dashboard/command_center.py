@@ -451,7 +451,7 @@ def build_cc_data(context, user, now):
             'title': b.get('title', ''),
             'status': status_raw.replace('_', ' ').title(),
             'statusRaw': status_raw,
-            'stake': b.get('stake', 0),
+            'reward': b.get('reward', b.get('stake', 0)),
             'payout': b.get('payout', 0),
             'game': b.get('game_name', ''),
             'gameIcon': b.get('game_icon', ''),

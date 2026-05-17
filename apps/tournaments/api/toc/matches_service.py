@@ -18,6 +18,7 @@ from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import Q, Count
+from django.urls import reverse
 from django.utils import timezone
 
 from apps.tournaments.models.match import Match
@@ -471,13 +472,32 @@ class TOCMatchesService:
         """Reset score, verification artifacts, and state for a match."""
         match = Match.objects.select_for_update().get(pk=match_id, tournament=tournament)
 
-        submission_ids = list(
-            MatchResultSubmission.objects.filter(match=match).values_list('id', flat=True)
+        # P3 — Soft-archive previous submissions instead of deleting them.
+        # Participant-uploaded evidence (proof_screenshot files, proof URLs)
+        # must remain available for audit/post-mortem until tournament
+        # completion. Hard-deleting would permanently destroy screenshots
+        # before the retention policy has run, violating the product rule.
+        # Archived submissions are excluded from all active result/comparison
+        # queries but remain visible in the Evidence tab "Previous Attempt"
+        # section.
+        active_submission_ids = list(
+            MatchResultSubmission.objects.filter(match=match, is_archived=False)
+            .values_list("id", flat=True)
         )
-        if submission_ids:
-            ResultVerificationLog.objects.filter(submission_id__in=submission_ids).delete()
-            DisputeRecord.objects.filter(submission_id__in=submission_ids).delete()
-            MatchResultSubmission.objects.filter(id__in=submission_ids).delete()
+        if active_submission_ids:
+            MatchResultSubmission.objects.filter(
+                id__in=active_submission_ids,
+            ).update(
+                is_archived=True,
+                archived_at=timezone.now(),
+                archived_reason=f"Match reset by admin (user_id={user_id})",
+            )
+        # Cascade soft-archive to linked verification logs and disputes.
+        # (DisputeRecord rows are left intact — they may be needed for audit.)
+        if active_submission_ids:
+            ResultVerificationLog.objects.filter(
+                submission_id__in=active_submission_ids,
+            ).delete()
 
         lobby_info = dict(match.lobby_info or {})
         for key in ('paused', 'paused_at', 'resumed_at', 'force_completed_by', 'score_override', 'forfeit'):
@@ -488,8 +508,46 @@ class TOCMatchesService:
             workflow['result_status'] = 'pending'
             workflow.pop('final_result', None)
             workflow.pop('result_submissions', None)
+            # Hardening (P3): clear staged override so a pending score-stage
+            # left by an admin before reset does not silently persist. Evidence
+            # screenshots are NOT deleted — only the staged metadata in the
+            # workflow dict. This is safe: screenshots live on
+            # MatchResultSubmission rows which reset_match deletes separately.
+            staged = workflow.pop('staged_override', None)
+            if staged:
+                # Log the clearance so the timeline shows what happened.
+                try:
+                    from apps.tournaments.services.evidence_flagging import (
+                        _write_audit_entry,
+                    )
+                    _write_audit_entry(
+                        match=match,
+                        action='staged_override_cleared_by_reset',
+                        detail=(
+                            f"Staged override ({staged.get('participant1_score')}–"
+                            f"{staged.get('participant2_score')}) cleared by reset. "
+                            f"Original staging: by {staged.get('by_username','?')} "
+                            f"at {staged.get('staged_at','?')}."
+                        ),
+                        user_id=user_id,
+                        automated=False,
+                    )
+                except Exception:
+                    pass
+            # Clear OCR review flags — they no longer apply once the match
+            # is reset and submissions are deleted.
+            if workflow.get('result_status') in {
+                'score_staged_for_override', 'ocr_review_needed',
+                'staff_review_required', 'ocr_verified_candidate',
+                'ocr_accepted_pending_verify', 'admin_score_overridden',
+            }:
+                workflow['result_status'] = 'pending'
             if str(workflow.get('phase') or '').lower() in ('results', 'completed'):
                 workflow['phase'] = 'lobby_setup'
+            # Clear evidence timeline accumulated up to this point (fresh start).
+            # Keep timeline KEY but make it empty — the timeline reset is itself
+            # recorded by the reset entry written below.
+            lobby_info['evidence_timeline'] = []
             lobby_info['match_lobby_workflow'] = workflow
 
         match.participant1_score = 0
@@ -627,7 +685,8 @@ class TOCMatchesService:
             {
                 'id': str(m.id),
                 'media_type': m.media_type,
-                'url': m.url or (m.file.url if m.file else ''),
+                'url': m.url,
+                'file_url': reverse("dashboard:competitive_match_media_file", args=[m.pk]) if m.file else '',
                 'description': m.description,
                 'is_evidence': m.is_evidence,
                 'created_at': m.created_at.isoformat(),
@@ -720,11 +779,18 @@ class TOCMatchesService:
         except Exception:
             _detail_canonical_view = None
 
-        # Submissions (both captains)
+        # Active submissions only (is_archived=False). Archived submissions
+        # (from prior match resets) are fetched separately and surfaced in
+        # the "Previous Attempt Evidence" section of the Evidence tab.
         submissions = list(
-            MatchResultSubmission.objects.filter(match=match)
+            MatchResultSubmission.objects.filter(match=match, is_archived=False)
             .select_related('submitted_by_user')
             .order_by('submitted_at')
+        )
+        archived_submissions = list(
+            MatchResultSubmission.objects.filter(match=match, is_archived=True)
+            .select_related('submitted_by_user')
+            .order_by('-archived_at')
         )
 
         # RP-fix — Serialize submissions with full evidence surfaces.
@@ -742,7 +808,7 @@ class TOCMatchesService:
             file_url = ''
             try:
                 if s.proof_screenshot:
-                    file_url = s.proof_screenshot.url or ''
+                    file_url = reverse("dashboard:competitive_match_proof_file", args=[s.pk])
             except (ValueError, AttributeError):
                 file_url = ''
             # The single ``screenshot_url`` field FE should consume — prefers
@@ -822,7 +888,8 @@ class TOCMatchesService:
             {
                 'id': str(m.id),
                 'media_type': m.media_type,
-                'url': m.url or (m.file.url if m.file else ''),
+                'url': m.url,
+                'file_url': reverse("dashboard:competitive_match_media_file", args=[m.pk]) if m.file else '',
                 'description': m.description,
                 'is_evidence': m.is_evidence,
                 'created_at': m.created_at.isoformat(),
@@ -884,6 +951,7 @@ class TOCMatchesService:
         try:
             from apps.tournaments.services.evidence_flagging import (
                 compute_evidence_comparison,
+                compute_per_game_comparison,
             )
             evidence_comparison = compute_evidence_comparison(side1_sub, side2_sub, match=match)
         except Exception as _cmp_err:
@@ -893,11 +961,81 @@ class TOCMatchesService:
                 "reason": str(_cmp_err),
             }
 
+        # Serialize archived submissions (muted display, no action buttons).
+        def _serialize_archived(s):
+            file_url = ''
+            try:
+                if s.proof_screenshot:
+                    file_url = reverse("dashboard:competitive_match_proof_file", args=[s.pk])
+            except (ValueError, AttributeError):
+                file_url = ''
+            primary_url = file_url or (s.proof_screenshot_url or '')
+            return {
+                'id': s.id,
+                'submitted_by_name': (
+                    getattr(s.submitted_by_user, 'username', '')
+                    or str(s.submitted_by_user_id)
+                ),
+                'submitted_by_team_id': s.submitted_by_team_id,
+                'side': (1 if s.submitted_by_team_id == match.participant1_id
+                         else (2 if s.submitted_by_team_id == match.participant2_id else None)),
+                'score_for': int(s.score_for) if s.score_for is not None else None,
+                'score_against': int(s.score_against) if s.score_against is not None else None,
+                'screenshot_url': primary_url,
+                'status': s.status,
+                'submitted_at': s.submitted_at.isoformat() if s.submitted_at else None,
+                'archived_at': s.archived_at.isoformat() if s.archived_at else None,
+                'archived_reason': s.archived_reason or '',
+                'is_archived': True,
+                'ocr_status': getattr(s, 'ocr_status', '') or '',
+            }
+        archived_subs_data = [_serialize_archived(s) for s in archived_submissions]
+
+        # B2 — Per-game comparison for BO3/BO5. Empty list for BO1 or when
+        # no submission has a game_number (legacy / before migration 0061).
+        evidence_games: list = []
+        try:
+            has_game_nums = any(s.game_number is not None for s in submissions)
+            if has_game_nums:
+                evidence_games = compute_per_game_comparison(
+                    all_submissions=submissions,
+                    participant1_team_id=match.participant1_id,
+                    participant2_team_id=match.participant2_id,
+                )
+        except Exception as _pg_err:
+            evidence_games = []
+
         # Evidence timeline (audit entries written by flagging service).
         evidence_timeline = []
         try:
             raw_tl = match.lobby_info.get("evidence_timeline") or []
             evidence_timeline = list(raw_tl) if isinstance(raw_tl, list) else []
+        except Exception:
+            pass
+
+        # B3 — Expose workflow result_status so FE can gate Verify Result.
+        workflow_result_status = ""
+        try:
+            from apps.tournaments.views.match_room import WORKFLOW_KEY
+            wf_li = match.lobby_info if isinstance(match.lobby_info, dict) else {}
+            wf_dict = wf_li.get(WORKFLOW_KEY) or {}
+            workflow_result_status = str(wf_dict.get("result_status") or "")
+        except Exception:
+            pass
+
+        # Staged override info (so FE can show "staged score" UI).
+        staged_override: dict = {}
+        try:
+            from apps.tournaments.views.match_room import WORKFLOW_KEY as _WK
+            _wf = (match.lobby_info or {}).get(_WK) or {}
+            _so = _wf.get("staged_override")
+            if isinstance(_so, dict):
+                staged_override = {
+                    "participant1_score": _so.get("participant1_score"),
+                    "participant2_score": _so.get("participant2_score"),
+                    "staged_at": _so.get("staged_at"),
+                    "by_username": _so.get("by_username"),
+                }
         except Exception:
             pass
 
@@ -914,7 +1052,14 @@ class TOCMatchesService:
             'verification_status': verification_status,
             # P3.2 — OCR comparison payload (FE reads from this, not JS logic).
             'evidence_comparison': evidence_comparison,
+            # B2 — Per-game comparison for BO3/BO5.
+            'evidence_games': evidence_games,
             'evidence_timeline': evidence_timeline,
+            # P3 — Archived submissions (previous match attempts after reset).
+            'archived_submissions': archived_subs_data,
+            # B3 — Workflow state for FE gating of Verify Result button.
+            'workflow_result_status': workflow_result_status,
+            'staged_override': staged_override,
         }
 
     @classmethod
@@ -1013,7 +1158,7 @@ class TOCMatchesService:
             pk=match_id, tournament=tournament,
         )
         submissions = list(
-            MatchResultSubmission.objects.filter(match=match)
+            MatchResultSubmission.objects.filter(match=match, is_archived=False)
             .order_by('submitted_at')
         )
 

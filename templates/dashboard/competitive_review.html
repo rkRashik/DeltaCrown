@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Competitive Review Workspace - DeltaCrown{% endblock %}
+{% block title %}{{ workspace_title|default:"Competitive Review Workspace" }} - DeltaCrown{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -22,16 +22,19 @@
 <main class="review-shell px-4 py-8 sm:px-6 lg:px-8">
   <div class="mx-auto max-w-7xl">
     <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
-      <a href="/dashboard/competitive/" class="text-xs font-bold uppercase tracking-[0.22em] text-gray-400 hover:text-white">Back to Competitive Hub</a>
-      <span class="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.2em] text-gray-300">Staff Only</span>
+      <a href="{{ hub_url|default:'/dashboard/competitive/' }}" class="text-xs font-bold uppercase tracking-[0.22em] text-gray-400 hover:text-white">Back to Competitive Hub</a>
+      <span class="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.2em] text-gray-300">{{ workspace_badge|default:"Staff Only" }}</span>
     </div>
 
     <section class="review-panel rounded-2xl p-5 sm:p-7">
-      <p class="mb-2 text-xs font-black uppercase tracking-[0.28em] text-cyan-300">Competitive Operations</p>
+      <p class="mb-2 text-xs font-black uppercase tracking-[0.28em] text-cyan-300">{{ workspace_eyebrow|default:"Competitive Operations" }}</p>
       <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <h1 class="text-3xl font-black tracking-tight text-white sm:text-5xl">Review Workspace</h1>
-          <p class="mt-3 max-w-3xl text-sm leading-6 text-gray-400">A lightweight queue for competitive items that need operator attention. Settlement, refunds, verification, and dispute decisions stay in service-backed Django admin actions.</p>
+          <h1 class="text-3xl font-black tracking-tight text-white sm:text-5xl">{{ workspace_title|default:"Review Workspace" }}</h1>
+          <p class="mt-3 max-w-3xl text-sm leading-6 text-gray-400">{{ workspace_description|default:"A lightweight queue for competitive items that need operator attention. Settlement, refunds, verification, and dispute decisions stay in service-backed Django admin actions." }}</p>
+          {% if dispute_center_url %}
+            <a href="{{ dispute_center_url }}" class="mt-4 inline-flex rounded-lg border border-cyan-300/25 bg-cyan-300/10 px-4 py-2 text-xs font-black uppercase tracking-widest text-cyan-200 hover:bg-cyan-300/20">Open Dispute Center</a>
+          {% endif %}
         </div>
         <div class="review-card rounded-xl px-5 py-4">
           <p class="text-[10px] font-black uppercase tracking-[0.22em] text-gray-500">Open Items</p>
@@ -64,6 +67,40 @@
                       <p class="mt-1 text-sm text-gray-400">{{ item.subject }}</p>
                       <p class="mt-2 text-xs leading-5 text-gray-500">{{ item.evidence }}</p>
                       {% if item.submitted_at %}<p class="mt-2 text-[11px] text-gray-600">Updated {{ item.submitted_at }}</p>{% endif %}
+                      {% if item.notes %}
+                        <div class="mt-3 space-y-2">
+                          {% for note in item.notes %}
+                            <div class="rounded-lg border border-white/10 bg-black/25 p-3">
+                              <div class="flex flex-wrap items-center gap-2">
+                                <span class="text-[10px] font-black uppercase tracking-widest {% if note.is_internal %}text-amber-300{% else %}text-cyan-200{% endif %}">{{ note.visibility }}</span>
+                                <span class="text-[11px] text-gray-600">{{ note.created_at }}</span>
+                              </div>
+                              <p class="mt-1 text-xs font-bold text-gray-300">{{ note.author }}</p>
+                              <p class="mt-1 text-xs leading-5 text-gray-400">{{ note.body }}</p>
+                            </div>
+                          {% endfor %}
+                        </div>
+                      {% endif %}
+                      {% if item.can_add_note %}
+                        <form method="post" action="{% url 'dashboard:competitive_dispute_center' %}" class="mt-3 rounded-lg border border-white/10 bg-black/25 p-3">
+                          {% csrf_token %}
+                          <input type="hidden" name="item_type" value="{{ item.note_target }}">
+                          <input type="hidden" name="object_id" value="{{ item.note_object_id }}">
+                          <label class="mb-2 block text-[10px] font-black uppercase tracking-widest text-gray-500">Add Review Note</label>
+                          <textarea name="note" rows="2" maxlength="2000" class="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-xs text-white placeholder:text-gray-600 focus:border-cyan-300 focus:outline-none" placeholder="Add a concise clarification or staff note."></textarea>
+                          <div class="mt-2 flex flex-wrap items-center justify-between gap-2">
+                            {% if is_staff_workspace %}
+                              <select name="visibility" class="rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-xs text-gray-200">
+                                <option value="internal_staff">Internal staff</option>
+                                <option value="participant_safe">Participant safe</option>
+                              </select>
+                            {% else %}
+                              <input type="hidden" name="visibility" value="participant_safe">
+                            {% endif %}
+                            <button type="submit" class="rounded-lg border border-cyan-300/25 bg-cyan-300/10 px-3 py-2 text-xs font-black uppercase tracking-widest text-cyan-200 hover:bg-cyan-300/20">Add Note</button>
+                          </div>
+                        </form>
+                      {% endif %}
                     </div>
                     <div class="flex shrink-0 flex-wrap gap-2">
                       {% if item.proof_url %}
@@ -75,7 +112,7 @@
                       {% if item.detail_url %}
                         <a href="{{ item.detail_url }}" class="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs font-bold text-white hover:bg-white/10">View Detail</a>
                       {% endif %}
-                      {% if item.admin_url %}
+                      {% if is_staff_workspace and item.admin_url %}
                         <a href="{{ item.admin_url }}" class="rounded-lg bg-cyan-400 px-3 py-2 text-xs font-black uppercase tracking-widest text-black hover:bg-cyan-300">{{ item.action_label }}</a>
                       {% endif %}
                     </div>

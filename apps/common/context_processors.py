@@ -2,8 +2,38 @@
 Context processors for making common data available in all templates.
 """
 
+import os
+
 from apps.common.game_assets import _build_legacy_games_dict, get_game_data
 from django.core.cache import cache
+
+
+# ── P5.2 — Durable static version ────────────────────────────────────────────
+# Set STATIC_VERSION env var on each deploy (or in .env) to bust browser caches
+# globally. Example: STATIC_VERSION=2026-05-17-a
+#
+# Template usage:   <script src="{% static 'foo.js' %}?v={{ STATIC_VERSION }}">
+# Deployment bump:  change STATIC_VERSION= in Render / .env and redeploy.
+# Default value:    "dev" (no-cache-bust in development; browsers re-fetch freely).
+#
+# This replaces the previous manual ?v=YYYYMMDD approach: one env var,
+# one bump, all static assets refreshed across every template at once.
+_STATIC_VERSION = os.getenv("STATIC_VERSION", "dev")
+
+
+def static_version(request):
+    """Expose STATIC_VERSION to all templates as ``{{ STATIC_VERSION }}``.
+
+    Wire into TEMPLATES context_processors in settings.py:
+        'apps.common.context_processors.static_version'
+
+    Template usage:
+        <script src="{% static 'foo.js' %}?v={{ STATIC_VERSION }}"></script>
+
+    To bump on deploy: set STATIC_VERSION=YYYY-MM-DD-x in your Render / .env
+    environment variables and redeploy. No template changes required.
+    """
+    return {"STATIC_VERSION": _STATIC_VERSION}
 
 
 def game_assets_context(request):

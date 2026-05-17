@@ -10,6 +10,7 @@
 {% block twitter_image %}{% static 'siteui/og/default.png' %}{% endblock %}
 
 {% block extra_css %}
+<link rel="preload" href="{% static 'siteui/css/home.css' %}" as="style">
 <link rel="stylesheet" href="{% static 'siteui/css/home.css' %}">
 {% endblock %}
 
@@ -154,8 +155,10 @@
                 </div>
                 <div class="match-score">
                   <div class="team t-r">
-                    <div class="t-info"><div class="name">{{ m.team_a }}</div><div class="tac sub">TEAM A</div></div>
-                    <span class="team-logo logo-gold tlogo-sm"><span>{{ m.team_a|slice:":2"|upper }}</span></span>
+                    <div class="t-info"><div class="name">{{ m.team_a }}</div></div>
+                    <span class="team-logo logo-gold tlogo-sm">
+                      {% if m.team_a_logo %}<img src="{{ m.team_a_logo }}" alt="{{ m.team_a }}" loading="lazy">{% else %}<span>{{ m.team_a|slice:":2"|upper }}</span>{% endif %}
+                    </span>
                   </div>
                   <div class="score">
                     <span {% if m.score_a > m.score_b %}class="hi"{% endif %}>{{ m.score_a }}</span>
@@ -163,8 +166,10 @@
                     <span {% if m.score_b > m.score_a %}class="hi"{% endif %}>{{ m.score_b }}</span>
                   </div>
                   <div class="team">
-                    <span class="team-logo logo-teal tlogo-sm"><span>{{ m.team_b|slice:":2"|upper }}</span></span>
-                    <div class="t-info"><div class="name">{{ m.team_b }}</div><div class="tac sub">TEAM B</div></div>
+                    <span class="team-logo logo-teal tlogo-sm">
+                      {% if m.team_b_logo %}<img src="{{ m.team_b_logo }}" alt="{{ m.team_b }}" loading="lazy">{% else %}<span>{{ m.team_b|slice:":2"|upper }}</span>{% endif %}
+                    </span>
+                    <div class="t-info"><div class="name">{{ m.team_b }}</div></div>
                   </div>
                 </div>
                 <div class="match-foot">
@@ -183,8 +188,13 @@
                 </div>
                 <div class="match-score">
                   <div class="team t-r">
-                    <div class="t-info"><div class="name">{{ m.team_a }}</div><div class="tac sub">{% if m.winner == m.team_a %}WINNER{% else %}TEAM A{% endif %}</div></div>
-                    <span class="team-logo {% if m.winner == m.team_a %}logo-gold{% else %}logo-teal{% endif %} tlogo-sm"><span>{{ m.team_a|slice:":2"|upper }}</span></span>
+                    <div class="t-info">
+                      <div class="name">{{ m.team_a }}</div>
+                      {% if m.winner == m.team_a %}<div class="tac sub result-winner">WON</div>{% endif %}
+                    </div>
+                    <span class="team-logo {% if m.winner == m.team_a %}logo-gold{% else %}logo-teal{% endif %} tlogo-sm">
+                      {% if m.team_a_logo %}<img src="{{ m.team_a_logo }}" alt="{{ m.team_a }}" loading="lazy">{% else %}<span>{{ m.team_a|slice:":2"|upper }}</span>{% endif %}
+                    </span>
                   </div>
                   <div class="score">
                     <span {% if m.score_a > m.score_b %}class="hi"{% endif %}>{{ m.score_a }}</span>
@@ -192,8 +202,13 @@
                     <span {% if m.score_b > m.score_a %}class="hi"{% endif %}>{{ m.score_b }}</span>
                   </div>
                   <div class="team">
-                    <span class="team-logo {% if m.winner == m.team_b %}logo-gold{% else %}logo-teal{% endif %} tlogo-sm"><span>{{ m.team_b|slice:":2"|upper }}</span></span>
-                    <div class="t-info"><div class="name">{{ m.team_b }}</div><div class="tac sub">{% if m.winner == m.team_b %}WINNER{% else %}TEAM B{% endif %}</div></div>
+                    <span class="team-logo {% if m.winner == m.team_b %}logo-gold{% else %}logo-teal{% endif %} tlogo-sm">
+                      {% if m.team_b_logo %}<img src="{{ m.team_b_logo }}" alt="{{ m.team_b }}" loading="lazy">{% else %}<span>{{ m.team_b|slice:":2"|upper }}</span>{% endif %}
+                    </span>
+                    <div class="t-info">
+                      <div class="name">{{ m.team_b }}</div>
+                      {% if m.winner == m.team_b %}<div class="tac sub result-winner">WON</div>{% endif %}
+                    </div>
                   </div>
                 </div>
                 <div class="match-foot">
@@ -232,9 +247,9 @@
         <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
         <div class="fm-poster">
           {% if v3.featured_tournament.poster_url %}
-          <img src="{{ v3.featured_tournament.poster_url }}" alt="{{ v3.featured_tournament.name }}"/>
+          <img src="{{ v3.featured_tournament.poster_url }}" alt="{{ v3.featured_tournament.name }}" loading="lazy"/>
           {% else %}
-          <img src="{% static 'img/games/posters/valorant.jpg' %}" alt=""/>
+          <div style="width:100%;height:100%;background:linear-gradient(135deg,#1a0d2e,#0d1a2e);display:grid;place-items:center;"><i class="fa-solid fa-trophy" style="font-size:32px;color:var(--violet);opacity:.5;"></i></div>
           {% endif %}
         </div>
         <div class="fm-body">
@@ -272,7 +287,7 @@
         <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
         <div class="schedule-head">
           <span class="tac">COMING UP</span>
-          <a href="/tournaments/" class="mono" style="color:var(--mute);transition:color .2s ease;" onmouseover="this.style.color='var(--paper)'" onmouseout="this.style.color='var(--mute)'">All →</a>
+          <a href="/tournaments/" class="schedule-all-link">All →</a>
         </div>
         <ul class="schedule-list">
           {% if v3.upcoming_tournaments %}
@@ -282,7 +297,7 @@
                 {% if t.scheduled_time %}{{ t.scheduled_time }}{% elif t.scheduled %}{{ t.scheduled }}{% else %}TBD{% endif %}
               </span>
               {% if t.poster_url %}
-              <img class="game-icon" src="{{ t.poster_url }}" alt="{{ t.game_name }}"/>
+              <img class="game-icon" src="{{ t.poster_url }}" alt="{{ t.game_name }}"/ loading="lazy">
               {% else %}
               <span class="game-icon" style="background:rgba(255,255,255,0.05);display:inline-block;border-radius:6px;"></span>
               {% endif %}
@@ -301,21 +316,6 @@
     </aside>
   </div>
 
-  <div class="scroll-cue hud-4" aria-hidden="true">
-    <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
-    <div class="scroll-key">
-      <span class="scroll-key-cap">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-          <path d="M7 2v9m0 0L3 7m4 4l4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </span>
-      <span class="scroll-key-pulse"></span>
-    </div>
-    <div class="scroll-cue-body">
-      <span class="tac scroll-cue-label">SCROLL</span>
-      <span class="mono scroll-cue-sub">to engage</span>
-    </div>
-  </div>
 </section>
 
 <!-- ============================================================ TICKER ============================================================ -->
@@ -399,9 +399,9 @@
 <section id="featured" class="arena reveal">
   <div class="arena-bg">
     {% if v3.featured_tournament and v3.featured_tournament.poster_url %}
-    <img src="{{ v3.featured_tournament.poster_url }}" alt="" class="arena-img"/>
+    <img src="{{ v3.featured_tournament.poster_url }}" alt="" class="arena-img"/ loading="lazy">
     {% else %}
-    <img src="{% static 'img/games/posters/valorant.jpg' %}" alt="" class="arena-img"/>
+    {% if v3.featured_tournament and v3.featured_tournament.poster_url %}<img src="{{ v3.featured_tournament.poster_url }}" alt="" class="arena-img" loading="lazy"/>{% else %}<div class="arena-img" style="background:linear-gradient(135deg,#0d051a 0%,#1a0a2e 40%,#0a1a1a 100%);"></div>{% endif %}
     {% endif %}
     <div class="arena-veil"></div>
     <div class="arena-scan"></div>
@@ -448,8 +448,8 @@
         <a class="upcard hud-4" href="{{ t.url }}">
           <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
           <div class="up-img">
-            {% if t.poster_url %}<img src="{{ t.poster_url }}" alt="{{ t.name }}"/>
-            {% else %}<img src="{% static 'img/games/posters/valorant.jpg' %}" alt=""/>{% endif %}
+            {% if t.poster_url %}<img src="{{ t.poster_url }}" alt="{{ t.name }}" loading="lazy"/>
+            {% else %}<div style="width:100%;height:100%;background:linear-gradient(135deg,#1a0d2e,#0d1a2e);display:grid;place-items:center;aspect-ratio:16/9;"><i class="fa-solid fa-gamepad" style="font-size:28px;color:rgba(255,255,255,.18);"></i></div>{% endif %}
           </div>
           <div class="up-body">
             <span class="tac up-tag">{{ t.game_name }} · {{ t.format_label }}</span>
@@ -479,9 +479,12 @@
       <a class="gcard" href="{{ g.url }}">
         <div class="gcard-img">
           {% if g.poster_url %}
-          <img src="{{ g.poster_url }}" alt="{{ g.name }}"/>
+          <img src="{{ g.poster_url }}" alt="{{ g.name }}" loading="lazy"/>
           {% else %}
-          <img src="{% static 'img/games/posters/valorant.jpg' %}" alt="{{ g.name }}"/>
+          <div style="width:100%;height:100%;background:linear-gradient(135deg,{{ g.primary_color|default:'#1a1a2e' }}cc,{{ g.primary_color|default:'#0d0d1a' }}44);display:grid;place-items:center;">
+            {% if g.icon_url %}<img src="{{ g.icon_url }}" alt="{{ g.name }}" style="width:80px;height:80px;object-fit:contain;filter:drop-shadow(0 0 20px {{ g.primary_color|default:'#8b5cf6' }}88);opacity:.85;" loading="lazy">
+            {% else %}<span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:28px;color:rgba(255,255,255,.4);letter-spacing:-0.02em;">{{ g.name|slice:":3"|upper }}</span>{% endif %}
+          </div>
           {% endif %}
         </div>
         <div class="gcard-mask"></div>
@@ -497,12 +500,12 @@
         <span class="gcard-cta tac">Enter <i class="fa-solid fa-arrow-right"></i></span>
       </a>
       {% empty %}
-      <a class="gcard" href="/tournaments/?game=valorant"><div class="gcard-img"><img src="{% static 'img/games/posters/valorant.jpg' %}" alt="Valorant"/></div><div class="gcard-mask"></div><div class="gcard-index mono">01</div><div class="gcard-meta"><div class="gcard-name">VALORANT</div></div><span class="gcard-cta tac">Enter <i class="fa-solid fa-arrow-right"></i></span></a>
-      <a class="gcard" href="/tournaments/?game=cs2"><div class="gcard-img"><img src="{% static 'img/games/posters/cs2.jpg' %}" alt="CS2"/></div><div class="gcard-mask"></div><div class="gcard-index mono">02</div><div class="gcard-meta"><div class="gcard-name">CS2</div></div><span class="gcard-cta tac">Enter <i class="fa-solid fa-arrow-right"></i></span></a>
-      <a class="gcard" href="/tournaments/?game=dota2"><div class="gcard-img"><img src="{% static 'img/games/posters/dota2.jpg' %}" alt="Dota 2"/></div><div class="gcard-mask"></div><div class="gcard-index mono">03</div><div class="gcard-meta"><div class="gcard-name">DOTA 2</div></div><span class="gcard-cta tac">Enter <i class="fa-solid fa-arrow-right"></i></span></a>
-      <a class="gcard" href="/tournaments/?game=pubg-mobile"><div class="gcard-img"><img src="{% static 'img/games/posters/pubg.jpg' %}" alt="PUBG Mobile"/></div><div class="gcard-mask"></div><div class="gcard-index mono">04</div><div class="gcard-meta"><div class="gcard-name">PUBG MOBILE</div></div><span class="gcard-cta tac">Enter <i class="fa-solid fa-arrow-right"></i></span></a>
-      <a class="gcard" href="/tournaments/?game=free-fire"><div class="gcard-img"><img src="{% static 'img/games/posters/freefire.jpg' %}" alt="Free Fire"/></div><div class="gcard-mask"></div><div class="gcard-index mono">05</div><div class="gcard-meta"><div class="gcard-name">FREE FIRE</div></div><span class="gcard-cta tac">Enter <i class="fa-solid fa-arrow-right"></i></span></a>
-      <a class="gcard" href="/tournaments/?game=mobile-legends"><div class="gcard-img"><img src="{% static 'img/games/posters/mlbb.jpg' %}" alt="MLBB"/></div><div class="gcard-mask"></div><div class="gcard-index mono">06</div><div class="gcard-meta"><div class="gcard-name">MOBILE LEGENDS</div></div><span class="gcard-cta tac">Enter <i class="fa-solid fa-arrow-right"></i></span></a>
+      <a class="gcard" href="/tournaments/?game=valorant"><div class="gcard-img"><img src="{% static 'img/games/posters/valorant.jpg' %}" alt="Valorant"/ loading="lazy"></div><div class="gcard-mask"></div><div class="gcard-index mono">01</div><div class="gcard-meta"><div class="gcard-name">VALORANT</div></div><span class="gcard-cta tac">Enter <i class="fa-solid fa-arrow-right"></i></span></a>
+      <a class="gcard" href="/tournaments/?game=cs2"><div class="gcard-img"><img src="{% static 'img/games/posters/cs2.jpg' %}" alt="CS2"/ loading="lazy"></div><div class="gcard-mask"></div><div class="gcard-index mono">02</div><div class="gcard-meta"><div class="gcard-name">CS2</div></div><span class="gcard-cta tac">Enter <i class="fa-solid fa-arrow-right"></i></span></a>
+      <a class="gcard" href="/tournaments/?game=dota2"><div class="gcard-img"><img src="{% static 'img/games/posters/dota2.jpg' %}" alt="Dota 2"/ loading="lazy"></div><div class="gcard-mask"></div><div class="gcard-index mono">03</div><div class="gcard-meta"><div class="gcard-name">DOTA 2</div></div><span class="gcard-cta tac">Enter <i class="fa-solid fa-arrow-right"></i></span></a>
+      <a class="gcard" href="/tournaments/?game=pubg-mobile"><div class="gcard-img"><img src="{% static 'img/games/posters/pubg.jpg' %}" alt="PUBG Mobile"/ loading="lazy"></div><div class="gcard-mask"></div><div class="gcard-index mono">04</div><div class="gcard-meta"><div class="gcard-name">PUBG MOBILE</div></div><span class="gcard-cta tac">Enter <i class="fa-solid fa-arrow-right"></i></span></a>
+      <a class="gcard" href="/tournaments/?game=free-fire"><div class="gcard-img"><img src="{% static 'img/games/posters/freefire.jpg' %}" alt="Free Fire"/ loading="lazy"></div><div class="gcard-mask"></div><div class="gcard-index mono">05</div><div class="gcard-meta"><div class="gcard-name">FREE FIRE</div></div><span class="gcard-cta tac">Enter <i class="fa-solid fa-arrow-right"></i></span></a>
+      <a class="gcard" href="/tournaments/?game=mobile-legends"><div class="gcard-img"><img src="{% static 'img/games/posters/mlbb.jpg' %}" alt="MLBB"/ loading="lazy"></div><div class="gcard-mask"></div><div class="gcard-index mono">06</div><div class="gcard-meta"><div class="gcard-name">MOBILE LEGENDS</div></div><span class="gcard-cta tac">Enter <i class="fa-solid fa-arrow-right"></i></span></a>
       {% endfor %}
       <a class="gcard gcard-empty" href="/tournaments/">
         <div class="gcard-mask gcard-mask-empty"></div>
@@ -651,7 +654,7 @@
             <span class="mono rank {{ team.rank_color }}">{{ team.rank_label }}</span>
             {% if team.team_logo %}
             <span class="team-logo logo-{{ team.rank_color }}" style="overflow:hidden;padding:0;">
-              <img src="{{ team.team_logo }}" alt="{{ team.team_name }}" style="width:100%;height:100%;object-fit:cover;border-radius:9px;">
+              <img src="{{ team.team_logo }}" alt="{{ team.team_name }}" style="width:100%;height:100%;object-fit:cover;border-radius:9px;" loading="lazy">
             </span>
             {% else %}
             <span class="team-logo logo-{{ team.rank_color }}"><span>{{ team.team_name|slice:":2"|upper }}</span></span>
@@ -685,7 +688,7 @@
             <div class="spot-avatar">
               <div class="spot-avatar-ring">
                 {% if v3.player_spotlight.avatar_url %}
-                <img src="{{ v3.player_spotlight.avatar_url }}" alt="{{ v3.player_spotlight.display_name }}" style="width:74px;height:74px;border-radius:50%;object-fit:cover;">
+                <img src="{{ v3.player_spotlight.avatar_url }}" alt="{{ v3.player_spotlight.display_name }}" style="width:74px;height:74px;border-radius:50%;object-fit:cover;" loading="lazy">
                 {% else %}
                 <span class="brand grad-text">{{ v3.player_spotlight.initials }}</span>
                 {% endif %}
@@ -946,6 +949,14 @@
 
 </div><!-- #top -->
 
+<!-- Back to top -->
+<button class="home-back-top" id="homeBackTop" aria-label="Back to top">
+  <i class="fa-solid fa-chevron-up"></i>
+</button>
+
+<!-- Mobile game rail dots -->
+<div class="rail-dots" id="railDots" aria-hidden="true"></div>
+
 {% endblock %}
 
 {% block extra_js %}
@@ -956,5 +967,5 @@
   window.DC_DEADLINE = null;
   {% endif %}
 </script>
-<script src="{% static 'siteui/js/home.js' %}"></script>
+<script src="{% static 'siteui/js/home.js' %}" defer></script>
 {% endblock %}

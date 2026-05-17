@@ -34,7 +34,7 @@ DeltaCrown's next-generation competitive hub is organized around four short prod
 | Bounty | Open skill-based reward challenges and community rivalry boards |
 | Dropzone | Large battle royale custom lobbies with slots, room credentials, scoring, and settlement |
 
-These systems are built around structured rules, team authority, match rooms, proof, escrow, and admin review. The unified My Operations feed is active, competitive detail pages now exist, and MVP admin controls now exist for Showdown result handling, Bounty claim verification, Missions proof/review, and Dropzone scoring/settlement. The public product layer is still being refined around file-upload proof, richer dispute review, Dropzone user reporting, notifications, and deeper game API verification.
+These systems are built around structured rules, team authority, match rooms, proof, escrow, and admin review. The unified My Operations feed is active, competitive detail pages now exist, MVP admin controls now exist for Showdown result handling, Bounty claim verification, Missions proof/review, and Dropzone scoring/settlement, and staff have a lightweight review workspace for review-needed competitive items. Missions proof now supports URL, validated image upload, notes, and permission-checked proof file access through the dashboard. Active Match Room proof/evidence/media files also route through permission-checked dashboard links where surfaced in competitive/TOC workflows. A Dispute Center MVP gives staff and related participants a structured review surface with lightweight timeline notes, and early notification hooks cover key review, offer, and scheduling events. The public product layer is still being refined around full dispute resolution UI, Dropzone user reporting, richer reminders, and deeper game API verification.
 
 ## Tournaments
 
@@ -125,7 +125,7 @@ Training workflows are separate from competitive reward operations by default:
 - Practice: internal team training
 - VOD Review: review notes, clips, and improvement tracking
 
-The current platform now includes a Team HQ Training foundation with Scrim requests/bookings, Tryout applications/sessions, Practice sessions, VOD reviews, RBAC, API wiring, public tryout/scrim entry points, and admin visibility. The tryout path can move from application to join offer, applicant accept/decline, and safe membership creation. Players also have a dashboard inbox for team applications, tryouts, and offers. Remaining work includes attendance, richer tryout scorecards, practice recurrence/reminders, notifications, VOD annotations, and advanced training admin tools.
+The current platform now includes a Team HQ Training foundation with Scrim requests/bookings, Tryout applications/sessions, Practice sessions, VOD reviews, RBAC, API wiring, public tryout/scrim entry points, and admin visibility. The tryout path can move from application to join offer, applicant accept/decline, and safe membership creation. Players also have a dashboard inbox for team applications, tryouts, and offers. Practice and VOD payloads now expose lightweight status/assignment data for better Team HQ UX. Remaining work includes richer tryout scorecards, practice recurrence/reminders, VOD annotations, and advanced training admin tools.
 
 ## Architecture
 
@@ -156,7 +156,7 @@ DeltaCrown is an active product in development with substantial foundations alre
 - Competitive detail pages for Showdown, Bounty, Missions, Dropzone entries, and Dropzone lobbies
 - Showdown MVP result confirmation and admin control
 - Bounty admin claim verification/control MVP
-- Missions proof submission plus admin verification/control MVP
+- Missions URL/image proof submission plus admin verification/control MVP
 - Dropzone entry/lobby details and admin scoring/settlement MVP
 - Team recruitment plus Team HQ Training foundation
 - Public tryout/scrim entry points on team pages
@@ -165,7 +165,7 @@ DeltaCrown is an active product in development with substantial foundations alre
 - Admin and moderation surfaces
 - Public-facing dashboards, community, and commerce direction
 
-Some systems are still evolving, especially file-upload proof, richer dispute/review UI, Dropzone user proof/reporting, notifications/reminders, advanced Team HQ training workflows, deeper game API verification, and internal legacy naming cleanup.
+Some systems are still evolving, especially full dispute resolution UI, Dropzone user proof/reporting, richer reminders, advanced Team HQ training workflows, deeper game API verification, and internal legacy naming cleanup.
 
 ## Supported Game Direction
 

@@ -2,6 +2,7 @@ from datetime import timedelta
 import uuid
 
 import pytest
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.utils import timezone
 
 from apps.competition.models import Bounty, BountyClaim, Challenge
@@ -9,7 +10,7 @@ from apps.contracts.models import ContractEnrollment, ContractProofSubmission, C
 from apps.organizations.choices import MembershipRole
 from apps.organizations.tests.factories import GameFactory, TeamFactory, TeamMembershipFactory, UserFactory
 from apps.royale.models import RoyaleEntry, RoyaleLobby
-from apps.tournaments.models import Match, MatchResultSubmission, Tournament
+from apps.tournaments.models import DisputeEvidence, DisputeNote, DisputeRecord, Match, MatchMedia, MatchResultSubmission, Tournament
 
 
 def create_tournament_match(*, game, organizer, team, opponent, state=Match.PENDING_RESULT):
@@ -379,3 +380,185 @@ def test_competitive_review_workspace_lists_pending_mission_proof(client):
     assert b"Review Workspace" in response.content
     assert b"Review Queue Mission" in response.content
     assert b"Review Proof" in response.content
+
+
+@pytest.mark.django_db
+def test_mission_proof_file_owner_and_staff_can_view_but_unrelated_user_blocked(client):
+    game = GameFactory(short_code="PFV")
+    owner = UserFactory()
+    staff = UserFactory(is_staff=True)
+    outsider = UserFactory()
+    template = ContractTemplate.objects.create(
+        title="Private Proof Mission",
+        game=game,
+        entry_fee_dc=0,
+        reward_dc=40,
+    )
+    enrollment = ContractEnrollment.objects.create(
+        user=owner,
+        template=template,
+        status="ACTIVE",
+        deadline_at=timezone.now() + timedelta(hours=6),
+    )
+    proof = ContractProofSubmission.objects.create(
+        enrollment=enrollment,
+        submitted_by=owner,
+        proof_file=SimpleUploadedFile(
+            "scoreboard.png",
+            b"\x89PNG\r\n\x1a\n" + b"0" * 128,
+            content_type="image/png",
+        ),
+    )
+    url = f"/dashboard/competitive/proofs/{proof.id}/file/"
+
+    client.force_login(owner)
+    assert client.get(url).status_code == 200
+
+    client.force_login(staff)
+    assert client.get(url).status_code == 200
+
+    client.force_login(outsider)
+    assert client.get(url).status_code == 404
+
+
+@pytest.mark.django_db
+def test_dispute_center_participant_sees_only_related_mission_proofs(client):
+    game = GameFactory(short_code="DCP")
+    owner = UserFactory()
+    outsider = UserFactory()
+    own_template = ContractTemplate.objects.create(title="Own Proof", game=game)
+    other_template = ContractTemplate.objects.create(title="Other Proof", game=game)
+    own_enrollment = ContractEnrollment.objects.create(
+        user=owner,
+        template=own_template,
+        status="ACTIVE",
+        deadline_at=timezone.now() + timedelta(hours=6),
+    )
+    other_enrollment = ContractEnrollment.objects.create(
+        user=outsider,
+        template=other_template,
+        status="ACTIVE",
+        deadline_at=timezone.now() + timedelta(hours=6),
+    )
+    ContractProofSubmission.objects.create(
+        enrollment=own_enrollment,
+        submitted_by=owner,
+        proof_url="https://example.com/own.png",
+    )
+    ContractProofSubmission.objects.create(
+        enrollment=other_enrollment,
+        submitted_by=outsider,
+        proof_url="https://example.com/other.png",
+    )
+
+    client.force_login(owner)
+    response = client.get("/dashboard/competitive/disputes/")
+
+    assert response.status_code == 200
+    assert b"Own Proof" in response.content
+    assert b"Other Proof" not in response.content
+
+
+@pytest.mark.django_db
+def test_match_room_proof_file_is_permission_checked(client):
+    game = GameFactory(short_code="MPF")
+    user = UserFactory()
+    outsider = UserFactory()
+    team = TeamFactory(game_id=game.id)
+    opponent = TeamFactory(game_id=game.id)
+    TeamMembershipFactory(team=team, user=user, role=MembershipRole.PLAYER)
+    match = create_tournament_match(game=game, organizer=user, team=team, opponent=opponent)
+    submission = MatchResultSubmission.objects.create(
+        match=match,
+        submitted_by_user=user,
+        submitted_by_team_id=team.id,
+        raw_result_payload={"winner_team_id": team.id},
+        proof_screenshot=SimpleUploadedFile(
+            "match-proof.png",
+            b"\x89PNG\r\n\x1a\n" + b"1" * 128,
+            content_type="image/png",
+        ),
+    )
+    url = f"/dashboard/competitive/match-proofs/{submission.id}/file/"
+
+    client.force_login(user)
+    assert client.get(url).status_code == 200
+
+    client.force_login(outsider)
+    assert client.get(url).status_code == 404
+
+
+@pytest.mark.django_db
+def test_dispute_center_participant_note_is_visible_and_internal_note_hidden(client):
+    game = GameFactory(short_code="DNT")
+    user = UserFactory()
+    staff = UserFactory(is_staff=True)
+    team = TeamFactory(game_id=game.id)
+    opponent = TeamFactory(game_id=game.id)
+    TeamMembershipFactory(team=team, user=user, role=MembershipRole.PLAYER)
+    match = create_tournament_match(game=game, organizer=user, team=team, opponent=opponent)
+    submission = MatchResultSubmission.objects.create(
+        match=match,
+        submitted_by_user=user,
+        submitted_by_team_id=team.id,
+        raw_result_payload={"winner_team_id": team.id},
+    )
+    dispute = DisputeRecord.objects.create(
+        submission=submission,
+        opened_by_user=user,
+        opened_by_team_id=team.id,
+        reason_code=DisputeRecord.REASON_OTHER,
+        description="Need review for proof mismatch.",
+    )
+    DisputeNote.objects.create(dispute=dispute, author=staff, body="Private operator note.", visibility="internal_staff")
+    DisputeNote.objects.create(dispute=dispute, author=user, body="Participant clarification.", visibility="participant_safe")
+
+    client.force_login(user)
+    response = client.get("/dashboard/competitive/disputes/")
+
+    assert response.status_code == 200
+    assert b"Participant clarification" in response.content
+    assert b"Private operator note" not in response.content
+
+
+@pytest.mark.django_db
+def test_dispute_evidence_and_match_media_file_routes_are_permission_checked(client):
+    game = GameFactory(short_code="MEF")
+    user = UserFactory()
+    outsider = UserFactory()
+    team = TeamFactory(game_id=game.id)
+    opponent = TeamFactory(game_id=game.id)
+    TeamMembershipFactory(team=team, user=user, role=MembershipRole.PLAYER)
+    match = create_tournament_match(game=game, organizer=user, team=team, opponent=opponent)
+    submission = MatchResultSubmission.objects.create(
+        match=match,
+        submitted_by_user=user,
+        submitted_by_team_id=team.id,
+        raw_result_payload={"winner_team_id": team.id},
+    )
+    dispute = DisputeRecord.objects.create(
+        submission=submission,
+        opened_by_user=user,
+        opened_by_team_id=team.id,
+        reason_code=DisputeRecord.REASON_OTHER,
+        description="Evidence route test.",
+    )
+    evidence = DisputeEvidence.objects.create(
+        dispute=dispute,
+        uploaded_by=user,
+        evidence_file=SimpleUploadedFile("evidence.png", b"\x89PNG\r\n\x1a\n" + b"2" * 128, content_type="image/png"),
+    )
+    media = MatchMedia.objects.create(
+        match=match,
+        uploaded_by_id=user.id,
+        file=SimpleUploadedFile("media.png", b"\x89PNG\r\n\x1a\n" + b"3" * 128, content_type="image/png"),
+        is_evidence=True,
+    )
+
+    client.force_login(user)
+    assert client.get(f"/dashboard/competitive/dispute-evidence/{evidence.id}/file/").status_code == 200
+    assert client.get(f"/dashboard/competitive/match-media/{media.id}/file/").status_code == 200
+
+    client.force_login(outsider)
+    assert client.get(f"/dashboard/competitive/dispute-evidence/{evidence.id}/file/").status_code == 404
+    assert client.get(f"/dashboard/competitive/match-media/{media.id}/file/").status_code == 404

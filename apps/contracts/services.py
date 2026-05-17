@@ -423,6 +423,21 @@ class ContractService:
             note=note,
             extra={'proof_id': str(proof.pk), 'decision': decision},
         )
+        try:
+            from django.urls import reverse
+            from apps.notifications.services import notify
+
+            notify(
+                [proof.enrollment.user],
+                event='mission.proof_reviewed',
+                title='Mission proof reviewed',
+                body=f"Your Mission proof was {decision.replace('_', ' ').lower()}.",
+                url=reverse('dashboard:competitive_mission_detail', args=[proof.enrollment_id]),
+                category='team',
+                fingerprint=f"mission-proof-reviewed:{proof.pk}:{decision}",
+            )
+        except Exception:
+            logger.exception("Failed to notify Mission proof review for proof %s", proof.pk)
         return proof
 
     @staticmethod

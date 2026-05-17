@@ -785,6 +785,7 @@ def _build_training_context(team: Team, viewer: Optional[User], is_restricted: b
 
     try:
         from apps.organizations.models.join_request import TeamJoinRequest
+        from apps.organizations.models.competitive_settings import TeamCompetitiveSettings
         from apps.organizations.models.training import (
             ScrimRequest,
             TrainingVisibility,
@@ -799,8 +800,18 @@ def _build_training_context(team: Team, viewer: Optional[User], is_restricted: b
             has_open_positions = False
 
         is_recruiting = bool(getattr(team, 'is_recruiting', False))
+        try:
+            competitive_settings = team.competitive_settings
+        except TeamCompetitiveSettings.DoesNotExist:
+            competitive_settings = None
+        public_tryouts_allowed = (
+            True if competitive_settings is None else competitive_settings.allow_public_tryout_applications
+        )
+        public_scrims_allowed = (
+            True if competitive_settings is None else competitive_settings.allow_public_scrim_availability
+        )
         context['has_open_positions'] = has_open_positions
-        context['tryouts_enabled'] = bool(is_recruiting and has_open_positions)
+        context['tryouts_enabled'] = bool(is_recruiting and has_open_positions and public_tryouts_allowed)
         context['general_recruitment_enabled'] = bool(is_recruiting)
 
         if viewer and viewer.is_authenticated:
@@ -866,16 +877,18 @@ def _build_training_context(team: Team, viewer: Optional[User], is_restricted: b
                 if not context['applicant_status']:
                     context['applicant_status'] = _build_join_applicant_status(join_request)
 
-        public_scrims = (
-            ScrimRequest.objects.filter(
-                requesting_team=team,
-                status=ScrimRequest.Status.OPEN,
-                visibility=TrainingVisibility.PUBLIC,
-                scheduled_at__gte=timezone.now(),
+        public_scrims = ScrimRequest.objects.none()
+        if public_scrims_allowed:
+            public_scrims = (
+                ScrimRequest.objects.filter(
+                    requesting_team=team,
+                    status=ScrimRequest.Status.OPEN,
+                    visibility=TrainingVisibility.PUBLIC,
+                    scheduled_at__gte=timezone.now(),
+                )
+                .select_related('game')
+                .order_by('scheduled_at')[:3]
             )
-            .select_related('game')
-            .order_by('scheduled_at')[:3]
-        )
         context['public_scrims'] = [
             {
                 'id': scrim.pk,

@@ -58,6 +58,7 @@ from .result_submission import (
 from .dispute import (
     DisputeRecord,  # Phase 6, Epic 6.2: Dispute records
     DisputeEvidence,  # Phase 6, Epic 6.2: Evidence attached to disputes
+    DisputeNote,  # Lightweight dispute review timeline notes
 )
 # Backwards-compatibility: older code/tests import `Dispute`.
 # Provide an alias to the newer `DisputeRecord` model.
@@ -228,6 +229,7 @@ __all__ = [
     'ResultVerificationLog',
     'DisputeRecord',
     'DisputeEvidence',
+    'DisputeNote',
     'Dispute',
     # Phase 7 Epic 7.3: Staff & Referee System
     'StaffRole',

@@ -17,6 +17,7 @@ import os
 
 from .organization import Organization, OrganizationMembership
 from .team import Team
+from .competitive_settings import TeamCompetitiveSettings
 
 _MINIMAL_TEST_APPS = os.environ.get("DELTA_MINIMAL_TEST_APPS") == "1"
 
@@ -24,6 +25,7 @@ __all__ = [
     'Organization',
     'OrganizationMembership',
     'Team',
+    'TeamCompetitiveSettings',
 ]
 
 if not _MINIMAL_TEST_APPS:

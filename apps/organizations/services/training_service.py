@@ -342,6 +342,20 @@ class TeamTrainingService:
         )
         application.status = TryoutApplication.Status.SCHEDULED
         application.save(update_fields=["status", "updated_at"])
+        try:
+            from apps.notifications.services import notify
+
+            notify(
+                [application.applicant],
+                event="tryout.scheduled",
+                title=f"Tryout scheduled with {application.team.name}",
+                body=f"Your tryout is scheduled for {timezone.localtime(scheduled_at).strftime('%b %d, %I:%M %p')}.",
+                url=f"/teams/{application.team.slug}/",
+                category="team",
+                fingerprint=f"tryout-scheduled:{session.pk}",
+            )
+        except Exception:
+            logger.exception("Failed to notify applicant about tryout session %s", session.pk)
         return session
 
     @staticmethod

@@ -9,14 +9,14 @@ import json
 from datetime import datetime
 
 from django.core.exceptions import PermissionDenied, ValidationError
-from django.db.models import Prefetch
+from django.db.models import Prefetch, Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods
 
 from apps.organizations.choices import TeamStatus
-from apps.organizations.models import Team, TeamMembership
+from apps.organizations.models import Team, TeamCompetitiveSettings, TeamMembership
 from apps.organizations.models.join_request import TeamJoinRequest
 from apps.organizations.models.training import (
     PracticeSession,
@@ -33,6 +33,20 @@ from apps.organizations.services.training_service import (
 from apps.organizations.api.views.team_manage import api_login_required
 
 
+def _team_competitive_settings(team):
+    try:
+        return team.competitive_settings
+    except TeamCompetitiveSettings.DoesNotExist:
+        return None
+
+
+def _public_scrim_visibility_filter():
+    return (
+        Q(requesting_team__competitive_settings__allow_public_scrim_availability=True)
+        | Q(requesting_team__competitive_settings__isnull=True)
+    )
+
+
 @api_login_required
 @require_http_methods(["GET"])
 def training_overview(request, slug):
@@ -45,7 +59,10 @@ def training_overview(request, slug):
     scrims = ScrimRequest.objects.filter(requesting_team=team).select_related(
         "requesting_team", "accepted_team", "game", "booking__match", "booking__match__tournament"
     )[:12]
-    inbound_scrims = ScrimRequest.objects.filter(status=ScrimRequest.Status.OPEN)
+    inbound_scrims = ScrimRequest.objects.filter(
+        status=ScrimRequest.Status.OPEN,
+        visibility="PUBLIC",
+    ).filter(_public_scrim_visibility_filter())
     if game:
         inbound_scrims = inbound_scrims.filter(game_id=game.pk)
     else:
@@ -64,10 +81,10 @@ def training_overview(request, slug):
     else:
         tryouts = TryoutApplication.objects.none()
         tryout_sessions = TryoutSession.objects.none()
-    practices = PracticeSession.objects.filter(team=team).select_related("game")[:12]
+    practices = PracticeSession.objects.filter(team=team).select_related("game").prefetch_related("participants")[:12]
     vods = VodReview.objects.filter(team=team).select_related(
         "reviewer", "linked_match", "linked_match__tournament"
-    )[:12]
+    ).prefetch_related("assigned_players")[:12]
 
     return JsonResponse({
         "success": True,
@@ -119,6 +136,10 @@ def scrim_requests(request, slug):
 
     try:
         data = _json_body(request)
+        visibility = (data.get("visibility") or "PUBLIC").upper()
+        settings_obj = _team_competitive_settings(team)
+        if visibility == "PUBLIC" and settings_obj and not settings_obj.allow_public_scrim_availability:
+            return _error("Public scrim availability is disabled for this team.", 403)
         scrim = TeamTrainingService.create_scrim_request(
             team=team,
             actor=request.user,
@@ -127,7 +148,7 @@ def scrim_requests(request, slug):
             format=(data.get("format") or "BO3").upper(),
             skill_level=data.get("skill_level") or data.get("rank_preference") or "",
             server_region=data.get("server_region") or data.get("region") or "",
-            visibility=(data.get("visibility") or "PUBLIC").upper(),
+            visibility=visibility,
             notes=data.get("notes") or "",
         )
         return JsonResponse({"success": True, "scrim": _scrim_request_payload(scrim), "message": "Scrim request posted."})
@@ -198,6 +219,10 @@ def tryout_applications(request, slug):
                 "You already have an active join request for this team. Track it from the team page or wait for team review.",
                 400,
             )
+
+        settings_obj = _team_competitive_settings(team)
+        if settings_obj and not settings_obj.allow_public_tryout_applications:
+            return _error("Public tryout applications are currently disabled for this team.", 403)
 
         app = TeamTrainingService.apply_for_tryout(
             team=team,
@@ -373,7 +398,7 @@ def practice_sessions(request, slug):
         if not TeamTrainingService.user_can_view_team_ops(request.user, team):
             return _error("You are not allowed to view practice sessions for this team.", 403)
         can_manage = TeamTrainingService.has_team_ops_authority(request.user, team)
-        qs = PracticeSession.objects.filter(team=team).select_related("game")[:40]
+        qs = PracticeSession.objects.filter(team=team).select_related("game").prefetch_related("participants")[:40]
         return JsonResponse({"success": True, "practice_sessions": [_practice_payload(item, include_private=can_manage) for item in qs]})
 
     try:
@@ -402,7 +427,7 @@ def vod_reviews(request, slug):
         if not TeamTrainingService.user_can_view_team_ops(request.user, team):
             return _error("You are not allowed to view VOD reviews for this team.", 403)
         can_manage = TeamTrainingService.has_team_ops_authority(request.user, team)
-        qs = VodReview.objects.filter(team=team).select_related("reviewer", "linked_match", "linked_match__tournament")[:40]
+        qs = VodReview.objects.filter(team=team).select_related("reviewer", "linked_match", "linked_match__tournament").prefetch_related("assigned_players")[:40]
         return JsonResponse({"success": True, "vod_reviews": [_vod_payload(item, include_private=can_manage) for item in qs]})
 
     try:
@@ -777,6 +802,15 @@ def _media_url(obj, *field_names):
 
 def _practice_payload(item, *, include_private=True):
     local_time = timezone.localtime(item.scheduled_at) if item.scheduled_at else None
+    participant_rows = list(item.participants.all()) if include_private else []
+    now = timezone.now()
+    attendance_status = "upcoming"
+    if item.status == item.Status.COMPLETED:
+        attendance_status = "completed"
+    elif item.status == item.Status.CANCELLED:
+        attendance_status = "cancelled"
+    elif item.scheduled_at and item.scheduled_at < now:
+        attendance_status = "needs_review"
     return {
         "id": item.pk,
         "title": item.title,
@@ -791,12 +825,19 @@ def _practice_payload(item, *, include_private=True):
         "goals": item.goals if include_private else "",
         "type": item.session_type,
         "status": item.status,
+        "attendance_status": attendance_status,
+        "participant_count": len(participant_rows),
+        "participants": [
+            {"id": user.pk, "username": user.get_username()}
+            for user in participant_rows[:20]
+        ],
         "notes": item.notes if include_private else "",
         "created_at": item.created_at.isoformat() if item.created_at else None,
     }
 
 
 def _vod_payload(item, *, include_private=True):
+    assigned_rows = list(item.assigned_players.all()) if include_private else []
     return {
         "id": item.pk,
         "title": item.title,
@@ -807,6 +848,12 @@ def _vod_payload(item, *, include_private=True):
         "reviewer": item.reviewer.username if item.reviewer_id else "",
         "visibility": item.visibility,
         "status": item.status,
+        "assignment_status": "reviewed" if item.status == item.Status.REVIEWED else ("archived" if item.status == item.Status.ARCHIVED else "assigned"),
+        "assigned_count": len(assigned_rows),
+        "assigned_players": [
+            {"id": user.pk, "username": user.get_username()}
+            for user in assigned_rows[:20]
+        ],
         "match_room_url": match_room_url(item.linked_match) if item.linked_match_id else None,
         "created_at": item.created_at.isoformat() if item.created_at else None,
     }
