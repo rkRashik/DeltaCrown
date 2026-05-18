@@ -59,16 +59,41 @@ _CRON_SECRET = os.environ.get('CRON_SECRET', '')
 _LOCK_KEY = 'lifecycle_cron:running'
 _LOCK_TTL_SECONDS = int(os.environ.get('CRON_LOCK_TTL', '240'))  # 4 min default
 _SLOW_THRESHOLD_MS = 5000
-_ENABLE_MEM_DIAG = os.environ.get('ENABLE_MEMORY_DIAGNOSTICS') == '1'
+
+# Truthy values accepted by ENABLE_MEMORY_DIAGNOSTICS (case-insensitive).
+_MEM_DIAG_TRUTHY: frozenset = frozenset({'1', 'true', 'yes', 'on'})
+
+
+def _mem_diag_enabled() -> bool:
+    """Check ENABLE_MEMORY_DIAGNOSTICS at call time (not import time).
+
+    Evaluated on every request so that a Render env-var change + restart is
+    picked up without requiring a code deploy.  Accepts the following values
+    (case-insensitive): 1, true, yes, on.
+    """
+    return os.environ.get('ENABLE_MEMORY_DIAGNOSTICS', '').strip().lower() in _MEM_DIAG_TRUTHY
 
 
 def _rss_mb() -> float:
-    """Return current process RSS in MB from /proc/self/status (Linux/Render only)."""
+    """Return current process RSS in MB.
+
+    Priority:
+    1. /proc/self/status VmRSS  — Linux / Render (accurate, zero-dependency).
+    2. psutil                   — cross-platform fallback (optional dependency).
+    3. -1.0                     — when neither source is available.
+    """
     try:
         with open('/proc/self/status') as _f:
             for _line in _f:
                 if _line.startswith('VmRSS:'):
                     return int(_line.split()[1]) / 1024.0
+    except OSError:
+        pass
+    except Exception:
+        pass
+    try:
+        import psutil as _psutil  # optional
+        return _psutil.Process().memory_info().rss / (1024.0 * 1024.0)
     except Exception:
         pass
     return -1.0
@@ -107,8 +132,13 @@ def lifecycle_cron(request):
         )
 
     t0 = time.monotonic()
-    _rss_start = _rss_mb() if _ENABLE_MEM_DIAG else -1.0
-    logger.info('[lifecycle_cron] started rss=%.1fMB', _rss_start)
+    _diag = _mem_diag_enabled()
+    if _diag:
+        logger.info('[lifecycle_cron] memory diagnostics enabled')
+    logger.info('[lifecycle_cron] started')
+    _rss_start = _rss_mb() if _diag else -1.0
+    if _diag:
+        logger.info('[lifecycle_cron] rss_start=%.1fMB', _rss_start)
 
     try:
         results = {}
@@ -133,12 +163,9 @@ def lifecycle_cron(request):
             logger.log(level, '[lifecycle_cron] task=%s elapsed=%dms result=%s', name, task_ms, results[name])
 
         elapsed_ms = round((time.monotonic() - t0) * 1000)
-        if _ENABLE_MEM_DIAG:
+        if _diag:
             _rss_end = _rss_mb()
-            logger.info(
-                '[lifecycle_cron] rss_start=%.1fMB rss_end=%.1fMB delta=%.1fMB',
-                _rss_start, _rss_end, _rss_end - _rss_start,
-            )
+            logger.info('[lifecycle_cron] rss_end=%.1fMB delta=%.1fMB', _rss_end, _rss_end - _rss_start)
 
         if elapsed_ms > _SLOW_THRESHOLD_MS:
             logger.warning('[lifecycle_cron] SLOW RUN completed in %dms', elapsed_ms)
