@@ -1,363 +1,160 @@
 {% extends "base.html" %}
 {% load static %}
-{% block title %}Support — DeltaCrown{% endblock %}
+{% block title %}FAQ - DeltaCrown Support{% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-gradient-to-br from-[#0d1117] via-[#0d1117] to-[#161b22]">
-    
-    <!-- Header Section -->
-    <header class="relative bg-gradient-to-b from-[#161b22] to-[#0d1117] border-b border-[#30363d] shadow-2xl">
-        <div class="absolute inset-0 opacity-30">
-            <div class="absolute top-0 left-1/4 w-64 h-64 bg-[#58a6ff]/10 rounded-full blur-3xl animate-pulse"></div>
-            <div class="absolute bottom-0 right-1/4 w-64 h-64 bg-[#238636]/10 rounded-full blur-3xl animate-pulse" style="animation-delay: 2s;"></div>
+<main class="min-h-screen bg-[#03050a] text-slate-100">
+  <section class="relative overflow-hidden border-b border-white/10">
+    <div class="absolute inset-0 bg-[radial-gradient(circle_at_18%_8%,rgba(6,182,212,.18),transparent_34%),radial-gradient(circle_at_82%_22%,rgba(139,92,246,.15),transparent_34%),linear-gradient(180deg,#070912,#03050a)]"></div>
+    <div class="relative mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+      <div class="grid gap-8 lg:grid-cols-[.85fr_1.15fr] lg:items-end">
+        <div>
+          <p class="text-xs font-black uppercase tracking-[0.24em] text-cyan-300">Support Center</p>
+          <h1 class="mt-3 font-display text-4xl font-black tracking-tight text-white md:text-6xl">Find the right answer fast.</h1>
+          <p class="mt-4 max-w-2xl text-base leading-7 text-slate-300">Practical help for accounts, tournaments, teams, Crown Points, DeltaCoin, competitive modes, proof review, Team HQ, and platform safety.</p>
         </div>
-        
-        <div class="relative max-w-7xl mx-auto px-6 py-12">
-            <div class="flex items-center gap-4 mb-8">
-                <div class="w-12 h-12 bg-gradient-to-br from-[#58a6ff] to-[#1f6feb] rounded-xl flex items-center justify-center shadow-lg shadow-[#58a6ff]/20">
-                    <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z"/>
-                    </svg>
-                </div>
-                <div>
-                    <h1 class="text-4xl font-bold text-white mb-1">Support Center</h1>
-                    <p class="text-[#8b949e]">Get help with your account, tournaments, and more</p>
-                </div>
+        <form action="{% url 'support:faq' %}" method="get" class="rounded-3xl border border-white/10 bg-white/[0.04] p-3 shadow-2xl shadow-black/30 backdrop-blur">
+          <label class="sr-only" for="faq-search">Search support</label>
+          <div class="flex flex-col gap-3 sm:flex-row">
+            <input id="faq-search" name="q" value="{{ search_query }}" type="search" placeholder="Search help articles..." class="min-h-12 flex-1 rounded-2xl border border-white/10 bg-black/35 px-4 text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-300 focus:ring-2 focus:ring-cyan-300/20">
+            <button class="min-h-12 rounded-2xl bg-cyan-300 px-6 font-black text-slate-950 transition hover:bg-cyan-200" type="submit">Search</button>
+          </div>
+          {% if search_query %}
+            <div class="mt-3 flex items-center justify-between gap-3 px-1 text-sm text-slate-400">
+              <span>Showing results for <strong class="text-white">{{ search_query }}</strong></span>
+              <a href="{% url 'support:faq' %}" class="font-bold text-cyan-300 hover:text-cyan-200">Clear</a>
             </div>
-            
-            <!-- Enhanced Search -->
-            <form action="{% url 'support:faq' %}" method="get" class="max-w-3xl">
-                <div class="relative group">
-                    <div class="absolute -inset-0.5 bg-gradient-to-r from-[#58a6ff] to-[#1f6feb] rounded-xl opacity-0 group-hover:opacity-20 blur transition-all duration-300"></div>
-                    <input 
-                        type="text" 
-                        name="q"
-                        value="{{ search_query }}"
-                        placeholder="Search for help articles, guides, and FAQs..." 
-                        class="relative w-full h-14 px-14 bg-[#0d1117] border border-[#30363d] rounded-xl text-[#c9d1d9] text-lg placeholder-[#6e7681] focus:border-[#58a6ff] focus:outline-none focus:ring-2 focus:ring-[#58a6ff]/30 transition-all duration-200 shadow-xl"
-                    >
-                    <svg class="absolute left-5 top-1/2 -translate-y-1/2 w-6 h-6 text-[#6e7681] group-hover:text-[#58a6ff] transition-colors duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                    </svg>
-                    <button type="submit" class="absolute right-2 top-1/2 -translate-y-1/2 px-6 py-2.5 bg-gradient-to-r from-[#58a6ff] to-[#1f6feb] hover:from-[#1f6feb] hover:to-[#58a6ff] text-white font-medium rounded-lg transition-all duration-300 shadow-lg hover:shadow-[#58a6ff]/50">
-                        Search
-                    </button>
-                </div>
-            </form>
-        </div>
-    </header>
-    
-    {% if search_query %}
-    <!-- Search Results Info -->
-    <div class="bg-[#161b22]/50 backdrop-blur-sm border-b border-[#30363d]">
-        <div class="max-w-7xl mx-auto px-6 py-4">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center gap-3">
-                    <div class="w-8 h-8 bg-[#58a6ff]/10 rounded-lg flex items-center justify-center">
-                        <svg class="w-4 h-4 text-[#58a6ff]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                        </svg>
-                    </div>
-                    <span class="text-sm text-[#8b949e]">
-                        Showing results for <span class="text-white font-semibold">"{{ search_query }}"</span>
-                    </span>
-                </div>
-                <a href="{% url 'support:faq' %}" class="flex items-center gap-2 text-sm text-[#58a6ff] hover:text-[#79c0ff] transition-colors">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                    </svg>
-                    Clear
-                </a>
-            </div>
-        </div>
+          {% endif %}
+        </form>
+      </div>
     </div>
-    {% endif %}
-    
-    <div class="max-w-7xl mx-auto px-6 py-12">
-        
-        {% if not search_query %}
-        <!-- Category Grid -->
-        <div class="mb-20">
-            <div class="flex items-center gap-3 mb-8">
-                <div class="w-1 h-8 bg-gradient-to-b from-[#58a6ff] to-[#1f6feb] rounded-full"></div>
-                <h2 class="text-2xl font-bold text-white">Browse by Category</h2>
+  </section>
+
+  <section class="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+    {% if faqs_by_category %}
+      {% if not search_query %}
+      <nav class="mb-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-3" aria-label="FAQ categories">
+        {% for category_name, faqs in faqs_by_category.items %}
+          <a href="#{{ category_name|slugify }}" class="rounded-2xl border border-white/10 bg-white/[0.035] p-5 transition hover:-translate-y-0.5 hover:border-cyan-300/50 hover:bg-white/[0.055]">
+            <span class="text-xs font-black uppercase tracking-widest text-cyan-300">{{ faqs|length }} article{{ faqs|length|pluralize }}</span>
+            <h2 class="mt-2 text-lg font-black text-white">{{ category_name }}</h2>
+          </a>
+        {% endfor %}
+      </nav>
+      {% endif %}
+
+      <div class="space-y-10">
+        {% for category_name, faqs in faqs_by_category.items %}
+        <section id="{{ category_name|slugify }}" class="scroll-mt-24">
+          <div class="mb-4 flex items-end justify-between gap-4 border-b border-white/10 pb-4">
+            <div>
+              <p class="text-xs font-black uppercase tracking-[0.2em] text-cyan-300">Category</p>
+              <h2 class="mt-1 text-2xl font-black text-white">{{ category_name }}</h2>
             </div>
-            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
-                {% for category_name, faqs in faqs_by_category.items %}
-                <a href="#{{ category_name|slugify }}" class="group relative block p-6 bg-gradient-to-br from-[#161b22] to-[#0d1117] border border-[#30363d] rounded-xl hover:border-[#58a6ff] hover:shadow-xl hover:shadow-[#58a6ff]/10 transition-all duration-300 hover:-translate-y-1">
-                    <div class="absolute inset-0 bg-gradient-to-br from-[#58a6ff]/0 to-[#1f6feb]/0 group-hover:from-[#58a6ff]/5 group-hover:to-[#1f6feb]/5 rounded-xl transition-all duration-300"></div>
-                    <div class="relative flex items-start gap-4">
-                        <div class="flex-shrink-0 w-12 h-12 bg-[#21262d] border border-[#30363d] rounded-xl flex items-center justify-center text-2xl group-hover:bg-[#58a6ff]/10 group-hover:border-[#58a6ff]/30 group-hover:scale-110 transition-all duration-300 shadow-lg">
-                            {% if "General" in category_name %}📋
-                            {% elif "Tournament" in category_name %}🏆
-                            {% elif "Payment" in category_name %}💰
-                            {% elif "Technical" in category_name %}⚙️
-                            {% elif "Team" in category_name %}👥
-                            {% elif "Rules" in category_name %}📜
-                            {% else %}❓{% endif %}
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <h3 class="font-bold text-[#c9d1d9] mb-2 group-hover:text-[#58a6ff] transition-colors text-lg">{{ category_name }}</h3>
-                            <p class="text-sm text-[#8b949e] group-hover:text-[#c9d1d9] transition-colors">{{ faqs|length }} helpful article{{ faqs|length|pluralize }}</p>
-                        </div>
-                        <svg class="w-5 h-5 text-[#58a6ff] flex-shrink-0 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-                        </svg>
-                    </div>
-                </a>
-                {% endfor %}
-            </div>
-        </div>
-        {% endif %}
-        
-        {% if faqs_by_category %}
-        <!-- FAQ Content -->
-        <div class="space-y-16">
-            {% for category_name, faqs in faqs_by_category.items %}
-            <section id="{{ category_name|slugify }}" class="scroll-mt-6">
-                <!-- Category Header -->
-                <div class="flex items-center gap-4 mb-8 pb-4 border-b-2 border-[#21262d]">
-                    <div class="w-14 h-14 bg-gradient-to-br from-[#21262d] to-[#0d1117] border border-[#30363d] rounded-xl flex items-center justify-center shadow-lg">
-                        <span class="text-3xl">
-                            {% if "General" in category_name %}📋
-                            {% elif "Tournament" in category_name %}🏆
-                            {% elif "Payment" in category_name %}💰
-                            {% elif "Technical" in category_name %}⚙️
-                            {% elif "Team" in category_name %}👥
-                            {% elif "Rules" in category_name %}📜
-                            {% else %}❓{% endif %}
-                        </span>
-                    </div>
-                    <div class="flex-1">
-                        <h2 class="text-3xl font-bold text-white mb-1">{{ category_name }}</h2>
-                        <p class="text-sm text-[#8b949e]">{{ faqs|length }} frequently asked question{{ faqs|length|pluralize }}</p>
-                    </div>
-                </div>
-                
-                <!-- FAQ List -->
-                <div class="space-y-4">
-                    {% for faq in faqs %}
-                    <details class="faq-item group bg-gradient-to-br from-[#161b22] to-[#0d1117] border border-[#30363d] rounded-xl overflow-hidden hover:border-[#58a6ff]/50 hover:shadow-lg hover:shadow-[#58a6ff]/5 transition-all duration-300">
-                        <summary class="flex items-center justify-between px-7 py-5 cursor-pointer list-none select-none group-hover:bg-[#161b22]/50 transition-all duration-200">
-                            <span class="font-semibold text-[#c9d1d9] text-lg pr-6 group-hover:text-white transition-colors">{{ faq.question }}</span>
-                            <div class="flex-shrink-0 w-8 h-8 bg-[#21262d] rounded-lg flex items-center justify-center group-hover:bg-[#58a6ff]/10 transition-all duration-200">
-                                <svg class="w-5 h-5 text-[#8b949e] group-hover:text-[#58a6ff] transition-all duration-300 group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/>
-                                </svg>
-                            </div>
-                        </summary>
-                        <div class="px-7 pb-6 pt-2">
-                            <div class="pl-4 border-l-2 border-[#58a6ff]/30 text-[#8b949e] leading-relaxed prose-sm">
-                                {{ faq.answer|safe }}
-                            </div>
-                        </div>
-                    </details>
-                    {% endfor %}
-                </div>
-            </section>
+            <span class="text-sm text-slate-500">{{ faqs|length }} question{{ faqs|length|pluralize }}</span>
+          </div>
+          <div class="space-y-3">
+            {% for faq in faqs %}
+            <details class="group rounded-2xl border border-white/10 bg-white/[0.035]">
+              <summary class="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-4">
+                <span class="font-bold text-slate-100">{{ faq.question }}</span>
+                <span class="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-white/5 text-cyan-300 transition group-open:rotate-180">⌄</span>
+              </summary>
+              <div class="border-t border-white/10 px-5 pb-5 pt-4 text-sm leading-7 text-slate-300">
+                {{ faq.answer|safe }}
+              </div>
+            </details>
             {% endfor %}
-        </div>
-        
-        {% else %}
-        <!-- Empty State -->
-        <div class="text-center py-32">
-            <div class="w-24 h-24 bg-gradient-to-br from-[#21262d] to-[#0d1117] border-2 border-[#30363d] rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl">
-                <svg class="w-12 h-12 text-[#6e7681]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                </svg>
+          </div>
+        </section>
+        {% endfor %}
+      </div>
+    {% else %}
+      {% if search_query %}
+      <div class="rounded-3xl border border-white/10 bg-white/[0.035] p-8 text-center">
+        <h2 class="text-2xl font-black text-white">No matching FAQ entries found.</h2>
+        <p class="mx-auto mt-2 max-w-xl text-slate-400">Try a broader search, browse the support topics below, or contact support with your match ID, team name, wallet transaction, or proof reference.</p>
+      </div>
+      {% endif %}
+
+      <div class="grid gap-4 lg:grid-cols-[280px_1fr]">
+        <aside class="lg:sticky lg:top-24 lg:self-start">
+          <nav class="rounded-3xl border border-white/10 bg-white/[0.035] p-4" aria-label="Support topics">
+            <a class="block rounded-xl px-3 py-2 text-sm font-bold text-slate-300 hover:bg-white/5 hover:text-white" href="#getting-started">Getting Started</a>
+            <a class="block rounded-xl px-3 py-2 text-sm font-bold text-slate-300 hover:bg-white/5 hover:text-white" href="#tournaments">Tournaments</a>
+            <a class="block rounded-xl px-3 py-2 text-sm font-bold text-slate-300 hover:bg-white/5 hover:text-white" href="#teams">Teams & Organizations</a>
+            <a class="block rounded-xl px-3 py-2 text-sm font-bold text-slate-300 hover:bg-white/5 hover:text-white" href="#wallet">Wallet & DeltaCoin</a>
+            <a class="block rounded-xl px-3 py-2 text-sm font-bold text-slate-300 hover:bg-white/5 hover:text-white" href="#rankings">Crown Points</a>
+            <a class="block rounded-xl px-3 py-2 text-sm font-bold text-slate-300 hover:bg-white/5 hover:text-white" href="#competitive">Competitive Modes</a>
+            <a class="block rounded-xl px-3 py-2 text-sm font-bold text-slate-300 hover:bg-white/5 hover:text-white" href="#proofs">Proofs & Disputes</a>
+            <a class="block rounded-xl px-3 py-2 text-sm font-bold text-slate-300 hover:bg-white/5 hover:text-white" href="#team-hq">Team HQ</a>
+            <a class="block rounded-xl px-3 py-2 text-sm font-bold text-slate-300 hover:bg-white/5 hover:text-white" href="#safety">Support & Safety</a>
+          </nav>
+        </aside>
+        <div class="space-y-8">
+          <section id="getting-started" class="scroll-mt-24">
+            <h2 class="mb-3 text-2xl font-black text-white">Getting Started</h2>
+            <div class="space-y-3">
+              <details class="rounded-2xl border border-white/10 bg-white/[0.035] p-5" open><summary class="cursor-pointer font-black">What is DeltaCrown?</summary><p class="mt-3 text-sm leading-7 text-slate-300">DeltaCrown is a Bangladesh-first esports platform for tournaments, teams, player identity, Crown Points, DeltaCoin wallet records, competitive modes, Team HQ workflows, proof review, and operator-backed integrity.</p></details>
+              <details class="rounded-2xl border border-white/10 bg-white/[0.035] p-5"><summary class="cursor-pointer font-black">Do I need an account?</summary><p class="mt-3 text-sm leading-7 text-slate-300">You can browse some public pages without an account. Joining tournaments, managing teams, using the wallet, submitting proofs, and entering competitive modes require a DeltaCrown account.</p></details>
             </div>
-            <h3 class="text-2xl font-bold text-white mb-3">No results found</h3>
-            <p class="text-[#8b949e] text-lg mb-8 max-w-md mx-auto">We couldn't find any matches for your search. Try different keywords or browse our categories.</p>
-            <a href="{% url 'support:faq' %}" class="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#238636] to-[#2ea043] hover:from-[#2ea043] hover:to-[#238636] text-white font-semibold rounded-xl transition-all duration-300 shadow-lg hover:shadow-[#238636]/50">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
-                </svg>
-                View all articles
-            </a>
+          </section>
+          <section id="tournaments" class="scroll-mt-24">
+            <h2 class="mb-3 text-2xl font-black text-white">Tournaments</h2>
+            <div class="space-y-3">
+              <details class="rounded-2xl border border-white/10 bg-white/[0.035] p-5"><summary class="cursor-pointer font-black">How do tournaments work?</summary><p class="mt-3 text-sm leading-7 text-slate-300">Tournament pages handle discovery, registration, eligibility, schedules, Match Rooms, check-in, result submission, standings, rules, and disputes where enabled.</p></details>
+              <details class="rounded-2xl border border-white/10 bg-white/[0.035] p-5"><summary class="cursor-pointer font-black">What should I include when reporting a tournament issue?</summary><p class="mt-3 text-sm leading-7 text-slate-300">Include the tournament name, Match Room link or match ID, team/player names, screenshots or proof links, and a short timeline of what happened.</p></details>
+            </div>
+          </section>
+          <section id="teams" class="scroll-mt-24">
+            <h2 class="mb-3 text-2xl font-black text-white">Teams & Organizations</h2>
+            <details class="rounded-2xl border border-white/10 bg-white/[0.035] p-5"><summary class="cursor-pointer font-black">What can teams manage?</summary><p class="mt-3 text-sm leading-7 text-slate-300">Teams can manage public identity, rosters, roles, recruitment, join requests, tryouts, scrims, practice, VOD review, social links, milestones, sponsors, media, and competitive settings where available.</p></details>
+          </section>
+          <section id="wallet" class="scroll-mt-24">
+            <h2 class="mb-3 text-2xl font-black text-white">Wallet & DeltaCoin</h2>
+            <details class="rounded-2xl border border-white/10 bg-white/[0.035] p-5"><summary class="cursor-pointer font-black">What is DeltaCoin?</summary><p class="mt-3 text-sm leading-7 text-slate-300">DeltaCoin is a closed-loop platform utility and reward currency used inside DeltaCrown for eligible entries, rewards, wallet records, and platform services. It is not described as an investment or external financial asset.</p></details>
+          </section>
+          <section id="rankings" class="scroll-mt-24">
+            <h2 class="mb-3 text-2xl font-black text-white">Crown Points & Rankings</h2>
+            <details class="rounded-2xl border border-white/10 bg-white/[0.035] p-5"><summary class="cursor-pointer font-black">What are Crown Points?</summary><p class="mt-3 text-sm leading-7 text-slate-300">Crown Points are DeltaCrown's public progression language for teams and competitive history. Ranking systems are tied to verified competitive activity and continue to evolve across games and seasons.</p></details>
+          </section>
+          <section id="competitive" class="scroll-mt-24">
+            <h2 class="mb-3 text-2xl font-black text-white">Competitive Modes and Missions</h2>
+            <div class="grid gap-3 md:grid-cols-2">
+              <details class="rounded-2xl border border-white/10 bg-white/[0.035] p-5"><summary class="cursor-pointer font-black">What is Showdown?</summary><p class="mt-3 text-sm leading-7 text-slate-300">Showdown is the public name for head-to-head competitive reward matches with team authority, result handling, proof, and operator review paths.</p></details>
+              <details class="rounded-2xl border border-white/10 bg-white/[0.035] p-5"><summary class="cursor-pointer font-black">What are Missions?</summary><p class="mt-3 text-sm leading-7 text-slate-300">Missions are solo skill goals or reward tasks. Some require URL or image proof and manual review before any operator-controlled completion or reward action.</p></details>
+              <details class="rounded-2xl border border-white/10 bg-white/[0.035] p-5"><summary class="cursor-pointer font-black">What is Bounty?</summary><p class="mt-3 text-sm leading-7 text-slate-300">Bounty is an open skill-based challenge format with claim submission and review workflows.</p></details>
+              <details class="rounded-2xl border border-white/10 bg-white/[0.035] p-5"><summary class="cursor-pointer font-black">What is Dropzone?</summary><p class="mt-3 text-sm leading-7 text-slate-300">Dropzone supports battle royale lobby entries, room credential timing, scoring, and operator settlement/review flows.</p></details>
+            </div>
+          </section>
+          <section id="proofs" class="scroll-mt-24">
+            <h2 class="mb-3 text-2xl font-black text-white">Proofs, Reviews, and Disputes</h2>
+            <details class="rounded-2xl border border-white/10 bg-white/[0.035] p-5"><summary class="cursor-pointer font-black">How should I submit proof?</summary><p class="mt-3 text-sm leading-7 text-slate-300">Use the proof or result flow shown in the relevant Match Room, Mission, or competitive detail page. Clear screenshots, video links, match IDs, and timestamps help operators review faster.</p></details>
+          </section>
+          <section id="team-hq" class="scroll-mt-24">
+            <h2 class="mb-3 text-2xl font-black text-white">Team HQ, Tryouts, and Scrims</h2>
+            <details class="rounded-2xl border border-white/10 bg-white/[0.035] p-5"><summary class="cursor-pointer font-black">Are scrims and practice reward modes?</summary><p class="mt-3 text-sm leading-7 text-slate-300">No. Scrims, tryouts, practice, and VOD review are Team HQ operating workflows by default. They help teams schedule, evaluate, and improve.</p></details>
+          </section>
+          <section id="safety" class="scroll-mt-24">
+            <h2 class="mb-3 text-2xl font-black text-white">Support & Safety</h2>
+            <details class="rounded-2xl border border-white/10 bg-white/[0.035] p-5"><summary class="cursor-pointer font-black">How do I report abuse or a dispute?</summary><p class="mt-3 text-sm leading-7 text-slate-300">Use the contact page or the relevant in-product dispute/report flow. Include usernames, team names, match or proof references, screenshots, and a concise description.</p></details>
+          </section>
         </div>
-        {% endif %}
-        
+      </div>
+    {% endif %}
+  </section>
+
+  <section class="border-t border-white/10 bg-white/[0.025]">
+    <div class="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-10 sm:px-6 md:flex-row md:items-center md:justify-between lg:px-8">
+      <div>
+        <h2 class="text-xl font-black text-white">Need human support?</h2>
+        <p class="mt-1 text-sm text-slate-400">Send the relevant tournament, team, wallet, proof, or account details so the team can route it correctly.</p>
+      </div>
+      <div class="flex flex-col gap-3 sm:flex-row">
+        <a href="{% url 'support:contact' %}" class="inline-flex min-h-12 items-center justify-center rounded-2xl bg-cyan-300 px-6 font-black text-slate-950 hover:bg-cyan-200">Contact support</a>
+        <a href="{% url 'support:moderation' %}" class="inline-flex min-h-12 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] px-6 font-black text-white hover:border-cyan-300/50">Moderation guide</a>
+      </div>
     </div>
-    
-    <!-- Footer CTA -->
-    <footer class="relative border-t border-[#30363d] mt-24 bg-gradient-to-b from-[#0d1117] to-[#161b22]">
-        <div class="absolute inset-0 opacity-20">
-            <div class="absolute top-0 left-1/3 w-96 h-96 bg-[#58a6ff]/10 rounded-full blur-3xl"></div>
-            <div class="absolute bottom-0 right-1/3 w-96 h-96 bg-[#238636]/10 rounded-full blur-3xl"></div>
-        </div>
-        
-        <div class="relative max-w-7xl mx-auto px-6 py-16">
-            <div class="max-w-3xl mx-auto">
-                <div class="relative bg-gradient-to-br from-[#161b22] to-[#0d1117] border border-[#30363d] rounded-2xl p-10 shadow-2xl">
-                    <div class="absolute inset-0 bg-gradient-to-br from-[#58a6ff]/5 to-[#238636]/5 rounded-2xl"></div>
-                    
-                    <div class="relative text-center">
-                        <div class="w-16 h-16 bg-gradient-to-br from-[#58a6ff] to-[#1f6feb] rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-[#58a6ff]/30">
-                            <svg class="w-9 h-9 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
-                            </svg>
-                        </div>
-                        
-                        <h3 class="text-3xl font-bold text-white mb-4">Still need help?</h3>
-                        <p class="text-[#8b949e] text-lg mb-10 max-w-xl mx-auto leading-relaxed">
-                            Can't find what you're looking for? Our dedicated support team is ready to assist you with personalized help.
-                        </p>
-                        
-                        <div class="flex flex-col sm:flex-row gap-4 justify-center mb-8">
-                            <a href="{% url 'support:contact' %}" class="group inline-flex items-center justify-center gap-3 px-8 py-4 bg-gradient-to-r from-[#238636] to-[#2ea043] hover:from-[#2ea043] hover:to-[#238636] text-white font-semibold rounded-xl transition-all duration-300 shadow-lg hover:shadow-[#238636]/50 hover:scale-105">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
-                                </svg>
-                                <span>Contact Support</span>
-                                <svg class="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-                                </svg>
-                            </a>
-                            
-                            <a href="{% url 'support:moderation' %}" class="inline-flex items-center justify-center gap-3 px-8 py-4 bg-[#161b22] hover:bg-[#21262d] text-[#c9d1d9] hover:text-white font-semibold rounded-xl border border-[#30363d] hover:border-[#58a6ff]/50 transition-all duration-300 shadow-lg">
-                                <svg class="w-5 h-5 text-[#58a6ff]" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                                </svg>
-                                <span>Community Guidelines</span>
-                            </a>
-                        </div>
-                        
-                        <div class="pt-8 border-t border-[#30363d]">
-                            <p class="text-sm text-[#6e7681] mb-2">Email us directly at</p>
-                            <a href="mailto:deltacrownhq@gmail.com" class="text-[#58a6ff] hover:text-[#79c0ff] font-medium text-lg transition-colors">
-                                deltacrownhq@gmail.com
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </footer>
-    
-</div>
-
-<style>
-html {
-    scroll-behavior: smooth;
-}
-
-details summary::-webkit-details-marker {
-    display: none;
-}
-
-details[open] summary {
-    margin-bottom: 0.75rem;
-}
-
-details {
-    transition: all 0.3s ease;
-}
-
-details[open] {
-    background: linear-gradient(135deg, #161b22 0%, #0d1117 100%);
-}
-
-.prose-sm {
-    font-size: 0.95rem;
-}
-
-.prose-sm p {
-    margin-bottom: 1em;
-    line-height: 1.7;
-    color: #8b949e;
-}
-
-.prose-sm ul, .prose-sm ol {
-    margin: 1em 0;
-    padding-left: 1.75em;
-}
-
-.prose-sm li {
-    margin-bottom: 0.5em;
-    line-height: 1.6;
-}
-
-.prose-sm strong {
-    color: #c9d1d9;
-    font-weight: 600;
-}
-
-.prose-sm a {
-    color: #58a6ff;
-    text-decoration: underline;
-    transition: color 0.2s ease;
-}
-
-.prose-sm a:hover {
-    color: #79c0ff;
-}
-
-.prose-sm code {
-    background-color: #161b22;
-    padding: 0.2em 0.5em;
-    border-radius: 4px;
-    font-size: 0.9em;
-    color: #c9d1d9;
-    border: 1px solid #30363d;
-}
-
-@keyframes pulse {
-    0%, 100% {
-        opacity: 1;
-    }
-    50% {
-        opacity: 0.6;
-    }
-}
-
-* {
-    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-input:focus,
-button:focus,
-a:focus,
-summary:focus {
-    outline: 2px solid #58a6ff;
-    outline-offset: 2px;
-}
-
-::-webkit-scrollbar {
-    width: 12px;
-}
-
-::-webkit-scrollbar-track {
-    background: #0d1117;
-}
-
-::-webkit-scrollbar-thumb {
-    background: #30363d;
-    border-radius: 6px;
-    border: 2px solid #0d1117;
-}
-
-::-webkit-scrollbar-thumb:hover {
-    background: #484f58;
-}
-</style>
-
-<script nonce="{{ request.csp_nonce }}">
-document.addEventListener('DOMContentLoaded', function() {
-    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-        anchor.addEventListener('click', function (e) {
-            e.preventDefault();
-            const target = document.querySelector(this.getAttribute('href'));
-            if (target) {
-                const offset = 24;
-                const targetPosition = target.getBoundingClientRect().top + window.pageYOffset - offset;
-                window.scrollTo({
-                    top: targetPosition,
-                    behavior: 'smooth'
-                });
-            }
-        });
-    });
-});
-</script>
-
+  </section>
+</main>
 {% endblock %}
