@@ -15,6 +15,7 @@ Architecture Decisions:
 - ADR-008: Security - IDs-only discipline, no PII exposure
 """
 
+import json
 from decimal import Decimal
 from typing import Dict, Any
 from rest_framework import serializers
@@ -294,10 +295,28 @@ class TournamentCreateSerializer(serializers.Serializer):
     # Official status (staff only)
     is_official = serializers.BooleanField(default=False)
     
+    # ── Multipart / JSON-string field normalisation ───────────────────────────
+    # When the request arrives as multipart/form-data, complex fields
+    # (JSONField, ListField) are encoded as JSON strings by the JS client.
+    # Parse them before DRF's normal field-level validation runs.
+    _MULTIPART_JSON_FIELDS = ("prize_distribution", "payment_methods", "meta_keywords")
+
+    def to_internal_value(self, data):
+        if hasattr(data, "getlist"):
+            # QueryDict from multipart — mutable copy so we can rewrite values.
+            data = data.dict()
+            for field_name in self._MULTIPART_JSON_FIELDS:
+                if field_name in data and isinstance(data[field_name], str):
+                    try:
+                        data[field_name] = json.loads(data[field_name])
+                    except (ValueError, TypeError):
+                        pass
+        return super().to_internal_value(data)
+
     def validate(self, attrs):
         """
         Cross-field validation.
-        
+
         Validates:
         - Date order (reg_start < reg_end < tournament_start)
         - Participant counts (min <= max)

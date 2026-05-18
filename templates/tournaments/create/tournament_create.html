@@ -90,6 +90,46 @@
     color: rgba(255, 255, 255, 0.34);
   }
 
+  /* ── Select / Dropdown dark-theme fix ──────────────────────────────── */
+  select.dc-input {
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.5)' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    padding-right: 38px;
+    cursor: pointer;
+    color-scheme: dark;
+  }
+  select.dc-input option {
+    background-color: #0d1117;
+    color: #e2e8f0;
+    padding: 6px 12px;
+  }
+  select.dc-input option:checked,
+  select.dc-input option:hover {
+    background-color: #1a2035;
+    color: #fff;
+  }
+  select.dc-input:focus {
+    color: #fff;
+  }
+  /* Community link platform select (narrower) */
+  select.community-link-platform {
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.45)' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    padding-right: 28px;
+    color-scheme: dark;
+    color: #e2e8f0;
+  }
+  select.community-link-platform option {
+    background-color: #0d1117;
+    color: #e2e8f0;
+  }
+
   input[type="datetime-local"]::-webkit-calendar-picker-indicator {
     filter: invert(1) opacity(0.7);
   }
@@ -578,21 +618,40 @@
               </div>
 
               <div class="wizard-card rounded-[2rem] p-5 sm:p-7">
-                <h3 class="mb-1 text-[10px] font-extrabold uppercase tracking-[0.25em] text-white/40">Visual Assets</h3>
-                <div class="mb-4 flex items-center gap-2 rounded-xl border border-[var(--accent)]/20 bg-[rgba(var(--accent-rgb),0.06)] px-3 py-2">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 shrink-0 text-[var(--accent)]"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
-                  <p class="text-[11px] text-white/60 leading-relaxed">Logo and banner are uploaded <strong class="text-white/80">after creation</strong> from the Tournament Control Center — they are not part of the initial create payload.</p>
-                </div>
-                <div class="grid gap-4 md:grid-cols-2 opacity-40 pointer-events-none select-none" aria-hidden="true">
-                  <div class="flex min-h-[140px] flex-col items-center justify-center rounded-[1.5rem] border border-dashed border-white/15 bg-black/20 px-5 text-center">
-                    <span class="mb-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-bold">Banner</span>
-                    <strong class="font-space text-sm text-white/50">Set after creation in TOC</strong>
-                    <span class="mt-1 text-[11px] text-white/30">1920×480 suggested</span>
+                <div class="mb-4 flex items-start justify-between gap-4">
+                  <div>
+                    <h3 class="text-[10px] font-extrabold uppercase tracking-[0.25em] text-white/40">Visual Assets <span class="ml-1 rounded-full border border-white/15 bg-white/5 px-2 py-0.5 text-[9px] font-bold text-white/35">Optional</span></h3>
+                    <p class="mt-1.5 text-[11px] text-white/45 leading-relaxed">Upload now or change later from Tournament Control Center → Settings → Branding.</p>
                   </div>
-                  <div class="flex min-h-[140px] flex-col items-center justify-center rounded-[1.5rem] border border-dashed border-white/15 bg-black/20 px-5 text-center">
-                    <span class="mb-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-bold">Logo</span>
-                    <strong class="font-space text-sm text-white/50">Set after creation in TOC</strong>
-                    <span class="mt-1 text-[11px] text-white/30">Square, min 200×200</span>
+                </div>
+                <div class="grid gap-4 md:grid-cols-2">
+                  <div>
+                    <p class="mb-2 text-[10px] font-bold uppercase tracking-[0.16em] text-white/45">Banner <span class="text-white/25 normal-case font-normal">1920×480 recommended</span></p>
+                    <label id="bannerCard" class="group relative flex min-h-[150px] cursor-pointer flex-col items-center justify-center overflow-hidden rounded-[1.5rem] border border-dashed border-white/20 bg-black/25 text-center transition hover:border-[var(--accent)] hover:bg-[rgba(var(--accent-rgb),0.06)]">
+                      <input id="bannerInput" type="file" class="sr-only" accept="image/jpeg,image/png,image/webp,image/gif">
+                      <div id="bannerEmpty" class="flex flex-col items-center gap-2 px-5 py-6">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="h-8 w-8 text-white/25 group-hover:text-[var(--accent)] transition"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                        <span class="text-xs font-semibold text-white/40 group-hover:text-white/60 transition">Click to upload banner</span>
+                        <span class="text-[11px] text-white/25">JPEG, PNG, WEBP · max 5 MB</span>
+                      </div>
+                      <img id="bannerPreview" class="hidden absolute inset-0 h-full w-full object-cover rounded-[1.5rem]" alt="Banner preview">
+                      <div id="bannerClear" class="hidden absolute top-2 right-2 flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-white/80 text-xs hover:text-red-400 transition" title="Remove">✕</div>
+                    </label>
+                    <p id="bannerError" class="mt-1 hidden text-[11px] text-red-400"></p>
+                  </div>
+                  <div>
+                    <p class="mb-2 text-[10px] font-bold uppercase tracking-[0.16em] text-white/45">Logo <span class="text-white/25 normal-case font-normal">Square, min 200×200</span></p>
+                    <label id="logoCard" class="group relative flex min-h-[150px] cursor-pointer flex-col items-center justify-center overflow-hidden rounded-[1.5rem] border border-dashed border-white/20 bg-black/25 text-center transition hover:border-[var(--accent)] hover:bg-[rgba(var(--accent-rgb),0.06)]">
+                      <input id="logoInput" type="file" class="sr-only" accept="image/jpeg,image/png,image/webp,image/gif">
+                      <div id="logoEmpty" class="flex flex-col items-center gap-2 px-5 py-6">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="h-8 w-8 text-white/25 group-hover:text-[var(--accent)] transition"><circle cx="12" cy="8" r="4"/><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+                        <span class="text-xs font-semibold text-white/40 group-hover:text-white/60 transition">Click to upload logo</span>
+                        <span class="text-[11px] text-white/25">JPEG, PNG, WEBP · max 5 MB</span>
+                      </div>
+                      <img id="logoPreview" class="hidden absolute inset-0 h-full w-full object-cover rounded-[1.5rem]" alt="Logo preview">
+                      <div id="logoClear" class="hidden absolute top-2 right-2 flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-white/80 text-xs hover:text-red-400 transition" title="Remove">✕</div>
+                    </label>
+                    <p id="logoError" class="mt-1 hidden text-[11px] text-red-400"></p>
                   </div>
                 </div>
               </div>
@@ -1090,7 +1149,10 @@
                   <p class="text-sm font-bold text-red-300 mb-1">Insufficient DeltaCoins</p>
                   <p class="text-xs text-red-200/70">You need at least {{ hosting_fee }} DC to host a tournament. Top up your wallet to continue.</p>
                 </div>
-                <button id="topupCta" type="button" class="mt-3 inline-flex items-center gap-2 rounded-xl border border-red-400/35 bg-red-500/15 px-4 py-2 text-xs font-bold uppercase tracking-[0.15em] text-red-100 transition hover:bg-red-500/25">Top-up Wallet</button>
+                <a href="/wallet/hub/" target="_blank" rel="noopener" class="mt-3 inline-flex items-center gap-2 rounded-xl border border-red-400/35 bg-red-500/15 px-4 py-2 text-xs font-bold uppercase tracking-[0.15em] text-red-100 transition hover:bg-red-500/25">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-3.5 w-3.5"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4z"/></svg>
+  Top up wallet
+</a>
                 {% endif %}
               </div>
               {% else %}
@@ -1107,22 +1169,34 @@
 
               <div class="wizard-card rounded-[2rem] p-5 sm:p-7">
                 <h3 class="mb-4 text-[10px] font-extrabold uppercase tracking-[0.25em] text-white/40">What happens next?</h3>
-                <div class="space-y-3 text-sm text-white/60">
-                  <div class="flex items-start gap-3">
-                    <span class="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white/10 text-[10px] font-bold text-white/60">1</span>
-                    <span>Your tournament is created and a unique <strong class="text-white/80">/toc/slug/</strong> page is generated.</span>
+                <div class="space-y-2">
+                  <div class="flex items-start gap-3 rounded-xl border border-white/8 bg-black/20 px-4 py-3">
+                    <span class="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-500/20 text-[10px] font-bold text-emerald-400">✓</span>
+                    <div>
+                      <p class="text-sm font-semibold text-white/85">Tournament created as Draft</p>
+                      <p class="mt-0.5 text-xs text-white/45">Your tournament page is ready but not yet visible to participants.</p>
+                    </div>
                   </div>
-                  <div class="flex items-start gap-3">
-                    <span class="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white/10 text-[10px] font-bold text-white/60">2</span>
-                    <span>You are redirected to the <strong class="text-white/80">Tournament Operations Center (TOC)</strong> with a guided onboarding flow.</span>
+                  <div class="flex items-start gap-3 rounded-xl border border-[var(--accent)]/20 bg-[rgba(var(--accent-rgb),0.06)] px-4 py-3">
+                    <span class="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[rgba(var(--accent-rgb),0.2)] text-[10px] font-bold text-[var(--accent)]">→</span>
+                    <div>
+                      <p class="text-sm font-semibold text-white/85">Next: Publish to open registration</p>
+                      <p class="mt-0.5 text-xs text-white/45">You'll land in the Tournament Control Center. The <strong class="text-white/70">Launch Guide</strong> walks you through every step.</p>
+                    </div>
                   </div>
-                  <div class="flex items-start gap-3">
-                    <span class="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white/10 text-[10px] font-bold text-white/60">3</span>
-                    <span>Set up bracket structure, publish to participants, and manage registrations from TOC.</span>
+                  <div class="flex items-start gap-3 rounded-xl border border-white/8 bg-black/20 px-4 py-3">
+                    <span class="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white/10 text-[10px] font-bold text-white/60">+</span>
+                    <div>
+                      <p class="text-sm font-semibold text-white/85">Optional: upload logo &amp; banner</p>
+                      <p class="mt-0.5 text-xs text-white/45">Upload now above, or later from TOC → Settings → Branding. Both work.</p>
+                    </div>
                   </div>
-                  <div class="flex items-start gap-3">
-                    <span class="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white/10 text-[10px] font-bold text-white/60">4</span>
-                    <span>DeltaCoin hosting fee {% if is_staff %}(waived for staff){% else %}of {{ hosting_fee }} DC{% endif %} is deducted upon successful creation.</span>
+                  <div class="flex items-start gap-3 rounded-xl border border-white/8 bg-black/20 px-4 py-3">
+                    <span class="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white/10 text-[10px] font-bold text-white/60">{% if is_staff %}0{% else %}{{ hosting_fee }}{% endif %}</span>
+                    <div>
+                      <p class="text-sm font-semibold text-white/85">{% if is_staff %}Free hosting (staff exempt){% else %}{{ hosting_fee }} DC hosting fee deducted{% endif %}</p>
+                      <p class="mt-0.5 text-xs text-white/45">Charged on successful creation only. No partial charges on failure.</p>
+                    </div>
                   </div>
                 </div>
               </div>

@@ -1546,14 +1546,40 @@
     setDeployOverlay(true, "Compiling architecture...", "Sending create request");
     setLoading(true);
 
-    fetch(apiCreateUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-CSRFToken": csrfToken
-      },
-      body: JSON.stringify(payload)
-    })
+    var bannerFile = byId("bannerInput") && byId("bannerInput").files && byId("bannerInput").files[0];
+    var logoFile = byId("logoInput") && byId("logoInput").files && byId("logoInput").files[0];
+    var hasFiles = !!(bannerFile || logoFile);
+
+    var fetchOptions;
+    if (hasFiles) {
+      var fd = new FormData();
+      var complexFields = ["prize_distribution", "payment_methods", "meta_keywords"];
+      Object.keys(payload).forEach(function (key) {
+        if (complexFields.indexOf(key) !== -1) {
+          fd.append(key, JSON.stringify(payload[key]));
+        } else if (payload[key] !== null && payload[key] !== undefined) {
+          fd.append(key, String(payload[key]));
+        }
+      });
+      if (bannerFile) fd.append("banner_image", bannerFile);
+      if (logoFile) fd.append("thumbnail_image", logoFile);
+      fetchOptions = {
+        method: "POST",
+        headers: { "X-CSRFToken": csrfToken },
+        body: fd
+      };
+    } else {
+      fetchOptions = {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": csrfToken
+        },
+        body: JSON.stringify(payload)
+      };
+    }
+
+    fetch(apiCreateUrl, fetchOptions)
       .then(function (response) {
         return response
           .json()
@@ -1623,6 +1649,60 @@
         updateReviewSummary();
       });
     });
+
+    // ── File upload preview ───────────────────────────────────────────────
+    var MAX_FILE_BYTES = 5 * 1024 * 1024;
+    var ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+
+    function setupFileUpload(inputId, previewId, emptyId, clearId, errorId) {
+      var input = byId(inputId);
+      var preview = byId(previewId);
+      var empty = byId(emptyId);
+      var clearBtn = byId(clearId);
+      var errorEl = byId(errorId);
+      if (!input || !preview || !empty) return;
+
+      function clearFile() {
+        input.value = "";
+        preview.classList.add("hidden");
+        if (clearBtn) clearBtn.classList.add("hidden");
+        empty.classList.remove("hidden");
+        if (errorEl) errorEl.classList.add("hidden");
+      }
+
+      input.addEventListener("change", function () {
+        if (errorEl) errorEl.classList.add("hidden");
+        var file = input.files && input.files[0];
+        if (!file) { clearFile(); return; }
+        if (ALLOWED_TYPES.indexOf(file.type) === -1) {
+          if (errorEl) { errorEl.textContent = "Only JPEG, PNG, WEBP or GIF allowed."; errorEl.classList.remove("hidden"); }
+          clearFile(); return;
+        }
+        if (file.size > MAX_FILE_BYTES) {
+          if (errorEl) { errorEl.textContent = "File exceeds 5 MB limit."; errorEl.classList.remove("hidden"); }
+          clearFile(); return;
+        }
+        var reader = new FileReader();
+        reader.onload = function (e) {
+          preview.src = e.target.result;
+          preview.classList.remove("hidden");
+          if (clearBtn) clearBtn.classList.remove("hidden");
+          empty.classList.add("hidden");
+        };
+        reader.readAsDataURL(file);
+      });
+
+      if (clearBtn) {
+        clearBtn.addEventListener("click", function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+          clearFile();
+        });
+      }
+    }
+
+    setupFileUpload("bannerInput", "bannerPreview", "bannerEmpty", "bannerClear", "bannerError");
+    setupFileUpload("logoInput",   "logoPreview",  "logoEmpty",  "logoClear",  "logoError");
 
     var capacitySlider = byId("capacitySlider");
     if (capacitySlider) {
@@ -1811,13 +1891,6 @@
       submitButton.addEventListener("click", submitTournament);
     }
 
-
-    var topupButton = byId("topupCta");
-    if (topupButton) {
-      topupButton.addEventListener("click", function () {
-        showToast("Please top up DeltaCoin from your wallet.");
-      });
-    }
 
     var desktopGuideButton = byId("desktopGuideBtn");
     if (desktopGuideButton) {

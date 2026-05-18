@@ -241,6 +241,12 @@ class TOCView(LoginRequiredMixin, TemplateView):
         ctx['toc_initial_detail_widgets_json'] = json.dumps(detail_widgets, cls=DjangoJSONEncoder)
         ctx['toc_verification_policy_json'] = json.dumps(verification_policy, cls=DjangoJSONEncoder)
         ctx['show_onboarding'] = getattr(self, 'show_onboarding', False)
+        ctx['toc_onboarding_bootstrap_json'] = json.dumps({
+            "slug": t.slug,
+            "enabled": getattr(self, 'show_onboarding', False),
+            "forceOpen": getattr(self, 'show_onboarding', False),
+            "isDraft": (t.status == 'draft'),
+        }, cls=DjangoJSONEncoder)
         ctx['toc_detail_page_url'] = reverse('tournaments:detail', kwargs={'slug': t.slug})
         ctx['toc_tournament_hub_url'] = reverse('tournaments:tournament_hub', kwargs={'slug': t.slug})
         ctx['toc_detail_widgets_save_url'] = reverse('tournaments:detail_widgets_save', kwargs={'slug': t.slug})

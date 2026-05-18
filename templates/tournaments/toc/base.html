@@ -301,6 +301,15 @@
             {% endfor %}
         </nav>
 
+        {# Sidebar guide button #}
+        <div class="px-3 pb-2 sidebar-label">
+          <button type="button" data-open-onboarding
+            class="w-full flex items-center gap-2 rounded-lg border border-dc-border px-3 py-2 text-[11px] font-semibold text-dc-text hover:text-white hover:border-theme/40 hover:bg-theme/5 transition"
+            title="Open Tournament Launch Guide">
+            <i data-lucide="map" class="w-3.5 h-3.5 shrink-0"></i>
+            Launch Guide
+          </button>
+        </div>
         {# Sidebar footer — user info + collapse button #}
         <div class="p-4 border-t border-dc-border bg-dc-bg/80 flex items-center justify-between">
             <div class="flex items-center gap-3">
@@ -462,6 +471,60 @@
 
             {# Overview tab (default visible) — S1-F1 through S1-F8 #}
             <div id="view-overview" data-tab-content="overview" class="p-6 lg:p-8 max-w-[1600px] mx-auto space-y-6">
+
+                {# ── Draft launch checklist (shown only for draft tournaments) ── #}
+                {% if status == 'draft' %}
+                <div id="toc-draft-checklist" class="rounded-xl border border-theme/20 bg-theme/5 p-5">
+                  <div class="flex items-center justify-between gap-4 mb-4">
+                    <div class="flex items-center gap-2.5">
+                      <i data-lucide="list-checks" class="w-5 h-5 text-theme shrink-0"></i>
+                      <div>
+                        <p class="text-sm font-bold text-white">Tournament Launch Checklist</p>
+                        <p class="text-[11px] text-dc-text">Complete these steps before going live.</p>
+                      </div>
+                    </div>
+                    <button type="button" data-open-onboarding
+                      class="inline-flex items-center gap-1.5 rounded-lg border border-theme/30 bg-theme/8 px-3 py-1.5 text-[11px] font-bold text-theme hover:bg-theme/15 transition">
+                      <i data-lucide="map" class="w-3.5 h-3.5"></i>
+                      Open guide
+                    </button>
+                  </div>
+                  <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                    {% with checklist_items=checklist_items %}
+                    <button type="button" class="toc-nav-btn checklist-item" data-tab="settings"
+                      style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);text-align:left;transition:all 0.2s;width:100%;">
+                      <i data-lucide="image" class="w-4 h-4 shrink-0" style="color:rgba(255,255,255,0.4);"></i>
+                      <div style="min-width:0;"><p style="font-size:12px;font-weight:600;color:#e2e8f0;margin:0;">Upload logo &amp; banner</p><p style="font-size:11px;color:rgba(255,255,255,0.4);margin:0;">Settings → Branding</p></div>
+                    </button>
+                    <button type="button" class="toc-nav-btn checklist-item" data-tab="rules"
+                      style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);text-align:left;transition:all 0.2s;width:100%;">
+                      <i data-lucide="book-open" class="w-4 h-4 shrink-0" style="color:rgba(255,255,255,0.4);"></i>
+                      <div style="min-width:0;"><p style="font-size:12px;font-weight:600;color:#e2e8f0;margin:0;">Review rules &amp; format</p><p style="font-size:11px;color:rgba(255,255,255,0.4);margin:0;">Rules &amp; Info tab</p></div>
+                    </button>
+                    <button type="button" class="toc-nav-btn checklist-item" data-tab="settings"
+                      style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);text-align:left;transition:all 0.2s;width:100%;">
+                      <i data-lucide="send" class="w-4 h-4 shrink-0" style="color:rgba(255,255,255,0.4);"></i>
+                      <div style="min-width:0;"><p style="font-size:12px;font-weight:600;color:#e2e8f0;margin:0;">Publish / open registration</p><p style="font-size:11px;color:rgba(255,255,255,0.4);margin:0;">Settings → Launch</p></div>
+                    </button>
+                    <button type="button" class="toc-nav-btn checklist-item" data-tab="participants"
+                      style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);text-align:left;transition:all 0.2s;width:100%;">
+                      <i data-lucide="users" class="w-4 h-4 shrink-0" style="color:rgba(255,255,255,0.4);"></i>
+                      <div style="min-width:0;"><p style="font-size:12px;font-weight:600;color:#e2e8f0;margin:0;">Monitor registrations</p><p style="font-size:11px;color:rgba(255,255,255,0.4);margin:0;">Participants tab</p></div>
+                    </button>
+                    <button type="button" class="toc-nav-btn checklist-item" data-tab="brackets"
+                      style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);text-align:left;transition:all 0.2s;width:100%;">
+                      <i data-lucide="git-branch" class="w-4 h-4 shrink-0" style="color:rgba(255,255,255,0.4);"></i>
+                      <div style="min-width:0;"><p style="font-size:12px;font-weight:600;color:#e2e8f0;margin:0;">Generate bracket</p><p style="font-size:11px;color:rgba(255,255,255,0.4);margin:0;">After registration closes</p></div>
+                    </button>
+                    <button type="button" class="toc-nav-btn checklist-item" data-tab="matches"
+                      style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);text-align:left;transition:all 0.2s;width:100%;">
+                      <i data-lucide="swords" class="w-4 h-4 shrink-0" style="color:rgba(255,255,255,0.4);"></i>
+                      <div style="min-width:0;"><p style="font-size:12px;font-weight:600;color:#e2e8f0;margin:0;">Monitor matches &amp; results</p><p style="font-size:11px;color:rgba(255,255,255,0.4);margin:0;">Matches tab</p></div>
+                    </button>
+                    {% endwith %}
+                  </div>
+                </div>
+                {% endif %}
 
                 {# ── Page title + ghost icon ── #}
                 <div class="flex items-end justify-between mb-4 relative">
@@ -5257,6 +5320,7 @@
             },
         };
         window.TOC_USER_CAPABILITIES = [{% for cap in user_capabilities %}'{{ cap }}'{% if not forloop.last %}, {% endif %}{% endfor %}];
+        window.TOC_ONBOARDING = {{ toc_onboarding_bootstrap_json|safe }};
     </script>
     <script defer src="{% static 'js/csp-delegator.js' %}"></script>
     <script defer src="{% static 'tournaments/toc/js/toc-core.js' %}?v={{ STATIC_VERSION }}"></script>
@@ -5289,6 +5353,7 @@
     <script defer src="{% static 'tournaments/toc/js/toc-rosters.js' %}"></script>
     <script defer src="{% static 'tournaments/toc/js/toc-notifications.js' %}"></script>
     <script defer src="{% static 'tournaments/toc/js/toc-sync-health.js' %}"></script>
+    <script defer src="{% static 'tournaments/toc/js/toc-onboarding.js' %}"></script>
     {% if show_onboarding %}
     <script nonce="{{ request.csp_nonce }}">
       (function () {

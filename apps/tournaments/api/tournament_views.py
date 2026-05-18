@@ -296,7 +296,18 @@ class TournamentViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_401_UNAUTHORIZED,
             )
 
-        serializer = self.get_serializer(data=request.data)
+        # Merge uploaded files into the data dict for multipart requests.
+        # JSON requests have no FILES; multipart requests carry banner_image /
+        # thumbnail_image in request.FILES alongside the form fields.
+        incoming_data = request.data
+        if request.FILES:
+            if hasattr(incoming_data, 'dict'):
+                incoming_data = incoming_data.dict()
+            else:
+                incoming_data = dict(incoming_data)
+            incoming_data.update(request.FILES)
+
+        serializer = self.get_serializer(data=incoming_data)
         serializer.is_valid(raise_exception=True)
 
         user = request.user
