@@ -353,7 +353,7 @@ def _get_fallback_context() -> Dict[str, Any]:
             },
             "highlights": [
                 {"label": "Active Players", "value": "12,500+", "icon": "ðŸ‘¥"},
-                {"label": "Prize Pool", "value": "à§³5,00,000+", "icon": "ðŸ’°"},
+                {"label": "Prize Pool", "value": "৳5,00,000+", "icon": "ðŸ’°"},
                 {"label": "Tournaments", "value": "150+", "icon": "ðŸ†"},
                 {"label": "Games", "value": "11", "icon": "ðŸŽ®"},
             ],
@@ -552,7 +552,7 @@ def _get_featured_tournaments(limit=3):
                 'slug': tournament.slug,
                 'game': tournament.game.name if hasattr(tournament, 'game') and tournament.game else 'N/A',
                 'game_slug': tournament.game.slug if hasattr(tournament, 'game') and tournament.game else '',
-                'prize_pool': f"à§³{tournament.prize_pool:,.0f}" if tournament.prize_pool else "TBD",
+                'prize_pool': f"৳{tournament.prize_pool:,.0f}" if tournament.prize_pool else "TBD",
                 'registration_count': registration_count,
                 'max_teams': max_teams,
                 'is_full': is_full,

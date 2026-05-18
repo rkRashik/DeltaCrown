@@ -73,6 +73,7 @@ class RankingEntry:
     team_url: str
     organization_id: Optional[int]
     organization_name: Optional[str]
+    organization_slug: Optional[str]
     score: int
     tier: str
     confidence_level: str
@@ -88,8 +89,9 @@ class RankingEntry:
         """Calculate team URL based on team type."""
         if self.is_independent:
             self.team_url = f'/teams/{self.team_slug}/'
+        elif self.organization_slug:
+            self.team_url = f'/orgs/{self.organization_slug}/teams/{self.team_slug}/'
         elif self.organization_id:
-            # For org teams, we'd need org slug - for now use team slug
             self.team_url = f'/teams/{self.team_slug}/'
 
 
@@ -200,6 +202,7 @@ class CompetitionService:
                 team_url='',
                 organization_id=org.id if org else None,
                 organization_name=org.name if org else None,
+                organization_slug=org.slug if org else None,
                 score=team.display_score,
                 tier=team.display_tier,
                 confidence_level='STABLE',
@@ -304,6 +307,7 @@ class CompetitionService:
                     team_url='',
                     organization_id=org.id if org else None,
                     organization_name=org.name if org else None,
+                    organization_slug=org.slug if org else None,
                     score=snap.score,
                     tier=snap.tier,
                     confidence_level=snap.confidence_level,
@@ -379,6 +383,7 @@ class CompetitionService:
                 team_url='',
                 organization_id=org.id if org else None,
                 organization_name=org.name if org else None,
+                organization_slug=org.slug if org else None,
                 score=team.display_score,
                 tier=team.display_tier,
                 confidence_level='STABLE',

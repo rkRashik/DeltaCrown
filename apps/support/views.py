@@ -5,6 +5,7 @@ from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.utils import timezone
 from .models import FAQ, Testimonial, ContactMessage
+from apps.common.seo import breadcrumb_schema, build_seo
 
 
 class ContactForm(forms.ModelForm):
@@ -88,6 +89,12 @@ def contact_view(request):
     
     context = {
         'form': form,
+        'seo': build_seo(
+            title='Contact DeltaCrown | Support and Partnerships',
+            description='Contact DeltaCrown for tournament issues, wallet and DeltaCoin questions, proof reviews, moderation reports, team support, privacy, security, or partnerships.',
+            path='/contact/',
+            schema=breadcrumb_schema([('Home', '/'), ('Contact', '/contact/')]),
+        ),
     }
     return render(request, "support/contact.html", context)
 
@@ -122,6 +129,13 @@ def faq_view(request):
         'total_faqs': FAQ.objects.filter(is_active=True).count(),
         'featured_faqs': FAQ.objects.filter(is_active=True, is_featured=True).order_by('order')[:5],
         'search_query': search_query,
+        'seo': build_seo(
+            title='FAQ | DeltaCrown Help Center',
+            description='Answers about DeltaCrown accounts, tournaments, teams, Crown Points, DeltaCoin, Missions, Showdown, Bounty, Dropzone, proofs, reviews, and support.',
+            path='/faq/',
+            noindex=bool(search_query),
+            schema=_faq_schema(faqs_by_category),
+        ),
     }
     
     return render(request, 'support/faq.html', context)
@@ -131,13 +145,50 @@ def moderation_view(request):
     """Moderation & Fair Play page"""
     context = {
         'page_title': 'Moderation & Fair Play',
+        'seo': build_seo(
+            title='Moderation and Fair Play | DeltaCrown',
+            description='How DeltaCrown handles reports, proof review, disputes, moderation outcomes, and competitive integrity across the platform.',
+            path='/moderation/',
+            schema=breadcrumb_schema([('Home', '/'), ('Moderation', '/moderation/')]),
+        ),
     }
     return render(request, 'support/moderation.html', context)
 
 
 def rules_view(request):
     """Rules and Fair Play page"""
-    return render(request, 'support/rules.html')
+    return render(request, 'support/rules.html', {
+        'seo': build_seo(
+            title='Platform Rules | DeltaCrown',
+            description='DeltaCrown rules for fair play, account integrity, tournaments, Match Rooms, Showdown, Missions, Bounty, Dropzone, teams, wallet abuse, proofs, disputes, and operator review.',
+            path='/rules/',
+            schema=breadcrumb_schema([('Home', '/'), ('Rules', '/rules/')]),
+        )
+    })
+
+
+def _faq_schema(faqs_by_category):
+    questions = []
+    for faqs in faqs_by_category.values():
+        for faq in list(faqs)[:8]:
+            questions.append({
+                '@type': 'Question',
+                'name': faq.question,
+                'acceptedAnswer': {
+                    '@type': 'Answer',
+                    'text': faq.answer,
+                },
+            })
+    if not questions:
+        return breadcrumb_schema([('Home', '/'), ('FAQ', '/faq/')])
+    return [
+        breadcrumb_schema([('Home', '/'), ('FAQ', '/faq/')]),
+        {
+            '@context': 'https://schema.org',
+            '@type': 'FAQPage',
+            'mainEntity': questions[:20],
+        },
+    ]
 
 
 def get_homepage_testimonials():
@@ -155,4 +206,3 @@ def get_client_ip(request):
     else:
         ip = request.META.get('REMOTE_ADDR')
     return ip
-

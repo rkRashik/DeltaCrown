@@ -13,6 +13,7 @@ from django.core.cache import cache
 from apps.organizations.models.team import Team
 from apps.organizations.choices import TeamStatus
 from apps.games.models import Game
+from apps.common.seo import breadcrumb_schema, build_seo
 
 
 def team_directory(request):
@@ -115,6 +116,13 @@ def team_directory(request):
         'sort_by': sort_by,
         'active_games': active_games,
         'regions': regions,
+        'seo': build_seo(
+            title='Esports Team Directory | DeltaCrown',
+            description='Browse public DeltaCrown esports teams by game, region, recruiting status, and organization across Bangladesh and South Asia.',
+            path='/teams/directory/',
+            noindex=bool(search_query or active_filter != 'all' or sort_by != 'newest'),
+            schema=breadcrumb_schema([('Home', '/'), ('Teams', '/teams/'), ('Directory', '/teams/directory/')]),
+        ),
     }
 
     return render(request, 'organizations/teams/team_directory.html', context)

@@ -908,7 +908,7 @@
                 {% if user_teams %}
                 <div class="space-y-2">
                     {% for team in user_teams %}
-                    <div class="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/5 hover:border-z-cyan/30 hover:bg-white/8 transition group">
+                    <a href="{{ team.url }}" class="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/5 hover:border-z-cyan/30 hover:bg-white/8 transition group no-underline">
                         {% if team.logo_url %}
                         <img src="{{ team.logo_url }}" alt="{{ team.name }}" class="w-10 h-10 rounded-lg object-cover border border-white/10 shrink-0">
                         {% else %}
@@ -926,7 +926,7 @@
                                 <i class="fa-solid fa-circle text-[6px]"></i> Active
                             </span>
                         </div>
-                    </div>
+                    </a>
                     {% endfor %}
                 </div>
                 {% else %}
@@ -938,6 +938,24 @@
             </div>
 
             {# ── 2. Trophy Cabinet (featured first, no hidden) ─────────────────── #}
+            {% if profile_entity_links %}
+            <div class="glass-panel p-5 rounded-2xl">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="text-gray-400 font-bold text-xs uppercase tracking-widest flex items-center gap-2">
+                        <i class="fa-solid fa-link text-z-cyan"></i> Ecosystem
+                    </h3>
+                </div>
+                <div class="grid grid-cols-1 gap-2">
+                    {% for link in profile_entity_links %}
+                    <a href="{{ link.url }}" class="rounded-xl bg-white/5 border border-white/5 hover:border-z-cyan/30 px-3 py-2 transition no-underline group">
+                        <span class="block text-xs font-bold text-white group-hover:text-z-cyan">{{ link.label }}</span>
+                        <span class="block text-[10px] text-gray-500">{{ link.detail }}</span>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
             {# Uses sidebar_achievements_data: hidden removed, featured sorted first #}
             <div class="glass-panel p-5 rounded-2xl cursor-pointer hover:border-z-gold/30 transition"
                  data-profile-tab-target="achievements" role="button" tabindex="0" aria-label="View achievements">
@@ -993,7 +1011,7 @@
                 {% if user_teams %}
                 <div class="space-y-2">
                     {% for team in user_teams|slice:":2" %}
-                    <div class="flex items-center gap-2.5 p-2 rounded-lg bg-white/5">
+                    <a href="{{ team.url }}" class="flex items-center gap-2.5 p-2 rounded-lg bg-white/5 hover:bg-white/10 transition no-underline">
                         {% if team.logo_url %}
                         <img src="{{ team.logo_url }}" alt="{{ team.name }}" class="w-8 h-8 rounded-lg object-cover border border-white/10 shrink-0">
                         {% else %}
@@ -1003,7 +1021,7 @@
                             <div class="text-xs font-bold text-white truncate">{{ team.name }}</div>
                             <div class="text-[10px] text-z-green font-bold uppercase">{{ team.role|default:'Member' }}{% if team.game %} &middot; {{ team.game }}{% endif %}</div>
                         </div>
-                    </div>
+                    </a>
                     {% endfor %}
                 </div>
                 {% else %}

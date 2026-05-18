@@ -5,6 +5,7 @@ Context processors for making common data available in all templates.
 import os
 
 from apps.common.game_assets import _build_legacy_games_dict, get_game_data
+from apps.common.seo import default_seo_for_request
 from django.core.cache import cache
 
 
@@ -50,6 +51,15 @@ def game_assets_context(request):
         'GAMES': games,
         'get_game_data': get_game_data,
     }
+
+
+def seo_context(request):
+    """Expose one default SEO contract to every template.
+
+    View contexts can override this by passing their own ``seo`` dict built
+    with ``apps.common.seo.build_seo``.
+    """
+    return {"seo": default_seo_for_request(request)}
 
 
 # ===== PHASE 5A: Platform Preferences Context Processor =====

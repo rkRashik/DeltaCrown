@@ -35,6 +35,7 @@ from apps.user_profile.services.profile_permissions import ProfilePermissionChec
 from apps.user_profile.services.recruit_service import RecruitEligibilityService  # UP PHASE 8
 from apps.user_profile.services.completion_service import SettingsCompletionService  # UP PHASE 8
 from apps.user_profile.models import UserProfile, SocialLink
+from apps.common.seo import absolute_url, breadcrumb_schema, build_seo, truncate_meta
 
 logger = logging.getLogger(__name__)
 
@@ -149,6 +150,12 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
             'profile': user_profile,
             'viewer_role': permissions['viewer_role'],
             'has_pending_request': permissions.get('has_pending_request', False),
+            'seo': build_seo(
+                title=f"@{profile_user.username} | Private DeltaCrown Profile",
+                description="This DeltaCrown profile is private.",
+                path=f"/@{profile_user.username}/",
+                noindex=True,
+            ),
         })
     
     # Build safe context — cached per (username, viewer_role) for 5 min.
@@ -190,6 +197,53 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
     context['is_owner'] = _real_is_owner and not _spectator_mode
     context['spectator_mode'] = _spectator_mode
     context['user_profile'] = user_profile  # For level, kyc_status access
+    display_name = user_profile.display_name or profile_user.username
+    profile_has_meaningful_public_copy = bool(user_profile.bio or user_profile.about_bio)
+    profile_description = user_profile.bio or user_profile.about_bio or (
+        f"View {display_name}'s public DeltaCrown Game Passport, teams, tournaments, Crown Points activity, and esports identity."
+    )
+    profile_image = user_profile.banner.url if user_profile.banner else (user_profile.avatar.url if user_profile.avatar else None)
+    profile_schema = []
+    if profile_has_meaningful_public_copy:
+        affiliations = [
+            {'@type': 'SportsTeam', 'name': team.get('name'), 'url': absolute_url(team.get('url'))}
+            for team in context.get('user_teams', [])[:5]
+            if team.get('name') and team.get('url')
+        ]
+        person_schema = {
+            '@context': 'https://schema.org',
+            '@type': 'ProfilePage',
+            'name': f"{display_name} on DeltaCrown",
+            'url': absolute_url(f"/@{profile_user.username}/"),
+            'description': truncate_meta(profile_description, 240),
+            'mainEntity': {
+                '@type': 'Person',
+                'name': display_name,
+                'alternateName': profile_user.username,
+            },
+        }
+        if affiliations:
+            person_schema['mainEntity']['affiliation'] = affiliations
+        if profile_image:
+            person_schema['image'] = absolute_url(profile_image)
+        profile_schema = [
+            breadcrumb_schema([('Home', '/'), ('Players', '/teams/'), (display_name, f"/@{profile_user.username}/")]),
+            person_schema,
+        ]
+    context['seo'] = build_seo(
+        title=f"{display_name} (@{profile_user.username}) | DeltaCrown Game Passport",
+        description=profile_description,
+        path=f"/@{profile_user.username}/",
+        noindex=bool(_spectator_mode or not profile_has_meaningful_public_copy),
+        og_image=profile_image,
+        schema=profile_schema,
+    )
+    context['profile_entity_links'] = [
+        {'label': 'Crown Points Rankings', 'url': '/competition/leaderboards/', 'detail': 'Compare team and roster progress'},
+        {'label': 'Tournaments', 'url': '/tournaments/', 'detail': 'Browse public events and results'},
+        {'label': 'Teams', 'url': '/teams/directory/', 'detail': 'Discover squads and recruiting teams'},
+        {'label': 'Game Passport Rules', 'url': '/game-passport-rules/', 'detail': 'Identity and verification guidance'},
+    ]
     
     # UP.2 HOTFIX: Compute wallet_balance safely (prevent VariableDoesNotExist crash)
     wallet_balance = 0

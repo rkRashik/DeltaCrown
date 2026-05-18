@@ -228,6 +228,7 @@ def build_public_profile_extended_context(
             user_teams_payload.append({
                 'id': tm.team.id,
                 'slug': tm.team.slug,
+                'url': tm.team.get_absolute_url(),
                 'name': tm.team.name,
                 'tag': tm.team.tag,
                 'game': game_name,

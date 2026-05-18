@@ -1,4 +1,5 @@
 from django.urls import path
+from django.views.generic import RedirectView
 from .views import home, ui_showcase
 from . import views
 
@@ -24,6 +25,6 @@ urlpatterns = [
     path("arena/", views.watch, name="arena"),
     path("arena/data/", views.arena_async_data, name="arena_data"),
     path("arena/widget/<int:widget_id>/vote/", views.arena_widget_vote, name="arena_widget_vote"),
-    path("watch/", views.watch, name="watch"),  # Backward compat redirect
+    path("watch/", RedirectView.as_view(pattern_name="siteui:arena", permanent=True), name="watch"),
     path("newsletter/subscribe/", views.newsletter_subscribe, name="newsletter_subscribe"),
 ]

@@ -419,7 +419,7 @@ body {
                 {{ entry.team_name }}
               </a>
               {% if not entry.is_independent and entry.organization_name %}
-              <p class="text-[11px] text-dc-muted font-bold tracking-widest uppercase mt-2">{{ entry.organization_name }}</p>
+              <a href="/orgs/{{ entry.organization_slug }}/" class="text-[11px] text-dc-muted hover:text-dc-cyan font-bold tracking-widest uppercase mt-2 block no-underline">{{ entry.organization_name }}</a>
               {% endif %}
               {% if is_global and entry.game_name %}
               <p class="text-[10px] text-dc-cyan font-bold tracking-widest uppercase mt-1 flex items-center gap-1.5"><i class="fa-solid fa-gamepad text-[8px]"></i> {{ entry.game_name }}</p>
@@ -541,7 +541,7 @@ body {
             </div>
             <div class="flex items-center gap-3 text-[11px] text-dc-muted font-bold uppercase tracking-widest">
               {% if not entry.is_independent and entry.organization_name %}
-              <span class="truncate">{{ entry.organization_name }}</span>
+              <a href="/orgs/{{ entry.organization_slug }}/" class="truncate hover:text-dc-cyan no-underline">{{ entry.organization_name }}</a>
               {% endif %}
               {% if is_global and entry.game_name %}
               <span class="flex items-center gap-1 text-dc-cyan/70"><i class="fa-solid fa-gamepad text-[8px]"></i> {{ entry.game_name }}</span>
