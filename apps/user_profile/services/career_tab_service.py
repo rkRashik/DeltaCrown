@@ -293,45 +293,39 @@ class CareerTabService:
     @staticmethod
     def get_matches_played(user, game) -> int:
         """
-        Calculate matches played from Tournament app participation.
-        Uses Match and TeamTournamentRegistration models.
-        
-        Args:
-            user: User instance
-            game: Game instance or game_slug string
-        
-        Returns:
-            int: Total matches played (0 if tournament ops not available)
+        Count completed matches via apps.tournaments.models.Match (correct model).
+        Counts both solo (participant = user) and team (participant = user's team) matches.
         """
         try:
-            from apps.matches.models import Match
-            from apps.organizations.models import TeamMembership, Team
-            from apps.games.models import Game
-            
+            from apps.tournaments.models import Match
+            from apps.organizations.models.membership import TeamMembership
+
             game_slug = game.slug if hasattr(game, 'slug') else game
-            
-            # Count solo/duo matches where user participated
-            solo_matches = Match.objects.filter(
-                Q(player1__user=user) | Q(player2__user=user),
-                game__slug=game_slug,
-                status__in=['COMPLETED', 'FORFEIT']
-            ).count()
-            
-            # Count team matches via team membership
-            user_teams = Team.objects.filter(
-                vnext_memberships__user=user,
-                game_id__in=Game.objects.filter(slug=game_slug).values('id')
-            ).values_list('id', flat=True)
-            
-            team_matches = Match.objects.filter(
-                Q(team1__id__in=user_teams) | Q(team2__id__in=user_teams),
-                game__slug=game_slug,
-                status__in=['COMPLETED', 'FORFEIT']
-            ).count()
-            
-            return solo_matches + team_matches
+            done_states = [Match.COMPLETED, Match.FORFEIT]
+
+            # Solo/duo: participant1/2 stores user id for solo tournaments
+            solo = Match.objects.filter(
+                Q(participant1_id=user.id) | Q(participant2_id=user.id),
+                tournament__game__slug=game_slug,
+                tournament__participation_type='solo',
+                state__in=done_states,
+            ).distinct().count()
+
+            # Team: participant1/2 stores team id
+            team_ids = list(
+                TeamMembership.objects.filter(user=user, status='ACTIVE')
+                .values_list('team_id', flat=True)
+            )
+            team = 0
+            if team_ids:
+                team = Match.objects.filter(
+                    Q(participant1_id__in=team_ids) | Q(participant2_id__in=team_ids),
+                    tournament__game__slug=game_slug,
+                    state__in=done_states,
+                ).distinct().count()
+
+            return solo + team
         except Exception:
-            # If tournament system not fully implemented, return 0
             return 0
     
     @staticmethod
@@ -350,82 +344,100 @@ class CareerTabService:
         game_slug = game.slug if hasattr(game, 'slug') else str(game)
         config = GAME_DISPLAY_CONFIG.get(game_slug, {})
         category = config.get('category', 'shooter')
-        
-        metadata = getattr(passport, 'metadata', {}) or {}
-        
-        if category == 'shooter':
-            # Shooter UI: K/D, Win Rate, Tournaments, Bounties Won
-            kd = getattr(passport, 'kd_ratio', None) or metadata.get('kd_ratio') or '--'
-            win_rate = getattr(passport, 'win_rate', None) or metadata.get('win_rate') or '--'
-            
-            # Count tournaments/achievements
-            try:
-                from apps.user_profile.models import Achievement
-                tournaments = Achievement.objects.filter(
-                    user=user,
-                    game_slug=game_slug
-                ).count()
-            except:
-                tournaments = 0
-            
-            # Count bounties won
-            try:
-                from apps.user_profile.models import Bounty
-                from apps.user_profile.models.bounties import BountyStatus
-                bounties_won = Bounty.objects.filter(
-                    winner=user,
-                    status=BountyStatus.COMPLETED,
-                    game__slug=game_slug
-                ).count()
-            except:
-                bounties_won = 0
-            
+        metadata = getattr(passport, 'metadata', {}) or {} if passport else {}
+
+        # ── Real data from tournament/match system ─────────────────────────
+        matches_played = 0
+        tournaments_entered = 0
+        wins = 0
+        try:
+            matches_played = CareerTabService.get_matches_played(user, game)
+        except Exception:
+            pass
+
+        try:
+            from apps.user_profile.models_main import UserProfile
+            _up = UserProfile.objects.get(user=user)
+            achievements = CareerTabService.get_achievements(_up, game)
+            tournaments_entered = len(achievements)
+            wins = sum(1 for a in achievements if a.get('placement_label') == 'Winner')
+        except Exception:
+            pass
+
+        win_rate = round(wins / matches_played * 100, 1) if matches_played > 0 else None
+
+        def _wr_display():
+            return f"{win_rate}%" if win_rate is not None else '—'
+
+        def _wr_sub():
+            return f"{wins}W / {matches_played - wins}L" if matches_played > 0 else "no matches yet"
+
+        # ── MatchPlayerStat aggregate for real scorecard data ──────────────
+        _mps = {}
+        try:
+            from apps.tournaments.models.match_player_stats import MatchPlayerStat
+            from django.db.models import Avg, Sum, Count
+            _agg = MatchPlayerStat.objects.filter(
+                player=user,
+                match__tournament__game__slug=game_slug,
+            ).aggregate(
+                total_kills=Sum('kills'),
+                total_deaths=Sum('deaths'),
+                total_assists=Sum('assists'),
+                avg_acs=Avg('acs'),
+                total_goals=Sum('goals'),
+                total_shots=Sum('shots'),
+                row_count=Count('id'),
+            )
+            if _agg.get('row_count', 0):
+                _mps = _agg
+        except Exception:
+            pass
+
+        # K/D: prefer MatchPlayerStat aggregate, fall back to passport field
+        _total_k = _mps.get('total_kills') or 0
+        _total_d = _mps.get('total_deaths') or 0
+        if _total_k or _total_d:
+            kd_val = round(_total_k / _total_d, 2) if _total_d else float(_total_k)
+            kd_display = f"{kd_val:.2f}"
+            kd_sub = f"{int(_total_k)}K / {int(_total_d)}D"
+        else:
+            _kd_raw = getattr(passport, 'kd_ratio', None) if passport else None
+            kd_display = f"{_kd_raw:.2f}" if _kd_raw else '—'
+            kd_sub = "not tracked yet" if not _kd_raw else "from passport"
+
+        if category in ('shooter', 'tactician'):
+            # ACS tile if available (Valorant)
+            _acs = _mps.get('avg_acs')
+            acs_display = f"{float(_acs):.0f}" if _acs else None
             return [
-                {'label': 'K/D', 'value': kd, 'color_class': 'game-red'},
-                {'label': 'Win Rate', 'value': f"{win_rate}%" if isinstance(win_rate, (int, float)) else win_rate, 'color_class': 'game-blue'},
-                {'label': 'Tournaments', 'value': tournaments, 'color_class': 'game-yellow'},
-                {'label': 'Bounties Won', 'value': f"{bounties_won:,}" if bounties_won else '0', 'color_class': 'game-green'},
+                {'label': 'Matches',     'value': str(matches_played),   'color_class': 'game-blue',   'subtitle': 'played'},
+                {'label': 'Win Rate',    'value': _wr_display(),          'color_class': 'game-cyan',   'subtitle': _wr_sub()},
+                {'label': 'Tournaments', 'value': str(tournaments_entered), 'color_class': 'game-yellow', 'subtitle': 'entered'},
+                {'label': 'ACS' if acs_display else 'K/D',
+                 'value': acs_display if acs_display else kd_display,
+                 'color_class': 'game-red',
+                 'subtitle': 'avg combat score' if acs_display else kd_sub},
             ]
-        
-        elif category == 'tactician':
-            # Tactician UI: KDA, GPM, Hero Pool, Tournaments
-            kda = metadata.get('kda') or metadata.get('kd_ratio') or '--'
-            gpm = metadata.get('gpm') or '--'
-            hero_pool = metadata.get('hero_pool') or metadata.get('champion_pool') or '--'
-            
-            try:
-                from apps.user_profile.models import Achievement
-                tournaments = Achievement.objects.filter(user=user, game_slug=game_slug).count()
-            except:
-                tournaments = 0
-            
-            return [
-                {'label': 'KDA', 'value': kda, 'color_class': 'game-purple'},
-                {'label': 'GPM', 'value': gpm, 'color_class': 'game-blue'},
-                {'label': 'Hero Pool', 'value': hero_pool, 'color_class': 'game-yellow'},
-                {'label': 'Tournaments', 'value': tournaments, 'color_class': 'game-green'},
-            ]
-        
+
         elif category == 'athlete':
-            # Athlete UI: Goals, Assists, Win Rate, Clean Sheets/Form
-            goals = metadata.get('goals_scored') or metadata.get('goals') or 0
-            assists = metadata.get('assists') or 0
-            win_rate = metadata.get('win_rate') or getattr(passport, 'win_rate', None) or '--'
-            clean_sheets = metadata.get('clean_sheets') or metadata.get('form') or '--'
-            
+            # Sports stats (eFootball / FC / etc.)
+            _goals = int(_mps.get('total_goals') or 0) or int(metadata.get('goals_scored') or 0) or 0
+            _shots = int(_mps.get('total_shots') or 0) or 0
             return [
-                {'label': 'Goals', 'value': goals, 'color_class': 'game-green'},
-                {'label': 'Assists', 'value': assists, 'color_class': 'game-blue'},
-                {'label': 'Win Rate', 'value': f"{win_rate}%" if isinstance(win_rate, (int, float)) else win_rate, 'color_class': 'game-yellow'},
-                {'label': 'Form', 'value': clean_sheets, 'color_class': 'game-red'},
+                {'label': 'Matches',     'value': str(matches_played),   'color_class': 'game-blue',   'subtitle': 'played'},
+                {'label': 'Win Rate',    'value': _wr_display(),          'color_class': 'game-cyan',   'subtitle': _wr_sub()},
+                {'label': 'Goals',       'value': str(_goals) if _goals else '—', 'color_class': 'game-green', 'subtitle': 'scored' if _goals else 'not tracked yet'},
+                {'label': 'Tournaments', 'value': str(tournaments_entered), 'color_class': 'game-yellow', 'subtitle': 'entered'},
             ]
-        
-        # Fallback: generic stats
+
+        # Generic fallback
+        rank_display = (passport.rank_name or 'Unranked') if passport else 'Unranked'
         return [
-            {'label': 'Matches', 'value': CareerTabService.get_matches_played(user, game), 'color_class': 'game-blue'},
-            {'label': 'Rank', 'value': passport.rank_name or 'Unranked', 'color_class': 'game-yellow'},
-            {'label': 'K/D', 'value': getattr(passport, 'kd_ratio', '--'), 'color_class': 'game-red'},
-            {'label': 'Win Rate', 'value': getattr(passport, 'win_rate', '--'), 'color_class': 'game-green'},
+            {'label': 'Matches',     'value': str(matches_played),   'color_class': 'game-blue',   'subtitle': 'played'},
+            {'label': 'Win Rate',    'value': _wr_display(),          'color_class': 'game-cyan',   'subtitle': _wr_sub()},
+            {'label': 'Tournaments', 'value': str(tournaments_entered), 'color_class': 'game-yellow', 'subtitle': 'entered'},
+            {'label': 'Rank',        'value': rank_display,          'color_class': 'game-yellow', 'subtitle': 'current'},
         ]
     
     @staticmethod
@@ -671,11 +683,13 @@ class CareerTabService:
             logger.warning(f"[Career] resolve_game_obj: unknown type {type(value).__name__} for value: {value}")
             return None
         
-        # Get all active public game profiles for user (OPTIMIZED: select_related game)
+        # Get game profiles — use _include_private injected by caller (see get_linked_games_for_owner).
+        _include_private = getattr(user_profile, '_career_include_private', False)
+        _vis_q = {} if _include_private else {'visibility': GameProfile.VISIBILITY_PUBLIC}
         passports_qs = GameProfile.objects.filter(
             user=user_profile.user,
-            visibility=GameProfile.VISIBILITY_PUBLIC,
-            status=GameProfile.STATUS_ACTIVE
+            status=GameProfile.STATUS_ACTIVE,
+            **_vis_q,
         ).select_related('game').order_by('-is_pinned', 'pinned_order', 'sort_order', '-updated_at')
         
         # === PRIMARY GAME RESOLUTION (4-tier fallback with type safety) ===
@@ -785,14 +799,20 @@ class CareerTabService:
         from apps.user_profile.models import GameProfile
         
         try:
+            # No visibility filter here — privacy gate is enforced at the API/view level.
+            # The caller is responsible for ensuring the viewer has permission to see this passport.
             return GameProfile.objects.get(
                 user=user_profile.user,
                 game=game,
-                visibility=GameProfile.VISIBILITY_PUBLIC,
-                status=GameProfile.STATUS_ACTIVE
+                status=GameProfile.STATUS_ACTIVE,
             )
         except GameProfile.DoesNotExist:
             return None
+        except GameProfile.MultipleObjectsReturned:
+            # Prefer PUBLIC over PRIVATE if duplicates exist
+            return GameProfile.objects.filter(
+                user=user_profile.user, game=game, status=GameProfile.STATUS_ACTIVE,
+            ).order_by('visibility').first()
     
     @staticmethod
     def get_matches_played_count(user_profile, game) -> int:
@@ -1102,12 +1122,25 @@ class CareerTabService:
             return []
         
         try:
-            # Get user's tournament registrations for this game
+            # Get user's tournament registrations (direct + team-based)
+            from django.db.models import Q as _Q
+            from apps.organizations.models.membership import TeamMembership as _TM
+
+            team_ids = list(
+                _TM.objects.filter(user=user_profile.user, status='ACTIVE')
+                .values_list('team_id', flat=True)
+            )
+            reg_filter = _Q(user=user_profile.user)
+            if team_ids:
+                reg_filter |= _Q(team_id__in=team_ids)
+
             registrations = Registration.objects.filter(
-                user=user_profile.user,
+                reg_filter,
                 tournament__game__slug=game.slug,
                 status__in=['confirmed', 'checked_in', 'completed']
-            ).select_related('tournament').order_by('-tournament__tournament_start')[:50]  # Limit to recent 50 (team is optional, don't select_related)
+            ).select_related('tournament').order_by(
+                '-tournament__tournament_start'
+            ).distinct()[:50]
             
             achievements = []
             for reg in registrations:
@@ -1126,7 +1159,7 @@ class CareerTabService:
                     else:
                         tier = 'OPEN'
                 
-                # Placement
+                # Placement — use stored field first, then infer from match winner data
                 placement = getattr(reg, 'placement', None) or getattr(reg, 'final_standing', None)
                 if placement:
                     if placement == 1:
@@ -1138,7 +1171,25 @@ class CareerTabService:
                     else:
                         placement_label = f"{placement}th Place"
                 else:
-                    placement_label = 'Participated'
+                    # Infer from match results: did the team/user win any match in this tournament?
+                    try:
+                        from apps.tournaments.models import Match as _Match
+                        participant_ids = []
+                        if reg.team_id:
+                            participant_ids.append(reg.team_id)
+                        elif reg.user_id:
+                            participant_ids.append(reg.user_id)
+                        if participant_ids:
+                            won = _Match.objects.filter(
+                                tournament=tournament,
+                                winner_id__in=participant_ids,
+                                state=_Match.COMPLETED,
+                            ).exists()
+                            placement_label = 'Winner' if won else 'Competed'
+                        else:
+                            placement_label = 'Competed'
+                    except Exception:
+                        placement_label = 'Competed'
                 
                 # Team name
                 team_name = None
@@ -1161,12 +1212,20 @@ class CareerTabService:
                     prize_amount = float(reg.prize_won)
                     prize_currency = getattr(tournament, 'prize_currency', 'USD')
                 
+                _ts = getattr(tournament, 'tournament_start', None)
+                # Human-readable tier label (skip OPEN since it's the default/least prestigious)
+                _tier_labels = {'GOLD': 'Gold Cup', 'DIAMOND': 'Diamond', 'CROWN': 'Crown Series'}
+                _tier_display = _tier_labels.get(tier) if tier and tier != 'OPEN' else None
+
                 achievements.append({
                     'tournament_id': tournament.id,
                     'tournament_name': tournament.title if hasattr(tournament, 'title') else tournament.name,
                     'tournament_slug': tournament.slug,
                     'tournament_tier': tier,
-                    'date': tournament.tournament_start.isoformat() if hasattr(tournament, 'tournament_start') and tournament.tournament_start else None,
+                    'tournament_tier_display': _tier_display,
+                    'date': _ts.isoformat() if _ts else None,
+                    'date_obj': _ts,  # Raw datetime for Django template date filter
+                    'date_formatted': _ts.strftime('%b %d, %Y').replace(' 0', ' ') if _ts else '',
                     'placement': placement,
                     'placement_label': placement_label,
                     'team_name': team_name,
@@ -1177,8 +1236,8 @@ class CareerTabService:
             
             return achievements
         except Exception as e:
-            # Graceful fallback - don't crash Career Tab
-            logger.warning(f"Error fetching achievements: {e}")
+            import logging as _logging
+            _logging.getLogger(__name__).warning("Error fetching achievements: %s", e)
             return []
     
     @staticmethod

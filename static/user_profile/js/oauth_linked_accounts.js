@@ -977,7 +977,9 @@
                 || !!(providerData.riot && (providerData.riot.puuid || providerData.riot.game_name || providerData.riot.tag_line))
                 || !!(providerData.epic && (providerData.epic.account_id || providerData.epic.epic_id || providerData.epic.display_name));
             var vstatus = String(passport.verification_status || '').toUpperCase();
-            var isVerified = vstatus === 'VERIFIED' && !!passport.is_verified;
+            // Trust verification_status as canonical — is_verified is a deprecated
+            // sync field and may lag behind if the DB was updated without a full save().
+            var isVerified = vstatus === 'VERIFIED';
             var isApiSynced = isApiSyncedPassport(passport, game) && isProviderLinked && isVerified;
             var badgeHTML = (vstatus === 'FLAGGED')
                 ? '<span class="bg-red-500/10 border border-red-500/20 px-2 py-0.5 rounded-md text-[10px] font-bold text-red-400 flex items-center gap-1"><i class="fa-solid fa-triangle-exclamation"></i> FLAGGED</span>'

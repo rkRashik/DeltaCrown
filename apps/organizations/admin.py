@@ -108,6 +108,58 @@ class TeamCompetitiveSettingsInline(StackedInline):
     filter_horizontal = ('allowed_games',)
 
 
+TeamCompetitiveSettings._meta.verbose_name = 'Team Competitive Settings'
+TeamCompetitiveSettings._meta.verbose_name_plural = 'Team Competitive Settings'
+
+
+@admin.register(TeamCompetitiveSettings)
+class TeamCompetitiveSettingsAdmin(ModelAdmin):
+    """Standalone admin surface for competitive team policy."""
+
+    list_display = (
+        'team',
+        'showdown_create_policy',
+        'bounty_create_policy',
+        'max_showdown_entry_fee_dc',
+        'max_bounty_reward_dc',
+        'allow_public_scrim_availability',
+        'allow_public_tryout_applications',
+        'updated_at',
+    )
+    list_filter = (
+        'showdown_create_policy',
+        'bounty_create_policy',
+        'allow_public_scrim_availability',
+        'allow_public_tryout_applications',
+    )
+    search_fields = ('team__name', 'team__slug', 'team__organization__name')
+    autocomplete_fields = ('team',)
+    filter_horizontal = ('allowed_games',)
+    readonly_fields = ('created_at', 'updated_at')
+
+    fieldsets = (
+        ('Authority', {
+            'fields': ('team', 'showdown_create_policy', 'bounty_create_policy'),
+            'description': 'Controls which team roles can create team-based competitive operations.',
+        }),
+        ('Limits', {
+            'fields': (
+                'max_showdown_entry_fee_dc',
+                'max_bounty_reward_dc',
+                'bounty_approval_required_above_dc',
+                'allowed_games',
+            ),
+        }),
+        ('Public Team Ops', {
+            'fields': ('allow_public_scrim_availability', 'allow_public_tryout_applications'),
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',),
+        }),
+    )
+
+
 @admin.register(Organization)
 class OrganizationAdmin(SafeUploadMixin, ModelAdmin):
     """

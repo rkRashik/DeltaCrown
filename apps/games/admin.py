@@ -99,6 +99,9 @@ class GameAdmin(SafeUploadMixin, ModelAdmin):
     readonly_fields = ['created_at', 'updated_at', 'media_storage_diagnostic']
     actions = ['action_audit_media']
 
+    class Media:
+        css = {'all': ('admin/css/game_media_admin.css',)}
+
     fieldsets = [
         ('Basic Information', {
             'fields': ['name', 'display_name', 'slug', 'short_code', 'description']
@@ -142,141 +145,160 @@ class GameAdmin(SafeUploadMixin, ModelAdmin):
     ]
 
     def media_storage_diagnostic(self, obj):
-        """Readonly field: storage backend header + per-field status + warnings."""
+        """Readonly field: per-field image preview cards + storage status."""
         import os
         from django.conf import settings as dj_settings
         from django.core.files.storage import default_storage
+        from django.templatetags.static import static
 
         try:
             backend_cls = type(default_storage).__name__
-            is_cloudinary_backend = "Cloudinary" in backend_cls
+            is_cloudinary = "Cloudinary" in backend_cls
         except Exception:
             backend_cls = "unknown"
-            is_cloudinary_backend = False
+            is_cloudinary = False
 
         django_env = os.getenv("DJANGO_ENV", "development")
         is_production = (not dj_settings.DEBUG) or (django_env == "production")
-        local_in_prod = (not is_cloudinary_backend) and is_production
+        local_in_prod = (not is_cloudinary) and is_production
 
-        if is_cloudinary_backend:
-            backend_badge = mark_safe(
-                "<span style='color:#3b82f6;font-weight:bold'>&#9729; Cloudinary</span>"
-                " &mdash; new uploads go to Cloudinary CDN"
+        # ── Backend badge ─────────────────────────────────────────────────
+        if is_cloudinary:
+            backend_html = mark_safe(
+                "<span class='gma-backend-badge gma-backend-cloudinary'>"
+                "<span class='material-symbols-outlined'>cloud</span>"
+                "Active upload storage: Cloudinary</span>"
+                "<div class='gma-banner gma-bok' style='margin-top:8px'>"
+                "<span class='material-symbols-outlined'>cloud_done</span>"
+                "<div>New uploads will be served from Cloudinary CDN on production. "
+                "Replacing an image schedules the old file for cleanup after 48 h — go to "
+                "<a href='/admin/maintenance/'>Operations Center</a> &rsaquo; Delete Eligible Media.</div>"
+                "</div>"
+            )
+        elif local_in_prod:
+            backend_html = mark_safe(
+                "<span class='gma-backend-badge gma-backend-local'>"
+                "<span class='material-symbols-outlined'>folder_open</span>"
+                "Active upload storage: Local filesystem</span>"
+                "<div class='gma-banner gma-bwarn' style='margin-top:8px'>"
+                "<span class='material-symbols-outlined'>warning</span>"
+                "<div><strong>Production using local storage.</strong> "
+                "Files uploaded here will NOT appear on deltacrown.xyz. "
+                "Set <code>CLOUDINARY_URL</code> in Render, then re-upload from the production admin.</div>"
+                "</div>"
             )
         else:
-            backend_badge = mark_safe(
-                "<span style='color:#f59e0b;font-weight:bold'>&#128193; Local filesystem</span>"
-                " &mdash; new uploads saved to local disk only"
+            backend_html = mark_safe(
+                "<span class='gma-backend-badge gma-backend-local'>"
+                "<span class='material-symbols-outlined'>folder_open</span>"
+                "Active upload storage: Local filesystem</span>"
+                "<div class='gma-banner gma-bwarn' style='margin-top:8px'>"
+                "<span class='material-symbols-outlined'>folder_open</span>"
+                "<div>Local uploads exist only on this machine. "
+                "For production images, upload from the live admin with Cloudinary configured.</div>"
+                "</div>"
             )
 
-        rows = []
+        # ── Guide ────────────────────────────────────────────────────────
+        guide_html = mark_safe(
+            "<div class='gma-guide'>"
+            "<strong>Safe image upload workflow:</strong>"
+            "<ol><li>Upload fresh images using the fields below.</li>"
+            "<li>Wait 48 h (old Cloudinary asset is retained during this window).</li>"
+            "<li>Go to <a href='/admin/maintenance/'>Operations Center</a> &rsaquo; Delete Eligible Media.</li></ol>"
+            "</div>"
+        )
+
+        # ── Per-field preview cards ───────────────────────────────────────
+        cards = []
         for field_name in _IMAGE_FIELDS:
             field = getattr(obj, field_name, None)
             name = getattr(field, "name", "") or ""
+
             if not name:
-                rows.append(format_html(
-                    "<tr><td style='padding:3px 8px'><b>{}</b></td>"
-                    "<td style='padding:3px 8px;color:#9ca3af'>— empty</td>"
-                    "<td colspan='3'></td></tr>",
-                    field_name,
-                ))
-                continue
-
-            url = ""
-            try:
-                url = field.url or ""
-            except Exception as exc:
-                url = f"[url error: {exc}]"
-
-            exists = storage_file_exists(field)
-            if exists:
-                avail = mark_safe("<span style='color:#22c55e;font-weight:bold'>&#10003; available</span>")
-            else:
-                avail = mark_safe("<span style='color:#ef4444;font-weight:bold'>&#10007; MISSING</span>")
-
-            # Host type: detect from URL, not backend (field may be a stale local reference)
-            if "res.cloudinary.com" in url:
-                host = mark_safe("<span style='color:#3b82f6;font-size:10px;font-weight:bold'>Cloudinary</span>")
-            elif url.startswith("/media/") or (url.startswith("/") and not url.startswith("http")):
-                host = mark_safe("<span style='color:#f59e0b;font-size:10px;font-weight:bold'>Local /media/</span>")
-            elif url.startswith("http"):
-                host = mark_safe("<span style='color:#8b5cf6;font-size:10px'>External URL</span>")
-            else:
-                host = mark_safe("<span style='color:#9ca3af;font-size:10px'>?</span>")
-
-            stale_local = is_cloudinary_backend and url.startswith("/media/")
-
-            url_display = (url[:60] + "…") if len(url) > 60 else url
-            url_cell = format_html(
-                "<a href='{}' target='_blank' style='font-size:10px;color:#6366f1'>{}</a>",
-                url, url_display,
-            ) if url.startswith(("http", "/")) else format_html(
-                "<code style='font-size:10px'>{}</code>", url
-            )
-
-            warn = ""
-            if stale_local:
-                warn = mark_safe(
-                    " &nbsp;<span style='color:#f59e0b;font-size:10px' "
-                    "title='This field stores a local /media/ path but the active backend is Cloudinary. "
-                    "Re-upload this image in production so it goes to Cloudinary.'>&#9888; stale local ref</span>"
+                thumb_html = mark_safe(
+                    "<div class='gma-thumb-placeholder'>"
+                    "<span class='material-symbols-outlined'>image_not_supported</span>Empty</div>"
                 )
+                badges = mark_safe("<span class='gma-badge gb-empty'>Empty</span>")
+                path_html = mark_safe("")
+                url_html = mark_safe("")
+            else:
+                url = ""
+                try:
+                    url = field.url or ""
+                except Exception:
+                    url = ""
 
-            rows.append(format_html(
-                "<tr style='border-bottom:1px solid #1f2937'>"
-                "<td style='padding:4px 8px'><b>{}</b></td>"
-                "<td style='padding:4px 8px'>{}</td>"
-                "<td style='padding:4px 8px'>{}{}</td>"
-                "<td style='padding:4px 8px;font-size:10px;font-family:monospace;color:#a5b4fc;word-break:break-all'>{}</td>"
-                "<td style='padding:4px 8px'>{}</td>"
-                "</tr>",
-                field_name, avail, host, warn,
-                name[:80], url_cell,
+                # Thumbnail
+                if url and url.startswith(("http", "/")):
+                    thumb_html = format_html(
+                        "<img src='{}' style='max-height:76px;max-width:100%;object-fit:contain;' "
+                        "onerror=\"this.style.display='none';this.nextSibling.style.display='flex'\" loading='lazy'>"
+                        "<div class='gma-thumb-placeholder' style='display:none'>"
+                        "<span class='material-symbols-outlined'>broken_image</span>No preview</div>",
+                        url,
+                    )
+                else:
+                    thumb_html = mark_safe(
+                        "<div class='gma-thumb-placeholder'>"
+                        "<span class='material-symbols-outlined'>broken_image</span>No URL</div>"
+                    )
+
+                exists = storage_file_exists(field)
+                if exists:
+                    status_badge = mark_safe("<span class='gma-badge gb-ok'>&#10003; Available</span>")
+                else:
+                    status_badge = mark_safe("<span class='gma-badge gb-miss'>&#10007; Missing</span>")
+
+                if "res.cloudinary.com" in url:
+                    host_badge = mark_safe("<span class='gma-badge gb-cloud'>Cloudinary</span>")
+                elif url.startswith("/media/") or (url.startswith("/") and "http" not in url):
+                    warn_title = (
+                        "Stale local ref — re-upload on production" if is_cloudinary else "Local /media/ file"
+                    )
+                    host_badge = format_html(
+                        "<span class='gma-badge gb-local' title='{}'>{}</span>",
+                        warn_title,
+                        mark_safe("&#9888; Local"),
+                    )
+                else:
+                    host_badge = mark_safe("<span class='gma-badge gb-empty'>?</span>")
+
+                badges = format_html("{} {}", status_badge, host_badge)
+                path_html = format_html(
+                    "<div class='gma-path'>{}</div>", name[:70] + ("…" if len(name) > 70 else "")
+                )
+                url_display = url[:55] + ("…" if len(url) > 55 else "")
+                url_html = format_html(
+                    "<a class='gma-url-link' href='{}' target='_blank'>{}</a>", url, url_display
+                ) if url.startswith(("http", "/")) else mark_safe("")
+
+            cards.append(format_html(
+                "<div class='gma-card'>"
+                "<div class='gma-thumb-area'>{}</div>"
+                "<div class='gma-card-body'>"
+                "<div class='gma-field-name'>{}</div>"
+                "<div class='gma-badges'>{}</div>"
+                "{}{}"
+                "</div></div>",
+                thumb_html, field_name, badges, path_html, url_html,
             ))
 
-        if not rows:
-            return mark_safe("<em>No image fields.</em>")
-
-        table = format_html(
-            "<div style='font-size:11px;margin-bottom:6px'><strong>Active upload storage:</strong> {}</div>"
-            "<table style='border-collapse:collapse;font-size:12px;width:100%'>"
-            "<thead><tr style='background:#111827'>"
-            "<th style='text-align:left;padding:4px 8px;color:#9ca3af;font-size:10px'>Field</th>"
-            "<th style='text-align:left;padding:4px 8px;color:#9ca3af;font-size:10px'>Exists?</th>"
-            "<th style='text-align:left;padding:4px 8px;color:#9ca3af;font-size:10px'>Stored on</th>"
-            "<th style='text-align:left;padding:4px 8px;color:#9ca3af;font-size:10px'>DB path / public_id</th>"
-            "<th style='text-align:left;padding:4px 8px;color:#9ca3af;font-size:10px'>URL</th>"
-            "</tr></thead><tbody>{}</tbody></table>",
-            backend_badge,
-            mark_safe("".join(str(r) for r in rows)),
+        grid_html = format_html(
+            "<div class='gma-grid'>{}</div>",
+            mark_safe("".join(str(c) for c in cards)),
         )
 
-        if local_in_prod:
-            prod_warn = mark_safe(
-                "<p style='margin-top:8px;padding:6px 10px;background:#3b0000;"
-                "border:1px solid #ef4444;border-radius:4px;font-size:11px;color:#fca5a5'>"
-                "<strong>&#9888; Production is using local storage.</strong> "
-                "Uploaded files will NOT appear on deltacrown.xyz. "
-                "Set <code>CLOUDINARY_URL</code> in Render env vars, then re-upload images "
-                "from the production admin.</p>"
-            )
-        elif is_cloudinary_backend:
-            prod_warn = mark_safe(
-                "<p style='margin-top:8px;padding:6px 10px;background:#0c1a12;"
-                "border:1px solid #4ade80;border-radius:4px;font-size:11px;color:#bbf7d0'>"
-                "<strong>&#10004; Auto-tracked:</strong> Replacing an image schedules the old "
-                "Cloudinary file for safe cleanup after 48 h. "
-                "Go to <a href='/admin/maintenance/' style='color:#86efac'>Operations Center</a> "
-                "&rsaquo; Delete Eligible Media when ready. Evidence is never affected.</p>"
-            )
-        else:
-            prod_warn = mark_safe(
-                "<p style='margin-top:8px;font-size:11px;color:#9ca3af'>"
-                "For production: upload images from the production admin so they go to Cloudinary. "
-                "Local uploads stay on your computer and will not appear on deltacrown.xyz.</p>"
-            )
+        css_link = format_html(
+            "<link rel='stylesheet' href='{}'>",
+            static("admin/css/game_media_admin.css"),
+        )
 
-        return format_html("{}{}", table, prod_warn)
+        return format_html(
+            "{}<div class='gma-wrap'>{}{}{}</div>",
+            css_link, backend_html, guide_html, grid_html,
+        )
 
     media_storage_diagnostic.short_description = "Storage Status"
 

@@ -1785,6 +1785,11 @@ if _HAS_UNFOLD:
                         "icon": "dashboard",
                         "link": reverse_lazy("admin:index"),
                     },
+                    {
+                        "title": "Competitive Operations",
+                        "icon": "sports_mma",
+                        "link": reverse_lazy("competitive_operations_admin"),
+                    },
                 ],
             },
             # ── Esports Management ──

@@ -1,0 +1,123 @@
+{% load humanize %}
+<div class="space-y-6 animate-fade-in">
+
+  {# ── Summary hero ── #}
+  <div class="relative rounded-2xl overflow-hidden border border-z-gold/20 p-6 sm:p-7"
+       style="background:radial-gradient(circle at 12% 8%,rgba(251,191,36,.14) 0%,transparent 50%),linear-gradient(180deg,rgba(14,14,20,.88),rgba(8,8,12,.97));backdrop-filter:blur(24px) saturate(140%)">
+    <div class="absolute -top-12 -right-12 w-56 h-56 bg-z-gold/8 rounded-full blur-3xl pointer-events-none"></div>
+
+    <div class="relative z-10 flex flex-col sm:flex-row gap-6 items-start sm:items-center justify-between">
+      <div>
+        <div class="text-[10px] font-bold uppercase tracking-[0.22em] text-z-gold/80 mb-1">Verified Results</div>
+        <h2 class="text-2xl font-display font-black text-white mb-1">Achievements</h2>
+        <p class="text-sm text-gray-400">Competitive milestones earned through verified tournament play.</p>
+      </div>
+
+      {# Summary badges #}
+      {% if achievements_data %}
+      <div class="flex gap-3 flex-wrap sm:flex-nowrap shrink-0">
+        {% with total=achievements_data|length %}
+        <div class="text-center bg-white/5 border border-white/10 rounded-2xl px-4 py-3 min-w-[64px]">
+          <div class="text-xl font-black font-display text-white">{{ total }}</div>
+          <div class="text-[9px] text-gray-500 uppercase tracking-wider font-bold mt-0.5">Tourney{{ total|pluralize }}</div>
+        </div>
+        {% endwith %}
+        {% with wins=achievements_data|length %}
+        <div class="text-center bg-z-gold/10 border border-z-gold/20 rounded-2xl px-4 py-3 min-w-[64px]">
+          <div class="text-xl font-black font-display text-z-gold">{{ stats_ctx.total_wins|default:0 }}</div>
+          <div class="text-[9px] text-gray-500 uppercase tracking-wider font-bold mt-0.5">Win{{ stats_ctx.total_wins|default:0|pluralize }}</div>
+        </div>
+        {% endwith %}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  {# ── Filter bar ── #}
+  {% if achievements_data %}
+  <div class="flex gap-2 flex-wrap" id="ach-filter-bar" aria-label="Filter achievements">
+    <button class="ach-filter active px-4 py-1.5 rounded-full text-[11px] font-bold border transition" data-filter="all">All</button>
+    <button class="ach-filter px-4 py-1.5 rounded-full text-[11px] font-bold border transition" data-filter="winner">Wins</button>
+    <button class="ach-filter px-4 py-1.5 rounded-full text-[11px] font-bold border transition" data-filter="placement">Placements</button>
+    <button class="ach-filter px-4 py-1.5 rounded-full text-[11px] font-bold border transition" data-filter="competed">Competed</button>
+  </div>
+  <style>
+  .ach-filter { background:rgba(255,255,255,.05); border-color:rgba(255,255,255,.1); color:#9ca3af; cursor:pointer; }
+  .ach-filter:hover,.ach-filter.active { background:rgba(251,191,36,.12); border-color:rgba(251,191,36,.35); color:#fbbf24; }
+  .ach-row { transition:opacity .15s; }
+  </style>
+  {% endif %}
+
+  {# ── Achievement cards grouped by game ── #}
+  {% if achievements_data %}
+    {% regroup achievements_data by game_name as ach_by_game %}
+
+    {% for game_group in ach_by_game %}
+    <div class="space-y-3" data-game-group="{{ game_group.grouper }}">
+      {# Section header #}
+      <div class="flex items-center gap-3">
+        <span class="text-xs font-bold text-gray-400 uppercase tracking-widest">{{ game_group.grouper }}</span>
+        <div class="flex-1 h-px bg-white/10"></div>
+        <span class="text-[10px] text-gray-600">{{ game_group.list|length }} result{{ game_group.list|length|pluralize }}</span>
+      </div>
+
+      {# Trophy cards #}
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        {% for ach in game_group.list %}
+        {% if ach.placement_label == 'Winner' %}
+        {% with card_class="winner" border_cls="border-z-gold/25" bg_cls="from-z-gold/10" icon_cls="bg-z-gold/15 border-z-gold/30 text-z-gold" result_cls="bg-z-gold/15 border border-z-gold/25 text-z-gold" %}
+        {% include "user_profile/profile/tabs/_ach_card.html" with ach=ach card_class=card_class border_cls=border_cls bg_cls=bg_cls icon_cls=icon_cls result_cls=result_cls trophy_emoji="🏆" %}
+        {% endwith %}
+        {% elif ach.placement == 2 %}
+        {% with card_class="placement" border_cls="border-gray-500/20" bg_cls="from-gray-500/5" icon_cls="bg-gray-400/10 border-gray-400/20 text-gray-300" result_cls="bg-gray-400/10 border border-gray-400/20 text-gray-300" %}
+        {% include "user_profile/profile/tabs/_ach_card.html" with ach=ach card_class=card_class border_cls=border_cls bg_cls=bg_cls icon_cls=icon_cls result_cls=result_cls trophy_emoji="🥈" %}
+        {% endwith %}
+        {% elif ach.placement == 3 %}
+        {% with card_class="placement" border_cls="border-orange-500/20" bg_cls="from-orange-500/5" icon_cls="bg-orange-500/10 border-orange-500/20 text-orange-400" result_cls="bg-orange-500/10 border border-orange-500/20 text-orange-400" %}
+        {% include "user_profile/profile/tabs/_ach_card.html" with ach=ach card_class=card_class border_cls=border_cls bg_cls=bg_cls icon_cls=icon_cls result_cls=result_cls trophy_emoji="🥉" %}
+        {% endwith %}
+        {% else %}
+        {% with card_class="competed" border_cls="border-white/10" bg_cls="from-white/3" icon_cls="bg-white/5 border-white/10 text-gray-500" result_cls="bg-white/5 border border-white/10 text-gray-400" %}
+        {% include "user_profile/profile/tabs/_ach_card.html" with ach=ach card_class=card_class border_cls=border_cls bg_cls=bg_cls icon_cls=icon_cls result_cls=result_cls trophy_emoji="⚑" %}
+        {% endwith %}
+        {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+
+  {% else %}
+    {# Premium empty state #}
+    <div class="glass-panel rounded-2xl p-12 text-center">
+      <div class="w-20 h-20 rounded-3xl bg-z-gold/10 border border-z-gold/20 flex items-center justify-center text-4xl mx-auto mb-6">🏆</div>
+      <h3 class="text-xl font-bold text-white mb-2">No Achievements Yet</h3>
+      <p class="text-sm text-gray-500 max-w-xs mx-auto leading-relaxed mb-6">
+        Tournament trophies and verified placements will appear here once competitive results are recorded.
+      </p>
+      <a href="{% url 'tournaments:list' %}" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-z-gold/10 border border-z-gold/30 text-z-gold text-sm font-bold hover:bg-z-gold/20 transition">
+        <i class="fa-solid fa-trophy text-sm"></i> Browse Tournaments
+      </a>
+    </div>
+  {% endif %}
+
+</div>
+
+{# Filter JS (CSP-safe via nonce-less inline inside tab template, or use delegated) #}
+<script>
+(function(){
+  var bar = document.getElementById('ach-filter-bar');
+  if (!bar) return;
+  bar.addEventListener('click', function(e){
+    var btn = e.target.closest('.ach-filter');
+    if (!btn) return;
+    bar.querySelectorAll('.ach-filter').forEach(function(b){ b.classList.remove('active'); });
+    btn.classList.add('active');
+    var f = btn.getAttribute('data-filter');
+    document.querySelectorAll('.ach-row').forEach(function(row){
+      var match = f === 'all' || row.getAttribute('data-ach-type') === f;
+      row.style.opacity = match ? '1' : '0.25';
+      row.style.pointerEvents = match ? '' : 'none';
+    });
+  });
+})();
+</script>

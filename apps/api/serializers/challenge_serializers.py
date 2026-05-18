@@ -5,6 +5,8 @@ Phase 10: Challenge & Bounty competitive system.
 """
 from rest_framework import serializers
 
+from apps.common.media_urls import field_file_url
+
 
 class ChallengeListSerializer(serializers.Serializer):
     """Compact challenge representation for lists and sidebar widgets."""
@@ -178,6 +180,7 @@ class BountyListSerializer(serializers.Serializer):
     issuer_team_id = serializers.IntegerField(source='issuer_team.id', read_only=True)
     issuer_team_name = serializers.CharField(source='issuer_team.name', read_only=True)
     issuer_team_slug = serializers.CharField(source='issuer_team.slug', read_only=True)
+    issuer_team_logo_url = serializers.SerializerMethodField()
     
     game_name = serializers.CharField(source='game.display_name', read_only=True)
     game_short_code = serializers.CharField(source='game.short_code', read_only=True)
@@ -206,6 +209,32 @@ class BountyListSerializer(serializers.Serializer):
         source='get_closure_reason_display', read_only=True, allow_blank=True
     )
     closure_note = serializers.CharField(read_only=True, allow_blank=True)
+
+    def get_issuer_team_logo_url(self, obj):
+        team = getattr(obj, 'issuer_team', None)
+        if not team:
+            return ''
+        try:
+            organization = getattr(team, 'organization', None)
+            if organization and getattr(organization, 'enforce_brand', False):
+                org_logo = getattr(organization, 'logo', None)
+                logo_url = field_file_url(org_logo)
+                if logo_url:
+                    return logo_url
+
+            team_logo = getattr(team, 'logo', None)
+            logo_url = field_file_url(team_logo)
+            if logo_url:
+                return logo_url
+
+            if organization:
+                org_logo = getattr(organization, 'logo', None)
+                logo_url = field_file_url(org_logo)
+                if logo_url:
+                    return logo_url
+        except Exception:
+            return ''
+        return ''
 
 
 class BountyCreateSerializer(serializers.Serializer):

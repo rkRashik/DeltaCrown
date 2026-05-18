@@ -574,6 +574,7 @@ def maintenance_panel(request):
             messages.error(request, "Unknown maintenance action.")
 
     # ── Context ──────────────────────────────────────────────────────
+    from django.contrib import admin as _admin
     from apps.games.models.cleanup_candidate import MediaCleanupCandidate
     from apps.games.models.maintenance_log import MaintenanceRunLog
 
@@ -585,9 +586,12 @@ def maintenance_panel(request):
 
     env = _get_env_status()
 
-    ctx = {
+    # Start with the full Unfold/Django admin context so the template gets
+    # all sidebar navigation, color tokens, has_permission flags, etc.
+    ctx = _admin.site.each_context(request)
+    ctx.update({
         "title": "System Operations Center",
-        "site_header": "DeltaCrown Admin",
+        "subtitle": "Manual controls for platform jobs, media cleanup, and health checks",
         "env": env,
         "eligible_count": eligible_count,
         "pending_count": pending_count,
@@ -599,5 +603,5 @@ def maintenance_panel(request):
         "cleanup_admin_url": "/admin/games/mediacleanupcandidate/",
         "games_admin_url": "/admin/games/game/",
         "logs_admin_url": "/admin/games/maintenancerunlog/",
-    }
+    })
     return render(request, "admin/games/maintenance.html", ctx)

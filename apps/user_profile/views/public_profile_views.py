@@ -189,7 +189,13 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
     context.update(permissions)
     
     # UP.2 FIX: Add explicit is_owner (alias for is_own_profile) + user_profile for template
-    context['is_owner'] = permissions.get('is_own_profile', False)
+    _real_is_owner = permissions.get('is_own_profile', False)
+
+    # Spectator mode: owner viewing their own profile as a public visitor would see it.
+    # Activated by ?view=spectator query param. Only meaningful for the actual owner.
+    _spectator_mode = _real_is_owner and request.GET.get('view') == 'spectator'
+    context['is_owner'] = _real_is_owner and not _spectator_mode
+    context['spectator_mode'] = _spectator_mode
     context['user_profile'] = user_profile  # For level, kyc_status access
     
     # UP.2 HOTFIX: Compute wallet_balance safely (prevent VariableDoesNotExist crash)
@@ -660,10 +666,37 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
     # PHASE UP 5: Career Tab Enhanced Context (append-only, no impact on other tabs)
     from apps.user_profile.services.career_tab_service import CareerTabService, GAME_DISPLAY_CONFIG
     
-    # Get linked games for game selector (OPTIMIZED with select_related)
+    # Get linked games for game selector.
+    # Owner sees all own passports (including PRIVATE); public sees only PUBLIC/PROTECTED.
+    _viewer_is_owner = context.get('is_owner', False)
+    if user_profile and _viewer_is_owner:
+        user_profile._career_include_private = True  # signal to get_linked_games
     career_linked_games = CareerTabService.get_linked_games(user_profile)
+    if user_profile:
+        # Clean up the temp attribute (avoid leaking into other code)
+        try:
+            del user_profile._career_include_private
+        except AttributeError:
+            pass
+
     context['career_linked_games'] = career_linked_games
-    
+
+    # Build achievements across all visible games (for Achievements tab)
+    try:
+        _ach_all = []
+        for _gi in career_linked_games:
+            _gobj = _gi.get('game')
+            if not _gobj or not user_profile:
+                continue
+            _achs = CareerTabService.get_achievements(user_profile, _gobj)
+            for _a in _achs:
+                _a['game_name'] = _gobj.display_name
+                _a['game_slug'] = _gobj.slug
+                _ach_all.append(_a)
+        context['achievements_data'] = _ach_all
+    except Exception:
+        context['achievements_data'] = []
+
     # Get primary game for initial load (first item is always primary)
     if career_linked_games:
         primary_game_item = career_linked_games[0]
@@ -2323,6 +2356,15 @@ def career_tab_data_api(request: HttpRequest, username: str) -> JsonResponse:
     }
     accent_hex = GAME_ACCENT_MAP.get(game_slug, '#00f0ff')  # Default: cyan
     
+    # Privacy guard: public visitors cannot fetch career data for PRIVATE passports
+    _viewer_is_owner = request.user.is_authenticated and request.user.username == username
+    if not _viewer_is_owner:
+        from apps.user_profile.models_main import GameProfile
+        _passport_qs = GameProfile.objects.filter(user_id=user_profile.id, game=game)
+        _passport_visibility = _passport_qs.values_list('visibility', flat=True).first()
+        if _passport_visibility and _passport_visibility == 'PRIVATE':
+            return JsonResponse({'success': False, 'error': 'Passport is private'}, status=403)
+
     # Build career data using GAME_DISPLAY_CONFIG
     try:
         # PERFORMANCE: Profile each service call

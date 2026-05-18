@@ -10,10 +10,15 @@ from unfold.admin import ModelAdmin, TabularInline
 from django.shortcuts import render
 from django.contrib import messages
 from django.utils.html import format_html
+from django.utils import timezone
 from django.db import connection
 from django.db.models import Count
 from django.urls import NoReverseMatch, reverse
 import logging
+from datetime import timedelta
+
+from django.http import HttpResponseRedirect
+from django.utils.dateparse import parse_datetime
 
 logger = logging.getLogger(__name__)
 
@@ -101,6 +106,712 @@ def competition_admin_status(request):
     return render(request, 'admin/competition/status.html', context)
 
 
+def _admin_link(name, fallback="#"):
+    try:
+        return reverse(name)
+    except NoReverseMatch:
+        return fallback
+
+
+def _admin_change_link(name, obj_id, fallback="#"):
+    try:
+        return reverse(name, args=[obj_id])
+    except NoReverseMatch:
+        return fallback
+
+
+def _safe_count(queryset):
+    try:
+        if isinstance(queryset, (list, tuple)):
+            return len(queryset)
+        return queryset.count()
+    except Exception:
+        return None
+
+
+def _time_label(value):
+    if not value:
+        return "No timestamp"
+    try:
+        return timezone.localtime(value).strftime("%d %b %Y, %I:%M %p")
+    except Exception:
+        return str(value)
+
+
+def _queue_health(count):
+    count = count or 0
+    if count >= 12:
+        return "overloaded"
+    if count >= 5:
+        return "moderate"
+    return "low"
+
+
+def _parse_console_datetime(value):
+    raw = str(value or "").strip()
+    if not raw:
+        return None
+    parsed = parse_datetime(raw)
+    if not parsed:
+        return None
+    if timezone.is_naive(parsed):
+        parsed = timezone.make_aware(parsed, timezone.get_current_timezone())
+    return parsed
+
+
+def _int_from_post(request, name, default=0, minimum=0):
+    try:
+        value = int(request.POST.get(name, default) or default)
+    except (TypeError, ValueError):
+        value = default
+    return max(minimum, value)
+
+
+def _mission_goal_spec(goal_type, target_value, cadence):
+    metric_map = {
+        "TOP_N_FINISH": "top_n_finish",
+        "WIN_STREAK": "win_streak",
+        "MATCHES_PLAYED": "matches_played",
+        "KILL_THRESHOLD": "kills",
+        "CUSTOM": "custom",
+    }
+    spec = {
+        "metric": metric_map.get(goal_type, "custom"),
+        "target_value": target_value,
+        "cadence": cadence,
+        "source": "competitive_operator_console",
+    }
+    if goal_type == "TOP_N_FINISH":
+        spec.update({"n": max(1, target_value), "count": 1})
+    elif goal_type == "WIN_STREAK":
+        spec.update({"streak": max(1, target_value)})
+    elif goal_type == "MATCHES_PLAYED":
+        spec.update({"count": max(1, target_value)})
+    elif goal_type == "KILL_THRESHOLD":
+        spec.update({"kills": max(1, target_value)})
+    return spec
+
+
+def _handle_console_mission_create(request):
+    from apps.contracts.models import ContractTemplate
+    from apps.games.models import Game
+
+    title = str(request.POST.get("mission_title") or "").strip()
+    game_id = request.POST.get("mission_game")
+    goal_type = str(request.POST.get("mission_goal_type") or "CUSTOM").strip()
+    cadence = str(request.POST.get("mission_cadence") or "custom").strip().lower()
+    description = str(request.POST.get("mission_description") or "").strip()
+    duration_hours = _int_from_post(request, "mission_duration_hours", 24, 1)
+    target_value = _int_from_post(request, "mission_target_value", 1, 1)
+    entry_fee = _int_from_post(request, "mission_entry_fee_dc", 0, 0)
+    reward = _int_from_post(request, "mission_reward_dc", 0, 0)
+    valid_from = _parse_console_datetime(request.POST.get("mission_valid_from"))
+    valid_until = _parse_console_datetime(request.POST.get("mission_valid_until"))
+    is_active = request.POST.get("mission_is_active") == "on"
+
+    if not title:
+        raise ValueError("Mission title is required.")
+    if goal_type not in {choice[0] for choice in ContractTemplate.GOAL_TYPE_CHOICES}:
+        raise ValueError("Unsupported Mission goal type.")
+    try:
+        game = Game.objects.get(pk=game_id)
+    except Game.DoesNotExist as exc:
+        raise ValueError("Select a valid game.") from exc
+    if valid_from and not valid_until and cadence in {"daily", "weekly"}:
+        valid_until = valid_from + timedelta(days=7 if cadence == "weekly" else 1)
+
+    mission = ContractTemplate(
+        title=title,
+        description=description,
+        game=game,
+        entry_fee_dc=entry_fee,
+        reward_dc=reward,
+        goal_type=goal_type,
+        goal_spec=_mission_goal_spec(goal_type, target_value, cadence),
+        duration_hours=duration_hours,
+        valid_from=valid_from,
+        valid_until=valid_until,
+        is_active=is_active,
+    )
+    mission.full_clean()
+    mission.save()
+    return mission
+
+
+def competitive_operations_console(request):
+    """Staff console for competitive operations entry points.
+
+    This is intentionally a queue/link surface. Sensitive lifecycle actions
+    remain in model admins where existing service-backed actions are wired.
+    """
+    if request.method == "POST" and request.POST.get("console_action") == "create_mission":
+        try:
+            mission = _handle_console_mission_create(request)
+        except Exception as exc:
+            messages.error(request, f"Mission creation failed: {exc}")
+            return HttpResponseRedirect(reverse("competitive_operations_admin"))
+        messages.success(request, f"Mission Template created: {mission.title}")
+        return HttpResponseRedirect(_admin_change_link("admin:contracts_contracttemplate_change", mission.pk, reverse("competitive_operations_admin")))
+
+    stats = {}
+    priority_items = []
+    games = []
+    last_activity_at = None
+    resolved_labels = {
+        "proofs": "No resolved item tracked",
+        "showdowns": "No resolved item tracked",
+        "bounty": "No resolved item tracked",
+        "dropzone": "No resolved item tracked",
+        "match_disputes": "No resolved item tracked",
+    }
+    try:
+        from apps.contracts.models import ContractEnrollment, ContractProofSubmission, ContractTemplate
+        from apps.games.models import Game
+        from apps.organizations.models import TeamCompetitiveSettings
+        from apps.royale.models import RoyaleEntry, RoyaleLobby
+        from apps.tournaments.models import DisputeRecord
+        now = timezone.now()
+        games = list(Game.objects.filter(is_active=True).order_by("name").values("id", "name", "short_code")[:200])
+
+        mission_proofs = ContractProofSubmission.objects.filter(
+            status="PENDING_REVIEW",
+        ).select_related("enrollment", "enrollment__template", "submitted_by")
+        if MODELS_IMPORTED:
+            disputed_showdowns = Challenge.objects.filter(status="DISPUTED").select_related(
+                "challenger_team", "challenged_team", "game",
+            )
+            pending_claims = BountyClaim.objects.filter(status="PENDING").select_related(
+                "bounty", "bounty__issuer_team", "bounty__game", "claiming_team",
+            )
+        else:
+            disputed_showdowns = []
+            pending_claims = []
+        scoring_lobbies = RoyaleLobby.objects.filter(status="SCORING").select_related("game")
+        open_disputes = DisputeRecord.objects.filter(
+            status__in=[DisputeRecord.OPEN, DisputeRecord.UNDER_REVIEW, DisputeRecord.ESCALATED],
+        ).select_related("submission", "opened_by_user")
+
+        recent_candidates = [
+            mission_proofs.order_by("-submitted_at").values_list("submitted_at", flat=True).first(),
+            disputed_showdowns.order_by("-updated_at").values_list("updated_at", flat=True).first() if hasattr(disputed_showdowns, "order_by") else None,
+            pending_claims.order_by("-claimed_at").values_list("claimed_at", flat=True).first() if hasattr(pending_claims, "order_by") else None,
+            scoring_lobbies.order_by("-updated_at").values_list("updated_at", flat=True).first(),
+            open_disputes.order_by("-updated_at").values_list("updated_at", flat=True).first(),
+        ]
+        recent_candidates = [value for value in recent_candidates if value]
+        last_activity_at = max(recent_candidates) if recent_candidates else None
+        resolved_labels.update({
+            "proofs": _time_label(
+                ContractProofSubmission.objects.exclude(reviewed_at__isnull=True)
+                .order_by("-reviewed_at")
+                .values_list("reviewed_at", flat=True)
+                .first()
+            ),
+            "showdowns": _time_label(
+                Challenge.objects.exclude(settled_at__isnull=True)
+                .order_by("-settled_at")
+                .values_list("settled_at", flat=True)
+                .first()
+            ) if MODELS_IMPORTED else "No resolved item tracked",
+            "bounty": _time_label(
+                BountyClaim.objects.exclude(verified_at__isnull=True)
+                .order_by("-verified_at")
+                .values_list("verified_at", flat=True)
+                .first()
+            ) if MODELS_IMPORTED else "No resolved item tracked",
+            "dropzone": _time_label(
+                RoyaleEntry.objects.exclude(resolved_at__isnull=True)
+                .order_by("-resolved_at")
+                .values_list("resolved_at", flat=True)
+                .first()
+            ),
+            "match_disputes": _time_label(
+                DisputeRecord.objects.exclude(resolved_at__isnull=True)
+                .order_by("-resolved_at")
+                .values_list("resolved_at", flat=True)
+                .first()
+            ),
+        })
+
+        stats.update({
+            "mission_templates": _safe_count(ContractTemplate.objects.all()),
+            "mission_enrollments": _safe_count(ContractEnrollment.objects.all()),
+            "mission_proofs_pending": _safe_count(mission_proofs),
+            "mission_enrollments_active": _safe_count(ContractEnrollment.objects.filter(status="ACTIVE")),
+            "showdowns_open": _safe_count(Challenge.objects.filter(status="OPEN")) if MODELS_IMPORTED else 0,
+            "showdowns_active": _safe_count(Challenge.objects.filter(status__in=["OPEN", "ACCEPTED", "SCHEDULED", "IN_PROGRESS", "PENDING_CONFIRMATION"])) if MODELS_IMPORTED else 0,
+            "showdowns_disputed": _safe_count(disputed_showdowns),
+            "bounties_active": _safe_count(Bounty.objects.filter(status="ACTIVE")) if MODELS_IMPORTED else 0,
+            "bounty_claims_pending": _safe_count(pending_claims),
+            "dropzone_lobbies": _safe_count(RoyaleLobby.objects.all()),
+            "dropzone_entries": _safe_count(RoyaleEntry.objects.all()),
+            "dropzone_scoring": _safe_count(scoring_lobbies),
+            "dropzone_upcoming": _safe_count(RoyaleLobby.objects.filter(status__in=["ANNOUNCED", "FILLING", "FULL"], scheduled_at__gte=now)),
+            "match_disputes_open": _safe_count(open_disputes),
+            "team_settings": _safe_count(TeamCompetitiveSettings.objects.all()),
+        })
+
+        for proof in mission_proofs.order_by("-submitted_at")[:5]:
+            priority_items.append({
+                "type": "Mission Proof",
+                "title": getattr(getattr(proof, "enrollment", None), "template", None).title if getattr(getattr(proof, "enrollment", None), "template", None) else "Mission proof",
+                "status": proof.get_status_display() if hasattr(proof, "get_status_display") else proof.status,
+                "when": _time_label(proof.submitted_at),
+                "next_step": "Review proof, then accept/reject. Completing the Mission is a separate service-backed action.",
+                "href": _admin_change_link("admin:contracts_contractproofsubmission_change", proof.pk),
+                "tone": "amber",
+                "icon": "fact_check",
+            })
+
+        showdown_queue = disputed_showdowns.order_by("-updated_at")[:5] if hasattr(disputed_showdowns, "order_by") else []
+        for showdown in showdown_queue:
+            priority_items.append({
+                "type": "Showdown",
+                "title": showdown.title or showdown.reference_code,
+                "status": showdown.get_status_display() if hasattr(showdown, "get_status_display") else showdown.status,
+                "when": _time_label(showdown.updated_at),
+                "next_step": "Inspect submissions and resolve through Showdown admin actions.",
+                "href": _admin_change_link("admin:competition_challenge_change", showdown.pk),
+                "tone": "rose",
+                "icon": "swords",
+            })
+
+        claim_queue = pending_claims.order_by("-claimed_at")[:5] if hasattr(pending_claims, "order_by") else []
+        for claim in claim_queue:
+            priority_items.append({
+                "type": "Bounty Claim",
+                "title": getattr(claim.bounty, "title", "Bounty claim"),
+                "status": claim.get_status_display() if hasattr(claim, "get_status_display") else claim.status,
+                "when": _time_label(claim.claimed_at),
+                "next_step": "Verify or reject the claim through Bounty Claim admin actions.",
+                "href": _admin_change_link("admin:competition_bountyclaim_change", claim.pk),
+                "tone": "rose",
+                "icon": "verified",
+            })
+
+        for lobby in scoring_lobbies.order_by("scheduled_at")[:5]:
+            priority_items.append({
+                "type": "Dropzone",
+                "title": lobby.title or lobby.reference_code,
+                "status": lobby.get_status_display() if hasattr(lobby, "get_status_display") else lobby.status,
+                "when": _time_label(lobby.scheduled_at),
+                "next_step": "Confirm placements/kills, record scores, then settle through lobby admin actions.",
+                "href": _admin_change_link("admin:royale_royalelobby_change", lobby.pk),
+                "tone": "cyan",
+                "icon": "air",
+            })
+
+        for dispute in open_disputes.order_by("-updated_at")[:5]:
+            priority_items.append({
+                "type": "Match Room Dispute",
+                "title": f"Dispute #{dispute.pk}",
+                "status": dispute.get_status_display() if hasattr(dispute, "get_status_display") else dispute.status,
+                "when": _time_label(dispute.updated_at),
+                "next_step": "Review evidence and resolve from the Match Room dispute admin.",
+                "href": _admin_change_link("admin:tournaments_disputerecord_change", dispute.pk),
+                "tone": "rose",
+                "icon": "gavel",
+            })
+    except Exception as exc:
+        logger.warning("competitive admin console stats unavailable: %s", exc)
+        stats = {}
+
+    cards = [
+        {
+            "title": "Mission Templates",
+            "icon": "flag",
+            "count": stats.get("mission_templates"),
+            "description": "Create and tune solo objectives.",
+            "href": _admin_link("admin:contracts_contracttemplate_changelist"),
+        },
+        {
+            "title": "Mission Enrollments",
+            "icon": "assignment",
+            "count": stats.get("mission_enrollments"),
+            "description": "Track enrolled user Missions.",
+            "href": _admin_link("admin:contracts_contractenrollment_changelist"),
+        },
+        {
+            "title": "Mission Proof Reviews",
+            "icon": "fact_check",
+            "count": stats.get("mission_proofs_pending"),
+            "description": "Accept or reject submitted Mission proof.",
+            "href": _admin_link("admin:contracts_contractproofsubmission_changelist"),
+            "tone": "amber",
+        },
+        {
+            "title": "Showdowns",
+            "icon": "swords",
+            "count": stats.get("showdowns_open"),
+            "description": "Create, inspect, settle, refund, or resolve team matches.",
+            "href": _admin_link("admin:competition_challenge_changelist"),
+        },
+        {
+            "title": "Showdown Result Submissions",
+            "icon": "scoreboard",
+            "description": "Review submitted Showdown results.",
+            "href": _admin_link("admin:competition_challengeresultsubmission_changelist"),
+        },
+        {
+            "title": "Bounties",
+            "icon": "target",
+            "count": stats.get("bounties_active"),
+            "description": "Manage team-posted Bounties.",
+            "href": _admin_link("admin:competition_bounty_changelist"),
+        },
+        {
+            "title": "Bounty Claims",
+            "icon": "verified",
+            "count": stats.get("bounty_claims_pending"),
+            "description": "Verify, reject, or respawn claim Match Rooms.",
+            "href": _admin_link("admin:competition_bountyclaim_changelist"),
+            "tone": "rose",
+        },
+        {
+            "title": "Dropzone Lobbies",
+            "icon": "air",
+            "count": stats.get("dropzone_lobbies"),
+            "description": "Create lobbies, manage credentials, scoring, settlement.",
+            "href": _admin_link("admin:royale_royalelobby_changelist"),
+        },
+        {
+            "title": "Dropzone Entries",
+            "icon": "list_alt",
+            "count": stats.get("dropzone_entries"),
+            "description": "Enter placement/kills and inspect entry state.",
+            "href": _admin_link("admin:royale_royaleentry_changelist"),
+        },
+        {
+            "title": "Match Room Disputes",
+            "icon": "gavel",
+            "count": stats.get("match_disputes_open"),
+            "description": "Open tournament Match Room disputes.",
+            "href": _admin_link("admin:tournaments_disputerecord_changelist"),
+            "tone": "rose",
+        },
+        {
+            "title": "Review Workspace",
+            "icon": "dashboard",
+            "description": "Staff queue for proof/review/dispute links.",
+            "href": "/dashboard/competitive/review/",
+        },
+        {
+            "title": "Team Competitive Settings",
+            "icon": "admin_panel_settings",
+            "count": stats.get("team_settings"),
+            "description": "Team caps, authority rules, public scrim/tryout flags.",
+            "href": _admin_link("admin:organizations_teamcompetitivesettings_changelist"),
+        },
+    ]
+
+    summary_cards = [
+        {"title": "Pending Mission Proofs", "value": stats.get("mission_proofs_pending"), "icon": "fact_check", "href": _admin_link("admin:contracts_contractproofsubmission_changelist"), "tone": "amber"},
+        {"title": "Disputed Showdowns", "value": stats.get("showdowns_disputed"), "icon": "swords", "href": _admin_link("admin:competition_challenge_changelist"), "tone": "rose"},
+        {"title": "Pending Bounty Claims", "value": stats.get("bounty_claims_pending"), "icon": "verified", "href": _admin_link("admin:competition_bountyclaim_changelist"), "tone": "rose"},
+        {"title": "Dropzone Scoring", "value": stats.get("dropzone_scoring"), "icon": "air", "href": _admin_link("admin:royale_royalelobby_changelist"), "tone": "cyan"},
+        {"title": "Match Room Disputes", "value": stats.get("match_disputes_open"), "icon": "gavel", "href": _admin_link("admin:tournaments_disputerecord_changelist"), "tone": "rose"},
+        {"title": "Active Missions", "value": stats.get("mission_enrollments_active"), "icon": "flag", "href": _admin_link("admin:contracts_contractenrollment_changelist"), "tone": "violet"},
+        {"title": "Active Showdowns", "value": stats.get("showdowns_active"), "icon": "sports_mma", "href": _admin_link("admin:competition_challenge_changelist"), "tone": "cyan"},
+        {"title": "Active Bounties", "value": stats.get("bounties_active"), "icon": "target", "href": _admin_link("admin:competition_bounty_changelist"), "tone": "rose"},
+        {"title": "Upcoming Dropzone", "value": stats.get("dropzone_upcoming"), "icon": "event", "href": _admin_link("admin:royale_royalelobby_changelist"), "tone": "cyan"},
+    ]
+    overview_cards = summary_cards[:5]
+
+    creation_cards = [
+        {"title": "Create Mission Template", "description": "Publish a new solo objective.", "icon": "add_task", "href": _admin_link("admin:contracts_contracttemplate_add"), "primary": True, "count": stats.get("mission_templates")},
+        {"title": "Create Dropzone Lobby", "description": "Schedule a battle royale lobby.", "icon": "add_location_alt", "href": _admin_link("admin:royale_royalelobby_add"), "primary": True, "count": stats.get("dropzone_upcoming")},
+        {"title": "Review Mission Proofs", "description": "Accept or reject submitted proof.", "icon": "fact_check", "href": _admin_link("admin:contracts_contractproofsubmission_changelist"), "count": stats.get("mission_proofs_pending")},
+        {"title": "Review Bounty Claims", "description": "Verify or reject pending claims.", "icon": "verified", "href": _admin_link("admin:competition_bountyclaim_changelist"), "count": stats.get("bounty_claims_pending")},
+        {"title": "Resolve Showdowns", "description": "Settle, refund, or resolve disputes.", "icon": "swords", "href": _admin_link("admin:competition_challenge_changelist"), "count": stats.get("showdowns_disputed")},
+        {"title": "Review Match Room Disputes", "description": "Inspect tournament dispute records.", "icon": "gavel", "href": _admin_link("admin:tournaments_disputerecord_changelist"), "count": stats.get("match_disputes_open")},
+        {"title": "Team Competitive Settings", "description": "Team limits and authority rules.", "icon": "admin_panel_settings", "href": _admin_link("admin:organizations_teamcompetitivesettings_changelist"), "count": stats.get("team_settings")},
+    ]
+
+    workflow_steps = [
+        {
+            "title": "Mission Systems",
+            "icon": "flag",
+            "description": "Solo objectives created by staff, completed by users, and reviewed through proof/admin workflow.",
+            "steps": ["Create template", "User enrolls", "Proof", "Review", "Complete/fail"],
+            "safety_note": "Proof review is evidence review only. Complete or fail enrollments through Mission admin actions.",
+            "checkpoint": "Confirm objective, proof requirement, reward, and active window before publishing.",
+            "operator_error": "Publishing vague proof rules creates review disputes.",
+            "escalation": "Escalate repeated suspicious proof or reward abuse to staff review.",
+            "review_time": "2-5 min per proof",
+            "dependency": "Mission Enrollment and Proof Review admin",
+        },
+        {
+            "title": "Showdown",
+            "icon": "swords",
+            "description": "Team matches that move through Match Room, result submission, confirmation, and review.",
+            "steps": ["Created", "Accepted", "Match Room", "Result", "Dispute/settle"],
+            "safety_note": "Resolve disputed or confirmed results through service-backed Showdown admin actions.",
+            "checkpoint": "Check both teams, Match Room state, result submissions, and escrow state.",
+            "operator_error": "Direct status edits can bypass settlement safeguards.",
+            "escalation": "Escalate conflicting proof or repeated no-show behavior.",
+            "review_time": "5-10 min per dispute",
+            "dependency": "Showdown admin, result submissions, Match Room disputes",
+        },
+        {
+            "title": "Bounty",
+            "icon": "target",
+            "description": "Teams post Bounties on themselves; challengers claim them and staff verifies the claim.",
+            "steps": ["Team posts", "Challenger claims", "Match Room", "Verify/reject"],
+            "safety_note": "Verification and rejection must use Bounty Claim admin actions.",
+            "checkpoint": "Confirm claim team, linked Match Room, evidence, and Bounty reward state.",
+            "operator_error": "Treating Bounty as a solo flow or target-team placement creates product confusion.",
+            "escalation": "Escalate unclear evidence or duplicate claim attempts.",
+            "review_time": "3-8 min per claim",
+            "dependency": "Bounty Claim admin and linked Match Room",
+        },
+        {
+            "title": "Dropzone",
+            "icon": "air",
+            "description": "Battle royale lobbies with reservations, room reveal, operator scoring, and settlement.",
+            "steps": ["Create lobby", "Reserve slots", "Reveal room", "Score", "Settle"],
+            "safety_note": "Record scoring first, then settle or cancel from the Dropzone Lobby admin.",
+            "checkpoint": "Confirm lobby capacity, room reveal state, placements, kills, and score completeness.",
+            "operator_error": "Settling before scores are complete creates payout errors.",
+            "escalation": "Escalate missing score sheets or participant disputes.",
+            "review_time": "10-20 min per lobby",
+            "dependency": "Dropzone Lobby and Entry admins",
+        },
+    ]
+
+    priority_groups = [
+        {
+            "key": "proofs",
+            "title": "Proofs waiting review",
+            "description": "Mission proof submissions that need accept/reject decisions.",
+            "count": stats.get("mission_proofs_pending"),
+            "items": [item for item in priority_items if item["type"] == "Mission Proof"],
+            "icon": "fact_check",
+            "health": _queue_health(stats.get("mission_proofs_pending")),
+            "last_resolved": resolved_labels["proofs"],
+        },
+        {
+            "key": "showdowns",
+            "title": "Disputed Showdowns",
+            "description": "Showdown matches waiting for operator resolution.",
+            "count": stats.get("showdowns_disputed"),
+            "items": [item for item in priority_items if item["type"] == "Showdown"],
+            "icon": "swords",
+            "health": _queue_health(stats.get("showdowns_disputed")),
+            "last_resolved": resolved_labels["showdowns"],
+        },
+        {
+            "key": "bounty",
+            "title": "Bounty claims",
+            "description": "Claim verification queue for team-posted Bounties.",
+            "count": stats.get("bounty_claims_pending"),
+            "items": [item for item in priority_items if item["type"] == "Bounty Claim"],
+            "icon": "verified",
+            "health": _queue_health(stats.get("bounty_claims_pending")),
+            "last_resolved": resolved_labels["bounty"],
+        },
+        {
+            "key": "dropzone",
+            "title": "Dropzone scoring",
+            "description": "Lobbies in scoring/review state before settlement.",
+            "count": stats.get("dropzone_scoring"),
+            "items": [item for item in priority_items if item["type"] == "Dropzone"],
+            "icon": "air",
+            "health": _queue_health(stats.get("dropzone_scoring")),
+            "last_resolved": resolved_labels["dropzone"],
+        },
+        {
+            "key": "match_disputes",
+            "title": "Match Room disputes",
+            "description": "Open tournament Match Room disputes.",
+            "count": stats.get("match_disputes_open"),
+            "items": [item for item in priority_items if item["type"] == "Match Room Dispute"],
+            "icon": "gavel",
+            "health": _queue_health(stats.get("match_disputes_open")),
+            "last_resolved": resolved_labels["match_disputes"],
+        },
+    ]
+
+    cards_by_title = {card["title"]: card for card in cards}
+    surface_groups = [
+        {
+            "title": "Missions",
+            "description": "Templates, enrollments, and proof review.",
+            "risk": "Medium",
+            "purpose": "Create solo objectives and resolve user progress/proof review.",
+            "entities": "Templates, enrollments, proof submissions",
+            "cards": [
+                cards_by_title["Mission Templates"],
+                cards_by_title["Mission Enrollments"],
+                cards_by_title["Mission Proof Reviews"],
+            ],
+        },
+        {
+            "title": "Match Systems",
+            "description": "Team matches, results, disputes, settlement actions.",
+            "risk": "High",
+            "purpose": "Operate team-vs-team matches through Match Room and service-backed settlement.",
+            "entities": "Showdowns, result submissions",
+            "cards": [
+                cards_by_title["Showdowns"],
+                cards_by_title["Showdown Result Submissions"],
+            ],
+        },
+        {
+            "title": "Reward Systems",
+            "description": "Team-posted Bounties and claim verification.",
+            "risk": "High",
+            "purpose": "Verify team Bounty claims and review linked evidence.",
+            "entities": "Bounties, Bounty claims",
+            "cards": [
+                cards_by_title["Bounties"],
+                cards_by_title["Bounty Claims"],
+            ],
+        },
+        {
+            "title": "Lobby Systems",
+            "description": "Battle royale lobby setup, entries, scoring, settlement.",
+            "risk": "High",
+            "purpose": "Schedule lobbies, manage entries, record scores, and settle safely.",
+            "entities": "Lobbies, entries, scoring",
+            "cards": [
+                cards_by_title["Dropzone Lobbies"],
+                cards_by_title["Dropzone Entries"],
+            ],
+        },
+        {
+            "title": "Team Governance",
+            "description": "Team authority, caps, and public team operation flags.",
+            "risk": "Medium",
+            "purpose": "Control who can start team competitive operations and configure limits.",
+            "entities": "Team competitive settings",
+            "cards": [
+                cards_by_title["Team Competitive Settings"],
+            ],
+        },
+        {
+            "title": "Dispute Systems",
+            "description": "Staff queue and Match Room dispute surfaces.",
+            "risk": "High",
+            "purpose": "Route staff into review queues and dispute records without bypassing services.",
+            "entities": "Review workspace, Match Room disputes",
+            "cards": [
+                cards_by_title["Match Room Disputes"],
+                cards_by_title["Review Workspace"],
+            ],
+        },
+    ]
+
+    urgent_count = sum(
+        value or 0 for value in [
+            stats.get("mission_proofs_pending"),
+            stats.get("showdowns_disputed"),
+            stats.get("bounty_claims_pending"),
+            stats.get("dropzone_scoring"),
+            stats.get("match_disputes_open"),
+        ]
+    )
+    last_activity_label = _time_label(last_activity_at)
+
+    mission_presets = [
+        {
+            "name": "Daily Mission",
+            "title": "Daily Skill Mission",
+            "cadence": "daily",
+            "goal_type": "MATCHES_PLAYED",
+            "duration_hours": 24,
+            "target_value": 3,
+            "entry_fee_dc": 0,
+            "reward_dc": 100,
+            "description": "Complete today's objective and submit proof if requested.",
+        },
+        {
+            "name": "Weekly Mission",
+            "title": "Weekly Progress Mission",
+            "cadence": "weekly",
+            "goal_type": "MATCHES_PLAYED",
+            "duration_hours": 168,
+            "target_value": 10,
+            "entry_fee_dc": 0,
+            "reward_dc": 500,
+            "description": "Complete the weekly objective during the active window.",
+        },
+        {
+            "name": "Headshot Challenge",
+            "title": "Precision Challenge",
+            "cadence": "custom",
+            "goal_type": "CUSTOM",
+            "duration_hours": 24,
+            "target_value": 1,
+            "entry_fee_dc": 0,
+            "reward_dc": 250,
+            "description": "Submit proof for the configured precision objective.",
+        },
+        {
+            "name": "Win Streak",
+            "title": "Win Streak Mission",
+            "cadence": "custom",
+            "goal_type": "WIN_STREAK",
+            "duration_hours": 48,
+            "target_value": 3,
+            "entry_fee_dc": 0,
+            "reward_dc": 400,
+            "description": "Win consecutive matches within the Mission window.",
+        },
+        {
+            "name": "Damage / Kill Objective",
+            "title": "Elimination Objective",
+            "cadence": "custom",
+            "goal_type": "KILL_THRESHOLD",
+            "duration_hours": 24,
+            "target_value": 15,
+            "entry_fee_dc": 0,
+            "reward_dc": 300,
+            "description": "Reach the target elimination count and submit proof.",
+        },
+        {
+            "name": "Custom Mission",
+            "title": "Custom Mission",
+            "cadence": "custom",
+            "goal_type": "CUSTOM",
+            "duration_hours": 24,
+            "target_value": 1,
+            "entry_fee_dc": 0,
+            "reward_dc": 100,
+            "description": "Define a custom skill objective for staff review.",
+        },
+    ]
+
+    dropzone_add_url = _admin_link("admin:royale_royalelobby_add")
+
+    context = {
+        **admin.site.each_context(request),
+        "title": "Competitive Operations",
+        "cards": cards,
+        "summary_cards": summary_cards,
+        "overview_cards": overview_cards,
+        "creation_cards": creation_cards,
+        "priority_items": priority_items[:12],
+        "priority_groups": priority_groups,
+        "workflow_steps": workflow_steps,
+        "surface_groups": surface_groups,
+        "mission_presets": mission_presets,
+        "games": games,
+        "goal_type_choices": [
+            ("TOP_N_FINISH", "Top-N finish"),
+            ("WIN_STREAK", "Win streak"),
+            ("MATCHES_PLAYED", "Matches played"),
+            ("KILL_THRESHOLD", "Kills objective"),
+            ("CUSTOM", "Custom"),
+        ],
+        "dropzone_add_url": dropzone_add_url,
+        "contract_template_add_url": _admin_link("admin:contracts_contracttemplate_add"),
+        "stats": stats,
+        "urgent_count": urgent_count,
+        "last_activity_label": last_activity_label,
+    }
+    return render(request, "admin/competition/operations.html", context)
+
+
 # DO NOT check schema at import time - that causes database access before migrations run
 # Instead, we'll check lazily when Django actually tries to load admin classes
 try:
@@ -117,6 +828,11 @@ try:
         BountyClaim,
     )
     from .services import BountyService, ChallengeService, VerificationService, SnapshotService
+
+    Challenge._meta.verbose_name = "Showdown"
+    Challenge._meta.verbose_name_plural = "Showdowns"
+    ChallengeResultSubmission._meta.verbose_name = "Showdown Result Submission"
+    ChallengeResultSubmission._meta.verbose_name_plural = "Showdown Result Submissions"
     
     MODELS_IMPORTED = True
 except Exception as e:
@@ -399,6 +1115,23 @@ if MODELS_IMPORTED:
         def has_add_permission(self, request, obj=None):
             return False
 
+    @admin.register(ChallengeResultSubmission)
+    class ChallengeResultSubmissionAdmin(ModelAdmin):
+        """Read-only admin surface for Showdown result submissions."""
+
+        list_display = ['challenge', 'team', 'result', 'submitted_by', 'created_at', 'updated_at']
+        list_filter = ['result', 'team', 'challenge__status']
+        search_fields = ['challenge__reference_code', 'challenge__title', 'team__name', 'submitted_by__username']
+        readonly_fields = [
+            'id', 'challenge', 'team', 'submitted_by', 'result',
+            'score_details', 'evidence_url', 'created_at', 'updated_at',
+        ]
+        raw_id_fields = ['challenge', 'team', 'submitted_by']
+        date_hierarchy = 'created_at'
+
+        def has_add_permission(self, request):
+            return False
+
     @admin.register(Challenge)
     class ChallengeAdmin(ModelAdmin):
         """Admin interface for Challenge."""
@@ -412,7 +1145,7 @@ if MODELS_IMPORTED:
         search_fields = ['reference_code', 'title', 'challenger_team__name', 'challenged_team__name']
         readonly_fields = [
             'id', 'reference_code', 'status', 'result', 'score_details',
-            'evidence_url', 'match_report', 'entry_fee_dc', 'wager_amount_dc',
+            'evidence_url', 'match_report', 'entry_fee_dc',
             'escrow_locked', 'challenger_lock_txn', 'challenged_lock_txn',
             'payout_txn', 'funded_by_challenger', 'funded_by_challenged',
             'resolved_by', 'closure_reason', 'closure_note', 'match',
@@ -437,7 +1170,7 @@ if MODELS_IMPORTED:
         ]
         
         fieldsets = [
-            ('Challenge', {
+            ('Showdown', {
                 'fields': ['id', 'reference_code', 'title', 'description', 'status', 'challenge_type']
             }),
             ('Teams', {
@@ -446,7 +1179,7 @@ if MODELS_IMPORTED:
             ('Game & Format', {
                 'fields': ['game', 'best_of', 'game_config', 'platform', 'server_region']
             }),
-            ('Prize', {
+            ('Reward', {
                 'fields': ['prize_type', 'prize_amount', 'prize_description', 'entry_fee_dc']
             }),
             ('Result', {

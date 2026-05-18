@@ -5,6 +5,7 @@
 
 {% block extra_head %}
   <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'dashboard/competitive-design-system.css' %}?v=20260518-x1">
   <script nonce="{{ request.csp_nonce }}">
     tailwind.config = {
       darkMode: 'class',
@@ -357,6 +358,25 @@
   .modal-shell { position: fixed; inset: 0; background: rgba(0,0,0,.7); backdrop-filter: blur(8px); z-index: 140; display: flex; align-items: center; justify-content: center; padding: 1rem; }
   .modal-card { max-width: 28rem; width: 100%; padding: 1.75rem; border-radius: 24px; background: linear-gradient(180deg, rgba(20,20,28,.95), rgba(10,10,15,.98)); border: 1px solid rgba(255,255,255,.10); box-shadow: 0 24px 64px -12px rgba(0,0,0,.8), 0 0 60px -10px rgba(0,229,255,.30); }
   .modal-card.modal-wide { max-width: 48rem; }
+  .guide-shell { max-width: 76rem; max-height: min(88vh, 860px); overflow: hidden; padding: 0; }
+  .guide-tab.is-active { border-color: rgba(34,211,238,.42); background: rgba(34,211,238,.12); color: #a5f3fc; }
+  .guide-panel { display: none; }
+  .guide-panel.is-active { display: block; animation: tabReveal .24s cubic-bezier(.16,1,.3,1); }
+  .guide-rail { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .5rem; }
+  .guide-rail span { min-height: 5.9rem; border-radius: 1rem; border: 1px solid rgba(255,255,255,.09); background: linear-gradient(180deg, rgba(255,255,255,.065), rgba(255,255,255,.025)); padding: .85rem .7rem; text-align: left; color: rgba(226,232,240,.78); }
+  .guide-rail strong { display: block; font-size: .64rem; font-weight: 950; letter-spacing: .12em; text-transform: uppercase; color: #fff; }
+  .guide-rail small { display: block; margin-top: .45rem; font-size: .68rem; line-height: 1.25; color: rgba(203,213,225,.68); }
+  .competitive-search-icon { left: 1.1rem; top: 50%; width: 2.2rem; height: 2.2rem; transform: translateY(-50%); border-radius: .9rem; background: rgba(255,255,255,.045); border: 1px solid rgba(255,255,255,.07); color: rgba(148,163,184,.82); }
+  .competitive-search-input { height: 3.25rem; padding-left: 4.9rem !important; padding-right: 1rem; }
+  .bounty-team-mark { width: 9rem; height: 9rem; border-radius: 2.15rem; border: 1px solid rgba(255,255,255,.18); background: radial-gradient(circle at 35% 18%, rgba(255,255,255,.16), transparent 34%), #07070b; box-shadow: 0 24px 64px -40px rgba(255,0,85,.95), inset 0 1px 0 rgba(255,255,255,.10); }
+  .bounty-team-mark img { width: 100%; height: 100%; object-fit: contain; padding: .45rem; filter: drop-shadow(0 12px 24px rgba(0,0,0,.58)); transform: scale(1.08); }
+  .bounty-team-mark[data-has-logo="true"] { background: radial-gradient(circle at 50% 18%, rgba(255,255,255,.14), transparent 38%), linear-gradient(145deg, rgba(255,255,255,.11), rgba(255,255,255,.032)), #09090f; }
+  .bounty-team-mark.is-fallback { display: flex; align-items: center; justify-content: center; color: #fff; font-family: Rajdhani, sans-serif; font-weight: 950; font-size: 2.35rem; letter-spacing: .04em; }
+  @media (max-width: 640px) {
+    .guide-shell { max-height: 92vh; }
+    .guide-rail { grid-template-columns: 1fr; }
+    .competitive-search-input { padding-left: 4.65rem !important; }
+  }
 </style>
 {% endblock %}
 
@@ -365,10 +385,10 @@
 <div class="ambient-orbs"></div>
 <div class="scanline-overlay"></div>
 
-<main class="max-w-[1840px] mx-auto min-h-screen flex flex-col pt-6 sm:pt-8 pb-20 px-4 sm:px-6 lg:px-8 relative" id="main-app">
+<main class="dcx-no-x max-w-[1840px] mx-auto min-h-screen flex flex-col pt-6 sm:pt-8 pb-20 px-4 sm:px-6 lg:px-8 relative" id="main-app">
 
   {# ── HERO ───────────────────────────────────────────────────────────── #}
-  <section id="smart-hero" class="command-shell relative w-full rounded-[2rem] overflow-hidden mb-6 flex-shrink-0 transition-all duration-500 min-h-[250px] flex items-center">
+  <section id="smart-hero" class="dcx-command command-shell relative w-full rounded-[2rem] overflow-hidden mb-6 flex-shrink-0 transition-all duration-500 min-h-[250px] flex items-center">
     <div id="hero-bg" class="absolute inset-0 z-0 opacity-40 mix-blend-screen bg-cover bg-center transition-all duration-700"
          style="background-image: url('https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=2070&auto=format&fit=crop');"></div>
     <div class="absolute inset-0 bg-gradient-to-r from-dc-bg via-dc-bg/95 via-58% to-dc-bg/35 z-10"></div>
@@ -387,7 +407,7 @@
         </p>
         <div class="flex flex-wrap items-center gap-3">
           <div id="hero-actions" class="flex flex-wrap items-center gap-3"></div>
-          <button type="button" data-open-guide class="interactive-lift inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.05] px-4 py-3 text-[10px] font-black uppercase tracking-widest text-gray-300 hover:text-white hover:bg-white/[0.09] hover:border-white/20 transition">
+          <button type="button" data-open-guide class="dcx-btn dcx-btn-ghost interactive-lift inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.05] px-4 py-3 text-[10px] font-black uppercase tracking-widest text-gray-300 hover:text-white hover:bg-white/[0.09] hover:border-white/20 transition">
             <i class="fa-solid fa-circle-question text-dc-cyan"></i> How this works
           </button>
         </div>
@@ -430,22 +450,22 @@
   </section>
 
   <section class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-7" id="action-dock">
-    <button type="button" data-open-slide="create-clash" id="dock-create-showdown" class="action-dock-card p-4 sm:p-5 text-left">
+    <button type="button" data-open-slide="create-clash" id="dock-create-showdown" class="dcx-card action-dock-card p-4 sm:p-5 text-left">
       <i class="fa-solid fa-bolt text-dc-cyan mb-3"></i>
       <p class="text-sm font-black text-white">Create Showdown</p>
       <p class="text-[10px] text-gray-500 mt-1">Team vs team challenge</p>
     </button>
-    <button type="button" data-go-tab="missions" class="action-dock-card p-4 sm:p-5 text-left">
+    <button type="button" data-go-tab="missions" class="dcx-card action-dock-card p-4 sm:p-5 text-left">
       <i class="fa-solid fa-scroll text-dc-violet mb-3"></i>
       <p class="text-sm font-black text-white">Browse Missions</p>
       <p class="text-[10px] text-gray-500 mt-1">Solo progression path</p>
     </button>
-    <button type="button" data-go-tab="bounty" class="action-dock-card p-4 sm:p-5 text-left">
+    <button type="button" data-go-tab="bounty" class="dcx-card action-dock-card p-4 sm:p-5 text-left">
       <i class="fa-solid fa-crosshairs text-dc-neon mb-3"></i>
       <p class="text-sm font-black text-white">Open Bounty Board</p>
       <p class="text-[10px] text-gray-500 mt-1">Post or claim team rewards</p>
     </button>
-    <button type="button" data-go-tab="dropzone" class="action-dock-card p-4 sm:p-5 text-left">
+    <button type="button" data-go-tab="dropzone" class="dcx-card action-dock-card p-4 sm:p-5 text-left">
       <i class="fa-solid fa-parachute-box text-dc-gold mb-3"></i>
       <p class="text-sm font-black text-white">Enter Dropzone</p>
       <p class="text-[10px] text-gray-500 mt-1">Reserve battle royale slots</p>
@@ -540,11 +560,13 @@
     <section class="xl:col-span-8 2xl:col-span-9 flex flex-col min-h-[760px]" id="col-center">
 
       {# Search + game filter #}
-      <div class="surface-card rounded-3xl p-3 sm:p-4 mb-5 flex flex-col sm:flex-row gap-3 z-30 relative">
+      <div class="dcx-surface surface-card rounded-3xl p-3 sm:p-4 mb-5 flex flex-col sm:flex-row gap-3 z-30 relative">
         <div class="relative flex-grow min-w-0">
-          <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 text-sm leading-none pointer-events-none"></i>
+          <span class="competitive-search-icon absolute grid place-items-center pointer-events-none">
+            <i class="fa-solid fa-magnifying-glass text-[13px] leading-none"></i>
+          </span>
           <input type="text" id="global-search" placeholder="Search teams, missions, or players&hellip;"
-                 class="h-12 w-full bg-black/40 border border-white/10 rounded-2xl pl-11 pr-4 text-sm text-white focus:outline-none focus:border-dc-cyan/50 focus:bg-black/60 focus:shadow-[0_0_0_3px_rgba(0,229,255,.08)] transition-all font-medium placeholder-gray-600">
+                 class="competitive-search-input w-full bg-black/40 border border-white/10 rounded-2xl text-sm text-white focus:outline-none focus:border-dc-cyan/50 focus:bg-black/60 focus:shadow-[0_0_0_3px_rgba(0,229,255,.08)] transition-all font-medium placeholder-gray-600">
         </div>
         <div id="game-selector" class="relative w-full sm:w-[330px]" aria-label="Game selector">
           <button type="button" id="game-selector-trigger"
@@ -559,7 +581,7 @@
             </span>
             <i class="fa-solid fa-chevron-down text-xs text-gray-500"></i>
           </button>
-          <div id="game-selector-menu" class="selector-menu absolute right-0 top-[calc(100%+0.65rem)] z-[60] w-full max-h-[340px] overflow-y-auto rounded-2xl border border-white/10 bg-[#07070b]/[0.96] shadow-[0_24px_80px_-30px_rgba(0,0,0,.95)] backdrop-blur-xl" role="listbox" aria-hidden="true">
+          <div id="game-selector-menu" class="selector-menu absolute right-0 top-[calc(100%+0.65rem)] z-[60] w-full max-h-[340px] overflow-y-auto rounded-2xl border border-white/10 bg-[#07070b] shadow-[0_24px_80px_-30px_rgba(0,0,0,.95)] backdrop-blur-xl" style="background-color: rgba(7,7,11,.96);" role="listbox" aria-hidden="true">
             <button type="button" class="game-option flex w-full items-center gap-3 px-3 py-3 text-left hover:bg-white/[0.06] focus:bg-white/[0.08] focus:outline-none transition" data-game-code="ALL" data-game-name="All Games" data-game-id="" data-game-icon="" role="option">
               <span class="h-10 w-10 rounded-xl border border-white/10 bg-white/[0.06] grid place-items-center text-[10px] font-black uppercase text-white">All</span>
               <span>
@@ -614,7 +636,7 @@
       <div id="review-alert" class="hidden-spa mb-4 rounded-2xl border border-dc-neon/25 bg-dc-neon/10 p-4"></div>
 
       {# Tab content container #}
-      <div class="relative flex-grow surface-card rounded-3xl p-1.5 overflow-hidden" id="tab-container-main">
+      <div class="dcx-panel relative flex-grow surface-card rounded-3xl p-1.5 overflow-hidden" id="tab-container-main">
 
         <div id="tab-content-showdown" class="tab-content active w-full h-full p-5 sm:p-6 space-y-5">
           <div class="flex justify-between items-end mb-4 border-b border-white/5 pb-4">
@@ -672,7 +694,7 @@
 
     {# ── RIGHT COLUMN ────────────────────────────────────────────── #}
     <aside class="xl:col-span-4 2xl:col-span-3 flex flex-col gap-5" id="col-right">
-      <div class="surface-card rounded-3xl p-5 border border-white/10">
+      <div class="dcx-card surface-card rounded-3xl p-5 border border-white/10">
         <div class="flex justify-between items-center mb-4">
           <h3 class="section-kicker flex items-center gap-2">
             <i class="fa-solid fa-bars-progress"></i> My Operations
@@ -684,7 +706,7 @@
         </div>
       </div>
 
-      <div class="surface-card rounded-3xl p-5 border border-white/10">
+      <div class="dcx-card surface-card rounded-3xl p-5 border border-white/10">
         <div class="flex items-center justify-between gap-3 mb-4">
           <h3 class="section-kicker flex items-center gap-2">
             <i class="fa-solid fa-compass text-dc-cyan"></i> Smart Assist
@@ -714,7 +736,7 @@
       </div>
       {% endif %}
 
-      <div class="surface-card rounded-3xl p-5 flex-grow flex flex-col border border-white/10">
+      <div class="dcx-card surface-card rounded-3xl p-5 flex-grow flex flex-col border border-white/10">
         <div class="flex justify-between items-center mb-5">
           <h3 class="section-kicker flex items-center gap-2">
             <i class="fa-solid fa-wave-square text-dc-cyan"></i> Recent Signals
@@ -731,33 +753,115 @@
 </main>
 
 <div id="guide-modal" class="modal-shell hidden-spa">
-  <div class="modal-card modal-wide">
-    <div class="flex items-start justify-between gap-4 mb-5">
-      <div>
-        <p class="text-[10px] uppercase tracking-[0.24em] text-dc-cyan font-black mb-1">Competitive Guide</p>
-        <h2 class="font-display text-3xl font-black text-white leading-none">How DeltaCrown operations flow</h2>
-        <p class="text-sm text-gray-400 mt-3">Short version only. Start from an action, follow the Match Room or proof step, then track review and settlement from My Operations.</p>
+  <div class="modal-card guide-shell">
+    <div class="relative overflow-hidden border-b border-white/10 bg-[#07070b] px-5 py-5 sm:px-7 sm:py-6">
+      <div class="absolute inset-0 pointer-events-none opacity-70" style="background:radial-gradient(circle at 12% 0%,rgba(34,211,238,.16),transparent 34%),radial-gradient(circle at 88% 10%,rgba(251,191,36,.10),transparent 30%);"></div>
+      <div class="relative flex items-start justify-between gap-4">
+        <div class="max-w-3xl">
+          <p class="text-[10px] uppercase tracking-[0.28em] text-dc-cyan font-black mb-2">DeltaCrown Intelligence Overlay</p>
+          <h2 class="font-display text-3xl sm:text-5xl font-black text-white leading-none">Your competitive map</h2>
+          <p class="mt-3 text-sm leading-6 text-gray-400">DeltaCrown has four paths. Choose the one that matches what you want to do, then follow the next action shown in My Operations.</p>
+        </div>
+        <button type="button" data-close-guide class="h-11 w-11 shrink-0 rounded-2xl border border-white/10 bg-white/[0.04] text-gray-400 hover:text-white hover:bg-white/[0.08]">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
       </div>
-      <button type="button" data-close-guide class="h-10 w-10 rounded-xl border border-white/10 bg-white/[0.04] text-gray-400 hover:text-white hover:bg-white/[0.08]">
-        <i class="fa-solid fa-xmark"></i>
-      </button>
+      <div class="relative mt-5 grid grid-cols-2 lg:grid-cols-4 gap-2">
+        <button type="button" data-guide-mode="showdown" class="guide-tab is-active rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-3 text-left text-gray-300 transition">
+          <i class="fa-solid fa-bolt text-dc-cyan mb-2"></i>
+          <span class="block text-sm font-black text-white">Showdown</span>
+          <span class="block text-[10px] text-gray-500">Team vs team</span>
+        </button>
+        <button type="button" data-guide-mode="missions" class="guide-tab rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-3 text-left text-gray-300 transition">
+          <i class="fa-solid fa-scroll text-dc-violet mb-2"></i>
+          <span class="block text-sm font-black text-white">Missions</span>
+          <span class="block text-[10px] text-gray-500">Solo progression</span>
+        </button>
+        <button type="button" data-guide-mode="bounty" class="guide-tab rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-3 text-left text-gray-300 transition">
+          <i class="fa-solid fa-crosshairs text-dc-neon mb-2"></i>
+          <span class="block text-sm font-black text-white">Bounty</span>
+          <span class="block text-[10px] text-gray-500">Claim team rewards</span>
+        </button>
+        <button type="button" data-guide-mode="dropzone" class="guide-tab rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-3 text-left text-gray-300 transition">
+          <i class="fa-solid fa-parachute-box text-dc-gold mb-2"></i>
+          <span class="block text-sm font-black text-white">Dropzone</span>
+          <span class="block text-[10px] text-gray-500">Battle royale lobbies</span>
+        </button>
+      </div>
     </div>
-    <div class="grid sm:grid-cols-2 gap-3">
-      <div class="rounded-2xl border border-cyan-300/20 bg-cyan-300/[0.06] p-4">
-        <div class="flex items-center gap-2 text-cyan-200 font-black mb-2"><i class="fa-solid fa-bolt"></i> Showdown</div>
-        <div class="flex flex-wrap gap-2"><span class="guide-chip">Challenge</span><span class="guide-chip">Match Room</span><span class="guide-chip">Result</span><span class="guide-chip">Review</span><span class="guide-chip">Settlement</span></div>
-      </div>
-      <div class="rounded-2xl border border-violet-300/20 bg-violet-300/[0.06] p-4">
-        <div class="flex items-center gap-2 text-violet-200 font-black mb-2"><i class="fa-solid fa-scroll"></i> Missions</div>
-        <div class="flex flex-wrap gap-2"><span class="guide-chip">Start</span><span class="guide-chip">Progress</span><span class="guide-chip">Proof</span><span class="guide-chip">Review</span></div>
-      </div>
-      <div class="rounded-2xl border border-rose-300/20 bg-rose-300/[0.06] p-4">
-        <div class="flex items-center gap-2 text-rose-200 font-black mb-2"><i class="fa-solid fa-crosshairs"></i> Bounty</div>
-        <div class="flex flex-wrap gap-2"><span class="guide-chip">Place</span><span class="guide-chip">Claim</span><span class="guide-chip">Match Room</span><span class="guide-chip">Verification</span></div>
-      </div>
-      <div class="rounded-2xl border border-amber-300/20 bg-amber-300/[0.06] p-4">
-        <div class="flex items-center gap-2 text-amber-200 font-black mb-2"><i class="fa-solid fa-parachute-box"></i> Dropzone</div>
-        <div class="flex flex-wrap gap-2"><span class="guide-chip">Reserve</span><span class="guide-chip">Reveal</span><span class="guide-chip">Lobby</span><span class="guide-chip">Scoring</span><span class="guide-chip">Results</span></div>
+
+    <div class="max-h-[56vh] overflow-y-auto p-5 sm:p-7">
+      <section data-guide-panel="showdown" class="guide-panel is-active">
+        <div class="grid lg:grid-cols-[.8fr_1.2fr] gap-5">
+          <div class="rounded-3xl border border-cyan-300/20 bg-cyan-300/[0.06] p-5">
+            <p class="text-[10px] uppercase tracking-[0.22em] text-cyan-200 font-black">Showdown</p>
+            <h3 class="mt-2 text-2xl font-black text-white">Challenge another team.</h3>
+            <p class="mt-3 text-sm leading-6 text-gray-400">Use Showdown when your team wants a direct competitive match. You can open a challenge for any eligible opponent or target a specific team.</p>
+          </div>
+          <div class="space-y-4">
+            <div class="guide-rail text-dc-cyan"><span><strong>Create</strong><small>Captain or manager sets game, format, entry fee, and opponent.</small></span><span><strong>Match Room</strong><small>Teams get the room for match details, proof, and result flow.</small></span><span><strong>Result</strong><small>One side submits the winner and score.</small></span><span><strong>Review</strong><small>The opponent confirms, or the case goes under review.</small></span><span><strong>Settled</strong><small>When confirmed, the result and reward state are closed safely.</small></span></div>
+            <div class="grid sm:grid-cols-2 gap-3 text-sm text-gray-400">
+              <div class="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><strong class="text-white">Who can act:</strong> team owner, manager, or captain.</div>
+              <div class="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><strong class="text-white">What happens next:</strong> My Operations will show Enter Match Room, Submit Result, or Waiting for Confirmation.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section data-guide-panel="missions" class="guide-panel">
+        <div class="grid lg:grid-cols-[.8fr_1.2fr] gap-5">
+          <div class="rounded-3xl border border-violet-300/20 bg-violet-300/[0.06] p-5">
+            <p class="text-[10px] uppercase tracking-[0.22em] text-violet-200 font-black">Missions</p>
+            <h3 class="mt-2 text-2xl font-black text-white">Solo goals for progression.</h3>
+            <p class="mt-3 text-sm leading-6 text-gray-400">Use Missions when you want individual objectives. Start a mission, complete the goal, then submit proof if the mission asks for review.</p>
+          </div>
+          <div class="space-y-4">
+            <div class="guide-rail text-dc-violet"><span><strong>Start</strong><small>Pick an available daily, weekly, or special mission.</small></span><span><strong>Progress</strong><small>Follow the objective and deadline from the mission page.</small></span><span><strong>Proof</strong><small>Add a link, note, or file when proof is required.</small></span><span><strong>Review</strong><small>Staff checks the submission before the mission is closed.</small></span><span><strong>Reward</strong><small>If approved, the mission outcome becomes visible in your feed.</small></span></div>
+            <div class="grid sm:grid-cols-2 gap-3 text-sm text-gray-400">
+              <div class="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><strong class="text-white">Solo path:</strong> no team authority required.</div>
+              <div class="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><strong class="text-white">What happens next:</strong> Track Mission, Submit Proof, or Proof Under Review.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section data-guide-panel="bounty" class="guide-panel">
+        <div class="grid lg:grid-cols-[.8fr_1.2fr] gap-5">
+          <div class="rounded-3xl border border-rose-300/20 bg-rose-300/[0.06] p-5">
+            <p class="text-[10px] uppercase tracking-[0.22em] text-rose-200 font-black">Bounty</p>
+            <h3 class="mt-2 text-2xl font-black text-white">Post a challenge for others to claim.</h3>
+            <p class="mt-3 text-sm leading-6 text-gray-400">A team posts a Bounty on itself. Other teams can claim it, play the challenge, and wait for verification before any reward result is finalized.</p>
+          </div>
+          <div class="space-y-4">
+            <div class="guide-rail text-dc-neon"><span><strong>Post</strong><small>Your team announces the Bounty reward and challenge condition.</small></span><span><strong>Claim</strong><small>An eligible opponent accepts the challenge from the Bounty board.</small></span><span><strong>Match Room</strong><small>The linked room keeps proof and result flow in one place.</small></span><span><strong>Verify</strong><small>Staff checks the claim before it is approved or rejected.</small></span><span><strong>Reward</strong><small>Approved claims move through the safe settlement path.</small></span></div>
+            <div class="grid sm:grid-cols-2 gap-3 text-sm text-gray-400">
+              <div class="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><strong class="text-white">Important:</strong> this is not placing a Bounty on another team.</div>
+              <div class="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><strong class="text-white">What happens next:</strong> Enter Match Room, Waiting for Review, or Claim Rejected.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section data-guide-panel="dropzone" class="guide-panel">
+        <div class="grid lg:grid-cols-[.8fr_1.2fr] gap-5">
+          <div class="rounded-3xl border border-amber-300/20 bg-amber-300/[0.06] p-5">
+            <p class="text-[10px] uppercase tracking-[0.22em] text-amber-200 font-black">Dropzone</p>
+            <h3 class="mt-2 text-2xl font-black text-white">Reserve a battle royale slot.</h3>
+            <p class="mt-3 text-sm leading-6 text-gray-400">Use Dropzone for large custom lobbies. Reserve your slot, wait for the room reveal, play the lobby, then check scoring and results.</p>
+          </div>
+          <div class="space-y-4">
+            <div class="guide-rail text-dc-gold"><span><strong>Reserve</strong><small>Choose an open lobby and secure an available slot.</small></span><span><strong>Reveal</strong><small>Room ID and credentials appear only when allowed.</small></span><span><strong>Lobby</strong><small>Join the custom room and play the scheduled match.</small></span><span><strong>Scoring</strong><small>Operators record placement, kills, and score.</small></span><span><strong>Results</strong><small>Leaderboard and rewards appear after scoring is complete.</small></span></div>
+            <div class="grid sm:grid-cols-2 gap-3 text-sm text-gray-400">
+              <div class="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><strong class="text-white">Room details:</strong> hidden until the configured reveal/live state.</div>
+              <div class="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><strong class="text-white">What happens next:</strong> View Entry, View Room Details, Awaiting Results, or View Result.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div class="mt-5 rounded-3xl border border-white/10 bg-white/[0.035] p-4">
+        <p class="text-[10px] uppercase tracking-[0.22em] text-gray-500 font-black mb-2">Smart rule</p>
+        <p class="text-sm leading-6 text-gray-400">When unsure, check <strong class="text-white">My Operations</strong>. It shows the safest next button for your current state, so you do not need to guess where to go.</p>
       </div>
     </div>
   </div>
@@ -766,7 +870,7 @@
 {# Create Showdown slide-over #}
 <div id="slide-over-backdrop" class="fixed inset-0 bg-black/[0.82] backdrop-blur-md z-[120] hidden-spa opacity-0 transition-all duration-300"></div>
 
-<div id="slide-over-create-clash" class="drawer-panel fixed inset-y-0 right-0 h-dvh w-full max-w-xl bg-[#08080c] border-l border-white/10 shadow-[-28px_0_80px_rgba(0,0,0,0.88)] z-[130] transform translate-x-full flex flex-col">
+<div id="slide-over-create-clash" class="dcx-drawer drawer-panel fixed inset-y-0 right-0 h-dvh w-full max-w-xl bg-[#08080c] border-l border-white/10 shadow-[-28px_0_80px_rgba(0,0,0,0.88)] z-[130] transform translate-x-full flex flex-col">
   <div class="glass-heavy p-5 sm:p-6 border-b border-white/10 flex justify-between items-center relative overflow-hidden flex-shrink-0">
     <div class="absolute -right-10 -top-10 w-40 h-40 bg-dc-cyan opacity-20 blur-[50px] rounded-full pointer-events-none"></div>
     <div>
@@ -853,7 +957,7 @@
       <div id="clash-form-error" class="form-error hidden" role="alert"></div>
     </div>
 
-    <div class="p-5 sm:p-6 border-t border-white/10 bg-[#050508]/95 backdrop-blur-xl flex-shrink-0 sticky bottom-0">
+    <div class="dcx-sticky-footer p-5 sm:p-6 border-t border-white/10 bg-[#050508]/95 backdrop-blur-xl flex-shrink-0 sticky bottom-0">
       <button type="submit" id="clash-submit" class="btn-cyber w-full bg-dc-cyan text-black font-black uppercase tracking-widest py-4 transition-all shadow-[0_0_20px_rgba(0,229,255,0.3)] hover:shadow-[0_0_30px_rgba(0,229,255,0.5)] flex justify-center items-center gap-3 text-lg">
         <i class="fa-solid fa-lock"></i>
         <span class="submit-label">Lock <span id="submit-btn-amt">300</span> DC &amp; Create</span>
@@ -864,14 +968,14 @@
 </div>
 
 {# Place Bounty slide-over #}
-<div id="slide-over-create-hitlist" class="drawer-panel fixed inset-y-0 right-0 h-dvh w-full max-w-xl bg-[#08080c] border-l border-white/10 shadow-[-28px_0_80px_rgba(0,0,0,0.88)] z-[130] transform translate-x-full flex flex-col">
+<div id="slide-over-create-hitlist" class="dcx-drawer drawer-panel fixed inset-y-0 right-0 h-dvh w-full max-w-xl bg-[#08080c] border-l border-white/10 shadow-[-28px_0_80px_rgba(0,0,0,0.88)] z-[130] transform translate-x-full flex flex-col">
   <div class="glass-heavy p-6 border-b border-white/10 flex justify-between items-center relative overflow-hidden flex-shrink-0">
     <div class="absolute -right-10 -top-10 w-40 h-40 bg-dc-neon opacity-20 blur-[50px] rounded-full pointer-events-none"></div>
     <div>
       <h2 class="font-display text-3xl font-black text-white uppercase tracking-wider flex items-center gap-3">
         <i class="fa-solid fa-skull text-dc-neon"></i> Post Bounty
       </h2>
-      <p class="text-xs text-gray-400 mt-1 font-medium tracking-wide">Place a skill-based reward challenge for other teams to claim.</p>
+      <p class="text-xs text-gray-400 mt-1 font-medium tracking-wide">Team authority required. Post a Bounty for challengers to claim.</p>
     </div>
     <button type="button" data-close-slide="create-hitlist" class="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-gray-400 hover:text-white transition-colors border border-white/10 hover:border-white/30">
       <i class="fa-solid fa-times text-lg"></i>
@@ -880,6 +984,10 @@
 
   <form id="form-create-hitlist" class="flex-grow overflow-y-auto overscroll-contain" novalidate>
     <div class="p-8 space-y-6">
+      <div class="rounded-2xl border border-dc-neon/25 bg-dc-neon/[0.06] p-4">
+        <p class="text-[10px] uppercase tracking-[0.22em] text-dc-neon font-black mb-1">Team-based operation</p>
+        <p class="text-xs leading-relaxed text-gray-300">Solo Bounty posting is not supported. Your selected team posts this Bounty on itself, and other authorized teams can claim it through the Bounty board.</p>
+      </div>
       <div>
         <label class="block text-[10px] uppercase font-bold text-gray-500 tracking-widest mb-2">Your Team (Issuer)</label>
         <select id="hitlist-team" name="issuer_team_id" class="field-select" required></select>

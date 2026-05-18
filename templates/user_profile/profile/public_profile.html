@@ -397,12 +397,32 @@
                         <button class="bg-white/5 text-white border border-white/10 px-4 md:px-5 py-2.5 md:py-3 rounded-xl hover:bg-white/10 transition text-sm md:text-base">
                             <i class="fa-solid fa-share-nodes"></i>
                         </button>
+                        {% if relationship_ctx.show_edit_button %}
+                        <a href="?view=spectator" title="See how others view your profile"
+                           class="bg-white/5 text-gray-400 border border-white/10 px-3 py-2.5 md:py-3 rounded-xl hover:bg-white/10 hover:text-white transition text-sm" aria-label="Spectator view">
+                            <i class="fa-solid fa-eye"></i>
+                        </a>
+                        {% endif %}
                     </div>
                 </div>
             </div>
         </div>
     </header>
 
+    {# ── Spectator mode banner ── #}
+    {% if spectator_mode %}
+    <div class="max-w-[1600px] mx-auto px-4 md:px-8 mt-4">
+        <div class="flex items-center justify-between gap-4 px-5 py-3 rounded-xl border border-z-cyan/20 bg-z-cyan/5 text-z-cyan text-sm font-medium">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-eye text-xs"></i>
+                <span>Spectator view &mdash; this is how others see your profile. Private content and edit controls are hidden.</span>
+            </div>
+            <a href="{{ request.path }}" class="shrink-0 text-xs font-bold hover:text-white transition border border-z-cyan/30 px-3 py-1 rounded-lg">
+                Exit spectator view
+            </a>
+        </div>
+    </div>
+    {% endif %}
 
     <main class="max-w-[1600px] mx-auto px-4 md:px-8 pb-20 dashboard-grid">
 
@@ -518,41 +538,73 @@
                 {% endif %}
             </div>
 
-            {# UP PHASE 8: Gear Widget - Polished UI #}
-            <div class="glass-panel p-6 rounded-2xl group cursor-pointer hover:border-z-green/30 transition">
-                <div class="flex items-center justify-between mb-4">
+            {# UP PHASE 8: Gear Widget — navigates to Gear tab; shows hardware_loadout fallback #}
+            <div class="glass-panel p-5 rounded-2xl group cursor-pointer hover:border-z-green/30 transition"
+                 data-profile-tab-target="gear" role="button" tabindex="0" aria-label="View gear setup">
+                <div class="flex items-center justify-between mb-3">
                     <h3 class="text-gray-400 font-bold text-xs uppercase tracking-widest flex items-center gap-2">
                         <i class="fa-solid fa-microchip text-z-green"></i> Gear
                     </h3>
-                    <i class="fa-solid fa-arrow-right text-gray-600 -rotate-45 group-hover:text-z-green transition"></i>
+                    <i class="fa-solid fa-arrow-right text-gray-600 -rotate-45 group-hover:text-z-green transition text-xs"></i>
                 </div>
-                <div class="space-y-3">
+                <div class="space-y-2">
                     {% if hardware_gears %}
-                        {% for gear in hardware_gears %}
-                        <div class="flex items-center gap-3">
-                            {% if gear.category == 'MOUSE' %}
-                            <i class="fa-solid fa-computer-mouse text-gray-500"></i>
-                            {% elif gear.category == 'KEYBOARD' %}
-                            <i class="fa-regular fa-keyboard text-gray-500"></i>
-                            {% elif gear.category == 'HEADSET' %}
-                            <i class="fa-solid fa-headphones text-gray-500"></i>
-                            {% elif gear.category == 'MONITOR' %}
-                            <i class="fa-solid fa-desktop text-gray-500"></i>
-                            {% elif gear.category == 'MOUSEPAD' %}
-                            <i class="fa-solid fa-square text-gray-500"></i>
-                            {% else %}
-                            <i class="fa-solid fa-microchip text-gray-500"></i>
-                            {% endif %}
-                            <span class="text-sm text-white font-bold">{{ gear.brand }} {{ gear.model }}</span>
-                        </div>
-                        {% endfor %}
+                    {# Rich HardwareGear model data #}
+                    {% for gear in hardware_gears|slice:":4" %}
+                    <div class="flex items-center gap-2.5">
+                        {% if gear.category == 'MOUSE' %}<i class="fa-solid fa-computer-mouse text-gray-500 w-4 text-center text-xs shrink-0"></i>
+                        {% elif gear.category == 'KEYBOARD' %}<i class="fa-regular fa-keyboard text-gray-500 w-4 text-center text-xs shrink-0"></i>
+                        {% elif gear.category == 'HEADSET' %}<i class="fa-solid fa-headphones text-gray-500 w-4 text-center text-xs shrink-0"></i>
+                        {% elif gear.category == 'MONITOR' %}<i class="fa-solid fa-desktop text-gray-500 w-4 text-center text-xs shrink-0"></i>
+                        {% else %}<i class="fa-solid fa-microchip text-gray-500 w-4 text-center text-xs shrink-0"></i>{% endif %}
+                        <span class="text-sm text-white font-semibold truncate">{{ gear.brand }}{% if gear.model %} {{ gear.model }}{% endif %}</span>
+                    </div>
+                    {% endfor %}
+
+                    {% elif hardware_loadout and hardware_loadout.is_complete %}
+                    {# Fallback to HardwareLoadout simple fields #}
+                    {% if hardware_loadout.mouse_brand %}
+                    <div class="flex items-center gap-2.5">
+                        <i class="fa-solid fa-computer-mouse text-gray-500 w-4 text-center text-xs shrink-0"></i>
+                        <span class="text-sm text-white font-semibold truncate">{{ hardware_loadout.mouse_brand }}</span>
+                    </div>
+                    {% endif %}
+                    {% if hardware_loadout.keyboard_brand %}
+                    <div class="flex items-center gap-2.5">
+                        <i class="fa-regular fa-keyboard text-gray-500 w-4 text-center text-xs shrink-0"></i>
+                        <span class="text-sm text-white font-semibold truncate">{{ hardware_loadout.keyboard_brand }}</span>
+                    </div>
+                    {% endif %}
+                    {% if hardware_loadout.headset_brand %}
+                    <div class="flex items-center gap-2.5">
+                        <i class="fa-solid fa-headphones text-gray-500 w-4 text-center text-xs shrink-0"></i>
+                        <span class="text-sm text-white font-semibold truncate">{{ hardware_loadout.headset_brand }}</span>
+                    </div>
+                    {% endif %}
+                    {% if hardware_loadout.monitor_brand %}
+                    <div class="flex items-center gap-2.5">
+                        <i class="fa-solid fa-desktop text-gray-500 w-4 text-center text-xs shrink-0"></i>
+                        <span class="text-sm text-white font-semibold truncate">{{ hardware_loadout.monitor_brand }}</span>
+                    </div>
+                    {% endif %}
+                    {% if hardware_loadout.mouse_dpi %}
+                    <div class="text-[10px] text-gray-600 pl-6.5 mt-1">{{ hardware_loadout.mouse_dpi }} DPI{% if hardware_loadout.sensitivity %} &middot; {{ hardware_loadout.sensitivity }} sens{% endif %}</div>
+                    {% endif %}
+
                     {% else %}
-                        <div class="text-center text-gray-500 text-xs py-2 italic">No gear configured</div>
+                    {# Empty state #}
+                    <div class="text-center py-2">
+                        <div class="text-gray-600 text-xs italic">No loadout configured</div>
+                        {% if relationship_ctx.is_owner %}
+                        <a href="/me/settings/#loadout" class="text-[10px] text-z-green hover:underline mt-1 block font-medium">Add Gear &rarr;</a>
+                        {% endif %}
+                    </div>
                     {% endif %}
                 </div>
             </div>
 
-            <div class="glass-panel p-0 rounded-2xl overflow-hidden relative group cursor-pointer border border-z-gold/30">
+            <div class="glass-panel p-0 rounded-2xl overflow-hidden relative group {% if relationship_ctx.is_owner %}cursor-pointer{% endif %} border border-z-gold/30"
+                 {% if relationship_ctx.is_owner %}data-profile-tab-target="economy" role="button" tabindex="0" aria-label="View wallet and economy"{% endif %}>
                 <div class="absolute inset-0 bg-gradient-to-br from-z-gold/10 via-z-bg to-z-bg group-hover:from-z-gold/20 transition duration-500"></div>
                 
                 <div class="p-6 relative z-10">
@@ -592,56 +644,163 @@
 
             <!-- Tab Switching JavaScript - Must be defined BEFORE buttons with onclick handlers -->
             <script nonce="{{ request.csp_nonce }}">
-            // Define switchTab function globally for inline onclick handlers
-            window.switchTab = function(tabName) {
-                console.log('[SWITCH_TAB] Switching to:', tabName);
-                
-                // Hide all tab contents
-                const tabContents = document.querySelectorAll('.tab-content');
-                tabContents.forEach(content => {
-                    content.classList.add('hidden');
+            (function () {
+              'use strict';
+
+              /* ── Active tab style tokens ─────────────────────── */
+              var ACTIVE_ADD    = ['bg-z-cyan/10','border-b-2','border-z-cyan','text-z-cyan','shadow-[0_4px_20px_-10px_rgba(0,240,255,0.3)]'];
+              var ACTIVE_REMOVE = ['text-gray-400','hover:text-white','hover:bg-white/5'];
+
+              /* ── Scroll-fade indicators ──────────────────────── */
+              function _updateFades() {
+                var nav = document.getElementById('tab-nav-bar');
+                if (!nav) return;
+                var fl = document.getElementById('tab-fade-l');
+                var fr = document.getElementById('tab-fade-r');
+                var atL = nav.scrollLeft < 6;
+                var atR = nav.scrollLeft + nav.clientWidth >= nav.scrollWidth - 6;
+                if (fl) fl.style.opacity = atL ? '0' : '1';
+                if (fr) fr.style.opacity = atR ? '0' : '1';
+              }
+
+              /* ── Core tab switch ─────────────────────────────── */
+              window.switchTab = function (tabName, _skipHash) {
+                /* Hide all content */
+                document.querySelectorAll('.tab-content').forEach(function (el) {
+                  el.classList.add('hidden');
                 });
-                
-                // Remove active class from all tab buttons
-                const tabButtons = document.querySelectorAll('.tab-btn');
-                tabButtons.forEach(btn => {
-                    btn.classList.remove('bg-z-cyan/10', 'border-b-2', 'border-z-cyan', 'text-z-cyan', 'shadow-[0_4px_20px_-10px_rgba(0,240,255,0.3)]');
-                    btn.classList.add('text-gray-400', 'hover:text-white', 'hover:bg-white/5');
+                /* Deactivate all buttons */
+                document.querySelectorAll('.tab-btn').forEach(function (btn) {
+                  ACTIVE_ADD.forEach(function (c) { btn.classList.remove(c); });
+                  ACTIVE_REMOVE.forEach(function (c) { btn.classList.add(c); });
                 });
-                
-                // Show selected tab content
-                const selectedContent = document.getElementById('tab-' + tabName);
-                if (selectedContent) {
-                    selectedContent.classList.remove('hidden');
-                } else {
-                    console.warn('[SWITCH_TAB] Tab content not found:', 'tab-' + tabName);
+
+                /* Show content */
+                var content = document.getElementById('tab-' + tabName);
+                if (content) content.classList.remove('hidden');
+
+                /* Activate button */
+                var btn = document.querySelector('[data-tab="' + tabName + '"]');
+                if (btn) {
+                  ACTIVE_REMOVE.forEach(function (c) { btn.classList.remove(c); });
+                  ACTIVE_ADD.forEach(function (c) { btn.classList.add(c); });
+
+                  /* Scroll button into view inside the scrollable nav */
+                  setTimeout(function () {
+                    var nav = document.getElementById('tab-nav-bar');
+                    if (nav && btn) {
+                      var btnLeft  = btn.offsetLeft;
+                      var btnRight = btnLeft + btn.offsetWidth;
+                      var navLeft  = nav.scrollLeft;
+                      var navRight = navLeft + nav.clientWidth;
+                      if (btnLeft < navLeft + 8) {
+                        nav.scrollTo({ left: btnLeft - 16, behavior: 'smooth' });
+                      } else if (btnRight > navRight - 8) {
+                        nav.scrollTo({ left: btnRight - nav.clientWidth + 16, behavior: 'smooth' });
+                      }
+                    }
+                    _updateFades();
+                  }, 30);
                 }
-                
-                // Add active class to selected button
-                const selectedButton = document.querySelector(`[data-tab="${tabName}"]`);
-                if (selectedButton) {
-                    selectedButton.classList.remove('text-gray-400', 'hover:text-white', 'hover:bg-white/5');
-                    selectedButton.classList.add('bg-z-cyan/10', 'border-b-2', 'border-z-cyan', 'text-z-cyan', 'shadow-[0_4px_20px_-10px_rgba(0,240,255,0.3)]');
-                } else {
-                    console.warn('[SWITCH_TAB] Tab button not found:', tabName);
+
+                /* Update URL hash without reloading */
+                if (!_skipHash && window.history && window.history.replaceState) {
+                  window.history.replaceState(null, '', '#' + tabName);
                 }
-            };
-            console.log('[PROFILE] switchTab function defined');
+              };
+
+              /* ── Hash navigation ─────────────────────────────── */
+              {% if relationship_ctx.is_owner %}
+              var _VALID_TABS = ['overview','posts','career','highlights','gear','achievements','economy','bounty'];
+              {% else %}
+              var _VALID_TABS = ['overview','posts','career','highlights','gear','achievements'];
+              {% endif %}
+
+              function _handleHash() {
+                var hash = (window.location.hash || '').replace('#','').toLowerCase().trim();
+                /* Invalid hash → default to overview */
+                if (!hash || _VALID_TABS.indexOf(hash) === -1 || !document.getElementById('tab-' + hash)) {
+                  if (hash && hash !== 'overview') window.switchTab('overview', true);
+                  return;
+                }
+                window.switchTab(hash, true); /* don't re-write hash on load */
+              }
+
+              document.addEventListener('DOMContentLoaded', function () {
+                _handleHash();
+                /* Wire scroll-fade updates */
+                var nav = document.getElementById('tab-nav-bar');
+                if (nav) {
+                  nav.addEventListener('scroll', _updateFades, { passive: true });
+                  _updateFades();
+                }
+              });
+              window.addEventListener('hashchange', function () { _handleHash(); });
+              if (document.readyState !== 'loading') { _handleHash(); }
+
+              /* ── Browser back/forward support ────────────────── */
+              window.addEventListener('popstate', function () { _handleHash(); });
+
+              /* ── CSP-safe widget tab navigation ─────────────────
+                 data-profile-tab-target="tabname" → opens that tab.
+                 data-profile-game-target="gameslug" → opens Career
+                   and switches to that game after tab is visible.   */
+              document.addEventListener('click', function (e) {
+                var el = e.target.closest('[data-profile-tab-target],[data-profile-game-target]');
+                if (!el) return;
+                var gameSlug = el.getAttribute('data-profile-game-target');
+                var tabTarget = el.getAttribute('data-profile-tab-target') || (gameSlug ? 'career' : null);
+                if (tabTarget && window.switchTab) {
+                  window.switchTab(tabTarget);
+                  /* If game target specified, switch career game after tab renders */
+                  if (gameSlug) {
+                    setTimeout(function () {
+                      var btn = document.querySelector('.game-btn[data-game-slug="' + gameSlug + '"]');
+                      if (btn && window.switchCareerGame) {
+                        window.switchCareerGame(gameSlug, btn);
+                      }
+                    }, 100);
+                  }
+                }
+              });
+              document.addEventListener('keydown', function (e) {
+                if (e.key !== 'Enter' && e.key !== ' ') return;
+                var el = e.target.closest('[data-profile-tab-target],[data-profile-game-target]');
+                if (!el) return;
+                e.preventDefault();
+                var gameSlug = el.getAttribute('data-profile-game-target');
+                var tabTarget = el.getAttribute('data-profile-tab-target') || (gameSlug ? 'career' : null);
+                if (tabTarget && window.switchTab) {
+                  window.switchTab(tabTarget);
+                  if (gameSlug) {
+                    setTimeout(function () {
+                      var btn = document.querySelector('.game-btn[data-game-slug="' + gameSlug + '"]');
+                      if (btn && window.switchCareerGame) window.switchCareerGame(gameSlug, btn);
+                    }, 100);
+                  }
+                }
+              });
+
+            }());
             </script>
 
-            <!-- Tab Navigation -->
-            <nav class="flex overflow-x-auto pb-2 scrollbar-hide gap-2 border-b border-white/10 mb-4">
-                <button data-click="switchTab" data-click-args='["overview"]' data-tab="overview" class="tab-btn shrink-0 px-6 py-3 rounded-t-xl bg-z-cyan/10 border-b-2 border-z-cyan text-z-cyan font-bold text-sm tracking-wide shadow-[0_4px_20px_-10px_rgba(0,240,255,0.3)]">Overview</button>
-                <button data-click="switchTab" data-click-args='["posts"]' data-tab="posts" class="tab-btn shrink-0 px-6 py-3 rounded-t-xl text-gray-400 hover:text-white hover:bg-white/5 font-medium text-sm transition">Posts</button>
-                <button data-click="switchTab" data-click-args='["career"]' data-tab="career" class="tab-btn shrink-0 px-6 py-3 rounded-t-xl text-gray-400 hover:text-white hover:bg-white/5 font-medium text-sm transition">Career</button>
-                <button data-click="switchTab" data-click-args='["highlights"]' data-tab="highlights" class="tab-btn shrink-0 px-6 py-3 rounded-t-xl text-gray-400 hover:text-white hover:bg-white/5 font-medium text-sm transition">Highlights</button>
-                <button data-click="switchTab" data-click-args='["bounty"]' data-tab="bounty" class="tab-btn shrink-0 px-6 py-3 rounded-t-xl text-gray-400 hover:text-white hover:bg-white/5 font-medium text-sm transition">Contracts</button>
-                <button data-click="switchTab" data-click-args='["gear"]' data-tab="gear" class="tab-btn shrink-0 px-6 py-3 rounded-t-xl text-gray-400 hover:text-white hover:bg-white/5 font-medium text-sm transition">Gear</button>
-                <button data-click="switchTab" data-click-args='["inventory"]' data-tab="inventory" class="tab-btn shrink-0 px-6 py-3 rounded-t-xl text-gray-400 hover:text-white hover:bg-white/5 font-medium text-sm transition">Inventory</button>
+            <!-- Tab Navigation — scrollable with fade edge indicators -->
+            <div class="relative mb-4">
+              <div id="tab-fade-l" class="pointer-events-none absolute left-0 top-0 bottom-2 w-10 bg-gradient-to-r from-black/80 to-transparent z-10 transition-opacity opacity-0"></div>
+              <div id="tab-fade-r" class="pointer-events-none absolute right-0 top-0 bottom-2 w-10 bg-gradient-to-l from-black/80 to-transparent z-10 transition-opacity"></div>
+              <nav id="tab-nav-bar" class="flex overflow-x-auto pb-2 scrollbar-hide gap-1.5 border-b border-white/10 scroll-smooth">
+                <button data-click="switchTab" data-click-args='["overview"]' data-tab="overview" class="tab-btn shrink-0 px-5 py-2.5 rounded-t-xl bg-z-cyan/10 border-b-2 border-z-cyan text-z-cyan font-bold text-sm tracking-wide shadow-[0_4px_20px_-10px_rgba(0,240,255,0.3)]">Overview</button>
+                <button data-click="switchTab" data-click-args='["posts"]' data-tab="posts" class="tab-btn shrink-0 px-5 py-2.5 rounded-t-xl text-gray-400 hover:text-white hover:bg-white/5 font-medium text-sm transition">Posts</button>
+                <button data-click="switchTab" data-click-args='["career"]' data-tab="career" class="tab-btn shrink-0 px-5 py-2.5 rounded-t-xl text-gray-400 hover:text-white hover:bg-white/5 font-medium text-sm transition">Career</button>
+                <button data-click="switchTab" data-click-args='["highlights"]' data-tab="highlights" class="tab-btn shrink-0 px-5 py-2.5 rounded-t-xl text-gray-400 hover:text-white hover:bg-white/5 font-medium text-sm transition">Highlights</button>
+                <button data-click="switchTab" data-click-args='["gear"]' data-tab="gear" class="tab-btn shrink-0 px-5 py-2.5 rounded-t-xl text-gray-400 hover:text-white hover:bg-white/5 font-medium text-sm transition">Gear</button>
+                <button data-click="switchTab" data-click-args='["achievements"]' data-tab="achievements" class="tab-btn shrink-0 px-5 py-2.5 rounded-t-xl text-gray-400 hover:text-white hover:bg-white/5 font-medium text-sm transition">Achievements</button>
                 {% if relationship_ctx.is_owner %}
-                <button data-click="switchTab" data-click-args='["economy"]' data-tab="economy" class="tab-btn shrink-0 px-6 py-3 rounded-t-xl text-gray-400 hover:text-white hover:bg-white/5 font-medium text-sm transition">Economy</button>
+                <button data-click="switchTab" data-click-args='["bounty"]' data-tab="bounty" class="tab-btn shrink-0 px-5 py-2.5 rounded-t-xl text-gray-400 hover:text-white hover:bg-white/5 font-medium text-sm transition">Missions</button>
+                <button data-click="switchTab" data-click-args='["economy"]' data-tab="economy" class="tab-btn shrink-0 px-5 py-2.5 rounded-t-xl text-gray-400 hover:text-white hover:bg-white/5 font-medium text-sm transition">Economy</button>
                 {% endif %}
-            </nav>
+              </nav>
+            </div>
 
             <!-- Tab Content Containers -->
             <div id="tab-overview" class="tab-content">
@@ -666,6 +825,10 @@
 
             <div id="tab-gear" class="tab-content hidden">
                 {% include "user_profile/profile/tabs/_tab_gear.html" %}
+            </div>
+
+            <div id="tab-achievements" class="tab-content hidden">
+                {% include "user_profile/profile/tabs/_tab_achievements.html" %}
             </div>
 
             <div id="tab-inventory" class="tab-content hidden">
@@ -735,76 +898,203 @@
                 {% endif %}
             </div>
 
-            <div class="glass-panel p-6 rounded-2xl">
-                <div class="flex items-center justify-between mb-4">
-                    <h3 class="text-gray-400 font-bold text-xs uppercase tracking-widest">Affiliations</h3>
+            {# ── 1. Affiliations ──────────────────────────────────────────────── #}
+            <div class="glass-panel p-5 rounded-2xl">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="text-gray-400 font-bold text-xs uppercase tracking-widest flex items-center gap-2">
+                        <i class="fa-solid fa-users text-z-cyan"></i> Teams
+                    </h3>
                 </div>
-                
                 {% if user_teams %}
+                <div class="space-y-2">
                     {% for team in user_teams %}
-                <div class="flex items-center gap-4 p-3 rounded-xl bg-white/5 border border-white/5 hover:border-z-cyan/50 hover:bg-white/10 transition cursor-pointer group mb-2">
-                    {% if team.logo_url %}
-                    <img src="{{ team.logo_url }}" alt="{{ team.name }}" class="w-12 h-12 rounded-lg object-cover border border-white/10">
-                    {% else %}
-                    <div class="w-12 h-12 rounded-lg bg-white/10 flex items-center justify-center font-black text-white border border-white/10">{{ team.tag|upper }}</div>
-                    {% endif %}
-                    <div class="flex-1">
-                        <div class="text-white font-bold text-sm group-hover:text-z-cyan transition">{{ team.name }}</div>
-                        <div class="text-[10px] text-gray-400">{{ team.role|default:'Member' }}{% if team.game %} • {{ team.game }}{% endif %}</div>
+                    <div class="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/5 hover:border-z-cyan/30 hover:bg-white/8 transition group">
+                        {% if team.logo_url %}
+                        <img src="{{ team.logo_url }}" alt="{{ team.name }}" class="w-10 h-10 rounded-lg object-cover border border-white/10 shrink-0">
+                        {% else %}
+                        <div class="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center font-black text-white text-xs border border-white/10 shrink-0">{{ team.tag|default:team.name|slice:":2"|upper }}</div>
+                        {% endif %}
+                        <div class="flex-1 min-w-0">
+                            <div class="text-white font-bold text-sm truncate group-hover:text-z-cyan transition">{{ team.name }}</div>
+                            <div class="flex items-center gap-1.5 mt-0.5">
+                                <span class="text-[10px] text-gray-400">{{ team.role|default:'Member' }}</span>
+                                {% if team.game %}<span class="text-gray-600">·</span><span class="text-[10px] text-gray-500">{{ team.game }}</span>{% endif %}
+                            </div>
+                        </div>
+                        <div class="shrink-0">
+                            <span class="inline-flex items-center gap-1 text-[9px] font-bold text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-full border border-emerald-400/20">
+                                <i class="fa-solid fa-circle text-[6px]"></i> Active
+                            </span>
+                        </div>
                     </div>
-                </div>
                     {% endfor %}
+                </div>
                 {% else %}
-                <div class="text-center text-gray-500 text-xs py-4">No team affiliations yet</div>
+                <div class="text-center py-4">
+                    <div class="text-gray-600 text-2xl mb-1.5"><i class="fa-solid fa-users-slash"></i></div>
+                    <div class="text-xs text-gray-500">No team affiliations yet</div>
+                </div>
                 {% endif %}
             </div>
 
-            <div class="glass-panel p-6 rounded-2xl">
-                <div class="flex items-center justify-between mb-4">
-                    <h3 class="text-gray-400 font-bold text-xs uppercase tracking-widest">Trophies</h3>
-                    <i class="fa-solid fa-chevron-right text-xs text-gray-600"></i>
+            {# ── 2. Trophy Cabinet → Achievements tab ─────────────────────────── #}
+            <div class="glass-panel p-5 rounded-2xl cursor-pointer hover:border-z-gold/30 transition"
+                 data-profile-tab-target="achievements" role="button" tabindex="0" aria-label="View achievements">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="text-gray-400 font-bold text-xs uppercase tracking-widest flex items-center gap-2">
+                        <i class="fa-solid fa-trophy text-z-gold"></i> Trophy Cabinet
+                    </h3>
+                    <i class="fa-solid fa-arrow-right text-gray-600 -rotate-45 text-xs"></i>
                 </div>
-                
-                <div class="grid grid-cols-4 gap-2">
-                    <div class="aspect-square rounded-xl bg-gradient-to-br from-z-gold/20 to-transparent border border-z-gold/30 flex items-center justify-center text-2xl hover:scale-110 transition cursor-help shadow-[0_0_15px_rgba(255,214,10,0.2)]">🏆</div>
-                    <div class="aspect-square rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-2xl hover:bg-white/10 transition">🥇</div>
-                    <div class="aspect-square rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-2xl hover:bg-white/10 transition">🥈</div>
-                    <div class="aspect-square rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-2xl hover:bg-white/10 transition">🥉</div>
+                {% if achievements_data %}
+                <div class="space-y-2">
+                    {% for ach in achievements_data|slice:":3" %}
+                    <div class="flex items-center gap-2.5 p-2 rounded-lg bg-white/5">
+                        <div class="text-lg shrink-0">
+                            {% if ach.placement_label == 'Winner' %}🏆
+                            {% elif ach.placement == 2 %}🥈
+                            {% elif ach.placement == 3 %}🥉
+                            {% else %}<i class="fa-solid fa-flag-checkered text-gray-500 text-sm"></i>
+                            {% endif %}
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="text-xs font-bold text-white truncate">{{ ach.tournament_name }}</div>
+                            <div class="text-[10px] text-gray-500">{{ ach.game_name }}{% if ach.placement_label == 'Winner' %} &middot; <span class="text-z-gold">Winner</span>{% endif %}</div>
+                        </div>
+                    </div>
+                    {% endfor %}
                 </div>
+                {% if achievements_data|length > 3 %}
+                <div class="text-[10px] text-gray-500 mt-2 text-center">+{{ achievements_data|length|add:"-3" }} more &mdash; view all</div>
+                {% endif %}
+                {% else %}
+                <div class="text-center py-3">
+                    <div class="text-gray-600 text-2xl mb-1.5"><i class="fa-regular fa-star"></i></div>
+                    <div class="text-xs text-gray-500">No trophies yet</div>
+                    <div class="text-[10px] text-gray-600 mt-0.5">Appear after verified tournament results</div>
+                </div>
+                {% endif %}
             </div>
 
-            <div class="glass-panel p-0 rounded-2xl overflow-hidden border border-z-red/30 relative group">
-                <div class="absolute inset-0 bg-gradient-to-t from-z-red/10 via-z-bg to-z-bg"></div>
-                
-                <div class="p-6 relative z-10">
-                    <div class="flex justify-between items-center mb-4">
-                        <div class="flex items-center gap-2">
-                            <i class="fa-solid fa-crosshairs text-z-red animate-pulse"></i>
-                            <span class="text-xs font-bold text-z-red uppercase tracking-wider">Competitive Activity</span>
+            {# ── 4. Career widget (moved from overview body) ─────────────────── #}
+            <div class="glass-panel p-5 rounded-2xl cursor-pointer hover:border-z-gold/30 transition"
+                 data-profile-tab-target="career" role="button" tabindex="0" aria-label="View career">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="text-gray-400 font-bold text-xs uppercase tracking-widest flex items-center gap-2">
+                        <i class="fa-solid fa-ranking-star text-z-gold"></i> Career
+                    </h3>
+                    <i class="fa-solid fa-arrow-right text-gray-600 -rotate-45 text-xs"></i>
+                </div>
+                {% if user_teams %}
+                <div class="space-y-2">
+                    {% for team in user_teams|slice:":2" %}
+                    <div class="flex items-center gap-2.5 p-2 rounded-lg bg-white/5">
+                        {% if team.logo_url %}
+                        <img src="{{ team.logo_url }}" alt="{{ team.name }}" class="w-8 h-8 rounded-lg object-cover border border-white/10 shrink-0">
+                        {% else %}
+                        <div class="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center font-black text-white text-[10px] shrink-0">{{ team.tag|default:team.name|slice:":2"|upper }}</div>
+                        {% endif %}
+                        <div class="flex-1 min-w-0">
+                            <div class="text-xs font-bold text-white truncate">{{ team.name }}</div>
+                            <div class="text-[10px] text-z-green font-bold uppercase">{{ team.role|default:'Member' }}{% if team.game %} &middot; {{ team.game }}{% endif %}</div>
                         </div>
-                        <div class="text-[10px] text-white bg-z-red px-2 py-0.5 rounded font-bold">HARD</div>
                     </div>
-                    
-                    <h4 class="text-white font-bold text-sm leading-tight mb-2">Headhunter Challenge</h4>
-                    <p class="text-[10px] text-gray-400 mb-3">Get 50 Headshots in Ranked matches this week.</p>
-                    
-                    <div class="flex justify-between text-[10px] text-gray-300 mb-1 font-mono">
-                        <span>32 / 50</span>
-                        <span>64%</span>
-                    </div>
-                    <div class="w-full h-1.5 bg-gray-800 rounded-full mb-4">
-                        <div class="h-full bg-z-red rounded-full shadow-neon-red" style="width: 64%"></div>
-                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-3">
+                    <div class="text-gray-600 text-xl mb-1"><i class="fa-solid fa-users-slash"></i></div>
+                    <div class="text-[11px] text-gray-500">No team affiliations yet</div>
+                </div>
+                {% endif %}
+            </div>
 
-                    <div class="flex items-center justify-between border-t border-white/10 pt-3">
-                        <div class="flex items-center gap-1">
-                            <span class="text-xs font-bold text-z-gold">500</span>
-                            <span class="text-[9px] text-gray-400">DC REWARD</span>
+            {# ── 5. Game Passports widget (moved from overview body) ──────────── #}
+            {% if is_owner or permissions.can_view_game_passports %}
+            {% with all_passports_sb=pinned_passports|add:unpinned_passports %}
+            {% if all_passports_sb %}
+            <div class="glass-panel p-5 rounded-2xl">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="text-gray-400 font-bold text-xs uppercase tracking-widest flex items-center gap-2">
+                        <i class="fa-solid fa-id-card text-z-purple"></i> Game Passports
+                    </h3>
+                    <span class="text-[9px] text-gray-500">
+                        {% if is_owner %}{{ all_passports_sb|length }} linked{% else %}verified IDs{% endif %}
+                    </span>
+                </div>
+                <div class="space-y-1.5">
+                    {% for passport in all_passports_sb %}
+                    {% if passport.visibility == 'PUBLIC' or is_owner %}
+                    <div class="flex items-center gap-2.5 p-2 rounded-lg bg-white/5 border border-white/5 hover:border-z-purple/20 hover:bg-white/8 transition cursor-pointer"
+                         data-profile-game-target="{{ passport.game.slug }}"
+                         role="button" tabindex="0" aria-label="View {{ passport.game.name }} career">
+                        {% if passport.game.icon %}
+                        <img src="{{ passport.game.icon.url }}" alt="{{ passport.game.name }}" class="w-7 h-7 rounded-lg object-contain bg-black/30 p-0.5 border border-white/10 shrink-0"
+                             onerror="this.onerror=null;this.style.display='none'">
+                        {% else %}
+                        <div class="w-7 h-7 rounded-lg bg-white/10 flex items-center justify-center text-[9px] font-black text-white shrink-0">{{ passport.game.short_code|default:passport.game.name|slice:":2"|upper }}</div>
+                        {% endif %}
+                        <div class="flex-1 min-w-0">
+                            <div class="text-[10px] text-gray-400 font-bold uppercase truncate leading-tight">{{ passport.game.name }}</div>
+                            <div class="text-xs font-bold text-white truncate leading-tight">{{ passport.in_game_name|default:passport.ign|default:'—' }}</div>
                         </div>
-                        <a href="{% url 'dashboard:competitive_hub' %}" class="text-[10px] text-white hover:text-z-red transition font-bold uppercase">Open Hub</a>
+                        <div class="shrink-0 flex items-center gap-1">
+                            {% if passport.verification_status == 'VERIFIED' %}
+                            <i class="fa-solid fa-circle-check text-emerald-400 text-[10px]" title="Verified"></i>
+                            {% elif passport.visibility == 'PRIVATE' and is_owner %}
+                            <i class="fa-solid fa-lock text-gray-500 text-[10px]" title="Private"></i>
+                            {% endif %}
+                        </div>
                     </div>
+                    {% endif %}
+                    {% endfor %}
                 </div>
             </div>
+            {% endif %}
+            {% endwith %}
+            {% endif %}
+
+            {# ── 6. Owner quick actions — compact icon grid ───────────────────── #}
+            {% if relationship_ctx.is_owner %}
+            <div class="glass-panel p-4 rounded-2xl border border-white/5">
+                <h3 class="text-gray-500 font-bold text-[10px] uppercase tracking-widest mb-3">Manage Profile</h3>
+                <div class="grid grid-cols-2 gap-2">
+                    <a href="{% url 'user_profile:settings' %}" class="flex flex-col items-center gap-1 p-2.5 rounded-xl bg-white/5 hover:bg-white/10 transition text-center">
+                        <i class="fa-solid fa-pen-to-square text-z-cyan text-sm"></i>
+                        <span class="text-[9px] text-gray-400 font-medium">Edit Profile</span>
+                    </a>
+                    <a href="{% url 'user_profile:settings' %}#passports" class="flex flex-col items-center gap-1 p-2.5 rounded-xl bg-white/5 hover:bg-white/10 transition text-center">
+                        <i class="fa-solid fa-id-card text-z-purple text-sm"></i>
+                        <span class="text-[9px] text-gray-400 font-medium">Passports</span>
+                    </a>
+                    <button data-profile-tab-target="gear" class="flex flex-col items-center gap-1 p-2.5 rounded-xl bg-white/5 hover:bg-white/10 transition text-center cursor-pointer">
+                        <i class="fa-solid fa-microchip text-z-green text-sm"></i>
+                        <span class="text-[9px] text-gray-400 font-medium">Gear</span>
+                    </button>
+                    <button data-profile-tab-target="economy" class="flex flex-col items-center gap-1 p-2.5 rounded-xl bg-white/5 hover:bg-white/10 transition text-center cursor-pointer">
+                        <i class="fa-solid fa-coins text-z-gold text-sm"></i>
+                        <span class="text-[9px] text-gray-400 font-medium">Wallet</span>
+                    </button>
+                </div>
+            </div>
+            {% else %}
+            {# ── 6. Public visitor Follow CTA ─────────────────────────────────── #}
+            {% if not relationship_ctx.is_following %}
+            <div class="glass-panel p-5 rounded-2xl border border-z-cyan/10 text-center">
+                <div class="text-z-cyan text-lg mb-1.5"><i class="fa-solid fa-user-plus"></i></div>
+                <div class="text-xs text-gray-400 mb-3">Follow {{ profile_user.username|default:profile_user.username }} for competitive updates</div>
+                {% if user.is_authenticated %}
+                <button class="w-full py-2 rounded-xl bg-z-cyan/15 border border-z-cyan/40 text-z-cyan text-xs font-bold hover:bg-z-cyan/25 transition follow-btn" data-target-user="{{ profile_user.username }}">
+                    Follow
+                </button>
+                {% else %}
+                <a href="{% url 'account:login' %}?next={{ request.path }}" class="block w-full py-2 rounded-xl bg-z-cyan/15 border border-z-cyan/40 text-z-cyan text-xs font-bold hover:bg-z-cyan/25 transition">
+                    Sign in to Follow
+                </a>
+                {% endif %}
+            </div>
+            {% endif %}
+            {% endif %}
 
         </aside>
 
@@ -1026,7 +1316,7 @@ window.openBountyModal = function(title, reward, challengeType) {
     
     if (!modal || !modalContent) return;
     
-    document.getElementById('modal-bounty-title').innerText = title || 'Contract';
+    document.getElementById('modal-bounty-title').innerText = title || 'Mission';
     document.getElementById('modal-bounty-reward').innerText = 'Đ ' + ((reward || 0).toLocaleString());
     
     // Challenge type badge

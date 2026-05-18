@@ -396,7 +396,9 @@ class GamePassportsManager {
         const card = clone.querySelector('.passport-card');
         
         card.setAttribute('data-passport-id', passport.id);
-        
+        const vStatus = (passport.verification_status || 'PENDING').toLowerCase();
+        card.setAttribute('data-verification-state', vStatus);
+
         const gameIcon = card.querySelector('.game-icon');
         const gameName = card.querySelector('.game-name');
         const pinnedBadge = card.querySelector('.pinned-badge');
@@ -426,21 +428,54 @@ class GamePassportsManager {
         }
         
         // Additional fields from passport_data JSON
+        // Skip IGN/region/rank (shown above) and internal verification keys
+        const _PASSPORT_SKIP = new Set(['ign', 'region', 'rank', 'verification_status', 'is_verified',
+                                         'verification_error', 'verification_badge', 'verification_message']);
         if (passport.passport_data) {
             Object.entries(passport.passport_data).forEach(([key, value]) => {
-                if (['ign', 'region', 'rank'].includes(key.toLowerCase())) return;
+                if (_PASSPORT_SKIP.has(key.toLowerCase())) return;
+                if (value === null || value === undefined || value === '') return;
                 const field = this.createDetailField(this.formatFieldLabel(key), value);
                 detailsContainer.appendChild(field);
             });
         }
         
+        // Verification badge — uses verification_badge from serializer
+        const badge = passport.verification_badge || {};
+        const state = (badge.state || passport.verification_status || 'pending').toLowerCase();
+        const label = badge.label || (passport.verification_status === 'VERIFIED' ? 'Verified' : 'Verifying');
+        const message = passport.verification_message || '';
+
+        const stateStyles = {
+            verified:      { bg: 'rgba(16,185,129,.15)', color: '#34d399', border: 'rgba(16,185,129,.3)', icon: '✓' },
+            pending:       { bg: 'rgba(245,158,11,.12)',  color: '#fbbf24', border: 'rgba(245,158,11,.3)', icon: '○' },
+            failed:        { bg: 'rgba(239,68,68,.12)',   color: '#f87171', border: 'rgba(239,68,68,.3)',  icon: '✗' },
+            flagged:       { bg: 'rgba(239,68,68,.12)',   color: '#f87171', border: 'rgba(239,68,68,.3)',  icon: '⚑' },
+            api_unavailable:{ bg:'rgba(148,163,184,.1)',  color: '#94a3b8', border: 'rgba(148,163,184,.25)',icon:'⏳'},
+            rate_limited:  { bg: 'rgba(148,163,184,.1)',  color: '#94a3b8', border: 'rgba(148,163,184,.25)',icon:'⏳'},
+        };
+        const s = stateStyles[state] || stateStyles.pending;
+
+        const badgeEl = document.createElement('div');
+        badgeEl.style.cssText = [
+            'display:inline-flex', 'align-items:center', 'gap:5px',
+            'padding:3px 9px', 'border-radius:12px',
+            'font-size:11px', 'font-weight:700',
+            `background:${s.bg}`, `color:${s.color}`,
+            `border:1px solid ${s.border}`,
+            'margin-top:8px',
+        ].join(';');
+        badgeEl.title = message || label;
+        badgeEl.innerHTML = `<span style="font-size:12px;">${s.icon}</span> ${label}`;
+        detailsContainer.appendChild(badgeEl);
+
         // Bind action buttons
         const editBtn = card.querySelector('.btn-edit-passport');
         const deleteBtn = card.querySelector('.btn-delete-passport');
-        
+
         editBtn.addEventListener('click', () => this.editPassport(passport));
         deleteBtn.addEventListener('click', () => this.deletePassport(passport.id));
-        
+
         return clone;
     }
 

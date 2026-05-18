@@ -2,19 +2,25 @@
 {% include "user_profile/profile/partials/_about_tactical_v4.html" %}
 
 <div class="glass-panel p-6 rounded-2xl relative overflow-hidden">
-    <!-- Ambient glow -->
     <div class="absolute -top-12 -right-12 w-40 h-40 bg-z-cyan/8 rounded-full blur-[60px] pointer-events-none"></div>
 
-    <div class="flex justify-between items-center mb-6">
+    <div class="flex justify-between items-center mb-5">
         <h3 class="text-gray-400 font-bold text-xs uppercase tracking-widest flex items-center gap-2">
             <i class="fa-solid fa-chart-pie text-z-cyan"></i> Performance Analytics
+            {% if stats_ctx.is_fallback %}<span class="text-[9px] text-gray-600 normal-case tracking-normal font-normal">estimated from matches</span>{% endif %}
         </h3>
-        <select class="bg-black/40 text-white text-xs px-3 py-1 rounded border border-white/10 outline-none">
-            <option>Last 20 Matches</option>
-            <option>All Time</option>
-        </select>
+        <button data-profile-tab-target="career" class="text-[10px] text-gray-500 hover:text-z-cyan transition font-medium flex items-center gap-1 cursor-pointer" tabindex="0" aria-label="View full career stats">
+            Full stats <i class="fa-solid fa-arrow-right"></i>
+        </button>
     </div>
 
+    {% if stats_ctx.total_matches == 0 and not stats_ctx.is_fallback %}
+    <div class="text-center py-6">
+        <i class="fa-solid fa-chart-bar text-3xl text-gray-700 mb-3 block"></i>
+        <div class="text-sm text-gray-400 font-medium">No competitive data yet</div>
+        <div class="text-xs text-gray-600 mt-1">Stats will appear once matches are completed</div>
+    </div>
+    {% else %}
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
         <!-- K/D Ratio -->
         <div class="relative p-4 rounded-xl bg-gradient-to-br from-white/[.04] to-transparent border border-white/[.06] hover:border-green-500/30 transition-all duration-300 group/stat">
@@ -22,12 +28,17 @@
                 <div class="w-2 h-2 rounded-full bg-green-400 shadow-[0_0_6px] shadow-green-400/60"></div>
                 <span class="text-[9px] text-gray-500 uppercase tracking-widest font-bold">K/D Ratio</span>
             </div>
-            <div class="text-3xl font-display font-black text-white leading-none">{{ stats_ctx.kd_ratio|default:"0.00" }}</div>
-            <div class="text-[10px] text-gray-500 mt-2">{{ stats_ctx.total_kills|default:0 }}K / {{ stats_ctx.total_deaths|default:0 }}D</div>
-            <!-- Progress bar: KD visualized as percentage (capped via widthratio) -->
+            {% if stats_ctx.total_kills or stats_ctx.total_deaths %}
+            <div class="text-3xl font-display font-black text-white leading-none">{{ stats_ctx.kd_ratio }}</div>
+            <div class="text-[10px] text-gray-500 mt-2">{{ stats_ctx.total_kills }}K / {{ stats_ctx.total_deaths }}D</div>
             <div class="mt-3 h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
                 <div class="h-full rounded-full bg-gradient-to-r from-green-500 to-green-400 transition-all duration-1000" style="width: {% widthratio stats_ctx.kd_ratio 5 100 %}%"></div>
             </div>
+            {% else %}
+            <div class="text-2xl font-display font-black text-gray-600 leading-none">&mdash;</div>
+            <div class="text-[10px] text-gray-600 mt-2 italic">Not tracked yet</div>
+            <div class="mt-3 h-1.5 w-full bg-white/5 rounded-full overflow-hidden"><div class="h-full bg-white/5 w-0"></div></div>
+            {% endif %}
         </div>
         <!-- Win Rate -->
         <div class="relative p-4 rounded-xl bg-gradient-to-br from-white/[.04] to-transparent border border-white/[.06] hover:border-z-cyan/30 transition-all duration-300 group/stat">
@@ -75,189 +86,10 @@
             </div>
         </div>
     </div>
+    {% endif %}
 </div>
 
-<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-    
-    {# UP PHASE 8: Career Widget - Real Data #}
-    <div class="glass-panel p-6 rounded-2xl hover:border-z-gold/50 transition duration-300 group cursor-pointer relative overflow-hidden" data-career-deep-link>
-        <div class="absolute right-0 top-0 w-40 h-40 bg-z-gold/5 rounded-full blur-3xl group-hover:bg-z-gold/10 transition"></div>
-        
-        <div class="flex justify-between items-start mb-4">
-            <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-z-gold/20 to-transparent border border-z-gold/20 flex items-center justify-center text-z-gold text-xl shadow-lg">
-                <i class="fa-solid fa-trophy"></i>
-            </div>
-            <i class="fa-solid fa-arrow-right text-gray-600 group-hover:text-white -rotate-45 transition"></i>
-        </div>
-        
-        <h3 class="text-white font-bold font-display text-xl mb-1">Career</h3>
-        <p class="text-xs text-gray-400 mb-6 font-medium">
-            {% if user_teams %}
-                {{ user_teams|length }} Team{{ user_teams|length|pluralize }}
-            {% else %}
-                No team affiliations
-            {% endif %}
-        </p>
-
-        <div class="space-y-4">
-            {% if user_teams %}
-                {% for team in user_teams|slice:":2" %}
-                <div class="flex items-center gap-4 relative pl-4 border-l-2 border-z-green">
-                    {% if team.logo_url %}
-                    <img src="{{ team.logo_url }}" alt="{{ team.name }}" class="w-10 h-10 rounded-lg object-cover border border-white/10">
-                    {% else %}
-                    <div class="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center text-xs font-bold">{{ team.tag|default:'TM'|upper }}</div>
-                    {% endif %}
-                    <div class="flex-1 min-w-0">
-                        <div class="text-white text-sm font-bold truncate">{{ team.name }}</div>
-                        <div class="text-[10px] text-z-green font-bold uppercase tracking-wider">
-                            {{ team.role|default:'Member' }}{% if team.game %} • {{ team.game }}{% endif %}
-                        </div>
-                    </div>
-                </div>
-                {% endfor %}
-                
-                {% if user_teams|length > 2 %}
-                <div class="text-center pt-2">
-                    <button data-career-deep-link class="text-xs text-z-cyan hover:text-white transition font-medium">
-                        View all {{ user_teams|length }} teams <i class="fa-solid fa-arrow-right ml-1"></i>
-                    </button>
-                </div>
-                {% endif %}
-            {% else %}
-                <div class="text-center py-4">
-                    <i class="fa-solid fa-users-slash text-2xl text-gray-600 mb-2 block"></i>
-                    <div class="text-xs text-gray-400">No team history yet</div>
-                </div>
-            {% endif %}
-        </div>
-    </div>
-
-    {# UP PHASE 8: Game Passports Widget - Enhanced with stats + modal #}
-    <div class="glass-panel p-6 rounded-2xl hover:border-z-purple/50 transition duration-300 group relative overflow-hidden">
-        <div class="absolute right-0 top-0 w-40 h-40 bg-z-purple/5 rounded-full blur-3xl group-hover:bg-z-purple/10 transition"></div>
-
-        <div class="flex justify-between items-start mb-4">
-            <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-z-purple/20 to-transparent border border-z-purple/20 flex items-center justify-center text-z-purple text-xl shadow-lg">
-                <i class="fa-solid fa-gamepad"></i>
-            </div>
-            <button data-career-deep-link class="text-gray-600 group-hover:text-white -rotate-45 transition"><i class="fa-solid fa-arrow-right"></i></button>
-        </div>
-        
-        <h3 class="text-white font-bold font-display text-xl mb-1">Game Passports</h3>
-        <p class="text-xs text-gray-400 mb-6 font-medium">{{ pinned_passports|length|add:unpinned_passports|length }} Linked Account{{ pinned_passports|length|add:unpinned_passports|length|pluralize }}</p>
-
-        {% if is_owner or permissions.can_view_game_passports %}
-        <div class="space-y-3">
-            {% with all_passports=pinned_passports|add:unpinned_passports %}
-                {% if all_passports %}
-                    {% for passport in all_passports|slice:":3" %}
-                    {% if passport.visibility == 'PUBLIC' or is_owner %}
-                    <div class="gp-profile-card p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 hover:border-z-purple/30 transition cursor-pointer"
-                         data-passport-detail="{{ passport.id }}"
-                         data-click="openPassportModal" data-click-pass-el>
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center gap-3 min-w-0">
-                                {% if passport.game.icon %}
-                                <img src="{{ passport.game.icon.url }}" alt="{{ passport.game.name }}" class="w-9 h-9 rounded-lg border border-white/10 object-contain bg-black/30">
-                                {% elif passport.is_pinned %}
-                                <div class="w-9 h-9 rounded-lg bg-z-cyan/20 border border-z-cyan/30 flex items-center justify-center text-z-cyan text-sm"><i class="fa-solid fa-gamepad"></i></div>
-                                {% else %}
-                                <div class="w-9 h-9 rounded-lg bg-gray-700/50 border border-white/10 flex items-center justify-center text-gray-400 text-sm"><i class="fa-solid fa-gamepad"></i></div>
-                                {% endif %}
-                                <div class="min-w-0">
-                                    <div class="flex items-center gap-1.5">
-                                        <span class="text-white text-xs font-bold font-mono truncate">{{ passport.in_game_name }}{% if passport.discriminator %}#{{ passport.discriminator }}{% endif %}</span>
-                                        {% if passport.verification_status == 'VERIFIED' %}
-                                        <i class="fa-solid fa-circle-check text-emerald-400 text-[10px]" title="Verified"></i>
-                                        {% endif %}
-                                    </div>
-                                    <div class="text-[10px] {% if passport.is_pinned %}text-z-cyan{% else %}text-gray-400{% endif %} truncate">
-                                        {{ passport.game.name }}{% if passport.rank_name %} • {{ passport.rank_name }}{% endif %}{% if passport.platform %} • {{ passport.platform }}{% endif %}
-                                    </div>
-                                </div>
-                            </div>
-                            <i class="fa-solid fa-chevron-right text-[10px] text-gray-600 group-hover:text-gray-400 transition shrink-0"></i>
-                        </div>
-                        {% if passport.kd_ratio or passport.win_rate or passport.matches_played %}
-                        <div class="flex items-center gap-3 mt-2 pt-2 border-t border-white/5">
-                            {% if passport.kd_ratio %}
-                            <div class="text-center flex-1">
-                                <div class="text-[10px] text-gray-500 uppercase tracking-wider">K/D</div>
-                                <div class="text-xs font-bold {% if passport.kd_ratio >= 1.3 %}text-emerald-400{% elif passport.kd_ratio < 0.9 %}text-red-400{% else %}text-white{% endif %}">{{ passport.kd_ratio|floatformat:2 }}</div>
-                            </div>
-                            {% endif %}
-                            {% if passport.win_rate %}
-                            <div class="text-center flex-1">
-                                <div class="text-[10px] text-gray-500 uppercase tracking-wider">Win%</div>
-                                <div class="text-xs font-bold {% if passport.win_rate >= 55 %}text-emerald-400{% elif passport.win_rate < 45 %}text-red-400{% else %}text-white{% endif %}">{{ passport.win_rate|floatformat:1 }}%</div>
-                            </div>
-                            {% endif %}
-                            {% if passport.matches_played %}
-                            <div class="text-center flex-1">
-                                <div class="text-[10px] text-gray-500 uppercase tracking-wider">Matches</div>
-                                <div class="text-xs font-bold text-white">{{ passport.matches_played }}</div>
-                            </div>
-                            {% endif %}
-                            {% if passport.main_role %}
-                            <div class="text-center flex-1">
-                                <div class="text-[10px] text-gray-500 uppercase tracking-wider">Role</div>
-                                <div class="text-xs font-bold text-z-cyan">{{ passport.main_role }}</div>
-                            </div>
-                            {% endif %}
-                        </div>
-                        {% endif %}
-                        {# Hidden data for modal #}
-                        <script type="application/json" class="gp-passport-data">
-                        {
-                            "id": {{ passport.id }},
-                            "game_name": "{{ passport.game.name|escapejs }}",
-                            "game_icon": "{% if passport.game.icon %}{{ passport.game.icon.url|escapejs }}{% endif %}",
-                            "ign": "{{ passport.in_game_name|escapejs }}",
-                            "discriminator": "{{ passport.discriminator|default:''|escapejs }}",
-                            "platform": "{{ passport.platform|default:''|escapejs }}",
-                            "region": "{{ passport.region|default:''|escapejs }}",
-                            "rank_name": "{{ passport.rank_name|default:''|escapejs }}",
-                            "rank_tier": {{ passport.rank_tier|default:"0" }},
-                            "peak_rank": "{{ passport.peak_rank|default:''|escapejs }}",
-                            "kd_ratio": {{ passport.kd_ratio|default:"null" }},
-                            "win_rate": {{ passport.win_rate|default:"null" }},
-                            "matches_played": {{ passport.matches_played|default:"0" }},
-                            "hours_played": {{ passport.hours_played|default:"0" }},
-                            "main_role": "{{ passport.main_role|default:''|escapejs }}",
-                            "verification_status": "{{ passport.verification_status|default:'PENDING'|escapejs }}",
-                            "is_pinned": {{ passport.is_pinned|yesno:"true,false" }},
-                            "visibility": "{{ passport.visibility|default:'PUBLIC'|escapejs }}",
-                            "updated_at": "{{ passport.updated_at|date:'c' }}"
-                        }
-                        </script>
-                    </div>
-                    {% endif %}
-                    {% endfor %}
-                    
-                    {% if all_passports|length > 3 %}
-                    <div class="text-center pt-2">
-                        <button data-career-deep-link class="text-xs text-z-purple hover:text-white transition font-medium">
-                            View all {{ all_passports|length }} passports <i class="fa-solid fa-arrow-right ml-1"></i>
-                        </button>
-                    </div>
-                    {% endif %}
-                {% else %}
-                    <div class="text-center py-4">
-                        <i class="fa-solid fa-gamepad text-2xl text-gray-600 mb-2 block"></i>
-                        <div class="text-xs text-gray-400">No game passports linked</div>
-                    </div>
-                {% endif %}
-            {% endwith %}
-        </div>
-        {% else %}
-        <div class="text-center py-8">
-            <i class="fa-solid fa-lock text-2xl text-gray-600 mb-2 block"></i>
-            <div class="text-xs text-gray-400">Game passports are private</div>
-        </div>
-        {% endif %}
-    </div>
-</div>
+{# Career and Game Passports moved to right sidebar #}
 
 {# ── Game Passport Detail Modal ── #}
 <div id="gp-detail-modal" class="fixed inset-0 z-[9999] hidden" style="background:rgba(5,5,8,0.88);backdrop-filter:blur(18px);" data-click-self="closePassportModal">

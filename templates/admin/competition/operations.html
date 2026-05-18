@@ -1,0 +1,1287 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+<div class="dc-ops-console competitive-ops-console space-y-5" data-console-tabs>
+  <section class="ops-hero relative overflow-hidden rounded-3xl border border-base-800 bg-base-950 p-5 shadow-2xl shadow-black/20">
+    <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(59,130,246,0.16),transparent_34%),linear-gradient(135deg,rgba(15,23,42,0.25),transparent_55%)]"></div>
+    <div class="relative grid gap-4 xl:grid-cols-[1fr_420px] xl:items-center">
+      <div>
+        <p class="text-xs font-black uppercase tracking-[0.24em] text-primary-300">DeltaCrown Admin</p>
+        <h1 class="mt-2 text-3xl font-black text-base-50">Competitive Operator Console</h1>
+        <div class="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+          <div class="ops-status-card rounded-2xl border border-base-800 bg-base-900/70 p-3">
+            <p class="text-[11px] font-black uppercase tracking-wider text-base-400">Environment</p>
+            <p class="mt-1 text-sm font-black text-emerald-200">Admin-only live</p>
+          </div>
+          <div class="ops-status-card rounded-2xl border border-base-800 bg-base-900/70 p-3">
+            <p class="text-[11px] font-black uppercase tracking-wider text-base-400">Needs Attention</p>
+            <p class="mt-1 text-sm font-black text-amber-200">{{ urgent_count }} active item{% if urgent_count != 1 %}s{% endif %}</p>
+          </div>
+          <div class="ops-status-card rounded-2xl border border-base-800 bg-base-900/70 p-3">
+            <p class="text-[11px] font-black uppercase tracking-wider text-base-400">Last Activity</p>
+            <p class="mt-1 truncate text-sm font-black text-base-100">{{ last_activity_label }}</p>
+          </div>
+          <div class="ops-status-card rounded-2xl border border-base-800 bg-base-900/70 p-3">
+            <p class="text-[11px] font-black uppercase tracking-wider text-base-400">Safety Mode</p>
+            <p class="mt-1 text-sm font-black text-primary-200">Service-backed</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="ops-command-shell relative">
+        <label class="block">
+          <span class="mb-2 block text-xs font-black uppercase tracking-[0.2em] text-base-400">Quick Command</span>
+          <span class="relative block">
+            <span class="material-symbols-outlined pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-base-400">search</span>
+            <input data-command-search type="search" autocomplete="off" class="h-12 w-full rounded-2xl border border-base-700 bg-base-900/90 pl-12 pr-4 text-sm font-semibold text-base-100 outline-none transition placeholder:text-base-500 focus:border-primary-300 focus:ring-2 focus:ring-primary-400/20" placeholder="Try: create weekly mission, review proofs, open disputes">
+          </span>
+        </label>
+        <div data-command-menu class="ops-command-menu absolute left-0 right-0 top-[4.6rem] z-40 hidden max-h-80 overflow-y-auto rounded-2xl border border-base-700 bg-base-950 p-2 shadow-2xl shadow-black/40">
+          <button type="button" data-command-item data-tab="create" data-keywords="create mission daily weekly headshot win streak custom" class="dc-command-item">
+            <span class="material-symbols-outlined">add_task</span>
+            <span><strong>Create Mission</strong><small>Open the guided Mission creator</small></span>
+          </button>
+          <button type="button" data-command-item data-tab="review" data-keywords="review proofs claims disputes scoring queue" class="dc-command-item">
+            <span class="material-symbols-outlined">fact_check</span>
+            <span><strong>Review Queue</strong><small>Open proof, claim, dispute, and scoring queues</small></span>
+          </button>
+          <button type="button" data-command-item data-tab="guide" data-keywords="workflow help intelligence lifecycle safety escalation" class="dc-command-item">
+            <span class="material-symbols-outlined">account_tree</span>
+            <span><strong>Workflow Intelligence</strong><small>Review lifecycle maps and operator checkpoints</small></span>
+          </button>
+          <button type="button" data-command-item data-tab="surfaces" data-keywords="admin systems models settings mission showdown bounty dropzone" class="dc-command-item">
+            <span class="material-symbols-outlined">apps</span>
+            <span><strong>Admin Systems</strong><small>Open grouped admin model surfaces</small></span>
+          </button>
+          {% for action in creation_cards %}
+            <a data-command-item data-keywords="{{ action.title }} {{ action.description }}" href="{{ action.href }}" class="dc-command-item">
+              <span class="material-symbols-outlined">{{ action.icon }}</span>
+              <span><strong>{{ action.title }}</strong><small>{{ action.description }}</small></span>
+            </a>
+          {% endfor %}
+        </div>
+        <p class="mt-2 text-xs leading-5 text-base-400">Search routes, creation flows, review queues, or admin systems. This is a launcher only; sensitive actions stay in model admins.</p>
+      </div>
+    </div>
+  </section>
+
+  <nav class="ops-workspace-nav sticky top-0 z-30 flex gap-2 overflow-x-auto rounded-3xl border border-base-800 bg-base-950/95 p-2 shadow-xl shadow-black/20 backdrop-blur" role="tablist" aria-label="Competitive operator workspace navigation">
+    <button type="button" role="tab" data-console-tab="overview" class="dc-console-tab" aria-selected="true"><span class="material-symbols-outlined">dashboard</span>Overview</button>
+    <button type="button" role="tab" data-console-tab="create" class="dc-console-tab" aria-selected="false"><span class="material-symbols-outlined">add_task</span>Create Center</button>
+    <button type="button" role="tab" data-console-tab="review" class="dc-console-tab" aria-selected="false"><span class="material-symbols-outlined">fact_check</span>Review Ops</button>
+    <button type="button" role="tab" data-console-tab="guide" class="dc-console-tab" aria-selected="false"><span class="material-symbols-outlined">account_tree</span>Workflow Intelligence</button>
+    <button type="button" role="tab" data-console-tab="surfaces" class="dc-console-tab" aria-selected="false"><span class="material-symbols-outlined">apps</span>Admin Systems</button>
+  </nav>
+
+  <section data-console-panel="overview" class="space-y-5">
+    <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+      {% for card in overview_cards %}
+        <a href="{{ card.href }}" class="ops-metric-card group rounded-2xl border border-base-800 bg-base-950 p-4 no-underline transition hover:-translate-y-0.5 hover:border-primary-400/70 hover:bg-base-900 hover:shadow-xl hover:shadow-black/20">
+          <div class="flex items-center justify-between gap-3">
+            <span class="material-symbols-outlined rounded-xl p-2 {% if card.tone == 'rose' %}bg-red-500/10 text-red-300{% elif card.tone == 'amber' %}bg-amber-500/10 text-amber-300{% elif card.tone == 'violet' %}bg-violet-500/10 text-violet-300{% else %}bg-cyan-500/10 text-cyan-300{% endif %}">{{ card.icon }}</span>
+            <span class="text-3xl font-black text-base-50">{% if card.value != None %}{{ card.value }}{% else %}&mdash;{% endif %}</span>
+          </div>
+          <p class="mt-3 text-xs font-bold uppercase tracking-wider text-base-400 group-hover:text-primary-200">{{ card.title }}</p>
+        </a>
+      {% endfor %}
+    </div>
+
+    <div class="grid gap-4 xl:grid-cols-[1.1fr_.9fr]">
+      <div class="ops-panel-card rounded-3xl border border-base-800 bg-base-950 p-5">
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p class="text-xs font-black uppercase tracking-[0.22em] text-primary-300">Need Attention Summary</p>
+            <h2 class="mt-1 text-xl font-black text-base-50">Operator queue health</h2>
+          </div>
+          <button type="button" data-console-jump="review" class="rounded-xl border border-amber-300/30 bg-amber-400/10 px-4 py-2 text-xs font-black uppercase tracking-wider text-amber-100 transition hover:border-amber-200">Open Review Ops</button>
+        </div>
+        <div class="mt-4 grid gap-3 md:grid-cols-2">
+          {% for group in priority_groups %}
+            <div class="ops-health-card rounded-2xl border border-base-800 bg-base-900/60 p-4">
+              <div class="flex items-center justify-between gap-3">
+                <span class="flex items-center gap-2 text-sm font-black text-base-50"><span class="material-symbols-outlined text-base text-primary-200">{{ group.icon }}</span>{{ group.title }}</span>
+                <span class="rounded-full border border-base-700 px-2 py-0.5 text-xs font-black text-base-300">{% if group.count != None %}{{ group.count }}{% else %}&mdash;{% endif %}</span>
+              </div>
+              <p class="mt-2 text-xs text-base-400">Health: <strong class="{% if group.health == 'overloaded' %}text-red-300{% elif group.health == 'moderate' %}text-amber-300{% else %}text-emerald-300{% endif %}">{{ group.health|title }}</strong></p>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="ops-safety-card rounded-3xl border border-amber-400/20 bg-amber-400/10 p-5">
+        <div class="flex gap-3">
+          <span class="material-symbols-outlined text-amber-300">shield_lock</span>
+          <div>
+            <h3 class="text-sm font-black text-amber-100">Operator safety protocol</h3>
+            <p class="mt-2 text-xs leading-5 text-amber-100/80">Settlement, refund, verification, and dispute resolution must remain inside service-backed admin actions. This console guides staff to the right surface without bypassing lifecycle logic.</p>
+            <div class="mt-4 grid gap-2 sm:grid-cols-2">
+              <button type="button" data-console-jump="create" class="ops-ghost-button rounded-xl border border-base-700 bg-base-950/40 px-3 py-2 text-xs font-black uppercase tracking-wider text-base-100 transition hover:border-primary-300">Create Center</button>
+              <button type="button" data-console-jump="surfaces" class="ops-ghost-button rounded-xl border border-base-700 bg-base-950/40 px-3 py-2 text-xs font-black uppercase tracking-wider text-base-100 transition hover:border-primary-300">Admin Systems</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section data-console-panel="create" class="hidden space-y-5">
+    <div class="grid gap-5 2xl:grid-cols-[minmax(0,1fr)_380px]">
+      <form id="mission-create-form" method="post" class="space-y-4">
+        {% csrf_token %}
+        <input type="hidden" name="console_action" value="create_mission">
+
+        <div class="ops-builder-intro rounded-3xl border border-base-800 bg-base-950 p-5">
+          <p class="text-xs font-black uppercase tracking-[0.22em] text-primary-300">Create Center</p>
+          <h2 class="mt-1 text-2xl font-black text-base-50">Guided Mission Builder</h2>
+          <p class="mt-2 max-w-3xl text-sm leading-6 text-base-400">A step-based creator for Mission Templates. The final save still uses existing model validation.</p>
+        </div>
+
+        <fieldset class="dc-step-card ops-step-card">
+          <legend><span>1</span>Choose preset</legend>
+          <p class="dc-step-help">Start from an operator-friendly preset, then tune the details.</p>
+          <div class="mt-4 flex flex-wrap gap-2">
+            {% for preset in mission_presets %}
+              <button type="button" class="dc-op-preset rounded-full border border-base-700 bg-base-900/80 px-3 py-1.5 text-xs font-bold text-base-300 transition hover:border-primary-300 hover:bg-primary-500/10 hover:text-primary-100"
+                      data-title="{{ preset.title }}"
+                      data-cadence="{{ preset.cadence }}"
+                      data-goal-type="{{ preset.goal_type }}"
+                      data-duration="{{ preset.duration_hours }}"
+                      data-target="{{ preset.target_value }}"
+                      data-entry="{{ preset.entry_fee_dc }}"
+                      data-reward="{{ preset.reward_dc }}"
+                      data-description="{{ preset.description }}">
+                {{ preset.name }}
+              </button>
+            {% endfor %}
+          </div>
+        </fieldset>
+
+        <div class="grid gap-4 xl:grid-cols-2">
+          <fieldset class="dc-step-card ops-step-card">
+            <legend><span>2</span>Choose game</legend>
+            <p class="dc-step-help">Keep one Mission tied to one game so proof review stays clear.</p>
+            <label class="mt-4 block">
+              <span class="mb-1 block text-xs font-bold text-base-300">Game</span>
+              <select name="mission_game" required class="dc-form-control">
+                <option value="">Select game</option>
+                {% for game in games %}
+                  <option value="{{ game.id }}">{{ game.name }}{% if game.short_code %} ({{ game.short_code }}){% endif %}</option>
+                {% endfor %}
+              </select>
+            </label>
+          </fieldset>
+
+          <fieldset class="dc-step-card ops-step-card">
+            <legend><span>3</span>Configure objective</legend>
+            <p class="dc-step-help">Use measurable objectives when possible. Custom objectives create more review work.</p>
+            <div class="mt-4 grid gap-3 sm:grid-cols-2">
+              <label class="block">
+                <span class="mb-1 block text-xs font-bold text-base-300">Mission type</span>
+                <select name="mission_goal_type" class="dc-form-control">
+                  {% for value,label in goal_type_choices %}
+                    <option value="{{ value }}">{{ label }}</option>
+                  {% endfor %}
+                </select>
+              </label>
+              <label class="block">
+                <span class="mb-1 block text-xs font-bold text-base-300">Target value</span>
+                <input name="mission_target_value" type="number" min="1" value="1" class="dc-form-control">
+              </label>
+            </div>
+          </fieldset>
+        </div>
+
+        <div class="grid gap-4 xl:grid-cols-2">
+          <fieldset class="dc-step-card ops-step-card">
+            <legend><span>4</span>Reward & rules</legend>
+            <p class="dc-step-help">Keep reward size proportional to difficulty and expected proof workload.</p>
+            <div class="mt-4 grid gap-3 sm:grid-cols-2">
+              <label class="block">
+                <span class="mb-1 block text-xs font-bold text-base-300">Entry fee DC</span>
+                <input name="mission_entry_fee_dc" type="number" min="0" value="0" class="dc-form-control">
+              </label>
+              <label class="block">
+                <span class="mb-1 block text-xs font-bold text-base-300">Reward DC</span>
+                <input name="mission_reward_dc" type="number" min="0" value="100" class="dc-form-control">
+              </label>
+            </div>
+            <label class="mt-3 block">
+              <span class="mb-1 block text-xs font-bold text-base-300">Review rule / description</span>
+              <textarea name="mission_description" rows="3" class="dc-form-control" placeholder="Explain objective, proof requirement, and review rule."></textarea>
+            </label>
+          </fieldset>
+
+          <fieldset class="dc-step-card ops-step-card">
+            <legend><span>5</span>Schedule & review</legend>
+            <p class="dc-step-help">Daily Missions usually run 24 hours. Weekly Missions usually run 168 hours.</p>
+            <div class="mt-4 grid gap-3 sm:grid-cols-2">
+              <label class="block">
+                <span class="mb-1 block text-xs font-bold text-base-300">Cadence</span>
+                <select name="mission_cadence" class="dc-form-control">
+                  <option value="daily">Daily</option>
+                  <option value="weekly">Weekly</option>
+                  <option value="one_time">One-time</option>
+                  <option value="custom">Custom</option>
+                </select>
+              </label>
+              <label class="block">
+                <span class="mb-1 block text-xs font-bold text-base-300">Duration hours</span>
+                <input name="mission_duration_hours" type="number" min="1" value="24" class="dc-form-control">
+              </label>
+              <label class="block">
+                <span class="mb-1 block text-xs font-bold text-base-300">Start time</span>
+                <input name="mission_valid_from" type="datetime-local" class="dc-form-control">
+              </label>
+              <label class="block">
+                <span class="mb-1 block text-xs font-bold text-base-300">Availability deadline</span>
+                <input name="mission_valid_until" type="datetime-local" class="dc-form-control">
+              </label>
+            </div>
+          </fieldset>
+        </div>
+
+        <fieldset class="dc-step-card ops-step-card">
+          <legend><span>6</span>Publish preview</legend>
+          <div class="grid gap-4 xl:grid-cols-[1fr_280px]">
+            <label class="block">
+              <span class="mb-1 block text-xs font-bold text-base-300">Mission title</span>
+              <input name="mission_title" required maxlength="120" class="dc-form-control" placeholder="Daily Skill Mission">
+            </label>
+            <div class="ops-preview-card rounded-2xl border border-primary-400/20 bg-primary-500/10 p-4">
+              <p class="text-[11px] font-black uppercase tracking-wider text-primary-200">Preview</p>
+              <h3 data-preview-title class="mt-1 truncate text-sm font-black text-base-50">Untitled Mission</h3>
+              <p data-preview-meta class="mt-1 text-xs text-base-400">Custom &middot; 24h &middot; 100 DC</p>
+            </div>
+          </div>
+          <div class="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <label class="flex items-center gap-2 text-sm font-bold text-base-200">
+              <input type="checkbox" name="mission_is_active" checked>
+              Active immediately
+            </label>
+            <button type="submit" class="rounded-xl bg-primary-600 px-5 py-2.5 text-xs font-black uppercase tracking-wider text-white transition hover:bg-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-300">Publish Mission Template</button>
+          </div>
+        </fieldset>
+      </form>
+
+      <aside class="space-y-4 2xl:sticky 2xl:top-24 2xl:self-start">
+        <div class="ops-assistant-card rounded-3xl border border-base-800 bg-base-950 p-5">
+          <p class="text-xs font-black uppercase tracking-[0.22em] text-primary-300">Smart Assistant</p>
+          <h3 data-assistant-heading class="mt-1 text-lg font-black text-base-50">Configure a Mission</h3>
+          <p data-assistant-copy class="mt-2 text-sm leading-6 text-base-400">Choose a preset or mission type to see review guidance.</p>
+          <div class="mt-4 grid gap-3">
+            <div class="ops-assistant-stat rounded-2xl border border-base-800 bg-base-900/60 p-3">
+              <p class="text-[11px] font-black uppercase tracking-wider text-base-400">Difficulty</p>
+              <p data-assistant-difficulty class="mt-1 text-sm font-black text-emerald-300">Low</p>
+            </div>
+            <div class="ops-assistant-stat rounded-2xl border border-base-800 bg-base-900/60 p-3">
+              <p class="text-[11px] font-black uppercase tracking-wider text-base-400">Estimated completion</p>
+              <p data-assistant-completion class="mt-1 text-sm font-black text-base-100">High</p>
+            </div>
+            <div class="ops-assistant-stat rounded-2xl border border-base-800 bg-base-900/60 p-3">
+              <p class="text-[11px] font-black uppercase tracking-wider text-base-400">Moderation load</p>
+              <p data-assistant-load class="mt-1 text-sm font-black text-base-100">Light</p>
+            </div>
+          </div>
+          <div data-assistant-warning class="mt-4 rounded-2xl border border-amber-400/20 bg-amber-400/10 p-3 text-xs leading-5 text-amber-100/80">Recommended: keep daily rewards modest and proof rules specific.</div>
+        </div>
+
+        <div class="ops-dropzone-helper rounded-3xl border border-base-800 bg-base-950 p-5">
+          <p class="text-xs font-black uppercase tracking-[0.22em] text-cyan-300">Dropzone Helper</p>
+          <p class="mt-2 text-sm leading-6 text-base-400">Dropzone lobbies need backing Tournament setup, room reveal rules, and scoring configuration.</p>
+          <form method="get" action="{{ dropzone_add_url }}" class="mt-4 grid gap-3">
+            <input name="title" class="dc-form-control" placeholder="Friday Night Dropzone">
+            <select name="game" class="dc-form-control">
+              <option value="">Select game</option>
+              {% for game in games %}
+                <option value="{{ game.id }}">{{ game.name }}{% if game.short_code %} ({{ game.short_code }}){% endif %}</option>
+              {% endfor %}
+            </select>
+            <div class="grid grid-cols-2 gap-3">
+              <input name="slot_capacity" type="number" min="1" value="100" class="dc-form-control" placeholder="Slots">
+              <input name="entry_fee_dc" type="number" min="0" value="0" class="dc-form-control" placeholder="Entry DC">
+            </div>
+            <input type="hidden" name="status" value="ANNOUNCED">
+            <button class="rounded-xl border border-cyan-300/40 bg-cyan-500/10 px-4 py-2.5 text-xs font-black uppercase tracking-wider text-cyan-100 transition hover:border-cyan-200 hover:bg-cyan-500/15">Open Dropzone Add Form</button>
+          </form>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <section data-console-panel="review" class="hidden space-y-5">
+    <div class="ops-panel-card rounded-3xl border border-base-800 bg-base-950 p-5">
+      <div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p class="text-xs font-black uppercase tracking-[0.22em] text-amber-300">Review Ops</p>
+          <h2 class="mt-1 text-xl font-black text-base-50">Grouped urgency queue</h2>
+          <p class="mt-1 text-sm text-base-400">Every item links to its existing admin surface. No direct settlement shortcuts are exposed here.</p>
+        </div>
+        <span class="rounded-full border border-base-700 px-3 py-1 text-xs font-black text-base-300">{{ priority_items|length }} shown</span>
+      </div>
+    </div>
+
+    <div class="grid gap-4 xl:grid-cols-2">
+      {% for group in priority_groups %}
+        <section class="ops-review-lane rounded-3xl border border-base-800 bg-base-950 p-5">
+          <div class="flex items-start justify-between gap-4">
+            <div class="flex gap-3">
+              <span class="material-symbols-outlined rounded-xl bg-base-800 p-2 text-base-200">{{ group.icon }}</span>
+              <div>
+                <h3 class="text-base font-black text-base-50">{{ group.title }}</h3>
+                <p class="mt-1 text-xs leading-5 text-base-400">{{ group.description }}</p>
+              </div>
+            </div>
+            <span class="ops-count-chip rounded-full border border-base-700 px-2.5 py-1 text-xs font-black text-base-300">{% if group.count != None %}{{ group.count }}{% else %}&mdash;{% endif %}</span>
+          </div>
+          <div class="mt-4 grid gap-2 sm:grid-cols-2">
+            <div class="ops-lane-meta rounded-xl border border-base-800 bg-base-900/60 p-3 text-xs text-base-300">Workload: <strong class="{% if group.health == 'overloaded' %}text-red-300{% elif group.health == 'moderate' %}text-amber-300{% else %}text-emerald-300{% endif %}">{{ group.health|title }}</strong></div>
+            <div class="ops-lane-meta rounded-xl border border-base-800 bg-base-900/60 p-3 text-xs text-base-300">Last resolved: <strong class="text-base-100">{{ group.last_resolved }}</strong></div>
+          </div>
+          <div class="mt-4 space-y-3">
+            {% if group.items %}
+              {% for item in group.items %}
+                <a href="{{ item.href }}" class="ops-review-item group block rounded-2xl border border-base-800 bg-base-900/60 p-4 no-underline transition hover:border-primary-400/70 hover:bg-base-900">
+                  <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div class="min-w-0">
+                      <div class="flex flex-wrap items-center gap-2">
+                        <span class="rounded-full border border-base-700 px-2 py-0.5 text-[11px] font-black uppercase tracking-wider text-base-400">{{ item.type }}</span>
+                        <span class="text-[11px] font-semibold text-base-400">{{ item.when }}</span>
+                      </div>
+                      <h4 class="mt-2 truncate text-sm font-black text-base-50 group-hover:text-primary-200">{{ item.title }}</h4>
+                      <p class="mt-1 text-xs leading-5 text-base-400">{{ item.next_step }}</p>
+                    </div>
+                    <span class="shrink-0 rounded-lg border border-base-700 px-2.5 py-1 text-xs font-bold text-base-300">{{ item.status }}</span>
+                  </div>
+                </a>
+              {% endfor %}
+            {% else %}
+              <div class="ops-empty-state rounded-2xl border border-dashed border-base-700 bg-base-900/40 p-6 text-center">
+                <span class="material-symbols-outlined text-4xl text-base-400">verified</span>
+                <p class="mt-2 text-sm font-black text-base-200">Queue is clear</p>
+                <p class="mt-1 text-xs text-base-400">No operator action is needed for this lane.</p>
+              </div>
+            {% endif %}
+          </div>
+        </section>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section data-console-panel="guide" class="hidden space-y-5">
+    <div class="grid gap-4 xl:grid-cols-2">
+      {% for flow in workflow_steps %}
+        <article class="ops-workflow-card rounded-3xl border border-base-800 bg-base-950 p-5">
+          <div class="flex items-start justify-between gap-3">
+            <div class="flex items-center gap-3">
+              <span class="material-symbols-outlined rounded-xl bg-primary-500/10 p-2 text-primary-200">{{ flow.icon }}</span>
+              <div>
+                <h3 class="text-lg font-black text-base-50">{{ flow.title }}</h3>
+                <p class="mt-1 text-sm leading-6 text-base-400">{{ flow.description }}</p>
+              </div>
+            </div>
+            <span class="rounded-full border border-base-700 px-2 py-0.5 text-[11px] font-black uppercase tracking-wider text-base-300">{{ flow.review_time }}</span>
+          </div>
+          <div class="mt-5 grid gap-2 sm:grid-cols-5">
+            {% for step in flow.steps %}
+              <div class="ops-flow-step rounded-2xl border border-base-800 bg-base-900/60 p-3 text-center">
+                <span class="mx-auto flex h-7 w-7 items-center justify-center rounded-full border border-primary-400/30 bg-primary-500/10 text-xs font-black text-primary-200">{{ forloop.counter }}</span>
+                <p class="mt-2 text-xs font-bold text-base-300">{{ step }}</p>
+              </div>
+            {% endfor %}
+          </div>
+          <div class="mt-5 grid gap-3 md:grid-cols-2">
+            <div class="ops-intel-card rounded-2xl border border-base-800 bg-base-900/60 p-4 text-xs leading-5 text-base-300"><strong class="block text-base-100">Operator checkpoint</strong>{{ flow.checkpoint }}</div>
+            <div class="ops-intel-card rounded-2xl border border-base-800 bg-base-900/60 p-4 text-xs leading-5 text-base-300"><strong class="block text-base-100">Common operator error</strong>{{ flow.operator_error }}</div>
+            <div class="ops-intel-card rounded-2xl border border-base-800 bg-base-900/60 p-4 text-xs leading-5 text-base-300"><strong class="block text-base-100">Escalation rule</strong>{{ flow.escalation }}</div>
+            <div class="ops-intel-card ops-intel-card--warning rounded-2xl border border-amber-400/20 bg-amber-400/10 p-4 text-xs leading-5 text-amber-100/80"><strong class="block text-amber-100">Settlement dependency</strong>{{ flow.dependency }}</div>
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section data-console-panel="surfaces" class="hidden space-y-5">
+    <div class="grid gap-4 xl:grid-cols-2">
+      {% for group in surface_groups %}
+        <section class="ops-system-card rounded-3xl border border-base-800 bg-base-950 p-5">
+          <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h3 class="text-lg font-black text-base-50">{{ group.title }}</h3>
+              <p class="mt-1 text-xs leading-5 text-base-400">{{ group.purpose }}</p>
+              <p class="mt-2 text-[11px] font-bold uppercase tracking-wider text-base-500">{{ group.entities }}</p>
+            </div>
+            <span class="ops-risk-chip {% if group.risk == 'High' %}ops-risk-chip--high{% else %}ops-risk-chip--medium{% endif %}">{{ group.risk }} Risk</span>
+          </div>
+          <div class="mt-4 grid gap-3">
+            {% for card in group.cards %}
+              <a href="{{ card.href }}" class="ops-system-row group flex items-center justify-between gap-4 rounded-2xl border border-base-800 bg-base-900/60 p-4 no-underline transition hover:border-primary-400/70 hover:bg-base-900">
+                <span class="flex min-w-0 items-center gap-3">
+                  <span class="material-symbols-outlined rounded-xl bg-primary-500/10 p-2 text-primary-200">{{ card.icon }}</span>
+                  <span class="min-w-0">
+                    <span class="block truncate text-sm font-black text-base-50 group-hover:text-primary-200">{{ card.title }}</span>
+                    <span class="block truncate text-xs text-base-400">{{ card.description }}</span>
+                  </span>
+                </span>
+                {% if card.count != None %}<span class="ops-count-chip rounded-full border border-base-700 px-2.5 py-1 text-xs font-black text-base-300">{{ card.count }}</span>{% endif %}
+              </a>
+            {% endfor %}
+          </div>
+        </section>
+      {% endfor %}
+    </div>
+  </section>
+</div>
+
+<style>
+  .competitive-ops-console {
+    --ops-bg: #05070c;
+    --ops-surface: rgba(13, 18, 30, 0.92);
+    --ops-surface-2: rgba(18, 25, 40, 0.86);
+    --ops-surface-3: rgba(25, 33, 52, 0.76);
+    --ops-border: rgba(148, 163, 184, 0.16);
+    --ops-border-strong: rgba(125, 211, 252, 0.34);
+    --ops-text: #f8fafc;
+    --ops-muted: #aab6c6;
+    --ops-dim: #758297;
+    --ops-primary: #60a5fa;
+    --ops-primary-strong: #93c5fd;
+    --ops-cyan: #67e8f9;
+    --ops-amber: #fbbf24;
+    --ops-red: #f87171;
+    --ops-green: #34d399;
+    color: var(--ops-text);
+    isolation: isolate;
+    margin-inline: auto;
+    max-width: 100%;
+    padding: clamp(10px, 1.2vw, 18px);
+    position: relative;
+  }
+
+  .competitive-ops-console::before {
+    background:
+      radial-gradient(circle at 18% 0%, rgba(37, 99, 235, 0.16), transparent 26rem),
+      radial-gradient(circle at 88% 14%, rgba(6, 182, 212, 0.12), transparent 24rem),
+      linear-gradient(180deg, rgba(15, 23, 42, 0.38), rgba(2, 6, 23, 0.18));
+    border-radius: 34px;
+    content: "";
+    inset: 0;
+    pointer-events: none;
+    position: absolute;
+    z-index: -1;
+  }
+
+  .competitive-ops-console *,
+  .competitive-ops-console *::before,
+  .competitive-ops-console *::after {
+    box-sizing: border-box;
+  }
+
+  .competitive-ops-console > section:first-of-type {
+    background:
+      radial-gradient(circle at 82% 8%, rgba(96, 165, 250, 0.22), transparent 34%),
+      radial-gradient(circle at 8% 0%, rgba(103, 232, 249, 0.12), transparent 30%),
+      linear-gradient(145deg, rgba(15, 23, 42, 0.96), rgba(3, 7, 18, 0.98)) !important;
+    border: 1px solid rgba(125, 211, 252, 0.22) !important;
+    border-radius: 28px !important;
+    box-shadow: 0 22px 70px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
+    padding: clamp(18px, 2.5vw, 28px) !important;
+  }
+
+  .competitive-ops-console h1,
+  .competitive-ops-console h2,
+  .competitive-ops-console h3,
+  .competitive-ops-console h4 {
+    color: var(--ops-text) !important;
+    letter-spacing: 0;
+  }
+
+  .competitive-ops-console p,
+  .competitive-ops-console small,
+  .competitive-ops-console label,
+  .competitive-ops-console span {
+    text-rendering: geometricPrecision;
+  }
+
+  .competitive-ops-console .material-symbols-outlined {
+    font-variation-settings: "FILL" 0, "wght" 500, "GRAD" 0, "opsz" 24;
+    line-height: 1;
+  }
+
+  .ops-hero {
+    min-height: 190px;
+  }
+
+  .ops-status-card,
+  .ops-command-shell,
+  .ops-panel-card,
+  .ops-metric-card,
+  .ops-health-card,
+  .ops-safety-card,
+  .ops-builder-intro,
+  .ops-assistant-card,
+  .ops-dropzone-helper,
+  .ops-review-lane,
+  .ops-workflow-card,
+  .ops-system-card {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .ops-status-card::before,
+  .ops-metric-card::before,
+  .ops-panel-card::before,
+  .ops-review-lane::before,
+  .ops-workflow-card::before,
+  .ops-system-card::before,
+  .ops-assistant-card::before,
+  .ops-builder-intro::before {
+    background: linear-gradient(90deg, rgba(96, 165, 250, 0.62), rgba(103, 232, 249, 0.24), transparent);
+    content: "";
+    height: 1px;
+    left: 18px;
+    opacity: 0.7;
+    position: absolute;
+    right: 18px;
+    top: 0;
+  }
+
+  .ops-status-card {
+    min-height: 76px;
+  }
+
+  .ops-status-card p:first-child,
+  .ops-metric-card p,
+  .ops-panel-card p:first-child,
+  .ops-builder-intro p:first-child,
+  .ops-assistant-card p:first-child,
+  .ops-dropzone-helper p:first-child {
+    color: var(--ops-muted) !important;
+  }
+
+  .ops-metric-card {
+    min-height: 136px;
+  }
+
+  .ops-metric-card .material-symbols-outlined {
+    align-items: center;
+    border: 1px solid rgba(148, 163, 184, 0.14);
+    display: inline-flex;
+    height: 42px;
+    justify-content: center;
+    width: 42px;
+  }
+
+  .ops-health-card,
+  .ops-lane-meta,
+  .ops-assistant-stat,
+  .ops-flow-step,
+  .ops-intel-card,
+  .ops-system-row,
+  .ops-preview-card {
+    background: rgba(8, 13, 24, 0.66) !important;
+    border: 1px solid rgba(148, 163, 184, 0.13) !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
+  }
+
+  .ops-safety-card {
+    background:
+      radial-gradient(circle at 100% 0%, rgba(251, 191, 36, 0.14), transparent 32%),
+      linear-gradient(180deg, rgba(120, 53, 15, 0.2), rgba(15, 23, 42, 0.82)) !important;
+  }
+
+  .ops-ghost-button {
+    background: rgba(15, 23, 42, 0.68) !important;
+    border-color: rgba(148, 163, 184, 0.2) !important;
+    color: #e2e8f0 !important;
+  }
+
+  .ops-ghost-button:hover {
+    background: rgba(37, 99, 235, 0.14) !important;
+    border-color: rgba(147, 197, 253, 0.42) !important;
+  }
+
+  .competitive-ops-console > section:first-of-type .rounded-2xl,
+  .competitive-ops-console [data-console-panel] .rounded-2xl,
+  .competitive-ops-console [data-console-panel] .rounded-3xl {
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.012)),
+      var(--ops-surface-2) !important;
+    border-color: var(--ops-border) !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.045), 0 14px 34px rgba(0, 0, 0, 0.22);
+  }
+
+  .competitive-ops-console a,
+  .competitive-ops-console button {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .competitive-ops-console a {
+    text-decoration: none !important;
+  }
+
+  .competitive-ops-console [data-console-panel] a,
+  .competitive-ops-console [data-console-panel] button,
+  .competitive-ops-console .dc-op-preset {
+    transition: transform 160ms ease, border-color 160ms ease, background-color 160ms ease, box-shadow 160ms ease, color 160ms ease;
+  }
+
+  .competitive-ops-console [data-console-panel] a:hover,
+  .competitive-ops-console [data-console-panel] button:hover,
+  .competitive-ops-console .dc-op-preset:hover {
+    transform: translateY(-2px);
+  }
+
+  .competitive-ops-console [data-console-panel] a:focus-visible,
+  .competitive-ops-console [data-console-panel] button:focus-visible,
+  .competitive-ops-console input:focus-visible,
+  .competitive-ops-console select:focus-visible,
+  .competitive-ops-console textarea:focus-visible {
+    outline: 2px solid rgba(147, 197, 253, 0.9) !important;
+    outline-offset: 3px;
+  }
+
+  .competitive-ops-console [data-command-search] {
+    background: rgba(8, 13, 24, 0.9) !important;
+    border: 1px solid rgba(125, 211, 252, 0.22) !important;
+    border-radius: 18px !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 12px 34px rgba(0, 0, 0, 0.28);
+    color: var(--ops-text) !important;
+    height: 50px;
+  }
+
+  .competitive-ops-console [data-command-search]:focus {
+    border-color: rgba(147, 197, 253, 0.72) !important;
+    box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.16), 0 18px 44px rgba(37, 99, 235, 0.18);
+  }
+
+  .competitive-ops-console [data-command-menu] {
+    background: rgba(5, 10, 20, 0.98) !important;
+    border: 1px solid rgba(125, 211, 252, 0.28) !important;
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.56), inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
+  }
+
+  .competitive-ops-console > nav {
+    background: rgba(5, 10, 20, 0.86) !important;
+    backdrop-filter: blur(18px);
+    border: 1px solid rgba(125, 211, 252, 0.2) !important;
+    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
+    top: 10px !important;
+  }
+
+  .dc-console-tab {
+    align-items: center;
+    background: rgba(15, 23, 42, 0.44);
+    border: 1px solid transparent;
+    border-radius: 16px;
+    color: var(--ops-muted);
+    display: inline-flex;
+    flex: 0 0 auto;
+    font-size: 0.75rem;
+    font-weight: 900;
+    gap: 0.5rem;
+    letter-spacing: 0.07em;
+    min-height: 2.85rem;
+    padding: 0.78rem 1rem;
+    text-transform: uppercase;
+    transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease, transform 160ms ease, box-shadow 160ms ease;
+    white-space: nowrap;
+  }
+
+  .dc-console-tab .material-symbols-outlined {
+    color: var(--ops-dim);
+    font-size: 1.08rem;
+    transition: color 160ms ease;
+  }
+
+  .dc-console-tab[aria-selected="true"] {
+    background: linear-gradient(180deg, rgba(37, 99, 235, 0.3), rgba(37, 99, 235, 0.16));
+    border-color: rgba(147, 197, 253, 0.56);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 0 0 1px rgba(147, 197, 253, 0.16), 0 0 34px rgba(37, 99, 235, 0.2);
+    color: #eff6ff;
+  }
+
+  .dc-console-tab[aria-selected="true"] .material-symbols-outlined {
+    color: var(--ops-primary-strong);
+  }
+
+  .dc-console-tab:hover {
+    background: rgba(30, 41, 59, 0.72);
+    border-color: rgba(148, 163, 184, 0.32);
+    color: var(--ops-text);
+    transform: translateY(-1px);
+  }
+
+  .dc-console-tab:focus-visible {
+    outline: 2px solid rgba(147, 197, 253, 0.85);
+    outline-offset: 2px;
+  }
+
+  .dc-command-item {
+    align-items: center;
+    border: 1px solid transparent;
+    border-radius: 16px;
+    color: #e5edf8;
+    display: flex;
+    gap: 0.75rem;
+    padding: 0.8rem;
+    text-align: left;
+    text-decoration: none;
+    width: 100%;
+  }
+
+  .dc-command-item:hover,
+  .dc-command-item:focus-visible {
+    background: rgba(37, 99, 235, 0.14);
+    border-color: rgba(147, 197, 253, 0.22);
+    color: #eff6ff;
+    outline: none;
+  }
+
+  .dc-command-item .material-symbols-outlined {
+    background: rgba(37, 99, 235, 0.14);
+    border: 1px solid rgba(147, 197, 253, 0.14);
+    border-radius: 0.8rem;
+    color: #bfdbfe;
+    padding: 0.45rem;
+  }
+
+  .dc-command-item strong,
+  .dc-command-item small {
+    display: block;
+  }
+
+  .dc-command-item strong {
+    color: var(--ops-text);
+    font-size: 0.86rem;
+    font-weight: 900;
+  }
+
+  .dc-command-item small {
+    color: var(--ops-muted);
+    font-size: 0.75rem;
+    line-height: 1.35;
+    margin-top: 0.12rem;
+  }
+
+  .competitive-ops-console [data-console-panel] {
+    animation: dcConsolePanelIn 180ms ease-out;
+  }
+
+  .competitive-ops-console [data-console-panel] > .grid > a,
+  .competitive-ops-console [data-console-panel] > .grid > section,
+  .competitive-ops-console [data-console-panel] > .grid > div,
+  .competitive-ops-console [data-console-panel] > form,
+  .competitive-ops-console [data-console-panel] aside > div,
+  .competitive-ops-console [data-console-panel] article {
+    background:
+      radial-gradient(circle at top right, rgba(96, 165, 250, 0.08), transparent 38%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.012)),
+      var(--ops-surface) !important;
+    border: 1px solid var(--ops-border) !important;
+    box-shadow: 0 18px 48px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.045);
+  }
+
+  .competitive-ops-console [data-console-panel] > .grid > a:hover,
+  .competitive-ops-console [data-console-panel] a.group:hover {
+    border-color: rgba(125, 211, 252, 0.34) !important;
+    box-shadow: 0 20px 56px rgba(0, 0, 0, 0.34), 0 0 28px rgba(37, 99, 235, 0.12);
+  }
+
+  .competitive-ops-console [data-console-panel="overview"] > .grid:first-child a {
+    min-height: 132px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .competitive-ops-console [data-console-panel="overview"] > .grid:first-child a::after {
+    background: linear-gradient(90deg, transparent, rgba(125, 211, 252, 0.26), transparent);
+    content: "";
+    height: 1px;
+    left: 18px;
+    opacity: 0.45;
+    position: absolute;
+    right: 18px;
+    top: 0;
+  }
+
+  .competitive-ops-console .dc-op-preset {
+    background: rgba(15, 23, 42, 0.72) !important;
+    border-color: rgba(148, 163, 184, 0.22) !important;
+    color: #dbeafe !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  }
+
+  .competitive-ops-console .dc-op-preset:hover {
+    background: rgba(37, 99, 235, 0.18) !important;
+    border-color: rgba(147, 197, 253, 0.46) !important;
+    box-shadow: 0 12px 26px rgba(37, 99, 235, 0.12);
+  }
+
+  .dc-step-card {
+    background:
+      radial-gradient(circle at 100% 0%, rgba(96, 165, 250, 0.085), transparent 36%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.012)),
+      rgba(12, 18, 30, 0.92) !important;
+    border: 1px solid rgba(148, 163, 184, 0.16) !important;
+    border-radius: 24px;
+    box-shadow: 0 16px 42px rgba(0, 0, 0, 0.26), inset 0 1px 0 rgba(255, 255, 255, 0.045);
+    padding: clamp(16px, 2vw, 22px);
+  }
+
+  .dc-step-card legend {
+    align-items: center;
+    color: var(--ops-text);
+    display: inline-flex;
+    font-size: 0.78rem;
+    font-weight: 900;
+    gap: 0.6rem;
+    letter-spacing: 0.08em;
+    padding: 0 0.25rem;
+    text-transform: uppercase;
+  }
+
+  .dc-step-card legend span {
+    align-items: center;
+    background: linear-gradient(180deg, rgba(37, 99, 235, 0.38), rgba(37, 99, 235, 0.18));
+    border: 1px solid rgba(147, 197, 253, 0.44);
+    border-radius: 999px;
+    box-shadow: 0 0 20px rgba(37, 99, 235, 0.18);
+    color: #dbeafe;
+    display: inline-flex;
+    height: 1.7rem;
+    justify-content: center;
+    width: 1.7rem;
+  }
+
+  .dc-step-help {
+    color: var(--ops-muted);
+    font-size: 0.82rem;
+    line-height: 1.6;
+    margin-top: 0.55rem;
+  }
+
+  .dc-form-control {
+    background: rgba(3, 7, 18, 0.9) !important;
+    border: 1px solid rgba(148, 163, 184, 0.2) !important;
+    border-radius: 14px;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
+    color: var(--ops-text) !important;
+    font-size: 0.875rem;
+    outline: none;
+    padding: 0.72rem 0.8rem;
+    transition: border-color 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
+    width: 100%;
+  }
+
+  .dc-form-control::placeholder {
+    color: #64748b;
+  }
+
+  .dc-form-control:focus {
+    background: rgba(2, 6, 23, 0.98) !important;
+    border-color: rgba(96, 165, 250, 0.78) !important;
+    box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  }
+
+  .competitive-ops-console [data-assistant-warning],
+  .competitive-ops-console [data-console-panel="overview"] .border-amber-400\/20,
+  .competitive-ops-console [data-console-panel="guide"] .border-amber-400\/20 {
+    background: linear-gradient(180deg, rgba(251, 191, 36, 0.13), rgba(251, 191, 36, 0.06)) !important;
+    border-color: rgba(251, 191, 36, 0.28) !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035), 0 16px 38px rgba(120, 53, 15, 0.12);
+  }
+
+  .competitive-ops-console [data-console-panel="review"] section,
+  .competitive-ops-console [data-console-panel="surfaces"] section,
+  .competitive-ops-console [data-console-panel="guide"] article {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .competitive-ops-console [data-console-panel="review"] section::before,
+  .competitive-ops-console [data-console-panel="surfaces"] section::before,
+  .competitive-ops-console [data-console-panel="guide"] article::before {
+    background: linear-gradient(90deg, rgba(96, 165, 250, 0.5), rgba(103, 232, 249, 0.18), transparent);
+    content: "";
+    height: 1px;
+    left: 18px;
+    opacity: 0.55;
+    position: absolute;
+    right: 18px;
+    top: 0;
+  }
+
+  .competitive-ops-console [data-console-panel="review"] .border-dashed {
+    background: radial-gradient(circle at center top, rgba(52, 211, 153, 0.08), transparent 42%), rgba(15, 23, 42, 0.64) !important;
+    border-color: rgba(52, 211, 153, 0.2) !important;
+  }
+
+  .competitive-ops-console [data-console-panel="surfaces"] span.w-fit {
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  }
+
+  .ops-risk-chip {
+    align-items: center;
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    border-radius: 999px;
+    display: inline-flex;
+    flex: 0 0 auto;
+    font-size: 0.68rem;
+    font-weight: 900;
+    justify-content: center;
+    letter-spacing: 0.08em;
+    line-height: 1;
+    padding: 0.48rem 0.7rem;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .ops-risk-chip--high {
+    background: linear-gradient(180deg, rgba(248, 113, 113, 0.15), rgba(248, 113, 113, 0.07));
+    border-color: rgba(248, 113, 113, 0.28);
+    color: #fecaca;
+  }
+
+  .ops-risk-chip--medium {
+    background: linear-gradient(180deg, rgba(251, 191, 36, 0.15), rgba(251, 191, 36, 0.07));
+    border-color: rgba(251, 191, 36, 0.28);
+    color: #fde68a;
+  }
+
+  .ops-review-lane {
+    min-height: 320px;
+  }
+
+  .ops-review-item {
+    background:
+      linear-gradient(90deg, rgba(96, 165, 250, 0.08), transparent 34%),
+      rgba(8, 13, 24, 0.72) !important;
+  }
+
+  .ops-empty-state {
+    background:
+      radial-gradient(circle at center top, rgba(52, 211, 153, 0.12), transparent 42%),
+      rgba(8, 13, 24, 0.58) !important;
+    border-color: rgba(52, 211, 153, 0.24) !important;
+    min-height: 148px;
+  }
+
+  .ops-workflow-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+
+  .ops-flow-step {
+    min-height: 92px;
+  }
+
+  .ops-flow-step span {
+    box-shadow: 0 0 20px rgba(37, 99, 235, 0.18);
+  }
+
+  .ops-intel-card strong {
+    margin-bottom: 0.35rem;
+  }
+
+  .ops-intel-card--warning {
+    background:
+      linear-gradient(180deg, rgba(251, 191, 36, 0.12), rgba(251, 191, 36, 0.05)) !important;
+    border-color: rgba(251, 191, 36, 0.26) !important;
+  }
+
+  .ops-system-card {
+    min-height: 260px;
+  }
+
+  .ops-system-row {
+    background:
+      linear-gradient(90deg, rgba(96, 165, 250, 0.07), transparent 38%),
+      rgba(8, 13, 24, 0.66) !important;
+    border-color: rgba(148, 163, 184, 0.14) !important;
+  }
+
+  .ops-system-row:hover {
+    background:
+      linear-gradient(90deg, rgba(96, 165, 250, 0.14), transparent 44%),
+      rgba(15, 23, 42, 0.82) !important;
+  }
+
+  .ops-count-chip {
+    background: rgba(15, 23, 42, 0.84) !important;
+    border-color: rgba(148, 163, 184, 0.22) !important;
+    color: #dbeafe !important;
+  }
+
+  .ops-preview-card {
+    background:
+      radial-gradient(circle at 100% 0%, rgba(96, 165, 250, 0.16), transparent 44%),
+      rgba(37, 99, 235, 0.1) !important;
+    border-color: rgba(147, 197, 253, 0.26) !important;
+  }
+
+  .ops-assistant-card {
+    background:
+      radial-gradient(circle at top right, rgba(103, 232, 249, 0.09), transparent 38%),
+      linear-gradient(180deg, rgba(15, 23, 42, 0.96), rgba(8, 13, 24, 0.96)) !important;
+  }
+
+  .ops-dropzone-helper {
+    background:
+      radial-gradient(circle at top right, rgba(6, 182, 212, 0.12), transparent 36%),
+      linear-gradient(180deg, rgba(15, 23, 42, 0.95), rgba(8, 13, 24, 0.96)) !important;
+  }
+
+  @keyframes dcConsolePanelIn {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @media (max-width: 1100px) {
+    .competitive-ops-console > nav {
+      border-radius: 22px !important;
+      top: 6px !important;
+    }
+
+    .dc-console-tab {
+      padding-inline: 0.85rem;
+    }
+  }
+
+  @media (max-width: 760px) {
+    .competitive-ops-console > section:first-of-type {
+      border-radius: 22px !important;
+    }
+
+    .competitive-ops-console [data-console-panel] > .grid {
+      grid-template-columns: minmax(0, 1fr) !important;
+    }
+
+    .competitive-ops-console [data-command-menu] {
+      position: fixed !important;
+      left: 1rem !important;
+      right: 1rem !important;
+      top: auto !important;
+      bottom: 1rem !important;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .dc-console-tab,
+    .dc-command-item,
+    .dc-form-control,
+    .competitive-ops-console [data-console-panel],
+    .competitive-ops-console [data-console-panel] a,
+    .competitive-ops-console [data-console-panel] button,
+    .competitive-ops-console .dc-op-preset {
+      animation: none !important;
+      transition: none !important;
+    }
+  }
+</style>
+
+<script nonce="{{ request.csp_nonce }}">
+(function () {
+  var root = document.querySelector('[data-console-tabs]');
+  if (!root) return;
+
+  var tabs = Array.prototype.slice.call(root.querySelectorAll('[data-console-tab]'));
+  var panels = Array.prototype.slice.call(root.querySelectorAll('[data-console-panel]'));
+  var aliases = {
+    queue: 'review',
+    workflows: 'guide',
+    workflow: 'guide',
+    admin: 'surfaces',
+    systems: 'surfaces',
+    surface: 'surfaces',
+    admin_surfaces: 'surfaces'
+  };
+
+  function normalize(key) {
+    key = String(key || '').replace(/^#/, '').trim().toLowerCase();
+    return aliases[key] || key || 'overview';
+  }
+
+  function activate(rawKey, pushHash) {
+    var key = normalize(rawKey);
+    var hasPanel = panels.some(function (panel) {
+      return panel.getAttribute('data-console-panel') === key;
+    });
+    if (!hasPanel) key = 'overview';
+
+    tabs.forEach(function (tab) {
+      var active = tab.getAttribute('data-console-tab') === key;
+      tab.setAttribute('aria-selected', active ? 'true' : 'false');
+    });
+    panels.forEach(function (panel) {
+      var active = panel.getAttribute('data-console-panel') === key;
+      panel.classList.toggle('hidden', !active);
+    });
+
+    if (pushHash && window.location.hash !== '#' + key) {
+      history.replaceState(null, '', '#' + key);
+    }
+  }
+
+  tabs.forEach(function (tab) {
+    tab.addEventListener('click', function () {
+      activate(tab.getAttribute('data-console-tab'), true);
+    });
+    tab.addEventListener('keydown', function (event) {
+      if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') return;
+      event.preventDefault();
+      var index = tabs.indexOf(tab);
+      var offset = event.key === 'ArrowRight' ? 1 : -1;
+      var next = tabs[(index + offset + tabs.length) % tabs.length];
+      next.focus();
+      activate(next.getAttribute('data-console-tab'), true);
+    });
+  });
+
+  root.querySelectorAll('[data-console-jump]').forEach(function (button) {
+    button.addEventListener('click', function () {
+      activate(button.getAttribute('data-console-jump'), true);
+      root.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  });
+
+  window.addEventListener('hashchange', function () {
+    activate(window.location.hash, false);
+  });
+
+  var commandInput = root.querySelector('[data-command-search]');
+  var commandMenu = root.querySelector('[data-command-menu]');
+  var commandItems = Array.prototype.slice.call(root.querySelectorAll('[data-command-item]'));
+  function filterCommands() {
+    if (!commandInput || !commandMenu) return;
+    var query = commandInput.value.trim().toLowerCase();
+    commandMenu.classList.toggle('hidden', !query);
+    commandItems.forEach(function (item) {
+      var haystack = (item.getAttribute('data-keywords') || item.textContent || '').toLowerCase();
+      item.classList.toggle('hidden', query && haystack.indexOf(query) === -1);
+    });
+  }
+  if (commandInput) {
+    commandInput.addEventListener('input', filterCommands);
+    commandInput.addEventListener('focus', filterCommands);
+    commandInput.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape') {
+        commandInput.value = '';
+        filterCommands();
+        commandInput.blur();
+      }
+    });
+  }
+  commandItems.forEach(function (item) {
+    item.addEventListener('click', function () {
+      var tab = item.getAttribute('data-tab');
+      if (tab) {
+        activate(tab, true);
+        if (commandInput) commandInput.value = '';
+        filterCommands();
+      }
+    });
+  });
+  document.addEventListener('click', function (event) {
+    if (!commandMenu || !commandInput) return;
+    if (!commandMenu.contains(event.target) && event.target !== commandInput) {
+      commandMenu.classList.add('hidden');
+    }
+  });
+
+  var form = document.getElementById('mission-create-form');
+  var missionCopy = {
+    TOP_N_FINISH: 'Placement objectives work best for battle royale formats. Ask for a clear result screenshot.',
+    WIN_STREAK: 'Win streak Missions are harder. Use a longer duration and a stronger review rule.',
+    MATCHES_PLAYED: 'Matches played Missions are beginner-friendly and usually low moderation load.',
+    KILL_THRESHOLD: 'Kill objectives need clear screenshots or match history proof.',
+    CUSTOM: 'Custom Missions are flexible but need the clearest proof instructions.'
+  };
+
+  function formValue(name, fallback) {
+    if (!form || !form.elements[name]) return fallback;
+    return form.elements[name].value || fallback;
+  }
+
+  function updateAssistant() {
+    if (!form) return;
+    var title = formValue('mission_title', 'Untitled Mission');
+    var cadence = formValue('mission_cadence', 'custom');
+    var goalType = formValue('mission_goal_type', 'CUSTOM');
+    var duration = parseInt(formValue('mission_duration_hours', '24'), 10) || 24;
+    var target = parseInt(formValue('mission_target_value', '1'), 10) || 1;
+    var reward = parseInt(formValue('mission_reward_dc', '0'), 10) || 0;
+    var entry = parseInt(formValue('mission_entry_fee_dc', '0'), 10) || 0;
+
+    var difficulty = 'Low';
+    if (goalType === 'WIN_STREAK' || target >= 10 || reward >= 500) difficulty = 'Medium';
+    if (target >= 20 || reward >= 1000 || (goalType === 'CUSTOM' && reward >= 500)) difficulty = 'High';
+
+    var completion = 'High';
+    if (difficulty === 'Medium' || duration < 24) completion = 'Moderate';
+    if (difficulty === 'High' || duration < 12) completion = 'Lower';
+
+    var load = 'Light';
+    if (goalType === 'CUSTOM' || goalType === 'KILL_THRESHOLD' || reward >= 500) load = 'Moderate';
+    if (reward >= 1000 || entry > 0) load = 'Heavy';
+
+    var warning = 'Recommended: keep daily rewards modest and proof rules specific.';
+    if (entry > 0) warning = 'Entry fee is enabled. Confirm this Mission is intended to use an entry requirement.';
+    else if (reward >= 1000) warning = 'High reward: use specific proof rules and consider weekly/custom cadence.';
+    else if (goalType === 'CUSTOM') warning = 'Custom objective: write exact proof requirements before publishing.';
+    else if (cadence === 'daily' && duration > 48) warning = 'Daily cadence usually works best around 24 hours.';
+
+    var heading = root.querySelector('[data-assistant-heading]');
+    var copy = root.querySelector('[data-assistant-copy]');
+    var difficultyNode = root.querySelector('[data-assistant-difficulty]');
+    var completionNode = root.querySelector('[data-assistant-completion]');
+    var loadNode = root.querySelector('[data-assistant-load]');
+    var warningNode = root.querySelector('[data-assistant-warning]');
+    var previewTitle = root.querySelector('[data-preview-title]');
+    var previewMeta = root.querySelector('[data-preview-meta]');
+
+    if (heading) heading.textContent = cadence.charAt(0).toUpperCase() + cadence.slice(1).replace('_', '-') + ' Mission';
+    if (copy) copy.textContent = missionCopy[goalType] || missionCopy.CUSTOM;
+    if (difficultyNode) {
+      difficultyNode.textContent = difficulty;
+      difficultyNode.className = 'mt-1 text-sm font-black ' + (difficulty === 'High' ? 'text-red-300' : difficulty === 'Medium' ? 'text-amber-300' : 'text-emerald-300');
+    }
+    if (completionNode) completionNode.textContent = completion;
+    if (loadNode) loadNode.textContent = load;
+    if (warningNode) warningNode.textContent = warning;
+    if (previewTitle) previewTitle.textContent = title;
+    if (previewMeta) previewMeta.textContent = cadence + ' / ' + duration + 'h / ' + reward + ' DC';
+  }
+
+  root.querySelectorAll('.dc-op-preset').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      if (!form) return;
+      form.elements.mission_title.value = btn.dataset.title || '';
+      form.elements.mission_cadence.value = btn.dataset.cadence || 'custom';
+      form.elements.mission_goal_type.value = btn.dataset.goalType || 'CUSTOM';
+      form.elements.mission_duration_hours.value = btn.dataset.duration || 24;
+      form.elements.mission_target_value.value = btn.dataset.target || 1;
+      form.elements.mission_entry_fee_dc.value = btn.dataset.entry || 0;
+      form.elements.mission_reward_dc.value = btn.dataset.reward || 0;
+      form.elements.mission_description.value = btn.dataset.description || '';
+      updateAssistant();
+    });
+  });
+  if (form) {
+    Array.prototype.slice.call(form.elements).forEach(function (field) {
+      field.addEventListener('input', updateAssistant);
+      field.addEventListener('change', updateAssistant);
+    });
+  }
+
+  activate(window.location.hash, false);
+  updateAssistant();
+})();
+</script>
+{% endblock %}

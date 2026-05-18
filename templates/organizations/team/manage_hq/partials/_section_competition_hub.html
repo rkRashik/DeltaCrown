@@ -2,7 +2,7 @@
 <section id="competition" class="hq-section space-y-5" aria-label="Team competitive control center"
          data-team-id="{{ team.pk }}" data-team-slug="{{ team.slug }}" data-team-name="{{ team.name }}">
 
-    <div class="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-white/[0.09] via-white/[0.045] to-black/40 shadow-soft">
+    <div class="dcx-command relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-white/[0.09] via-white/[0.045] to-black/40 shadow-soft">
         <div class="absolute inset-0 pointer-events-none opacity-70"
              style="background:linear-gradient(135deg,color-mix(in oklab,var(--team-primary) 28%,transparent),transparent 38%),radial-gradient(circle at 88% 18%,color-mix(in oklab,var(--team-accent) 24%,transparent),transparent 34%);"></div>
         <div class="relative p-5 lg:p-7">
@@ -20,19 +20,19 @@
                     </p>
                 </div>
                 <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 w-full xl:w-auto xl:min-w-[520px]">
-                    <div class="rounded-2xl border border-white/10 bg-black/30 p-4">
+                    <div class="dcx-stat rounded-2xl border border-white/10 bg-black/30 p-4">
                         <p class="text-[10px] uppercase tracking-widest text-white/40 font-black">Active</p>
                         <p id="team-comp-stat-active" class="mt-1 text-3xl font-black text-white">--</p>
                     </div>
-                    <div class="rounded-2xl border border-cyan-400/15 bg-cyan-400/10 p-4">
+                    <div class="dcx-stat rounded-2xl border border-cyan-400/15 bg-cyan-400/10 p-4">
                         <p class="text-[10px] uppercase tracking-widest text-cyan-200/70 font-black">Match Rooms</p>
                         <p id="team-comp-stat-rooms" class="mt-1 text-3xl font-black text-cyan-200">--</p>
                     </div>
-                    <div class="rounded-2xl border border-red-400/15 bg-red-400/10 p-4">
+                    <div class="dcx-stat rounded-2xl border border-red-400/15 bg-red-400/10 p-4">
                         <p class="text-[10px] uppercase tracking-widest text-red-200/70 font-black">Review</p>
                         <p id="team-comp-stat-review" class="mt-1 text-3xl font-black text-red-200">--</p>
                     </div>
-                    <div class="rounded-2xl border border-amber-400/15 bg-amber-400/10 p-4">
+                    <div class="dcx-stat rounded-2xl border border-amber-400/15 bg-amber-400/10 p-4">
                         <p class="text-[10px] uppercase tracking-widest text-amber-200/70 font-black">Rewards</p>
                         <p id="team-comp-stat-rewards" class="mt-1 text-3xl font-black text-amber-200">--</p>
                     </div>
@@ -40,27 +40,27 @@
             </div>
 
             <div class="mt-6 grid grid-cols-2 lg:grid-cols-5 gap-2">
-                <a href="/dashboard/competitive/#showdown" class="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 p-4 hover:bg-cyan-400/15 transition group">
+                <a href="/dashboard/competitive/#showdown" class="dcx-card rounded-2xl border border-cyan-400/20 bg-cyan-400/10 p-4 hover:bg-cyan-400/15 transition group">
                     <i data-lucide="zap" class="w-5 h-5 text-cyan-300 mb-3 group-hover:scale-110 transition"></i>
                     <p class="text-sm font-bold text-white">Create Showdown</p>
                     <p class="text-[11px] text-white/40 mt-1">Team reward match</p>
                 </a>
-                <a href="/dashboard/competitive/#bounty" class="rounded-2xl border border-red-400/20 bg-red-400/10 p-4 hover:bg-red-400/15 transition group">
+                <a href="/dashboard/competitive/#bounty" class="dcx-card rounded-2xl border border-red-400/20 bg-red-400/10 p-4 hover:bg-red-400/15 transition group">
                     <i data-lucide="crosshair" class="w-5 h-5 text-red-300 mb-3 group-hover:scale-110 transition"></i>
                     <p class="text-sm font-bold text-white">Place Bounty</p>
                     <p class="text-[11px] text-white/40 mt-1">Skill reward challenge</p>
                 </a>
-                <a href="/dashboard/competitive/#dropzone" class="rounded-2xl border border-amber-400/20 bg-amber-400/10 p-4 hover:bg-amber-400/15 transition group">
+                <a href="/dashboard/competitive/#dropzone" class="dcx-card rounded-2xl border border-amber-400/20 bg-amber-400/10 p-4 hover:bg-amber-400/15 transition group">
                     <i data-lucide="map" class="w-5 h-5 text-amber-300 mb-3 group-hover:scale-110 transition"></i>
                     <p class="text-sm font-bold text-white">Browse Dropzone</p>
                     <p class="text-[11px] text-white/40 mt-1">Custom lobby queue</p>
                 </a>
-                <a href="/dashboard/competitive/#my-operations" class="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-4 hover:bg-emerald-400/15 transition group">
+                <a href="/dashboard/competitive/#my-operations" class="dcx-card rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-4 hover:bg-emerald-400/15 transition group">
                     <i data-lucide="layers" class="w-5 h-5 text-emerald-300 mb-3 group-hover:scale-110 transition"></i>
                     <p class="text-sm font-bold text-white">My Operations</p>
                     <p class="text-[11px] text-white/40 mt-1">Unified feed</p>
                 </a>
-                <a href="/dashboard/competitive/disputes/" class="rounded-2xl border border-white/10 bg-white/[0.04] p-4 hover:bg-white/[0.07] transition group">
+                <a href="/dashboard/competitive/disputes/" class="dcx-card rounded-2xl border border-white/10 bg-white/[0.04] p-4 hover:bg-white/[0.07] transition group">
                     <i data-lucide="shield-alert" class="w-5 h-5 text-white/70 mb-3 group-hover:scale-110 transition"></i>
                     <p class="text-sm font-bold text-white">Review Center</p>
                     <p class="text-[11px] text-white/40 mt-1">Proof and disputes</p>
@@ -99,7 +99,7 @@
 
     <div class="grid grid-cols-1 2xl:grid-cols-[1.15fr_.85fr] gap-5">
         <div class="space-y-5">
-            <div class="rounded-3xl border border-white/10 bg-card shadow-soft overflow-hidden">
+            <div class="dcx-panel rounded-3xl border border-white/10 bg-card shadow-soft overflow-hidden">
                 <div class="p-5 border-b border-white/10 flex items-center justify-between gap-3">
                     <div>
                         <h3 class="text-base font-black text-white flex items-center gap-2">
@@ -118,7 +118,7 @@
                 </div>
             </div>
 
-            <div class="rounded-3xl border border-white/10 bg-card shadow-soft overflow-hidden">
+            <div class="dcx-panel rounded-3xl border border-white/10 bg-card shadow-soft overflow-hidden">
                 <div class="p-5 border-b border-white/10">
                     <h3 class="text-base font-black text-white flex items-center gap-2">
                         <i data-lucide="history" class="w-5 h-5 text-amber-300"></i>
@@ -133,7 +133,7 @@
         </div>
 
         <div class="space-y-5">
-            <div class="rounded-3xl border border-white/10 bg-card shadow-soft overflow-hidden">
+            <div class="dcx-panel rounded-3xl border border-white/10 bg-card shadow-soft overflow-hidden">
                 <div class="p-5 border-b border-white/10">
                     <h3 class="text-base font-black text-white flex items-center gap-2">
                         <i data-lucide="radio" class="w-5 h-5 text-emerald-300"></i>
@@ -146,7 +146,7 @@
                 </div>
             </div>
 
-            <details class="rounded-3xl border border-white/10 bg-card shadow-soft overflow-hidden group">
+            <details class="dcx-panel rounded-3xl border border-white/10 bg-card shadow-soft overflow-hidden group">
                 <summary class="cursor-pointer p-5 list-none flex items-center justify-between gap-3">
                     <span>
                         <span class="text-base font-black text-white flex items-center gap-2">
@@ -165,7 +165,7 @@
                 </div>
             </details>
 
-            <div class="rounded-3xl border border-white/10 bg-card shadow-soft overflow-hidden">
+            <div class="dcx-panel rounded-3xl border border-white/10 bg-card shadow-soft overflow-hidden">
                 <div class="p-5 border-b border-white/10">
                     <h3 class="text-base font-black text-white flex items-center gap-2">
                         <i data-lucide="sliders-horizontal" class="w-5 h-5 text-violet-300"></i>

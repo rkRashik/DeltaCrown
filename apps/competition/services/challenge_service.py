@@ -1890,7 +1890,7 @@ class BountyService:
         qs = Bounty.objects.filter(
             status='ACTIVE',
             is_public=True,
-        ).select_related('issuer_team', 'game').filter(
+        ).select_related('issuer_team', 'issuer_team__organization', 'game').filter(
             Q(expires_at__isnull=True) | Q(expires_at__gt=timezone.now())
         )
 

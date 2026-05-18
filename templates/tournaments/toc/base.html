@@ -221,9 +221,13 @@
             <details id="toc-context-card" class="toc-context-card bg-dc-bg border border-theme/30 rounded-xl px-3 py-2.5 group hover:border-theme/60 transition-all shadow-[0_0_10px_var(--color-primary-muted)]">
                 <summary class="list-none cursor-pointer flex items-start gap-2.5">
                     {% if game and game.logo %}
-                    <img src="{{ game.logo.url }}" alt="{{ game.name }}" class="w-8 h-8 rounded-lg object-cover shrink-0 mt-0.5">
+                    <img src="{{ game.logo.url }}" alt="{{ game.name }}" class="w-8 h-8 rounded-lg object-cover shrink-0 mt-0.5"
+                         onerror="this.onerror=null;this.style.display='none';this.nextElementSibling.style.display='flex'">
+                    <div class="w-8 h-8 rounded-lg bg-theme-surface border border-theme-border flex items-center justify-center shrink-0 mt-0.5" style="display:none"><i data-lucide="trophy" class="w-4 h-4 text-theme"></i></div>
                     {% elif game and game.icon %}
-                    <img src="{{ game.icon.url }}" alt="{{ game.name }}" class="w-8 h-8 rounded-lg object-cover shrink-0 mt-0.5">
+                    <img src="{{ game.icon.url }}" alt="{{ game.name }}" class="w-8 h-8 rounded-lg object-cover shrink-0 mt-0.5"
+                         onerror="this.onerror=null;this.style.display='none';this.nextElementSibling.style.display='flex'">
+                    <div class="w-8 h-8 rounded-lg bg-theme-surface border border-theme-border flex items-center justify-center shrink-0 mt-0.5" style="display:none"><i data-lucide="trophy" class="w-4 h-4 text-theme"></i></div>
                     {% else %}
                     <div class="w-8 h-8 rounded-lg bg-theme-surface border border-theme-border flex items-center justify-center shrink-0 mt-0.5">
                         <i data-lucide="trophy" class="w-4 h-4 text-theme"></i>

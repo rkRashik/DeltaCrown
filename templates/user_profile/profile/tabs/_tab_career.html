@@ -258,9 +258,13 @@ Last Updated: 2026-01-19
                                 <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-500/10 text-orange-400 text-xs font-bold border border-orange-500/20">
                                     <i class="fa-solid fa-award"></i> 3rd Place
                                 </span>
+                                {% elif achievement.placement_label == "Winner" %}
+                                <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-z-cyan/10 text-z-cyan text-xs font-bold border border-z-cyan/20">
+                                    <i class="fa-solid fa-crown"></i> Winner
+                                </span>
                                 {% else %}
-                                <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-z-red/10 text-z-red text-xs font-bold border border-z-red/20">
-                                    {{ achievement.placement_label|default:"Participated" }}
+                                <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 text-gray-400 text-xs font-medium border border-white/10">
+                                    <i class="fa-solid fa-flag-checkered"></i> {{ achievement.placement_label|default:"Competed" }}
                                 </span>
                                 {% endif %}
                             </td>
@@ -276,30 +280,37 @@ Last Updated: 2026-01-19
                     </tbody>
                 </table>
                 {% else %}
-                    <div class="text-center py-12 text-gray-500">
-                        <i class="fa-solid fa-trophy text-4xl mb-3 opacity-50"></i>
-                        <p>No tournament history yet</p>
+                    <div class="text-center py-10 px-4">
+                        <div class="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-gray-600 text-2xl mx-auto mb-4">
+                            <i class="fa-solid fa-trophy"></i>
+                        </div>
+                        <div class="text-sm font-semibold text-gray-400 mb-1">No tournament history yet</div>
+                        <div class="text-xs text-gray-600">Completed tournaments will appear here once results are recorded</div>
                     </div>
                 {% endif %}
             </div>
         </div>
 
         {% else %}
-            <!-- No Passport Linked -->
-            <div class="glass-panel p-12 rounded-2xl text-center">
-                <i class="fa-solid fa-id-card text-6xl text-gray-600 mb-4"></i>
-                <h3 class="text-xl font-bold text-white mb-2">No Game Passport Linked</h3>
-                <p class="text-gray-400">Link a game to view your career statistics</p>
+            <!-- No Passport Linked for selected game -->
+            <div class="glass-panel p-10 rounded-2xl text-center">
+                <div class="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-gray-600 text-3xl mx-auto mb-5">
+                    <i class="fa-solid fa-id-card"></i>
+                </div>
+                <h3 class="text-lg font-bold text-white mb-2">No Game Passport Linked</h3>
+                <p class="text-sm text-gray-500 max-w-xs mx-auto">A verified game ID is required to display career stats for this game.</p>
             </div>
         {% endif %}
     </div>
 
     {% else %}
-        <!-- No Career Data -->
-        <div class="glass-panel p-12 rounded-2xl text-center">
-            <i class="fa-solid fa-gamepad text-6xl text-gray-600 mb-4"></i>
-            <h3 class="text-xl font-bold text-white mb-2">Career Data Unavailable</h3>
-            <p class="text-gray-400">Unable to load career information</p>
+        <!-- No Career Data at all -->
+        <div class="glass-panel p-10 rounded-2xl text-center">
+            <div class="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-gray-600 text-3xl mx-auto mb-5">
+                <i class="fa-solid fa-gamepad"></i>
+            </div>
+            <h3 class="text-lg font-bold text-white mb-2">No Career Data Available</h3>
+            <p class="text-sm text-gray-500 max-w-xs mx-auto">Link a game passport to start building your competitive career profile.</p>
         </div>
     {% endif %}
 </div>
@@ -443,18 +454,11 @@ Last Updated: 2026-01-19
             return;
         }
         
-        // Find button for selected game
+        // Find button for selected game (may be null if selector not rendered for this game)
         const gameButton = document.querySelector(`.game-btn[data-game-slug="${selectedGame}"]`);
-        
-        if (!gameButton) {
-            console.error(`[Career Tab] Button not found for game: ${selectedGame}`);
-            showCareerError('Game selector not available.');
-            return;
-        }
-        
-        // Fetch data immediately (MutationObserver already confirmed visibility)
-        console.log('[Career] Fetching data for game:', selectedGame);
-        switchCareerGame(selectedGame, gameButton);
+        // Proceed even if no button — updateGameButtonState is null-safe
+        console.log('[Career] Fetching data for game:', selectedGame, gameButton ? '(with button)' : '(no button)');
+        switchCareerGame(selectedGame, gameButton || null);
     }
     
     // TASK 1: Use MutationObserver to watch the ACTUAL tab content div that gets 'hidden' class
@@ -518,6 +522,8 @@ Last Updated: 2026-01-19
     });
     
     // AJAX-Based Game Switching (TASK 2.3: Add caching + debouncing)
+    var _careerCurrentGame = null; // track which game is loaded to prevent duplicate fetches
+
     function switchCareerGame(gameSlug, buttonElement) {
         const contentArea = document.getElementById('career-content-area');
         const username = '{{ profile_user.username }}';
@@ -533,6 +539,12 @@ Last Updated: 2026-01-19
             console.log('[Career] Aborted previous fetch');
         }
         
+        // Guard: skip if already showing this game (prevents double-init spam)
+        if (_careerCurrentGame === gameSlug && contentArea.getAttribute('data-career-loaded') === '1') {
+            updateGameButtonState(buttonElement);
+            return;
+        }
+
         // Check in-memory cache (TASK 2.3)
         if (window.__careerCache[gameSlug]) {
             console.log('[Career] Using cached data for:', gameSlug);
@@ -541,9 +553,8 @@ Last Updated: 2026-01-19
             // Update UI immediately from cache
             updateGameButtonState(buttonElement);
             renderCareerData(cachedData);
-            
-            // Mark as loaded
             contentArea.setAttribute('data-career-loaded', '1');
+            _careerCurrentGame = gameSlug;
             return;
         }
         
@@ -589,9 +600,8 @@ Last Updated: 2026-01-19
                 
                 // Render career data
                 renderCareerData(data);
-                
-                // TASK 2: Mark as loaded ONLY after successful render
                 contentArea.setAttribute('data-career-loaded', '1');
+                _careerCurrentGame = gameSlug;
                 
                 // Remove loading state
                 contentArea.classList.remove('career-loading');
@@ -611,12 +621,13 @@ Last Updated: 2026-01-19
             });
     }
     
-    // Helper: Update game selector button active state
+    // Helper: Update game selector button active state (null-safe)
     function updateGameButtonState(buttonElement) {
         document.querySelectorAll('.game-btn').forEach(btn => {
             btn.classList.remove('active', 'bg-z-cyan', 'text-black', 'shadow-neon-cyan', 'border-z-cyan');
             btn.classList.add('text-gray-400');
         });
+        if (!buttonElement) return; // guard: button may not exist if game has no chip
         buttonElement.classList.add('active', 'bg-z-cyan', 'text-black', 'shadow-neon-cyan', 'border-z-cyan');
         buttonElement.classList.remove('text-gray-400');
     }
@@ -882,8 +893,11 @@ Last Updated: 2026-01-19
                 placementBadge = '<span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gray-400/10 text-gray-400 text-xs font-bold border border-gray-400/20"><i class="fa-solid fa-medal"></i> 2nd Place</span>';
             } else if (achievement.placement === 3) {
                 placementBadge = '<span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-500/10 text-orange-400 text-xs font-bold border border-orange-500/20"><i class="fa-solid fa-award"></i> 3rd Place</span>';
+            } else if (achievement.placement_label === 'Winner') {
+                placementBadge = '<span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-z-cyan/10 text-z-cyan text-xs font-bold border border-z-cyan/20"><i class="fa-solid fa-crown"></i> Winner</span>';
             } else {
-                placementBadge = `<span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-z-red/10 text-z-red text-xs font-bold border border-z-red/20">${achievement.placement_label || 'Participated'}</span>`;
+                const lbl = achievement.placement_label || 'Competed';
+                placementBadge = `<span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 text-gray-400 text-xs font-medium border border-white/10"><i class="fa-solid fa-flag-checkered"></i> ${lbl}</span>`;
             }
             
             const prizeDisplay = achievement.prize_formatted || (achievement.prize_amount ? `$${Math.round(achievement.prize_amount)}` : '<span class="text-gray-600">-</span>');

@@ -1,0 +1,294 @@
+/*
+ * DeltaCrown Game Media Admin — Preview enhancement + storage diagnostic.
+ * Plain CSS, no Tailwind. Loaded via GameAdmin.Media.css.
+ *
+ * DESIGN RULE: Original Django file inputs are NEVER hidden.
+ * This CSS only adds visual polish around/above the existing widgets.
+ */
+
+/* ──────────────────────────────────────────────────────────────────
+   Preview grid — 4 thumbnail cards shown ABOVE the upload rows
+   ────────────────────────────────────────────────────────────────── */
+
+.gma-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin: 8px 0 14px;
+}
+@media (max-width: 900px) { .gma-preview-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 500px) { .gma-preview-grid { grid-template-columns: 1fr; } }
+
+.gma-prev-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,.06);
+  pointer-events: none; /* read-only visual — interaction is in the upload row below */
+}
+
+/* Thumbnail */
+.gma-prev-thumb {
+  height: 80px;
+  background: #f9fafb;
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+  border-bottom: 1px solid #e5e7eb;
+  position: relative;
+}
+.gma-prev-img {
+  max-height: 76px; max-width: 100%;
+  object-fit: contain;
+}
+.gma-prev-ph {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 3px; color: #9ca3af; font-size: 10px; font-weight: 600;
+}
+.gma-prev-ph .material-symbols-outlined { font-size: 22px; }
+
+/* Badges row */
+.gma-prev-badges {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 5px 8px 0;
+  pointer-events: all; /* re-enable for the "Open" link */
+}
+.gma-prev-lbl {
+  font-size: 10px; font-weight: 700; color: #6b7280;
+  text-transform: uppercase; letter-spacing: .04em;
+}
+.gma-prev-open {
+  font-size: 10px; color: #0891b2; text-decoration: none;
+}
+.gma-prev-open:hover { text-decoration: underline; }
+
+/* Hint text */
+.gma-prev-hint {
+  font-size: 9px; color: #9ca3af; line-height: 1.4;
+  padding: 3px 8px 7px;
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   Upload rows grid — original Django rows in 2-col grid
+   ────────────────────────────────────────────────────────────────── */
+
+.gma-upload-grid-wrap {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-bottom: 8px;
+}
+@media (max-width: 640px) { .gma-upload-grid-wrap { grid-template-columns: 1fr; } }
+
+/* Style each original Django upload row inside the grid */
+.gma-upload-row {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 12px 14px;
+  box-shadow: 0 1px 2px rgba(0,0,0,.04);
+}
+.gma-upload-row label {
+  display: block;
+  font-weight: 600;
+  font-size: 13px;
+  color: #374151;
+  margin-bottom: 6px;
+}
+/* Make the file input full-width and clearly visible */
+.gma-upload-row input[type="file"] {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+  font-size: 12px;
+  color: #374151;
+  cursor: pointer;
+}
+/* "Currently: filename" link */
+.gma-upload-row a {
+  font-size: 11px;
+  color: #0891b2;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-bottom: 4px;
+}
+.gma-upload-row a:hover { text-decoration: underline; }
+/* Clear checkbox and label */
+.gma-upload-row input[type="checkbox"] { margin-right: 4px; cursor: pointer; }
+.gma-upload-row p,
+.gma-upload-row .file-upload { font-size: 12px; color: #6b7280; }
+
+/* Selected filename display (injected by JS after input) */
+.gma-selected-name {
+  display: block;
+  font-size: 11px;
+  color: #059669;
+  font-weight: 600;
+  margin-top: 3px;
+  word-break: break-all;
+}
+
+/* Save note */
+.gma-save-note {
+  font-size: 10px;
+  color: #9ca3af;
+  margin: 6px 0 0;
+  font-style: italic;
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   Thumbnail strip (inserted ABOVE original Django upload rows by JS)
+   Original rows are NEVER hidden. Strip is read-only preview only.
+   ────────────────────────────────────────────────────────────────── */
+
+.gma-strip {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin: 6px 0 14px;
+}
+@media (max-width: 900px) { .gma-strip { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 480px) { .gma-strip { grid-template-columns: 1fr; } }
+
+.gma-thumb-card {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  overflow: hidden;
+  pointer-events: none; /* read-only — don't intercept clicks */
+}
+.gma-thumb-img-area {
+  height: 72px;
+  display: flex; align-items: center; justify-content: center;
+  background: #f3f4f6;
+  border-bottom: 1px solid #e5e7eb;
+  overflow: hidden;
+}
+.gma-thumb-img {
+  max-height: 68px; max-width: 100%;
+  object-fit: contain;
+}
+.gma-thumb-ph {
+  display: flex; align-items: center; justify-content: center;
+  color: #d1d5db;
+}
+.gma-thumb-info {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 4px 8px 0;
+  pointer-events: all;
+}
+.gma-thumb-lbl {
+  font-size: 9px; font-weight: 700; color: #9ca3af;
+  letter-spacing: .05em; text-transform: uppercase;
+}
+.gma-thumb-open {
+  font-size: 9px; color: #0891b2; text-decoration: none;
+}
+.gma-thumb-open:hover { text-decoration: underline; }
+.gma-thumb-hint {
+  font-size: 9px; color: #9ca3af;
+  padding: 2px 8px 6px; line-height: 1.3;
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   Storage diagnostic panel (readonly field)
+   ────────────────────────────────────────────────────────────────── */
+
+.gma-wrap {
+  --p:  #0891b2; --pl: #ecfeff; --pb: #a5f3fc;
+  --ok: #059669; --okl: #ecfdf5; --okb: #a7f3d0;
+  --wn: #d97706; --wnl: #fffbeb; --wnb: #fde68a;
+  --er: #dc2626; --erl: #fef2f2; --erb: #fecaca;
+  --tx: #0f172a; --ts: #64748b; --td: #94a3b8;
+  --sf: #ffffff; --b1: #f1f5f9; --b2: #e2e8f0; --b3: #cbd5e1;
+  --sh: 0 1px 3px rgba(0,0,0,.06);
+  --r: 8px; --rs: 5px;
+}
+.gma-wrap * { box-sizing: border-box; }
+
+.gma-backend-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 700;
+  margin-bottom: 10px;
+}
+.gma-backend-badge .material-symbols-outlined { font-size: 14px; }
+.gma-backend-cloudinary { background: var(--pl); border: 1px solid var(--pb); color: var(--p); }
+.gma-backend-local      { background: var(--wnl); border: 1px solid var(--wnb); color: var(--wn); }
+
+.gma-banner {
+  display: flex; align-items: flex-start; gap: 8px;
+  padding: 9px 13px; border-radius: var(--rs); font-size: 12px; line-height: 1.5;
+  margin-bottom: 12px; border: 1px solid transparent;
+}
+.gma-banner .material-symbols-outlined { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+.gma-banner code { background: rgba(0,0,0,.06); padding: 1px 4px; border-radius: 3px; font-size: 10px; }
+.gma-banner a    { color: inherit; text-decoration: underline; }
+.gma-bwarn  { background: var(--wnl); border-color: var(--wnb); color: #92400e; }
+.gma-bok    { background: var(--okl); border-color: var(--okb); color: #065f46; }
+
+/* Preview cards grid (inside readonly diagnostic) */
+.gma-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 12px; }
+@media (max-width: 600px) { .gma-grid { grid-template-columns: 1fr; } }
+
+.gma-card {
+  background: var(--sf); border: 1px solid var(--b2); border-radius: var(--r);
+  box-shadow: var(--sh); overflow: hidden; display: flex; flex-direction: column;
+}
+.gma-thumb-area {
+  height: 80px; background: var(--b1);
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden; border-bottom: 1px solid var(--b2);
+}
+.gma-thumb-area img { max-height: 100%; max-width: 100%; object-fit: contain; }
+.gma-thumb-placeholder {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 4px; color: var(--td); font-size: 10px; font-weight: 600;
+}
+.gma-thumb-placeholder .material-symbols-outlined { font-size: 22px; }
+.gma-card-body { padding: 8px 10px; }
+.gma-field-name { font-size: 10px; font-weight: 700; color: var(--ts); text-transform: uppercase; letter-spacing: .04em; margin: 0 0 4px; }
+.gma-badges { display: flex; flex-wrap: wrap; gap: 3px; margin-bottom: 4px; }
+.gma-badge {
+  display: inline-flex; align-items: center; gap: 2px;
+  padding: 1px 6px; border-radius: 8px; font-size: 10px; font-weight: 600; border: 1px solid transparent;
+}
+.gb-ok    { background: var(--okl); border-color: var(--okb); color: var(--ok); }
+.gb-miss  { background: var(--erl); border-color: var(--erb); color: var(--er); }
+.gb-empty { background: var(--b1);  border-color: var(--b2);  color: var(--ts); }
+.gb-cloud { background: var(--pl);  border-color: var(--pb);  color: var(--p);  }
+.gb-local { background: var(--wnl); border-color: var(--wnb); color: var(--wn); }
+.gma-path { font-size: 10px; color: var(--td); font-family: monospace; word-break: break-all; margin: 0 0 2px; }
+.gma-url-link { font-size: 10px; color: var(--p); text-decoration: none; word-break: break-all; }
+.gma-url-link:hover { text-decoration: underline; }
+
+/* ──────────────────────────────────────────────────────────────────
+   Map pool image cell styles
+   ────────────────────────────────────────────────────────────────── */
+
+.gma-map-preview { display: flex; align-items: center; gap: 6px; }
+.gma-map-thumb {
+  width: 40px; height: 28px; border-radius: 4px; object-fit: cover;
+  border: 1px solid var(--b2); background: var(--b1); flex-shrink: 0;
+}
+.gma-map-no-img {
+  width: 40px; height: 28px; border-radius: 4px;
+  background: var(--b1); border: 1px dashed var(--b3);
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.gma-map-no-img .material-symbols-outlined { font-size: 14px; color: var(--td); }
+.gma-map-warn { font-size: 10px; color: var(--wn); font-weight: 600; }
+
+/* ──────────────────────────────────────────────────────────────────
+   Guide text
+   ────────────────────────────────────────────────────────────────── */
+.gma-guide {
+  background: var(--pl); border: 1px solid var(--pb); border-radius: var(--rs);
+  padding: 10px 13px; margin-bottom: 12px; font-size: 12px; color: #0e7490; line-height: 1.5;
+}
+.gma-guide strong { color: var(--p); }
+.gma-guide ol { padding-left: 18px; margin: 6px 0 0; }
+.gma-guide li { margin-bottom: 3px; }

@@ -1,839 +1,369 @@
 {% extends "admin/base_site.html" %}
 {% load i18n static %}
 
-{% block title %}System Operations Center | DeltaCrown Admin{% endblock %}
+{% block title %}{{ title }} | {{ site_title|default:"DeltaCrown Admin" }}{% endblock %}
 
 {% block extrahead %}
 {{ block.super }}
-<style>
-/* ================================================================
-   System Operations Center — pure CSS, no Tailwind utilities.
-   Uses Unfold's injected --color-primary-* and --color-base-* vars.
-   ================================================================ */
-
-/* Root tokens — fallback to concrete values if Unfold vars absent */
-.moc{
-  --p5:  var(--color-primary-500, #0891b2);
-  --p6:  var(--color-primary-600, #0e7490);
-  --p1:  var(--color-primary-100, #cffafe);
-  --p2:  var(--color-primary-200, #a5f3fc);
-  --b0:  var(--color-base-50,  #f8fafc);
-  --b1:  var(--color-base-100, #f1f5f9);
-  --b2:  var(--color-base-200, #e2e8f0);
-  --b3:  var(--color-base-300, #cbd5e1);
-  --b5:  var(--color-base-500, #64748b);
-  --b6:  var(--color-base-600, #475569);
-  --b7:  var(--color-base-700, #334155);
-  --b9:  var(--color-base-900, #0f172a);
-  --tx:  #0f172a;
-  --tmid:#334155;
-  --tlo: #64748b;
-  --sur: #ffffff;
-  --bdr: #e2e8f0;
-  --rad: 10px;
-  --rads: 6px;
-  /* Semantic */
-  --ok:   #059669; --ok-bg:  #ecfdf5; --ok-bdr:  #a7f3d0;
-  --warn: #d97706; --warn-bg:#fffbeb; --warn-bdr:#fde68a;
-  --err:  #dc2626; --err-bg: #fef2f2; --err-bdr: #fecaca;
-  --info: #0891b2; --info-bg:#f0f9ff; --info-bdr:#bae6fd;
-}
-
-.moc *{box-sizing:border-box;}
-
-/* ── Header ────────────────────────────────────────────────── */
-.moc-hdr{
-  display:flex;align-items:center;justify-content:space-between;
-  flex-wrap:wrap;gap:12px;
-  padding:18px 0 16px;
-  border-bottom:1px solid var(--bdr);
-  margin-bottom:18px;
-}
-.moc-hdr-left{display:flex;align-items:center;gap:12px;}
-.moc-hdr-ic{
-  width:42px;height:42px;border-radius:10px;flex-shrink:0;
-  background:linear-gradient(135deg,var(--p1),var(--p2));
-  display:flex;align-items:center;justify-content:center;
-  color:var(--p6);font-size:22px;
-}
-.moc-title{font-size:20px;font-weight:800;color:var(--tx);line-height:1.2;margin:0 0 2px;}
-.moc-subtitle{font-size:12px;color:var(--tlo);margin:0;}
-.moc-env-badge{
-  display:inline-block;padding:2px 10px;border-radius:20px;
-  font-size:11px;font-weight:700;
-  background:var(--b1);color:var(--b6);border:1px solid var(--b2);
-  white-space:nowrap;
-}
-.moc-env-badge.prod{background:#fef2f2;color:#b91c1c;border-color:#fecaca;}
-.moc-nav{display:flex;gap:8px;flex-wrap:wrap;}
-.moc-nav a{
-  display:inline-flex;align-items:center;gap:5px;
-  padding:6px 12px;border-radius:var(--rads);
-  background:var(--sur);border:1px solid var(--bdr);
-  color:var(--tlo);font-size:12px;font-weight:600;
-  text-decoration:none;transition:border-color .12s,color .12s;white-space:nowrap;
-}
-.moc-nav a:hover{border-color:var(--b3);color:var(--tx);}
-.moc-nav a .material-symbols-outlined{font-size:14px;}
-.moc-badge-count{
-  display:inline-flex;align-items:center;justify-content:center;
-  min-width:16px;height:16px;border-radius:8px;padding:0 4px;
-  background:var(--warn);color:#fff;font-size:9px;font-weight:800;
-}
-
-/* ── Health bar ─────────────────────────────────────────────── */
-.moc-health{
-  display:flex;flex-wrap:wrap;align-items:center;gap:6px;
-  padding:12px 14px;border-radius:var(--rads);
-  background:var(--b0);border:1px solid var(--bdr);
-  margin-bottom:12px;
-}
-.moc-health-label{
-  font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
-  color:var(--tlo);margin-right:4px;white-space:nowrap;
-}
-.hchip{
-  display:inline-flex;align-items:center;gap:4px;
-  padding:3px 9px;border-radius:12px;font-size:11px;font-weight:600;
-  border:1px solid transparent;white-space:nowrap;
-}
-.hchip .material-symbols-outlined{font-size:12px;}
-.hchip-ok  {background:var(--ok-bg);  border-color:var(--ok-bdr);  color:var(--ok);}
-.hchip-warn{background:var(--warn-bg);border-color:var(--warn-bdr);color:var(--warn);}
-.hchip-err {background:var(--err-bg); border-color:var(--err-bdr); color:var(--err);}
-.hchip-mute{background:var(--b0);     border-color:var(--bdr);     color:var(--tlo);}
-
-/* ── Banners ────────────────────────────────────────────────── */
-.moc-banner{
-  display:flex;align-items:flex-start;gap:10px;
-  padding:11px 14px;border-radius:var(--rads);
-  font-size:13px;line-height:1.5;margin-bottom:12px;
-}
-.moc-banner .material-symbols-outlined{font-size:18px;flex-shrink:0;margin-top:1px;}
-.moc-banner a{text-decoration:underline;color:inherit;}
-.bn-warn{background:var(--warn-bg);border:1px solid var(--warn-bdr);color:#92400e;}
-.bn-danger{background:var(--err-bg);border:1px solid var(--err-bdr);color:#991b1b;}
-
-/* ── Result panel ───────────────────────────────────────────── */
-.moc-result{
-  display:flex;align-items:flex-start;gap:12px;
-  padding:14px 16px;border-radius:var(--rad);
-  margin-bottom:16px;
-}
-.moc-result .material-symbols-outlined{font-size:20px;flex-shrink:0;margin-top:1px;}
-.res-ok  {background:var(--ok-bg);  border:1px solid var(--ok-bdr);}
-.res-ok   .material-symbols-outlined{color:var(--ok);}
-.res-fail{background:var(--err-bg); border:1px solid var(--err-bdr);}
-.res-fail .material-symbols-outlined{color:var(--err);}
-.moc-result-name{font-size:13px;font-weight:700;color:var(--tx);margin-bottom:6px;}
-.moc-kv{display:flex;flex-wrap:wrap;gap:14px;}
-.moc-kv dt{font-size:10px;color:var(--tlo);text-transform:capitalize;margin-bottom:1px;}
-.moc-kv dd{font-size:16px;font-weight:800;color:var(--tx);margin:0;line-height:1;}
-.moc-result-err{font-size:12px;color:var(--err);margin-top:6px;font-family:monospace;}
-.moc-detail{margin-top:8px;}
-.moc-detail summary{font-size:12px;color:var(--warn);cursor:pointer;padding:3px 0;}
-.moc-detail-tbl{width:100%;border-collapse:collapse;font-size:11px;margin-top:4px;}
-.moc-detail-tbl th{text-align:left;padding:3px 6px;color:var(--tlo);border-bottom:1px solid var(--bdr);}
-.moc-detail-tbl td{padding:3px 6px;color:var(--tmid);border-bottom:1px solid var(--b1);font-family:monospace;font-size:10px;}
-
-/* ── Recommended actions ────────────────────────────────────── */
-.moc-rec-title{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--tlo);margin:0 0 10px;}
-.moc-rec-grid{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));margin-bottom:20px;}
-.moc-rec-card{
-  display:flex;align-items:flex-start;gap:10px;
-  padding:12px 14px;border-radius:var(--rads);
-  border:1px solid var(--bdr);background:var(--sur);
-  text-decoration:none;
-}
-.moc-rec-card .material-symbols-outlined{font-size:18px;margin-top:1px;flex-shrink:0;}
-.rc-ok   {border-color:var(--ok-bdr);  background:var(--ok-bg);  }
-.rc-ok   .material-symbols-outlined{color:var(--ok);}
-.rc-warn {border-color:var(--warn-bdr);background:var(--warn-bg);}
-.rc-warn .material-symbols-outlined{color:var(--warn);}
-.rc-err  {border-color:var(--err-bdr); background:var(--err-bg); }
-.rc-err  .material-symbols-outlined{color:var(--err);}
-.rc-info {border-color:var(--info-bdr);background:var(--info-bg);}
-.rc-info .material-symbols-outlined{color:var(--info);}
-.rc-title{font-size:12px;font-weight:700;color:var(--tx);margin:0 0 2px;}
-.rc-desc {font-size:11px;color:var(--tlo);line-height:1.4;margin:0 0 6px;}
-.rc-cta  {
-  display:inline-flex;align-items:center;gap:4px;
-  font-size:11px;font-weight:700;text-decoration:none;
-  padding:4px 10px;border-radius:4px;border:none;cursor:pointer;
-  background:var(--tx);color:#fff;transition:opacity .1s;
-}
-.rc-cta:hover{opacity:.85;}
-.rc-cta.rc-cta-warn {background:var(--warn);}
-.rc-cta.rc-cta-err  {background:var(--err);}
-.rc-cta.rc-cta-info {background:var(--info);}
-
-/* ── CSS-only tabs ──────────────────────────────────────────── */
-.moc-tab-radio{position:absolute;opacity:0;pointer-events:none;width:0;height:0;}
-
-.moc-tab-bar{
-  display:flex;border-bottom:2px solid var(--bdr);
-  margin-bottom:16px;gap:0;overflow-x:auto;
-}
-.moc-tab-label{
-  display:inline-flex;align-items:center;gap:6px;
-  padding:10px 16px;border-bottom:2px solid transparent;
-  font-size:12px;font-weight:600;color:var(--tlo);
-  cursor:pointer;white-space:nowrap;margin-bottom:-2px;
-  transition:color .12s,border-color .12s;user-select:none;
-}
-.moc-tab-label:hover{color:var(--tx);}
-.moc-tab-label .material-symbols-outlined{font-size:15px;}
-
-/* Active tab state via :checked + sibling combinator */
-#t-media:checked   ~ .moc-tab-bar [for="t-media"],
-#t-riot:checked    ~ .moc-tab-bar [for="t-riot"],
-#t-tourn:checked   ~ .moc-tab-bar [for="t-tourn"],
-#t-evid:checked    ~ .moc-tab-bar [for="t-evid"],
-#t-cache:checked   ~ .moc-tab-bar [for="t-cache"]{
-  color:var(--p5);border-bottom-color:var(--p5);
-}
-
-/* Panel visibility */
-.moc-panel{display:none;}
-#t-media:checked ~ .tp-media,
-#t-riot:checked  ~ .tp-riot,
-#t-tourn:checked ~ .tp-tourn,
-#t-evid:checked  ~ .tp-evid,
-#t-cache:checked ~ .tp-cache{display:block;}
-
-/* ── Op grid & cards ────────────────────────────────────────── */
-.moc-panel-desc{font-size:12px;color:var(--tlo);margin:0 0 14px;line-height:1.5;}
-.op-grid{display:grid;gap:10px;grid-template-columns:repeat(2,1fr);margin-bottom:16px;}
-@media(max-width:640px){.op-grid{grid-template-columns:1fr;}}
-.op-card{
-  background:var(--sur);border:1px solid var(--bdr);
-  border-radius:var(--rad);padding:14px 16px;
-  display:flex;flex-direction:column;gap:8px;
-  transition:box-shadow .12s,border-color .12s;
-}
-.op-card:hover{box-shadow:0 1px 6px rgba(0,0,0,.06);border-color:var(--b3);}
-.op-card-top{display:flex;align-items:flex-start;gap:10px;}
-.op-ic{font-size:18px;flex-shrink:0;margin-top:1px;}
-.op-title{font-size:13px;font-weight:700;color:var(--tx);margin:0 0 2px;line-height:1.3;}
-.op-desc {font-size:12px;color:var(--tlo);line-height:1.4;margin:0;}
-.op-tags {display:flex;flex-wrap:wrap;gap:5px;margin-top:2px;}
-.op-tag{
-  display:inline-flex;align-items:center;
-  padding:1px 7px;border-radius:10px;font-size:10px;font-weight:600;
-}
-.tag-safe{background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;}
-.tag-warn{background:#fffbeb;color:#92400e;border:1px solid #fde68a;}
-.tag-sweep{background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe;}
-.tag-beat{background:var(--b0);color:var(--tlo);border:1px solid var(--bdr);font-family:monospace;}
-.op-card form{margin-top:auto;}
-.op-card form.has-input{display:flex;flex-direction:column;gap:6px;}
-
-/* ── Input fields ───────────────────────────────────────────── */
-.op-field{
-  width:100%;padding:6px 10px;border-radius:var(--rads);
-  border:1px solid var(--bdr);background:var(--sur);
-  color:var(--tx);font-size:12px;outline:none;
-  transition:border-color .12s;box-sizing:border-box;
-}
-.op-field:focus{border-color:var(--p5);box-shadow:0 0 0 2px rgba(8,145,178,.1);}
-.op-field-mono{font-family:monospace;}
-
-/* ── Buttons ─────────────────────────────────────────────────── */
-.op-btn{
-  display:inline-flex;align-items:center;justify-content:center;gap:5px;
-  width:100%;padding:7px 14px;border-radius:var(--rads);border:none;
-  font-size:11px;font-weight:700;cursor:pointer;transition:opacity .1s,background .1s;
-  letter-spacing:.03em;
-}
-.op-btn .material-symbols-outlined{font-size:14px;}
-.op-btn[disabled]{opacity:.3;cursor:not-allowed;pointer-events:none;}
-.btn-primary {background:var(--p5);color:#fff;}
-.btn-primary:hover{background:var(--p6);}
-.btn-neutral {background:var(--b1);color:var(--tmid);border:1px solid var(--bdr);}
-.btn-neutral:hover{background:var(--b2);}
-.btn-amber   {background:#d97706;color:#fff;}
-.btn-amber:hover{background:#b45309;}
-.btn-red     {background:var(--err);color:#fff;}
-.btn-red:hover{background:#b91c1c;}
-.btn-green   {background:var(--ok);color:#fff;}
-.btn-green:hover{background:#047857;}
-.btn-violet  {background:#7c3aed;color:#fff;}
-.btn-violet:hover{background:#6d28d9;}
-
-/* ── Danger zone ─────────────────────────────────────────────── */
-.dz-header{
-  display:flex;align-items:center;gap:8px;
-  padding:8px 0;margin:16px 0 10px;
-  border-top:1px solid var(--err-bdr);
-}
-.dz-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--err);}
-.dz-line{flex:1;height:1px;background:var(--err-bdr);}
-.op-card.op-danger{border-color:var(--err-bdr);background:var(--err-bg);}
-.op-card.op-danger:hover{border-color:var(--err);box-shadow:0 1px 6px rgba(220,38,38,.1);}
-.dz-confirm-row{display:flex;align-items:center;gap:8px;margin-top:4px;}
-.dz-confirm-label{font-size:11px;font-weight:600;color:#991b1b;white-space:nowrap;flex-shrink:0;}
-.dz-confirm-input{
-  flex:1;padding:6px 10px;border-radius:var(--rads);
-  border:1px solid var(--err-bdr);background:#fff;
-  font-size:12px;font-family:monospace;color:var(--tx);
-  outline:none;transition:border-color .12s;
-}
-.dz-confirm-input:focus{border-color:var(--err);}
-.dz-eligible{font-size:11px;font-weight:600;color:#b45309;margin-top:2px;}
-.dz-none{font-size:11px;color:var(--tlo);margin-top:2px;}
-.dz-protected{font-size:11px;color:var(--tlo);font-style:italic;margin:4px 0 0;}
-
-/* ── Logs table ──────────────────────────────────────────────── */
-.moc-logs{border:1px solid var(--bdr);border-radius:var(--rad);overflow:hidden;margin-top:24px;}
-.moc-logs-hdr{
-  display:flex;align-items:center;justify-content:space-between;
-  padding:10px 16px;background:var(--b0);border-bottom:1px solid var(--bdr);
-}
-.moc-logs-title{font-size:12px;font-weight:700;color:var(--tx);}
-.moc-logs-link{font-size:12px;color:var(--p5);text-decoration:none;}
-.moc-table{width:100%;border-collapse:collapse;font-size:12px;}
-.moc-table th{
-  text-align:left;padding:7px 14px;
-  font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;
-  color:var(--tlo);background:var(--b0);border-bottom:1px solid var(--bdr);
-}
-.moc-table td{padding:9px 14px;color:var(--tmid);border-bottom:1px solid var(--b1);vertical-align:middle;}
-.moc-table tr:last-child td{border-bottom:none;}
-.moc-table tr:hover td{background:var(--b0);}
-.td-name{font-weight:600;color:var(--tx);}
-.st-ok  {color:var(--ok);font-weight:700;}
-.st-fail{color:var(--err);font-weight:700;}
-.st-part{color:var(--warn);font-weight:700;}
-</style>
+<link rel="stylesheet" href="{% static 'admin/css/maintenance_center.css' %}">
 {% endblock %}
 
-{% block breadcrumbs %}
-<div style="padding:8px 4px 0;font-size:12px;color:var(--color-base-500,#64748b);">
-  <a href="{% url 'admin:index' %}" style="color:var(--color-primary-500,#0891b2);text-decoration:none;">Home</a>
-  <span style="margin:0 6px;">&rsaquo;</span>
-  <span>System Operations Center</span>
-</div>
+{% block content_title %}
+<h1>{{ title }}</h1>
 {% endblock %}
 
 {% block content %}
-<div class="moc">
+<div class="mc-wrap">
 
-  {# ── Header ── #}
-  <div class="moc-hdr">
-    <div class="moc-hdr-left">
-      <div class="moc-hdr-ic"><span class="material-symbols-outlined">build_circle</span></div>
-      <div>
-        <h1 class="moc-title">System Operations Center</h1>
-        <p class="moc-subtitle">Run scheduled platform jobs manually &mdash; works with Celery&nbsp;Beat&nbsp;off</p>
-      </div>
-    </div>
-    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-      <span class="moc-env-badge {% if env.is_production %}prod{% endif %}">
-        {{ env.django_env|title }}{% if env.is_production %} &mdash; Production{% endif %}
-      </span>
-      <nav class="moc-nav">
-        <a href="{{ cleanup_admin_url }}">
-          <span class="material-symbols-outlined">cleaning_services</span> Candidates
-          {% if pending_count %}<span class="moc-badge-count">{{ pending_count }}</span>{% endif %}
-        </a>
-        <a href="{{ logs_admin_url }}"><span class="material-symbols-outlined">history</span> Logs</a>
-        <a href="{{ games_admin_url }}"><span class="material-symbols-outlined">sports_esports</span> Games</a>
-      </nav>
-    </div>
+  {# ── Health bar ── #}
+  <div class="mc-health">
+    <span class="mc-hlabel">Status</span>
+
+    {% if env.beat_enabled %}<span class="mc-chip chip-ok"><span class="material-symbols-outlined">check_circle</span> Beat ON</span>
+    {% else %}<span class="mc-chip chip-warn"><span class="material-symbols-outlined">radio_button_unchecked</span> Beat OFF</span>{% endif %}
+
+    {% if env.is_cloudinary %}<span class="mc-chip chip-blue"><span class="material-symbols-outlined">cloud</span> Cloudinary</span>
+    {% else %}<span class="mc-chip chip-warn"><span class="material-symbols-outlined">folder_open</span> Local Storage</span>{% endif %}
+
+    {% if env.redis_ok %}<span class="mc-chip chip-ok"><span class="material-symbols-outlined">check_circle</span> Redis</span>
+    {% else %}<span class="mc-chip chip-err"><span class="material-symbols-outlined">error</span> Redis Down</span>{% endif %}
+
+    {% if env.db_ok %}<span class="mc-chip chip-ok"><span class="material-symbols-outlined">check_circle</span> DB</span>
+    {% else %}<span class="mc-chip chip-err"><span class="material-symbols-outlined">error</span> DB Error</span>{% endif %}
+
+    {% if env.riot_key_set %}<span class="mc-chip chip-ok"><span class="material-symbols-outlined">key</span> Riot Key</span>
+    {% else %}<span class="mc-chip chip-warn"><span class="material-symbols-outlined">key_off</span> No Riot Key</span>{% endif %}
+
+    {% if env.media_cleanup_enabled %}<span class="mc-chip chip-ok">Cleanup Beat ON</span>
+    {% else %}<span class="mc-chip chip-mute">Cleanup Beat OFF</span>{% endif %}
+
+    <span class="mc-chip {% if env.is_production %}chip-warn{% else %}chip-mute{% endif %}" style="margin-left:auto;">
+      {{ env.django_env|title }}{% if env.is_production %} &mdash; Production{% endif %}
+    </span>
   </div>
 
-  {# ── Health summary bar ── #}
-  <div class="moc-health">
-    <span class="moc-health-label">Status</span>
-
-    {% if env.beat_enabled %}
-      <span class="hchip hchip-ok"><span class="material-symbols-outlined">check</span> Beat ON</span>
-    {% else %}
-      <span class="hchip hchip-warn"><span class="material-symbols-outlined">circle</span> Beat OFF</span>
-    {% endif %}
-
-    {% if env.is_cloudinary %}
-      <span class="hchip hchip-ok"><span class="material-symbols-outlined">cloud</span> Cloudinary</span>
-    {% else %}
-      <span class="hchip hchip-warn"><span class="material-symbols-outlined">folder_open</span> Local Storage</span>
-    {% endif %}
-
-    {% if env.redis_ok %}
-      <span class="hchip hchip-ok"><span class="material-symbols-outlined">check</span> Redis</span>
-    {% else %}
-      <span class="hchip hchip-err"><span class="material-symbols-outlined">error</span> Redis Down</span>
-    {% endif %}
-
-    {% if env.db_ok %}
-      <span class="hchip hchip-ok"><span class="material-symbols-outlined">check</span> DB</span>
-    {% else %}
-      <span class="hchip hchip-err"><span class="material-symbols-outlined">error</span> DB Error</span>
-    {% endif %}
-
-    {% if env.riot_key_set %}
-      <span class="hchip hchip-ok"><span class="material-symbols-outlined">key</span> Riot Key</span>
-    {% else %}
-      <span class="hchip hchip-warn"><span class="material-symbols-outlined">key_off</span> No Riot Key</span>
-    {% endif %}
-
-    {% if env.media_cleanup_enabled %}
-      <span class="hchip hchip-ok"><span class="material-symbols-outlined">check</span> Media Cleanup ON</span>
-    {% else %}
-      <span class="hchip hchip-mute">Media Cleanup OFF</span>
-    {% endif %}
-  </div>
-
-  {# ── Warning banners ── #}
+  {# ── Storage banner ── #}
   {% if env.local_storage_in_prod %}
-  <div class="moc-banner bn-danger">
+  <div class="mc-banner bn-danger">
     <span class="material-symbols-outlined">cloud_off</span>
-    <div>
-      <strong>Production is using local filesystem storage.</strong>
-      Files uploaded here exist only on this server &mdash; they will not appear on deltacrown.xyz.
-      Upload production game images from the <a href="https://deltacrown.xyz/admin/">production admin</a> once <code>CLOUDINARY_URL</code> is set.
-    </div>
+    <div><strong>Production using local storage.</strong> Uploaded files will NOT appear on deltacrown.xyz. Set <code>CLOUDINARY_URL</code> in Render env vars, then re-upload from the <a href="https://deltacrown.xyz/admin/">production admin</a>.</div>
   </div>
   {% elif not env.is_cloudinary %}
-  <div class="moc-banner bn-warn">
+  <div class="mc-banner bn-warn">
     <span class="material-symbols-outlined">folder_open</span>
-    <div>
-      <strong>Local media storage active.</strong>
-      Uploads made here are local only. This is fine for development. For production images, use the live admin with <code>CLOUDINARY_URL</code> configured.
-    </div>
+    <div><strong>Local filesystem active.</strong> Uploads stay on this machine only. Use the live admin with Cloudinary configured for production images.</div>
+  </div>
+  {% else %}
+  <div class="mc-banner bn-info">
+    <span class="material-symbols-outlined">cloud_done</span>
+    <div><strong>Cloudinary active.</strong> New uploads are production-safe and served from Cloudinary CDN.</div>
   </div>
   {% endif %}
 
   {# ── Last operation result ── #}
   {% if result %}
-  <div class="moc-result {% if action_status == 'failed' %}res-fail{% else %}res-ok{% endif %}">
+  <div class="mc-result {% if action_status == 'failed' %}mc-r-fail{% else %}mc-r-ok{% endif %}">
     <span class="material-symbols-outlined">{% if action_status == 'failed' %}error{% else %}check_circle{% endif %}</span>
     <div style="flex:1;min-width:0;">
-      <div class="moc-result-name">{{ action_label }}</div>
+      <div class="mc-r-name">{{ action_label }}</div>
       {% if result.error %}
-        <div class="moc-result-err">{{ result.error }}</div>
+        <div class="mc-r-err">{{ result.error }}</div>
       {% else %}
-        <dl class="moc-kv">
+        <dl class="mc-r-kv">
           {% for k, v in result.items %}
-            {% if k != "missing_detail" and k != "orphans_preview" and k != "error" and k != "checks" %}
+            {% if k != "missing_detail" and k != "orphans_preview" and k != "error" %}
             <div><dt>{{ k|cut:"_"|capfirst }}</dt><dd>{{ v }}</dd></div>
             {% endif %}
           {% endfor %}
         </dl>
         {% if result.missing_detail %}
-        <details class="moc-detail"><summary>{{ result.missing|default:0 }} missing file(s)</summary>
-          <table class="moc-detail-tbl"><thead><tr><th>Game</th><th>Field</th><th>Path</th></tr></thead>
+        <details class="mc-detail"><summary>{{ result.missing|default:0 }} missing file(s)</summary>
+          <table class="mc-dtbl"><thead><tr><th>Game</th><th>Field</th><th>Path</th></tr></thead>
           <tbody>{% for r in result.missing_detail %}<tr><td>{{ r.game }}</td><td>{{ r.field }}</td><td>{{ r.path }}</td></tr>{% endfor %}</tbody>
-          </table>
-        </details>
+          </table></details>
         {% endif %}
         {% if result.orphans_preview %}
-        <details class="moc-detail"><summary>{{ result.orphan_count }} orphan(s) found</summary>
-          <table class="moc-detail-tbl"><thead><tr><th>Public ID</th><th>Uploaded</th><th>Size</th></tr></thead>
+        <details class="mc-detail"><summary>{{ result.orphan_count }} orphan(s)</summary>
+          <table class="mc-dtbl"><thead><tr><th>Public ID</th><th>Uploaded</th><th>Size</th></tr></thead>
           <tbody>{% for r in result.orphans_preview %}<tr><td>{{ r.public_id }}</td><td>{{ r.created_at }}</td><td>{{ r.bytes|filesizeformat }}</td></tr>{% endfor %}</tbody>
-          </table>
-        </details>
+          </table></details>
         {% endif %}
       {% endif %}
     </div>
   </div>
   {% endif %}
 
-  {# ── Recommended actions ── #}
+  {# ── Quick links ── #}
+  <nav class="mc-nav" style="margin-bottom:10px;">
+    <a class="mc-nav-link" href="{{ cleanup_admin_url }}">
+      <span class="material-symbols-outlined">cleaning_services</span> Candidates
+      {% if pending_count %}<span class="mc-nav-badge">{{ pending_count }}</span>{% endif %}
+    </a>
+    <a class="mc-nav-link" href="{{ logs_admin_url }}"><span class="material-symbols-outlined">history</span> Logs</a>
+    <a class="mc-nav-link" href="{{ games_admin_url }}"><span class="material-symbols-outlined">sports_esports</span> Games</a>
+  </nav>
+
+  {# ── Stats strip ── #}
+  <div class="mc-stats" style="grid-template-columns:repeat(3,auto);justify-content:start;margin-bottom:12px;">
+    <div class="mc-stat">
+      <span class="material-symbols-outlined" style="font-size:18px;color:#d97706;flex-shrink:0;">hourglass_top</span>
+      <div><div class="mc-stat-num">{{ eligible_count }}</div><div class="mc-stat-lbl">Eligible for cleanup</div></div>
+    </div>
+    <div class="mc-stat">
+      <span class="material-symbols-outlined" style="font-size:18px;color:#0891b2;flex-shrink:0;">pending</span>
+      <div><div class="mc-stat-num">{{ pending_count }}</div><div class="mc-stat-lbl">Pending candidates</div></div>
+    </div>
+    <div class="mc-stat">
+      <span class="material-symbols-outlined" style="font-size:18px;color:#7c3aed;flex-shrink:0;">history</span>
+      <div><div class="mc-stat-num">{{ recent_logs|length }}</div><div class="mc-stat-lbl">Recent runs</div></div>
+    </div>
+  </div>
+
+  {# ── Recommended Actions ── #}
   {% if recommended_actions %}
-  <p class="moc-rec-title">Recommended Actions</p>
-  <div class="moc-rec-grid">
-    {% for rec in recommended_actions %}
-    <div class="moc-rec-card rc-{{ rec.type }}">
-      <span class="material-symbols-outlined">{{ rec.icon }}</span>
-      <div>
-        <p class="rc-title">{{ rec.title }}</p>
-        <p class="rc-desc">{{ rec.desc }}</p>
+  <div style="margin-bottom:16px;">
+    <p class="mc-rec-hdr">Recommended Actions</p>
+    <div class="mc-rec-list">
+      {% for rec in recommended_actions %}
+      <div class="mc-rec-item ri-{{ rec.type }}">
+        <span class="material-symbols-outlined">{{ rec.icon }}</span>
+        <div class="mc-rec-body">
+          <div class="mc-rec-title">{{ rec.title }}</div>
+          <div class="mc-rec-desc">{{ rec.desc }}</div>
+        </div>
         {% if rec.cta_label %}
           {% if rec.cta_href %}
-          <a class="rc-cta rc-cta-{{ rec.type }}" href="{{ rec.cta_href }}">{{ rec.cta_label }}</a>
+          <a class="mc-rec-cta" href="{{ rec.cta_href }}"><span class="material-symbols-outlined" style="font-size:13px;">arrow_forward</span> {{ rec.cta_label }}</a>
           {% elif rec.cta_tab %}
-          <label class="rc-cta rc-cta-{{ rec.type }}" for="{{ rec.cta_tab }}">{{ rec.cta_label }}</label>
+          <label class="mc-rec-cta" for="{{ rec.cta_tab }}"><span class="material-symbols-outlined" style="font-size:13px;">arrow_forward</span> {{ rec.cta_label }}</label>
           {% endif %}
         {% endif %}
       </div>
+      {% endfor %}
     </div>
-    {% endfor %}
   </div>
   {% endif %}
 
-  {# ═════════════════════════════════════════ TABS ═════════════════════ #}
-  {# Radio inputs must be siblings of tab-bar and panels (~ selector) #}
-  <input type="radio" id="t-media" name="moc-t" class="moc-tab-radio" checked>
-  <input type="radio" id="t-riot"  name="moc-t" class="moc-tab-radio">
-  <input type="radio" id="t-tourn" name="moc-t" class="moc-tab-radio">
-  <input type="radio" id="t-evid"  name="moc-t" class="moc-tab-radio">
-  <input type="radio" id="t-cache" name="moc-t" class="moc-tab-radio">
+  {# ══════════════════════════ TAB CONTROL ════════════════════════ #}
+  <input type="radio" id="tc-media" name="mc-t" class="mc-radio" checked>
+  <input type="radio" id="tc-riot"  name="mc-t" class="mc-radio">
+  <input type="radio" id="tc-tourn" name="mc-t" class="mc-radio">
+  <input type="radio" id="tc-evid"  name="mc-t" class="mc-radio">
+  <input type="radio" id="tc-cache" name="mc-t" class="mc-radio">
 
-  <div class="moc-tab-bar">
-    <label for="t-media" class="moc-tab-label"><span class="material-symbols-outlined">cloud_upload</span> Media &amp; Storage</label>
-    <label for="t-riot"  class="moc-tab-label"><span class="material-symbols-outlined">verified_user</span> Riot Passports</label>
-    <label for="t-tourn" class="moc-tab-label"><span class="material-symbols-outlined">emoji_events</span> Tournament</label>
-    <label for="t-evid"  class="moc-tab-label"><span class="material-symbols-outlined">folder_special</span> Evidence</label>
-    <label for="t-cache" class="moc-tab-label"><span class="material-symbols-outlined">speed</span> Cache &amp; Health</label>
+  <div class="mc-tab-bar">
+    <label for="tc-media" class="mc-tab-lbl"><span class="material-symbols-outlined">cloud_upload</span> Media &amp; Storage</label>
+    <label for="tc-riot"  class="mc-tab-lbl"><span class="material-symbols-outlined">verified_user</span> Riot Passports</label>
+    <label for="tc-tourn" class="mc-tab-lbl"><span class="material-symbols-outlined">emoji_events</span> Tournament</label>
+    <label for="tc-evid"  class="mc-tab-lbl"><span class="material-symbols-outlined">folder_special</span> Evidence</label>
+    <label for="tc-cache" class="mc-tab-lbl"><span class="material-symbols-outlined">speed</span> Cache &amp; Health</label>
   </div>
 
   {# ── Tab: Media & Storage ── #}
-  <div class="moc-panel tp-media">
-    <p class="moc-panel-desc">Audit game images, scan for unused Cloudinary assets, and clean up old replaced files. Upload fresh images in <a href="{{ games_admin_url }}" style="color:var(--p5);">Admin &rsaquo; Games</a>, then use this tab to clean up the old ones after 48 hours.</p>
-    <div class="op-grid">
+  <div class="mc-panel tp-media">
+    <p class="mc-panel-intro">Audit game images, scan Cloudinary for unused assets, clean up old replaced files. Upload in <a href="{{ games_admin_url }}">Admin &rsaquo; Games</a>, wait 48 h, then delete old assets here.</p>
+    <div class="mc-grid">
 
-      <div class="op-card">
-        <div class="op-card-top">
-          <span class="op-ic" style="color:#0891b2;">&#128269;</span>
-          <div>
-            <div class="op-title">Game Media Audit</div>
-            <div class="op-desc">Checks icon, logo, banner, and card image for every active game against storage. Reports missing or empty fields.</div>
-            <div class="op-tags"><span class="op-tag tag-safe">Read-only</span></div>
-          </div>
+      <div class="mc-card">
+        <div class="mc-card-top"><span class="mc-card-ic" style="color:#0891b2;">&#128269;</span>
+          <div><div class="mc-card-title">Game Media Audit</div><div class="mc-card-desc">Checks icon, logo, banner, card image for every active game against storage. Reports missing fields.</div>
+          <div class="mc-card-tags"><span class="mc-tag t-read">Read-only</span></div></div>
         </div>
         <form method="post">{% csrf_token %}<input type="hidden" name="action" value="game_media_audit">
-          <button class="op-btn btn-primary"><span class="material-symbols-outlined">play_arrow</span> Run Audit</button>
+          <button class="mc-btn b-p"><span class="material-symbols-outlined">play_arrow</span> Run Audit</button>
         </form>
       </div>
 
-      <div class="op-card">
-        <div class="op-card-top">
-          <span class="op-ic" style="color:#0891b2;">&#128506;</span>
-          <div>
-            <div class="op-title">Map Image Audit</div>
-            <div class="op-desc">Audits GameMapPool image fields. Flags active competitive maps with no image — critical for veto cards in match rooms.</div>
-            <div class="op-tags"><span class="op-tag tag-safe">Read-only</span></div>
-          </div>
+      <div class="mc-card">
+        <div class="mc-card-top"><span class="mc-card-ic" style="color:#0891b2;">&#128506;</span>
+          <div><div class="mc-card-title">Map Image Audit</div><div class="mc-card-desc">Audits GameMapPool image fields. Flags active competitive maps with no image — needed for veto cards.</div>
+          <div class="mc-card-tags"><span class="mc-tag t-read">Read-only</span></div></div>
         </div>
         <form method="post">{% csrf_token %}<input type="hidden" name="action" value="map_image_audit">
-          <button class="op-btn btn-primary"><span class="material-symbols-outlined">play_arrow</span> Audit Maps</button>
+          <button class="mc-btn b-p"><span class="material-symbols-outlined">play_arrow</span> Audit Maps</button>
         </form>
       </div>
 
-      <div class="op-card">
-        <div class="op-card-top">
-          <span class="op-ic" style="color:#7c3aed;">&#9729;</span>
-          <div>
-            <div class="op-title">Cloudinary Orphan Scan</div>
-            <div class="op-desc">Lists Cloudinary game-media assets not referenced by any DB row. Dry-run. Files &lt;&nbsp;48 h old are skipped.</div>
-            <div class="op-tags"><span class="op-tag tag-safe">Dry-run</span></div>
-          </div>
+      <div class="mc-card">
+        <div class="mc-card-top"><span class="mc-card-ic" style="color:#7c3aed;">&#9729;</span>
+          <div><div class="mc-card-title">Cloudinary Orphan Scan</div><div class="mc-card-desc">Lists Cloudinary game-media assets not referenced in DB. Dry-run. Files &lt; 48 h old are protected.</div>
+          <div class="mc-card-tags"><span class="mc-tag t-read">Dry-run</span></div></div>
         </div>
         <form method="post">{% csrf_token %}<input type="hidden" name="action" value="orphan_scan">
-          <button class="op-btn btn-violet"><span class="material-symbols-outlined">search</span> Scan Orphans</button>
+          <button class="mc-btn b-vl"><span class="material-symbols-outlined">search</span> Scan Orphans</button>
         </form>
       </div>
 
-      <div class="op-card">
-        <div class="op-card-top">
-          <span class="op-ic" style="color:#64748b;">&#128190;</span>
-          <div>
-            <div class="op-title">Storage Backend Check</div>
-            <div class="op-desc">Reports the active storage backend (Cloudinary or Local) and tests Cloudinary API connectivity.</div>
-            <div class="op-tags"><span class="op-tag tag-safe">Read-only</span></div>
-          </div>
+      <div class="mc-card">
+        <div class="mc-card-top"><span class="mc-card-ic" style="color:#6b7280;">&#128190;</span>
+          <div><div class="mc-card-title">Storage Backend Check</div><div class="mc-card-desc">Reports the active storage backend and tests Cloudinary API connectivity.</div>
+          <div class="mc-card-tags"><span class="mc-tag t-read">Read-only</span></div></div>
         </div>
         <form method="post">{% csrf_token %}<input type="hidden" name="action" value="storage_backend_check">
-          <button class="op-btn btn-neutral"><span class="material-symbols-outlined">play_arrow</span> Check Storage</button>
+          <button class="mc-btn b-nt"><span class="material-symbols-outlined">play_arrow</span> Check Storage</button>
         </form>
       </div>
     </div>
 
-    {# Danger zone #}
-    <div class="dz-header">
-      <span style="font-size:16px;color:var(--err);" class="material-symbols-outlined">dangerous</span>
-      <span class="dz-title">Danger Zone</span>
-      <div class="dz-line"></div>
-    </div>
-    <div class="op-grid" style="grid-template-columns:1fr;">
-      <div class="op-card op-danger" x-data="{cw:''}">
-        <div class="op-card-top">
-          <span class="op-ic" style="color:#dc2626;">&#128465;</span>
-          <div style="flex:1;">
-            <div class="op-title" style="color:#991b1b;">Delete Eligible Media</div>
-            <div class="op-desc">Permanently removes old Cloudinary game-media files that are 48&nbsp;h+ old and no longer referenced in the database. Runs <strong>{{ eligible_count }}</strong> candidate(s) now.</div>
-            {% if eligible_count %}
-            <div class="dz-eligible">&#9888;&nbsp; {{ eligible_count }} eligible for deletion now.</div>
-            {% else %}
-            <div class="dz-none">No eligible candidates &mdash; nothing will be deleted.</div>
-            {% endif %}
-            <div class="dz-protected">Protected: evidence, payments, KYC, community files are never touched.</div>
-          </div>
+    <div class="mc-dz-sep"><span class="material-symbols-outlined">dangerous</span><span class="mc-dz-sep-title">Danger Zone</span><div class="mc-dz-sep-line"></div></div>
+    <div class="mc-dz-card" x-data="{cw:''}">
+      <div class="mc-dz-top">
+        <span class="material-symbols-outlined">delete_sweep</span>
+        <div style="flex:1;">
+          <div class="mc-dz-title">Delete Eligible Media</div>
+          <div class="mc-dz-desc">Permanently removes old Cloudinary game-media files 48 h+ old and no longer referenced. Only approved game-media folders are touched.</div>
+          {% if eligible_count %}<div class="mc-dz-count">&#9888; {{ eligible_count }} eligible file(s) ready for deletion.</div>
+          {% else %}<div class="mc-dz-note">No eligible candidates &mdash; nothing will be deleted.</div>{% endif %}
+          <div class="mc-dz-note">Protected forever: evidence, payments, KYC, community files.</div>
+          <div class="mc-dz-tags"><span class="mc-tag t-beat">Beat: daily 06:00 UTC</span></div>
         </div>
-        <form method="post" class="has-input">{% csrf_token %}<input type="hidden" name="action" value="delete_eligible_media">
-          <div class="dz-confirm-row">
-            <span class="dz-confirm-label">Type&nbsp;<code>CLEANUP</code>&nbsp;to confirm:</span>
-            <input class="dz-confirm-input" type="text" name="confirm_word" autocomplete="off" x-model="cw" placeholder="CLEANUP">
-            <button class="op-btn btn-red" type="submit" :disabled="cw!=='CLEANUP'" {% if not eligible_count %}disabled{% endif %} style="width:auto;white-space:nowrap;flex-shrink:0;">
-              <span class="material-symbols-outlined">delete_forever</span> Delete ({{ eligible_count }})
-            </button>
-          </div>
-        </form>
       </div>
+      <form method="post">{% csrf_token %}<input type="hidden" name="action" value="delete_eligible_media">
+        <div class="mc-confirm-row">
+          <span class="mc-confirm-lbl">Type <code>CLEANUP</code> to confirm:</span>
+          <input class="mc-confirm-in" type="text" name="confirm_word" autocomplete="off" x-model="cw" placeholder="CLEANUP">
+          <button class="mc-dz-btn" type="submit" :disabled="cw!=='CLEANUP'" {% if not eligible_count %}disabled{% endif %}>
+            <span class="material-symbols-outlined">delete_forever</span> Delete ({{ eligible_count }})
+          </button>
+        </div>
+      </form>
     </div>
   </div>
 
   {# ── Tab: Riot Passports ── #}
-  <div class="moc-panel tp-riot">
-    <p class="moc-panel-desc">Manage Valorant Game Passport verification against the Riot API. Riot API key status: {% if env.riot_key_set %}<strong style="color:var(--ok);">Configured</strong>{% else %}<strong style="color:var(--err);">NOT SET &mdash; verifications will fail</strong>{% endif %}.</p>
-    <div class="op-grid">
-
-      <div class="op-card">
-        <div class="op-card-top">
-          <span class="op-ic" style="color:var(--ok);">&#8635;</span>
-          <div>
-            <div class="op-title">Retry All Valorant Passports</div>
-            <div class="op-desc">Re-queues every unverified Valorant passport for Riot API verification. Uses Celery if available, falls back to inline.</div>
-            <div class="op-tags"><span class="op-tag tag-safe">Non-destructive</span><span class="op-tag tag-beat">Beat: every 20 min</span></div>
-          </div>
+  <div class="mc-panel tp-riot">
+    <p class="mc-panel-intro">Manage Valorant passport verification. Riot API key: {% if env.riot_key_set %}<strong style="color:#059669;">configured</strong>{% else %}<strong style="color:#dc2626;">NOT SET — verifications will fail</strong>{% endif %}.</p>
+    <div class="mc-grid">
+      <div class="mc-card">
+        <div class="mc-card-top"><span class="mc-card-ic" style="color:#059669;">&#8635;</span>
+          <div><div class="mc-card-title">Retry All Valorant Passports</div><div class="mc-card-desc">Re-queues all unverified Valorant passports. Falls back to inline if Celery unavailable.</div>
+          <div class="mc-card-tags"><span class="mc-tag t-safe">Non-destructive</span><span class="mc-tag t-beat">Beat: 20 min</span></div></div>
         </div>
         <form method="post">{% csrf_token %}<input type="hidden" name="action" value="riot_retry">
-          <button class="op-btn btn-green"><span class="material-symbols-outlined">replay</span> Retry All</button>
+          <button class="mc-btn b-ok"><span class="material-symbols-outlined">replay</span> Retry All</button>
         </form>
       </div>
-
-      <div class="op-card">
-        <div class="op-card-top">
-          <span class="op-ic" style="color:var(--ok);">&#128270;</span>
-          <div>
-            <div class="op-title">Verify Passport by ID</div>
-            <div class="op-desc">Force-verifies one specific Valorant GameProfile. Find the numeric ID in Admin &rsaquo; Game Profiles.</div>
-            <div class="op-tags"><span class="op-tag tag-safe">Non-destructive</span></div>
-          </div>
+      <div class="mc-card">
+        <div class="mc-card-top"><span class="mc-card-ic" style="color:#059669;">&#128270;</span>
+          <div><div class="mc-card-title">Verify Passport by ID</div><div class="mc-card-desc">Force-verifies one Valorant GameProfile by numeric ID. Find ID in Admin &rsaquo; Game Profiles.</div>
+          <div class="mc-card-tags"><span class="mc-tag t-safe">Non-destructive</span></div></div>
         </div>
-        <form method="post" class="has-input">{% csrf_token %}<input type="hidden" name="action" value="riot_verify_one">
-          <input class="op-field" type="number" name="passport_id" placeholder="GameProfile ID e.g. 42" min="1">
-          <button class="op-btn btn-green"><span class="material-symbols-outlined">person_search</span> Verify</button>
+        <form method="post" class="mc-fstack">{% csrf_token %}<input type="hidden" name="action" value="riot_verify_one">
+          <input class="mc-input" type="number" name="passport_id" placeholder="GameProfile ID e.g. 42" min="1">
+          <button class="mc-btn b-ok"><span class="material-symbols-outlined">person_search</span> Verify</button>
         </form>
       </div>
-
-      <div class="op-card">
-        <div class="op-card-top">
-          <span class="op-ic" style="color:var(--ok);">&#128267;</span>
-          <div>
-            <div class="op-title">Test Riot API</div>
-            <div class="op-desc">Verifies a Riot ID against the live API. API key is never shown. Format: <code style="font-size:11px;color:#7c3aed;">Name#TAG</code></div>
-            <div class="op-tags"><span class="op-tag tag-safe">Read-only API call</span></div>
-          </div>
+      <div class="mc-card">
+        <div class="mc-card-top"><span class="mc-card-ic" style="color:#059669;">&#128267;</span>
+          <div><div class="mc-card-title">Test Riot API</div><div class="mc-card-desc">Verifies a Riot ID against the live API. Key never shown. Format: <code style="font-size:10px;color:#7c3aed;">Name#TAG</code></div>
+          <div class="mc-card-tags"><span class="mc-tag t-read">Read-only API</span></div></div>
         </div>
-        <form method="post" class="has-input">{% csrf_token %}<input type="hidden" name="action" value="riot_api_test">
-          <input class="op-field op-field-mono" type="text" name="riot_id" placeholder="PlayerOne#1234">
-          <button class="op-btn btn-green"><span class="material-symbols-outlined">api</span> Test Riot ID</button>
+        <form method="post" class="mc-fstack">{% csrf_token %}<input type="hidden" name="action" value="riot_api_test">
+          <input class="mc-input mono" type="text" name="riot_id" placeholder="PlayerOne#1234">
+          <button class="mc-btn b-ok"><span class="material-symbols-outlined">api</span> Test</button>
         </form>
       </div>
     </div>
   </div>
 
   {# ── Tab: Tournament ── #}
-  <div class="moc-panel tp-tourn">
-    <p class="moc-panel-desc">Run the same automation tasks that Celery Beat handles on its schedule. All are idempotent &mdash; safe to run multiple times.</p>
-    <div class="op-grid">
-
-      <div class="op-card">
-        <div class="op-card-top">
-          <span class="op-ic" style="color:#d97706;">&#9878;</span>
-          <div>
-            <div class="op-title">No-Show / Forfeit Sweep</div>
-            <div class="op-desc">Auto-forfeits matches where a team is absent past the grace period. Cancels both-no-show matches.</div>
-            <div class="op-tags"><span class="op-tag tag-sweep">Affects match state</span><span class="op-tag tag-beat">Beat: 2 min</span></div>
-          </div>
-        </div>
-        <form method="post">{% csrf_token %}<input type="hidden" name="action" value="sweep_no_show">
-          <button class="op-btn btn-amber"><span class="material-symbols-outlined">play_arrow</span> Run Sweep</button>
-        </form>
+  <div class="mc-panel tp-tourn">
+    <p class="mc-panel-intro">Run the same automation Celery Beat handles on schedule. All tasks are idempotent — safe to run multiple times.</p>
+    <div class="mc-grid">
+      <div class="mc-card">
+        <div class="mc-card-top"><span class="mc-card-ic" style="color:#d97706;">&#9878;</span><div><div class="mc-card-title">No-Show / Forfeit Sweep</div><div class="mc-card-desc">Auto-forfeits matches where a team is absent past the grace period.</div><div class="mc-card-tags"><span class="mc-tag t-sweep">Match state</span><span class="mc-tag t-beat">Beat: 2 min</span></div></div></div>
+        <form method="post">{% csrf_token %}<input type="hidden" name="action" value="sweep_no_show"><button class="mc-btn b-wn"><span class="material-symbols-outlined">play_arrow</span> Run Sweep</button></form>
       </div>
-
-      <div class="op-card">
-        <div class="op-card-top">
-          <span class="op-ic" style="color:#d97706;">&#9203;</span>
-          <div>
-            <div class="op-title">Veto Timeout Sweep</div>
-            <div class="op-desc">Auto-executes timed-out map veto steps with a random pick. Affects in-progress veto flows.</div>
-            <div class="op-tags"><span class="op-tag tag-sweep">Affects veto state</span><span class="op-tag tag-beat">Beat: 10 s</span></div>
-          </div>
-        </div>
-        <form method="post">{% csrf_token %}<input type="hidden" name="action" value="sweep_veto">
-          <button class="op-btn btn-amber"><span class="material-symbols-outlined">play_arrow</span> Run Sweep</button>
-        </form>
+      <div class="mc-card">
+        <div class="mc-card-top"><span class="mc-card-ic" style="color:#d97706;">&#9203;</span><div><div class="mc-card-title">Veto Timeout Sweep</div><div class="mc-card-desc">Auto-executes timed-out map veto steps with a random pick.</div><div class="mc-card-tags"><span class="mc-tag t-sweep">Veto state</span><span class="mc-tag t-beat">Beat: 10 s</span></div></div></div>
+        <form method="post">{% csrf_token %}<input type="hidden" name="action" value="sweep_veto"><button class="mc-btn b-wn"><span class="material-symbols-outlined">play_arrow</span> Run Sweep</button></form>
       </div>
-
-      <div class="op-card">
-        <div class="op-card-top">
-          <span class="op-ic" style="color:#d97706;">&#9654;</span>
-          <div>
-            <div class="op-title">Auto-Advance Tournaments</div>
-            <div class="op-desc">Transitions tournaments through lifecycle states (Draft &rarr; Reg Open &rarr; Live) based on date thresholds.</div>
-            <div class="op-tags"><span class="op-tag tag-sweep">Affects tournament state</span><span class="op-tag tag-beat">Beat: 5 min</span></div>
-          </div>
-        </div>
-        <form method="post">{% csrf_token %}<input type="hidden" name="action" value="auto_advance">
-          <button class="op-btn btn-amber"><span class="material-symbols-outlined">skip_next</span> Advance Now</button>
-        </form>
+      <div class="mc-card">
+        <div class="mc-card-top"><span class="mc-card-ic" style="color:#d97706;">&#9654;</span><div><div class="mc-card-title">Auto-Advance Tournaments</div><div class="mc-card-desc">Transitions tournaments through lifecycle states based on date thresholds.</div><div class="mc-card-tags"><span class="mc-tag t-state">Tournament state</span><span class="mc-tag t-beat">Beat: 5 min</span></div></div></div>
+        <form method="post">{% csrf_token %}<input type="hidden" name="action" value="auto_advance"><button class="mc-btn b-wn"><span class="material-symbols-outlined">skip_next</span> Advance</button></form>
       </div>
-
-      <div class="op-card">
-        <div class="op-card-top">
-          <span class="op-ic" style="color:#d97706;">&#127937;</span>
-          <div>
-            <div class="op-title">Tournament Wrapup</div>
-            <div class="op-desc">Marks LIVE tournaments as COMPLETED once all their matches are done.</div>
-            <div class="op-tags"><span class="op-tag tag-sweep">Affects tournament state</span><span class="op-tag tag-beat">Beat: hourly :15</span></div>
-          </div>
-        </div>
-        <form method="post">{% csrf_token %}<input type="hidden" name="action" value="tournament_wrapup">
-          <button class="op-btn btn-amber"><span class="material-symbols-outlined">flag</span> Run Wrapup</button>
-        </form>
+      <div class="mc-card">
+        <div class="mc-card-top"><span class="mc-card-ic" style="color:#d97706;">&#127937;</span><div><div class="mc-card-title">Tournament Wrapup</div><div class="mc-card-desc">Marks LIVE tournaments COMPLETED when all matches finish.</div><div class="mc-card-tags"><span class="mc-tag t-state">Tournament state</span><span class="mc-tag t-beat">Beat: hourly :15</span></div></div></div>
+        <form method="post">{% csrf_token %}<input type="hidden" name="action" value="tournament_wrapup"><button class="mc-btn b-wn"><span class="material-symbols-outlined">flag</span> Wrapup</button></form>
       </div>
-
-      <div class="op-card">
-        <div class="op-card-top">
-          <span class="op-ic" style="color:#d97706;">&#128683;</span>
-          <div>
-            <div class="op-title">Expire Overdue Payments</div>
-            <div class="op-desc">Cancels unpaid registrations that have passed their payment deadline.</div>
-            <div class="op-tags"><span class="op-tag tag-sweep">Cancels registrations</span><span class="op-tag tag-beat">Beat: 15 min</span></div>
-          </div>
-        </div>
-        <form method="post">{% csrf_token %}<input type="hidden" name="action" value="expire_payments">
-          <button class="op-btn btn-amber"><span class="material-symbols-outlined">credit_card_off</span> Expire Now</button>
-        </form>
+      <div class="mc-card">
+        <div class="mc-card-top"><span class="mc-card-ic" style="color:#d97706;">&#128683;</span><div><div class="mc-card-title">Expire Overdue Payments</div><div class="mc-card-desc">Cancels unpaid registrations past their payment deadline.</div><div class="mc-card-tags"><span class="mc-tag t-sweep">Cancels registrations</span><span class="mc-tag t-beat">Beat: 15 min</span></div></div></div>
+        <form method="post">{% csrf_token %}<input type="hidden" name="action" value="expire_payments"><button class="mc-btn b-wn"><span class="material-symbols-outlined">credit_card_off</span> Expire</button></form>
       </div>
-
-      <div class="op-card">
-        <div class="op-card-top">
-          <span class="op-ic" style="color:#d97706;">&#10003;</span>
-          <div>
-            <div class="op-title">Auto-Confirm Submissions</div>
-            <div class="op-desc">Auto-confirms result submissions unanswered for 24h, resolving stalled matches.</div>
-            <div class="op-tags"><span class="op-tag tag-sweep">Confirms results</span><span class="op-tag tag-beat">Beat: 30 min</span></div>
-          </div>
-        </div>
-        <form method="post">{% csrf_token %}<input type="hidden" name="action" value="auto_confirm_submissions">
-          <button class="op-btn btn-amber"><span class="material-symbols-outlined">done_all</span> Auto-Confirm</button>
-        </form>
+      <div class="mc-card">
+        <div class="mc-card-top"><span class="mc-card-ic" style="color:#d97706;">&#10003;</span><div><div class="mc-card-title">Auto-Confirm Submissions</div><div class="mc-card-desc">Auto-confirms result submissions unanswered for 24 h, resolving stalled matches.</div><div class="mc-card-tags"><span class="mc-tag t-sweep">Confirms results</span><span class="mc-tag t-beat">Beat: 30 min</span></div></div></div>
+        <form method="post">{% csrf_token %}<input type="hidden" name="action" value="auto_confirm_submissions"><button class="mc-btn b-wn"><span class="material-symbols-outlined">done_all</span> Confirm</button></form>
       </div>
     </div>
   </div>
 
   {# ── Tab: Evidence ── #}
-  <div class="moc-panel tp-evid">
-    <p class="moc-panel-desc">Manage match result screenshot lifecycle. Always run the audit first to check what would be deleted. Evidence files for disputed submissions are always protected.</p>
-    <div class="op-grid" style="grid-template-columns:1fr;">
-      <div class="op-card">
-        <div class="op-card-top">
-          <span class="op-ic" style="color:#64748b;">&#128196;</span>
-          <div>
-            <div class="op-title">Evidence Cleanup Audit</div>
-            <div class="op-desc">Counts completed matches past the 30-day retention window that are eligible for screenshot purge. Dry-run only &mdash; never deletes anything.</div>
-            <div class="op-tags"><span class="op-tag tag-safe">Dry-run</span></div>
-          </div>
+  <div class="mc-panel tp-evid">
+    <p class="mc-panel-intro">Manage match result screenshot lifecycle. Run the audit first. Disputed submissions are always protected.</p>
+    <div class="mc-grid mc-grid-1">
+      <div class="mc-card">
+        <div class="mc-card-top"><span class="mc-card-ic" style="color:#6b7280;">&#128196;</span>
+          <div><div class="mc-card-title">Evidence Cleanup Audit</div><div class="mc-card-desc">Counts completed matches past the 30-day retention window eligible for screenshot purge. Dry-run — never deletes.</div>
+          <div class="mc-card-tags"><span class="mc-tag t-read">Dry-run</span></div></div>
         </div>
         <form method="post">{% csrf_token %}<input type="hidden" name="action" value="evidence_audit">
-          <button class="op-btn btn-neutral"><span class="material-symbols-outlined">preview</span> Audit (dry-run)</button>
+          <button class="mc-btn b-nt"><span class="material-symbols-outlined">preview</span> Audit (dry-run)</button>
         </form>
       </div>
     </div>
-
-    <div class="dz-header">
-      <span style="font-size:16px;color:var(--err);" class="material-symbols-outlined">dangerous</span>
-      <span class="dz-title">Danger Zone</span>
-      <div class="dz-line"></div>
-    </div>
-    <div class="op-grid" style="grid-template-columns:1fr;">
-      <div class="op-card op-danger" x-data="{cw:''}">
-        <div class="op-card-top">
-          <span class="op-ic" style="color:#dc2626;">&#128465;</span>
-          <div style="flex:1;">
-            <div class="op-title" style="color:#991b1b;">Run Evidence Sweep</div>
-            <div class="op-desc">Purges result screenshots for tournaments completed &gt;&nbsp;30 days ago. Disputed, unresolved, and recent submissions are always protected.</div>
-            <div class="op-tags"><span class="op-tag tag-warn">Deletes screenshot files</span><span class="op-tag tag-beat">Beat: daily 04:00 UTC</span></div>
-            <div class="dz-protected">Protected: disputed submissions, KYC, payment proof, community files.</div>
-          </div>
+    <div class="mc-dz-sep"><span class="material-symbols-outlined">dangerous</span><span class="mc-dz-sep-title">Danger Zone</span><div class="mc-dz-sep-line"></div></div>
+    <div class="mc-dz-card" x-data="{cw:''}">
+      <div class="mc-dz-top">
+        <span class="material-symbols-outlined">delete_forever</span>
+        <div><div class="mc-dz-title">Run Evidence Sweep</div>
+          <div class="mc-dz-desc">Purges result screenshots for tournaments completed &gt; 30 days ago. Disputed submissions are always protected.</div>
+          <div class="mc-dz-note">Protected: disputed submissions, KYC, payment proof, community files.</div>
+          <div class="mc-dz-tags"><span class="mc-tag t-beat">Beat: daily 04:00 UTC</span></div>
         </div>
-        <form method="post" class="has-input">{% csrf_token %}<input type="hidden" name="action" value="evidence_sweep">
-          <div class="dz-confirm-row">
-            <span class="dz-confirm-label">Type&nbsp;<code>RUN</code>&nbsp;to confirm:</span>
-            <input class="dz-confirm-input" type="text" name="confirm_word" autocomplete="off" x-model="cw" placeholder="RUN">
-            <button class="op-btn btn-red" type="submit" :disabled="cw!=='RUN'" style="width:auto;white-space:nowrap;flex-shrink:0;">
-              <span class="material-symbols-outlined">delete_forever</span> Run Sweep
-            </button>
-          </div>
-        </form>
       </div>
+      <form method="post">{% csrf_token %}<input type="hidden" name="action" value="evidence_sweep">
+        <div class="mc-confirm-row">
+          <span class="mc-confirm-lbl">Type <code>RUN</code>:</span>
+          <input class="mc-confirm-in" type="text" name="confirm_word" autocomplete="off" x-model="cw" placeholder="RUN">
+          <button class="mc-dz-btn" type="submit" :disabled="cw!=='RUN'"><span class="material-symbols-outlined">delete_forever</span> Run Sweep</button>
+        </div>
+      </form>
     </div>
   </div>
 
   {# ── Tab: Cache & Health ── #}
-  <div class="moc-panel tp-cache">
-    <p class="moc-panel-desc">Clear caches, force refreshes, and run diagnostics across system components.</p>
-    <div class="op-grid">
-
-      <div class="op-card">
-        <div class="op-card-top">
-          <span class="op-ic" style="color:#7c3aed;">&#127918;</span>
-          <div>
-            <div class="op-title">Clear Game Cache</div>
-            <div class="op-desc">Deletes the active-games cache key so changes in Game admin take effect immediately across the site.</div>
-            <div class="op-tags"><span class="op-tag tag-safe">Safe</span></div>
-          </div>
-        </div>
-        <form method="post">{% csrf_token %}<input type="hidden" name="action" value="clear_game_cache">
-          <button class="op-btn btn-violet"><span class="material-symbols-outlined">cached</span> Clear Cache</button>
-        </form>
+  <div class="mc-panel tp-cache">
+    <p class="mc-panel-intro">Clear caches, force refreshes, and run a full system health check.</p>
+    <div class="mc-grid">
+      <div class="mc-card">
+        <div class="mc-card-top"><span class="mc-card-ic" style="color:#7c3aed;">&#127918;</span><div><div class="mc-card-title">Clear Game Cache</div><div class="mc-card-desc">Deletes the active-games cache key so Game admin changes take effect immediately site-wide.</div><div class="mc-card-tags"><span class="mc-tag t-safe">Safe</span></div></div></div>
+        <form method="post">{% csrf_token %}<input type="hidden" name="action" value="clear_game_cache"><button class="mc-btn b-vl"><span class="material-symbols-outlined">cached</span> Clear Cache</button></form>
       </div>
-
-      <div class="op-card">
-        <div class="op-card-top">
-          <span class="op-ic" style="color:#7c3aed;">&#128202;</span>
-          <div>
-            <div class="op-title">Leaderboard Cache Refresh</div>
-            <div class="op-desc">Runs the hourly leaderboard cache refresh immediately. Updates ranking data visible to users.</div>
-            <div class="op-tags"><span class="op-tag tag-safe">Safe</span><span class="op-tag tag-beat">Beat: hourly :45</span></div>
-          </div>
-        </div>
-        <form method="post">{% csrf_token %}<input type="hidden" name="action" value="leaderboard_refresh">
-          <button class="op-btn btn-violet"><span class="material-symbols-outlined">refresh</span> Refresh Now</button>
-        </form>
+      <div class="mc-card">
+        <div class="mc-card-top"><span class="mc-card-ic" style="color:#7c3aed;">&#128202;</span><div><div class="mc-card-title">Leaderboard Cache Refresh</div><div class="mc-card-desc">Runs the hourly leaderboard refresh immediately. Updates rankings visible to users.</div><div class="mc-card-tags"><span class="mc-tag t-safe">Safe</span><span class="mc-tag t-beat">Beat: hourly :45</span></div></div></div>
+        <form method="post">{% csrf_token %}<input type="hidden" name="action" value="leaderboard_refresh"><button class="mc-btn b-vl"><span class="material-symbols-outlined">refresh</span> Refresh Now</button></form>
       </div>
-
-      <div class="op-card">
-        <div class="op-card-top">
-          <span class="op-ic" style="color:#7c3aed;">&#128138;</span>
-          <div>
-            <div class="op-title">System Health Check</div>
-            <div class="op-desc">Tests database, Redis/cache, active storage backend, and key environment variables. Returns a full status report.</div>
-            <div class="op-tags"><span class="op-tag tag-safe">Read-only diagnostics</span></div>
-          </div>
-        </div>
-        <form method="post">{% csrf_token %}<input type="hidden" name="action" value="health_check">
-          <button class="op-btn btn-violet"><span class="material-symbols-outlined">monitor_heart</span> Run Check</button>
-        </form>
+      <div class="mc-card">
+        <div class="mc-card-top"><span class="mc-card-ic" style="color:#7c3aed;">&#128138;</span><div><div class="mc-card-title">System Health Check</div><div class="mc-card-desc">Tests database, Redis, storage backend, and key environment variable configuration.</div><div class="mc-card-tags"><span class="mc-tag t-read">Read-only</span></div></div></div>
+        <form method="post">{% csrf_token %}<input type="hidden" name="action" value="health_check"><button class="mc-btn b-vl"><span class="material-symbols-outlined">monitor_heart</span> Run Check</button></form>
       </div>
     </div>
   </div>
 
   {# ── Recent runs ── #}
   {% if recent_logs %}
-  <div class="moc-logs">
-    <div class="moc-logs-hdr">
-      <span class="moc-logs-title">Recent Runs</span>
-      <a class="moc-logs-link" href="{{ logs_admin_url }}">View all &rarr;</a>
+  <div class="mc-logs">
+    <div class="mc-logs-hdr">
+      <span class="mc-logs-title">Recent Runs</span>
+      <a class="mc-logs-link" href="{{ logs_admin_url }}">View all &rarr;</a>
     </div>
-    <table class="moc-table">
-      <thead>
-        <tr>
-          <th>Operation</th><th>Status</th><th>By</th><th>Duration</th><th>When</th>
-        </tr>
-      </thead>
+    <table class="mc-tbl">
+      <thead><tr><th>Operation</th><th>Status</th><th>By</th><th>Duration</th><th>When</th></tr></thead>
       <tbody>
         {% for log in recent_logs %}
         <tr>
-          <td class="td-name">{{ log.task_name }}</td>
-          <td>
-            {% if log.status == "success" %}<span class="st-ok">&#10003; OK</span>
-            {% elif log.status == "partial" %}<span class="st-part">&#9888; Partial</span>
-            {% else %}<span class="st-fail">&#10007; Failed</span>{% endif %}
-          </td>
+          <td class="mc-td-op">{{ log.task_name }}</td>
+          <td>{% if log.status == "success" %}<span class="mc-st-ok">&#10003; OK</span>{% elif log.status == "partial" %}<span class="mc-st-part">&#9888; Partial</span>{% else %}<span class="mc-st-fail">&#10007; Failed</span>{% endif %}</td>
           <td>{{ log.user.username|default:"&mdash;" }}</td>
           <td>{% if log.duration_ms %}{{ log.duration_ms }}&thinsp;ms{% else %}&mdash;{% endif %}</td>
           <td>{{ log.created_at|timesince }} ago</td>

@@ -1,11 +1,17 @@
 from django.contrib import admin, messages
 from django.db.models import Count
+from unfold.admin import ModelAdmin, TabularInline
 
 from .models import RoyaleEntry, RoyaleLobby
 from .services import RoyaleService
 
+RoyaleLobby._meta.verbose_name = "Dropzone Lobby"
+RoyaleLobby._meta.verbose_name_plural = "Dropzone Lobbies"
+RoyaleEntry._meta.verbose_name = "Dropzone Entry"
+RoyaleEntry._meta.verbose_name_plural = "Dropzone Entries"
 
-class RoyaleEntryInline(admin.TabularInline):
+
+class RoyaleEntryInline(TabularInline):
     model = RoyaleEntry
     extra = 0
     can_delete = False
@@ -35,7 +41,7 @@ class RoyaleEntryInline(admin.TabularInline):
 
 
 @admin.register(RoyaleLobby)
-class RoyaleLobbyAdmin(admin.ModelAdmin):
+class RoyaleLobbyAdmin(ModelAdmin):
     """Service-backed admin interface for Dropzone lobbies."""
 
     list_display = (
@@ -221,7 +227,7 @@ class RoyaleLobbyAdmin(admin.ModelAdmin):
 
 
 @admin.register(RoyaleEntry)
-class RoyaleEntryAdmin(admin.ModelAdmin):
+class RoyaleEntryAdmin(ModelAdmin):
     """Admin interface for Dropzone entries.
 
     Placement and kills are intentionally editable as the MVP scoring input.

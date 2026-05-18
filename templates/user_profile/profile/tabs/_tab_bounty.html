@@ -18,7 +18,7 @@
         <span class="bg-clip-text text-transparent bg-gradient-to-r from-indigo-300 via-fuchsia-300 to-amber-300">Missions</span>
       </h3>
       <p class="text-sm text-gray-400 leading-relaxed max-w-2xl">
-        Mission attempts and milestone trophies live here. Pay an entry fee, hit the goal in time, and claim the DeltaCoin reward.
+        Mission attempts and milestone trophies live here. Start a skill-based objective, hit the goal in time, and track proof or review status from the Competitive Hub.
       </p>
       <div class="mt-5">
         <a href="{% url 'dashboard:competitive_hub' %}"
@@ -50,7 +50,7 @@
   </div>
   {% else %}
   <div class="rounded-2xl p-8 border border-white/10 bg-white/[0.02] text-center backdrop-blur-xl">
-    <p class="text-sm text-gray-500">This user's contract activity is private.</p>
+    <p class="text-sm text-gray-500">This user's Mission activity is private.</p>
   </div>
   {% endif %}
 
@@ -151,7 +151,7 @@
             <div>
               <h4 class="text-base font-display font-black text-white mb-1.5">No Active Missions</h4>
               <p class="text-xs text-gray-400 max-w-sm mx-auto leading-relaxed">
-                Skill-based Missions await in the competitive hub. Pay a small DC entry fee, complete the goal in time, and claim the reward.
+                Skill-based Missions await in the competitive hub. Start an objective, complete the goal in time, and track the review or result safely.
               </p>
             </div>
             <a href="${esc(browseUrl)}"

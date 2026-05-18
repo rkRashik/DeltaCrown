@@ -2,13 +2,21 @@ from django.contrib import admin
 from django.contrib import messages
 from django.db.models import Count
 from django.utils import timezone
+from unfold.admin import ModelAdmin
 
 from .models import ContractEnrollment, ContractProofSubmission, ContractTemplate
 from .services import ContractService
 
+ContractTemplate._meta.verbose_name = "Mission Template"
+ContractTemplate._meta.verbose_name_plural = "Mission Templates"
+ContractEnrollment._meta.verbose_name = "Mission Enrollment"
+ContractEnrollment._meta.verbose_name_plural = "Mission Enrollments"
+ContractProofSubmission._meta.verbose_name = "Mission Proof Review"
+ContractProofSubmission._meta.verbose_name_plural = "Mission Proof Reviews"
+
 
 @admin.register(ContractTemplate)
-class ContractTemplateAdmin(admin.ModelAdmin):
+class ContractTemplateAdmin(ModelAdmin):
     """Admin interface for Mission templates."""
 
     list_display = (
@@ -48,7 +56,7 @@ class ContractTemplateAdmin(admin.ModelAdmin):
 
 
 @admin.register(ContractEnrollment)
-class ContractEnrollmentAdmin(admin.ModelAdmin):
+class ContractEnrollmentAdmin(ModelAdmin):
     """Service-backed admin interface for Mission enrollments."""
 
     list_display = (
@@ -227,7 +235,7 @@ class ContractEnrollmentAdmin(admin.ModelAdmin):
 
 
 @admin.register(ContractProofSubmission)
-class ContractProofSubmissionAdmin(admin.ModelAdmin):
+class ContractProofSubmissionAdmin(ModelAdmin):
     """Review surface for Mission proof submissions."""
 
     list_display = (

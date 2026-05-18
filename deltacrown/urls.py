@@ -32,7 +32,7 @@ except Exception:
     notifications_stream_alias = None
 
 # Import competition admin status view (safe - no model queries)
-from apps.competition.admin import competition_admin_status
+from apps.competition.admin import competition_admin_status, competitive_operations_console
 
 # User preferences API (consumed by match-room-core.js)
 from apps.user_profile.views.settings_api import get_platform_preferences as _user_prefs_view
@@ -60,6 +60,9 @@ urlpatterns = [
     path("admin/competition/status/",
          staff_member_required(competition_admin_status),
          name="competition_status"),
+    path("admin/competition/operations/",
+         admin.site.admin_view(competitive_operations_console),
+         name="competitive_operations_admin"),
 
     # System maintenance panel — before admin catch-all
     path("admin/maintenance/", include(("apps.games.urls_maintenance", "maintenance"), namespace="maintenance")),

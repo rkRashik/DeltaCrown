@@ -1,0 +1,39 @@
+<div class="ach-row relative rounded-2xl border {{ border_cls }} overflow-hidden group hover:scale-[1.005] transition-transform"
+     data-ach-type="{{ card_class }}"
+     style="background:linear-gradient(145deg,rgba(14,14,20,.92) 0%,rgba(8,8,12,.97) 100%)">
+  <div class="absolute inset-0 bg-gradient-to-br {{ bg_cls }} to-transparent pointer-events-none"></div>
+
+  <div class="relative z-10 flex items-center gap-3 p-4">
+    {# Trophy icon #}
+    <div class="shrink-0 w-11 h-11 rounded-xl {{ icon_cls }} border flex items-center justify-center text-xl shadow-sm">{{ trophy_emoji }}</div>
+
+    {# Content #}
+    <div class="flex-1 min-w-0">
+      <div class="text-sm font-bold text-white leading-tight truncate group-hover:text-z-gold transition">{{ ach.tournament_name|default:"Tournament" }}</div>
+      <div class="flex items-center gap-2 mt-1 flex-wrap">
+        {% if ach.team_name %}
+        <span class="text-[10px] text-gray-400 font-medium">{{ ach.team_name }}</span>
+        {% endif %}
+        {% if ach.date_formatted %}
+        <span class="text-gray-600">&middot;</span>
+        <span class="text-[10px] text-gray-500">{{ ach.date_formatted }}</span>
+        {% elif ach.date_obj %}
+        <span class="text-gray-600">&middot;</span>
+        <span class="text-[10px] text-gray-500">{{ ach.date_obj|date:"M j, Y" }}</span>
+        {% endif %}
+        {% if ach.tournament_tier_display %}
+        <span class="text-gray-600">&middot;</span>
+        <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-white/5 text-gray-400 uppercase tracking-wider">{{ ach.tournament_tier_display }}</span>
+        {% endif %}
+      </div>
+    </div>
+
+    {# Result badge #}
+    <div class="shrink-0">
+      <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full {{ result_cls }} text-[10px] font-bold whitespace-nowrap">
+        {% if ach.placement_label == 'Winner' %}<i class="fa-solid fa-crown text-[8px]"></i>{% endif %}
+        {{ ach.placement_label|default:"Competed" }}
+      </span>
+    </div>
+  </div>
+</div>

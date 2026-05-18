@@ -313,11 +313,63 @@ def build_public_profile_extended_context(
             'kd_ratio': round((kills / deaths) if deaths > 0 else 0, 2),
         }
     else:
-        out['user_stats_partial'] = {
+        # No dedicated stats row — compute lightweight fallback from real match/tournament data.
+        # This ensures the hero and overview reflect actual competitive history rather than
+        # showing misleading zeros while the leaderboard task hasn't run yet.
+        _fallback = {
             'total_matches': 0, 'total_wins': 0, 'total_losses': 0,
             'win_rate': 0, 'tournaments_played': 0, 'tournaments_won': 0,
             'total_kills': 0, 'total_deaths': 0, 'kd_ratio': 0,
+            'is_fallback': True,
         }
+        try:
+            from apps.user_profile.services.career_tab_service import CareerTabService
+            from apps.user_profile.models_main import GameProfile
+            from apps.organizations.models.membership import TeamMembership
+            from apps.tournaments.models import Match
+
+            # profile_user is auth.User; user_profile is the UserProfile
+            team_ids = list(
+                TeamMembership.objects.filter(user=profile_user, status='ACTIVE')
+                .values_list('team_id', flat=True)
+            )
+
+            total_matches = 0
+            total_tournaments = 0
+
+            if user_profile:
+                # GameProfile.user FK points to auth.User (not UserProfile)
+                passports = GameProfile.objects.filter(
+                    user_id=user_profile.id, visibility__in=['PUBLIC', 'PROTECTED']
+                ).select_related('game')
+                for pp in passports:
+                    try:
+                        m = CareerTabService.get_matches_played(profile_user, pp.game)
+                        total_matches += m
+                        achs = CareerTabService.get_achievements(user_profile, pp.game)
+                        total_tournaments += len(achs)
+                    except Exception:
+                        pass
+
+            # Wins: completed matches where user's team is listed as winner
+            total_wins = 0
+            if team_ids:
+                total_wins = Match.objects.filter(
+                    winner_id__in=team_ids,
+                    state=Match.COMPLETED,
+                ).distinct().count()
+
+            win_rate = round(total_wins / total_matches * 100, 1) if total_matches > 0 else 0
+            _fallback.update({
+                'total_matches': total_matches,
+                'total_wins': total_wins,
+                'total_losses': max(total_matches - total_wins, 0),
+                'win_rate': win_rate,
+                'tournaments_played': total_tournaments,
+            })
+        except Exception:
+            pass
+        out['user_stats_partial'] = _fallback
 
     # ---- Match history — privacy gated -------------------------------------
     if can_view_match_history:

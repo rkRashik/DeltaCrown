@@ -106,6 +106,12 @@
       .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 
+  function cleanBountyLogoUrl(value) {
+    const url = String(value || '').trim();
+    if (!url || /default-logo|placeholder/i.test(url)) return '';
+    return url;
+  }
+
   // ── Toast ─────────────────────────────────────────────────────────
 
   function toast(message, type) {
@@ -400,7 +406,7 @@
           Post Bounty
         </button>`;
     } else {
-      const reason = team ? 'Captain authority required for selected team' : 'Team required';
+      const reason = team ? 'Team authority required: owner, manager, or captain only' : 'Team authority required to post or claim Bounties';
       if (dockCreate) {
         dockCreate.setAttribute('aria-disabled', 'true');
         dockCreate.classList.add('opacity-50', 'cursor-not-allowed');
@@ -409,7 +415,13 @@
         if (sub) sub.textContent = reason;
       }
       clashBox.innerHTML = `<button disabled title="${esc(reason)}" class="bg-white/5 border border-white/10 text-gray-500 px-5 py-2 font-bold text-xs uppercase tracking-widest rounded cursor-not-allowed"><i class="fa-solid fa-lock mr-1"></i> Create Showdown</button>`;
-      hitlistBox.innerHTML = `<button disabled title="${esc(reason)}" class="bg-white/5 border border-white/10 text-gray-500 px-5 py-2 font-bold text-xs uppercase tracking-widest rounded cursor-not-allowed"><i class="fa-solid fa-lock mr-1"></i> Post Bounty</button>`;
+      hitlistBox.innerHTML = `
+        <div class="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
+          <button disabled title="${esc(reason)}" class="w-full bg-white/5 border border-white/10 text-gray-500 px-5 py-2 font-bold text-xs uppercase tracking-widest rounded cursor-not-allowed">
+            <i class="fa-solid fa-lock mr-1"></i> Post Bounty
+          </button>
+          <p class="mt-2 text-[10px] leading-relaxed text-gray-500">Bounty is team-based. A team posts a Bounty on itself for other teams to claim.</p>
+        </div>`;
     }
   }
 
@@ -546,7 +558,7 @@
 
   function emptyState({ icon, title, sub, ctaText, ctaTab }) {
     return `
-      <div class="surface-card rounded-3xl p-8 sm:p-10 text-center relative overflow-hidden">
+      <div class="dcx-empty surface-card rounded-3xl p-8 sm:p-10 text-center relative overflow-hidden">
         <div class="absolute inset-0 pointer-events-none opacity-[0.12]"
              style="background-image: linear-gradient(rgba(255,255,255,.06) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.06) 1px, transparent 1px); background-size: 30px 30px; -webkit-mask-image: radial-gradient(circle at center, black 24%, transparent 74%); mask-image: radial-gradient(circle at center, black 24%, transparent 74%);"></div>
         <div class="relative">
@@ -693,17 +705,26 @@
       const btnState = canHunt ? '' : 'disabled';
       const btnClass = canHunt ? 'bg-dc-neon hover:bg-red-600 text-white shadow-[0_0_20px_rgba(255,0,85,0.3)]' : 'bg-black/40 border border-white/5 text-gray-600 cursor-not-allowed';
       const btnText = canHunt ? 'Claim Bounty' : (isOwnBounty ? '<i class="fa-solid fa-shield-halved mr-1"></i> Your Bounty' : (selectedTeam() ? '<i class="fa-solid fa-lock mr-1"></i> Captain Only' : '<i class="fa-solid fa-lock mr-1"></i> Team Reqd'));
+      const teamLogo = cleanBountyLogoUrl(b.issuer_team_logo_url);
+      const teamInitials = esc((b.issuer_team_name || '?').slice(0, 2).toUpperCase());
+      const avatarHtml = teamLogo
+        ? `<img src="${esc(teamLogo)}" alt="${esc(b.issuer_team_name || 'Team')}" data-bounty-logo class="block"><span class="hidden">${teamInitials}</span>`
+        : `<span>${teamInitials}</span>`;
       return `
         <div class="glass-heavy accent-neon rounded-2xl p-6 relative overflow-hidden group fade-enter border border-white/5 transition-all">
           <div class="absolute inset-0 bg-gradient-to-r from-dc-neon/10 to-transparent z-0 opacity-40"></div>
           <div class="relative z-10 flex flex-col md:flex-row gap-8 items-center">
             <div class="flex-shrink-0 text-center">
               <div class="relative inline-block mb-3">
-                <div class="absolute inset-0 bg-dc-neon blur-[20px] opacity-40 rounded-full"></div>
-                <div class="w-28 h-28 rounded-full border-2 border-dc-neon relative z-10 bg-gradient-to-br from-dc-neon/30 to-black flex items-center justify-center text-white font-display font-black text-2xl">
-                  ${esc((b.issuer_team_name || '?').slice(0, 2).toUpperCase())}
+                <div class="absolute inset-[-6px] bg-dc-neon blur-[26px] opacity-20 rounded-[2.25rem]"></div>
+                <div class="bounty-team-mark relative z-10 overflow-hidden ${teamLogo ? '' : 'is-fallback'}" data-has-logo="${teamLogo ? 'true' : 'false'}">
+                  ${avatarHtml}
                 </div>
-                <div class="absolute -bottom-2 left-1/2 transform -translate-x-1/2 bg-black text-dc-neon text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded border border-dc-neon whitespace-nowrap">Bounty</div>
+              </div>
+              <div class="mb-2 flex justify-center">
+                <span class="inline-flex items-center gap-1.5 rounded-full border border-dc-neon/35 bg-dc-neon/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-dc-neon">
+                  <i class="fa-solid fa-crosshairs text-[9px]"></i> Bounty
+                </span>
               </div>
               <h3 class="font-bold text-2xl text-white">${esc(b.issuer_team_name || 'Team')}</h3>
               <p class="text-xs font-bold text-dc-cyan uppercase tracking-widest mt-1">${esc(b.game_short_code || '')}</p>
@@ -1076,6 +1097,18 @@
     return 1;
   }
 
+  function operationStatusClass(op) {
+    const label = `${op.status || ''} ${op.next_action_label || ''} ${op.review_state_label || ''}`.toLowerCase();
+    if (/dispute|conflict/.test(label)) return 'dcx-status-disputed';
+    if (/review|proof|confirmation|scoring/.test(label)) return 'dcx-status-review';
+    if (/settled|completed|signed|accepted|view result|confirmed/.test(label)) return 'dcx-status-completed';
+    if (/refund|void|cancel/.test(label)) return 'dcx-status-refunded';
+    if (/fail|reject|not selected|expired/.test(label)) return 'dcx-status-failed';
+    if (/match room|room details|ready|live|submit result/.test(label)) return 'dcx-status-live';
+    if (/waiting|pending|scheduled|reserved|active|track/.test(label)) return 'dcx-status-waiting';
+    return 'dcx-status-ready';
+  }
+
   function renderOperationCard(op, { compact = false } = {}) {
     const typeMeta = operationTypeMeta(op.type);
     const actionUrl = op.next_action_url || op.match_room_url || op.detail_url || '#';
@@ -1107,7 +1140,7 @@
             </div>
             <p class="${titleSize} font-bold text-white truncate">${esc(op.title || typeMeta.label)}</p>
           </div>
-          <span class="text-[9px] font-mono text-gray-500 uppercase shrink-0">${esc(op.status || '')}</span>
+          <span class="dcx-chip ${operationStatusClass(op)} shrink-0">${esc(op.status || 'READY')}</span>
         </div>
         <div class="status-rail ${typeMeta.text} mb-3" aria-hidden="true">
           ${[1, 2, 3, 4, 5].map((i) => `<span class="${i <= progress ? 'is-on' : ''}"></span>`).join('')}
@@ -1718,6 +1751,19 @@
   // ── Event binding ─────────────────────────────────────────────────
 
   function bindEvents() {
+    document.addEventListener('error', (e) => {
+      const img = e.target;
+      if (!(img instanceof HTMLImageElement) || !img.matches('[data-bounty-logo]')) return;
+      const mark = img.closest('.bounty-team-mark');
+      const fallback = img.nextElementSibling;
+      img.classList.add('hidden');
+      if (fallback) fallback.classList.remove('hidden');
+      if (mark) {
+        mark.classList.add('is-fallback');
+        mark.dataset.hasLogo = 'false';
+      }
+    }, true);
+
     // Tab triggers (delegated)
     document.getElementById('tab-triggers').addEventListener('click', (e) => {
       const btn = e.target.closest('[data-tab]');
@@ -1790,7 +1836,19 @@
         return;
       }
 
-    const closeSlide = target.closest('[data-close-slide]');
+      const guideMode = target.closest('[data-guide-mode]');
+      if (guideMode) {
+        const mode = guideMode.dataset.guideMode || 'showdown';
+        document.querySelectorAll('[data-guide-mode]').forEach((btn) => {
+          btn.classList.toggle('is-active', btn === guideMode);
+        });
+        document.querySelectorAll('[data-guide-panel]').forEach((panel) => {
+          panel.classList.toggle('is-active', panel.dataset.guidePanel === mode);
+        });
+        return;
+      }
+
+      const closeSlide = target.closest('[data-close-slide]');
       if (closeSlide) { closeSlideOver(closeSlide.dataset.closeSlide); return; }
 
       const goTab = target.closest('[data-go-tab]');

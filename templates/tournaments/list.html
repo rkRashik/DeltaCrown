@@ -336,7 +336,9 @@
                 <div class="flex items-end justify-between mb-2">
                   <div class="w-10 h-10 rounded-lg bg-[#111318] border border-white/10 flex items-center justify-center overflow-hidden shadow-lg p-1 group-hover:border-dc-cyan/40 transition-colors">
                     {% if t.game.icon %}
-                    <img src="{{ t.game.icon.url }}" alt="" class="w-full h-full object-contain">
+                    <img src="{{ t.game.icon.url }}" alt="" class="w-full h-full object-contain"
+                         onerror="this.onerror=null;this.style.display='none';this.nextElementSibling.style.display='block'">
+                    <i data-lucide="gamepad-2" class="w-5 h-5 text-gray-400" style="display:none"></i>
                     {% else %}
                     <i data-lucide="gamepad-2" class="w-5 h-5 text-gray-400"></i>
                     {% endif %}
