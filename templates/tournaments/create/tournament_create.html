@@ -443,12 +443,18 @@
       <form id="tournamentForm" class="mx-auto w-full max-w-[1320px] px-4 py-8 sm:px-6 lg:px-10 xl:px-14 lg:py-12" novalidate>
 
         <section id="step-1" data-panel class="slide-panel">
-          {% if not is_staff and not can_afford %}
-          <div class="mb-6 flex items-start gap-3 rounded-2xl border border-amber-500/30 bg-amber-500/8 px-4 py-3">
-            <span class="mt-0.5 text-amber-400 text-base shrink-0">⚠</span>
-            <div class="text-xs leading-relaxed text-amber-200/80">
-              <strong class="text-amber-300">{{ hosting_fee }} DC required to host.</strong>
-              Your current balance is {{ user_balance }} DC. You can configure this tournament but will need to top up before launching.
+          {% if not can_afford and hosting_fee > 0 %}
+          <div class="mb-6 rounded-2xl border border-amber-500/30 bg-amber-500/8 px-4 py-4">
+            <div class="flex items-start gap-3">
+              <span class="mt-0.5 text-amber-400 text-base shrink-0">⚠</span>
+              <div class="flex-1 min-w-0">
+                <p class="text-xs font-bold text-amber-300">{{ hosting_fee }} DC required to host. Your current balance is {{ user_balance }} DC.</p>
+                <p class="mt-1 text-[11px] text-amber-200/65 leading-relaxed">Add funds from your wallet before launching a tournament. You can still configure every detail now.</p>
+                <a href="/wallet/hub/" target="_blank" rel="noopener" class="mt-3 inline-flex items-center gap-1.5 rounded-xl border border-amber-500/40 bg-amber-500/15 px-3 py-1.5 text-[11px] font-extrabold uppercase tracking-[0.14em] text-amber-200 transition hover:bg-amber-500/25">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-3.5 w-3.5"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4z"/></svg>
+                  Top up wallet
+                </a>
+              </div>
             </div>
           </div>
           {% endif %}
@@ -572,22 +578,22 @@
               </div>
 
               <div class="wizard-card rounded-[2rem] p-5 sm:p-7">
-                <h3 class="mb-5 text-[10px] font-extrabold uppercase tracking-[0.25em] text-white/40">Visual Assets (Optional)</h3>
-                <p class="mb-4 text-xs text-white/45">Banner/logo upload UI is included for workflow parity. Files can be configured later if media upload is not enabled for organizer create payload.</p>
-                <div class="grid gap-4 md:grid-cols-2">
-                  <label class="group flex min-h-[170px] cursor-pointer flex-col items-center justify-center rounded-[1.5rem] border border-dashed border-white/20 bg-black/25 px-5 text-center transition hover:border-[var(--accent)] hover:bg-[rgba(var(--accent-rgb),0.07)]">
-                    <input id="bannerInput" type="file" class="sr-only" accept="image/*">
-                    <span class="mb-3 rounded-full border border-white/15 bg-white/5 px-4 py-1 text-xs font-bold">Banner</span>
-                    <strong id="bannerLabel" class="font-space text-sm">Upload banner</strong>
-                    <span class="mt-1 text-[11px] text-white/45">1920x480 suggested</span>
-                  </label>
-
-                  <label class="group flex min-h-[170px] cursor-pointer flex-col items-center justify-center rounded-[1.5rem] border border-dashed border-white/20 bg-black/25 px-5 text-center transition hover:border-[var(--accent)] hover:bg-[rgba(var(--accent-rgb),0.07)]">
-                    <input id="logoInput" type="file" class="sr-only" accept="image/*">
-                    <span class="mb-3 rounded-full border border-white/15 bg-white/5 px-4 py-1 text-xs font-bold">Logo</span>
-                    <strong id="logoLabel" class="font-space text-sm">Upload logo</strong>
-                    <span class="mt-1 text-[11px] text-white/45">Square suggested</span>
-                  </label>
+                <h3 class="mb-1 text-[10px] font-extrabold uppercase tracking-[0.25em] text-white/40">Visual Assets</h3>
+                <div class="mb-4 flex items-center gap-2 rounded-xl border border-[var(--accent)]/20 bg-[rgba(var(--accent-rgb),0.06)] px-3 py-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 shrink-0 text-[var(--accent)]"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+                  <p class="text-[11px] text-white/60 leading-relaxed">Logo and banner are uploaded <strong class="text-white/80">after creation</strong> from the Tournament Control Center — they are not part of the initial create payload.</p>
+                </div>
+                <div class="grid gap-4 md:grid-cols-2 opacity-40 pointer-events-none select-none" aria-hidden="true">
+                  <div class="flex min-h-[140px] flex-col items-center justify-center rounded-[1.5rem] border border-dashed border-white/15 bg-black/20 px-5 text-center">
+                    <span class="mb-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-bold">Banner</span>
+                    <strong class="font-space text-sm text-white/50">Set after creation in TOC</strong>
+                    <span class="mt-1 text-[11px] text-white/30">1920×480 suggested</span>
+                  </div>
+                  <div class="flex min-h-[140px] flex-col items-center justify-center rounded-[1.5rem] border border-dashed border-white/15 bg-black/20 px-5 text-center">
+                    <span class="mb-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-bold">Logo</span>
+                    <strong class="font-space text-sm text-white/50">Set after creation in TOC</strong>
+                    <span class="mt-1 text-[11px] text-white/30">Square, min 200×200</span>
+                  </div>
                 </div>
               </div>
             </div>

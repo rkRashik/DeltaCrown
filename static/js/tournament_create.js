@@ -1476,19 +1476,40 @@
       return "Tournament creation failed.";
     }
 
+    // Human-readable message takes priority (402 INSUFFICIENT_DELTACOIN etc.)
     if (data.message) {
       return data.message;
     }
     if (data.detail) {
       return data.detail;
     }
-    if (data.error) {
+
+    // Field-level validation errors — surface the first field problem
+    if (data.details && typeof data.details === "object") {
+      var detailKeys = Object.keys(data.details);
+      for (var i = 0; i < detailKeys.length; i += 1) {
+        var field = detailKeys[i];
+        var msgs = data.details[field];
+        if (Array.isArray(msgs) && msgs.length) {
+          return field + ": " + msgs[0];
+        }
+        if (typeof msgs === "string") {
+          return field + ": " + msgs;
+        }
+      }
+    }
+
+    if (data.error && typeof data.error === "string" && data.error !== "Validation error") {
       return data.error;
     }
 
+    // Fallback: flatten top-level string/array values
     var keys = Object.keys(data);
-    for (var i = 0; i < keys.length; i += 1) {
-      var key = keys[i];
+    for (var j = 0; j < keys.length; j += 1) {
+      var key = keys[j];
+      if (key === "code" || key === "error") {
+        continue;
+      }
       var value = data[key];
       if (Array.isArray(value)) {
         return key + ": " + value.join(", ");
@@ -1498,7 +1519,7 @@
       }
     }
 
-    return "Tournament creation failed.";
+    return data.error || "Tournament creation failed.";
   }
 
   function submitTournament() {
@@ -1602,26 +1623,6 @@
         updateReviewSummary();
       });
     });
-
-    var bannerInput = byId("bannerInput");
-    if (bannerInput) {
-      bannerInput.addEventListener("change", function () {
-        var label = byId("bannerLabel");
-        if (label) {
-          label.textContent = bannerInput.files && bannerInput.files[0] ? bannerInput.files[0].name : "Upload banner";
-        }
-      });
-    }
-
-    var logoInput = byId("logoInput");
-    if (logoInput) {
-      logoInput.addEventListener("change", function () {
-        var label = byId("logoLabel");
-        if (label) {
-          label.textContent = logoInput.files && logoInput.files[0] ? logoInput.files[0].name : "Upload logo";
-        }
-      });
-    }
 
     var capacitySlider = byId("capacitySlider");
     if (capacitySlider) {

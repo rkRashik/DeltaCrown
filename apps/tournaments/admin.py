@@ -1889,3 +1889,214 @@ class TournamentHostingConfigAdmin(ModelAdmin):
     def save_model(self, request, obj, form, change):
         obj.updated_by = request.user
         super().save_model(request, obj, form, change)
+
+
+# ============================================================================
+# TOURNAMENT HOSTING FEE PAYMENTS  (Audit ledger)
+# ============================================================================
+
+from apps.tournaments.models.hosting_fee_payment import TournamentHostingFeePayment  # noqa: E402
+
+
+@admin.register(TournamentHostingFeePayment)
+class TournamentHostingFeePaymentAdmin(ModelAdmin):
+    """
+    Audit log for every tournament creation fee event.
+
+    FAILED records accumulate when wallet debit fails or UserProfile is missing.
+    Use the status filter or "Failed only" quick link to review them.
+
+    Admin actions:
+      mark_verified  — confirms admin checked / approved the payment
+      mark_disputed  — flags record for review
+      mark_reviewed  — clears FAILED state to DISPUTED so it shows as investigated
+    """
+
+    list_display = [
+        "id",
+        "user_display",
+        "tournament_display",
+        "amount_dc_display",
+        "status_badge",
+        "wallet_transaction_id",
+        "notes_preview",
+        "verified_badge",
+        "created_at",
+    ]
+    list_filter = ["status", "created_at"]
+    list_display_links = ["id", "user_display"]
+    search_fields = [
+        "user__username",
+        "user__email",
+        "tournament__name",
+        "tournament__slug",
+        "idempotency_key",
+        "notes",
+    ]
+    readonly_fields = [
+        "user", "tournament", "amount_dc", "status",
+        "wallet_transaction_id", "idempotency_key",
+        "verified_at", "verified_by",
+        "created_at", "updated_at",
+    ]
+    ordering = ["-created_at"]
+    date_hierarchy = "created_at"
+    actions = ["action_mark_verified", "action_mark_disputed", "action_mark_reviewed"]
+
+    fieldsets = (
+        ("Payment Details", {
+            "fields": (
+                "user", "tournament", "amount_dc", "status",
+                "wallet_transaction_id", "idempotency_key",
+            ),
+            "description": (
+                "Records with <strong>status=failed</strong> mean the wallet debit did not go through. "
+                "Check <em>notes</em> for the exception detail, then resolve manually or mark as reviewed."
+            ),
+        }),
+        ("Verification & Notes", {
+            "fields": ("verified_at", "verified_by", "notes"),
+            "description": "Add investigation notes here. Notes are visible to all admin users.",
+        }),
+        ("Audit", {
+            "fields": ("created_at", "updated_at"),
+            "classes": ("collapse",),
+        }),
+    )
+
+    # ── Permissions ───────────────────────────────────────────────────────
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return request.user.is_superuser
+
+    def has_change_permission(self, request, obj=None):
+        # Staff can add notes; superuser can do anything.
+        return request.user.is_staff
+
+    # ── Display helpers ───────────────────────────────────────────────────
+
+    def user_display(self, obj):
+        if not obj.user_id:
+            return format_html('<em style="color:#6b7280;">(deleted)</em>')
+        return format_html(
+            '<span style="font-weight:600;">{}</span>',
+            obj.user.username,
+        )
+    user_display.short_description = "Organiser"
+    user_display.admin_order_field = "user__username"
+
+    def tournament_display(self, obj):
+        if not obj.tournament_id:
+            return format_html('<em style="color:#6b7280;">—</em>')
+        try:
+            return format_html(
+                '<a href="{}">{}</a>',
+                reverse("admin:tournaments_tournament_change", args=[obj.tournament_id]),
+                obj.tournament.name,
+            )
+        except Exception:
+            return format_html('<em style="color:#6b7280;">id={}</em>', obj.tournament_id)
+    tournament_display.short_description = "Tournament"
+
+    def amount_dc_display(self, obj):
+        if obj.amount_dc == 0:
+            return format_html('<span style="color:#6b7280;">Free</span>')
+        return format_html(
+            '<strong style="color:#fbbf24;">{} DC</strong>',
+            obj.amount_dc,
+        )
+    amount_dc_display.short_description = "Amount"
+    amount_dc_display.admin_order_field = "amount_dc"
+
+    def status_badge(self, obj):
+        _styles = {
+            "waived":   "background:#374151;color:#d1d5db;",
+            "paid":     "background:#14532d;color:#86efac;",
+            "failed":   "background:#7f1d1d;color:#fca5a5;border:1px solid #ef4444;font-weight:900;",
+            "refunded": "background:#1e3a5f;color:#93c5fd;",
+            "disputed": "background:#78350f;color:#fde68a;",
+        }
+        style = _styles.get(obj.status, "background:#374151;color:#d1d5db;")
+        label = obj.get_status_display()
+        if obj.status == "failed":
+            label = "⚠ " + label
+        return format_html(
+            '<span style="padding:2px 8px;border-radius:6px;font-size:11px;{}">{}</span>',
+            style,
+            label,
+        )
+    status_badge.short_description = "Status"
+    status_badge.admin_order_field = "status"
+
+    def notes_preview(self, obj):
+        if not obj.notes:
+            return format_html('<span style="color:#6b7280;">—</span>')
+        preview = (obj.notes[:80] + "…") if len(obj.notes) > 80 else obj.notes
+        colour = "#fca5a5" if obj.status == "failed" else "#d1d5db"
+        return format_html(
+            '<span style="font-size:11px;color:{};" title="{}">{}</span>',
+            colour,
+            obj.notes.replace('"', "&quot;"),
+            preview,
+        )
+    notes_preview.short_description = "Notes / Error"
+
+    def verified_badge(self, obj):
+        if obj.verified_at:
+            verifier = obj.verified_by.username if obj.verified_by_id else "admin"
+            return format_html(
+                '<span style="color:#4ade80;font-size:11px;font-weight:700;">✓ {}</span>',
+                verifier,
+            )
+        return format_html('<span style="color:#6b7280;font-size:11px;">—</span>')
+    verified_badge.short_description = "Verified"
+
+    def verified_badge(self, obj):
+        if obj.verified_at:
+            return format_html(
+                '<span class="text-green-400 text-xs font-bold">✓ {}</span>',
+                obj.verified_by.username if obj.verified_by_id else "admin",
+            )
+        return format_html('<span class="text-gray-500 text-xs">—</span>')
+    verified_badge.short_description = "Verified"
+
+    # ── Admin actions ─────────────────────────────────────────────────────
+
+    @admin.action(description="Mark selected payments as Verified")
+    def action_mark_verified(self, request, queryset):
+        count = 0
+        for obj in queryset.select_related("user"):
+            obj.mark_verified(by_user=request.user)
+            count += 1
+        self.message_user(request, f"{count} payment(s) marked as verified.", messages.SUCCESS)
+
+    @admin.action(description="Flag selected payments as Disputed / Under Review")
+    def action_mark_disputed(self, request, queryset):
+        updated = queryset.update(
+            status=TournamentHostingFeePayment.Status.DISPUTED,
+            updated_at=timezone.now(),
+        )
+        self.message_user(request, f"{updated} payment(s) flagged as disputed.", messages.WARNING)
+
+    @admin.action(description="Mark FAILED payments as Reviewed (moves to Disputed)")
+    def action_mark_reviewed(self, request, queryset):
+        """
+        Move FAILED records to DISPUTED so they leave the unreviewed queue.
+        Stamps the notes field with who reviewed and when.
+        """
+        failed_qs = queryset.filter(status=TournamentHostingFeePayment.Status.FAILED)
+        count = 0
+        for obj in failed_qs:
+            existing = obj.notes or ""
+            stamp = f"[Reviewed by {request.user.username} on {timezone.now().strftime('%Y-%m-%d %H:%M')} UTC]"
+            obj.notes = (existing + "\n" + stamp).strip()
+            obj.status = TournamentHostingFeePayment.Status.DISPUTED
+            obj.save(update_fields=["status", "notes", "updated_at"])
+            count += 1
+        if count:
+            self.message_user(request, f"{count} failed payment(s) marked as reviewed.", messages.SUCCESS)
+        else:
+            self.message_user(request, "No FAILED records found in selection.", messages.WARNING)

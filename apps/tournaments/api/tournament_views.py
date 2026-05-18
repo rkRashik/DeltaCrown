@@ -43,7 +43,7 @@ from apps.tournaments.api.tournament_serializers import (
 )
 from apps.tournaments.services.tournament_service import TournamentService
 from apps.tournaments.services.hosting_fee import (
-    get_hosting_fee,
+    get_hosting_fee_for_user,
     get_user_balance,
     charge_hosting_fee,
 )
@@ -300,23 +300,22 @@ class TournamentViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
 
         user = request.user
-        is_staff = user.is_staff or user.is_superuser
-        fee = 0
+        # Resolve fee through DB config — honours staff_bypass_enabled + active promos.
+        fee = get_hosting_fee_for_user(user)
         current_balance = get_user_balance(user)
 
-        if not is_staff:
-            fee = get_hosting_fee()
-            current_balance = get_user_balance(user)
-            if current_balance < fee:
-                return Response(
-                    {
-                        'error': 'INSUFFICIENT_DELTACOIN',
-                        'message': f'You need at least {fee} DC to host a tournament.',
-                        'hosting_fee': fee,
-                        'balance': current_balance,
-                    },
-                    status=status.HTTP_402_PAYMENT_REQUIRED,
-                )
+        if fee > 0 and current_balance < fee:
+            return Response(
+                {
+                    'error': 'INSUFFICIENT_DELTACOIN',
+                    'message': f'You need at least {fee} DC to host a tournament.',
+                    'hosting_fee': fee,
+                    'balance': current_balance,
+                },
+                status=status.HTTP_402_PAYMENT_REQUIRED,
+            )
+
+        is_staff = user.is_staff or user.is_superuser
 
         tournament = None
         charge_result = None
@@ -347,7 +346,7 @@ class TournamentViewSet(viewsets.ModelViewSet):
                 'message': 'Tournament created successfully',
                 'tournament': detail_data,
                 'redirect_url': f'/toc/{tournament.slug}/?onboarding=true',
-                'hosting_fee_charged': 0 if is_staff else fee,
+                'hosting_fee_charged': fee if charge_result else 0,
                 'balance_after': (
                     charge_result.get('balance_after')
                     if charge_result

@@ -47,7 +47,7 @@ Usage:
 from typing import Dict, Optional, Any, TYPE_CHECKING
 from decimal import Decimal
 from django.core.exceptions import ValidationError
-from django.db import transaction
+from django.db import transaction, IntegrityError
 from django.utils import timezone
 from apps.tournaments.models.tournament import Tournament, TournamentVersion
 from apps.games.models.game import Game
@@ -211,7 +211,7 @@ class TournamentService:
             is_official=data.get('is_official', False),
         )
         
-        # Generate unique slug from name
+        # Generate unique slug from name with collision retry.
         from django.utils.text import slugify
         base_slug = slugify(tournament.name)
         slug = base_slug
@@ -220,10 +220,32 @@ class TournamentService:
             slug = f"{base_slug}-{counter}"
             counter += 1
         tournament.slug = slug
-        
+
         # Full model validation
         tournament.full_clean()
-        tournament.save()
+
+        # Save with IntegrityError guard for the rare concurrent-slug race.
+        # Retry up to 4 extra suffix steps before surfacing a clean error.
+        _saved = False
+        for _attempt in range(5):
+            try:
+                tournament.save()
+                _saved = True
+                break
+            except IntegrityError as _exc:
+                if "slug" not in str(_exc).lower():
+                    raise
+                counter_retry = counter + _attempt
+                tournament.slug = f"{base_slug}-{counter_retry}"
+                logger.warning(
+                    "Slug collision on attempt %d for base '%s'; retrying as '%s'",
+                    _attempt, base_slug, tournament.slug,
+                )
+        if not _saved:
+            raise ValidationError(
+                "A tournament with a similar URL already exists. "
+                "Please try a different name."
+            )
         
         # Create initial version
         TournamentService._create_version(

@@ -80,6 +80,7 @@ class TOCView(LoginRequiredMixin, TemplateView):
         if not self.check_permission(tournament, request.user):
             raise Http404('Not authorized')
         self.tournament = tournament
+        self.show_onboarding = request.GET.get('onboarding') == 'true'
         return super().get(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
@@ -239,6 +240,7 @@ class TOCView(LoginRequiredMixin, TemplateView):
         verification_policy = config.get('verification_policy') if isinstance(config.get('verification_policy'), dict) else {}
         ctx['toc_initial_detail_widgets_json'] = json.dumps(detail_widgets, cls=DjangoJSONEncoder)
         ctx['toc_verification_policy_json'] = json.dumps(verification_policy, cls=DjangoJSONEncoder)
+        ctx['show_onboarding'] = getattr(self, 'show_onboarding', False)
         ctx['toc_detail_page_url'] = reverse('tournaments:detail', kwargs={'slug': t.slug})
         ctx['toc_tournament_hub_url'] = reverse('tournaments:tournament_hub', kwargs={'slug': t.slug})
         ctx['toc_detail_widgets_save_url'] = reverse('tournaments:detail_widgets_save', kwargs={'slug': t.slug})

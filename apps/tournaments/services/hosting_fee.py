@@ -26,6 +26,31 @@ logger = logging.getLogger(__name__)
 DEFAULT_HOSTING_FEE = 500
 
 
+def _should_consume_promo_slot(config, user) -> bool:
+    """
+    Return True only when a first-N promo granted the waiver for this specific
+    user — meaning a limited promo slot was used.
+
+    Staff-bypass waivers, fee-disabled waivers, always-free promos, and
+    time-based promos do NOT consume limited slots.
+
+    Consumption rules mirror the fee resolution order in get_hosting_fee_for_user():
+    staff bypass fires BEFORE promo checks, so staff-bypassed users never
+    consume slots even when a first-N promo is simultaneously active.
+    """
+    from apps.tournaments.models.hosting_config import PromoType
+
+    if config is None or not config.hosting_fee_enabled:
+        return False
+    # Staff bypass fires before promo — staff never consume promo slots.
+    if config.staff_bypass_enabled and (user.is_staff or user.is_superuser):
+        return False
+    # Only first-N promos have finite slots worth consuming.
+    if config.active_promo not in (PromoType.FIRST_N_USERS, PromoType.FIRST_N_TOURNAMENTS):
+        return False
+    return config.is_promo_active()
+
+
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
@@ -186,31 +211,43 @@ def get_user_restrictions(user) -> dict:
 
 def charge_hosting_fee(user, tournament) -> Optional[Dict[str, Any]]:
     """
-    Deduct the hosting fee from user's DeltaCoin balance.
-    Also consumes a promo slot if a first-N promo is active.
+    Deduct the hosting fee from user's DeltaCoin balance and write an audit record.
 
-    Staff/superuser are exempt. Returns None if fee is 0.
+    Fee resolution uses the DB-configured TournamentHostingConfig, respecting
+    staff_bypass_enabled, promos, and the master on/off switch.
 
     Args:
-        user: Django User instance (the organizer).
+        user:       Django User instance (the organiser).
         tournament: Tournament instance (for transaction metadata).
 
     Returns:
-        Dict with transaction details, or None if exempt/free.
+        Dict with transaction details, or None if fee is 0 / waived.
 
     Raises:
-        PaymentFailedError: If user has insufficient balance or charge fails.
+        PaymentFailedError: Insufficient balance or economy error.
     """
+    from apps.economy.models.transaction import DeltaCrownTransaction
+    from apps.tournaments.models.hosting_fee_payment import TournamentHostingFeePayment
+
     config = get_config()
     fee = get_hosting_fee_for_user(user)
+    idempotency_key = f"tournament-hosting-fee-{user.id}-{tournament.id}"
 
     if fee <= 0:
-        # Still consume promo slot if first-N promo
-        if config is not None:
+        if _should_consume_promo_slot(config, user):
             config.consume_promo_slot()
         logger.info(
             "Hosting fee waived for user %s (tournament: %s) — fee=%d",
             user.username, getattr(tournament, "slug", "?"), fee,
+        )
+        TournamentHostingFeePayment.objects.get_or_create(
+            idempotency_key=idempotency_key,
+            defaults={
+                "user": user,
+                "tournament": tournament,
+                "amount_dc": 0,
+                "status": TournamentHostingFeePayment.Status.WAIVED,
+            },
         )
         return None
 
@@ -218,8 +255,7 @@ def charge_hosting_fee(user, tournament) -> Optional[Dict[str, Any]]:
     from apps.tournament_ops.exceptions import PaymentFailedError
     from apps.user_profile.models import UserProfile
 
-    reason = f"Tournament hosting fee (tournament #{tournament.id})"
-    idempotency_key = f"tournament-hosting-fee-{user.id}-{tournament.id}"
+    idempotency_key_debit = f"{idempotency_key}_debit"
     meta = {
         "tournament_id": tournament.id,
         "type": "tournament_hosting_fee",
@@ -236,8 +272,8 @@ def charge_hosting_fee(user, tournament) -> Optional[Dict[str, Any]]:
         result = debit(
             profile,
             fee,
-            reason=reason,
-            idempotency_key=idempotency_key,
+            reason=DeltaCrownTransaction.Reason.PLATFORM_FEE,
+            idempotency_key=idempotency_key_debit,
             meta=meta,
         )
     except UserProfile.DoesNotExist as exc:
@@ -245,29 +281,62 @@ def charge_hosting_fee(user, tournament) -> Optional[Dict[str, Any]]:
             "Hosting fee charge failed: UserProfile missing for user %s (tournament: %s)",
             user.id, tournament.id,
         )
+        TournamentHostingFeePayment.objects.get_or_create(
+            idempotency_key=idempotency_key,
+            defaults={
+                "user": user,
+                "tournament": tournament,
+                "amount_dc": fee,
+                "status": TournamentHostingFeePayment.Status.FAILED,
+                "notes": "UserProfile not found",
+            },
+        )
         raise PaymentFailedError(
             "Unable to charge hosting fee: organizer profile was not found."
         ) from exc
     except Exception as exc:
         logger.error(
             "Hosting fee charge failed for user %s (tournament: %s): %s",
-            user.id, tournament.id, exc,
-            exc_info=True,
+            user.id, tournament.id, exc, exc_info=True,
+        )
+        TournamentHostingFeePayment.objects.get_or_create(
+            idempotency_key=idempotency_key,
+            defaults={
+                "user": user,
+                "tournament": tournament,
+                "amount_dc": fee,
+                "status": TournamentHostingFeePayment.Status.FAILED,
+                "notes": str(exc)[:500],
+            },
         )
         message = "Unable to charge tournament hosting fee."
         if "insufficient" in str(exc).lower():
             message = "Insufficient DeltaCoin balance to pay the tournament hosting fee."
         raise PaymentFailedError(f"{message} Details: {exc}") from exc
 
-    # Consume promo slot on successful payment too (shouldn't happen but safety)
-    if config is not None:
+    # Paid path: consume slot if a first-N promo would have applied but the
+    # user is paying full price (e.g. promo just expired between fee check and
+    # save). Safe no-op if no first-N promo is active.
+    if _should_consume_promo_slot(config, user):
         config.consume_promo_slot()
 
+    txn_id = result.get("transaction_id")
+    TournamentHostingFeePayment.objects.get_or_create(
+        idempotency_key=idempotency_key,
+        defaults={
+            "user": user,
+            "tournament": tournament,
+            "amount_dc": fee,
+            "status": TournamentHostingFeePayment.Status.PAID,
+            "wallet_transaction_id": txn_id,
+        },
+    )
+
     return {
-        "transaction_id": str(result.get("transaction_id", "")),
+        "transaction_id": str(txn_id or ""),
         "amount": fee,
         "currency": "DC",
         "status": "completed",
-        "balance_after": result.get("balance_after", None),
+        "balance_after": result.get("balance_after"),
         "metadata": meta,
     }

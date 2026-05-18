@@ -185,6 +185,7 @@ from .hosting_config import (
     TournamentHostingConfig,  # Admin-configurable hosting fee & pricing config
     PromoType,                # Promotion type choices enum
 )
+from .hosting_fee_payment import TournamentHostingFeePayment
 
 __all__ = [
     'Game',
@@ -284,4 +285,5 @@ __all__ = [
     'MatchIntegrityCheck',
     # Hosting & Pricing Configuration (admin-controlled)
     'TournamentHostingConfig',
+    'TournamentHostingFeePayment',
 ]

@@ -19,7 +19,10 @@ from django.views.generic import TemplateView
 
 from apps.games.models.game import Game
 from apps.tournaments.services.game_suggestions import build_game_intelligence_payload
-from apps.tournaments.services.hosting_fee import get_hosting_fee, get_user_balance
+from apps.tournaments.services.hosting_fee import (
+    get_hosting_fee_for_user,
+    get_user_balance,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -62,10 +65,11 @@ class TournamentCreatePageView(LoginRequiredMixin, TemplateView):
         # Build game intelligence payload for JS
         game_intelligence = build_game_intelligence_payload(games_qs)
 
-        # DeltaCoin info
+        # is_staff drives UI capability gates (LAN venue, official toggle, etc.)
         is_staff = user.is_staff or user.is_superuser
-        hosting_fee = 0 if is_staff else get_hosting_fee()
-        user_balance = get_user_balance(user) if not is_staff else 0
+        # hosting_fee comes from DB config, honouring staff_bypass_enabled + promos.
+        hosting_fee = get_hosting_fee_for_user(user)
+        user_balance = get_user_balance(user)
         after_balance = max(user_balance - hosting_fee, 0)
 
         # Tournament format choices (mirroring model)

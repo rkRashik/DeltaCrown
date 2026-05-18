@@ -396,6 +396,35 @@
             </button>
         </div>
 
+        {# ── Post-create onboarding banner (shown once via ?onboarding=true) ── #}
+        {% if show_onboarding %}
+        <div id="toc-onboarding-banner" class="shrink-0 border-b border-emerald-500/20 bg-emerald-500/6 px-6 py-3">
+          <div class="max-w-[1600px] mx-auto flex flex-col sm:flex-row sm:items-center gap-3">
+            <div class="flex items-center gap-2.5 flex-1 min-w-0">
+              <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-400">
+                <i data-lucide="party-popper" class="w-4 h-4"></i>
+              </span>
+              <div class="min-w-0">
+                <p class="text-[11px] font-extrabold uppercase tracking-widest text-emerald-400">Tournament created</p>
+                <p class="text-xs text-white/60 truncate">Next: upload your logo &amp; banner in <strong class="text-white/85">Settings → Branding</strong>, then publish to open registration.</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+              <button type="button"
+                data-toc-tab="settings"
+                class="toc-nav-btn inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-[11px] font-extrabold uppercase tracking-widest text-emerald-300 transition hover:bg-emerald-500/20">
+                <i data-lucide="image" class="w-3.5 h-3.5"></i>
+                Upload assets
+              </button>
+              <button type="button" id="toc-onboarding-dismiss"
+                class="flex h-7 w-7 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-white/40 transition hover:bg-white/10 hover:text-white/70"
+                title="Dismiss">
+                <i data-lucide="x" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+        {% endif %}
         {# ── Global sync health summary ── #}
         <div id="toc-health-summary" class="px-6 py-2.5 border-b border-dc-border/40 bg-dc-panel/35 shrink-0" role="status" aria-live="polite" aria-atomic="true">
             <div class="max-w-[1600px] mx-auto flex flex-col lg:flex-row lg:items-center gap-2.5">
@@ -5260,5 +5289,55 @@
     <script defer src="{% static 'tournaments/toc/js/toc-rosters.js' %}"></script>
     <script defer src="{% static 'tournaments/toc/js/toc-notifications.js' %}"></script>
     <script defer src="{% static 'tournaments/toc/js/toc-sync-health.js' %}"></script>
+    {% if show_onboarding %}
+    <script nonce="{{ request.csp_nonce }}">
+      (function () {
+        function initOnboardingBanner() {
+          var banner = document.getElementById('toc-onboarding-banner');
+          if (!banner) return;
+
+          // Dismiss button hides the banner.
+          var dismissBtn = document.getElementById('toc-onboarding-dismiss');
+          if (dismissBtn) {
+            dismissBtn.addEventListener('click', function () {
+              banner.style.transition = 'opacity 0.3s ease';
+              banner.style.opacity = '0';
+              setTimeout(function () { banner.remove(); }, 320);
+            });
+          }
+
+          // "Upload assets" button navigates to the Settings tab.
+          var uploadBtn = banner.querySelector('[data-toc-tab="settings"]');
+          if (uploadBtn) {
+            uploadBtn.addEventListener('click', function () {
+              // Use TOC's own tab-switching mechanism if available.
+              var settingsNavBtn = document.querySelector('.toc-nav-btn[data-tab="settings"]');
+              if (settingsNavBtn) {
+                settingsNavBtn.click();
+              } else {
+                // Fallback: find any nav item whose text includes "Settings".
+                var allNavBtns = document.querySelectorAll('.toc-nav-btn');
+                for (var i = 0; i < allNavBtns.length; i++) {
+                  if (allNavBtns[i].textContent.trim().toLowerCase().indexOf('settings') !== -1) {
+                    allNavBtns[i].click();
+                    break;
+                  }
+                }
+              }
+              banner.style.transition = 'opacity 0.3s ease';
+              banner.style.opacity = '0';
+              setTimeout(function () { banner.remove(); }, 320);
+            });
+          }
+        }
+
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', initOnboardingBanner);
+        } else {
+          initOnboardingBanner();
+        }
+      })();
+    </script>
+    {% endif %}
 </body>
 </html>
