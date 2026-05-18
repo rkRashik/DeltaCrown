@@ -344,8 +344,8 @@
                             <div class="text-[10px] uppercase tracking-widest font-semibold" style="color: #94A3B8;">Following</div>
                         </div>
                         
-                        <div class="text-center group cursor-pointer">
-                            <div class="text-xl md:text-2xl font-bold group-hover:scale-110 transition-all duration-200" style="color: #FFD60A;">{{ user_stats.total_wins|default:0 }}</div>
+                        <div class="text-center group cursor-pointer" data-profile-tab-target="achievements" role="button" tabindex="0" aria-label="View achievements">
+                            <div class="text-xl md:text-2xl font-bold group-hover:scale-110 transition-all duration-200" style="color: #FFD60A;">{% if achievements_wins_count %}{{ achievements_wins_count }}{% else %}{{ user_stats.total_wins|default:0 }}{% endif %}</div>
                             <div class="text-[10px] uppercase tracking-widest font-semibold" style="color: #94A3B8;">Wins</div>
                         </div>
                         
@@ -937,7 +937,8 @@
                 {% endif %}
             </div>
 
-            {# ── 2. Trophy Cabinet → Achievements tab ─────────────────────────── #}
+            {# ── 2. Trophy Cabinet (featured first, no hidden) ─────────────────── #}
+            {# Uses sidebar_achievements_data: hidden removed, featured sorted first #}
             <div class="glass-panel p-5 rounded-2xl cursor-pointer hover:border-z-gold/30 transition"
                  data-profile-tab-target="achievements" role="button" tabindex="0" aria-label="View achievements">
                 <div class="flex items-center justify-between mb-3">
@@ -946,10 +947,10 @@
                     </h3>
                     <i class="fa-solid fa-arrow-right text-gray-600 -rotate-45 text-xs"></i>
                 </div>
-                {% if achievements_data %}
+                {% if sidebar_achievements_data %}
                 <div class="space-y-2">
-                    {% for ach in achievements_data|slice:":3" %}
-                    <div class="flex items-center gap-2.5 p-2 rounded-lg bg-white/5">
+                    {% for ach in sidebar_achievements_data|slice:":3" %}
+                    <div class="flex items-center gap-2.5 p-2 rounded-lg {% if ach.is_featured %}bg-z-gold/5 border border-z-gold/15{% else %}bg-white/5{% endif %}">
                         <div class="text-lg shrink-0">
                             {% if ach.placement_label == 'Winner' %}🏆
                             {% elif ach.placement == 2 %}🥈
@@ -959,13 +960,17 @@
                         </div>
                         <div class="flex-1 min-w-0">
                             <div class="text-xs font-bold text-white truncate">{{ ach.tournament_name }}</div>
-                            <div class="text-[10px] text-gray-500">{{ ach.game_name }}{% if ach.placement_label == 'Winner' %} &middot; <span class="text-z-gold">Winner</span>{% endif %}</div>
+                            <div class="flex items-center gap-1 mt-0.5">
+                                <span class="text-[10px] text-gray-500 truncate">{{ ach.game_name }}</span>
+                                {% if ach.placement_label == 'Winner' %}<span class="text-z-gold text-[9px] shrink-0">&middot; Winner</span>{% endif %}
+                                {% if ach.is_featured %}<span class="text-z-gold text-[9px] shrink-0"><i class="fa-solid fa-star text-[7px]"></i></span>{% endif %}
+                            </div>
                         </div>
                     </div>
                     {% endfor %}
                 </div>
-                {% if achievements_data|length > 3 %}
-                <div class="text-[10px] text-gray-500 mt-2 text-center">+{{ achievements_data|length|add:"-3" }} more &mdash; view all</div>
+                {% if sidebar_achievements_data|length > 3 %}
+                <div class="text-[10px] text-gray-500 mt-2 text-center">{{ sidebar_achievements_data|length|add:"-3" }} more &mdash; view all</div>
                 {% endif %}
                 {% else %}
                 <div class="text-center py-3">

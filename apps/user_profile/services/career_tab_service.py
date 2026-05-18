@@ -1218,20 +1218,21 @@ class CareerTabService:
                 _tier_display = _tier_labels.get(tier) if tier and tier != 'OPEN' else None
 
                 achievements.append({
-                    'tournament_id': tournament.id,
+                    'registration_id': reg.id,          # Real Registration PK — used as preference key
+                    'tournament_id': tournament.id,      # For display/reference only
                     'tournament_name': tournament.title if hasattr(tournament, 'title') else tournament.name,
                     'tournament_slug': tournament.slug,
                     'tournament_tier': tier,
                     'tournament_tier_display': _tier_display,
                     'date': _ts.isoformat() if _ts else None,
-                    'date_obj': _ts,  # Raw datetime for Django template date filter
+                    'date_obj': _ts,
                     'date_formatted': _ts.strftime('%b %d, %Y').replace(' 0', ' ') if _ts else '',
                     'placement': placement,
                     'placement_label': placement_label,
                     'team_name': team_name,
                     'result': result,
                     'prize_amount': prize_amount,
-                    'prize_currency': prize_currency
+                    'prize_currency': prize_currency,
                 })
             
             return achievements

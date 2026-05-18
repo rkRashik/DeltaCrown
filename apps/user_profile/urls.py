@@ -294,9 +294,20 @@ urlpatterns = [
     path("me/settings/matchmaking/", matchmaking_settings_get, name="settings_matchmaking_get"),
     path("me/settings/matchmaking/save/", matchmaking_settings_save, name="settings_matchmaking_save"),
     
-    # UP-PHASE4B: Hardware Loadout Settings API
+    # UP-PHASE4B: Hardware Loadout Settings API (legacy)
     path("me/settings/loadout/", loadout_settings_get, name="settings_loadout_get"),
     path("me/settings/loadout/save/", loadout_settings_save, name="settings_loadout_save"),
+
+    # Pro Loadout API (new full-featured)
+    path("api/pro-loadout/",          __import__('apps.user_profile.api.pro_loadout_api', fromlist=['pro_loadout_get']).pro_loadout_get,        name='pro_loadout_get'),
+    path("api/pro-loadout/save/",     __import__('apps.user_profile.api.pro_loadout_api', fromlist=['pro_loadout_save']).pro_loadout_save,      name='pro_loadout_save'),
+    path("api/pro-loadout/device/save/", __import__('apps.user_profile.api.pro_loadout_api', fromlist=['device_save']).device_save,            name='pro_loadout_device_save'),
+    path("api/pro-loadout/device/<int:device_id>/delete/", __import__('apps.user_profile.api.pro_loadout_api', fromlist=['device_delete']).device_delete, name='pro_loadout_device_delete'),
+    path("api/pro-loadout/game-setting/save/", __import__('apps.user_profile.api.pro_loadout_api', fromlist=['game_setting_save']).game_setting_save, name='pro_loadout_game_setting_save'),
+    path("api/pro-loadout/game-setting/<int:setting_id>/delete/", __import__('apps.user_profile.api.pro_loadout_api', fromlist=['game_setting_delete']).game_setting_delete, name='pro_loadout_game_setting_delete'),
+
+    # Achievement preference API
+    path("api/achievement-pref/", __import__('apps.user_profile.api.achievement_pref_api', fromlist=['set_achievement_preference']).set_achievement_preference, name='achievement_pref_set'),
     
     # UP-PHASE4B.1: Debug endpoint (staff-only)
     path("me/settings/debug-dump/", settings_debug_dump, name="settings_debug_dump"),

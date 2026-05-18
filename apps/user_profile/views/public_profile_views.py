@@ -681,10 +681,22 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
 
     context['career_linked_games'] = career_linked_games
 
-    # Build achievements across all visible games (for Achievements tab)
+    # Build achievements across ALL linked games — always include private passports.
+    # Tournament results (tournament name, placement, team) are public records and do NOT
+    # expose private passport identity (no Riot ID / game-specific credentials shown).
+    # Passport privacy only controls the Career tab game selector and passport identity cards.
+    if user_profile:
+        user_profile._career_include_private = True
+    _all_games_for_achievements = CareerTabService.get_linked_games(user_profile)
+    if user_profile:
+        try:
+            del user_profile._career_include_private
+        except AttributeError:
+            pass
+
     try:
         _ach_all = []
-        for _gi in career_linked_games:
+        for _gi in _all_games_for_achievements:
             _gobj = _gi.get('game')
             if not _gobj or not user_profile:
                 continue
@@ -693,9 +705,57 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
                 _a['game_name'] = _gobj.display_name
                 _a['game_slug'] = _gobj.slug
                 _ach_all.append(_a)
-        context['achievements_data'] = _ach_all
+        # Apply achievement preferences (hidden/featured)
+        try:
+            from apps.user_profile.models.achievement_preference import UserAchievementPreference
+            prefs = {
+                p.registration_id: p
+                for p in UserAchievementPreference.objects.filter(user_profile=user_profile)
+            }
+            _viewer_is_owner = context.get('is_owner', False)
+            filtered = []
+            for a in _ach_all:
+                reg_id = a.get('registration_id')  # Real Registration PK
+                pref = prefs.get(reg_id)
+                a['is_hidden'] = pref.is_hidden if pref else False
+                a['is_featured'] = pref.is_featured if pref else False
+                a['pref_id'] = pref.id if pref else None
+                # Public: hide if hidden. Owner: show all with badge.
+                if not a['is_hidden'] or _viewer_is_owner:
+                    filtered.append(a)
+            context['achievements_data'] = filtered
+
+            # Pre-compute accurate hero counts from the actual filtered data.
+            # Use only non-hidden achievements for counts (same as what public sees).
+            _visible = [a for a in filtered if not a.get('is_hidden')]
+            context['achievements_wins_count']     = sum(1 for a in _visible if a.get('placement_label') == 'Winner')
+            context['achievements_total_count']    = len(_visible)
+            context['achievements_featured_count'] = sum(1 for a in _visible if a.get('is_featured'))
+
+            # Sidebar Trophy Cabinet: no hidden, featured first, then by winner/recency.
+            # Spectator mode treats viewer as public — eFootball PRIVATE excluded upstream
+            # via career_linked_games having no private passports in spectator/public mode.
+            _sidebar = _visible  # already no-hidden
+            _sidebar_featured = [a for a in _sidebar if a.get('is_featured')]
+            _sidebar_rest = [a for a in _sidebar if not a.get('is_featured')]
+            # Sort rest: winners first, then newest
+            _sidebar_rest.sort(
+                key=lambda a: (a.get('placement_label') != 'Winner', a.get('date') or ''),
+                reverse=False
+            )
+            context['sidebar_achievements_data'] = (_sidebar_featured + _sidebar_rest)[:5]
+        except Exception:
+            context['achievements_data'] = _ach_all
+            context['sidebar_achievements_data'] = _ach_all[:5]
+            context['achievements_total_count'] = len(_ach_all)
+            context['achievements_wins_count'] = sum(1 for a in _ach_all if a.get('placement_label') == 'Winner')
+            context['achievements_featured_count'] = 0
     except Exception:
         context['achievements_data'] = []
+        context['sidebar_achievements_data'] = []
+        context['achievements_total_count'] = 0
+        context['achievements_wins_count'] = 0
+        context['achievements_featured_count'] = 0
 
     # Get primary game for initial load (first item is always primary)
     if career_linked_games:
@@ -903,6 +963,30 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
     context['hardware_gear'] = _extended['hardware_gear']
     context['has_loadout'] = _extended['has_loadout']
     context['game_configs'] = _extended['game_configs']
+
+    # Pro Loadout (new model) — load for owner and public if visibility=PUBLIC
+    try:
+        from apps.user_profile.models.pro_loadout import UserLoadoutProfile, LoadoutDevice, GameLoadoutSetting
+        _pro = UserLoadoutProfile.objects.filter(user_profile=user_profile).first()
+        if _pro and (_pro.is_public or context.get('is_owner')):
+            _devices = list(LoadoutDevice.objects.filter(loadout=_pro).order_by('order', 'category'))
+            _game_settings = list(
+                GameLoadoutSetting.objects.filter(loadout=_pro).select_related('game')
+                .filter(__import__('django.db.models', fromlist=['Q']).Q(visibility='PUBLIC') | __import__('django.db.models', fromlist=['Q']).Q())
+                if not context.get('is_owner') else
+                GameLoadoutSetting.objects.filter(loadout=_pro).select_related('game')
+            )
+            context['pro_loadout'] = _pro
+            context['pro_loadout_devices'] = _devices
+            context['pro_loadout_game_settings'] = _game_settings
+        else:
+            context['pro_loadout'] = None
+            context['pro_loadout_devices'] = []
+            context['pro_loadout_game_settings'] = []
+    except Exception:
+        context['pro_loadout'] = None
+        context['pro_loadout_devices'] = []
+        context['pro_loadout_game_settings'] = []
     context['trophy_showcase'] = _extended['trophy_showcase']
     context['endorsements'] = _extended['endorsements']
     
@@ -977,7 +1061,8 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
     }
     
     # Conditional identity fields (privacy enforced)
-    is_owner = permissions.get('is_own_profile', False)
+    # Use context['is_owner'] so spectator mode is respected (not raw permissions).
+    is_owner = context.get('is_owner', False)
     privacy_settings = user_profile.privacy_settings
     
     # Country / Nationality (check privacy)
@@ -1841,6 +1926,31 @@ def profile_settings_view(request: HttpRequest) -> HttpResponse:
         user_profile=UserProfile.objects.get(user=request.user)
     )
     context['hardware_loadout'] = hardware_loadout
+
+    # Pro Loadout (new model) — pass to settings template
+    try:
+        from apps.user_profile.models.pro_loadout import UserLoadoutProfile, LoadoutDevice, GameLoadoutSetting
+        _settings_user_profile = UserProfile.objects.get(user=request.user)
+        _pro, _ = UserLoadoutProfile.objects.get_or_create(user_profile=_settings_user_profile)
+        _pro_devices = list(LoadoutDevice.objects.filter(loadout=_pro).order_by('order', 'category'))
+        _pro_game_settings = list(
+            GameLoadoutSetting.objects.filter(loadout=_pro).select_related('game').order_by('game__name')
+        )
+        context['pro_loadout'] = _pro
+        context['pro_loadout_devices'] = _pro_devices
+        context['pro_loadout_game_settings'] = _pro_game_settings
+        # Pass game passports for game-setting UI
+        from apps.user_profile.models_main import GameProfile
+        _visible_passports = list(
+            GameProfile.objects.filter(user_id=_settings_user_profile.id, status='ACTIVE')
+            .select_related('game').order_by('game__name')
+        )
+        context['pro_loadout_passports'] = _visible_passports
+    except Exception:
+        context['pro_loadout'] = None
+        context['pro_loadout_devices'] = []
+        context['pro_loadout_game_settings'] = []
+        context['pro_loadout_passports'] = []
     
     # Phase 4C.3: Initialize form for GET request to provide field choices
     from apps.user_profile.forms import UserProfileSettingsForm

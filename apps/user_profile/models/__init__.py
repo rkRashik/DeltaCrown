@@ -64,6 +64,8 @@ if not _MINIMAL_TEST_APPS:
     from apps.user_profile.models.about import ProfileAboutItem
     from apps.user_profile.models.media import StreamConfig, HighlightClip, PinnedHighlight
     from apps.user_profile.models.loadout import HardwareGear, GameConfig, HardwareLoadout
+    from apps.user_profile.models.pro_loadout import UserLoadoutProfile, LoadoutDevice, GameLoadoutSetting
+    from apps.user_profile.models.achievement_preference import UserAchievementPreference
     from apps.user_profile.models.trophy_showcase import TrophyShowcaseConfig
     from apps.user_profile.models.endorsements import SkillEndorsement, EndorsementOpportunity, SkillType
     from apps.user_profile.models.bounties import (

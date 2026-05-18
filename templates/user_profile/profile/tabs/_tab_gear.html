@@ -23,7 +23,111 @@
         </div>
     </div>
 
-    {% if has_loadout or hardware_loadout.mouse_brand or hardware_loadout.keyboard_brand %}
+    {% if pro_loadout_devices or hardware_loadout.mouse_brand or hardware_loadout.keyboard_brand or has_loadout %}
+
+    {# ── Pro Loadout — New model devices ── #}
+    {% if pro_loadout_devices %}
+    <div>
+        <div class="flex items-center gap-3 mb-4">
+            <div class="h-px flex-1 bg-gradient-to-r from-z-purple/30 to-transparent"></div>
+            <h4 class="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] shrink-0 flex items-center gap-2">
+                <i class="fa-solid fa-microchip text-gray-500 text-xs"></i>
+                {{ pro_loadout.get_primary_platform_display }}
+                {% if pro_loadout.visibility == 'PRIVATE' and relationship_ctx.is_owner %}
+                <span class="text-[9px] text-gray-600 font-normal normal-case">(private)</span>
+                {% endif %}
+            </h4>
+            <div class="h-px flex-1 bg-gradient-to-l from-z-purple/30 to-transparent"></div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {% for dev in pro_loadout_devices %}
+            <div class="flex items-center gap-3 p-4 rounded-xl bg-gradient-to-br from-white/[.03] to-transparent border border-white/[.06] hover:border-z-purple/20 transition">
+                <div class="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 shrink-0">
+                    {% if dev.category == 'MOUSE' %}<i class="fa-solid fa-computer-mouse text-sm"></i>
+                    {% elif dev.category == 'KEYBOARD' %}<i class="fa-regular fa-keyboard text-sm"></i>
+                    {% elif dev.category == 'HEADSET' %}<i class="fa-solid fa-headphones text-sm"></i>
+                    {% elif dev.category == 'MONITOR' %}<i class="fa-solid fa-desktop text-sm"></i>
+                    {% elif dev.category == 'CONTROLLER' %}<i class="fa-solid fa-gamepad text-sm"></i>
+                    {% elif dev.category == 'MOBILE_DEVICE' %}<i class="fa-solid fa-mobile-screen text-sm"></i>
+                    {% elif dev.category == 'CONSOLE' %}<i class="fa-brands fa-playstation text-sm"></i>
+                    {% else %}<i class="fa-solid fa-microchip text-sm"></i>{% endif %}
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="text-[9px] text-gray-500 uppercase font-bold tracking-wider">{{ dev.get_category_display }}</div>
+                    <div class="text-white font-bold text-sm truncate">{{ dev.display_name|default:"—" }}</div>
+                    {% if dev.notes %}<div class="text-[10px] text-gray-500 mt-0.5">{{ dev.notes }}</div>{% endif %}
+                </div>
+                {% if dev.is_featured %}
+                <div class="shrink-0 text-z-gold text-xs" title="Featured"><i class="fa-solid fa-star"></i></div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    {# ── Game-specific settings ── #}
+    {% if pro_loadout_game_settings %}
+    <div class="mt-6">
+        <div class="flex items-center gap-3 mb-4">
+            <div class="h-px flex-1 bg-gradient-to-r from-z-gold/30 to-transparent"></div>
+            <h4 class="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] shrink-0 flex items-center gap-2">
+                <i class="fa-solid fa-sliders text-gray-500 text-xs"></i> In-Game Settings
+            </h4>
+            <div class="h-px flex-1 bg-gradient-to-l from-z-gold/30 to-transparent"></div>
+        </div>
+        <div class="space-y-3">
+            {% for gs in pro_loadout_game_settings %}
+            {% if gs.visibility == 'PUBLIC' or relationship_ctx.is_owner %}
+            <div class="p-4 rounded-xl bg-gradient-to-br from-z-gold/[.03] to-transparent border border-white/[.06]">
+                <div class="flex items-center gap-2 mb-3">
+                    {% if gs.game.icon %}<img src="{{ gs.game.icon.url }}" alt="{{ gs.game.name }}" class="w-5 h-5 rounded object-contain" onerror="this.style.display='none'">{% endif %}
+                    <span class="text-xs font-bold text-white">{{ gs.game.name }}</span>
+                    <span class="text-[9px] text-gray-500 ml-1 px-1.5 py-0.5 rounded bg-white/5">{{ gs.platform }}</span>
+                    {% if gs.visibility == 'PRIVATE' and relationship_ctx.is_owner %}<span class="text-[9px] text-gray-600">(private)</span>{% endif %}
+                </div>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
+                    {% if gs.mouse_dpi %}
+                    <div class="p-2 rounded-lg bg-white/5"><div class="text-[9px] text-gray-500 uppercase">DPI</div><div class="text-white font-bold text-sm">{{ gs.mouse_dpi }}</div></div>
+                    {% endif %}
+                    {% if gs.in_game_sensitivity %}
+                    <div class="p-2 rounded-lg bg-white/5"><div class="text-[9px] text-gray-500 uppercase">Sens</div><div class="text-white font-bold text-sm">{{ gs.in_game_sensitivity }}</div></div>
+                    {% endif %}
+                    {% if gs.edpi %}
+                    <div class="p-2 rounded-lg bg-z-cyan/5 border border-z-cyan/10"><div class="text-[9px] text-z-cyan uppercase">eDPI</div><div class="text-z-cyan font-bold text-sm">{{ gs.edpi }}</div></div>
+                    {% endif %}
+                    {% if gs.crosshair_code %}
+                    <div class="p-2 rounded-lg bg-white/5"><div class="text-[9px] text-gray-500 uppercase">Crosshair</div><div class="text-white font-mono text-xs truncate">{{ gs.crosshair_code }}</div></div>
+                    {% endif %}
+                    {% if gs.resolution %}
+                    <div class="p-2 rounded-lg bg-white/5"><div class="text-[9px] text-gray-500 uppercase">Res</div><div class="text-white font-bold text-xs">{{ gs.resolution }}</div></div>
+                    {% endif %}
+                    {% if gs.refresh_rate %}
+                    <div class="p-2 rounded-lg bg-white/5"><div class="text-[9px] text-gray-500 uppercase">Hz</div><div class="text-white font-bold text-sm">{{ gs.refresh_rate }}</div></div>
+                    {% endif %}
+                    {% if gs.fps_cap %}
+                    <div class="p-2 rounded-lg bg-white/5"><div class="text-[9px] text-gray-500 uppercase">FPS Cap</div><div class="text-white font-bold text-sm">{{ gs.fps_cap }}</div></div>
+                    {% endif %}
+                    {# Mobile #}
+                    {% if gs.gyro_enabled is not None %}
+                    <div class="p-2 rounded-lg bg-white/5"><div class="text-[9px] text-gray-500 uppercase">Gyro</div><div class="text-white font-bold text-xs">{% if gs.gyro_enabled %}On{% else %}Off{% endif %}</div></div>
+                    {% endif %}
+                    {% if gs.hud_code %}<div class="p-2 rounded-lg bg-white/5 col-span-2"><div class="text-[9px] text-gray-500 uppercase">HUD Code</div><div class="text-white font-mono text-xs truncate">{{ gs.hud_code }}</div></div>{% endif %}
+                    {# Console #}
+                    {% if gs.horizontal_sensitivity %}
+                    <div class="p-2 rounded-lg bg-white/5"><div class="text-[9px] text-gray-500 uppercase">H-Sens</div><div class="text-white font-bold text-sm">{{ gs.horizontal_sensitivity }}</div></div>
+                    {% endif %}
+                    {% if gs.vertical_sensitivity %}
+                    <div class="p-2 rounded-lg bg-white/5"><div class="text-[9px] text-gray-500 uppercase">V-Sens</div><div class="text-white font-bold text-sm">{{ gs.vertical_sensitivity }}</div></div>
+                    {% endif %}
+                </div>
+                {% if gs.notes %}<div class="text-[10px] text-gray-500 mt-2 italic">{{ gs.notes }}</div>{% endif %}
+            </div>
+            {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
 
     <!-- ═══════════════════════════════════════════════════════════════════
          DESK SETUP — Peripherals
@@ -238,13 +342,15 @@
 
     <!-- Empty State -->
     <div class="glass-panel p-10 rounded-2xl text-center">
-        <i class="fa-solid fa-microchip text-4xl text-gray-600 mb-3"></i>
+        <div class="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-3xl text-gray-600 mx-auto mb-5">
+            <i class="fa-solid fa-microchip"></i>
+        </div>
         <p class="text-gray-400 font-bold text-sm">No gear configured yet</p>
-        <p class="text-gray-500 text-xs mt-1">
+        <p class="text-gray-500 text-xs mt-2 max-w-xs mx-auto">
             {% if relationship_ctx.is_owner %}
-            <a href="{% url 'user_profile:profile_settings' %}#tab-loadout" class="text-z-cyan hover:text-white transition">Set up your loadout</a> to show your competitive setup
+            <a href="/me/settings/#loadout" class="text-z-cyan hover:text-white transition font-bold">Set up your Pro Loadout</a> to showcase your competitive setup on this page.
             {% else %}
-            This player hasn't shared their gear setup yet
+            This player hasn't shared their gear setup yet.
             {% endif %}
         </p>
     </div>

@@ -374,6 +374,7 @@
 <div id="createApp"
      class="pb-36"
      data-api-create-url="{{ api_create_url }}"
+     data-csrf-token="{{ csrf_token }}"
      data-is-staff="{{ is_staff|yesno:'true,false' }}"
      data-can-afford="{{ can_afford|yesno:'true,false' }}"
      data-hosting-fee="{{ hosting_fee }}"
@@ -442,6 +443,15 @@
       <form id="tournamentForm" class="mx-auto w-full max-w-[1320px] px-4 py-8 sm:px-6 lg:px-10 xl:px-14 lg:py-12" novalidate>
 
         <section id="step-1" data-panel class="slide-panel">
+          {% if not is_staff and not can_afford %}
+          <div class="mb-6 flex items-start gap-3 rounded-2xl border border-amber-500/30 bg-amber-500/8 px-4 py-3">
+            <span class="mt-0.5 text-amber-400 text-base shrink-0">⚠</span>
+            <div class="text-xs leading-relaxed text-amber-200/80">
+              <strong class="text-amber-300">{{ hosting_fee }} DC required to host.</strong>
+              Your current balance is {{ user_balance }} DC. You can configure this tournament but will need to top up before launching.
+            </div>
+          </div>
+          {% endif %}
           <div class="mb-8 flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
             <div class="max-w-3xl">
               <div class="mb-5 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 backdrop-blur-xl">
@@ -1043,7 +1053,7 @@
                   <div class="rounded-2xl border border-white/10 bg-black/25 p-3"><span class="text-[10px] text-white/42">Slots</span><strong id="launchSlots" class="mt-1 block font-space text-lg">16</strong></div>
                   <div class="rounded-2xl border border-white/10 bg-black/25 p-3"><span class="text-[10px] text-white/42">Entry</span><strong id="launchEntry" class="mt-1 block font-space text-lg">Free</strong></div>
                 </div>
-                <button type="button" onclick="document.getElementById('nextBtn').click()" class="mt-6 w-full rounded-2xl border border-white/15 bg-white/8 px-6 py-3 font-space text-sm font-bold text-white/80 transition hover:bg-white/15">Proceed to Launch →</button>
+                <button type="button" data-proceed-launch class="mt-6 w-full rounded-2xl border border-white/15 bg-white/8 px-6 py-3 font-space text-sm font-bold text-white/80 transition hover:bg-white/15">Proceed to Launch →</button>
               </div>
             </aside>
           </div>
@@ -1152,7 +1162,7 @@
     </div>
   </div>
 
-  <div id="toast" class="pointer-events-none fixed left-1/2 top-5 z-[70] hidden -translate-x-1/2 rounded-2xl border border-white/10 bg-black/75 px-5 py-3 text-sm font-bold text-white shadow-2xl backdrop-blur-2xl"></div>
+  <div id="toast" class="pointer-events-none fixed left-1/2 top-5 z-[70] hidden -translate-x-1/2 max-w-sm w-[90vw] rounded-2xl border border-white/10 bg-black/85 px-5 py-3 text-sm font-semibold text-white shadow-2xl backdrop-blur-2xl text-center"></div>
 
   <div id="guideModal" class="fixed inset-0 z-[80] hidden items-center justify-center bg-black/75 p-4 backdrop-blur-xl">
     <div class="w-full max-w-2xl overflow-hidden rounded-[2rem] border border-white/10 bg-[#080a10]/98 shadow-2xl backdrop-blur-2xl">

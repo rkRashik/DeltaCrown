@@ -131,7 +131,7 @@ class Tournament(SoftDeleteModel, TimestampedModel):
     # Basic information
     name = models.CharField(max_length=200, help_text='Tournament name')
     slug = models.SlugField(max_length=250, unique=True, db_index=True)
-    description = models.TextField(help_text='Tournament description and overview')
+    description = models.TextField(blank=True, default='', help_text='Tournament description and overview')
     
     # Organizer (ForeignKey to accounts.User)
     organizer = models.ForeignKey(

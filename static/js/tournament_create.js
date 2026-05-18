@@ -265,7 +265,9 @@
 
   var isStaff = createApp.dataset.isStaff === "true";
   var canAfford = createApp.dataset.canAfford === "true";
-  var apiCreateUrl = createApp.dataset.apiCreateUrl || "/api/tournaments/";
+  var apiCreateUrl = createApp.dataset.apiCreateUrl || "/api/tournaments/tournaments/";
+  // Prefer the server-rendered CSRF token so CSRF_COOKIE_HTTPONLY=True does not break AJAX.
+  var csrfToken = createApp.dataset.csrfToken || getCookie("csrftoken");
 
   var steps = [
     { id: 1, title: "Game", sub: "Select game" },
@@ -364,7 +366,7 @@
     }
   }
 
-  function showToast(message) {
+  function showToast(message, duration) {
     var toast = byId("toast");
     if (!toast) {
       return;
@@ -374,7 +376,7 @@
     clearTimeout(showToast.timer);
     showToast.timer = setTimeout(function () {
       toast.classList.add("hidden");
-    }, 1800);
+    }, duration || 2600);
   }
 
   function openGuideModal() {
@@ -692,6 +694,14 @@
     }
   }
 
+  function showError(message) {
+    showToast(message);
+    var mainScroll = byId("mainScroll");
+    if (mainScroll) {
+      mainScroll.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  }
+
   function validateStep(stepNumber) {
     syncIdentityState();
     syncArchitectureState();
@@ -700,7 +710,7 @@
 
     if (stepNumber === 1) {
       if (!selectedGame) {
-        alert("Please select a game before continuing.");
+        showError("Please select a game before continuing.");
         return false;
       }
       return true;
@@ -708,11 +718,11 @@
 
     if (stepNumber === 2) {
       if (!state.name) {
-        alert("Please enter a tournament name.");
+        showError("Please enter a tournament name.");
         return false;
       }
       if (!state.description) {
-        alert("Please provide a full description.");
+        showError("Please provide a full description.");
         return false;
       }
       return true;
@@ -720,15 +730,15 @@
 
     if (stepNumber === 3) {
       if (!state.format) {
-        alert("Please choose a tournament format.");
+        showError("Please choose a tournament format.");
         return false;
       }
       if (state.maxParticipants < 2) {
-        alert("Max participants must be at least 2.");
+        showError("Max participants must be at least 2.");
         return false;
       }
       if (state.rosterMax < state.rosterMin) {
-        alert("Roster max cannot be lower than roster min.");
+        showError("Roster max cannot be lower than roster min.");
         return false;
       }
       return true;
@@ -736,7 +746,7 @@
 
     if (stepNumber === 4) {
       if (!state.registrationStart || !state.registrationEnd || !state.tournamentStart) {
-        alert("Please fill registration and tournament start timeline fields.");
+        showError("Please fill registration and tournament start timeline fields.");
         return false;
       }
 
@@ -745,12 +755,12 @@
       var tourStart = new Date(state.tournamentStart);
 
       if (!(regStart < regEnd && regEnd < tourStart)) {
-        alert("Schedule must satisfy: registration start < registration end < tournament start.");
+        showError("Schedule: registration start < registration end < tournament start.");
         return false;
       }
 
       if (state.hasEntryFee && state.entryFeeAmount <= 0) {
-        alert("Entry fee must be greater than 0 for paid tournaments.");
+        showError("Entry fee must be greater than 0 for paid tournaments.");
         return false;
       }
 
@@ -1494,7 +1504,7 @@
   function submitTournament() {
     var submitButton = byId("btnSubmit");
     if (submitButton && submitButton.disabled) {
-      alert("You cannot submit this tournament right now.");
+      showError("Insufficient DeltaCoin balance to host a tournament. Please top up your wallet.");
       return;
     }
 
@@ -1508,7 +1518,7 @@
     var payload = buildPayload();
 
     if (!payload.name || !payload.game_id) {
-      alert("Please complete required fields before submitting.");
+      showError("Please complete required fields before submitting.");
       return;
     }
 
@@ -1519,7 +1529,7 @@
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "X-CSRFToken": getCookie("csrftoken")
+        "X-CSRFToken": csrfToken
       },
       body: JSON.stringify(payload)
     })
@@ -1541,7 +1551,7 @@
         if (!result.ok) {
           setLoading(false);
           setDeployOverlay(false);
-          alert(collectResponseError(result.data));
+          showError(collectResponseError(result.data));
           return;
         }
 
@@ -1560,7 +1570,7 @@
       .catch(function () {
         setLoading(false);
         setDeployOverlay(false);
-        alert("Network error while creating tournament. Please try again.");
+        showError("Network error while creating tournament. Please try again.");
       });
   }
 
@@ -1773,6 +1783,16 @@
     var nextInlineButtons = toArray(document.querySelectorAll("[data-next-inline]"));
     nextInlineButtons.forEach(function (button) {
       button.addEventListener("click", nextStep);
+    });
+
+    var proceedLaunchButtons = toArray(document.querySelectorAll("[data-proceed-launch]"));
+    proceedLaunchButtons.forEach(function (button) {
+      button.addEventListener("click", function () {
+        var nextBtn = byId("nextBtn");
+        if (nextBtn) {
+          nextBtn.click();
+        }
+      });
     });
 
     var prevButton = byId("prevBtn");

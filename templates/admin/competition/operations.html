@@ -134,6 +134,14 @@
           <p class="text-xs font-black uppercase tracking-[0.22em] text-primary-300">Create Center</p>
           <h2 class="mt-1 text-2xl font-black text-base-50">Guided Mission Builder</h2>
           <p class="mt-2 max-w-3xl text-sm leading-6 text-base-400">A step-based creator for Mission Templates. The final save still uses existing model validation.</p>
+          <div class="ops-wizard-progress mt-5" aria-label="Mission creation steps">
+            <span class="is-current"><b>01</b><small>Preset</small></span>
+            <span><b>02</b><small>Game</small></span>
+            <span><b>03</b><small>Objective</small></span>
+            <span><b>04</b><small>Reward</small></span>
+            <span><b>05</b><small>Schedule</small></span>
+            <span><b>06</b><small>Publish</small></span>
+          </div>
         </div>
 
         <fieldset class="dc-step-card ops-step-card">
@@ -381,7 +389,7 @@
             </div>
             <span class="rounded-full border border-base-700 px-2 py-0.5 text-[11px] font-black uppercase tracking-wider text-base-300">{{ flow.review_time }}</span>
           </div>
-          <div class="mt-5 grid gap-2 sm:grid-cols-5">
+          <div class="ops-flow-rail mt-5 grid gap-2 sm:grid-cols-5">
             {% for step in flow.steps %}
               <div class="ops-flow-step rounded-2xl border border-base-800 bg-base-900/60 p-3 text-center">
                 <span class="mx-auto flex h-7 w-7 items-center justify-center rounded-full border border-primary-400/30 bg-primary-500/10 text-xs font-black text-primary-200">{{ forloop.counter }}</span>
@@ -389,7 +397,7 @@
               </div>
             {% endfor %}
           </div>
-          <div class="mt-5 grid gap-3 md:grid-cols-2">
+          <div class="ops-intel-grid mt-5 grid gap-3 md:grid-cols-2">
             <div class="ops-intel-card rounded-2xl border border-base-800 bg-base-900/60 p-4 text-xs leading-5 text-base-300"><strong class="block text-base-100">Operator checkpoint</strong>{{ flow.checkpoint }}</div>
             <div class="ops-intel-card rounded-2xl border border-base-800 bg-base-900/60 p-4 text-xs leading-5 text-base-300"><strong class="block text-base-100">Common operator error</strong>{{ flow.operator_error }}</div>
             <div class="ops-intel-card rounded-2xl border border-base-800 bg-base-900/60 p-4 text-xs leading-5 text-base-300"><strong class="block text-base-100">Escalation rule</strong>{{ flow.escalation }}</div>
@@ -1032,6 +1040,751 @@
       linear-gradient(180deg, rgba(15, 23, 42, 0.95), rgba(8, 13, 24, 0.96)) !important;
   }
 
+  /*
+    Premium visual refinement layer.
+    This intentionally overrides the older utility-driven borders above with a
+    smaller elevation system: hero, primary panels, secondary rows, and controls.
+  */
+  .competitive-ops-console {
+    --ops-ink: #f7fbff;
+    --ops-soft: #c1ccda;
+    --ops-faint: #7d8da5;
+    --ops-line-soft: rgba(226, 232, 240, 0.075);
+    --ops-line-focus: rgba(147, 197, 253, 0.28);
+    --ops-layer-hero:
+      radial-gradient(circle at 15% -10%, rgba(125, 211, 252, 0.15), transparent 30rem),
+      radial-gradient(circle at 92% 0%, rgba(59, 130, 246, 0.18), transparent 27rem),
+      linear-gradient(135deg, rgba(19, 28, 48, 0.98), rgba(5, 8, 16, 0.99) 62%, rgba(8, 13, 24, 0.98));
+    --ops-layer-primary:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.052), rgba(255, 255, 255, 0.018) 42%, rgba(255, 255, 255, 0.008)),
+      rgba(11, 17, 29, 0.94);
+    --ops-layer-secondary:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.034), rgba(255, 255, 255, 0.008)),
+      rgba(9, 14, 24, 0.82);
+    --ops-layer-control:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.01)),
+      rgba(4, 8, 16, 0.9);
+    --ops-elev-hero: 0 34px 95px rgba(0, 0, 0, 0.52), 0 0 0 1px rgba(255, 255, 255, 0.055), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    --ops-elev-primary: 0 22px 58px rgba(0, 0, 0, 0.36), 0 0 0 1px rgba(255, 255, 255, 0.052), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    --ops-elev-secondary: 0 13px 34px rgba(0, 0, 0, 0.26), 0 0 0 1px rgba(255, 255, 255, 0.04);
+    --ops-elev-float: 0 26px 72px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(147, 197, 253, 0.12);
+    --ops-radius-hero: 32px;
+    --ops-radius-panel: 26px;
+    --ops-radius-card: 20px;
+    background:
+      linear-gradient(180deg, rgba(5, 8, 16, 0), rgba(5, 8, 16, 0.34)),
+      radial-gradient(circle at 50% 0%, rgba(15, 23, 42, 0.58), transparent 36rem);
+    max-width: 1500px;
+    padding: clamp(14px, 1.7vw, 28px);
+  }
+
+  .competitive-ops-console::before {
+    opacity: 0.72;
+  }
+
+  .competitive-ops-console > section:first-of-type.ops-hero {
+    background: var(--ops-layer-hero) !important;
+    border: 0 !important;
+    border-radius: var(--ops-radius-hero) !important;
+    box-shadow: var(--ops-elev-hero) !important;
+    padding: clamp(22px, 3vw, 36px) !important;
+  }
+
+  .competitive-ops-console h1 {
+    color: var(--ops-ink) !important;
+    font-size: clamp(2rem, 3.1vw, 3.35rem) !important;
+    font-weight: 950 !important;
+    line-height: 0.96 !important;
+    max-width: 11ch;
+  }
+
+  .competitive-ops-console h2 {
+    font-size: clamp(1.35rem, 1.9vw, 2rem) !important;
+    font-weight: 930 !important;
+    line-height: 1.05 !important;
+  }
+
+  .competitive-ops-console h3 {
+    font-weight: 900 !important;
+    line-height: 1.15 !important;
+  }
+
+  .competitive-ops-console p,
+  .competitive-ops-console small {
+    color: inherit;
+  }
+
+  .ops-status-card,
+  .ops-command-shell,
+  .ops-panel-card,
+  .ops-safety-card,
+  .ops-builder-intro,
+  .ops-assistant-card,
+  .ops-dropzone-helper,
+  .ops-review-lane,
+  .ops-workflow-card,
+  .ops-system-card {
+    background: var(--ops-layer-primary) !important;
+    border: 0 !important;
+    border-radius: var(--ops-radius-panel) !important;
+    box-shadow: var(--ops-elev-primary) !important;
+  }
+
+  .ops-status-card,
+  .ops-health-card,
+  .ops-assistant-stat,
+  .ops-lane-meta,
+  .ops-intel-card,
+  .ops-system-row,
+  .ops-preview-card,
+  .ops-empty-state {
+    background: var(--ops-layer-secondary) !important;
+    border: 0 !important;
+    box-shadow: var(--ops-elev-secondary) !important;
+  }
+
+  .ops-status-card {
+    border-radius: 18px !important;
+    min-height: 84px;
+    padding: 1rem !important;
+  }
+
+  .ops-status-card p:first-child {
+    color: var(--ops-faint) !important;
+    font-size: 0.66rem !important;
+    letter-spacing: 0.16em !important;
+  }
+
+  .ops-status-card p:last-child {
+    font-size: 0.92rem !important;
+    letter-spacing: 0.01em;
+  }
+
+  .ops-status-card::before,
+  .ops-metric-card::before,
+  .ops-panel-card::before,
+  .ops-review-lane::before,
+  .ops-workflow-card::before,
+  .ops-system-card::before,
+  .ops-assistant-card::before,
+  .ops-builder-intro::before,
+  .competitive-ops-console [data-console-panel="overview"] > .grid:first-child a::after,
+  .competitive-ops-console [data-console-panel="review"] section::before,
+  .competitive-ops-console [data-console-panel="surfaces"] section::before,
+  .competitive-ops-console [data-console-panel="guide"] article::before {
+    display: none !important;
+  }
+
+  .ops-command-shell {
+    padding: 1.15rem;
+  }
+
+  .competitive-ops-console [data-command-search],
+  .dc-form-control {
+    appearance: none;
+    background: var(--ops-layer-control) !important;
+    border: 0 !important;
+    border-radius: 16px !important;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.055), inset 0 1px 0 rgba(255, 255, 255, 0.055), 0 14px 28px rgba(0, 0, 0, 0.24) !important;
+    color: var(--ops-ink) !important;
+    min-height: 46px;
+  }
+
+  .competitive-ops-console [data-command-search] {
+    height: 54px !important;
+    padding-left: 3.35rem !important;
+  }
+
+  .competitive-ops-console [data-command-search] + *,
+  .competitive-ops-console [data-command-search]::placeholder {
+    color: var(--ops-faint);
+  }
+
+  .competitive-ops-console [data-command-search]:focus,
+  .dc-form-control:focus {
+    background: linear-gradient(180deg, rgba(15, 23, 42, 0.98), rgba(4, 8, 16, 0.98)) !important;
+    box-shadow: 0 0 0 1px rgba(147, 197, 253, 0.42), 0 0 0 5px rgba(96, 165, 250, 0.12), 0 18px 42px rgba(37, 99, 235, 0.12) !important;
+  }
+
+  .competitive-ops-console [data-command-menu] {
+    background:
+      linear-gradient(180deg, rgba(15, 23, 42, 0.98), rgba(3, 7, 18, 0.98)) !important;
+    border: 0 !important;
+    border-radius: 22px !important;
+    box-shadow: var(--ops-elev-float) !important;
+    padding: 0.55rem !important;
+  }
+
+  .dc-command-item {
+    border: 0 !important;
+    border-radius: 16px;
+    padding: 0.85rem;
+  }
+
+  .dc-command-item:hover,
+  .dc-command-item:focus-visible {
+    background: rgba(96, 165, 250, 0.12) !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.045);
+  }
+
+  .competitive-ops-console > nav.ops-workspace-nav {
+    background: rgba(6, 10, 19, 0.76) !important;
+    border: 0 !important;
+    border-radius: 22px !important;
+    box-shadow: 0 18px 44px rgba(0, 0, 0, 0.34), 0 0 0 1px rgba(255, 255, 255, 0.05) !important;
+    gap: 0.35rem !important;
+    padding: 0.42rem !important;
+  }
+
+  .dc-console-tab {
+    background: transparent !important;
+    border: 0 !important;
+    border-radius: 16px !important;
+    color: var(--ops-faint) !important;
+    min-height: 2.75rem;
+    padding: 0.72rem 0.92rem;
+    position: relative;
+  }
+
+  .dc-console-tab::after {
+    background: linear-gradient(90deg, transparent, rgba(125, 211, 252, 0.72), transparent);
+    border-radius: 999px;
+    bottom: 0.28rem;
+    content: "";
+    height: 2px;
+    left: 22%;
+    opacity: 0;
+    position: absolute;
+    right: 22%;
+    transform: scaleX(0.6);
+    transition: opacity 180ms ease, transform 180ms ease;
+  }
+
+  .dc-console-tab[aria-selected="true"] {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.025)) !important;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+    color: var(--ops-ink) !important;
+  }
+
+  .dc-console-tab[aria-selected="true"]::after {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+
+  .dc-console-tab:hover {
+    background: rgba(255, 255, 255, 0.045) !important;
+    box-shadow: none !important;
+    color: var(--ops-soft) !important;
+  }
+
+  .ops-metric-card {
+    background:
+      linear-gradient(145deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.012) 56%),
+      rgba(10, 15, 26, 0.92) !important;
+    border: 0 !important;
+    border-radius: 24px !important;
+    box-shadow: var(--ops-elev-secondary) !important;
+    padding: 1.2rem !important;
+  }
+
+  .ops-metric-card:hover,
+  .ops-system-row:hover,
+  .ops-review-item:hover,
+  .competitive-ops-console [data-console-panel] a.group:hover {
+    border-color: transparent !important;
+    box-shadow: 0 20px 48px rgba(0, 0, 0, 0.36), 0 0 0 1px rgba(147, 197, 253, 0.14), 0 18px 46px rgba(37, 99, 235, 0.1) !important;
+  }
+
+  .ops-metric-card .material-symbols-outlined,
+  .ops-review-lane > div:first-child .material-symbols-outlined,
+  .ops-workflow-card > div:first-child .material-symbols-outlined,
+  .ops-system-row .material-symbols-outlined {
+    background:
+      linear-gradient(180deg, rgba(147, 197, 253, 0.18), rgba(37, 99, 235, 0.08)) !important;
+    border: 0 !important;
+    border-radius: 15px !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 10px 22px rgba(37, 99, 235, 0.11);
+  }
+
+  .ops-panel-card,
+  .ops-builder-intro {
+    padding: clamp(1.25rem, 2vw, 1.75rem) !important;
+  }
+
+  .ops-health-card {
+    border-radius: 18px !important;
+    padding: 1rem !important;
+  }
+
+  .ops-safety-card {
+    background:
+      radial-gradient(circle at 8% 0%, rgba(251, 191, 36, 0.14), transparent 18rem),
+      linear-gradient(160deg, rgba(36, 27, 13, 0.92), rgba(11, 17, 29, 0.92)) !important;
+  }
+
+  .ops-ghost-button,
+  .competitive-ops-console button[type="submit"],
+  .ops-dropzone-helper button {
+    border: 0 !important;
+    border-radius: 15px !important;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+  }
+
+  .competitive-ops-console button[type="submit"] {
+    background: linear-gradient(180deg, #3b82f6, #1d4ed8) !important;
+  }
+
+  .dc-step-card {
+    background: var(--ops-layer-primary) !important;
+    border: 0 !important;
+    border-radius: var(--ops-radius-panel) !important;
+    box-shadow: var(--ops-elev-primary) !important;
+    padding: clamp(18px, 2.2vw, 26px) !important;
+  }
+
+  .dc-step-card legend {
+    color: var(--ops-ink) !important;
+    font-size: 0.8rem !important;
+    letter-spacing: 0.05em !important;
+  }
+
+  .dc-step-card legend span,
+  .ops-flow-step span {
+    background: rgba(147, 197, 253, 0.14) !important;
+    border: 0 !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 8px 18px rgba(37, 99, 235, 0.14) !important;
+  }
+
+  .dc-step-help {
+    color: var(--ops-soft) !important;
+    max-width: 58ch;
+  }
+
+  .dc-op-preset {
+    border: 0 !important;
+    border-radius: 999px !important;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.055), inset 0 1px 0 rgba(255, 255, 255, 0.055) !important;
+    padding: 0.55rem 0.85rem !important;
+  }
+
+  .dc-op-preset:hover {
+    box-shadow: 0 0 0 1px rgba(147, 197, 253, 0.34), 0 12px 24px rgba(37, 99, 235, 0.12) !important;
+  }
+
+  .ops-assistant-card,
+  .ops-dropzone-helper {
+    top: 6rem;
+  }
+
+  .ops-assistant-stat,
+  .ops-lane-meta,
+  .ops-intel-card,
+  .ops-preview-card {
+    border-radius: 18px !important;
+  }
+
+  .ops-review-lane {
+    min-height: 0;
+    padding: clamp(1.15rem, 2vw, 1.55rem) !important;
+  }
+
+  .ops-review-item {
+    background:
+      linear-gradient(90deg, rgba(96, 165, 250, 0.075), transparent 46%),
+      rgba(7, 12, 22, 0.74) !important;
+    border: 0 !important;
+    border-left: 2px solid rgba(125, 211, 252, 0.22) !important;
+    border-radius: 18px !important;
+    box-shadow: var(--ops-elev-secondary) !important;
+  }
+
+  .ops-count-chip,
+  .ops-risk-chip,
+  .competitive-ops-console .rounded-full {
+    border: 0 !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.055);
+  }
+
+  .ops-count-chip {
+    background: rgba(147, 197, 253, 0.1) !important;
+    color: #dbeafe !important;
+  }
+
+  .ops-risk-chip {
+    align-self: flex-start;
+    background: rgba(148, 163, 184, 0.1) !important;
+    color: var(--ops-soft) !important;
+    font-size: 0.66rem;
+    padding: 0.48rem 0.68rem;
+  }
+
+  .ops-risk-chip--high {
+    background: rgba(248, 113, 113, 0.13) !important;
+    color: #fecaca !important;
+  }
+
+  .ops-risk-chip--medium {
+    background: rgba(251, 191, 36, 0.12) !important;
+    color: #fde68a !important;
+  }
+
+  .ops-empty-state {
+    background:
+      radial-gradient(circle at 50% 0%, rgba(52, 211, 153, 0.1), transparent 12rem),
+      rgba(8, 13, 24, 0.68) !important;
+    border: 0 !important;
+    border-radius: 20px !important;
+    min-height: 140px;
+  }
+
+  .ops-empty-state .material-symbols-outlined {
+    background: rgba(52, 211, 153, 0.12);
+    border-radius: 16px;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    display: inline-flex;
+    padding: 0.55rem;
+  }
+
+  .ops-workflow-card {
+    gap: 0.9rem;
+    padding: clamp(1.15rem, 2vw, 1.65rem) !important;
+  }
+
+  .ops-flow-step {
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    min-height: 78px;
+    padding: 0.55rem !important;
+    position: relative;
+  }
+
+  .ops-flow-step p {
+    color: var(--ops-soft) !important;
+    line-height: 1.35;
+  }
+
+  .ops-intel-card {
+    background: rgba(7, 12, 22, 0.7) !important;
+    padding: 1rem !important;
+  }
+
+  .ops-intel-card--warning {
+    background:
+      linear-gradient(180deg, rgba(251, 191, 36, 0.11), rgba(251, 191, 36, 0.045)),
+      rgba(7, 12, 22, 0.72) !important;
+  }
+
+  .ops-system-card {
+    min-height: 0;
+    padding: clamp(1.15rem, 2vw, 1.65rem) !important;
+  }
+
+  .ops-system-row {
+    background:
+      linear-gradient(90deg, rgba(125, 211, 252, 0.06), transparent 42%),
+      rgba(7, 12, 22, 0.7) !important;
+    border: 0 !important;
+    border-radius: 18px !important;
+    box-shadow: var(--ops-elev-secondary) !important;
+  }
+
+  .ops-system-row:hover {
+    background:
+      linear-gradient(90deg, rgba(125, 211, 252, 0.12), transparent 46%),
+      rgba(13, 20, 34, 0.9) !important;
+  }
+
+  @media (min-width: 768px) {
+    .ops-flow-step:not(:last-child)::after {
+      background: linear-gradient(90deg, rgba(125, 211, 252, 0.22), rgba(125, 211, 252, 0.02));
+      content: "";
+      height: 1px;
+      left: calc(50% + 1.1rem);
+      position: absolute;
+      right: calc(-50% + 1.1rem);
+      top: 1.42rem;
+    }
+  }
+
+  @media (max-width: 760px) {
+    .competitive-ops-console {
+      padding: 0.75rem;
+    }
+
+    .competitive-ops-console h1 {
+      max-width: none;
+    }
+
+    .ops-status-card,
+    .ops-command-shell,
+    .ops-panel-card,
+    .ops-safety-card,
+    .ops-builder-intro,
+    .ops-assistant-card,
+    .ops-dropzone-helper,
+    .ops-review-lane,
+    .ops-workflow-card,
+    .ops-system-card,
+    .dc-step-card {
+      border-radius: 22px !important;
+    }
+  }
+
+  /* X5.3 targeted final refinement: composition, builder, workflows, and queues. */
+  .competitive-ops-console > section:first-of-type.ops-hero {
+    background:
+      radial-gradient(circle at 18% -20%, rgba(125, 211, 252, 0.18), transparent 24rem),
+      radial-gradient(circle at 82% 0%, rgba(59, 130, 246, 0.16), transparent 26rem),
+      linear-gradient(145deg, rgba(18, 28, 48, 0.98), rgba(5, 8, 16, 0.99) 58%, rgba(3, 7, 18, 0.99)) !important;
+    padding: clamp(24px, 3vw, 40px) !important;
+  }
+
+  .ops-hero::after {
+    background:
+      linear-gradient(90deg, transparent, rgba(125, 211, 252, 0.18), transparent),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent);
+    content: "";
+    height: 1px;
+    left: clamp(24px, 3vw, 40px);
+    opacity: 0.9;
+    position: absolute;
+    right: clamp(24px, 3vw, 40px);
+    top: clamp(18px, 2vw, 26px);
+  }
+
+  .ops-hero .relative.grid {
+    gap: clamp(1.4rem, 2.6vw, 3rem) !important;
+  }
+
+  .ops-hero h1 {
+    letter-spacing: -0.035em !important;
+    max-width: 13.5ch;
+    text-wrap: balance;
+  }
+
+  .ops-hero h1 + .mt-4,
+  .ops-hero .mt-4.grid {
+    margin-top: 1.55rem !important;
+  }
+
+  .ops-status-card {
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.058), rgba(255, 255, 255, 0.016)),
+      rgba(6, 11, 21, 0.66) !important;
+    box-shadow: 0 14px 32px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
+    overflow: visible;
+  }
+
+  .ops-status-card::after {
+    background: rgba(125, 211, 252, 0.5);
+    border-radius: 999px;
+    box-shadow: 0 0 18px rgba(125, 211, 252, 0.28);
+    content: "";
+    height: 5px;
+    left: 1rem;
+    position: absolute;
+    top: -2px;
+    width: 34px;
+  }
+
+  .ops-command-shell {
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.018)),
+      rgba(6, 11, 21, 0.8) !important;
+    padding: clamp(1.1rem, 1.8vw, 1.45rem) !important;
+  }
+
+  .ops-builder-intro {
+    background:
+      radial-gradient(circle at 90% 0%, rgba(96, 165, 250, 0.14), transparent 18rem),
+      linear-gradient(150deg, rgba(16, 24, 40, 0.98), rgba(7, 12, 22, 0.98)) !important;
+  }
+
+  .ops-wizard-progress {
+    display: grid;
+    gap: 0.55rem;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+
+  .ops-wizard-progress span {
+    background: rgba(2, 6, 23, 0.42);
+    border-radius: 16px;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.045);
+    display: flex;
+    flex-direction: column;
+    gap: 0.16rem;
+    min-height: 58px;
+    padding: 0.7rem 0.75rem;
+  }
+
+  .ops-wizard-progress .is-current {
+    background:
+      linear-gradient(180deg, rgba(96, 165, 250, 0.18), rgba(96, 165, 250, 0.06)),
+      rgba(2, 6, 23, 0.54);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 14px 28px rgba(37, 99, 235, 0.12);
+  }
+
+  .ops-wizard-progress b {
+    color: #bfdbfe;
+    font-size: 0.68rem;
+    letter-spacing: 0.08em;
+  }
+
+  .ops-wizard-progress small {
+    color: var(--ops-soft);
+    font-size: 0.72rem;
+    font-weight: 800;
+    line-height: 1.1;
+  }
+
+  .dc-step-card {
+    position: relative;
+  }
+
+  .dc-step-card::after {
+    background: linear-gradient(180deg, rgba(125, 211, 252, 0.32), rgba(125, 211, 252, 0));
+    border-radius: 999px;
+    bottom: 1.35rem;
+    content: "";
+    left: 0;
+    opacity: 0.55;
+    position: absolute;
+    top: 1.35rem;
+    width: 3px;
+  }
+
+  .dc-step-card label span:first-child {
+    color: #d6e1ee !important;
+    font-size: 0.72rem !important;
+    letter-spacing: 0.03em;
+    margin-bottom: 0.45rem !important;
+  }
+
+  .dc-form-control {
+    font-weight: 700;
+    padding: 0.82rem 0.9rem !important;
+  }
+
+  .dc-op-preset {
+    color: #d8e7fb !important;
+    min-height: 2.25rem;
+  }
+
+  .dc-op-preset.is-selected {
+    background:
+      linear-gradient(180deg, rgba(96, 165, 250, 0.22), rgba(96, 165, 250, 0.08)),
+      rgba(15, 23, 42, 0.86) !important;
+    box-shadow: 0 0 0 1px rgba(147, 197, 253, 0.38), 0 14px 28px rgba(37, 99, 235, 0.14) !important;
+    color: #eff6ff !important;
+  }
+
+  .ops-preview-card {
+    background:
+      radial-gradient(circle at 95% 0%, rgba(125, 211, 252, 0.16), transparent 12rem),
+      linear-gradient(180deg, rgba(30, 64, 175, 0.18), rgba(2, 6, 23, 0.72)) !important;
+    box-shadow: 0 18px 44px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.07) !important;
+  }
+
+  #mission-create-form fieldset:last-of-type {
+    background:
+      radial-gradient(circle at 100% 0%, rgba(52, 211, 153, 0.1), transparent 16rem),
+      var(--ops-layer-primary) !important;
+  }
+
+  .ops-flow-rail {
+    background: rgba(2, 6, 23, 0.28);
+    border-radius: 22px;
+    padding: 0.55rem;
+  }
+
+  .ops-flow-step {
+    align-items: center;
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.044), rgba(255, 255, 255, 0.01)),
+      rgba(6, 11, 21, 0.72) !important;
+    border-radius: 16px !important;
+    display: flex;
+    gap: 0.65rem;
+    min-height: 62px !important;
+    padding: 0.7rem !important;
+    text-align: left !important;
+  }
+
+  .ops-flow-step:not(:last-child)::after {
+    display: none !important;
+  }
+
+  .ops-flow-step span {
+    flex: 0 0 auto;
+    height: 1.9rem !important;
+    margin: 0 !important;
+    width: 1.9rem !important;
+  }
+
+  .ops-flow-step p {
+    margin-top: 0 !important;
+  }
+
+  .ops-intel-grid {
+    align-items: stretch;
+  }
+
+  .ops-intel-card {
+    box-shadow: 0 10px 26px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.045) !important;
+  }
+
+  .ops-intel-card strong {
+    color: #eef6ff !important;
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    margin-bottom: 0.5rem !important;
+    text-transform: uppercase;
+  }
+
+  .ops-empty-state {
+    align-items: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 118px !important;
+    padding: 1.15rem !important;
+  }
+
+  .ops-empty-state .material-symbols-outlined {
+    font-size: 1.8rem !important;
+  }
+
+  .ops-risk-chip {
+    margin-top: 0.1rem;
+    opacity: 0.86;
+    white-space: nowrap;
+  }
+
+  .ops-system-card > div:first-child {
+    align-items: flex-start;
+  }
+
+  .ops-system-card:hover .ops-risk-chip {
+    opacity: 1;
+  }
+
+  @media (max-width: 980px) {
+    .ops-wizard-progress {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 560px) {
+    .ops-wizard-progress {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .ops-flow-step {
+      min-height: 56px !important;
+    }
+  }
+
   @keyframes dcConsolePanelIn {
     from {
       opacity: 0;
@@ -1262,6 +2015,9 @@
   root.querySelectorAll('.dc-op-preset').forEach(function (btn) {
     btn.addEventListener('click', function () {
       if (!form) return;
+      root.querySelectorAll('.dc-op-preset').forEach(function (presetButton) {
+        presetButton.classList.toggle('is-selected', presetButton === btn);
+      });
       form.elements.mission_title.value = btn.dataset.title || '';
       form.elements.mission_cadence.value = btn.dataset.cadence || 'custom';
       form.elements.mission_goal_type.value = btn.dataset.goalType || 'CUSTOM';

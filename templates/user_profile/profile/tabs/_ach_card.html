@@ -1,39 +1,183 @@
-<div class="ach-row relative rounded-2xl border {{ border_cls }} overflow-hidden group hover:scale-[1.005] transition-transform"
-     data-ach-type="{{ card_class }}"
-     style="background:linear-gradient(145deg,rgba(14,14,20,.92) 0%,rgba(8,8,12,.97) 100%)">
+<div class="ach-row relative rounded-2xl border {{ border_cls }} overflow-hidden
+     {% if ach.is_hidden %}opacity-35{% elif ach.is_featured %}ring-1 ring-z-gold/30{% endif %}"
+     data-ach-type="{% if ach.is_hidden %}hidden{% else %}{{ card_class }}{% endif %}"
+     data-reg-id="{{ ach.registration_id }}"
+     data-game-slug="{{ ach.game_slug|default:'' }}"
+     data-is-hidden="{{ ach.is_hidden|yesno:'true,false' }}"
+     data-is-featured="{{ ach.is_featured|yesno:'true,false' }}"
+     style="background:linear-gradient(145deg,rgba(14,14,20,.93) 0%,rgba(8,8,12,.97) 100%)">
   <div class="absolute inset-0 bg-gradient-to-br {{ bg_cls }} to-transparent pointer-events-none"></div>
+  {% if ach.is_featured and not ach.is_hidden %}
+  <div class="absolute top-0 right-0 w-16 h-16 bg-z-gold/6 rounded-bl-3xl pointer-events-none"></div>
+  {% endif %}
 
-  <div class="relative z-10 flex items-center gap-3 p-4">
-    {# Trophy icon #}
-    <div class="shrink-0 w-11 h-11 rounded-xl {{ icon_cls }} border flex items-center justify-center text-xl shadow-sm">{{ trophy_emoji }}</div>
+  <div class="relative z-10 flex items-start gap-3 p-4">
+    {# Icon #}
+    <div class="shrink-0 w-11 h-11 rounded-xl {{ icon_cls }} border flex items-center justify-center text-xl shadow-sm mt-0.5">
+      {% if ach.is_hidden %}<i class="fa-solid fa-eye-slash text-sm"></i>
+      {% else %}{{ trophy_emoji }}{% endif %}
+    </div>
 
     {# Content #}
     <div class="flex-1 min-w-0">
-      <div class="text-sm font-bold text-white leading-tight truncate group-hover:text-z-gold transition">{{ ach.tournament_name|default:"Tournament" }}</div>
-      <div class="flex items-center gap-2 mt-1 flex-wrap">
-        {% if ach.team_name %}
-        <span class="text-[10px] text-gray-400 font-medium">{{ ach.team_name }}</span>
-        {% endif %}
-        {% if ach.date_formatted %}
-        <span class="text-gray-600">&middot;</span>
-        <span class="text-[10px] text-gray-500">{{ ach.date_formatted }}</span>
-        {% elif ach.date_obj %}
-        <span class="text-gray-600">&middot;</span>
-        <span class="text-[10px] text-gray-500">{{ ach.date_obj|date:"M j, Y" }}</span>
-        {% endif %}
-        {% if ach.tournament_tier_display %}
-        <span class="text-gray-600">&middot;</span>
-        <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-white/5 text-gray-400 uppercase tracking-wider">{{ ach.tournament_tier_display }}</span>
+      <div class="flex items-start justify-between gap-2">
+        <div class="flex-1 min-w-0">
+          <div class="text-sm font-bold text-white leading-snug truncate
+               {% if ach.is_hidden %}line-through opacity-60{% endif %}">
+            {{ ach.tournament_name|default:"Tournament" }}
+          </div>
+          <div class="flex items-center gap-1.5 mt-0.5 flex-wrap">
+            {% if ach.team_name %}
+            <span class="text-[10px] text-gray-400">{{ ach.team_name }}</span>
+            {% endif %}
+            {% if ach.date_formatted %}
+            {% if ach.team_name %}<span class="text-gray-700">&middot;</span>{% endif %}
+            <span class="text-[10px] text-gray-500">{{ ach.date_formatted }}</span>
+            {% endif %}
+            {% if ach.tournament_tier_display %}
+            <span class="text-gray-700">&middot;</span>
+            <span class="text-[9px] text-gray-500 font-semibold uppercase">{{ ach.tournament_tier_display }}</span>
+            {% endif %}
+          </div>
+        </div>
+
+        {# Right: state badges + result #}
+        <div class="shrink-0 flex flex-col items-end gap-1 pt-0.5">
+          {% if ach.is_hidden and is_owner %}
+          <span class="ach-hidden-badge inline-flex items-center gap-1 text-[9px] font-bold text-red-400 bg-red-900/20 border border-red-800/30 px-1.5 py-0.5 rounded-full">
+            <i class="fa-solid fa-eye-slash text-[7px]"></i> Hidden
+          </span>
+          {% elif ach.is_featured %}
+          <span class="ach-featured-badge inline-flex items-center gap-1 text-[9px] font-bold text-z-gold bg-z-gold/10 border border-z-gold/25 px-1.5 py-0.5 rounded-full">
+            <i class="fa-solid fa-star text-[7px]"></i> Featured
+          </span>
+          {% endif %}
+          {% if not ach.is_hidden %}
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full {{ result_cls }} text-[10px] font-bold whitespace-nowrap">
+            {% if ach.placement_label == 'Winner' %}<i class="fa-solid fa-crown text-[8px]"></i>{% endif %}
+            {{ ach.placement_label|default:"Competed" }}
+          </span>
+          {% endif %}
+        </div>
+      </div>
+
+      {# Owner action row #}
+      {% if is_owner %}
+      <div class="flex items-center gap-1.5 mt-2.5 pt-2 border-t border-white/5">
+        <button class="ach-toggle-hidden inline-flex items-center gap-1 text-[9px] font-bold px-2 py-1 rounded-lg border transition
+                       {% if ach.is_hidden %}border-emerald-800/40 bg-emerald-900/20 text-emerald-400 hover:bg-emerald-900/30
+                       {% else %}border-white/8 bg-white/3 text-gray-500 hover:text-white hover:bg-white/8{% endif %}">
+          <i class="fa-solid fa-{% if ach.is_hidden %}eye{% else %}eye-slash{% endif %} text-[8px]"></i>
+          {% if ach.is_hidden %}Restore{% else %}Hide{% endif %}
+        </button>
+        {% if not ach.is_hidden %}
+        <button class="ach-toggle-featured inline-flex items-center gap-1 text-[9px] font-bold px-2 py-1 rounded-lg border transition
+                       {% if ach.is_featured %}border-z-gold/30 bg-z-gold/10 text-z-gold hover:bg-z-gold/20
+                       {% else %}border-white/8 bg-white/3 text-gray-500 hover:text-white hover:bg-white/8{% endif %}">
+          <i class="fa-{% if ach.is_featured %}solid{% else %}regular{% endif %} fa-star text-[8px]"></i>
+          {% if ach.is_featured %}Unfeature{% else %}Feature{% endif %}
+        </button>
         {% endif %}
       </div>
-    </div>
-
-    {# Result badge #}
-    <div class="shrink-0">
-      <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full {{ result_cls }} text-[10px] font-bold whitespace-nowrap">
-        {% if ach.placement_label == 'Winner' %}<i class="fa-solid fa-crown text-[8px]"></i>{% endif %}
-        {{ ach.placement_label|default:"Competed" }}
-      </span>
+      {% endif %}
     </div>
   </div>
 </div>
+
+{% if is_owner %}
+<script nonce="{{ request.csp_nonce }}">
+(function(){
+  var regId = "{{ ach.registration_id }}";
+  var cards = document.querySelectorAll('.ach-row[data-reg-id="' + regId + '"]');
+  var card = cards[cards.length - 1];
+  if (!card) return;
+  var csrf = (document.cookie.match(/csrftoken=([^;]+)/) || [])[1] || '';
+  var isHidden   = card.getAttribute('data-is-hidden')   === 'true';
+  var isFeatured = card.getAttribute('data-is-featured') === 'true';
+  var gameSlug   = card.getAttribute('data-game-slug') || '';
+
+  function savePref(data, cb) {
+    data.registration_id = parseInt(regId, 10);
+    data.game_slug = gameSlug;
+    fetch('/api/achievement-pref/', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json','X-CSRFToken':csrf},
+      body: JSON.stringify(data),
+    }).then(function(r){ return r.json(); }).then(function(res){
+      if (res.success && cb) cb(res);
+    });
+  }
+
+  function applyHidden(hidden) {
+    card.setAttribute('data-is-hidden', hidden ? 'true' : 'false');
+    card.setAttribute('data-ach-type', hidden ? 'hidden' : '{{ card_class }}');
+    card.classList.toggle('opacity-35', hidden);
+    // badges
+    card.querySelectorAll('.ach-hidden-badge').forEach(function(b){b.style.display = hidden ? '' : 'none';});
+    card.querySelectorAll('.ach-featured-badge').forEach(function(b){b.style.display = (!hidden && isFeatured) ? '' : 'none';});
+    // hide/restore button
+    var hBtn = card.querySelector('.ach-toggle-hidden');
+    if (hBtn) {
+      var ico = hBtn.querySelector('i');
+      if (ico) ico.className = 'fa-solid fa-' + (hidden ? 'eye' : 'eye-slash') + ' text-[8px]';
+      hBtn.lastChild.textContent = ' ' + (hidden ? 'Restore' : 'Hide');
+      if (hidden) {
+        hBtn.className = hBtn.className.replace(/border-white\/8.*?hover:bg-white\/8/s, '') +
+          ' border-emerald-800/40 bg-emerald-900/20 text-emerald-400 hover:bg-emerald-900/30';
+      }
+    }
+    // name strikethrough
+    var nameEl = card.querySelector('.text-sm.font-bold');
+    if (nameEl) nameEl.classList.toggle('line-through', hidden);
+    if (nameEl) nameEl.classList.toggle('opacity-60', hidden);
+    // result badge
+    var resultBadge = card.querySelector('.inline-flex.items-center.gap-1.px-2');
+    if (resultBadge) resultBadge.style.display = hidden ? 'none' : '';
+    // Respect current filter: if All filter active and now hidden, hide from view
+    var activeFilter = document.querySelector('.ach-filter.active');
+    if (activeFilter) {
+      var f = activeFilter.getAttribute('data-filter');
+      if (f === 'all' && hidden) card.style.display = 'none';
+      else if (f === 'hidden' && !hidden) card.style.display = 'none';
+    }
+  }
+
+  function applyFeatured(featured) {
+    card.setAttribute('data-is-featured', featured ? 'true' : 'false');
+    card.querySelectorAll('.ach-featured-badge').forEach(function(b){
+      b.style.display = (featured && !isHidden) ? '' : 'none';
+    });
+    var fBtn = card.querySelector('.ach-toggle-featured');
+    if (fBtn) {
+      var ico = fBtn.querySelector('i');
+      if (ico) ico.className = 'fa-' + (featured ? 'solid' : 'regular') + ' fa-star text-[8px]';
+      fBtn.lastChild.textContent = ' ' + (featured ? 'Unfeature' : 'Feature');
+    }
+    // Ring highlight
+    card.classList.toggle('ring-1', featured);
+    card.classList.toggle('ring-z-gold/30', featured);
+  }
+
+  card.addEventListener('click', function(e){
+    var hBtn = e.target.closest('.ach-toggle-hidden');
+    var fBtn = e.target.closest('.ach-toggle-featured');
+    if (hBtn) {
+      e.stopPropagation();
+      var newHidden = !isHidden;
+      savePref({is_hidden: newHidden}, function(){
+        applyHidden(newHidden);
+        isHidden = newHidden;
+        if (newHidden) { isFeatured = false; applyFeatured(false); }
+      });
+    } else if (fBtn) {
+      e.stopPropagation();
+      var newFeatured = !isFeatured;
+      savePref({is_featured: newFeatured}, function(){
+        applyFeatured(newFeatured);
+        isFeatured = newFeatured;
+      });
+    }
+  });
+})();
+</script>
+{% endif %}
