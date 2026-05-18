@@ -446,6 +446,7 @@ TEMPLATES = [
                 "apps.notifications.context_processors.notification_counts",
                 "apps.common.context.ui_settings",
                 "apps.common.context_processors.game_assets_context",
+                "apps.common.context_processors.seo_context",
                 "apps.common.context_processors.static_version",  # P5.2 — {{ STATIC_VERSION }}
                 "apps.common.context_homepage.homepage_context",
                 "apps.siteui.context.site_settings",
@@ -897,7 +898,8 @@ EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 DEFAULT_FROM_EMAIL = "noreply@deltacrown.xyz"
 
 
-# Where your site runs
+# Canonical public origin used by SEO canonicals, Open Graph URLs, robots.txt,
+# and sitemaps. Production must set SITE_URL to the final HTTPS domain.
 _default_site = "https://deltacrown.xyz" if not DEBUG else "http://192.168.68.100:8000"
 SITE_URL = os.getenv("SITE_URL", _default_site)
 

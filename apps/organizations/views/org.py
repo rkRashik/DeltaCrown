@@ -20,6 +20,7 @@ from apps.organizations.permissions import (
     can_access_control_plane,
     get_permission_context,
 )
+from apps.common.seo import absolute_url, breadcrumb_schema, build_seo, truncate_meta
 
 logger = logging.getLogger(__name__)
 
@@ -55,6 +56,37 @@ def organization_detail(request, org_slug):
             org_slug=org_slug,
             viewer=request.user if request.user.is_authenticated else None
         )
+        org = context.get('organization') or context.get('org')
+        if org:
+            description = org.description or f"{org.name} is an esports organization on DeltaCrown with public squads and competitive operations."
+            image_url = org.banner.url if org.banner else (org.logo.url if org.logo else None)
+            org_schema = {
+                '@context': 'https://schema.org',
+                '@type': 'Organization',
+                'name': org.name,
+                'url': absolute_url(org.get_absolute_url()),
+                'description': truncate_meta(description, 240),
+            }
+            if image_url:
+                org_schema['image'] = absolute_url(image_url)
+            if org.website:
+                org_schema['sameAs'] = [org.website]
+            context['entity_links'] = [
+                {'label': 'Active Squads', 'url': '#teams', 'detail': f"{context.get('active_teams_count', 0)} public teams"},
+                {'label': 'Crown Points Rankings', 'url': '/competition/leaderboards/', 'detail': 'Track competitive movement'},
+                {'label': 'Team Directory', 'url': '/teams/directory/', 'detail': 'Browse the wider team ecosystem'},
+            ]
+            context['seo'] = build_seo(
+                title=f"{org.name} | DeltaCrown Organization",
+                description=description,
+                canonical=absolute_url(org.get_absolute_url()),
+                noindex=not org.description and not context.get('active_teams_count'),
+                og_image=image_url,
+                schema=[
+                    breadcrumb_schema([('Home', '/'), ('Organizations', '/orgs/'), (org.name, org.get_absolute_url())]),
+                    org_schema,
+                ],
+            )
         
         logger.info(
             f"Organization detail accessed: {org_slug}",

@@ -877,7 +877,7 @@
                         <div>
                             <p class="text-[10px] font-bold text-gray-300 uppercase tracking-widest mb-2 flex items-center gap-2"><i data-lucide="trophy" class="w-4 h-4 text-dc-gold"></i> Prize Pool</p>
                             <div class="flex items-baseline gap-2">
-                                <p class="font-display font-black text-4xl lg:text-[2.9rem] text-white tracking-tight">{% if tournament.prize_pool %}à§³{{ tournament.prize_pool|floatformat:0|intcomma }}{% else %}TBA{% endif %}</p>
+                                <p class="font-display font-black text-4xl lg:text-[2.9rem] text-white tracking-tight">{% if tournament.prize_pool %}৳{{ tournament.prize_pool|floatformat:0|intcomma }}{% else %}TBA{% endif %}</p>
                                 {% if tournament.prize_deltacoin %}
                                 <p class="text-xs font-bold text-dc-cyan bg-dc-cyan/10 px-2 py-1 rounded">+ {{ tournament.prize_deltacoin|intcomma }} DC</p>
                                 {% endif %}
@@ -1079,6 +1079,55 @@
                                 </div>
                             </div>
                         </div>
+
+                    {% if entity_links or public_participant_teams or related_tournaments %}
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                        {% if entity_links %}
+                        <div class="glass-panel p-5 rounded-2xl border border-white/10">
+                            <p class="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-3">Explore This Event</p>
+                            <div class="grid grid-cols-2 gap-2">
+                                {% for link in entity_links %}
+                                <a href="{{ link.url }}" class="px-3 py-2 rounded-xl bg-white/5 border border-white/10 hover:border-white/25 text-xs font-bold text-gray-200 hover:text-white transition flex items-center justify-between">
+                                    <span>{{ link.label }}</span>
+                                    <i data-lucide="arrow-up-right" class="w-3.5 h-3.5 theme-text"></i>
+                                </a>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        {% if public_participant_teams %}
+                        <div class="glass-panel p-5 rounded-2xl border border-white/10">
+                            <p class="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-3">Public Teams</p>
+                            <div class="space-y-2">
+                                {% for team in public_participant_teams|slice:":4" %}
+                                <a href="{{ team.url }}" class="flex items-center gap-3 rounded-xl bg-white/5 border border-white/5 px-3 py-2 hover:border-dc-cyan/30 transition">
+                                    {% if team.logo_url %}<img src="{{ team.logo_url }}" alt="{{ team.name }}" class="w-8 h-8 rounded-lg object-cover">{% else %}<span class="w-8 h-8 rounded-lg bg-white/10 grid place-items-center text-[10px] font-bold text-white">{{ team.name|slice:":2"|upper }}</span>{% endif %}
+                                    <span class="min-w-0">
+                                        <span class="block text-sm font-bold text-white truncate">{{ team.name }}</span>
+                                        {% if team.organization_name %}<span class="block text-[10px] text-gray-500 truncate">{{ team.organization_name }}</span>{% endif %}
+                                    </span>
+                                </a>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        {% if related_tournaments %}
+                        <div class="glass-panel p-5 rounded-2xl border border-white/10">
+                            <p class="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-3">Related {{ game_spec.display_name }} Events</p>
+                            <div class="space-y-2">
+                                {% for item in related_tournaments|slice:":3" %}
+                                <a href="{{ item.url }}" class="block rounded-xl bg-white/5 border border-white/5 px-3 py-2 hover:border-dc-gold/30 transition">
+                                    <span class="block text-sm font-bold text-white truncate">{{ item.name }}</span>
+                                    <span class="block text-[10px] text-gray-500">{{ item.status }}{% if item.date %} · {{ item.date|date:"M j, Y" }}{% endif %}</span>
+                                </a>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
 
                     <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
                         <div class="glass-panel p-5 rounded-2xl flex flex-col justify-center">
@@ -1577,7 +1626,7 @@
                             <div class="absolute top-0 right-0 w-96 h-96 bg-dc-gold/10 rounded-full blur-[100px] pointer-events-none"></div>
 
                             <p class="font-gaming text-dc-gold font-bold uppercase tracking-[0.3em] mb-4 flex items-center gap-2"><i data-lucide="trophy" class="w-4 h-4"></i> Guaranteed Prize Pool</p>
-                            <h1 class="font-display font-black text-7xl md:text-9xl text-white tracking-tighter drop-shadow-[0_0_30px_rgba(255,215,0,0.15)] mb-4">{% if tournament.prize_pool %}à§³{{ tournament.prize_pool|floatformat:0|intcomma }}{% else %}TBA{% endif %}</h1>
+                            <h1 class="font-display font-black text-7xl md:text-9xl text-white tracking-tighter drop-shadow-[0_0_30px_rgba(255,215,0,0.15)] mb-4">{% if tournament.prize_pool %}৳{{ tournament.prize_pool|floatformat:0|intcomma }}{% else %}TBA{% endif %}</h1>
 
                             {% if tournament.prize_deltacoin %}
                             <div class="flex items-center gap-3 bg-white/5 border border-white/10 px-6 py-2 rounded-full backdrop-blur-md mt-2">
@@ -1615,7 +1664,7 @@
                                     <span class="font-bold text-white text-base">{% if winner.team %}{{ winner.team.name }}{% elif winner.player %}{{ winner.player.username }}{% else %}TBA{% endif %}</span>
                                 </div>
                                 <div class="flex items-center gap-8">
-                                    <span class="font-display font-bold text-2xl text-white">{% if winner.prize_amount %}à§³{{ winner.prize_amount|floatformat:0|intcomma }}{% else %}TBA{% endif %}</span>
+                                    <span class="font-display font-bold text-2xl text-white">{% if winner.prize_amount %}৳{{ winner.prize_amount|floatformat:0|intcomma }}{% else %}TBA{% endif %}</span>
                                 </div>
                             </div>
                             {% endfor %}

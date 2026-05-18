@@ -10,6 +10,7 @@ from django.db.models import Q, Count
 from django.core.cache import cache
 from apps.tournaments.models import Tournament
 from apps.games.services import game_service
+from apps.common.seo import breadcrumb_schema, build_seo
 
 
 class TournamentListView(ListView):
@@ -237,6 +238,21 @@ class TournamentListView(ListView):
         context['current_search'] = self.request.GET.get('search', '')
         context['current_format'] = self.request.GET.get('format', '')
         context['current_free_only'] = self.request.GET.get('free_only', '')
+        has_low_value_filter = any([
+            context['current_search'],
+            self.request.GET.get('format'),
+            self.request.GET.get('free_only'),
+        ])
+        context['seo'] = build_seo(
+            title="Esports Tournaments | DeltaCrown",
+            description=(
+                "Discover DeltaCrown esports tournaments across Bangladesh and South Asia, "
+                "with registration, Match Rooms, brackets, results, teams, and Crown Points progression."
+            ),
+            path="/tournaments/",
+            noindex=bool(has_low_value_filter),
+            schema=breadcrumb_schema([("Home", "/"), ("Tournaments", "/tournaments/")]),
+        )
 
         context['status_options'] = [
             {'value': '', 'label': 'All'},

@@ -9,6 +9,7 @@ from django.contrib.auth.decorators import login_required
 
 from apps.organizations.services.org_directory_service import get_directory_context
 from apps.organizations.constants.regions import COUNTRIES
+from apps.common.seo import breadcrumb_schema, build_seo
 
 
 def org_directory(request):
@@ -50,6 +51,13 @@ def org_directory(request):
         'page_title': 'Global Organizations',
         'page_description': 'Browse and explore verified esports organizations worldwide',
         'countries': COUNTRIES,
+        'seo': build_seo(
+            title='Esports Organizations | DeltaCrown',
+            description='Browse DeltaCrown esports organizations, verified org profiles, squads, and competitive team ecosystems.',
+            path='/orgs/',
+            noindex=bool(q or region),
+            schema=breadcrumb_schema([('Home', '/'), ('Organizations', '/orgs/')]),
+        ),
         **directory_context,
     }
     

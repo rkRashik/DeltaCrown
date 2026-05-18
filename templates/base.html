@@ -24,18 +24,6 @@
       href="https://fonts.gstatic.com/s/spacegrotesk/v15/V8mDoQDjQSkFtoMM3T6r8E7mF71Q-gOoraIAEj7aUUM.woff2">
     <meta name="theme-color" content="#0b1220">
 
-    <!-- Basic OG -->
-    <meta property="og:site_name" content="DeltaCrown">
-    <meta property="og:type" content="website">
-    <meta property="og:title" content="{% block og_title %}DeltaCrown{% endblock %}">
-    <meta property="og:image" content="{% block og_image %}{% static 'siteui/og/default.png' %}{% endblock %}">
-    <meta property="og:description" content="{% block og_description %}DeltaCrown — The Esports Operating System{% endblock %}">
-    {# Twitter card mirrors the OG values so Discord / Twitter / Slack render previews properly. #}
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="{% block twitter_title %}{% endblock %}">
-    <meta name="twitter:description" content="{% block twitter_description %}{% endblock %}">
-    <meta name="twitter:image" content="{% block twitter_image %}{% endblock %}">
-
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 
@@ -50,7 +38,7 @@
 
 
     {% include "partials/seo_meta.html" %}
-    <title>{% block title %}DeltaCrown - Esports{% endblock %}</title>
+    <title>{{ seo.title }}</title>
 
     <!-- Tailwind CSS: CDN Play + custom DeltaCrown config (works everywhere, no build step) -->
     <script src="https://cdn.tailwindcss.com"></script>

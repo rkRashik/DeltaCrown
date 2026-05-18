@@ -13,6 +13,7 @@ from django.db import models
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.conf import settings
+from apps.common.seo import absolute_url, breadcrumb_schema, build_seo, truncate_meta
 
 logger = logging.getLogger(__name__)
 
@@ -586,6 +587,73 @@ def team_detail(request, team_slug, org_slug=None):
             viewer=request.user if request.user.is_authenticated else None,
             request=request,
             team=team,
+        )
+        game_name = ''
+        game_obj = context.get('game') or context.get('game_obj')
+        if game_obj:
+            game_name = getattr(game_obj, 'display_name', None) or getattr(game_obj, 'name', '')
+        description = team.description or team.tagline or (
+            f"{team.name} is a DeltaCrown esports team"
+            + (f" competing in {game_name}" if game_name else "")
+            + (f" from {team.region}." if team.region else ".")
+        )
+        image_url = team.banner.url if team.banner else (team.logo.url if team.logo else None)
+        team_schema = {
+            '@context': 'https://schema.org',
+            '@type': 'SportsTeam',
+            'name': team.name,
+            'url': absolute_url(team.get_absolute_url()),
+            'description': truncate_meta(description, 240),
+            'sport': game_name or 'Esports',
+            'areaServed': team.region,
+        }
+        if image_url:
+            team_schema['image'] = absolute_url(image_url)
+        same_as = [
+            url for url in [
+                team.website_url,
+                team.twitter_url,
+                team.instagram_url,
+                team.youtube_url,
+                team.twitch_url,
+                team.facebook_url,
+                team.tiktok_url,
+                team.discord_url,
+            ] if url
+        ]
+        if same_as:
+            team_schema['sameAs'] = same_as[:8]
+        if team.organization:
+            team_schema['memberOf'] = {
+                '@type': 'Organization',
+                'name': team.organization.name,
+                'url': absolute_url(team.organization.get_absolute_url()),
+            }
+        roster_count = 0
+        roster = context.get('roster')
+        if isinstance(roster, dict):
+            roster_count = len(roster.get('members') or roster.get('starters') or [])
+        context['entity_links'] = [
+            {'label': 'Crown Points Rankings', 'url': '/competition/leaderboards/', 'detail': 'Compare teams across the platform'},
+            {'label': f"{game_name} Rankings" if game_name else 'Game Rankings', 'url': f"/competition/leaderboards/{team.game_id}/", 'detail': 'Game-specific leaderboard'},
+            {'label': 'Tournaments', 'url': '/tournaments/', 'detail': 'Find events this roster can enter'},
+        ]
+        if team.organization:
+            context['entity_links'].insert(0, {'label': team.organization.name, 'url': team.organization.get_absolute_url(), 'detail': 'Parent organization'})
+        context['seo'] = build_seo(
+            title=f"{team.name} | DeltaCrown Team",
+            description=description,
+            canonical=absolute_url(team.get_absolute_url()),
+            noindex=team.visibility != 'PUBLIC' or team.is_temporary or (not team.description and not team.tagline and roster_count == 0),
+            og_image=image_url,
+            schema=[
+                breadcrumb_schema([
+                    ('Home', '/'),
+                    ('Teams', '/teams/'),
+                    (team.name, team.get_absolute_url()),
+                ]),
+                team_schema,
+            ],
         )
         
         logger.info(

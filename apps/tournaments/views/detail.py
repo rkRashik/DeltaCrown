@@ -28,6 +28,69 @@ from typing import Dict, Any, List
 from apps.tournaments.models import Tournament, TournamentAnnouncement, TournamentFanPredictionVote
 from apps.tournaments.services.registration_service import RegistrationService
 from apps.games.services import game_service
+from apps.common.seo import absolute_url, breadcrumb_schema, build_seo, truncate_meta
+
+
+def _public_tournament_relationships(tournament):
+    from apps.organizations.models import Team
+    from apps.tournaments.models import Registration
+
+    confirmed_statuses = [Registration.CONFIRMED, Registration.AUTO_APPROVED]
+    registrations = list(
+        Registration.objects.filter(
+            tournament=tournament,
+            is_deleted=False,
+            status__in=confirmed_statuses,
+            team_id__isnull=False,
+        ).only('team_id', 'seed')[:24]
+    )
+    team_ids = [registration.team_id for registration in registrations if registration.team_id]
+    teams_by_id = {
+        team.id: team
+        for team in Team.objects.filter(
+            id__in=team_ids,
+            visibility='PUBLIC',
+            is_temporary=False,
+        ).select_related('organization').only(
+            'id', 'name', 'slug', 'tag', 'logo', 'organization__slug', 'organization__name'
+        )
+    }
+    public_teams = []
+    for registration in registrations[:12]:
+        team = teams_by_id.get(registration.team_id)
+        if not team:
+            continue
+        public_teams.append({
+            'name': team.name,
+            'tag': team.tag,
+            'url': team.get_absolute_url(),
+            'logo_url': team.logo.url if team.logo else '',
+            'seed': registration.seed,
+            'organization_name': team.organization.name if team.organization else '',
+        })
+
+    related = []
+    related_qs = (
+        Tournament.objects.filter(
+            game=tournament.game,
+            status__in=[Tournament.PUBLISHED, Tournament.REGISTRATION_OPEN, Tournament.LIVE, Tournament.COMPLETED, Tournament.ARCHIVED],
+            is_deleted=False,
+        )
+        .exclude(pk=tournament.pk)
+        .select_related('game')
+        .only('name', 'slug', 'status', 'tournament_start', 'game__display_name')
+        .order_by('-tournament_start')[:4]
+    )
+    for item in related_qs:
+        related.append({
+            'name': item.name,
+            'url': f'/tournaments/{item.slug}/',
+            'status': item.get_status_display(),
+            'date': item.tournament_start,
+            'game': getattr(item.game, 'display_name', ''),
+        })
+
+    return public_teams, related
 
 
 @method_decorator(ensure_csrf_cookie, name='dispatch')
@@ -95,6 +158,63 @@ class TournamentDetailView(DetailView):
         context['effective_status'] = effective_status
         context['effective_status_display'] = dict(Tournament.STATUS_CHOICES).get(
             effective_status, tournament.get_status_display()
+        )
+        tournament_image = None
+        if tournament.banner_image:
+            tournament_image = tournament.banner_image.url
+        elif tournament.thumbnail_image:
+            tournament_image = tournament.thumbnail_image.url
+        game_name = getattr(tournament.game, 'display_name', None) or getattr(tournament.game, 'name', '')
+        tournament_description = tournament.meta_description or tournament.description or (
+            f"{tournament.name} is a {game_name} tournament on DeltaCrown with public brackets, results, and competitive operations."
+        )
+        event_schema = {
+            "@context": "https://schema.org",
+            "@type": "SportsEvent",
+            "name": tournament.name,
+            "description": truncate_meta(tournament_description, 240),
+            "url": absolute_url(f"/tournaments/{tournament.slug}/"),
+            "startDate": tournament.tournament_start,
+            "endDate": tournament.tournament_end,
+            "eventStatus": "https://schema.org/EventScheduled",
+            "eventAttendanceMode": "https://schema.org/OnlineEventAttendanceMode" if tournament.mode == Tournament.ONLINE else "https://schema.org/MixedEventAttendanceMode",
+            "organizer": {
+                "@type": "Organization" if tournament.is_official else "Person",
+                "name": "DeltaCrown" if tournament.is_official else getattr(tournament.organizer, "username", "Tournament organizer"),
+            },
+            "sport": game_name or "Esports",
+        }
+        if tournament_image:
+            event_schema["image"] = [absolute_url(tournament_image)]
+        public_teams, related_tournaments = _public_tournament_relationships(tournament)
+        if public_teams:
+            event_schema["competitor"] = [
+                {
+                    "@type": "SportsTeam",
+                    "name": team["name"],
+                    "url": absolute_url(team["url"]),
+                }
+                for team in public_teams[:8]
+            ]
+        context["public_participant_teams"] = public_teams
+        context["related_tournaments"] = related_tournaments
+        context["entity_links"] = [
+            {"label": "Bracket", "url": f"/tournaments/{tournament.slug}/bracket/", "icon": "git-fork"},
+            {"label": "Results", "url": f"/tournaments/{tournament.slug}/results/", "icon": "trophy"},
+            {"label": "Crown Points Rankings", "url": "/competition/leaderboards/", "icon": "ranking"},
+            {"label": "Teams", "url": "/teams/", "icon": "users"},
+        ]
+        context["seo"] = build_seo(
+            title=f"{tournament.name} | DeltaCrown Tournament",
+            description=tournament_description,
+            path=f"/tournaments/{tournament.slug}/",
+            noindex=effective_status in {Tournament.DRAFT, Tournament.PENDING_APPROVAL, Tournament.CANCELLED},
+            og_type="event",
+            og_image=tournament_image,
+            schema=[
+                breadcrumb_schema([("Home", "/"), ("Tournaments", "/tournaments/"), (tournament.name, f"/tournaments/{tournament.slug}/")]),
+                event_schema,
+            ],
         )
         if effective_status in ('completed', 'archived'):
             context['can_register'] = False

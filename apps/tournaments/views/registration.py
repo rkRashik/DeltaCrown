@@ -369,7 +369,7 @@ class TournamentRegistrationView(LoginRequiredMixin, View):
                 context['original_fee'] = tournament.entry_fee_amount
             else:
                 context['step_title'] = 'Payment Information'
-                context['step_description'] = f'Entry fee: à§³{tournament.entry_fee_amount}'
+                context['step_description'] = f'Entry fee: ৳{tournament.entry_fee_amount}'
                 context['fee_waived'] = False
                 
                 # Get DeltaCoin balance for user

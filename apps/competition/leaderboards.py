@@ -6,6 +6,26 @@ from django.template.response import TemplateResponse
 from apps.competition.models import GameRankingConfig
 from apps.competition.services.competition_service import CompetitionService
 from apps.games.models import Game
+from apps.common.seo import breadcrumb_schema, build_seo
+
+
+def _ranking_itemlist_schema(entries, page_url):
+    return {
+        '@context': 'https://schema.org',
+        '@type': 'ItemList',
+        'name': 'DeltaCrown Crown Points Rankings',
+        'url': page_url,
+        'itemListElement': [
+            {
+                '@type': 'ListItem',
+                'position': entry.rank,
+                'url': entry.team_url,
+                'name': entry.team_name,
+            }
+            for entry in entries[:20]
+            if getattr(entry, 'team_url', '')
+        ],
+    }
 
 
 # Tier display info for the tier explainer section (Crown Points system)
@@ -117,6 +137,7 @@ def _entries_to_json(entries):
             'team_logo_url': e.team_logo_url or '',
             'team_banner_url': e.team_banner_url or '',
             'organization_name': e.organization_name or '',
+            'organization_slug': e.organization_slug or '',
             'is_independent': e.is_independent,
             'score': e.score,
             'tier': e.tier,
@@ -149,6 +170,7 @@ def leaderboard_global(request):
     # Get filter params
     tier_filter = request.GET.get('tier', '').upper()
     verified_only = request.GET.get('verified_only') == '1'
+    sort_filter = bool(request.GET.get('sort'))
     page = max(1, int(request.GET.get('page', '1') or '1'))
     offset = (page - 1) * PAGE_SIZE
 
@@ -213,6 +235,16 @@ def leaderboard_global(request):
         'has_next_page': (offset + PAGE_SIZE) < response.total_count,
         'has_prev_page': page > 1,
         'page_size': PAGE_SIZE,
+        'seo': build_seo(
+            title='Crown Points Rankings | DeltaCrown',
+            description='Browse DeltaCrown Crown Points rankings, tiers, teams, and competitive leaderboard movement across Bangladesh, South Asia, and the wider platform.',
+            path='/competition/leaderboards/',
+            noindex=bool(tier_filter or verified_only or sort_filter or page > 1 or response.total_count == 0),
+            schema=[
+                breadcrumb_schema([('Home', '/'), ('Rankings', '/competition/leaderboards/')]),
+                _ranking_itemlist_schema(response.entries, '/competition/leaderboards/'),
+            ],
+        ),
     }
 
     response = render(request, 'competition/leaderboards/leaderboard_global.html', context)
@@ -248,6 +280,7 @@ def leaderboard_game(request, game_id):
     # Get filter params
     tier_filter = request.GET.get('tier', '').upper()
     verified_only = request.GET.get('verified_only') == '1'
+    sort_filter = bool(request.GET.get('sort'))
     page = max(1, int(request.GET.get('page', '1') or '1'))
     offset = (page - 1) * PAGE_SIZE
 
@@ -314,6 +347,20 @@ def leaderboard_game(request, game_id):
         'has_next_page': (offset + PAGE_SIZE) < response.total_count,
         'has_prev_page': page > 1,
         'page_size': PAGE_SIZE,
+        'seo': build_seo(
+            title=f'{game_config.game_name} Crown Points Rankings | DeltaCrown',
+            description=f'Browse {game_config.game_name} Crown Points rankings, tiers, teams, and competitive leaderboard movement across Bangladesh, South Asia, and DeltaCrown.',
+            path=f'/competition/leaderboards/{game_id}/',
+            noindex=bool(tier_filter or verified_only or sort_filter or page > 1 or response.total_count == 0),
+            schema=[
+                breadcrumb_schema([
+                    ('Home', '/'),
+                    ('Rankings', '/competition/leaderboards/'),
+                    (game_config.game_name, f'/competition/leaderboards/{game_id}/'),
+                ]),
+                _ranking_itemlist_schema(response.entries, f'/competition/leaderboards/{game_id}/'),
+            ],
+        ),
     }
 
     response = render(request, 'competition/leaderboards/leaderboard_global.html', context)

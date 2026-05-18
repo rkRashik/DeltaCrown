@@ -147,6 +147,20 @@
           </div>
         </div>
 
+        {% if entity_links %}
+        <div class="glass-panel rounded-2xl p-4 w-full max-w-xl lg:max-w-none border border-white/10">
+          <p class="text-[9px] text-gray-500 uppercase tracking-widest font-bold mb-3">Ecosystem Links</p>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {% for link in entity_links %}
+            <a href="{{ link.url }}" class="rounded-xl bg-white/5 border border-white/5 hover:border-[var(--team-primary)]/40 px-3 py-2 transition group">
+              <span class="block text-xs font-bold text-white group-hover:text-[var(--team-primary)] truncate">{{ link.label }}</span>
+              <span class="block text-[10px] text-gray-500 truncate">{{ link.detail }}</span>
+            </a>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+
         {# Action Buttons #}
         <div id="team-info-actions" class="flex items-center gap-3">
           {# Social icons #}

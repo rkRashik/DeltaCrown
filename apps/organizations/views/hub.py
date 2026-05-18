@@ -17,6 +17,7 @@ import logging
 from django.shortcuts import render
 from django.conf import settings
 from django.core.cache import cache
+from apps.common.seo import breadcrumb_schema, build_seo
 from django.db import ProgrammingError
 from django.http import JsonResponse
 
@@ -672,6 +673,13 @@ def vnext_hub(request):
         'stats': stats,
         'game_configs_json': game_configs_json,
         'spotlight_teams': spotlight_teams,
+        'seo': build_seo(
+            title='Team Hub | DeltaCrown',
+            description='Explore DeltaCrown teams, organizations, recruiting squads, rankings, Team HQ workflows, scrims, tryouts, and competitive team operations.',
+            path='/teams/',
+            noindex=bool(selected_game_slug and selected_game_slug != 'all'),
+            schema=breadcrumb_schema([('Home', '/'), ('Teams', '/teams/')]),
+        ),
     })
 
 

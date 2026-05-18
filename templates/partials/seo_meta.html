@@ -1,9 +1,19 @@
-{% comment %}Basic SEO + JSON-LD hooks (extend as needed){% endcomment %}
-<meta name="description" content="DeltaCrown — Bangladesh's premier esports ecosystem. Tournaments, community, media, and commerce where champions rise." />
-<meta property="og:title" content="{% block og_title %}DeltaCrown — Where Champions Rise{% endblock %}">
-<meta property="og:description" content="Fair tournaments, real payouts, vibrant community.">
-<meta property="og:type" content="website">
-<meta property="og:image" content="{% block og_image %}{% static 'siteui/svg/logo-deltacrown.svg' %}{% endblock %}">
-<meta name="twitter:card" content="{% block twitter_card %}summary_large_image{% endblock %}">
-{% block canonical %}{% endblock %}
-<meta name="theme-color" content="#0b0e14">
+<meta name="description" content="{{ seo.description }}">
+<meta name="robots" content="{{ seo.robots }}">
+<link rel="canonical" href="{{ seo.canonical }}">
+
+<meta property="og:site_name" content="DeltaCrown">
+<meta property="og:type" content="{{ seo.og_type }}">
+<meta property="og:title" content="{{ seo.og_title }}">
+<meta property="og:description" content="{{ seo.og_description }}">
+<meta property="og:url" content="{{ seo.canonical }}">
+<meta property="og:image" content="{{ seo.og_image }}">
+
+<meta name="twitter:card" content="{{ seo.twitter_card }}">
+<meta name="twitter:title" content="{{ seo.twitter_title }}">
+<meta name="twitter:description" content="{{ seo.twitter_description }}">
+<meta name="twitter:image" content="{{ seo.twitter_image }}">
+
+{% for schema in seo.schema_json %}
+<script type="application/ld+json">{{ schema|safe }}</script>
+{% endfor %}

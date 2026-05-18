@@ -10,10 +10,10 @@ from django.urls import include, path
 from .views import healthz, readiness, test_game_assets
 from .lifecycle_cron import lifecycle_cron
 from django.views.generic import TemplateView
-from apps.players import views as player_views
 from apps.search import views as search_views
 from apps.siteui import views as site_views
 from apps.support import views as support_views
+from apps.common import seo_views
 from django.views.generic import RedirectView
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
@@ -79,8 +79,9 @@ urlpatterns = [
 
     # Crawlers / SEO
     path("riot.txt", lambda request: HttpResponse("5bb2f796-8590-4124-9f85-f070879a7cd0", content_type="text/plain")),
-    path("robots.txt", TemplateView.as_view(template_name="robots.txt", content_type="text/plain")),
-    path("sitemap.xml", TemplateView.as_view(template_name="sitemap.xml", content_type="application/xml")),
+    path("robots.txt", seo_views.robots_txt, name="robots_txt"),
+    path("sitemap.xml", seo_views.sitemap_index, name="sitemap_index"),
+    path("sitemap-<str:section>.xml", seo_views.sitemap_section, name="sitemap_section"),
 
     # -------------------------------------------------------------------------
     # JWT Authentication API (Phase 2: Real-Time Features & Security)
@@ -181,7 +182,7 @@ urlpatterns = [
     path("crownstore/", include(("apps.ecommerce.urls", "ecommerce"), namespace="ecommerce")),
     path("", include(("apps.economy.urls", "economy"), namespace="economy")),
     path("ckeditor5/", include("django_ckeditor_5.urls")),
-    path("players/<str:username>/", player_views.player_detail, name="player_detail"),
+    path("players/<str:username>/", RedirectView.as_view(pattern_name="user_profile:public_profile", permanent=True), name="player_detail"),
     path("search/", search_views.search, name="search"),
     path("privacy/", site_views.privacy, name="privacy"),
     path("terms/", site_views.terms, name="terms"),

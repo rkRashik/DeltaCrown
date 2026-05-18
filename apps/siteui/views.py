@@ -19,6 +19,12 @@ from django.utils.dateparse import parse_date
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.text import slugify
 from .utils.embeds import build_embed_url
+from apps.common.seo import (
+    breadcrumb_schema,
+    build_seo,
+    organization_schema,
+    website_schema,
+)
 
 
 
@@ -28,19 +34,47 @@ def home(request):
     from .homepage_extras import get_homepage_extras
     context = get_homepage_context()
     context.update(get_homepage_extras(request))
+    context["seo"] = build_seo(
+        title="DeltaCrown | Bangladesh-First Esports Infrastructure",
+        description=(
+            "DeltaCrown connects tournaments, teams, Game Passport profiles, "
+            "Crown Points rankings, DeltaCoin utility rewards, and competitive "
+            "operations for Bangladesh and South Asia."
+        ),
+        path="/",
+        schema=[organization_schema(), website_schema()],
+    )
     return render(request, "home.html", context)
 
 
 def privacy(request):
-    return render(request, "legal/privacy_policy.html")
+    return render(request, "legal/privacy_policy.html", {
+        "seo": build_seo(
+            title="Privacy Policy | DeltaCrown",
+            description="How DeltaCrown handles account, profile, team, tournament, wallet, proof, moderation, support, and technical data.",
+            path="/privacy/",
+        )
+    })
 
 
 def terms(request):
-    return render(request, "legal/terms_of_service.html")
+    return render(request, "legal/terms_of_service.html", {
+        "seo": build_seo(
+            title="Terms of Service | DeltaCrown",
+            description="Terms for DeltaCrown accounts, profiles, teams, tournaments, competitive modes, DeltaCoin, proofs, disputes, and moderation.",
+            path="/terms/",
+        )
+    })
 
 
 def cookies(request):
-    return render(request, "legal/cookie_policy.html")
+    return render(request, "legal/cookie_policy.html", {
+        "seo": build_seo(
+            title="Cookie Policy | DeltaCrown",
+            description="A plain-language explanation of the session, security, preference, and analytics cookies used by DeltaCrown.",
+            path="/cookies/",
+        )
+    })
 
 def ui_showcase(request):
     game_opts = [
@@ -63,7 +97,18 @@ def about(request):
         "prize_paid": None,
         "streams": None,
     }
-    return render(request, "about.html", {"stats": stats})
+    return render(request, "about.html", {
+        "stats": stats,
+        "seo": build_seo(
+            title="About DeltaCrown | Esports Infrastructure From Bangladesh",
+            description=(
+                "DeltaCrown is a Bangladesh-first esports ecosystem for tournaments, teams and organizations, "
+                "Game Passport identity, Crown Points rankings, DeltaCoin utility rewards, Team HQ workflows, and competitive integrity."
+            ),
+            path="/about/",
+            schema=breadcrumb_schema([("Home", "/"), ("About", "/about/")]),
+        ),
+    })
 
 
 
@@ -82,7 +127,13 @@ def community(request):
     Community Hub — initial page load.
     Serves the shell template; all data is loaded via the JSON API.
     """
-    return render(request, 'pages/community.html')
+    return render(request, 'pages/community.html', {
+        "seo": build_seo(
+            title="Community | DeltaCrown",
+            description="Public DeltaCrown community updates, team activity, and esports ecosystem conversations.",
+            path="/community/",
+        )
+    })
 
 
 # ── Community JSON API ──────────────────────────────────────────────────────

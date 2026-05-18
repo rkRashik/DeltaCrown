@@ -315,6 +315,17 @@
                 </div>
                 {% endif %}
 
+                {% if entity_links %}
+                <div class="pb-12 grid grid-cols-1 gap-2 min-w-[240px] animate-enter delay-300">
+                    {% for link in entity_links %}
+                    <a href="{{ link.url }}" class="px-4 py-3 rounded-xl bg-white/5 border border-white/10 hover:border-delta-electric/40 transition group">
+                        <span class="block text-xs font-tech font-bold uppercase tracking-widest text-white group-hover:text-delta-electric">{{ link.label }}</span>
+                        <span class="block text-[10px] text-slate-500 mt-0.5">{{ link.detail }}</span>
+                    </a>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
             </div>
         </div>
     </header>

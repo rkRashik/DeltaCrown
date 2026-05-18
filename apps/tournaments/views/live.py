@@ -27,6 +27,7 @@ from django.utils.safestring import mark_safe
 from django.views.decorators.http import require_GET, require_POST
 from django.views.generic import DetailView
 
+from apps.common.seo import breadcrumb_schema, build_seo
 from apps.tournaments.models import (
     Match,
     MatchCenterConfig,
@@ -1079,6 +1080,17 @@ class TournamentBracketView(DetailView):
             stage_display = 'Knockout Stage'
         context['stage_display'] = stage_display
 
+        context['seo'] = build_seo(
+            title=f"{tournament.name} Bracket | DeltaCrown",
+            description=f"View the public bracket for {tournament.name} on DeltaCrown, including rounds, match status, participants, and progression.",
+            path=f"/tournaments/{tournament.slug}/bracket/",
+            schema=breadcrumb_schema([
+                ('Home', '/'),
+                ('Tournaments', '/tournaments/'),
+                (tournament.name, f"/tournaments/{tournament.slug}/"),
+                ('Bracket', f"/tournaments/{tournament.slug}/bracket/"),
+            ]),
+        )
         return context
     
     def _is_bracket_available(self, tournament):
@@ -1829,7 +1841,33 @@ class TournamentResultsView(DetailView):
         
         # Tournament stats
         context['stats'] = self._calculate_tournament_stats(tournament)
-        
+        context['seo'] = build_seo(
+            title=f"{tournament.name} Results | DeltaCrown",
+            description=f"View official public results, completed matches, placements, and tournament stats for {tournament.name} on DeltaCrown.",
+            path=f"/tournaments/{tournament.slug}/results/",
+            schema=breadcrumb_schema([
+                ('Home', '/'),
+                ('Tournaments', '/tournaments/'),
+                (tournament.name, f"/tournaments/{tournament.slug}/"),
+                ('Results', f"/tournaments/{tournament.slug}/results/"),
+            ]),
+        )
+        if has_results and getattr(context['result'], 'final_standings', None):
+            standings = context['result'].final_standings[:20]
+            context['seo']['schema_json'].append(json.dumps({
+                '@context': 'https://schema.org',
+                '@type': 'ItemList',
+                'name': f'{tournament.name} Results',
+                'url': f'/tournaments/{tournament.slug}/results/',
+                'itemListElement': [
+                    {
+                        '@type': 'ListItem',
+                        'position': item.get('placement') or index,
+                        'name': item.get('team_name') or f"Participant #{item.get('registration_id', index)}",
+                    }
+                    for index, item in enumerate(standings, start=1)
+                ],
+            }, ensure_ascii=False, default=str, separators=(',', ':')))
         return context
     
     def _calculate_tournament_stats(self, tournament):

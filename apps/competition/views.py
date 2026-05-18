@@ -16,6 +16,7 @@ from django.conf import settings
 from apps.competition.models import MatchReport, GameRankingConfig, Challenge, Bounty
 from apps.competition.services import MatchReportService, VerificationService, ChallengeService, BountyService
 from apps.organizations.models import Team
+from apps.common.seo import breadcrumb_schema, build_seo
 
 
 @login_required
@@ -222,6 +223,12 @@ def ranking_about(request):
     context = {
         'game_configs': game_configs,
         'tier_thresholds': tier_thresholds,
+        'seo': build_seo(
+            title='How Crown Points Rankings Work | DeltaCrown',
+            description='Learn how DeltaCrown Crown Points rankings, tiers, team confidence, and competitive progression work across supported games.',
+            path='/competition/ranking/about/',
+            schema=breadcrumb_schema([('Home', '/'), ('Rankings', '/competition/leaderboards/'), ('How Rankings Work', '/competition/ranking/about/')]),
+        ),
     }
     
     return render(request, 'competition/ranking_about.html', context)
