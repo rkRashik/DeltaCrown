@@ -55,6 +55,12 @@ services:
       - key: CRON_SECRET
         generateValue: true
       # Startup process controls (safe defaults for Starter/free-tier)
+      # NOTE: ENABLE_CELERY_WORKER is referenced here for documentation.
+      # The Celery worker runs as a SEPARATE Render worker service.
+      # Start command for that service: bash bin/start_worker.sh
+      # Worker env vars to set in Render dashboard:
+      #   CELERY_MAX_TASKS_PER_CHILD=50
+      #   CELERY_MAX_MEMORY_PER_CHILD=150000
       - key: ENABLE_CELERY_WORKER
         value: "1"
       - key: ENABLE_DISCORD_BOT
@@ -65,8 +71,13 @@ services:
         value: "0"
       - key: WS_RATE_ENABLED
         value: "1"
+      # HTTP keep-alive / long-poll timeout (seconds).
+      # 3600 (1 hour) is sufficient for normal page loads, API calls, and
+      # lifecycle cron.  SSE is disabled by default (NOTIFICATIONS_SSE_ENABLED=0)
+      # so 24-hour connections are not needed.  Set to 86400 only if you
+      # explicitly enable SSE and need very long-lived event streams.
       - key: DAPHNE_HTTP_TIMEOUT
-        value: "86400"
+        value: "3600"
       # Keep embedded server/access logs quieter by default
       - key: DJANGO_SERVER_LOG_LEVEL
         value: "WARNING"

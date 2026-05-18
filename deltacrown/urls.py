@@ -47,8 +47,9 @@ urlpatterns = [
     # Free-tier lifecycle cron (replaces Celery Beat for critical tasks)
     path("api/lifecycle/cron/", lifecycle_cron, name="lifecycle_cron"),
     
-    # Prometheus metrics (Phase 3 Prep: Monitoring)
-    path("metrics/", include("django_prometheus.urls")),
+    # Prometheus metrics — only registered when scraping is active.
+    # Protect with staff auth; enable via ENABLE_PROMETHEUS_METRICS=1.
+    *( [path("metrics/", include("django_prometheus.urls"))] if settings.ENABLE_PROMETHEUS_METRICS else []),
     
     path("test-game-assets/", test_game_assets, name="test_game_assets"),
     

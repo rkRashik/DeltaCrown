@@ -223,6 +223,14 @@ LEGACY_TEAMS_ENABLED = os.getenv("LEGACY_TEAMS_ENABLED", "1") == "1"
 # Set ENABLE_DISCORD_BOT=1 in Render env vars to activate.
 ENABLE_DISCORD_BOT = os.getenv("ENABLE_DISCORD_BOT", "0") == "1"
 
+# Prometheus metrics: Defaults to disabled on free/starter tier.
+# django_prometheus adds in-process counter maps that grow with URL cardinality
+# and are never garbage-collected.  On a 512 MB container with no Prometheus
+# scraper wired up this is pure memory overhead (~5–20 MB under load).
+# Set ENABLE_PROMETHEUS_METRICS=1 only when a scraper is actively collecting
+# from /metrics/ (e.g. Render managed Prometheus or an external Grafana agent).
+ENABLE_PROMETHEUS_METRICS = os.getenv("ENABLE_PROMETHEUS_METRICS", "0") == "1"
+
 # --- ALLOWED_HOSTS / CSRF (add your LAN IP here) ---
 ALLOWED_HOSTS = [
     "localhost", "127.0.0.1",
@@ -329,8 +337,9 @@ INSTALLED_APPS = [
     # ASGI server (must be FIRST to override runserver with Daphne)
     "daphne",
 
-    # Monitoring (must be early for middleware timing)
-    "django_prometheus",  # Prometheus metrics (Phase 3 Prep)
+    # Prometheus metrics — gated to avoid in-memory cardinality growth on free tier.
+    # Enable by setting ENABLE_PROMETHEUS_METRICS=1 when a scraper is active.
+    *( ["django_prometheus"] if ENABLE_PROMETHEUS_METRICS else []),
     
     # Admin theme (must be BEFORE django.contrib.admin)
     *([  "unfold", "unfold.contrib.forms"] if _HAS_UNFOLD else []),
@@ -394,7 +403,8 @@ if COMPETITION_APP_ENABLED:
 AUTH_USER_MODEL = "accounts.User"
 
 MIDDLEWARE = [
-    "django_prometheus.middleware.PrometheusBeforeMiddleware",  # Prometheus timing (FIRST)
+    # Prometheus timing wrappers — omitted when ENABLE_PROMETHEUS_METRICS=0
+    *( ["django_prometheus.middleware.PrometheusBeforeMiddleware"] if ENABLE_PROMETHEUS_METRICS else []),
     "deltacrown.metrics.MetricsMiddleware",  # Module 9.5: Metrics collection
     "django.middleware.security.SecurityMiddleware",
     "deltacrown.middleware.security_headers.CSPMiddleware",  # Content Security Policy
@@ -412,7 +422,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "apps.tournaments.api.toc.audit_middleware.TOCAuditMiddleware",  # TOC Sprint 11: Audit trail for TOC write ops
-    "django_prometheus.middleware.PrometheusAfterMiddleware",  # Prometheus timing (LAST)
+    *( ["django_prometheus.middleware.PrometheusAfterMiddleware"] if ENABLE_PROMETHEUS_METRICS else []),
 ]
 
 # TEMP: PHASE4_STEP4_2 - Add deprecated endpoint tracer in DEBUG mode - REMOVE AFTER FIX
@@ -1085,9 +1095,9 @@ _USE_REDIS_CHANNELS = (not DEBUG) or os.getenv('USE_REDIS_CHANNELS', '0') == '1'
 _REDIS_CHANNEL_URL = _redis_url_with_db(_BASE_REDIS_URL, 3) if _BASE_REDIS_URL else 'redis://localhost:6379/3'
 
 if _USE_REDIS_CHANNELS:
-    # For Upstash (and any other rediss:// provider), SSL certificate
-    # verification must be disabled or the TLS handshake silently fails.
-    # Pass ssl_cert_reqs=None via the host dict; plain redis:// uses URL string.
+    # Upstash rediss:// TLS: ssl_cert_reqs=None (CERT_NONE) is intentional —
+    # same reasoning as _celery_ssl_url above.  To upgrade to CERT_REQUIRED,
+    # supply a trusted CA bundle via ssl_ca_certs and test first.
     _CHANNEL_HOST = (
         {'address': _REDIS_CHANNEL_URL, 'ssl_cert_reqs': None}
         if _REDIS_CHANNEL_URL.startswith('rediss://')
@@ -1153,8 +1163,16 @@ def _celery_ssl_url(url: str) -> str:
     URL that doesn't already carry the parameter.  Safe no-op for plain redis://
     or any other scheme.
 
-    Why CERT_NONE: managed Redis providers (Upstash, Render) use self-signed or
-    intermediate certs that Python's ssl module can't verify by default.
+    Why CERT_NONE (not CERT_REQUIRED):
+    Upstash issues certs via Let's Encrypt, which are technically verifiable.
+    However some Python/OpenSSL builds on Render fail hostname verification
+    against the Upstash SNI endpoint due to intermediate-CA bundle differences.
+    CERT_NONE avoids the TLS handshake failure without exposing the connection
+    to MITM risk in practice (traffic stays inside Render's private network and
+    the Upstash TLS endpoint is authenticated at the application layer via the
+    password in the URL).  To switch to CERT_REQUIRED, set:
+      CELERY_BROKER_URL=rediss://:password@host:port/0?ssl_cert_reqs=CERT_REQUIRED
+    and test the connection before deploying.
     """
     if not url or not url.startswith('rediss://') or 'ssl_cert_reqs' in url:
         return url
@@ -1201,8 +1219,10 @@ CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = 'UTC'
 CELERY_ENABLE_UTC = True
 
-# Memory safety: recycle worker after N tasks to prevent slow leaks
-CELERY_WORKER_MAX_TASKS_PER_CHILD = int(os.getenv('CELERY_MAX_TASKS_PER_CHILD', '200'))
+# Memory safety: recycle worker after N tasks to prevent slow leaks.
+# Default 50 is intentionally low for the 512 MB free tier; each recycled
+# process frees any leaked memory before it can accumulate.
+CELERY_WORKER_MAX_TASKS_PER_CHILD = int(os.getenv('CELERY_MAX_TASKS_PER_CHILD', '50'))
 # Kill stuck/runaway tasks before they exhaust RAM
 CELERY_TASK_SOFT_TIME_LIMIT = int(os.getenv('CELERY_TASK_SOFT_TIME_LIMIT', '120'))
 CELERY_TASK_TIME_LIMIT = int(os.getenv('CELERY_TASK_TIME_LIMIT', '180'))

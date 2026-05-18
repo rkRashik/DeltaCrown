@@ -30,6 +30,16 @@ Duplicate-execution protection:
     is atomic — the first caller wins, subsequent callers within the TTL get a
     409 Conflict.  The lock auto-expires after LOCK_TTL_SECONDS (default 4 min)
     so a crashed run cannot permanently block future executions.
+
+Memory diagnostics rollout (temporary — do not leave on permanently):
+    1. In Render dashboard, set  ENABLE_MEMORY_DIAGNOSTICS=1
+    2. Wait for 2–3 cron cycles (check logs for lines like
+       "[lifecycle_cron] rss_start=XMB rss_end=YMB delta=ZMB")
+    3. If delta > 5 MB per run, the cron itself is leaking.
+       If rss_start is already > 400 MB before the cron runs,
+       the leak is elsewhere (profile views, long-lived requests).
+    4. Remove ENABLE_MEMORY_DIAGNOSTICS (or set to 0) once baseline is confirmed.
+    No log spam is produced when the flag is off (default).
 """
 
 from __future__ import annotations
@@ -49,6 +59,19 @@ _CRON_SECRET = os.environ.get('CRON_SECRET', '')
 _LOCK_KEY = 'lifecycle_cron:running'
 _LOCK_TTL_SECONDS = int(os.environ.get('CRON_LOCK_TTL', '240'))  # 4 min default
 _SLOW_THRESHOLD_MS = 5000
+_ENABLE_MEM_DIAG = os.environ.get('ENABLE_MEMORY_DIAGNOSTICS') == '1'
+
+
+def _rss_mb() -> float:
+    """Return current process RSS in MB from /proc/self/status (Linux/Render only)."""
+    try:
+        with open('/proc/self/status') as _f:
+            for _line in _f:
+                if _line.startswith('VmRSS:'):
+                    return int(_line.split()[1]) / 1024.0
+    except Exception:
+        pass
+    return -1.0
 
 
 @csrf_exempt
@@ -84,7 +107,8 @@ def lifecycle_cron(request):
         )
 
     t0 = time.monotonic()
-    logger.info('[lifecycle_cron] started')
+    _rss_start = _rss_mb() if _ENABLE_MEM_DIAG else -1.0
+    logger.info('[lifecycle_cron] started rss=%.1fMB', _rss_start)
 
     try:
         results = {}
@@ -109,6 +133,12 @@ def lifecycle_cron(request):
             logger.log(level, '[lifecycle_cron] task=%s elapsed=%dms result=%s', name, task_ms, results[name])
 
         elapsed_ms = round((time.monotonic() - t0) * 1000)
+        if _ENABLE_MEM_DIAG:
+            _rss_end = _rss_mb()
+            logger.info(
+                '[lifecycle_cron] rss_start=%.1fMB rss_end=%.1fMB delta=%.1fMB',
+                _rss_start, _rss_end, _rss_end - _rss_start,
+            )
 
         if elapsed_ms > _SLOW_THRESHOLD_MS:
             logger.warning('[lifecycle_cron] SLOW RUN completed in %dms', elapsed_ms)
@@ -141,13 +171,9 @@ def _run_auto_advance():
     try:
         from apps.tournaments.services.lifecycle_service import TournamentLifecycleService
         result = TournamentLifecycleService.auto_advance_all()
-        advanced = result or []
-        if advanced:
-            for item in advanced:
-                logger.info('[lifecycle_cron] auto_advance transition: %s', item)
-        else:
-            logger.debug('[lifecycle_cron] auto_advance: no tournaments to advance')
-        return {'ok': True, 'advanced': advanced}
+        if result:
+            logger.info('[lifecycle_cron] auto_advance: %s', result)
+        return {'ok': True, 'advanced': result}
     except Exception as exc:
         logger.exception('[lifecycle_cron] auto_advance failed')
         return {'ok': False, 'error': str(exc)}

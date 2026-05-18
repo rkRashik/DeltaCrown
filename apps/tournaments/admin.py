@@ -294,6 +294,38 @@ class TournamentPaymentMethodInline(StackedInline):
 # ============================================================================
 # NOTE: Game admin is registered in apps/games/admin.py (removed duplicate)
 
+class StuckRegistrationOpenFilter(admin.SimpleListFilter):
+    """
+    Sidebar filter: shows REGISTRATION_OPEN tournaments whose deadline has
+    passed but still lack enough confirmed participants to auto-advance.
+    These are the ones that spam the lifecycle cron log with repeated warnings.
+    """
+    title = 'Stuck at registration'
+    parameter_name = 'stuck_reg'
+
+    def lookups(self, request, model_admin):
+        return [('yes', 'Stuck (deadline passed, 0 confirmed)')]
+
+    def queryset(self, request, queryset):
+        if self.value() != 'yes':
+            return queryset
+        from apps.tournaments.models.registration import Registration
+        now = timezone.now()
+        stuck_ids = []
+        candidates = queryset.filter(
+            status=Tournament.REGISTRATION_OPEN,
+            registration_end__lt=now,
+            is_deleted=False,
+        ).values('id', 'min_participants')
+        for row in candidates:
+            confirmed = Registration.objects.filter(
+                tournament_id=row['id'], status='confirmed', is_deleted=False,
+            ).count()
+            if confirmed < row['min_participants']:
+                stuck_ids.append(row['id'])
+        return queryset.filter(id__in=stuck_ids)
+
+
 @admin.register(Tournament)
 class TournamentAdmin(SafeUploadMixin, ModelAdmin):
     """Comprehensive tournament management - similar to Teams admin quality"""
@@ -305,8 +337,8 @@ class TournamentAdmin(SafeUploadMixin, ModelAdmin):
         'organizer_console_link'
     ]
     list_filter = [
-        'status', 'format', 'participation_type', 'is_official', 'is_featured', 'game',
-        'enable_check_in', 'has_entry_fee', 'created_at'
+        'status', StuckRegistrationOpenFilter, 'format', 'participation_type',
+        'is_official', 'is_featured', 'game', 'enable_check_in', 'has_entry_fee', 'created_at'
     ]
     search_fields = ['name', 'slug', 'description', 'organizer__username', 'organizer__email']
     readonly_fields = [
@@ -433,7 +465,8 @@ class TournamentAdmin(SafeUploadMixin, ModelAdmin):
         'publish_tournaments', 'open_registration', 'close_registration',
         'cancel_tournaments', 'archive_tournaments', 'unarchive_tournaments',
         'feature_tournaments', 'import_rules_from_pdf_action',
-        'transition_to_knockout_stage_action'
+        'transition_to_knockout_stage_action',
+        'cancel_stuck_reg_open',
     ]
     
     def get_queryset(self, request):
@@ -814,6 +847,75 @@ class TournamentAdmin(SafeUploadMixin, ModelAdmin):
                     f'... and {len(errors) - 5} more error(s)',
                     messages.ERROR
                 )
+
+    @admin.action(description='Cancel stuck REGISTRATION_OPEN (0 confirmed, past deadline)')
+    def cancel_stuck_reg_open(self, request, queryset):
+        """
+        Cancel REGISTRATION_OPEN tournaments whose registration deadline has passed
+        and that have fewer confirmed participants than the minimum required.
+
+        Safe to run: uses the lifecycle service so the state-machine is respected
+        and the audit trail is recorded.  Also clears the advance-cooldown cache
+        key so the cron stops retrying these permanently-blocked tournaments.
+        """
+        from django.core.cache import cache
+        from apps.tournaments.models.registration import Registration
+        from apps.tournaments.services.lifecycle_service import TournamentLifecycleService
+
+        now = timezone.now()
+        candidates = queryset.filter(
+            status=Tournament.REGISTRATION_OPEN,
+            registration_end__lt=now,
+            is_deleted=False,
+        )
+
+        cancelled = 0
+        skipped = 0
+        for t in candidates:
+            confirmed = Registration.objects.filter(
+                tournament=t, status='confirmed', is_deleted=False,
+            ).count()
+            if confirmed >= t.min_participants:
+                skipped += 1
+                continue
+            try:
+                TournamentLifecycleService.transition(
+                    t.id,
+                    Tournament.CANCELLED,
+                    actor=request.user,
+                    reason=(
+                        f'Admin cancel: registration deadline passed with only {confirmed} '
+                        f'confirmed participant(s) (min {t.min_participants})'
+                    ),
+                )
+                # Clear the lifecycle advance-cooldown cache key so the cron
+                # no longer wastes time checking this tournament.
+                cache.delete(f'lifecycle:advance_skip:{t.id}:reg_closed')
+                cancelled += 1
+            except Exception as exc:
+                self.message_user(request, f'Failed to cancel {t.name}: {exc}', messages.ERROR)
+
+        if cancelled:
+            self.message_user(
+                request,
+                f'Cancelled {cancelled} stuck tournament(s).  They are now CANCELLED and '
+                f'hidden from the advance queue.',
+                messages.SUCCESS,
+            )
+        if skipped:
+            self.message_user(
+                request,
+                f'{skipped} tournament(s) skipped — they met the minimum participant threshold '
+                f'and were not cancelled.',
+                messages.INFO,
+            )
+        if not cancelled and not skipped:
+            self.message_user(
+                request,
+                'No eligible stuck tournaments found in the selected set '
+                '(none are REGISTRATION_OPEN past their deadline with 0 confirmed participants).',
+                messages.WARNING,
+            )
 
 
 @admin.register(CustomField)

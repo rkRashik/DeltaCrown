@@ -15,9 +15,11 @@ DAPHNE_APP_CLOSE_TIMEOUT="${DAPHNE_APPLICATION_CLOSE_TIMEOUT:-5}"
 echo "[render] Startup profile: daphne_only=1 access_log=${DAPHNE_ACCESS_LOG:-0}"
 
 # ── Start web server (foreground) ───────────────────────────────────
-# Keep websocket lifetimes bounded; allow long-lived HTTP for SSE streams.
+# HTTP timeout: 3600 s (1 h) default — sufficient for all normal requests.
+# SSE is disabled by default (NOTIFICATIONS_SSE_ENABLED=0), so 86400 is not
+# needed.  Set DAPHNE_HTTP_TIMEOUT=86400 only when enabling long-lived SSE.
 PORT="${PORT:-8000}"
-HTTP_TIMEOUT="${DAPHNE_HTTP_TIMEOUT:-86400}"
+HTTP_TIMEOUT="${DAPHNE_HTTP_TIMEOUT:-3600}"
 DAPHNE_ARGS=(
     -b 0.0.0.0
     -p "$PORT"

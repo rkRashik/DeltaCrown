@@ -49,39 +49,32 @@ def format_time_range(time_str: str, time_format: str = '12h', timezone_str: str
         timezone_str: Timezone abbreviation for display
     
     Returns:
-        Formatted time string (e.g., "8:30 PM â€“ 1:23 AM (BDT)" or "20:30 â€“ 01:23 (BDT)")
+        Formatted time string (e.g., "8:30 PM â€" 1:23 AM (BDT)" or "20:30 â€" 01:23 (BDT)")
     """
     import re
-    import logging
-    
-    logger = logging.getLogger(__name__)
-    
+
     # Try to match HH:MM-HH:MM pattern (with optional spaces and en-dash)
-    pattern = r'^(\d{1,2}):(\d{2})\s*[â€“\-]\s*(\d{1,2}):(\d{2})$'
+    pattern = r'^(\d{1,2}):(\d{2})\s*[â€"\-]\s*(\d{1,2}):(\d{2})$'
     match = re.match(pattern, time_str.strip())
     
     if not match:
-        # Not a recognized pattern, return as-is with timezone
-        logger.info(f"[PROFILE-PERF] Active hours no match: raw='{time_str}' format={time_format}")
         return f"{time_str.strip()} ({timezone_str})" if timezone_str else time_str.strip()
-    
+
     start_h, start_m, end_h, end_m = match.groups()
     start_h, end_h = int(start_h), int(end_h)
-    
+
+    _dash = "–"
     if time_format == '12h':
-        # Convert to 12-hour format
         start_period = 'AM' if start_h < 12 else 'PM'
         end_period = 'AM' if end_h < 12 else 'PM'
         start_h_12 = start_h % 12 or 12
         end_h_12 = end_h % 12 or 12
-        formatted = f"{start_h_12}:{start_m} {start_period} â€“ {end_h_12}:{end_m} {end_period} ({timezone_str})"
-        logger.info(f"[PROFILE-PERF] Active hours: raw='{time_str}' format={time_format} â†’ '{formatted}'")
-        return formatted
+        return (
+            f"{start_h_12}:{start_m} {start_period} {_dash} "
+            f"{end_h_12}:{end_m} {end_period} ({timezone_str})"
+        )
     else:
-        # 24-hour format
-        formatted = f"{start_h:02d}:{start_m} â€“ {end_h:02d}:{end_m} ({timezone_str})"
-        logger.info(f"[PROFILE-PERF] Active hours: raw='{time_str}' format={time_format} â†’ '{formatted}'")
-        return formatted
+        return f"{start_h:02d}:{start_m} {_dash} {end_h:02d}:{end_m} ({timezone_str})"
 
 
 def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
@@ -253,9 +246,6 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
                     'handle': handle
                 })
         
-        # Debug logging for verification (remove after testing)
-        logger.info(f"[UP.2 FIX PASS #5] Social links for {profile_user.username}: {social_links_renderable}")
-        
         # Build platform map for backward compatibility
         social_links_map = {link.platform: link for link in social_links}
         context['social_links'] = list(social_links)
@@ -306,8 +296,15 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
     # PRIVACY: show_preferred_contact (PrivacySettings.show_preferred_contact, line 987)
     
     # Early-fetch privacy_settings (reused in about_fields, connections, and follower visibility)
+    # get_or_create only for the owner — non-owner views must never write rows on read.
     from apps.user_profile.models import PrivacySettings, CareerProfile, HardwareLoadout
-    privacy_settings, _ = PrivacySettings.objects.get_or_create(user_profile=user_profile)
+    if _real_is_owner:
+        privacy_settings, _ = PrivacySettings.objects.get_or_create(user_profile=user_profile)
+    else:
+        privacy_settings = (
+            PrivacySettings.objects.filter(user_profile=user_profile).first()
+            or PrivacySettings(user_profile=user_profile)
+        )
     
     connections = {
         'public_email': user_profile.secondary_email if user_profile.secondary_email_verified else '',
@@ -498,8 +495,18 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
     
     # PHASE-4C: About Data Command Center - Privacy-Aware Fields
     # privacy_settings already fetched above (connections section)
-    career_profile, _ = CareerProfile.objects.get_or_create(user_profile=user_profile)
-    hardware_loadout, _ = HardwareLoadout.objects.get_or_create(user_profile=user_profile)
+    if context['is_owner']:
+        career_profile, _ = CareerProfile.objects.get_or_create(user_profile=user_profile)
+        hardware_loadout, _ = HardwareLoadout.objects.get_or_create(user_profile=user_profile)
+    else:
+        career_profile = (
+            CareerProfile.objects.filter(user_profile=user_profile).first()
+            or CareerProfile(user_profile=user_profile)
+        )
+        hardware_loadout = (
+            HardwareLoadout.objects.filter(user_profile=user_profile).first()
+            or HardwareLoadout(user_profile=user_profile)
+        )
     
     is_owner = context['is_owner']
     
@@ -1173,7 +1180,7 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
     if is_owner or privacy_settings.show_active_hours:
         active_hours_raw = user_profile.active_hours
         if active_hours_raw:
-            # Format: "14:00-22:00 UTC" â†’ "2:00 PM - 10:00 PM UTC"
+            # Format: "14:00-22:00 UTC" â†' "2:00 PM - 10:00 PM UTC"
             def format_time_12h(time_str):
                 """Convert 24-hour time to 12-hour format."""
                 try:
@@ -1397,7 +1404,7 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
         time_format_pref = getattr(user_profile, 'time_format', '12h')
         timezone_str = getattr(user_profile, 'timezone_pref', 'UTC').split('/')[-1] if hasattr(user_profile, 'timezone_pref') else 'UTC'
         context['active_hours_formatted'] = format_time_range(active_hours_raw, time_format_pref, timezone_str)
-        logger.info(f"[PROFILE-PERF] Active hours formatted: raw='{active_hours_raw}' â†’ formatted='{context['active_hours_formatted']}' (format={time_format_pref})")
+        logger.info(f"[PROFILE-PERF] Active hours formatted: raw='{active_hours_raw}' â†' formatted='{context['active_hours_formatted']}' (format={time_format_pref})")
     else:
         context['active_hours_formatted'] = ''
     

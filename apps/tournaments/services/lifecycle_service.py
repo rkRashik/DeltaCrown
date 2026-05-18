@@ -35,6 +35,7 @@ import logging
 from dataclasses import dataclass
 from typing import Callable, Dict, FrozenSet, List, Optional, Set, Tuple
 
+from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.utils import timezone
@@ -462,21 +463,39 @@ class TournamentLifecycleService:
         # REGISTRATION_OPEN → REGISTRATION_CLOSED  (when registration_end is past)
         if status == Tournament.REGISTRATION_OPEN:
             if tournament.registration_end and now >= tournament.registration_end:
+                _skip_key = f'lifecycle:advance_skip:{tournament.id}:reg_closed'
+                if cache.get(_skip_key):
+                    return None
                 try:
                     cls.transition(tournament.id, Tournament.REGISTRATION_CLOSED, reason='Auto: registration window closed')
+                    cache.delete(_skip_key)
                     return Tournament.REGISTRATION_CLOSED
                 except ValidationError as e:
-                    logger.warning("Auto-advance REG_OPEN→REG_CLOSED failed for %s: %s", tournament.id, e)
+                    # 30-min cooldown: avoids re-running guard queries on every cron cycle
+                    # when the tournament is permanently blocked (e.g. 0 confirmed participants).
+                    cache.set(_skip_key, 1, 1800)
+                    logger.warning(
+                        "Auto-advance REG_OPEN→REG_CLOSED blocked for %s: %s — cooldown 30m",
+                        tournament.id, e,
+                    )
             return None
 
         # REGISTRATION_CLOSED → LIVE  (when tournament_start is past)
         if status == Tournament.REGISTRATION_CLOSED:
             if tournament.tournament_start and now >= tournament.tournament_start:
+                _skip_key = f'lifecycle:advance_skip:{tournament.id}:live'
+                if cache.get(_skip_key):
+                    return None
                 try:
                     cls.transition(tournament.id, Tournament.LIVE, reason='Auto: tournament started')
+                    cache.delete(_skip_key)
                     return Tournament.LIVE
                 except ValidationError as e:
-                    logger.warning("Auto-advance REG_CLOSED→LIVE failed for %s: %s", tournament.id, e)
+                    cache.set(_skip_key, 1, 1800)
+                    logger.warning(
+                        "Auto-advance REG_CLOSED→LIVE blocked for %s: %s — cooldown 30m",
+                        tournament.id, e,
+                    )
             return None
 
         # LIVE → COMPLETED — two code paths, both safe-guarded:
