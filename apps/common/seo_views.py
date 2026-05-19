@@ -6,6 +6,7 @@ from typing import Iterable
 from django.http import HttpResponse
 from django.urls import reverse
 from django.utils.html import escape
+from django.utils.cache import patch_vary_headers
 
 from apps.common.seo import absolute_url
 
@@ -22,7 +23,17 @@ SITEMAP_SECTIONS = ("static", "tournaments", "teams", "orgs", "profiles", "ranki
 
 
 def _xml_response(body: str) -> HttpResponse:
-    return HttpResponse(body, content_type="application/xml; charset=utf-8")
+    response = HttpResponse(body, content_type="application/xml; charset=utf-8")
+    response["Cache-Control"] = "public, max-age=300, no-transform"
+    patch_vary_headers(response, ("Accept-Encoding",))
+    return response
+
+
+def _text_response(body: str) -> HttpResponse:
+    response = HttpResponse(body, content_type="text/plain; charset=utf-8")
+    response["Cache-Control"] = "public, max-age=300, no-transform"
+    patch_vary_headers(response, ("Accept-Encoding",))
+    return response
 
 
 def _format_lastmod(value) -> str:
@@ -56,7 +67,7 @@ def robots_txt(request):
         f"Sitemap: {absolute_url('/sitemap.xml')}",
         "",
     ]
-    return HttpResponse("\n".join(lines), content_type="text/plain; charset=utf-8")
+    return _text_response("\n".join(lines))
 
 
 def sitemap_index(request):
