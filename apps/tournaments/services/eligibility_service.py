@@ -217,6 +217,7 @@ class RegistrationEligibilityService:
                     'can_register': False,
                     'reason': team_check['reason'],
                     'status': team_check['status'],
+                    'action_type': team_check.get('action_type', ''),
                     'action_url': team_check.get('action_url', f'/tournaments/{tournament.slug}/'),
                     'action_label': team_check.get('action_label', 'View Details'),
                 })
@@ -594,6 +595,7 @@ class RegistrationEligibilityService:
                 'eligible': False,
                 'reason': "You don't have permission to register any of your teams.",
                 'status': 'no_permission',
+                'action_type': 'contact_captain',
                 'action_url': '/teams/',
                 'action_label': 'View Teams',
             }
@@ -698,12 +700,13 @@ class RegistrationEligibilityService:
                     }
                 return {
                     'eligible': False,
-                    'reason': 'You don\'t have permission to register any of your teams.',
+                    'reason': "You don't have permission to register any of your teams.",
                     'status': 'no_permission',
+                    'action_type': 'contact_captain',
                     'action_url': '/teams/',
                     'action_label': 'View Teams',
                 }
-            
+
             # Check if team is already registered
             team_registration = Registration.objects.filter(
                 tournament=tournament,

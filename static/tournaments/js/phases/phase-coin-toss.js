@@ -90,15 +90,16 @@
       var p2 = _participant(c, 2);
       var winnerName = winnerSide === 1 ? p1.name : (winnerSide === 2 ? p2.name : '');
 
-      // Coin shell — two faces use a crown icon (front) + shield icon (back)
-      // to look like a real competitive coin, not random team initials.
-      var crownSvg = '<svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 20h20M4 20l2-8 4 4 2-8 2 8 4-4 2 8"/></svg>';
-      var shieldSvg = '<svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>';
+      // Coin shell — two faces use crown + shield icons to look like a real
+      // competitive coin. Fixed dimensions + inline color override so the
+      // visual works even if theme CSS variables fail to load.
+      var crownSvg = '<svg viewBox="0 0 24 24" width="44" height="44" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="display:block;"><path d="M2 20h20M4 20l2-8 4 4 2-8 2 8 4-4 2 8"/></svg>';
+      var shieldSvg = '<svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="display:block;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>';
       var coinShellHTML =
-        '<div class="coin-wrap" style="width:96px;height:96px;">' +
-          '<div class="coin" id="toss-coin">' +
-            '<div class="coin-face coin-a" style="font-size:0;">' + crownSvg + '</div>' +
-            '<div class="coin-face coin-b" style="font-size:0;">' + shieldSvg + '</div>' +
+        '<div class="coin-wrap" style="width:96px;height:96px;perspective:800px;margin:0 auto;">' +
+          '<div class="coin" id="toss-coin" style="width:100%;height:100%;position:relative;transform-style:preserve-3d;">' +
+            '<div class="coin-face coin-a" style="color:#00f0ff;">' + crownSvg + '</div>' +
+            '<div class="coin-face coin-b" style="color:#ff5577;">' + shieldSvg + '</div>' +
           '</div>' +
         '</div>';
 

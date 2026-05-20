@@ -73,7 +73,8 @@ def _public_tournament_relationships(tournament):
     related_qs = (
         Tournament.objects.filter(
             game=tournament.game,
-            status__in=[Tournament.PUBLISHED, Tournament.REGISTRATION_OPEN, Tournament.LIVE, Tournament.COMPLETED, Tournament.ARCHIVED],
+            # Exclude archived — they should not surface publicly on detail pages.
+            status__in=[Tournament.PUBLISHED, Tournament.REGISTRATION_OPEN, Tournament.LIVE, Tournament.COMPLETED],
             is_deleted=False,
         )
         .exclude(pk=tournament.pk)
@@ -2723,6 +2724,12 @@ def _build_detail_action_input_context(tournament, user, *, base_context=None, n
         'registration_status_reason': eligibility.get('reason') or 'Registration is currently closed.',
         'registration_action_url': registration_action_url,
         'registration_action_label': registration_action_label,
+        # action_type may come directly from the eligibility dict, or be
+        # inferred from the status code when the service doesn't set it.
+        'registration_action_type': (
+            eligibility.get('action_type')
+            or ('contact_captain' if eligibility.get('status') == 'no_permission' else '')
+        ),
         'slots_percentage': float(base_context.get('slots_percentage') or 0),
     }
     action_context.update(_resolve_user_next_match_context(tournament, user, now=now))
@@ -2757,6 +2764,7 @@ def _build_detail_action_context(tournament, user, *, context):
 
     registration_action_url = str(context.get('registration_action_url') or '')
     registration_action_label = str(context.get('registration_action_label') or 'Register Now')
+    registration_action_type = str(context.get('registration_action_type') or '')
     registration_status_reason = str(
         context.get('registration_status_reason') or 'Registration is currently closed.'
     )
@@ -2861,12 +2869,32 @@ def _build_detail_action_context(tournament, user, *, context):
             kind='closed',
         )
 
+    # Surfaced when user lacks registration permission so they can
+    # ping their captain without leaving the page.
+    notify_captain_action = None
+    if state == 'closed' and registration_action_type in ('contact_captain', 'request_permission'):
+        if registration_action_type == 'request_permission' and registration_action_url:
+            notify_captain_action = {
+                'type': 'link',
+                'label': 'Request Permission',
+                'url': registration_action_url,
+                'icon': 'send',
+            }
+        else:
+            notify_captain_action = {
+                'type': 'notify',
+                'label': 'Notify Team Captain',
+                'url': reverse('tournaments:notify_captain', kwargs={'slug': tournament.slug}),
+                'icon': 'bell',
+            }
+
     return {
         'detail_cta_state': state,
         'detail_cta_heading': heading,
         'detail_cta_note': note,
         'detail_cta_primary': primary,
         'detail_cta_secondary': secondary,
+        'detail_notify_captain': notify_captain_action,
     }
 
 
@@ -3238,3 +3266,89 @@ def tournament_prize_overview(request, slug):
         cache.set(cache_key, payload, timeout=30)
 
     return JsonResponse(payload)
+
+
+@login_required
+@require_POST
+def notify_captain_view(request, slug):
+    """Notify team captain(s) that a member wants to register for this tournament.
+
+    Only callable when the logged-in user is a team member without registration
+    permission. Rate-limited to one notification per user per tournament per hour.
+    """
+    tournament = get_object_or_404(Tournament, slug=slug)
+    user = request.user
+
+    # Rate-limit: one ping per user per tournament per hour.
+    rate_key = f'notify_captain_rate:{user.id}:{tournament.id}'
+    if cache.get(rate_key):
+        return JsonResponse({
+            'success': False,
+            'error': 'You already sent a notification recently. Please wait before sending again.',
+        }, status=429)
+
+    try:
+        from apps.organizations.models import TeamMembership
+        from apps.notifications.services import notify
+
+        memberships = (
+            TeamMembership.objects
+            .filter(user=user, status='ACTIVE')
+            .select_related('team')
+        )
+        if not memberships.exists():
+            return JsonResponse({'success': False, 'error': 'You are not in any team.'}, status=400)
+
+        permissive_roles = {'CAPTAIN', 'CO_CAPTAIN', 'IGL', 'MANAGER', 'OWNER', 'CEO'}
+        # Map captain_user → team_name so we can personalise the message.
+        captain_team_map = {}
+
+        for membership in memberships:
+            if membership.role in permissive_roles:
+                continue  # caller already has permission — shouldn't be here
+
+            captains = (
+                TeamMembership.objects
+                .filter(team=membership.team, status='ACTIVE', role__in=permissive_roles)
+                .select_related('user')
+            )
+            for cap in captains:
+                if cap.user and cap.user_id not in captain_team_map:
+                    captain_team_map[cap.user_id] = (cap.user, membership.team.name)
+
+        if not captain_team_map:
+            return JsonResponse({
+                'success': False,
+                'error': 'No captain or manager found for your team. Ask your team admin to add a captain.',
+            }, status=400)
+
+        tournament_url = request.build_absolute_uri(f'/tournaments/{tournament.slug}/')
+        recipient_users = [u for u, _ in captain_team_map.values()]
+
+        # Build a single team-name string for the notification body.
+        team_names = ', '.join({tname for _, tname in captain_team_map.values()})
+
+        notify(
+            recipient_users,
+            event='registration_permission_request',
+            title=f'{user.username} wants to register for {tournament.name}',
+            body=(
+                f'{user.username} is a member of {team_names} and needs registration permission '
+                f'for "{tournament.name}". Grant them the Register Tournaments permission '
+                f'from your team settings, or register the team yourself.'
+            ),
+            url=tournament_url,
+            tournament=tournament,
+            bypass_user_prefs=False,
+        )
+
+        cache.set(rate_key, True, timeout=3600)
+
+        return JsonResponse({
+            'success': True,
+            'message': f'Notification sent to {len(recipient_users)} captain(s). They can grant you permission or register the team.',
+        })
+
+    except Exception as exc:
+        logger.exception("notify_captain_view failed user=%s tournament=%s err=%s", user.id, tournament.id, exc)
+        return JsonResponse({'success': False, 'error': 'Something went wrong. Please try again.'}, status=500)

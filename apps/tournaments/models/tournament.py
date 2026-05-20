@@ -76,7 +76,7 @@ class Tournament(SoftDeleteModel, TimestampedModel):
         PENDING_APPROVAL: frozenset({PUBLISHED, CANCELLED}),
         PUBLISHED: frozenset({REGISTRATION_OPEN, CANCELLED}),
         REGISTRATION_OPEN: frozenset({REGISTRATION_CLOSED, CANCELLED}),
-        REGISTRATION_CLOSED: frozenset({LIVE, CANCELLED}),
+        REGISTRATION_CLOSED: frozenset({REGISTRATION_OPEN, LIVE, CANCELLED}),
         LIVE: frozenset({COMPLETED, CANCELLED}),
         COMPLETED: frozenset({ARCHIVED}),
         CANCELLED: frozenset({ARCHIVED}),

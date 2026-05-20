@@ -33,6 +33,53 @@
         </div>
     </div>
 
+    {# ── Captain's Game Passport (shown when no passport exists) ─────── #}
+    {% if not game_complete %}
+    <div class="mb-5 rounded-2xl border border-yellow-500/30 bg-yellow-500/[0.05] overflow-hidden" id="captain-game-id-section">
+        <div class="p-5 text-center" id="passport-cta-empty">
+            <div class="w-12 h-12 rounded-xl bg-yellow-500/15 border border-yellow-500/25 flex items-center justify-center mx-auto mb-3">
+                <i data-lucide="gamepad-2" class="w-5 h-5 text-yellow-400"></i>
+            </div>
+            <p class="text-sm font-black text-yellow-300 mb-1">Captain's Game Passport Required</p>
+            <p class="text-[11px] text-gray-400 mb-4 max-w-sm mx-auto">
+                As captain, you need a {{ tournament.game.name }} passport to register your team. This saves to your profile and syncs across future tournaments.
+            </p>
+            <button type="button"
+                    data-passport-modal-open
+                    data-game-id="{{ tournament.game.id }}"
+                    data-game-slug="{{ tournament.game.slug }}"
+                    data-game-name="{{ tournament.game.name }}"
+                    class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-yellow-500 hover:bg-yellow-400 text-black text-xs font-black uppercase tracking-widest transition-all active:scale-95">
+                <i data-lucide="plus" class="w-4 h-4 pointer-events-none"></i>
+                <span class="pointer-events-none">Set Up Passport</span>
+            </button>
+        </div>
+
+        <div class="p-4 hidden" id="passport-cta-filled">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-green-500/15 border border-green-500/30 flex items-center justify-center shrink-0">
+                    <i data-lucide="check-circle-2" class="w-5 h-5 text-green-400"></i>
+                </div>
+                <div class="min-w-0 flex-1">
+                    <p class="text-[10px] font-black text-green-400 uppercase tracking-widest">Passport Saved</p>
+                    <p class="text-sm font-bold text-white truncate" id="passport-cta-name">—</p>
+                    <p class="text-[10px] text-gray-500" id="passport-cta-region">—</p>
+                </div>
+                <button type="button"
+                        data-passport-modal-open
+                        data-game-id="{{ tournament.game.id }}"
+                        data-game-slug="{{ tournament.game.slug }}"
+                        data-game-name="{{ tournament.game.name }}"
+                        class="text-[10px] font-bold text-gray-400 hover:text-white underline">Edit</button>
+            </div>
+        </div>
+
+        <input type="hidden" name="game_id" id="captain-game-id-input" value="">
+    </div>
+    {% else %}
+    <input type="hidden" name="game_id" value="{{ fields.game_id.value }}">
+    {% endif %}
+
     {# Validation info #}
     <div class="mb-5 text-xs text-gray-500 flex items-start gap-2">
         <i data-lucide="info" class="w-4 h-4 shrink-0 mt-0.5" style="color: var(--accent);"></i>

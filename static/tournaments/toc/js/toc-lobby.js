@@ -426,14 +426,40 @@
       const el = $(`#${id}`);
       if (el) el.value = value != null && value !== '' ? value : fallback;
     };
+    const setSelect = (id, value, fallback) => {
+      const el = $(`#${id}`);
+      if (!el) return;
+      const v = (value != null && value !== '') ? String(value) : String(fallback);
+      // Tolerate missing options
+      const exists = Array.prototype.some.call(el.options || [], (o) => o.value === v);
+      el.value = exists ? v : String(fallback);
+    };
 
+    // Coin toss
+    setToggle('lobby-require-coin-toss', config.require_coin_toss);
+    setSelect('lobby-coin-toss-actor', config.coin_toss_actor, 'host');
+
+    // Map veto
+    setToggle('lobby-require-map-veto', config.require_map_veto);
+    setToggle('lobby-map-veto-auto-pick', config.map_veto_auto_pick !== false);
+    setValue('lobby-map-veto-seconds', config.map_veto_seconds, 30);
+
+    // Credentials
+    setSelect('lobby-credentials-owner', config.credentials_owner, 'host');
+
+    // Result submission
+    setToggle('lobby-require-evidence', !!config.require_match_evidence);
+    setSelect('lobby-result-submission-policy', config.result_submission_policy, 'any_participant');
+
+    // Automation & defaults
     setToggle('lobby-auto-create', config.auto_create);
     setToggle('lobby-chat-enabled', config.chat_enabled !== false);
     setToggle('lobby-anticheat-required', !!config.anticheat_required);
-
     setValue('lobby-auto-close', config.auto_close_minutes, 0);
     setValue('lobby-default-region', config.default_region, '');
     setValue('lobby-spectator-slots', config.spectator_slots_default, 2);
+    setValue('lobby-open-before', config.lobby_open_minutes_before, 30);
+    setValue('lobby-close-after', config.lobby_close_minutes_after, 10);
   }
 
   function renderDashboard(data) {
@@ -669,22 +695,59 @@
   }
 
   async function saveConfig() {
+    const btn = $('#lobby-config-save-btn');
+    const feedback = $('#lobby-config-feedback');
     const data = {
+      // Coin toss
+      require_coin_toss: $('#lobby-require-coin-toss')?.checked || false,
+      coin_toss_actor: ($('#lobby-coin-toss-actor')?.value || 'host').trim(),
+      // Map veto
+      require_map_veto: $('#lobby-require-map-veto')?.checked || false,
+      map_veto_auto_pick: $('#lobby-map-veto-auto-pick')?.checked || false,
+      map_veto_seconds: parseInt($('#lobby-map-veto-seconds')?.value || '30', 10) || 30,
+      // Credentials
+      credentials_owner: ($('#lobby-credentials-owner')?.value || 'host').trim(),
+      // Result submission
+      require_match_evidence: $('#lobby-require-evidence')?.checked || false,
+      result_submission_policy: ($('#lobby-result-submission-policy')?.value || 'any_participant').trim(),
+      // Automation
       auto_create: $('#lobby-auto-create')?.checked || false,
       chat_enabled: $('#lobby-chat-enabled')?.checked || false,
       anticheat_required: $('#lobby-anticheat-required')?.checked || false,
       auto_close_minutes: parseInt($('#lobby-auto-close')?.value || '0', 10) || 0,
       default_region: ($('#lobby-default-region')?.value || '').trim(),
       spectator_slots_default: parseInt($('#lobby-spectator-slots')?.value || '2', 10) || 0,
+      lobby_open_minutes_before: parseInt($('#lobby-open-before')?.value || '30', 10) || 30,
+      lobby_close_minutes_after: parseInt($('#lobby-close-after')?.value || '10', 10) || 10,
     };
+
+    if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+    if (feedback) { feedback.textContent = ''; feedback.classList.add('hidden'); }
 
     try {
       await API.post('lobby/config/', data);
-      toast('Lobby rules saved', 'success');
+      toast('Match flow settings saved', 'success');
+      if (feedback) {
+        feedback.textContent = '✓ Saved — settings apply immediately to new matches and reload of existing ones.';
+        feedback.className = 'text-[10px] text-emerald-400 mt-2';
+      }
       invalidate();
       refresh({ force: true });
     } catch (e) {
-      toast(e?.message || 'Save failed', 'error');
+      const msg = e?.message || 'Save failed';
+      toast(msg, 'error');
+      if (feedback) {
+        feedback.textContent = '⚠ ' + msg;
+        feedback.className = 'text-[10px] text-red-400 mt-2';
+      }
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = 'Save';
+      }
+      if (feedback) {
+        setTimeout(() => { feedback.classList.add('hidden'); }, 4000);
+      }
     }
   }
 

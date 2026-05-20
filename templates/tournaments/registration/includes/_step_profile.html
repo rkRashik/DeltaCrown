@@ -65,15 +65,51 @@
         </div>
         <input type="hidden" name="game_id" value="{{ fields.game_id.value }}">
         {% else %}
-        <div class="p-4 rounded-xl border border-yellow-500/20 bg-yellow-500/5">
-            <div class="flex items-center gap-2 mb-3">
-                <i data-lucide="alert-triangle" class="w-4 h-4 text-yellow-500"></i>
-                <span class="text-xs font-bold text-yellow-400">{{ game_id_label }} Required</span>
+        {# ── No passport found — "Set Up Game Passport" CTA (modal opens) ─ #}
+        <div class="rounded-2xl border border-yellow-500/25 bg-yellow-500/[0.04] overflow-hidden" id="passport-cta-section">
+
+            {# Empty state (default) #}
+            <div class="p-5 text-center" id="passport-cta-empty">
+                <div class="w-12 h-12 rounded-xl bg-yellow-500/15 border border-yellow-500/25 flex items-center justify-center mx-auto mb-3">
+                    <i data-lucide="gamepad-2" class="w-5 h-5 text-yellow-400"></i>
+                </div>
+                <p class="text-sm font-black text-yellow-300 mb-1">Game Passport Required</p>
+                <p class="text-[11px] text-gray-400 mb-4 max-w-sm mx-auto">
+                    You need a {{ tournament.game.name }} passport to register. Set it up below — it'll save to your profile and sync automatically in future tournaments.
+                </p>
+                <button type="button"
+                        data-passport-modal-open
+                        data-game-id="{{ tournament.game.id }}"
+                        data-game-slug="{{ tournament.game.slug }}"
+                        data-game-name="{{ tournament.game.name }}"
+                        class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-yellow-500 hover:bg-yellow-400 text-black text-xs font-black uppercase tracking-widest transition-all active:scale-95">
+                    <i data-lucide="plus" class="w-4 h-4 pointer-events-none"></i>
+                    <span class="pointer-events-none">Set Up Passport</span>
+                </button>
             </div>
-            <input type="text" name="game_id" class="input-premium" placeholder="{{ game_id_placeholder }}" required>
-            <p class="text-[10px] text-gray-500 mt-2 flex items-center gap-1">
-                <i data-lucide="info" class="w-3 h-3"></i> Add a Game Passport in your profile settings for automatic sync.
-            </p>
+
+            {# Filled state (after modal save) — populated by JS #}
+            <div class="p-4 hidden" id="passport-cta-filled">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-green-500/15 border border-green-500/30 flex items-center justify-center shrink-0">
+                        <i data-lucide="check-circle-2" class="w-5 h-5 text-green-400"></i>
+                    </div>
+                    <div class="min-w-0 flex-1">
+                        <p class="text-[10px] font-black text-green-400 uppercase tracking-widest">Passport Saved</p>
+                        <p class="text-sm font-bold text-white truncate" id="passport-cta-name">—</p>
+                        <p class="text-[10px] text-gray-500" id="passport-cta-region">—</p>
+                    </div>
+                    <button type="button"
+                            data-passport-modal-open
+                            data-game-id="{{ tournament.game.id }}"
+                            data-game-slug="{{ tournament.game.slug }}"
+                            data-game-name="{{ tournament.game.name }}"
+                            class="text-[10px] font-bold text-gray-400 hover:text-white underline">Edit</button>
+                </div>
+            </div>
+
+            {# Hidden field — populated by modal on save, read by server #}
+            <input type="hidden" name="game_id" id="reg-game-id" value="">
         </div>
         {% endif %}
     </div>

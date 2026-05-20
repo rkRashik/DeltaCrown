@@ -4638,43 +4638,146 @@
                         </div>
 
                         <div class="glass-box rounded-xl p-4 md:p-5" id="lobby-config-section">
-                            <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center justify-between mb-4">
                                 <h3 class="font-display font-bold text-white text-sm uppercase tracking-widest flex items-center gap-2">
-                                    <i data-lucide="sliders-horizontal" class="w-4 h-4 text-theme"></i> Automation Rules
+                                    <i data-lucide="sliders-horizontal" class="w-4 h-4 text-theme"></i> Match Flow Settings
                                 </h3>
-                                <button data-click="TOC.lobby.saveConfig" class="px-3 py-1.5 rounded-lg bg-theme text-black text-[10px] font-black uppercase tracking-wider hover:opacity-90 transition-opacity">Save</button>
+                                <button data-click="TOC.lobby.saveConfig" id="lobby-config-save-btn" class="px-3 py-1.5 rounded-lg bg-theme text-black text-[10px] font-black uppercase tracking-wider hover:opacity-90 transition-opacity">Save</button>
                             </div>
 
-                            <div class="space-y-3">
-                                <label class="flex items-center justify-between gap-2 text-xs text-dc-text cursor-pointer">
-                                    <span>Auto-create lobbies</span>
-                                    <input id="lobby-auto-create" type="checkbox" class="rounded border-dc-border bg-dc-surface text-theme">
-                                </label>
-                                <label class="flex items-center justify-between gap-2 text-xs text-dc-text cursor-pointer">
-                                    <span>Enable lobby chat</span>
-                                    <input id="lobby-chat-enabled" type="checkbox" checked class="rounded border-dc-border bg-dc-surface text-theme">
-                                </label>
-                                <label class="flex items-center justify-between gap-2 text-xs text-dc-text cursor-pointer">
-                                    <span>Anti-cheat required</span>
-                                    <input id="lobby-anticheat-required" type="checkbox" class="rounded border-dc-border bg-dc-surface text-theme">
-                                </label>
-
-                                <div class="grid grid-cols-2 gap-2">
+                            {# ── Section: Coin Toss ──────────────────────────── #}
+                            <details class="mb-3 rounded-lg border border-dc-border bg-dc-surface/30" open>
+                                <summary class="px-3 py-2 cursor-pointer text-xs font-bold text-white flex items-center justify-between">
+                                    <span class="flex items-center gap-2"><i data-lucide="coins" class="w-3.5 h-3.5 text-theme"></i> Coin Toss</span>
+                                    <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-dc-text"></i>
+                                </summary>
+                                <div class="px-3 pb-3 pt-1 space-y-2.5 border-t border-dc-border/40">
+                                    <label class="flex items-center justify-between gap-2 text-xs text-dc-text cursor-pointer">
+                                        <span>Require coin toss</span>
+                                        <input id="lobby-require-coin-toss" type="checkbox" class="rounded border-dc-border bg-dc-surface text-theme">
+                                    </label>
                                     <div>
-                                        <label class="block text-[10px] text-dc-text mb-1 uppercase tracking-widest">Auto-close (min)</label>
-                                        <input id="lobby-auto-close" type="number" min="0" value="0" class="w-full bg-dc-surface border border-dc-border rounded-lg px-2.5 py-2 text-xs text-dc-textBright focus:outline-none focus:border-theme/50">
+                                        <label class="block text-[10px] text-dc-text mb-1 uppercase tracking-widest">Who flips the coin?</label>
+                                        <select id="lobby-coin-toss-actor" class="w-full bg-dc-surface border border-dc-border rounded-lg px-2.5 py-2 text-xs text-dc-textBright focus:outline-none focus:border-theme/50">
+                                            <option value="host">Host (Side 1)</option>
+                                            <option value="either">Either participant</option>
+                                            <option value="staff">Staff/Admin only</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </details>
+
+                            {# ── Section: Map Veto ──────────────────────────── #}
+                            <details class="mb-3 rounded-lg border border-dc-border bg-dc-surface/30">
+                                <summary class="px-3 py-2 cursor-pointer text-xs font-bold text-white flex items-center justify-between">
+                                    <span class="flex items-center gap-2"><i data-lucide="map" class="w-3.5 h-3.5 text-theme"></i> Map Veto</span>
+                                    <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-dc-text"></i>
+                                </summary>
+                                <div class="px-3 pb-3 pt-1 space-y-2.5 border-t border-dc-border/40">
+                                    <label class="flex items-center justify-between gap-2 text-xs text-dc-text cursor-pointer">
+                                        <span>Require map veto</span>
+                                        <input id="lobby-require-map-veto" type="checkbox" class="rounded border-dc-border bg-dc-surface text-theme">
+                                    </label>
+                                    <label class="flex items-center justify-between gap-2 text-xs text-dc-text cursor-pointer">
+                                        <span>Auto-pick on timeout</span>
+                                        <input id="lobby-map-veto-auto-pick" type="checkbox" class="rounded border-dc-border bg-dc-surface text-theme">
+                                    </label>
+                                    <div>
+                                        <label class="block text-[10px] text-dc-text mb-1 uppercase tracking-widest">Seconds per ban/pick</label>
+                                        <input id="lobby-map-veto-seconds" type="number" min="5" max="300" value="30" class="w-full bg-dc-surface border border-dc-border rounded-lg px-2.5 py-2 text-xs text-dc-textBright focus:outline-none focus:border-theme/50">
+                                        <p class="text-[9px] text-dc-text/60 mt-1">Time each side has per ban or pick. Auto-pick fires when 0.</p>
+                                    </div>
+                                </div>
+                            </details>
+
+                            {# ── Section: Match Room Credentials ──────────── #}
+                            <details class="mb-3 rounded-lg border border-dc-border bg-dc-surface/30">
+                                <summary class="px-3 py-2 cursor-pointer text-xs font-bold text-white flex items-center justify-between">
+                                    <span class="flex items-center gap-2"><i data-lucide="key-round" class="w-3.5 h-3.5 text-theme"></i> Match Room Credentials</span>
+                                    <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-dc-text"></i>
+                                </summary>
+                                <div class="px-3 pb-3 pt-1 space-y-2.5 border-t border-dc-border/40">
+                                    <div>
+                                        <label class="block text-[10px] text-dc-text mb-1 uppercase tracking-widest">Who sets lobby code/password?</label>
+                                        <select id="lobby-credentials-owner" class="w-full bg-dc-surface border border-dc-border rounded-lg px-2.5 py-2 text-xs text-dc-textBright focus:outline-none focus:border-theme/50">
+                                            <option value="host">Host (Side 1 team)</option>
+                                            <option value="organizer">Organizer (TOC publishes)</option>
+                                            <option value="staff">Staff/Admin only</option>
+                                        </select>
+                                        <p class="text-[9px] text-dc-text/60 mt-1">Controls who fills lobby code, password, server and map in the match room.</p>
+                                    </div>
+                                </div>
+                            </details>
+
+                            {# ── Section: Result Submission ─────────────────── #}
+                            <details class="mb-3 rounded-lg border border-dc-border bg-dc-surface/30">
+                                <summary class="px-3 py-2 cursor-pointer text-xs font-bold text-white flex items-center justify-between">
+                                    <span class="flex items-center gap-2"><i data-lucide="trophy" class="w-3.5 h-3.5 text-theme"></i> Result Submission</span>
+                                    <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-dc-text"></i>
+                                </summary>
+                                <div class="px-3 pb-3 pt-1 space-y-2.5 border-t border-dc-border/40">
+                                    <label class="flex items-center justify-between gap-2 text-xs text-dc-text cursor-pointer">
+                                        <span>Require evidence screenshot</span>
+                                        <input id="lobby-require-evidence" type="checkbox" class="rounded border-dc-border bg-dc-surface text-theme">
+                                    </label>
+                                    <div>
+                                        <label class="block text-[10px] text-dc-text mb-1 uppercase tracking-widest">Submission policy</label>
+                                        <select id="lobby-result-submission-policy" class="w-full bg-dc-surface border border-dc-border rounded-lg px-2.5 py-2 text-xs text-dc-textBright focus:outline-none focus:border-theme/50">
+                                            <option value="any_participant">Any participant may submit</option>
+                                            <option value="host_first">Host submits first, opponent confirms</option>
+                                            <option value="winner_only">Only winner submits</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </details>
+
+                            {# ── Section: Automation & Defaults ────────────── #}
+                            <details class="mb-2 rounded-lg border border-dc-border bg-dc-surface/30">
+                                <summary class="px-3 py-2 cursor-pointer text-xs font-bold text-white flex items-center justify-between">
+                                    <span class="flex items-center gap-2"><i data-lucide="zap" class="w-3.5 h-3.5 text-theme"></i> Automation & Defaults</span>
+                                    <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-dc-text"></i>
+                                </summary>
+                                <div class="px-3 pb-3 pt-1 space-y-2.5 border-t border-dc-border/40">
+                                    <label class="flex items-center justify-between gap-2 text-xs text-dc-text cursor-pointer">
+                                        <span>Auto-create lobbies</span>
+                                        <input id="lobby-auto-create" type="checkbox" class="rounded border-dc-border bg-dc-surface text-theme">
+                                    </label>
+                                    <label class="flex items-center justify-between gap-2 text-xs text-dc-text cursor-pointer">
+                                        <span>Enable lobby chat</span>
+                                        <input id="lobby-chat-enabled" type="checkbox" checked class="rounded border-dc-border bg-dc-surface text-theme">
+                                    </label>
+                                    <label class="flex items-center justify-between gap-2 text-xs text-dc-text cursor-pointer">
+                                        <span>Anti-cheat required</span>
+                                        <input id="lobby-anticheat-required" type="checkbox" class="rounded border-dc-border bg-dc-surface text-theme">
+                                    </label>
+                                    <div class="grid grid-cols-2 gap-2">
+                                        <div>
+                                            <label class="block text-[10px] text-dc-text mb-1 uppercase tracking-widest">Lobby opens (min before)</label>
+                                            <input id="lobby-open-before" type="number" min="0" max="240" value="30" class="w-full bg-dc-surface border border-dc-border rounded-lg px-2.5 py-2 text-xs text-dc-textBright focus:outline-none focus:border-theme/50">
+                                        </div>
+                                        <div>
+                                            <label class="block text-[10px] text-dc-text mb-1 uppercase tracking-widest">Lobby closes (min after)</label>
+                                            <input id="lobby-close-after" type="number" min="0" max="240" value="10" class="w-full bg-dc-surface border border-dc-border rounded-lg px-2.5 py-2 text-xs text-dc-textBright focus:outline-none focus:border-theme/50">
+                                        </div>
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-2">
+                                        <div>
+                                            <label class="block text-[10px] text-dc-text mb-1 uppercase tracking-widest">Auto-close (min)</label>
+                                            <input id="lobby-auto-close" type="number" min="0" value="0" class="w-full bg-dc-surface border border-dc-border rounded-lg px-2.5 py-2 text-xs text-dc-textBright focus:outline-none focus:border-theme/50">
+                                        </div>
+                                        <div>
+                                            <label class="block text-[10px] text-dc-text mb-1 uppercase tracking-widest">Spectator slots</label>
+                                            <input id="lobby-spectator-slots" type="number" min="0" value="2" class="w-full bg-dc-surface border border-dc-border rounded-lg px-2.5 py-2 text-xs text-dc-textBright focus:outline-none focus:border-theme/50">
+                                        </div>
                                     </div>
                                     <div>
                                         <label class="block text-[10px] text-dc-text mb-1 uppercase tracking-widest">Default Region</label>
                                         <input id="lobby-default-region" type="text" class="w-full bg-dc-surface border border-dc-border rounded-lg px-2.5 py-2 text-xs text-dc-textBright focus:outline-none focus:border-theme/50" placeholder="e.g. AP-SE">
                                     </div>
                                 </div>
+                            </details>
 
-                                <div>
-                                    <label class="block text-[10px] text-dc-text mb-1 uppercase tracking-widest">Default Spectator Slots</label>
-                                    <input id="lobby-spectator-slots" type="number" min="0" value="2" class="w-full bg-dc-surface border border-dc-border rounded-lg px-2.5 py-2 text-xs text-dc-textBright focus:outline-none focus:border-theme/50">
-                                </div>
-                            </div>
+                            <p id="lobby-config-feedback" class="text-[10px] text-dc-text/60 mt-2 hidden"></p>
                         </div>
                     </div>
                 </div>

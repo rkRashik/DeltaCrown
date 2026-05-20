@@ -457,5 +457,254 @@
     <script nonce="{{ request.csp_nonce }}">
     {% include "tournaments/registration/includes/_wizard_engine.js" %}
     </script>
+
+    {# ═══════════════════════════════════════════════════════════════════ #}
+    {# Premium Game Passport Modal — single source of truth for passport  #}
+    {# creation during registration. POSTs to /profile/api/passports/     #}
+    {# create/, the same endpoint as the profile settings page.           #}
+    {# ═══════════════════════════════════════════════════════════════════ #}
+    <div id="passport-modal" class="hidden fixed inset-0 z-[100] overflow-y-auto" aria-modal="true" role="dialog">
+        <div class="fixed inset-0 bg-black/80 backdrop-blur-sm" id="passport-modal-backdrop"></div>
+        <div class="relative min-h-screen flex items-center justify-center px-4 py-8">
+            <div class="relative w-full max-w-md bg-[#0a0b0f] border border-white/10 rounded-2xl shadow-[0_30px_60px_rgba(0,0,0,0.6)] overflow-hidden">
+
+                {# Header #}
+                <div class="flex items-center justify-between px-6 py-4 border-b border-white/[0.07]">
+                    <div class="flex items-center gap-3 min-w-0">
+                        <div class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style="background:rgba(var(--accent-rgb),0.12);">
+                            <i data-lucide="gamepad-2" class="w-4 h-4" style="color:var(--accent);"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <p class="text-[10px] font-black uppercase tracking-widest text-gray-500">New Passport</p>
+                            <h3 class="text-base font-black text-white truncate" id="passport-modal-title">Set Up Game Passport</h3>
+                        </div>
+                    </div>
+                    <button type="button" id="passport-modal-close" class="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/5 transition-colors" aria-label="Close">
+                        <i data-lucide="x" class="w-4 h-4 pointer-events-none"></i>
+                    </button>
+                </div>
+
+                {# Body — dynamic fields #}
+                <div class="px-6 py-5">
+                    <div id="passport-modal-loading" class="text-center py-8">
+                        <div class="inline-block w-6 h-6 border-2 border-white/15 border-t-white/60 rounded-full animate-spin"></div>
+                        <p class="text-[11px] text-gray-500 mt-2">Loading passport schema…</p>
+                    </div>
+                    <form id="passport-modal-form" class="hidden space-y-4">
+                        <div id="passport-modal-fields"></div>
+                        <p id="passport-modal-error" class="hidden text-[11px] text-red-400 leading-relaxed bg-red-500/[0.06] border border-red-500/20 rounded-lg px-3 py-2"></p>
+                    </form>
+                </div>
+
+                {# Footer #}
+                <div class="flex items-center justify-end gap-2 px-6 py-4 border-t border-white/[0.07] bg-black/30">
+                    <button type="button" id="passport-modal-cancel" class="px-4 py-2 rounded-lg border border-white/10 text-xs font-bold text-gray-400 hover:text-white hover:border-white/20 transition-colors">Cancel</button>
+                    <button type="button" id="passport-modal-submit" class="px-5 py-2 rounded-lg bg-[color:var(--accent)] text-black text-xs font-black uppercase tracking-wider hover:brightness-110 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
+                        <span id="passport-modal-submit-label">Save Passport</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script nonce="{{ request.csp_nonce }}">
+    (function() {
+        'use strict';
+
+        var modal       = document.getElementById('passport-modal');
+        var titleEl     = document.getElementById('passport-modal-title');
+        var loadingEl   = document.getElementById('passport-modal-loading');
+        var formEl      = document.getElementById('passport-modal-form');
+        var fieldsEl    = document.getElementById('passport-modal-fields');
+        var errorEl     = document.getElementById('passport-modal-error');
+        var submitBtn   = document.getElementById('passport-modal-submit');
+        var submitLabel = document.getElementById('passport-modal-submit-label');
+        var closeBtn    = document.getElementById('passport-modal-close');
+        var cancelBtn   = document.getElementById('passport-modal-cancel');
+        var backdropEl  = document.getElementById('passport-modal-backdrop');
+
+        var currentGameId = null;
+        var currentGameSlug = '';
+        var currentSchema = null;
+
+        function escapeHtml(s) {
+            return String(s == null ? '' : s).replace(/[&<>"']/g, function(c) {
+                return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c];
+            });
+        }
+
+        function getCookie(name) {
+            var m = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]+)'));
+            return m ? decodeURIComponent(m[1]) : '';
+        }
+
+        function showError(msg) {
+            errorEl.textContent = msg;
+            errorEl.classList.remove('hidden');
+        }
+
+        function clearError() {
+            errorEl.textContent = '';
+            errorEl.classList.add('hidden');
+        }
+
+        function buildField(field) {
+            var label = field.label + (field.required ? ' <span class="text-red-400">*</span>' : '');
+            var help = field.help_text ? '<p class="text-[10px] text-gray-500 mt-1">' + escapeHtml(field.help_text) + '</p>' : '';
+            var name = field.key;
+
+            if (field.type === 'select') {
+                var opts = '<option value="">Select…</option>';
+                (field.options || []).forEach(function(opt) {
+                    opts += '<option value="' + escapeHtml(opt.value) + '">' + escapeHtml(opt.label) + '</option>';
+                });
+                return '<div>' +
+                    '<label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">' + label + '</label>' +
+                    '<select name="' + escapeHtml(name) + '" data-field-key="' + escapeHtml(name) + '"' + (field.required ? ' required' : '') + ' class="w-full bg-white/[0.04] border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white focus:border-[color:var(--accent)] focus:outline-none focus:ring-1 focus:ring-[color:var(--accent)]/30 transition-colors">' + opts + '</select>' +
+                    help +
+                '</div>';
+            }
+
+            return '<div>' +
+                '<label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">' + label + '</label>' +
+                '<input type="text" name="' + escapeHtml(name) + '" data-field-key="' + escapeHtml(name) + '" ' +
+                    'placeholder="' + escapeHtml(field.placeholder || '') + '" ' +
+                    'autocomplete="off"' + (field.required ? ' required' : '') + ' ' +
+                    (field.min_length ? 'minlength="' + field.min_length + '" ' : '') +
+                    (field.max_length ? 'maxlength="' + field.max_length + '" ' : '') +
+                    'class="w-full bg-white/[0.04] border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white placeholder:text-gray-600 focus:border-[color:var(--accent)] focus:outline-none focus:ring-1 focus:ring-[color:var(--accent)]/30 transition-colors" />' +
+                help +
+            '</div>';
+        }
+
+        function openModal(triggerEl) {
+            currentGameId   = parseInt(triggerEl.getAttribute('data-game-id') || '0', 10);
+            currentGameSlug = triggerEl.getAttribute('data-game-slug') || '';
+            var gameName    = triggerEl.getAttribute('data-game-name') || 'Game';
+            titleEl.textContent = 'Set Up ' + gameName + ' Passport';
+            clearError();
+            modal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+            loadingEl.classList.remove('hidden');
+            formEl.classList.add('hidden');
+            fieldsEl.innerHTML = '';
+
+            // Fetch schema for this game
+            fetch('/profile/api/games/', { credentials: 'same-origin', headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    var game = (data.games || []).filter(function(g) { return g.id === currentGameId || g.slug === currentGameSlug; })[0];
+                    if (!game) { showError('Could not load passport schema for this game.'); loadingEl.classList.add('hidden'); return; }
+                    currentSchema = game;
+                    var html = (game.passport_schema || []).map(buildField).join('');
+                    fieldsEl.innerHTML = html;
+                    loadingEl.classList.add('hidden');
+                    formEl.classList.remove('hidden');
+                    if (window.lucide && window.lucide.createIcons) window.lucide.createIcons();
+                })
+                .catch(function() {
+                    showError('Network error. Please try again.');
+                    loadingEl.classList.add('hidden');
+                });
+        }
+
+        function closeModal() {
+            modal.classList.add('hidden');
+            document.body.style.overflow = '';
+        }
+
+        function submitForm() {
+            if (!currentGameId || !currentSchema) return;
+            clearError();
+            var metadata = {};
+            var inputs = fieldsEl.querySelectorAll('[data-field-key]');
+            for (var i = 0; i < inputs.length; i++) {
+                var k = inputs[i].getAttribute('data-field-key');
+                var v = (inputs[i].value || '').trim();
+                if (v) metadata[k] = v;
+            }
+
+            // Client-side required check
+            var missing = [];
+            (currentSchema.passport_schema || []).forEach(function(f) {
+                if (f.required && !metadata[f.key]) missing.push(f.label);
+            });
+            if (missing.length) { showError('Required: ' + missing.join(', ')); return; }
+
+            submitBtn.disabled = true;
+            submitLabel.textContent = 'Saving…';
+
+            fetch('/api/passports/create/', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                body: JSON.stringify({
+                    game_id: currentGameId,
+                    metadata: metadata,
+                    visibility: 'PUBLIC',
+                }),
+            })
+            .then(function(r) { return r.json().then(function(data) { return { status: r.status, data: data }; }); })
+            .then(function(resp) {
+                if (resp.status >= 200 && resp.status < 300 && resp.data && resp.data.success !== false) {
+                    // Build display name from the metadata for the registration form
+                    var primaryKey = (currentSchema.passport_schema || []).find(function(f) { return f.required && f.type !== 'select'; });
+                    var displayName = primaryKey ? (metadata[primaryKey.key] || '') : '';
+                    if (!displayName) {
+                        // Fall back to first non-select required field, then any field
+                        for (var k in metadata) { if (metadata.hasOwnProperty(k)) { displayName = metadata[k]; break; } }
+                    }
+                    // Update both registration form variants (profile step + roster step)
+                    var hiddenA = document.getElementById('reg-game-id');
+                    var hiddenB = document.getElementById('captain-game-id-input');
+                    if (hiddenA) hiddenA.value = displayName;
+                    if (hiddenB) hiddenB.value = displayName;
+                    // Swap the CTA UI to "filled" state
+                    document.querySelectorAll('#passport-cta-empty').forEach(function(el) { el.classList.add('hidden'); });
+                    document.querySelectorAll('#passport-cta-filled').forEach(function(el) { el.classList.remove('hidden'); });
+                    document.querySelectorAll('#passport-cta-name').forEach(function(el) { el.textContent = displayName; });
+                    var regionLabel = '';
+                    if (metadata.region) {
+                        var regionOpt = ((currentSchema.passport_schema || []).find(function(f) { return f.key === 'region'; }) || {}).options || [];
+                        var found = regionOpt.find(function(o) { return o.value === metadata.region; });
+                        regionLabel = found ? found.label : metadata.region;
+                    }
+                    document.querySelectorAll('#passport-cta-region').forEach(function(el) { el.textContent = regionLabel; });
+                    closeModal();
+                } else {
+                    var msg = '';
+                    if (resp.data && resp.data.field_errors) {
+                        msg = Object.keys(resp.data.field_errors).map(function(k) { return resp.data.field_errors[k]; }).join(' · ');
+                    }
+                    if (!msg) msg = (resp.data && resp.data.message) || (resp.data && resp.data.error) || 'Failed to save passport.';
+                    showError(msg);
+                }
+            })
+            .catch(function() { showError('Network error. Please try again.'); })
+            .finally(function() {
+                submitBtn.disabled = false;
+                submitLabel.textContent = 'Save Passport';
+            });
+        }
+
+        // Event delegation — any element with data-passport-modal-open opens the modal
+        document.addEventListener('click', function(e) {
+            var trigger = e.target.closest('[data-passport-modal-open]');
+            if (trigger) { e.preventDefault(); openModal(trigger); return; }
+        });
+
+        closeBtn.addEventListener('click', closeModal);
+        cancelBtn.addEventListener('click', closeModal);
+        backdropEl.addEventListener('click', closeModal);
+        submitBtn.addEventListener('click', submitForm);
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && !modal.classList.contains('hidden')) closeModal();
+        });
+    })();
+    </script>
 </body>
 </html>

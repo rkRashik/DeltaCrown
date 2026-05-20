@@ -14,9 +14,7 @@
 <link rel="stylesheet" href="{% static 'siteui/css/home.css' %}">
 {% endblock %}
 
-{% block extra_head %}
-<script nonce="{{ request.csp_nonce }}">document.body.classList.add('home-page');</script>
-{% endblock %}
+{% block body_class %}home-page{% endblock %}
 
 {% block content %}
 

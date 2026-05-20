@@ -991,8 +991,11 @@ def _resolve_veto_template(match: Match, best_of: int) -> Tuple[List[Dict[str, A
     """Return ``(sequence, time_per_action_seconds, auto_random_on_timeout)``.
 
     Resolution order:
-      1. Active ``VetoConfiguration`` for the match's game (domain="map").
-      2. Hardcoded ``_default_veto_sequence(best_of)`` fallback with defaults.
+      1. Active ``VetoConfiguration`` for the match's game (domain="map") provides the sequence.
+      2. Per-tournament TOC Lobby Settings (``config['lobby']``) override timing/auto-pick:
+         ``map_veto_seconds`` → time_per_action_seconds
+         ``map_veto_auto_pick`` → auto_random_on_timeout
+      3. Hardcoded ``_default_veto_sequence(best_of)`` fallback with defaults.
 
     The VetoConfiguration ``sequence`` may use a per-step ``count`` to compress
     "side A bans 2" into one entry — we expand it to one workflow step per
@@ -1000,6 +1003,10 @@ def _resolve_veto_template(match: Match, best_of: int) -> Tuple[List[Dict[str, A
     one-action-per-index.
     """
     game = getattr(getattr(match, "tournament", None), "game", None)
+    sequence: Optional[List[Dict[str, Any]]] = None
+    time_default = VETO_DEFAULT_STEP_SECONDS
+    auto_default = True
+
     if game is not None:
         try:
             from apps.games.models.rules import VetoConfiguration
@@ -1026,15 +1033,35 @@ def _resolve_veto_template(match: Match, best_of: int) -> Tuple[List[Dict[str, A
                     for _ in range(count):
                         expanded.append({"side": side, "action": action})
                 if expanded:
-                    return (
-                        expanded,
-                        int(cfg.time_per_action_seconds or VETO_DEFAULT_STEP_SECONDS),
-                        bool(cfg.auto_random_on_timeout),
-                    )
+                    sequence = expanded
+                    time_default = int(cfg.time_per_action_seconds or VETO_DEFAULT_STEP_SECONDS)
+                    auto_default = bool(cfg.auto_random_on_timeout)
         except Exception as exc:
             logger.warning("veto template resolution failed match=%s err=%s",
                            getattr(match, "id", None), exc)
-    return _default_veto_sequence(best_of), VETO_DEFAULT_STEP_SECONDS, True
+
+    if sequence is None:
+        sequence = _default_veto_sequence(best_of)
+
+    # Tournament-level overrides from TOC Lobby Settings.
+    try:
+        tournament = getattr(match, "tournament", None)
+        t_config = getattr(tournament, "config", None) if tournament else None
+        if isinstance(t_config, dict):
+            lobby_cfg = t_config.get("lobby") if isinstance(t_config.get("lobby"), dict) else {}
+            if "map_veto_seconds" in lobby_cfg:
+                try:
+                    override_seconds = int(lobby_cfg["map_veto_seconds"])
+                    if override_seconds > 0:
+                        time_default = override_seconds
+                except (TypeError, ValueError):
+                    pass
+            if "map_veto_auto_pick" in lobby_cfg:
+                auto_default = bool(lobby_cfg["map_veto_auto_pick"])
+    except Exception:
+        pass
+
+    return sequence, time_default, auto_default
 
 
 def _veto_step_expires_at(veto: Dict[str, Any]) -> Optional[str]:
@@ -2699,6 +2726,27 @@ class MatchRoomWorkflowView(LoginRequiredMixin, View):
             if "coin_toss" not in phase_order:
                 raise ValueError("Coin toss is disabled by lobby policy.")
 
+            # Enforce who-can-flip per TOC Lobby Settings (`coin_toss_actor`).
+            #   host  → only side 1 (default; staff override)
+            #   either → either side may flip (or staff)
+            #   staff → only staff/admin may flip
+            try:
+                t_config = getattr(match.tournament, "config", None) or {}
+                lobby_cfg_runtime = t_config.get("lobby") if isinstance(t_config.get("lobby"), dict) else {}
+                coin_actor_policy = str(lobby_cfg_runtime.get("coin_toss_actor", "host")).strip().lower()
+            except Exception:
+                coin_actor_policy = "host"
+            if coin_actor_policy not in {"host", "either", "staff"}:
+                coin_actor_policy = "host"
+
+            if not is_staff:
+                if coin_actor_policy == "staff":
+                    raise ValueError("Coin toss is restricted to tournament staff for this match.")
+                if coin_actor_policy == "host" and actor_side != 1:
+                    raise ValueError("Only the host (Side 1) may flip the coin for this match.")
+                if coin_actor_policy == "either" and actor_side not in (1, 2):
+                    raise ValueError("Only match participants may flip the coin.")
+
             winner_side = self._parse_side(payload.get("winner_side"))
             if winner_side not in (1, 2):
                 winner_side = random.choice([1, 2])
@@ -2810,6 +2858,52 @@ class MatchRoomWorkflowView(LoginRequiredMixin, View):
 
             changed = True
             message = f"Veto updated: side {actor_side} {expected_action}ed {item}."
+
+        elif action == "veto_force_advance":
+            # Client-triggered fallback when the veto timer has expired but the
+            # Celery sweeper hasn't run (e.g. beat is not running in this
+            # environment). Any participant or staff can call this — server
+            # validates that the timer is genuinely expired so it can't be
+            # abused as an early skip.
+            _assert_checkin_gate(setup_phase=True)
+            if mode != "veto":
+                raise ValueError("This match does not use map veto flow.")
+            if str(workflow.get("phase")) != "phase1":
+                raise ValueError("Veto auto-pick is not available in the current phase.")
+
+            veto_state = _safe_dict(workflow.get("veto"))
+            if not bool(veto_state.get("auto_random_on_timeout", True)):
+                raise ValueError("Auto-pick is disabled for this match.")
+
+            expires_iso = veto_state.get("step_expires_at")
+            if not expires_iso:
+                raise ValueError("Veto step has no active timer.")
+
+            from django.utils.dateparse import parse_datetime as _parse_dt
+            _expires_dt = _parse_dt(str(expires_iso))
+            if _expires_dt and timezone.now() < _expires_dt:
+                raise ValueError("Veto timer has not expired yet.")
+
+            from apps.tournaments.tasks.veto_timeout import _auto_execute_one_step
+            try:
+                _auto_execute_one_step(match, workflow)
+            except Exception as _auto_err:
+                logger.warning("veto_force_advance failed match=%s err=%s", match.id, _auto_err)
+                raise ValueError("Auto-pick failed. An admin will resolve this manually.")
+
+            # Reflect any newly selected map into credentials/lobby info.
+            veto_post = _safe_dict(workflow.get("veto"))
+            selected_map = str(veto_post.get("selected_map") or "")
+            if selected_map:
+                workflow["phase"] = "lobby_setup" if "lobby_setup" in phase_order else _next_phase("phase1")
+                credentials = _safe_dict(workflow.get("credentials"))
+                if not str(credentials.get("map") or ""):
+                    credentials["map"] = selected_map
+                workflow["credentials"] = credentials
+                lobby_info["map"] = selected_map
+
+            changed = True
+            message = "Auto-pick applied — veto step advanced."
 
         elif action == "direct_ready":
             _assert_checkin_gate(allow_direct_ready_action=True)

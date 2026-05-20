@@ -754,10 +754,10 @@
         <div class="flex items-center gap-2">
             {% if view_as_spectator %}
             <i data-lucide="eye" class="w-3.5 h-3.5 text-blue-400"></i>
-            <span>Spectator Preview â€” admin controls hidden. This is how the public sees this page.</span>
+            <span>Spectator Preview &ndash; admin controls hidden. This is how the public sees this page.</span>
             {% else %}
-            <i data-lucide="shield-check" class="w-3.5 h-3.5 text-yellow-400"></i>
-            <span>Organizer View â€” you are seeing admin controls.</span>
+            <i data-lucide=”shield-check” class=”w-3.5 h-3.5 text-yellow-400”></i>
+            <span>Organizer View &ndash; you are seeing admin controls.</span>
             {% endif %}
         </div>
         {% if view_as_spectator %}
@@ -1080,54 +1080,7 @@
                             </div>
                         </div>
 
-                    {% if entity_links or public_participant_teams or related_tournaments %}
-                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                        {% if entity_links %}
-                        <div class="glass-panel p-5 rounded-2xl border border-white/10">
-                            <p class="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-3">Explore This Event</p>
-                            <div class="grid grid-cols-2 gap-2">
-                                {% for link in entity_links %}
-                                <a href="{{ link.url }}" class="px-3 py-2 rounded-xl bg-white/5 border border-white/10 hover:border-white/25 text-xs font-bold text-gray-200 hover:text-white transition flex items-center justify-between">
-                                    <span>{{ link.label }}</span>
-                                    <i data-lucide="arrow-up-right" class="w-3.5 h-3.5 theme-text"></i>
-                                </a>
-                                {% endfor %}
-                            </div>
-                        </div>
-                        {% endif %}
-
-                        {% if public_participant_teams %}
-                        <div class="glass-panel p-5 rounded-2xl border border-white/10">
-                            <p class="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-3">Public Teams</p>
-                            <div class="space-y-2">
-                                {% for team in public_participant_teams|slice:":4" %}
-                                <a href="{{ team.url }}" class="flex items-center gap-3 rounded-xl bg-white/5 border border-white/5 px-3 py-2 hover:border-dc-cyan/30 transition">
-                                    {% if team.logo_url %}<img src="{{ team.logo_url }}" alt="{{ team.name }}" class="w-8 h-8 rounded-lg object-cover">{% else %}<span class="w-8 h-8 rounded-lg bg-white/10 grid place-items-center text-[10px] font-bold text-white">{{ team.name|slice:":2"|upper }}</span>{% endif %}
-                                    <span class="min-w-0">
-                                        <span class="block text-sm font-bold text-white truncate">{{ team.name }}</span>
-                                        {% if team.organization_name %}<span class="block text-[10px] text-gray-500 truncate">{{ team.organization_name }}</span>{% endif %}
-                                    </span>
-                                </a>
-                                {% endfor %}
-                            </div>
-                        </div>
-                        {% endif %}
-
-                        {% if related_tournaments %}
-                        <div class="glass-panel p-5 rounded-2xl border border-white/10">
-                            <p class="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-3">Related {{ game_spec.display_name }} Events</p>
-                            <div class="space-y-2">
-                                {% for item in related_tournaments|slice:":3" %}
-                                <a href="{{ item.url }}" class="block rounded-xl bg-white/5 border border-white/5 px-3 py-2 hover:border-dc-gold/30 transition">
-                                    <span class="block text-sm font-bold text-white truncate">{{ item.name }}</span>
-                                    <span class="block text-[10px] text-gray-500">{{ item.status }}{% if item.date %} · {{ item.date|date:"M j, Y" }}{% endif %}</span>
-                                </a>
-                                {% endfor %}
-                            </div>
-                        </div>
-                        {% endif %}
-                    </div>
-                    {% endif %}
+                    {% comment %}Explore/Related sections removed — archived/related tournament cards were surfacing incorrectly.{% endcomment %}
 
                     <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
                         <div class="glass-panel p-5 rounded-2xl flex flex-col justify-center">
@@ -1143,7 +1096,7 @@
                         <div class="glass-panel p-5 rounded-2xl flex flex-col justify-center">
                             <i data-lucide="monitor" class="w-5 h-5 text-gray-500 mb-3"></i>
                             <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Platform / Mode</p>
-                            <p class="font-bold text-white text-sm">{{ tournament_platform_label }} â€¢ {{ tournament_mode_label }}</p>
+                            <p class="font-bold text-white text-sm">{{ tournament_platform_label }} &bull; {{ tournament_mode_label }}</p>
                         </div>
                         <div class="glass-panel p-5 rounded-2xl flex flex-col justify-center border-l-2 theme-border">
                             <i data-lucide="wallet" class="w-5 h-5 theme-text mb-3"></i>
@@ -2564,6 +2517,32 @@
                                 <p id="nd-action-note" class="text-xs text-gray-500">Status synced from runtime state.</p>
                                 {% endif %}
                             </div>
+
+                            {% if detail_notify_captain %}
+                            <div class="mt-4 pt-4 border-t border-white/[0.07]" id="notify-captain-section">
+                                {% if detail_notify_captain.type == 'link' %}
+                                <a href="{{ detail_notify_captain.url }}"
+                                   class="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-white/15 bg-white/[0.04] hover:bg-white/[0.08] text-sm font-bold text-gray-300 hover:text-white transition-all">
+                                    <i data-lucide="{{ detail_notify_captain.icon|default:'send' }}" class="w-4 h-4"></i>
+                                    {{ detail_notify_captain.label }}
+                                </a>
+                                {% else %}
+                                <button type="button"
+                                        id="notify-captain-btn"
+                                        data-click="dcNotifyCaptain"
+                                        data-click-pass-el
+                                        data-notify-url="{% url 'tournaments:notify_captain' tournament.slug %}"
+                                        data-csrf="{{ csrf_token }}"
+                                        data-label="{{ detail_notify_captain.label|escapejs }}"
+                                        class="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-white/15 bg-white/[0.04] hover:bg-white/[0.08] text-sm font-bold text-gray-300 hover:text-white transition-all">
+                                    <i data-lucide="{{ detail_notify_captain.icon|default:'bell' }}" class="w-4 h-4 pointer-events-none"></i>
+                                    <span class="pointer-events-none">{{ detail_notify_captain.label }}</span>
+                                </button>
+                                <p id="notify-captain-feedback" class="text-[11px] text-center mt-2 hidden" aria-live="polite"></p>
+                                {% endif %}
+                                <p class="text-[10px] text-gray-600 text-center mt-2">Sends an in-app notification to your team captain.</p>
+                            </div>
+                            {% endif %}
                         </div>
                     </div>
 
@@ -3544,6 +3523,61 @@ document.addEventListener('DOMContentLoaded', function () {
     var href = article.getAttribute('data-report-href');
     if (href) window.location.href = href;
   });
+
+  // Notify captain handler — called by the CSP-safe data-click delegator.
+  window.dcNotifyCaptain = function(el) {
+    var btn = el || document.getElementById('notify-captain-btn');
+    if (!btn || btn.disabled) return;
+
+    var url    = btn.getAttribute('data-notify-url');
+    var csrf   = btn.getAttribute('data-csrf');
+    var label  = btn.getAttribute('data-label') || 'Notify Team Captain';
+    var fb     = document.getElementById('notify-captain-feedback');
+
+    if (!url) return;
+
+    // Immediate feedback: lock button + show spinner text.
+    btn.disabled = true;
+    btn.querySelector('span') && (btn.querySelector('span').textContent = 'Sending…');
+    if (fb) { fb.textContent = ''; fb.className = 'text-[11px] text-center mt-2'; }
+
+    fetch(url, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: {
+        'X-CSRFToken': csrf || '',
+        'X-Requested-With': 'XMLHttpRequest',
+      },
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.success) {
+        // Persist success state — button turns green, no way to re-click.
+        btn.querySelector('span') && (btn.querySelector('span').textContent = '✓ Notification Sent');
+        btn.classList.remove('border-white/15', 'bg-white/[0.04]', 'text-gray-300');
+        btn.classList.add('border-green-500/30', 'bg-green-500/10', 'text-green-300', 'cursor-default');
+        if (fb) {
+          fb.textContent = data.message || 'Your captain has been notified. They can grant you permission or register the team.';
+          fb.className = 'text-[11px] text-center mt-2 text-green-400';
+        }
+      } else {
+        btn.disabled = false;
+        btn.querySelector('span') && (btn.querySelector('span').textContent = label);
+        if (fb) {
+          fb.textContent = data.error || 'Something went wrong. Please try again.';
+          fb.className = 'text-[11px] text-center mt-2 text-red-400';
+        }
+      }
+    })
+    .catch(function() {
+      btn.disabled = false;
+      btn.querySelector('span') && (btn.querySelector('span').textContent = label);
+      if (fb) {
+        fb.textContent = 'Network error. Please check your connection and try again.';
+        fb.className = 'text-[11px] text-center mt-2 text-red-400';
+      }
+    });
+  };
 })();
 </script>
 {% endblock %}

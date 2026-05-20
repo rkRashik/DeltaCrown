@@ -303,26 +303,56 @@
     },
 
     // 1-second countdown tick — updates DOM in place without re-rendering.
+    // When the timer hits 0 and stays there, trigger a client-side fallback
+    // call so the veto auto-advances even if the Celery sweeper isn't running.
     onTick: function (c) {
       var workflow = c.asObject(c.state.room.workflow);
       var veto = c.asObject(workflow.veto);
       var iso = veto.step_expires_at;
-      if (!iso) return;
+      if (!iso) {
+        // No active timer — clear any pending force-advance.
+        if (c.state._vetoForceAt) c.state._vetoForceAt = 0;
+        return;
+      }
       var remaining = _secondsRemaining(iso);
       if (remaining === null) return;
       var total = c.toInt(veto.time_per_action_seconds, 30) || 30;
       var ring = document.querySelector('[data-veto-timer]');
-      if (!ring) return;
-      var fill = ring.querySelector('[data-timer-fill]');
-      var label = ring.querySelector('[data-timer-label]');
-      if (label) label.textContent = String(remaining);
-      if (fill) {
-        var circumference = 2 * Math.PI * 22;
-        var ratio = Math.max(0, Math.min(1, remaining / total));
-        fill.setAttribute('stroke-dashoffset', (circumference * (1 - ratio)).toFixed(2));
+      if (ring) {
+        var fill = ring.querySelector('[data-timer-fill]');
+        var label = ring.querySelector('[data-timer-label]');
+        if (label) label.textContent = String(remaining);
+        if (fill) {
+          var circumference = 2 * Math.PI * 22;
+          var ratio = Math.max(0, Math.min(1, remaining / total));
+          fill.setAttribute('stroke-dashoffset', (circumference * (1 - ratio)).toFixed(2));
+        }
+        if (remaining <= 5) ring.classList.add('is-urgent');
+        else ring.classList.remove('is-urgent');
       }
-      if (remaining <= 5) ring.classList.add('is-urgent');
-      else ring.classList.remove('is-urgent');
+
+      // Auto-advance fallback: once the timer hits 0, wait ~3 seconds for the
+      // server sweeper. If nothing updates, fire veto_force_advance ourselves.
+      // Only the actor side (or staff) sends the action to avoid duplicate calls.
+      if (remaining === 0 && !c.state.requestBusy) {
+        var sequence = c.asList(veto.sequence);
+        var step = Math.max(0, c.toInt(veto.step, 0));
+        var stepInfo = c.asObject(sequence[step]);
+        var expectedSide = c.toInt(stepInfo.side, 0) || 1;
+        var me = c.asObject(c.state.room.me);
+        var mySide = c.mySide();
+        var staff = c.bool(me.is_staff, false);
+        if (mySide === expectedSide || staff) {
+          if (!c.state._vetoForceAt) {
+            c.state._vetoForceAt = Date.now();
+          } else if (Date.now() - c.state._vetoForceAt > 3000 && !c.state._vetoForceFired) {
+            c.state._vetoForceFired = true;
+            c.sendWorkflowAction('veto_force_advance', {}).finally(function () {
+              setTimeout(function () { c.state._vetoForceFired = false; c.state._vetoForceAt = 0; }, 5000);
+            });
+          }
+        }
+      }
     }
   });
 })();

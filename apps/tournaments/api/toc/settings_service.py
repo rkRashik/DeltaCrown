@@ -975,6 +975,21 @@ class TOCSettingsService:
                 update_fields=unique_fields + ["updated_at"] if hasattr(tournament, "updated_at") else unique_fields
             )
 
+        # If a date that affects the lifecycle pipeline changed, clear any stuck
+        # cooldown cache keys so the next cron cycle re-evaluates immediately.
+        date_fields_changed = {'registration_start', 'registration_end', 'tournament_start', 'tournament_end'}
+        if set(changed) & date_fields_changed:
+            try:
+                from django.core.cache import cache as _cache
+                for _key_suffix in ('reg_closed', 'reg_reopen', 'live'):
+                    _cache.delete(f'lifecycle:advance_skip:{tournament.id}:{_key_suffix}')
+                # Kick off an immediate auto-advance evaluation so the status
+                # updates within seconds rather than waiting for the next cron tick.
+                from apps.tournaments.services.lifecycle_service import TournamentLifecycleService
+                TournamentLifecycleService.auto_advance(tournament)
+            except Exception:
+                pass  # Non-fatal — next cron tick will pick it up.
+
         current_version = getattr(tournament, "updated_at", None)
         return {
             "updated_fields": sorted(set(changed)),

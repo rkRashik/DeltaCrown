@@ -81,6 +81,24 @@ def _guard_open_registration(t: Tournament) -> Optional[str]:
     return None
 
 
+def _guard_reopen_registration(t: Tournament) -> Optional[str]:
+    """Guard for REGISTRATION_CLOSED → REGISTRATION_OPEN reverse transition.
+
+    Only allowed while the tournament hasn't started yet, registration_end
+    is now in the future (organizer extended the deadline), and registration
+    is actually open (start is in the past).
+    """
+    now = timezone.now()
+    if t.tournament_start and now >= t.tournament_start:
+        return "Tournament has already started — cannot re-open registration"
+    if t.registration_end and now >= t.registration_end:
+        return (
+            f"registration_end ({t.registration_end}) is still in the past — "
+            "set it to a future date first"
+        )
+    return None
+
+
 def _guard_close_registration(t: Tournament) -> Optional[str]:
     from apps.tournaments.models.registration import Registration
 
@@ -208,6 +226,10 @@ TRANSITIONS: List[Transition] = [
 
     # Shortcut: DRAFT → REGISTRATION_OPEN (when publish + reg dates already passed)
     Transition(Tournament.DRAFT, Tournament.REGISTRATION_OPEN, guard=_guard_open_registration, on_enter=lambda t: (_on_enter_published(t), _on_enter_registration_open(t))),  # noqa: E731
+
+    # Reverse: organizer extended the registration deadline into the future.
+    # Only allowed before tournament_start so the bracket is not disrupted.
+    Transition(Tournament.REGISTRATION_CLOSED, Tournament.REGISTRATION_OPEN, guard=_guard_reopen_registration, on_enter=_on_enter_registration_open),
 ]
 
 # Build a fast lookup: (from, to) → Transition
@@ -461,24 +483,63 @@ class TournamentLifecycleService:
             return None
 
         # REGISTRATION_OPEN → REGISTRATION_CLOSED  (when registration_end is past)
+        # Time-based close uses force=True to bypass the participant-count guard.
+        # The participant-count check is a MANUAL-close concern, not a deadline concern —
+        # once the clock says registration is over, the status must reflect that.
+        # The REGISTRATION_CLOSED → LIVE guard still enforces participant minimums.
         if status == Tournament.REGISTRATION_OPEN:
             if tournament.registration_end and now >= tournament.registration_end:
                 _skip_key = f'lifecycle:advance_skip:{tournament.id}:reg_closed'
                 if cache.get(_skip_key):
                     return None
                 try:
-                    cls.transition(tournament.id, Tournament.REGISTRATION_CLOSED, reason='Auto: registration window closed')
+                    cls.transition(
+                        tournament.id,
+                        Tournament.REGISTRATION_CLOSED,
+                        reason='Auto: registration deadline passed',
+                        force=True,  # bypass participant-count guard for time-based close
+                    )
                     cache.delete(_skip_key)
                     return Tournament.REGISTRATION_CLOSED
                 except ValidationError as e:
-                    # 30-min cooldown: avoids re-running guard queries on every cron cycle
-                    # when the tournament is permanently blocked (e.g. 0 confirmed participants).
                     cache.set(_skip_key, 1, 1800)
                     logger.warning(
-                        "Auto-advance REG_OPEN→REG_CLOSED blocked for %s: %s — cooldown 30m",
+                        "Auto-advance REG_OPEN→REG_CLOSED failed for %s: %s — cooldown 30m",
                         tournament.id, e,
                     )
             return None
+
+        # REGISTRATION_CLOSED → REGISTRATION_OPEN  (organizer extended the deadline)
+        # When an organizer sets registration_end back into the future while the
+        # tournament hasn't started yet, auto-advance re-opens registration so the
+        # status stays in sync with the actual window.
+        if status == Tournament.REGISTRATION_CLOSED:
+            reg_end = tournament.registration_end
+            t_start = tournament.tournament_start
+            deadline_is_future = reg_end and now < reg_end
+            tournament_not_started = not t_start or now < t_start
+            if deadline_is_future and tournament_not_started:
+                _skip_key = f'lifecycle:advance_skip:{tournament.id}:reg_reopen'
+                if not cache.get(_skip_key):
+                    try:
+                        cls.transition(
+                            tournament.id,
+                            Tournament.REGISTRATION_OPEN,
+                            reason='Auto: registration deadline extended into future',
+                        )
+                        cache.delete(_skip_key)
+                        logger.info(
+                            "Auto-advance REG_CLOSED→REG_OPEN (deadline extended) for %s",
+                            tournament.id,
+                        )
+                        return Tournament.REGISTRATION_OPEN
+                    except ValidationError as e:
+                        cache.set(_skip_key, 1, 1800)
+                        logger.warning(
+                            "Auto-advance REG_CLOSED→REG_OPEN failed for %s: %s",
+                            tournament.id, e,
+                        )
+                return None  # handled (either re-opened or cooldown)
 
         # REGISTRATION_CLOSED → LIVE  (when tournament_start is past)
         if status == Tournament.REGISTRATION_CLOSED:

@@ -2407,9 +2407,19 @@
     if (proofFile && !String(proofFile.type || '').toLowerCase().startsWith('image/')) { showToast('Only image files are allowed for evidence upload.', 'error'); return; }
     if (proofFile && Number(proofFile.size || 0) > (10 * 1024 * 1024)) { showToast('Evidence image exceeds 10MB limit.', 'error'); return; }
 
-    // Immediately lock the submit button to prevent double-submit while request is in flight.
-    var submitBtn = document.querySelector('#result-submit-form button[type="submit"]');
-    if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = proofFile ? 'Uploading…' : 'Submitting…'; }
+    // Immediately lock the submit button + disable all form inputs to prevent
+    // any further interaction while the upload is in flight.
+    var form = document.getElementById('result-submit-form');
+    var submitBtn = form ? form.querySelector('button[type="submit"]') : null;
+    if (form) {
+      Array.prototype.forEach.call(form.querySelectorAll('input, textarea, button'), function (el) {
+        if (el !== submitBtn) el.disabled = true;
+      });
+    }
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<span class="inline-block w-3.5 h-3.5 mr-2 border-2 border-black/30 border-t-black rounded-full animate-spin align-middle"></span>' + (proofFile ? 'Uploading evidence…' : 'Submitting…');
+    }
 
     var formData = new FormData();
     formData.append('action', 'submit_result');
@@ -2418,14 +2428,68 @@
     formData.append('note', valueOf('result-note'));
     if (proofUrl) formData.append('proof_screenshot_url', proofUrl);
     if (proofFile) formData.append('proof', proofFile);
+
+    var startedAt = Date.now();
     try {
       await sendWorkflowMultipartAction(formData);
-    } finally {
-      // Re-enable only if still showing (server response will replace the form on success).
-      if (submitBtn && submitBtn.isConnected && !submitBtn.disabled) {
+      // Optimistic UX: the room re-render handles long-term state, but flash a
+      // strong success confirmation so the user feels the action landed
+      // immediately, regardless of network latency or background OCR.
+      var elapsed = Date.now() - startedAt;
+      _flashResultSubmitted(elapsed);
+    } catch (err) {
+      // Re-enable inputs so the user can retry. sendWorkflowMultipartAction
+      // already showed a toast with the error.
+      if (form) {
+        Array.prototype.forEach.call(form.querySelectorAll('input, textarea, button'), function (el) { el.disabled = false; });
+      }
+      if (submitBtn && submitBtn.isConnected) {
+        submitBtn.disabled = false;
         submitBtn.textContent = 'Submit Score';
       }
     }
+  }
+
+  function _flashResultSubmitted(elapsedMs) {
+    // Inline success banner that appears above the page for ~3 seconds.
+    // Tells the user the submission is in and they can navigate away.
+    try {
+      var existing = document.getElementById('mr-submit-flash');
+      if (existing) existing.remove();
+      var hubUrl = (state.room && state.room.urls && state.room.urls.hub) ? state.room.urls.hub : '';
+      var el = document.createElement('div');
+      el.id = 'mr-submit-flash';
+      el.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-12px);z-index:9999;opacity:0;transition:opacity 0.25s ease,transform 0.25s ease;max-width:480px;width:calc(100% - 32px);';
+      el.innerHTML =
+        '<div style="background:rgba(15,18,22,0.96);backdrop-filter:blur(12px);border:1px solid rgba(52,211,153,0.35);border-left:4px solid #10b981;border-radius:12px;padding:14px 18px;box-shadow:0 16px 40px rgba(0,0,0,0.45);">' +
+          '<div style="display:flex;align-items:center;gap:12px;">' +
+            '<div style="width:36px;height:36px;border-radius:10px;background:rgba(52,211,153,0.18);display:flex;align-items:center;justify-content:center;flex-shrink:0;">' +
+              '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#34d399" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>' +
+            '</div>' +
+            '<div style="flex:1;min-width:0;">' +
+              '<p style="font-size:13px;font-weight:900;color:#a7f3d0;letter-spacing:0.04em;text-transform:uppercase;margin:0 0 2px;">Score submitted</p>' +
+              '<p style="font-size:11px;color:#cbd5e1;margin:0;">Verification can take a moment. You can leave this page — you\'ll be notified when the result is finalized.</p>' +
+            '</div>' +
+            (hubUrl
+              ? '<a href="' + hubUrl + '" style="flex-shrink:0;padding:8px 14px;border-radius:8px;background:rgba(52,211,153,0.15);border:1px solid rgba(52,211,153,0.3);color:#a7f3d0;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:0.06em;text-decoration:none;">Back to Hub</a>'
+              : '') +
+          '</div>' +
+        '</div>';
+      document.body.appendChild(el);
+      // Fade in
+      requestAnimationFrame(function () {
+        el.style.opacity = '1';
+        el.style.transform = 'translateX(-50%) translateY(0)';
+      });
+      // Fade out after 5s (stays long enough to read the CTA)
+      setTimeout(function () {
+        if (el && el.isConnected) {
+          el.style.opacity = '0';
+          el.style.transform = 'translateX(-50%) translateY(-12px)';
+          setTimeout(function () { if (el && el.isConnected) el.remove(); }, 300);
+        }
+      }, 5000);
+    } catch (_) { /* non-fatal */ }
   }
 
   // =====================================================================

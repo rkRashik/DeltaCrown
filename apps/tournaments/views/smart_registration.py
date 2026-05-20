@@ -367,10 +367,17 @@ class SmartRegistrationView(LoginRequiredMixin, View):
             except Exception:
                 pass
 
-        # Game ID label (game-specific — configurable per Game)
+        # Game ID label + help text (from game constants / model attributes)
         game_obj = tournament.game
         game_id_label = getattr(game_obj, 'game_id_label', '') or 'Game ID'
         game_id_placeholder = getattr(game_obj, 'game_id_placeholder', '') or 'Your in-game name/ID'
+        # Fetch help text from game constants for the passport add UI.
+        try:
+            from apps.games.constants import SUPPORTED_GAMES
+            _gconst = SUPPORTED_GAMES.get(game_obj.slug, {})
+            game_id_help = _gconst.get('id_help', '') or ''
+        except Exception:
+            game_id_help = ''
 
         # Section completeness for progressive disclosure summary bar
         section_flags = [
@@ -425,6 +432,7 @@ class SmartRegistrationView(LoginRequiredMixin, View):
             'deltacoin_balance': deltacoin_balance,
             'game_id_label': game_id_label,
             'game_id_placeholder': game_id_placeholder,
+            'game_id_help': game_id_help,
             'sections_complete': sections_complete,
             'sections_total': sections_total,
             'sections_needing_input': sections_needing_input,
@@ -1086,6 +1094,11 @@ class SmartRegistrationView(LoginRequiredMixin, View):
             is_guest_team=is_guest_team,
             guest_team_data=guest_team_data,
         )
+
+        # Note: Game passport is created upfront via the registration-page modal
+        # which POSTs directly to /profile/api/passports/create/ (the single source
+        # of truth). No silent fallback here — if the user reaches submission with
+        # an empty game_id, the validation at the start of this method blocks them.
 
         # ── Capture Lineup Snapshot (team tournaments) ──
         if is_team and team_id:

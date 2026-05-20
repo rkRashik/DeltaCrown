@@ -10,7 +10,8 @@
       "Bash(python -m pytest apps/tournaments/tests/test_round_naming.py apps/tournaments/tests/test_truth_consistency.py apps/tournaments/tests/test_prize_config_service.py apps/tournaments/tests/test_format_advisor.py apps/tournaments/tests/test_hub_prize_template_csp.py apps/tournaments/tests/test_match_classification.py --tb=short)",
       "WebFetch(domain:127.0.0.1)",
       "PowerShell(\\(Get-Content \"apps\\\\siteui\\\\homepage_v3_context.py\" -Encoding UTF8\\) | ForEach-Object { $_ -replace [char]0x201C, '\"' -replace [char]0x201D, '\"' -replace [char]0x2018, \"'\" -replace [char]0x2019, \"'\" } | Set-Content \"apps\\\\siteui\\\\homepage_v3_context.py\" -Encoding UTF8; Write-Host \"Done\")",
-      "Bash(python -c \"import requests; print\\('requests', requests.__version__\\)\")"
+      "Bash(python -c \"import requests; print\\('requests', requests.__version__\\)\")",
+      "Bash(grep -n 'startRuntimeCountdown\\\\|$root\\\\|self\\\\.$root' templates/tournaments/detailPages/detail.html)"
     ]
   }
 }

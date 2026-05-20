@@ -14,9 +14,26 @@
 
   var STORAGE_KEY = "dc_toc_ob_done_" + cfg.slug;
 
-  // Force-open on first redirect even if previously finished.
+  // Force-open on first redirect (URL has ?onboarding=true).
+  // Once shown for the first time, persist the dismiss flag and strip the
+  // query param so a browser refresh / bookmark hit doesn't re-trigger the
+  // guide on every page load.
   var forceOpen = cfg.forceOpen;
-  if (!forceOpen && localStorage.getItem(STORAGE_KEY) === "1") return;
+  var alreadyDone = localStorage.getItem(STORAGE_KEY) === "1";
+  var autoShow = forceOpen || !alreadyDone;
+
+  if (forceOpen) {
+    // The user is mid-redirect from tournament creation. Mark this view
+    // as the "first show" and strip the URL param so future loads of /toc/
+    // don't keep re-opening the guide.
+    try {
+      var url = new URL(window.location.href);
+      if (url.searchParams.has("onboarding")) {
+        url.searchParams.delete("onboarding");
+        window.history.replaceState({}, "", url.pathname + (url.search ? url.search : "") + url.hash);
+      }
+    } catch (_) { /* older browser — non-fatal */ }
+  }
 
   var STEPS = [
     {
@@ -312,17 +329,29 @@
           overlay.style.display = "flex";
           overlay.style.opacity = "1";
           renderPanel();
+          // Re-init lucide icons for the freshly rendered panel.
+          if (window.lucide && typeof window.lucide.createIcons === "function") {
+            window.lucide.createIcons({ nodes: [overlay] });
+          }
         } else {
+          // First reopen — build the overlay now.
           init();
         }
       });
     });
   }
 
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", function () { init(); wireReopenButton(); });
-  } else {
-    init();
+  function bootstrap() {
+    // Always wire the sidebar "Launch Guide" button so users can re-open
+    // the guide whenever they want, regardless of dismiss state.
     wireReopenButton();
+    // Only auto-open the modal on first visit / forced redirect.
+    if (autoShow) init();
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", bootstrap);
+  } else {
+    bootstrap();
   }
 })();

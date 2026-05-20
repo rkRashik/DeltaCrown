@@ -906,6 +906,9 @@
 
     function validateRoster() {
         if (!runtimeConfig.isTeam || runtimeConfig.isGuestTeam) return true;
+        // Check captain game ID field if visible (no passport case)
+        const captainGid = document.getElementById('captain-game-id-input');
+        if (captainGid && captainGid.closest('#captain-game-id-section') && !captainGid.value.trim()) return false;
         let starters = 0;
         document.querySelectorAll('[data-member-id]').forEach(card => {
             const slot = (card.dataset.memberRosterSlot || 'STARTER').toUpperCase();
