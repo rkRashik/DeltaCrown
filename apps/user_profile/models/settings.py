@@ -227,3 +227,51 @@ class WalletSettings(models.Model):
         if self.rocket_enabled and self.rocket_account:
             methods.append('Rocket')
         return methods
+
+
+def _community_tweaks_default():
+    """Default Community tweak values. Mirrors the design's TWEAK_DEFAULTS."""
+    return {
+        "accent": "cyan",
+        "density": "cozy",
+        "layout": "3col",
+        "background": "aurora",
+        "showHero": True,
+        "showGameRail": True,
+        "animations": True,
+    }
+
+
+class CommunityPreferences(models.Model):
+    """
+    Per-user Community page tweaks: appearance + feed defaults.
+
+    The whole TWEAK_DEFAULTS block from the React design lives in `tweaks`
+    so the settings page can grow new keys without schema churn (default
+    sort, default identity, muted games, etc.).
+    """
+    user_profile = models.OneToOneField(
+        'user_profile.UserProfile',
+        on_delete=models.CASCADE,
+        related_name='community_prefs',
+        help_text="User profile these community preferences belong to",
+    )
+    tweaks = models.JSONField(
+        default=_community_tweaks_default,
+        blank=True,
+        help_text=(
+            "Community appearance + feed settings. Keys: accent, background, "
+            "density, layout, showHero, showGameRail, animations, "
+            "defaultSort, defaultIdentity, mutedGames."
+        ),
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'user_profile_community_preferences'
+        verbose_name = 'Community Preferences'
+        verbose_name_plural = 'Community Preferences'
+
+    def __str__(self):
+        return f"Community Prefs for {self.user_profile.display_name or self.user_profile.user.username}"

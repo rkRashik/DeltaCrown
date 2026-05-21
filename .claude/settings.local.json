@@ -12,7 +12,8 @@
       "PowerShell(\\(Get-Content \"apps\\\\siteui\\\\homepage_v3_context.py\" -Encoding UTF8\\) | ForEach-Object { $_ -replace [char]0x201C, '\"' -replace [char]0x201D, '\"' -replace [char]0x2018, \"'\" -replace [char]0x2019, \"'\" } | Set-Content \"apps\\\\siteui\\\\homepage_v3_context.py\" -Encoding UTF8; Write-Host \"Done\")",
       "Bash(python -c \"import requests; print\\('requests', requests.__version__\\)\")",
       "Bash(grep -n 'startRuntimeCountdown\\\\|$root\\\\|self\\\\.$root' templates/tournaments/detailPages/detail.html)",
-      "Bash(python -m pytest apps/mobile_api/tests/test_chassis.py -v)"
+      "Bash(python -m pytest apps/mobile_api/tests/test_chassis.py -v)",
+      "WebFetch(domain:api.anthropic.com)"
     ]
   }
 }

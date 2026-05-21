@@ -1,0 +1,222 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Community Guidelines — DeltaCrown{% endblock %}
+
+{% block extra_head %}
+<style>
+.guide-card {
+  background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 16px;
+  padding: 1.5rem 1.75rem;
+}
+.guide-rule-num {
+  width: 2rem; height: 2rem;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--dc-cyan, #00E5FF), var(--dc-violet, #7B2BFF));
+  display: inline-grid;
+  place-items: center;
+  font-weight: 800;
+  font-size: 0.75rem;
+  color: #050510;
+  flex-shrink: 0;
+}
+.guide-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+.guide-tag.ok    { background: rgba(16,230,139,0.12); color: #10E68B; border: 1px solid rgba(16,230,139,0.25); }
+.guide-tag.no    { background: rgba(255,77,109,0.12); color: #FF4D6D; border: 1px solid rgba(255,77,109,0.25); }
+.guide-tag.warn  { background: rgba(255,209,102,0.12); color: #FFD166; border: 1px solid rgba(255,209,102,0.25); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto px-4 sm:px-6 py-12 text-white">
+
+  <!-- Header -->
+  <div class="mb-10">
+    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-dc-cyan/10 border border-dc-cyan/20 text-dc-cyan text-xs font-bold tracking-widest mb-4">
+      <i class="fa-solid fa-shield-halved text-[10px]"></i> COMMUNITY GUIDELINES
+    </div>
+    <h1 class="text-4xl font-extrabold tracking-tight text-white" style="font-family:'Space Grotesk',sans-serif;">
+      The DeltaCrown<br class="sm:hidden"> Community Code
+    </h1>
+    <p class="text-white/55 mt-3 text-lg max-w-2xl">
+      DeltaCrown is Bangladesh's competitive esports home. These guidelines protect the space where thousands of players, teams, and fans come to compete, share, and grow.
+    </p>
+    <div class="flex flex-wrap gap-2 mt-4">
+      <span class="guide-tag ok"><i class="fa-solid fa-check"></i> Allowed</span>
+      <span class="guide-tag no"><i class="fa-solid fa-xmark"></i> Prohibited</span>
+      <span class="guide-tag warn"><i class="fa-solid fa-triangle-exclamation"></i> Caution</span>
+    </div>
+  </div>
+
+  <!-- Rules -->
+  <div class="space-y-4">
+
+    <div class="guide-card">
+      <div class="flex gap-4 items-start">
+        <div class="guide-rule-num mt-0.5">1</div>
+        <div>
+          <div class="font-bold text-white text-base mb-1">Respect every player</div>
+          <p class="text-white/60 text-sm leading-relaxed">
+            Disagree on strategy, argue map picks, debate meta — that's the culture. But personal attacks, slurs, targeted harassment, or sustained bullying against any player, team, or community member are not tolerated.
+          </p>
+          <div class="flex flex-wrap gap-1.5 mt-2.5">
+            <span class="guide-tag ok">Trash talk (friendly)</span>
+            <span class="guide-tag ok">Gameplay criticism</span>
+            <span class="guide-tag no">Slurs</span>
+            <span class="guide-tag no">Doxxing</span>
+            <span class="guide-tag no">Sustained harassment</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="guide-card">
+      <div class="flex gap-4 items-start">
+        <div class="guide-rule-num mt-0.5">2</div>
+        <div>
+          <div class="font-bold text-white text-base mb-1">Post content relevant to esports</div>
+          <p class="text-white/60 text-sm leading-relaxed">
+            Share match highlights, clips, strategies, team news, LFT posts, tournament updates, and discussion about the games we host. Off-topic spam, unrelated advertising, and mass link-dumps will be removed.
+          </p>
+          <div class="flex flex-wrap gap-1.5 mt-2.5">
+            <span class="guide-tag ok">Clips & highlights</span>
+            <span class="guide-tag ok">Strategy guides</span>
+            <span class="guide-tag ok">LFT / recruitment</span>
+            <span class="guide-tag no">Unrelated spam</span>
+            <span class="guide-tag warn">Promotional posts (max 1/day)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="guide-card">
+      <div class="flex gap-4 items-start">
+        <div class="guide-rule-num mt-0.5">3</div>
+        <div>
+          <div class="font-bold text-white text-base mb-1">No cheating, match-fixing, or account fraud</div>
+          <p class="text-white/60 text-sm leading-relaxed">
+            Discussing known exploits for educational purposes is fine. Posting instructions to use hacks, advertising boosting services, sharing match-fixing signals, or coordinating account sharing violates this rule and may result in permanent ban and tournament disqualification.
+          </p>
+          <div class="flex flex-wrap gap-1.5 mt-2.5">
+            <span class="guide-tag ok">Exploit discussion (educational)</span>
+            <span class="guide-tag no">Hack distribution</span>
+            <span class="guide-tag no">Boosting ads</span>
+            <span class="guide-tag no">Match-fixing signals</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="guide-card">
+      <div class="flex gap-4 items-start">
+        <div class="guide-rule-num mt-0.5">4</div>
+        <div>
+          <div class="font-bold text-white text-base mb-1">No misinformation about results or standings</div>
+          <p class="text-white/60 text-sm leading-relaxed">
+            Fabricating match scores, falsely claiming tournament victories, or spreading misinformation about other teams' standings damages competitive integrity. Always link to official match reports when referencing results.
+          </p>
+          <div class="flex flex-wrap gap-1.5 mt-2.5">
+            <span class="guide-tag ok">Sharing official results</span>
+            <span class="guide-tag no">Fabricated scores</span>
+            <span class="guide-tag no">False standings claims</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="guide-card">
+      <div class="flex gap-4 items-start">
+        <div class="guide-rule-num mt-0.5">5</div>
+        <div>
+          <div class="font-bold text-white text-base mb-1">Language & content standards</div>
+          <p class="text-white/60 text-sm leading-relaxed">
+            Bangla and English posts are equally welcome. Profanity is tolerated in the spirit of competitive culture but heavy use in targeted attacks is not. NSFW media, graphic violence, or content harmful to minors is strictly prohibited at all times.
+          </p>
+          <div class="flex flex-wrap gap-1.5 mt-2.5">
+            <span class="guide-tag ok">Bangla / English</span>
+            <span class="guide-tag ok">Light profanity</span>
+            <span class="guide-tag no">NSFW</span>
+            <span class="guide-tag no">Graphic violence</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="guide-card">
+      <div class="flex gap-4 items-start">
+        <div class="guide-rule-num mt-0.5">6</div>
+        <div>
+          <div class="font-bold text-white text-base mb-1">Team identity & impersonation</div>
+          <p class="text-white/60 text-sm leading-relaxed">
+            Only verified captains and co-leaders may post on behalf of a team. Using a team's name or logo without authorization, or impersonating staff or other players, will result in immediate post removal and potential suspension.
+          </p>
+          <div class="flex flex-wrap gap-1.5 mt-2.5">
+            <span class="guide-tag ok">Team post (captain/co-leader)</span>
+            <span class="guide-tag no">Impersonation</span>
+            <span class="guide-tag no">Unauthorized use of team identity</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="guide-card">
+      <div class="flex gap-4 items-start">
+        <div class="guide-rule-num mt-0.5">7</div>
+        <div>
+          <div class="font-bold text-white text-base mb-1">Respect staff decisions</div>
+          <p class="text-white/60 text-sm leading-relaxed">
+            DeltaCrown staff moderate with fairness. If you believe a moderation action was incorrect, use the <a href="/support/" class="text-dc-cyan hover:underline">support channel</a> — do not post appeals publicly or harass staff members.
+          </p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Enforcement section -->
+  <div class="mt-10 guide-card" style="border-color: rgba(255,77,109,0.18); background: linear-gradient(135deg, rgba(255,77,109,0.05), transparent);">
+    <div class="font-bold text-white text-base mb-3 flex items-center gap-2">
+      <i class="fa-solid fa-gavel text-dc-rose"></i> Enforcement
+    </div>
+    <div class="grid sm:grid-cols-3 gap-4 text-sm">
+      <div class="text-center p-3 rounded-xl bg-white/[.03]">
+        <div class="text-dc-gold font-bold mb-1">First offence</div>
+        <div class="text-white/55">Warning + post removal</div>
+      </div>
+      <div class="text-center p-3 rounded-xl bg-white/[.03]">
+        <div class="text-dc-rose font-bold mb-1">Repeat offence</div>
+        <div class="text-white/55">Temporary post restriction (1–7 days)</div>
+      </div>
+      <div class="text-center p-3 rounded-xl bg-white/[.03]">
+        <div class="text-white font-bold mb-1">Severe / repeat</div>
+        <div class="text-white/55">Permanent community ban + tournament review</div>
+      </div>
+    </div>
+    <p class="text-white/45 text-xs mt-3">Staff may act immediately without warning for serious violations (doxxing, NSFW, match-fixing, or illegal content).</p>
+  </div>
+
+  <!-- Footer CTA -->
+  <div class="mt-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-sm">
+    <p class="text-white/45">
+      Questions about a specific post or moderation action?<br>
+      <a href="/support/" class="text-dc-cyan hover:underline">Contact support →</a>
+    </p>
+    <a href="/community/" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-black"
+       style="background: linear-gradient(135deg,#00E5FF,#7B2BFF);">
+      <i class="fa-solid fa-arrow-left text-xs"></i> Back to Community
+    </a>
+  </div>
+
+</div>
+{% endblock %}

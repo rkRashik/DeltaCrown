@@ -1029,9 +1029,17 @@ class CommunityPost(models.Model):
         ('friends', 'Friends Only'),
         ('private', 'Private'),
     ]
-    
+    POST_TYPE_CHOICES = [
+        ('text',    'Discussion'),
+        ('image',   'Image / Photo'),
+        ('clip',    'Video Clip'),
+        ('poll',    'Poll'),
+        ('lft',     'Looking for Team'),
+        ('recruit', 'Recruiting'),
+        ('event',   'Event'),
+    ]
+
     author = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name='community_posts')
-    # Optional: post on behalf of a team (author must be OWNER/MANAGER on that team)
     team = models.ForeignKey(
         'organizations.Team',
         on_delete=models.SET_NULL,
@@ -1039,33 +1047,55 @@ class CommunityPost(models.Model):
         related_name='community_posts',
         help_text="If set, this post is published on behalf of the team"
     )
+    # Optional link to a tournament (organizers may tag their posts)
+    tournament = models.ForeignKey(
+        'tournaments.Tournament',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='community_posts',
+        help_text="Tournament this post is associated with (organizers only)",
+    )
     title = models.CharField(max_length=200, blank=True)
-    content = models.TextField()
+    content = models.TextField(blank=True)
+    post_type = models.CharField(
+        max_length=20, choices=POST_TYPE_CHOICES, default='text', db_index=True,
+    )
     visibility = models.CharField(max_length=20, choices=VISIBILITY_CHOICES, default='public')
-    
-    # Game association (optional)
-    game = models.CharField(max_length=100, blank=True, help_text="Game this post is related to")
-    
+
+    # Game association (optional, stores game slug)
+    game = models.CharField(max_length=100, blank=True, help_text="Game slug this post is related to")
+
+    # Structured data for typed posts
+    poll_data = models.JSONField(
+        null=True, blank=True,
+        help_text='Poll: {options:[{id,label,votes}], total, ends_at}'
+    )
+    lft_data = models.JSONField(
+        null=True, blank=True,
+        help_text='LFT: {roles, rank, region, hours, availability, looking_for}'
+    )
+
     # Engagement
     likes_count = models.PositiveIntegerField(default=0)
     comments_count = models.PositiveIntegerField(default=0)
     shares_count = models.PositiveIntegerField(default=0)
-    
+
     # Timestamps
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
     # Moderation
     is_approved = models.BooleanField(default=True)
     is_pinned = models.BooleanField(default=False)
     is_featured = models.BooleanField(default=False)
-    
+
     class Meta:
         ordering = ['-created_at']
         indexes = [
             models.Index(fields=['-created_at']),
             models.Index(fields=['visibility', '-created_at']),
             models.Index(fields=['game', '-created_at']),
+            models.Index(fields=['post_type', '-created_at']),
             models.Index(fields=['is_featured', '-created_at']),
         ]
     
@@ -1179,6 +1209,23 @@ class CommunityPostShare(models.Model):
     
     def __str__(self):
         return f"{self.shared_by.user.username} shared {self.original_post}"
+
+
+class CommunityPollVote(models.Model):
+    """Tracks which poll option a user voted for."""
+    post = models.ForeignKey(
+        CommunityPost, on_delete=models.CASCADE, related_name='poll_votes',
+    )
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='community_poll_votes')
+    option_id = models.CharField(max_length=40)
+    created_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        unique_together = ['post', 'user']
+        indexes = [models.Index(fields=['post'])]
+
+    def __str__(self):
+        return f"{self.user.username} voted {self.option_id} on post {self.post_id}"
 
 
 # Signal handlers to update counters

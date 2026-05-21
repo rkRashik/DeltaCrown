@@ -19,8 +19,13 @@ urlpatterns = [
     path("community/api/posts/<int:post_id>/like/", views.community_api_like, name="community_api_like"),
     path("community/api/posts/<int:post_id>/comments/", views.community_api_comments, name="community_api_comments"),
     path("community/api/posts/<int:post_id>/delete/", views.community_api_delete_post, name="community_api_delete_post"),
+    path("community/api/posts/<int:post_id>/vote/", views.community_api_poll_vote, name="community_api_poll_vote"),
     path("community/api/sidebar/", views.community_api_sidebar, name="community_api_sidebar"),
     path("community/api/user-teams/", views.community_api_user_teams, name="community_api_user_teams"),
+    path("community/api/preferences/", views.community_api_preferences, name="community_api_preferences"),
+    path("community/api/my-tournaments/", views.community_api_my_tournaments, name="community_api_my_tournaments"),
+    path("community/api/my-passports/", views.community_api_my_passports, name="community_api_my_passports"),
+    path("legal/community-guidelines/", views.community_guidelines, name="community_guidelines"),
 
     path("arena/", views.watch, name="arena"),
     path("arena/data/", views.arena_async_data, name="arena_data"),

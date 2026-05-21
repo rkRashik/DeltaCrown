@@ -59,7 +59,7 @@ if not _MINIMAL_TEST_APPS:
     from apps.user_profile.models.stats import UserProfileStats
     from apps.user_profile.models.audit import UserAuditEvent
     from apps.user_profile.models.game_passport_schema import GameChoiceConfig, GamePassportSchema  # noqa: F401 — alias kept for backward compat
-    from apps.user_profile.models.settings import NotificationPreferences, WalletSettings
+    from apps.user_profile.models.settings import NotificationPreferences, WalletSettings, CommunityPreferences
     from apps.user_profile.models.showcase import ProfileShowcase
     from apps.user_profile.models.about import ProfileAboutItem
     from apps.user_profile.models.media import StreamConfig, HighlightClip, PinnedHighlight
@@ -97,6 +97,7 @@ if not _MINIMAL_TEST_APPS:
         'GamePassportSchema',  # backward-compat alias
         'NotificationPreferences',
         'WalletSettings',
+        'CommunityPreferences',
         'ProfileShowcase',
         'ProfileAboutItem',
         'StreamConfig',

@@ -310,6 +310,7 @@
                     <div class="space-y-1">
                         <button class="nav-btn" data-target="inventory"><i class="fa-solid fa-box-open w-5 text-center"></i> Inventory</button>
                         <button class="nav-btn" data-target="stream"><i class="fa-brands fa-twitch w-5 text-center"></i> Live Feed</button>
+                        <button class="nav-btn" data-target="community"><i class="fa-solid fa-users w-5 text-center"></i> Community</button>
                     </div>
                 </div>
 
@@ -2607,6 +2608,149 @@
                         </form>
                     </div>
                 </div>
+
+                <!-- COMMUNITY APPEARANCE TAB -->
+                <div id="tab-community" class="tab-section space-y-6">
+                    <div>
+                        <h2 class="text-2xl font-display font-bold text-white">Community</h2>
+                        <p class="text-sm text-gray-400 mt-1">Customise how the Community page looks and behaves for you. Changes are saved instantly.</p>
+                    </div>
+
+                    <div class="rounded-2xl bg-white/[.03] border border-white/[.06] p-5 space-y-5" id="community-prefs-card">
+                        <!-- Accent palette -->
+                        <div>
+                            <div class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Accent colour</div>
+                            <div id="community-accent-swatches" class="flex flex-wrap gap-2"></div>
+                        </div>
+
+                        <!-- Background -->
+                        <div class="border-t border-white/[.05] pt-5">
+                            <div class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Background</div>
+                            <div class="flex flex-wrap gap-2" id="community-bg-btns">
+                                <button data-bg="aurora"  class="community-bg-btn px-3 py-1.5 rounded-lg border border-white/[.08] text-xs font-semibold text-gray-400 hover:text-white hover:border-cyan-500/40 transition">Aurora</button>
+                                <button data-bg="noir"    class="community-bg-btn px-3 py-1.5 rounded-lg border border-white/[.08] text-xs font-semibold text-gray-400 hover:text-white hover:border-cyan-500/40 transition">Noir</button>
+                                <button data-bg="grid"    class="community-bg-btn px-3 py-1.5 rounded-lg border border-white/[.08] text-xs font-semibold text-gray-400 hover:text-white hover:border-cyan-500/40 transition">Grid</button>
+                                <button data-bg="mesh"    class="community-bg-btn px-3 py-1.5 rounded-lg border border-white/[.08] text-xs font-semibold text-gray-400 hover:text-white hover:border-cyan-500/40 transition">Mesh</button>
+                                <button data-bg="hex"     class="community-bg-btn px-3 py-1.5 rounded-lg border border-white/[.08] text-xs font-semibold text-gray-400 hover:text-white hover:border-cyan-500/40 transition">Hex</button>
+                            </div>
+                        </div>
+
+                        <!-- Layout columns -->
+                        <div class="border-t border-white/[.05] pt-5">
+                            <div class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Columns</div>
+                            <div class="flex gap-2" id="community-col-btns">
+                                <button data-col="3col" class="community-col-btn px-3 py-1.5 rounded-lg border border-white/[.08] text-xs font-semibold text-gray-400 hover:text-white hover:border-cyan-500/40 transition">3 col</button>
+                                <button data-col="2col" class="community-col-btn px-3 py-1.5 rounded-lg border border-white/[.08] text-xs font-semibold text-gray-400 hover:text-white hover:border-cyan-500/40 transition">2 col</button>
+                                <button data-col="1col" class="community-col-btn px-3 py-1.5 rounded-lg border border-white/[.08] text-xs font-semibold text-gray-400 hover:text-white hover:border-cyan-500/40 transition">1 col</button>
+                            </div>
+                        </div>
+
+                        <!-- Density -->
+                        <div class="border-t border-white/[.05] pt-5">
+                            <div class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Card density</div>
+                            <div class="flex gap-2" id="community-density-btns">
+                                <button data-density="compact" class="community-density-btn px-3 py-1.5 rounded-lg border border-white/[.08] text-xs font-semibold text-gray-400 hover:text-white hover:border-cyan-500/40 transition">Compact</button>
+                                <button data-density="comfy"   class="community-density-btn px-3 py-1.5 rounded-lg border border-white/[.08] text-xs font-semibold text-gray-400 hover:text-white hover:border-cyan-500/40 transition">Comfy</button>
+                                <button data-density="cozy"    class="community-density-btn px-3 py-1.5 rounded-lg border border-white/[.08] text-xs font-semibold text-gray-400 hover:text-white hover:border-cyan-500/40 transition">Cozy</button>
+                            </div>
+                        </div>
+
+                        <!-- Toggles -->
+                        <div class="border-t border-white/[.05] pt-5 space-y-3">
+                            <div class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Feed options</div>
+                            <label class="flex items-center justify-between cursor-pointer">
+                                <span class="text-sm text-gray-300">Show Pulse hero bar</span>
+                                <input type="checkbox" id="cp-showHero" class="sr-only peer">
+                                <div class="w-10 h-5 rounded-full bg-white/10 peer-checked:bg-cyan-500 transition relative after:absolute after:w-4 after:h-4 after:bg-white after:rounded-full after:top-0.5 after:left-0.5 peer-checked:after:translate-x-5 after:transition-transform after:shadow"></div>
+                            </label>
+                            <label class="flex items-center justify-between cursor-pointer">
+                                <span class="text-sm text-gray-300">Show Game Channels rail</span>
+                                <input type="checkbox" id="cp-showGameRail" class="sr-only peer">
+                                <div class="w-10 h-5 rounded-full bg-white/10 peer-checked:bg-cyan-500 transition relative after:absolute after:w-4 after:h-4 after:bg-white after:rounded-full after:top-0.5 after:left-0.5 peer-checked:after:translate-x-5 after:transition-transform after:shadow"></div>
+                            </label>
+                            <label class="flex items-center justify-between cursor-pointer">
+                                <span class="text-sm text-gray-300">Animations</span>
+                                <input type="checkbox" id="cp-animations" class="sr-only peer">
+                                <div class="w-10 h-5 rounded-full bg-white/10 peer-checked:bg-cyan-500 transition relative after:absolute after:w-4 after:h-4 after:bg-white after:rounded-full after:top-0.5 after:left-0.5 peer-checked:after:translate-x-5 after:transition-transform after:shadow"></div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <p class="text-xs text-gray-500">
+                        These preferences sync to your account and apply across all devices.
+                        <a href="/community/" class="text-cyan-400 hover:underline ml-1">Go to Community →</a>
+                    </p>
+                </div>
+                <script nonce="{{ request.csp_nonce }}">
+                (function () {
+                  const ACCENTS = {
+                    cyan:'#00E5FF', violet:'#9B59FF', gold:'#FFD700',
+                    emerald:'#10B981', rose:'#EF4444', ice:'#7DD3FC',
+                    magma:'#FF6B35', arctic:'#A7F3D0',
+                  };
+                  const API = '/community/api/preferences/';
+                  const CSRF = document.querySelector('meta[name="csrf-token"]')?.content || '';
+                  let prefs = null;
+
+                  function patch(edits) {
+                    fetch(API, {
+                      method: 'PATCH', credentials: 'same-origin',
+                      headers: {'Content-Type':'application/json','X-CSRFToken': CSRF, 'Accept':'application/json'},
+                      body: JSON.stringify({ tweaks: edits }),
+                    }).catch(() => {});
+                    /* Also push to community page if open in same tab */
+                    window.dispatchEvent(new CustomEvent('tweakchange', { detail: edits }));
+                  }
+
+                  function setActive(group, attr, val) {
+                    document.querySelectorAll('.' + group).forEach(b => {
+                      const isActive = b.dataset[attr] === val;
+                      b.classList.toggle('border-cyan-500', isActive);
+                      b.classList.toggle('text-white', isActive);
+                    });
+                  }
+
+                  function applyPrefs(t) {
+                    if (!t) return;
+                    prefs = t;
+                    setActive('community-bg-btn', 'bg', t.background);
+                    setActive('community-col-btn', 'col', t.layout);
+                    setActive('community-density-btn', 'density', t.density);
+                    ['showHero','showGameRail','animations'].forEach(k => {
+                      const el = document.getElementById('cp-' + k);
+                      if (el) el.checked = !!t[k];
+                    });
+                    /* accent swatches */
+                    const container = document.getElementById('community-accent-swatches');
+                    if (container && !container.children.length) {
+                      Object.entries(ACCENTS).forEach(([name, color]) => {
+                        const btn = document.createElement('button');
+                        btn.className = 'community-accent-btn w-8 h-8 rounded-full border-2 transition hover:scale-110';
+                        btn.dataset.accent = name;
+                        btn.style.background = color;
+                        btn.title = name;
+                        btn.addEventListener('click', () => { patch({ accent: name }); setActive('community-accent-btn', 'accent', name); });
+                        container.appendChild(btn);
+                      });
+                    }
+                    setActive('community-accent-btn', 'accent', t.accent);
+                  }
+
+                  fetch(API, { credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
+                    .then(r => r.json()).then(d => applyPrefs(d.tweaks)).catch(() => {});
+
+                  document.querySelectorAll('.community-bg-btn').forEach(b =>
+                    b.addEventListener('click', () => { patch({ background: b.dataset.bg }); setActive('community-bg-btn', 'bg', b.dataset.bg); }));
+                  document.querySelectorAll('.community-col-btn').forEach(b =>
+                    b.addEventListener('click', () => { patch({ layout: b.dataset.col }); setActive('community-col-btn', 'col', b.dataset.col); }));
+                  document.querySelectorAll('.community-density-btn').forEach(b =>
+                    b.addEventListener('click', () => { patch({ density: b.dataset.density }); setActive('community-density-btn', 'density', b.dataset.density); }));
+                  ['showHero','showGameRail','animations'].forEach(k => {
+                    const el = document.getElementById('cp-' + k);
+                    if (el) el.addEventListener('change', () => patch({ [k]: el.checked }));
+                  });
+                })();
+                </script>
 
                 <!-- DANGER ZONE TAB -->
                 <div id="tab-danger" class="tab-section space-y-6">

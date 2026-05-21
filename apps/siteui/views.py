@@ -122,17 +122,37 @@ def _get_model(candidates):
             continue
     return None
 
+def community_guidelines(request):
+    return render(request, 'pages/community_guidelines.html', {
+        "seo": build_seo(
+            title="Community Guidelines | DeltaCrown",
+            description="The rules and standards that keep DeltaCrown's esports community fair, competitive, and respectful.",
+            path="/legal/community-guidelines/",
+        ),
+    })
+
+
 def community(request):
     """
     Community Hub — initial page load.
     Serves the shell template; all data is loaded via the JSON API.
     """
+    avatar_url = ''
+    if request.user.is_authenticated:
+        profile = getattr(request.user, 'profile', None)
+        if profile and getattr(profile, 'avatar', None):
+            try:
+                avatar_url = profile.avatar.url
+            except (ValueError, AttributeError):
+                avatar_url = ''
     return render(request, 'pages/community.html', {
+        "dc_me_avatar": avatar_url,
+        "dc_community_mode": True,
         "seo": build_seo(
             title="Community | DeltaCrown",
             description="Public DeltaCrown community updates, team activity, and esports ecosystem conversations.",
             path="/community/",
-        )
+        ),
     })
 
 
@@ -191,8 +211,29 @@ def _serialize_post(post, request_user=None):
                 'logo_url': team_logo,
             }
 
+    # Poll: attach voter's choice if authenticated
+    poll_data = None
+    if hasattr(post, 'poll_data') and post.poll_data:
+        poll_data = dict(post.poll_data)
+        if request_user and request_user.is_authenticated:
+            voted = post.poll_votes.filter(user=request_user).values_list('option_id', flat=True).first()
+            poll_data['my_vote'] = voted
+        else:
+            poll_data['my_vote'] = None
+
+    # Tournament info
+    tournament_data = None
+    if hasattr(post, 'tournament_id') and post.tournament_id:
+        try:
+            t = post.tournament
+            if t:
+                tournament_data = {'id': t.id, 'name': t.name, 'slug': t.slug}
+        except Exception:
+            pass
+
     return {
         'id': post.id,
+        'post_type': getattr(post, 'post_type', 'text') or 'text',
         'title': post.title or '',
         'content': post.content,
         'game': post.game or '',
@@ -212,6 +253,9 @@ def _serialize_post(post, request_user=None):
         'team': team_data,
         'media': media_list,
         'liked_by_me': liked_by_me,
+        'poll_data': poll_data,
+        'lft_data': getattr(post, 'lft_data', None),
+        'tournament': tournament_data,
     }
 
 
@@ -245,22 +289,24 @@ def _serialize_comment(comment):
 
 def community_api_feed(request):
     """
-    GET /community/api/feed/?page=1&game=&q=
+    GET /community/api/feed/?page=1&game=&q=&tab=for-you|following|highlights|lft&sort=latest|top
     Returns paginated posts as JSON.
     """
     from django.http import JsonResponse
     from .models import CommunityPost
 
-    page = int(request.GET.get('page', 1))
+    page     = max(1, int(request.GET.get('page', 1)))
     per_page = 10
-    game = request.GET.get('game', '').strip()
-    q = request.GET.get('q', '').strip()
+    game     = request.GET.get('game', '').strip()
+    q        = request.GET.get('q', '').strip()
+    tab      = request.GET.get('tab', 'for-you').strip()
+    sort     = request.GET.get('sort', 'latest').strip()
 
     qs = CommunityPost.objects.filter(
         visibility='public', is_approved=True
-    ).select_related('author', 'author__user', 'team').prefetch_related('media', 'likes').order_by(
-        '-is_pinned', '-is_featured', '-created_at'
-    )
+    ).select_related(
+        'author', 'author__user', 'team'
+    ).prefetch_related('media', 'likes', 'poll_votes')
 
     if game:
         qs = qs.filter(game__iexact=game)
@@ -269,6 +315,32 @@ def community_api_feed(request):
             Q(title__icontains=q) | Q(content__icontains=q) |
             Q(author__user__username__icontains=q)
         )
+
+    # Tab-based filtering
+    if tab == 'highlights':
+        qs = qs.filter(post_type__in=['clip', 'image'])
+    elif tab == 'lft':
+        qs = qs.filter(post_type__in=['lft', 'recruit'])
+    elif tab == 'following' and request.user.is_authenticated:
+        from apps.user_profile.models import Follow
+        following_ids = Follow.objects.filter(
+            follower=request.user
+        ).values_list('following_id', flat=True)
+        qs = qs.filter(author__user_id__in=following_ids)
+
+    # Sorting
+    if sort == 'top':
+        qs = qs.order_by('-likes_count', '-comments_count', '-created_at')
+    elif sort == 'hot':
+        from django.db.models import ExpressionWrapper, IntegerField as IF, F
+        qs = qs.annotate(
+            hot_score=ExpressionWrapper(
+                F('likes_count') + F('comments_count') * 3 + F('shares_count') * 2,
+                output_field=IF()
+            )
+        ).order_by('-hot_score', '-created_at')
+    else:
+        qs = qs.order_by('-is_pinned', '-is_featured', '-created_at')
 
     total = qs.count()
     start = (page - 1) * per_page
@@ -305,8 +377,12 @@ def community_api_create_post(request):
         else:
             data = request.POST
 
-        content = (data.get('content') or '').strip()
-        if not content:
+        post_type = (data.get('post_type') or data.get('kind') or 'text').strip()
+        content   = (data.get('content') or '').strip()
+        title     = (data.get('title') or '').strip()
+
+        # Poll and LFT can have empty content bodies
+        if not content and post_type not in ('poll', 'lft', 'recruit'):
             return JsonResponse({'error': 'Content is required.'}, status=400)
 
         profile, _ = UserProfile.objects.get_or_create(
@@ -314,7 +390,7 @@ def community_api_create_post(request):
             defaults={'display_name': request.user.get_full_name() or request.user.username}
         )
 
-        # Team posting support
+        # Team posting support (required for 'recruit' type)
         team_id = data.get('team_id')
         team_obj = None
         if team_id:
@@ -322,23 +398,79 @@ def community_api_create_post(request):
             from apps.organizations.models.membership import TeamMembership
             try:
                 team_obj = Team.objects.get(pk=int(team_id))
-                # Verify user has permission (OWNER or MANAGER)
-                has_perm = TeamMembership.objects.filter(
+                is_creator = (
+                    hasattr(team_obj, 'created_by_id') and
+                    team_obj.created_by_id == request.user.pk
+                )
+                has_membership = TeamMembership.objects.filter(
                     team=team_obj, user=request.user,
                     status='ACTIVE', role__in=['OWNER', 'MANAGER']
                 ).exists()
-                if not has_perm:
+                if not is_creator and not has_membership:
                     return JsonResponse({'error': 'You do not have permission to post for this team.'}, status=403)
             except (Team.DoesNotExist, ValueError):
                 return JsonResponse({'error': 'Team not found.'}, status=404)
 
+        if post_type == 'recruit' and not team_obj:
+            return JsonResponse({'error': 'A recruiting post must be linked to a team.'}, status=400)
+
+        # Tournament tag (organizers only)
+        tournament_obj = None
+        tournament_id = data.get('tournament_id')
+        if tournament_id:
+            from apps.tournaments.models import Tournament
+            from apps.organizations.models.membership import TeamMembership
+            try:
+                tourn = Tournament.objects.get(pk=int(tournament_id))
+                # Allow if user is organizer or staff
+                is_org = tourn.created_by_id == request.user.pk if hasattr(tourn, 'created_by_id') else False
+                if is_org or request.user.is_staff:
+                    tournament_obj = tourn
+            except Exception:
+                pass
+
+        # Poll data validation
+        poll_data = None
+        if post_type == 'poll':
+            raw_poll = data.get('poll_data') or {}
+            if isinstance(raw_poll, str):
+                import json as _json
+                raw_poll = _json.loads(raw_poll)
+            options = raw_poll.get('options') or []
+            if len(options) < 2:
+                return JsonResponse({'error': 'A poll needs at least 2 options.'}, status=400)
+            poll_data = {
+                'options': [{'id': f'o{i}', 'label': str(o.get('label', '')).strip(), 'votes': 0}
+                            for i, o in enumerate(options) if o.get('label', '').strip()],
+                'total': 0,
+                'ends_at': raw_poll.get('ends_at') or None,
+            }
+            if len(poll_data['options']) < 2:
+                return JsonResponse({'error': 'A poll needs at least 2 non-empty options.'}, status=400)
+            if not title:
+                title = content
+                content = ''
+
+        # LFT data
+        lft_data = None
+        if post_type in ('lft', 'recruit'):
+            raw_lft = data.get('lft_data') or {}
+            if isinstance(raw_lft, str):
+                import json as _json
+                raw_lft = _json.loads(raw_lft)
+            lft_data = {k: v for k, v in raw_lft.items() if v}
+
         post = CommunityPost.objects.create(
             author=profile,
             team=team_obj,
-            title=(data.get('title') or '').strip(),
+            tournament=tournament_obj,
+            post_type=post_type,
+            title=title,
             content=content,
             game=(data.get('game') or '').strip(),
             visibility=data.get('visibility', 'public'),
+            poll_data=poll_data,
+            lft_data=lft_data,
         )
 
         files = request.FILES.getlist('media_files')
@@ -353,7 +485,8 @@ def community_api_create_post(request):
             'post': _serialize_post(post, request.user),
         })
     except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
+        import traceback
+        return JsonResponse({'error': str(e), 'detail': traceback.format_exc()}, status=500)
 
 
 def community_api_like(request, post_id):
@@ -391,6 +524,62 @@ def community_api_like(request, post_id):
         post.likes_count = post.likes_count + 1
         post.save(update_fields=['likes_count'])
         return JsonResponse({'liked': True, 'likes_count': post.likes_count})
+
+
+def community_api_poll_vote(request, post_id):
+    """
+    POST /community/api/posts/<id>/vote/
+    Body: {option_id: "o0"}
+    One vote per user per poll.  Returns updated poll_data.
+    """
+    from django.http import JsonResponse
+    import json
+    from .models import CommunityPost, CommunityPollVote
+
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': 'Authentication required'}, status=401)
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+    try:
+        post = CommunityPost.objects.get(id=post_id, post_type='poll', is_approved=True)
+    except CommunityPost.DoesNotExist:
+        return JsonResponse({'error': 'Poll not found'}, status=404)
+
+    try:
+        data = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    option_id = (data.get('option_id') or '').strip()
+    poll_data = post.poll_data or {'options': [], 'total': 0}
+    valid_ids = {o['id'] for o in poll_data.get('options', [])}
+    if option_id not in valid_ids:
+        return JsonResponse({'error': 'Invalid option'}, status=400)
+
+    existing = CommunityPollVote.objects.filter(post=post, user=request.user).first()
+    if existing:
+        # Allow changing vote
+        old_id = existing.option_id
+        if old_id != option_id:
+            for o in poll_data['options']:
+                if o['id'] == old_id:
+                    o['votes'] = max(0, o['votes'] - 1)
+            existing.option_id = option_id
+            existing.save(update_fields=['option_id'])
+    else:
+        CommunityPollVote.objects.create(post=post, user=request.user, option_id=option_id)
+        poll_data['total'] = (poll_data.get('total') or 0) + 1
+
+    for o in poll_data['options']:
+        if o['id'] == option_id and (not existing or existing.option_id == option_id):
+            o['votes'] = (o.get('votes') or 0) + 1
+
+    poll_data['my_vote'] = option_id
+    post.poll_data = {k: v for k, v in poll_data.items() if k != 'my_vote'}
+    post.save(update_fields=['poll_data'])
+
+    return JsonResponse({'success': True, 'poll_data': poll_data})
 
 
 def community_api_comments(request, post_id):
@@ -507,19 +696,98 @@ def community_api_sidebar(request):
                 icon_url = g.icon.url
             except (ValueError, AttributeError):
                 pass
+        card_image_url = None
+        for attr in ('card_image', 'banner', 'cover_image'):
+            try:
+                field = getattr(g, attr, None)
+                if field:
+                    card_image_url = field.url
+                    break
+            except (ValueError, AttributeError):
+                pass
         games_data.append({
             'name': g.display_name or g.name,
             'slug': g.slug,
             'icon_url': icon_url,
+            'card_image_url': card_image_url,
         })
 
     # Stats
     total_posts = CommunityPost.objects.filter(visibility='public', is_approved=True).count()
     total_teams = Team.objects.filter(status=TeamStatus.ACTIVE).count()
 
+    # Live streams from ArenaStream
+    live_streams_data = []
+    try:
+        from .models import ArenaStream
+        streams = ArenaStream.objects.filter(is_active=True, is_live=True).order_by(
+            '-featured', 'display_order', '-viewer_count'
+        )[:5]
+        for s in streams:
+            live_streams_data.append({
+                'id': s.id,
+                'title': s.display_title or '',
+                'channel': s.channel_name or s.display_title or '',
+                'viewers': s.viewer_count or 0,
+                'game': s.effective_game_label or '',
+                'thumbnail': s.display_thumbnail or '',
+                'url': s.source_url or '',
+            })
+    except Exception:
+        pass
+
+    # Trending hashtags — most-used game names in recent posts (last 30 days)
+    trending_data = []
+    try:
+        from django.utils import timezone as tz
+        from django.db.models import Count as DBCount
+        cutoff = tz.now() - __import__('datetime').timedelta(days=30)
+        top_games = (
+            CommunityPost.objects.filter(
+                visibility='public', is_approved=True,
+                created_at__gte=cutoff, game__isnull=False
+            ).exclude(game='').values('game').annotate(
+                posts=DBCount('id')
+            ).order_by('-posts')[:8]
+        )
+        for row in top_games:
+            slug = row['game']
+            name = game_map.get(slug) or slug
+            trending_data.append({'tag': name.replace(' ', ''), 'posts': row['posts'], 'delta': ''})
+    except Exception:
+        pass
+
+    # Upcoming tournaments (next 14 days)
+    upcoming_data = []
+    try:
+        from apps.tournaments.models import Tournament
+        from django.utils import timezone as tz2
+        import datetime
+        now = tz2.now()
+        soon = now + datetime.timedelta(days=14)
+        upcg = Tournament.objects.filter(
+            start_date__gte=now.date(), start_date__lte=soon.date(), status__in=['OPEN', 'PUBLISHED', 'REGISTRATION_OPEN']
+        ).order_by('start_date')[:4]
+        for t in upcg:
+            d = t.start_date
+            upcoming_data.append({
+                'id': t.id,
+                'title': t.name,
+                'date': d.strftime('%b %d').upper() if d else '',
+                'day': d.strftime('%a').upper() if d else '',
+                'time': '',
+                'kind': 'Tournament',
+                'url': f'/tournaments/{t.slug}/',
+            })
+    except Exception:
+        pass
+
     return JsonResponse({
         'teams': teams_data,
         'games': games_data,
+        'live_streams': live_streams_data,
+        'trending': trending_data,
+        'upcoming': upcoming_data,
         'stats': {
             'total_posts': total_posts,
             'total_teams': total_teams,
@@ -554,36 +822,184 @@ def community_api_delete_post(request, post_id):
 def community_api_user_teams(request):
     """
     GET /community/api/user-teams/
-    Returns teams the current user can post on behalf of (OWNER or MANAGER role).
+    Returns every active team the user can post for.
+
+    Two sources of posting permission:
+      1. TeamMembership rows with role OWNER or MANAGER.
+      2. Teams where team.created_by == request.user (the creator never loses
+         posting permission even if they have no explicit membership row yet).
+
+    All other memberships are included as view-only (can_post=False) so the
+    identity switcher can show the full context.
     """
     from django.http import JsonResponse
     if not request.user.is_authenticated:
         return JsonResponse({'teams': []})
 
     from apps.organizations.models.membership import TeamMembership
-    memberships = TeamMembership.objects.filter(
-        user=request.user, status='ACTIVE', role__in=['OWNER', 'MANAGER']
-    ).select_related('team')
+    from apps.organizations.models import Team
 
-    teams_data = []
-    for m in memberships:
-        t = m.team
+    def _team_dict(t, role, can_post):
         logo_url = None
-        if t.logo:
+        if t and t.logo:
             try:
                 logo_url = t.logo.url
             except (ValueError, AttributeError):
                 pass
-        teams_data.append({
+        # Team.game_id is an IntegerField (Game PK), NOT a FK accessor —
+        # so t.game would raise AttributeError. We store the raw int as game_slug
+        # and let the frontend normalise via its own game list.
+        game_slug = str(t.game_id) if getattr(t, 'game_id', None) else ''
+        return {
             'id': t.id,
             'name': t.name,
             'slug': t.slug,
             'tag': t.tag or '',
             'logo_url': logo_url,
-            'role': m.role,
-        })
+            'role': role,
+            'game_slug': game_slug,
+            'can_post': can_post,
+        }
+
+    seen_ids = set()
+    teams_data = []
+
+    # Source 1: explicit memberships (Team has NO game FK, only game_id IntegerField)
+    memberships = TeamMembership.objects.filter(
+        user=request.user, status='ACTIVE',
+    ).select_related('team')
+    for m in memberships:
+        t = m.team
+        if not t:
+            continue
+        seen_ids.add(t.id)
+        teams_data.append(_team_dict(t, m.role, m.role in ('OWNER', 'MANAGER')))
+
+    # Source 2: teams where user is creator but may have no membership row
+    try:
+        created_teams = Team.objects.filter(
+            created_by=request.user
+        ).exclude(id__in=seen_ids)
+        for t in created_teams:
+            if t.id not in seen_ids:
+                teams_data.append(_team_dict(t, 'OWNER', True))
+    except Exception:
+        pass
 
     return JsonResponse({'teams': teams_data})
+
+
+def community_api_preferences(request):
+    """
+    GET   /community/api/preferences/  → current tweaks
+    PATCH /community/api/preferences/  → merge JSON `{tweaks: {...}}` into stored prefs
+
+    Anonymous users get the defaults read-only — the client falls back to
+    localStorage for them.
+    """
+    from django.http import JsonResponse
+    import json
+    from apps.user_profile.models.settings import (
+        CommunityPreferences, _community_tweaks_default,
+    )
+
+    defaults = _community_tweaks_default()
+
+    if not request.user.is_authenticated:
+        if request.method == 'GET':
+            return JsonResponse({'tweaks': defaults})
+        return JsonResponse({'error': 'Authentication required'}, status=401)
+
+    from apps.user_profile.models import UserProfile
+    profile = getattr(request.user, 'profile', None)
+    if not profile:
+        profile, _ = UserProfile.objects.get_or_create(
+            user=request.user,
+            defaults={'display_name': request.user.get_full_name() or request.user.username},
+        )
+
+    if request.method == 'GET':
+        prefs = CommunityPreferences.objects.filter(user_profile=profile).first()
+        return JsonResponse({'tweaks': prefs.tweaks if prefs else defaults})
+
+    if request.method in ('PATCH', 'POST'):
+        try:
+            data = json.loads(request.body or b'{}')
+        except (json.JSONDecodeError, ValueError):
+            data = {}
+        incoming = data.get('tweaks') or {}
+        if not isinstance(incoming, dict):
+            return JsonResponse({'error': 'tweaks must be an object'}, status=400)
+
+        prefs, _ = CommunityPreferences.objects.get_or_create(
+            user_profile=profile, defaults={'tweaks': defaults},
+        )
+        merged = {**(prefs.tweaks or {}), **incoming}
+        prefs.tweaks = merged
+        prefs.save(update_fields=['tweaks', 'updated_at'])
+        return JsonResponse({'tweaks': merged})
+
+    return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+
+def community_api_my_tournaments(request):
+    """
+    GET /community/api/my-tournaments/
+    Returns tournaments the current user organises (for the post composer's tournament tag).
+    """
+    from django.http import JsonResponse
+    if not request.user.is_authenticated:
+        return JsonResponse({'tournaments': []})
+    try:
+        from apps.tournaments.models import Tournament
+        qs = Tournament.objects.filter(created_by=request.user).order_by('-created_at')[:20]
+        result = []
+        for t in qs:
+            result.append({'id': t.id, 'name': t.name, 'slug': t.slug})
+        return JsonResponse({'tournaments': result})
+    except Exception:
+        return JsonResponse({'tournaments': []})
+
+
+def community_api_my_passports(request):
+    """
+    GET /community/api/my-passports/
+    Returns the user's active Game Passport profiles for the LFT composer.
+    Each entry has game slug, game name, main_role, rank_name, and region
+    so the composer can pre-fill the LFT form fields.
+    """
+    from django.http import JsonResponse
+    if not request.user.is_authenticated:
+        return JsonResponse({'passports': []})
+    try:
+        from apps.user_profile.models import GameProfile
+        passports = GameProfile.objects.filter(
+            user=request.user, status='ACTIVE'
+        ).select_related('game').order_by('-is_pinned', 'sort_order')
+        result = []
+        for gp in passports:
+            g = gp.game
+            if not g:
+                continue
+            icon_url = None
+            try:
+                icon_url = g.icon.url if g.icon else None
+            except Exception:
+                pass
+            result.append({
+                'game_slug':   g.slug,
+                'game_name':   g.display_name or g.name,
+                'game_icon':   icon_url,
+                'main_role':   gp.main_role or '',
+                'rank_name':   gp.rank_name or '',
+                'region':      gp.region or 'BD / SEA',
+                'hours':       gp.hours_played or '',
+                'ign':         gp.ign or '',
+                'is_lft':      gp.is_lft,
+            })
+        return JsonResponse({'passports': result})
+    except Exception as e:
+        return JsonResponse({'passports': [], 'error': str(e)})
 
 
 def handle_community_post_creation(request):

@@ -1,820 +1,241 @@
 {% extends 'base.html' %}
-{% load static dc_avatar %}
+{% load static %}
 
 {% block title %}Community — DeltaCrown{% endblock %}
 
 {% block extra_head %}
-<style>
-/* ═══════════════════════════════════════════════════════════════
-   DeltaCrown Community Hub v4 — Full-Width Esports Design
-   ═══════════════════════════════════════════════════════════════ */
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
 
-/* === Root === */
-.dc-root {
-  min-height: 100vh;
-  position: relative;
-  overflow-x: hidden;
-  background: linear-gradient(180deg, #060610 0%, #0a0e1a 30%, #080c16 60%, #060610 100%);
-  --dc-community-header-height: 60px;
-  --dc-community-top-gap: 1.5rem;
-  --dc-community-sidebar-top: calc(var(--nav-height-desktop) + var(--dc-community-header-height) + var(--dc-community-top-gap));
-  --dc-community-sidebar-height: calc(100vh - var(--nav-height-desktop) - var(--dc-community-header-height) - 3rem);
-}
+  <script src="https://cdn.tailwindcss.com" nonce="{{ request.csp_nonce }}"></script>
+  <script nonce="{{ request.csp_nonce }}">
+    tailwind.config = {
+      theme: { extend: {
+        colors: {
+          dc: {
+            base: '#050510', ink: '#0a0a15', surface: '#0e0e1c', panel: '#13131f',
+            line: 'rgba(255,255,255,0.07)', cyan: '#00E5FF', violet: '#7B2BFF',
+            gold: '#FFD166', emerald: '#10E68B', rose: '#FF4D6D',
+          },
+        },
+        fontFamily: {
+          sans: ['Inter','ui-sans-serif','system-ui','sans-serif'],
+          display: ['"Space Grotesk"','sans-serif'],
+          hud: ['Rajdhani','sans-serif'],
+          mono: ['"JetBrains Mono"','ui-monospace','monospace'],
+        },
+      }}
+    };
+  </script>
 
-/* === Ambient atmosphere === */
-.dc-root::before {
-  content: '';
-  position: fixed; inset: 0; z-index: 0; pointer-events: none;
-  background:
-    radial-gradient(ellipse 60% 50% at 10% 20%, rgba(108,0,255,.08) 0%, transparent 60%),
-    radial-gradient(ellipse 50% 40% at 90% 80%, rgba(0,229,255,.06) 0%, transparent 60%),
-    radial-gradient(ellipse 80% 30% at 50% 0%, rgba(6,182,212,.05) 0%, transparent 50%);
-}
+  <link rel="stylesheet" href="{% static 'community/styles.css' %}?v=2026-05-21f">
 
-/* === Glow orb decorations === */
-.dc-glow-tl {
-  position: fixed; top: -120px; left: -120px;
-  width: 400px; height: 400px; border-radius: 50%;
-  background: radial-gradient(circle, rgba(108,0,255,.12) 0%, transparent 70%);
-  pointer-events: none; z-index: 0;
-  animation: dcOrb 12s ease-in-out infinite alternate;
-}
-.dc-glow-br {
-  position: fixed; bottom: -100px; right: -80px;
-  width: 350px; height: 350px; border-radius: 50%;
-  background: radial-gradient(circle, rgba(0,229,255,.1) 0%, transparent 70%);
-  pointer-events: none; z-index: 0;
-  animation: dcOrb 15s ease-in-out infinite alternate-reverse;
-}
-@keyframes dcOrb {
-  0%   { transform: translate(0, 0) scale(1); }
-  100% { transform: translate(30px, 20px) scale(1.15); }
-}
+  <style nonce="{{ request.csp_nonce }}">
+    /* ══════════════════════════════════════════════════════════════
+       ROOT CAUSE FIX: static/community/styles.css sets
+         html, body { height: 100%; }
+       which constrains body to 100vh. Content below the fold is
+       painted by <html> which still has var(--bg)=#0b0f16 from
+       tokens.css — so the "old" bg shows when scrolling.
+       Fix: reset heights to auto/min-height and force html colour.
+    ═══════════════════════════════════════════════════════════════ */
+    html { background: #050510 !important; }
+    body.dc-community-page { height: auto !important; min-height: 100vh; background: #050510 !important; }
 
-/* === Fade-in === */
-.dc-enter { animation: dcEnter .45s cubic-bezier(.16,1,.3,1) both; }
-@keyframes dcEnter {
-  from { opacity: 0; transform: translateY(14px) scale(.97); }
-  to   { opacity: 1; transform: none; }
-}
+    /* ── Aurora / BG variants via a position:fixed backdrop div
+       so it ALWAYS covers the viewport regardless of scroll.
+       React updates #dc-comm-bg[data-bg] on tweak change. ── */
+    #dc-comm-bg {
+      position: fixed; inset: 0; z-index: -1; pointer-events: none;
+      background: #050510;
+    }
+    #dc-comm-bg:not([data-bg]),
+    #dc-comm-bg[data-bg="aurora"] {
+      background-image:
+        radial-gradient(1100px 700px at 12% -10%, rgba(108,0,255,0.12), transparent 60%),
+        radial-gradient(900px 600px at 95% 10%,  rgba(0,229,255,0.08), transparent 60%),
+        radial-gradient(800px 500px at 80% 110%, rgba(108,0,255,0.07), transparent 60%);
+    }
+    #dc-comm-bg[data-bg="noir"] {
+      background-image: radial-gradient(1200px 600px at 50% -20%, rgba(0,229,255,0.05), transparent 60%);
+    }
+    #dc-comm-bg[data-bg="grid"] {
+      background-color: #030309;
+      background-image:
+        radial-gradient(900px 500px at 50% 0%, rgba(0,229,255,0.10), transparent 65%),
+        linear-gradient(rgba(255,255,255,0.022) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.022) 1px, transparent 1px);
+      background-size: 100% 100%, 36px 36px, 36px 36px;
+    }
+    #dc-comm-bg[data-bg="mesh"] {
+      background-image:
+        radial-gradient(ellipse 800px 500px at 15% 25%, rgba(108,0,255,0.22), transparent 60%),
+        radial-gradient(ellipse 700px 400px at 85% 55%, rgba(0,229,255,0.20), transparent 60%),
+        radial-gradient(ellipse 900px 600px at 50% 95%, rgba(108,0,255,0.14), transparent 60%);
+    }
+    #dc-comm-bg[data-bg="hex"] {
+      background-color: #030309;
+      background-image:
+        radial-gradient(900px 500px at 50% 0%, rgba(0,229,255,0.10), transparent 65%),
+        radial-gradient(circle at 50% 50%, rgba(255,255,255,0.025) 1px, transparent 1.2px);
+      background-size: 100% 100%, 22px 22px;
+    }
 
-/* === Skeleton === */
-.dc-skeleton {
-  background: linear-gradient(90deg, rgba(255,255,255,.02) 25%, rgba(255,255,255,.06) 50%, rgba(255,255,255,.02) 75%);
-  background-size: 400% 100%;
-  animation: dcSkel 1.8s ease infinite;
-  border-radius: .75rem;
-}
-@keyframes dcSkel {
-  0%   { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
-}
+    /* ── Modal: must sit above Django nav (z-[100]). ── */
+    .dc-modal-backdrop { z-index: 220 !important; }
 
-/* === Glass panel === */
-.dc-glass {
-  background: rgba(255,255,255,.03);
-  border: 1px solid rgba(255,255,255,.08);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-}
-.dc-glass-hover:hover {
-  background: rgba(255,255,255,.05);
-  border-color: rgba(6,182,212,.25);
-  box-shadow: 0 0 24px rgba(6,182,212,.06);
-}
+    /* ── Rails sticky below the 80px nav ── */
+    .dc-rail-sticky {
+      top: calc(80px + 1rem) !important;
+      max-height: calc(100vh - 80px - 2rem) !important;
+    }
 
-/* === Post card === */
-.dc-post-card {
-  transition: border-color .3s, box-shadow .3s, transform .3s;
-  position: relative;
-}
-.dc-post-card:hover {
-  border-color: rgba(6,182,212,.18);
-  box-shadow: 0 8px 32px rgba(6,182,212,.06), inset 0 1px 0 rgba(255,255,255,.04);
-  transform: translateY(-2px);
-}
-.dc-post-card::before {
-  content: '';
-  position: absolute; top: 0; left: 0; right: 0; height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(6,182,212,.15), transparent);
-  opacity: 0; transition: opacity .3s;
-}
-.dc-post-card:hover::before { opacity: 1; }
-.dc-post-card::after {
-  content: '';
-  position: absolute; bottom: 0; left: 16px; right: 16px; height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(108,0,255,.1), transparent);
-  opacity: 0; transition: opacity .3s;
-}
-.dc-post-card:hover::after { opacity: 1; }
+    /* ── Nav: dark glass, no bottom border (tabs extend it visually) ── */
+    body.dc-community-page #dc-navbar {
+      transition: transform 0.3s cubic-bezier(.4,0,.2,1);
+      background: rgba(5, 5, 16, 0.92) !important;
+      backdrop-filter: blur(20px) saturate(160%) !important;
+      border-bottom: 1px solid rgba(255,255,255,0.04) !important;
+    }
+    body.dc-community-page #dc-navbar.nav-hidden { transform: translateY(-100%); }
 
-/* === Post card left accent (esports HUD feel) === */
-.dc-post-card .dc-accent-bar {
-  position: absolute; top: 12px; left: 0; width: 3px; height: 24px;
-  border-radius: 0 3px 3px 0;
-  background: linear-gradient(180deg, #00E5FF, #6C00FF);
-  opacity: 0; transition: opacity .3s;
-}
-.dc-post-card:hover .dc-accent-bar { opacity: .6; }
+    /* ── FeedTabs sticky: same dark glass as the nav so they read as one unit ── */
+    body.dc-community-page .dc-glass-strong {
+      background: rgba(5, 5, 16, 0.96) !important;
+      border-left: none !important;
+      border-right: none !important;
+      border-top: none !important;
+      border-bottom: 1px solid rgba(255,255,255,0.06) !important;
+    }
 
-/* === Like pop === */
-.dc-like-pop { animation: dcPop .35s ease; }
-@keyframes dcPop {
-  0%   { transform: scale(1); }
-  50%  { transform: scale(1.4); }
-  100% { transform: scale(1); }
-}
+    /* ── Community icon nav links ── */
+    .dc-ci {
+      display: flex; align-items: center; justify-content: center;
+      width: 40px; height: 40px; border-radius: 10px; flex-shrink: 0;
+      color: rgba(255,255,255,0.48); font-size: 1rem;
+      transition: all 0.15s; position: relative; text-decoration: none;
+    }
+    .dc-ci:hover { color: white; background: rgba(255,255,255,0.06); }
+    .dc-ci.is-active { color: #00E5FF; background: rgba(0,229,255,0.08); }
+    .dc-ci.is-active::after {
+      content: '';
+      position: absolute; bottom: -20px; left: 50%; transform: translateX(-50%);
+      width: 24px; height: 2.5px; border-radius: 2px;
+      background: linear-gradient(90deg,#00E5FF,#7B2BFF);
+      box-shadow: 0 0 8px rgba(0,229,255,0.5);
+    }
 
-/* === Rich text editor === */
-.dc-editor {
-  min-height: 120px; max-height: 320px;
-  overflow-y: auto; outline: none;
-  line-height: 1.75; font-size: .9375rem;
-  color: rgba(255,255,255,.85);
-}
-.dc-editor:empty::before {
-  content: attr(data-placeholder);
-  color: rgba(255,255,255,.2);
-  pointer-events: none;
-}
-.dc-editor h1,.dc-editor h2,.dc-editor h3 { font-weight: 700; margin: .5em 0 .25em; color: #fff; }
-.dc-editor h1 { font-size: 1.5rem; } .dc-editor h2 { font-size: 1.25rem; } .dc-editor h3 { font-size: 1.1rem; }
-.dc-editor strong { color: #fff; }
-.dc-editor ul,.dc-editor ol { padding-left: 1.5rem; margin: .5em 0; }
-.dc-editor blockquote {
-  border-left: 3px solid rgba(6,182,212,.4);
-  padding-left: .75rem; margin: .5em 0;
-  color: rgba(255,255,255,.5); font-style: italic;
-}
-.dc-editor a { color: #22d3ee; text-decoration: underline; }
-
-/* === Rich content in posts === */
-.dc-rich-content { line-height: 1.75; word-break: break-word; }
-.dc-rich-content h1,.dc-rich-content h2,.dc-rich-content h3 { font-weight: 700; margin: .6em 0 .3em; color: #fff; }
-.dc-rich-content h1 { font-size: 1.35rem; } .dc-rich-content h2 { font-size: 1.15rem; } .dc-rich-content h3 { font-size: 1.05rem; }
-.dc-rich-content strong { color: rgba(255,255,255,.95); }
-.dc-rich-content ul,.dc-rich-content ol { padding-left: 1.5rem; margin: .4em 0; }
-.dc-rich-content blockquote {
-  border-left: 3px solid rgba(6,182,212,.35);
-  padding: .25rem .75rem; margin: .5em 0;
-  color: rgba(255,255,255,.5); font-style: italic;
-  background: rgba(6,182,212,.04); border-radius: 0 .375rem .375rem 0;
-}
-.dc-rich-content a { color: #22d3ee; text-decoration: underline; }
-.dc-rich-content p { margin: .4em 0; }
-
-/* === Toolbar button === */
-.dc-tb-btn {
-  width: 34px; height: 34px;
-  display: grid; place-items: center;
-  border-radius: .5rem; font-size: .8rem; font-weight: 600;
-  color: rgba(255,255,255,.35);
-  transition: all .15s;
-}
-.dc-tb-btn:hover { color: #00E5FF; background: rgba(0,229,255,.08); }
-.dc-tb-btn.active { color: #00E5FF; background: rgba(0,229,255,.12); }
-
-/* === Game chip === */
-.dc-chip { transition: all .2s; cursor: pointer; user-select: none; }
-.dc-chip:hover, .dc-chip.active {
-  background: rgba(0,229,255,.12) !important;
-  border-color: rgba(0,229,255,.35) !important;
-  color: #00E5FF !important;
-}
-
-/* === Comment anim === */
-.dc-comment-in { animation: dcSlide .25s ease-out both; }
-@keyframes dcSlide {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: none; }
-}
-
-/* === Scrollbar === */
-.dc-root ::-webkit-scrollbar { width: 4px; }
-.dc-root ::-webkit-scrollbar-track { background: transparent; }
-.dc-root ::-webkit-scrollbar-thumb { background: rgba(255,255,255,.06); border-radius: 4px; }
-.dc-root ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,.12); }
-
-/* === Sidebar drawer === */
-.dc-sidebar-drawer { transition: transform .3s cubic-bezier(.4,0,.2,1); }
-.dc-sidebar-drawer.open { transform: translateX(0) !important; }
-
-@media (min-width: 1024px) {
-  .dc-community-sidebar {
-    top: var(--dc-community-sidebar-top);
-    max-height: var(--dc-community-sidebar-height);
-    bottom: auto;
-    height: auto;
-  }
-}
-
-/* === Hide scrollbar === */
-.no-scrollbar::-webkit-scrollbar { display: none; }
-.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-
-/* === Modal panel (unused — kept for compat) === */
-.dc-modal-panel { animation: dcModalIn .3s cubic-bezier(.16,1,.3,1) both; }
-@keyframes dcModalIn {
-  from { opacity: 0; transform: translateY(20px) scale(.96); }
-  to   { opacity: 1; transform: none; }
-}
-
-/* === Inline comments expand === */
-.dc-inline-comments {
-  animation: dcSlide .25s ease-out both;
-}
-.dc-inline-comments .dc-comments-list::-webkit-scrollbar { width: 3px; }
-.dc-inline-comments .dc-comments-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,.06); border-radius: 3px; }
-
-/* === Team badge === */
-.dc-team-badge {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 2px 10px 2px 4px;
-  border-radius: 999px;
-  background: linear-gradient(135deg, rgba(108,0,255,.12), rgba(139,92,246,.08));
-  border: 1px solid rgba(139,92,246,.2);
-  font-size: .7rem; color: #a78bfa; font-weight: 600;
-}
-
-/* === Post-as selector === */
-.dc-as-option { transition: all .15s; cursor: pointer; }
-.dc-as-option:hover { border-color: rgba(0,229,255,.4); }
-.dc-as-option.selected { border-color: #00E5FF; background: rgba(0,229,255,.08); color: #00E5FF; }
-
-/* === Inline compose bar === */
-.dc-compose-inline {
-  transition: all .3s;
-  cursor: text;
-}
-.dc-compose-inline:hover { border-color: rgba(6,182,212,.25); }
-
-/* === Sidebar widget header accent === */
-.dc-widget-header {
-  position: relative; padding-left: 14px;
-}
-.dc-widget-header::before {
-  content: '';
-  position: absolute; left: 0; top: 50%; transform: translateY(-50%);
-  width: 3px; height: 18px; border-radius: 3px;
-  background: linear-gradient(180deg, #00E5FF, #6C00FF);
-}
-
-/* === Stat card glow === */
-.dc-stat-card {
-  position: relative; overflow: hidden;
-}
-.dc-stat-card::before {
-  content: '';
-  position: absolute; inset: 0;
-  background: linear-gradient(135deg, rgba(0,229,255,.06), transparent 60%);
-  opacity: 0; transition: opacity .3s;
-}
-.dc-stat-card:hover::before { opacity: 1; }
-
-/* === Trending pulse dot === */
-.dc-pulse-dot {
-  display: inline-block; width: 6px; height: 6px; border-radius: 50%;
-  background: #10B981;
-  animation: dcPulseDot 2s ease-in-out infinite;
-}
-@keyframes dcPulseDot {
-  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(16,185,129,.4); }
-  50% { opacity: .6; box-shadow: 0 0 0 4px rgba(16,185,129,0); }
-}
-
-/* === Sentinel === */
-#feed-sentinel { height: 1px; }
-
-/* === HUD scan-line effect (subtle) === */
-.dc-hud-scanline {
-  position: relative;
-}
-.dc-hud-scanline::after {
-  content: '';
-  position: absolute; inset: 0; pointer-events: none;
-  background: repeating-linear-gradient(
-    0deg,
-    transparent,
-    transparent 2px,
-    rgba(0,229,255,.008) 2px,
-    rgba(0,229,255,.008) 4px
-  );
-  opacity: 0;
-  transition: opacity .4s;
-}
-.dc-hud-scanline:hover::after { opacity: 1; }
-
-/* === Status indicator === */
-.dc-status-live {
-  position: relative;
-  padding-left: 14px;
-}
-.dc-status-live::before {
-  content: '';
-  position: absolute; left: 0; top: 50%; transform: translateY(-50%);
-  width: 6px; height: 6px; border-radius: 50%;
-  background: #10B981;
-  box-shadow: 0 0 8px rgba(16,185,129,.4);
-  animation: dcPulseDot 2s ease-in-out infinite;
-}
-
-/* === Hexagonal badge (game tags in feed) === */
-.dc-hex-badge {
-  clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
-  width: 28px; height: 28px;
-  display: grid; place-items: center;
-  font-size: 10px; font-weight: 700;
-}
-
-/* === Comment inline thread line === */
-.dc-comment-in + .dc-comment-in {
-  position: relative;
-}
-</style>
+    /* ── Community search ── */
+    #dc-community-search-input::placeholder { color: rgba(255,255,255,0.3); }
+    #dc-community-search-input { color: white; }
+    #dc-community-search-input::-webkit-search-cancel-button { display: none; }
+  </style>
 {% endblock %}
-
 
 {% block content %}
-<div class="dc-root" id="community-app">
-  {% if request.user.is_authenticated %}
-  {% user_avatar_url request.user as avatar_url %}
-  {% endif %}
-
-  {# Ambient glow decorations #}
-  <div class="dc-glow-tl"></div>
-  <div class="dc-glow-br"></div>
-
-  {# HEADER BAR — Esports HUD style #}
-  <header class="sticky top-0 z-40 backdrop-blur-xl bg-delta-base/80 border-b border-white/[.05]">
-    <div class="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
-      {# Row 1: Logo / Search / CTA #}
-      <div class="flex items-center gap-4 h-[60px]">
-        {# Mobile menu #}
-        <button id="sidebar-toggle" class="lg:hidden p-2 -ml-2 rounded-xl hover:bg-white/5 text-white/40" aria-label="Open community sidebar">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
-        </button>
-
-        {# Brand #}
-        <a href="/community/" class="flex items-center gap-3 shrink-0 group">
-          <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-[#00E5FF] via-[#6C00FF] to-[#00E5FF] p-[1px] shadow-lg shadow-cyan-500/20">
-            <div class="w-full h-full rounded-[10px] bg-delta-base grid place-items-center">
-              <svg class="w-5 h-5 text-[#00E5FF]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
-            </div>
-          </div>
-          <div class="hidden sm:block">
-            <h1 class="text-base font-bold text-white leading-tight tracking-tight group-hover:text-[#00E5FF] transition">Community</h1>
-            <p class="text-[10px] text-white/25 -mt-0.5 font-medium tracking-wider uppercase">DeltaCrown Esports</p>
-          </div>
-        </a>
-
-        {# Search — wider #}
-        <div class="flex-1 max-w-2xl mx-auto relative">
-          <div class="absolute left-4 inset-y-0 flex items-center pointer-events-none">
-            <svg class="w-4 h-4 text-white/20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-          </div>
-          <input id="search-input" type="search" placeholder="Search posts, players, games…" aria-label="Search community"
-                 class="w-full pl-11 pr-4 py-2.5 rounded-xl bg-white/[.03] border border-white/[.07] text-sm text-white placeholder-white/20 focus:outline-none focus:border-[#00E5FF]/40 focus:bg-white/[.05] focus:shadow-[0_0_20px_rgba(0,229,255,.06)] transition">
-        </div>
-
-        {# New Post CTA #}
-        {% if request.user.is_authenticated %}
-        <button id="btn-new-post" class="hidden sm:inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#00E5FF] to-[#6C00FF] text-white text-sm font-bold hover:shadow-lg hover:shadow-cyan-500/20 active:scale-[.97] transition">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
-          New Post
-        </button>
-        {% endif %}
-      </div>
-    </div>
-  </header>
-
-  {# MAIN 3-COL LAYOUT #}
-  <div class="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8 flex gap-6 xl:gap-8 relative z-10">
-
-    {# ── LEFT SIDEBAR ── #}
-        <aside id="left-sidebar"
-          class="dc-sidebar-drawer dc-community-sidebar fixed inset-y-0 left-0 z-50 w-[300px] bg-delta-base/95 backdrop-blur-xl border-r border-white/[.06] p-5 -translate-x-full
-            lg:translate-x-0 lg:sticky lg:w-[280px] lg:shrink-0 lg:block overflow-y-auto no-scrollbar">
-
-      {# Close mobile #}
-      <button id="sidebar-close" class="lg:hidden absolute top-3 right-3 p-2 rounded-xl hover:bg-white/10 text-white/30" aria-label="Close community sidebar">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>
-      </button>
-
-      {# Quick Actions #}
-      <div class="mb-7">
-        <div class="dc-widget-header text-[10px] font-bold uppercase tracking-[.14em] text-white/35 mb-3">Quick Actions</div>
-        {% if request.user.is_authenticated %}
-        <button id="btn-new-post-mobile"
-                class="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-gradient-to-r from-[#00E5FF]/10 to-[#6C00FF]/10 border border-[#00E5FF]/20 text-[#00E5FF] text-sm font-semibold hover:border-[#00E5FF]/40 hover:from-[#00E5FF]/15 transition">
-          <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
-          Create Post
-        </button>
-        {% else %}
-        <a href="{% url 'account:login' %}"
-           class="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-gradient-to-r from-[#00E5FF]/10 to-[#6C00FF]/10 border border-[#00E5FF]/20 text-[#00E5FF] text-sm font-semibold hover:border-[#00E5FF]/40 transition">
-          <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/><polyline points="10,17 15,12 10,7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
-          Sign In to Join
-        </a>
-        {% endif %}
-      </div>
-
-      {# Browse Games #}
-      <div class="mb-7">
-        <div class="dc-widget-header text-[10px] font-bold uppercase tracking-[.14em] text-white/35 mb-3">
-          <span class="inline-flex items-center gap-1.5">
-            <svg class="w-3 h-3 text-[#00E5FF]/40" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-            Game Channels
-          </span>
-        </div>
-        <div id="sidebar-games" class="space-y-1">
-          <div class="dc-skeleton h-9 w-full"></div>
-          <div class="dc-skeleton h-9 w-full"></div>
-          <div class="dc-skeleton h-9 w-3/4"></div>
-        </div>
-      </div>
-
-      {# Community Stats #}
-      <div class="mb-7">
-        <div class="dc-widget-header text-[10px] font-bold uppercase tracking-[.14em] text-white/35 mb-3">Stats</div>
-        <div class="grid grid-cols-3 gap-2">
-          <div class="dc-stat-card text-center p-3 rounded-xl dc-glass">
-            <div class="text-xl font-bold text-white" id="stat-posts">—</div>
-            <div class="text-[9px] text-white/30 uppercase tracking-wider mt-0.5">Posts</div>
-          </div>
-          <div class="dc-stat-card text-center p-3 rounded-xl dc-glass">
-            <div class="text-xl font-bold text-white" id="stat-teams">—</div>
-            <div class="text-[9px] text-white/30 uppercase tracking-wider mt-0.5">Teams</div>
-          </div>
-          <div class="dc-stat-card text-center p-3 rounded-xl dc-glass">
-            <div class="text-xl font-bold text-white" id="stat-games">—</div>
-            <div class="text-[9px] text-white/30 uppercase tracking-wider mt-0.5">Games</div>
-          </div>
-        </div>
-      </div>
-
-      {# Explore nav #}
-      <div class="mb-7">
-        <div class="dc-widget-header text-[10px] font-bold uppercase tracking-[.14em] text-white/35 mb-3">Explore</div>
-        <nav class="space-y-0.5">
-          <a href="/" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-white/35 text-sm hover:text-white/70 hover:bg-white/[.04] transition group">
-            <svg class="w-4 h-4 shrink-0 group-hover:text-[#00E5FF] transition" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg> <span>Home</span>
-          </a>
-          <a href="/teams/" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-white/35 text-sm hover:text-white/70 hover:bg-white/[.04] transition group">
-            <svg class="w-4 h-4 shrink-0 group-hover:text-[#6C00FF] transition" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg> Teams
-          </a>
-          <a href="/tournaments/" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-white/35 text-sm hover:text-white/70 hover:bg-white/[.04] transition group">
-            <svg class="w-4 h-4 shrink-0 group-hover:text-[#FFD700] transition" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg> Tournaments
-          </a>
-          <a href="/rankings/" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-white/35 text-sm hover:text-white/70 hover:bg-white/[.04] transition group">
-            <svg class="w-4 h-4 shrink-0 group-hover:text-emerald-400 transition" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 20V10M12 20V4M6 20v-6"/></svg> Rankings
-          </a>
-          <a href="/crownstore/" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-white/35 text-sm hover:text-white/70 hover:bg-white/[.04] transition group">
-            <svg class="w-4 h-4 shrink-0 group-hover:text-rose-400 transition" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4zM3 6h18M16 10a4 4 0 01-8 0"/></svg> Store
-          </a>
-        </nav>
-      </div>
-
-      {# Community guidelines #}
-      <div class="rounded-xl dc-glass p-3.5">
-        <div class="flex items-start gap-2.5 text-[11px] text-white/30 leading-relaxed">
-          <svg class="w-3.5 h-3.5 mt-0.5 shrink-0 text-[#00E5FF]/30" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-          <span>Keep discussions respectful. Toxicity and spam will be removed.</span>
-        </div>
-      </div>
-    </aside>
-
-    {# Sidebar overlay (mobile) #}
-    <div id="sidebar-overlay" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 hidden lg:hidden"></div>
-
-
-    {# ── FEED COLUMN — fills available space ── #}
-    <main class="flex-1 min-w-0">
-
-      {# ── INLINE COMPOSE TRIGGER ── #}
-      {% if request.user.is_authenticated %}
-      <div id="compose-trigger" class="dc-compose-inline mb-6 rounded-2xl dc-glass p-4 flex items-center gap-4 cursor-text dc-enter"
-           data-click="CommunityHub.openComposer">
-        <div class="w-10 h-10 rounded-full bg-gradient-to-br from-[#00E5FF]/25 to-[#6C00FF]/25 p-[1px] shrink-0 border border-white/[.06]">
-          <img src="{{ avatar_url }}" alt="{{ request.user.username }}"
-               class="w-full h-full rounded-full object-cover bg-delta-base">
-        </div>
-        <div class="flex-1 text-sm text-white/20">Share updates, highlights, strategies…</div>
-        <div class="flex items-center gap-2">
-          <div class="w-8 h-8 rounded-lg bg-white/[.04] grid place-items-center text-white/15 hover:text-[#00E5FF] transition">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 00-2.828 0L6 21"/></svg>
-          </div>
-          <div class="w-8 h-8 rounded-lg bg-white/[.04] grid place-items-center text-white/15 hover:text-[#6C00FF] transition">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
-          </div>
-        </div>
-      </div>
-      {% endif %}
-
-      {# ── COMPOSER (hidden — toggled via JS) ── #}
-      {% if request.user.is_authenticated %}
-      <div id="composer" class="hidden mb-6 dc-enter">
-        <div class="rounded-2xl dc-glass overflow-hidden">
-          {# Composer header #}
-          <div class="px-5 pt-5 pb-3 flex items-center justify-between">
-            <h3 class="text-sm font-bold text-white/80 flex items-center gap-2">
-              <div class="w-2 h-2 rounded-full bg-[#00E5FF] animate-pulse"></div>
-              Create a Post
-            </h3>
-            <button id="compose-close" class="p-1.5 rounded-lg hover:bg-white/10 text-white/25 hover:text-white/60 transition">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>
-            </button>
-          </div>
-
-          {# Post-as selector #}
-          <div class="px-5 pb-3">
-            <div class="text-[11px] text-white/25 mb-2 uppercase tracking-wider font-semibold">Posting as</div>
-            <div id="post-as-options" class="flex items-center gap-2 flex-wrap">
-              <button data-post-as="user" data-team-id=""
-                      class="dc-as-option selected flex items-center gap-2 px-3.5 py-2 rounded-xl border border-white/[.08] bg-white/[.03] text-xs text-white/60">
-                <div class="w-6 h-6 rounded-full bg-gradient-to-br from-[#00E5FF]/30 to-[#6C00FF]/30 p-[1px]">
-                     <img src="{{ avatar_url }}" alt="{{ request.user.username }}"
-                       class="w-full h-full rounded-full object-cover bg-delta-base">
-                </div>
-                <span class="font-medium">{{ request.user.username }}</span>
-              </button>
-            </div>
-          </div>
-
-          {# Title input #}
-          <div class="px-5 pb-2">
-            <input id="compose-title" type="text" placeholder="Title (optional)"
-                   class="w-full px-0 py-2 bg-transparent border-0 border-b border-white/[.05] text-white text-sm placeholder-white/15 focus:outline-none focus:border-[#00E5FF]/30 transition">
-          </div>
-
-          {# Rich text toolbar #}
-          <div class="px-5 py-2 flex items-center gap-0.5 border-b border-white/[.04]" id="editor-toolbar">
-            <button class="dc-tb-btn" data-cmd="bold" title="Bold"><b>B</b></button>
-            <button class="dc-tb-btn" data-cmd="italic" title="Italic"><i>I</i></button>
-            <button class="dc-tb-btn" data-cmd="underline" title="Underline"><u>U</u></button>
-            <div class="w-px h-5 bg-white/[.06] mx-1"></div>
-            <button class="dc-tb-btn" data-cmd="insertUnorderedList" title="Bullet list">
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-            </button>
-            <button class="dc-tb-btn" data-cmd="insertOrderedList" title="Numbered list">
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="10" y1="6" x2="21" y2="6"/><line x1="10" y1="12" x2="21" y2="12"/><line x1="10" y1="18" x2="21" y2="18"/><text x="3" y="8" font-size="8" fill="currentColor">1</text><text x="3" y="14" font-size="8" fill="currentColor">2</text><text x="3" y="20" font-size="8" fill="currentColor">3</text></svg>
-            </button>
-            <button class="dc-tb-btn" data-cmd="formatBlock" data-value="blockquote" title="Quote">
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V21z"/><path d="M15 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V21z"/></svg>
-            </button>
-            <button class="dc-tb-btn" data-cmd="createLink" title="Add link">
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
-            </button>
-            <div class="w-px h-5 bg-white/[.06] mx-1"></div>
-            <button class="dc-tb-btn" data-cmd="formatBlock" data-value="h2" title="Heading">
-              <span class="text-[10px]">H</span>
-            </button>
-          </div>
-
-          {# Editable area #}
-          <div class="px-5 py-4">
-            <div id="compose-editor" class="dc-editor" contenteditable="true"
-                 data-placeholder="Share updates, highlights, strategies, or anything with the community…"></div>
-          </div>
-
-          {# Bottom: Game / Vis / Submit #}
-          <div class="px-5 py-3 border-t border-white/[.04] flex items-center justify-between flex-wrap gap-3 bg-white/[.01]">
-            <div class="flex items-center gap-2.5">
-              <div class="relative">
-                <select id="compose-game" class="px-3 py-2 rounded-lg bg-white/[.04] border border-white/[.06] text-xs text-white/40 focus:outline-none appearance-none pr-8 cursor-pointer hover:border-white/[.12] transition">
-                  <option value="">🎮 Game</option>
-                </select>
-                <svg class="w-3.5 h-3.5 text-white/40 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
-              </div>
-              <div class="relative">
-                <select id="compose-visibility" class="px-3 py-2 rounded-lg bg-white/[.04] border border-white/[.06] text-xs text-white/40 focus:outline-none appearance-none pr-8 cursor-pointer hover:border-white/[.12] transition">
-                  <option value="public">🌐 Public</option>
-                  <option value="friends">👥 Friends</option>
-                  <option value="private">🔒 Private</option>
-                </select>
-                <svg class="w-3.5 h-3.5 text-white/40 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
-              </div>
-            </div>
-            <div class="flex items-center gap-2.5">
-              <button id="compose-cancel" class="px-4 py-2 rounded-xl text-xs text-white/30 hover:text-white/60 hover:bg-white/[.05] transition">Cancel</button>
-              <button id="compose-submit"
-                      class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#00E5FF] to-[#6C00FF] text-xs font-bold text-white hover:shadow-lg hover:shadow-cyan-500/20 active:scale-[.97] transition disabled:opacity-25 disabled:pointer-events-none"
-                      disabled>
-                Publish
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-      {% endif %}
-
-
-      {# ── FEED ── #}
-      <div id="feed" class="space-y-5">
-        <div class="dc-skeleton h-56 w-full"></div>
-        <div class="dc-skeleton h-44 w-full"></div>
-        <div class="dc-skeleton h-52 w-full"></div>
-      </div>
-
-      <div id="feed-sentinel"></div>
-
-      {# Loading spinner #}
-      <div id="feed-loading" class="hidden py-8 flex justify-center">
-        <div class="flex items-center gap-2.5 text-white/20 text-sm">
-          <svg class="w-4 h-4 animate-spin text-[#00E5FF]/60" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
-          Loading more posts…
-        </div>
-      </div>
-
-      {# Empty state #}
-      <div id="feed-empty" class="hidden py-24 text-center">
-        <div class="w-24 h-24 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-[#00E5FF]/10 to-[#6C00FF]/10 border border-white/[.06] grid place-items-center">
-          <svg class="w-10 h-10 text-white/10" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
-        </div>
-        <h3 class="text-xl font-bold text-white/60 mb-2">No posts yet</h3>
-        <p class="text-sm text-white/30 mb-6 max-w-sm mx-auto">Be the first to share something with the DeltaCrown community!</p>
-        {% if request.user.is_authenticated %}
-        <button data-click="CommunityHub.openComposer"
-                class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#00E5FF] to-[#6C00FF] text-sm font-bold text-white hover:shadow-lg hover:shadow-cyan-500/20 transition">
-          Create First Post
-        </button>
-        {% endif %}
-      </div>
-
-      {# Mobile FAB #}
-      {% if request.user.is_authenticated %}
-      <button id="fab-new-post"
-              class="sm:hidden fixed bottom-6 right-6 z-30 w-14 h-14 rounded-2xl bg-gradient-to-br from-[#00E5FF] to-[#6C00FF] text-white grid place-items-center shadow-2xl shadow-[#00E5FF]/30 active:scale-90 transition">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
-      </button>
-      {% endif %}
-    </main>
-
-
-    {# ── RIGHT SIDEBAR ── wider + visible from lg ── #}
-    <aside class="dc-community-sidebar hidden lg:block w-[300px] xl:w-[340px] shrink-0 sticky overflow-y-auto space-y-5 no-scrollbar">
-
-      {# User's quick profile card (logged in) #}
-      {% if request.user.is_authenticated %}
-      <div class="rounded-2xl dc-glass overflow-hidden">
-        <div class="h-16 bg-gradient-to-r from-[#00E5FF]/15 via-[#6C00FF]/10 to-[#00E5FF]/15 relative">
-          <div class="absolute -bottom-5 left-4">
-            <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-[#00E5FF]/30 to-[#6C00FF]/30 p-[2px] border-2 border-delta-base">
-                  <img src="{{ avatar_url }}" alt="{{ request.user.username }}"
-                   class="w-full h-full rounded-[10px] object-cover bg-delta-base">
-            </div>
-          </div>
-        </div>
-        <div class="pt-8 px-4 pb-4">
-          <div class="text-sm font-bold text-white/90">{{ request.user.username }}</div>
-          <div class="text-[11px] text-white/30 mt-0.5">@{{ request.user.username }}</div>
-          <div class="flex items-center gap-4 mt-3 pt-3 border-t border-white/[.04]">
-            <a href="/@{{ request.user.username }}/" class="text-[11px] text-white/35 hover:text-[#00E5FF] transition">View Profile</a>
-            <a href="/dashboard/" class="text-[11px] text-white/35 hover:text-[#00E5FF] transition">Dashboard</a>
-          </div>
-        </div>
-      </div>
-      {% endif %}
-
-      {# Top Teams #}
-      <div class="rounded-2xl dc-glass overflow-hidden">
-        <div class="px-4 py-3.5 border-b border-white/[.04] flex items-center justify-between">
-          <h3 class="dc-widget-header text-sm font-bold text-white/70">Top Teams</h3>
-          <a href="/teams/" class="text-[10px] text-[#00E5FF]/50 hover:text-[#00E5FF] transition font-medium">View All</a>
-        </div>
-        <div id="sidebar-teams" class="p-3 space-y-1.5">
-          <div class="dc-skeleton h-12 w-full"></div>
-          <div class="dc-skeleton h-12 w-full"></div>
-          <div class="dc-skeleton h-12 w-full"></div>
-        </div>
-      </div>
-
-      {# Trending Topics #}
-      <div class="rounded-2xl dc-glass overflow-hidden">
-        <div class="px-4 py-3.5 border-b border-white/[.04] flex items-center gap-2">
-          <h3 class="dc-widget-header text-sm font-bold text-white/70">Trending</h3>
-          <span class="dc-pulse-dot"></span>
-        </div>
-        <div id="sidebar-trending" class="p-4 space-y-3">
-          <div class="flex items-start gap-3 group cursor-pointer">
-            <div class="w-7 h-7 rounded-lg bg-rose-500/10 grid place-items-center text-rose-400/60 text-[10px] font-bold shrink-0 mt-0.5">1</div>
-            <div>
-              <div class="text-xs font-semibold text-white/60 group-hover:text-white/90 transition">#Tournaments</div>
-              <div class="text-[10px] text-white/30">Community updates</div>
-            </div>
-          </div>
-          <div class="flex items-start gap-3 group cursor-pointer">
-            <div class="w-7 h-7 rounded-lg bg-amber-500/10 grid place-items-center text-amber-400/60 text-[10px] font-bold shrink-0 mt-0.5">2</div>
-            <div>
-              <div class="text-xs font-semibold text-white/60 group-hover:text-white/90 transition">#TeamUpdates</div>
-              <div class="text-[10px] text-white/30">Team activity</div>
-            </div>
-          </div>
-          <div class="flex items-start gap-3 group cursor-pointer">
-            <div class="w-7 h-7 rounded-lg bg-emerald-500/10 grid place-items-center text-emerald-400/60 text-[10px] font-bold shrink-0 mt-0.5">3</div>
-            <div>
-              <div class="text-xs font-semibold text-white/60 group-hover:text-white/90 transition">#Highlights</div>
-              <div class="text-[10px] text-white/30">Best plays</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {# About #}
-      <div class="rounded-2xl dc-glass overflow-hidden">
-        <div class="px-4 py-3.5 border-b border-white/[.04]">
-          <h3 class="dc-widget-header text-sm font-bold text-white/70">About</h3>
-        </div>
-        <div class="p-4 text-[13px] text-white/40 leading-relaxed">
-          Connect with esports players, discover teams, share highlights, discuss strategies, and stay updated on the competitive scene.
-        </div>
-        <div class="px-4 pb-4 flex flex-wrap gap-2">
-          <span class="px-2.5 py-1 rounded-lg bg-white/[.03] text-[10px] text-white/25 border border-white/[.04]">Esports</span>
-          <span class="px-2.5 py-1 rounded-lg bg-white/[.03] text-[10px] text-white/25 border border-white/[.04]">Gaming</span>
-          <span class="px-2.5 py-1 rounded-lg bg-white/[.03] text-[10px] text-white/25 border border-white/[.04]">Competitive</span>
-          <span class="px-2.5 py-1 rounded-lg bg-white/[.03] text-[10px] text-white/25 border border-white/[.04]">Community</span>
-        </div>
-      </div>
-
-      {# Esports Quick Hub #}
-      <div class="rounded-2xl dc-glass overflow-hidden">
-        <div class="px-4 py-3.5 border-b border-white/[.04] flex items-center gap-2">
-          <h3 class="dc-widget-header text-sm font-bold text-white/70">Esports Hub</h3>
-          <span class="text-[9px] px-1.5 py-0.5 rounded-full bg-cyan-500/15 text-cyan-400 font-bold uppercase tracking-wider">Live</span>
-        </div>
-        <div class="p-4 space-y-2">
-          <a href="/tournaments/" class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-white/[.04] transition group">
-            <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-500/15 to-orange-500/15 grid place-items-center">
-              <i class="fa-solid fa-trophy text-amber-400 text-xs"></i>
-            </div>
-            <div class="flex-1 min-w-0">
-              <div class="text-xs font-semibold text-white/60 group-hover:text-white/90 transition">Active Tournaments</div>
-              <div class="text-[10px] text-white/25">Browse & register</div>
-            </div>
-            <i class="fa-solid fa-chevron-right text-[8px] text-white/10 group-hover:text-cyan-400/40 transition"></i>
-          </a>
-          <a href="/search/?type=players&lft=true" class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-white/[.04] transition group">
-            <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500/15 to-green-500/15 grid place-items-center">
-              <i class="fa-solid fa-signal text-emerald-400 text-xs"></i>
-            </div>
-            <div class="flex-1 min-w-0">
-              <div class="text-xs font-semibold text-white/60 group-hover:text-white/90 transition">LFT Players</div>
-              <div class="text-[10px] text-white/25">Looking for team</div>
-            </div>
-            <i class="fa-solid fa-chevron-right text-[8px] text-white/10 group-hover:text-cyan-400/40 transition"></i>
-          </a>
-          <a href="/rankings/" class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-white/[.04] transition group">
-            <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500/15 to-violet-500/15 grid place-items-center">
-              <i class="fa-solid fa-ranking-star text-purple-400 text-xs"></i>
-            </div>
-            <div class="flex-1 min-w-0">
-              <div class="text-xs font-semibold text-white/60 group-hover:text-white/90 transition">Leaderboards</div>
-              <div class="text-[10px] text-white/25">Global rankings</div>
-            </div>
-            <i class="fa-solid fa-chevron-right text-[8px] text-white/10 group-hover:text-cyan-400/40 transition"></i>
-          </a>
-          <a href="/teams/create/" class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-white/[.04] transition group">
-            <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-500/15 to-blue-500/15 grid place-items-center">
-              <i class="fa-solid fa-users text-cyan-400 text-xs"></i>
-            </div>
-            <div class="flex-1 min-w-0">
-              <div class="text-xs font-semibold text-white/60 group-hover:text-white/90 transition">Create Team</div>
-              <div class="text-[10px] text-white/25">Start competing</div>
-            </div>
-            <i class="fa-solid fa-chevron-right text-[8px] text-white/10 group-hover:text-cyan-400/40 transition"></i>
-          </a>
-        </div>
-      </div>
-
-      {# Quick links #}
-      <div class="rounded-2xl dc-glass p-4 space-y-2">
-        <a href="/support/" class="flex items-center gap-2.5 text-[11px] text-white/30 hover:text-white/60 transition">
-          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-          Help & Support
-        </a>
-        <a href="/community-guidelines/" class="flex items-center gap-2.5 text-[11px] text-white/30 hover:text-white/60 transition">
-          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-          Community Guidelines
-        </a>
-        <div class="pt-2 border-t border-white/[.04] text-[10px] text-white/15">
-          &copy; 2026 DeltaCrown Esports
-        </div>
-      </div>
-    </aside>
-  </div>
-</div>
-
-
-{# Comments are now inline-expanded under each post — no modal needed #}
+  <div id="dc-comm-bg" data-bg="aurora" aria-hidden="true"></div>
+  <div id="dc-community-root"></div>
 {% endblock %}
 
-
 {% block extra_js %}
-<script nonce="{{ request.csp_nonce }}">
-  window.DC_COMMUNITY = {
-    csrfToken: '{{ csrf_token }}',
-    isAuthenticated: {% if request.user.is_authenticated %}true{% else %}false{% endif %},
-    currentUser: '{{ request.user.username|escapejs }}',
-  };
-</script>
-<script src="{% static 'siteui/js/community-hub.js' %}"></script>
+  <script id="dc-community-config" type="application/json">
+    {
+      "isAuthenticated": {{ request.user.is_authenticated|yesno:"true,false" }},
+      "csrfToken": "{{ csrf_token|escapejs }}",
+      "me": {% if request.user.is_authenticated %}{
+        "id": "u-self",
+        "name": "{{ request.user.get_full_name|default:request.user.username|escapejs }}",
+        "handle": "{{ request.user.username|escapejs }}",
+        "color1": "#7B2BFF", "color2": "#00E5FF",
+        "verified": {{ request.user.is_staff|yesno:"true,false" }},
+        "country": "🇧🇩",
+        "avatar_url": "{{ dc_me_avatar|default:''|escapejs }}"
+      }{% else %}null{% endif %},
+      "urls": {
+        "sidebar":       "{% url 'siteui:community_api_sidebar' %}",
+        "feed":          "{% url 'siteui:community_api_feed' %}",
+        "createPost":    "{% url 'siteui:community_api_create_post' %}",
+        "userTeams":     "{% url 'siteui:community_api_user_teams' %}",
+        "preferences":   "{% url 'siteui:community_api_preferences' %}",
+        "like":          "{% url 'siteui:community_api_like' post_id=0 %}",
+        "comments":      "{% url 'siteui:community_api_comments' post_id=0 %}",
+        "vote":          "{% url 'siteui:community_api_poll_vote' post_id=0 %}",
+        "myTournaments": "{% url 'siteui:community_api_my_tournaments' %}",
+        "myPassports":   "{% url 'siteui:community_api_my_passports' %}"
+      }
+    }
+  </script>
+
+  <script nonce="{{ request.csp_nonce }}">
+    (function () {
+      /* Parse config */
+      var cfg = document.getElementById('dc-community-config');
+      try { window.DC_CONFIG = JSON.parse(cfg.textContent); }
+      catch (e) { window.DC_CONFIG = { isAuthenticated: false, urls: {} }; }
+
+      /* Apply body class + data-bg immediately so background shows before React */
+      document.body.classList.add('dc-community-page');
+      document.body.setAttribute('data-bg', 'aurora');
+      var bgDiv = document.getElementById('dc-comm-bg');
+      if (bgDiv) bgDiv.setAttribute('data-bg', 'aurora');
+
+      /* Bridge: Django nav search input → React */
+      function wireSearch() {
+        var input = document.getElementById('dc-community-search-input');
+        if (!input) return;
+        input.addEventListener('input', function () {
+          window.dispatchEvent(new CustomEvent('dc-community-search', { detail: input.value }));
+        });
+      }
+
+      /* Bridge: Django nav "Post" button → React composer modal.
+         Tries window.dcCommunityCompose (set by React after mount), falls back to event. */
+      function wirePostBtn() {
+        var btn = document.getElementById('dc-community-post-btn');
+        if (!btn) return;
+        btn.addEventListener('click', function () {
+          if (typeof window.dcCommunityCompose === 'function') {
+            window.dcCommunityCompose('text');
+          } else {
+            window.dispatchEvent(new CustomEvent('dc-community-compose', { detail: 'text' }));
+          }
+        });
+      }
+
+      /* Scroll-hide the nav */
+      function wireScrollHide() {
+        var nav = document.getElementById('dc-navbar');
+        if (!nav) return;
+        var lastY = 0, ticking = false;
+        window.addEventListener('scroll', function () {
+          if (ticking) return;
+          ticking = true;
+          requestAnimationFrame(function () {
+            var y = window.scrollY || window.pageYOffset;
+            nav.classList.toggle('nav-hidden', y > lastY && y > 120);
+            if (y < lastY) nav.classList.remove('nav-hidden');
+            lastY = y;
+            ticking = false;
+          });
+        }, { passive: true });
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function () {
+          wireSearch(); wirePostBtn(); wireScrollHide();
+        });
+      } else {
+        wireSearch(); wirePostBtn(); wireScrollHide();
+      }
+    })();
+  </script>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" crossorigin="anonymous" nonce="{{ request.csp_nonce }}"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin="anonymous" nonce="{{ request.csp_nonce }}"></script>
+
+  <script src="{% static 'community/build/data.js' %}?v=2026-05-21f" nonce="{{ request.csp_nonce }}"></script>
+  <script src="{% static 'community/build/cards.js' %}?v=2026-05-21f" nonce="{{ request.csp_nonce }}"></script>
+  <script src="{% static 'community/build/rails.js' %}?v=2026-05-21f" nonce="{{ request.csp_nonce }}"></script>
+  <script src="{% static 'community/build/composer.js' %}?v=2026-05-21f" nonce="{{ request.csp_nonce }}"></script>
+  <script src="{% static 'community/build/tweaks-panel.js' %}?v=2026-05-21f" nonce="{{ request.csp_nonce }}"></script>
+  <script src="{% static 'community/build/app.js' %}?v=2026-05-21f" nonce="{{ request.csp_nonce }}"></script>
 {% endblock %}

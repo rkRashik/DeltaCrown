@@ -69,6 +69,81 @@
 <nav id="dc-navbar"
   class="hidden md:flex fixed top-0 left-0 right-0 z-[100] items-center justify-center transition-all duration-500"
   style="height:80px;background:rgba(2,0,5,.6);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid rgba(255,255,255,.03);">
+
+  {% if dc_community_mode %}
+  {# ===== COMMUNITY MODE NAV — premium, icon-only, no profile ===== #}
+  {% nav_active '/tournaments/' '/tournaments' as t_a %}
+  {% if ORG_APP_ENABLED %}{% nav_active '/teams/' '/teams' '/orgs/' as tm_a %}{% else %}{% nav_active '/teams/' '/teams' as tm_a %}{% endif %}
+  {% if request.user.is_authenticated %}{% nav_active '/dashboard/' '/dashboard' as d_a %}{% endif %}
+  {% nav_active '/community/' '/community' as c_a %}
+  {% nav_active '/arena/' '/watch/' as ar_a %}
+  {% nav_active '/crownstore/' '/crownstore' as st_a %}
+  <div class="w-full px-5 flex items-center gap-2 h-full" style="max-width:1640px;margin:0 auto;">
+
+    <!-- Logo -->
+    <a href="/" class="flex items-center gap-2.5 shrink-0 mr-1" aria-label="DeltaCrown Home">
+      <img src="{% static 'img/deltaCrown_logos/logo_animated.svg' %}" alt="DeltaCrown" width="38" height="38" decoding="async" class="w-9 h-9 drop-shadow-[0_0_12px_rgba(108,0,255,0.4)]">
+      <img src="{% static 'img/deltaCrown_logos/DeltaCrown_Teal-Purple-Gold.svg' %}" alt="DELTACROWN" width="140" height="28" decoding="async" class="hidden lg:block h-7 w-auto drop-shadow-[0_0_8px_rgba(0,229,255,0.3)]">
+    </a>
+
+    <!-- Divider -->
+    <div style="width:1px;height:28px;background:rgba(255,255,255,0.08);margin:0 4px;flex-shrink:0;"></div>
+
+    <!-- Icon-only nav links with tooltips -->
+    <nav class="flex items-center gap-0.5 shrink-0" aria-label="Community nav" style="height:100%;">
+      <a href="/tournaments/" title="Tournaments" aria-label="Tournaments" class="dc-ci{% if t_a %} is-active{% endif %}"><i class="fa-solid fa-trophy"></i></a>
+      <a href="/teams/"       title="Teams"        aria-label="Teams"        class="dc-ci{% if tm_a %} is-active{% endif %}"><i class="fa-solid fa-users"></i></a>
+      {% if request.user.is_authenticated %}
+      <a href="/dashboard/"   title="Dashboard"    aria-label="Dashboard"    class="dc-ci{% if d_a %} is-active{% endif %}"><i class="fa-solid fa-gauge-high"></i></a>
+      {% endif %}
+      <a href="/community/"   title="Community"    aria-label="Community"    class="dc-ci{% if c_a %} is-active{% endif %}"><i class="fa-solid fa-comments"></i></a>
+      <a href="/arena/"       title="Arena"        aria-label="Arena"        class="dc-ci{% if ar_a %} is-active{% endif %}" style="position:relative;">
+        <i class="fa-solid fa-tower-broadcast"></i>
+        <span style="position:absolute;top:8px;right:8px;width:5px;height:5px;border-radius:50%;background:#FF4655;" aria-hidden="true"></span>
+      </a>
+      <a href="/crownstore/"  title="Store"        aria-label="Store"        class="dc-ci{% if st_a %} is-active{% endif %}" style="color:rgba(255,213,102,0.85)"><i class="fa-solid fa-bag-shopping"></i></a>
+    </nav>
+
+    <!-- Community search — fills remaining space -->
+    <div class="flex-1 relative mx-3" style="max-width:560px;">
+      <i class="fa-solid fa-magnifying-glass" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:rgba(255,255,255,0.28);font-size:13px;pointer-events:none;"></i>
+      <input id="dc-community-search-input" type="search"
+             placeholder="Search posts, players, teams…"
+             aria-label="Search community"
+             style="width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:9px 14px 9px 36px;font-size:13.5px;color:white;outline:none;transition:all 0.2s;font-family:Inter,sans-serif;"
+             onfocus="this.style.background='rgba(255,255,255,0.07)';this.style.borderColor='rgba(0,229,255,0.45)';this.style.boxShadow='0 0 0 3px rgba(0,229,255,0.1)';"
+             onblur="this.style.background='rgba(255,255,255,0.04)';this.style.borderColor='rgba(255,255,255,0.08)';this.style.boxShadow='none';" />
+    </div>
+
+    <!-- Right actions: bell + post (NO profile) -->
+    <div class="flex items-center gap-2 shrink-0 ml-auto">
+      {% if request.user.is_authenticated %}
+      <!-- Notifications bell -->
+      <div class="relative">
+        <button id="dc-notif-btn" class="dc-ci" aria-label="Notifications" aria-haspopup="true" aria-expanded="false" style="font-size:1.1rem;">
+          <i class="fa-regular fa-bell"></i>
+          {% with nav_unread_count|default:0 as unread_count %}{% if unread_count > 0 %}
+          <span style="position:absolute;top:7px;right:7px;min-width:16px;height:16px;padding:0 4px;display:flex;align-items:center;justify-content:center;background:#EF4444;border-radius:999px;border:2px solid #020005;font-size:9px;font-weight:700;color:white;line-height:1;">{{ unread_count }}</span>
+          {% endif %}{% endwith %}
+        </button>
+        {% include "partials/notifications/nav_dropdown.html" %}
+      </div>
+      <!-- Post button -->
+      <button id="dc-community-post-btn" type="button" aria-label="Create post"
+              style="display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border-radius:12px;font-size:13.5px;font-weight:700;color:#050510;background:linear-gradient(135deg,#00E5FF,#6C00FF);box-shadow:0 6px 24px -8px rgba(0,229,255,0.55);transition:transform 0.15s,box-shadow 0.2s;white-space:nowrap;border:none;cursor:pointer;"
+              onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 10px 28px -8px rgba(0,229,255,0.7)';"
+              onmouseout="this.style.transform='';this.style.boxShadow='0 6px 24px -8px rgba(0,229,255,0.55)';">
+        <i class="fa-solid fa-plus" style="font-size:11px;"></i><span>Post</span>
+      </button>
+      {% else %}
+      <a href="/accounts/login/?next=/community/" style="padding:8px 16px;border-radius:10px;font-size:13px;font-weight:600;color:white;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.05);white-space:nowrap;">Sign in</a>
+      {% endif %}
+    </div>
+
+  </div>
+
+  {% else %}
+  {# ===== DEFAULT NAV (unchanged from original) ===== #}
   <div class="w-full px-6 md:px-8 grid grid-cols-[1fr_auto_1fr] items-center h-full gap-2">
     <!-- Logo -->
     <a href="/" class="flex items-center gap-3 group focus:outline-none justify-self-start min-w-max" aria-label="DeltaCrown Home">
@@ -170,6 +245,7 @@
       {% endif %}
     </div>
   </div>
+  {% endif %}{# /dc_community_mode #}
 </nav>
 
 <!-- Mobile Bottom Nav -->
