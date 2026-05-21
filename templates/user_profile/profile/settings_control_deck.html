@@ -2655,7 +2655,20 @@
                             </div>
                         </div>
 
-                        <!-- Toggles -->
+                        <!-- Navigation toggles -->
+                        <div class="border-t border-white/[.05] pt-5 space-y-3">
+                            <div class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Navigation</div>
+                            <label class="flex items-center justify-between cursor-pointer">
+                                <div>
+                                    <span class="text-sm text-gray-300">Hide nav on scroll</span>
+                                    <p class="text-xs text-gray-500 mt-0.5">Completely hide the nav bar when scrolling down (default: smart transform)</p>
+                                </div>
+                                <input type="checkbox" id="cp-hideNavOnScroll" class="sr-only peer">
+                                <div class="w-10 h-5 rounded-full bg-white/10 peer-checked:bg-cyan-500 transition relative after:absolute after:w-4 after:h-4 after:bg-white after:rounded-full after:top-0.5 after:left-0.5 peer-checked:after:translate-x-5 after:transition-transform after:shadow flex-shrink-0 ml-4"></div>
+                            </label>
+                            {# showFeedNav removed — 2nd nav bar is always hidden globally #}
+                        </div>
+
                         <div class="border-t border-white/[.05] pt-5 space-y-3">
                             <div class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Feed options</div>
                             <label class="flex items-center justify-between cursor-pointer">
@@ -2698,6 +2711,12 @@
                       headers: {'Content-Type':'application/json','X-CSRFToken': CSRF, 'Accept':'application/json'},
                       body: JSON.stringify({ tweaks: edits }),
                     }).catch(() => {});
+                    /* Sync to localStorage so community page picks it up on next load */
+                    try {
+                      var saved = JSON.parse(localStorage.getItem('dc-community-tweaks') || '{}');
+                      Object.assign(saved, edits);
+                      localStorage.setItem('dc-community-tweaks', JSON.stringify(saved));
+                    } catch(e) {}
                     /* Also push to community page if open in same tab */
                     window.dispatchEvent(new CustomEvent('tweakchange', { detail: edits }));
                   }
@@ -2716,9 +2735,9 @@
                     setActive('community-bg-btn', 'bg', t.background);
                     setActive('community-col-btn', 'col', t.layout);
                     setActive('community-density-btn', 'density', t.density);
-                    ['showHero','showGameRail','animations'].forEach(k => {
+                    ['hideNavOnScroll','showHero','showGameRail','animations'].forEach(k => {
                       const el = document.getElementById('cp-' + k);
-                      if (el) el.checked = !!t[k];
+                      if (el) el.checked = t[k] !== false;
                     });
                     /* accent swatches */
                     const container = document.getElementById('community-accent-swatches');
@@ -2745,7 +2764,7 @@
                     b.addEventListener('click', () => { patch({ layout: b.dataset.col }); setActive('community-col-btn', 'col', b.dataset.col); }));
                   document.querySelectorAll('.community-density-btn').forEach(b =>
                     b.addEventListener('click', () => { patch({ density: b.dataset.density }); setActive('community-density-btn', 'density', b.dataset.density); }));
-                  ['showHero','showGameRail','animations'].forEach(k => {
+                  ['hideNavOnScroll','showHero','showGameRail','animations'].forEach(k => {
                     const el = document.getElementById('cp-' + k);
                     if (el) el.addEventListener('change', () => patch({ [k]: el.checked }));
                   });

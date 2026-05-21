@@ -706,10 +706,12 @@ function RecruitForm({ data, setData, game }) {
 
 /* ---- ComposerModal ---- */
 function ComposerModal({ open, onClose, identity, onSubmit, initialKind }) {
-  const [kind, setKind] = useStateC(initialKind || 'text');
-  const [game, setGame] = useStateC('valorant');
-  const [vis, setVis] = useStateC('public');
-  const [data, setData] = useStateC({});
+  /* ALL hooks MUST be before any early return — Rules of Hooks */
+  const [kind, setKind]         = useStateC(initialKind || 'text');
+  const [game, setGame]         = useStateC('valorant');
+  const [vis, setVis]           = useStateC('public');
+  const [data, setData]         = useStateC({});
+  const [publishing, setPublishing] = useStateC(false);
 
   useEffectC(() => {
     if (open) { setKind(initialKind || 'text'); setData({}); }
@@ -732,8 +734,6 @@ function ComposerModal({ open, onClose, identity, onSubmit, initialKind }) {
     (kind === 'poll'    && (data.title || '').trim() && (data.options || []).filter(o => o.text).length >= 2) ||
     (kind === 'lft'     && (data.rank || '') && (data.roles || []).length > 0) ||
     (kind === 'recruit' && data.teamId && (data.roles || []).length > 0);
-
-  const [publishing, setPublishing] = useStateC(false);
 
   const handlePublish = () => {
     if (!canSubmit || publishing) return;

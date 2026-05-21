@@ -138,15 +138,36 @@ def community(request):
     Serves the shell template; all data is loaded via the JSON API.
     """
     avatar_url = ''
+    primary_game_slug = ''
+    primary_team_id = None
+
     if request.user.is_authenticated:
         profile = getattr(request.user, 'profile', None)
-        if profile and getattr(profile, 'avatar', None):
+        if profile:
+            if getattr(profile, 'avatar', None):
+                try:
+                    avatar_url = profile.avatar.url
+                except (ValueError, AttributeError):
+                    pass
+            # Signature game — UserProfile.primary_game FK → games.Game
             try:
-                avatar_url = profile.avatar.url
-            except (ValueError, AttributeError):
-                avatar_url = ''
+                pg = getattr(profile, 'primary_game', None)
+                if pg:
+                    primary_game_slug = pg.slug or ''
+            except Exception:
+                pass
+            # Primary team
+            try:
+                pt = getattr(profile, 'primary_team', None)
+                if pt:
+                    primary_team_id = pt.id
+            except Exception:
+                pass
+
     return render(request, 'pages/community.html', {
         "dc_me_avatar": avatar_url,
+        "dc_primary_game_slug": primary_game_slug,
+        "dc_primary_team_id": primary_team_id,
         "dc_community_mode": True,
         "seo": build_seo(
             title="Community | DeltaCrown",
@@ -302,56 +323,62 @@ def community_api_feed(request):
     tab      = request.GET.get('tab', 'for-you').strip()
     sort     = request.GET.get('sort', 'latest').strip()
 
-    qs = CommunityPost.objects.filter(
-        visibility='public', is_approved=True
-    ).select_related(
-        'author', 'author__user', 'team'
-    ).prefetch_related('media', 'likes', 'poll_votes')
+    try:
+        qs = CommunityPost.objects.filter(
+            visibility='public', is_approved=True
+        ).select_related(
+            'author', 'author__user', 'team'
+        ).prefetch_related('media', 'likes', 'poll_votes')
 
-    if game:
-        qs = qs.filter(game__iexact=game)
-    if q:
-        qs = qs.filter(
-            Q(title__icontains=q) | Q(content__icontains=q) |
-            Q(author__user__username__icontains=q)
-        )
-
-    # Tab-based filtering
-    if tab == 'highlights':
-        qs = qs.filter(post_type__in=['clip', 'image'])
-    elif tab == 'lft':
-        qs = qs.filter(post_type__in=['lft', 'recruit'])
-    elif tab == 'following' and request.user.is_authenticated:
-        from apps.user_profile.models import Follow
-        following_ids = Follow.objects.filter(
-            follower=request.user
-        ).values_list('following_id', flat=True)
-        qs = qs.filter(author__user_id__in=following_ids)
-
-    # Sorting
-    if sort == 'top':
-        qs = qs.order_by('-likes_count', '-comments_count', '-created_at')
-    elif sort == 'hot':
-        from django.db.models import ExpressionWrapper, IntegerField as IF, F
-        qs = qs.annotate(
-            hot_score=ExpressionWrapper(
-                F('likes_count') + F('comments_count') * 3 + F('shares_count') * 2,
-                output_field=IF()
+        if game:
+            qs = qs.filter(game__iexact=game)
+        if q:
+            qs = qs.filter(
+                Q(title__icontains=q) | Q(content__icontains=q) |
+                Q(author__user__username__icontains=q)
             )
-        ).order_by('-hot_score', '-created_at')
-    else:
-        qs = qs.order_by('-is_pinned', '-is_featured', '-created_at')
 
-    total = qs.count()
-    start = (page - 1) * per_page
-    posts = list(qs[start:start + per_page])
+        # Tab-based filtering — wrapped separately so a missing field degrades gracefully
+        try:
+            if tab == 'highlights':
+                qs = qs.filter(post_type__in=['clip', 'image'])
+            elif tab == 'lft':
+                qs = qs.filter(post_type__in=['lft', 'recruit'])
+            elif tab == 'following' and request.user.is_authenticated:
+                from apps.user_profile.models import Follow
+                following_ids = Follow.objects.filter(
+                    follower=request.user
+                ).values_list('following_id', flat=True)
+                qs = qs.filter(author__user_id__in=following_ids)
+        except Exception:
+            pass  # post_type field not yet migrated — serve all posts for this tab
 
-    return JsonResponse({
-        'posts': [_serialize_post(p, request.user) for p in posts],
-        'page': page,
-        'total': total,
-        'has_next': (start + per_page) < total,
-    })
+        # Sorting
+        if sort == 'top':
+            qs = qs.order_by('-likes_count', '-comments_count', '-created_at')
+        elif sort == 'hot':
+            from django.db.models import ExpressionWrapper, IntegerField as IF, F
+            qs = qs.annotate(
+                hot_score=ExpressionWrapper(
+                    F('likes_count') + F('comments_count') * 3 + F('shares_count') * 2,
+                    output_field=IF()
+                )
+            ).order_by('-hot_score', '-created_at')
+        else:
+            qs = qs.order_by('-is_pinned', '-is_featured', '-created_at')
+
+        total = qs.count()
+        start = (page - 1) * per_page
+        posts = list(qs[start:start + per_page])
+
+        return JsonResponse({
+            'posts': [_serialize_post(p, request.user) for p in posts],
+            'page': page,
+            'total': total,
+            'has_next': (start + per_page) < total,
+        })
+    except (OperationalError, ProgrammingError):
+        return JsonResponse({'posts': [], 'page': 1, 'total': 0, 'has_next': False})
 
 
 def community_api_create_post(request):
@@ -686,6 +713,20 @@ def community_api_sidebar(request):
             'member_count': t.member_count,
         })
 
+    # Game member counts (active GameProfile rows per game)
+    game_member_counts = {}
+    try:
+        from apps.user_profile.models import GameProfile
+        counts_qs = (
+            GameProfile.objects
+            .filter(status='ACTIVE')
+            .values('game_id')
+            .annotate(cnt=Count('id'))
+        )
+        game_member_counts = {r['game_id']: r['cnt'] for r in counts_qs}
+    except Exception:
+        pass
+
     # Games
     games = GameModel.objects.filter(is_active=True).order_by('name')
     games_data = []
@@ -710,6 +751,7 @@ def community_api_sidebar(request):
             'slug': g.slug,
             'icon_url': icon_url,
             'card_image_url': card_image_url,
+            'member_count': game_member_counts.get(g.pk, 0),
         })
 
     # Stats
@@ -861,28 +903,91 @@ def community_api_user_teams(request):
             'can_post': can_post,
         }
 
-    seen_ids = set()
+    seen_ids = set()   # teams already added to response
+    postable_ids = set()  # teams where this user definitively CAN post
     teams_data = []
 
-    # Source 1: explicit memberships (Team has NO game FK, only game_id IntegerField)
-    memberships = TeamMembership.objects.filter(
-        user=request.user, status='ACTIVE',
-    ).select_related('team')
-    for m in memberships:
-        t = m.team
-        if not t:
-            continue
-        seen_ids.add(t.id)
-        teams_data.append(_team_dict(t, m.role, m.role in ('OWNER', 'MANAGER')))
+    # ── HIGH-PRIVILEGE SOURCES FIRST ──────────────────────────────────────────
+    # These run before TeamMembership so a PLAYER/COACH membership row cannot
+    # shadow the higher-privilege org-owner or captain access.
 
-    # Source 2: teams where user is creator but may have no membership row
+    # Source A: direct team creator
     try:
-        created_teams = Team.objects.filter(
-            created_by=request.user
-        ).exclude(id__in=seen_ids)
-        for t in created_teams:
+        for t in Team.objects.filter(created_by=request.user):
+            postable_ids.add(t.id)
             if t.id not in seen_ids:
+                seen_ids.add(t.id)
                 teams_data.append(_team_dict(t, 'OWNER', True))
+    except Exception:
+        pass
+
+    # Source B: Org CEO — all teams under orgs this user owns
+    try:
+        from apps.organizations.models import Organization
+        ceo_org_ids = list(
+            Organization.objects.filter(ceo=request.user).values_list('id', flat=True)
+        )
+        if ceo_org_ids:
+            for t in Team.objects.filter(organization_id__in=ceo_org_ids):
+                postable_ids.add(t.id)
+                if t.id not in seen_ids:
+                    seen_ids.add(t.id)
+                    teams_data.append(_team_dict(t, 'OWNER', True))
+    except Exception:
+        pass
+
+    # Source C: Org MANAGER/ADMIN — all teams under their managed orgs
+    try:
+        from apps.organizations.models import OrganizationMembership
+        managed_org_ids = list(
+            OrganizationMembership.objects.filter(
+                user=request.user, role__in=['MANAGER', 'ADMIN']
+            ).values_list('organization_id', flat=True)
+        )
+        if managed_org_ids:
+            for t in Team.objects.filter(organization_id__in=managed_org_ids):
+                postable_ids.add(t.id)
+                if t.id not in seen_ids:
+                    seen_ids.add(t.id)
+                    teams_data.append(_team_dict(t, 'MANAGER', True))
+    except Exception:
+        pass
+
+    # Source D: Tournament captain — registered as team contact in any tournament
+    try:
+        from apps.tournaments.models import Registration
+        captain_team_ids = list(
+            Registration.objects.filter(
+                user=request.user,
+                team_id__isnull=False,
+                is_deleted=False,
+            ).values_list('team_id', flat=True).distinct()
+        )
+        if captain_team_ids:
+            for t in Team.objects.filter(id__in=captain_team_ids):
+                postable_ids.add(t.id)
+                if t.id not in seen_ids:
+                    seen_ids.add(t.id)
+                    teams_data.append(_team_dict(t, 'CAPTAIN', True))
+    except Exception:
+        pass
+
+    # ── TeamMembership (all roles, lower privilege) ────────────────────────────
+    # Added AFTER high-privilege sources.  If the team is already in seen_ids
+    # (found via org-owner / captain check above), we skip it — the high-privilege
+    # entry already has can_post=True and we must not overwrite it with False.
+    try:
+        memberships = TeamMembership.objects.filter(
+            user=request.user, status='ACTIVE',
+        ).select_related('team')
+        for m in memberships:
+            t = m.team
+            if not t or t.id in seen_ids:
+                continue
+            seen_ids.add(t.id)
+            # Respect postable_ids in case another source already flagged this team
+            can_post = t.id in postable_ids or m.role in ('OWNER', 'MANAGER')
+            teams_data.append(_team_dict(t, m.role, can_post))
     except Exception:
         pass
 
@@ -919,8 +1024,11 @@ def community_api_preferences(request):
         )
 
     if request.method == 'GET':
-        prefs = CommunityPreferences.objects.filter(user_profile=profile).first()
-        return JsonResponse({'tweaks': prefs.tweaks if prefs else defaults})
+        try:
+            prefs = CommunityPreferences.objects.filter(user_profile=profile).first()
+            return JsonResponse({'tweaks': prefs.tweaks if prefs else defaults})
+        except Exception:
+            return JsonResponse({'tweaks': defaults})
 
     if request.method in ('PATCH', 'POST'):
         try:
@@ -931,13 +1039,16 @@ def community_api_preferences(request):
         if not isinstance(incoming, dict):
             return JsonResponse({'error': 'tweaks must be an object'}, status=400)
 
-        prefs, _ = CommunityPreferences.objects.get_or_create(
-            user_profile=profile, defaults={'tweaks': defaults},
-        )
-        merged = {**(prefs.tweaks or {}), **incoming}
-        prefs.tweaks = merged
-        prefs.save(update_fields=['tweaks', 'updated_at'])
-        return JsonResponse({'tweaks': merged})
+        try:
+            prefs, _ = CommunityPreferences.objects.get_or_create(
+                user_profile=profile, defaults={'tweaks': defaults},
+            )
+            merged = {**defaults, **(prefs.tweaks or {}), **incoming}
+            prefs.tweaks = merged
+            prefs.save(update_fields=['tweaks', 'updated_at'])
+            return JsonResponse({'tweaks': merged})
+        except Exception as e:
+            return JsonResponse({'error': str(e), 'tweaks': {**defaults, **incoming}}, status=500)
 
     return JsonResponse({'error': 'Method not allowed'}, status=405)
 

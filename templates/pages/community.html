@@ -27,7 +27,7 @@
     };
   </script>
 
-  <link rel="stylesheet" href="{% static 'community/styles.css' %}?v=2026-05-21f">
+  <link rel="stylesheet" href="{% static 'community/styles.css' %}?v=2026-05-22m">
 
   <style nonce="{{ request.csp_nonce }}">
     /* ══════════════════════════════════════════════════════════════
@@ -89,50 +89,268 @@
       max-height: calc(100vh - 80px - 2rem) !important;
     }
 
-    /* ── Nav: dark glass, no bottom border (tabs extend it visually) ── */
+    /* ── Primary nav ── */
     body.dc-community-page #dc-navbar {
-      transition: transform 0.3s cubic-bezier(.4,0,.2,1);
-      background: rgba(5, 5, 16, 0.92) !important;
-      backdrop-filter: blur(20px) saturate(160%) !important;
-      border-bottom: 1px solid rgba(255,255,255,0.04) !important;
+      background: rgba(5, 5, 16, 0.94) !important;
+      backdrop-filter: blur(24px) saturate(180%) !important;
+      border-bottom: none !important;
+      overflow: visible !important;
+      position: relative;
+      transition: transform 0.32s cubic-bezier(.4,0,.2,1);
     }
     body.dc-community-page #dc-navbar.nav-hidden { transform: translateY(-100%); }
 
-    /* ── FeedTabs sticky: same dark glass as the nav so they read as one unit ── */
-    body.dc-community-page .dc-glass-strong {
-      background: rgba(5, 5, 16, 0.96) !important;
-      border-left: none !important;
-      border-right: none !important;
-      border-top: none !important;
-      border-bottom: 1px solid rgba(255,255,255,0.06) !important;
-    }
+    /* ══ COMMUNITY SCROLL TRANSFORM ══════════════════════════════ */
+    .comm-text-menus { transition: opacity 0.2s ease; }
+    #dc-navbar.nav-scrolled .comm-text-menus { opacity: 0; pointer-events: none; }
+    #dc-navbar.nav-scrolled #cnav-tabs-portal { opacity: 1 !important; pointer-events: auto !important; }
+    #dc-navbar.nav-scrolled #cnav-sort-nav { display: flex; }
 
-    /* ── Community icon nav links ── */
-    .dc-ci {
-      display: flex; align-items: center; justify-content: center;
-      width: 40px; height: 40px; border-radius: 10px; flex-shrink: 0;
-      color: rgba(255,255,255,0.48); font-size: 1rem;
-      transition: all 0.15s; position: relative; text-decoration: none;
-    }
-    .dc-ci:hover { color: white; background: rgba(255,255,255,0.06); }
-    .dc-ci.is-active { color: #00E5FF; background: rgba(0,229,255,0.08); }
-    .dc-ci.is-active::after {
-      content: '';
-      position: absolute; bottom: -20px; left: 50%; transform: translateX(-50%);
-      width: 24px; height: 2.5px; border-radius: 2px;
-      background: linear-gradient(90deg,#00E5FF,#7B2BFF);
-      box-shadow: 0 0 8px rgba(0,229,255,0.5);
-    }
+    /* When search opens, menus gently fade to signal space is taken */
+    #dc-navbar.comm-search-open .comm-text-menus { opacity: 0.25; pointer-events: none; }
 
-    /* ── Community search ── */
-    #dc-community-search-input::placeholder { color: rgba(255,255,255,0.3); }
-    #dc-community-search-input { color: white; }
+    /* Sort nav — hidden by default */
+    #cnav-sort-nav { display: none; align-items: center; gap: 2px; flex-shrink: 0; }
+    .cnav-sort-label { font-size: 11px; color: rgba(255,255,255,0.3); margin-right: 2px; font-family: Rajdhani,sans-serif; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; }
+    .cnav-sort-nav-btn { padding: 5px 10px; border-radius: 8px; font-size: 12.5px; font-weight: 600; color: rgba(255,255,255,0.45); background: none; border: 1px solid transparent; cursor: pointer; transition: all 0.15s; white-space: nowrap; }
+    .cnav-sort-nav-btn:hover { color: white; background: rgba(255,255,255,0.07); }
+    .cnav-sort-nav-btn.is-active { color: #00E5FF; background: rgba(0,229,255,0.1); border-color: rgba(0,229,255,0.3); }
+
+    /* Portal FeedTab buttons */
+    .cnav-tab-btn { display: inline-flex; align-items: center; gap: 7px; padding: 7px 13px; border-radius: 9px; font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.55); background: none; border: none; cursor: pointer; white-space: nowrap; transition: color 0.15s, background 0.15s; position: relative; }
+    .cnav-tab-btn:hover { color: white; background: rgba(255,255,255,0.07); }
+    .cnav-tab-btn.is-active { color: #00E5FF; }
+    .cnav-tab-btn.is-active::after { content: ''; position: absolute; bottom: -12px; left: 8px; right: 8px; height: 2px; background: linear-gradient(90deg,#00E5FF,#7B2BFF); border-radius: 1px; box-shadow: 0 0 8px rgba(0,229,255,0.55); }
+
+    /* ══ COMMUNITY INLINE EXPANDING SEARCH ═══════════════════════ */
+    /* The search expands FROM the icon position — like Reddit/FB/IG  */
+    .comm-search-wrap {
+      position: relative; display: flex; align-items: center; flex-shrink: 0;
+    }
+    .comm-search-icon-btn {
+      width: 40px; height: 40px; display: grid; place-items: center;
+      border-radius: 11px; color: rgba(255,255,255,0.65); font-size: 1.05rem;
+      background: none; border: none; cursor: pointer;
+      transition: all 0.15s;
+    }
+    .comm-search-icon-btn:hover { color: white; background: rgba(255,255,255,0.07); }
+    .comm-search-box {
+      position: absolute; right: 0; top: 50%; transform: translateY(-50%);
+      width: 0; overflow: hidden; opacity: 0; pointer-events: none;
+      transition: width 0.35s cubic-bezier(.4,0,.2,1), opacity 0.25s ease;
+      display: flex; align-items: center; gap: 0;
+      background: rgba(8,8,20,0.98);
+      border: 1.5px solid rgba(0,229,255,0.35);
+      border-radius: 999px;
+      backdrop-filter: blur(24px);
+      box-shadow: 0 8px 32px -8px rgba(0,229,255,0.25);
+      z-index: 50;
+    }
+    #dc-navbar.comm-search-open .comm-search-box {
+      width: min(380px, calc(100vw - 200px)); opacity: 1; pointer-events: auto;
+    }
+    #dc-navbar.comm-search-open .comm-search-icon-btn { opacity: 0; pointer-events: none; }
+    .comm-search-box-icon {
+      padding: 0 10px 0 14px; color: rgba(0,229,255,0.7); font-size: 13px; flex-shrink: 0;
+    }
+    #dc-community-search-input {
+      flex: 1; background: none; border: none; outline: none;
+      color: white; font-size: 14px; font-family: Inter, sans-serif;
+      padding: 10px 4px; min-width: 0;
+    }
+    #dc-community-search-input::placeholder { color: rgba(255,255,255,0.35); }
     #dc-community-search-input::-webkit-search-cancel-button { display: none; }
+    .comm-search-close-btn {
+      width: 36px; height: 36px; display: grid; place-items: center; flex-shrink: 0;
+      color: rgba(255,255,255,0.45); background: none; border: none; cursor: pointer;
+      border-radius: 50%; transition: all 0.15s; margin-right: 3px;
+      font-size: 13px;
+    }
+    .comm-search-close-btn:hover { color: white; background: rgba(255,255,255,0.1); }
+
+    /* ══════════════════════════════════════════════════════
+       COMMUNITY NAV — World-class premium redesign
+       Icon-only pills · hover-expand with label · CSP-clean
+    ══════════════════════════════════════════════════════ */
+
+    /* ── Layout container ── */
+    .cnav-inner {
+      width: 100%; max-width: 1640px; margin: 0 auto; height: 100%;
+      padding: 0 1.25rem; display: flex; align-items: center; gap: 4px;
+    }
+    @media (min-width: 640px) { .cnav-inner { padding: 0 1.5rem; } }
+
+    /* ── Logo ── */
+    .cnav-logo { display: flex; align-items: center; gap: 9px; flex-shrink: 0; text-decoration: none; margin-right: 4px; }
+    .cnav-logo-icon { width: 34px; height: 34px; filter: drop-shadow(0 0 10px rgba(108,0,255,0.45)); }
+    .cnav-logo-wordmark { display: none; height: 26px; width: auto; filter: drop-shadow(0 0 6px rgba(0,229,255,0.25)); }
+    @media (min-width: 960px) { .cnav-logo-wordmark { display: block; } }
+
+    /* ── Divider ── */
+    .cnav-divider { width: 1px; height: 24px; background: rgba(255,255,255,0.09); flex-shrink: 0; margin: 0 6px; }
+
+    /* ── Nav menus container ── */
+    .cnav-menus { display: flex; align-items: center; gap: 2px; flex-shrink: 0; }
+
+    /* ── Icon pill: default = icon only; hover/active = icon + label ── */
+    .cnav-pill {
+      display: inline-flex; align-items: center; gap: 0;
+      padding: 8px 10px; border-radius: 10px;
+      color: rgba(255,255,255,0.52); font-size: 15px;
+      text-decoration: none; white-space: nowrap;
+      transition: color 0.18s, background 0.18s, gap 0.22s ease, padding 0.22s ease;
+      position: relative;
+    }
+    .cnav-pill:hover {
+      color: white; background: rgba(255,255,255,0.08);
+      gap: 7px; padding: 8px 13px 8px 11px;
+    }
+    .cnav-pill.is-active {
+      color: #00E5FF; background: rgba(0,229,255,0.10);
+      gap: 7px; padding: 8px 13px 8px 11px;
+    }
+    .cnav-pill-store { color: rgba(255,213,100,0.75); }
+    .cnav-pill-store:hover { color: #FFD166; }
+    .cnav-pill-store.is-active { color: #FFD166; background: rgba(255,209,102,0.09); }
+
+    /* Label: hidden by default, reveals on hover/active */
+    .cnav-label {
+      font-size: 12.5px; font-weight: 600;
+      max-width: 0; overflow: hidden; opacity: 0;
+      transition: max-width 0.25s ease, opacity 0.2s ease;
+    }
+    .cnav-pill:hover .cnav-label,
+    .cnav-pill.is-active .cnav-label { max-width: 90px; opacity: 1; }
+
+    /* Active underline glow — sits at the nav bottom border */
+    .cnav-pill.is-active::after {
+      content: ''; position: absolute;
+      bottom: -13px; left: 50%; transform: translateX(-50%);
+      width: 70%; height: 2px; border-radius: 2px;
+      background: linear-gradient(90deg, #00E5FF, #7B2BFF);
+      box-shadow: 0 0 10px rgba(0,229,255,0.65);
+    }
+
+    /* Live dot for Arena */
+    .cnav-live-dot {
+      position: absolute; top: 5px; right: 5px;
+      width: 6px; height: 6px; border-radius: 50%; background: #EF4444;
+      box-shadow: 0 0 0 2px rgba(5,5,18,0.9);
+    }
+
+    /* ── Search — clean full-pill style ── */
+    .cnav-search-wrap {
+      flex: 1; max-width: 440px; margin: 0 8px; position: relative; min-width: 0;
+    }
+    .cnav-search-icon {
+      position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+      color: rgba(255,255,255,0.32); font-size: 12.5px; pointer-events: none;
+      transition: color 0.15s;
+    }
+    .cnav-search-wrap:focus-within .cnav-search-icon { color: rgba(0,229,255,0.7); }
+    .dc-comm-search-input {
+      width: 100%;
+      background: rgba(255,255,255,0.055);
+      border: 1.5px solid rgba(255,255,255,0.1);
+      border-radius: 999px;
+      padding: 9px 18px 9px 38px;
+      font-size: 13.5px; color: white;
+      outline: none; transition: all 0.22s;
+      font-family: Inter, sans-serif;
+    }
+    .dc-comm-search-input::placeholder { color: rgba(255,255,255,0.3); }
+    .dc-comm-search-input::-webkit-search-cancel-button { display: none; }
+    .dc-comm-search-input:hover:not(:focus) {
+      border-color: rgba(255,255,255,0.18);
+      background: rgba(255,255,255,0.065);
+    }
+    .dc-comm-search-input:focus {
+      background: rgba(255,255,255,0.085);
+      border-color: rgba(0,229,255,0.55);
+      box-shadow: 0 0 0 3px rgba(0,229,255,0.12);
+    }
+
+    /* ── Right actions ── */
+    .cnav-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; margin-left: auto; }
+
+    .cnav-icon-btn {
+      width: 40px; height: 40px; border-radius: 10px; display: grid; place-items: center;
+      color: rgba(255,255,255,0.6); font-size: 1.1rem; transition: all 0.15s;
+      border: 1px solid transparent; cursor: pointer; position: relative; background: none;
+    }
+    .cnav-icon-btn:hover { color: white; background: rgba(255,255,255,0.07); border-color: rgba(255,255,255,0.08); }
+
+    .cnav-badge {
+      position: absolute; top: 5px; right: 5px;
+      min-width: 16px; height: 16px; padding: 0 3px;
+      display: flex; align-items: center; justify-content: center;
+      background: #EF4444; border-radius: 999px; border: 2px solid rgba(5,5,18,0.95);
+      font-size: 9px; font-weight: 700; color: white; line-height: 1;
+    }
+
+    .cnav-post-btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 9px 18px; border-radius: 11px;
+      font-size: 13.5px; font-weight: 700; color: #050510;
+      background: linear-gradient(135deg, #00E5FF, #6C00FF);
+      box-shadow: 0 4px 20px -6px rgba(0,229,255,0.55);
+      transition: transform 0.15s, box-shadow 0.2s;
+      border: none; cursor: pointer; white-space: nowrap;
+    }
+    .cnav-post-btn:hover { transform: translateY(-1px); box-shadow: 0 7px 28px -6px rgba(0,229,255,0.72); }
+    .cnav-post-btn:active { transform: translateY(0); }
+
+    .cnav-login-btn {
+      padding: 8px 16px; border-radius: 10px;
+      font-size: 13px; font-weight: 600; color: white;
+      border: 1px solid rgba(255,255,255,0.14); background: rgba(255,255,255,0.05);
+      text-decoration: none; white-space: nowrap; transition: all 0.15s;
+    }
+    .cnav-login-btn:hover { background: rgba(255,255,255,0.1); }
+
+    /* ── Nav bottom accent line ── */
+    body.dc-community-page #dc-navbar::after {
+      content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent 0%, rgba(0,229,255,0.25) 35%, rgba(108,0,255,0.2) 65%, transparent 100%);
+    }
+
+    /* ── Single border on inputs/textareas: suppress the global focus-visible
+       outline from styles.css — parent containers show focus via focus-within
+       border transition, so two borders would appear otherwise. ── */
+    body.dc-community-page input:focus,
+    body.dc-community-page input:focus-visible,
+    body.dc-community-page textarea:focus,
+    body.dc-community-page textarea:focus-visible {
+      outline: none !important;
+      box-shadow: none !important;
+    }
+
+    /* ── Mobile community search bar (hidden by default, shown via JS) ── */
+    #dc-mobile-comm-search {
+      display: none; position: fixed; top: 0; left: 0; right: 0; z-index: 170;
+      padding: 10px 14px; align-items: center; gap: 10px;
+      background: rgba(5,5,16,0.99); border-bottom: 1.5px solid rgba(0,229,255,0.3);
+      backdrop-filter: blur(24px);
+    }
+    #dc-mobile-comm-search.is-open { display: flex; }
+    #dc-mob-comm-search-input {
+      flex: 1; background: none; border: none; outline: none;
+      color: white; font-size: 15px; font-family: Inter,sans-serif;
+    }
+    #dc-mob-comm-search-input::placeholder { color: rgba(255,255,255,0.35); }
   </style>
 {% endblock %}
 
 {% block content %}
   <div id="dc-comm-bg" data-bg="aurora" aria-hidden="true"></div>
+  <div id="dc-mobile-comm-search" role="search" aria-label="Community search">
+    <i class="fa-solid fa-magnifying-glass" style="color:rgba(0,229,255,0.65);font-size:14px;flex-shrink:0;"></i>
+    <input id="dc-mob-comm-search-input" type="search" placeholder="Search posts, players, teams…" autocomplete="off" />
+    <button id="dc-mob-comm-search-close" aria-label="Close search"
+            style="background:none;border:none;color:rgba(255,255,255,0.45);cursor:pointer;font-size:14px;padding:4px 2px;flex-shrink:0;">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
+  </div>
   <div id="dc-community-root"></div>
 {% endblock %}
 
@@ -150,6 +368,8 @@
         "country": "🇧🇩",
         "avatar_url": "{{ dc_me_avatar|default:''|escapejs }}"
       }{% else %}null{% endif %},
+      "primary_game_slug": "{{ dc_primary_game_slug|default:''|escapejs }}",
+      "primary_team_id": {% if dc_primary_team_id %}{{ dc_primary_team_id }}{% else %}null{% endif %},
       "urls": {
         "sidebar":       "{% url 'siteui:community_api_sidebar' %}",
         "feed":          "{% url 'siteui:community_api_feed' %}",
@@ -172,18 +392,78 @@
       try { window.DC_CONFIG = JSON.parse(cfg.textContent); }
       catch (e) { window.DC_CONFIG = { isAuthenticated: false, urls: {} }; }
 
-      /* Apply body class + data-bg immediately so background shows before React */
+      /* Apply body class + data-bg immediately (before React loads).
+         Load saved background from localStorage for instant correct bg. */
       document.body.classList.add('dc-community-page');
-      document.body.setAttribute('data-bg', 'aurora');
+      var _savedBg = 'aurora';
+      try {
+        var _lsTweaks = JSON.parse(localStorage.getItem('dc-community-tweaks') || '{}');
+        /* Always force showFeedNav off — remove any stale saved value */
+        if (_lsTweaks.showFeedNav === true) {
+          _lsTweaks.showFeedNav = false;
+          localStorage.setItem('dc-community-tweaks', JSON.stringify(_lsTweaks));
+        }
+        if (_lsTweaks.background) _savedBg = _lsTweaks.background;
+      } catch(e) {}
+      document.body.setAttribute('data-bg', _savedBg);
       var bgDiv = document.getElementById('dc-comm-bg');
-      if (bgDiv) bgDiv.setAttribute('data-bg', 'aurora');
+      if (bgDiv) bgDiv.setAttribute('data-bg', _savedBg);
 
-      /* Bridge: Django nav search input → React */
+      /* DC_SHOW_FEED_NAV is always false (2nd nav bar hidden by default globally) */
+      window.DC_SHOW_FEED_NAV = false;
+
+      /* Community inline search — expands from icon, filters feed with 300ms debounce */
       function wireSearch() {
-        var input = document.getElementById('dc-community-search-input');
-        if (!input) return;
-        input.addEventListener('input', function () {
-          window.dispatchEvent(new CustomEvent('dc-community-search', { detail: input.value }));
+        var nav      = document.getElementById('dc-navbar');
+        var openBtn  = document.getElementById('comm-search-btn');
+        var closeBtn = document.getElementById('comm-search-close');
+        var input    = document.getElementById('dc-community-search-input');
+        if (!nav) return;
+        /* Retry if input not yet in DOM (nav might render slightly after this runs) */
+        if (!input) {
+          setTimeout(wireSearch, 200);
+          return;
+        }
+
+        var _debounceTimer = null;
+
+        function openSearch(e) {
+          if (e) e.stopPropagation();
+          nav.classList.add('comm-search-open');
+          setTimeout(function() { input.focus(); }, 100);
+        }
+        function closeSearch(e) {
+          if (e) e.stopPropagation();
+          nav.classList.remove('comm-search-open');
+          input.value = '';
+          clearTimeout(_debounceTimer);
+          window.dispatchEvent(new CustomEvent('dc-community-search', { detail: '' }));
+        }
+
+        if (openBtn)  openBtn.addEventListener('click', openSearch);
+        if (closeBtn) closeBtn.addEventListener('click', closeSearch);
+
+        /* Debounced search — 300ms after last keystroke, same as Facebook/Reddit */
+        input.addEventListener('input', function() {
+          clearTimeout(_debounceTimer);
+          var q = input.value;
+          _debounceTimer = setTimeout(function() {
+            window.dispatchEvent(new CustomEvent('dc-community-search', { detail: q }));
+          }, 300);
+        });
+        input.addEventListener('keydown', function(e) {
+          if (e.key === 'Escape') closeSearch();
+          if (e.key === 'Enter') {
+            clearTimeout(_debounceTimer);
+            window.dispatchEvent(new CustomEvent('dc-community-search', { detail: input.value }));
+          }
+        });
+
+        /* Close on outside click */
+        document.addEventListener('click', function(e) {
+          if (!nav.classList.contains('comm-search-open')) return;
+          var wrap = document.getElementById('comm-search-wrap');
+          if (wrap && !wrap.contains(e.target)) closeSearch();
         });
       }
 
@@ -201,30 +481,105 @@
         });
       }
 
-      /* Scroll-hide the nav */
-      function wireScrollHide() {
+      /* Smart scroll nav behaviour.
+         When DC_SHOW_FEED_NAV is true (user enabled 2nd bar in settings):
+           - No transform: nav stays normal, 2nd bar shows below as always.
+         When DC_SHOW_FEED_NAV is false (default):
+           - Smart transform: scroll > 80px → menus collapse, FeedTabs appear in center.
+         When DC_HIDE_NAV_ON_SCROLL is true: nav also hides on scroll-down. */
+      function wireScrollBehavior() {
         var nav = document.getElementById('dc-navbar');
         if (!nav) return;
+
+        /* Sort nav buttons → dispatch to React */
+        document.querySelectorAll('.cnav-sort-nav-btn').forEach(function(btn) {
+          btn.addEventListener('click', function() {
+            var sortVal = this.dataset.sort || 'latest';
+            window.dispatchEvent(new CustomEvent('dc-community-sort', { detail: sortVal }));
+          });
+        });
+
         var lastY = 0, ticking = false;
         window.addEventListener('scroll', function () {
           if (ticking) return;
           ticking = true;
           requestAnimationFrame(function () {
             var y = window.scrollY || window.pageYOffset;
-            nav.classList.toggle('nav-hidden', y > lastY && y > 120);
-            if (y < lastY) nav.classList.remove('nav-hidden');
-            lastY = y;
-            ticking = false;
+
+            /* Smart transform — only when 2nd nav bar is NOT enabled */
+            if (!window.DC_SHOW_FEED_NAV) {
+              if (y > 80) nav.classList.add('nav-scrolled');
+              else        nav.classList.remove('nav-scrolled');
+            } else {
+              nav.classList.remove('nav-scrolled'); /* disable transform */
+            }
+
+            /* Optional full hide-on-scroll */
+            if (window.DC_HIDE_NAV_ON_SCROLL) {
+              if (y > lastY && y > 160) nav.classList.add('nav-hidden');
+              else if (y < lastY)       nav.classList.remove('nav-hidden');
+            }
+            lastY = y; ticking = false;
           });
         }, { passive: true });
       }
 
+      /* Mobile community buttons — Post and Search in the bottom nav */
+      function wireMobileButtons() {
+        var mobileSearchBar   = document.getElementById('dc-mobile-comm-search');
+        var mobileSearchInput = document.getElementById('dc-mob-comm-search-input');
+        var mobileSearchClose = document.getElementById('dc-mob-comm-search-close');
+        var mobileSearchBtn   = document.getElementById('dc-mobile-comm-search-btn');
+        var mobilePostBtn     = document.getElementById('dc-mobile-post-btn');
+        var mobileMenuBtm     = document.getElementById('dc-mobile-menu-toggle-comm');
+        var mainMenuBtn       = document.getElementById('dc-mobile-menu-toggle');
+
+        if (mobileSearchBtn && mobileSearchBar && mobileSearchInput) {
+          mobileSearchBtn.addEventListener('click', function () {
+            mobileSearchBar.classList.add('is-open');
+            setTimeout(function () { mobileSearchInput.focus(); }, 80);
+          });
+        }
+        if (mobileSearchClose && mobileSearchBar && mobileSearchInput) {
+          mobileSearchClose.addEventListener('click', function () {
+            mobileSearchBar.classList.remove('is-open');
+            mobileSearchInput.value = '';
+            window.dispatchEvent(new CustomEvent('dc-community-search', { detail: '' }));
+          });
+        }
+        if (mobileSearchInput) {
+          var _mTimer = null;
+          mobileSearchInput.addEventListener('input', function () {
+            clearTimeout(_mTimer);
+            var q = mobileSearchInput.value;
+            _mTimer = setTimeout(function () {
+              window.dispatchEvent(new CustomEvent('dc-community-search', { detail: q }));
+            }, 300);
+          });
+          mobileSearchInput.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') mobileSearchClose && mobileSearchClose.click();
+          });
+        }
+        if (mobilePostBtn) {
+          mobilePostBtn.addEventListener('click', function () {
+            if (typeof window.dcCommunityCompose === 'function') {
+              window.dcCommunityCompose('text');
+            } else {
+              window.dispatchEvent(new CustomEvent('dc-community-compose', { detail: 'text' }));
+            }
+          });
+        }
+        if (mobileMenuBtm && mainMenuBtn) {
+          mobileMenuBtm.addEventListener('click', function () { mainMenuBtn.click(); });
+        }
+      }
+
       if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', function () {
-          wireSearch(); wirePostBtn(); wireScrollHide();
+          wireSearch(); wirePostBtn(); wireScrollBehavior(); wireMobileButtons();
         });
       } else {
-        wireSearch(); wirePostBtn(); wireScrollHide();
+        wireSearch(); wirePostBtn(); wireScrollBehavior(); wireMobileButtons();
       }
     })();
   </script>
@@ -232,10 +587,10 @@
   <script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" crossorigin="anonymous" nonce="{{ request.csp_nonce }}"></script>
   <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin="anonymous" nonce="{{ request.csp_nonce }}"></script>
 
-  <script src="{% static 'community/build/data.js' %}?v=2026-05-21f" nonce="{{ request.csp_nonce }}"></script>
-  <script src="{% static 'community/build/cards.js' %}?v=2026-05-21f" nonce="{{ request.csp_nonce }}"></script>
-  <script src="{% static 'community/build/rails.js' %}?v=2026-05-21f" nonce="{{ request.csp_nonce }}"></script>
-  <script src="{% static 'community/build/composer.js' %}?v=2026-05-21f" nonce="{{ request.csp_nonce }}"></script>
-  <script src="{% static 'community/build/tweaks-panel.js' %}?v=2026-05-21f" nonce="{{ request.csp_nonce }}"></script>
-  <script src="{% static 'community/build/app.js' %}?v=2026-05-21f" nonce="{{ request.csp_nonce }}"></script>
+  <script src="{% static 'community/build/data.js' %}?v=2026-05-22m" nonce="{{ request.csp_nonce }}"></script>
+  <script src="{% static 'community/build/cards.js' %}?v=2026-05-22m" nonce="{{ request.csp_nonce }}"></script>
+  <script src="{% static 'community/build/rails.js' %}?v=2026-05-22m" nonce="{{ request.csp_nonce }}"></script>
+  <script src="{% static 'community/build/composer.js' %}?v=2026-05-22m" nonce="{{ request.csp_nonce }}"></script>
+  <script src="{% static 'community/build/tweaks-panel.js' %}?v=2026-05-22m" nonce="{{ request.csp_nonce }}"></script>
+  <script src="{% static 'community/build/app.js' %}?v=2026-05-22m" nonce="{{ request.csp_nonce }}"></script>
 {% endblock %}

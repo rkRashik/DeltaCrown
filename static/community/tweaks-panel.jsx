@@ -177,12 +177,23 @@ function useTweaks(defaults) {
       const raw = localStorage.getItem('dc-community-tweaks');
       if (raw) localTweaks = JSON.parse(raw);
     } catch (e) { /* ignore */ }
+
+    /* Apply localStorage IMMEDIATELY so the page reflects user's saved settings
+       without waiting for the API. This is critical for background/density to show. */
+    if (localTweaks) apply(localTweaks);
+
     const api = window.DC && window.DC.api;
     if (api && api.getPreferences) {
-      api.getPreferences().then((r) => apply((r && r.tweaks) || localTweaks))
-                         .catch(() => apply(localTweaks));
-    } else {
-      apply(localTweaks);
+      api.getPreferences()
+        .then((r) => {
+          /* Merge: API provides base defaults; localStorage wins for any key
+             the user explicitly changed via the settings page. */
+          if (r && r.tweaks) {
+            const merged = { ...r.tweaks, ...(localTweaks || {}) };
+            apply(merged);
+          }
+        })
+        .catch(() => {}); /* localStorage already applied above */
     }
   }, []);
 

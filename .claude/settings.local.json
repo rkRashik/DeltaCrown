@@ -13,7 +13,8 @@
       "Bash(python -c \"import requests; print\\('requests', requests.__version__\\)\")",
       "Bash(grep -n 'startRuntimeCountdown\\\\|$root\\\\|self\\\\.$root' templates/tournaments/detailPages/detail.html)",
       "Bash(python -m pytest apps/mobile_api/tests/test_chassis.py -v)",
-      "WebFetch(domain:api.anthropic.com)"
+      "WebFetch(domain:api.anthropic.com)",
+      "Bash(node -e ' *)"
     ]
   }
 }

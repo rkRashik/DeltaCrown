@@ -230,7 +230,7 @@ class WalletSettings(models.Model):
 
 
 def _community_tweaks_default():
-    """Default Community tweak values. Mirrors the design's TWEAK_DEFAULTS."""
+    """Default Community tweak values. Must stay in sync with TWEAK_DEFAULTS in app.jsx."""
     return {
         "accent": "cyan",
         "density": "cozy",
@@ -239,6 +239,8 @@ def _community_tweaks_default():
         "showHero": True,
         "showGameRail": True,
         "animations": True,
+        "showFeedNav": False,
+        "hideNavOnScroll": False,
     }
 
 

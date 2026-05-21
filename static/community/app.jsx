@@ -2,6 +2,23 @@
 (function () {
 const { useState, useEffect, useRef, useMemo } = React;
 
+/* Error boundary — prevents blank page, shows the exact error in dev mode */
+class CommunityErrorBoundary extends React.Component {
+  constructor(props) { super(props); this.state = { err: null }; }
+  static getDerivedStateFromError(e) { return { err: e }; }
+  componentDidCatch(e, info) { console.error('[Community] render error:', e, info.componentStack); }
+  render() {
+    if (!this.state.err) return this.props.children;
+    return React.createElement('div', {
+      style: { padding: '2rem', color: '#ccc', fontFamily: 'monospace', background: '#070712', minHeight: '100vh' }
+    },
+      React.createElement('h3', { style: { color: '#EF4444', marginBottom: '1rem' } }, 'Community render error'),
+      React.createElement('pre', { style: { whiteSpace: 'pre-wrap', fontSize: 12 } }, String(this.state.err)),
+      React.createElement('p', { style: { marginTop: '1rem', fontSize: 12, color: '#888' } }, 'Check the browser console for the full component stack.')
+    );
+  }
+}
+
 const Avatar          = window.Avatar;
 const PostDispatcher  = window.PostDispatcher;
 const LeftRail        = window.LeftRail;
@@ -13,6 +30,8 @@ const ComposerTrigger = window.ComposerTrigger;
 const TWEAK_DEFAULTS = {
   accent: 'cyan', density: 'cozy', layout: '3col',
   background: 'aurora', showHero: true, showGameRail: true, animations: true,
+  showFeedNav: false,     /* secondary sticky feed-tabs bar (off by default; scroll transform handles it) */
+  hideNavOnScroll: false, /* completely hide nav on scroll-down (vs smart transform) */
 };
 
 const ACCENT_PALETTES = {
@@ -89,7 +108,17 @@ function PulseBand({ identity, stats }) {
    Game channel rail — uses banner/card images per design
    ============================================================ */
 function GameChannelRail({ activeGame, setActiveGame }) {
-  const games = window.DC.GAMES || [];
+  const allGames    = window.DC.GAMES || [];
+  const primarySlug = window.DC.PRIMARY_GAME_SLUG || '';
+  const passports   = window.DC.MY_PASSPORTS || [];
+  /* Sort: 1. UserProfile.primary_game  2. passport games (no dupe)  3. others */
+  const pSlugs      = passports.map(p => p.game_slug).filter(s => s && s !== primarySlug);
+  const primaryGame = primarySlug ? allGames.filter(g => g.id === primarySlug) : [];
+  const pGames      = pSlugs.map(s => allGames.find(g => g.id === s)).filter(Boolean);
+  const used        = new Set([primarySlug, ...pSlugs].filter(Boolean));
+  const otherGames  = allGames.filter(g => !used.has(g.id));
+  const games       = [...primaryGame, ...pGames, ...otherGames];
+
   if (games.length === 0) return null;
   return (
     <section className="mt-6">
@@ -97,7 +126,9 @@ function GameChannelRail({ activeGame, setActiveGame }) {
         <h2 className="dc-stripe font-display font-bold text-base text-white">Game Channels</h2>
       </div>
       <div className="dc-rail">
-        {games.map(g => {
+        {games.map((g, idx) => {
+          const isPrimary  = primarySlug ? g.id === primarySlug : false;
+          const isPassport = !isPrimary && pSlugs.includes(g.id);
           const banner = g.card_image_url || g.banner_url || g.logo;
           return (
             <button key={g.id}
@@ -124,8 +155,19 @@ function GameChannelRail({ activeGame, setActiveGame }) {
                 )}
               </div>
               <div className="px-3 py-2.5 text-left bg-dc-surface">
-                <div className="text-sm font-bold text-white truncate">{g.name}</div>
-                <div className="flex items-center justify-between mt-0.5">
+                <div className="flex items-center gap-1.5 mb-0.5">
+                  <div className="text-sm font-bold text-white truncate flex-1">{g.name}</div>
+                  {isPrimary && (
+                    <span className="shrink-0 text-[8px] font-black px-1.5 py-0.5 rounded-md leading-none"
+                          style={{ background: 'rgba(0,229,255,0.15)', color: 'rgba(0,229,255,0.9)', border: '1px solid rgba(0,229,255,0.2)' }}>
+                      MAIN
+                    </span>
+                  )}
+                  {isPassport && !isPrimary && (
+                    <i className="fa-solid fa-id-card text-[9px] text-white/30 shrink-0" title="In your passport"></i>
+                  )}
+                </div>
+                <div className="flex items-center justify-between">
                   <span className="dc-mono text-[10px] text-white/45">{(g.members || 0).toLocaleString()} members</span>
                   <span className="text-[10px] text-dc-cyan group-hover:translate-x-0.5 transition-transform">
                     {activeGame === g.id ? 'Active' : 'Join'} <i className="fa-solid fa-arrow-right ml-1 text-[8px]"></i>
@@ -141,7 +183,8 @@ function GameChannelRail({ activeGame, setActiveGame }) {
 }
 
 /* ============================================================
-   Feed tabs — sticky below the dc-pn nav (64px)
+   Feed tabs — sticky flush below the nav (top: 80px = nav height).
+   Must be the first child of main for zero gap.
    ============================================================ */
 function FeedTabs({ tab, setTab, sort, setSort }) {
   const tabs = [
@@ -151,18 +194,24 @@ function FeedTabs({ tab, setTab, sort, setSort }) {
     { id: 'lft',        label: 'LFT Board',  icon: 'signal'      },
   ];
   return (
-    <div className="flex items-end justify-between mb-4 sticky dc-glass-strong -mx-4 sm:-mx-6 px-4 sm:px-6 pt-3 pb-0 border-b border-white/[.06] z-20"
-         style={{ borderRadius: 0, top: 80 }}>
-      <div className="flex items-center gap-4 sm:gap-6 overflow-x-auto no-scrollbar">
+    <div className="flex items-center justify-between sticky z-20 -mx-4 sm:-mx-6 px-4 sm:px-6"
+         style={{
+           top: 80, borderRadius: 0, marginBottom: 20,
+           background: 'rgba(5,5,16,0.97)',
+           borderBottom: '1px solid rgba(255,255,255,0.06)',
+           backdropFilter: 'blur(20px)',
+           height: 44,
+         }}>
+      <div className="flex items-center gap-1 sm:gap-2 overflow-x-auto no-scrollbar h-full">
         {tabs.map(t => (
           <button key={t.id} onClick={() => setTab(t.id)}
-                  className={`dc-tab whitespace-nowrap flex items-center gap-2 text-sm ${tab === t.id ? 'is-active' : ''}`}>
-            <i className={`fa-solid fa-${t.icon} text-xs`}></i>{t.label}
+                  className={`dc-tab whitespace-nowrap flex items-center gap-1.5 text-[13px] h-full px-3 ${tab === t.id ? 'is-active' : ''}`}>
+            <i className={`fa-solid fa-${t.icon} text-[10px]`}></i>{t.label}
           </button>
         ))}
       </div>
-      <div className="hidden sm:flex items-center gap-2 pb-2">
-        <span className="text-[11px] text-white/35">Sort:</span>
+      <div className="flex items-center gap-1 flex-shrink-0">
+        <span className="text-[10px] text-white/30 hidden sm:block">Sort:</span>
         <div className="dc-seg">
           <button className={sort === 'latest' ? 'is-active' : ''} onClick={() => setSort('latest')}>Latest</button>
           <button className={sort === 'top' ? 'is-active' : ''} onClick={() => setSort('top')}>Top</button>
@@ -243,6 +292,39 @@ function MobileNav({ open, onClose, activeView, setActiveView, activeGame, setAc
   );
 }
 
+/* NavTabsPortal — renders the FeedTabs into the #cnav-tabs-portal slot in the
+   Django-rendered primary nav. Shows when the nav is in scrolled/transform state.
+   Uses ReactDOM.createPortal so React manages the tabs while they live in the nav. */
+function NavTabsPortal({ tab, setTab, sort, setSort }) {
+  const [slot, setSlot] = useState(null);
+  useEffect(() => {
+    setSlot(document.getElementById('cnav-tabs-portal'));
+  }, []);
+  if (!slot) return null;
+
+  const tabs = [
+    { id: 'for-you',    label: 'For You',    icon: 'sparkles'    },
+    { id: 'following',  label: 'Following',  icon: 'user-group'  },
+    { id: 'highlights', label: 'Highlights', icon: 'circle-play' },
+    { id: 'lft',        label: 'LFT Board',  icon: 'signal'      },
+  ];
+  /* Tabs only — no sort here (sort lives in the FeedTabs second bar or left rail).
+     Centered with justify-content: center for clean alignment. */
+  const content = (
+    <div style={{ display:'flex', alignItems:'center', justifyContent:'center',
+                  gap:'2px', height:'100%', width:'100%' }}>
+      {tabs.map(t => (
+        <button key={t.id} onClick={() => setTab(t.id)}
+                className={`cnav-tab-btn${tab === t.id ? ' is-active' : ''}`}>
+          <i className={`fa-solid fa-${t.icon}`} style={{ fontSize:11 }}></i>
+          <span>{t.label}</span>
+        </button>
+      ))}
+    </div>
+  );
+  return ReactDOM.createPortal(content, slot);
+}
+
 function EmptyState({ title, sub, icon = 'inbox', cta }) {
   return (
     <div className="dc-card dc-card-pad py-16 text-center dc-fade-in">
@@ -290,6 +372,7 @@ function App() {
   const [composeKind, setComposeKind] = useState('text');
   const [posts, setPosts]         = useState([]);
   const [postsLoaded, setPostsLoaded] = useState(false);
+  const [feedLoading, setFeedLoading] = useState(false);
   const [stats, setStats]         = useState({});
   const [loadCount, setLoadCount] = useState(0);
   const [, forceUpdate]           = useState(0);
@@ -317,7 +400,11 @@ function App() {
     document.body.setAttribute('data-bg', bg);
     const bgDiv = document.getElementById('dc-comm-bg');
     if (bgDiv) bgDiv.setAttribute('data-bg', bg);
-  }, [t.accent, t.density, t.layout, t.background]);
+    /* Expose scroll-behaviour flags to the DOM scroll handler */
+    window.DC_HIDE_NAV_ON_SCROLL = !!t.hideNavOnScroll;
+    /* showFeedNav is always false globally — 2nd bar permanently hidden */
+    window.DC_SHOW_FEED_NAV = false;
+  }, [t.accent, t.density, t.layout, t.background, t.hideNavOnScroll]);
 
   /* Boot */
   useEffect(() => {
@@ -339,8 +426,11 @@ function App() {
     const api = window.DC && window.DC.api;
     if (!api) return;
     setLoadCount(0);
+    setFeedLoading(true);
     api.loadFeed({ page: 1, tab, sort, game: activeGame || '', q: query || '' })
-       .then(r => { setPosts(r.posts || []); refresh(); }).catch(() => {});
+       .then(r => { setPosts(r.posts || []); refresh(); })
+       .catch(() => {})
+       .finally(() => setFeedLoading(false));
   }, [tab, sort, activeGame, query]);
 
   /* 30s polling */
@@ -355,18 +445,27 @@ function App() {
     return () => clearInterval(iv);
   }, [tab, sort, activeGame, query]);
 
-  /* Bridge: Django nav search input dispatches dc-community-search events;
-     Django nav "Post" button dispatches dc-community-compose events. */
+  /* Bridge: Django nav elements → React state via window events */
   useEffect(() => {
     const onSearch  = (e) => setQuery(e.detail || '');
     const onCompose = (e) => openCompose((e && e.detail) || 'text');
+    const onSort    = (e) => setSort(e.detail || 'latest');
     window.addEventListener('dc-community-search',  onSearch);
     window.addEventListener('dc-community-compose', onCompose);
+    window.addEventListener('dc-community-sort',    onSort);
     return () => {
       window.removeEventListener('dc-community-search',  onSearch);
       window.removeEventListener('dc-community-compose', onCompose);
+      window.removeEventListener('dc-community-sort',    onSort);
     };
   }, []);
+
+  /* Sync active state of the nav sort buttons back to the DOM */
+  useEffect(() => {
+    document.querySelectorAll('.cnav-sort-nav-btn').forEach(btn => {
+      btn.classList.toggle('is-active', btn.dataset.sort === sort);
+    });
+  }, [sort]);
 
   const handleComposeSubmit = () => {
     const api = window.DC && window.DC.api;
@@ -391,7 +490,7 @@ function App() {
 
       {/* Community uses the customised Django primary nav (no React nav rendered). */}
 
-      <div className="max-w-[1640px] mx-auto px-4 sm:px-6 pt-5 pb-12 flex gap-6">
+      <div className="max-w-[1640px] mx-auto px-4 sm:px-6 pt-0 pb-12 flex gap-6">
 
         <LeftRail
           activeView={activeView} setActiveView={setActiveView}
@@ -401,11 +500,15 @@ function App() {
         />
 
         <main className="flex-1 min-w-0">
+          {/* FeedTabs: the VERY FIRST element in main so it sticks flush below the nav (no gap).
+              Rendered BEFORE hero/rail so sticky top:80px is reached immediately. */}
+          {/* 2nd nav bar always hidden globally — smart scroll transform handles navigation */}
+
           {t.showHero && <PulseBand identity={identity} stats={stats} />}
           {t.showGameRail && <GameChannelRail activeGame={activeGame} setActiveGame={setActiveGame} />}
 
-          <section className="mt-7">
-            <FeedTabs tab={tab} setTab={setTab} sort={sort} setSort={setSort} />
+          <section className="mt-5">
+            {/* Portal renders into nav bar — no duplicate FeedTabs here */}
 
             {/* Active game filter chip */}
             {activeGame && window.DC.GAME_BY_ID && window.DC.GAME_BY_ID[activeGame] && (
@@ -425,13 +528,16 @@ function App() {
               </div>
             )}
 
+            {/* Portal: FeedTabs rendered into the nav bar slot on scroll */}
+            <NavTabsPortal tab={tab} setTab={setTab} sort={sort} setSort={setSort} />
+
             {/* Composer trigger */}
             {ComposerTrigger && (
               <ComposerTrigger identity={identity} onOpen={openCompose} isAuthed={authed} />
             )}
 
             {/* Feed */}
-            {!postsLoaded ? <FeedSkeleton /> : (
+            {(!postsLoaded || feedLoading) ? <FeedSkeleton /> : (
               <div className="space-y-4 dc-fade-stagger">
                 {visible.length === 0 ? (
                   <EmptyState
@@ -453,9 +559,7 @@ function App() {
                 </button>
               </div>
             )}
-            {visible.length >= filteredPosts.length && filteredPosts.length > 0 && (
-              {/* End of feed bar removed per design */}
-            )}
+            {/* End of feed bar removed — no "End of feed" indicator per design */}
           </section>
         </main>
 
@@ -493,7 +597,9 @@ function App() {
 
 function mount() {
   if (!window.DC || !window.DC.MY_IDENTITIES) { setTimeout(mount, 30); return; }
-  ReactDOM.createRoot(document.getElementById('dc-community-root')).render(<App />);
+  ReactDOM.createRoot(document.getElementById('dc-community-root')).render(
+    <CommunityErrorBoundary><App /></CommunityErrorBoundary>
+  );
 }
 mount();
 })();

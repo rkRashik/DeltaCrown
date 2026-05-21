@@ -256,11 +256,13 @@ function PostActions({ post, onAct }) {
 
 /* ---- Comments block ---- */
 /* Per-comment item with like + reaction */
-function CommentItem({ comment: c }) {
-  const [liked, setLiked]     = useState(false);
-  const [likes, setLikes]     = useState(c.likeCount || 0);
+function CommentItem({ comment: c, onReply }) {
+  const [liked, setLiked]       = useState(false);
+  const [likes, setLikes]       = useState(c.likeCount || 0);
   const [reaction, setReaction] = useState(null);
   const [showPicker, setShowPicker] = useState(false);
+  const [showReply, setShowReply]   = useState(false);
+  const [replyText, setReplyText]   = useState('');
   const hideTimer = useRef(null);
   const isAuthed = !!(window.DC_CONFIG && window.DC_CONFIG.isAuthenticated);
   const reactionIcon = { fire: '🔥', gold: '👑', love: '❤️', wow: '🤯', laugh: '😂', gg: '🎯' };
@@ -326,8 +328,53 @@ function CommentItem({ comment: c }) {
               </div>
             )}
           </div>
-          <button className="text-[11px] text-white/40 hover:text-white/70 font-semibold transition">Reply</button>
+          <button className="text-[11px] text-white/40 hover:text-dc-cyan font-semibold transition"
+                  onClick={() => setShowReply(r => !r)}>
+            Reply
+          </button>
         </div>
+        {/* Reply input — shown when Reply is clicked */}
+        {showReply && (
+          <div className="flex gap-2 mt-2 ml-1 dc-fade-in">
+            <div className="shrink-0 mt-0.5">
+              {window.DC.ME ? <Avatar user={window.DC.ME} size={24} /> : null}
+            </div>
+            <div className="flex-1 bg-white/[.04] border border-white/[.07] rounded-2xl px-3 py-1.5 flex items-center gap-2 focus-within:border-dc-cyan/40 transition">
+              <input
+                autoFocus
+                value={replyText}
+                onChange={e => setReplyText(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && replyText.trim()) {
+                    /* Post as comment with @mention prefix */
+                    const text = `@${c.author.name} ${replyText.trim()}`;
+                    if (typeof onReply === 'function') onReply(text);
+                    setReplyText('');
+                    setShowReply(false);
+                  }
+                  if (e.key === 'Escape') { setShowReply(false); setReplyText(''); }
+                }}
+                placeholder={`Reply to @${c.author.name}…`}
+                className="flex-1 bg-transparent text-[12.5px] text-white/90 placeholder:text-white/30 outline-none min-w-0"
+              />
+              {replyText.trim() && (
+                <button
+                  onClick={() => {
+                    if (replyText.trim()) {
+                      const text = `@${c.author.name} ${replyText.trim()}`;
+                      if (typeof onReply === 'function') onReply(text);
+                      setReplyText('');
+                      setShowReply(false);
+                    }
+                  }}
+                  className="text-[11px] font-bold text-black px-2.5 py-1 rounded-lg flex-shrink-0"
+                  style={{ background: 'linear-gradient(135deg, var(--dc-accent), var(--dc-accent-2))' }}>
+                  Reply
+                </button>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -380,7 +427,7 @@ function CommentsBlock({ post, comments, onAddComment, loading }) {
         <p className="text-[12px] text-white/30 py-2">No comments yet. Be the first.</p>
       )}
       <div className="space-y-3">
-        {comments.map(c => <CommentItem key={c.id} comment={c} />)}
+        {comments.map(c => <CommentItem key={c.id} comment={c} onReply={onAddComment} />)}
       </div>
     </div>
   );
@@ -395,7 +442,10 @@ function PostCard({ post, children, extraClass = '' }) {
   const [loadingComments, setLoadingComments] = useState(false);
   const [localPost, setLocalPost] = useState(post);
 
-  useEffect(() => { setLocalPost(post); }, [post.id, post.likes, post.comments, post.reacted, post.saved]);
+  /* Sync from prop on new post (id change) or server-updated comment count.
+     Intentionally NOT syncing post.likes/reacted — toggling optimistically via
+     handleAct + server confirmation is authoritative; polling would overwrite it. */
+  useEffect(() => { setLocalPost(post); }, [post.id, post.comments]);
 
   useEffect(() => {
     if (!menuOpen) return undefined;
@@ -607,10 +657,16 @@ function ClipCard({ post }) {
                style={{ aspectRatio: '16 / 9', background: p.clip && p.clip.thumbColor1 ? `linear-gradient(135deg, ${p.clip.thumbColor1}, ${p.clip.thumbColor2})` : undefined }}
                onClick={() => setPlaying(true)}>
             {playing && p.clip && p.clip.url ? (
-              <video src={p.clip.url} className="w-full h-full" controls autoPlay playsInline />
+              p.clip.isEmbed ? (
+                <iframe src={p.clip.url} className="w-full h-full"
+                        allow="autoplay; fullscreen; picture-in-picture"
+                        allowFullScreen style={{ border: 'none' }} />
+              ) : (
+                <video src={p.clip.url} className="w-full h-full" controls autoPlay playsInline />
+              )
             ) : (
               <>
-                {p.clip && p.clip.url && <video src={p.clip.url} className="w-full h-full object-cover opacity-80" preload="metadata" muted />}
+                {p.clip && p.clip.url && !p.clip.isEmbed && <video src={p.clip.url} className="w-full h-full object-cover opacity-80" preload="metadata" muted />}
                 <div className="absolute inset-0 opacity-30" style={{ background: 'repeating-linear-gradient(45deg, rgba(255,255,255,0.05) 0 12px, transparent 12px 24px)' }}></div>
                 <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/60"></div>
                 {p.game && (

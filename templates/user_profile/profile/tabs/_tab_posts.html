@@ -153,6 +153,14 @@
     </div>
     {% endif %}
 
+    <!-- Community feed link -->
+    <div class="flex items-center justify-between mb-2">
+        <span class="text-[11px] text-white/35">Posts also visible on the community feed</span>
+        <a href="/community/" class="flex items-center gap-1.5 text-[11px] font-semibold text-dc-cyan hover:underline transition">
+            <i class="fa-solid fa-comments text-[10px]"></i> View all on Community
+        </a>
+    </div>
+
     <!-- Posts Feed -->
     <div id="posts-feed" class="space-y-6">
         {% if user_posts %}

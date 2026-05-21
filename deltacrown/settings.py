@@ -256,6 +256,11 @@ _render_host = os.getenv("RENDER_EXTERNAL_HOSTNAME")
 if _render_host:
     ALLOWED_HOSTS.append(_render_host)
 
+if DEBUG:
+    ALLOWED_HOSTS += [
+        "10.0.2.2",  # Android emulator host bridge to local runserver
+    ]
+
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:8000",
     "http://127.0.0.1:8000",
@@ -940,8 +945,8 @@ RIOT_ACCOUNT_API_CLUSTERS = [
 
 
 # --- Email ---
-# Priority: Resend (production) > Gmail SMTP (dev/LAN) > console (CI/tests)
-if os.getenv("RESEND_API_KEY"):
+# Priority: Resend (production) > console (local DEBUG default) > optional Gmail SMTP.
+if os.getenv("RESEND_API_KEY") and not DEBUG:
     # Production: Resend transactional email via SMTP relay
     # IMPORTANT: The sender domain MUST be verified in your Resend account.
     # Using gmail.com or any unverified domain → 550 rejection.
@@ -953,11 +958,15 @@ if os.getenv("RESEND_API_KEY"):
     EMAIL_HOST_USER = "resend"  # Resend uses literal "resend" as username
     EMAIL_HOST_PASSWORD = os.getenv("RESEND_API_KEY")
     DEFAULT_FROM_EMAIL = "noreply@deltacrown.xyz"
+elif DEBUG and os.getenv("USE_SMTP_EMAIL_IN_DEBUG", "0") != "1":
+    # Local dev: print OTP emails to the runserver console.
+    EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+    DEFAULT_FROM_EMAIL = "noreply@deltacrown.xyz"
 elif os.getenv("DeltaCrownEmailAppPassword"):
-    # Dev/LAN: Gmail SMTP
+    # Optional dev/LAN SMTP, enabled in DEBUG only with USE_SMTP_EMAIL_IN_DEBUG=1.
     EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
     EMAIL_HOST = "smtp.gmail.com"
-    EMAIL_PORT = 2587
+    EMAIL_PORT = 587
     EMAIL_USE_TLS = True
     EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "deltacrownhq@gmail.com")
     EMAIL_HOST_PASSWORD = os.getenv("DeltaCrownEmailAppPassword")

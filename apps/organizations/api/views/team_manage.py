@@ -2535,6 +2535,28 @@ def community_create_post(request, slug):
     )
     # post_save signal will fire Discord sync if announcement type
 
+    # Cross-post to CommunityPost so the announcement also appears in the
+    # main community feed with the team badge attached.
+    try:
+        from apps.siteui.models import CommunityPost
+        from apps.user_profile.models import UserProfile
+        profile, _ = UserProfile.objects.get_or_create(
+            user=request.user,
+            defaults={'display_name': request.user.get_full_name() or request.user.username},
+        )
+        CommunityPost.objects.create(
+            author=profile,
+            team=team,
+            post_type='text',
+            title='',
+            content=content,
+            game=str(team.game_id) if getattr(team, 'game_id', None) else '',
+            visibility='public',
+            is_approved=True,
+        )
+    except Exception:
+        pass  # Cross-post failure must not break the primary announcement
+
     return JsonResponse({
         'success': True,
         'message': 'Post published!',
