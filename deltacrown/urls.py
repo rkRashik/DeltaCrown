@@ -158,6 +158,9 @@ urlpatterns = [
     # Phase 10: Challenge & Bounty competitive system API
     path("api/v1/", include("apps.api.urls.challenge_urls")),
 
+    # Mobile API v1 (Flutter client) — clean envelope-based namespace
+    path("api/mobile/v1/", include(("apps.mobile_api.urls", "mobile_api_v1"), namespace="mobile_api_v1")),
+
     # Crown Contracts (self-challenge missions)
     path("api/v1/contracts/", include(("apps.contracts.urls", "contracts_api"), namespace="contracts_api")),
 

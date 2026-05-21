@@ -96,6 +96,33 @@ class User(AbstractUser):
             return None
 
 
+class GoogleIdentity(models.Model):
+    """Stable link between a DeltaCrown user and a Google account.
+
+    The Google ``sub`` claim is the authoritative identifier — it never
+    changes for a given Google account, even if the user updates their
+    Google email. Email is recorded only for audit/diagnostic purposes;
+    look-ups MUST go through ``google_sub`` to avoid duplicate accounts.
+    """
+
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="google_identity",
+    )
+    google_sub = models.CharField(max_length=255, unique=True, db_index=True)
+    email = models.EmailField()
+    linked_at = models.DateTimeField(auto_now_add=True)
+    last_login_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "Google identity"
+        verbose_name_plural = "Google identities"
+
+    def __str__(self) -> str:
+        return f"GoogleIdentity<user_id={self.user_id}, sub={self.google_sub[:8]}…>"
+
+
 class PendingSignup(models.Model):
     """Temporary record that stores credentials until email verification succeeds."""
 

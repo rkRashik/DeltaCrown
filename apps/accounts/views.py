@@ -25,7 +25,7 @@ from django.views.generic import FormView
 from . import oauth
 from .emails import send_otp_email
 from .forms import SignUpForm, VerifyEmailForm, EmailOrUsernameAuthenticationForm
-from .models import EmailOTP, PendingSignup
+from .models import AccountDeletionRequest, EmailOTP, GoogleIdentity, PendingSignup
 
 logger = logging.getLogger(__name__)
 
@@ -494,42 +494,46 @@ class GoogleCallback(View):
             messages.error(request, "Google sign-in failed. Please try again or use email/password.")
             return redirect("account:login")
 
-        email = info.get("email")
+        sub = (info.get("sub") or "").strip()
+        email = (info.get("email") or "").strip().lower()
+        email_verified = bool(info.get("email_verified"))
+        name = info.get("name") or (email.split("@")[0] if email else "")
+
+        if not sub:
+            logger.error("Google OAuth callback missing 'sub' claim; refusing login")
+            messages.error(request, "Google sign-in failed. Please try again.")
+            return redirect("account:login")
         if not email:
             messages.error(request, "Google did not provide an email address. Please use email/password sign-in.")
             return redirect("account:login")
 
-        name = info.get("name") or email.split("@")[0]
+        user, identity, created = _resolve_google_user(
+            request=request,
+            sub=sub,
+            email=email,
+            email_verified=email_verified,
+            name=name,
+        )
+        if user is None:
+            return redirect("account:login")
 
-        # Look up by email (case-insensitive), create if not found
-        try:
-            user = User.objects.get(email__iexact=email)
-            created = False
-        except User.DoesNotExist:
-            user = User.objects.create_user(
-                username=_unique_username_from(name),
-                email=email,
-                password=None,  # unusable password — must use Google or reset flow
-                is_active=True,
-            )
-            setattr(user, "is_verified", True)
-            user.email_verified_at = timezone.now()
-            user.save(update_fields=["is_verified", "email_verified_at"])
-            created = True
-
-        # Ensure existing users are marked verified (Google confirmed their email)
+        # Refresh verification flags now that Google has authenticated this user.
         update_fields = []
         if not user.is_active:
             user.is_active = True
             update_fields.append("is_active")
-        if not getattr(user, "is_verified", True):
+        if email_verified and not getattr(user, "is_verified", False):
             user.is_verified = True
             update_fields.append("is_verified")
-        if not user.email_verified_at:
+        if email_verified and not user.email_verified_at:
             user.email_verified_at = timezone.now()
             update_fields.append("email_verified_at")
         if update_fields:
             user.save(update_fields=update_fields)
+
+        identity.last_login_at = timezone.now()
+        identity.email = email
+        identity.save(update_fields=["last_login_at", "email"])
 
         if created:
             messages.success(request, f"Welcome to DeltaCrown, {user.username}! Your account has been created.")
@@ -541,6 +545,128 @@ class GoogleCallback(View):
 
         next_url = request.session.pop("google_oauth_next", None) or reverse("siteui:homepage")
         return redirect(next_url)
+
+
+def _account_link_blocked(user) -> str | None:
+    """Return a reason string if Google linking should be refused, else None."""
+    if not user.is_active:
+        return "inactive"
+    try:
+        deletion = getattr(user, "deletion_request", None)
+        if deletion and deletion.status == AccountDeletionRequest.Status.SCHEDULED:
+            return "scheduled_deletion"
+    except AccountDeletionRequest.DoesNotExist:
+        pass
+    return None
+
+
+def _resolve_google_user(*, request, sub, email, email_verified, name):
+    """Map a Google ``sub``/``email`` to a DeltaCrown user.
+
+    Returns ``(user, GoogleIdentity, created)``. If the lookup fails safely
+    (blocked account, ambiguous email, unverified email collision) returns
+    ``(None, None, False)`` after surfacing a user-facing message.
+    """
+    # 1) Stable lookup by Google sub — wins over everything else.
+    try:
+        identity = GoogleIdentity.objects.select_related("user").get(google_sub=sub)
+    except GoogleIdentity.DoesNotExist:
+        identity = None
+
+    if identity is not None:
+        reason = _account_link_blocked(identity.user)
+        if reason == "scheduled_deletion":
+            logger.warning(
+                "Refused Google sign-in: user_id=%s has SCHEDULED deletion", identity.user_id
+            )
+            messages.error(request, "This account is scheduled for deletion. Cancel the deletion request to sign in.")
+            return (None, None, False)
+        if reason == "inactive":
+            logger.warning(
+                "Refused Google sign-in: user_id=%s is inactive", identity.user_id
+            )
+            messages.error(request, "This account is currently disabled. Contact support.")
+            return (None, None, False)
+        return (identity.user, identity, False)
+
+    # 2) No stored identity. Try to link to an existing DC user by VERIFIED email only.
+    if email_verified:
+        matches = list(User.objects.filter(email__iexact=email))
+        if len(matches) > 1:
+            logger.error(
+                "Google sign-in: %d users share email=%s; refusing to guess",
+                len(matches), email,
+            )
+            messages.error(request, "Multiple accounts share this email. Please contact support.")
+            return (None, None, False)
+        if len(matches) == 1:
+            existing = matches[0]
+            reason = _account_link_blocked(existing)
+            if reason == "scheduled_deletion":
+                logger.warning(
+                    "Refused Google link by email: user_id=%s has SCHEDULED deletion",
+                    existing.id,
+                )
+                messages.error(request, "This account is scheduled for deletion. Cancel the deletion request first.")
+                return (None, None, False)
+            if reason == "inactive":
+                logger.warning(
+                    "Refused Google link by email: user_id=%s is inactive", existing.id
+                )
+                messages.error(request, "This account is currently disabled. Contact support.")
+                return (None, None, False)
+            try:
+                identity = GoogleIdentity.objects.create(
+                    user=existing, google_sub=sub, email=email
+                )
+            except IntegrityError:
+                # Race: another request linked the same sub. Re-fetch.
+                identity = GoogleIdentity.objects.select_related("user").get(google_sub=sub)
+                return (identity.user, identity, False)
+            logger.info(
+                "Linked Google sub=%s… to existing user_id=%s by verified email",
+                sub[:8], existing.id,
+            )
+            return (existing, identity, False)
+    else:
+        # Unverified Google email — never auto-link to an existing user.
+        if User.objects.filter(email__iexact=email).exists():
+            logger.warning(
+                "Refused Google sign-in: email=%s is unverified and matches existing user",
+                email,
+            )
+            messages.error(
+                request,
+                "Your Google email isn’t verified. Verify it with Google, or sign in with your password.",
+            )
+            return (None, None, False)
+
+    # 3) No existing user — create a fresh account + identity.
+    try:
+        new_user = User.objects.create_user(
+            username=_unique_username_from(name or email.split("@")[0]),
+            email=email,
+            password=None,
+            is_active=True,
+        )
+    except IntegrityError:
+        # Race: another request just created this user. Re-resolve.
+        logger.warning(
+            "IntegrityError creating Google user for email=%s; retrying lookup", email
+        )
+        try:
+            existing = User.objects.get(email__iexact=email)
+        except (User.DoesNotExist, User.MultipleObjectsReturned):
+            messages.error(request, "Google sign-in failed. Please try again.")
+            return (None, None, False)
+        return (existing, GoogleIdentity.objects.create(user=existing, google_sub=sub, email=email), False)
+
+    if email_verified:
+        new_user.is_verified = True
+        new_user.email_verified_at = timezone.now()
+        new_user.save(update_fields=["is_verified", "email_verified_at"])
+    identity = GoogleIdentity.objects.create(user=new_user, google_sub=sub, email=email)
+    return (new_user, identity, True)
 
 
 def _build_google_redirect_uri(request):

@@ -392,6 +392,7 @@ INSTALLED_APPS = [
     "apps.challenges",  # Phase B: Challenge Hub (wager matches, bounties)
     "apps.contracts",   # Crown Contracts (self-challenge missions)
     "apps.royale",      # Crown Royale (paid Battle Royale lobbies)
+    "apps.mobile_api",  # Mobile API v1 chassis (Flutter client)
     "channels",
 
 ]
