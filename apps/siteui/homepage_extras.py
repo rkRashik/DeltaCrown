@@ -1198,24 +1198,24 @@ def _comparison_rows() -> List[Dict[str, str]]:
 
 
 def _testimonials() -> List[Dict[str, str]]:
-    """Short captain/organizer quotes. Replace static fallback once admin model exists."""
+    """Seeded testimonials — illustrative quotes from representative DeltaCrown users."""
     return [
         {
-            "quote": '"The match-room and dispute flow saved us a week of operator time on our last cup."',
-            "name": "Tournament organizer",
-            "context": "Bengal Cup - CS2",
+            "quote": '"The match room saved us from the usual chaos. Check-in, result proof, and disputes finally had one clean flow."',
+            "name": "IShowSiuu",
+            "context": "Tournament organizer · CS2",
             "color": "teal",
         },
         {
-            "quote": '"Finally a place where wins actually count. Crown Points carried us into the spotlight."',
-            "name": "Team captain",
-            "context": "VALORANT - Active roster",
+            "quote": '"Crown Points made the grind feel visible. Wins were not just screenshots anymore — they became part of our record."',
+            "name": "Gundaa",
+            "context": "Team captain · Valorant",
             "color": "violet",
         },
         {
-            "quote": '"Escrow before kickoff. No more chasing players for coins after a Showdown."',
-            "name": "Long-standing team manager",
-            "context": "eFootball · 1v1",
+            "quote": '"Escrow before kickoff changed the whole vibe. Players knew the reward was locked before the match started."',
+            "name": "Boma_Mintu",
+            "context": "Team manager · eFootball",
             "color": "gold",
         },
     ]

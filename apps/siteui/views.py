@@ -32,8 +32,11 @@ def home(request):
     """DeltaCrown homepage — Command Center design (home_v3)."""
     from .homepage_context import get_homepage_context
     from .homepage_extras import get_homepage_extras
+    from .homepage_hero import get_home_hero_context
     context = get_homepage_context()
     context.update(get_homepage_extras(request))
+    # Per-user hero CTA/copy — not cached, lightweight exists() queries only
+    context["hero_ctx"] = get_home_hero_context(request.user)
     context["seo"] = build_seo(
         title="DeltaCrown | Bangladesh-First Esports Infrastructure",
         description=(

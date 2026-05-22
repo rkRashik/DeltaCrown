@@ -49,10 +49,10 @@
       <div class="hero-pills">
         <span class="pill pill-live">
           <span class="dot dot-live"></span>
-          <span class="tac">{% if v3.hero_stats.tournaments_active %}{{ v3.hero_stats.tournaments_active }}{% else %}38{% endif %} tournaments live</span>
+          <span class="tac">{{ hero_ctx.eyebrow_primary }}</span>
         </span>
         <span class="pill">
-          <span class="tac">Season 3 · open registration</span>
+          <span class="tac">{{ hero_ctx.eyebrow_secondary }}</span>
         </span>
       </div>
 
@@ -61,22 +61,29 @@
         <span class="line"><span class="word">TO</span> <span class="word">THE</span> <span class="word word-grad">CROWN</span></span>
       </h1>
 
-      <p class="hero-sub">
-        The operating system for competitive gaming. Verified tournaments,
-        real teams, escrow-backed reward matches, and a ladder that
-        actually counts — across eleven titles.
-      </p>
+      <p class="hero-sub" id="heroSub">{{ hero_ctx.subcopy }}</p>
+      {% if hero_ctx.rotation_items %}{{ hero_ctx.rotation_items|json_script:"heroRotationItems" }}{% endif %}
 
       <div class="hero-cta">
-        <a href="/account/signup/" class="btn btn-primary btn-lg">
-          <span>Create your account</span>
+        <a href="{{ hero_ctx.primary_cta_url }}" class="btn btn-primary btn-lg" id="heroPrimaryBtn" style="min-width:185px;justify-content:center;">
+          <span>{{ hero_ctx.primary_cta_label }}</span>
           <i class="fa-solid fa-arrow-right"></i>
         </a>
-        <a href="{% if v3.any_live_url %}{{ v3.any_live_url }}{% else %}/tournaments/{% endif %}" class="btn btn-ghost btn-lg">
-          Enter the Arena
-        </a>
+        <a href="{{ hero_ctx.secondary_cta_url }}" class="btn btn-ghost btn-lg" id="heroSecondaryBtn" style="min-width:160px;justify-content:center;">{{ hero_ctx.secondary_cta_label }}</a>
       </div>
 
+      {% if hero_ctx.hero_chips %}
+      <div class="hero-trust">
+        {% for chip in hero_ctx.hero_chips %}
+        <div class="trust-item">
+          {% if chip.value %}<b>{{ chip.value }}</b> {% endif %}{{ chip.label }}
+        </div>
+        {% endfor %}
+        {% if v3.hero_stats.active_prize_label %}
+        <div class="trust-item"><b>{{ v3.hero_stats.active_prize_label }}</b> active prize</div>
+        {% endif %}
+      </div>
+      {% else %}
       <div class="hero-trust">
         <div class="trust-item"><b>Free</b> to compete</div>
         <div class="trust-item"><b>0</b> entry wall</div>
@@ -87,6 +94,7 @@
         <div class="trust-item"><b>{{ v3.hero_stats.teams }}</b> verified teams</div>
         {% endif %}
       </div>
+      {% endif %}
 
       <div class="hero-stats">
         <div class="hero-stat">
@@ -268,13 +276,19 @@
         <span class="fm-arrow"><i class="fa-solid fa-arrow-right"></i></span>
       </a>
       {% else %}
-      <a href="/tournaments/" class="featuredmini hud-4">
+      <a href="/tournaments/?status=registration_open" class="featuredmini hud-4">
         <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
         <div class="fm-poster" style="display:grid;place-items:center;background:rgba(139,92,246,0.08);"><i class="fa-solid fa-trophy" style="font-size:28px;color:var(--violet);opacity:.6;"></i></div>
         <div class="fm-body">
           <div class="fm-top"><span class="tac fm-tag" style="color:var(--mute);">TOURNAMENTS</span></div>
           <div class="fm-name" style="font-size:14px;color:var(--paper-2);">No featured event right now</div>
-          <div class="fm-stats"><div><span class="mono">Browse all open registrations →</span></div></div>
+          <div class="fm-stats">
+            {% if v3.hero_stats.tournaments_active %}
+            <div><span class="mono" style="color:#06b6d4;">{{ v3.hero_stats.tournaments_active }} active event{{ v3.hero_stats.tournaments_active|pluralize }} available</span></div>
+            {% else %}
+            <div style="color:var(--mute);font-size:11px;line-height:1.4;">New events will appear here when registration opens.</div>
+            {% endif %}
+          </div>
         </div>
         <span class="fm-arrow"><i class="fa-solid fa-arrow-right"></i></span>
       </a>
@@ -304,9 +318,13 @@
             </li>
             {% endfor %}
           {% else %}
-          <li style="grid-column:1/-1;padding:20px 0;text-align:center;">
-            <div style="color:var(--mute);font-size:12px;margin-bottom:8px;">No upcoming events scheduled</div>
-            <a href="/tournaments/" class="btn btn-ghost btn-sm" style="font-size:11px;">Browse tournaments</a>
+          <li style="grid-column:1/-1;display:flex;align-items:center;gap:10px;padding:10px 4px;border-top:0;">
+            <i class="fa-solid fa-calendar-days" style="font-size:14px;color:var(--dim);opacity:.6;flex-shrink:0;width:28px;text-align:center;"></i>
+            <div style="flex:1;min-width:0;">
+              <div style="color:var(--paper);font-size:12px;font-weight:600;letter-spacing:.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">No events scheduled yet</div>
+              <div style="color:var(--mute);font-size:10px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Open registrations available.</div>
+            </div>
+            <a href="/tournaments/?status=registration_open" class="tac" style="font-size:10px;color:var(--teal);flex-shrink:0;letter-spacing:.06em;white-space:nowrap;">View open →</a>
           </li>
           {% endif %}
         </ul>
@@ -752,7 +770,11 @@
         <i class="fa-solid {{ p.icon }} {{ p.color }}"></i>
         <div>
           <div class="ptab-name">{{ p.name|upper }}</div>
+          {% if forloop.first and request.user.is_authenticated %}
+          <div class="mono">Your next move</div>
+          {% else %}
           <div class="mono">{{ p.primary_cta.text }}</div>
+          {% endif %}
         </div>
       </button>
       {% endfor %}
@@ -772,8 +794,13 @@
           {% endfor %}
         </ul>
         <div class="persona-cta">
+          {% if forloop.first and request.user.is_authenticated %}
+          <a href="{{ hero_ctx.primary_cta_url }}" class="btn btn-primary">{{ hero_ctx.primary_cta_label }} <i class="fa-solid fa-arrow-right"></i></a>
+          <a href="{{ hero_ctx.secondary_cta_url }}" class="btn btn-ghost">{{ hero_ctx.secondary_cta_label }}</a>
+          {% else %}
           <a href="{{ p.primary_cta.url }}" class="btn btn-primary">{{ p.primary_cta.text }} <i class="fa-solid fa-arrow-right"></i></a>
           <a href="{{ p.secondary_cta.url }}" class="btn btn-ghost">{{ p.secondary_cta.text }}</a>
+          {% endif %}
         </div>
       </div>
       {% endfor %}
@@ -927,20 +954,37 @@
 <section class="outro">
   <div class="outro-grain"></div>
   <div class="outro-shell">
+
     <div class="outro-mark">
-      <img src="{% static 'img/DeltaCrown_wordmark.svg' %}" alt="DeltaCrown"/>
+      <img src="{% static 'img/DeltaCrown_wordmark.svg' %}" alt="DeltaCrown" style="display:block;"/>
     </div>
+
     <h2 class="outro-h">
       YOUR LEGACY<br/>
       <span class="grad-text glow-text">BEGINS HERE</span>
     </h2>
+
+    {% if hero_ctx.outro_subcopy %}
+    <p class="outro-sub">{{ hero_ctx.outro_subcopy }}</p>
+    {% else %}
     <p class="outro-sub">Talent is universal. Opportunity shouldn't be what decides who plays at the top. Join the platform built to change that.</p>
+    {% endif %}
+
     <div class="outro-cta">
-      <a href="/account/signup/" class="btn btn-primary btn-xl">Create your account <i class="fa-solid fa-arrow-right"></i></a>
-      <a href="{% if v3.any_live_url %}{{ v3.any_live_url }}{% else %}/tournaments/?status=live{% endif %}" class="btn btn-ghost btn-xl">
+      <a href="{{ hero_ctx.outro_primary_cta_url }}" class="btn btn-primary btn-xl">
+        {{ hero_ctx.outro_primary_cta_label }} <i class="fa-solid fa-arrow-right"></i>
+      </a>
+      {% if hero_ctx.mode == "guest" %}
+      <a href="{% if v3.any_live_url %}{{ v3.any_live_url }}{% else %}/arena/{% endif %}" class="btn btn-ghost btn-xl">
         <i class="fa-solid fa-circle-play" style="color:#FF4655"></i> Watch live
       </a>
+      {% else %}
+      <a href="{{ hero_ctx.outro_secondary_cta_url }}" class="btn btn-ghost btn-xl">
+        {{ hero_ctx.outro_secondary_cta_label }}
+      </a>
+      {% endif %}
     </div>
+
     <div class="outro-trail tac">FROM THE DELTA · TO THE CROWN</div>
   </div>
 </section>
@@ -966,4 +1010,75 @@
   {% endif %}
 </script>
 <script src="{% static 'siteui/js/home.js' %}" defer></script>
+<script nonce="{{ request.csp_nonce }}">
+(function () {
+  'use strict';
+  /* Hero state rotation — subtle fade between server-provided CTA variants.
+     Each rotation_item may contain: subcopy, primary_label/url, secondary_label/url.
+     Primary CTA stays stable for critical states (pending/onboarding/guest).
+     Respects prefers-reduced-motion. Static fallback always works without JS. */
+  document.addEventListener('DOMContentLoaded', function () {
+    var subEl        = document.getElementById('heroSub');
+    var dataEl       = document.getElementById('heroRotationItems');
+    var primaryBtn   = document.getElementById('heroPrimaryBtn');
+    var secondaryBtn = document.getElementById('heroSecondaryBtn');
+    if (!subEl || !dataEl) return;
+
+    var items;
+    try { items = JSON.parse(dataEl.textContent); } catch (e) { return; }
+    if (!Array.isArray(items) || items.length < 2) return;
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    var idx    = 0;
+    var paused = false;
+    var DUR    = 380;
+
+    var heroEl = subEl.closest('.hero');
+    if (heroEl) {
+      heroEl.addEventListener('mouseenter', function () { paused = true;  }, { passive: true });
+      heroEl.addEventListener('mouseleave', function () { paused = false; }, { passive: true });
+      heroEl.addEventListener('focusin',    function () { paused = true;  }, { passive: true });
+      heroEl.addEventListener('focusout',   function () { paused = false; }, { passive: true });
+    }
+
+    function applyItem(item) {
+      if (item.subcopy) subEl.textContent = item.subcopy;
+      if (primaryBtn && item.primary_label) {
+        var span = primaryBtn.querySelector('span');
+        if (span) span.textContent = item.primary_label;
+        if (item.primary_url) primaryBtn.setAttribute('href', item.primary_url);
+      }
+      if (secondaryBtn && item.secondary_label) {
+        secondaryBtn.textContent = item.secondary_label;
+        if (item.secondary_url) secondaryBtn.setAttribute('href', item.secondary_url);
+      }
+    }
+
+    function fadeEls(els, out) {
+      els.forEach(function (el) {
+        el.style.transition = 'opacity ' + DUR + 'ms ease, transform ' + DUR + 'ms ease';
+        el.style.opacity    = out ? '0' : '1';
+        el.style.transform  = out ? 'translateY(5px)' : 'translateY(0)';
+      });
+    }
+
+    function rotate() {
+      if (paused) return;
+      idx = (idx + 1) % items.length;
+      var next = items[idx];
+      var els  = [subEl];
+      if (primaryBtn   && next.primary_label)   els.push(primaryBtn);
+      if (secondaryBtn && next.secondary_label) els.push(secondaryBtn);
+
+      fadeEls(els, true);
+      setTimeout(function () {
+        applyItem(next);
+        fadeEls(els, false);
+      }, DUR);
+    }
+
+    setInterval(rotate, 9000);
+  });
+}());
+</script>
 {% endblock %}

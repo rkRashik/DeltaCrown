@@ -48,6 +48,9 @@ yarn-error.log
 !static/dist/
 !static/dist/**
 build/
+# Exception: community JSX compiled output must be deployed (WhiteNoise needs them)
+!static/community/build/
+!static/community/build/**
 *.egg-info/
 
 # Backup files

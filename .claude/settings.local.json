@@ -14,7 +14,8 @@
       "Bash(grep -n 'startRuntimeCountdown\\\\|$root\\\\|self\\\\.$root' templates/tournaments/detailPages/detail.html)",
       "Bash(python -m pytest apps/mobile_api/tests/test_chassis.py -v)",
       "WebFetch(domain:api.anthropic.com)",
-      "Bash(node -e ' *)"
+      "Bash(node -e ' *)",
+      "Bash(python manage.py test apps.siteui.tests.test_homepage_hero.AnonymousHeroTest apps.siteui.tests.test_homepage_hero.AuthenticatedHeroTest --verbosity=2)"
     ]
   }
 }
