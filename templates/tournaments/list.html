@@ -101,6 +101,36 @@
 
     /* --- PROGRESS BAR HERO --- */
     .hero-progress { width: 0%; height: 2px; background: #06b6d4; transition: width linear; }
+
+    /* --- EMPTY-STATE HERO ANIMATED ORBS --- */
+    @keyframes orb-drift-a {
+      0%,100% { transform: translate(0,0) scale(1);   opacity:.55; }
+      50%      { transform: translate(4%,3%) scale(1.07); opacity:.8; }
+    }
+    @keyframes orb-drift-b {
+      0%,100% { transform: translate(0,0) scale(1);    opacity:.45; }
+      50%      { transform: translate(-3%,-4%) scale(1.06); opacity:.7; }
+    }
+    @keyframes orb-drift-c {
+      0%,100% { transform: translate(0,0) scale(1);  opacity:.35; }
+      50%      { transform: translate(2%,-2%) scale(1.04); opacity:.55; }
+    }
+    @keyframes counter-tick {
+      from { opacity:0; transform:translateY(6px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
+    .hs-orb-a { animation: orb-drift-a 9s ease-in-out infinite; }
+    .hs-orb-b { animation: orb-drift-b 12s ease-in-out infinite; }
+    .hs-orb-c { animation: orb-drift-c 7s ease-in-out infinite; }
+    .hs-stat  { animation: counter-tick .6s ease both; }
+    .hs-stat:nth-child(2) { animation-delay:.1s; }
+    .hs-stat:nth-child(3) { animation-delay:.2s; }
+
+    /* scanline texture overlay */
+    .hs-scanlines::after {
+      content:''; position:absolute; inset:0; pointer-events:none; z-index:1;
+      background: repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,.06) 3px, rgba(0,0,0,.06) 4px);
+    }
 </style>
 {% endblock %}
 
@@ -168,46 +198,132 @@
       </div>
       
       {% empty %}
-      
-      <div class="hero-slide active">
-        <div class="bg-zoom" style="background-image: radial-gradient(circle at 50% 50%, #0d131f 0%, #000000 100%);"></div>
-        <div class="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMiIgY3k9IjIiIHI9IjIiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4wNykiLz48L3N2Zz4=')]"></div>
-        
-        <div class="absolute inset-0 flex items-center pt-8 pointer-events-none">
-          <div class="max-w-[1600px] mx-auto px-6 w-full relative z-10 slide-content">
-            <div class="max-w-3xl space-y-3">
-              <div class="inline-flex items-center gap-2 rounded-full border border-dc-cyan/30 bg-dc-cyan/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-dc-cyan shadow-[0_0_20px_rgba(6,182,212,0.2)]">
+
+      {# ── SLIDE 1: COMPETE & CONQUER ── #}
+      <div class="hero-slide active hs-scanlines">
+        <div class="absolute inset-0 overflow-hidden bg-[#030508]">
+          <div class="hs-orb-a absolute w-[700px] h-[700px] rounded-full -top-48 -left-32" style="background:radial-gradient(circle,rgba(6,182,212,.35) 0%,transparent 65%);"></div>
+          <div class="hs-orb-b absolute w-[500px] h-[500px] rounded-full top-20 right-0"   style="background:radial-gradient(circle,rgba(59,130,246,.22) 0%,transparent 65%);"></div>
+          <div class="hs-orb-c absolute w-[400px] h-[400px] rounded-full bottom-0 left-1/3" style="background:radial-gradient(circle,rgba(6,182,212,.12) 0%,transparent 65%);"></div>
+          <div class="absolute inset-0" style="background-image:radial-gradient(rgba(6,182,212,.07) 1px,transparent 1px);background-size:32px 32px;"></div>
+          <div class="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#030508]"></div>
+        </div>
+        <div class="absolute inset-0 flex items-center relative z-10 pt-6">
+          <div class="max-w-[1600px] mx-auto px-6 w-full relative z-20 pointer-events-none">
+            <div class="max-w-3xl space-y-4 slide-content">
+              <div class="inline-flex items-center gap-2 rounded-full border border-dc-cyan/35 bg-dc-cyan/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-[.2em] text-dc-cyan shadow-[0_0_24px_rgba(6,182,212,.25)]">
                 <i data-lucide="zap" class="w-3 h-3"></i> Welcome to DeltaCrown
               </div>
-              <h1 class="font-display font-black text-4xl md:text-5xl lg:text-6xl text-white leading-none tracking-tight">
-                <span class="text-transparent bg-clip-text bg-gradient-to-r from-dc-cyan to-blue-500">COMPETE</span> &amp; 
-                <span class="text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-dc-gold">CONQUER</span>
+              <h1 class="font-display font-black leading-none tracking-tight text-white" style="font-size:clamp(2.4rem,6vw,5rem);">
+                COMPETE <span style="color:#06b6d4">&amp;</span> CONQUER
               </h1>
-              <p class="text-gray-400 text-sm md:text-base max-w-xl">The ultimate arena awaits. Build your legacy, dominate the leaderboards, and earn verified esports rewards.</p>
-              
-              <div class="pt-3 pointer-events-auto">
-                <a href="?status=registration_open" class="inline-flex px-6 py-3 bg-dc-cyan text-black font-black uppercase tracking-wide text-sm rounded-xl hover:bg-[#08c9ea] transition-all duration-300 items-center gap-2 shadow-[0_0_20px_rgba(6,182,212,0.3)]">
+              <p class="text-gray-300 text-sm md:text-base max-w-xl leading-relaxed">The ultimate esports arena. Build your legacy, dominate leaderboards, and earn verified competitive rewards.</p>
+              <div class="flex flex-wrap items-center gap-4 mt-1">
+                <div class="flex gap-3 hs-stat" style="animation-delay:.3s">
+                  {% for game in games|slice:":5" %}<div class="w-8 h-8 rounded-lg overflow-hidden border border-white/10 bg-black/40" style="margin-right:-8px">{% if game.icon %}<img src="{{ game.icon }}" class="w-full h-full object-cover" alt="">{% endif %}</div>{% endfor %}
+                  <span class="ml-4 text-xs font-black text-gray-300"><span class="text-dc-cyan">{{ games|length }}+</span> active titles</span>
+                </div>
+              </div>
+              <div class="flex flex-wrap gap-3 pt-2 pointer-events-auto">
+                <a href="?status=registration_open" class="inline-flex items-center gap-2 px-6 py-3 bg-dc-cyan text-black font-black uppercase tracking-wide text-sm rounded-xl hover:bg-[#08c9ea] transition-all shadow-[0_0_24px_rgba(6,182,212,.4)] hover:shadow-[0_0_32px_rgba(6,182,212,.6)] hover:-translate-y-0.5 transform">
                   <i data-lucide="swords" class="w-4 h-4"></i> Browse Open Events
+                </a>
+                <a href="{% url 'tournaments:create' %}" class="inline-flex items-center gap-2 px-6 py-3 bg-white/5 border border-white/15 text-white font-black uppercase tracking-wide text-sm rounded-xl hover:bg-white/10 hover:border-white/30 transition-all">
+                  <i data-lucide="plus-circle" class="w-4 h-4"></i> Create Tournament
                 </a>
               </div>
             </div>
           </div>
         </div>
       </div>
+
+      {# ── SLIDE 2: FORGE YOUR TEAM ── #}
+      <div class="hero-slide hs-scanlines">
+        <div class="absolute inset-0 overflow-hidden bg-[#040308]">
+          <div class="hs-orb-b absolute w-[700px] h-[700px] rounded-full -top-40 -right-40" style="background:radial-gradient(circle,rgba(139,92,246,.38) 0%,transparent 65%);"></div>
+          <div class="hs-orb-a absolute w-[500px] h-[500px] rounded-full bottom-10 left-0"  style="background:radial-gradient(circle,rgba(99,102,241,.2) 0%,transparent 65%);"></div>
+          <div class="hs-orb-c absolute w-[350px] h-[350px] rounded-full top-1/3 left-1/2"  style="background:radial-gradient(circle,rgba(139,92,246,.1) 0%,transparent 65%);"></div>
+          <div class="absolute inset-0" style="background-image:radial-gradient(rgba(139,92,246,.06) 1px,transparent 1px);background-size:36px 36px;"></div>
+          <div class="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#040308]"></div>
+        </div>
+        <div class="absolute inset-0 flex items-center relative z-10 pt-6">
+          <div class="max-w-[1600px] mx-auto px-6 w-full relative z-20 pointer-events-none">
+            <div class="max-w-3xl space-y-4 slide-content">
+              <div class="inline-flex items-center gap-2 rounded-full border border-purple-400/35 bg-purple-500/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-[.2em] text-purple-300 shadow-[0_0_24px_rgba(139,92,246,.25)]">
+                <i data-lucide="users" class="w-3 h-3"></i> Team Battles
+              </div>
+              <h1 class="font-display font-black leading-none tracking-tight text-white" style="font-size:clamp(2.4rem,6vw,5rem);">
+                FORGE YOUR <span style="color:#a78bfa">DYNASTY</span>
+              </h1>
+              <p class="text-gray-300 text-sm md:text-base max-w-xl leading-relaxed">Assemble elite squads, challenge rival rosters, and rise through competitive brackets to claim championship glory.</p>
+              <div class="flex flex-wrap gap-3 pt-2 pointer-events-auto">
+                <a href="/teams/" class="inline-flex items-center gap-2 px-6 py-3 font-black uppercase tracking-wide text-sm rounded-xl hover:-translate-y-0.5 transform transition-all text-black shadow-[0_0_24px_rgba(139,92,246,.45)]" style="background:linear-gradient(135deg,#8b5cf6,#6366f1)">
+                  <i data-lucide="shield" class="w-4 h-4"></i> Join a Team
+                </a>
+                <a href="?status=registration_open" class="inline-flex items-center gap-2 px-6 py-3 bg-white/5 border border-purple-400/20 text-white font-black uppercase tracking-wide text-sm rounded-xl hover:bg-purple-500/10 hover:border-purple-400/40 transition-all">
+                  <i data-lucide="trophy" class="w-4 h-4"></i> View Tournaments
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {# ── SLIDE 3: HOST YOUR EVENT ── #}
+      <div class="hero-slide hs-scanlines">
+        <div class="absolute inset-0 overflow-hidden bg-[#06040100]" style="background-color:#040402;">
+          <div class="hs-orb-c absolute w-[700px] h-[700px] rounded-full -bottom-48 -left-24" style="background:radial-gradient(circle,rgba(251,191,36,.28) 0%,transparent 65%);"></div>
+          <div class="hs-orb-a absolute w-[450px] h-[450px] rounded-full top-0 right-10"     style="background:radial-gradient(circle,rgba(245,158,11,.18) 0%,transparent 65%);"></div>
+          <div class="hs-orb-b absolute w-[300px] h-[300px] rounded-full top-1/2 left-1/2"   style="background:radial-gradient(circle,rgba(251,191,36,.1) 0%,transparent 65%);"></div>
+          <div class="absolute inset-0" style="background-image:radial-gradient(rgba(251,191,36,.05) 1px,transparent 1px);background-size:40px 40px;"></div>
+          <div class="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#040402]"></div>
+        </div>
+        <div class="absolute inset-0 flex items-center relative z-10 pt-6">
+          <div class="max-w-[1600px] mx-auto px-6 w-full relative z-20 pointer-events-none">
+            <div class="max-w-3xl space-y-4 slide-content">
+              <div class="inline-flex items-center gap-2 rounded-full border border-yellow-400/35 bg-yellow-500/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-[.2em] text-yellow-300 shadow-[0_0_24px_rgba(251,191,36,.25)]">
+                <i data-lucide="crown" class="w-3 h-3"></i> Tournament Organizer
+              </div>
+              <h1 class="font-display font-black leading-none tracking-tight text-white" style="font-size:clamp(2.4rem,6vw,5rem);">
+                INITIALIZE YOUR <span style="color:#fbbf24">CIRCUIT</span>
+              </h1>
+              <p class="text-gray-300 text-sm md:text-base max-w-xl leading-relaxed">Design custom brackets, set prize pools, manage registrations, and award verified champions — your tournament, your rules.</p>
+              <div class="flex flex-wrap gap-3 pt-2 pointer-events-auto">
+                <a href="{% url 'tournaments:create' %}" class="inline-flex items-center gap-2 px-6 py-3 font-black uppercase tracking-wide text-sm rounded-xl hover:-translate-y-0.5 transform transition-all text-black shadow-[0_0_24px_rgba(251,191,36,.5)]" style="background:linear-gradient(135deg,#f59e0b,#fbbf24)">
+                  <i data-lucide="plus-circle" class="w-4 h-4"></i> Create Tournament
+                </a>
+                <a href="?status=registration_open" class="inline-flex items-center gap-2 px-6 py-3 bg-white/5 border border-yellow-400/20 text-white font-black uppercase tracking-wide text-sm rounded-xl hover:bg-yellow-500/10 hover:border-yellow-400/40 transition-all">
+                  <i data-lucide="layout-grid" class="w-4 h-4"></i> Browse Events
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {% endfor %}
 
-      {% if featured_tournaments %}
+      {# Progress bar + dots — always visible (featured or empty state) #}
       <div class="absolute bottom-0 left-0 right-0 z-30">
         <div id="hero-progress-bar" class="hero-progress"></div>
         <div class="max-w-[1600px] mx-auto px-6 py-4 flex items-center gap-2">
-          {% for t in featured_tournaments %}
-          <button type="button" data-hero-dot="{{ forloop.counter0 }}" aria-label="Slide {{ forloop.counter }}"
-            class="hero-dot relative h-1 transition-all duration-300 rounded-full overflow-hidden {% if forloop.first %}w-12 bg-white shadow-[0_0_10px_rgba(255,255,255,0.8)]{% else %}w-3 bg-white/20 hover:bg-white/40{% endif %}">
-          </button>
-          {% endfor %}
+          {% if featured_tournaments %}
+            {% for t in featured_tournaments %}
+            <button type="button" data-hero-dot="{{ forloop.counter0 }}" aria-label="Slide {{ forloop.counter }}"
+              class="hero-dot relative h-1 transition-all duration-300 rounded-full overflow-hidden {% if forloop.first %}w-12 bg-white shadow-[0_0_10px_rgba(255,255,255,0.8)]{% else %}w-3 bg-white/20 hover:bg-white/40{% endif %}">
+            </button>
+            {% endfor %}
+          {% else %}
+            {# 3 dots for the 3 empty-state rotating slides #}
+            <button type="button" data-hero-dot="0" aria-label="Slide 1"
+              class="hero-dot relative h-1 transition-all duration-300 rounded-full overflow-hidden w-12 bg-white shadow-[0_0_10px_rgba(255,255,255,0.8)]"></button>
+            <button type="button" data-hero-dot="1" aria-label="Slide 2"
+              class="hero-dot relative h-1 transition-all duration-300 rounded-full overflow-hidden w-3 bg-white/20 hover:bg-white/40"></button>
+            <button type="button" data-hero-dot="2" aria-label="Slide 3"
+              class="hero-dot relative h-1 transition-all duration-300 rounded-full overflow-hidden w-3 bg-white/20 hover:bg-white/40"></button>
+          {% endif %}
         </div>
       </div>
-      {% endif %}
     </div>
 
     {# ── Main Layout ── #}
