@@ -88,19 +88,24 @@
 
   /* ---------- Featured event countdown ---------- */
   function pad(n) { return String(Math.max(0, Math.floor(n))).padStart(2, '0'); }
-  var cdBig = $('#cdBig');
-  var deadlineStr = (cdBig && cdBig.dataset.deadline) ? cdBig.dataset.deadline
+  var countdownEls = $$('#cdBig, #cdSmall');
+  var deadlineSource = countdownEls.find(function (el) { return el.dataset && el.dataset.deadline; });
+  var deadlineStr = deadlineSource ? deadlineSource.dataset.deadline
     : (window.DC_DEADLINE || null);
   var deadline = deadlineStr ? new Date(deadlineStr).getTime() : null;
   function tickCd() {
-    if (!cdBig || !deadline) return;
+    if (!countdownEls.length || !deadline) return;
     var diff = deadline - Date.now();
-    if (diff <= 0) { cdBig.textContent = 'CLOSED'; return; }
+    if (diff <= 0) {
+      countdownEls.forEach(function (el) { el.textContent = 'CLOSED'; });
+      return;
+    }
     var d = Math.floor(diff / 86400000);
     var h = Math.floor((diff % 86400000) / 3600000);
     var m = Math.floor((diff % 3600000) / 60000);
     var s = Math.floor((diff % 60000) / 1000);
-    cdBig.textContent = pad(d) + 'd ' + pad(h) + 'h ' + pad(m) + 'm ' + pad(s) + 's';
+    var label = pad(d) + 'd ' + pad(h) + 'h ' + pad(m) + 'm ' + pad(s) + 's';
+    countdownEls.forEach(function (el) { el.textContent = label; });
   }
   if (deadline) { tickCd(); setInterval(tickCd, 1000); }
 
@@ -308,21 +313,42 @@
     var maxDelay = 60000;
     var ws;
 
-    function buildTickerHTML(items) {
-      if (!items || !items.length) return '';
-      return items.map(function (item) {
-        var flag = '';
-        if (item.kind === 'live')       flag = '<b class="live-flag">LIVE</b> ';
-        else if (item.kind === 'tournament') flag = '<b class="event-flag">EVENT</b> ';
-        else if (item.kind === 'signup')    flag = '<b class="up-flag">▲</b> ';
-        return '<span>' + flag + item.text + '</span><span class="sep">//</span>';
-      }).join('');
+    function tickerFlag(kind) {
+      if (kind === 'live') return { className: 'live-flag', text: 'LIVE' };
+      if (kind === 'tournament') return { className: 'event-flag', text: 'EVENT' };
+      if (kind === 'signup') return { className: 'up-flag', text: '▲' };
+      return null;
+    }
+
+    function appendTickerItems(track, items) {
+      var frag = document.createDocumentFragment();
+      items.forEach(function (item) {
+        var row = document.createElement('span');
+        var flag = tickerFlag(item.kind);
+        if (flag) {
+          var flagEl = document.createElement('b');
+          flagEl.className = flag.className;
+          flagEl.textContent = flag.text;
+          row.appendChild(flagEl);
+          row.appendChild(document.createTextNode(' '));
+        }
+        // WebSocket payload text can include user-controlled tournament or
+        // participant names. Render dynamic text as text nodes only.
+        row.appendChild(document.createTextNode(String(item.text || '')));
+        frag.appendChild(row);
+
+        var sep = document.createElement('span');
+        sep.className = 'sep';
+        sep.textContent = '//';
+        frag.appendChild(sep);
+      });
+      track.replaceChildren(frag);
     }
 
     function applyUpdate(data) {
       /* Update ticker */
       if (data.ticker && data.ticker.length && tickerTrack) {
-        tickerTrack.innerHTML = buildTickerHTML(data.ticker);
+        appendTickerItems(tickerTrack, data.ticker);
       }
 
       /* Update Arena nav badge */

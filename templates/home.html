@@ -10,8 +10,8 @@
 {% block twitter_image %}{% static 'siteui/og/default.png' %}{% endblock %}
 
 {% block extra_css %}
-<link rel="preload" href="{% static 'siteui/css/home.css' %}" as="style">
-<link rel="stylesheet" href="{% static 'siteui/css/home.css' %}">
+<link rel="preload" href="{% static 'siteui/css/home.css' %}?v=20260523a" as="style">
+<link rel="stylesheet" href="{% static 'siteui/css/home.css' %}?v=20260523a">
 {% endblock %}
 
 {% block body_class %}home-page{% endblock %}
@@ -268,7 +268,7 @@
             <div><span class="mono">Prize</span> <span class="grad-text bold">{{ v3.featured_tournament.prize_pool_label }}</span></div>
             <div><span class="mono">Slots</span> {{ v3.featured_tournament.slot_count }}/{{ v3.featured_tournament.slot_max }}</div>
             {% if v3.featured_tournament.deadline_label %}
-            <div><span class="mono">{{ v3.featured_tournament.deadline_label }}</span> <span class="gold" id="cdSmall">…</span></div>
+            <div><span class="mono">{{ v3.featured_tournament.deadline_label }}</span> <span class="gold" id="cdSmall" data-deadline="{{ v3.featured_tournament.deadline_iso }}">...</span></div>
             {% endif %}
           </div>
           <div class="fm-bar"><div class="fm-bar-fill" style="width:{{ v3.featured_tournament.slot_fill_pct }}%"></div></div>
@@ -309,7 +309,7 @@
                 {% if t.scheduled_time %}{{ t.scheduled_time }}{% elif t.scheduled %}{{ t.scheduled }}{% else %}TBD{% endif %}
               </span>
               {% if t.poster_url %}
-              <img class="game-icon" src="{{ t.poster_url }}" alt="{{ t.game_name }}"/ loading="lazy">
+              <img class="game-icon" src="{{ t.poster_url }}" alt="{{ t.game_name }}" loading="lazy" />
               {% else %}
               <span class="game-icon" style="background:rgba(255,255,255,0.05);display:inline-block;border-radius:6px;"></span>
               {% endif %}
@@ -347,7 +347,7 @@
     <span><b class="live-flag">LIVE</b> Matches running now · check the Arena</span><span class="sep">//</span>
     <span><b class="event-flag">EVENT</b> Tournaments open for registration</span><span class="sep">//</span>
     <span><b class="up-flag">▲</b> Crown Points ladder active · Season 3</span><span class="sep">//</span>
-    <span>Escrow-backed reward operations · 100% payout rate</span><span class="sep">//</span>
+    <span>Escrow-backed reward operations · structured payout tracking</span><span class="sep">//</span>
     <span>11 titles · mobile to PC · game-agnostic engine</span><span class="sep">//</span>
     {% endfor %}
     {% for item in v3.ticker_items %}
@@ -415,7 +415,7 @@
 <section id="featured" class="arena reveal">
   <div class="arena-bg">
     {% if v3.featured_tournament and v3.featured_tournament.poster_url %}
-    <img src="{{ v3.featured_tournament.poster_url }}" alt="" class="arena-img"/ loading="lazy">
+    <img src="{{ v3.featured_tournament.poster_url }}" alt="" class="arena-img" loading="lazy" />
     {% else %}
     {% if v3.featured_tournament and v3.featured_tournament.poster_url %}<img src="{{ v3.featured_tournament.poster_url }}" alt="" class="arena-img" loading="lazy"/>{% else %}<div class="arena-img" style="background:linear-gradient(135deg,#0d051a 0%,#1a0a2e 40%,#0a1a1a 100%);"></div>{% endif %}
     {% endif %}
@@ -516,12 +516,12 @@
         <span class="gcard-cta tac">Enter <i class="fa-solid fa-arrow-right"></i></span>
       </a>
       {% empty %}
-      <a class="gcard" href="/tournaments/?game=valorant"><div class="gcard-img"><img src="{% static 'img/games/posters/valorant.jpg' %}" alt="Valorant"/ loading="lazy"></div><div class="gcard-mask"></div><div class="gcard-index mono">01</div><div class="gcard-meta"><div class="gcard-name">VALORANT</div></div><span class="gcard-cta tac">Enter <i class="fa-solid fa-arrow-right"></i></span></a>
-      <a class="gcard" href="/tournaments/?game=cs2"><div class="gcard-img"><img src="{% static 'img/games/posters/cs2.jpg' %}" alt="CS2"/ loading="lazy"></div><div class="gcard-mask"></div><div class="gcard-index mono">02</div><div class="gcard-meta"><div class="gcard-name">CS2</div></div><span class="gcard-cta tac">Enter <i class="fa-solid fa-arrow-right"></i></span></a>
-      <a class="gcard" href="/tournaments/?game=dota2"><div class="gcard-img"><img src="{% static 'img/games/posters/dota2.jpg' %}" alt="Dota 2"/ loading="lazy"></div><div class="gcard-mask"></div><div class="gcard-index mono">03</div><div class="gcard-meta"><div class="gcard-name">DOTA 2</div></div><span class="gcard-cta tac">Enter <i class="fa-solid fa-arrow-right"></i></span></a>
-      <a class="gcard" href="/tournaments/?game=pubg-mobile"><div class="gcard-img"><img src="{% static 'img/games/posters/pubg.jpg' %}" alt="PUBG Mobile"/ loading="lazy"></div><div class="gcard-mask"></div><div class="gcard-index mono">04</div><div class="gcard-meta"><div class="gcard-name">PUBG MOBILE</div></div><span class="gcard-cta tac">Enter <i class="fa-solid fa-arrow-right"></i></span></a>
-      <a class="gcard" href="/tournaments/?game=free-fire"><div class="gcard-img"><img src="{% static 'img/games/posters/freefire.jpg' %}" alt="Free Fire"/ loading="lazy"></div><div class="gcard-mask"></div><div class="gcard-index mono">05</div><div class="gcard-meta"><div class="gcard-name">FREE FIRE</div></div><span class="gcard-cta tac">Enter <i class="fa-solid fa-arrow-right"></i></span></a>
-      <a class="gcard" href="/tournaments/?game=mobile-legends"><div class="gcard-img"><img src="{% static 'img/games/posters/mlbb.jpg' %}" alt="MLBB"/ loading="lazy"></div><div class="gcard-mask"></div><div class="gcard-index mono">06</div><div class="gcard-meta"><div class="gcard-name">MOBILE LEGENDS</div></div><span class="gcard-cta tac">Enter <i class="fa-solid fa-arrow-right"></i></span></a>
+      <a class="gcard" href="/tournaments/?game=valorant"><div class="gcard-img"><img src="{% static 'img/games/posters/valorant.jpg' %}" alt="Valorant" loading="lazy" /></div><div class="gcard-mask"></div><div class="gcard-index mono">01</div><div class="gcard-meta"><div class="gcard-name">VALORANT</div></div><span class="gcard-cta tac">Enter <i class="fa-solid fa-arrow-right"></i></span></a>
+      <a class="gcard" href="/tournaments/?game=cs2"><div class="gcard-img"><img src="{% static 'img/games/posters/cs2.jpg' %}" alt="CS2" loading="lazy" /></div><div class="gcard-mask"></div><div class="gcard-index mono">02</div><div class="gcard-meta"><div class="gcard-name">CS2</div></div><span class="gcard-cta tac">Enter <i class="fa-solid fa-arrow-right"></i></span></a>
+      <a class="gcard" href="/tournaments/?game=dota2"><div class="gcard-img"><img src="{% static 'img/games/posters/dota2.jpg' %}" alt="Dota 2" loading="lazy" /></div><div class="gcard-mask"></div><div class="gcard-index mono">03</div><div class="gcard-meta"><div class="gcard-name">DOTA 2</div></div><span class="gcard-cta tac">Enter <i class="fa-solid fa-arrow-right"></i></span></a>
+      <a class="gcard" href="/tournaments/?game=pubg-mobile"><div class="gcard-img"><img src="{% static 'img/games/posters/pubg.jpg' %}" alt="PUBG Mobile" loading="lazy" /></div><div class="gcard-mask"></div><div class="gcard-index mono">04</div><div class="gcard-meta"><div class="gcard-name">PUBG MOBILE</div></div><span class="gcard-cta tac">Enter <i class="fa-solid fa-arrow-right"></i></span></a>
+      <a class="gcard" href="/tournaments/?game=free-fire"><div class="gcard-img"><img src="{% static 'img/games/posters/freefire.jpg' %}" alt="Free Fire" loading="lazy" /></div><div class="gcard-mask"></div><div class="gcard-index mono">05</div><div class="gcard-meta"><div class="gcard-name">FREE FIRE</div></div><span class="gcard-cta tac">Enter <i class="fa-solid fa-arrow-right"></i></span></a>
+      <a class="gcard" href="/tournaments/?game=mobile-legends"><div class="gcard-img"><img src="{% static 'img/games/posters/mlbb.jpg' %}" alt="MLBB" loading="lazy" /></div><div class="gcard-mask"></div><div class="gcard-index mono">06</div><div class="gcard-meta"><div class="gcard-name">MOBILE LEGENDS</div></div><span class="gcard-cta tac">Enter <i class="fa-solid fa-arrow-right"></i></span></a>
       {% endfor %}
       <a class="gcard gcard-empty" href="/tournaments/">
         <div class="gcard-mask gcard-mask-empty"></div>
@@ -548,8 +548,8 @@
 <section id="ecosystem" class="ecosystem reveal">
   <div class="section-bound">
     <div class="eco-headline">
-      <h2 class="section-h2">ONE PLATFORM<br/><span class="grad-text">EIGHT CONNECTED PILLARS</span></h2>
-      <p class="section-lead">Built like infrastructure — not a tournament app. Every pillar talks to the others. A match becomes a payout, a payout becomes a rank, a rank becomes recognition.</p>
+      <h2 class="section-h2">ONE PLATFORM<br/><span class="grad-text">EVERY MATCH CONNECTED</span></h2>
+      <p class="section-lead">Tournaments, teams, match rooms, proof, rewards, and Crown Points stay connected — so every result can become history, ranking signal, and recognition.</p>
     </div>
     <div class="eco-count" aria-hidden="true">
       <span class="eco-count-line"></span>
@@ -847,7 +847,7 @@
   <div class="section-bound">
     <div class="organize-head">
       <h2 class="section-h2">RUN YOUR OWN EVENT<br/><span class="grad-text">THE ENGINE HANDLES THE REST</span></h2>
-      <p class="section-lead">From a 16-team weekend cup to a 256-squad battle royale league. Built-in match rooms, dispute review, and platform-managed payouts — so you focus on the community, not the spreadsheet.</p>
+      <p class="section-lead">From a 16-team weekend cup to a 256-squad battle royale league. Built-in check-in, match rooms, dispute review, and payout tracking keep the operation moving.</p>
     </div>
     <ol class="org-steps">
       {% for step in v3.organizer_steps %}
@@ -877,14 +877,14 @@
 <section class="trust reveal">
   <div class="section-bound">
     <div class="trust-head">
-      <h2 class="section-h2">TRUST ISN'T CLAIMED<br/><span class="grad-text">IT'S AUDITED</span></h2>
-      <p class="section-lead">Every reward operation runs through escrow. Every result through verification. Every adjustment into an immutable audit log.</p>
+      <h2 class="section-h2">TRUST ISN'T CLAIMED<br/><span class="grad-text">IT'S BUILT INTO THE FLOW</span></h2>
+      <p class="section-lead">Reward matches are designed around escrow, proof, review, and clear operator history, so players and organizers can see how each result moved.</p>
     </div>
     <div class="trust-grid">
-      <div class="trust-cell"><div class="big-num">{{ v3.platform.payout_rate|default:"100" }}<span class="grad-text">%</span></div><div class="tac">Payout rate</div><p>Zero disputed prizes since launch</p></div>
-      <div class="trust-cell"><div class="big-num">{{ v3.platform.avg_dispute_min|default:"11m" }}<span class="grad-text"></span></div><div class="tac">Avg dispute time</div><p>Median, across all 11 titles</p></div>
-      <div class="trust-cell"><div class="big-num">24<span class="grad-text">/7</span></div><div class="tac">Mod coverage</div><p>Discord + on-platform staff</p></div>
-      <div class="trust-cell"><div class="big-num">{{ v3.platform.uptime|default:"99.98" }}<span class="grad-text">%</span></div><div class="tac">Platform uptime</div><p>Trailing 90 days</p></div>
+      <div class="trust-cell"><div class="big-num">ESC<span class="grad-text">ROW</span></div><div class="tac">Reward flow</div><p>Entries and rewards are structured before match day starts.</p></div>
+      <div class="trust-cell"><div class="big-num">PRO<span class="grad-text">OF</span></div><div class="tac">Result review</div><p>Match rooms keep screenshots, reports, and confirmations together.</p></div>
+      <div class="trust-cell"><div class="big-num">ADM<span class="grad-text">IN</span></div><div class="tac">Dispute handling</div><p>Competitive operations route contested results to review queues.</p></div>
+      <div class="trust-cell"><div class="big-num">HIS<span class="grad-text">TORY</span></div><div class="tac">Transparent records</div><p>Crown Points, teams, and match outcomes build a visible trail.</p></div>
     </div>
   </div>
 </section>
@@ -893,7 +893,7 @@
 <section class="quotes reveal">
   <div class="section-bound">
     <div class="quotes-head">
-      <h2 class="section-h2">WHAT TEAMS SAY<br/><span class="grad-text">AFTER THEIR FIRST CUP</span></h2>
+      <h2 class="section-h2">MATCH-DAY PROBLEMS<br/><span class="grad-text">CLEANER FLOWS</span></h2>
     </div>
     <div class="quotes-grid">
       {% for t in v3.testimonials %}
@@ -956,12 +956,12 @@
   <div class="outro-shell">
 
     <div class="outro-mark">
-      <img src="{% static 'img/DeltaCrown_wordmark.svg' %}" alt="DeltaCrown" style="display:block;"/>
+      <img class="outro-wordmark" src="{% static 'img/DeltaCrown_wordmark.svg' %}" alt="DeltaCrown"/>
     </div>
 
     <h2 class="outro-h">
-      YOUR LEGACY<br/>
-      <span class="grad-text glow-text">BEGINS HERE</span>
+      BUILD YOUR<br/>
+      <span class="grad-text glow-text">COMPETITIVE RECORD</span>
     </h2>
 
     {% if hero_ctx.outro_subcopy %}

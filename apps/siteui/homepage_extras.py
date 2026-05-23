@@ -1198,24 +1198,24 @@ def _comparison_rows() -> List[Dict[str, str]]:
 
 
 def _testimonials() -> List[Dict[str, str]]:
-    """Seeded testimonials — illustrative quotes from representative DeltaCrown users."""
+    """Seeded scenario cards, not verified customer testimonials."""
     return [
         {
-            "quote": '"The match room saved us from the usual chaos. Check-in, result proof, and disputes finally had one clean flow."',
-            "name": "IShowSiuu",
-            "context": "Tournament organizer · CS2",
+            "quote": "Check-in, result proof, and dispute notes live in one match room instead of scattered chat threads.",
+            "name": "Organizer workflow",
+            "context": "Weekend cup operations · CS2",
             "color": "teal",
         },
         {
-            "quote": '"Crown Points made the grind feel visible. Wins were not just screenshots anymore — they became part of our record."',
-            "name": "Gundaa",
-            "context": "Team captain · Valorant",
+            "quote": "Verified wins can move from screenshots into Crown Points, team history, and a profile record players can show.",
+            "name": "Team captain flow",
+            "context": "Ranking history · Valorant",
             "color": "violet",
         },
         {
-            "quote": '"Escrow before kickoff changed the whole vibe. Players knew the reward was locked before the match started."',
-            "name": "Boma_Mintu",
-            "context": "Team manager · eFootball",
+            "quote": "Reward matches start with the rules, entry state, and settlement path visible before kickoff.",
+            "name": "Roster manager use case",
+            "context": "Reward match setup · eFootball",
             "color": "gold",
         },
     ]
@@ -1311,9 +1311,9 @@ def get_homepage_extras(request=None) -> Dict[str, Any]:
             "personas": _personas(),
             "path_stages": _path_stages(),
             "platform": {
-                "uptime": "99.98%",
-                "payout_rate": "100%",
-                "avg_dispute_min": "11m",
+                "availability": "monitored",
+                "payout_flow": "tracked",
+                "review_flow": "admin-reviewed",
             },
         }
     }

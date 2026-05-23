@@ -27,7 +27,7 @@
     };
   </script>
 
-  <link rel="stylesheet" href="{% static 'community/styles.css' %}?v=2026-05-22m">
+  <link rel="stylesheet" href="{% static 'community/styles.css' %}?v=2026-05-23n">
 
   <style nonce="{{ request.csp_nonce }}">
     /* ══════════════════════════════════════════════════════════════
@@ -338,6 +338,185 @@
       color: white; font-size: 15px; font-family: Inter,sans-serif;
     }
     #dc-mob-comm-search-input::placeholder { color: rgba(255,255,255,0.35); }
+    .dc-comm-sheet,
+    .dc-comm-sheet-backdrop {
+      display: none;
+    }
+
+    @media (max-width: 767px) {
+      body.dc-community-page { overflow-x: hidden; }
+      body.dc-community-page #main { padding-bottom: calc(92px + env(safe-area-inset-bottom)); }
+      body.dc-community-page #dc-bottom-nav {
+        height: calc(68px + env(safe-area-inset-bottom)) !important;
+        padding: 6px 8px calc(8px + env(safe-area-inset-bottom)) !important;
+        align-items: center;
+        gap: 2px;
+        background:
+          linear-gradient(180deg, rgba(9,9,20,0.86), rgba(3,3,10,0.97)) !important;
+        box-shadow: 0 -18px 44px rgba(0,0,0,0.42), inset 0 1px 0 rgba(255,255,255,0.06);
+      }
+      body.dc-community-page #dc-bottom-nav .dc-btm-item {
+        min-width: 0;
+        min-height: 48px;
+        border-radius: 16px;
+        flex: 1 1 0;
+      }
+      body.dc-community-page #dc-bottom-nav .dc-btm-item span {
+        font-size: 10px;
+        letter-spacing: 0.01em;
+      }
+      body.dc-community-page #dc-mobile-post-btn {
+        background: linear-gradient(135deg, rgba(0,229,255,0.18), rgba(123,43,255,0.2));
+        border: 1px solid rgba(0,229,255,0.24);
+        box-shadow: 0 10px 28px -14px rgba(0,229,255,0.75);
+      }
+      body.dc-community-page #dc-mobile-post-btn i {
+        width: 27px;
+        height: 27px;
+        display: grid;
+        place-items: center;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #00E5FF, #7B2BFF);
+        color: #050510 !important;
+        font-size: 0.92rem !important;
+      }
+      .dc-comm-sheet-backdrop {
+        position: fixed;
+        inset: 0;
+        z-index: 180;
+        display: none;
+        background: rgba(0,0,0,0.55);
+        backdrop-filter: blur(8px);
+      }
+      .dc-comm-sheet-backdrop.is-open { display: block; }
+      .dc-comm-sheet {
+        position: fixed;
+        left: 10px;
+        right: 10px;
+        bottom: calc(76px + env(safe-area-inset-bottom));
+        z-index: 181;
+        display: none;
+        max-height: min(70vh, 560px);
+        overflow: hidden;
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 24px;
+        background:
+          radial-gradient(420px 160px at 18% 0%, rgba(0,229,255,0.12), transparent 70%),
+          linear-gradient(180deg, rgba(18,18,32,0.98), rgba(7,7,16,0.98));
+        box-shadow: 0 28px 80px rgba(0,0,0,0.62);
+      }
+      .dc-comm-sheet.is-open { display: block; animation: dcSheetIn .18s ease-out; }
+      @keyframes dcSheetIn { from { transform: translateY(14px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+      .dc-comm-sheet-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 15px 16px 12px;
+        border-bottom: 1px solid rgba(255,255,255,0.07);
+      }
+      .dc-comm-sheet-title {
+        color: white;
+        font-family: "Space Grotesk", sans-serif;
+        font-weight: 800;
+        font-size: 15px;
+        letter-spacing: 0.02em;
+      }
+      .dc-comm-sheet-sub {
+        color: rgba(255,255,255,0.42);
+        font-size: 11px;
+        margin-top: 2px;
+      }
+      .dc-comm-sheet-close {
+        width: 38px;
+        height: 38px;
+        border-radius: 13px;
+        color: rgba(255,255,255,0.58);
+        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.08);
+      }
+      .dc-comm-sheet-body {
+        padding: 12px;
+        overflow-y: auto;
+        max-height: calc(min(70vh, 560px) - 68px);
+      }
+      .dc-comm-sheet-list {
+        display: grid;
+        gap: 8px;
+      }
+      .dc-comm-sheet-item {
+        width: 100%;
+        min-height: 52px;
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        padding: 10px 12px;
+        border-radius: 16px;
+        color: rgba(255,255,255,0.82);
+        background: rgba(255,255,255,0.035);
+        border: 1px solid rgba(255,255,255,0.065);
+        text-align: left;
+      }
+      .dc-comm-sheet-item.is-active {
+        color: white;
+        border-color: rgba(0,229,255,0.32);
+        background: linear-gradient(135deg, rgba(0,229,255,0.13), rgba(123,43,255,0.11));
+      }
+      .dc-comm-sheet-icon {
+        width: 34px;
+        height: 34px;
+        flex: 0 0 34px;
+        border-radius: 12px;
+        display: grid;
+        place-items: center;
+        overflow: hidden;
+        background: rgba(0,229,255,0.1);
+        color: rgba(0,229,255,0.9);
+      }
+      .dc-comm-sheet-icon img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      .dc-comm-sheet-main {
+        min-width: 0;
+        flex: 1;
+      }
+      .dc-comm-sheet-label {
+        display: block;
+        font-weight: 700;
+        font-size: 13px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .dc-comm-sheet-meta {
+        display: block;
+        margin-top: 1px;
+        color: rgba(255,255,255,0.4);
+        font-size: 10.5px;
+      }
+      .dc-comm-sheet-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        margin-top: 10px;
+      }
+      .dc-comm-sheet-link {
+        min-height: 46px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        border-radius: 15px;
+        color: rgba(255,255,255,0.78);
+        background: rgba(255,255,255,0.04);
+        border: 1px solid rgba(255,255,255,0.07);
+        font-size: 12px;
+        font-weight: 700;
+      }
+      body.dc-community-page .dc-fab { display: none !important; }
+    }
   </style>
 {% endblock %}
 
@@ -351,6 +530,35 @@
       <i class="fa-solid fa-xmark"></i>
     </button>
   </div>
+  <div id="dc-comm-sheet-backdrop" class="dc-comm-sheet-backdrop" aria-hidden="true"></div>
+  <section id="dc-comm-games-sheet" class="dc-comm-sheet" role="dialog" aria-modal="true" aria-labelledby="dc-comm-games-title">
+    <div class="dc-comm-sheet-head">
+      <div>
+        <div id="dc-comm-games-title" class="dc-comm-sheet-title">Game Channels</div>
+        <div class="dc-comm-sheet-sub">Filter the feed by game</div>
+      </div>
+      <button type="button" class="dc-comm-sheet-close" data-comm-sheet-close aria-label="Close game channels"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="dc-comm-sheet-body">
+      <div id="dc-comm-games-list" class="dc-comm-sheet-list"></div>
+    </div>
+  </section>
+  <section id="dc-comm-me-sheet" class="dc-comm-sheet" role="dialog" aria-modal="true" aria-labelledby="dc-comm-me-title">
+    <div class="dc-comm-sheet-head">
+      <div>
+        <div id="dc-comm-me-title" class="dc-comm-sheet-title">Community Identity</div>
+        <div class="dc-comm-sheet-sub">Post as yourself or an eligible team</div>
+      </div>
+      <button type="button" class="dc-comm-sheet-close" data-comm-sheet-close aria-label="Close account panel"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="dc-comm-sheet-body">
+      <div id="dc-comm-me-list" class="dc-comm-sheet-list"></div>
+      <div class="dc-comm-sheet-row">
+        <button type="button" class="dc-comm-sheet-link" id="dc-comm-saved-btn"><i class="fa-regular fa-bookmark"></i> Saved</button>
+        <a class="dc-comm-sheet-link" href="/user/me/settings/"><i class="fa-solid fa-gear"></i> Settings</a>
+      </div>
+    </div>
+  </section>
   <div id="dc-community-root"></div>
 {% endblock %}
 
@@ -366,7 +574,8 @@
         "color1": "#7B2BFF", "color2": "#00E5FF",
         "verified": {{ request.user.is_staff|yesno:"true,false" }},
         "country": "🇧🇩",
-        "avatar_url": "{{ dc_me_avatar|default:''|escapejs }}"
+        "avatar_url": "{{ dc_me_avatar|default:''|escapejs }}",
+        "profile_url": "/@{{ request.user.username|escapejs }}/"
       }{% else %}null{% endif %},
       "primary_game_slug": "{{ dc_primary_game_slug|default:''|escapejs }}",
       "primary_team_id": {% if dc_primary_team_id %}{{ dc_primary_team_id }}{% else %}null{% endif %},
@@ -524,20 +733,203 @@
         }, { passive: true });
       }
 
-      /* Mobile community buttons — Post and Search in the bottom nav */
+      /* Mobile community buttons — page-specific social dock */
       function wireMobileButtons() {
         var mobileSearchBar   = document.getElementById('dc-mobile-comm-search');
         var mobileSearchInput = document.getElementById('dc-mob-comm-search-input');
         var mobileSearchClose = document.getElementById('dc-mob-comm-search-close');
-        var mobileSearchBtn   = document.getElementById('dc-mobile-comm-search-btn');
+        var mobileFeedBtn     = document.getElementById('dc-mobile-feed-btn');
+        var mobileGamesBtn    = document.getElementById('dc-mobile-games-btn');
+        var mobileLftBtn      = document.getElementById('dc-mobile-lft-btn');
         var mobilePostBtn     = document.getElementById('dc-mobile-post-btn');
-        var mobileMenuBtm     = document.getElementById('dc-mobile-menu-toggle-comm');
-        var mainMenuBtn       = document.getElementById('dc-mobile-menu-toggle');
+        var mobileMeBtn       = document.getElementById('dc-mobile-me-btn');
+        var backdrop          = document.getElementById('dc-comm-sheet-backdrop');
+        var gamesSheet        = document.getElementById('dc-comm-games-sheet');
+        var meSheet           = document.getElementById('dc-comm-me-sheet');
+        var gamesList         = document.getElementById('dc-comm-games-list');
+        var meList            = document.getElementById('dc-comm-me-list');
+        var savedBtn          = document.getElementById('dc-comm-saved-btn');
+        var activeSheet       = null;
 
-        if (mobileSearchBtn && mobileSearchBar && mobileSearchInput) {
-          mobileSearchBtn.addEventListener('click', function () {
-            mobileSearchBar.classList.add('is-open');
-            setTimeout(function () { mobileSearchInput.focus(); }, 80);
+        function setDockActive(btn) {
+          [mobileFeedBtn, mobileGamesBtn, mobileLftBtn, mobilePostBtn, mobileMeBtn].forEach(function (item) {
+            if (!item) return;
+            item.classList.toggle('active', item === btn);
+            if (item === btn) item.setAttribute('aria-current', 'page');
+            else item.removeAttribute('aria-current');
+          });
+        }
+
+        function closeSheets() {
+          if (activeSheet) activeSheet.classList.remove('is-open');
+          if (backdrop) backdrop.classList.remove('is-open');
+          document.body.classList.remove('dc-comm-sheet-open');
+          activeSheet = null;
+        }
+
+        function openSheet(sheet) {
+          if (!sheet || !backdrop) return;
+          closeSheets();
+          activeSheet = sheet;
+          backdrop.classList.add('is-open');
+          sheet.classList.add('is-open');
+          document.body.classList.add('dc-comm-sheet-open');
+          var closeBtn = sheet.querySelector('[data-comm-sheet-close]');
+          if (closeBtn) setTimeout(function () { closeBtn.focus(); }, 40);
+        }
+
+        function makeIcon(iconClass, imgUrl) {
+          var icon = document.createElement('span');
+          icon.className = 'dc-comm-sheet-icon';
+          if (imgUrl) {
+            var img = document.createElement('img');
+            img.src = imgUrl;
+            img.alt = '';
+            icon.appendChild(img);
+          } else {
+            var i = document.createElement('i');
+            i.className = iconClass;
+            icon.appendChild(i);
+          }
+          return icon;
+        }
+
+        function makeSheetButton(opts) {
+          var btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'dc-comm-sheet-item' + (opts.active ? ' is-active' : '');
+          btn.appendChild(makeIcon(opts.icon || 'fa-solid fa-circle', opts.img || ''));
+          var main = document.createElement('span');
+          main.className = 'dc-comm-sheet-main';
+          var label = document.createElement('span');
+          label.className = 'dc-comm-sheet-label';
+          label.textContent = opts.label || '';
+          main.appendChild(label);
+          if (opts.meta) {
+            var meta = document.createElement('span');
+            meta.className = 'dc-comm-sheet-meta';
+            meta.textContent = opts.meta;
+            main.appendChild(meta);
+          }
+          btn.appendChild(main);
+          btn.addEventListener('click', opts.onClick);
+          return btn;
+        }
+
+        function renderGames() {
+          if (!gamesList) return;
+          gamesList.replaceChildren();
+          var current = window.DC_COMMUNITY_STATE && window.DC_COMMUNITY_STATE.activeGame || null;
+          gamesList.appendChild(makeSheetButton({
+            label: 'All Games',
+            meta: 'Full community feed',
+            icon: 'fa-solid fa-layer-group',
+            active: !current,
+            onClick: function () {
+              window.dispatchEvent(new CustomEvent('dc-community-game', { detail: '' }));
+              closeSheets();
+              setDockActive(mobileFeedBtn);
+            }
+          }));
+          var games = (window.DC && window.DC.GAMES || []);
+          if (!games.length) {
+            gamesList.appendChild(makeSheetButton({
+              label: 'Loading channels...',
+              meta: 'Try again in a moment',
+              icon: 'fa-solid fa-spinner',
+              onClick: function () {}
+            }));
+            return;
+          }
+          games.forEach(function (game) {
+            gamesList.appendChild(makeSheetButton({
+              label: game.name,
+              meta: ((game.members || 0).toLocaleString()) + ' members',
+              img: game.logo || game.card_image_url || '',
+              icon: 'fa-solid fa-gamepad',
+              active: current === game.id,
+              onClick: function () {
+                window.dispatchEvent(new CustomEvent('dc-community-game', { detail: game.id }));
+                closeSheets();
+                setDockActive(mobileGamesBtn);
+              }
+            }));
+          });
+        }
+
+        function identityName(identity) {
+          if (!identity) return 'Unknown';
+          if (identity.kind === 'team') {
+            var team = (window.DC && window.DC.TEAMS || []).find(function (t) { return t.id === identity.teamId; });
+            return team ? team.name : 'Team identity';
+          }
+          return window.DC_CONFIG && window.DC_CONFIG.me ? window.DC_CONFIG.me.name : 'You';
+        }
+
+        function renderMe() {
+          if (!meList) return;
+          meList.replaceChildren();
+          var authed = !!(window.DC_CONFIG && window.DC_CONFIG.isAuthenticated);
+          if (!authed) {
+            meList.appendChild(makeSheetButton({
+              label: 'Sign in to post',
+              meta: 'Join the community with your player profile',
+              icon: 'fa-solid fa-arrow-right-to-bracket',
+              onClick: function () { window.location.href = '/account/login/?next=/community/'; }
+            }));
+            return;
+          }
+          var current = window.DC_COMMUNITY_STATE && window.DC_COMMUNITY_STATE.identityId || 'self';
+          (window.DC && window.DC.MY_IDENTITIES || []).forEach(function (identity) {
+            var team = identity.kind === 'team' ? (window.DC.TEAMS || []).find(function (t) { return t.id === identity.teamId; }) : null;
+            meList.appendChild(makeSheetButton({
+              label: identityName(identity),
+              meta: identity.canPost ? ('Post as ' + (identity.role || 'member')) : 'View only',
+              img: team && team.logo_url || (identity.kind === 'user' && window.DC_CONFIG.me && window.DC_CONFIG.me.avatar_url) || '',
+              icon: identity.kind === 'team' ? 'fa-solid fa-users' : 'fa-solid fa-circle-user',
+              active: current === identity.id,
+              onClick: function () {
+                window.dispatchEvent(new CustomEvent('dc-community-identity', { detail: identity.id }));
+                closeSheets();
+                setDockActive(mobileMeBtn);
+              }
+            }));
+          });
+          var profileUrl = window.DC_CONFIG.me && window.DC_CONFIG.me.profile_url || '/profile/';
+          meList.appendChild(makeSheetButton({
+            label: 'Personal profile',
+            meta: 'View your public activity',
+            icon: 'fa-solid fa-user',
+            onClick: function () { window.location.href = profileUrl; }
+          }));
+        }
+
+        if (mobileFeedBtn) {
+          mobileFeedBtn.addEventListener('click', function () {
+            closeSheets();
+            window.dispatchEvent(new CustomEvent('dc-community-tab', { detail: 'for-you' }));
+            window.dispatchEvent(new CustomEvent('dc-community-view', { detail: 'for-you' }));
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            setDockActive(mobileFeedBtn);
+          });
+        }
+        if (mobileGamesBtn) {
+          mobileGamesBtn.addEventListener('click', function () {
+            renderGames();
+            if (window.DC && window.DC.api && window.DC.api.loadSidebar && !(window.DC.GAMES || []).length) {
+              window.DC.api.loadSidebar().then(renderGames).catch(function () {});
+            }
+            openSheet(gamesSheet);
+            setDockActive(mobileGamesBtn);
+          });
+        }
+        if (mobileLftBtn) {
+          mobileLftBtn.addEventListener('click', function () {
+            closeSheets();
+            window.dispatchEvent(new CustomEvent('dc-community-tab', { detail: 'lft' }));
+            window.dispatchEvent(new CustomEvent('dc-community-view', { detail: 'for-you' }));
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            setDockActive(mobileLftBtn);
           });
         }
         if (mobileSearchClose && mobileSearchBar && mobileSearchInput) {
@@ -565,13 +957,35 @@
             if (typeof window.dcCommunityCompose === 'function') {
               window.dcCommunityCompose('text');
             } else {
-              window.dispatchEvent(new CustomEvent('dc-community-compose', { detail: 'text' }));
+            window.dispatchEvent(new CustomEvent('dc-community-compose', { detail: 'text' }));
             }
+            setDockActive(mobilePostBtn);
           });
         }
-        if (mobileMenuBtm && mainMenuBtn) {
-          mobileMenuBtm.addEventListener('click', function () { mainMenuBtn.click(); });
+        if (mobileMeBtn) {
+          mobileMeBtn.addEventListener('click', function () {
+            renderMe();
+            if (window.DC && window.DC.api && window.DC.api.loadUserTeams) {
+              window.DC.api.loadUserTeams().then(renderMe).catch(function () {});
+            }
+            openSheet(meSheet);
+            setDockActive(mobileMeBtn);
+          });
         }
+        if (savedBtn) {
+          savedBtn.addEventListener('click', function () {
+            window.dispatchEvent(new CustomEvent('dc-community-view', { detail: 'saved' }));
+            closeSheets();
+            setDockActive(mobileMeBtn);
+          });
+        }
+        if (backdrop) backdrop.addEventListener('click', closeSheets);
+        document.querySelectorAll('[data-comm-sheet-close]').forEach(function (btn) {
+          btn.addEventListener('click', closeSheets);
+        });
+        document.addEventListener('keydown', function (e) {
+          if (e.key === 'Escape') closeSheets();
+        });
       }
 
       if (document.readyState === 'loading') {
@@ -588,9 +1002,9 @@
   <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin="anonymous" nonce="{{ request.csp_nonce }}"></script>
 
   <script src="{% static 'community/build/data.js' %}?v=2026-05-22m" nonce="{{ request.csp_nonce }}"></script>
-  <script src="{% static 'community/build/cards.js' %}?v=2026-05-22m" nonce="{{ request.csp_nonce }}"></script>
+  <script src="{% static 'community/build/cards.js' %}?v=2026-05-23n" nonce="{{ request.csp_nonce }}"></script>
   <script src="{% static 'community/build/rails.js' %}?v=2026-05-22m" nonce="{{ request.csp_nonce }}"></script>
   <script src="{% static 'community/build/composer.js' %}?v=2026-05-22m" nonce="{{ request.csp_nonce }}"></script>
   <script src="{% static 'community/build/tweaks-panel.js' %}?v=2026-05-22m" nonce="{{ request.csp_nonce }}"></script>
-  <script src="{% static 'community/build/app.js' %}?v=2026-05-22m" nonce="{{ request.csp_nonce }}"></script>
+  <script src="{% static 'community/build/app.js' %}?v=2026-05-23n" nonce="{{ request.csp_nonce }}"></script>
 {% endblock %}

@@ -690,15 +690,45 @@
       const onSearch = e => setQuery(e.detail || '');
       const onCompose = e => openCompose(e && e.detail || 'text');
       const onSort = e => setSort(e.detail || 'latest');
+      const onTab = e => {
+        const next = e.detail || 'for-you';
+        setTab(next);
+        if (next !== 'lft') setActiveView('for-you');
+      };
+      const onGame = e => setActiveGame(e.detail || null);
+      const onView = e => setActiveView(e.detail || 'for-you');
+      const onIdentity = e => {
+        const id = e.detail || 'self';
+        const next = (window.DC && window.DC.MY_IDENTITIES || []).find(item => item.id === id);
+        if (next) setIdentity(next);
+      };
       window.addEventListener('dc-community-search', onSearch);
       window.addEventListener('dc-community-compose', onCompose);
       window.addEventListener('dc-community-sort', onSort);
+      window.addEventListener('dc-community-tab', onTab);
+      window.addEventListener('dc-community-game', onGame);
+      window.addEventListener('dc-community-view', onView);
+      window.addEventListener('dc-community-identity', onIdentity);
       return () => {
         window.removeEventListener('dc-community-search', onSearch);
         window.removeEventListener('dc-community-compose', onCompose);
         window.removeEventListener('dc-community-sort', onSort);
+        window.removeEventListener('dc-community-tab', onTab);
+        window.removeEventListener('dc-community-game', onGame);
+        window.removeEventListener('dc-community-view', onView);
+        window.removeEventListener('dc-community-identity', onIdentity);
       };
     }, []);
+
+    useEffect(() => {
+      window.DC_COMMUNITY_STATE = {
+        tab,
+        sort,
+        activeGame,
+        activeView,
+        identityId: identity && identity.id || 'self'
+      };
+    }, [tab, sort, activeGame, activeView, identity]);
 
     /* Sync active state of the nav sort buttons back to the DOM */
     useEffect(() => {

@@ -1547,3 +1547,72 @@ button:focus-visible, a:focus-visible, input:focus-visible {
 
 /* Community page full-bleed */
 .dc-community-page { min-height: 100vh; }
+
+@media (max-width: 767px) {
+  body.dc-community-page {
+    overflow-x: hidden;
+  }
+  body.dc-community-page #dc-community-root {
+    max-width: 100vw;
+    overflow-x: clip;
+  }
+  body.dc-community-page #dc-community-root > .min-h-screen > div {
+    padding-left: 10px;
+    padding-right: 10px;
+    padding-bottom: calc(104px + env(safe-area-inset-bottom));
+    gap: 0;
+  }
+  body.dc-community-page main {
+    width: 100%;
+    max-width: 100%;
+  }
+  body.dc-community-page main > section {
+    margin-top: 12px;
+  }
+  body.dc-community-page .dc-card {
+    border-radius: 18px;
+    border-color: rgba(255,255,255,0.055);
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.032), rgba(255,255,255,0.012));
+    box-shadow: none;
+  }
+  body.dc-community-page .dc-card:hover {
+    transform: none;
+    box-shadow: none;
+  }
+  body.dc-community-page .dc-card-pad {
+    padding: 14px;
+  }
+  body.dc-community-page .dc-fade-stagger {
+    display: grid;
+    gap: 12px;
+  }
+  body.dc-community-page .dc-post-body {
+    font-size: 14px;
+    line-height: 1.58;
+  }
+  body.dc-community-page .dc-post-body img,
+  body.dc-community-page .dc-card img,
+  body.dc-community-page iframe,
+  body.dc-community-page video {
+    max-width: 100%;
+  }
+  body.dc-community-page .dc-react {
+    min-height: 40px;
+    padding: 0.45rem 0.68rem;
+    border-radius: 13px;
+    background: rgba(255,255,255,0.025);
+  }
+  body.dc-community-page .dc-drop {
+    position: fixed !important;
+    left: 12px !important;
+    right: 12px !important;
+    bottom: calc(78px + env(safe-area-inset-bottom)) !important;
+    justify-content: space-between;
+    padding: 8px;
+    border-radius: 18px;
+    background: rgba(13,13,24,0.98);
+    border: 1px solid rgba(255,255,255,0.1);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.54);
+  }
+}

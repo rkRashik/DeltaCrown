@@ -271,15 +271,15 @@
   style="z-index:90;height:60px;background:rgba(2,0,5,.95);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-top:1px solid rgba(255,255,255,.08);transition:transform .3s ease;padding-bottom:env(safe-area-inset-bottom);"
   aria-label="Mobile navigation">
   {% if dc_community_mode %}
-  {# Community page: Feed · Events · Search · Post · Menu #}
-  <a href="/community/" class="dc-btm-item active" aria-current="page">
+  {# Community page: Feed · Games · LFT · Post · Me #}
+  <button id="dc-mobile-feed-btn" type="button" class="dc-btm-item active" aria-current="page" aria-label="Show community feed">
     <i class="fa-solid fa-comments"></i><span>Feed</span>
-  </a>
-  <a href="/tournaments/" class="dc-btm-item">
-    <i class="fa-solid fa-trophy"></i><span>Events</span>
-  </a>
-  <button id="dc-mobile-comm-search-btn" type="button" class="dc-btm-item" aria-label="Search community">
-    <i class="fa-solid fa-magnifying-glass"></i><span>Search</span>
+  </button>
+  <button id="dc-mobile-games-btn" type="button" class="dc-btm-item" aria-label="Choose game channel" aria-haspopup="dialog">
+    <i class="fa-solid fa-gamepad"></i><span>Games</span>
+  </button>
+  <button id="dc-mobile-lft-btn" type="button" class="dc-btm-item" aria-label="Open LFT board">
+    <i class="fa-solid fa-signal"></i><span>LFT</span>
   </button>
   {% if request.user.is_authenticated %}
   <button id="dc-mobile-post-btn" type="button" class="dc-btm-item" aria-label="Create post"
@@ -288,12 +288,14 @@
     <span style="color:rgba(0,229,255,0.85);">Post</span>
   </button>
   {% else %}
-  <a href="/accounts/login/?next=/community/" class="dc-btm-item">
-    <i class="fa-solid fa-arrow-right-to-bracket"></i><span>Sign in</span>
+  <a id="dc-mobile-post-btn" href="/accounts/login/?next=/community/" class="dc-btm-item" aria-label="Sign in to create post"
+     style="color:rgba(0,229,255,0.85);">
+    <i class="fa-solid fa-plus" style="color:rgba(0,229,255,0.85);font-size:1.35rem;"></i>
+    <span style="color:rgba(0,229,255,0.85);">Post</span>
   </a>
   {% endif %}
-  <button id="dc-mobile-menu-toggle-comm" type="button" class="dc-btm-item" aria-label="Open menu">
-    <i class="fa-solid fa-bars"></i><span>Menu</span>
+  <button id="dc-mobile-me-btn" type="button" class="dc-btm-item" aria-label="Open community account panel" aria-haspopup="dialog">
+    <i class="fa-solid fa-circle-user"></i><span>Me</span>
   </button>
   {% else %}
   {# Default bottom nav #}
@@ -317,9 +319,9 @@
   <a href="/arena/" class="dc-btm-item {% if arena_active %}active{% endif %}" {% if arena_active %}aria-current="page"{% endif %}>
     <i class="fa-solid fa-gamepad"></i><span>Arena</span>
   </a>
-  {% nav_active '/crownstore/' '/crownstore' as store_active %}
-  <a href="/crownstore/" class="dc-btm-item {% if store_active %}active{% endif %}" {% if store_active %}aria-current="page"{% endif %}>
-    <i class="fa-solid fa-store"></i><span>Store</span>
+  {% nav_active '/community/' '/community' as community_active %}
+  <a href="{% url 'siteui:community' %}" class="dc-btm-item {% if community_active %}active{% endif %}" {% if community_active %}aria-current="page"{% endif %}>
+    <i class="fa-solid fa-comments"></i><span>Community</span>
   </a>
   {% endif %}
 </nav>

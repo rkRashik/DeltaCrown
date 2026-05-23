@@ -246,7 +246,8 @@
 
   /* ---- Reactions ---- */
   function ReactionPicker({
-    onPick
+    onPick,
+    selected
   }) {
     const reactions = [{
       id: 'fire',
@@ -277,12 +278,16 @@
       className: "dc-drop absolute bottom-full left-0 mb-2 flex gap-1 p-1.5",
       style: {
         minWidth: 'auto'
-      }
+      },
+      role: "menu",
+      "aria-label": "Choose reaction"
     }, reactions.map(r => /*#__PURE__*/React.createElement("button", {
       key: r.id,
       onClick: () => onPick(r.id),
-      className: "w-9 h-9 rounded-lg hover:bg-white/8 grid place-items-center text-lg hover:scale-110 transition",
-      title: r.label
+      className: `w-10 h-10 rounded-xl hover:bg-white/8 grid place-items-center text-lg hover:scale-110 transition ${selected === r.id ? 'bg-white/10 ring-1 ring-white/20' : ''}`,
+      title: r.label,
+      role: "menuitem",
+      "aria-label": r.label
     }, r.icon)));
   }
   function PostActions({
@@ -292,6 +297,7 @@
     const [showReactions, setShowReactions] = useState(false);
     const [popping, setPopping] = useState(false);
     const hideTimer = useRef(null);
+    const longPressRef = useRef(false);
     const reacted = post.reacted;
     const reactionIcon = {
       fire: '🔥',
@@ -311,6 +317,11 @@
     };
     const handleLike = e => {
       e.stopPropagation();
+      if (longPressRef.current) {
+        e.preventDefault();
+        longPressRef.current = false;
+        return;
+      }
       if (!authed) {
         window.location.href = '/account/login/?next=' + encodeURIComponent(window.location.pathname);
         return;
@@ -318,6 +329,24 @@
       setPopping(true);
       setTimeout(() => setPopping(false), 400);
       onAct('like');
+    };
+    const handleTouchStart = () => {
+      clearTimeout(hideTimer.current);
+      longPressRef.current = false;
+      hideTimer.current = setTimeout(() => {
+        longPressRef.current = true;
+        setShowReactions(true);
+      }, 360);
+    };
+    const handleTouchEnd = () => {
+      clearTimeout(hideTimer.current);
+      setTimeout(() => {
+        longPressRef.current = false;
+      }, 450);
+    };
+    const handleTouchMove = () => {
+      clearTimeout(hideTimer.current);
+      longPressRef.current = false;
     };
     return /*#__PURE__*/React.createElement("div", {
       className: "flex items-center justify-between mt-1 pt-3 border-t border-white/[.05]"
@@ -329,7 +358,12 @@
       className: `dc-react ${reacted ? reacted === 'gold' ? 'is-on-gold' : reacted === 'love' ? 'is-on-rose' : 'is-on' : ''} ${popping ? 'dc-pop' : ''}`,
       onClick: handleLike,
       onMouseEnter: openPicker,
-      onMouseLeave: closePicker
+      onMouseLeave: closePicker,
+      onTouchStart: handleTouchStart,
+      onTouchEnd: handleTouchEnd,
+      onTouchMove: handleTouchMove,
+      "aria-label": reacted ? "Remove reaction" : "React to post",
+      "aria-pressed": !!reacted
     }, reacted ? /*#__PURE__*/React.createElement("span", {
       className: "text-base leading-none"
     }, reactionIcon[reacted]) : /*#__PURE__*/React.createElement("i", {
@@ -340,6 +374,7 @@
       onMouseEnter: openPicker,
       onMouseLeave: closePicker
     }, /*#__PURE__*/React.createElement(ReactionPicker, {
+      selected: reacted,
       onPick: r => {
         onAct('react', r);
         setShowReactions(false);
@@ -679,14 +714,31 @@
           })));
         }
       } else if (action === 'react') {
-        if (!authed) return;
-        const was = !!localPost.reacted;
+        if (!authed) {
+          window.location.href = '/account/login/?next=' + encodeURIComponent(window.location.pathname);
+          return;
+        }
+        const previous = localPost.reacted;
+        const sameReaction = previous === arg;
+        const was = !!previous;
         setLocalPost(p => ({
           ...p,
-          likes: was ? p.likes : p.likes + 1,
-          reacted: arg
+          likes: sameReaction ? Math.max(0, p.likes - 1) : was ? p.likes : p.likes + 1,
+          reacted: sameReaction ? null : arg
         }));
-        if (api && api.toggleLike && localPost._pk && !was) api.toggleLike(localPost._pk).catch(() => {});
+        if (api && api.toggleLike && localPost._pk && (!was || sameReaction)) {
+          api.toggleLike(localPost._pk).then(r => {
+            if (typeof r.likes_count === 'number') setLocalPost(p => ({
+              ...p,
+              likes: r.likes_count,
+              reacted: r.liked ? p.reacted || arg : null
+            }));
+          }).catch(() => setLocalPost(p => ({
+            ...p,
+            likes: localPost.likes,
+            reacted: previous || null
+          })));
+        }
       } else if (action === 'save') {
         setLocalPost(p => ({
           ...p,
