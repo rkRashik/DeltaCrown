@@ -204,6 +204,16 @@ def can_manage_competitive_settings(user, team) -> bool:
     return can_manage_team_profile(user, team)
 
 
+def can_view_competitive_settings(user, team) -> bool:
+    actor = get_team_actor(user, team)
+    return _is_active_team(team) and (
+        actor.is_superuser
+        or actor.is_creator
+        or actor.membership is not None
+        or actor.org_authority in ("CEO", "MANAGER")
+    )
+
+
 def can_create_team_in_org(user, organization) -> bool:
     if _is_authenticated(user) and getattr(user, "is_superuser", False):
         return True

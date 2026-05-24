@@ -66,6 +66,18 @@ from apps.organizations.models import Team, TeamCompetitiveSettings, TeamMembers
 from apps.organizations.choices import MembershipRole, MembershipStatus, TeamStatus, MembershipEventType, RosterSlot
 from apps.accounts.models import User
 from apps.organizations.services.hub_cache import invalidate_hub_cache
+from apps.organizations.services.team_authority import (
+    can_access_team_hq,
+    can_disband_team,
+    can_manage_competitive_settings,
+    can_manage_discord,
+    can_manage_roster,
+    can_manage_team_profile,
+    can_manage_team_settings,
+    can_transfer_ownership,
+    can_view_competitive_settings,
+    get_team_actor,
+)
 
 ORG_TEAM_ADMIN_ROLES = ('CEO', 'MANAGER')
 TEAM_ADMIN_ROLES = (MembershipRole.OWNER, MembershipRole.MANAGER)
@@ -100,15 +112,7 @@ def _has_org_team_admin(team, user):
 
 
 def _can_access_team_hq(team, user):
-    if not user or not user.is_authenticated:
-        return False
-    if not _is_active_team(team):
-        return False
-    if user.is_superuser or team.created_by_id == user.id:
-        return True
-    if _has_org_team_admin(team, user):
-        return True
-    return _active_membership(team, user) is not None
+    return can_access_team_hq(user, team)
 
 
 def _check_manage_permissions(team, user):
@@ -129,57 +133,30 @@ def _check_manage_permissions(team, user):
     if not _is_active_team(team):
         return False, "This team is not active"
     
-    # Superusers always have permission
-    if user.is_superuser:
+    if can_manage_team_profile(user, team):
         return True, None
-    
-    # Creator always has permission
-    if team.created_by_id == user.id:
-        return True, None
-    
-    membership = _active_membership(team, user)
-    if membership and membership.role in TEAM_ADMIN_ROLES:
-        return True, None
-    
-    # Check organization staff (CEO, MANAGER) via OrganizationMembership
-    if _has_org_team_admin(team, user):
-        return True, None
-    
+
     return False, "You do not have permission to manage this team"
 
 
 def _get_user_role(team, user):
     """Get user's membership role for the given team."""
-    if not user.is_authenticated:
+    if not user or not user.is_authenticated:
         return 'GUEST'
-    if user.is_superuser:
+    actor = get_team_actor(user, team)
+    if actor.role and actor.role != "NONE":
+        return actor.role
+    if actor.is_superuser or actor.is_creator:
         return 'OWNER'
-    if team.created_by_id == user.id:
-        return 'OWNER'
-    membership = _active_membership(team, user)
-    return membership.role if membership else 'GUEST'
+    return 'GUEST'
 
 
 def _can_view_competitive_settings(team, user):
-    if not user.is_authenticated:
-        return False
-    if user.is_superuser or team.created_by_id == user.id:
-        return True
-    return team.vnext_memberships.filter(user=user, status=MembershipStatus.ACTIVE).exists()
+    return can_view_competitive_settings(user, team)
 
 
 def _can_edit_competitive_settings(team, user):
-    if not user.is_authenticated:
-        return False
-    if user.is_superuser or team.created_by_id == user.id:
-        return True
-    if _has_org_team_admin(team, user):
-        return True
-    return team.vnext_memberships.filter(
-        user=user,
-        status=MembershipStatus.ACTIVE,
-        role__in=[MembershipRole.OWNER, MembershipRole.MANAGER],
-    ).exists()
+    return can_manage_competitive_settings(user, team)
 
 
 def _competitive_settings_payload(settings_obj, *, team, user):
@@ -865,10 +842,8 @@ def update_settings(request, slug):
     """
     team = get_object_or_404(Team, slug=slug)
     
-    # Check permissions
-    has_permission, reason = _check_manage_permissions(team, request.user)
-    if not has_permission:
-        return JsonResponse({'error': reason, 'error_code': 'INSUFFICIENT_PERMISSIONS'}, status=403)
+    if not can_manage_team_settings(request.user, team):
+        return JsonResponse({'error': 'You do not have permission to manage this team', 'error_code': 'INSUFFICIENT_PERMISSIONS'}, status=403)
     
     # Parse params â€” support both JSON body (toggles) and form data (profile form)
     if request.content_type and 'application/json' in request.content_type:
@@ -978,10 +953,8 @@ def update_profile(request, slug):
     """
     team = get_object_or_404(Team, slug=slug)
     
-    # Check permissions
-    has_permission, reason = _check_manage_permissions(team, request.user)
-    if not has_permission:
-        return JsonResponse({'error': reason, 'error_code': 'INSUFFICIENT_PERMISSIONS'}, status=403)
+    if not can_manage_team_profile(request.user, team):
+        return JsonResponse({'error': 'You do not have permission to manage this team', 'error_code': 'INSUFFICIENT_PERMISSIONS'}, status=403)
     
     # Parse params â€” support both JSON body and form POST
     if request.content_type and 'application/json' in request.content_type:
@@ -1509,8 +1482,7 @@ def disband_team(request, slug):
     """
     team = get_object_or_404(Team, slug=slug)
     
-    # Only creator or superuser
-    if not (request.user.is_superuser or team.created_by_id == request.user.id):
+    if not can_disband_team(request.user, team):
         return JsonResponse({'error': 'Only the team creator can disband the team'}, status=403)
     
     try:
@@ -1575,8 +1547,7 @@ def transfer_ownership(request, slug):
     """
     team = get_object_or_404(Team, slug=slug)
     
-    # Only creator or superuser
-    if not (request.user.is_superuser or team.created_by_id == request.user.id):
+    if not can_transfer_ownership(request.user, team):
         return JsonResponse({'error': 'Only the team creator can transfer ownership'}, status=403)
     
     try:
@@ -2135,9 +2106,8 @@ def update_payment_methods(request, slug):
 def discord_config(request, slug):
     """GET /api/vnext/teams/<slug>/discord/ â€” current Discord config."""
     team = get_object_or_404(Team, slug=slug, status=TeamStatus.ACTIVE)
-    has_perm, reason = _check_manage_permissions(team, request.user)
-    if not has_perm:
-        return JsonResponse({'error': reason, 'error_code': 'INSUFFICIENT_PERMISSIONS'}, status=403)
+    if not can_manage_discord(request.user, team):
+        return JsonResponse({'error': 'You do not have permission to manage this team', 'error_code': 'INSUFFICIENT_PERMISSIONS'}, status=403)
 
     # Check Redis cache first for instant bot status (set by bot on_ready)
     bot_active = team.discord_bot_active
@@ -2176,9 +2146,8 @@ def discord_config_save(request, slug):
     Fires validate_discord_bot_presence task if guild_id is provided.
     """
     team = get_object_or_404(Team, slug=slug, status=TeamStatus.ACTIVE)
-    has_perm, reason = _check_manage_permissions(team, request.user)
-    if not has_perm:
-        return JsonResponse({'error': reason, 'error_code': 'INSUFFICIENT_PERMISSIONS'}, status=403)
+    if not can_manage_discord(request.user, team):
+        return JsonResponse({'error': 'You do not have permission to manage this team', 'error_code': 'INSUFFICIENT_PERMISSIONS'}, status=403)
 
     try:
         data = json.loads(request.body)
@@ -2449,9 +2418,8 @@ def discord_test_webhook(request, slug):
     so captains can verify it works before going live.
     """
     team = get_object_or_404(Team, slug=slug, status=TeamStatus.ACTIVE)
-    has_perm, reason = _check_manage_permissions(team, request.user)
-    if not has_perm:
-        return JsonResponse({'error': reason, 'error_code': 'INSUFFICIENT_PERMISSIONS'}, status=403)
+    if not can_manage_discord(request.user, team):
+        return JsonResponse({'error': 'You do not have permission to manage this team', 'error_code': 'INSUFFICIENT_PERMISSIONS'}, status=403)
 
     webhook_url = team.discord_webhook_url
     if not webhook_url:

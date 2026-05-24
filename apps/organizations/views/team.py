@@ -121,6 +121,18 @@ def team_manage(request, team_slug, org_slug=None):
     from apps.organizations.models import Team, TeamMembership, OrganizationMembership
     from apps.organizations.models.team_invite import TeamInvite
     from apps.organizations.choices import MembershipRole, MembershipStatus, TeamStatus
+    from apps.organizations.services.team_authority import (
+        can_access_team_hq as _ta_can_access_team_hq,
+        can_disband_team as _ta_can_disband_team,
+        can_manage_competitive_settings as _ta_can_manage_competitive_settings,
+        can_manage_discord as _ta_can_manage_discord,
+        can_manage_roster as _ta_can_manage_roster,
+        can_manage_team_profile as _ta_can_manage_team_profile,
+        can_manage_team_settings as _ta_can_manage_team_settings,
+        can_manage_training as _ta_can_manage_training,
+        can_transfer_ownership as _ta_can_transfer_ownership,
+        get_team_actor,
+    )
     from django.http import Http404
 
     try:
@@ -144,29 +156,9 @@ def team_manage(request, team_slug, org_slug=None):
             raise Http404(f"Team '{team_slug}' is independent, not part of '{org_slug}'")
 
         # ── Permission check ──
-        has_permission = request.user.is_superuser or team.created_by == request.user
+        actor = get_team_actor(request.user, team)
 
-        if team.organization and not has_permission:
-            org_membership = OrganizationMembership.objects.filter(
-                organization=team.organization,
-                user=request.user,
-                role__in=['CEO', 'MANAGER'],
-            ).first()
-            if org_membership:
-                has_permission = True
-
-        if not has_permission:
-            # Per Master Plan Section 4.1: ALL active team members can access
-            # the manage page with role-gated section visibility.
-            team_membership = TeamMembership.objects.filter(
-                team=team,
-                user=request.user,
-                status=MembershipStatus.ACTIVE,
-            ).first()
-            if team_membership:
-                has_permission = True
-
-        if not has_permission:
+        if not _ta_can_access_team_hq(request.user, team):
             messages.error(request, "You must be a team member to access this page.")
             return redirect('organizations:team_detail', team_slug=team_slug)
 
@@ -257,29 +249,15 @@ def team_manage(request, team_slug, org_slug=None):
                 m.gp_is_lft = gp.is_lft if gp else False
                 m.gp_verification_status = gp.verification_status if gp else ''
 
-        is_owner = (
-            user_membership and user_membership.role == MembershipRole.OWNER
-        ) or team.created_by == request.user
-        is_admin = is_owner or (
-            user_membership and user_membership.role in (
-                MembershipRole.OWNER, MembershipRole.MANAGER
-            )
+        is_owner = actor.role == MembershipRole.OWNER or actor.is_creator
+        is_admin = actor.is_team_admin
+        is_coach = actor.role == MembershipRole.COACH
+        is_member = actor.membership is not None
+        user_role = actor.role if actor.role not in ("NONE", "") else (
+            "OWNER" if (actor.is_creator or actor.is_superuser) else "GUEST"
         )
-        # Org-level staff (CEO / MANAGER) also get admin privileges
-        if not is_admin and team.organization:
-            if team.organization.ceo_id == request.user.id:
-                is_admin = True
-            elif OrganizationMembership.objects.filter(
-                organization=team.organization,
-                user=request.user,
-                role__in=['CEO', 'MANAGER'],
-            ).exists():
-                is_admin = True
-        is_coach = user_membership and user_membership.role == MembershipRole.COACH
-        is_member = user_membership is not None
-        user_role = user_membership.role if user_membership else ('OWNER' if is_owner else 'GUEST')
-        can_access_hq = has_permission
-        can_manage_training = is_admin or bool(is_coach)
+        can_access_hq = True
+        can_manage_training = _ta_can_manage_training(request.user, team)
 
         role_choices = [
             {'value': c[0], 'label': c[1]}
@@ -296,12 +274,11 @@ def team_manage(request, team_slug, org_slug=None):
         # ── Org integration context (Phase 4) ──
         org = team.organization
         org_context = None
-        is_org_ceo = False
+        is_org_ceo = actor.org_authority == "CEO"
         org_control_plane_url = ''
         org_policies = {}
         org_staff = []
         if org:
-            is_org_ceo = org.ceo_id == request.user.id
             org_control_plane_url = f'/orgs/{org.slug}/control-plane/'
             # Org policies that affect teams
             org_policies = {
@@ -456,18 +433,18 @@ def team_manage(request, team_slug, org_slug=None):
             'user_role': user_role,
             # Permission convenience flags (used by templates)
             'can_access_hq': can_access_hq,
-            'can_manage_roster': is_admin,
-            'can_edit_team_profile': is_admin,
-            'can_manage_discord': is_admin,
-            'can_manage_settings': is_admin,
+            'can_manage_roster': _ta_can_manage_roster(request.user, team),
+            'can_edit_team_profile': _ta_can_manage_team_profile(request.user, team),
+            'can_manage_discord': _ta_can_manage_discord(request.user, team),
+            'can_manage_settings': _ta_can_manage_team_settings(request.user, team),
             'can_manage_training': can_manage_training,
             'can_assign_captain_title': is_owner,
             'can_assign_managers': is_owner,
             'can_assign_coach': is_admin,
             'can_change_player_role': is_admin,
-            'can_register_tournaments': is_admin,
-            'can_delete_team': is_owner,
-            'can_transfer_ownership': is_owner,
+            'can_register_tournaments': actor.is_competitive_authority or is_admin,
+            'can_delete_team': _ta_can_disband_team(request.user, team),
+            'can_transfer_ownership': _ta_can_transfer_ownership(request.user, team),
             # Roster info
             'current_roster_size': len(members),
             'has_staff': any(m.role in (MembershipRole.MANAGER, MembershipRole.COACH, MembershipRole.ANALYST, MembershipRole.SCOUT) for m in members),
