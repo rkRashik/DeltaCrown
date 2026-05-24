@@ -1029,8 +1029,9 @@ class ChallengeService:
     def _verify_team_authority(user, team, *, action='act', allow_captain=True):
         """Verify the user has authority to ``action`` on behalf of ``team``.
 
-        Authority = ACTIVE membership AND role IN OWNER/MANAGER. Captains are
-        allowed when the caller's policy permits captain authority.
+        Delegates to ChallengeService._has_team_authority, which uses
+        team_authority.py. Supports org CEO/MANAGER, team creator, superuser,
+        OWNER/MANAGER, and captains when allow_captain=True.
         """
         if team is None:
             raise ValidationError("Team is required.")
@@ -1043,7 +1044,7 @@ class ChallengeService:
 
     @staticmethod
     def _has_team_authority(user, team, *, allow_captain=True):
-        """True iff user is OWNER/MANAGER, or captain when policy allows."""
+        """Delegate to can_act_as_team_captain or can_manage_team_profile."""
         from apps.organizations.services.team_authority import (
             can_act_as_team_captain,
             can_manage_team_profile,

@@ -19,7 +19,7 @@ from django.urls import reverse
 from django.conf import settings
 
 from apps.tournaments.models import Match, Tournament
-from apps.tournaments.services.match_authority import user_can_act_for_match
+from apps.tournaments.services.match_authority import resolve_participant_side, user_can_act_for_match
 
 
 class SubmitResultView(LoginRequiredMixin, View):
@@ -58,11 +58,13 @@ class SubmitResultView(LoginRequiredMixin, View):
             messages.error(request, f"Cannot submit results for a {match.get_state_display()} match.")
             return redirect('tournaments:match_detail', slug=slug, match_id=match_id)
         
+        side = resolve_participant_side(request.user, match)
+
         context = {
             'match': match,
             'tournament': match.tournament,
-            'is_participant1': match.participant1_id == request.user.id,
-            'is_participant2': match.participant2_id == request.user.id,
+            'is_participant1': side == 1,
+            'is_participant2': side == 2,
         }
         
         return render(request, self.template_name, context)

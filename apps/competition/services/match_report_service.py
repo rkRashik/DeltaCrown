@@ -11,8 +11,8 @@ from django.core.exceptions import PermissionDenied, ValidationError
 from typing import Optional
 
 from apps.competition.models import MatchReport, MatchVerification, GameRankingConfig
-from apps.organizations.models import Team, TeamMembership
-from apps.organizations.choices import MembershipStatus, MembershipRole
+from apps.organizations.models import Team
+from apps.organizations.services.team_authority import can_manage_team_profile
 
 
 class MatchReportService:
@@ -34,7 +34,8 @@ class MatchReportService:
         Submit a new match report with validation
         
         Args:
-            submitted_by: User submitting the report (must be team1 member)
+            submitted_by: User submitting the report; must have team admin
+                authority on team1 via team_authority.can_manage_team_profile.
             team1: Reporting team
             team2: Opponent team
             game_id: Game identifier (must exist in GameRankingConfig)
@@ -51,17 +52,11 @@ class MatchReportService:
             PermissionDenied: If user not authorized
             ValidationError: If data invalid
         """
-        # Validate user is team1 member with OWNER or MANAGER role
-        try:
-            membership = TeamMembership.objects.get(
-                team=team1,
-                user=submitted_by,
-                status=MembershipStatus.ACTIVE
+        if not can_manage_team_profile(submitted_by, team1):
+            raise PermissionDenied(
+                "Only team owners, managers, org administrators, or the team creator "
+                "can submit match reports on behalf of a team."
             )
-            if membership.role not in [MembershipRole.OWNER, MembershipRole.MANAGER]:
-                raise PermissionDenied("Only team owners and managers can submit match reports")
-        except TeamMembership.DoesNotExist:
-            raise PermissionDenied("You must be a member of the reporting team")
         
         # Validate teams are different
         if team1.id == team2.id:

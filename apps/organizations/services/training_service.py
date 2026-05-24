@@ -14,7 +14,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.text import slugify
 
-from apps.organizations.choices import MembershipRole, MembershipStatus
+from apps.organizations.choices import MembershipStatus
 from apps.organizations.models import Team, TeamMembership
 from apps.organizations.models.training import (
     PracticeSession,
@@ -513,14 +513,6 @@ class TeamTrainingService:
             )
             review.assigned_players.set(allowed_ids)
         return review
-
-
-def models_q_ops_authority():
-    from django.db.models import Q
-
-    return Q(role__in=[MembershipRole.OWNER, MembershipRole.MANAGER]) | Q(
-        is_tournament_captain=True
-    )
 
 
 def _best_of_from_format(format_value):
