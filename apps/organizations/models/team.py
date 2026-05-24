@@ -8,6 +8,7 @@ an Organization (professional entity).
 
 from django.db import models
 from django.contrib.auth import get_user_model
+from django.core.validators import RegexValidator
 from django.urls import reverse
 from django.utils.text import slugify
 from django.db.models import Q
@@ -16,6 +17,11 @@ from ..choices import TeamStatus
 from apps.common.validators import validate_image_upload
 
 User = get_user_model()
+
+validate_team_hex_color = RegexValidator(
+    regex=r'^#(?:[0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$',
+    message='Enter a valid hex color, such as #3B82F6 or #3BF.',
+)
 
 
 class Team(models.Model):
@@ -53,12 +59,6 @@ class Team(models.Model):
         db_index=True,
         help_text="Team tag/abbreviation (e.g., 'PRTCL', 'SYN') - max 5 chars, unique per game"
     )
-    tagline = models.CharField(
-        max_length=100,
-        blank=True,
-        help_text="Short team motto/slogan (e.g., 'Victory Through Strategy')"
-    )
-    
     # Ownership (Team can be independent OR org-owned)
     organization = models.ForeignKey(
         'Organization',
@@ -135,12 +135,14 @@ class Team(models.Model):
         max_length=7,
         blank=True,
         default='#3B82F6',
+        validators=[validate_team_hex_color],
         help_text="Primary team color (hex format, e.g., #3B82F6)"
     )
     accent_color = models.CharField(
         max_length=7,
         blank=True,
         default='#10B981',
+        validators=[validate_team_hex_color],
         help_text="Accent team color (hex format, e.g., #10B981)"
     )
     
@@ -471,15 +473,15 @@ class Team(models.Model):
             if OrganizationMembership.objects.filter(
                 organization=self.organization,
                 user=user,
-                role__in=['MANAGER', 'ADMIN'],
+                role__in=['CEO', 'MANAGER'],
             ).exists():
                 return True
             
-            # Check if user is Team Manager or Coach
+            # Check if user is Team Owner or Manager
             return self.memberships.filter(
                 user=user,
                 status='ACTIVE',
-                role__in=['MANAGER', 'COACH']
+                role__in=['OWNER', 'MANAGER']
             ).exists()
         else:
             # Independent team - only creator/owner can manage

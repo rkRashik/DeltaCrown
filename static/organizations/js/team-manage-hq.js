@@ -2289,7 +2289,7 @@
               badges += `<div class="flex items-center gap-2 rounded-xl bg-emerald-500/5 border border-emerald-500/15 px-3 py-2"><i data-lucide="headphones" class="w-3.5 h-3.5 text-emerald-400 shrink-0"></i><span class="text-xs text-emerald-300 truncate">Voice ready</span></div>`;
             if (data.discord_announcement_channel_id)
               badges += `<div class="flex items-center gap-2 rounded-xl bg-amber-500/5 border border-amber-500/15 px-3 py-2"><i data-lucide="megaphone" class="w-3.5 h-3.5 text-amber-400 shrink-0"></i><span class="text-xs text-amber-300 truncate">Announcements on</span></div>`;
-            if (data.discord_webhook_url)
+            if (data.has_webhook || data.discord_webhook_url_masked)
               badges += `<div class="flex items-center gap-2 rounded-xl bg-violet-500/5 border border-violet-500/15 px-3 py-2"><i data-lucide="webhook" class="w-3.5 h-3.5 text-violet-400 shrink-0"></i><span class="text-xs text-violet-300 truncate">Webhook ••••••••</span></div>`;
             if (data.discord_captain_role_id)
               badges += `<div class="flex items-center gap-2 rounded-xl bg-yellow-500/5 border border-yellow-500/15 px-3 py-2"><i data-lucide="shield" class="w-3.5 h-3.5 text-yellow-400 shrink-0"></i><span class="text-xs text-yellow-300 truncate">Captain role synced</span></div>`;

@@ -654,34 +654,61 @@ function dcOpenLightbox(type, url, title) {
   const titleEl = document.getElementById("dc-lightbox-title");
   if (!lb || !content) return;
 
-  titleEl.textContent = title;
-  content.innerHTML = "";
+  if (titleEl) titleEl.textContent = title || "";
+  content.replaceChildren();
+
+  function safeMediaUrl(rawUrl) {
+    try {
+      const parsed = new URL(rawUrl || "", window.location.origin);
+      if (!["http:", "https:"].includes(parsed.protocol)) return "";
+      return parsed.href;
+    } catch (e) {
+      return "";
+    }
+  }
+
+  function appendFrame(src, allow) {
+    const frame = document.createElement("iframe");
+    frame.src = src;
+    frame.className = "w-full max-w-4xl aspect-video rounded-2xl shadow-2xl";
+    frame.setAttribute("frameborder", "0");
+    frame.setAttribute("allow", allow);
+    frame.setAttribute("allowfullscreen", "");
+    content.appendChild(frame);
+  }
+
+  const mediaUrl = safeMediaUrl(url);
+  if (!mediaUrl) return;
 
   if (type === "video") {
     // Check if it's a YouTube/Vimeo URL
-    const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/shorts\/)([a-zA-Z0-9_-]{11})/);
-    const vimeoMatch = url.match(/vimeo\.com\/(\d+)/);
+    const ytMatch = mediaUrl.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/shorts\/)([a-zA-Z0-9_-]{11})/);
+    const vimeoMatch = mediaUrl.match(/vimeo\.com\/(\d+)/);
 
     if (ytMatch) {
       const embedUrl = `https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1&rel=0&enablejsapi=1&origin=${encodeURIComponent(window.location.origin)}`;
-      content.innerHTML = `<iframe src="${embedUrl}" 
-        class="w-full max-w-4xl aspect-video rounded-2xl shadow-2xl" 
-        frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen referrerpolicy="origin"></iframe>`;
+      appendFrame(embedUrl, "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share");
     } else if (vimeoMatch) {
-      content.innerHTML = `<iframe src="https://player.vimeo.com/video/${vimeoMatch[1]}?autoplay=1" 
-        class="w-full max-w-4xl aspect-video rounded-2xl shadow-2xl" 
-        frameborder="0" allow="autoplay; fullscreen" allowfullscreen></iframe>`;
+      appendFrame(`https://player.vimeo.com/video/${vimeoMatch[1]}?autoplay=1`, "autoplay; fullscreen");
     } else {
       // Direct video file
-      content.innerHTML = `<video src="${url}" controls autoplay 
-        class="w-full max-w-4xl max-h-[80vh] rounded-2xl shadow-2xl bg-black" 
-        controlslist="nodownload"></video>`;
+      const video = document.createElement("video");
+      video.src = mediaUrl;
+      video.controls = true;
+      video.autoplay = true;
+      video.className = "w-full max-w-4xl max-h-[80vh] rounded-2xl shadow-2xl bg-black";
+      video.setAttribute("controlslist", "nodownload");
+      content.appendChild(video);
     }
   } else {
     // Image
-    content.innerHTML = `<img src="${url}" alt="${title}" 
-      class="max-w-full max-h-[85vh] rounded-2xl shadow-2xl object-contain select-none"
-      style="cursor:zoom-out" data-action="close-lightbox">`;
+    const img = document.createElement("img");
+    img.src = mediaUrl;
+    img.alt = title || "";
+    img.className = "max-w-full max-h-[85vh] rounded-2xl shadow-2xl object-contain select-none";
+    img.style.cursor = "zoom-out";
+    img.dataset.action = "close-lightbox";
+    content.appendChild(img);
   }
 
   lb.classList.remove("hidden");

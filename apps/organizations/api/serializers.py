@@ -15,8 +15,17 @@ Security:
 - User-controlled branding fields limited to safe JSON structure
 """
 
+import re
 from typing import Any, Dict, Optional
 from rest_framework import serializers
+
+HEX_COLOR_RE = re.compile(r'^#(?:[0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$')
+
+
+def validate_hex_color_value(value: str) -> str:
+    if value and not HEX_COLOR_RE.match(value):
+        raise serializers.ValidationError("Color must be hex format (e.g., #FF5733 or #F53)")
+    return value
 
 
 class OrganizationBrandingSerializer(serializers.Serializer):
@@ -41,15 +50,11 @@ class OrganizationBrandingSerializer(serializers.Serializer):
     
     def validate_primary_color(self, value: str) -> str:
         """Validate hex color format."""
-        if value and not value.startswith('#'):
-            raise serializers.ValidationError("Color must be hex format (e.g., #FF5733)")
-        return value
+        return validate_hex_color_value(value)
     
     def validate_secondary_color(self, value: str) -> str:
         """Validate hex color format."""
-        if value and not value.startswith('#'):
-            raise serializers.ValidationError("Color must be hex format (e.g., #FF5733)")
-        return value
+        return validate_hex_color_value(value)
 
 
 class CreateOrganizationSerializer(serializers.Serializer):
@@ -262,15 +267,11 @@ class TeamBrandingSerializer(serializers.Serializer):
     
     def validate_primary_color(self, value: str) -> str:
         """Validate hex color format."""
-        if value and not value.startswith('#'):
-            raise serializers.ValidationError("Color must be hex format (e.g., #FF5733)")
-        return value
+        return validate_hex_color_value(value)
     
     def validate_accent_color(self, value: str) -> str:
         """Validate hex color format."""
-        if value and not value.startswith('#'):
-            raise serializers.ValidationError("Color must be hex format (e.g., #FF5733)")
-        return value
+        return validate_hex_color_value(value)
 
 
 class CreateTeamSerializer(serializers.Serializer):
@@ -402,6 +403,12 @@ class CreateTeamSerializer(serializers.Serializer):
         help_text="Optional list of players to invite (email or DeltaCrown public_id/username)"
     )
     branding = TeamBrandingSerializer(required=False, allow_null=True)
+
+    def validate_primary_color(self, value: str) -> str:
+        return validate_hex_color_value(value)
+
+    def validate_accent_color(self, value: str) -> str:
+        return validate_hex_color_value(value)
     
     def validate_name(self, value: str) -> str:
         """Validate team name."""

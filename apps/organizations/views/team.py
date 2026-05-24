@@ -120,13 +120,17 @@ def team_manage(request, team_slug, org_slug=None):
     """
     from apps.organizations.models import Team, TeamMembership, OrganizationMembership
     from apps.organizations.models.team_invite import TeamInvite
-    from apps.organizations.choices import MembershipRole, MembershipStatus
+    from apps.organizations.choices import MembershipRole, MembershipStatus, TeamStatus
     from django.http import Http404
 
     try:
         team = Team.objects.select_related(
             'organization', 'organization__ranking', 'created_by', 'created_by__profile',
         ).get(slug=team_slug)
+
+        if team.status != TeamStatus.ACTIVE:
+            messages.error(request, "This team is not active and cannot be managed.")
+            return redirect('organizations:team_detail', team_slug=team_slug)
 
         # Org team routing
         if team.organization:
@@ -272,11 +276,10 @@ def team_manage(request, team_slug, org_slug=None):
             ).exists():
                 is_admin = True
         is_coach = user_membership and user_membership.role == MembershipRole.COACH
-        # Coaches also get Discord access
-        if is_coach:
-            is_admin = True
         is_member = user_membership is not None
         user_role = user_membership.role if user_membership else ('OWNER' if is_owner else 'GUEST')
+        can_access_hq = has_permission
+        can_manage_training = is_admin or bool(is_coach)
 
         role_choices = [
             {'value': c[0], 'label': c[1]}
@@ -452,8 +455,12 @@ def team_manage(request, team_slug, org_slug=None):
             'is_member': is_member,
             'user_role': user_role,
             # Permission convenience flags (used by templates)
+            'can_access_hq': can_access_hq,
             'can_manage_roster': is_admin,
             'can_edit_team_profile': is_admin,
+            'can_manage_discord': is_admin,
+            'can_manage_settings': is_admin,
+            'can_manage_training': can_manage_training,
             'can_assign_captain_title': is_owner,
             'can_assign_managers': is_owner,
             'can_assign_coach': is_admin,

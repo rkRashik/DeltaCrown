@@ -67,6 +67,49 @@ from apps.organizations.choices import MembershipRole, MembershipStatus, TeamSta
 from apps.accounts.models import User
 from apps.organizations.services.hub_cache import invalidate_hub_cache
 
+ORG_TEAM_ADMIN_ROLES = ('CEO', 'MANAGER')
+TEAM_ADMIN_ROLES = (MembershipRole.OWNER, MembershipRole.MANAGER)
+
+
+def _is_active_team(team):
+    return team.status == TeamStatus.ACTIVE
+
+
+def _active_membership(team, user):
+    if not user or not user.is_authenticated:
+        return None
+    return (
+        team.vnext_memberships
+        .filter(user=user, status=MembershipStatus.ACTIVE)
+        .order_by('-joined_at', '-id')
+        .first()
+    )
+
+
+def _has_org_team_admin(team, user):
+    if not team.organization or not user or not user.is_authenticated:
+        return False
+    if team.organization.ceo_id == user.id:
+        return True
+    from apps.organizations.models import OrganizationMembership
+    return OrganizationMembership.objects.filter(
+        organization=team.organization,
+        user=user,
+        role__in=ORG_TEAM_ADMIN_ROLES,
+    ).exists()
+
+
+def _can_access_team_hq(team, user):
+    if not user or not user.is_authenticated:
+        return False
+    if not _is_active_team(team):
+        return False
+    if user.is_superuser or team.created_by_id == user.id:
+        return True
+    if _has_org_team_admin(team, user):
+        return True
+    return _active_membership(team, user) is not None
+
 
 def _check_manage_permissions(team, user):
     """
@@ -74,15 +117,17 @@ def _check_manage_permissions(team, user):
     
     Returns (has_permission: bool, reason: str or None)
     
-    Allows:
+    Allows sensitive mutations for active teams only:
     - Creator (team.created_by)
-    - Team MANAGER role
-    - Team COACH role
+    - Active Team OWNER/MANAGER roles
     - Organization CEO
     - Organization staff (CEO/MANAGER) via OrganizationMembership
     """
     if not user.is_authenticated:
         return False, "Authentication required"
+
+    if not _is_active_team(team):
+        return False, "This team is not active"
     
     # Superusers always have permission
     if user.is_superuser:
@@ -92,25 +137,13 @@ def _check_manage_permissions(team, user):
     if team.created_by_id == user.id:
         return True, None
     
-    # Check team membership role (MANAGER or COACH)
-    try:
-        membership = team.vnext_memberships.get(user=user)
-        if membership.role in (MembershipRole.OWNER, MembershipRole.MANAGER, MembershipRole.COACH):
-            return True, None
-    except TeamMembership.DoesNotExist:
-        pass
+    membership = _active_membership(team, user)
+    if membership and membership.role in TEAM_ADMIN_ROLES:
+        return True, None
     
     # Check organization staff (CEO, MANAGER) via OrganizationMembership
-    if team.organization:
-        if team.organization.ceo_id == user.id:
-            return True, None
-        from apps.organizations.models import OrganizationMembership
-        if OrganizationMembership.objects.filter(
-            organization=team.organization,
-            user=user,
-            role__in=['CEO', 'MANAGER'],
-        ).exists():
-            return True, None
+    if _has_org_team_admin(team, user):
+        return True, None
     
     return False, "You do not have permission to manage this team"
 
@@ -123,11 +156,8 @@ def _get_user_role(team, user):
         return 'OWNER'
     if team.created_by_id == user.id:
         return 'OWNER'
-    try:
-        membership = team.vnext_memberships.get(user=user)
-        return membership.role
-    except TeamMembership.DoesNotExist:
-        return 'GUEST'
+    membership = _active_membership(team, user)
+    return membership.role if membership else 'GUEST'
 
 
 def _can_view_competitive_settings(team, user):
@@ -142,6 +172,8 @@ def _can_edit_competitive_settings(team, user):
     if not user.is_authenticated:
         return False
     if user.is_superuser or team.created_by_id == user.id:
+        return True
+    if _has_org_team_admin(team, user):
         return True
     return team.vnext_memberships.filter(
         user=user,
@@ -269,19 +301,21 @@ def team_detail(request, slug):
     except Team.DoesNotExist:
         return JsonResponse({'error': 'Team not found', 'error_code': 'TEAM_NOT_FOUND'}, status=404)
     
-    # Check membership (must be member, creator, org admin, or superuser to view)
-    if not request.user.is_superuser:
-        if not team.vnext_memberships.filter(user=request.user).exists():
-            if team.created_by != request.user:
-                if not (team.organization and team.organization.admins.filter(id=request.user.id).exists()):
-                    return JsonResponse({'error': 'You are not a member of this team'}, status=403)
+    # Check HQ access (must be active member, creator, org CEO/manager, or superuser).
+    if not _can_access_team_hq(team, request.user):
+        return JsonResponse({'error': 'You are not a member of this team'}, status=403)
     
     # Check manage permissions
     can_manage, _ = _check_manage_permissions(team, request.user)
     
     # Build members list with full roster data
     members = []
-    for membership in team.vnext_memberships.select_related('user', 'user__profile').order_by('-role', '-joined_at'):
+    for membership in (
+        team.vnext_memberships
+        .filter(status=MembershipStatus.ACTIVE)
+        .select_related('user', 'user__profile')
+        .order_by('-role', '-joined_at')
+    ):
         # Resolve avatar: roster_image > user profile avatar > None
         avatar_url = None
         if membership.roster_image:
@@ -300,7 +334,6 @@ def team_detail(request, slug):
             'id': membership.id,
             'user_id': membership.user_id,
             'username': membership.user.username,
-            'email': membership.user.email,
             'display_name': display_name,
             'avatar_url': avatar_url,
             'role': membership.role,
@@ -353,7 +386,8 @@ def team_detail(request, slug):
             'member_count': len(members),
             'roster_locked': team.roster_locked,
             'invite_code': team.invite_code or '',
-            'discord_webhook_url': team.discord_webhook_url or '',
+            'has_webhook': bool(team.discord_webhook_url),
+            'discord_webhook_url_masked': '********' if team.discord_webhook_url else '',
             'website_url': team.website_url or '',
         },
         'members': members,
@@ -547,7 +581,11 @@ def change_role(request, slug, membership_id):
     team = get_object_or_404(Team, slug=slug)
     
     # Get membership
-    membership = get_object_or_404(TeamMembership, id=membership_id, team=team)
+    membership = get_object_or_404(
+        TeamMembership.objects.select_for_update(),
+        id=membership_id,
+        team=team,
+    )
     
     # Check permissions â€” allow self-edit for roster fields
     is_self = membership.user_id == request.user.id
@@ -739,10 +777,14 @@ def remove_member(request, slug, membership_id):
     - Cannot remove creator
     - Team must have at least 1 member after removal
     """
-    team = get_object_or_404(Team, slug=slug)
+    team = get_object_or_404(Team.objects.select_for_update(), slug=slug)
     
     # Get membership
-    membership = get_object_or_404(TeamMembership, id=membership_id, team=team)
+    membership = get_object_or_404(
+        TeamMembership.objects.select_for_update(),
+        id=membership_id,
+        team=team,
+    )
     
     # Check permissions: manage OR self-removal
     is_self_removal = membership.user_id == request.user.id
@@ -755,9 +797,12 @@ def remove_member(request, slug, membership_id):
     if membership.role == MembershipRole.OWNER or membership.user_id == team.created_by_id:
         return JsonResponse({'error': 'Cannot remove the team OWNER', 'error_code': 'CANNOT_REMOVE_OWNER'}, status=400)
     
-    # Check team will have at least 1 member
-    if team.vnext_memberships.count() <= 1:
-        return JsonResponse({'error': 'Cannot remove last member from team'}, status=400)
+    # Check team will have at least 1 active member after removal.
+    if (
+        membership.status == MembershipStatus.ACTIVE
+        and team.vnext_memberships.filter(status=MembershipStatus.ACTIVE).count() <= 1
+    ):
+        return JsonResponse({'error': 'Cannot remove last active member from team'}, status=400)
     
     # Store user info before deletion
     username = membership.user.username
@@ -976,7 +1021,7 @@ def update_profile(request, slug):
         return JsonResponse({'error': 'Region must be 50 characters or less'}, status=400)
     
     # Validate hex colors
-    hex_pattern = re.compile(r'^#[0-9A-Fa-f]{6}$')
+    hex_pattern = re.compile(r'^#(?:[0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$')
     if primary_color and not hex_pattern.match(primary_color):
         return JsonResponse({'error': 'Primary color must be in hex format (e.g., #3B82F6)'}, status=400)
     if accent_color and not hex_pattern.match(accent_color):

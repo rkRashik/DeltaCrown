@@ -23,8 +23,8 @@ def get_org_role(user: User, organization) -> str:
     This is the single source of truth for role determination.
     All views must use this function instead of duplicating logic.
     """
-    # Handle anonymous users
-    if user is None or not user.is_authenticated:
+    # Handle anonymous users and independent teams without an organization.
+    if organization is None or user is None or not user.is_authenticated:
         return 'NONE'
     
     # Platform staff bypass all org-level checks
@@ -38,7 +38,7 @@ def get_org_role(user: User, organization) -> str:
     # Check staff membership role
     membership = organization.staff_memberships.filter(user=user).first()
     if membership:
-        return membership.role  # 'ADMIN' or 'MANAGER'
+        return membership.role
     
     return 'NONE'
 
@@ -53,7 +53,7 @@ def can_access_control_plane(role: str) -> bool:
     - Organization ADMIN
     - Organization MANAGER
     """
-    return role in ['STAFF', 'CEO', 'ADMIN', 'MANAGER']
+    return role in ['STAFF', 'CEO', 'MANAGER']
 
 
 def can_manage_org(role: str) -> bool:
@@ -69,7 +69,7 @@ def can_manage_org(role: str) -> bool:
     - Sponsors
     - Notifications
     """
-    return role in ['STAFF', 'CEO', 'ADMIN', 'MANAGER']
+    return role in ['STAFF', 'CEO', 'MANAGER']
 
 
 def can_view_financials(role: str) -> bool:
@@ -83,7 +83,7 @@ def can_view_financials(role: str) -> bool:
     
     Managers cannot view financials.
     """
-    return role in ['STAFF', 'CEO', 'ADMIN']
+    return role in ['STAFF', 'CEO']
 
 
 def can_manage_staff(role: str) -> bool:
@@ -212,9 +212,9 @@ def can_view_team(user: User, team) -> bool:
         if team_role != 'NONE':
             return True
         
-        # Org members can view org teams
-        org_role = get_org_role(user, team.organization)
-        if org_role != 'NONE':
+        # Org staff can view org-owned teams.
+        org_role = get_org_role(user, getattr(team, 'organization', None))
+        if org_role in ['STAFF', 'CEO', 'MANAGER']:
             return True
     
     return False
@@ -237,13 +237,13 @@ def can_manage_team(user: User, team) -> bool:
         return True
     
     # Check org-level permissions
-    org_role = get_org_role(user, team.organization)
-    if org_role in ['CEO', 'MANAGER', 'ADMIN']:
+    org_role = get_org_role(user, getattr(team, 'organization', None))
+    if org_role in ['STAFF', 'CEO', 'MANAGER']:
         return True
     
     # Check team-level permissions
     team_role = get_team_role(user, team)
-    if team_role in ['CREATOR', 'MANAGER', 'COACH']:
+    if team_role in ['CREATOR', 'OWNER', 'MANAGER']:
         return True
     
     return False
@@ -258,5 +258,5 @@ def can_create_team_in_org(user: User, organization) -> bool:
         return True
     
     role = get_org_role(user, organization)
-    return role in ['CEO', 'MANAGER', 'ADMIN']
+    return role in ['CEO', 'MANAGER']
 
