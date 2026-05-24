@@ -638,7 +638,12 @@ class TeamService:
         with transaction.atomic():
             # Get team with organization (1 query with lock)
             try:
-                team = Team.objects.select_related('organization', 'created_by').select_for_update().get(id=team_id)
+                team = (
+                    Team.objects
+                    .select_related('organization', 'created_by')
+                    .select_for_update(of=("self",))
+                    .get(id=team_id)
+                )
             except Team.DoesNotExist:
                 raise NotFoundError("team", team_id)
             
@@ -757,9 +762,12 @@ class TeamService:
         with transaction.atomic():
             # Get membership with team and organization (1 query with lock)
             try:
-                membership = TeamMembership.objects.select_related(
-                    'team__organization', 'user'
-                ).select_for_update().get(id=membership_id)
+                membership = (
+                    TeamMembership.objects
+                    .select_related('team__organization', 'user')
+                    .select_for_update(of=("self",))
+                    .get(id=membership_id)
+                )
             except TeamMembership.DoesNotExist:
                 raise NotFoundError("membership", membership_id)
             
@@ -849,9 +857,12 @@ class TeamService:
         with transaction.atomic():
             # Get membership (1 query with lock)
             try:
-                membership = TeamMembership.objects.select_related(
-                    'team__organization', 'user'
-                ).select_for_update().get(id=membership_id)
+                membership = (
+                    TeamMembership.objects
+                    .select_related('team__organization', 'user')
+                    .select_for_update(of=("self",))
+                    .get(id=membership_id)
+                )
             except TeamMembership.DoesNotExist:
                 raise NotFoundError("membership", membership_id)
             
@@ -934,7 +945,12 @@ class TeamService:
         with transaction.atomic():
             # Get team (1 query with lock)
             try:
-                team = Team.objects.select_related('organization', 'created_by').select_for_update().get(id=team_id)
+                team = (
+                    Team.objects
+                    .select_related('organization', 'created_by')
+                    .select_for_update(of=("self",))
+                    .get(id=team_id)
+                )
             except Team.DoesNotExist:
                 raise NotFoundError("team", team_id)
             
