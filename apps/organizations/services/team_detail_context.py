@@ -808,7 +808,7 @@ def _build_canonical_competitive_stats(team: Team) -> Dict[str, Any]:
             Match.objects
             .filter(
                 Q(participant1_id=team.id) | Q(participant2_id=team.id),
-                state__in=['COMPLETED', 'completed', 'DONE', 'done'],
+                state='completed',
             )
             .only('id', 'participant1_id', 'participant2_id', 'winner_id', 'updated_at')
             .order_by('-updated_at')
@@ -1467,32 +1467,32 @@ def _build_trophy_cabinet_context(team: Team, is_restricted: bool) -> List[Dict[
     try:
         from apps.tournaments.models import TournamentResult, Registration
         # Find all registrations for this team
-        team_registrations = Registration.objects.filter(
+        reg_id_set = set(Registration.objects.filter(
             team_id=team.id
-        ).values_list('id', flat=True)
+        ).values_list('id', flat=True))
 
-        if team_registrations:
+        if reg_id_set:
             # Find results where this team placed
             from django.db.models import Q
             results = TournamentResult.objects.filter(
-                Q(winner_id__in=team_registrations) |
-                Q(runner_up_id__in=team_registrations) |
-                Q(third_place_id__in=team_registrations)
+                Q(winner_id__in=reg_id_set) |
+                Q(runner_up_id__in=reg_id_set) |
+                Q(third_place_id__in=reg_id_set)
             ).select_related('tournament')[:12]
 
             for result in results:
                 placement = None
                 placement_label = None
                 placement_emoji = None
-                if result.winner_id in list(team_registrations):
+                if result.winner_id in reg_id_set:
                     placement = 1
                     placement_label = '1st Place'
                     placement_emoji = '🏆'
-                elif result.runner_up_id and result.runner_up_id in list(team_registrations):
+                elif result.runner_up_id and result.runner_up_id in reg_id_set:
                     placement = 2
                     placement_label = '2nd Place'
                     placement_emoji = '🥈'
-                elif result.third_place_id and result.third_place_id in list(team_registrations):
+                elif result.third_place_id and result.third_place_id in reg_id_set:
                     placement = 3
                     placement_label = '3rd Place'
                     placement_emoji = '🥉'
@@ -1693,11 +1693,11 @@ def _build_match_history_context(team: Team, is_restricted: bool) -> List[Dict[s
                 result = 'draw'
 
             score_display = ''
-            if hasattr(m, 'score_participant1') and hasattr(m, 'score_participant2'):
+            if hasattr(m, 'participant1_score') and hasattr(m, 'participant2_score'):
                 if is_p1:
-                    score_display = f'{m.score_participant1 or 0}-{m.score_participant2 or 0}'
+                    score_display = f'{m.participant1_score or 0}-{m.participant2_score or 0}'
                 else:
-                    score_display = f'{m.score_participant2 or 0}-{m.score_participant1 or 0}'
+                    score_display = f'{m.participant2_score or 0}-{m.participant1_score or 0}'
 
             matches.append({
                 'id': m.id,
@@ -1755,9 +1755,9 @@ def _build_operations_log_context(team: Team, is_restricted: bool) -> List[Dict[
                 status = state.lower() if state else 'scheduled'
 
             score = ''
-            if hasattr(m, 'score_participant1') and hasattr(m, 'score_participant2'):
-                s1 = m.score_participant1 or 0
-                s2 = m.score_participant2 or 0
+            if hasattr(m, 'participant1_score') and hasattr(m, 'participant2_score'):
+                s1 = m.participant1_score or 0
+                s2 = m.participant2_score or 0
                 score = f'{s1}-{s2}' if is_p1 else f'{s2}-{s1}'
 
             prize_text = ''
