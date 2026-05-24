@@ -113,6 +113,34 @@ class RosterMember:
     joined_date: str  # ISO 8601 format
 
 
+def _assert_no_active_game_membership(user, team):
+    from apps.organizations.choices import MembershipStatus, TeamStatus
+    from apps.organizations.models import TeamMembership
+
+    conflicting_membership = (
+        TeamMembership.objects
+        .filter(
+            user=user,
+            game_id=team.game_id,
+            status=MembershipStatus.ACTIVE,
+            team__status=TeamStatus.ACTIVE,
+        )
+        .exclude(team=team)
+        .select_related('team')
+        .first()
+    )
+    if conflicting_membership:
+        raise ConflictError(
+            f"User already has an active team for this game: {conflicting_membership.team.name}",
+            error_code="GAME_TEAM_CONFLICT",
+            safe_message=(
+                "This user already has an active team for this game "
+                f"({conflicting_membership.team.name}). They must leave that team first."
+            ),
+            details={'conflicting_team_id': conflicting_membership.team_id},
+        )
+
+
 # ============================================================================
 # TEAMSERVICE - PUBLIC API
 # ============================================================================
@@ -705,6 +733,9 @@ class TeamService:
             
             # Create membership
             status = MembershipStatus.ACTIVE if is_active else MembershipStatus.INVITED
+            if status == MembershipStatus.ACTIVE:
+                _assert_no_active_game_membership(user, team)
+
             membership = TeamMembership.objects.create(
                 team=team,
                 user=user,

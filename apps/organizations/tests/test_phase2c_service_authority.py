@@ -4,7 +4,7 @@ from django.test import TestCase
 from apps.organizations.choices import MembershipEventType, MembershipRole, MembershipStatus
 from apps.organizations.models import OrganizationMembership, TeamMembership, TeamMembershipEvent
 from apps.organizations.services import team_authority
-from apps.organizations.services.exceptions import PermissionDeniedError
+from apps.organizations.services.exceptions import ConflictError, PermissionDeniedError
 from apps.organizations.services.team_service import TeamService
 from apps.organizations.services.training_service import TeamTrainingService
 from apps.organizations.tests.factories import (
@@ -116,6 +116,106 @@ class Phase2CTeamServiceAuthorityTests(TestCase):
         )
 
         self.assertTrue(TeamMembership.objects.filter(id=membership_id, user=candidate).exists())
+
+    def test_add_team_member_blocks_same_game_active_team_conflict(self):
+        team_a, owner = self.make_independent_team(name="Phase 2C Conflict Add A")
+        team_b = TeamFactory.create_independent(
+            created_by=UserFactory(),
+            name="Phase 2C Conflict Add B",
+            game_id=team_a.game_id,
+        )
+        candidate = UserFactory(username="phase2c_conflict_candidate")
+        TeamMembershipFactory(team=team_b, user=candidate, role=MembershipRole.PLAYER)
+
+        with self.assertRaises(ConflictError) as ctx:
+            TeamService.add_team_member(
+                team_id=team_a.id,
+                user_lookup=candidate.username,
+                role=MembershipRole.PLAYER,
+                added_by_user_id=owner.id,
+            )
+
+        self.assertEqual(ctx.exception.error_code, "GAME_TEAM_CONFLICT")
+        self.assertIn(team_b.name, ctx.exception.safe_message)
+        self.assertFalse(TeamMembership.objects.filter(team=team_a, user=candidate).exists())
+
+    def test_add_team_member_allows_different_game_active_membership(self):
+        team_a, owner = self.make_independent_team(name="Phase 2C Different Game Add A")
+        team_b = TeamFactory.create_independent(
+            created_by=UserFactory(),
+            name="Phase 2C Different Game Add B",
+            game_id=team_a.game_id + 1000,
+        )
+        candidate = UserFactory(username="phase2c_different_game_candidate")
+        TeamMembershipFactory(team=team_b, user=candidate, role=MembershipRole.PLAYER)
+
+        membership_id = TeamService.add_team_member(
+            team_id=team_a.id,
+            user_lookup=candidate.username,
+            role=MembershipRole.PLAYER,
+            added_by_user_id=owner.id,
+        )
+
+        self.assertTrue(
+            TeamMembership.objects.filter(
+                id=membership_id,
+                team=team_a,
+                user=candidate,
+                status=MembershipStatus.ACTIVE,
+            ).exists()
+        )
+
+    def test_add_team_member_preserves_same_team_duplicate_behavior(self):
+        team, owner = self.make_independent_team(name="Phase 2C Same Team Duplicate")
+        candidate = UserFactory(username="phase2c_same_team_duplicate")
+        TeamMembershipFactory(team=team, user=candidate, role=MembershipRole.PLAYER)
+
+        with self.assertRaises(ConflictError) as ctx:
+            TeamService.add_team_member(
+                team_id=team.id,
+                user_lookup=candidate.username,
+                role=MembershipRole.PLAYER,
+                added_by_user_id=owner.id,
+            )
+
+        self.assertNotEqual(ctx.exception.error_code, "GAME_TEAM_CONFLICT")
+        self.assertEqual(
+            TeamMembership.objects.filter(
+                team=team,
+                user=candidate,
+                status=MembershipStatus.ACTIVE,
+            ).count(),
+            1,
+        )
+
+    def test_add_team_member_blocks_org_owned_same_game_conflict(self):
+        org_manager = UserFactory(username="phase2c_conflict_org_manager")
+        org = OrganizationFactory()
+        OrganizationMembership.objects.create(organization=org, user=org_manager, role="MANAGER")
+        org_team = TeamFactory(
+            organization=org,
+            created_by=None,
+            name="Phase 2C Org Conflict Add",
+            game_id=2200,
+        )
+        other_team = TeamFactory.create_independent(
+            created_by=UserFactory(),
+            name="Phase 2C Other Conflict Add",
+            game_id=org_team.game_id,
+        )
+        candidate = UserFactory(username="phase2c_org_conflict_candidate")
+        TeamMembershipFactory(team=other_team, user=candidate, role=MembershipRole.PLAYER)
+
+        with self.assertRaises(ConflictError) as ctx:
+            TeamService.add_team_member(
+                team_id=org_team.id,
+                user_lookup=candidate.username,
+                role=MembershipRole.PLAYER,
+                added_by_user_id=org_manager.id,
+            )
+
+        self.assertEqual(ctx.exception.error_code, "GAME_TEAM_CONFLICT")
+        self.assertFalse(TeamMembership.objects.filter(team=org_team, user=candidate).exists())
 
     def test_coach_cannot_add_remove_or_update_roster(self):
         team, _owner = self.make_independent_team(name="Phase 2C Coach Roster Block")
