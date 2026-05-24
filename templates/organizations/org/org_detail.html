@@ -448,7 +448,7 @@
                         <div class="glass-panel rounded-2xl overflow-hidden group border border-white/5 hover:border-delta-electric/50 transition-all duration-300 hover:-translate-y-1">
                             <div class="h-40 bg-slate-900 relative">
                                 {% if squad.team.logo %}
-                                <img src="{{ squad.team.logo.url }}" class="w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-700" alt="">
+                                <img src="{{ squad.team.logo|safe_file_url }}" class="w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-700" alt="">
                                 {% else %}
                                 <div class="w-full h-full bg-gradient-to-br from-delta-surface to-delta-base flex items-center justify-center">
                                     <span class="text-5xl font-tech font-bold text-white/10">{{ squad.game_short_code|default:squad.game_label|slice:":3"|upper }}</span>

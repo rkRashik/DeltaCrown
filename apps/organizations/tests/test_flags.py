@@ -32,9 +32,9 @@ print(f"   Condition: {adapter_enabled} AND NOT {force_legacy} AND '{routing_mod
 print(f"   Result: {condition}")
 
 if condition:
-    print("\n✅ BUTTON SHOULD BE VISIBLE")
+    print("\n[OK] BUTTON SHOULD BE VISIBLE")
 else:
-    print("\n❌ BUTTON WILL BE HIDDEN")
+    print("\n[FAIL] BUTTON WILL BE HIDDEN")
     if not adapter_enabled:
         print("   Reason: ADAPTER_ENABLED is False")
     if force_legacy:
