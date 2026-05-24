@@ -2899,6 +2899,10 @@ def offer_action(request, slug, request_id):
 
     from apps.organizations.models import TeamMembership
     from apps.organizations.choices import MembershipRole, MembershipStatus
+    from apps.organizations.services.team_invite_service import (
+        InviteConflictError,
+        _assert_no_active_game_membership,
+    )
 
     membership = TeamMembership.objects.filter(
         team=team,
@@ -2907,6 +2911,14 @@ def offer_action(request, slug, request_id):
     ).first()
     created = False
     if not membership:
+        try:
+            _assert_no_active_game_membership(request.user, team)
+        except InviteConflictError as exc:
+            return JsonResponse({
+                'error': exc.safe_message,
+                'error_code': exc.error_code,
+            }, status=400)
+
         membership = TeamMembership.objects.create(
             team=team,
             user=request.user,

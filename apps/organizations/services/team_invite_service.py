@@ -13,7 +13,7 @@ from django.utils import timezone
 from dataclasses import dataclass
 
 from apps.organizations.models import Team, TeamMembership, TeamInvite, TeamMembershipEvent
-from apps.organizations.choices import MembershipStatus, MembershipEventType
+from apps.organizations.choices import MembershipStatus, MembershipEventType, TeamStatus
 
 User = get_user_model()
 
@@ -115,6 +115,36 @@ class InviteAlreadyAcceptedError(InviteServiceError):
             message="Invite already accepted",
             safe_message="This invitation has already been accepted."
         )
+
+
+class InviteConflictError(InviteServiceError):
+    """Accepting the invite would violate team membership product rules."""
+    def __init__(self, conflicting_team_name: str):
+        super().__init__(
+            error_code="GAME_TEAM_CONFLICT",
+            message=f"User already has an active team for this game: {conflicting_team_name}",
+            safe_message=(
+                "You already have an active team for this game "
+                f"({conflicting_team_name}). Leave that team first to accept this invitation."
+            )
+        )
+
+
+def _assert_no_active_game_membership(user, team):
+    conflicting_membership = (
+        TeamMembership.objects
+        .filter(
+            user=user,
+            game_id=team.game_id,
+            status=MembershipStatus.ACTIVE,
+            team__status=TeamStatus.ACTIVE,
+        )
+        .exclude(team=team)
+        .select_related('team')
+        .first()
+    )
+    if conflicting_membership:
+        raise InviteConflictError(conflicting_membership.team.name)
 
 
 # ============================================================================
@@ -302,6 +332,8 @@ class TeamInviteService:
         # Must be INVITED status
         if membership.status != MembershipStatus.INVITED:
             raise InviteNotFoundError("Invite is not in pending state")
+
+        _assert_no_active_game_membership(membership.user, membership.team)
         
         # Accept: change status to ACTIVE
         membership.status = MembershipStatus.ACTIVE
@@ -421,6 +453,8 @@ class TeamInviteService:
         
         if invite.status != 'PENDING':
             raise InviteNotFoundError("Invite is not in pending state")
+
+        _assert_no_active_game_membership(user, invite.team)
         
         # Check if user already has membership (edge case: invited via both methods)
         existing_membership = TeamMembership.objects.filter(

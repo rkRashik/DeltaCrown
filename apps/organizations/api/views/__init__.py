@@ -2727,6 +2727,7 @@ def accept_membership_invite(request: Request, membership_id: int) -> Response:
     """
     from apps.organizations.services.team_invite_service import (
         TeamInviteService,
+        InviteConflictError,
         InviteNotFoundError,
         InviteForbiddenError,
         InviteAlreadyAcceptedError,
@@ -2753,6 +2754,16 @@ def accept_membership_invite(request: Request, membership_id: int) -> Response:
             'data': result,
         })
     
+    except InviteConflictError as e:
+        return Response(
+            {
+                'ok': False,
+                'error_code': e.error_code,
+                'safe_message': e.safe_message,
+            },
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
     except InviteNotFoundError as e:
         logger.warning(
             f"Membership invite not found/invalid for user {request.user.id}: {membership_id}",
@@ -2931,6 +2942,7 @@ def accept_email_invite(request: Request, token: str) -> Response:
     """
     from apps.organizations.services.team_invite_service import (
         TeamInviteService,
+        InviteConflictError,
         InviteNotFoundError,
         InviteForbiddenError,
         InviteExpiredError,
@@ -2958,6 +2970,16 @@ def accept_email_invite(request: Request, token: str) -> Response:
             'data': result,
         })
     
+    except InviteConflictError as e:
+        return Response(
+            {
+                'ok': False,
+                'error_code': e.error_code,
+                'safe_message': e.safe_message,
+            },
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
     except InviteNotFoundError as e:
         logger.warning(
             f"Email invite not found/invalid for user {request.user.id}: {token}",
