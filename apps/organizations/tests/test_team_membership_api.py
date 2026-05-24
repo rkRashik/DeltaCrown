@@ -12,13 +12,32 @@ Validates:
 """
 import pytest
 from django.test import TestCase
+from django.test.utils import CaptureQueriesContext
 from django.contrib.auth import get_user_model
-from django.db import transaction
+from django.db import connection, transaction
 from rest_framework.test import APIClient
 from apps.organizations.models import Organization, OrganizationMembership, Team, TeamMembership
 from apps.organizations.services.team_service import TeamService
 
 User = get_user_model()
+
+
+def create_test_team(*, name='Test Team', slug='test-team', owner=None, organization=None, **kwargs):
+    """Create a current-schema Team for membership API tests."""
+    data = {
+        'name': name,
+        'slug': slug,
+        'game_id': 1,
+        'region': 'NA',
+        'status': 'ACTIVE',
+        'visibility': 'PUBLIC',
+    }
+    data.update(kwargs)
+    if organization is not None:
+        data['organization'] = organization
+    else:
+        data['created_by'] = owner
+    return Team.objects.create(**data)
 
 
 @pytest.mark.django_db
@@ -34,19 +53,16 @@ class TestTeamDetailAPI(TestCase):
         self.outsider_user = User.objects.create_user(username='outsider', email='outsider@test.com', password='pass')
         
         # Create independent team
-        self.team = Team.objects.create(
+        self.team = create_test_team(
             name='Test Team',
             slug='test-team',
-            game='rocket-league',
-            region='NA',
             description='Test team description',
-            is_active=True,
-            is_public=True,
+            owner=self.owner_user,
         )
         
         # Create memberships
-        TeamMembership.objects.create(team=self.team, profile=self.owner_user.profile, role='OWNER', status='ACTIVE')
-        TeamMembership.objects.create(team=self.team, profile=self.player_user.profile, role='PLAYER', status='ACTIVE', roster_slot='STARTER')
+        TeamMembership.objects.create(team=self.team, user=self.owner_user, role='OWNER', status='ACTIVE')
+        TeamMembership.objects.create(team=self.team, user=self.player_user, role='PLAYER', status='ACTIVE', roster_slot='STARTER')
     
     def test_requires_authentication(self):
         """Must return 401 if not authenticated."""
@@ -57,8 +73,12 @@ class TestTeamDetailAPI(TestCase):
         """Must return team data with ≤5 queries."""
         self.client.force_authenticate(user=self.owner_user)
         
-        with self.assertNumQueries(5):  # Performance requirement: ≤5 queries
+        # Performance requirement: this bootstrap endpoint should stay at or below
+        # five queries, but optimizations may legitimately reduce the count.
+        with CaptureQueriesContext(connection) as queries:
             response = self.client.get(f'/api/vnext/teams/{self.team.slug}/detail/')
+
+        self.assertLessEqual(len(queries), 5)
         
         assert response.status_code == 200
         data = response.json()
@@ -66,7 +86,7 @@ class TestTeamDetailAPI(TestCase):
         # Validate structure
         assert 'team' in data
         assert 'members' in data
-        assert 'invites' in data
+        assert 'permissions' in data
         
         # Validate team data
         assert data['team']['name'] == 'Test Team'
@@ -101,12 +121,11 @@ class TestAddTeamMemberAPI(TestCase):
         self.player_user = User.objects.create_user(username='player', email='player@test.com', password='pass')
         self.new_user = User.objects.create_user(username='newuser', email='new@test.com', password='pass')
         
-        self.team = Team.objects.create(name='Test Team', slug='test-team', game='rocket-league', region='NA', is_active=True, is_public=True)
+        self.team = create_test_team(name='Test Team', slug='test-team', owner=self.owner_user)
         
-        # TeamMembership uses 'profile' FK to UserProfile (legacy schema)
-        TeamMembership.objects.create(team=self.team, profile=self.owner_user.profile, role='OWNER', status='ACTIVE')
-        TeamMembership.objects.create(team=self.team, profile=self.manager_user.profile, role='MANAGER', status='ACTIVE')
-        TeamMembership.objects.create(team=self.team, profile=self.player_user.profile, role='PLAYER', status='ACTIVE')
+        TeamMembership.objects.create(team=self.team, user=self.owner_user, role='OWNER', status='ACTIVE')
+        TeamMembership.objects.create(team=self.team, user=self.manager_user, role='MANAGER', status='ACTIVE')
+        TeamMembership.objects.create(team=self.team, user=self.player_user, role='PLAYER', status='ACTIVE')
     
     def test_requires_authentication(self):
         """Must return 401 if not authenticated."""
@@ -176,11 +195,11 @@ class TestUpdateMemberRoleAPI(TestCase):
         self.manager_user = User.objects.create_user(username='manager', email='manager@test.com', password='pass')
         self.player_user = User.objects.create_user(username='player', email='player@test.com', password='pass')
         
-        self.team = Team.objects.create(name='Test Team', slug='test-team', game='rocket-league', region='NA', is_active=True, is_public=True)
+        self.team = create_test_team(name='Test Team', slug='test-team', owner=self.owner_user)
         
-        self.owner_membership = TeamMembership.objects.create(team=self.team, profile=self.owner_user.profile, role='OWNER', status='ACTIVE')
-        self.manager_membership = TeamMembership.objects.create(team=self.team, profile=self.manager_user.profile, role='MANAGER', status='ACTIVE')
-        self.player_membership = TeamMembership.objects.create(team=self.team, profile=self.player_user.profile, role='PLAYER', status='ACTIVE')
+        self.owner_membership = TeamMembership.objects.create(team=self.team, user=self.owner_user, role='OWNER', status='ACTIVE')
+        self.manager_membership = TeamMembership.objects.create(team=self.team, user=self.manager_user, role='MANAGER', status='ACTIVE')
+        self.player_membership = TeamMembership.objects.create(team=self.team, user=self.player_user, role='PLAYER', status='ACTIVE')
     
     def test_requires_authentication(self):
         """Must return 401 if not authenticated."""
@@ -243,11 +262,11 @@ class TestRemoveTeamMemberAPI(TestCase):
         self.manager_user = User.objects.create_user(username='manager', email='manager@test.com', password='pass')
         self.player_user = User.objects.create_user(username='player', email='player@test.com', password='pass')
         
-        self.team = Team.objects.create(name='Test Team', slug='test-team', game='rocket-league', region='NA', is_active=True, is_public=True)
+        self.team = create_test_team(name='Test Team', slug='test-team', owner=self.owner_user)
         
-        self.owner_membership = TeamMembership.objects.create(team=self.team, profile=self.owner_user.profile, role='OWNER', status='ACTIVE')
-        self.manager_membership = TeamMembership.objects.create(team=self.team, profile=self.manager_user.profile, role='MANAGER', status='ACTIVE')
-        self.player_membership = TeamMembership.objects.create(team=self.team, profile=self.player_user.profile, role='PLAYER', status='ACTIVE')
+        self.owner_membership = TeamMembership.objects.create(team=self.team, user=self.owner_user, role='OWNER', status='ACTIVE')
+        self.manager_membership = TeamMembership.objects.create(team=self.team, user=self.manager_user, role='MANAGER', status='ACTIVE')
+        self.player_membership = TeamMembership.objects.create(team=self.team, user=self.player_user, role='PLAYER', status='ACTIVE')
     
     def test_requires_authentication(self):
         """Must return 401 if not authenticated."""
@@ -310,20 +329,17 @@ class TestUpdateTeamSettingsAPI(TestCase):
         self.manager_user = User.objects.create_user(username='manager', email='manager@test.com', password='pass')
         self.player_user = User.objects.create_user(username='player', email='player@test.com', password='pass')
         
-        self.team = Team.objects.create(
+        self.team = create_test_team(
             name='Test Team',
             slug='test-team',
-            game='rocket-league',
-            region='NA',
             description='Old description',
             preferred_server='Mumbai',
-            is_active=True,
-            is_public=True,
+            owner=self.owner_user,
         )
         
-        TeamMembership.objects.create(team=self.team, profile=self.owner_user.profile, role='OWNER', status='ACTIVE')
-        TeamMembership.objects.create(team=self.team, profile=self.manager_user.profile, role='MANAGER', status='ACTIVE')
-        TeamMembership.objects.create(team=self.team, profile=self.player_user.profile, role='PLAYER', status='ACTIVE')
+        TeamMembership.objects.create(team=self.team, user=self.owner_user, role='OWNER', status='ACTIVE')
+        TeamMembership.objects.create(team=self.team, user=self.manager_user, role='MANAGER', status='ACTIVE')
+        TeamMembership.objects.create(team=self.team, user=self.player_user, role='PLAYER', status='ACTIVE')
     
     def test_requires_authentication(self):
         """Must return 401 if not authenticated."""
@@ -398,9 +414,7 @@ class TestOrgOwnedTeamPermissions(TestCase):
         OrganizationMembership.objects.create(organization=self.org, user=self.ceo_user, role='CEO')
         OrganizationMembership.objects.create(organization=self.org, user=self.org_manager_user, role='MANAGER')
         
-        # Create org-owned team (TODO: Restore organization FK after legacy schema updated)
-        # self.team = Team.objects.create(name='Org Team', slug='org-team', organization=self.org, game='rocket-league', region='NA', is_active=True)
-        self.team = Team.objects.create(name='Org Team', slug='org-team', game='rocket-league', region='NA', is_active=True, is_public=True)
+        self.team = create_test_team(name='Org Team', slug='org-team', organization=self.org)
     
     def test_org_ceo_can_add_member(self):
         """Organization CEO must be able to add members to org-owned teams."""

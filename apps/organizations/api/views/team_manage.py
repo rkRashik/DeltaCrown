@@ -274,16 +274,26 @@ def team_detail(request, slug):
     - Ranking data (score, tier, rank)
     """
     try:
-        team = Team.objects.get(slug=slug)
+        team = Team.objects.select_related('organization').get(slug=slug)
     except Team.DoesNotExist:
         return JsonResponse({'error': 'Team not found', 'error_code': 'TEAM_NOT_FOUND'}, status=404)
+
+    actor = get_team_actor(request.user, team)
+    team_is_active = _is_active_team(team)
+    can_access_hq = team_is_active and (
+        actor.is_team_admin or actor.membership is not None or actor.is_tournament_captain
+    )
     
     # Check HQ access (must be active member, creator, org CEO/manager, or superuser).
-    if not _can_access_team_hq(team, request.user):
+    if not can_access_hq:
         return JsonResponse({'error': 'You are not a member of this team'}, status=403)
     
-    # Check manage permissions
-    can_manage, _ = _check_manage_permissions(team, request.user)
+    # Check manage permissions. Keep this aligned with can_manage_team_profile()
+    # without recomputing TeamActor for the same request.
+    can_manage = team_is_active and actor.is_team_admin
+    user_role = actor.role if actor.role and actor.role != "NONE" else (
+        'OWNER' if actor.is_superuser or actor.is_creator else 'GUEST'
+    )
     
     # Build members list with full roster data
     members = []
@@ -356,6 +366,7 @@ def team_detail(request, slug):
             'slug': team.slug,
             'tag': team.tag,
             'game_id': team.game_id,
+            'region': team.region,
             'organization': team.organization.name if team.organization else None,
             'created_at': team.created_at.isoformat() if team.created_at else None,
             'status': team.status,
@@ -372,7 +383,7 @@ def team_detail(request, slug):
             'can_manage': can_manage,
             'can_remove_self': True,  # All members can leave
             'is_creator': team.created_by_id == request.user.id,
-            'user_role': _get_user_role(team, request.user),
+            'user_role': user_role,
         },
         'ranking': ranking_data,
         'game_roles': game_roles,
