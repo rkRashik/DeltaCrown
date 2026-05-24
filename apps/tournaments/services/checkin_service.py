@@ -495,7 +495,7 @@ class CheckinService:
     @staticmethod
     def _is_organizer_or_admin(user: User, tournament: Tournament) -> bool:
         """Check if user is tournament organizer or admin"""
-        return user.is_superuser or tournament.organizer_id == user.id
+        return user.is_superuser or user.is_staff or tournament.organizer_id == user.id
     
     @staticmethod
     def _is_registration_owner(user: User, registration: Registration) -> bool:

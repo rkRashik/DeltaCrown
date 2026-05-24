@@ -46,6 +46,7 @@ from apps.tournaments.api.result_serializers import (
 )
 from apps.tournaments.api.permissions import IsOrganizerOrAdmin, IsMatchParticipant
 from apps.tournaments.security.audit import audit_event, AuditAction
+from apps.tournaments.services.match_authority import user_can_act_for_match
 
 logger = logging.getLogger(__name__)
 
@@ -252,7 +253,7 @@ class ResultViewSet(viewsets.GenericViewSet):
             request.user.is_superuser or
             match.tournament.organizer_id == request.user.id
         )
-        is_participant = request.user.id in [match.participant1_id, match.participant2_id]
+        is_participant = user_can_act_for_match(request.user, match)
         
         if not (is_organizer_or_admin or is_participant):
             return Response(

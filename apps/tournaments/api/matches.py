@@ -17,6 +17,7 @@ from .serializers_matches import (
 )
 from ..models import Match
 from apps.tournaments.models.dispute import DisputeRecord
+from apps.tournaments.services.match_authority import resolve_participant_side, user_can_act_for_match
 
 
 logger = logging.getLogger(__name__)
@@ -29,15 +30,7 @@ class IsParticipant(permissions.BasePermission):
         return request.user and request.user.is_authenticated
     
     def has_object_permission(self, request, view, obj):
-        """Check if user is participant1 or participant2 (via their ID)."""
-        # For solo tournaments: participant_id = user.id
-        # For team tournaments: participant_id = team.id (check if user is team captain/member)
-        # Simplified: check if user.id matches participant IDs (solo case)
-        # For team case, would need to query Team model
-        return (
-            obj.participant1_id == request.user.id or
-            obj.participant2_id == request.user.id
-        )
+        return user_can_act_for_match(request.user, obj)
 
 
 class IsStaff(permissions.BasePermission):
@@ -181,10 +174,11 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
         ser.is_valid(raise_exception=True)
         
         # Determine which side submitted
-        if match.participant1_id == request.user.id:
+        side = resolve_participant_side(request.user, match)
+        if side == 1:
             match.participant1_score = ser.validated_data['score']
             match.participant2_score = ser.validated_data['opponent_score']
-        elif match.participant2_id == request.user.id:
+        elif side == 2:
             match.participant2_score = ser.validated_data['score']
             match.participant1_score = ser.validated_data['opponent_score']
         else:

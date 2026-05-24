@@ -19,6 +19,7 @@ from django.urls import reverse
 from django.conf import settings
 
 from apps.tournaments.models import Match, Tournament
+from apps.tournaments.services.match_authority import user_can_act_for_match
 
 
 class SubmitResultView(LoginRequiredMixin, View):
@@ -129,9 +130,7 @@ class SubmitResultView(LoginRequiredMixin, View):
     
     def _is_participant(self, user, match):
         """Check if user is a participant in the match."""
-        if not user.is_authenticated:
-            return False
-        return match.participant1_id == user.id or match.participant2_id == user.id
+        return user_can_act_for_match(user, match)
 
 
 @login_required
@@ -158,7 +157,7 @@ def report_dispute(request, slug, match_id):
     )
     
     # Validate participant access
-    if match.participant1_id != request.user.id and match.participant2_id != request.user.id:
+    if not user_can_act_for_match(request.user, match):
         return JsonResponse({
             'success': False,
             'error': 'Only match participants can report disputes.'
