@@ -28,6 +28,7 @@ import json
 import re
 import uuid
 from functools import wraps
+from urllib.parse import urlparse
 
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
@@ -81,6 +82,15 @@ from apps.organizations.services.team_authority import (
 
 ORG_TEAM_ADMIN_ROLES = ('CEO', 'MANAGER')
 TEAM_ADMIN_ROLES = (MembershipRole.OWNER, MembershipRole.MANAGER)
+
+
+def _is_allowed_discord_webhook_url(webhook_url):
+    parsed = urlparse((webhook_url or '').strip())
+    return (
+        parsed.scheme == 'https'
+        and parsed.hostname == 'discord.com'
+        and parsed.path.startswith('/api/webhooks/')
+    )
 
 
 def _is_active_team(team):
@@ -2436,6 +2446,9 @@ def discord_test_webhook(request, slug):
     if not webhook_url:
         return JsonResponse({'error': 'No webhook URL configured for this team.'}, status=400)
 
+    if not _is_allowed_discord_webhook_url(webhook_url):
+        return JsonResponse({'error': 'Invalid Discord webhook URL configured for this team.'}, status=400)
+
     import requests as http_requests
     try:
         payload = {
@@ -2448,9 +2461,9 @@ def discord_test_webhook(request, slug):
             'success': True,
             'message': 'Test message sent to Discord! Check your channel.',
         })
-    except http_requests.RequestException as exc:
+    except http_requests.RequestException:
         return JsonResponse({
-            'error': f'Webhook test failed: {exc}',
+            'error': 'Webhook test failed. Please verify the configured Discord webhook.',
         }, status=502)
 
 

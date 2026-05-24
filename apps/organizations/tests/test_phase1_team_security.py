@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+from unittest.mock import Mock, patch
 
 from django.contrib.auth.models import AnonymousUser
 from django.conf import settings
@@ -130,6 +131,69 @@ class BootstrapLeakageTests(TestCase):
         self.assertNotIn("discord_webhook_url", data["team"])
         self.assertIs(data["team"]["has_webhook"], True)
         self.assertTrue(data["team"]["discord_webhook_url_masked"])
+
+
+class DiscordWebhookSSRFValidationTests(TestCase):
+    def setUp(self):
+        self.owner = UserFactory(username="phase1_webhook_owner")
+        self.team = TeamFactory.create_independent(created_by=self.owner, name="Phase One Webhook Team")
+        TeamMembershipFactory(team=self.team, user=self.owner, role=MembershipRole.OWNER)
+        self.client.force_login(self.owner)
+
+    def _post_test_webhook(self):
+        return self.client.post(api_url("team_discord_test_webhook", slug=self.team.slug))
+
+    @patch("requests.post")
+    def test_valid_discord_webhook_reaches_requests_post(self, mock_post):
+        self.team.discord_webhook_url = "https://discord.com/api/webhooks/123/token"
+        self.team.save(update_fields=["discord_webhook_url"])
+        mock_response = Mock()
+        mock_response.raise_for_status.return_value = None
+        mock_post.return_value = mock_response
+
+        response = self._post_test_webhook()
+
+        self.assertEqual(response.status_code, 200)
+        mock_post.assert_called_once()
+        self.assertEqual(mock_post.call_args.args[0], "https://discord.com/api/webhooks/123/token")
+
+    @patch("requests.post")
+    def test_rejects_non_https_discord_webhook(self, mock_post):
+        self._assert_webhook_rejected("http://discord.com/api/webhooks/123/token", mock_post)
+
+    @patch("requests.post")
+    def test_rejects_non_discord_host(self, mock_post):
+        self._assert_webhook_rejected("https://evil.com/api/webhooks/123/token", mock_post)
+
+    @patch("requests.post")
+    def test_rejects_discord_host_suffix_trick(self, mock_post):
+        self._assert_webhook_rejected("https://discord.com.evil.com/api/webhooks/123/token", mock_post)
+
+    @patch("requests.post")
+    def test_rejects_non_webhook_discord_path(self, mock_post):
+        self._assert_webhook_rejected("https://discord.com/not-webhook/123/token", mock_post)
+
+    @patch("requests.post")
+    def test_blank_webhook_keeps_existing_bad_request_behavior(self, mock_post):
+        self.team.discord_webhook_url = ""
+        self.team.save(update_fields=["discord_webhook_url"])
+
+        response = self._post_test_webhook()
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("No webhook URL configured", response.json()["error"])
+        mock_post.assert_not_called()
+
+    def _assert_webhook_rejected(self, webhook_url, mock_post):
+        self.team.discord_webhook_url = webhook_url
+        self.team.save(update_fields=["discord_webhook_url"])
+
+        response = self._post_test_webhook()
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("Invalid Discord webhook URL", response.json()["error"])
+        self.assertNotIn(webhook_url, response.content.decode())
+        mock_post.assert_not_called()
 
 
 class MemberRemovalGuardTests(TestCase):
