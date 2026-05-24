@@ -232,9 +232,14 @@ class LeaderboardService:
             - Uses index: teams_team.total_points DESC
         """
         try:
-            from apps.organizations.models import Team as LegacyTeam
+            from apps.teams.models import Team as LegacyTeam
         except ImportError:
             logger.debug("Legacy Team model not available, skipping legacy teams")
+            return []
+
+        legacy_fields = {field.name for field in LegacyTeam._meta.get_fields()}
+        if not {'total_points', 'ranking_breakdown'}.issubset(legacy_fields):
+            logger.debug("Legacy Team model does not expose leaderboard fields, skipping legacy teams")
             return []
         
         queryset = LegacyTeam.objects.filter(

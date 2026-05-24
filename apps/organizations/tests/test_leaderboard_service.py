@@ -8,8 +8,7 @@ Phase 4 - Task P4-T1
 """
 
 import pytest
-from unittest.mock import patch, MagicMock
-from django.test import TestCase, override_settings
+from django.test import TestCase
 from django.contrib.auth import get_user_model
 
 from apps.organizations.models import Team, TeamRanking, Organization
@@ -59,12 +58,11 @@ class LeaderboardTestFactory:
         team = Team.objects.create(
             name=name,
             slug=name.lower().replace(' ', '_'),
-            owner=owner,
+            created_by=owner,
             organization=organization,
             game_id=game_id,
             region=region,
-            status='ACTIVE',
-            max_size=5
+            status='ACTIVE'
         )
         
         # Create ranking
@@ -73,11 +71,7 @@ class LeaderboardTestFactory:
             current_cp=crown_points,
             tier=tier,
             is_hot_streak=False,
-            consecutive_wins=0,
-            consecutive_losses=0,
-            total_matches=0,
-            total_wins=0,
-            total_losses=0
+            streak_count=0
         )
         
         return team
@@ -248,13 +242,10 @@ class TestLeaderboardService(TestCase):
     # LEGACY TEAM QUERIES (MOCKED)
     # ========================================================================
     
-    @patch('apps.organizations.services.leaderboard_service.LegacyTeam')
-    def test_get_legacy_teams_returns_empty_when_not_available(self, mock_legacy_team):
+    def test_get_legacy_teams_returns_empty_when_not_available(self):
         """Test legacy team query returns empty list when model not available."""
-        # Simulate ImportError
-        with patch('apps.organizations.services.leaderboard_service.LegacyTeam', side_effect=ImportError):
-            teams = LeaderboardService.get_legacy_teams(limit=10)
-            self.assertEqual(len(teams), 0)
+        teams = LeaderboardService.get_legacy_teams(limit=10)
+        self.assertEqual(len(teams), 0)
     
     # ========================================================================
     # UNIFIED LEADERBOARD TESTS
