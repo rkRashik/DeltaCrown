@@ -213,21 +213,21 @@ class TestOrganizationDetailPageAccess(TestCase):
         self.assertEqual(response.status_code, 404)
     
     def test_detail_page_shows_hub_link_for_ceo(self):
-        """Detail page must show 'Open Hub' button only for CEO."""
+        """Detail page must show the control-plane button only for CEO."""
         self.client.login(username='ceo', password='testpass123')
         response = self.client.get('/orgs/test-org/')
         
         # Check that hub link is present
-        self.assertContains(response, 'Open Hub')
-        self.assertContains(response, '/orgs/test-org/hub/')
+        self.assertContains(response, 'Open Control Plane')
+        self.assertContains(response, '/orgs/test-org/control-plane/')
     
     def test_detail_page_hides_hub_link_for_public_user(self):
-        """Detail page must NOT show 'Open Hub' button for public users."""
+        """Detail page must NOT show the control-plane button for public users."""
         self.client.login(username='viewer', password='testpass123')
         response = self.client.get('/orgs/test-org/')
         
         # Check that hub link is NOT present
-        self.assertNotContains(response, 'Open Hub')
+        self.assertNotContains(response, 'Open Control Plane')
 
 
 @pytest.mark.django_db
@@ -259,8 +259,8 @@ class TestNavigationIntegrationFlow:
         assert response.status_code == 200
         assert b'Flow Test Org' in response.content
         
-        # Step 3: Verify hub link NOT visible to anonymous
-        assert b'Open Hub' not in response.content
+        # Step 3: Verify management link NOT visible to anonymous
+        assert b'Open Control Plane' not in response.content
         
         # Step 4: Login as CEO
         client.login(username='ceo', password='testpass123')
@@ -268,7 +268,7 @@ class TestNavigationIntegrationFlow:
         # Step 5: GET detail page again (now logged in)
         response = client.get('/orgs/flow-test/')
         assert response.status_code == 200
-        assert b'Open Hub' in response.content
+        assert b'Open Control Plane' in response.content
         
         # Step 6: GET hub page
         response = client.get('/orgs/flow-test/hub/')

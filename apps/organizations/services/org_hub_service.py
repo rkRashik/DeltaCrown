@@ -173,6 +173,7 @@ def get_org_hub_context(org_slug: str, user: Optional[User] = None) -> Dict[str,
         'teams': teams,
         'members': members,
         'recent_activity': recent_activity,
+        'can_manage': permissions['can_manage_org'],
         **permissions,
     }
 

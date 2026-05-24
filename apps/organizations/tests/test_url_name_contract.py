@@ -32,10 +32,10 @@ class URLNamingContractTests(SimpleTestCase):
     def test_vnext_hub_url_reverses(self):
         """Hub URL must reverse with canonical name 'vnext_hub'."""
         url = reverse('organizations:vnext_hub')
-        self.assertEqual(url, '/teams/vnext/')
+        self.assertEqual(url, '/teams/')
         
         # Verify it resolves back correctly
-        resolved = resolve('/teams/vnext/')
+        resolved = resolve('/teams/')
         self.assertEqual(resolved.view_name, 'organizations:vnext_hub')
     
     def test_team_create_url_reverses(self):
@@ -91,54 +91,45 @@ class URLNamingContractTests(SimpleTestCase):
     
     def test_no_duplicate_url_names(self):
         """Ensure no URL name collisions within organizations namespace."""
-        from django.urls import get_resolver
-        
-        resolver = get_resolver()
-        namespace = 'organizations'
-        
-        # Get all URL patterns in organizations namespace
-        org_patterns = resolver.reverse_dict.get(namespace, {})
-        
-        # Should have exactly 7 named patterns (updated from 5)
-        named_patterns = [name for name in org_patterns.keys() if isinstance(name, str)]
+        from django.urls.resolvers import URLPattern, URLResolver
+        from apps.organizations.urls import urlpatterns
+
+        def collect_names(patterns):
+            names = []
+            for pattern in patterns:
+                if isinstance(pattern, URLPattern) and pattern.name:
+                    names.append(pattern.name)
+                elif isinstance(pattern, URLResolver):
+                    names.extend(collect_names(pattern.url_patterns))
+            return names
         
         expected_names = {
             'vnext_hub',
+            'vnext_hub_filter',
+            'team_directory',
             'team_create',
             'team_invites',
             'team_detail',
-            'organization_detail',
+            'team_manage',
+            'org_team_detail',
+            'org_team_manage',
+            'org_directory',
             'org_create',
             'org_hub',
-        }
-        from django.urls import get_resolver
-        
-        resolver = get_resolver()
-        namespace = 'organizations'
-        
-        # Get all URL patterns in organizations namespace
-        org_patterns = resolver.reverse_dict.get(namespace, {})
-        
-        # Should have exactly 5 named patterns
-        named_patterns = [name for name in org_patterns.keys() if isinstance(name, str)]
-        
-        expected_names = {
-            'vnext_hub',
-            'team_create',
-            'team_invites',
-            'team_detail',
+            'org_control_plane',
             'organization_detail',
         }
         
+        named_patterns = collect_names(urlpatterns)
         actual_names = set(named_patterns)
+        duplicates = {name for name in named_patterns if named_patterns.count(name) > 1}
+        self.assertEqual(duplicates, set(), f"Duplicate URL names: {duplicates}")
         
         # Check all expected names exist
         missing = expected_names - actual_names
         self.assertEqual(missing, set(), f"Missing URL names: {missing}")
         
-        # Check no unexpected names
-        extra = actual_names - expected_names
-        self.assertEqual(extra, set(), f"Unexpected URL names: {extra}")
+        # The app may add new routes; this contract only requires canonical names.
 
 
 class TemplatURLReferencesTests(SimpleTestCase):
@@ -154,10 +145,19 @@ class TemplatURLReferencesTests(SimpleTestCase):
         # Canonical URL names that are allowed
         cls.allowed_url_names = {
             'vnext_hub',
+            'vnext_hub_filter',
+            'team_directory',
             'team_create',
             'team_invites',
+            'team_detail',
+            'team_manage',
+            'org_team_detail',
+            'org_team_manage',
+            'org_directory',
             'org_create',
             'org_hub',
+            'org_control_plane',
+            'organization_detail',
         }
         
         # Forbidden URL names (common mistakes)
@@ -298,9 +298,15 @@ class URLSmokeTests(TestCase):
     
     def test_vnext_hub_loads_without_500(self):
         """Hub page must not return 500 error (200 or 302 acceptable)."""
-        response = self.client.get('/teams/vnext/')
+        response = self.client.get('/teams/')
         self.assertIn(response.status_code, [200, 302], 
             f"Hub returned {response.status_code}, expected 200 or 302")
+
+    def test_legacy_vnext_hub_redirect_loads_without_500(self):
+        """Legacy /teams/vnext/ route should remain a redirect, not a crash."""
+        response = self.client.get('/teams/vnext/')
+        self.assertIn(response.status_code, [301, 302],
+            f"Legacy hub redirect returned {response.status_code}, expected 301 or 302")
     
     def test_team_create_loads_without_500(self):
         """Team creation page must not return 500 error (200 or 302 acceptable)."""

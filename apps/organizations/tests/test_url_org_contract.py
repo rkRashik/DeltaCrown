@@ -141,7 +141,7 @@ class TestTeamURLContract(TestCase):
     def test_vnext_hub_url_reverse(self):
         """Test that vNext hub URL reverses correctly."""
         url = reverse('organizations:vnext_hub')
-        self.assertEqual(url, '/teams/vnext/')
+        self.assertEqual(url, '/teams/')
     
     def test_team_create_url_reverse(self):
         """Test that team create URL reverses correctly."""
