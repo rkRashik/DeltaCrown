@@ -151,15 +151,23 @@ class RegistrationEligibilityService:
             status='ACTIVE'
         ).distinct()
         
-        # Also include org teams where user is the CEO (even without membership)
-        ceo_org_ids = Organization.objects.filter(ceo=user).values_list('id', flat=True)
-        ceo_teams = Team.objects.filter(
+        # Also include org teams where user has org authority (even without team membership).
+        managed_org_ids = set(Organization.objects.filter(ceo=user).values_list('id', flat=True))
+        try:
+            from apps.organizations.models import OrganizationMembership
+            managed_org_ids.update(
+                OrganizationMembership.objects.filter(user=user, role__in=['CEO', 'MANAGER'])
+                .values_list('organization_id', flat=True)
+            )
+        except Exception:
+            pass
+        org_authority_teams = Team.objects.filter(
             game_id=tournament.game_id,
-            organization_id__in=ceo_org_ids,
+            organization_id__in=managed_org_ids,
             status='ACTIVE'
         ).exclude(id__in=user_teams.values_list('id', flat=True))
         
-        all_teams = list(user_teams) + list(ceo_teams)
+        all_teams = list(user_teams) + list(org_authority_teams)
         
         # Check if user has any team for this game
         if not all_teams:
@@ -171,18 +179,14 @@ class RegistrationEligibilityService:
                 action_label='Create Team'
             )
         
-        permissive_roles = [
-            TeamMembership.Role.OWNER,
-            TeamMembership.Role.MANAGER,
-            TeamMembership.Role.CAPTAIN,  # legacy support
-        ]
+        from apps.organizations.services.team_authority import can_register_team_for_tournament
         
         # Build list of teams where user has permission
         permitted_teams = []
         blocked_teams = []
         
-        # CEO teams are automatically permitted (org authority)
-        for team in ceo_teams:
+        # Org-authority teams are automatically permitted.
+        for team in org_authority_teams:
             permitted_teams.append((team, None))
         
         for team in user_teams:
@@ -192,10 +196,7 @@ class RegistrationEligibilityService:
             if not member:
                 blocked_teams.append(team)
                 continue
-            # Check either by role OR by explicit register_tournaments permission
-            # OR by being the CEO of the team's organization
-            is_ceo = team.organization_id and team.organization_id in ceo_org_ids
-            if member.role in permissive_roles or member.has_permission('register_tournaments') or is_ceo:
+            if can_register_team_for_tournament(user, team, tournament) or member.has_permission('register_tournaments'):
                 permitted_teams.append((team, member))
             else:
                 blocked_teams.append(team)
@@ -268,25 +269,29 @@ class RegistrationEligibilityService:
             status='ACTIVE'
         ).distinct()
         
-        # Also include org teams where user is CEO
-        ceo_org_ids = Organization.objects.filter(ceo=user).values_list('id', flat=True)
+        # Also include org teams where user has org authority.
+        managed_org_ids = set(Organization.objects.filter(ceo=user).values_list('id', flat=True))
+        try:
+            from apps.organizations.models import OrganizationMembership
+            managed_org_ids.update(
+                OrganizationMembership.objects.filter(user=user, role__in=['CEO', 'MANAGER'])
+                .values_list('organization_id', flat=True)
+            )
+        except Exception:
+            pass
         
-        permissive_roles = [
-            TeamMembership.Role.OWNER,
-            TeamMembership.Role.MANAGER,
-            TeamMembership.Role.CAPTAIN,
-        ]
+        from apps.organizations.services.team_authority import can_register_team_for_tournament
         
         eligible_ids = []
         
-        # CEO gets access to all org teams for this game
-        if ceo_org_ids:
-            ceo_team_ids = Team.objects.filter(
+        # Org-authority users get access to all org teams for this game.
+        if managed_org_ids:
+            org_team_ids = Team.objects.filter(
                 game_id=tournament.game_id,
-                organization_id__in=ceo_org_ids,
+                organization_id__in=managed_org_ids,
                 status='ACTIVE'
             ).values_list('id', flat=True)
-            eligible_ids.extend(ceo_team_ids)
+            eligible_ids.extend(org_team_ids)
         
         for team in user_teams:
             if team.id in eligible_ids:
@@ -296,7 +301,7 @@ class RegistrationEligibilityService:
             ).first()
             if not member:
                 continue
-            if member.role in permissive_roles or member.has_permission('register_tournaments'):
+            if can_register_team_for_tournament(user, team, tournament) or member.has_permission('register_tournaments'):
                 eligible_ids.append(team.id)
         
         return Team.objects.filter(id__in=eligible_ids)

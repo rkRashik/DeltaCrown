@@ -403,15 +403,16 @@ class CheckinService:
         if not CheckinService.is_check_in_window_open(tournament):
             return False
 
-        # Find the user's registration
-        reg = Registration.objects.filter(
+        # Find a registration this user is authorized to check in.
+        regs = Registration.objects.filter(
             tournament=tournament,
             is_deleted=False,
             status='confirmed',
-        ).filter(
-            Q(user=user) |
-            Q(team__memberships__user=user, team__memberships__status='ACTIVE')
-        ).first()
+        )
+        reg = next(
+            (item for item in regs if CheckinService._is_registration_owner(user, item)),
+            None,
+        )
 
         if not reg:
             return False
@@ -506,21 +507,11 @@ class CheckinService:
         # For team registrations (check if captain)
         if registration.team_id:
             try:
-                from apps.organizations.models import TeamMembership
-                from apps.user_profile.models import UserProfile
-                
-                # TeamMembership uses profile FK, not user
-                try:
-                    profile = UserProfile.objects.get(user=user)
-                    membership = TeamMembership.objects.filter(
-                        team_id=registration.team_id,
-                        profile=profile,
-                        role='OWNER',
-                        status='ACTIVE'
-                    ).exists()
-                    return membership
-                except UserProfile.DoesNotExist:
-                    return False
+                from apps.organizations.models import Team
+                from apps.organizations.services.team_authority import can_act_as_team_captain
+
+                team = Team.objects.filter(pk=registration.team_id).first()
+                return can_act_as_team_captain(user, team)
             except Exception:
                 return False
         

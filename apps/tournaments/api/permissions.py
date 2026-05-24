@@ -137,6 +137,68 @@ class IsMatchParticipant(permissions.BasePermission):
     Module: 4.4 - Result Submission API (write access for result operations)
     Source: PHASE_4_IMPLEMENTATION_PLAN.md Module 4.3, 4.4
     """
+
+    @staticmethod
+    def _participant_ids(obj):
+        return [
+            getattr(obj, 'participant1_id', None),
+            getattr(obj, 'participant2_id', None),
+        ]
+
+    @staticmethod
+    def _team_from_direct_id(team_id):
+        if not team_id:
+            return None
+        try:
+            from apps.organizations.models import Team
+            return Team.objects.filter(pk=team_id).first()
+        except Exception:
+            return None
+
+    @staticmethod
+    def _team_from_registration_id(registration_id, tournament):
+        if not registration_id:
+            return None
+        try:
+            from apps.tournaments.models import Registration
+            qs = Registration.objects.filter(pk=registration_id, is_deleted=False)
+            if tournament is not None:
+                qs = qs.filter(tournament=tournament)
+            registration = qs.first()
+            return registration.team if registration else None
+        except Exception:
+            return None
+
+    @classmethod
+    def _user_can_act_for_team_participant(cls, user, obj, participant_id):
+        try:
+            from apps.organizations.services.team_authority import can_submit_team_result
+        except Exception:
+            return False
+        tournament = getattr(obj, 'tournament', None)
+        for team in (
+            cls._team_from_direct_id(participant_id),
+            cls._team_from_registration_id(participant_id, tournament),
+        ):
+            if team and can_submit_team_result(user, team, match=obj):
+                return True
+        return False
+
+    @classmethod
+    def _user_is_solo_participant(cls, user, obj, participant_id):
+        if not participant_id:
+            return False
+        if participant_id == getattr(user, 'id', None):
+            return True
+        try:
+            from apps.tournaments.models import Registration
+            tournament = getattr(obj, 'tournament', None)
+            qs = Registration.objects.filter(pk=participant_id, user=user, is_deleted=False)
+            if tournament is not None:
+                qs = qs.filter(tournament=tournament)
+            return qs.exists()
+        except Exception:
+            return False
     
     def has_object_permission(self, request, view, obj):
         """
@@ -158,11 +220,20 @@ class IsMatchParticipant(permissions.BasePermission):
         if hasattr(obj, 'tournament') and obj.tournament.organizer_id == request.user.id:
             return True
         
-        # Check if user is a participant (Module 4.4: allow POST for result operations)
-        # Check if user ID matches either participant
-        if hasattr(obj, 'participant1_id') and obj.participant1_id == request.user.id:
-            return True
-        if hasattr(obj, 'participant2_id') and obj.participant2_id == request.user.id:
-            return True
+        tournament = getattr(obj, 'tournament', None)
+        participation_type = getattr(tournament, 'participation_type', None)
+        for participant_id in self._participant_ids(obj):
+            if participation_type == 'team':
+                if self._user_can_act_for_team_participant(request.user, obj, participant_id):
+                    return True
+            elif participation_type == 'solo':
+                if self._user_is_solo_participant(request.user, obj, participant_id):
+                    return True
+            else:
+                if (
+                    self._user_can_act_for_team_participant(request.user, obj, participant_id)
+                    or self._user_is_solo_participant(request.user, obj, participant_id)
+                ):
+                    return True
         
         return False
