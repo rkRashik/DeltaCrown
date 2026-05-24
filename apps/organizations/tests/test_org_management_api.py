@@ -12,10 +12,12 @@ Validates:
 """
 import pytest
 from django.test import TestCase
+from django.test.utils import CaptureQueriesContext
 from django.contrib.auth import get_user_model
-from django.db import transaction
+from django.db import connection, transaction
 from rest_framework.test import APIClient
 from apps.organizations.models import Organization, OrganizationMembership, Team
+from apps.organizations.models.organization_profile import OrganizationProfile
 from apps.organizations.services.organization_service import OrganizationService
 
 User = get_user_model()
@@ -39,11 +41,12 @@ class TestOrganizationDetailAPI(TestCase):
             name='Test Org',
             slug='test-org',
             ceo=self.ceo_user,
-            logo_url='https://logo.png',
-            banner_url='https://banner.png',
-            primary_color='#FF5733',
-            tagline='Test tagline',
+            description='Test org description',
             is_verified=True
+        )
+        OrganizationProfile.objects.create(
+            organization=self.org,
+            brand_color='#FF5733',
         )
         
         # Create memberships
@@ -55,8 +58,10 @@ class TestOrganizationDetailAPI(TestCase):
         self.team = Team.objects.create(
             name='Test Team',
             organization=self.org,
-            game_id='valorant',
-            region='NA'
+            game_id=1,
+            region='NA',
+            status='ACTIVE',
+            visibility='PUBLIC',
         )
     
     def test_requires_authentication(self):
@@ -68,8 +73,12 @@ class TestOrganizationDetailAPI(TestCase):
         """Must return org data with ≤5 queries."""
         self.client.force_authenticate(user=self.ceo_user)
         
-        with self.assertNumQueries(5):  # Performance requirement: ≤5 queries
+        # Performance requirement: this endpoint should stay at or below five
+        # queries, but optimizations may legitimately reduce the count.
+        with CaptureQueriesContext(connection) as queries:
             response = self.client.get(f'/api/vnext/orgs/{self.org.slug}/')
+
+        self.assertLessEqual(len(queries), 5)
         
         assert response.status_code == 200
         data = response.json()
@@ -82,7 +91,7 @@ class TestOrganizationDetailAPI(TestCase):
         # Validate org data
         assert data['org']['name'] == 'Test Org'
         assert data['org']['slug'] == 'test-org'
-        assert data['org']['logo_url'] == 'https://logo.png'
+        assert data['org']['logo_url'] is None
         assert data['org']['is_verified'] is True
         
         # Validate members
@@ -134,9 +143,8 @@ class TestAddOrganizationMemberAPI(TestCase):
         self.client.force_authenticate(user=self.ceo_user)
         response = self.client.post(f'/api/vnext/orgs/{self.org.slug}/members/add/', {'user_id': self.new_user.id, 'role': 'ANALYST'})
         
-        assert response.status_code == 200
+        assert response.status_code == 201
         data = response.json()
-        assert data['success'] is True
         assert 'membership_id' in data
         
         # Verify membership created
@@ -149,9 +157,9 @@ class TestAddOrganizationMemberAPI(TestCase):
         self.client.force_authenticate(user=self.manager_user)
         response = self.client.post(f'/api/vnext/orgs/{self.org.slug}/members/add/', {'user_id': self.new_user.id, 'role': 'SCOUT'})
         
-        assert response.status_code == 200
+        assert response.status_code == 201
         data = response.json()
-        assert data['success'] is True
+        assert 'membership_id' in data
     
     def test_scout_cannot_add_member(self):
         """SCOUT must not be able to add members (returns 403)."""
@@ -212,7 +220,7 @@ class TestUpdateMemberRoleAPI(TestCase):
         self.client.force_authenticate(user=self.ceo_user)
         response = self.client.post(f'/api/vnext/orgs/{self.org.slug}/members/{self.ceo_membership.id}/role/', {'role': 'MANAGER'})
         
-        assert response.status_code == 400
+        assert response.status_code == 403
         data = response.json()
         assert data['error_code'] == 'CANNOT_CHANGE_CEO'
         
@@ -240,7 +248,7 @@ class TestUpdateMemberRoleAPI(TestCase):
         
         assert response.status_code == 403
         data = response.json()
-        assert data['error_code'] == 'INSUFFICIENT_PERMISSIONS'
+        assert data['error_code'] == 'CANNOT_CHANGE_MANAGER_ROLE'
         
         # Verify role unchanged
         self.manager2_membership.refresh_from_db()
@@ -298,7 +306,7 @@ class TestRemoveOrganizationMemberAPI(TestCase):
         self.client.force_authenticate(user=self.ceo_user)
         response = self.client.post(f'/api/vnext/orgs/{self.org.slug}/members/{self.ceo_membership.id}/remove/')
         
-        assert response.status_code == 400
+        assert response.status_code == 403
         data = response.json()
         assert data['error_code'] == 'CANNOT_REMOVE_CEO'
         
@@ -324,7 +332,7 @@ class TestRemoveOrganizationMemberAPI(TestCase):
         
         assert response.status_code == 403
         data = response.json()
-        assert data['error_code'] == 'INSUFFICIENT_PERMISSIONS'
+        assert data['error_code'] == 'CANNOT_REMOVE_MANAGER'
         
         # Verify membership still exists
         assert OrganizationMembership.objects.filter(id=self.manager2_membership.id).exists()
@@ -366,10 +374,13 @@ class TestUpdateOrganizationSettingsAPI(TestCase):
             name='Test Org',
             slug='test-org',
             ceo=self.ceo_user,
-            logo_url='https://old-logo.png',
-            banner_url='https://old-banner.png',
-            primary_color='#000000',
-            tagline='Old tagline'
+            description='Old description',
+            website='https://old.example.com',
+            enforce_brand=False,
+        )
+        OrganizationProfile.objects.create(
+            organization=self.org,
+            brand_color='#000000',
         )
         
         OrganizationMembership.objects.create(organization=self.org, user=self.ceo_user, role='CEO')
@@ -378,17 +389,16 @@ class TestUpdateOrganizationSettingsAPI(TestCase):
     
     def test_requires_authentication(self):
         """Must return 401 if not authenticated."""
-        response = self.client.post(f'/api/vnext/orgs/{self.org.slug}/settings/', {'tagline': 'New tagline'})
+        response = self.client.post(f'/api/vnext/orgs/{self.org.slug}/settings/', {'description': 'New description'})
         assert response.status_code == 401
     
     def test_ceo_can_update_settings(self):
         """CEO must be able to update all settings."""
         self.client.force_authenticate(user=self.ceo_user)
         response = self.client.post(f'/api/vnext/orgs/{self.org.slug}/settings/', {
-            'logo_url': 'https://new-logo.png',
-            'banner_url': 'https://new-banner.png',
-            'primary_color': '#FF5733',
-            'tagline': 'New tagline'
+            'description': 'New description',
+            'website': 'https://new.example.com',
+            'brand_color': '#FF5733',
         })
         
         assert response.status_code == 200
@@ -397,64 +407,64 @@ class TestUpdateOrganizationSettingsAPI(TestCase):
         
         # Verify settings updated
         self.org.refresh_from_db()
-        assert self.org.logo_url == 'https://new-logo.png'
-        assert self.org.banner_url == 'https://new-banner.png'
-        assert self.org.primary_color == '#FF5733'
-        assert self.org.tagline == 'New tagline'
+        self.org.profile.refresh_from_db()
+        assert self.org.description == 'New description'
+        assert self.org.website == 'https://new.example.com'
+        assert self.org.profile.brand_color == '#FF5733'
     
     def test_manager_can_update_settings(self):
         """MANAGER must be able to update settings."""
         self.client.force_authenticate(user=self.manager_user)
         response = self.client.post(f'/api/vnext/orgs/{self.org.slug}/settings/', {
-            'tagline': 'Manager updated tagline'
+            'description': 'Manager updated description'
         })
         
         assert response.status_code == 200
         data = response.json()
         assert data['success'] is True
         
-        # Verify tagline updated
+        # Verify description updated
         self.org.refresh_from_db()
-        assert self.org.tagline == 'Manager updated tagline'
+        assert self.org.description == 'Manager updated description'
     
     def test_scout_cannot_update_settings(self):
         """SCOUT must not be able to update settings."""
         self.client.force_authenticate(user=self.scout_user)
         response = self.client.post(f'/api/vnext/orgs/{self.org.slug}/settings/', {
-            'tagline': 'Scout trying to update'
+            'description': 'Scout trying to update'
         })
         
         assert response.status_code == 403
         data = response.json()
         assert data['error_code'] == 'INSUFFICIENT_PERMISSIONS'
         
-        # Verify tagline unchanged
+        # Verify description unchanged
         self.org.refresh_from_db()
-        assert self.org.tagline == 'Old tagline'
+        assert self.org.description == 'Old description'
     
     def test_invalid_color_format(self):
         """Must return INVALID_COLOR error code for bad hex format."""
         self.client.force_authenticate(user=self.ceo_user)
         response = self.client.post(f'/api/vnext/orgs/{self.org.slug}/settings/', {
-            'primary_color': 'not-a-hex-color'
+            'brand_color': 'not-a-hex-color'
         })
         
         assert response.status_code == 400
         data = response.json()
-        assert data['error_code'] == 'INVALID_COLOR'
+        assert data['error_code'] == 'INVALID_COLOR_FORMAT'
     
     def test_partial_update(self):
         """Must allow updating only specific fields."""
         self.client.force_authenticate(user=self.ceo_user)
         response = self.client.post(f'/api/vnext/orgs/{self.org.slug}/settings/', {
-            'tagline': 'Only update tagline'
+            'description': 'Only update description'
         })
         
         assert response.status_code == 200
         
-        # Verify only tagline changed
+        # Verify only description changed
         self.org.refresh_from_db()
-        assert self.org.tagline == 'Only update tagline'
-        assert self.org.logo_url == 'https://old-logo.png'  # Unchanged
-        assert self.org.banner_url == 'https://old-banner.png'  # Unchanged
-        assert self.org.primary_color == '#000000'  # Unchanged
+        self.org.profile.refresh_from_db()
+        assert self.org.description == 'Only update description'
+        assert self.org.website == 'https://old.example.com'  # Unchanged
+        assert self.org.profile.brand_color == '#000000'  # Unchanged

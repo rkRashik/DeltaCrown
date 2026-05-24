@@ -48,7 +48,7 @@ urlpatterns = [
     # Organization management (P3-T5)
     path('orgs/<str:org_slug>/', views.get_organization_detail, name='org_detail'),
     path('orgs/<str:org_slug>/members/add/', views.add_organization_member, name='add_member'),
-    path('orgs/<str:org_slug>/members/<int:member_id>/role/', views.update_member_role, name='update_role'),
+    path('orgs/<str:org_slug>/members/<int:member_id>/role/', views.update_organization_member_role, name='update_role'),
     path('orgs/<str:org_slug>/members/<int:member_id>/remove/', views.remove_organization_member, name='remove_member'),
     path('orgs/<str:org_slug>/settings/', views.update_organization_settings, name='update_settings'),
     

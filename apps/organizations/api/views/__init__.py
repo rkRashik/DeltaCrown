@@ -1598,10 +1598,10 @@ def get_organization_detail(request: Request, org_slug: str) -> Response:
         
         return Response(data, status=status.HTTP_200_OK)
     
-    except OrganizationNotFoundError as e:
+    except (OrganizationNotFoundError, NotFoundError) as e:
         return Response(
             {
-                'error_code': e.error_code,
+                'error_code': 'ORG_NOT_FOUND',
                 'message': str(e),
             },
             status=status.HTTP_404_NOT_FOUND
@@ -1741,7 +1741,7 @@ def add_organization_member(request: Request, org_slug: str) -> Response:
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
-def update_member_role(request: Request, org_slug: str, member_id: int) -> Response:
+def update_organization_member_role(request: Request, org_slug: str, member_id: int) -> Response:
     """
     POST /api/vnext/orgs/<org_slug>/members/<member_id>/role/
     

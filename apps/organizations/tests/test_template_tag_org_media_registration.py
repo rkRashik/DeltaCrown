@@ -5,8 +5,10 @@ Ensures Django can properly discover and load the template tag library.
 """
 
 from django.test import TestCase
-from django.template import engines, Context, Template
+from django.template import Context, Template
 from django.template.exceptions import TemplateSyntaxError
+
+from apps.organizations.templatetags.org_media import register
 
 
 class TestOrgMediaTagLibraryRegistration(TestCase):
@@ -14,29 +16,21 @@ class TestOrgMediaTagLibraryRegistration(TestCase):
     
     def test_org_media_library_can_be_loaded(self):
         """Verify Django can load the org_media template tag library."""
-        engine = engines['django']
-        
-        # Should not raise exception
         try:
-            library = engine.engine.get_library('org_media')
-            self.assertIsNotNone(library)
+            template = Template("{% load org_media %}loaded")
+            rendered = template.render(Context({}))
+            self.assertEqual(rendered.strip(), "loaded")
         except Exception as e:
             self.fail(f"org_media template library not registered: {e}")
     
     def test_safe_file_url_filter_exists(self):
         """Verify safe_file_url filter is registered in org_media library."""
-        engine = engines['django']
-        library = engine.engine.get_library('org_media')
-        
-        self.assertIn('safe_file_url', library.filters, 
+        self.assertIn('safe_file_url', register.filters,
                      "safe_file_url filter not found in org_media library")
     
     def test_safe_file_exists_filter_exists(self):
         """Verify safe_file_exists filter is registered in org_media library."""
-        engine = engines['django']
-        library = engine.engine.get_library('org_media')
-        
-        self.assertIn('safe_file_exists', library.filters,
+        self.assertIn('safe_file_exists', register.filters,
                      "safe_file_exists filter not found in org_media library")
     
     def test_template_can_load_org_media(self):

@@ -744,7 +744,14 @@ class OrganizationService:
             queryset = queryset.prefetch_related(
                 Prefetch(
                     'teams',
-                    queryset=Team.objects.filter(status='ACTIVE', is_temporary=False).select_related('game')
+                    queryset=(
+                        Team.objects
+                        .filter(status='ACTIVE', is_temporary=False)
+                        .annotate(active_member_count=Count(
+                            'vnext_memberships',
+                            filter=Q(vnext_memberships__status='ACTIVE'),
+                        ))
+                    )
                 )
             )
         
@@ -805,11 +812,11 @@ class OrganizationService:
                 'name': t.name,
                 'slug': t.slug,
                 'tag': t.tag,
-                'game_name': t.game.name if t.game else 'Unknown',
-                'game_slug': t.game.slug if t.game else '',
+                'game_name': t.game_obj.name if t.game_obj else 'Unknown',
+                'game_slug': t.game_obj.slug if t.game_obj else '',
                 'region': t.region,
                 'status': t.status,
-                'member_count': t.members.filter(status='ACTIVE').count(),
+                'member_count': getattr(t, 'active_member_count', 0),
                 'created_at': t.created_at.isoformat()
             } for t in org.teams.all()]
         

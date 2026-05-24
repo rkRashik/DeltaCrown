@@ -16,6 +16,7 @@ from django.test import TestCase, override_settings
 from django.utils import timezone
 from django.contrib.auth import get_user_model
 
+from apps.organizations.choices import RankingTier
 from apps.organizations.models import Team, TeamRanking, Organization, OrganizationRanking
 from apps.organizations.tasks.rankings import (
     recalculate_team_rankings,
@@ -81,7 +82,7 @@ class RankingTaskTestFactory:
             game_id=game_id,
             region=region,
             status='ACTIVE',
-            max_size=5
+            visibility='PUBLIC',
         )
         
         ranking = TeamRanking.objects.create(
@@ -93,8 +94,8 @@ class RankingTaskTestFactory:
         )
         
         if last_activity_date:
-            ranking.last_activity_date = last_activity_date
-            ranking.save()
+            TeamRanking.objects.filter(pk=ranking.pk).update(last_activity_date=last_activity_date)
+            ranking.refresh_from_db()
         
         return team, ranking
 
@@ -122,18 +123,18 @@ class TestRecalculateTeamRankings(TestCase):
     
     def test_recalc_updates_incorrect_tier(self):
         """Test task recalculates tier when CP doesn't match."""
-        # Create team with GOLD tier but SILVER CP
+        # Create team with MASTER tier but ELITE CP
         team, ranking = self.factory.create_team_with_ranking(
             name="Mismatched Team",
-            crown_points=600,  # SILVER range
-            tier="GOLD"  # Wrong tier
+            crown_points=600,  # ELITE range
+            tier=RankingTier.MASTER  # Wrong tier
         )
         
         result = recalculate_team_rankings()
         
         # Verify tier corrected
         ranking.refresh_from_db()
-        self.assertEqual(ranking.tier, 'SILVER')
+        self.assertEqual(ranking.tier, RankingTier.ELITE)
         self.assertEqual(result['tier_changes'], 1)
         self.assertEqual(result['teams_updated'], 1)
     
@@ -142,7 +143,7 @@ class TestRecalculateTeamRankings(TestCase):
         team, ranking = self.factory.create_team_with_ranking(
             name="Negative CP Team",
             crown_points=-100,
-            tier="UNRANKED"
+            tier=RankingTier.ROOKIE
         )
         
         result = recalculate_team_rankings()
@@ -312,20 +313,20 @@ class TestApplyInactivityDecay(TestCase):
     
     def test_decay_updates_tier_if_changed(self):
         """Test decay recalculates tier after CP change."""
-        # Create team at BRONZE threshold (50 CP)
+        # Create team above the CHALLENGER threshold.
         inactive_date = timezone.now() - timedelta(days=8)
         team, ranking = self.factory.create_team_with_ranking(
             name="Tier Change Team",
-            crown_points=52,  # Just above BRONZE threshold
-            tier="BRONZE",
+            crown_points=101,  # Decay drops below CHALLENGER threshold
+            tier=RankingTier.CHALLENGER,
             last_activity_date=inactive_date
         )
         
         result = apply_inactivity_decay(cutoff_days=7)
         
-        # Verify tier dropped to UNRANKED (decay brings below 50)
+        # Verify tier dropped to ROOKIE (decay brings below 100)
         ranking.refresh_from_db()
-        self.assertEqual(ranking.tier, 'UNRANKED')
+        self.assertEqual(ranking.tier, RankingTier.ROOKIE)
     
     def test_decay_respects_cutoff_days(self):
         """Test decay only applies to teams inactive beyond cutoff."""
@@ -540,9 +541,10 @@ class TestRecalculateOrganizationRankings(TestCase):
         for i in range(3):
             self.factory.create_organization(name=f"Org {i}")
         
-        # Mock to cause errors
-        with patch('apps.organizations.models.Organization.teams') as mock_teams:
-            mock_teams.side_effect = Exception("Simulated error")
+        # Mock the per-organization write path so the task can exercise its
+        # per-item error handling without breaking queryset prefetch setup.
+        with patch('apps.organizations.tasks.rankings.OrganizationRanking.objects.get_or_create') as mock_get_or_create:
+            mock_get_or_create.side_effect = Exception("Simulated error")
             
             result = recalculate_organization_rankings()
             

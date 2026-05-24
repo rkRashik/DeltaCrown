@@ -189,10 +189,10 @@ class ModularViewsWiringTests(TestCase):
             "URLs should not import from old monolithic views.py"
     
     def test_vnext_hub_resolves_to_modular_view(self):
-        """vnext_hub URL resolves to apps.organizations.views.hub.vnext_hub."""
+        """Canonical hub URL resolves to apps.organizations.views.hub.vnext_hub."""
         from django.urls import resolve
         
-        match = resolve('/teams/vnext/')
+        match = resolve('/teams/')
         
         # Check function module path
         func_module = match.func.__module__
@@ -201,6 +201,17 @@ class ModularViewsWiringTests(TestCase):
         
         # Check function name
         assert match.func.__name__ == 'vnext_hub'
+
+    def test_legacy_vnext_hub_url_redirects_to_canonical_hub(self):
+        """/teams/vnext/ is a backward-compat redirect to canonical /teams/."""
+        from django.urls import resolve
+        from django.views.generic import RedirectView
+
+        match = resolve('/teams/vnext/')
+
+        assert getattr(match.func, 'view_class', None) is RedirectView
+        assert match.func.view_initkwargs.get('pattern_name') == 'organizations:vnext_hub'
+        assert match.func.view_initkwargs.get('permanent') is True
     
     def test_team_views_resolve_to_team_module(self):
         """Team views resolve to apps.organizations.views.team module."""

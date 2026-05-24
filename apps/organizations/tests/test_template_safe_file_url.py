@@ -46,8 +46,8 @@ class TestSafeFileUrlFilter(TestCase):
             b"fake image content",
             content_type="image/jpeg"
         )
-        user.avatar = avatar_file
-        user.save()
+        user.profile.avatar = avatar_file
+        user.profile.save()
         
         # Get URL
         result = safe_file_url(user.avatar, 'https://fallback.com/image.png')
@@ -57,8 +57,8 @@ class TestSafeFileUrlFilter(TestCase):
         self.assertNotIn('fallback.com', result)
         
         # Cleanup
-        if user.avatar:
-            user.avatar.delete()
+        if user.profile.avatar:
+            user.profile.avatar.delete()
     
     def test_safe_file_url_with_empty_field(self):
         """Test filter returns fallback when field exists but is empty."""
@@ -107,15 +107,15 @@ class TestSafeFileExistsFilter(TestCase):
             b"fake image content",
             content_type="image/jpeg"
         )
-        user.avatar = avatar_file
-        user.save()
+        user.profile.avatar = avatar_file
+        user.profile.save()
         
         result = safe_file_exists(user.avatar)
         self.assertTrue(result)
         
         # Cleanup
-        if user.avatar:
-            user.avatar.delete()
+        if user.profile.avatar:
+            user.profile.avatar.delete()
 
 
 @pytest.mark.skipif(

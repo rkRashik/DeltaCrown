@@ -21,6 +21,7 @@ from typing import Optional, Dict, Any
 from decimal import Decimal
 
 from django.db import transaction
+from django.db.models import Prefetch
 from django.utils import timezone
 from celery import shared_task
 
@@ -122,13 +123,15 @@ def recalculate_team_rankings(
             teams_processed += 1
             
             try:
+                ranking_changed = False
+
                 # Sanity check: CP floor
                 if ranking.current_cp < MINIMUM_CP:
                     logger.warning(
                         f"Team {ranking.team.id} has negative CP ({ranking.current_cp}), resetting to 0"
                     )
                     ranking.current_cp = MINIMUM_CP
-                    teams_updated += 1
+                    ranking_changed = True
                 
                 # Recalculate tier
                 old_tier = ranking.tier
@@ -137,16 +140,15 @@ def recalculate_team_rankings(
                 if old_tier != new_tier:
                     ranking.tier = new_tier
                     tier_changes += 1
-                    teams_updated += 1
+                    ranking_changed = True
                     
                     logger.debug(
                         f"Team {ranking.team.name} tier changed: {old_tier} -> {new_tier} (CP: {ranking.current_cp})"
                     )
                 
                 # Batch updates for efficiency
-                if teams_updated > 0 and teams_processed % 100 == 0:
-                    rankings_to_update.append(ranking)
-                elif old_tier != new_tier or ranking.current_cp < 0:
+                if ranking_changed:
+                    teams_updated += 1
                     rankings_to_update.append(ranking)
                 
                 # Bulk update every 100 records
@@ -253,6 +255,7 @@ def apply_inactivity_decay(
     errors = 0
     
     cutoff_date = timezone.now() - timedelta(days=cutoff_days)
+    today_start = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
     
     logger.info(
         f"Starting inactivity decay (cutoff: {cutoff_date}, cutoff_days={cutoff_days})"
@@ -269,7 +272,7 @@ def apply_inactivity_decay(
         ) | TeamRanking.objects.select_related('team').filter(
             team__status='ACTIVE',
             last_activity_date__lt=cutoff_date,
-            last_decay_applied__lt=timezone.now().date()
+            last_decay_applied__lt=today_start
         )
         
         if limit:
@@ -409,9 +412,14 @@ def recalculate_organization_rankings(
     )
     
     try:
-        # Build queryset with prefetch
+        # Build queryset with active team rankings prefetched using the
+        # current TeamRanking reverse OneToOne relation.
         queryset = Organization.objects.prefetch_related(
-            'teams__ranking'
+            Prefetch(
+                'teams',
+                queryset=Team.objects.filter(status='ACTIVE').select_related('ranking'),
+                to_attr='active_ranked_teams',
+            )
         ).all()
         
         if limit:
@@ -425,7 +433,7 @@ def recalculate_organization_rankings(
             try:
                 # Get top 3 teams by CP
                 teams_with_cp = []
-                for team in org.teams.filter(status='ACTIVE'):
+                for team in getattr(org, 'active_ranked_teams', []):
                     try:
                         ranking = team.ranking
                         teams_with_cp.append((team, ranking.current_cp))
