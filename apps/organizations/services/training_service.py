@@ -25,6 +25,10 @@ from apps.organizations.models.training import (
     TryoutSession,
     VodReview,
 )
+from apps.organizations.services.team_authority import (
+    can_access_team_hq,
+    can_manage_training,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -34,22 +38,7 @@ class TeamTrainingService:
 
     @staticmethod
     def has_team_ops_authority(user, team) -> bool:
-        """Return True for owner, manager, or designated tournament captain."""
-        if not user or not user.is_authenticated:
-            return False
-        if getattr(user, "is_superuser", False):
-            return True
-        if team.created_by_id == user.id:
-            return True
-        if team.organization and getattr(team.organization, "ceo_id", None) == user.id:
-            return True
-        return TeamMembership.objects.filter(
-            team=team,
-            user=user,
-            status=MembershipStatus.ACTIVE,
-        ).filter(
-            models_q_ops_authority()
-        ).exists()
+        return can_manage_training(user, team)
 
     @staticmethod
     def verify_team_ops_authority(user, team, action="manage team training"):
@@ -60,13 +49,7 @@ class TeamTrainingService:
 
     @staticmethod
     def user_can_view_team_ops(user, team) -> bool:
-        if TeamTrainingService.has_team_ops_authority(user, team):
-            return True
-        return TeamMembership.objects.filter(
-            team=team,
-            user=user,
-            status=MembershipStatus.ACTIVE,
-        ).exists()
+        return can_access_team_hq(user, team)
 
     @staticmethod
     def default_game_for_team(team):

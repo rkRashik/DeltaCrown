@@ -17,6 +17,13 @@ Performance Targets (p95 latency):
 from typing import Any, Dict, List, Optional
 from dataclasses import dataclass
 
+from django.contrib.auth import get_user_model
+
+from apps.organizations.services.team_authority import (
+    can_manage_roster,
+    can_manage_team_profile,
+)
+
 from .exceptions import (
     NotFoundError,
     PermissionDeniedError,
@@ -620,8 +627,13 @@ class TeamService:
             - Uses transaction.atomic for data integrity
         """
         from django.db import transaction
-        from apps.organizations.models import Team, TeamMembership, OrganizationMembership
-        from apps.organizations.choices import MembershipRole, MembershipStatus, RosterSlot
+        from apps.organizations.models import Team, TeamMembership, TeamMembershipEvent
+        from apps.organizations.choices import (
+            MembershipEventType,
+            MembershipRole,
+            MembershipStatus,
+            RosterSlot,
+        )
         
         with transaction.atomic():
             # Get team with organization (1 query with lock)
@@ -630,34 +642,18 @@ class TeamService:
             except Team.DoesNotExist:
                 raise NotFoundError("team", team_id)
             
-            # Permission check
-            if team.organization:
-                # Org-owned team: Check if user is org CEO or MANAGER
-                org_membership = OrganizationMembership.objects.filter(
-                    organization=team.organization,
-                    user_id=added_by_user_id,
-                    role__in=['CEO', 'MANAGER']
-                ).first()
-                
-                # Also check if user is team OWNER or MANAGER
-                team_membership = TeamMembership.objects.filter(
-                    team=team,
-                    user_id=added_by_user_id,
-                    status=MembershipStatus.ACTIVE,
-                    role__in=[MembershipRole.OWNER, MembershipRole.MANAGER]
-                ).first()
-                
-                if not org_membership and not team_membership:
-                    raise PermissionDeniedError("Only organization managers or team managers can add members")
-            else:
-                # Independent team: Check if user is OWNER or MANAGER
-                if not TeamMembership.objects.filter(
-                    team=team,
-                    user_id=added_by_user_id,
-                    status=MembershipStatus.ACTIVE,
-                    role__in=[MembershipRole.OWNER, MembershipRole.MANAGER]
-                ).exists():
-                    raise PermissionDeniedError("Only team owner or managers can add members")
+            User = get_user_model()
+            try:
+                actor_user = User.objects.get(id=added_by_user_id)
+            except User.DoesNotExist:
+                raise NotFoundError(
+                    f"user {added_by_user_id} not found",
+                    resource_type="user",
+                    resource_id=added_by_user_id,
+                )
+
+            if not can_manage_roster(actor_user, team):
+                raise PermissionDeniedError("Only team managers can add members")
             
             # Validate role
             valid_roles = [choice[0] for choice in MembershipRole.choices]
@@ -675,7 +671,7 @@ class TeamService:
                     raise ValidationError(f"Invalid roster slot: {roster_slot}")
             
             # Find user by ID, username, or email
-            User = get_user_model()
+            user_lookup = str(user_lookup)
             user = None
             if user_lookup.isdigit():
                 try:
@@ -712,6 +708,15 @@ class TeamService:
                 status=status,
                 is_tournament_captain=False,
             )
+            TeamMembershipEvent.objects.create(
+                membership=membership,
+                team=team,
+                user=user,
+                actor=actor_user,
+                event_type=MembershipEventType.JOINED,
+                new_role=membership.role,
+                new_status=membership.status,
+            )
             
             return membership.id
     
@@ -746,7 +751,7 @@ class TeamService:
             - Uses transaction.atomic + select_for_update
         """
         from django.db import transaction
-        from apps.organizations.models import Team, TeamMembership, OrganizationMembership
+        from apps.organizations.models import TeamMembership
         from apps.organizations.choices import MembershipRole, MembershipStatus, RosterSlot
         
         with transaction.atomic():
@@ -760,31 +765,18 @@ class TeamService:
             
             team = membership.team
             
-            # Permission check (same logic as add_team_member)
-            if team.organization:
-                org_membership = OrganizationMembership.objects.filter(
-                    organization=team.organization,
-                    user_id=updated_by_user_id,
-                    role__in=['CEO', 'MANAGER']
-                ).first()
-                
-                team_membership = TeamMembership.objects.filter(
-                    team=team,
-                    user_id=updated_by_user_id,
-                    status=MembershipStatus.ACTIVE,
-                    role__in=[MembershipRole.OWNER, MembershipRole.MANAGER]
-                ).first()
-                
-                if not org_membership and not team_membership:
-                    raise PermissionDeniedError("Only organization managers or team managers can update roles")
-            else:
-                if not TeamMembership.objects.filter(
-                    team=team,
-                    user_id=updated_by_user_id,
-                    status=MembershipStatus.ACTIVE,
-                    role__in=[MembershipRole.OWNER, MembershipRole.MANAGER]
-                ).exists():
-                    raise PermissionDeniedError("Only team owner or managers can update roles")
+            User = get_user_model()
+            try:
+                actor_user = User.objects.get(id=updated_by_user_id)
+            except User.DoesNotExist:
+                raise NotFoundError(
+                    f"user {updated_by_user_id} not found",
+                    resource_type="user",
+                    resource_id=updated_by_user_id,
+                )
+
+            if not can_manage_roster(actor_user, team):
+                raise PermissionDeniedError("Only team managers can update roles")
             
             # HARD RULE: Cannot change OWNER role on independent teams
             if membership.role == MembershipRole.OWNER and not team.organization:
@@ -850,8 +842,8 @@ class TeamService:
             - Uses transaction.atomic
         """
         from django.db import transaction
-        from apps.organizations.models import Team, TeamMembership, OrganizationMembership
-        from apps.organizations.choices import MembershipRole, MembershipStatus
+        from apps.organizations.models import TeamMembership, TeamMembershipEvent
+        from apps.organizations.choices import MembershipEventType, MembershipRole, MembershipStatus
         from django.utils import timezone
         
         with transaction.atomic():
@@ -865,41 +857,40 @@ class TeamService:
             
             team = membership.team
             
-            # Permission check
-            if team.organization:
-                org_membership = OrganizationMembership.objects.filter(
-                    organization=team.organization,
-                    user_id=removed_by_user_id,
-                    role__in=['CEO', 'MANAGER']
-                ).first()
-                
-                team_membership = TeamMembership.objects.filter(
-                    team=team,
-                    user_id=removed_by_user_id,
-                    status=MembershipStatus.ACTIVE,
-                    role__in=[MembershipRole.OWNER, MembershipRole.MANAGER]
-                ).first()
-                
-                if not org_membership and not team_membership:
-                    raise PermissionDeniedError("Only organization managers or team managers can remove members")
-            else:
-                if not TeamMembership.objects.filter(
-                    team=team,
-                    user_id=removed_by_user_id,
-                    status=MembershipStatus.ACTIVE,
-                    role__in=[MembershipRole.OWNER, MembershipRole.MANAGER]
-                ).exists():
-                    raise PermissionDeniedError("Only team owner or managers can remove members")
+            User = get_user_model()
+            try:
+                actor_user = User.objects.get(id=removed_by_user_id)
+            except User.DoesNotExist:
+                raise NotFoundError(
+                    f"user {removed_by_user_id} not found",
+                    resource_type="user",
+                    resource_id=removed_by_user_id,
+                )
+
+            if not can_manage_roster(actor_user, team):
+                raise PermissionDeniedError("Only team managers can remove members")
             
             # HARD RULE: Cannot remove OWNER from independent teams
             if membership.role == MembershipRole.OWNER and not team.organization:
                 raise ConflictError("Cannot remove OWNER from independent teams (transfer ownership first)")
             
             # Soft delete: set status to INACTIVE
+            old_role = membership.role
+            old_status = membership.status
             membership.status = MembershipStatus.INACTIVE
             membership.left_at = timezone.now()
             membership.left_reason = 'Removed by manager'
             membership.save()
+            TeamMembershipEvent.objects.create(
+                membership=membership,
+                team=team,
+                user=membership.user,
+                actor=actor_user,
+                event_type=MembershipEventType.REMOVED,
+                old_role=old_role,
+                old_status=old_status,
+                new_status=membership.status,
+            )
             
             return True
     
@@ -938,8 +929,7 @@ class TeamService:
             - Uses transaction.atomic
         """
         from django.db import transaction
-        from apps.organizations.models import Team, TeamMembership, OrganizationMembership
-        from apps.organizations.choices import MembershipRole, MembershipStatus
+        from apps.organizations.models import Team
         
         with transaction.atomic():
             # Get team (1 query with lock)
@@ -948,31 +938,18 @@ class TeamService:
             except Team.DoesNotExist:
                 raise NotFoundError("team", team_id)
             
-            # Permission check
-            if team.organization:
-                org_membership = OrganizationMembership.objects.filter(
-                    organization=team.organization,
-                    user_id=updated_by_user_id,
-                    role__in=['CEO', 'MANAGER']
-                ).first()
-                
-                team_membership = TeamMembership.objects.filter(
-                    team=team,
-                    user_id=updated_by_user_id,
-                    status=MembershipStatus.ACTIVE,
-                    role__in=[MembershipRole.OWNER, MembershipRole.MANAGER]
-                ).first()
-                
-                if not org_membership and not team_membership:
-                    raise PermissionDeniedError("Only organization managers or team managers can update settings")
-            else:
-                if not TeamMembership.objects.filter(
-                    team=team,
-                    user_id=updated_by_user_id,
-                    status=MembershipStatus.ACTIVE,
-                    role__in=[MembershipRole.OWNER, MembershipRole.MANAGER]
-                ).exists():
-                    raise PermissionDeniedError("Only team owner or managers can update settings")
+            User = get_user_model()
+            try:
+                actor_user = User.objects.get(id=updated_by_user_id)
+            except User.DoesNotExist:
+                raise NotFoundError(
+                    f"user {updated_by_user_id} not found",
+                    resource_type="user",
+                    resource_id=updated_by_user_id,
+                )
+
+            if not can_manage_team_profile(actor_user, team):
+                raise PermissionDeniedError("Only team managers can update settings")
             
             # Update fields (partial update)
             if logo_url is not None:
