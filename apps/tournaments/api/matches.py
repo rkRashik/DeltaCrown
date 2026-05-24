@@ -412,7 +412,7 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
             return Response(data, status=status.HTTP_200_OK)
         
         # Update dispute records
-        Dispute.objects.filter(match=match, status='open').update(
+        DisputeRecord.objects.filter(match=match, status='open').update(
             status='resolved',
             resolved_by_id=request.user.id,
             resolved_at=timezone.now(),
