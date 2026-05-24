@@ -112,9 +112,12 @@ class MatchResultIntegrator:
         Returns:
             Tuple of (winner_is_vnext, loser_is_vnext)
         """
-        winner_is_vnext = MatchResultIntegrator.is_vnext_team(winner_team_id)
-        loser_is_vnext = MatchResultIntegrator.is_vnext_team(loser_team_id)
-        return winner_is_vnext, loser_is_vnext
+        vnext_ids = set(
+            VNextTeam.objects.filter(
+                id__in=[winner_team_id, loser_team_id]
+            ).order_by().values_list('id', flat=True)
+        )
+        return winner_team_id in vnext_ids, loser_team_id in vnext_ids
     
     # ========================================================================
     # MATCH RESULT PROCESSING
