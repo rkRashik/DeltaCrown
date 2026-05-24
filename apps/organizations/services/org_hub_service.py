@@ -206,7 +206,7 @@ def _compute_org_stats(organization, teams: List) -> Dict[str, Any]:
     if hasattr(organization, 'ranking') and organization.ranking:
         try:
             stats['global_rank'] = organization.ranking.global_rank
-            stats['total_cp'] = organization.ranking.total_points
+            stats['total_cp'] = organization.ranking.empire_score
         except AttributeError:
             logger.warning(
                 f"Ranking model missing expected fields",

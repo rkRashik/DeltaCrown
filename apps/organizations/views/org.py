@@ -182,7 +182,8 @@ def org_hub(request, org_slug):
     """
     from apps.organizations.services.org_hub_service import get_org_hub_context
     from apps.organizations.models import Organization
-    from django.shortcuts import get_object_or_404, render
+    from django.http import Http404
+    from django.shortcuts import render
     
     try:
         context = get_org_hub_context(org_slug=org_slug, user=request.user)
@@ -216,7 +217,7 @@ def org_hub(request, org_slug):
                 'org_slug': org_slug,
             }
         )
-        raise
+        raise Http404("Organization not found")
 
 
 @login_required

@@ -56,16 +56,15 @@ class TestGetOrgHubContext(TestCase):
         
         self.profile = OrganizationProfile.objects.create(
             organization=self.org,
-            description='Test organization for hub',
-            region='US',
-            website='https://testorg.gg',
-            founded_date=datetime.now().date() - timedelta(days=365)
+            region_code='US',
+            discord_link='https://discord.gg/testorg',
+            founded_year=datetime.now().year - 1,
         )
         
         self.ranking = OrganizationRanking.objects.create(
             organization=self.org,
             global_rank=15,
-            total_points=45000
+            empire_score=45000
         )
         
         # Create manager membership
@@ -191,7 +190,7 @@ class TestComputeOrgStats(TestCase):
         self.ranking = OrganizationRanking.objects.create(
             organization=self.org,
             global_rank=42,
-            total_points=12000
+            empire_score=12000
         )
     
     def test_compute_stats_with_ranking(self):
@@ -206,7 +205,7 @@ class TestComputeOrgStats(TestCase):
         """Test computing stats when ranking doesn't exist."""
         # Delete ranking
         self.ranking.delete()
-        delattr(self.org, 'ranking')
+        self.org = Organization.objects.get(id=self.org.id)
         
         stats = _compute_org_stats(self.org, [])
         
