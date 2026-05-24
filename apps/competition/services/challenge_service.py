@@ -1044,26 +1044,20 @@ class ChallengeService:
     @staticmethod
     def _has_team_authority(user, team, *, allow_captain=True):
         """True iff user is OWNER/MANAGER, or captain when policy allows."""
-        if team is None or user is None or not getattr(user, 'is_authenticated', True):
-            return False
-        qs = team.vnext_memberships.filter(
-            user=user,
-            status='ACTIVE',
+        from apps.organizations.services.team_authority import (
+            can_act_as_team_captain,
+            can_manage_team_profile,
         )
-        role_filter = Q(role__in=['OWNER', 'MANAGER'])
+
         if allow_captain:
-            role_filter |= Q(is_tournament_captain=True)
-        return qs.filter(role_filter).exists()
+            return can_act_as_team_captain(user, team)
+        return can_manage_team_profile(user, team)
 
     @staticmethod
     def _is_team_owner_or_manager(user, team):
-        if team is None or user is None or not getattr(user, 'is_authenticated', True):
-            return False
-        return team.vnext_memberships.filter(
-            user=user,
-            status='ACTIVE',
-            role__in=['OWNER', 'MANAGER'],
-        ).exists()
+        from apps.organizations.services.team_authority import can_manage_team_profile
+
+        return can_manage_team_profile(user, team)
 
     # ── Showdown escrow helpers ──────────────────────────────────────────
 
