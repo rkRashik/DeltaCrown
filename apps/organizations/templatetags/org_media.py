@@ -4,10 +4,13 @@ Safe media file URL handling for organization templates.
 Prevents crashes when accessing .url on empty ImageField/FileField.
 """
 
+from urllib.parse import urlparse
+
 from django import template
-from django.utils.safestring import mark_safe
 
 register = template.Library()
+
+_SAFE_HREF_SCHEMES = frozenset({"http", "https"})
 
 
 @register.filter(name='safe_file_url')
@@ -61,3 +64,23 @@ def safe_file_exists(file_field):
         return bool(file_field and file_field.name)
     except (ValueError, AttributeError):
         return False
+
+
+@register.filter(name='safe_href')
+def safe_href(url):
+    """
+    Return a clickable href only for absolute HTTP(S) URLs.
+
+    This is a template defense-in-depth filter for legacy stored social links:
+    Django escaping protects attribute syntax, but not unsafe URL schemes such
+    as javascript: or data:.
+    """
+    if not url:
+        return ''
+
+    value = str(url).strip()
+    parsed = urlparse(value)
+    if parsed.scheme not in _SAFE_HREF_SCHEMES or not parsed.netloc:
+        return ''
+
+    return value

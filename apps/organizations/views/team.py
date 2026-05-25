@@ -14,6 +14,7 @@ from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.conf import settings
 from apps.common.seo import absolute_url, breadcrumb_schema, build_seo, truncate_meta
+from apps.organizations.templatetags.org_media import safe_href
 
 logger = logging.getLogger(__name__)
 
@@ -670,7 +671,8 @@ def team_detail(request, team_slug, org_slug=None):
         if image_url:
             team_schema['image'] = absolute_url(image_url)
         same_as = [
-            url for url in [
+            safe_url for safe_url in [
+                safe_href(url) for url in [
                 team.website_url,
                 team.twitter_url,
                 team.instagram_url,
@@ -679,7 +681,8 @@ def team_detail(request, team_slug, org_slug=None):
                 team.facebook_url,
                 team.tiktok_url,
                 team.discord_url,
-            ] if url
+                ]
+            ] if safe_url
         ]
         if same_as:
             team_schema['sameAs'] = same_as[:8]

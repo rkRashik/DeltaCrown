@@ -273,6 +273,15 @@ def _build_team_context(team: Team, is_restricted: bool) -> Dict[str, Any]:
             'playstyle': getattr(team, 'playstyle', ''),
             'playpace': getattr(team, 'playpace', ''),
             'playfocus': getattr(team, 'playfocus', ''),
+            # Social links are rendered through safe_href in templates.
+            'twitter_url': getattr(team, 'twitter_url', ''),
+            'instagram_url': getattr(team, 'instagram_url', ''),
+            'youtube_url': getattr(team, 'youtube_url', ''),
+            'twitch_url': getattr(team, 'twitch_url', ''),
+            'facebook_url': getattr(team, 'facebook_url', ''),
+            'tiktok_url': getattr(team, 'tiktok_url', ''),
+            'discord_url': getattr(team, 'discord_url', ''),
+            'website_url': getattr(team, 'website_url', ''),
         })
     else:
         # Restricted: empty defaults for Tier 2+
@@ -298,6 +307,14 @@ def _build_team_context(team: Team, is_restricted: bool) -> Dict[str, Any]:
             'playstyle': '',
             'playpace': '',
             'playfocus': '',
+            'twitter_url': '',
+            'instagram_url': '',
+            'youtube_url': '',
+            'twitch_url': '',
+            'facebook_url': '',
+            'tiktok_url': '',
+            'discord_url': '',
+            'website_url': '',
         })
     
     return team_data

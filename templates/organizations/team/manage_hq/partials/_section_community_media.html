@@ -1,3 +1,4 @@
+{% load org_media %}
 {% comment %}
 Community & Media — Announcements, Media Gallery, Highlights, Connected Platforms, Comms.
 Redesigned: clear visual hierarchy, 2-column grid layout, unified feed + announcements.
@@ -229,9 +230,11 @@ Redesigned: clear visual hierarchy, 2-column grid layout, unified feed + announc
                         <p class="text-[11px] text-red-400/60">Set up in Team Profile</p>
                         {% endif %}
                     </div>
-                    {% if team.discord_url %}
-                    <a href="{{ team.discord_url }}" target="_blank" rel="noopener" class="shrink-0 px-2.5 py-1 rounded-lg bg-indigo-500/15 text-indigo-400 text-[11px] font-medium hover:bg-indigo-500/25 transition">Join</a>
+                    {% with safe_discord_url=team.discord_url|safe_href %}
+                    {% if safe_discord_url %}
+                    <a href="{{ safe_discord_url }}" target="_blank" rel="noopener" class="shrink-0 px-2.5 py-1 rounded-lg bg-indigo-500/15 text-indigo-400 text-[11px] font-medium hover:bg-indigo-500/25 transition">Join</a>
                     {% endif %}
+                    {% endwith %}
                     {% if team.discord_webhook_url and is_admin %}
                     <button data-click="ManageHQ.Community.testDiscordWebhook" id="btn-test-discord"
                         class="shrink-0 px-2 py-1 rounded-lg bg-white/5 border border-white/10 text-white/40 text-[10px] font-medium hover:bg-white/10 transition" title="Test webhook">
@@ -253,9 +256,11 @@ Redesigned: clear visual hierarchy, 2-column grid layout, unified feed + announc
                         <p class="text-[11px] text-white/20">Optional</p>
                         {% endif %}
                     </div>
-                    {% if team.whatsapp_url %}
-                    <a href="{{ team.whatsapp_url }}" target="_blank" rel="noopener" class="shrink-0 px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-400 text-[11px] font-medium hover:bg-emerald-500/20 transition">Open</a>
+                    {% with safe_whatsapp_url=team.whatsapp_url|safe_href %}
+                    {% if safe_whatsapp_url %}
+                    <a href="{{ safe_whatsapp_url }}" target="_blank" rel="noopener" class="shrink-0 px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-400 text-[11px] font-medium hover:bg-emerald-500/20 transition">Open</a>
                     {% endif %}
+                    {% endwith %}
                 </div>
 
                 {# Messenger #}
@@ -271,9 +276,11 @@ Redesigned: clear visual hierarchy, 2-column grid layout, unified feed + announc
                         <p class="text-[11px] text-white/20">Optional</p>
                         {% endif %}
                     </div>
-                    {% if team.messenger_url %}
-                    <a href="{{ team.messenger_url }}" target="_blank" rel="noopener" class="shrink-0 px-2.5 py-1 rounded-lg bg-blue-500/10 text-blue-400 text-[11px] font-medium hover:bg-blue-500/20 transition">Open</a>
+                    {% with safe_messenger_url=team.messenger_url|safe_href %}
+                    {% if safe_messenger_url %}
+                    <a href="{{ safe_messenger_url }}" target="_blank" rel="noopener" class="shrink-0 px-2.5 py-1 rounded-lg bg-blue-500/10 text-blue-400 text-[11px] font-medium hover:bg-blue-500/20 transition">Open</a>
                     {% endif %}
+                    {% endwith %}
                 </div>
 
                 {# Privacy note #}
