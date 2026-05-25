@@ -26,9 +26,12 @@ def game(db):
     return Game.objects.create(
         name='Test Game',
         slug='test-game',
-        default_team_size=5,
-        profile_id_field='riot_id',
-        default_result_type='map_score'
+        display_name='Test Game',
+        short_code='TG',
+        category='FPS',
+        game_type='TEAM_VS_TEAM',
+        platforms=['PC'],
+        is_active=True,
     )
 
 
@@ -51,7 +54,7 @@ def tournament(db, game, organizer_user):
         slug='test-tournament',
         game=game,
         organizer=organizer_user,
-        max_teams=16,
+        max_participants=16,
         registration_start=timezone.now() - timedelta(days=2),
         registration_end=timezone.now() + timedelta(days=7),
         tournament_start=timezone.now() + timedelta(days=14),
@@ -158,8 +161,8 @@ class TestPaymentServiceOrganizerActions:
     def test_bulk_verify_updates_multiple_payments(self, tournament, organizer_user, db):
         """Test bulk verifying payments"""
         # Create test registrations and payments
-        user1 = User.objects.create_user(username='user1', password='pass')
-        user2 = User.objects.create_user(username='user2', password='pass')
+        user1 = User.objects.create_user(username='user1', email='user1@example.com', password='pass')
+        user2 = User.objects.create_user(username='user2', email='user2@example.com', password='pass')
         
         reg1 = Registration.objects.create(tournament=tournament, user=user1, status='pending')
         reg2 = Registration.objects.create(tournament=tournament, user=user2, status='pending')
@@ -191,7 +194,7 @@ class TestPaymentServiceOrganizerActions:
     
     def test_process_refund_stores_metadata_and_updates_status(self, tournament, organizer_user, db):
         """Test processing refund"""
-        user = User.objects.create_user(username='user3', password='pass')
+        user = User.objects.create_user(username='user3', email='user3@example.com', password='pass')
         reg = Registration.objects.create(tournament=tournament, user=user, status='confirmed')
         payment = Payment.objects.create(
             registration=reg,

@@ -6,7 +6,8 @@ from django.test import TestCase, Client
 from django.urls import reverse
 from django.contrib.auth import get_user_model
 from apps.tournaments.models import Tournament, Game, Bracket, BracketNode, TournamentPaymentMethod
-from apps.organizations.models import Team
+from apps.organizations.choices import MembershipRole, MembershipStatus, TeamStatus
+from apps.organizations.models import Team, TeamMembership
 from django.utils import timezone
 from datetime import timedelta
 
@@ -178,14 +179,26 @@ class TeamAdminStabilityTest(TestCase):
             password="pass123"
         )
         
+        self.game = Game.objects.create(
+            name="Team Admin Game",
+            slug="team-admin-game",
+            is_active=True
+        )
         self.team = Team.objects.create(
             name="Test Team",
             tag="TT",
             slug="test-team",
-            game="pubg",
-            region="bd_dhaka",
-            captain=self.captain.profile,
-            is_active=True
+            game_id=self.game.id,
+            region="BD",
+            created_by=self.captain,
+            status=TeamStatus.ACTIVE,
+            visibility="PUBLIC",
+        )
+        TeamMembership.objects.create(
+            team=self.team,
+            user=self.captain,
+            role=MembershipRole.OWNER,
+            status=MembershipStatus.ACTIVE,
         )
     
     def test_team_admin_list_loads(self):

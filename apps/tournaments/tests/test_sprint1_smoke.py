@@ -25,6 +25,7 @@ from django.utils import timezone
 from datetime import timedelta
 
 from apps.tournaments.models import Tournament, Registration, Game
+from apps.organizations.choices import MembershipRole, MembershipStatus, TeamStatus
 from apps.organizations.models import Team, TeamMembership
 from apps.user_profile.models import UserProfile
 
@@ -55,10 +56,13 @@ class Sprint1SmokeTests(TestCase):
         # Create Game (required FK for Tournament.game)
         self.game = Game.objects.create(
             name='eFootball',
+            display_name='eFootball',
             slug='efootball',
-            default_team_size=1,  # 1v1
-            profile_id_field='efootball_id',
-            default_result_type='point_based'
+            short_code='EFB',
+            category='SPORTS',
+            game_type='1V1',
+            platforms=['PC'],
+            is_active=True,
         )
         
         # Create test users with profiles
@@ -84,24 +88,22 @@ class Sprint1SmokeTests(TestCase):
         self.team = Team.objects.create(
             name='Test Team',
             tag='TT',
-            captain=self.player_profile,
-            game='efootball',  # CharField with choices
+            slug='test-team',
+            created_by=self.player_user,
+            game_id=self.game.id,
+            status=TeamStatus.ACTIVE,
+            visibility='PUBLIC',
         )
         
-        # Update or create team membership with registration permission
-        # (Team signals may have already created membership for captain)
-        membership, created = TeamMembership.objects.get_or_create(
+        TeamMembership.objects.get_or_create(
             team=self.team,
-            profile=self.player_profile,
+            user=self.player_user,
             defaults={
-                'role': TeamMembership.Role.MANAGER,
-                'can_register_tournaments': True,
-                'status': TeamMembership.Status.ACTIVE,
+                'role': MembershipRole.MANAGER,
+                'is_tournament_captain': True,
+                'status': MembershipStatus.ACTIVE,
             }
         )
-        if not created:
-            membership.can_register_tournaments = True
-            membership.save()
         
         # Create test tournament (registration_open state)
         # NOTE: Using current model field names (participation_type, max_participants, registration_start, etc.)

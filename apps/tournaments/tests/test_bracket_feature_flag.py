@@ -12,7 +12,10 @@ Reference: CLEANUP_AND_TESTING_PART_6.md §4.5 (Safe Rollback)
 
 import pytest
 from unittest.mock import patch, MagicMock
+from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
+from django.utils import timezone
+from datetime import timedelta
 from apps.tournaments.services.bracket_service import BracketService
 from apps.tournaments.models import Tournament, Bracket, Game
 from apps.tournament_ops.dtos.match import MatchDTO
@@ -28,11 +31,22 @@ class BracketFeatureFlagTests(TestCase):
             slug="test-game",
             is_active=True
         )
+        self.organizer = get_user_model().objects.create_user(
+            username="bracket_organizer",
+            email="bracket_organizer@test.com",
+            password="pass123",
+        )
+        now = timezone.now()
         self.tournament = Tournament.objects.create(
             name="Test Tournament",
             game=self.game,
+            organizer=self.organizer,
             format=Bracket.SINGLE_ELIMINATION,
-            max_teams=8,
+            max_participants=8,
+            min_participants=2,
+            registration_start=now,
+            registration_end=now + timedelta(days=7),
+            tournament_start=now + timedelta(days=10),
         )
         self.participants = [
             {"id": str(i), "name": f"Team {i}", "seed": i}

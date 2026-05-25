@@ -37,9 +37,12 @@ def game(db):
     return Game.objects.create(
         name='Test Game',
         slug='test-game',
-        default_team_size=5,
-        profile_id_field='riot_id',
-        default_result_type='map_score'
+        display_name='Test Game',
+        short_code='TG',
+        category='FPS',
+        game_type='TEAM_VS_TEAM',
+        platforms=['PC'],
+        is_active=True,
     )
 
 
@@ -73,7 +76,7 @@ def tournament(db, game, organizer_user):
         slug='test-tournament',
         game=game,
         organizer=organizer_user,
-        max_teams=16,
+        max_participants=16,
         registration_start=timezone.now() - timedelta(days=2),
         registration_end=timezone.now() + timedelta(days=7),
         tournament_start=timezone.now() + timedelta(days=14),

@@ -48,6 +48,10 @@ def _fresh_name():
     return f"Test Tournament {uuid.uuid4().hex[:8]}"
 
 
+def _test_email(label):
+    return f"{label}-{uuid.uuid4().hex[:8]}@test.com"
+
+
 def _api_payload(name=None, **overrides):
     now = timezone.now()
     p = {
@@ -109,7 +113,7 @@ def _reset_config(**fields):
 class HostingFeePaymentModelTest(TestCase):
 
     def setUp(self):
-        self.user = User.objects.create_user(username="feeuser", password="x")
+        self.user = User.objects.create_user(username="feeuser", email="feeuser@test.com", password="x")
         self.game = Game.objects.filter(is_active=True).first()
 
     def _make_tour(self, name=None):
@@ -145,7 +149,7 @@ class HostingFeePaymentModelTest(TestCase):
         self.assertIsNone(rec.wallet_transaction_id)
 
     def test_mark_verified(self):
-        admin = User.objects.create_user(username="adminv", is_staff=True, password="x")
+        admin = User.objects.create_user(username="adminv", email="adminv@test.com", is_staff=True, password="x")
         tour = self._make_tour()
         rec = TournamentHostingFeePayment.objects.create(
             user=self.user,
@@ -194,7 +198,7 @@ class ChargeHostingFeeWaivedTest(TestCase):
 
     def setUp(self):
         _reset_config(hosting_fee_dc=500, staff_bypass_enabled=True)
-        self.staff = User.objects.create_user(username="chstaff", is_staff=True, password="x")
+        self.staff = User.objects.create_user(username="chstaff", email="chstaff@test.com", is_staff=True, password="x")
         self.game = Game.objects.filter(is_active=True).first()
         now = timezone.now()
         self.tour = Tournament.objects.create(
@@ -232,7 +236,7 @@ class ChargeHostingFeeWaivedTest(TestCase):
 
     def test_fee_zero_config_writes_waived(self):
         _reset_config(hosting_fee_dc=0)
-        regular = User.objects.create_user(username="regzero", password="x")
+        regular = User.objects.create_user(username="regzero", email="regzero@test.com", password="x")
         now = timezone.now()
         tour2 = Tournament.objects.create(
             name=_fresh_name(),
@@ -256,7 +260,7 @@ class ChargeHostingFeeWaivedTest(TestCase):
 
     def test_fee_disabled_writes_waived(self):
         _reset_config(hosting_fee_enabled=False)
-        regular = User.objects.create_user(username="regoff", password="x")
+        regular = User.objects.create_user(username="regoff", email="regoff@test.com", password="x")
         now = timezone.now()
         tour3 = Tournament.objects.create(
             name=_fresh_name(),
@@ -286,8 +290,8 @@ class ChargeHostingFeeWaivedTest(TestCase):
 class HostingFeeStaffBypassTest(TestCase):
 
     def setUp(self):
-        self.staff = User.objects.create_user(username="bypassstaff", is_staff=True, password="x")
-        self.regular = User.objects.create_user(username="bypassreg", password="x")
+        self.staff = User.objects.create_user(username="bypassstaff", email="bypassstaff@test.com", is_staff=True, password="x")
+        self.regular = User.objects.create_user(username="bypassreg", email="bypassreg@test.com", password="x")
 
     def test_staff_exempt_when_bypass_on(self):
         _reset_config(hosting_fee_dc=500, staff_bypass_enabled=True)
@@ -315,8 +319,8 @@ class CreateAPIFeeIntegrationTest(TestCase):
 
     def setUp(self):
         _reset_config(hosting_fee_dc=500, staff_bypass_enabled=True)
-        self.staff = User.objects.create_user(username="apistaff", is_staff=True, password="x")
-        self.regular = User.objects.create_user(username="apireg", password="x")
+        self.staff = User.objects.create_user(username="apistaff", email="apistaff@test.com", is_staff=True, password="x")
+        self.regular = User.objects.create_user(username="apireg", email="apireg@test.com", password="x")
         self.url = reverse("tournaments_api:tournament-list")
 
     def _post(self, user, **kw):
@@ -382,8 +386,8 @@ class CreateAPIFeeIntegrationTest(TestCase):
 class CreatePageContextTest(TestCase):
 
     def setUp(self):
-        self.staff = User.objects.create_user(username="ctxstaff", is_staff=True, password="x")
-        self.regular = User.objects.create_user(username="ctxreg", password="x")
+        self.staff = User.objects.create_user(username="ctxstaff", email="ctxstaff@test.com", is_staff=True, password="x")
+        self.regular = User.objects.create_user(username="ctxreg", email="ctxreg@test.com", password="x")
 
     def _get(self, user):
         c = Client()
@@ -448,7 +452,7 @@ class SlugCollisionTest(TestCase):
 
     def setUp(self):
         _reset_config(hosting_fee_enabled=False)
-        self.staff = User.objects.create_user(username="slugstaff", is_staff=True, password="x")
+        self.staff = User.objects.create_user(username="slugstaff", email="slugstaff@test.com", is_staff=True, password="x")
         self.url = reverse("tournaments_api:tournament-list")
         self.c = Client()
         self.c.force_login(self.staff)
@@ -529,7 +533,7 @@ class AdminRegistrationTest(TestCase):
 
     def test_admin_list_page_accessible(self):
         superuser = User.objects.create_superuser(
-            username=f"sadmin{uuid.uuid4().hex[:4]}", password="x"
+            username=f"sadmin{uuid.uuid4().hex[:4]}", email=_test_email("sadmin"), password="x"
         )
         c = Client()
         c.force_login(superuser)
@@ -538,9 +542,13 @@ class AdminRegistrationTest(TestCase):
 
     def test_admin_mark_verified_action(self):
         superuser = User.objects.create_superuser(
-            username=f"sadmin2{uuid.uuid4().hex[:4]}", password="x"
+            username=f"sadmin2{uuid.uuid4().hex[:4]}", email=_test_email("sadmin2"), password="x"
         )
-        user = User.objects.create_user(username=f"feeact{uuid.uuid4().hex[:4]}", password="x")
+        user = User.objects.create_user(
+            username=f"feeact{uuid.uuid4().hex[:4]}",
+            email=_test_email("feeact"),
+            password="x",
+        )
         rec = TournamentHostingFeePayment.objects.create(
             user=user,
             amount_dc=0,
@@ -563,9 +571,13 @@ class AdminRegistrationTest(TestCase):
 
     def test_admin_mark_disputed_action(self):
         superuser = User.objects.create_superuser(
-            username=f"sadmin3{uuid.uuid4().hex[:4]}", password="x"
+            username=f"sadmin3{uuid.uuid4().hex[:4]}", email=_test_email("sadmin3"), password="x"
         )
-        user = User.objects.create_user(username=f"feedisp{uuid.uuid4().hex[:4]}", password="x")
+        user = User.objects.create_user(
+            username=f"feedisp{uuid.uuid4().hex[:4]}",
+            email=_test_email("feedisp"),
+            password="x",
+        )
         rec = TournamentHostingFeePayment.objects.create(
             user=user,
             amount_dc=500,

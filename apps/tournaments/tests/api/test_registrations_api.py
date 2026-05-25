@@ -9,6 +9,8 @@ from datetime import timedelta
 from rest_framework.test import APIClient
 from rest_framework import status
 
+from apps.organizations.choices import MembershipRole, MembershipStatus, TeamStatus
+from apps.organizations.models import Team, TeamMembership
 from apps.tournaments.models import Tournament, Registration, Game, PaymentVerification
 
 
@@ -39,7 +41,35 @@ def user2(django_user_model):
 @pytest.fixture
 def game(db):
     """Game fixture."""
-    return Game.objects.create(name="eFootball", slug="efootball")
+    return Game.objects.create(
+        name="eFootball",
+        display_name="eFootball",
+        slug="efootball",
+        short_code="EFB",
+        category="SPORTS",
+        game_type="1V1",
+        platforms=["PC"],
+        is_active=True,
+    )
+
+
+def create_team_for_user(user, tournament, *, name="Test Team", slug="test-team"):
+    team = Team.objects.create(
+        name=name,
+        slug=slug,
+        created_by=user,
+        game_id=tournament.game_id,
+        status=TeamStatus.ACTIVE,
+        visibility="PUBLIC",
+    )
+    TeamMembership.objects.create(
+        team=team,
+        user=user,
+        role=MembershipRole.OWNER,
+        status=MembershipStatus.ACTIVE,
+        is_tournament_captain=True,
+    )
+    return team
 
 
 @pytest.fixture
@@ -284,18 +314,10 @@ class TestTeamRegistrationAPI:
     
     def test_create_team_registration_happy_path(self, api_client, user_with_profile, tournament):
         """Test creating team registration returns 201."""
-        from apps.organizations.models import Team
-        
         captain_user, captain_profile = user_with_profile
         api_client.force_authenticate(user=captain_user)
         
-        # Create a team with captain_profile as captain
-        team = Team.objects.create(
-            name="Test Team",
-            captain=captain_profile,
-            created_by=captain_user,
-            game=tournament.game
-        )
+        team = create_team_for_user(captain_user, tournament)
         
         payload = {
             "tournament_id": tournament.id,
@@ -317,18 +339,11 @@ class TestTeamRegistrationAPI:
     
     def test_create_team_not_captain_returns_400(self, api_client, user_with_profile, member_with_profile, tournament):
         """Test non-captain cannot register team."""
-        from apps.organizations.models import Team
-        
         # User1 is captain
         captain_user, captain_profile = user_with_profile
         member_user, member_profile = member_with_profile
         
-        team = Team.objects.create(
-            name="Test Team",
-            captain=captain_profile,
-            created_by=captain_user,
-            game=tournament.game
-        )
+        team = create_team_for_user(captain_user, tournament)
         
         # member_user tries to register (not captain)
         api_client.force_authenticate(user=member_user)
@@ -349,17 +364,10 @@ class TestTeamRegistrationAPI:
     
     def test_create_team_duplicate_returns_400(self, api_client, user_with_profile, tournament):
         """Test duplicate team registration returns 400."""
-        from apps.organizations.models import Team
-        
         captain_user, captain_profile = user_with_profile
         api_client.force_authenticate(user=captain_user)
 
-        team = Team.objects.create(
-            name="Test Team",
-            captain=captain_profile,
-            created_by=captain_user,
-            game=tournament.game
-        )
+        team = create_team_for_user(captain_user, tournament)
         
         payload = {
             "tournament_id": tournament.id,
