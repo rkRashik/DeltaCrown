@@ -20,12 +20,10 @@ from typing import Dict, List, Optional, Tuple
 
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
-from django.db import transaction
-from django.db.models import Q
+from django.db import IntegrityError, transaction
 
-from apps.economy.services import award
-from apps.economy.models import DeltaCrownTransaction
-from apps.tournaments.models import Tournament, Registration, TournamentResult, PrizeTransaction
+from apps.economy.models import DeltaCrownTransaction, DeltaCrownWallet
+from apps.tournaments.models import Tournament, Registration, TournamentResult, PrizeTransaction, Payment
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
@@ -49,6 +47,47 @@ class PayoutService:
         '3rd': PrizeTransaction.Placement.THIRD,
         'participation': PrizeTransaction.Placement.PARTICIPATION,
     }
+
+    @staticmethod
+    def _locked_wallet_for_profile(profile):
+        wallet, _ = DeltaCrownWallet.objects.get_or_create(profile=profile)
+        return DeltaCrownWallet.objects.select_for_update().get(pk=wallet.pk)
+
+    @classmethod
+    def _create_wallet_transaction(
+        cls,
+        *,
+        profile,
+        amount: int,
+        reason: str,
+        tournament_id: int,
+        registration_id: int,
+        note: str,
+        created_by: Optional[User],
+        idempotency_key: str,
+    ) -> Tuple[DeltaCrownTransaction, bool]:
+        wallet = cls._locked_wallet_for_profile(profile)
+        balance_after = int(wallet.cached_balance) + int(amount)
+
+        try:
+            coin_tx = DeltaCrownTransaction.objects.create(
+                wallet=wallet,
+                amount=int(amount),
+                reason=reason,
+                tournament_id=tournament_id,
+                registration_id=registration_id,
+                note=note,
+                created_by=created_by,
+                idempotency_key=idempotency_key,
+                cached_balance_after=balance_after,
+            )
+        except IntegrityError:
+            existing_tx = DeltaCrownTransaction.objects.get(idempotency_key=idempotency_key)
+            return existing_tx, False
+
+        wallet.cached_balance = balance_after
+        wallet.save(update_fields=['cached_balance', 'updated_at'])
+        return coin_tx, True
     
     @classmethod
     def calculate_prize_distribution(
@@ -277,10 +316,9 @@ class PayoutService:
             
             # Award via economy service
             try:
-                # Determine user (solo) or team captain (team tournaments)
-                profile = registration.user
-                if not profile:
-                    raise ValueError(f"Registration {registration_id} has no user/profile")
+                if not registration.user_id:
+                    raise ValueError(f"Registration {registration_id} has no user")
+                profile = registration.user.profile
                 
                 # Idempotency key for economy service
                 idempotency_key = f"prize_payout_t{tournament_id}_r{registration_id}_p{placement_key}"
@@ -290,16 +328,15 @@ class PayoutService:
                 
                 # Atomic: both economy credit and prize audit record succeed or fail together
                 with transaction.atomic():
-                    # Create DeltaCrownTransaction via economy service
-                    coin_tx = award(
+                    coin_tx, _created = cls._create_wallet_transaction(
                         profile=profile,
                         amount=amount_int,
                         reason=DeltaCrownTransaction.Reason.WINNER if placement_key == '1st' else (
                             DeltaCrownTransaction.Reason.RUNNER_UP if placement_key == '2nd' else 
                             DeltaCrownTransaction.Reason.TOP4
                         ),
-                        tournament=tournament,
-                        registration=registration,
+                        tournament_id=tournament.id,
+                        registration_id=registration.id,
                         note=f"Prize payout - {placement_key} place",
                         created_by=processed_by,
                         idempotency_key=idempotency_key,
@@ -353,7 +390,8 @@ class PayoutService:
         """
         Process refunds for a cancelled tournament.
         
-        Refunds entry_fee_amount to all confirmed registrations.
+        Refunds verified DeltaCoin payments only, using the original debit
+        transaction amount.
         
         Args:
             tournament_id: Tournament ID
@@ -368,7 +406,7 @@ class PayoutService:
         Notes:
             - Idempotency key pattern: prize_refund_t{t_id}_r{reg_id}
             - Creates PrizeTransaction with status='refunded' and placement='participation'
-            - Only processes confirmed registrations (status='confirmed')
+            - Only processes confirmed registrations that paid with DeltaCoin
         """
         try:
             tournament = Tournament.objects.get(id=tournament_id)
@@ -381,31 +419,39 @@ class PayoutService:
                 f"Current status: {tournament.status}"
             )
         
-        # Get entry fee amount
-        entry_fee = getattr(tournament, 'entry_fee_amount', None)
-        if not entry_fee or entry_fee <= 0:
-            logger.warning(
-                f"Tournament {tournament_id}: No entry fee configured, no refunds to process"
-            )
-            return []
-        
-        entry_fee = Decimal(str(entry_fee))
-        
-        # Get all confirmed registrations
-        registrations = Registration.objects.filter(
-            tournament=tournament,
-            status=Registration.CONFIRMED
-        ).select_related('user')
-        
-        if not registrations.exists():
+        payments = Payment.objects.filter(
+            registration__tournament=tournament,
+            registration__status=Registration.CONFIRMED,
+            payment_method=Payment.DELTACOIN,
+            status=Payment.VERIFIED,
+        ).select_related('registration__user')
+
+        if not payments.exists():
             logger.info(
-                f"Tournament {tournament_id}: No confirmed registrations, no refunds to process"
+                f"Tournament {tournament_id}: No verified DeltaCoin payments, no refunds to process"
             )
             return []
         
         created_transaction_ids: List[int] = []
         
-        for registration in registrations:
+        for payment in payments:
+            registration = payment.registration
+            original_idempotency_key = f"tournament_entry_{tournament_id}_reg_{registration.id}"
+            original_tx = DeltaCrownTransaction.objects.filter(
+                idempotency_key=original_idempotency_key,
+                amount__lt=0,
+                reason=DeltaCrownTransaction.Reason.ENTRY_FEE_DEBIT,
+            ).first()
+            if original_tx is None:
+                logger.warning(
+                    f"Tournament {tournament_id}: Missing original DeltaCoin debit for "
+                    f"Registration {registration.id}, skipping refund"
+                )
+                continue
+
+            amount_int = abs(int(original_tx.amount))
+            refund_amount = Decimal(str(amount_int))
+
             # Idempotency: Check if refund PrizeTransaction already exists
             existing = PrizeTransaction.objects.filter(
                 tournament=tournament,
@@ -424,23 +470,19 @@ class PayoutService:
             
             # Award via economy service (positive amount = credit)
             try:
-                profile = registration.user
-                if not profile:
-                    raise ValueError(f"Registration {registration.id} has no user/profile")
+                if not registration.user_id:
+                    raise ValueError(f"Registration {registration.id} has no user")
+                profile = registration.user.profile
                 
                 # Idempotency key for economy service
                 idempotency_key = f"prize_refund_t{tournament_id}_r{registration.id}"
                 
-                # Convert Decimal to int
-                amount_int = int(entry_fee)
-                
-                # Create refund transaction via economy service
-                coin_tx = award(
+                coin_tx, _created = cls._create_wallet_transaction(
                     profile=profile,
                     amount=amount_int,
                     reason=DeltaCrownTransaction.Reason.REFUND,
-                    tournament=tournament,
-                    registration=registration,
+                    tournament_id=tournament.id,
+                    registration_id=registration.id,
                     note=f"Entry fee refund - tournament cancelled",
                     created_by=processed_by,
                     idempotency_key=idempotency_key,
@@ -451,7 +493,7 @@ class PayoutService:
                     tournament=tournament,
                     participant=registration,
                     placement=PrizeTransaction.Placement.PARTICIPATION,  # Refunds use 'participation'
-                    amount=entry_fee,
+                    amount=refund_amount,
                     coin_transaction_id=coin_tx.id,
                     status=PrizeTransaction.Status.REFUNDED,
                     processed_by=processed_by,
@@ -461,7 +503,7 @@ class PayoutService:
                 created_transaction_ids.append(coin_tx.id)
                 logger.info(
                     f"Tournament {tournament_id}: Refund processed for Registration {registration.id} "
-                    f"(Amount: {entry_fee}, Economy TX: {coin_tx.id})"
+                    f"(Amount: {refund_amount}, Economy TX: {coin_tx.id})"
                 )
             
             except Exception as e:
@@ -474,7 +516,7 @@ class PayoutService:
                     tournament=tournament,
                     participant=registration,
                     placement=PrizeTransaction.Placement.PARTICIPATION,
-                    amount=entry_fee,
+                    amount=refund_amount,
                     coin_transaction_id=None,
                     status=PrizeTransaction.Status.FAILED,
                     processed_by=processed_by,
