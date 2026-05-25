@@ -338,7 +338,7 @@ class TournamentLeaderboardViewTests(TestCase):
         
         # Should show empty-state messaging
         self.assertContains(response, 'No Standings Yet')
-        self.assertContains(response, 'Leaderboard will populate once matches are completed.')
+        self.assertContains(response, 'Standings will populate once group stage matches are played.')
         
         # standings should be empty or all participants have 0 games
         standings = response.context['standings']
@@ -416,7 +416,7 @@ class TournamentLeaderboardViewTests(TestCase):
         
         # Should show empty-state messaging
         self.assertContains(response, 'No Standings Yet')
-        self.assertContains(response, 'Leaderboard will populate once matches are completed.')
+        self.assertContains(response, 'Standings will populate once group stage matches are played.')
     
     def test_leaderboard_handles_tied_participants(self):
         """Test that tied participants are sorted by games played and registration ID."""

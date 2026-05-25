@@ -233,7 +233,7 @@ class Sprint1SmokeTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.context['eligibility_status'], 'already_registered')
         self.assertFalse(response.context['can_register'])
-        self.assertEqual(response.context['registration_action_label'], 'Enter Lobby')
+        self.assertEqual(response.context['registration_action_label'], 'Go to HUB')
         
         # Test 4: Verify CTA state transitions work without runtime errors
         # Additional states (full, closed, upcoming, not_eligible, no_team_permission) 
@@ -293,6 +293,7 @@ class Sprint1SmokeTests(TestCase):
                 'registration_type': 'solo',
                 'game_id': 'player123',
                 'phone': '01700000000',
+                'terms_agreed': 'on',
             }
         )
         

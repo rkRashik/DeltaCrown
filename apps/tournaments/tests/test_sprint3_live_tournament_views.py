@@ -129,10 +129,16 @@ class TournamentBracketViewTests(TestCase):
         response = self.client.get(url)
         
         matches_by_round = response.context['matches_by_round']
-        self.assertEqual(len(matches_by_round), 1)  # Only round 1 has matches
+        self.assertEqual(len(matches_by_round), 2)
         self.assertEqual(matches_by_round[0]['round_number'], 1)
         self.assertEqual(len(matches_by_round[0]['matches']), 2)
         self.assertEqual(matches_by_round[0]['round_name'], 'Semi Finals')
+        self.assertEqual(matches_by_round[1]['round_number'], 2)
+        self.assertEqual(matches_by_round[1]['round_name'], 'Finals')
+        self.assertEqual(len(matches_by_round[1]['matches']), 1)
+        self.assertIsNone(matches_by_round[1]['matches'][0]['id'])
+        self.assertEqual(matches_by_round[1]['matches'][0]['team1_name'], 'TBD')
+        self.assertEqual(matches_by_round[1]['matches'][0]['team2_name'], 'TBD')
 
     def test_bracket_page_shows_not_ready_for_early_tournament(self):
         """Test that bracket shows 'not ready' for tournaments in registration phase."""
