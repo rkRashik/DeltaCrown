@@ -363,12 +363,15 @@ def _build_viewer_context(viewer: Optional[User], role: str) -> Dict[str, Any]:
 
 def _build_permissions(team: Team, viewer: Optional[User], role: str) -> Dict[str, bool]:
     """Build permissions flags using TeamMembership.get_permission_list() and Organization CEO check."""
-    from apps.organizations.models import TeamMembership, Organization
+    from apps.organizations.models import TeamMembership
     from apps.organizations.choices import MembershipStatus
+    from apps.organizations.services.team_authority import can_manage_team_profile
     
     # Use schema-resilient visibility check
     can_view_private = _check_team_accessibility(team, viewer)
     
+    can_report_matches = can_manage_team_profile(viewer, team)
+
     # CRITICAL FIX: Check if viewer is Organization CEO (has all permissions)
     is_org_ceo = False
     if viewer and viewer.is_authenticated and team.organization_id:
@@ -388,7 +391,7 @@ def _build_permissions(team: Team, viewer: Optional[User], role: str) -> Dict[st
             'can_invite': True,
             'can_view_operations': True,
             'can_view_financial': True,
-            'can_report_matches': True,
+            'can_report_matches': can_report_matches,
             'is_member': True,  # CEO is implicitly a member
         }
     
@@ -403,8 +406,6 @@ def _build_permissions(team: Team, viewer: Optional[User], role: str) -> Dict[st
         if membership:
             perms = membership.get_permission_list()
             has_all = 'ALL' in perms
-            # Phase 3A-C: Report matches permission (OWNER or MANAGER only)
-            can_report_matches = has_all or role in ('OWNER', 'MANAGER')
             return {
                 'can_view_private': can_view_private,
                 'can_edit_team': has_all or 'edit_team' in perms,
@@ -424,7 +425,7 @@ def _build_permissions(team: Team, viewer: Optional[User], role: str) -> Dict[st
         'can_invite': False,
         'can_view_operations': False,
         'can_view_financial': False,
-        'can_report_matches': False,
+        'can_report_matches': can_report_matches,
         'is_member': False,
     }
 
@@ -2020,48 +2021,31 @@ def _is_private_team(team: Team) -> bool:
 
 def _get_viewer_role(team: Team, viewer: Optional[User]) -> str:
     """Determine viewer's role relative to team (returns truthful role)."""
-    from apps.organizations.models import TeamMembership
-    from apps.organizations.choices import MembershipStatus, MembershipRole
+    from apps.organizations.choices import MembershipRole
+    from apps.organizations.services.team_authority import get_team_actor
     
     if not viewer or not viewer.is_authenticated:
         return 'PUBLIC'
     
-    # Check if viewer is the team creator (created_by)
-    if team.created_by_id == viewer.id:
+    actor = get_team_actor(viewer, team)
+
+    if actor.is_superuser or actor.is_creator or actor.org_authority == 'CEO':
         return 'OWNER'
-    
-    # Check if viewer is Organization CEO
-    if team.organization_id:
-        try:
-            org = team.organization
-            if org and org.ceo_id == viewer.id:
-                return 'OWNER'
-        except Exception:
-            pass
-    
-    # Query vNext TeamMembership with user FK
-    try:
-        membership = TeamMembership.objects.filter(
-            team=team,
-            user=viewer,
-            status=MembershipStatus.ACTIVE
-        ).first()
-        
-        if membership:
-            # Return truthful role (no mapping to 'OWNER' for MANAGER)
-            role = membership.role
-            if role == MembershipRole.OWNER:
-                return 'OWNER'
-            elif role == MembershipRole.MANAGER:
-                return 'MANAGER'
-            elif role == MembershipRole.COACH:
-                return 'COACH'
-            elif role in (MembershipRole.PLAYER, MembershipRole.SUBSTITUTE):
-                return 'PLAYER'
-            else:
-                return 'MEMBER'
-    except Exception:
-        pass
+    if actor.org_authority == 'MANAGER':
+        return 'MANAGER'
+
+    # Return truthful active team membership role where possible.
+    role = actor.role
+    if role == MembershipRole.OWNER:
+        return 'OWNER'
+    elif role == MembershipRole.MANAGER:
+        return 'MANAGER'
+    elif role == MembershipRole.COACH:
+        return 'COACH'
+    elif role in (MembershipRole.PLAYER, MembershipRole.SUBSTITUTE):
+        return 'PLAYER'
+    elif actor.membership is not None:
+        return 'MEMBER'
     
     return 'PUBLIC'
 
