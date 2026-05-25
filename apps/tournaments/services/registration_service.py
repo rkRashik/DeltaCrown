@@ -60,7 +60,7 @@ from typing import Dict, Optional, Any
 import logging
 from decimal import Decimal
 from django.core.exceptions import ValidationError
-from django.db import transaction, models
+from django.db import transaction, models, IntegrityError
 from django.utils import timezone
 from django.db.models import Count, Q
 from apps.tournaments.models import Registration, Payment, Tournament
@@ -1153,6 +1153,11 @@ class RegistrationService:
                     raise ValidationError("Only the team captain can pay for team registrations")
             except Team.DoesNotExist:
                 raise ValidationError("Team not found for this registration")
+
+        idempotency_key = f"tournament_entry_{registration.tournament_id}_reg_{registration_id}"
+        existing_tx = DeltaCrownTransaction.objects.filter(idempotency_key=idempotency_key).first()
+        if existing_tx is not None and hasattr(registration, 'payment'):
+            return registration.payment, existing_tx
         
         # Validate registration status
         if registration.status not in [Registration.PENDING, Registration.PAYMENT_SUBMITTED]:
@@ -1197,8 +1202,7 @@ class RegistrationService:
             )
         
         # Create debit transaction
-        idempotency_key = f"tournament_entry_{registration.tournament_id}_reg_{registration_id}"
-        
+        balance_after = wallet.cached_balance - entry_fee_dc
         try:
             dc_transaction = DeltaCrownTransaction.objects.create(
                 wallet=wallet,
@@ -1208,19 +1212,17 @@ class RegistrationService:
                 registration_id=registration_id,
                 note=f"Tournament entry fee: {registration.tournament.name}",
                 created_by=user,
-                idempotency_key=idempotency_key
+                idempotency_key=idempotency_key,
+                cached_balance_after=balance_after,
             )
-        except Exception as e:
-            # Handle duplicate transaction (idempotency)
-            if 'unique constraint' in str(e).lower() or 'duplicate key' in str(e).lower():
-                # Transaction already exists - fetch and return existing payment
-                existing_tx = DeltaCrownTransaction.objects.get(idempotency_key=idempotency_key)
-                existing_payment = registration.payment
-                return existing_payment, existing_tx
-            raise
+        except IntegrityError:
+            # Transaction already exists - fetch and return existing payment
+            existing_tx = DeltaCrownTransaction.objects.get(idempotency_key=idempotency_key)
+            existing_payment = registration.payment
+            return existing_payment, existing_tx
         
         # Update wallet balance
-        wallet.cached_balance -= entry_fee_dc
+        wallet.cached_balance = balance_after
         wallet.save(update_fields=['cached_balance', 'updated_at'])
         
         # Create or update payment record (auto-verified for DeltaCoin)

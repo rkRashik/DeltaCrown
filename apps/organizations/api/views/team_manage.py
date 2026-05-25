@@ -75,6 +75,7 @@ from apps.organizations.services.team_authority import (
     can_manage_roster,
     can_manage_team_profile,
     can_manage_team_settings,
+    can_manage_treasury,
     can_transfer_ownership,
     can_view_competitive_settings,
     get_team_actor,
@@ -2085,10 +2086,7 @@ def update_payment_methods(request, slug):
     on the owner's DeltaCrownWallet.
     """
     team = get_object_or_404(Team, slug=slug)
-    membership = TeamMembership.objects.filter(
-        team=team, user=request.user, status='ACTIVE'
-    ).first()
-    if not membership or membership.role != 'OWNER':
+    if not can_manage_treasury(request.user, team):
         return JsonResponse({'error': 'Only the team owner can manage payment methods.'}, status=403)
 
     data = json.loads(request.body) if request.body else {}
