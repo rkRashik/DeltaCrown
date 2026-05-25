@@ -1012,6 +1012,7 @@ class CareerTabService:
         """
         try:
             from apps.organizations.models import TeamMembership
+            from apps.organizations.choices import MembershipStatus
             from django.utils import timezone
             from django.urls import reverse
             from datetime import datetime
@@ -1025,7 +1026,8 @@ class CareerTabService:
             # Query TeamMembership - filter by game via team.game field
             memberships = TeamMembership.objects.filter(
                 user=user_profile.user,
-                team__game_id=game.id
+                team__game_id=game.id,
+                status__in=[MembershipStatus.ACTIVE, MembershipStatus.INACTIVE],
             ).select_related('team').order_by('-joined_at')
             
             history = []

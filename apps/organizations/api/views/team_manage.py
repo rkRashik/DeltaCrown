@@ -757,18 +757,18 @@ def change_role(request, slug, membership_id):
 
     if update_fields:
         membership.save(update_fields=update_fields)
-    
-    # Create ROLE_CHANGED event with detailed metadata
-    TeamMembershipEvent.objects.create(
-        membership=membership,
-        team=team,
-        user=membership.user,
-        actor=request.user,
-        event_type=MembershipEventType.ROLE_CHANGED,
-        old_role=old_role,
-        new_role=new_role,
-        metadata=changes if changes else {},
-    )
+
+        # Create ROLE_CHANGED event with detailed metadata only when data changed.
+        TeamMembershipEvent.objects.create(
+            membership=membership,
+            team=team,
+            user=membership.user,
+            actor=request.user,
+            event_type=MembershipEventType.ROLE_CHANGED,
+            old_role=old_role,
+            new_role=new_role,
+            metadata=changes if changes else {},
+        )
     
     return JsonResponse({
         'success': True,
@@ -1651,6 +1651,16 @@ def transfer_ownership(request, slug):
     if owner_membership:
         owner_membership.role = MembershipRole.MANAGER
         owner_membership.save(update_fields=['role'])
+        TeamMembershipEvent.objects.create(
+            membership=owner_membership,
+            team=team,
+            user=request.user,
+            actor=request.user,
+            event_type=MembershipEventType.ROLE_CHANGED,
+            old_role=MembershipRole.OWNER,
+            new_role=MembershipRole.MANAGER,
+            metadata={'action': 'ownership_transferred', 'to_user': target.user.username},
+        )
     
     # Update new owner's role to OWNER
     old_target_role = target.role

@@ -400,8 +400,20 @@ class TeamInviteService:
             raise InviteNotFoundError("Invite is not in pending state")
         
         # Decline: soft delete by changing status
-        membership.status = 'DECLINED'
+        old_status = membership.status
+        membership.status = MembershipStatus.INACTIVE
         membership.save(update_fields=['status'])
+
+        TeamMembershipEvent.objects.create(
+            membership=membership,
+            team=membership.team,
+            user=membership.user,
+            actor=membership.user,
+            event_type=MembershipEventType.STATUS_CHANGED,
+            old_status=old_status,
+            new_status=MembershipStatus.INACTIVE,
+            metadata={'reason': 'invite_declined'},
+        )
         
         return {'success': True}
     
