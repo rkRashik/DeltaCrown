@@ -202,15 +202,36 @@ def team_manage(request, team_slug, org_slug=None):
             pass
 
         # ── Attach game passport data to each member (for info popover) ──
+        for m in members:
+            m.gp_ign = ''
+            m.gp_discriminator = ''
+            m.gp_in_game_name = ''
+            m.gp_platform = ''
+            m.gp_rank_name = ''
+            m.gp_rank_image_url = ''
+            m.gp_rank_points = ''
+            m.gp_peak_rank = ''
+            m.gp_main_role = ''
+            m.gp_region = ''
+            m.gp_matches_played = 0
+            m.gp_win_rate = 0
+            m.gp_kd_ratio = None
+            m.gp_hours_played = ''
+            m.gp_is_lft = False
+            m.gp_verification_status = ''
+            m.game_profile = {}
+
         if game and members:
             from apps.user_profile.models_main import GameProfile
             member_user_ids = [m.user_id for m in members]
             gp_map = {}
             try:
                 for gp in GameProfile.objects.filter(
-                    user_id__in=member_user_ids, game=game
+                    user_id__in=member_user_ids,
+                    game_id=team.game_id,
+                    status=GameProfile.STATUS_ACTIVE,
                 ).only(
-                    'user_id', 'ign', 'discriminator', 'in_game_name',
+                    'user_id', 'game_id', 'ign', 'discriminator', 'in_game_name',
                     'platform', 'rank_name', 'rank_image', 'rank_points',
                     'peak_rank', 'main_role', 'region',
                     'matches_played', 'win_rate', 'kd_ratio', 'hours_played',
@@ -248,6 +269,26 @@ def team_manage(request, team_slug, org_slug=None):
                 m.gp_hours_played = gp.hours_played if gp and gp.hours_played else ''
                 m.gp_is_lft = gp.is_lft if gp else False
                 m.gp_verification_status = gp.verification_status if gp else ''
+                if gp:
+                    m.game_profile = {
+                        'game_id': gp.game_id,
+                        'ign': m.gp_in_game_name,
+                        'in_game_name': m.gp_in_game_name,
+                        'platform': m.gp_platform,
+                        'rank': m.gp_rank_name,
+                        'rank_name': m.gp_rank_name,
+                        'rank_points': m.gp_rank_points,
+                        'peak_rank': m.gp_peak_rank,
+                        'main_role': m.gp_main_role,
+                        'region': m.gp_region,
+                        'matches_played': m.gp_matches_played,
+                        'win_rate': m.gp_win_rate,
+                        'kd_ratio': m.gp_kd_ratio,
+                        'hours_played': m.gp_hours_played,
+                        'is_lft': m.gp_is_lft,
+                        'verification_status': m.gp_verification_status,
+                        'has_passport': True,
+                    }
 
         is_owner = actor.role == MembershipRole.OWNER or actor.is_creator
         is_admin = actor.is_team_admin

@@ -531,6 +531,25 @@ def _get_starting_lineup_size(team: Team) -> int:
         return 5
 
 
+def _safe_game_profile_summary(game_profile) -> Dict[str, Any]:
+    """Public-safe Game Passport fields for roster display."""
+    if not game_profile:
+        return {}
+
+    return {
+        'game_id': getattr(game_profile, 'game_id', None),
+        'ign': getattr(game_profile, 'in_game_name', '') or getattr(game_profile, 'ign', '') or '',
+        'in_game_name': getattr(game_profile, 'in_game_name', '') or getattr(game_profile, 'ign', '') or '',
+        'rank': getattr(game_profile, 'rank_name', '') or '',
+        'rank_name': getattr(game_profile, 'rank_name', '') or '',
+        'platform': getattr(game_profile, 'platform', '') or '',
+        'region': getattr(game_profile, 'region', '') or '',
+        'main_role': getattr(game_profile, 'main_role', '') or '',
+        'verification_status': getattr(game_profile, 'verification_status', '') or '',
+        'has_passport': True,
+    }
+
+
 def _build_roster_context(team: Team, is_restricted: bool) -> Dict[str, Any]:
     """Build roster dict with items and count (empty if restricted)."""
     if is_restricted:
@@ -566,15 +585,18 @@ def _build_roster_context(team: Team, is_restricted: bool) -> Dict[str, Any]:
                 user_ids = [m.user_id for m in memberships]
                 passports = GameProfile.objects.filter(
                     user_id__in=user_ids,
-                    game_id=team.game_id
-                ).select_related('user')
+                    game_id=team.game_id,
+                    status=GameProfile.STATUS_ACTIVE,
+                    visibility__in=[
+                        GameProfile.VISIBILITY_PUBLIC,
+                        GameProfile.VISIBILITY_PROTECTED,
+                    ],
+                ).only(
+                    'user_id', 'game_id', 'ign', 'in_game_name', 'rank_name',
+                    'platform', 'region', 'main_role', 'verification_status',
+                )
                 for gp in passports:
-                    game_passports[gp.user_id] = {
-                        'ign': getattr(gp, 'in_game_name', '') or getattr(gp, 'ign', '') or '',
-                        'rank': getattr(gp, 'rank_name', '') or '',
-                        'region': getattr(gp, 'region', '') or '',
-                        'has_passport': True,
-                    }
+                    game_passports[gp.user_id] = _safe_game_profile_summary(gp)
             except Exception:
                 pass  # GameProfile not available or schema mismatch
         
