@@ -3,7 +3,8 @@ import json
 from django.test import TestCase
 from django.urls import reverse
 
-from apps.organizations.choices import MembershipRole
+from apps.organizations.choices import MembershipRole, MembershipStatus
+from apps.organizations.models import TeamMembership
 from apps.organizations.tests.factories import TeamFactory, TeamMembershipFactory, UserFactory
 
 
@@ -152,3 +153,85 @@ class TeamSettingsUrlSecurityTests(TestCase):
         self.assertEqual(team.website_url, "")
         self.assertEqual(team.discord_url, "")
         self.assertEqual(team.discord_webhook_url, "")
+
+    def test_update_profile_tagline_exactly_140_accepted(self):
+        tagline = "x" * 140
+
+        response = self.post_json(
+            "team_manage_update_profile",
+            {"tagline": tagline},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(self.refresh_team().tagline, tagline)
+
+    def test_update_profile_tagline_141_chars_rejected(self):
+        self.team.tagline = "safe"
+        self.team.save(update_fields=["tagline"])
+
+        response = self.post_json(
+            "team_manage_update_profile",
+            {"tagline": "x" * 141},
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(self.refresh_team().tagline, "safe")
+
+    def test_update_settings_tagline_140_accepted(self):
+        tagline = "x" * 140
+
+        response = self.post_json(
+            "team_manage_update_settings",
+            {"tagline": tagline},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(self.refresh_team().tagline, tagline)
+
+    def test_add_member_bypasses_roster_lock(self):
+        target_user = UserFactory(username="locked_admin_add_target")
+        applicant = UserFactory(username="locked_apply_target")
+        self.team.roster_locked = True
+        self.team.save(update_fields=["roster_locked"])
+
+        add_response = self.post_json(
+            "team_manage_add_member",
+            {
+                "identifier": target_user.username,
+                "role": MembershipRole.PLAYER,
+            },
+        )
+
+        self.assertEqual(add_response.status_code, 200)
+        self.assertTrue(
+            TeamMembership.objects.filter(
+                team=self.team,
+                user=target_user,
+                status=MembershipStatus.ACTIVE,
+            ).exists()
+        )
+
+        self.client.force_login(applicant)
+        apply_response = self.post_json(
+            "team_apply",
+            {"message": "Let me in"},
+        )
+
+        self.assertEqual(apply_response.status_code, 400)
+        self.assertIn("locked", apply_response.json()["error"].lower())
+
+    def test_invite_code_visible_to_non_admin_member(self):
+        player = UserFactory(username="invite_code_player")
+        TeamMembershipFactory(
+            team=self.team,
+            user=player,
+            role=MembershipRole.PLAYER,
+        )
+        self.team.invite_code = "share-code-123"
+        self.team.save(update_fields=["invite_code"])
+
+        self.client.force_login(player)
+        response = self.client.get(api_url("team_manage_detail", slug=self.team.slug))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["team"]["invite_code"], "share-code-123")

@@ -102,6 +102,10 @@ class Team(models.Model):
     )
     
     # Privacy
+    # Visibility semantics:
+    # PUBLIC: listed and indexed.
+    # UNLISTED: accessible via direct URL, excluded from directory, noindex.
+    # PRIVATE: members-only.
     visibility = models.CharField(
         max_length=20,
         choices=[

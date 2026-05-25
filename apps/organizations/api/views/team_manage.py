@@ -405,6 +405,7 @@ def team_detail(request, slug):
             'visibility': team.visibility,
             'member_count': len(members),
             'roster_locked': team.roster_locked,
+            # invite_code is intentionally visible to active members — enables invite sharing.
             'invite_code': team.invite_code or '',
             'has_webhook': bool(team.discord_webhook_url),
             'discord_webhook_url_masked': '********' if team.discord_webhook_url else '',
@@ -530,6 +531,7 @@ def add_member(request, slug):
             'error': f'User already has an active team for this game: {existing_active_membership.team.name}'
         }, status=400)
     
+    # roster_locked is not checked here: admin-initiated adds bypass the lock by design.
     # Create membership
     membership = TeamMembership.objects.create(
         team=team,
@@ -981,7 +983,7 @@ def update_profile(request, slug):
     
     Optional params:
     - name: string (max 100 chars)
-    - tagline: string (max 100 chars)
+    - tagline: string (max 140 chars)
     - description: text
     - region: string (max 50 chars)
     - primary_color: hex color (e.g., #3B82F6)
@@ -1034,8 +1036,8 @@ def update_profile(request, slug):
     # Validate lengths
     if name and len(name) > 100:
         return JsonResponse({'error': 'Team name must be 100 characters or less'}, status=400)
-    if tagline and len(tagline) > 200:
-        return JsonResponse({'error': 'Tagline must be 200 characters or less'}, status=400)
+    if tagline and len(tagline) > 140:
+        return JsonResponse({'error': 'Tagline must be 140 characters or less'}, status=400)
     if description and len(description) > 1000:
         return JsonResponse({'error': 'Description must be 1000 characters or less'}, status=400)
     if region and len(region) > 50:
