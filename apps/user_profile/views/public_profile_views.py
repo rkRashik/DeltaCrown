@@ -727,33 +727,20 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
     # PHASE UP 5: Career Tab Enhanced Context (append-only, no impact on other tabs)
     from apps.user_profile.services.career_tab_service import CareerTabService, GAME_DISPLAY_CONFIG
     
-    # Get linked games for game selector.
-    # Owner sees all own passports (including PRIVATE); public sees only PUBLIC/PROTECTED.
-    _viewer_is_owner = context.get('is_owner', False)
-    if user_profile and _viewer_is_owner:
-        user_profile._career_include_private = True  # signal to get_linked_games
-    career_linked_games = CareerTabService.get_linked_games(user_profile)
-    if user_profile:
-        # Clean up the temp attribute (avoid leaking into other code)
-        try:
-            del user_profile._career_include_private
-        except AttributeError:
-            pass
+    # Get linked games for game selector using central passport visibility policy.
+    career_linked_games = CareerTabService.get_linked_games(
+        user_profile,
+        viewer=request.user if request.user.is_authenticated else None,
+    )
 
     context['career_linked_games'] = career_linked_games
 
-    # Build achievements across ALL linked games — always include private passports.
-    # Tournament results (tournament name, placement, team) are public records and do NOT
-    # expose private passport identity (no Riot ID / game-specific credentials shown).
-    # Passport privacy only controls the Career tab game selector and passport identity cards.
-    if user_profile:
-        user_profile._career_include_private = True
-    _all_games_for_achievements = CareerTabService.get_linked_games(user_profile)
-    if user_profile:
-        try:
-            del user_profile._career_include_private
-        except AttributeError:
-            pass
+    # Build achievements across viewer-visible linked games.
+    # Tournament results are public records; linked games still respect passport visibility.
+    _all_games_for_achievements = CareerTabService.get_linked_games(
+        user_profile,
+        viewer=request.user if request.user.is_authenticated else None,
+    )
 
     try:
         _ach_all = []

@@ -605,7 +605,7 @@ class CareerTabService:
             }
     
     @staticmethod
-    def get_linked_games(user_profile) -> List[Dict[str, Any]]:
+    def get_linked_games(user_profile, viewer=None) -> List[Dict[str, Any]]:
         """
         Get ordered list of user's linked games.
         
@@ -617,6 +617,7 @@ class CareerTabService:
         
         Args:
             user_profile: UserProfile instance
+            viewer: User reading the profile, or None for anonymous/public reads
         
         Returns:
             List of dicts with game data and passport:
@@ -634,6 +635,7 @@ class CareerTabService:
             ]
         """
         from apps.user_profile.models import GameProfile
+        from apps.user_profile.services.passport_visibility import visible_passport_visibilities
         from apps.games.models import Game
         import logging
         
@@ -683,13 +685,12 @@ class CareerTabService:
             logger.warning(f"[Career] resolve_game_obj: unknown type {type(value).__name__} for value: {value}")
             return None
         
-        # Get game profiles — use _include_private injected by caller (see get_linked_games_for_owner).
-        _include_private = getattr(user_profile, '_career_include_private', False)
-        _vis_q = {} if _include_private else {'visibility': GameProfile.VISIBILITY_PUBLIC}
+        # Get active passports visible to the current viewer.
+        allowed_visibilities = visible_passport_visibilities(viewer, user_profile.user)
         passports_qs = GameProfile.objects.filter(
             user=user_profile.user,
             status=GameProfile.STATUS_ACTIVE,
-            **_vis_q,
+            visibility__in=allowed_visibilities,
         ).select_related('game').order_by('-is_pinned', 'pinned_order', 'sort_order', '-updated_at')
         
         # === PRIMARY GAME RESOLUTION (4-tier fallback with type safety) ===
@@ -810,9 +811,18 @@ class CareerTabService:
             return None
         except GameProfile.MultipleObjectsReturned:
             # Prefer PUBLIC over PRIVATE if duplicates exist
+            from django.db.models import Case, IntegerField, When
+
+            visibility_priority = Case(
+                When(visibility=GameProfile.VISIBILITY_PUBLIC, then=0),
+                When(visibility=GameProfile.VISIBILITY_PROTECTED, then=1),
+                When(visibility=GameProfile.VISIBILITY_PRIVATE, then=2),
+                default=3,
+                output_field=IntegerField(),
+            )
             return GameProfile.objects.filter(
                 user=user_profile.user, game=game, status=GameProfile.STATUS_ACTIVE,
-            ).order_by('visibility').first()
+            ).annotate(_vp=visibility_priority).order_by('_vp').first()
     
     @staticmethod
     def get_matches_played_count(user_profile, game) -> int:

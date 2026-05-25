@@ -235,7 +235,14 @@ def profile_view(request, username=None):
     if profile:
         try:
             from apps.user_profile.models import GameProfile
-            game_profiles = GameProfile.objects.filter(user=profile_user).order_by('-updated_at')
+            from apps.user_profile.services.passport_visibility import visible_passport_visibilities
+
+            allowed_visibilities = visible_passport_visibilities(request.user, profile_user)
+            game_profiles = GameProfile.objects.filter(
+                user=profile_user,
+                status=GameProfile.STATUS_ACTIVE,
+                visibility__in=allowed_visibilities,
+            ).order_by('-updated_at')
             _debug_log(request, f"DEBUG [8]: Game Profiles Count: {game_profiles.count()}")
             if game_profiles.exists():
                 _debug_log(request, f"DEBUG [8]: First Game: {game_profiles.first().game} - {game_profiles.first().in_game_name}")

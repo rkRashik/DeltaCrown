@@ -82,6 +82,7 @@ from apps.organizations.services.team_authority import (
 
 ORG_TEAM_ADMIN_ROLES = ('CEO', 'MANAGER')
 TEAM_ADMIN_ROLES = (MembershipRole.OWNER, MembershipRole.MANAGER)
+_SOCIAL_ALLOWED_SCHEMES = frozenset(["https", "http"])
 
 
 def _is_allowed_discord_webhook_url(webhook_url):
@@ -91,6 +92,27 @@ def _is_allowed_discord_webhook_url(webhook_url):
         and parsed.hostname == 'discord.com'
         and parsed.path.startswith('/api/webhooks/')
     )
+
+
+def _is_allowed_discord_invite_url(discord_url):
+    parsed = urlparse((discord_url or '').strip())
+    if parsed.scheme != 'https':
+        return False
+    if parsed.hostname == 'discord.gg':
+        return bool(parsed.path.strip('/'))
+    if parsed.hostname == 'discord.com':
+        invite_code = parsed.path.removeprefix('/invite/').strip('/')
+        return parsed.path.startswith('/invite/') and bool(invite_code)
+    return False
+
+
+def _validate_social_url(url: str, field_name: str) -> str:
+    if not url:
+        return url
+    parsed = urlparse(url)
+    if parsed.scheme not in _SOCIAL_ALLOWED_SCHEMES or not parsed.netloc:
+        raise ValueError(f"{field_name} must be an http or https URL.")
+    return url
 
 
 def _is_active_team(team):
@@ -909,6 +931,11 @@ def update_settings(request, slug):
             val = str(data[param_key]).strip() if data[param_key] is not None else ''
             if max_len and len(val) > max_len:
                 return JsonResponse({'error': f'{param_key} must be {max_len} characters or less'}, status=400)
+            if model_field == 'discord_url' and val and not _is_allowed_discord_invite_url(val):
+                return JsonResponse(
+                    {'error': 'Community Invite URL must be a discord.gg/ or discord.com/invite/ link'},
+                    status=400,
+                )
             if hasattr(team, model_field):
                 setattr(team, model_field, val)
                 updated_fields.append(model_field)
@@ -1137,6 +1164,7 @@ def update_profile(request, slug):
         'twitch_url': 'twitch_url', 'twitch': 'twitch_url',
         'facebook_url': 'facebook_url', 'facebook': 'facebook_url',
         'tiktok_url': 'tiktok_url', 'tiktok': 'tiktok_url',
+        'discord_url': 'discord_url', 'discord': 'discord_url',
         'discord_webhook_url': 'discord_webhook_url', 'discord_webhook': 'discord_webhook_url',
         'website_url': 'website_url', 'website': 'website_url',
         'whatsapp_url': 'whatsapp_url', 'whatsapp': 'whatsapp_url',
@@ -1144,7 +1172,19 @@ def update_profile(request, slug):
     }
     for key, attr in social_map.items():
         if key in data:
-            setattr(team, attr, (data.get(key) or '').strip())
+            value = (data.get(key) or '').strip()
+            try:
+                if attr == 'discord_webhook_url':
+                    if value and not _is_allowed_discord_webhook_url(value):
+                        raise ValueError('Discord webhook URL must be a discord.com API webhook URL.')
+                elif attr == 'discord_url':
+                    if value and not _is_allowed_discord_invite_url(value):
+                        raise ValueError('Community Invite URL must be a discord.gg/ or discord.com/invite/ link.')
+                else:
+                    value = _validate_social_url(value, key)
+            except ValueError as exc:
+                return JsonResponse({'error': str(exc)}, status=400)
+            setattr(team, attr, value)
     
     # Tournament ops
     if 'preferred_server' in data:
@@ -2211,11 +2251,14 @@ def discord_config_save(request, slug):
     webhook_url = (data.get('discord_webhook_url') or '').strip()[:300]
 
     # Validate Community Invite URL (must be discord.gg/ or discord.com/invite/)
-    if discord_url and not re.match(
-        r'^https://(discord\.gg|discord\.com/invite)/[a-zA-Z0-9\-]+', discord_url
-    ):
+    if discord_url and not _is_allowed_discord_invite_url(discord_url):
         return JsonResponse(
             {'error': 'Community Invite URL must be a discord.gg/ or discord.com/invite/ link'},
+            status=400,
+        )
+    if webhook_url and not _is_allowed_discord_webhook_url(webhook_url):
+        return JsonResponse(
+            {'error': 'Discord webhook URL must be a discord.com API webhook URL.'},
             status=400,
         )
 
