@@ -393,17 +393,52 @@ def team_manage(request, team_slug, org_slug=None):
 
             # Upcoming matches for this team
             upcoming_states = ['scheduled', 'check_in', 'ready', 'live']
+            team_registration_ids = list(
+                Registration.objects.filter(
+                    team_id=team.id,
+                    is_deleted=False,
+                ).values_list('id', flat=True)
+            )
+            team_participant_ids = {team.id, *team_registration_ids}
             team_matches = (
                 Match.objects.filter(
-                    models.Q(participant1_id=team.id) | models.Q(participant2_id=team.id),
+                    models.Q(participant1_id__in=team_participant_ids) |
+                    models.Q(participant2_id__in=team_participant_ids),
                     state__in=upcoming_states,
                     is_deleted=False,
                 )
                 .select_related('tournament')
                 .order_by('scheduled_time', 'round_number', 'match_number')[:6]
             )
+            team_matches = list(team_matches)
+            match_participant_ids = {
+                participant_id
+                for m in team_matches
+                for participant_id in (m.participant1_id, m.participant2_id)
+                if participant_id
+            }
+            registration_team_rows = list(
+                Registration.objects.filter(
+                    id__in=match_participant_ids,
+                    is_deleted=False,
+                    team_id__isnull=False,
+                ).values_list('id', 'team_id')
+            )
+            registration_team_ids = {team_id for _, team_id in registration_team_rows if team_id}
+            team_name_map = {
+                t.id: t.name
+                for t in Team.objects.filter(id__in=registration_team_ids).only('id', 'name')
+            }
+            registration_team_names = {
+                reg_id: team_name_map.get(team_id, '')
+                for reg_id, team_id in registration_team_rows
+                if team_name_map.get(team_id)
+            }
             for m in team_matches:
-                opponent = m.participant2_name if str(m.participant1_id) == str(team.id) else m.participant1_name
+                is_p1 = m.participant1_id in team_participant_ids
+                opponent_id = m.participant2_id if is_p1 else m.participant1_id
+                opponent_fallback = m.participant2_name if is_p1 else m.participant1_name
+                opponent = registration_team_names.get(opponent_id) or opponent_fallback
                 team_upcoming_matches.append({
                     'match_id': m.id,
                     'tournament_name': m.tournament.name if m.tournament else '',

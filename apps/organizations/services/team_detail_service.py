@@ -175,6 +175,11 @@ class TeamDetailService:
         win_rate = 0
         try:
             from apps.tournaments.models import Registration, Match
+            team_registration_ids = list(Registration.objects.filter(
+                team_id=team.id,
+                is_deleted=False,
+            ).values_list('id', flat=True))
+            team_participant_ids = {team.id, *team_registration_ids}
             tournament_count = Registration.objects.filter(
                 team_id=team.id,
                 is_deleted=False,
@@ -183,11 +188,12 @@ class TeamDetailService:
             match_qs = Match.objects.filter(
                 is_deleted=False,
             ).filter(
-                models.Q(participant1_id=team.id) | models.Q(participant2_id=team.id)
+                models.Q(participant1_id__in=team_participant_ids) |
+                models.Q(participant2_id__in=team_participant_ids)
             )
             match_count = match_qs.count()
             if match_count > 0:
-                wins = match_qs.filter(winner_id=team.id).count()
+                wins = match_qs.filter(winner_id__in=team_participant_ids).count()
                 win_rate = round((wins / match_count) * 100)
         except Exception:
             pass

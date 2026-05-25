@@ -5,6 +5,7 @@ Provides schema-resilient context generation for team_detail.html template.
 Implements the Team Detail Page Contract (docs/contracts/TEAM_DETAIL_PAGE_CONTRACT.md).
 """
 import hashlib
+import logging
 from typing import Optional, Dict, Any, List
 from urllib.parse import quote
 from django.contrib.auth.models import User
@@ -15,6 +16,8 @@ from django.core.cache import cache
 
 from apps.organizations.models import Team  # vNext Team model (Phase 2B migration)
 from apps.games.services import GameService
+
+logger = logging.getLogger(__name__)
 
 
 # Fallback URLs for missing images
@@ -57,6 +60,77 @@ def _build_initials_avatar_data_uri(label: str, *, seed: Optional[str] = None, f
         '</svg>'
     )
     return f'data:image/svg+xml;utf8,{quote(svg)}'
+
+
+def _get_team_registration_ids(team: Team) -> List[int]:
+    """Return tournament registration participant ids for a team."""
+    try:
+        from apps.tournaments.models import Registration
+        return list(
+            Registration.objects.filter(team_id=team.id, is_deleted=False)
+            .values_list('id', flat=True)
+        )
+    except Exception as exc:
+        logger.debug("Team registration lookup failed for %s: %s", team.slug, exc)
+        return []
+
+
+def _get_team_participant_ids(team: Team, registration_ids: Optional[List[int]] = None) -> set:
+    participant_ids = {team.id}
+    participant_ids.update(registration_ids or [])
+    return {participant_id for participant_id in participant_ids if participant_id is not None}
+
+
+def _build_team_participant_q(team: Team, registration_ids: Optional[List[int]] = None):
+    from django.db.models import Q
+
+    participant_ids = _get_team_participant_ids(team, registration_ids)
+    return Q(participant1_id__in=participant_ids) | Q(participant2_id__in=participant_ids)
+
+
+def _get_match_side_for_team(match, participant_ids: set) -> Optional[int]:
+    if match.participant1_id in participant_ids:
+        return 1
+    if match.participant2_id in participant_ids:
+        return 2
+    return None
+
+
+def _build_registration_team_name_map(participant_ids: set) -> Dict[int, str]:
+    """Map registration participant ids to their current team names."""
+    if not participant_ids:
+        return {}
+
+    try:
+        from apps.tournaments.models import Registration
+        rows = list(
+            Registration.objects.filter(
+                id__in=participant_ids,
+                is_deleted=False,
+                team_id__isnull=False,
+            ).values_list('id', 'team_id')
+        )
+        team_ids = {team_id for _, team_id in rows if team_id}
+        team_names = {
+            team.id: team.name
+            for team in Team.objects.filter(id__in=team_ids).only('id', 'name')
+        }
+        return {
+            reg_id: team_names.get(team_id, '')
+            for reg_id, team_id in rows
+            if team_names.get(team_id)
+        }
+    except Exception as exc:
+        logger.debug("Registration participant name lookup failed: %s", exc)
+        return {}
+
+
+def _resolve_participant_name(participant_id, fallback: str, registration_team_names: Dict[int, str], team_names=None) -> str:
+    if participant_id in registration_team_names:
+        return registration_team_names[participant_id]
+    if team_names and participant_id in team_names:
+        return team_names[participant_id]
+    return fallback or (f'Team #{participant_id}' if participant_id else 'TBD')
 
 
 def get_team_detail_context(
@@ -804,10 +878,12 @@ def _build_canonical_competitive_stats(team: Team) -> Dict[str, Any]:
 
     try:
         from apps.tournaments.models import Match
+        registration_ids = _get_team_registration_ids(team)
+        participant_ids = _get_team_participant_ids(team, registration_ids)
         matches = (
             Match.objects
             .filter(
-                Q(participant1_id=team.id) | Q(participant2_id=team.id),
+                _build_team_participant_q(team, registration_ids),
                 state='completed',
             )
             .only('id', 'participant1_id', 'participant2_id', 'winner_id', 'updated_at')
@@ -818,7 +894,7 @@ def _build_canonical_competitive_stats(team: Team) -> Dict[str, Any]:
             if not winner_id:
                 outcome = 'D'
             else:
-                outcome = 'W' if str(winner_id) == str(team.id) else 'L'
+                outcome = 'W' if winner_id in participant_ids else 'L'
             results.append((match.updated_at, outcome))
     except Exception as exc:
         logger.debug("Canonical tournament stats lookup failed for %s: %s", team.slug, exc)
@@ -1425,24 +1501,34 @@ def _build_upcoming_matches_context(team: Team, is_restricted: bool) -> List[Dic
         return []
 
     try:
-        from django.db.models import Q
         from django.utils import timezone
         from apps.tournaments.models import Match
         now = timezone.now()
-        matches = Match.objects.filter(
-            Q(participant1_id=team.id) | Q(participant2_id=team.id),
+        registration_ids = _get_team_registration_ids(team)
+        participant_ids = _get_team_participant_ids(team, registration_ids)
+        matches = list(Match.objects.filter(
+            _build_team_participant_q(team, registration_ids),
             state__in=['scheduled', 'SCHEDULED', 'CHECK_IN'],
             scheduled_time__gte=now,
-        ).select_related('tournament').order_by('scheduled_time')[:3]
+        ).select_related('tournament').order_by('scheduled_time')[:3])
+        match_participant_ids = {
+            participant_id
+            for m in matches
+            for participant_id in (m.participant1_id, m.participant2_id)
+            if participant_id
+        }
+        registration_team_names = _build_registration_team_name_map(match_participant_ids)
         return [
             {
                 'id': m.id,
                 'tournament_name': m.tournament.name if m.tournament else 'Unknown',
-                'opponent_name': (
-                    m.participant2_name if str(m.participant1_id) == str(team.id) else m.participant1_name
+                'opponent_name': _resolve_participant_name(
+                    m.participant2_id if _get_match_side_for_team(m, participant_ids) == 1 else m.participant1_id,
+                    m.participant2_name if _get_match_side_for_team(m, participant_ids) == 1 else m.participant1_name,
+                    registration_team_names,
                 ),
                 'opponent_id': (
-                    m.participant2_id if str(m.participant1_id) == str(team.id) else m.participant1_id
+                    m.participant2_id if _get_match_side_for_team(m, participant_ids) == 1 else m.participant1_id
                 ),
                 'scheduled_time': m.scheduled_time,
                 'format': getattr(m, 'best_of', 'BO1'),
@@ -1655,22 +1741,24 @@ def _build_match_history_context(team: Team, is_restricted: bool) -> List[Dict[s
     matches = []
     try:
         from apps.tournaments.models import Match
-        from django.db.models import Q
-        from django.utils import timezone
+        registration_ids = _get_team_registration_ids(team)
+        participant_ids = _get_team_participant_ids(team, registration_ids)
 
         match_list = list(
             Match.objects.filter(
-                Q(participant1_id=team.id) | Q(participant2_id=team.id),
-                state__in=['COMPLETED', 'completed', 'DONE', 'done'],
+                _build_team_participant_q(team, registration_ids),
+                state='completed',
             ).select_related('tournament').order_by('-updated_at')[:5]
         )
 
         # Batch-fetch opponent team names (eliminates N+1)
         opponent_ids = set()
         for m in match_list:
-            opp_id = m.participant2_id if m.participant1_id == team.id else m.participant1_id
+            side = _get_match_side_for_team(m, participant_ids)
+            opp_id = m.participant2_id if side == 1 else m.participant1_id
             if opp_id:
                 opponent_ids.add(opp_id)
+        registration_team_names = _build_registration_team_name_map(opponent_ids)
         opponent_map = {}
         if opponent_ids:
             opponent_map = {
@@ -1679,13 +1767,19 @@ def _build_match_history_context(team: Team, is_restricted: bool) -> List[Dict[s
             }
 
         for m in match_list:
-            is_p1 = (m.participant1_id == team.id)
+            side = _get_match_side_for_team(m, participant_ids)
+            is_p1 = (side == 1)
             opponent_id = m.participant2_id if is_p1 else m.participant1_id
-            opponent_name = opponent_map.get(opponent_id, f'Team #{opponent_id}') if opponent_id else 'TBD'
+            opponent_name = _resolve_participant_name(
+                opponent_id,
+                f'Team #{opponent_id}' if opponent_id else 'TBD',
+                registration_team_names,
+                opponent_map,
+            )
 
             # Determine result
             winner_id = getattr(m, 'winner_id', None)
-            if winner_id == team.id:
+            if winner_id in participant_ids:
                 result = 'win'
             elif winner_id:
                 result = 'loss'
@@ -1725,18 +1819,33 @@ def _build_operations_log_context(team: Team, is_restricted: bool) -> List[Dict[
 
     ops = []
     try:
-        from apps.tournaments.models import Match, Registration
-        from django.db.models import Q
+        from apps.tournaments.models import Match
         from django.utils import timezone
 
         # 1. Live + recent matches (last 10)
-        match_qs = Match.objects.filter(
-            Q(participant1_id=team.id) | Q(participant2_id=team.id),
-        ).select_related('tournament', 'tournament__game').order_by('-updated_at')[:10]
+        registration_ids = _get_team_registration_ids(team)
+        participant_ids = _get_team_participant_ids(team, registration_ids)
+        match_qs = list(Match.objects.filter(
+            _build_team_participant_q(team, registration_ids),
+        ).select_related('tournament', 'tournament__game').order_by('-updated_at')[:10])
+        match_participant_ids = {
+            participant_id
+            for m in match_qs
+            for participant_id in (m.participant1_id, m.participant2_id)
+            if participant_id
+        }
+        registration_team_names = _build_registration_team_name_map(match_participant_ids)
 
         for m in match_qs:
-            is_p1 = (str(m.participant1_id) == str(team.id))
-            opponent = m.participant2_name if is_p1 else m.participant1_name
+            side = _get_match_side_for_team(m, participant_ids)
+            is_p1 = (side == 1)
+            opponent_id = m.participant2_id if is_p1 else m.participant1_id
+            opponent_fallback = m.participant2_name if is_p1 else m.participant1_name
+            opponent = _resolve_participant_name(
+                opponent_id,
+                opponent_fallback,
+                registration_team_names,
+            )
 
             # Determine result
             winner_id = getattr(m, 'winner_id', None)
@@ -1744,7 +1853,7 @@ def _build_operations_log_context(team: Team, is_restricted: bool) -> List[Dict[
             if state in ('live', 'LIVE'):
                 result = None
                 status = 'live'
-            elif str(winner_id) == str(team.id):
+            elif winner_id in participant_ids:
                 result = 'win'
                 status = 'completed'
             elif winner_id:
