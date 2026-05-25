@@ -300,17 +300,40 @@ class TournamentCreateSerializer(serializers.Serializer):
     # (JSONField, ListField) are encoded as JSON strings by the JS client.
     # Parse them before DRF's normal field-level validation runs.
     _MULTIPART_JSON_FIELDS = ("prize_distribution", "payment_methods", "meta_keywords")
+    _MULTIPART_JSON_DEFAULTS = {
+        "prize_distribution": {},
+        "payment_methods": [],
+        "meta_keywords": [],
+    }
+
+    def _normalise_multipart_json_fields(self, data):
+        for field_name in self._MULTIPART_JSON_FIELDS:
+            if field_name not in data:
+                continue
+
+            value = data[field_name]
+            if value == "" or value is None:
+                default = self._MULTIPART_JSON_DEFAULTS[field_name]
+                data[field_name] = default.copy()
+                continue
+
+            if isinstance(value, str):
+                try:
+                    data[field_name] = json.loads(value)
+                except (ValueError, TypeError):
+                    raise serializers.ValidationError({
+                        field_name: "Invalid JSON payload."
+                    })
+        return data
 
     def to_internal_value(self, data):
         if hasattr(data, "getlist"):
             # QueryDict from multipart — mutable copy so we can rewrite values.
-            data = data.dict()
-            for field_name in self._MULTIPART_JSON_FIELDS:
-                if field_name in data and isinstance(data[field_name], str):
-                    try:
-                        data[field_name] = json.loads(data[field_name])
-                    except (ValueError, TypeError):
-                        pass
+            data = data.copy()
+            data = self._normalise_multipart_json_fields(data)
+        elif isinstance(data, dict):
+            data = data.copy()
+            data = self._normalise_multipart_json_fields(data)
         return super().to_internal_value(data)
 
     def validate(self, attrs):

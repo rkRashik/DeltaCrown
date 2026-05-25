@@ -203,14 +203,14 @@ class TeamAdminStabilityTest(TestCase):
     
     def test_team_admin_list_loads(self):
         """Test that team admin list loads"""
-        url = reverse('admin:teams_team_changelist')
+        url = reverse('admin:organizations_team_changelist')
         response = self.client.get(url)
         
         self.assertEqual(response.status_code, 200)
     
     def test_team_admin_detail_loads(self):
         """Test that team admin detail loads"""
-        url = reverse('admin:teams_team_change', args=[self.team.id])
+        url = reverse('admin:organizations_team_change', args=[self.team.id])
         response = self.client.get(url)
         
         self.assertEqual(response.status_code, 200)

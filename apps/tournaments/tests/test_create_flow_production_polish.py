@@ -7,13 +7,14 @@ Covers:
   - View uses get_hosting_fee_for_user() — staff_bypass_enabled=False charges staff
   - API uses get_hosting_fee_for_user() — fee=0 creates successfully
   - Slug IntegrityError retry — collision resolves, exhausted collision returns clean error
-  - Template: wallet top-up CTA present, no inline file inputs
+  - Template: wallet top-up CTA present, optional banner/logo file inputs supported
   - Admin view registered for TournamentHostingFeePayment
   - Fee=0 (fee disabled) → creation free + waived record
   - staff_bypass_enabled=False → staff charged same as regular user
 """
 from __future__ import annotations
 
+import base64
 import json
 import re
 import uuid
@@ -22,6 +23,7 @@ from decimal import Decimal
 from unittest.mock import MagicMock, patch
 
 from django.contrib.auth import get_user_model
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, TestCase, RequestFactory
 from django.urls import reverse
 from django.utils import timezone
@@ -52,11 +54,30 @@ def _test_email(label):
     return f"{label}-{uuid.uuid4().hex[:8]}@test.com"
 
 
+def _test_game():
+    game, _created = Game.objects.get_or_create(
+        slug="create-flow-test-game",
+        defaults={
+            "name": "Create Flow Test Game",
+            "display_name": "Create Flow Test Game",
+            "short_code": "CFTG",
+            "category": "FPS",
+            "game_type": "TEAM_VS_TEAM",
+            "platforms": ["PC"],
+            "is_active": True,
+        },
+    )
+    if not game.is_active:
+        game.is_active = True
+        game.save(update_fields=["is_active"])
+    return game
+
+
 def _api_payload(name=None, **overrides):
     now = timezone.now()
     p = {
         "name": name or _fresh_name(),
-        "game_id": 1,
+        "game_id": _test_game().id,
         "format": "single_elimination",
         "max_participants": 16,
         "min_participants": 2,
@@ -89,6 +110,16 @@ def _api_payload(name=None, **overrides):
     return p
 
 
+def _png_upload(name):
+    return SimpleUploadedFile(
+        name,
+        base64.b64decode(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+        ),
+        content_type="image/png",
+    )
+
+
 def _get_config():
     return TournamentHostingConfig.get_solo()
 
@@ -114,7 +145,7 @@ class HostingFeePaymentModelTest(TestCase):
 
     def setUp(self):
         self.user = User.objects.create_user(username="feeuser", email="feeuser@test.com", password="x")
-        self.game = Game.objects.filter(is_active=True).first()
+        self.game = _test_game()
 
     def _make_tour(self, name=None):
         now = timezone.now()
@@ -198,8 +229,8 @@ class ChargeHostingFeeWaivedTest(TestCase):
 
     def setUp(self):
         _reset_config(hosting_fee_dc=500, staff_bypass_enabled=True)
-        self.staff = User.objects.create_user(username="chstaff", email="chstaff@test.com", is_staff=True, password="x")
-        self.game = Game.objects.filter(is_active=True).first()
+        self.staff = User.objects.create_superuser(username="chstaff", email="chstaff@test.com", password="x")
+        self.game = _test_game()
         now = timezone.now()
         self.tour = Tournament.objects.create(
             name=_fresh_name(),
@@ -290,7 +321,7 @@ class ChargeHostingFeeWaivedTest(TestCase):
 class HostingFeeStaffBypassTest(TestCase):
 
     def setUp(self):
-        self.staff = User.objects.create_user(username="bypassstaff", email="bypassstaff@test.com", is_staff=True, password="x")
+        self.staff = User.objects.create_superuser(username="bypassstaff", email="bypassstaff@test.com", password="x")
         self.regular = User.objects.create_user(username="bypassreg", email="bypassreg@test.com", password="x")
 
     def test_staff_exempt_when_bypass_on(self):
@@ -319,7 +350,7 @@ class CreateAPIFeeIntegrationTest(TestCase):
 
     def setUp(self):
         _reset_config(hosting_fee_dc=500, staff_bypass_enabled=True)
-        self.staff = User.objects.create_user(username="apistaff", email="apistaff@test.com", is_staff=True, password="x")
+        self.staff = User.objects.create_superuser(username="apistaff", email="apistaff@test.com", password="x")
         self.regular = User.objects.create_user(username="apireg", email="apireg@test.com", password="x")
         self.url = reverse("tournaments_api:tournament-list")
 
@@ -328,11 +359,60 @@ class CreateAPIFeeIntegrationTest(TestCase):
         c.force_login(user)
         return c.post(self.url, json.dumps(_api_payload(**kw)), content_type="application/json")
 
+    def _post_multipart(self, user, **kw):
+        payload = _api_payload(**kw)
+        for key in ("prize_distribution", "payment_methods", "meta_keywords"):
+            if key in payload:
+                payload[key] = json.dumps(payload[key])
+        payload["banner_image"] = _png_upload("banner.png")
+        payload["thumbnail_image"] = _png_upload("thumb.png")
+        c = Client()
+        c.force_login(user)
+        return c.post(self.url, payload)
+
+    def _post_multipart_payload(self, user, payload):
+        c = Client()
+        c.force_login(user)
+        return c.post(self.url, payload)
+
     def test_staff_creates_successfully(self):
         resp = self._post(self.staff, name=_fresh_name())
         self.assertEqual(resp.status_code, 201)
         data = resp.json()
         self.assertEqual(data["hosting_fee_charged"], 0)
+
+    def test_staff_creates_successfully_with_optional_media(self):
+        resp = self._post_multipart(self.staff, name=_fresh_name())
+        self.assertEqual(resp.status_code, 201, resp.content)
+        slug = resp.json()["tournament"]["slug"]
+        tournament = Tournament.objects.get(slug=slug)
+        self.assertTrue(tournament.banner_image)
+        self.assertTrue(tournament.thumbnail_image)
+
+    def test_staff_multipart_empty_optional_json_fields_uses_defaults(self):
+        payload = _api_payload(name=_fresh_name())
+        payload["prize_distribution"] = ""
+        payload["payment_methods"] = ""
+        payload["meta_keywords"] = ""
+        payload["banner_image"] = _png_upload("banner.png")
+        payload["thumbnail_image"] = _png_upload("thumb.png")
+
+        resp = self._post_multipart_payload(self.staff, payload)
+        self.assertEqual(resp.status_code, 201, resp.content)
+        tournament = Tournament.objects.get(slug=resp.json()["tournament"]["slug"])
+        self.assertEqual(tournament.prize_distribution, {})
+        self.assertEqual(tournament.payment_methods, [])
+        self.assertEqual(tournament.meta_keywords, [])
+
+    def test_staff_multipart_invalid_json_returns_clean_400(self):
+        payload = _api_payload(name=_fresh_name())
+        payload["payment_methods"] = "{not-json"
+        payload["banner_image"] = _png_upload("banner.png")
+        payload["thumbnail_image"] = _png_upload("thumb.png")
+
+        resp = self._post_multipart_payload(self.staff, payload)
+        self.assertEqual(resp.status_code, 400)
+        self.assertEqual(resp.json()["code"], "VALIDATION_ERROR")
 
     def test_regular_user_no_balance_gets_402(self):
         resp = self._post(self.regular, name=_fresh_name())
@@ -386,7 +466,7 @@ class CreateAPIFeeIntegrationTest(TestCase):
 class CreatePageContextTest(TestCase):
 
     def setUp(self):
-        self.staff = User.objects.create_user(username="ctxstaff", email="ctxstaff@test.com", is_staff=True, password="x")
+        self.staff = User.objects.create_superuser(username="ctxstaff", email="ctxstaff@test.com", password="x")
         self.regular = User.objects.create_user(username="ctxreg", email="ctxreg@test.com", password="x")
 
     def _get(self, user):
@@ -421,12 +501,12 @@ class CreatePageContextTest(TestCase):
         self.assertIn('data-can-afford="true"', html)
         self.assertNotIn("required to host", html)
 
-    def test_file_upload_inputs_absent(self):
-        """bannerInput / logoInput must not be in the rendered HTML."""
+    def test_file_upload_inputs_present(self):
+        """Create flow intentionally supports banner/logo uploads before launch."""
         resp = self._get(self.staff)
         html = resp.content.decode()
-        self.assertNotIn('id="bannerInput"', html)
-        self.assertNotIn('id="logoInput"', html)
+        self.assertIn('id="bannerInput"', html)
+        self.assertIn('id="logoInput"', html)
 
     def test_post_create_upload_hint_present(self):
         resp = self._get(self.staff)
@@ -452,7 +532,7 @@ class SlugCollisionTest(TestCase):
 
     def setUp(self):
         _reset_config(hosting_fee_enabled=False)
-        self.staff = User.objects.create_user(username="slugstaff", email="slugstaff@test.com", is_staff=True, password="x")
+        self.staff = User.objects.create_superuser(username="slugstaff", email="slugstaff@test.com", password="x")
         self.url = reverse("tournaments_api:tournament-list")
         self.c = Client()
         self.c.force_login(self.staff)
@@ -487,7 +567,7 @@ class SlugCollisionTest(TestCase):
         """Verify clean ValidationError is raised (not IntegrityError) when retries exhausted."""
         from apps.tournaments.services.tournament_service import TournamentService
 
-        game = Game.objects.filter(is_active=True).first()
+        game = _test_game()
         now = timezone.now()
         data = {
             "name": "Collision Cup",
@@ -613,10 +693,13 @@ class JSFileQualityTest(TestCase):
     def test_csrf_from_dataset(self):
         self.assertIn("createApp.dataset.csrfToken", self.js)
 
-    def test_no_banner_input_handler(self):
-        """File input handlers removed since inputs were removed from template."""
-        self.assertNotIn("bannerInput", self.js)
-        self.assertNotIn("logoInput", self.js)
+    def test_banner_logo_input_handlers_present(self):
+        """Create flow intentionally supports banner/logo uploads before launch."""
+        self.assertIn("bannerInput", self.js)
+        self.assertIn("logoInput", self.js)
+        self.assertIn("new FormData", self.js)
+        self.assertIn('fd.append("banner_image", bannerFile)', self.js)
+        self.assertIn('fd.append("thumbnail_image", logoFile)', self.js)
 
     def test_show_error_defined(self):
         self.assertIn("function showError", self.js)

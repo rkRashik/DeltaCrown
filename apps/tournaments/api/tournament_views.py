@@ -301,11 +301,13 @@ class TournamentViewSet(viewsets.ModelViewSet):
         # thumbnail_image in request.FILES alongside the form fields.
         incoming_data = request.data
         if request.FILES:
-            if hasattr(incoming_data, 'dict'):
-                incoming_data = incoming_data.dict()
-            else:
-                incoming_data = dict(incoming_data)
-            incoming_data.update(request.FILES)
+            incoming_data = {
+                key: incoming_data.get(key)
+                for key in incoming_data.keys()
+                if key not in request.FILES
+            }
+            for field_name, uploaded_file in request.FILES.items():
+                incoming_data[field_name] = uploaded_file
 
         serializer = self.get_serializer(data=incoming_data)
         serializer.is_valid(raise_exception=True)
