@@ -737,6 +737,7 @@ class RegistrationEligibilityService:
 
             if use_vnext_roster:
                 from apps.organizations.adapters.team_adapter import TeamAdapter
+                from apps.organizations.services.exceptions import TeamServiceError
 
                 try:
                     adapter = TeamAdapter()
@@ -779,22 +780,14 @@ class RegistrationEligibilityService:
                             'action_label': 'Manage Team',
                         }
 
-                except Exception:
-                    # Fallback if adapter/vNext services fail.
-                    team_members = TeamMembership.objects.filter(
-                        team=team_with_permission,
-                        status=TeamMembership.Status.ACTIVE
-                    )
-
-                    min_team_size = getattr(tournament.game, 'min_team_size', 5)
-                    if team_members.count() < min_team_size:
-                        return {
-                            'eligible': False,
-                            'reason': f'Your team needs at least {min_team_size} members.',
-                            'status': 'roster_too_small',
-                            'action_url': f'/teams/{team_with_permission.slug}/',
-                            'action_label': 'Manage Team',
-                        }
+                except (NotImplementedError, TeamServiceError):
+                    return {
+                        'eligible': False,
+                        'reason': 'Team roster validation is unavailable. Please try again.',
+                        'status': 'roster_validation_error',
+                        'action_url': f'/teams/{team_with_permission.slug}/',
+                        'action_label': 'Manage Team',
+                    }
             else:
                 # Legacy routing path: record routing decision without invoking adapter.
                 team_adapter_module.record_routing_decision(

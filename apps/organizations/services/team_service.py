@@ -342,7 +342,136 @@ class TeamService:
                     'errors': result.errors
                 })
         """
-        raise NotImplementedError("Business logic will be implemented in P2-T2+")
+        from apps.games.models import Game
+        from apps.organizations.choices import MembershipRole, MembershipStatus, RosterSlot
+        from apps.organizations.models import Team, TeamMembership
+
+        try:
+            team = Team.objects.only('id', 'name', 'game_id').get(id=team_id)
+        except Team.DoesNotExist:
+            raise NotFoundError("team", team_id)
+
+        tournament_game_id = None
+        if tournament_id:
+            from apps.tournaments.models import Tournament
+
+            tournament = Tournament.objects.only('id', 'game_id').filter(id=tournament_id).first()
+            if not tournament:
+                raise NotFoundError("tournament", tournament_id)
+            tournament_game_id = tournament.game_id
+
+        validation_game_id = game_id or tournament_game_id or team.game_id
+        if not validation_game_id:
+            raise ValidationError(
+                "Roster validation requires a game.",
+                error_code="ROSTER_GAME_REQUIRED",
+                safe_message="Roster validation requires a game.",
+            )
+
+        errors: List[str] = []
+        warnings: List[str] = []
+
+        if team.game_id != validation_game_id:
+            errors.append("Team game does not match the tournament game.")
+
+        try:
+            game = Game.objects.select_related('roster_config').get(id=validation_game_id)
+        except Game.DoesNotExist:
+            raise NotFoundError("game", validation_game_id)
+
+        active_members = list(
+            TeamMembership.objects
+            .filter(team=team, status=MembershipStatus.ACTIVE)
+            .values('role', 'roster_slot')
+        )
+
+        starters = 0
+        substitutes = 0
+        coaches = 0
+        analysts = 0
+        managers = 0
+
+        for member in active_members:
+            role = member.get('role')
+            slot = member.get('roster_slot')
+
+            if slot == RosterSlot.STARTER or (not slot and role == MembershipRole.PLAYER):
+                starters += 1
+            elif slot == RosterSlot.SUBSTITUTE or (not slot and role == MembershipRole.SUBSTITUTE):
+                substitutes += 1
+
+            if role == MembershipRole.COACH or slot == RosterSlot.COACH:
+                coaches += 1
+            if role == MembershipRole.ANALYST or slot == RosterSlot.ANALYST:
+                analysts += 1
+            if role == MembershipRole.MANAGER:
+                managers += 1
+
+        playing_total = starters + substitutes
+        roster_data = {
+            'team_id': team.id,
+            'game_id': validation_game_id,
+            'active_count': len(active_members),
+            'starter_count': starters,
+            'substitute_count': substitutes,
+            'playing_count': playing_total,
+            'coach_count': coaches,
+            'analyst_count': analysts,
+            'manager_count': managers,
+        }
+
+        roster_config = getattr(game, 'roster_config', None)
+        if not roster_config:
+            warnings.append("No game roster configuration found; roster size validation was not enforced.")
+            roster_data['config_missing'] = True
+            return ValidationResult(
+                is_valid=not errors,
+                errors=errors,
+                warnings=warnings,
+                roster_data=roster_data,
+            )
+
+        roster_data.update({
+            'config_id': roster_config.id,
+            'min_team_size': roster_config.min_team_size,
+            'max_team_size': roster_config.max_team_size,
+            'min_substitutes': roster_config.min_substitutes,
+            'max_substitutes': roster_config.max_substitutes,
+            'min_roster_size': roster_config.min_roster_size,
+            'max_roster_size': roster_config.max_roster_size,
+        })
+
+        size_valid, size_error = roster_config.validate_roster_size(starters, substitutes)
+        if not size_valid:
+            if playing_total < roster_config.min_roster_size:
+                errors.append(
+                    f"Roster size ({playing_total}) below minimum "
+                    f"({roster_config.min_roster_size}): {size_error}"
+                )
+            else:
+                errors.append(size_error or "Roster size does not meet game requirements.")
+
+        if not roster_config.allow_coaches and coaches:
+            errors.append("Coaches are not allowed for this game roster.")
+        elif coaches > roster_config.max_coaches:
+            errors.append(f"Too many coaches. Maximum {roster_config.max_coaches} allowed.")
+
+        if not roster_config.allow_analysts and analysts:
+            errors.append("Analysts are not allowed for this game roster.")
+        elif analysts > roster_config.max_analysts:
+            errors.append(f"Too many analysts. Maximum {roster_config.max_analysts} allowed.")
+
+        if not roster_config.allow_managers and managers:
+            errors.append("Managers are not allowed for this game roster.")
+        elif managers > roster_config.max_managers:
+            errors.append(f"Too many managers. Maximum {roster_config.max_managers} allowed.")
+
+        return ValidationResult(
+            is_valid=not errors,
+            errors=errors,
+            warnings=warnings,
+            roster_data=roster_data,
+        )
     
     # ========================================================================
     # PERMISSIONS & AUTHORIZATION
