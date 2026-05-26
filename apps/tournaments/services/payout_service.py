@@ -250,7 +250,7 @@ class PayoutService:
             )
         
         # Get prize distribution
-        prize_pool = getattr(tournament, 'prize_pool_amount', None)
+        prize_pool = getattr(tournament, 'prize_deltacoin', None)
         if prize_pool:
             prize_pool = Decimal(str(prize_pool))
         
@@ -589,7 +589,7 @@ class PayoutService:
             report['expected_placements'].append('3rd')
         
         # Get prize distribution
-        prize_pool = getattr(tournament, 'prize_pool_amount', None)
+        prize_pool = getattr(tournament, 'prize_deltacoin', None)
         if prize_pool:
             prize_pool = Decimal(str(prize_pool))
         

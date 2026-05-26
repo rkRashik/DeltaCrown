@@ -179,6 +179,30 @@ class PayoutServiceTests(TestCase):
             1,
         )
 
+    def test_process_payouts_with_percentage_distribution(self):
+        tournament = self._tournament()
+        tournament.prize_deltacoin = 1000
+        tournament.prize_distribution = {"percent": {1: 100}}
+        tournament.save(update_fields=["prize_deltacoin", "prize_distribution", "updated_at"])
+        winner = self._registration(tournament, self.winner_user)
+        TournamentResult.objects.create(
+            tournament=tournament,
+            winner=winner,
+            rules_applied={"determination": "test"},
+        )
+        wallet = self._wallet(self.winner_user, 0)
+
+        tx_ids = PayoutService.process_payouts(tournament.id, processed_by=self.organizer)
+
+        wallet.refresh_from_db()
+        self.assertEqual(wallet.cached_balance, 1000)
+        self.assertEqual(len(tx_ids), 1)
+        transaction = DeltaCrownTransaction.objects.get(id=tx_ids[0])
+        self.assertEqual(transaction.amount, 1000)
+        self.assertEqual(transaction.cached_balance_after, 1000)
+        prize_tx = PrizeTransaction.objects.get(tournament=tournament, participant=winner)
+        self.assertEqual(prize_tx.status, PrizeTransaction.Status.COMPLETED)
+
     def test_process_payouts_requires_completed_status(self):
         tournament = self._tournament(status=Tournament.LIVE)
 
