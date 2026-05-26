@@ -101,7 +101,7 @@ def _make_transaction(
     On duplicate key (retry scenario), returns the existing transaction silently.
     """
     idem_key = f"escrow_{key_suffix}_{reference_id}"
-    balance_after = wallet.cached_balance + amount   # amount is signed
+    balance_after = wallet.cached_balance
 
     try:
         txn = DeltaCrownTransaction.objects.create(
