@@ -5,9 +5,6 @@ from django.apps import apps
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
-from .services import award_participation_for_registration
-
-
 # NOTE: Signal disabled - tournament app moved to legacy (Nov 2, 2025)
 # @receiver(post_save, dispatch_uid="economy_award_on_payment_verified")
 def award_on_payment_verified_DISABLED(sender, instance, created, **kwargs):
