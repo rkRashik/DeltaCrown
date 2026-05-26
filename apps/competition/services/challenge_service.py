@@ -10,6 +10,7 @@ Game-awareness:
   - BR   (PUBGM, FF)           → Kill race / placement scoring
   - SPORTS (FC26, EFB, RL)     → Direct match, 1v1 support
 """
+import hashlib
 import logging
 from datetime import timedelta
 from decimal import Decimal
@@ -51,6 +52,12 @@ HITLIST_CHALLENGER_ENTRY_FEE_CAP_DC: int = 1_000
 
 #: Platform fee on Bounty reward payouts.
 HITLIST_PLATFORM_FEE_PCT: int = 5
+
+
+def _bounty_claim_ref_suffix(action: str, claim_or_pk) -> str:
+    claim_pk = getattr(claim_or_pk, "pk", claim_or_pk)
+    digest = hashlib.blake2s(str(claim_pk).encode("utf-8"), digest_size=8).hexdigest()
+    return f"{action}:{digest}"
 
 
 def _team_competitive_settings(team):
@@ -1446,7 +1453,7 @@ class BountyService:
             result = escrow_service.lock_funds(
                 wallet,
                 bounty.challenger_entry_fee_dc,
-                reference_id=bounty.hitlist_ref_id(f"claim:{claim.pk}"),
+                reference_id=bounty.hitlist_ref_id(_bounty_claim_ref_suffix("claim", claim)),
                 actor=claimed_by,
                 note=f"Bounty {bounty.reference_code} challenger entry fee "
                      f"(funded by {claimed_by.username})",
@@ -1480,7 +1487,6 @@ class BountyService:
         return claim
 
     @staticmethod
-    @transaction.atomic
     def verify_claim(*, claim_id, verified_by, approved=True, notes=''):
         """Verify or reject a bounty claim.
 
@@ -1496,56 +1502,103 @@ class BountyService:
                 (winnings minus HITLIST_PLATFORM_FEE_PCT)
               - issuer's reward stays locked for the next challenger
         """
-        claim = BountyClaim.objects.select_for_update().select_related('bounty').get(pk=claim_id)
-
-        if claim.status != 'PENDING':
-            raise ValidationError("Claim is not pending.")
-
-        bounty = claim.bounty
-        is_hitlist = bounty.is_hitlist
-
         if approved:
-            claim.status = 'VERIFIED'
-            claim.verified_at = timezone.now()
-            claim.verified_by = verified_by
-            claim.closure_reason = 'VERIFIED_PAID'
+            with transaction.atomic():
+                claim = BountyClaim.objects.select_for_update().select_related('bounty').get(pk=claim_id)
+
+                if claim.status == 'PENDING':
+                    claim.status = 'VERIFIED'
+                    claim.verified_at = timezone.now()
+                    claim.verified_by = verified_by
+                    claim.closure_reason = 'VERIFIED_PAID'
+                    claim.admin_notes = notes
+                    claim.save(update_fields=[
+                        'status', 'verified_at', 'verified_by',
+                        'admin_notes', 'closure_reason',
+                    ])
+                elif claim.status == 'VERIFIED':
+                    claim.admin_notes = notes
+                    update_fields = ['admin_notes']
+                    if claim.verified_at is None:
+                        claim.verified_at = timezone.now()
+                        update_fields.append('verified_at')
+                    if claim.verified_by_id is None:
+                        claim.verified_by = verified_by
+                        update_fields.append('verified_by')
+                    if not claim.closure_reason:
+                        claim.closure_reason = 'VERIFIED_PAID'
+                        update_fields.append('closure_reason')
+                    claim.save(update_fields=update_fields)
+                else:
+                    raise ValidationError("Claim is not pending.")
+
+                bounty = claim.bounty
+                is_hitlist = bounty.is_hitlist
 
             # Bounty board: pay challenger reward + refund their entry fee.
-            if is_hitlist:
+            if is_hitlist and not claim.outcome_txn_id:
                 BountyService._hitlist_payout_to_challenger(
                     bounty, claim, actor=verified_by
                 )
 
-            # Update bounty claim count + close bounty if maxed.
-            bounty.claim_count += 1
-            bounty_update_fields = ['claim_count', 'updated_at']
-            if bounty.claim_count >= bounty.max_claims:
-                bounty.status = 'CLAIMED'
-                bounty.closure_reason = 'CLAIMED'
-                bounty.escrow_locked = False
-                bounty_update_fields += ['status', 'closure_reason', 'escrow_locked']
-            bounty.save(update_fields=bounty_update_fields)
+            outcome_txn_id = claim.outcome_txn_id
 
-            # Auto-void any other PENDING claims (refund their entry fees).
-            if bounty.status == 'CLAIMED':
-                BountyService._refund_other_pending_claims(
-                    bounty, except_pk=claim.pk, actor=verified_by
-                )
+            with transaction.atomic():
+                claim = BountyClaim.objects.select_for_update().get(pk=claim_id)
+                bounty = Bounty.objects.select_for_update().get(pk=claim.bounty_id)
+
+                claim_update_fields = []
+                if outcome_txn_id and not claim.outcome_txn_id:
+                    claim.outcome_txn_id = outcome_txn_id
+                    claim_update_fields.append('outcome_txn')
+                if claim_update_fields:
+                    claim.save(update_fields=claim_update_fields)
+
+                verified_count = BountyClaim.objects.filter(
+                    bounty=bounty,
+                    status='VERIFIED',
+                ).count()
+                bounty_update_fields = []
+                if bounty.claim_count < verified_count:
+                    bounty.claim_count = verified_count
+                    bounty_update_fields += ['claim_count', 'updated_at']
+                if bounty.claim_count >= bounty.max_claims and bounty.status != 'CLAIMED':
+                    bounty.status = 'CLAIMED'
+                    bounty.closure_reason = 'CLAIMED'
+                    bounty.escrow_locked = False
+                    bounty_update_fields += ['status', 'closure_reason', 'escrow_locked']
+                if bounty_update_fields:
+                    bounty.save(update_fields=bounty_update_fields)
+
+                # Auto-void any other PENDING claims (refund their entry fees).
+                if bounty.status == 'CLAIMED':
+                    BountyService._refund_other_pending_claims(
+                        bounty, except_pk=claim.pk, actor=verified_by
+                    )
         else:
-            claim.status = 'REJECTED'
-            claim.closure_reason = 'REJECTED'
+            with transaction.atomic():
+                claim = BountyClaim.objects.select_for_update().select_related('bounty').get(pk=claim_id)
 
-            # Bounty board: pay the challenger's entry fee to the issuer (minus 5%).
-            if is_hitlist:
-                BountyService._hitlist_payout_to_issuer(
-                    bounty, claim, actor=verified_by
-                )
+                if claim.status != 'PENDING':
+                    raise ValidationError("Claim is not pending.")
 
-        claim.admin_notes = notes
-        claim.save(update_fields=[
-            'status', 'verified_at', 'verified_by', 'admin_notes',
-            'closure_reason', 'outcome_txn',
-        ])
+                bounty = claim.bounty
+                is_hitlist = bounty.is_hitlist
+                claim.status = 'REJECTED'
+                claim.closure_reason = 'REJECTED'
+
+                # Bounty board: pay the challenger's entry fee to the issuer (minus 5%).
+                if is_hitlist:
+                    BountyService._hitlist_payout_to_issuer(
+                        bounty, claim, actor=verified_by
+                    )
+
+                claim.admin_notes = notes
+                claim.save(update_fields=[
+                    'status', 'verified_at', 'verified_by', 'admin_notes',
+                    'closure_reason', 'outcome_txn',
+                ])
+
         BountyService._notify_claim_reviewed(claim, approved=approved)
 
         logger.info(
@@ -1587,7 +1640,6 @@ class BountyService:
             )
 
     @staticmethod
-    @transaction.atomic
     def admin_verify_claim(*, claim_id, verified_by, notes=''):
         """Service-backed admin path for approving a pending Bounty claim."""
         claim = BountyService.verify_claim(
@@ -1762,7 +1814,7 @@ class BountyService:
             escrow_service.refund_funds(
                 wallet,
                 bounty.challenger_entry_fee_dc,
-                reference_id=bounty.hitlist_ref_id(f"claim:{claim.pk}"),
+                reference_id=bounty.hitlist_ref_id(_bounty_claim_ref_suffix("claim", claim)),
                 actor=actor,
                 note=f"Bounty {bounty.reference_code} entry-fee refund (winner)",
             )
@@ -1773,7 +1825,7 @@ class BountyService:
                 wallet,
                 bounty.reward_amount_dc,
                 platform_fee_pct=HITLIST_PLATFORM_FEE_PCT,
-                reference_id=bounty.hitlist_ref_id(f"payout:{claim.pk}"),
+                reference_id=bounty.hitlist_ref_id(_bounty_claim_ref_suffix("payout", claim)),
                 actor=actor,
                 note=f"Bounty {bounty.reference_code} reward to {claim.claiming_team.name}",
             )
@@ -1789,7 +1841,7 @@ class BountyService:
             wallet,
             bounty.challenger_entry_fee_dc,
             platform_fee_pct=HITLIST_PLATFORM_FEE_PCT,
-            reference_id=bounty.hitlist_ref_id(f"payout:{claim.pk}"),
+            reference_id=bounty.hitlist_ref_id(_bounty_claim_ref_suffix("payout", claim)),
             actor=actor,
             note=f"Bounty {bounty.reference_code} entry-fee to issuer",
         )
@@ -1810,7 +1862,7 @@ class BountyService:
                     escrow_service.refund_funds(
                         wallet,
                         bounty.challenger_entry_fee_dc,
-                        reference_id=bounty.hitlist_ref_id(f"claim:{other.pk}"),
+                        reference_id=bounty.hitlist_ref_id(_bounty_claim_ref_suffix("claim", other)),
                         actor=actor,
                         note=f"Bounty {bounty.reference_code} bounty consumed - refund",
                     )
