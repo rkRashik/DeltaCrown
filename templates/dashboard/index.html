@@ -1,1370 +1,774 @@
 {% extends "base.html" %}
-{% load static humanize %}
-
-{% block title %}Command Center — DeltaCrown{% endblock %}
+{% load static %}
 
 {% block extra_head %}
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="{% static 'dashboard/competitive-design-system.css' %}?v=20260518-x1">
-<script defer src="{% static 'siteui/js/command-center.js' %}?v=20260517-phase9a"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/intersect@3.x.x/dist/cdn.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/csp@3.x.x/dist/cdn.min.js"></script>
-<script nonce="{{ request.csp_nonce }}">
-  tailwind.config = {
-    darkMode: 'class',
-    theme: {
-      extend: {
-        fontFamily: {
-          sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
-          mono: ['JetBrains Mono', 'monospace'],
-        },
-        colors: {
-          primary: {"50":"#eff6ff","100":"#dbeafe","200":"#bfdbfe","300":"#93c5fd","400":"#60a5fa","500":"#3b82f6","600":"#2563eb","700":"#1d4ed8","800":"#1e40af","900":"#1e3a8a","950":"#172554"},
-          delta: { base:'#020204', surface:'#0A0A0F', highlight:'#12121A', gold:'#FFD700', violet:'#6C00FF', electric:'#00E5FF', success:'#10B981', danger:'#EF4444' },
-          dc: {
-            bg: '#000000', surface: '#08080A', panel: '#101014',
-            border: 'rgba(255, 255, 255, 0.08)', borderHover: 'rgba(255, 255, 255, 0.15)',
-            textMain: '#F8F8F8', textMuted: '#A1A1AA',
-            accent: '#6366F1', accentGlow: 'rgba(99, 102, 241, 0.15)',
-            success: '#10B981', danger: '#F43F5E', warning: '#F59E0B',
-            valRed: '#FF4655', efBlue: '#0052CC',
-          },
-        },
-        boxShadow: {
-          'premium': '0 4px 24px -8px rgba(0, 0, 0, 0.5)',
-          'premium-hover': '0 8px 32px -8px rgba(0, 0, 0, 0.8)',
-          'glow-accent': '0 0 20px -5px rgba(99, 102, 241, 0.4)',
-          'glow-danger': '0 0 24px -4px rgba(244, 63, 94, 0.4)',
-          'glow-warning': '0 0 24px -4px rgba(245, 158, 11, 0.3)',
-          'inner-light': 'inset 0 1px 0 0 rgba(255, 255, 255, 0.05)',
-        },
-        animation: {
-          'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-          'fade-in': 'fadeIn 0.5s ease-out forwards',
-          'slide-up': 'slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards',
-        },
-        keyframes: {
-          fadeIn: { '0%': { opacity: '0' }, '100%': { opacity: '1' } },
-          slideUp: { '0%': { opacity: '0', transform: 'translateY(15px)' }, '100%': { opacity: '1', transform: 'translateY(0)' } },
-        },
-      }
-    }
-  };
-</script>
-{% endblock %}
-
-{% block extra_css %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/@phosphor-icons/web@2.1.1/src/index.js" defer></script>
+<link rel="stylesheet" href="{% static 'dashboard/command-center.css' %}">
 <style>
-  #dc-bottom-nav { display: none !important; }
-  [x-cloak] { display: none !important; }
+  body { background: #0A0D14 !important; }
+  main#main { padding: 0 !important; }
 
-  :root {
-    --dc-border: rgba(255, 255, 255, 0.08);
-    --dc-border-hover: rgba(255, 255, 255, 0.15);
-    --shadow-premium: 0 4px 24px -8px rgba(0, 0, 0, 0.5);
-    --shadow-premium-hover: 0 8px 32px -8px rgba(0, 0, 0, 0.8);
-  }
+  /* Week slider */
+  .week-wrap { position: relative; padding: 0 20px; }
+  .week-nav-btn:hover { background: var(--dc-surface-3) !important; color: var(--dc-fg) !important; }
 
-  .hide-scrollbar::-webkit-scrollbar { display: none; }
-  .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  /* Team logo image inside crest */
+  .crest img { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; }
 
-  .premium-card {
-    background: linear-gradient(180deg, rgba(16, 16, 20, 0.8) 0%, rgba(12, 12, 16, 0.9) 100%);
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
-    border: 1px solid var(--dc-border);
-    box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.05), var(--shadow-premium);
-    border-radius: 20px;
-    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-    position: relative;
-    overflow: hidden;
-  }
-  .premium-card::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0; height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
-    z-index: 10;
-  }
-  .premium-card:hover {
-    border-color: var(--dc-border-hover);
-    box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.05), var(--shadow-premium-hover);
-  }
+  /* Crown Rank / XP carousel — fade toggle, no transform math */
+  .rank-xp-outer { position: relative; min-height: 10px; }
+  .rank-xp-track { }
+  .rank-xp-slide { display: none; }
+  .rank-xp-slide.dc-slide-on { display: block; animation: dc-slide-in 260ms ease forwards; }
+  @keyframes dc-slide-in { from { opacity:0; transform:translateY(5px); } to { opacity:1; transform:none; } }
+  .rank-xp-nav { display: flex; align-items: center; justify-content: center; gap: 7px; margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--dc-hair); }
+  .rank-xp-dot { height: 6px; border-radius: 999px; border: none; cursor: pointer; background: var(--dc-surface-3); transition: width 200ms, background 200ms; padding: 0; width: 6px; }
+  .rank-xp-dot.on { background: var(--acc); width: 20px; }
 
-  .ambient-mesh {
-    position: fixed; inset: 0; z-index: -1;
-    background-color: #000000;
-    background-image:
-      radial-gradient(circle at 15% 0%, rgba(99, 102, 241, 0.04) 0%, transparent 40%),
-      radial-gradient(circle at 85% 20%, rgba(244, 63, 94, 0.03) 0%, transparent 40%),
-      radial-gradient(circle at 50% 100%, rgba(16, 185, 129, 0.02) 0%, transparent 50%);
-    background-attachment: fixed;
-    pointer-events: none;
-  }
+  /* Daily reward — missed day (past, unclaimed) */
+  .dc-cc .dr-day.missed { background: rgba(255,77,94,0.05); border-color: rgba(255,77,94,0.18); }
+  .dc-cc .dr-day.missed .dl { color: var(--dc-danger-500); opacity: 0.65; }
+  .dc-cc .dr-day.missed .c { background: rgba(255,77,94,0.12); color: var(--dc-danger-500); }
+  .dc-cc .dr-day.missed .rv { color: var(--dc-danger-500); opacity: 0.5; }
 
-  .btn-glass {
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
-    color: #F8F8F8; font-weight: 500;
-    transition: all 0.2s ease;
-  }
-  .btn-glass:hover {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.15);
-  }
-
-  .game-icon { width: 18px; height: 18px; border-radius: 4px; object-fit: cover; }
-  .game-icon-sm { width: 14px; height: 14px; border-radius: 3px; object-fit: cover; }
-  .game-icon-lg { width: 24px; height: 24px; border-radius: 6px; object-fit: cover; }
-
-  .stagger-1 { animation-delay: 50ms; }
-  .stagger-2 { animation-delay: 100ms; }
-  .stagger-3 { animation-delay: 150ms; }
-  .stagger-4 { animation-delay: 200ms; }
-  .stagger-5 { animation-delay: 250ms; }
-
-  .tournament-card-bg {
-    background-size: cover;
-    background-position: center;
-    position: relative;
-  }
-  .tournament-card-bg::after {
-    content: '';
-    position: absolute; inset: 0;
-    background: linear-gradient(to right, rgba(0,0,0,0.96) 0%, rgba(0,0,0,0.88) 50%, rgba(0,0,0,0.72) 100%);
-    z-index: 1;
-  }
-
-  .rarity-common { color: #9CA3AF; }
-  .rarity-rare { color: #3B82F6; }
-  .rarity-epic { color: #8B5CF6; }
-  .rarity-legendary { color: #F59E0B; }
+  /* XP Level widget */
+  .xp-level-badge { width: 64px; height: 64px; flex: none; border-radius: 18px; display: flex; align-items: center; justify-content: center; flex-direction: column; background: linear-gradient(135deg,var(--dc-violet-500),var(--acc)); color: #fff; box-shadow: 0 12px 30px -14px var(--dc-violet-500); }
+  .xp-level-badge .lv { font-family: var(--dc-font-mono); font-weight: 700; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.75; }
+  .xp-level-badge .ln { font-family: var(--dc-font-display); font-weight: 800; font-size: 22px; line-height: 1; }
+  .xp-sources { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; }
+  .xp-src { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--dc-fg-muted); }
+  .xp-src .dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+  .xp-src .val { margin-left: auto; font-family: var(--dc-font-mono); font-weight: 600; color: var(--dc-fg); }
 </style>
 {% endblock %}
 
 {% block content %}
-<div x-data="dashboardEngine()" x-cloak class="text-dc-textMain font-sans overflow-x-hidden">
+<div class="dc-cc" data-theme="dark">
+  <div class="amb"></div>
+  <script id="lensesJson" type="application/json">{{ lenses_json|safe }}</script>
 
-  <div class="ambient-mesh"></div>
+  <div class="page">
 
-  <div class="pt-4 sm:pt-6 pb-24 md:pb-10 max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8">
+    {# PAGE HEADER #}
+    <div class="page-head">
+      <div class="greet">
+        <span class="eyebrow">
+          <span class="mk">
+            <svg viewBox="0 0 256 256" fill="#fff"><path d="M32 200 L64 96 L128 152 L192 96 L224 200 Z"></path><circle cx="64" cy="72" r="16"></circle><circle cx="128" cy="48" r="20"></circle><circle cx="192" cy="72" r="16"></circle></svg>
+          </span>
+          Command Center
+        </span>
+        {% if is_new_player %}
+        <h1>Welcome to DeltaCrown, {{ profile.display_name|default:request.user.username }}.</h1>
+        <p>Finish your setup to unlock tournaments and teams.</p>
+        {% else %}
+        <h1>Welcome back, {{ profile.display_name|default:request.user.username }}</h1>
+        <p>
+          {% if next_match_info and next_match_info.is_live %}<span class="live-i">1 live match</span>{% if invite_count %} · {% endif %}{% endif %}
+          {% if invite_count %}<b>{{ invite_count }} pending invite{{ invite_count|pluralize }}</b> waiting{% endif %}
+          {% if not next_match_info and not invite_count %}Your dashboard is up to date.{% endif %}
+        </p>
+        {% endif %}
+      </div>
+    </div>
 
-    <div x-show="matchLobbyAlert" x-transition class="mb-5 sm:mb-6 animate-slide-up">
-      <div class="premium-card rounded-2xl p-4 sm:p-5 border border-dc-danger/35 bg-[linear-gradient(135deg,rgba(244,63,94,0.14)_0%,rgba(14,14,18,0.95)_55%,rgba(16,16,20,0.98)_100%)]">
-        <div class="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-5">
-          <div class="flex items-start gap-3 min-w-0 flex-1">
-            <div class="w-11 h-11 rounded-xl bg-dc-danger/20 border border-dc-danger/35 text-dc-danger flex items-center justify-center shrink-0 shadow-glow-danger">
-              <i class="fa-solid fa-door-open text-lg"></i>
+    {% if not is_new_player %}
+    {# ============================  ACTIVE PLAYER  ============================ #}
+
+    {# NEXT MATCH HERO #}
+    {% if next_match_info %}
+    <div class="grid" style="margin-bottom:var(--gap);">
+      <div class="hero-match col-12">
+        <div class="inner">
+          <div class="vs">
+            <div class="side">
+              {% if my_teams %}
+              <div class="crest" style="width:52px;height:52px;font-size:18px;background:linear-gradient(135deg,#0A84FF,#6849E5);">
+                {% if my_teams.0.logo_url %}<img src="{{ my_teams.0.logo_url }}" alt="{{ my_teams.0.name }}" onerror="this.style.display='none'">{% else %}{{ my_teams.0.tag|default:"YOU"|slice:":4" }}{% endif %}
+              </div>
+              <div class="nm">{{ my_teams.0.name|truncatechars:16 }}</div>
+              {% else %}
+              <div class="crest" style="width:52px;height:52px;font-size:18px;background:linear-gradient(135deg,#0A84FF,#6849E5);">YOU</div>
+              <div class="nm">{{ request.user.username }}</div>
+              {% endif %}
+              <div class="tag">YOU</div>
             </div>
-            <div class="min-w-0">
-              <div class="flex items-center gap-2 flex-wrap">
-                <span class="text-[10px] font-black uppercase tracking-[0.22em] text-dc-danger">Priority Alert</span>
-                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-dc-danger/20 border border-dc-danger/35 text-[10px] font-bold text-rose-100" x-text="matchLobbyAlert.startsInLabel"></span>
-              </div>
-              <h2 class="text-lg sm:text-xl font-black text-white mt-1 leading-tight" x-text="matchLobbyAlert.title"></h2>
-              <p class="text-xs sm:text-sm text-gray-300 mt-1 leading-relaxed" x-text="matchLobbyAlert.message"></p>
-              <div class="mt-2 flex items-center gap-2 text-[11px] text-dc-textMuted font-mono">
-                <img x-show="matchLobbyAlert.gameIcon" :src="matchLobbyAlert.gameIcon" class="game-icon-sm" alt="Game">
-                <span x-text="matchLobbyAlert.tournament"></span>
-                <span class="text-white/30">•</span>
-                <span x-text="matchLobbyAlert.opponent"></span>
-                <template x-if="matchLobbyAlert.lobbyCode">
-                  <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-black/30 border border-white/15 text-[10px] text-rose-100">
-                    Code: <strong class="font-bold" x-text="matchLobbyAlert.lobbyCode"></strong>
-                  </span>
-                </template>
-              </div>
+            <div class="mid"><div class="vstxt">VS</div></div>
+            <div class="side">
+              <div class="crest" style="width:52px;height:52px;font-size:18px;background:linear-gradient(135deg,#BF3868,#75591F);">OPP</div>
+              <div class="nm">{{ next_match_info.opponent_name|default:"TBD"|truncatechars:16 }}</div>
+              <div class="tag">{{ next_match_info.state|upper }}</div>
             </div>
           </div>
-
-          <div class="flex items-center gap-2 sm:gap-3 shrink-0">
-            <button @click="navigateAction({ btnUrl: matchLobbyAlert.btnUrl })" class="bg-dc-danger hover:bg-rose-600 text-white px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-black uppercase tracking-wide transition-all active:scale-[0.98] shadow-glow-danger">
-              Enter Match Lobby
-            </button>
-            <button @click="dismissMatchLobbyAlert()" class="w-9 h-9 rounded-lg border border-white/15 bg-white/5 hover:bg-white/10 text-dc-textMuted hover:text-white transition-colors">
-              <i class="fa-solid fa-xmark text-sm"></i>
-            </button>
+          <div class="body">
+            <div class="meta">
+              {% if next_match_info.is_live %}<span class="chip chip-live"><span class="dot-pulse"></span>LIVE</span>
+              {% elif next_match_info.state == "check_in" %}<span class="chip chip-checkin"><span class="dot-pulse"></span>CHECK-IN OPEN</span>
+              {% else %}<span class="chip chip-open">UPCOMING</span>{% endif %}
+              <span class="chip chip-done"><i class="ph-bold ph-game-controller" style="font-size:13px;"></i> {{ next_match_info.tournament_name|default:""|truncatechars:22 }}</span>
+            </div>
+            <h2>{{ next_match_info.tournament_name|default:"Match" }}</h2>
+            <div class="det">{% if next_match_info.scheduled_time %}<span><b>{{ next_match_info.scheduled_time|date:"D, M j · g:iA" }}</b></span>{% endif %}</div>
+          </div>
+          <div class="cta">
+            <div class="timer">
+              {% if next_match_info.scheduled_time %}<div class="t" id="matchTimer" data-secs="0">--:--</div><div class="l">until lock-in</div>
+              {% else %}<div class="t">—</div><div class="l">scheduled</div>{% endif %}
+            </div>
+            <a href="{{ next_match_info.match_room_url }}" class="btn btn-live btn-block"><i class="ph-fill ph-sign-in"></i> Enter Match Room</a>
           </div>
         </div>
       </div>
     </div>
+    {% endif %}
 
-    {# ═══════════════ HEADER ═══════════════ #}
-    <header class="mb-6 sm:mb-8 animate-slide-up stagger-1">
-      <div class="flex flex-col md:flex-row md:items-end justify-between gap-6">
-        <div>
-          <h1 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-white mb-2">
-            Command Center
-          </h1>
-          <p class="text-dc-textMuted text-sm sm:text-base font-medium">Overview of your competitive infrastructure and assets.</p>
-        </div>
-
-        <div class="flex flex-wrap items-center gap-2 sm:gap-3">
-          <a :href="actionItems.length > 0 ? (actionItems[0].btnUrl || '/tournaments/') : '/tournaments/'" class="btn-glass px-4 py-2.5 rounded-xl flex items-center gap-2 text-sm active:scale-[0.98] transition-transform no-underline relative">
-            <template x-if="actionItems.length > 0">
-              <span class="flex items-center gap-2">
-                <i class="fa-solid fa-bolt text-dc-warning animate-pulse"></i>
-                <span x-text="actionItems[0].title.length > 18 ? actionItems[0].title.substring(0,18) + '…' : actionItems[0].title"></span>
-                <span x-show="actionItems.length > 1" class="ml-0.5 w-4 h-4 bg-dc-danger rounded-full text-[9px] font-black flex items-center justify-center" x-text="actionItems.length"></span>
-              </span>
-            </template>
-            <template x-if="actionItems.length === 0">
-              <span class="flex items-center gap-2">
-                <i class="fa-solid fa-compass text-dc-accent"></i> Explore Events
-              </span>
-            </template>
-          </a>
-          <a href="{% url 'tournaments:my_tournaments' %}" class="btn-glass px-4 py-2.5 rounded-xl flex items-center gap-2 text-sm active:scale-[0.98] transition-transform no-underline">
-            <i class="fa-solid fa-calendar-check text-dc-accent"></i> My Tournaments
-          </a>
-          <button @click="showLFT = !showLFT" class="btn-glass px-4 py-2.5 rounded-xl flex items-center gap-2 text-sm active:scale-[0.98] transition-transform relative">
-            <i class="fa-solid fa-user-tag text-purple-400"></i> LFT / LFP
-            <span x-show="lfpPositions.length > 0" class="absolute -top-1 -right-1 w-4 h-4 bg-dc-accent rounded-full text-[10px] font-bold flex items-center justify-center" x-text="lfpPositions.length"></span>
-          </button>
-          <a href="{% url 'organizations:team_create' %}" class="bg-white text-black hover:bg-gray-200 px-5 py-2.5 rounded-xl font-bold text-sm transition-all active:scale-[0.98] shadow-[0_0_15px_rgba(255,255,255,0.15)] flex items-center gap-2 no-underline">
-            <i class="fa-solid fa-plus"></i> New Team
-          </a>
-        </div>
+    {# PERFORMANCE LENS BAR #}
+    {% if lenses %}
+    <div class="ctxbar">
+      <div class="ctxbar-l">
+        <div class="ic"><i class="ph-bold ph-crosshair-simple"></i></div>
+        <div><b>Performance lens</b><span>Crown rank, win rate, streak &amp; board for the selected game</span></div>
       </div>
-    </header>
-
-    {# ═══════════════ LFT / LFP PANEL (slide-down) ═══════════════ #}
-    <div x-show="showLFT" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 -translate-y-4" x-transition:enter-end="opacity-100 translate-y-0" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100 translate-y-0" x-transition:leave-end="opacity-0 -translate-y-4" class="mb-6 premium-card p-6 animate-slide-up">
-      <div class="flex items-center justify-between mb-5">
-        <h3 class="text-lg font-bold text-white flex items-center gap-2">
-          <i class="fa-solid fa-bullhorn text-purple-400"></i> Recruitment Board
-        </h3>
-        <button @click="showLFT = false" class="text-dc-textMuted hover:text-white transition-colors"><i class="fa-solid fa-xmark"></i></button>
-      </div>
-
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {# LFT Status #}
-        <div>
-          <h4 class="text-xs font-bold text-dc-textMuted uppercase tracking-wider mb-3">Your LFT Status</h4>
-          <div class="flex gap-2 mb-4">
-            <button @click="user.lftStatus = 'NOT_LOOKING'" :class="user.lftStatus === 'NOT_LOOKING' ? 'bg-white/[0.1] text-white border-white/[0.2]' : 'text-dc-textMuted border-white/[0.06]'" class="px-3 py-2 rounded-lg text-xs font-bold border transition-all">Not Looking</button>
-            <button @click="user.lftStatus = 'LFT_TEAM'" :class="user.lftStatus === 'LFT_TEAM' ? 'bg-dc-success/20 text-dc-success border-dc-success/40' : 'text-dc-textMuted border-white/[0.06]'" class="px-3 py-2 rounded-lg text-xs font-bold border transition-all">Looking for Team</button>
-            <button @click="user.lftStatus = 'LFT_SCRIMS'" :class="user.lftStatus === 'LFT_SCRIMS' ? 'bg-dc-warning/20 text-dc-warning border-dc-warning/40' : 'text-dc-textMuted border-white/[0.06]'" class="px-3 py-2 rounded-lg text-xs font-bold border transition-all">Looking for Scrims</button>
-          </div>
-          <p class="text-[11px] text-dc-textMuted">Toggle your availability. Teams searching for players will see your profile.</p>
-        </div>
-
-        {# Open Positions (LFP) #}
-        <div>
-          <h4 class="text-xs font-bold text-dc-textMuted uppercase tracking-wider mb-3">Your Open Positions</h4>
-          <template x-if="lfpPositions.length === 0">
-            <div class="p-4 rounded-xl bg-white/[0.02] border border-dashed border-white/[0.08] text-center">
-              <p class="text-xs text-dc-textMuted mb-2">No open recruitment positions.</p>
-              <p class="text-[10px] text-dc-textMuted">Go to your Team Hub to create recruitment listings.</p>
-            </div>
-          </template>
-          <div class="space-y-2">
-            <template x-for="pos in lfpPositions" :key="pos.id">
-              <a :href="'/teams/' + pos.teamSlug + '/'" class="flex items-center gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.06] hover:border-white/[0.12] transition-all no-underline group">
-                <img :src="pos.teamLogo || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(pos.team) + '&background=222&color=fff&size=64'" class="w-8 h-8 rounded-lg border border-white/[0.1] object-cover" :alt="pos.team">
-                <div class="flex-1 min-w-0">
-                  <div class="text-xs font-bold text-white truncate group-hover:text-dc-accent transition-colors" x-text="pos.title"></div>
-                  <div class="flex items-center gap-2 mt-0.5">
-                    <img x-show="pos.gameIcon" :src="pos.gameIcon" class="game-icon-sm" alt="">
-                    <span class="text-[10px] text-dc-textMuted" x-text="pos.team + ' · ' + pos.role"></span>
-                  </div>
-                </div>
-                <i class="fa-solid fa-arrow-right text-xs text-dc-textMuted group-hover:text-white transition-colors"></i>
-              </a>
-            </template>
-          </div>
-        </div>
+      <div class="ctx-pills" id="ctxPills">
+        {% for lens in lenses %}
+        <button class="ctx{% if lens.is_primary %} on{% endif %}" data-ctx="{{ lens.id }}"{% if lens.is_primary %} data-primary="1"{% endif %}>
+          <span class="cc" style="background:linear-gradient(135deg,{{ lens.crest_g1 }},{{ lens.crest_g2 }});">
+            {% if lens.game_icon %}<img src="{{ lens.game_icon }}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:6px;" onerror="this.style.display='none'">{% else %}{{ lens.crest }}{% endif %}
+          </span>
+          {{ lens.game_name|default:lens.label }}
+          {% if lens.is_primary %}<i class="ph-fill ph-crown-simple star" title="Primary team"></i>{% endif %}
+          {% if lens.is_solo %}<span style="font-size:10px;opacity:0.6;">Solo</span>{% endif %}
+        </button>
+        {% endfor %}
       </div>
     </div>
+    {% endif %}
 
-    {# ═══════════════ SMART ACTION DECK (fully dynamic) ═══════════════ #}
-    <div class="mb-8 animate-slide-up stagger-2" x-show="actionItems.length > 0" x-transition>
-      <div class="flex gap-4 overflow-x-auto pb-4 hide-scrollbar snap-x snap-mandatory">
-        <template x-for="item in actionItems" :key="item.id">
-          <div class="snap-start shrink-0 w-[340px] sm:w-[400px] premium-card p-5 relative group"
-               :class="{
-                 'border-dc-danger/30 hover:border-dc-danger/60': item.type === 'danger',
-                 'border-dc-warning/30 hover:border-dc-warning/60': item.type === 'warning',
-                 'border-dc-success/30 hover:border-dc-success/60': item.type === 'success',
-                 'border-dc-accent/30 hover:border-dc-accent/60': item.type === 'info'
-               }">
-            <div class="absolute inset-0 opacity-[0.03] pointer-events-none transition-opacity group-hover:opacity-[0.08]"
-                 :class="{ 'bg-dc-danger': item.type === 'danger', 'bg-dc-warning': item.type === 'warning', 'bg-dc-success': item.type === 'success', 'bg-dc-accent': item.type === 'info' }"></div>
-
-            <div class="flex justify-between items-start mb-3 relative z-10">
-              <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl flex items-center justify-center text-lg shadow-inner-light"
-                     :class="{
-                       'bg-dc-danger/10 text-dc-danger border border-dc-danger/20': item.type === 'danger',
-                       'bg-dc-warning/10 text-dc-warning border border-dc-warning/20': item.type === 'warning',
-                       'bg-dc-success/10 text-dc-success border border-dc-success/20': item.type === 'success',
-                       'bg-dc-accent/10 text-dc-accent border border-dc-accent/20': item.type === 'info'
-                     }">
-                  <i :class="item.icon"></i>
-                </div>
-                <div>
-                  <div class="flex items-center gap-2">
-                    <h3 class="font-bold text-white text-sm" x-text="item.title"></h3>
-                  </div>
-                  <div class="flex items-center gap-1.5 mt-0.5">
-                    <img x-show="item.gameIcon" :src="item.gameIcon" class="game-icon-sm" alt="">
-                    <span class="text-[10px] font-mono text-dc-textMuted uppercase tracking-wider" x-text="item.game"></span>
-                  </div>
-                </div>
-              </div>
-              <button @click="dismissAction(item.id)" class="text-dc-textMuted hover:text-white transition-colors p-1">
-                <i class="fa-solid fa-xmark text-xs"></i>
-              </button>
-            </div>
-
-            <p class="text-xs text-gray-400 mb-4 relative z-10 leading-relaxed" x-text="item.description"></p>
-
-            <div class="flex items-center justify-between relative z-10 border-t border-white/[0.05] pt-4">
-              <span class="text-[11px] font-mono font-medium"
-                    :class="{ 'text-dc-danger': item.type === 'danger', 'text-dc-warning': item.type === 'warning', 'text-dc-success': item.type === 'success', 'text-dc-accent': item.type === 'info' }">
-                <i class="fa-regular fa-clock mr-1"></i> <span x-text="item.timeRemaining"></span>
-              </span>
-              <button @click="navigateAction(item)" class="px-4 py-2 rounded-lg text-xs font-bold transition-all active:scale-[0.98] shadow-premium"
-                      :class="{
-                        'bg-dc-danger hover:bg-rose-600 text-white shadow-glow-danger': item.type === 'danger',
-                        'bg-dc-warning hover:bg-amber-600 text-black shadow-glow-warning': item.type === 'warning',
-                        'bg-dc-success/20 text-dc-success hover:bg-dc-success hover:text-white border border-dc-success/30': item.type === 'success',
-                        'bg-dc-accent/20 text-dc-accent hover:bg-dc-accent hover:text-white border border-dc-accent/30': item.type === 'info'
-                      }">
-                <span x-text="item.btnText"></span> <i class="fa-solid fa-arrow-right ml-1"></i>
-              </button>
-            </div>
-          </div>
-        </template>
+    {# STAT TILES #}
+    {% with dl=lenses|first %}
+    <div class="grid" style="margin-bottom:var(--gap);">
+      <div class="card stat col-3 hov">
+        <div class="top"><div class="ic" style="background:var(--dc-tint-gold);color:var(--dc-gold-400);"><i class="ph-fill ph-crown-simple"></i></div><div class="lbl">Crown Points</div></div>
+        <div class="val" id="statCP" data-count="{{ dl.rank.cp|default:0 }}">0</div>
+        <div class="sub" id="statCPsub"><span style="color:{{ dl.rank.tier_color|default:'#94A3B8' }};font-weight:600;">{{ dl.rank.tier|default:"ROOKIE"|upper }}</span> · <span class="up">+{{ dl.rank.cp_delta|default:0 }} this week</span></div>
+      </div>
+      <div class="card stat col-3 hov">
+        <div class="top"><div class="ic" style="background:rgba(46,204,113,0.12);color:var(--dc-success-500);"><i class="ph-bold ph-chart-line-up"></i></div><div class="lbl">Win Rate</div></div>
+        <div class="val" id="statWR" data-count="{{ dl.stats.win_rate|default:match_stats.win_rate|default:0 }}" data-suffix="%">0</div>
+        <div class="sub mono" id="statWRsub">{{ dl.stats.wins|default:match_stats.wins|default:0 }}W · {{ dl.stats.losses|default:match_stats.losses|default:0 }}L · {{ dl.stats.draws|default:match_stats.draws|default:0 }}D</div>
+      </div>
+      <div class="card stat col-3 hov">
+        <div class="top"><div class="ic"><i class="ph-bold ph-trophy"></i></div><div class="lbl">Active Events</div></div>
+        <div class="val" data-count="{{ tournament_count|default:0 }}">0</div>
+        <div class="sub">{{ active_tournaments|length }} joined · <span style="color:var(--dc-fg-muted);">{{ platform_tournament_count|default:0 }} platform-wide</span></div>
+      </div>
+      <div class="card stat col-3 hov">
+        <div class="top"><div class="ic" style="background:var(--dc-tint-gold);color:var(--dc-gold-400);"><i class="ph-fill ph-coins"></i></div><div class="lbl">DeltaCoin</div></div>
+        <div class="val" data-count="{{ wallet.balance|default:0|floatformat:0 }}">0</div>
+        <div class="sub">{% if wallet.recent_txns %}{% with t=wallet.recent_txns.0 %}<span class="{% if t.amount > 0 %}up{% else %}down{% endif %}">{% if t.amount > 0 %}+{% endif %}{{ t.amount|floatformat:0 }}</span> {{ t.reason|lower }}{% endwith %}{% else %}wallet balance{% endif %}</div>
       </div>
     </div>
+    {% endwith %}
 
-    {# ═══════════════ MAIN 12-COL GRID ═══════════════ #}
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-
-      {# ── LEFT COLUMN (8 cols) ── #}
-      <div class="lg:col-span-8 space-y-6">
-
-        {# ── Tournament Control (redesigned with images) ── #}
-        <div class="premium-card p-6 sm:p-8 animate-slide-up stagger-3">
-          <div class="flex justify-between items-end mb-6">
-            <div>
-              <h2 class="text-xl font-bold text-white flex items-center gap-2">
-                <i class="fa-solid fa-trophy text-dc-warning"></i> Tournament Control
-              </h2>
-              <p class="text-sm text-dc-textMuted mt-1">Your active brackets and upcoming matches.</p>
-            </div>
-            <div class="flex gap-2">
-              <a href="{% url 'tournaments:my_tournaments' %}" class="text-xs font-bold text-dc-textMuted hover:text-white uppercase tracking-wider transition-colors flex items-center gap-1 no-underline">
-                My Events <i class="fa-solid fa-arrow-right"></i>
-              </a>
-            </div>
-          </div>
-
-          <div class="space-y-4">
-            <div x-show="tournaments.length === 0" class="flex flex-col items-center justify-center py-12 text-center">
-              <div class="w-14 h-14 rounded-2xl bg-white/[0.03] border border-white/[0.08] flex items-center justify-center mb-4">
-                <i class="fa-solid fa-trophy text-2xl text-dc-textMuted"></i>
-              </div>
-              <h4 class="font-bold text-white text-sm mb-1">No Active Tournaments</h4>
-              <p class="text-[11px] text-dc-textMuted mb-5 max-w-[240px]">You're not registered in any brackets yet. Join your first event.</p>
-              <a href="{% url 'tournaments:list' %}" class="bg-dc-accent hover:bg-indigo-500 text-white font-bold text-sm px-5 py-2.5 rounded-xl active:scale-[0.98] transition-all shadow-glow-accent no-underline">
-                <i class="fa-solid fa-search mr-2"></i> Discover Events
-              </a>
-            </div>
-
-            <template x-for="tourney in tournaments" :key="tourney.id">
-              <a :href="'/tournaments/' + tourney.slug + '/'" class="block rounded-2xl overflow-hidden transition-all group relative no-underline"
-                 :class="tourney.isLive ? 'ring-1 ring-dc-danger/50' : 'ring-1 ring-white/[0.06] hover:ring-white/[0.15]'">
-                <div class="tournament-card-bg flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 sm:p-6"
-                     :style="tourney.banner ? 'background-image: url(' + tourney.banner + ')' : 'background: linear-gradient(135deg, rgba(16,16,20,0.95), rgba(12,12,16,0.98))'">
-
-                  <div x-show="tourney.isLive" class="absolute inset-0 bg-dc-danger/5 animate-pulse-slow pointer-events-none z-[2]"></div>
-
-                  <div class="relative z-10 flex-1 min-w-0">
-                    <div class="flex items-center gap-2 mb-2 flex-wrap">
-                      <span x-show="tourney.isLive" class="bg-dc-danger text-white text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-widest shadow-glow-danger flex items-center gap-1">
-                        <span class="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span> Live
-                      </span>
-                      <span x-show="!tourney.isLive" class="bg-white/[0.1] text-white text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-widest" x-text="tourney.status"></span>
-                      <span x-show="tourney.currentStage" class="text-[10px] font-bold px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 uppercase tracking-widest" x-text="tourney.currentStage"></span>
-                      <span x-show="tourney.regStatus && tourney.regStatus !== tourney.status" class="text-[10px] font-medium px-1.5 py-0.5 rounded bg-white/[0.05] text-gray-500 uppercase tracking-wider" x-text="tourney.regStatus"></span>
-                      <span class="flex items-center gap-1.5 text-[10px] font-mono text-dc-textMuted">
-                        <img x-show="tourney.gameIcon" :src="tourney.gameIcon" class="game-icon-sm" alt="">
-                        <span x-text="tourney.game"></span>
-                      </span>
-                    </div>
-                    <h3 class="font-bold text-white text-lg group-hover:text-gray-200 transition-colors truncate" x-text="tourney.name"></h3>
-                    <div class="flex items-center gap-3 mt-2 text-xs flex-wrap">
-                      <span class="text-gray-400 font-medium"><i class="fa-solid fa-sitemap text-dc-textMuted mr-1"></i> <span x-text="tourney.format"></span></span>
-                      <span class="w-1 h-1 bg-white/[0.1] rounded-full"></span>
-                      <span class="text-dc-warning font-bold"><i class="fa-solid fa-coins mr-1"></i> <span x-text="tourney.prizePool"></span></span>
-                      <template x-if="tourney.matchTime">
-                        <span class="text-gray-400 font-medium"><i class="fa-solid fa-clock text-dc-textMuted mr-1"></i> Next: <span x-text="tourney.matchTime" class="text-white font-bold"></span></span>
-                      </template>
-                    </div>
-                  </div>
-
-                  <div class="relative z-10 flex items-center gap-4 border-t sm:border-t-0 sm:border-l border-white/[0.08] pt-4 sm:pt-0 sm:pl-6 shrink-0">
-                    <div class="text-left sm:text-right">
-                      <div class="text-[10px] text-dc-textMuted uppercase font-bold tracking-wider mb-0.5">Opponent</div>
-                      <div class="text-sm font-bold text-white font-mono" x-text="tourney.opponent"></div>
-                      <template x-if="tourney.matchState">
-                        <div class="mt-1">
-                          <span x-show="tourney.matchState === 'live'" class="text-[9px] font-black text-red-400 bg-red-500/10 px-1.5 py-0.5 rounded uppercase">Live Now</span>
-                          <span x-show="tourney.matchState === 'check_in'" class="text-[9px] font-black text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded uppercase">Check-in Open</span>
-                          <span x-show="tourney.matchState === 'ready'" class="text-[9px] font-black text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded uppercase">Ready</span>
-                          <span x-show="tourney.matchState === 'scheduled'" class="text-[9px] font-black text-gray-500 bg-white/5 px-1.5 py-0.5 rounded uppercase">Scheduled</span>
-                        </div>
-                      </template>
-                      <template x-if="tourney.lobbyStatus === 'open'">
-                        <div class="text-[9px] font-bold text-emerald-400 mt-0.5">Lobby Open</div>
-                      </template>
-                    </div>
-                    <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 shrink-0">
-                      <button
-                        x-show="tourney.canManage && tourney.manageUrl"
-                        type="button"
-                        class="px-4 py-2 rounded-xl font-bold text-xs transition-all active:scale-[0.98] bg-white/[0.05] hover:bg-white/[0.1] border border-white/[0.1] text-white"
-                        @click.prevent.stop="navigateTo(tourney.manageUrl)"
-                      >
-                        Manage
-                      </button>
-                      <button
-                        x-show="tourney.canEnterHub && tourney.hubUrl"
-                        type="button"
-                        class="px-4 py-2 rounded-xl font-bold text-xs transition-all active:scale-[0.98] bg-dc-accent/90 hover:bg-dc-accent text-white shadow-glow-accent"
-                        @click.prevent.stop="navigateTo(tourney.hubUrl)"
-                      >
-                        HUB
-                      </button>
-                      <button
-                        x-show="tourney.hasMatchLobby && tourney.matchLobbyUrl"
-                        type="button"
-                        class="px-4 py-2 rounded-xl font-bold text-xs transition-all active:scale-[0.98] bg-dc-danger hover:bg-rose-600 text-white shadow-glow-danger"
-                        @click.prevent.stop="navigateTo(tourney.matchLobbyUrl)"
-                      >
-                        Match Lobby
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </a>
-            </template>
-          </div>
-        </div>
-
-        {# ── Organization & Active Rosters ── #}
-        <div class="premium-card p-6 sm:p-8 animate-slide-up stagger-4 relative overflow-hidden">
-
-          {# Organizations #}
-          <div class="mb-6 pb-6 border-b border-white/[0.08]">
-            <div class="flex items-center justify-between mb-4">
-              <span class="text-xs font-bold text-dc-textMuted uppercase tracking-wider">My Organizations</span>
-              <a href="{% url 'organizations:org_create' %}" class="text-[10px] text-white bg-white/[0.1] hover:bg-white/[0.2] px-2 py-1 rounded transition-colors no-underline">+ Register Org</a>
-            </div>
-            <div class="flex gap-3 flex-wrap" x-show="myOrgs.length > 0">
-              <template x-for="org in myOrgs" :key="org.id">
-                <a :href="'/orgs/' + org.slug + '/'" class="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/[0.08] hover:border-dc-accent/50 hover:bg-white/[0.05] transition-all group no-underline">
-                  <img :src="orgLogoSrc(org)" @error="handleOrgLogoError(org, $event)" class="w-8 h-8 rounded-lg border border-white/[0.1] object-cover" alt="">
-                  <div class="text-left">
-                    <div class="flex items-center gap-1.5">
-                      <div class="text-sm font-bold text-white group-hover:text-dc-accent transition-colors" x-text="org.name"></div>
-                      <i x-show="org.verified" class="fa-solid fa-circle-check text-dc-accent text-[10px]"></i>
-                    </div>
-                    <div class="text-[10px] text-gray-400 font-mono" x-text="org.role + ' · ' + org.cp"></div>
-                  </div>
-                </a>
-              </template>
-            </div>
-            <div x-show="myOrgs.length === 0" class="flex items-center justify-between p-3 rounded-xl bg-white/[0.02] border border-dashed border-white/[0.08]">
-              <div class="flex items-center gap-3">
-                <div class="w-9 h-9 rounded-lg bg-white/[0.03] border border-white/[0.06] flex items-center justify-center">
-                  <i class="fa-solid fa-building-shield text-dc-textMuted text-sm"></i>
-                </div>
-                <div>
-                  <p class="text-xs font-bold text-white">No Organization Yet</p>
-                  <p class="text-[10px] text-dc-textMuted">Register your org to unlock team infrastructure.</p>
-                </div>
-              </div>
-              <a href="{% url 'organizations:org_create' %}" class="text-[10px] font-bold text-dc-accent hover:text-white bg-dc-accent/10 hover:bg-dc-accent/20 border border-dc-accent/20 px-3 py-1.5 rounded-lg transition-all active:scale-[0.98] no-underline">Register</a>
-            </div>
-          </div>
-
-          {# Active Rosters #}
-          <div class="flex justify-between items-center mb-5">
-            <h2 class="text-xl font-bold text-white flex items-center gap-2">
-              <i class="fa-solid fa-users text-dc-textMuted"></i> Active Rosters
-            </h2>
-          </div>
-
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 relative z-10">
-            <template x-for="team in teams" :key="team.id">
-              <div class="bg-black/40 border border-white/[0.06] rounded-xl p-5 hover:border-white/[0.15] hover:bg-black/60 transition-all group flex flex-col h-full relative">
-
-                <div class="flex justify-between items-start mb-4">
-                  <div class="flex items-center gap-3">
-                    <img :src="teamLogoSrc(team)" @error="handleTeamLogoError(team, $event)" class="w-12 h-12 rounded-xl border border-white/[0.1] object-cover shadow-premium" alt="">
-                    <div>
-                      <div class="flex items-center gap-2">
-                        <h3 class="font-bold text-white text-base leading-tight group-hover:text-gray-200 transition-colors" x-text="team.name"></h3>
-                        <span x-show="team.tag" class="text-[10px] font-mono text-dc-textMuted bg-white/[0.05] px-1.5 py-0.5 rounded" x-text="'[' + team.tag + ']'"></span>
-                      </div>
-                      <div class="flex items-center gap-2 mt-1 flex-wrap">
-                        <span class="flex items-center gap-1.5">
-                          <img x-show="team.gameIcon" :src="team.gameIcon" class="game-icon-sm" alt="">
-                          <span class="text-[10px] text-dc-textMuted font-medium" x-text="team.game"></span>
-                        </span>
-                        <span class="text-white/[0.15]">&middot;</span>
-                        <template x-if="team.org">
-                          <a :href="'/orgs/' + team.org.slug + '/'" class="inline-flex items-center gap-1 text-[10px] font-bold text-gray-400 hover:text-dc-accent transition-colors no-underline" @click.stop>
-                            <img x-show="team.org.logo" :src="team.org.logo" @error="if (team.org) team.org.logo = ''" class="w-3.5 h-3.5 rounded object-cover" alt="">
-                            <span x-text="team.org.name"></span>
-                            <i x-show="team.org.verified" class="fa-solid fa-circle-check text-dc-accent text-[8px]"></i>
-                          </a>
-                        </template>
-                        <template x-if="!team.org">
-                          <span class="text-[10px] font-bold text-gray-500">Independent</span>
-                        </template>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="flex flex-col items-end gap-1">
-                    <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-white/[0.05] border border-white/[0.1] text-white" x-text="team.role"></span>
-                    <span x-show="team.pendingJR > 0" class="text-[10px] font-bold px-2 py-0.5 rounded bg-dc-warning/10 border border-dc-warning/20 text-dc-warning" x-text="team.pendingJR + ' pending'"></span>
-                  </div>
-                </div>
-
-                <div class="grid grid-cols-3 gap-2 mb-5">
-                  <div class="text-center p-2 rounded-lg bg-white/[0.02] border border-white/[0.02]">
-                    <div class="text-[10px] text-dc-textMuted uppercase font-bold tracking-wider mb-0.5">Tier</div>
-                    <div class="font-mono text-xs font-bold" x-text="team.tier" :class="{'text-[#ffd700]': team.tier==='THE_CROWN', 'text-[#f97316]': team.tier==='LEGEND', 'text-[#8b5cf6]': team.tier==='MASTER', 'text-[#3b82f6]': team.tier==='ELITE', 'text-[#22c55e]': team.tier==='CHALLENGER', 'text-[#9ca3af]': team.tier==='ROOKIE' || !team.tier}"></div>
-                  </div>
-                  <div class="text-center p-2 rounded-lg bg-white/[0.02] border border-white/[0.02]">
-                    <div class="text-[10px] text-dc-textMuted uppercase font-bold tracking-wider mb-0.5">Win Rate</div>
-                    <div class="font-mono text-xs font-bold text-dc-success" x-text="team.winRate"></div>
-                  </div>
-                  <div class="text-center p-2 rounded-lg bg-white/[0.02] border border-white/[0.02]">
-                    <div class="text-[10px] text-dc-textMuted uppercase font-bold tracking-wider mb-0.5">Matches</div>
-                    <div class="font-mono text-xs font-bold text-white" x-text="team.matches"></div>
-                  </div>
-                </div>
-
-                <div class="mt-auto pt-4 border-t border-white/[0.05] flex items-center justify-between">
-                  <div class="flex -space-x-1.5">
-                    <template x-for="(player, idx) in team.roster.slice(0,5)" :key="idx">
-                      <div class="relative group/avatar">
-                        <img :src="player.avatar" class="w-7 h-7 rounded-full border-2 border-[#101014] object-cover hover:z-10 relative transition-transform hover:scale-110" :alt="player.name" :title="player.name">
-                        <div x-show="player.isCaptain" class="absolute -top-1 -right-1 w-3.5 h-3.5 bg-dc-warning rounded-full flex items-center justify-center z-20">
-                          <i class="fa-solid fa-crown text-[6px] text-black"></i>
-                        </div>
-                      </div>
-                    </template>
-                    <div x-show="team.memberCount > 5" class="w-7 h-7 rounded-full border-2 border-[#101014] bg-white/[0.05] flex items-center justify-center text-[10px] font-bold text-dc-textMuted relative">
-                      +<span x-text="team.memberCount - 5"></span>
-                    </div>
-                  </div>
-                  <div class="flex items-center gap-2">
-                    <a :href="'/teams/' + team.slug + '/'" class="w-8 h-8 rounded-lg bg-white/[0.05] hover:bg-dc-accent/20 border border-white/[0.1] hover:border-dc-accent/30 flex items-center justify-center transition-all no-underline" title="Message Team" @click.stop>
-                      <i class="fa-solid fa-message text-[10px] text-dc-textMuted hover:text-dc-accent"></i>
-                    </a>
-                    <a :href="'/teams/' + team.slug + '/'" class="bg-white/[0.05] hover:bg-white/[0.1] border border-white/[0.1] text-white text-[10px] font-bold px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 no-underline">
-                      Team Hub <i class="fa-solid fa-arrow-right"></i>
-                    </a>
-                  </div>
-                </div>
-              </div>
-            </template>
-
-            <a href="{% url 'organizations:team_create' %}" class="border border-dashed border-white/[0.1] bg-transparent rounded-xl p-4 hover:border-white/[0.3] hover:bg-white/[0.02] transition-all flex flex-col items-center justify-center text-dc-textMuted hover:text-white min-h-[200px] no-underline">
-              <div class="w-8 h-8 rounded-full bg-white/[0.05] flex items-center justify-center mb-2">
-                <i class="fa-solid fa-plus text-sm"></i>
-              </div>
-              <span class="font-bold text-sm">Create New Roster</span>
-              <span class="text-[10px] mt-1 text-center">Form a new independent team.</span>
-            </a>
-          </div>
-        </div>
-
-        {# ── Game Passports (modernized linked accounts) ── #}
-        <div class="premium-card p-6 animate-slide-up stagger-5">
-          <div class="flex justify-between items-center mb-5">
-            <h3 class="text-base font-bold text-white flex items-center gap-2">
-              <i class="fa-solid fa-id-card-clip text-dc-accent"></i> Game Passports
-            </h3>
-            <a href="{% url 'user_profile:profile_settings' %}" class="text-xs font-medium text-dc-accent hover:text-white transition-colors no-underline">Manage Links <i class="fa-solid fa-arrow-right ml-1"></i></a>
-          </div>
-
-          <template x-if="gamePassports.length === 0">
-            <div class="p-6 rounded-xl bg-white/[0.02] border border-dashed border-white/[0.08] text-center">
-              <i class="fa-solid fa-link-slash text-2xl text-dc-textMuted mb-3"></i>
-              <h4 class="text-sm font-bold text-white mb-1">No Game Accounts Linked</h4>
-              <p class="text-[11px] text-dc-textMuted mb-4">Link your game accounts to auto-verify tournament eligibility.</p>
-              <a href="{% url 'user_profile:profile_settings' %}" class="bg-dc-accent/20 text-dc-accent hover:bg-dc-accent hover:text-white text-xs font-bold px-4 py-2 rounded-lg transition-all border border-dc-accent/30 no-underline">
-                <i class="fa-solid fa-link mr-1.5"></i> Link Game Account
-              </a>
-            </div>
-          </template>
-
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" x-show="gamePassports.length > 0">
-            <template x-for="gp in gamePassports" :key="gp.id">
-              <div class="flex items-center gap-4 p-4 rounded-xl bg-black/40 border border-white/[0.06] hover:border-white/[0.15] transition-all group">
-                <div class="w-10 h-10 rounded-xl flex items-center justify-center shadow-inner-light shrink-0 border border-white/[0.1]"
-                     :style="'background: ' + gp.gameColor + '15'">
-                  <img x-show="gp.gameIcon" :src="gp.gameIcon" class="w-full h-full rounded-[10px] object-cover" alt="">
-                  <i x-show="!gp.gameIcon" class="fa-solid fa-gamepad text-dc-textMuted"></i>
-                </div>
-                <div class="flex-1 min-w-0">
-                  <div class="text-[10px] text-dc-textMuted uppercase font-bold tracking-wider mb-0.5" x-text="gp.game"></div>
-                  <div x-show="gp.isLinked" class="text-sm font-mono font-bold text-white truncate" x-text="gp.ign"></div>
-                  <div x-show="!gp.isLinked" class="text-sm font-medium text-dc-textMuted italic">Not linked</div>
-                </div>
-                <div class="flex flex-col items-end gap-1 shrink-0">
-                  <template x-if="gp.isLinked">
-                    <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-dc-success/10 text-dc-success border border-dc-success/20">Linked</span>
-                  </template>
-                  <template x-if="!gp.isLinked">
-                    <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-white/[0.05] text-dc-textMuted border border-white/[0.06]">Unlinked</span>
-                  </template>
-                  <template x-if="gp.isLft">
-                    <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-dc-success/10 text-dc-success border border-dc-success/20">LFT</span>
-                  </template>
-                </div>
-              </div>
-            </template>
-          </div>
-        </div>
-
-        {# ── Challenges & Bounties ── #}
-        <div class="dcx-card premium-card p-6 sm:p-8 animate-slide-up stagger-5 relative overflow-hidden">
-          <div class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-300/30 to-transparent"></div>
-          <div class="absolute right-0 top-0 h-32 w-32 bg-cyan-300/5 blur-3xl pointer-events-none"></div>
-          <div class="flex justify-between items-end mb-6">
-            <div>
-              <h2 class="text-xl font-bold text-white flex items-center gap-2">
-                <i class="fa-solid fa-radar text-dc-accent"></i> Competitive Command
-              </h2>
-              <p class="text-sm text-dc-textMuted mt-1" x-text="competitiveGuidance"></p>
-            </div>
-            <div class="flex items-center gap-3">
-              <span x-show="competitiveNeedsAction.length > 0" class="text-[10px] font-bold text-white bg-dc-accent px-2 py-0.5 rounded shadow-glow" x-text="competitiveNeedsAction.length + ' ACTION'"></span>
-              <a href="{% url 'dashboard:competitive_hub' %}" class="text-[10px] font-bold text-white bg-white/[0.08] hover:bg-white/[0.14] hover:border-cyan-300/30 px-3 py-1.5 rounded-lg border border-white/[0.1] transition-all no-underline">Open Hub</a>
-            </div>
-          </div>
-
-          <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-            <div class="dcx-stat rounded-2xl border border-cyan-300/15 bg-cyan-300/[0.06] px-4 py-3 transition hover:border-cyan-300/30 hover:bg-cyan-300/[0.085]">
-              <div class="dcx-stat-label text-cyan-100/70">Needs Action</div>
-              <div class="dcx-stat-value text-xl font-black text-white" x-text="competitiveNeedsAction.length"></div>
-            </div>
-            <div class="dcx-stat rounded-2xl border border-amber-300/15 bg-amber-300/[0.06] px-4 py-3 transition hover:border-amber-300/30 hover:bg-amber-300/[0.085]">
-              <div class="dcx-stat-label text-amber-100/70">Under Review</div>
-              <div class="dcx-stat-value text-xl font-black text-white" x-text="competitiveUnderReview.length"></div>
-            </div>
-            <div class="dcx-stat rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 transition hover:border-white/20 hover:bg-white/[0.06]">
-              <div class="dcx-stat-label text-dc-textMuted">Waiting</div>
-              <div class="dcx-stat-value text-xl font-black text-white" x-text="competitiveWaiting.length"></div>
-            </div>
-            <div class="dcx-stat rounded-2xl border border-emerald-300/15 bg-emerald-300/[0.06] px-4 py-3 transition hover:border-emerald-300/30 hover:bg-emerald-300/[0.085]">
-              <div class="dcx-stat-label text-emerald-100/70">Completed</div>
-              <div class="dcx-stat-value text-xl font-black text-white" x-text="competitiveCompleted.length"></div>
-            </div>
-          </div>
-
-          <div x-show="competitiveError" class="mb-4 rounded-2xl border border-dc-danger/20 bg-dc-danger/10 px-4 py-3 text-xs text-rose-100" x-text="competitiveError"></div>
-
-          <div x-show="competitiveLoading && myOperations.length === 0" class="grid md:grid-cols-2 gap-3 mb-6">
-            <template x-for="idx in [1,2,3,4]" :key="idx">
-              <div class="h-24 rounded-2xl bg-white/[0.04] border border-white/[0.06] animate-pulse"></div>
-            </template>
-          </div>
-
-          <div x-show="competitivePriority.length > 0" class="grid xl:grid-cols-[1.2fr_.8fr] gap-4 mb-6">
-            <div class="space-y-3">
-              <div class="text-[10px] text-dc-textMuted uppercase font-bold tracking-wider">Priority Operations</div>
-              <template x-for="op in competitivePriority.slice(0,5)" :key="(op.type || 'op') + '-' + op.id">
-                <button type="button"
-                        @click="navigateTo(competitiveActionUrl(op))"
-                        class="w-full text-left p-4 rounded-2xl bg-black/40 border border-white/[0.08] hover:border-cyan-300/30 hover:bg-white/[0.055] hover:-translate-y-0.5 active:translate-y-0 transition-all group">
-                  <div class="flex items-start gap-4">
-                    <div class="w-11 h-11 rounded-2xl border flex items-center justify-center shrink-0" :class="competitiveTypeMeta(op.type).bg">
-                      <i :class="competitiveTypeMeta(op.type).icon + ' ' + competitiveTypeMeta(op.type).tone"></i>
-                    </div>
-                    <div class="min-w-0 flex-1">
-                      <div class="flex flex-wrap items-center gap-2 mb-1">
-                        <span class="text-[10px] font-black uppercase tracking-[0.16em]" :class="competitiveTypeMeta(op.type).tone" x-text="competitiveTypeMeta(op.type).label"></span>
-                        <span class="text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider" :class="competitiveStatusClass(op)" x-text="op.status || 'Active'"></span>
-                      </div>
-                      <h4 class="text-sm font-bold text-white truncate" x-text="op.title || 'Competitive operation'"></h4>
-                      <div class="mt-2 flex flex-wrap items-center gap-2 text-[10px] text-dc-textMuted">
-                        <span x-show="op.game" x-text="op.game"></span>
-                        <span x-show="op.team_name" class="text-white/[0.18]">&middot;</span>
-                        <span x-show="op.team_name" x-text="op.team_name"></span>
-                        <span x-show="competitiveTime(op)" class="text-white/[0.18]">&middot;</span>
-                        <span x-show="competitiveTime(op)" x-text="competitiveTime(op)"></span>
-                      </div>
-                    </div>
-                    <div class="hidden sm:flex flex-col items-end gap-2 shrink-0">
-                      <span class="text-[10px] font-bold text-white" x-text="op.next_action_label || 'View Details'"></span>
-                      <i class="fa-solid fa-arrow-right text-cyan-200 text-xs transition-transform group-hover:translate-x-1"></i>
-                    </div>
-                  </div>
-                </button>
-              </template>
-            </div>
-
-            <div class="rounded-2xl border border-cyan-300/15 bg-cyan-300/[0.05] p-4 shadow-[0_22px_60px_-45px_rgba(34,211,238,.7)]">
-              <div class="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-100 mb-3">Ecosystem Flow</div>
-              <div class="grid grid-cols-2 gap-2 text-[10px]">
-                <div class="rounded-xl bg-black/30 border border-white/[0.06] p-3">
-                  <div class="text-white font-bold">Showdown</div>
-                  <div class="text-dc-textMuted mt-1">Create -> Match Room -> Result -> Settlement</div>
-                </div>
-                <div class="rounded-xl bg-black/30 border border-white/[0.06] p-3">
-                  <div class="text-white font-bold">Missions</div>
-                  <div class="text-dc-textMuted mt-1">Enroll -> Progress -> Proof -> Review</div>
-                </div>
-                <div class="rounded-xl bg-black/30 border border-white/[0.06] p-3">
-                  <div class="text-white font-bold">Bounty</div>
-                  <div class="text-dc-textMuted mt-1">Claim -> Match Room -> Verify -> Reward</div>
-                </div>
-                <div class="rounded-xl bg-black/30 border border-white/[0.06] p-3">
-                  <div class="text-white font-bold">Dropzone</div>
-                  <div class="text-dc-textMuted mt-1">Reserve -> Reveal -> Score -> Results</div>
-                </div>
-              </div>
-              <div class="mt-3 rounded-xl bg-black/30 border border-white/[0.06] p-3 flex items-center justify-between gap-3">
-                <div>
-                  <div class="text-white font-bold text-xs">Team Applications</div>
-                  <div class="text-dc-textMuted mt-1 text-[10px]">Tryouts, join requests, and offers are tracked below.</div>
-                </div>
-                <span class="rounded-lg border border-emerald-300/20 bg-emerald-300/10 px-2 py-1 text-[10px] font-black text-emerald-100" x-text="teamApplications.length"></span>
-              </div>
-            </div>
-          </div>
-
-          {# Challenges #}
-          <div x-show="competitivePriority.length === 0 && challenges.length > 0" class="mb-6">
-            <div class="text-[10px] text-dc-textMuted uppercase font-bold tracking-wider mb-3">Showdown Signals</div>
-            <div class="space-y-3">
-              <template x-for="ch in challenges" :key="ch.id">
-                <div class="flex items-center gap-4 p-4 rounded-xl bg-black/40 border border-white/[0.06] hover:border-white/[0.15] transition-all group">
-                  <div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border"
-                       :class="{
-                         'bg-dc-warning/10 border-dc-warning/20': ch.type === 'SHOWDOWN',
-                         'bg-dc-danger/10 border-dc-danger/20': ch.type === 'BOUNTY',
-                         'bg-dc-accent/10 border-dc-accent/20': ch.type === 'SCRIM',
-                         'bg-purple-400/10 border-purple-400/20': ch.type === 'DUEL'
-                       }">
-                    <i :class="ch.typeIcon + ' ' + ch.typeColor"></i>
-                  </div>
-                  <div class="flex-1 min-w-0">
-                    <div class="flex items-center gap-2 mb-0.5">
-                      <span class="text-sm font-bold text-white truncate" x-text="ch.title"></span>
-                      <span class="text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider"
-                            :class="{
-                              'bg-dc-success/10 text-dc-success border border-dc-success/20': ch.statusRaw === 'OPEN',
-                              'bg-dc-warning/10 text-dc-warning border border-dc-warning/20': ch.statusRaw === 'ACCEPTED',
-                              'bg-dc-danger/10 text-dc-danger border border-dc-danger/20': ch.statusRaw === 'IN_PROGRESS',
-                              'bg-gray-700/30 text-gray-400 border border-gray-600/30': !['OPEN','ACCEPTED','IN_PROGRESS'].includes(ch.statusRaw)
-                            }" x-text="ch.status"></span>
-                    </div>
-                    <div class="flex items-center gap-3 text-[10px] text-dc-textMuted">
-                      <span class="flex items-center gap-1">
-                        <img x-show="ch.gameIcon" :src="ch.gameIcon" class="game-icon-sm" alt="">
-                        <span x-text="ch.game || ch.type"></span>
-                      </span>
-                      <span x-text="ch.format"></span>
-                      <span class="text-white/[0.15]">&middot;</span>
-                      <span>vs <span class="text-white font-medium" x-text="ch.opponent"></span></span>
-                    </div>
-                  </div>
-                  <div class="text-right shrink-0">
-                    <div x-show="ch.prize > 0" class="text-sm font-mono font-bold text-dc-warning" x-text="ch.prize.toLocaleString() + ' ' + ch.currency"></div>
-                    <div class="text-[10px] text-dc-textMuted" x-text="ch.time"></div>
-                  </div>
-                </div>
-              </template>
-            </div>
-          </div>
-
-          {# Bounties #}
-          <div x-show="competitivePriority.length === 0 && bounties.length > 0" class="mb-4">
-            <div class="text-[10px] text-dc-textMuted uppercase font-bold tracking-wider mb-3">Bounty Signals</div>
-            <div class="space-y-3">
-              <template x-for="b in bounties" :key="b.id">
-                <div class="flex items-center gap-4 p-4 rounded-xl bg-black/40 border border-white/[0.06] hover:border-white/[0.15] transition-all group">
-                  <div class="w-10 h-10 rounded-xl bg-dc-danger/10 border border-dc-danger/20 flex items-center justify-center shrink-0">
-                    <i class="fa-solid fa-crosshairs text-dc-danger"></i>
-                  </div>
-                  <div class="flex-1 min-w-0">
-                    <div class="flex items-center gap-2 mb-0.5">
-                      <span class="text-sm font-bold text-white truncate" x-text="b.title"></span>
-                      <span class="text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider"
-                            :class="{
-                              'bg-dc-success/10 text-dc-success border border-dc-success/20': b.statusRaw === 'OPEN',
-                              'bg-dc-warning/10 text-dc-warning border border-dc-warning/20': b.statusRaw === 'ACCEPTED',
-                              'bg-dc-danger/10 text-dc-danger border border-dc-danger/20': b.statusRaw === 'IN_PROGRESS',
-                              'bg-purple-400/10 text-purple-400 border border-purple-400/20': b.statusRaw === 'PENDING_RESULT',
-                              'bg-gray-700/30 text-gray-400 border border-gray-600/30': !['OPEN','ACCEPTED','IN_PROGRESS','PENDING_RESULT'].includes(b.statusRaw)
-                            }" x-text="b.status"></span>
-                    </div>
-                    <div class="flex items-center gap-3 text-[10px] text-dc-textMuted">
-                      <span class="flex items-center gap-1">
-                        <img x-show="b.gameIcon" :src="b.gameIcon" class="game-icon-sm" alt="">
-                        <span x-text="b.game"></span>
-                      </span>
-                      <span class="text-white/[0.15]">&middot;</span>
-                      <span x-text="b.isMine ? 'Created by you' : 'By ' + b.creator"></span>
-                      <span class="text-white/[0.15]">&middot;</span>
-                      <span>vs <span class="text-white font-medium" x-text="b.opponent"></span></span>
-                    </div>
-                  </div>
-                  <div class="text-right shrink-0">
-                    <div class="text-sm font-mono font-bold text-dc-warning" x-text="(b.entryFee ?? b.entry_fee_dc ?? 0).toLocaleString() + ' DC entry'"></div>
-                    <div class="text-[10px] text-dc-success" x-text="'Reward: ' + b.payout.toLocaleString() + ' DC'"></div>
-                  </div>
-                </div>
-              </template>
-            </div>
-          </div>
-
-          {# Empty state #}
-          <div x-show="!competitiveLoading && competitivePriority.length === 0 && challenges.length === 0 && bounties.length === 0" class="flex flex-col items-center justify-center py-10 text-center">
-            <div class="w-14 h-14 rounded-2xl bg-white/[0.03] border border-white/[0.08] flex items-center justify-center mb-4">
-              <i class="fa-solid fa-crosshairs text-2xl text-dc-textMuted"></i>
-            </div>
-            <h4 class="font-bold text-white text-sm mb-1">No Active Operations</h4>
-            <p class="text-[11px] text-dc-textMuted mb-5 max-w-[260px]">Enter Showdowns, Missions, Bounty challenges, or Dropzone events from the competitive hub.</p>
-          </div>
-        </div>
-
-        {# Team Applications Inbox #}
-        <div class="premium-card p-6 sm:p-8 animate-slide-up stagger-5">
-          <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-6">
-            <div>
-              <h2 class="text-xl font-bold text-white flex items-center gap-2">
-                <i class="fa-solid fa-id-card-clip text-dc-success"></i> My Team Applications
-              </h2>
-              <p class="text-sm text-dc-textMuted mt-1">Track join requests, tryouts, and roster offers in one place.</p>
-            </div>
-            <button type="button"
-                    @click="loadTeamApplications()"
-                    class="btn-glass px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider inline-flex items-center justify-center gap-2">
-              <i class="fa-solid fa-rotate text-[10px]" :class="teamApplicationsLoading ? 'animate-spin' : ''"></i>
-              Refresh
-            </button>
-          </div>
-
-          <div x-show="teamApplicationsError" class="mb-4 p-3 rounded-xl border border-dc-danger/20 bg-dc-danger/10 text-xs text-rose-100" x-text="teamApplicationsError"></div>
-
-          <div x-show="teamApplicationsLoading && teamApplications.length === 0" class="space-y-3">
-            <template x-for="idx in [1,2,3]" :key="idx">
-              <div class="h-24 rounded-xl bg-white/[0.04] border border-white/[0.06] animate-pulse"></div>
-            </template>
-          </div>
-
-          <div x-show="!teamApplicationsLoading && teamApplications.length === 0" class="flex flex-col items-center justify-center py-10 text-center">
-            <div class="w-14 h-14 rounded-2xl bg-white/[0.03] border border-white/[0.08] flex items-center justify-center mb-4">
-              <i class="fa-solid fa-id-badge text-2xl text-dc-textMuted"></i>
-            </div>
-            <h4 class="font-bold text-white text-sm mb-1">No Team Applications Yet</h4>
-            <p class="text-[11px] text-dc-textMuted mb-5 max-w-[280px]">Apply for tryouts or request to join a recruiting team, then track every status here.</p>
-            <a href="{% url 'organizations:vnext_hub' %}" class="bg-white/[0.08] hover:bg-white/[0.14] text-white text-xs font-bold px-4 py-2 rounded-lg border border-white/[0.1] transition-all no-underline">
-              Explore Teams
-            </a>
-          </div>
-
-          <div x-show="teamApplications.length > 0" class="space-y-3">
-            <template x-for="item in teamApplications.slice(0,8)" :key="item.id">
-              <div class="p-4 rounded-xl bg-black/40 border border-white/[0.06] hover:border-white/[0.15] transition-all">
-                <div class="flex items-start gap-4">
-                  <a :href="item.team_url || '#'" class="w-11 h-11 rounded-xl border border-white/[0.1] bg-white/[0.04] overflow-hidden shrink-0 flex items-center justify-center no-underline">
-                    <img x-show="item.team && item.team.logo_url" :src="item.team.logo_url" class="w-full h-full object-cover" alt="">
-                    <i x-show="!item.team || !item.team.logo_url" :class="teamApplicationIcon(item)" class="text-dc-textMuted"></i>
-                  </a>
-                  <div class="min-w-0 flex-1">
-                    <div class="flex flex-wrap items-center gap-2 mb-1">
-                      <a :href="item.team_url || '#'" class="text-sm font-bold text-white hover:text-dc-accent transition-colors no-underline truncate" x-text="item.team_name"></a>
-                      <span class="text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider"
-                            :class="teamApplicationStatusClass(item)"
-                            x-text="item.status"></span>
-                    </div>
-                    <div class="flex flex-wrap items-center gap-2 text-[10px] text-dc-textMuted">
-                      <span x-text="item.source_type === 'tryout' ? 'Tryout' : 'Join Request'"></span>
-                      <span x-show="item.game" class="text-white/[0.2]">&middot;</span>
-                      <span x-show="item.game" x-text="item.game"></span>
-                      <span x-show="item.role" class="text-white/[0.2]">&middot;</span>
-                      <span x-show="item.role" x-text="item.role"></span>
-                      <span x-show="item.scheduled_at" class="text-white/[0.2]">&middot;</span>
-                      <span x-show="item.scheduled_at" x-text="formatDateTime(item.scheduled_at)"></span>
-                    </div>
-                    <p x-show="item.applicant_safe_note" class="text-[11px] text-gray-400 mt-2 line-clamp-2" x-text="item.applicant_safe_note"></p>
-                    <div x-show="item.actions && item.actions.length" class="flex flex-wrap gap-2 mt-3">
-                      <template x-for="action in item.actions" :key="action.action">
-                        <button type="button"
-                                @click.prevent.stop="handleTeamApplicationAction(item, action)"
-                                class="px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all border"
-                                :class="action.style === 'primary' ? 'bg-dc-success text-black border-dc-success hover:bg-emerald-300' : 'bg-white/[0.04] text-white border-white/[0.12] hover:bg-white/[0.1]'"
-                                x-text="action.label">
-                        </button>
-                      </template>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </template>
-          </div>
-        </div>
-      </div>
-
-      {# ── RIGHT COLUMN (4 cols) ── #}
-      <div class="lg:col-span-4 flex flex-col space-y-6">
-
-        {# ── Crown Vault ── #}
-        <div class="premium-card p-6 animate-slide-up stagger-3 relative overflow-hidden group">
-          <div class="absolute -right-16 -top-16 w-48 h-48 bg-dc-warning/10 rounded-full blur-[60px] pointer-events-none group-hover:bg-dc-warning/20 transition-all"></div>
-          <div class="relative z-10">
-            <div class="flex items-center justify-between mb-6">
-              {# ── Crown Vault Title with DC Info Tooltip ── #}
-              <h3 class="text-sm font-bold text-white flex items-center gap-2">
-                <i class="fa-solid fa-vault text-dc-warning"></i> Crown Vault
-                {# DC closed-loop info tooltip #}
-                <span class="relative group/tooltip">
-                  <svg class="w-3.5 h-3.5 text-dc-textMuted hover:text-white transition-colors cursor-help" viewBox="0 0 20 20" fill="currentColor" aria-label="What is DeltaCoin?">
-                    <circle cx="10" cy="10" r="9" fill="none" stroke="currentColor" stroke-width="1.5"/>
-                    <text x="10" y="14.5" text-anchor="middle" font-size="11" font-weight="bold" fill="currentColor">i</text>
-                  </svg>
-                  <span class="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-full mb-2 z-50
-                               hidden group-hover/tooltip:flex flex-col
-                               w-64 p-3 rounded-xl
-                               bg-black/80 backdrop-blur-md
-                               border border-white/10
-                               shadow-2xl">
-                    <span class="text-[10px] text-gray-200 leading-relaxed">
-                      DeltaCoin (DC) is a non-withdrawable utility token for entry fees and platform assets.
-                      Fiat tournament prizes are claimed directly from the Tournament Hub.
-                    </span>
-                    <span class="absolute left-1/2 -translate-x-1/2 top-full -mt-px
-                                 border-4 border-transparent border-t-white/10"></span>
-                  </span>
-                </span>
-              </h3>
-              <a href="{% url 'economy:transaction_history' %}" class="text-dc-textMuted hover:text-white transition-colors no-underline">
-                <i class="fa-solid fa-clock-rotate-left text-sm"></i>
-              </a>
-            </div>
-            <div class="mb-6">
-              <div class="flex items-baseline gap-2">
-                <span class="text-4xl sm:text-5xl font-extrabold text-white tracking-tighter" x-text="wallet.balance.toLocaleString()"></span>
-                <span class="text-dc-warning font-bold text-lg">DC</span>
-              </div>
-              <div class="flex items-center gap-2 mt-2">
-                {# BDT fiat equivalent removed — DC is a closed-loop utility token (compliance) #}
-                <span x-show="wallet.pending > 0" class="w-1 h-1 bg-white/[0.2] rounded-full"></span>
-                <p class="text-xs text-dc-success font-medium" x-show="wallet.pending > 0">+<span x-text="wallet.pending"></span> Pending</p>
-              </div>
-            </div>
-            <div class="grid grid-cols-2 gap-3 mb-4">
-              {# Top Up — opens Wallet Hub on the Acquire tab #}
-              <a href="{% url 'economy:wallet_hub' %}?tab=acquire" class="p-3.5 rounded-xl border border-white/20 hover:bg-white/5 text-white/70 font-bold text-sm transition-all active:scale-[0.98] flex items-center justify-center gap-3 no-underline group">
-                <div class="w-9 h-9 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-white/10 transition shrink-0">
-                  <i class="fa-solid fa-plus text-base"></i>
-                </div>
-                <span class="uppercase text-xs tracking-wider font-bold">Top Up</span>
-              </a>
-              {# Claim Prizes — opens Wallet Hub on the Claims tab #}
-              <a href="{% url 'economy:wallet_hub' %}?tab=claims"
-                 class="p-3.5 rounded-xl bg-dc-warning/10 border border-dc-warning/40 hover:bg-dc-warning hover:text-black text-dc-warning font-bold text-sm transition-all active:scale-[0.98] flex items-center justify-center gap-3 no-underline group">
-                <div class="w-9 h-9 rounded-full bg-dc-warning/20 flex items-center justify-center group-hover:bg-black/20 transition shrink-0">
-                  <i class="fa-solid fa-trophy text-base"></i>
-                </div>
-                <span class="uppercase text-xs tracking-wider font-bold">Claim Prizes</span>
-              </a>
-            </div>
-
-            <a href="{% url 'dashboard:competitive_hub' %}"
-               class="block p-3.5 rounded-xl mb-4 no-underline group transition-all active:scale-[0.98]"
-               style="background: linear-gradient(135deg, rgba(99,102,241,.18), rgba(255,70,85,.10) 60%, rgba(255,215,0,.10));
-                      border: 1px solid rgba(99,102,241,.40);
-                      box-shadow: 0 0 24px -6px rgba(99,102,241,.40), inset 0 1px 0 0 rgba(255,255,255,.06);">
-              <div class="flex items-center justify-between gap-3">
-                <div class="flex items-center gap-3">
-                  <div class="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
-                       style="background: linear-gradient(135deg, #6366F1, #FF4655 80%); box-shadow: 0 0 14px -2px rgba(99,102,241,.6);">
-                    <i class="fa-solid fa-crown text-white text-sm"></i>
-                  </div>
-                  <div class="min-w-0">
-                    <div class="text-[10px] uppercase tracking-[0.2em] text-indigo-300/80 font-bold">Competitive Hub</div>
-                    <div class="text-sm font-black text-white truncate">Missions · Showdown · Bounty · Dropzone</div>
-                  </div>
-                </div>
-                <i class="fa-solid fa-arrow-right text-white/60 group-hover:text-white transition"></i>
-              </div>
-            </a>
-
-            {# Recent Transactions #}
-            <div class="pt-4 border-t border-white/[0.08]" x-show="wallet.recentTxns.length > 0">
-              <div class="text-[10px] text-dc-textMuted uppercase font-bold tracking-wider mb-2">Recent Activity</div>
-              <div class="space-y-1.5">
-                <template x-for="(txn, idx) in wallet.recentTxns.slice(0,3)" :key="idx">
-                  <div class="flex items-center justify-between py-1.5 text-xs">
-                    <div class="flex items-center gap-2">
-                      <div class="w-5 h-5 rounded flex items-center justify-center" :class="txn.amount > 0 ? 'bg-dc-success/10 text-dc-success' : 'bg-dc-danger/10 text-dc-danger'">
-                        <i :class="txn.amount > 0 ? 'fa-solid fa-arrow-down' : 'fa-solid fa-arrow-up'" class="text-[8px]"></i>
-                      </div>
-                      <span class="text-gray-300 font-medium" x-text="txn.reason"></span>
-                    </div>
-                    <span class="font-mono font-bold" :class="txn.amount > 0 ? 'text-dc-success' : 'text-dc-danger'" x-text="(txn.amount > 0 ? '+' : '') + txn.amount + ' DC'"></span>
-                  </div>
-                </template>
-              </div>
-            </div>
-
-            <div class="pt-4 border-t border-white/[0.08] mt-4" x-show="wallet.hasWallet">
-              <div class="flex items-center justify-between p-3 rounded-lg bg-black/40 border border-white/[0.05]">
-                <div class="flex items-center gap-3">
-                  <div class="w-6 h-6 rounded bg-dc-success flex items-center justify-center">
-                    <i class="fa-solid fa-wallet text-white text-[10px] font-black"></i>
-                  </div>
-                  <div class="text-xs font-mono text-gray-300">DeltaCrown Wallet</div>
-                </div>
-                <span class="text-[10px] font-bold text-dc-success bg-dc-success/10 border border-dc-success/20 px-2 py-0.5 rounded uppercase tracking-wider">Active</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {# ── Communications Inbox (with filters) ── #}
-        <div class="premium-card flex flex-col flex-1 min-h-[380px] animate-slide-up stagger-4">
-          <div class="p-5 border-b border-white/[0.08] bg-white/[0.01]">
-            <div class="flex justify-between items-center mb-3">
-              <h3 class="text-sm font-bold text-white flex items-center gap-2">
-                <i class="fa-solid fa-inbox text-dc-textMuted"></i> Communications
-              </h3>
-              <div class="flex items-center gap-3">
-                <span x-show="unreadNotifCount > 0" class="text-[10px] font-bold text-white bg-dc-accent px-2 py-0.5 rounded shadow-glow-accent" x-text="unreadNotifCount + ' NEW'"></span>
-              </div>
-            </div>
-            {# Filter tabs #}
-            <div class="flex gap-1 overflow-x-auto hide-scrollbar p-0.5 bg-black/40 rounded-lg border border-white/[0.06]">
-              <template x-for="tab in ['all', 'INVITE', 'MATCH', 'TOURNAMENT', 'SOCIAL', 'SYSTEM']" :key="tab">
-                <button @click="inboxFilter = tab"
-                        :class="inboxFilter === tab ? 'bg-white/[0.1] text-white shadow-inner-light' : 'text-dc-textMuted hover:text-white'"
-                        class="px-3 py-1.5 rounded-md text-[10px] font-bold transition-all whitespace-nowrap capitalize"
-                        x-text="tab === 'all' ? 'All' : tab.charAt(0) + tab.slice(1).toLowerCase()">
-                </button>
-              </template>
-            </div>
-          </div>
-
-          <div class="flex-1 overflow-y-auto p-3 hide-scrollbar space-y-2">
-            <template x-for="msg in filteredInbox.slice(0,7)" :key="msg.id">
-              <div class="p-4 rounded-xl transition-all cursor-pointer group relative border"
-                   :class="msg.unread
-                     ? 'bg-white/[0.05] border-dc-accent/35 hover:bg-white/[0.08] shadow-[inset_0_0_0_1px_rgba(99,102,241,0.18)]'
-                     : 'bg-transparent border-white/[0.04] hover:bg-white/[0.03]'"
-                   @click="msg.url ? navigateTo(msg.url) : markRead(msg.id)">
-
-                <div class="flex justify-between items-center mb-3">
-                  <span class="text-[10px] font-bold px-2 py-0.5 rounded border uppercase tracking-widest inline-flex items-center gap-1.5" :class="msg.color">
-                    <i :class="msg.icon || 'fa-solid fa-bell'"></i>
-                    <span x-text="msg.category"></span>
-                  </span>
-                  <span class="text-[10px] font-mono text-dc-textMuted" x-text="msg.time"></span>
-                </div>
-
-                <div class="flex items-start gap-3">
-                  <div class="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 mt-0.5 border border-white/[0.08] overflow-hidden"
-                       :class="msg.avatar ? '' : 'bg-white/[0.05]'">
-                    <img x-show="msg.avatar" :src="msg.avatar" class="w-full h-full object-cover" alt="">
-                    <i x-show="!msg.avatar" :class="(msg.icon || 'fa-solid fa-bell') + ' text-dc-textMuted text-sm'"></i>
-                  </div>
-                  <div class="flex-1">
-                    <div class="flex items-center gap-2">
-                      <span class="text-xs font-bold text-white block mb-0.5" x-text="msg.sender"></span>
-                      <span x-show="msg.unread" class="w-1.5 h-1.5 rounded-full bg-dc-accent"></span>
-                    </div>
-                    <p class="text-[11px] leading-relaxed" :class="msg.unread ? 'text-gray-200 font-medium' : 'text-gray-400'" x-text="msg.text"></p>
-
-                    <div x-show="msg.hasAction && msg.actionKind === 'team_invite'" class="flex gap-2 mt-3" @click.stop>
-                      <button @click="handleInvite(msg.inviteId, 'accept')" class="bg-white text-black text-[10px] font-bold px-4 py-1.5 rounded-lg transition-all active:scale-[0.98] hover:bg-gray-200 shadow-sm">Accept</button>
-                      <button @click="handleInvite(msg.inviteId, 'decline')" class="bg-white/[0.05] border border-white/[0.1] text-white text-[10px] font-medium px-4 py-1.5 rounded-lg transition-all active:scale-[0.98] hover:bg-dc-danger hover:border-dc-danger hover:text-white">Decline</button>
-                    </div>
-
-                    <div x-show="msg.hasAction && msg.actionKind === 'follow_request'" class="flex gap-2 mt-3" @click.stop>
-                      <button @click="handleFollowRequest(msg.followRequestId, 'accept')" class="bg-dc-success/20 border border-dc-success/30 text-dc-success text-[10px] font-bold px-4 py-1.5 rounded-lg transition-all active:scale-[0.98] hover:bg-dc-success hover:text-white">Accept</button>
-                      <button @click="handleFollowRequest(msg.followRequestId, 'reject')" class="bg-white/[0.05] border border-white/[0.1] text-white text-[10px] font-medium px-4 py-1.5 rounded-lg transition-all active:scale-[0.98] hover:bg-dc-danger hover:border-dc-danger hover:text-white">Reject</button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </template>
-
-            <div x-show="filteredInbox.length === 0" class="flex flex-col items-center justify-center py-10 text-center">
-              <i class="fa-solid fa-inbox text-2xl text-dc-textMuted mb-3"></i>
-              <p class="text-xs text-dc-textMuted">No messages in this category.</p>
-            </div>
-          </div>
-
-          <a href="{% url 'notifications:list' %}" class="p-3 border-t border-white/[0.08] bg-black/40 text-center w-full text-xs font-bold text-dc-textMuted hover:text-white hover:bg-white/[0.05] transition-colors block no-underline">
-            Open Full Inbox
+    {# COMPETITIVE OPS + DAILY REWARDS #}
+    <div class="grid" style="margin-bottom:var(--gap);">
+      <div class="card col-8">
+        <div class="card-head"><div class="ic"><i class="ph-bold ph-target"></i></div><h3>Competitive Operations</h3><a href="{% url 'dashboard:competitive_hub' %}" class="act">View all <i class="ph-bold ph-arrow-right" style="font-size:12px;"></i></a></div>
+        <div class="ops-grid" id="opsGrid">
+          <a class="op" href="{% url 'dashboard:competitive_hub' %}">
+            <div class="oi" style="background:linear-gradient(135deg,#FF5B76,#FF3B5C);"><i class="ph-fill ph-sword"></i></div>
+            <div><b>Showdown</b><div class="od">Reward matches</div></div>
+            <div class="oc"><b>{{ ops_counts.showdown_live|default:0 }}</b> live now</div>
+          </a>
+          <a class="op" href="{% url 'dashboard:competitive_hub' %}">
+            <div class="oi" style="background:linear-gradient(135deg,#3FA3FF,#0A84FF);"><i class="ph-fill ph-list-checks"></i></div>
+            <div><b>Missions</b><div class="od">Daily &amp; weekly</div></div>
+            <div class="oc"><b>{{ ops_counts.missions_done|default:0 }}</b> / {{ ops_counts.missions_total|default:0 }} done</div>
+          </a>
+          <a class="op" href="{% url 'dashboard:competitive_hub' %}">
+            <div class="oi" style="background:linear-gradient(135deg,#E2C588,#CFA75A);color:#2A1F08;"><i class="ph-fill ph-crosshair"></i></div>
+            <div><b>Bounty</b><div class="od">Claim targets</div></div>
+            <div class="oc"><b>{{ ops_counts.bounty_claimable|default:0 }}</b> claimable</div>
+          </a>
+          <a class="op" href="{% url 'dashboard:competitive_hub' %}">
+            <div class="oi" style="background:linear-gradient(135deg,#8470EE,#6849E5);"><i class="ph-fill ph-shooting-star"></i></div>
+            <div><b>Dropzone</b><div class="od">Open lobbies</div></div>
+            <div class="oc"><b>{{ ops_counts.dropzone_open|default:0 }}</b> open</div>
           </a>
         </div>
-
-        {# ── Command Deck (functional links) ── #}
-        <div class="premium-card p-5 animate-slide-up stagger-5">
-          <h3 class="text-sm font-bold text-white mb-4">Command Deck</h3>
-          <div class="grid grid-cols-2 gap-2 mb-4">
-            <a href="{% url 'economy:wallet_dashboard' %}" class="flex flex-col items-center justify-center gap-2 p-3 rounded-xl bg-white/[0.02] border border-white/[0.05] hover:bg-white/[0.06] hover:border-white/[0.15] transition-all group no-underline">
-              <i class="fa-solid fa-wallet text-lg text-dc-textMuted group-hover:text-dc-warning transition-colors"></i>
-              <span class="text-[10px] font-bold text-gray-300">Wallet</span>
-            </a>
-            <a href="{% url 'tournaments:my_matches' %}" class="flex flex-col items-center justify-center gap-2 p-3 rounded-xl bg-white/[0.02] border border-white/[0.05] hover:bg-white/[0.06] hover:border-white/[0.15] transition-all group no-underline">
-              <i class="fa-solid fa-swords text-lg text-dc-textMuted group-hover:text-dc-danger transition-colors"></i>
-              <span class="text-[10px] font-bold text-gray-300">My Matches</span>
-            </a>
-          </div>
-          <div class="space-y-1">
-            <a href="/@{{ user.username }}/" class="flex items-center justify-between p-2 rounded-lg hover:bg-white/[0.05] transition-colors group no-underline">
-              <div class="flex items-center gap-3 text-xs">
-                <i class="fa-solid fa-user text-dc-textMuted w-4 text-center"></i>
-                <span class="text-gray-400 group-hover:text-white transition-colors">My Profile</span>
-              </div>
-              <i class="fa-solid fa-chevron-right text-[10px] text-dc-textMuted opacity-0 group-hover:opacity-100 transition-opacity"></i>
-            </a>
-            <a href="{% url 'user_profile:profile_settings' %}" class="flex items-center justify-between p-2 rounded-lg hover:bg-white/[0.05] transition-colors group no-underline">
-              <div class="flex items-center gap-3 text-xs">
-                <i class="fa-solid fa-gear text-dc-textMuted w-4 text-center"></i>
-                <span class="text-gray-400 group-hover:text-white transition-colors">Settings</span>
-              </div>
-              <i class="fa-solid fa-chevron-right text-[10px] text-dc-textMuted opacity-0 group-hover:opacity-100 transition-opacity"></i>
-            </a>
-            <a href="/support/" class="flex items-center justify-between p-2 rounded-lg hover:bg-white/[0.05] transition-colors group no-underline">
-              <div class="flex items-center gap-3 text-xs">
-                <i class="fa-solid fa-headset text-dc-textMuted w-4 text-center"></i>
-                <span class="text-gray-400 group-hover:text-dc-success transition-colors">Support</span>
-              </div>
-              <div class="flex items-center gap-2">
-                <span x-show="supportTickets.length > 0" class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-dc-warning/10 text-dc-warning border border-dc-warning/20" x-text="supportTickets.length + ' open'"></span>
-                <i class="fa-solid fa-chevron-right text-[10px] text-dc-textMuted opacity-0 group-hover:opacity-100 transition-opacity"></i>
-              </div>
-            </a>
-            <a href="/store/" class="flex items-center justify-between p-2 rounded-lg hover:bg-white/[0.05] transition-colors group no-underline">
-              <div class="flex items-center gap-3 text-xs">
-                <i class="fa-solid fa-cart-shopping text-dc-textMuted w-4 text-center"></i>
-                <span class="text-gray-400 group-hover:text-dc-accent transition-colors">Crown Store</span>
-              </div>
-              <i class="fa-solid fa-chevron-right text-[10px] text-dc-textMuted opacity-0 group-hover:opacity-100 transition-opacity"></i>
-            </a>
-          </div>
-        </div>
       </div>
-    </div>
 
-    {# ═══════════════ COMPETITIVE LEDGER ═══════════════ #}
-    <div class="mt-6 sm:mt-8 animate-slide-up stagger-5" x-show="matches.length > 0" x-transition>
-      <div class="premium-card p-0 flex flex-col overflow-hidden">
-
-        <div class="p-6 border-b border-white/[0.08] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white/[0.01]">
+      <div class="card col-4">
+        <div class="card-head"><div class="ic gold"><i class="ph-fill ph-gift"></i></div><h3>Daily Rewards</h3></div>
+        {% if daily_reward %}
+        <div class="daily-top">
+          <div class="flame"><i class="ph-fill ph-fire-simple"></i></div>
           <div>
-            <h2 class="text-xl font-bold text-white flex items-center gap-2">
-              <i class="fa-solid fa-chart-simple text-dc-textMuted"></i> Competitive Ledger
-            </h2>
-            <p class="text-xs text-dc-textMuted mt-1">Record of your recent matches and results.</p>
+            <div class="n" id="loginStreak">{{ daily_reward.current_streak }}</div>
+            <div class="l">day streak · keep it alive</div>
           </div>
-          <a href="{% url 'tournaments:my_matches' %}" class="text-xs font-bold text-dc-textMuted hover:text-white uppercase tracking-wider transition-colors flex items-center gap-1 no-underline">
-            All Matches <i class="fa-solid fa-arrow-right"></i>
+        </div>
+        <div class="dr-week" id="drWeek">
+          {% for day in daily_reward.week_schedule %}
+          <div class="dr-day{% if day.claimed %} done{% elif day.missed %} missed{% elif day.is_today %} today{% endif %}"{% if day.is_today and not day.claimed %} id="drToday"{% endif %}>
+            <span class="dl">{{ day.day }}</span>
+            <span class="c">
+              {% if day.claimed %}<i class="ph-bold ph-check"></i>
+              {% elif day.missed %}<i class="ph-bold ph-x"></i>
+              {% elif day.is_today %}<i class="ph-fill ph-star"></i>
+              {% else %}<i class="ph-bold ph-lock-simple"></i>{% endif %}
+            </span>
+            <span class="rv" title="{{ day.xp }} XP{% if day.dc %} + {{ day.dc }} DC{% endif %}">{% if day.missed %}—{% else %}{{ day.xp }}XP{% endif %}</span>
+          </div>
+          {% endfor %}
+        </div>
+        {# Today's reward summary #}
+        <div style="font-size:12px;color:var(--dc-fg-muted);margin-bottom:10px;display:flex;gap:10px;justify-content:center;">
+          <span><i class="ph-bold ph-lightning" style="color:var(--dc-violet-400);"></i> +{{ daily_reward.today_xp }} XP</span>
+          {% if daily_reward.today_dc %}<span><i class="ph-fill ph-coins" style="color:var(--dc-gold-400);"></i> +{{ daily_reward.today_dc }} DC</span>{% endif %}
+        </div>
+        {% if daily_reward.today_claimable %}
+        <button class="btn btn-gold btn-block" id="dailyClaim">
+          <i class="ph-fill ph-gift"></i> Claim today · +{{ daily_reward.today_xp }} XP{% if daily_reward.today_dc %} +{{ daily_reward.today_dc }} DC{% endif %}
+        </button>
+        {% else %}
+        <button class="btn btn-ghost btn-block" disabled style="opacity:0.6;cursor:default;">
+          <i class="ph-bold ph-check-circle"></i> Claimed · come back tomorrow
+        </button>
+        {% endif %}
+        {% if daily_reward.next_milestone %}
+        <div style="font-size:11px;color:var(--dc-fg-soft);margin-top:8px;text-align:center;">
+          <i class="ph-bold ph-flag" style="font-size:12px;color:var(--dc-warning-500);"></i>
+          Next milestone: {{ daily_reward.next_milestone.label }} at day {{ daily_reward.next_milestone.streak_days }}
+          (+{{ daily_reward.next_milestone.bonus_xp }} XP +{{ daily_reward.next_milestone.bonus_dc }} DC)
+        </div>
+        {% endif %}
+        {% else %}
+        <div class="empty">
+          <div class="ei"><i class="ph-bold ph-gift"></i></div>
+          <b>Daily Reward</b>
+          <p>Log in each day to earn XP and platform currency.</p>
+          <button class="btn btn-gold btn-sm" id="dailyClaim" style="margin-top:6px;"><i class="ph-fill ph-gift"></i> Claim reward</button>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    {# TEAMS + CROWN RANK #}
+    <div class="grid" style="margin-bottom:var(--gap);">
+      <div class="card col-8">
+        <div class="card-head"><div class="ic violet"><i class="ph-bold ph-shield-check"></i></div><h3>My Teams</h3><a href="{% url 'organizations:vnext_hub' %}" class="act">Team HQ <i class="ph-bold ph-arrow-right" style="font-size:12px;"></i></a></div>
+        {% if my_teams %}
+        <div class="teams-grid">
+          {% for team in my_teams|slice:":4" %}
+          <a class="team{% if forloop.first %} is-primary{% endif %}" href="{% url 'organizations:team_detail' team_slug=team.slug %}">
+            <div class="crest" style="width:40px;height:40px;font-size:14px;background:linear-gradient(135deg,{{ team.game_color|default:'#0A84FF' }},#6849E5);">
+              {% if team.logo_url %}<img src="{{ team.logo_url }}" alt="{{ team.name }}" onerror="this.style.display='none'">{% else %}{{ team.tag|default:team.name|slice:":3"|upper }}{% endif %}
+            </div>
+            <div class="grow">
+              <div class="nm">{{ team.name|truncatechars:18 }} <span class="gt">{{ team.tag }}</span>{% if forloop.first %} <span class="tag-primary"><i class="ph-fill ph-crown-simple"></i> Primary</span>{% endif %}</div>
+              <div class="mt">{{ team.game_name }} · {{ team.member_count }} member{{ team.member_count|pluralize }}</div>
+            </div>
+            {# Role: is_tournament_captain → IGL; else normalize org role #}
+            {% if team.is_tournament_captain %}
+            <span class="role" style="background:rgba(10,132,255,0.15);color:var(--acc-400);">IGL</span>
+            {% else %}{% with r=team.role|upper %}
+            <span class="role{% if r == 'OWNER' %} owner{% endif %}">{% if r == 'OWNER' %}Owner{% elif r == 'MANAGER' %}Manager{% elif r == 'COACH' %}Coach{% elif r == 'SUBSTITUTE' %}Sub{% elif r == 'ANALYST' %}Analyst{% elif r == 'SCOUT' %}Scout{% else %}Player{% endif %}</span>
+            {% endwith %}{% endif %}
           </a>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty"><div class="ei"><i class="ph-bold ph-shield-plus"></i></div><b>No teams yet</b><p>Create a squad or join one to start competing.</p><a href="{% url 'organizations:team_create' %}" class="btn btn-primary btn-sm" style="margin-top:6px;"><i class="ph-bold ph-plus"></i> Create Team</a></div>
+        {% endif %}
+      </div>
+
+      {# Crown Rank + XP Level — 2-slide carousel #}
+      <div class="card col-4 rank-xp-card">
+        {# Shared card header — label changes with slide #}
+        <div class="card-head" style="margin-bottom:0;">
+          <div class="ic gold" id="rankXpIc"><i class="ph-fill ph-medal"></i></div>
+          <h3 id="rankXpTitle">Crown Rank</h3>
+          <div class="rank-xp-nav" style="margin-left:auto;">
+            <button class="rank-xp-dot on" data-slide="0" title="Crown Rank"></button>
+            <button class="rank-xp-dot" data-slide="1" title="XP &amp; Level"></button>
+          </div>
         </div>
 
-        <div class="overflow-x-auto">
-          <table class="w-full text-left border-collapse">
-            <thead>
-              <tr class="border-b border-white/[0.05] bg-black/20 text-[10px] uppercase tracking-widest text-dc-textMuted font-bold">
-                <th class="p-4 pl-6 font-medium">Match / Date</th>
-                <th class="p-4 font-medium">Game</th>
-                <th class="p-4 font-medium">Opponent</th>
-                <th class="p-4 font-medium">Result</th>
-                <th class="p-4 pr-6 font-medium text-right">Score</th>
-              </tr>
-            </thead>
-            <tbody class="text-sm divide-y divide-white/[0.03]">
-              <template x-for="match in matches" :key="match.id">
-                <tr class="hover:bg-white/[0.02] transition-colors group">
-                  <td class="p-4 pl-6">
-                    <div class="font-mono text-white text-xs" x-text="match.id"></div>
-                    <div class="text-[10px] text-gray-500 mt-0.5" x-text="match.date"></div>
-                  </td>
-                  <td class="p-4">
-                    <div class="flex items-center gap-2">
-                      <img x-show="match.gameIcon" :src="match.gameIcon" class="game-icon" alt="">
-                      <div x-show="!match.gameIcon" class="w-5 h-5 rounded flex items-center justify-center bg-white/[0.05] border border-white/[0.1]">
-                        <i class="fa-solid fa-gamepad text-[10px] text-dc-textMuted"></i>
-                      </div>
-                      <span class="font-semibold text-gray-300 text-xs" x-text="match.game"></span>
-                    </div>
-                  </td>
-                  <td class="p-4">
-                    <span class="font-bold text-white text-xs" x-text="match.opponent"></span>
-                  </td>
-                  <td class="p-4">
-                    <span class="w-6 h-6 rounded flex items-center justify-center font-black text-[10px] inline-flex"
-                          :class="{
-                            'bg-dc-success/20 text-dc-success border border-dc-success/30': match.result === 'W',
-                            'bg-dc-danger/20 text-dc-danger border border-dc-danger/30': match.result === 'L',
-                            'bg-gray-700/30 text-gray-400 border border-gray-600/50': match.result === 'D'
-                          }" x-text="match.result"></span>
-                  </td>
-                  <td class="p-4 pr-6 text-right">
-                    <span class="font-mono text-white font-bold tracking-wide" x-text="match.score"></span>
-                  </td>
-                </tr>
-              </template>
-            </tbody>
-          </table>
+        <div class="rank-xp-outer" style="margin-top:14px;">
+        <div class="rank-xp-track" id="rankXpTrack">
+
+          {# ── Slide 0: Crown Rank ── #}
+          <div class="rank-xp-slide">
+            {% with dl=lenses|first %}
+            {% if dl %}
+            <div class="rank-hero">
+              <div class="rank-badge" id="rankBadge" style="background:{{ dl.rank.tier_color }};"><i class="ph-fill ph-medal"></i></div>
+              <div class="ri">
+                <div class="tier" id="rankTier" style="color:{{ dl.rank.tier_color }};">{{ dl.rank.tier }}</div>
+                <div class="pos" id="rankPos">{{ dl.rank.pos }}</div>
+                {% if dl.rank.game_rank %}<div style="font-family:var(--dc-font-mono);font-size:11px;color:var(--dc-gold-400);margin-top:3px;"><i class="ph-bold ph-game-controller" style="font-size:10px;"></i> {{ dl.rank.game_rank }}</div>{% endif %}
+              </div>
+              <div class="pts">
+                <div class="n" id="rankPts" style="{% if dl.rank.cp_pending %}color:var(--dc-fg-soft);{% endif %}">{{ dl.rank.pts }}</div>
+                <div class="l">CP</div>
+                {% if dl.rank.cp_pending and dl.rank.wins %}<div style="font-size:10px;color:var(--dc-success-500);margin-top:2px;">{{ dl.rank.wins }}W {{ dl.rank.losses }}L</div>{% endif %}
+              </div>
+            </div>
+            {% if dl.rank.cp_pending %}
+            <div style="font-size:11px;color:var(--dc-fg-soft);padding:8px 0 4px;display:flex;align-items:center;gap:6px;">
+              <i class="ph-bold ph-clock" style="font-size:13px;color:var(--dc-warning-500);"></i>
+              Crown Points update daily · rankings compute overnight
+            </div>
+            {% endif %}
+            <div class="xp">
+              <div class="xt"><span class="a" id="rankLevel">Level {{ dl.rank.level }}</span><span class="b" id="rankXpText">{{ dl.rank.xp_current|floatformat:0 }} / {{ dl.rank.xp_needed|floatformat:0 }} XP</span></div>
+              <div class="bar"><i id="rankBar" data-fill="{{ dl.rank.xp_pct }}" style="width:0%;"></i></div>
+              <div class="xt" style="margin-top:8px;margin-bottom:0;"><span class="b" id="rankPromo" style="color:{{ dl.rank.promo_color|default:'var(--dc-fg-soft)' }};">{{ dl.rank.promo_text }}</span></div>
+            </div>
+            {% else %}
+            <div class="rank-hero"><div class="rank-badge" id="rankBadge" style="background:#94A3B8;"><i class="ph-fill ph-medal"></i></div><div class="ri"><div class="tier" id="rankTier" style="color:#94A3B8;">Rookie</div><div class="pos" id="rankPos">Unranked</div></div><div class="pts"><div class="n" id="rankPts">0</div><div class="l">CP</div></div></div>
+            <div class="xp"><div class="xt"><span class="a" id="rankLevel">Level 1</span><span class="b" id="rankXpText">0 / 500 XP</span></div><div class="bar"><i id="rankBar" data-fill="0" style="width:0%;"></i></div></div>
+            {% endif %}
+            {% endwith %}
+          </div>
+
+          {# ── Slide 1: XP & Level ── #}
+          <div class="rank-xp-slide">
+            <div class="rank-hero">
+              <div class="xp-level-badge">
+                <span class="lv">LVL</span>
+                <span class="ln">{{ profile.level|default:1 }}</span>
+              </div>
+              <div class="ri" style="flex:1;min-width:0;">
+                <div class="tier" style="color:var(--dc-violet-400);">Level {{ profile.level|default:1 }}</div>
+                <div class="pos">{{ profile.xp_total|default:0|floatformat:0 }} XP total</div>
+              </div>
+              <div class="pts">
+                <div class="n" style="color:var(--dc-violet-400);">{{ profile.xp_to_next|default:500 }}</div>
+                <div class="l">to next</div>
+              </div>
+            </div>
+            <div class="xp" style="margin-top:14px;">
+              <div class="xt">
+                <span class="a">Level {{ profile.level|default:1 }} progress</span>
+                <span class="b">{{ profile.xp_in_level|default:0 }} / {{ profile.xp_needed|default:500 }} XP</span>
+              </div>
+              <div class="bar" style="height:12px;">
+                <i data-fill="{{ profile.xp_pct|default:0 }}" style="width:0%;background:linear-gradient(90deg,var(--dc-violet-500),var(--acc));"></i>
+              </div>
+              <div class="xt" style="margin-top:6px;margin-bottom:0;">
+                <span class="b" style="color:var(--dc-fg-soft);">{{ profile.xp_to_next|default:500 }} XP to reach Level {{ profile.next_level|default:2 }}</span>
+              </div>
+            </div>
+            <div class="xp-sources">
+              {% if daily_reward %}
+              <div class="xp-src">
+                <span class="dot" style="background:var(--dc-gold-400);"></span>
+                <span>Daily rewards streak</span>
+                {% with st=daily_reward.current_streak %}
+                <span class="val">{{ st }}d</span>
+                {% endwith %}
+              </div>
+              {% endif %}
+              {% if match_stats.wins %}
+              <div class="xp-src">
+                <span class="dot" style="background:var(--dc-success-500);"></span>
+                <span>Tournament wins</span>
+                <span class="val">{{ match_stats.wins }}W</span>
+              </div>
+              {% endif %}
+              <div class="xp-src" style="margin-top:4px;padding-top:8px;border-top:1px solid var(--dc-hair);">
+                <span style="color:var(--dc-fg-soft);font-size:11px;">XP grows by claiming daily rewards, completing missions, and winning matches.</span>
+              </div>
+            </div>
+          </div>
+
+        </div>{# end track #}
+        </div>{# end outer overflow wrapper #}
+      </div>{# end carousel card #}
+    </div>
+
+    {# ORGANIZATIONS + WIN STREAK #}
+    <div class="grid" style="margin-bottom:var(--gap);">
+      <div class="card col-8">
+        <div class="card-head"><div class="ic violet"><i class="ph-bold ph-buildings"></i></div><h3>Organizations</h3><a href="/orgs/" class="act">Org HQ <i class="ph-bold ph-arrow-right" style="font-size:12px;"></i></a></div>
+        {% with fo=my_organizations|first %}
+        {% if fo %}
+        <div class="org-feat">
+          <div class="ocrest" style="position:relative;overflow:hidden;">{{ fo.name|slice:":2"|upper }}{% if fo.logo_url %}<img src="{{ fo.logo_url }}" alt="{{ fo.name }}" onerror="this.style.display='none'" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:14px;">{% endif %}</div>
+          <div class="oi">
+            <div class="nm">{{ fo.name }}{% if fo.is_verified %} <i class="ph-fill ph-seal-check verified"></i>{% endif %}</div>
+            <div class="mt">Esports Organization · {{ fo.role|title }}</div>
+          </div>
+          <span class="role-chip">{{ fo.role|upper }}</span>
+        </div>
+        <div class="org-stats">
+          <div class="org-stat"><div class="n">{{ fo.team_count }}</div><div class="l">Teams</div></div>
+          <div class="org-stat"><div class="n">{{ fo.member_count }}</div><div class="l">Members</div></div>
+          <div class="org-stat"><div class="n{% if fo.pending_requests %} warn{% endif %}">{{ fo.pending_requests }}</div><div class="l">Pending requests</div></div>
+          <div class="org-stat"><div class="n gold">{{ fo.monthly_dc|default:0 }}</div><div class="l">DC this month</div></div>
+        </div>
+        {% if fo.is_owner %}
+        <div class="org-actions">
+          <a href="{% url 'organizations:org_control_plane' org_slug=fo.slug %}" class="btn btn-primary"><i class="ph-bold ph-sliders-horizontal"></i> Manage Org</a>
+          <a href="{% url 'organizations:org_hub' org_slug=fo.slug %}" class="btn btn-ghost"><i class="ph-bold ph-users-three"></i> Roster</a>
+          {% if fo.pending_requests %}<a href="{% url 'organizations:org_control_plane' org_slug=fo.slug %}" class="btn btn-ghost"><i class="ph-bold ph-user-check"></i> Requests ({{ fo.pending_requests }})</a>{% endif %}
+        </div>
+        {% endif %}
+        {% if my_organizations|length > 1 %}
+        <div class="rows" style="margin-top:14px;">
+          {% for org in my_organizations|slice:"1:4" %}
+          <a class="row" href="/orgs/{{ org.slug }}/">
+            <div class="crest" style="width:34px;height:34px;font-size:12px;background:linear-gradient(135deg,#6849E5,#0A84FF);">{% if org.logo_url %}<img src="{{ org.logo_url }}" alt="{{ org.name }}" onerror="this.style.display='none'">{% else %}{{ org.name|slice:":2"|upper }}{% endif %}</div>
+            <div class="grow"><div class="t">{{ org.name }}{% if org.is_verified %} <i class="ph-fill ph-seal-check" style="color:var(--acc-400);font-size:13px;vertical-align:-2px;"></i>{% endif %}</div><div class="s">{{ org.team_count }} team{{ org.team_count|pluralize }} · {{ org.member_count }} member{{ org.member_count|pluralize }}</div></div>
+            <span class="role">{{ org.role|title }}</span><i class="ph-bold ph-caret-right" style="color:var(--dc-fg-soft);font-size:15px;"></i>
+          </a>
+          {% endfor %}
+        </div>
+        {% endif %}
+        {% else %}
+        <div class="empty"><div class="ei"><i class="ph-bold ph-buildings"></i></div><b>No organizations</b><p>Create or join an esports organization.</p><a href="{% url 'organizations:org_create' %}" class="btn btn-primary btn-sm" style="margin-top:6px;"><i class="ph-bold ph-plus"></i> Create Org</a></div>
+        {% endif %}
+        {% endwith %}
+      </div>
+
+      <div class="card col-4">
+        <div class="card-head"><div class="ic live"><i class="ph-fill ph-fire"></i></div><h3>Win Streak</h3></div>
+        {% with dl=lenses|first %}
+        <div class="streak">
+          <div class="flame"><i class="ph-fill ph-fire"></i></div>
+          <div class="si"><div class="n" id="streakN" data-count="{{ dl.streak.current|default:0 }}">0</div><div class="l" id="streakLabel">{{ dl.streak.label|default:"no active streak" }}</div></div>
+        </div>
+        <div class="streak" style="margin-top:16px;">
+          <div class="si" style="font-size:11px;color:var(--dc-fg-soft);font-weight:600;letter-spacing:0.05em;">LAST 5</div>
+          <div class="pills" id="streakPills">{% for r in dl.streak.last_5 %}<b class="{{ r }}"></b>{% empty %}<b></b><b></b><b></b><b></b><b></b>{% endfor %}</div>
+        </div>
+        <div class="xt" style="display:flex;justify-content:space-between;font-size:12px;margin-top:16px;color:var(--dc-fg-muted);">
+          <span>Personal best</span><span class="mono" id="streakBest" style="color:var(--dc-fg);font-weight:600;">{{ dl.streak.best|default:0 }} wins</span>
+        </div>
+        {% endwith %}
+      </div>
+    </div>
+
+    {# THIS WEEK SCHEDULE — Thursday-first, with prev/next navigation #}
+    <div class="grid" style="margin-bottom:var(--gap);">
+      <div class="card col-12">
+        <div class="card-head">
+          <div class="ic"><i class="ph-bold ph-calendar-dots"></i></div>
+          <h3>{% if week_offset == 0 %}This Week{% elif week_offset > 0 %}Week +{{ week_offset }}{% else %}Week {{ week_offset }}{% endif %}</h3>
+          {% if week_schedule %}<span class="count">{{ week_schedule.0.date|date:"M j" }} – {{ week_schedule.6.date|date:"M j" }}</span>{% endif %}
+        </div>
+        <div class="week-wrap" style="padding: 0 20px;">
+          <button class="week-nav-btn" data-week-dir="-1" title="Previous week" style="position:absolute;left:0;top:50%;transform:translateY(-50%);z-index:2;width:28px;height:28px;border-radius:50%;border:1px solid var(--dc-stroke);background:var(--dc-surface-2);color:var(--dc-fg-muted);font-size:13px;cursor:pointer;display:grid;place-items:center;">
+            <i class="ph-bold ph-caret-left"></i>
+          </button>
+          <div class="week" id="weekGrid">
+            {% for day in week_schedule %}
+            <div class="day{% if day.is_today %} today{% endif %}" data-date="{{ day.date|date:'Y-m-d' }}">
+              <div class="dow">{{ day.dow }}</div>
+              <div class="dnum">{{ day.day_num }}</div>
+              <div class="evs">{% for ev in day.events %}<span class="ev {{ ev.type }}">{{ ev.label }}</span>{% endfor %}</div>
+            </div>
+            {% empty %}
+            {% for i in "1234567" %}<div class="day"><div class="dow">—</div><div class="dnum">—</div><div class="evs"></div></div>{% endfor %}
+            {% endfor %}
+          </div>
+          <button class="week-nav-btn" data-week-dir="1" title="Next week" style="position:absolute;right:0;top:50%;transform:translateY(-50%);z-index:2;width:28px;height:28px;border-radius:50%;border:1px solid var(--dc-stroke);background:var(--dc-surface-2);color:var(--dc-fg-muted);font-size:13px;cursor:pointer;display:grid;place-items:center;">
+            <i class="ph-bold ph-caret-right"></i>
+          </button>
         </div>
       </div>
     </div>
 
-    {# ═══════════════ BOTTOM WIDGETS ROW ═══════════════ #}
-    <div class="mt-6 sm:mt-8 grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
-
-      {# Badges & Achievements #}
-      <div class="lg:col-span-4 premium-card p-6 flex flex-col h-full animate-slide-up stagger-1 relative overflow-hidden">
-        <div class="flex justify-between items-center mb-5">
-          <h3 class="text-sm font-bold text-white flex items-center gap-2">
-            <i class="fa-solid fa-medal text-dc-warning"></i> Badges & Achievements
-          </h3>
-        </div>
-        <template x-if="badges.length === 0">
-          <div class="flex-1 flex flex-col items-center justify-center text-center py-6">
-            <i class="fa-solid fa-trophy text-2xl text-dc-textMuted mb-3"></i>
-            <p class="text-xs text-dc-textMuted">No badges earned yet. Compete to unlock achievements.</p>
-          </div>
-        </template>
-        <div class="grid grid-cols-3 gap-3" x-show="badges.length > 0">
-          <template x-for="badge in badges" :key="badge.name">
-            <div class="flex flex-col items-center p-3 rounded-xl bg-white/[0.02] border border-white/[0.05] hover:bg-white/[0.05] transition-colors text-center group">
-              <span class="text-2xl mb-1.5" x-text="badge.icon || '🏆'"></span>
-              <span class="text-[10px] font-bold text-white truncate w-full" x-text="badge.name"></span>
-              <span class="text-[9px] font-bold uppercase tracking-wider mt-0.5" :class="'rarity-' + badge.rarity" x-text="badge.rarity"></span>
+    {# TOURNAMENT ACTIVITY + NOTIFICATIONS #}
+    <div class="grid" style="margin-bottom:var(--gap);">
+      <div class="card col-7">
+        <div class="card-head"><div class="ic"><i class="ph-bold ph-trophy"></i></div><h3>Tournament Activity</h3><a href="/tournaments/" class="act">Browse all <i class="ph-bold ph-arrow-right" style="font-size:12px;"></i></a></div>
+        {% if active_tournaments %}
+        <div class="tourn-grid">
+          {% for t in active_tournaments|slice:":4" %}
+          <a class="tcard" href="/tournaments/{{ t.slug }}/" style="display:block;">
+            {% if t.thumbnail_url or t.banner_url %}<img loading="lazy" src="{{ t.thumbnail_url|default:t.banner_url }}" alt="{{ t.game_name }}" onerror="this.style.display='none'">
+            {% else %}<div style="position:absolute;inset:0;background:linear-gradient(135deg,#11151E,#181D27);"></div>{% endif %}
+            <div class="scrim"></div>
+            <div class="tc-top">
+              {% if t.game_icon %}<img class="glogo" src="{{ t.game_icon }}" alt="" onerror="this.style.display='none'">{% endif %}
+              {% if t.is_live %}<span class="chip chip-live" style="background:rgba(0,0,0,.45);backdrop-filter:blur(8px);"><span class="dot-pulse"></span>LIVE</span>
+              {% elif t.status == "check_in" %}<span class="chip chip-checkin" style="background:rgba(0,0,0,.45);backdrop-filter:blur(8px);">CHECK-IN</span>
+              {% elif t.status == "registration_open" or t.status == "open" %}<span class="chip chip-open" style="background:rgba(0,0,0,.45);backdrop-filter:blur(8px);">OPEN</span>
+              {% else %}<span class="chip chip-done" style="background:rgba(0,0,0,.45);backdrop-filter:blur(8px);color:#fff;">REGISTERED</span>{% endif %}
             </div>
-          </template>
+            <div class="tc-bot">
+              <div class="nm">{{ t.name|truncatechars:24 }}</div>
+              <div class="mt">{% if t.prize_pool %}<span class="prize"><i class="ph-fill ph-coins"></i> {{ t.prize_pool|floatformat:0 }} DC</span>{% endif %}{% if t.max_participants %}<span><i class="ph-bold ph-users"></i> {{ t.max_participants }}</span>{% endif %}</div>
+            </div>
+          </a>
+          {% endfor %}
         </div>
+        {% else %}
+        <div class="empty"><div class="ei"><i class="ph-bold ph-trophy"></i></div><b>No active tournaments</b><p>Register for a tournament to earn Crown Points.</p><a href="/tournaments/" class="btn btn-ghost btn-sm" style="margin-top:6px;"><i class="ph-bold ph-trophy"></i> Browse tournaments</a></div>
+        {% endif %}
       </div>
 
-      {# Trust & Reputation #}
-      <div class="lg:col-span-4 premium-card p-6 flex flex-col justify-center items-center text-center animate-slide-up stagger-2 relative overflow-hidden">
-        <div class="flex justify-between items-center w-full mb-4">
-          <h3 class="text-sm font-bold text-white">Trust & Reputation</h3>
-          <i class="fa-solid fa-shield-check text-dc-success"></i>
+      {# NOTIFICATIONS — rich icon mapping #}
+      <div class="card col-5">
+        <div class="card-head"><div class="ic live"><i class="ph-bold ph-bell"></i></div><h3>Notifications</h3><span class="act" id="notifMarkAll" style="cursor:pointer;"><i class="ph-bold ph-checks" style="font-size:14px;"></i> Mark all read</span></div>
+        <div class="nf-filters" id="notifFilters">
+          <button class="nf-f on" data-f="all">All<span class="ct" data-count-for="all"></span></button>
+          <button class="nf-f" data-f="unread">Unread<span class="ct" data-count-for="unread"></span></button>
+          <button class="nf-f" data-f="match">Matches<span class="ct" data-count-for="match"></span></button>
+          <button class="nf-f" data-f="invite">Invites<span class="ct" data-count-for="invite"></span></button>
+          <button class="nf-f" data-f="reward">Rewards<span class="ct" data-count-for="reward"></span></button>
         </div>
-        <div class="relative w-28 h-28 mb-4 flex items-center justify-center">
-          <svg class="w-full h-full transform -rotate-90 absolute inset-0" viewBox="0 0 100 100">
-            <circle cx="50" cy="50" r="45" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="8" stroke-dasharray="283" stroke-dashoffset="0"></circle>
-            <circle cx="50" cy="50" r="45" fill="none" stroke-width="8" stroke-dasharray="283"
-                    :stroke-dashoffset="283 - (283 * (user.reputation / 100))"
-                    :stroke="user.reputation >= 80 ? '#10B981' : user.reputation >= 50 ? '#F59E0B' : '#F43F5E'"
-                    :class="user.reputation >= 80 ? 'drop-shadow-[0_0_8px_rgba(16,185,129,0.6)]' : ''"></circle>
-          </svg>
-          <div class="relative z-10 flex flex-col items-center">
-            <span class="text-3xl font-black text-white tracking-tighter" x-text="user.reputation"></span>
-            <span class="text-[10px] text-dc-textMuted uppercase font-bold tracking-widest mt-0.5">Score</span>
+        <div class="rows" id="notifRows">
+          {% for notif in recent_notifications %}
+          {% with ntype=notif.type|default:"system" %}
+          <div class="row{% if not notif.is_read %} unread{% endif %}" data-type="{% if ntype == 'match_result' or ntype == 'match_scheduled' %}match{% elif ntype == 'team_invite' or ntype == 'follow_request' %}invite{% elif ntype == 'reward' or ntype == 'daily_reward' or ntype == 'prize' %}reward{% else %}{{ ntype }}{% endif %}">
+            {# Icon mapping per notification type #}
+            {% if ntype == "match" or ntype == "match_result" or ntype == "match_scheduled" %}
+              <div class="ricon" style="background:rgba(255,59,92,0.12);color:var(--dc-live-500);"><i class="ph-bold ph-sword"></i></div>
+            {% elif ntype == "team_invite" or ntype == "invite" %}
+              <div class="ricon" style="background:var(--dc-tint-violet);color:var(--dc-violet-400);"><i class="ph-bold ph-envelope-open"></i></div>
+            {% elif ntype == "follow_request" or ntype == "follow" %}
+              <div class="ricon" style="background:var(--dc-tint-violet);color:var(--dc-violet-400);"><i class="ph-bold ph-user-plus"></i></div>
+            {% elif ntype == "reward" or ntype == "daily_reward" or ntype == "prize" %}
+              <div class="ricon" style="background:var(--dc-tint-gold);color:var(--dc-gold-400);"><i class="ph-fill ph-coins"></i></div>
+            {% elif ntype == "tournament" or ntype == "tournament_registration" %}
+              <div class="ricon" style="background:var(--acc-tint);color:var(--acc-400);"><i class="ph-bold ph-trophy"></i></div>
+            {% elif ntype == "dispute" %}
+              <div class="ricon" style="background:rgba(255,176,32,0.14);color:var(--dc-warning-500);"><i class="ph-bold ph-warning"></i></div>
+            {% elif ntype == "achievement" or ntype == "badge" %}
+              <div class="ricon" style="background:var(--dc-tint-gold);color:var(--dc-gold-400);"><i class="ph-fill ph-medal"></i></div>
+            {% elif ntype == "wallet" or ntype == "payment" %}
+              <div class="ricon" style="background:var(--dc-tint-gold);color:var(--dc-gold-400);"><i class="ph-bold ph-wallet"></i></div>
+            {% elif ntype == "join_request" or ntype == "join_accepted" %}
+              <div class="ricon" style="background:rgba(46,204,113,0.12);color:var(--dc-success-500);"><i class="ph-bold ph-user-check"></i></div>
+            {% else %}
+              <div class="ricon" style="background:var(--dc-surface-3);color:var(--dc-fg-muted);"><i class="ph-bold ph-bell"></i></div>
+            {% endif %}
+            <div class="grow"><div class="t">{{ notif.title|truncatechars:46 }}</div><div class="s">{{ notif.body|truncatechars:52 }}</div></div>
+            <div class="tr">{{ notif.created_at|timesince|slice:":7" }}</div>
           </div>
+          {% endwith %}
+          {% empty %}
+          <div class="empty"><div class="ei"><i class="ph-bold ph-bell-slash"></i></div><b>All caught up</b><p>No notifications right now.</p></div>
+          {% endfor %}
         </div>
-        <h4 class="text-base font-bold" :class="user.reputation >= 80 ? 'text-dc-success' : user.reputation >= 50 ? 'text-dc-warning' : 'text-dc-danger'"
-            x-text="user.reputation >= 80 ? 'Exemplary Standing' : user.reputation >= 50 ? 'Good Standing' : 'Needs Improvement'"></h4>
-        <p class="text-[11px] text-gray-400 mt-2 px-4 leading-relaxed"
-           x-text="user.reputation >= 80 ? 'Your account is in excellent standing with priority tournament access.' : 'Maintain good sportsmanship to unlock premium features.'"></p>
-        <div class="flex items-center gap-4 mt-4 pt-4 border-t border-white/[0.06] w-full justify-center">
-          <div class="text-center">
-            <div class="text-sm font-bold text-white" x-text="'Lv.' + user.level"></div>
-            <div class="text-[10px] text-dc-textMuted">Level</div>
-          </div>
-          <div class="w-px h-6 bg-white/[0.08]"></div>
-          <div class="text-center">
-            <div class="text-sm font-bold text-white" x-text="user.xp.toLocaleString()"></div>
-            <div class="text-[10px] text-dc-textMuted">XP</div>
-          </div>
-          <div class="w-px h-6 bg-white/[0.08]"></div>
-          <div class="text-center">
-            <div class="text-sm font-bold text-white" x-text="user.isVerified ? 'Verified' : 'Unverified'"></div>
-            <div class="text-[10px] text-dc-textMuted">KYC</div>
-          </div>
-        </div>
-      </div>
-
-      {# Featured Store Item #}
-      <div class="lg:col-span-4 premium-card p-0 flex flex-col h-full animate-slide-up stagger-3 relative overflow-hidden group min-h-[280px]">
-        <template x-if="featuredProduct">
-          <div class="flex flex-col h-full">
-            <div class="absolute inset-0 bg-gradient-to-t from-black via-black/80 to-transparent z-10"></div>
-            <img x-show="featuredProduct.image" :src="featuredProduct.image" class="absolute inset-0 w-full h-full object-cover opacity-40 group-hover:opacity-60 transition-opacity duration-700" alt="">
-            <div class="absolute inset-0 bg-gradient-to-br from-dc-accent/20 to-dc-danger/10 opacity-30 group-hover:opacity-50 transition-opacity duration-700" x-show="!featuredProduct.image"></div>
-            <div class="relative z-20 p-6 flex flex-col h-full justify-end">
-              <div class="absolute top-4 right-4 px-2 py-1 bg-black/60 backdrop-blur-md rounded border border-white/[0.1] text-[10px] font-bold text-white uppercase tracking-widest flex items-center gap-1.5">
-                <i class="fa-solid fa-cart-shopping text-dc-warning"></i> Store
-              </div>
-              <span x-show="featuredProduct.is_limited" class="text-dc-danger text-[10px] font-black uppercase tracking-widest mb-1">Limited Edition</span>
-              <span x-show="!featuredProduct.is_limited" class="text-dc-warning text-[10px] font-black uppercase tracking-widest mb-1">Featured</span>
-              <h3 class="text-lg font-bold text-white leading-tight mb-2" x-text="featuredProduct.name"></h3>
-              <div class="flex items-center justify-between mt-2">
-                <div class="flex items-center gap-2">
-                  <span class="text-sm font-black text-white" x-text="featuredProduct.price.toLocaleString()"></span>
-                  <span class="text-[10px] font-bold text-dc-warning">DC</span>
-                  <span x-show="featuredProduct.original_price > featuredProduct.price" class="text-[10px] text-dc-textMuted line-through" x-text="featuredProduct.original_price.toLocaleString()"></span>
-                </div>
-                <a :href="'/store/'" class="bg-white/[0.15] hover:bg-white text-white hover:text-black border border-white/[0.2] px-3 py-1.5 rounded-lg text-xs font-bold transition-colors active:scale-[0.98] no-underline">
-                  View Item
-                </a>
-              </div>
-            </div>
-          </div>
-        </template>
-        <template x-if="!featuredProduct">
-          <div class="flex flex-col items-center justify-center h-full p-6 text-center">
-            <div class="absolute inset-0 bg-gradient-to-br from-dc-accent/10 to-dc-danger/5 opacity-30"></div>
-            <div class="relative z-10">
-              <i class="fa-solid fa-cart-shopping text-3xl text-dc-textMuted mb-3"></i>
-              <h4 class="text-sm font-bold text-white mb-1">Crown Store</h4>
-              <p class="text-[11px] text-dc-textMuted mb-4">Browse exclusive gear, jerseys, and digital items.</p>
-              <a href="/store/" class="bg-white/[0.1] hover:bg-white/[0.2] text-white text-xs font-bold px-4 py-2 rounded-lg border border-white/[0.1] transition-all no-underline">
-                <i class="fa-solid fa-arrow-right mr-1.5"></i> Visit Store
-              </a>
-            </div>
-          </div>
-        </template>
       </div>
     </div>
 
-  </div>
+    {# INVITES + LEADERBOARD #}
+    <div class="grid" style="margin-bottom:var(--gap);">
+      <div class="card col-7">
+        <div class="card-head"><div class="ic violet"><i class="ph-bold ph-envelope-open"></i></div><h3>Pending Invites</h3><span class="count" id="inviteCount">{{ invite_count }}</span></div>
+        <div id="inviteList" style="display:flex;flex-direction:column;gap:10px;">
+          {% for inv in pending_invites %}
+          <div class="invite" data-team="{{ inv.team_name }}" data-invite-id="{{ inv.id }}">
+            <div class="crest" style="width:40px;height:40px;font-size:13px;background:linear-gradient(135deg,#0A84FF,#6849E5);">
+              {% if inv.team_logo %}<img src="{{ inv.team_logo }}" alt="{{ inv.team_name }}" onerror="this.style.display='none'">{% else %}{{ inv.team_name|slice:":3"|upper }}{% endif %}
+            </div>
+            <div class="grow"><div class="nm">{{ inv.team_name }}</div><div class="mt">invited as <b style="color:var(--dc-fg);">{{ inv.role|title }}</b> · by @{{ inv.inviter }} · expires {{ inv.expires_at|timeuntil }}</div></div>
+            <div class="acts"><button class="mini ok" title="Accept"><i class="ph-bold ph-check"></i></button><button class="mini no" title="Decline"><i class="ph-bold ph-x"></i></button></div>
+          </div>
+          {% endfor %}
+        </div>
+        <div class="empty{% if pending_invites %} hide{% endif %}" id="inviteEmpty">
+          <div class="ei"><i class="ph-bold ph-envelope-simple"></i></div><b>No pending invites</b><p>Set your LFT status to get noticed by teams.</p>
+        </div>
+      </div>
 
-  {# ═══════════════ MOBILE BOTTOM APP BAR ═══════════════ #}
-  <nav class="fixed bottom-0 left-0 right-0 z-50 md:hidden h-16 bg-black/80 backdrop-blur-2xl border-t border-white/[0.06] flex items-center justify-around px-2">
-    <a href="{% url 'dashboard:index' %}" class="flex flex-col items-center justify-center gap-1 w-14 py-1 text-white group no-underline">
-      <i class="fa-solid fa-house text-lg group-hover:text-dc-accent transition-colors"></i>
-      <span class="text-[10px] font-bold uppercase tracking-widest text-dc-accent">Home</span>
-    </a>
-    <a href="{% url 'tournaments:list' %}" class="flex flex-col items-center justify-center gap-1 w-14 py-1 text-dc-textMuted group no-underline">
-      <i class="fa-solid fa-trophy text-lg group-hover:text-dc-warning transition-colors"></i>
-      <span class="text-[10px] font-bold uppercase tracking-widest group-hover:text-dc-warning transition-colors">Events</span>
-    </a>
-    <a href="{% url 'organizations:team_create' %}" class="relative -mt-6 w-14 h-14 rounded-2xl bg-gradient-to-br from-dc-accent to-purple-600 flex items-center justify-center shadow-glow-accent active:scale-[0.94] transition-transform border border-white/[0.15] no-underline">
-      <i class="fa-solid fa-plus text-white text-xl"></i>
-    </a>
-    <a href="{% url 'organizations:vnext_hub' %}" class="flex flex-col items-center justify-center gap-1 w-14 py-1 text-dc-textMuted group no-underline">
-      <i class="fa-solid fa-users text-lg group-hover:text-dc-success transition-colors"></i>
-      <span class="text-[10px] font-bold uppercase tracking-widest group-hover:text-dc-success transition-colors">Teams</span>
-    </a>
-    <a :href="'/@' + user.username + '/'" class="flex flex-col items-center justify-center gap-1 w-14 py-1 text-dc-textMuted group no-underline">
-      <i class="fa-regular fa-user text-lg group-hover:text-white transition-colors"></i>
-      <span class="text-[10px] font-bold uppercase tracking-widest group-hover:text-white transition-colors">Profile</span>
-    </a>
-  </nav>
+      {# LEADERBOARD — show platform-wide if no lens board available #}
+      <div class="card col-5">
+        <div class="card-head"><div class="ic gold"><i class="ph-bold ph-ranking"></i></div><h3>Leaderboard</h3><a href="/leaderboards/" class="act">Full board <i class="ph-bold ph-arrow-right" style="font-size:12px;"></i></a></div>
+        <div class="rows" id="boardRows">
+          {% with dl=lenses|first %}
+          {% if dl and dl.board %}
+            {% for row in dl.board %}
+            <div class="row{% if row.is_me %} unread{% endif %}"{% if row.is_me %} style="background:var(--acc-tint);border-radius:10px;"{% endif %}>
+              <div class="tr" style="width:28px;color:{% if row.is_me %}var(--acc-400){% else %}var(--dc-fg-soft){% endif %};font-weight:700;">{{ row.r }}</div>
+              <div class="crest" style="width:30px;height:30px;font-size:11px;background:linear-gradient(135deg,{{ row.g1|default:'#6849E5' }},{{ row.g2|default:'#0A84FF' }});">{{ row.tag }}</div>
+              <div class="grow"><div class="t">{{ row.name }}{% if row.is_me %} <span style="color:var(--acc-400);font-size:11px;">· you</span>{% endif %}</div></div>
+              <div class="tr">{{ row.pts }}</div>
+            </div>
+            {% endfor %}
+          {% elif leaderboard_data %}
+            {% for entry in leaderboard_data %}
+            <div class="row">
+              <div class="tr" style="width:28px;color:var(--dc-fg-soft);font-weight:700;">#{{ entry.rank }}</div>
+              <div class="crest" style="width:30px;height:30px;font-size:11px;background:linear-gradient(135deg,#6849E5,#0A84FF);">YOU</div>
+              <div class="grow"><div class="t">{{ entry.leaderboard_type|title }}</div><div class="s">{{ entry.game_name }}</div></div>
+              <div class="tr mono">{{ entry.points }}</div>
+            </div>
+            {% endfor %}
+          {% else %}
+          <div class="empty">
+            <div class="ei"><i class="ph-bold ph-ranking"></i></div>
+            <b>Not ranked yet</b>
+            <p>Play matches and tournaments to earn Crown Points and appear on the board.</p>
+            <a href="/tournaments/" class="btn btn-ghost btn-sm" style="margin-top:6px;"><i class="ph-bold ph-trophy"></i> Find a tournament</a>
+          </div>
+          {% endif %}
+          {% endwith %}
+        </div>
+      </div>
+    </div>
 
-</div>
+    {# WALLET + JOIN REQUESTS #}
+    <div class="grid" style="margin-bottom:var(--gap);">
 
-{{ cc_data|json_script:"cc-data" }}
+      {# DELTACOIN WALLET — links to wallet hub #}
+      <div class="card col-5">
+        <div class="card-head">
+          <div class="ic gold"><i class="ph-fill ph-wallet"></i></div>
+          <h3>DeltaCoin Wallet</h3>
+          <a href="{% url 'economy:wallet_hub' %}" class="act">History <i class="ph-bold ph-arrow-right" style="font-size:12px;"></i></a>
+        </div>
+        {% if wallet.has_wallet %}
+        <div class="wallet-hero"><span class="bal" id="walletBal">{{ wallet.balance|floatformat:0 }}</span><span class="cur">DC</span></div>
+        <div class="wallet-sub">≈ BDT ৳ {{ wallet.balance|floatformat:0 }} · updated just now</div>
+        <div class="wallet-actions">
+          <a href="{% url 'economy:wallet_hub' %}?tab=acquire" class="btn btn-gold"><i class="ph-fill ph-coins"></i> Claim / Add</a>
+          <a href="{% url 'economy:wallet_hub' %}" class="btn btn-ghost"><i class="ph-bold ph-clock-counter-clockwise"></i> History</a>
+        </div>
+        <div class="rows" style="margin-top:6px;">
+          {% for txn in wallet.recent_txns|slice:":4" %}
+          <div class="row">
+            {% if txn.amount > 0 %}<div class="ricon" style="background:rgba(46,204,113,0.12);color:var(--dc-success-500);"><i class="ph-bold ph-arrow-down-left"></i></div>
+            {% else %}<div class="ricon" style="background:rgba(255,77,94,0.10);color:var(--dc-danger-500);"><i class="ph-bold ph-arrow-up-right"></i></div>{% endif %}
+            <div class="grow"><div class="t">{{ txn.reason|title|truncatechars:28 }}</div><div class="s">{{ txn.created_at|timesince }} ago</div></div>
+            <div class="txn-amt {% if txn.amount > 0 %}pos{% else %}neg{% endif %}">{% if txn.amount > 0 %}+{% endif %}{{ txn.amount|floatformat:0 }}</div>
+          </div>
+          {% empty %}<p style="color:var(--dc-fg-soft);font-size:13px;padding:12px 0;">No recent transactions.</p>{% endfor %}
+        </div>
+        {% else %}
+        <div class="empty"><div class="ei"><i class="ph-bold ph-wallet"></i></div><b>No wallet yet</b><p>Your DeltaCoin wallet will appear here once activated.</p></div>
+        {% endif %}
+      </div>
+
+      <div class="card col-7">
+        <div class="card-head"><div class="ic violet"><i class="ph-bold ph-paper-plane-tilt"></i></div><h3>Join Requests</h3><a href="{% url 'organizations:team_directory' %}" class="act">Find teams <i class="ph-bold ph-arrow-right" style="font-size:12px;"></i></a></div>
+        {% if join_requests %}
+        <div class="rows" id="jrList">
+          {% for jr in join_requests %}
+          <div class="row" data-team="{{ jr.team_name }}" data-jr-id="{{ jr.id }}">
+            <div class="crest" style="width:34px;height:34px;font-size:12px;background:linear-gradient(135deg,#6849E5,#0A84FF);">{% if jr.team_logo %}<img src="{{ jr.team_logo }}" alt="{{ jr.team_name }}" onerror="this.style.display='none'">{% else %}{{ jr.team_tag|default:jr.team_name|slice:":3"|upper }}{% endif %}</div>
+            <div class="grow"><div class="t">{{ jr.team_name }}</div><div class="s">{{ jr.game_name }} · {{ jr.role|default:"Player" }} · {{ jr.created_at|timesince }} ago</div></div>
+            {% if jr.status == "PENDING" %}<span class="chip chip-soon jr-status"><i class="ph-bold ph-clock" style="font-size:12px;"></i> Pending</span><button class="jr-withdraw">Withdraw</button>
+            {% elif jr.status == "ACCEPTED" or jr.status == "OFFER_SENT" %}<span class="chip chip-checkin jr-status"><i class="ph-bold ph-check" style="font-size:12px;"></i> Accepted</span><a href="{{ jr.team_url }}" class="btn btn-ghost btn-sm">View team</a>
+            {% elif jr.status == "DECLINED" %}<span class="chip chip-lost jr-status"><i class="ph-bold ph-x" style="font-size:12px;"></i> Declined</span>
+            {% elif jr.status == "TRYOUT_SCHEDULED" %}<span class="chip chip-open jr-status"><i class="ph-bold ph-calendar" style="font-size:12px;"></i> Tryout</span>
+            {% else %}<span class="chip chip-done jr-status">{{ jr.status|title }}</span>{% endif %}
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty"><div class="ei"><i class="ph-bold ph-paper-plane-tilt"></i></div><b>No active applications</b><p>Apply to recruiting teams and track your progress here.</p><a href="{% url 'organizations:team_directory' %}" class="btn btn-ghost btn-sm" style="margin-top:6px;"><i class="ph-bold ph-magnifying-glass"></i> Find teams</a></div>
+        {% endif %}
+      </div>
+    </div>
+
+    {# QUICK ACTIONS #}
+    <div class="grid">
+      <div class="card col-12">
+        <div class="card-head"><div class="ic"><i class="ph-bold ph-lightning"></i></div><h3>Quick Actions</h3></div>
+        <div class="qa">
+          <a href="{% url 'organizations:team_create' %}"><i class="ph-bold ph-plus-circle"></i> Create Team</a>
+          <a href="{% url 'tournaments:list' %}"><i class="ph-bold ph-trophy"></i> Find Tournament</a>
+          <a href="{% url 'user_profile:settings' %}"><i class="ph-bold ph-identification-card"></i> Game Passport</a>
+          <a href="{% url 'organizations:team_directory' %}"><i class="ph-bold ph-users-four"></i> Find Players</a>
+          <a href="{% url 'ecommerce:store_home' %}"><i class="ph-bold ph-storefront"></i> Crown Store</a>
+          <a href="{% url 'siteui:arena' %}"><i class="ph-bold ph-television"></i> Arena</a>
+          <a href="{% url 'dashboard:competitive_hub' %}"><i class="ph-bold ph-target"></i> Missions</a>
+          <a href="{% url 'organizations:org_directory' %}"><i class="ph-bold ph-buildings"></i> Org HQ</a>
+        </div>
+      </div>
+    </div>
+
+    {% else %}
+    {# ============================  NEW PLAYER  ============================ #}
+    <div class="grid" style="margin-bottom:var(--gap);">
+      <div class="welcome col-12">
+        <div style="display:flex;align-items:center;gap:24px;flex-wrap:wrap;">
+          <div style="flex:1;min-width:240px;">
+            <span class="chip chip-open" style="margin-bottom:12px;"><i class="ph-fill ph-crown-simple" style="font-size:13px;"></i> Welcome to DeltaCrown</span>
+            <h1>Let's get you to the Crown, {{ profile.display_name|default:request.user.username }}.</h1>
+            <p>Finish setting up your player identity. Complete these steps to unlock tournaments, teams, and your first Crown Points.</p>
+            <div style="display:flex;gap:10px;margin-top:18px;flex-wrap:wrap;">
+              <a href="/me/settings/" class="btn btn-primary"><i class="ph-bold ph-rocket-launch"></i> Continue setup</a>
+              <a href="/tournaments/" class="btn btn-ghost"><i class="ph-bold ph-compass"></i> Explore first</a>
+            </div>
+          </div>
+          <div class="ring-wrap">
+            <div class="ring" id="clRing" style="--p:{{ onboarding_pct }};"><div class="inner" id="clRingNum">{{ onboarding_pct }}%</div></div>
+            <div>
+              <div style="font-family:var(--dc-font-display);font-weight:700;font-size:15px;">Setup progress</div>
+              <div style="font-size:12.5px;color:var(--dc-fg-muted);"><span id="clCount">{{ onboarding_done_count }}/{{ onboarding_steps|length }}</span> steps done</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid" style="margin-bottom:var(--gap);">
+      <div class="card col-8">
+        <div class="card-head"><div class="ic green"><i class="ph-bold ph-list-checks"></i></div><h3>Your First Steps</h3><span class="count">{{ onboarding_done_count }}/{{ onboarding_steps|length }} done</span></div>
+        <div class="checklist" id="checklist">
+          {% for step in onboarding_steps %}
+          <div class="check{% if step.done %} done{% endif %}" data-label="{{ step.label }}" data-done="{{ step.done|yesno:'true,false' }}">
+            <div class="box"><i class="ph-bold ph-check"></i></div>
+            <div class="ct"><b>{{ step.label }}</b><span>{{ step.desc }}</span></div>
+            {% if not step.done and step.url %}<a href="{{ step.url }}"><i class="ph-bold ph-arrow-right go"></i></a>{% else %}<div class="num">0{{ forloop.counter }}</div>{% endif %}
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="card col-4">
+        <div class="card-head"><div class="ic gold"><i class="ph-fill ph-crown-simple"></i></div><h3>The Climb</h3></div>
+        <p style="font-size:13.5px;color:var(--dc-fg-muted);margin:0 0 16px;">Earn Crown Points from matches and tournaments to rise through the ladder.</p>
+        <div class="rows">
+          <div class="row"><div class="ricon" style="background:rgba(148,163,184,0.14);color:#94A3B8;"><i class="ph-fill ph-circle"></i></div><div class="grow"><div class="t">Rookie</div><div class="s">You start here</div></div></div>
+          <div class="row"><div class="ricon" style="background:var(--dc-tint-violet);color:var(--dc-violet-400);"><i class="ph-fill ph-circle"></i></div><div class="grow"><div class="t">Challenger</div></div><div class="tr">1,500 CP</div></div>
+          <div class="row"><div class="ricon" style="background:var(--acc-tint);color:var(--acc-400);"><i class="ph-fill ph-circle"></i></div><div class="grow"><div class="t">Elite</div></div><div class="tr">4,000 CP</div></div>
+          <div class="row"><div class="ricon" style="background:rgba(191,56,104,0.14);color:#BF3868;"><i class="ph-fill ph-circle"></i></div><div class="grow"><div class="t">Master</div></div><div class="tr">8,000 CP</div></div>
+          <div class="row"><div class="ricon" style="background:var(--dc-tint-gold);color:var(--dc-gold-400);"><i class="ph-fill ph-medal"></i></div><div class="grow"><div class="t">Legend</div></div><div class="tr">15,000 CP</div></div>
+          <div class="row"><div class="ricon" style="background:var(--dc-tint-gold);color:var(--dc-gold-400);"><i class="ph-fill ph-crown-simple"></i></div><div class="grow"><div class="t" style="background:var(--dc-crown-gradient);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;">The Crown</div></div><div class="tr">25,000 CP</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid" style="margin-bottom:var(--gap);">
+      <div class="card col-4"><div class="empty"><div class="ei"><i class="ph-bold ph-shield-plus"></i></div><b>No teams yet</b><p>Create a squad or join one to start competing together.</p><a href="{% url 'organizations:team_create' %}" class="btn btn-primary btn-sm" style="margin-top:6px;"><i class="ph-bold ph-plus"></i> Create Team</a></div></div>
+      <div class="card col-4"><div class="empty"><div class="ei"><i class="ph-bold ph-game-controller"></i></div><b>No matches played</b><p>Your match history will appear here once you compete.</p><a href="/tournaments/" class="btn btn-ghost btn-sm" style="margin-top:6px;"><i class="ph-bold ph-trophy"></i> Find a match</a></div></div>
+      <div class="card col-4"><div class="empty"><div class="ei"><i class="ph-bold ph-identification-card"></i></div><b>Passport empty</b><p>Link your in-game names so teams can scout you.</p><a href="/me/game-passports/" class="btn btn-ghost btn-sm" style="margin-top:6px;"><i class="ph-bold ph-plus"></i> Add a game</a></div></div>
+    </div>
+
+    {% if active_tournaments %}
+    <div class="grid">
+      <div class="card col-12">
+        <div class="card-head"><div class="ic"><i class="ph-bold ph-trophy"></i></div><h3>Jump into your first tournament</h3><a href="/tournaments/" class="act">Browse all <i class="ph-bold ph-arrow-right" style="font-size:12px;"></i></a></div>
+        <div class="tourn-grid" style="grid-template-columns:repeat(4,1fr);">
+          {% for t in active_tournaments|slice:":4" %}
+          <a class="tcard" href="/tournaments/{{ t.slug }}/" style="display:block;">
+            {% if t.thumbnail_url or t.banner_url %}<img loading="lazy" src="{{ t.thumbnail_url|default:t.banner_url }}" alt="{{ t.game_name }}" onerror="this.style.display='none'">
+            {% else %}<div style="position:absolute;inset:0;background:linear-gradient(135deg,#11151E,#181D27);"></div>{% endif %}
+            <div class="scrim"></div>
+            <div class="tc-top">{% if t.game_icon %}<img class="glogo" src="{{ t.game_icon }}" alt="" onerror="this.style.display='none'">{% endif %}<span class="chip chip-open" style="background:rgba(0,0,0,.45);backdrop-filter:blur(8px);">OPEN</span></div>
+            <div class="tc-bot"><div class="nm">{{ t.name|truncatechars:24 }}</div><div class="mt">{% if t.prize_pool %}<span class="prize"><i class="ph-fill ph-coins"></i> {{ t.prize_pool|floatformat:0 }} DC</span>{% else %}<span class="prize">Free entry</span>{% endif %}</div></div>
+          </a>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+    {% endif %}
+    {% endif %}{# end active/new branch #}
+
+  </div>{# .page #}
+</div>{# .dc-cc #}
+
+<script src="{% static 'dashboard/command-center.js' %}" defer></script>
 {% endblock %}
+
+{% block footer %}{% endblock %}

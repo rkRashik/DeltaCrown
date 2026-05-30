@@ -1,4 +1,4 @@
-from pathlib import Path
+﻿from pathlib import Path
 import mimetypes
 import os
 import sys
@@ -2046,16 +2046,37 @@ if _HAS_UNFOLD:
             {
                 "title": "Finance & Rewards",
                 "separator": True,
+                "collapsible": True,
                 "items": [
                     {
-                        "title": "\U0001f6e1\ufe0f Financial Fortress",
+                        "title": "\U0001f6e1️ Financial Fortress",
                         "icon": "shield",
                         "link": reverse_lazy("economy:fortress_dashboard"),
                         "permission": lambda request: request.user.is_superuser,
                     },
+                    {
+                        "title": "Daily Reward Config",
+                        "icon": "calendar_month",
+                        "link": reverse_lazy("admin:economy_dailyrewardconfig_changelist"),
+                    },
+                    {
+                        "title": "Streak Milestones",
+                        "icon": "military_tech",
+                        "link": reverse_lazy("admin:economy_dailyrewardmilestone_changelist"),
+                    },
+                    {
+                        "title": "Login Streaks",
+                        "icon": "local_fire_department",
+                        "link": reverse_lazy("admin:economy_dailyloginstreak_changelist"),
+                    },
+                    {
+                        "title": "Claim Log",
+                        "icon": "receipt_long",
+                        "link": reverse_lazy("admin:economy_dailyrewardclaim_changelist"),
+                    },
                 ],
             },
-            # ── Shop & E-Commerce ──
+            # ── Shop & E-Commerce ──            # ── Shop & E-Commerce ──
             {
                 "title": "Shop & E-Commerce",
                 "separator": True,

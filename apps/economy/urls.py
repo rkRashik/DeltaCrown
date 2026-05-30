@@ -13,6 +13,9 @@ from .views.pin_views import pin_setup, pin_verify
 # UP-PHASE7.7: OTP verification for PIN security
 from .views.otp_views import otp_request, otp_verify_and_set_pin
 
+# Daily login reward
+from .views.daily_reward_api import daily_reward_claim, daily_reward_status
+
 # Wallet Hub SPA
 from .views.wallet_hub import wallet_hub_view
 
@@ -106,5 +109,9 @@ urlpatterns = [
     # UP-PHASE7.7: OTP Security for PIN Setup/Change
     path('api/wallet/pin/otp/request/', otp_request, name='pin_otp_request'),
     path('api/wallet/pin/otp/verify/', otp_verify_and_set_pin, name='pin_otp_verify'),
+
+    # Daily login reward
+    path('api/daily-reward/status/', daily_reward_status, name='daily_reward_status'),
+    path('api/daily-reward/claim/',  daily_reward_claim,  name='daily_reward_claim'),
 ]
 

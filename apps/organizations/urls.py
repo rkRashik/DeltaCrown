@@ -25,6 +25,7 @@ from apps.organizations.views import (
     team_directory,
 )
 from apps.organizations.views.hub import vnext_hub_filter
+from apps.organizations.views.join_request_api import join_request_withdraw as _join_request_withdraw
 
 app_name = 'organizations'
 
@@ -78,4 +79,7 @@ urlpatterns = [
     
     # UI views - Organization detail (catch-all, must be LAST)
     path('orgs/<str:org_slug>/', organization_detail, name='organization_detail'),
+
+    # API — join request withdraw
+    path('api/join-request/<int:jr_id>/withdraw/', _join_request_withdraw, name='join_request_withdraw'),
 ]

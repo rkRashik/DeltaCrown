@@ -17,6 +17,7 @@ from django.utils.safestring import mark_safe
 from .models import (
     CoinPolicy, DeltaCrownTransaction, DeltaCrownWallet,
     EconomyConfig, EconomyDashboard, TopUpRequest, WalletPINOTP,
+    DailyRewardConfig, DailyRewardMilestone, DailyRewardClaim, DailyLoginStreak,
     WithdrawalRequest,   # DEPRECATED — kept for admin visibility of legacy rows
     PrizeClaim,
     FinancialFortress,
@@ -1356,3 +1357,98 @@ class _ReadOnlyCoinPolicyAdmin(ReadOnlyFortressMixin, CoinPolicyAdmin):
 @admin.register(EconomyPlaybook)
 class _ReadOnlyPlaybookAdmin(ReadOnlyFortressMixin, EconomyPlaybookAdmin):
     """View-only mirror of EconomyPlaybookAdmin — write paths blocked."""
+
+
+# ═══════════════════════════════════════════════════════════════
+# DAILY REWARD SYSTEM
+# ═══════════════════════════════════════════════════════════════
+
+@admin.register(DailyRewardConfig)
+class DailyRewardConfigAdmin(ModelAdmin):
+    """
+    Singleton daily reward schedule.
+    Only ONE config should be active at a time — warn on save if multiple.
+    """
+    list_display = ("name", "is_active", "week_summary", "updated_at")
+    list_editable = ("is_active",)
+    readonly_fields = ("created_at", "updated_at")
+    fieldsets = (
+        (None, {"fields": ("name", "is_active")}),
+        ("Week schedule (Thu → Wed)", {
+            "fields": ("week_schedule",),
+            "description": (
+                'JSON array of 7 dicts: [{"day":"Thu","xp":25,"dc":0}, …]. '
+                "Index 0 = Thursday, index 6 = Wednesday."
+            ),
+        }),
+        ("Audit", {"fields": ("created_at", "updated_at"), "classes": ("collapse",)}),
+    )
+
+    def week_summary(self, obj):
+        s = obj.week_schedule or []
+        if not s:
+            return "—"
+        total_xp = sum(d.get("xp", 0) for d in s)
+        total_dc = sum(d.get("dc", 0) for d in s)
+        return f"{total_xp} XP + {total_dc} DC / week"
+    week_summary.short_description = "Weekly total"
+
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+        if obj.is_active:
+            active_count = DailyRewardConfig.objects.filter(is_active=True).exclude(pk=obj.pk).count()
+            if active_count:
+                messages.warning(request, f"Warning: {active_count} other config(s) are still marked active.")
+
+
+@admin.register(DailyRewardMilestone)
+class DailyRewardMilestoneAdmin(ModelAdmin):
+    list_display = ("streak_days", "label", "bonus_xp", "bonus_dc", "is_active")
+    list_editable = ("bonus_xp", "bonus_dc", "is_active")
+    ordering = ("streak_days",)
+    fields = ("streak_days", "label", "bonus_xp", "bonus_dc", "is_active")
+
+
+@admin.register(DailyRewardClaim)
+class DailyRewardClaimAdmin(ModelAdmin):
+    """Immutable audit log — read-only."""
+    list_display = ("user", "platform_date", "streak_day", "total_xp", "total_dc", "milestone", "claimed_at")
+    list_filter = ("platform_date", "milestone")
+    search_fields = ("user__username", "user__email")
+    readonly_fields = (
+        "user", "claimed_at", "platform_date", "streak_day", "day_index",
+        "base_xp", "base_dc", "milestone_bonus_xp", "milestone_bonus_dc",
+        "total_xp", "total_dc", "milestone", "config",
+    )
+    date_hierarchy = "claimed_at"
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(DailyLoginStreak)
+class DailyLoginStreakAdmin(ModelAdmin):
+    """Per-user streak overview. Admins can reset or review streaks."""
+    list_display = ("user_display", "current_streak", "best_streak", "last_claim_date",
+                    "total_xp_earned", "total_claimed")
+    search_fields = ("profile__user__username", "profile__user__email")
+    readonly_fields = ("profile", "total_xp_earned", "total_claimed", "best_streak")
+    fields = ("profile", "current_streak", "last_claim_date",
+              "best_streak", "total_xp_earned", "total_claimed")
+    ordering = ("-current_streak",)
+    actions = ["reset_streak"]
+
+    def user_display(self, obj):
+        return obj.profile.user.username if obj.profile else "—"
+    user_display.short_description = "User"
+
+    @admin.action(description="Reset streak to 0 for selected users")
+    def reset_streak(self, request, queryset):
+        count = queryset.update(current_streak=0, last_claim_date=None)
+        self.message_user(request, f"Reset {count} streak(s) to 0.", messages.SUCCESS)

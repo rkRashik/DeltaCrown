@@ -25,15 +25,20 @@ def load_secondary_data(
     profile=None,
     my_teams: list[dict] | None = None,
     game_detail_map: dict | None = None,
+    now=None,
+    week_offset: int = 0,
 ) -> dict:
     """
     Load all secondary dashboard sections (8-19) in one call.
 
     Returns a dict that can be merged directly into the template context.
     """
+    from django.utils import timezone as tz
+
     my_teams = my_teams or []
     game_detail_map = game_detail_map or {}
     team_ids = [t["id"] for t in my_teams]
+    now = now or tz.now()
 
     from apps.organizations.models import Team
 
@@ -51,6 +56,11 @@ def load_secondary_data(
     data.update(_load_support_tickets(user))
     data.update(_load_challenges(user, team_ids, game_detail_map))
     data.update(_load_bounties(user))
+    # New Command Center sections
+    data.update(_load_ops_counts(user, team_ids))
+    data.update(_load_daily_reward(profile))
+    data.update(_load_week_schedule(user, team_ids, now, week_offset=week_offset))
+    data.update(_load_join_requests(user, game_detail_map))
 
     return data
 
@@ -209,12 +219,26 @@ def _load_organizations(user, Team) -> dict:
             for om in org_memberships:
                 org = om.organization
                 team_count_in_org = 0
+                member_count = 0
+                pending_requests = 0
                 try:
-                    team_count_in_org = Team.objects.filter(
-                        organization=org, status="ACTIVE"
-                    ).count()
+                    team_count_in_org = Team.objects.filter(organization=org, status="ACTIVE").count()
                 except Exception:
                     pass
+                try:
+                    member_count = OrgMembership.objects.filter(organization=org).count()
+                except Exception:
+                    pass
+                try:
+                    from apps.organizations.models.join_request import TeamJoinRequest
+                    org_team_ids = list(Team.objects.filter(organization=org).values_list("id", flat=True))
+                    if org_team_ids:
+                        pending_requests = TeamJoinRequest.objects.filter(
+                            team_id__in=org_team_ids, status="PENDING"
+                        ).count()
+                except Exception:
+                    pass
+                is_owner = getattr(om, "role", "").upper() in ("OWNER", "CEO", "FOUNDER")
                 my_organizations.append({
                     "id": org.id,
                     "name": org.name,
@@ -222,7 +246,11 @@ def _load_organizations(user, Team) -> dict:
                     "logo_url": _img_url(org),
                     "role": om.role,
                     "is_verified": getattr(org, "is_verified", False),
+                    "is_owner": is_owner,
                     "team_count": team_count_in_org,
+                    "member_count": member_count,
+                    "pending_requests": pending_requests,
+                    "monthly_dc": 0,
                     "joined_at": om.joined_at,
                 })
     except Exception:
@@ -394,3 +422,227 @@ def _load_bounties(user) -> dict:
     except Exception:
         logger.debug("Dashboard: bounties facade failed", exc_info=True)
     return {"active_bounties": active_bounties}
+
+
+# ── Section 20: Competitive Operations counts ────────────────────────────
+
+def _load_ops_counts(user, team_ids: list) -> dict:
+    counts = {"showdown_live": 0, "missions_done": 0, "missions_total": 0, "bounty_claimable": 0, "dropzone_open": 0}
+    try:
+        Challenge = _safe_model("competition.Challenge")
+        if Challenge:
+            counts["showdown_live"] = _safe_int(
+                lambda: Challenge.objects.filter(
+                    status__in=["ACTIVE", "active"],
+                    challenge_type__in=["SHOWDOWN", "REWARD"],
+                ).count()
+            )
+    except Exception:
+        pass
+    try:
+        MissionEnrollment = _safe_model("competition.MissionEnrollment")
+        if MissionEnrollment:
+            today_qs = MissionEnrollment.objects.filter(user=user)
+            counts["missions_total"] = _safe_int(lambda: today_qs.count())
+            counts["missions_done"] = _safe_int(
+                lambda: today_qs.filter(status__in=["COMPLETED", "CLAIMED"]).count()
+            )
+    except Exception:
+        pass
+    try:
+        BountyClaim = _safe_model("competition.BountyClaim")
+        if BountyClaim:
+            counts["bounty_claimable"] = _safe_int(
+                lambda: BountyClaim.objects.filter(
+                    claimant=user, status__in=["APPROVED", "VERIFIED"]
+                ).count()
+            )
+    except Exception:
+        pass
+    try:
+        RoyaleLobby = _safe_model("competition.RoyaleLobby")
+        if RoyaleLobby:
+            counts["dropzone_open"] = _safe_int(
+                lambda: RoyaleLobby.objects.filter(status__in=["OPEN", "REGISTRATION_OPEN"]).count()
+            )
+    except Exception:
+        pass
+    return {"ops_counts": counts}
+
+
+# ── Section 21: Daily Reward / Login Streak ──────────────────────────────
+
+def _load_daily_reward(profile) -> dict:
+    default = {"daily_reward": None}
+    if not profile:
+        return default
+    try:
+        from datetime import timedelta
+        from apps.economy.services.daily_reward_service import get_platform_date
+
+        DailyLoginStreak = _safe_model("economy.DailyLoginStreak")
+        DailyRewardConfig = _safe_model("economy.DailyRewardConfig")
+        DailyRewardClaim = _safe_model("economy.DailyRewardClaim")
+        if not DailyLoginStreak:
+            return default
+
+        streak, _ = DailyLoginStreak.objects.get_or_create(profile=profile)
+        config = DailyRewardConfig.get_active() if DailyRewardConfig else None
+        platform_today = get_platform_date()
+
+        # Query ACTUAL claim records for this week (not just last_claim_date)
+        claimed_dates: set = set()
+        if DailyRewardClaim:
+            days_since_thu = (platform_today.weekday() - 3) % 7
+            week_start = platform_today - timedelta(days=days_since_thu)
+            week_end = week_start + timedelta(days=7)
+            claimed_dates = set(
+                DailyRewardClaim.objects.filter(
+                    user=profile.user,
+                    platform_date__gte=week_start,
+                    platform_date__lt=week_end,
+                ).values_list("platform_date", flat=True)
+            )
+
+        if config:
+            today_idx = (platform_today.weekday() - 3) % 7
+            today_entry = config.get_day(today_idx)
+            week = config.week_with_state(claimed_dates, platform_today)
+        else:
+            today_entry = {"xp": 25, "dc": 0}
+            week = []
+
+        # Next milestone
+        next_milestone = None
+        try:
+            DailyRewardMilestone = _safe_model("economy.DailyRewardMilestone")
+            if DailyRewardMilestone:
+                next_milestone = (
+                    DailyRewardMilestone.objects.filter(
+                        streak_days__gt=streak.current_streak, is_active=True
+                    ).order_by("streak_days").values("streak_days", "bonus_xp", "bonus_dc", "label").first()
+                )
+        except Exception:
+            pass
+
+        return {
+            "daily_reward": {
+                "current_streak": streak.current_streak,
+                "best_streak": streak.best_streak,
+                "today_claimable": streak.today_claimable,
+                "today_xp": today_entry["xp"],
+                "today_dc": today_entry["dc"],
+                "week_schedule": week,
+                "next_milestone": next_milestone,
+            },
+        }
+    except Exception:
+        logger.debug("Dashboard: daily reward query failed", exc_info=True)
+        return default
+
+
+# ── Section 22: This-Week schedule ──────────────────────────────────────
+
+def _load_week_schedule(user, team_ids: list, now, *, week_offset: int = 0) -> dict:
+    from datetime import timedelta
+
+    today = now.date()
+    # Platform week starts Thursday
+    days_since_thu = (today.weekday() - 3) % 7
+    this_thursday = today - timedelta(days=days_since_thu)
+    # Apply week offset (±N weeks from current Thursday)
+    thursday = this_thursday + timedelta(days=week_offset * 7)
+    dow_names = ["Thu", "Fri", "Sat", "Sun", "Mon", "Tue", "Wed"]
+
+    week = [
+        {
+            "date": thursday + timedelta(days=i),
+            "dow": dow_names[i],
+            "day_num": (thursday + timedelta(days=i)).day,
+            "is_today": (thursday + timedelta(days=i)) == today,
+            "events": [],
+        }
+        for i in range(7)
+    ]
+    day_map = {w["date"]: w for w in week}
+    week_end = thursday + timedelta(days=7)
+
+    # Upcoming matches
+    try:
+        Match = _safe_model("tournaments.Match")
+        if Match and team_ids:
+            from django.db.models import Q as DQ
+            matches = (
+                Match.objects.filter(
+                    DQ(participant1_id__in=team_ids) | DQ(participant2_id__in=team_ids),
+                    scheduled_time__isnull=False,
+                    scheduled_time__date__gte=thursday,
+                    scheduled_time__date__lt=week_end,
+                    is_deleted=False,
+                )
+                .only("scheduled_time", "state")[:30]
+            )
+            for m in matches:
+                d = m.scheduled_time.date()
+                if d in day_map:
+                    state = getattr(m, "state", "") or ""
+                    if state == "live":
+                        label = "live"
+                    elif state == "completed":
+                        label = "done"
+                    else:
+                        try:
+                            label = m.scheduled_time.strftime("%I%p").lstrip("0").lower()
+                        except Exception:
+                            label = "match"
+                    day_map[d]["events"].append({"type": "match", "label": label})
+    except Exception:
+        pass
+
+    # Invite expiries
+    try:
+        from apps.organizations.models.team_invite import TeamInvite
+        invites = TeamInvite.objects.filter(
+            invited_user=user, status="PENDING",
+            expires_at__date__gte=thursday, expires_at__date__lt=week_end,
+        ).only("expires_at")[:10]
+        for inv in invites:
+            d = inv.expires_at.date()
+            if d in day_map:
+                day_map[d]["events"].append({"type": "exp", "label": "Invite exp"})
+    except Exception:
+        pass
+
+    return {"week_schedule": week}
+
+
+# ── Section 23: Join Requests (sent by the user) ─────────────────────────
+
+def _load_join_requests(user, game_detail_map: dict) -> dict:
+    join_requests = []
+    try:
+        from apps.organizations.models.join_request import TeamJoinRequest
+        jrs = (
+            TeamJoinRequest.objects.filter(user=user)
+            .exclude(status="WITHDRAWN")
+            .select_related("team")
+            .order_by("-created_at")[:8]
+        )
+        for jr in jrs:
+            t = jr.team
+            gd = game_detail_map.get(getattr(t, "game_id", None), {}) if t else {}
+            join_requests.append({
+                "id": jr.id,
+                "team_name": t.name if t else "",
+                "team_slug": getattr(t, "slug", "") if t else "",
+                "team_logo": _img_url(t) if t else "",
+                "team_tag": getattr(t, "tag", "") if t else "",
+                "game_name": gd.get("name", ""),
+                "role": getattr(jr, "applied_position", "") or "",
+                "status": jr.status,
+                "created_at": jr.created_at,
+                "team_url": f"/teams/{getattr(t, 'slug', '')}/" if t else "",
+            })
+    except Exception:
+        logger.debug("Dashboard: join requests query failed", exc_info=True)
+    return {"join_requests": join_requests}

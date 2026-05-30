@@ -39,6 +39,8 @@ class DeltaCrownTransaction(models.Model):
         PLATFORM_FEE = "platform_fee", "Platform Fee"
         # Phase 5 P2P & Withdrawals
         WITHDRAWAL_REVENUE = "withdrawal_revenue", "Withdrawal Revenue (Fee)"
+        # Daily login reward
+        DAILY_REWARD = "daily_reward", "Daily Login Reward"
 
     wallet = models.ForeignKey(
         DeltaCrownWallet,

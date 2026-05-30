@@ -1429,6 +1429,31 @@ def competitive_dropzone_entry_detail_view(request: HttpRequest, entry_id) -> Ht
     })
 
 
+def _xp_level_data(xp: int, level: int) -> dict:
+    """
+    Compute XP progress fields for the XP/Level widget.
+    Formula: each level requires 500 XP (linear curve).
+    Level 1 = 0–499 XP, Level 2 = 500–999 XP, etc.
+    """
+    xp = max(0, int(xp or 0))
+    xp_per_level = 500
+    computed_level = max(1, xp // xp_per_level + 1)
+    # Trust profile.level if set; fall back to computed
+    display_level = max(level or 1, computed_level)
+    xp_floor = (display_level - 1) * xp_per_level      # XP at start of current level
+    xp_in_level = max(0, xp - xp_floor)
+    xp_to_next = max(0, xp_per_level - xp_in_level)
+    xp_pct = min(100, int(xp_in_level / xp_per_level * 100))
+    return {
+        "xp_total": xp,
+        "xp_in_level": xp_in_level,
+        "xp_needed": xp_per_level,
+        "xp_to_next": xp_to_next,
+        "xp_pct": xp_pct,
+        "next_level": display_level + 1,
+    }
+
+
 @login_required
 def dashboard_index(request: HttpRequest) -> HttpResponse:
     """
@@ -1445,17 +1470,25 @@ def dashboard_index(request: HttpRequest) -> HttpResponse:
     from apps.notifications.models import Notification
 
     user = request.user
-    now = timezone.now()
+    # ?week=N offsets the week schedule by N weeks (not the whole view)
+    week_offset = 0
+    try:
+        week_offset = int(request.GET.get("week", 0))
+        week_offset = max(-4, min(4, week_offset))
+    except (TypeError, ValueError):
+        pass
+    now = timezone.now()  # always real time; week_offset passed separately to schedule
     game_map = _build_game_lookup()
 
-    # Detailed game lookup with icons/colors
+    # Detailed game lookup — includes slug and short_code for GameProfile queries
     game_detail_map = {}
     try:
         Game = _safe_model("games.Game")
         if Game:
-            for g in Game.objects.all().only("id", "name", "icon", "logo", "primary_color", "short_code"):
+            for g in Game.objects.all().only("id", "name", "slug", "icon", "logo", "primary_color", "short_code"):
                 game_detail_map[g.id] = {
                     "name": g.name,
+                    "slug": getattr(g, "slug", "") or "",
                     "icon": _img_url(g, "icon"),
                     "logo": _img_url(g, "logo"),
                     "color": getattr(g, "primary_color", "#6366F1") or "#6366F1",
@@ -1484,6 +1517,10 @@ def dashboard_index(request: HttpRequest) -> HttpResponse:
                 "reputation_score": getattr(profile, "reputation_score", 100),
                 "level": getattr(profile, "level", 1),
                 "xp": getattr(profile, "xp", 0),
+                **_xp_level_data(
+                    getattr(profile, "xp", 0),
+                    getattr(profile, "level", 1),
+                ),
             }
         else:
             profile_data = {
@@ -1537,13 +1574,18 @@ def dashboard_index(request: HttpRequest) -> HttpResponse:
                     "verified": getattr(org_obj, "is_verified", False),
                 }
             gd = game_detail_map.get(t.game_id, {})
+            is_tc = bool(getattr(m, "is_tournament_captain", False))
             my_teams.append({
                 "id": t.id, "name": t.name, "slug": t.slug,
                 "logo_url": _img_url(t),
                 "role": m.role,
+                "is_tournament_captain": is_tc,
+                "game_id": t.game_id,
                 "game_name": game_map.get(t.game_id, ""),
+                "game_slug": gd.get("slug", ""),
                 "game_icon": gd.get("icon", ""),
                 "game_color": gd.get("color", "#6366F1"),
+                "game_code": gd.get("code", ""),
                 "member_count": member_ct,
                 "tag": getattr(t, "tag", "") or "",
                 "status": getattr(t, "status", ""),
@@ -1718,6 +1760,7 @@ def dashboard_index(request: HttpRequest) -> HttpResponse:
                 except Exception:
                     vnext_staff_tournament_ids = set()
 
+            _completed_statuses = {"completed", "complete", "finished", "ended", "done", "archived"}
             for reg in regs:
                 t = reg.tournament
                 if t:
@@ -1727,6 +1770,9 @@ def dashboard_index(request: HttpRequest) -> HttpResponse:
                         or t.id in vnext_staff_tournament_ids
                     )
                     _eff = t.get_effective_status() if hasattr(t, 'get_effective_status') else getattr(t, "status", "")
+                    # Skip completed tournaments — only show active/upcoming/live
+                    if str(_eff).lower() in _completed_statuses:
+                        continue
                     _cur_stage = t.get_current_stage() if hasattr(t, 'get_current_stage') else ''
                     active_tournaments.append({
                         "id": t.id,
@@ -1862,14 +1908,62 @@ def dashboard_index(request: HttpRequest) -> HttpResponse:
     except Exception:
         logger.debug("Dashboard: leaderboard query failed", exc_info=True)
 
-    # ── SECTIONS 8–19: Secondary data (wallet, badges, social, etc.) ────
+    # ── PLATFORM-WIDE ACTIVE TOURNAMENT COUNT ───────────────────────────
+    platform_tournament_count = 0
+    try:
+        Tournament = _safe_model("tournaments.Tournament")
+        if Tournament:
+            platform_tournament_count = Tournament.objects.exclude(
+                status__in=["draft", "cancelled", "completed", "finished", "ended"]
+            ).count()
+    except Exception:
+        pass
+
+    # ── SECTIONS 8–23: Secondary data (wallet, badges, social, etc.) ────
     from .secondary_data import load_secondary_data
     secondary = load_secondary_data(
         user,
         profile=profile,
         my_teams=my_teams,
         game_detail_map=game_detail_map,
+        now=now,
+        week_offset=week_offset,
     )
+
+    # ── PERFORMANCE LENSES ───────────────────────────────────────────────
+    game_passports_list = secondary.get("game_passports", [])
+    lenses = []
+    lenses_json = "{}"
+    try:
+        from .lens_builder import build_lenses
+        import json as _json
+        lenses = build_lenses(user, my_teams, game_detail_map, game_passports=game_passports_list)
+        lenses_json = _json.dumps({l["id"]: l for l in lenses}, default=str)
+    except Exception:
+        logger.debug("Dashboard: lens builder failed", exc_info=True)
+
+    # ── IS_NEW_PLAYER detection ──────────────────────────────────────────
+
+    has_passport = bool(game_passports_list)
+    has_teams = bool(my_teams)
+    has_matches = bool(recent_matches) or match_stats.get("total", 0) > 0
+    try:
+        from allauth.account.models import EmailAddress
+        email_verified = EmailAddress.objects.filter(user=user, verified=True).exists()
+    except Exception:
+        email_verified = getattr(user, "is_active", True)
+    is_new_player = not has_teams and not has_matches and not has_passport
+
+    # ── ONBOARDING STEPS ─────────────────────────────────────────────────
+    onboarding_steps = [
+        {"key": "account",    "label": "Create your account",        "desc": "Username & display name set",                    "done": True,            "url": None},
+        {"key": "email",      "label": "Verify your email",          "desc": "Secure your account",                            "done": email_verified,  "url": "/account/email/"},
+        {"key": "passport",   "label": "Build your Game Passport",   "desc": "Link your IGN & rank for Valorant, MLBB, CS2…",  "done": has_passport,    "url": "/me/game-passports/"},
+        {"key": "team",       "label": "Create or join a team",      "desc": "Compete with a roster, or set LFT status",        "done": has_teams,       "url": "/teams/create/"},
+        {"key": "tournament", "label": "Enter your first tournament", "desc": "Win Crown Points & start your climb",             "done": has_matches,     "url": "/tournaments/"},
+    ]
+    onboarding_pct = round(sum(1 for s in onboarding_steps if s["done"]) / len(onboarding_steps) * 100)
+    onboarding_done_count = sum(1 for s in onboarding_steps if s["done"])
 
     # ── ASSEMBLE CONTEXT ─────────────────────────────────────────────────
     context = {
@@ -1887,12 +1981,22 @@ def dashboard_index(request: HttpRequest) -> HttpResponse:
         # Tournaments
         "active_tournaments": active_tournaments,
         "tournament_count": tournament_count,
+        "platform_tournament_count": platform_tournament_count,
         "next_match_info": next_match_info,
         "imminent_lobby_alert": imminent_lobby_alert,
         # Leaderboard
         "leaderboard_data": leaderboard_data,
         # Games map (for template use)
         "games": list(game_map.values()),
+        # Week navigation
+        "week_offset": week_offset,
+        # New Command Center context
+        "is_new_player": is_new_player,
+        "lenses": lenses,
+        "lenses_json": lenses_json,
+        "onboarding_steps": onboarding_steps,
+        "onboarding_pct": onboarding_pct,
+        "onboarding_done_count": onboarding_done_count,
     }
     # Merge secondary data (wallet, badges, notifications, social, etc.)
     context.update(secondary)
