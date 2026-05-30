@@ -1367,18 +1367,22 @@ class _ReadOnlyPlaybookAdmin(ReadOnlyFortressMixin, EconomyPlaybookAdmin):
 class DailyRewardConfigAdmin(ModelAdmin):
     """
     Singleton daily reward schedule.
-    Only ONE config should be active at a time — warn on save if multiple.
+    Uses a custom card-grid widget — no raw JSON editing.
+    Only ONE config should be active at a time.
     """
+    from apps.economy.admin_forms import DailyRewardConfigAdminForm
+    form = DailyRewardConfigAdminForm
+
     list_display = ("name", "is_active", "week_summary", "updated_at")
     list_editable = ("is_active",)
     readonly_fields = ("created_at", "updated_at")
     fieldsets = (
         (None, {"fields": ("name", "is_active")}),
-        ("Week schedule (Thu → Wed)", {
+        ("📅 Week Schedule (Thu → Wed)", {
             "fields": ("week_schedule",),
             "description": (
-                'JSON array of 7 dicts: [{"day":"Thu","xp":25,"dc":0}, …]. '
-                "Index 0 = Thursday, index 6 = Wednesday."
+                "Edit XP and DC rewards for each day of the platform week. "
+                "Wednesday carries the highest reward to incentivise a full 7-day streak."
             ),
         }),
         ("Audit", {"fields": ("created_at", "updated_at"), "classes": ("collapse",)}),
