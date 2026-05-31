@@ -248,20 +248,50 @@
     transform: translateX(24px);
   }
 
+  /* Expand panel — max-height approach for reliable cross-browser support */
   .expand-panel {
-    display: grid;
-    grid-template-rows: 0fr;
+    max-height: 0;
+    overflow: hidden;
     opacity: 0;
-    transition: all 0.4s ease;
+    transition: max-height 0.4s ease, opacity 0.35s ease;
   }
 
   .expand-panel.open {
-    grid-template-rows: 1fr;
+    max-height: 2000px;   /* large enough for any panel content */
     opacity: 1;
   }
 
   .expand-panel > .expand-inner {
-    overflow: hidden;
+    /* kept for backwards-compat; no longer needs overflow:hidden */
+  }
+
+  /* Rich-text contenteditable placeholder */
+  [data-rt-editor][data-empty='true']::before {
+    content: attr(data-ph);
+    color: rgba(255,255,255,0.25);
+    pointer-events: none;
+    position: absolute;
+  }
+  [data-rt-editor] { position: relative; }
+  [data-rt-editor]:focus-within { border-color: rgba(var(--accent-rgb),0.5) !important; }
+
+  /* Minimal rich-text toolbar */
+  .dc-rt-toolbar {
+    display: flex; gap: 4px; flex-wrap: wrap;
+    padding: 6px 10px; border-radius: 14px 14px 0 0;
+    background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+    border-bottom: none;
+  }
+  .dc-rt-toolbar button {
+    width: 28px; height: 28px; border-radius: 7px; border: none;
+    background: transparent; color: rgba(255,255,255,0.7);
+    font-size: 13px; font-weight: 700; cursor: pointer;
+    display: grid; place-items: center;
+    transition: background 120ms, color 120ms;
+  }
+  .dc-rt-toolbar button:hover { background: rgba(255,255,255,0.12); color: #fff; }
+  .dc-rt-area {
+    border-radius: 0 0 14px 14px !important;
   }
 
   .sticky-bottom-nav {
@@ -557,10 +587,20 @@
                     <input id="tournamentBrief" type="text" maxlength="300" class="dc-input w-full rounded-2xl px-5 py-4" placeholder="Short summary for discovery cards">
                   </label>
 
-                  <label class="md:col-span-2 block">
+                  <div class="md:col-span-2">
                     <span class="mb-2 block text-xs font-bold text-white/75">Full Description *</span>
-                    <textarea id="description" rows="5" class="dc-input w-full resize-none rounded-2xl px-5 py-4" placeholder="Describe your tournament format, goals, and organizer expectations."></textarea>
-                  </label>
+                    <div class="dc-rt-toolbar" data-target="description">
+                      <button type="button" title="Bold" data-rt-cmd="bold"><b>B</b></button>
+                      <button type="button" title="Italic" data-rt-cmd="italic"><i>I</i></button>
+                      <button type="button" title="Bullet list" data-rt-cmd="insertUnorderedList">•</button>
+                      <button type="button" title="Numbered list" data-rt-cmd="insertOrderedList">1.</button>
+                    </div>
+                    <div id="description-editor" contenteditable="true" data-rt-editor="description"
+                      class="dc-input dc-rt-area w-full min-h-[120px] px-5 py-4 outline-none"
+                      style="border-radius:0 0 14px 14px;"
+                      data-placeholder="Describe your tournament format, goals, and organizer expectations."></div>
+                    <textarea id="description" rows="5" class="hidden" aria-hidden="true"></textarea>
+                  </div>
 
                   <label class="block">
                     <span class="mb-2 block text-xs font-bold text-white/75">Region</span>
@@ -1054,7 +1094,19 @@
                     <button id="generateRules" type="button" class="rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-[10px] font-extrabold uppercase tracking-[0.18em] text-white/75 transition hover:bg-white/10">Generate guide</button>
                   </div>
                 </div>
-                <textarea id="rulesText" rows="12" class="dc-input w-full resize-none rounded-[1.5rem] px-5 py-5 font-mono text-sm leading-relaxed" placeholder="Write clear participant rules..."></textarea>
+                <div class="dc-rt-toolbar" data-target="rulesText" style="border-radius: 1.5rem 1.5rem 0 0; margin-top: 8px;">
+                  <button type="button" title="Bold" data-rt-cmd="bold"><b>B</b></button>
+                  <button type="button" title="Italic" data-rt-cmd="italic"><i>I</i></button>
+                  <button type="button" title="Bullet list" data-rt-cmd="insertUnorderedList">•</button>
+                  <button type="button" title="Numbered list" data-rt-cmd="insertOrderedList">1.</button>
+                  <button type="button" title="Heading" data-rt-cmd="formatBlock" data-rt-val="h4" style="font-size:11px;">H</button>
+                  <button type="button" title="Horizontal rule" data-rt-cmd="insertHorizontalRule">—</button>
+                </div>
+                <div id="rulesText-editor" contenteditable="true" data-rt-editor="rulesText"
+                  class="dc-input dc-rt-area w-full min-h-[240px] px-5 py-5 font-mono text-sm leading-relaxed outline-none"
+                  style="border-radius: 0 0 1.5rem 1.5rem;"
+                  data-placeholder="Write clear participant rules..."></div>
+                <textarea id="rulesText" rows="12" class="hidden" aria-hidden="true"></textarea>
               </div>
             </div>
 

@@ -326,6 +326,23 @@ class StuckRegistrationOpenFilter(admin.SimpleListFilter):
         return queryset.filter(id__in=stuck_ids)
 
 
+class ShowArchivedFilter(admin.SimpleListFilter):
+    """Toggle to surface archived/cancelled tournaments (hidden by default)."""
+    title = "Archive"
+    parameter_name = "show_archived"
+
+    def lookups(self, request, model_admin):
+        return [
+            ("1", "Show archived & cancelled"),
+        ]
+
+    def queryset(self, request, queryset):
+        if self.value() == "1":
+            return queryset  # no extra filter — show everything
+        # Default: hide archived and cancelled
+        return queryset.exclude(status__in=["archived", "cancelled"])
+
+
 @admin.register(Tournament)
 class TournamentAdmin(SafeUploadMixin, ModelAdmin):
     """Comprehensive tournament management - similar to Teams admin quality"""
@@ -337,8 +354,9 @@ class TournamentAdmin(SafeUploadMixin, ModelAdmin):
         'organizer_console_link'
     ]
     list_filter = [
-        'status', StuckRegistrationOpenFilter, 'format', 'participation_type',
-        'is_official', 'is_featured', 'game', 'enable_check_in', 'has_entry_fee', 'created_at'
+        ShowArchivedFilter, 'status', StuckRegistrationOpenFilter, 'format',
+        'participation_type', 'is_official', 'is_featured', 'game',
+        'enable_check_in', 'has_entry_fee', 'created_at',
     ]
     search_fields = ['name', 'slug', 'description', 'organizer__username', 'organizer__email']
     readonly_fields = [
@@ -352,7 +370,7 @@ class TournamentAdmin(SafeUploadMixin, ModelAdmin):
         models.BooleanField: {"widget": UnfoldBooleanSwitchWidget},
     }
     inlines = [TournamentFormConfigurationInline, TournamentPaymentMethodInline, CustomFieldInline, TournamentVersionInline]
-    ordering = ['-created_at']
+    ordering = ['-tournament_start', '-created_at']
     date_hierarchy = 'tournament_start'
     
     fieldsets = (
@@ -470,10 +488,13 @@ class TournamentAdmin(SafeUploadMixin, ModelAdmin):
     ]
     
     def get_queryset(self, request):
-        """Include soft-deleted tournaments and annotate with counts"""
+        """Annotate with counts. Archived/cancelled hidden by default (ShowArchivedFilter opt-in)."""
         qs = Tournament.all_objects.all()
         qs = qs.select_related('game', 'organizer')
         qs = qs.annotate(reg_count=Count('registrations', distinct=True))
+        # Exclude archived/cancelled unless the ShowArchivedFilter is active
+        if request.GET.get('show_archived') != '1':
+            qs = qs.exclude(status__in=['archived', 'cancelled'])
         return qs
     
     def game_badge(self, obj):

@@ -746,10 +746,14 @@
                 if (s.media.banner_image) {
                     const bStat = document.getElementById('banner-status');
                     if (bStat) bStat.textContent = s.media.banner_image.split('/').pop();
+                    const bClr = document.getElementById('clear-banner-btn');
+                    if (bClr) bClr.classList.remove('hidden');
                 }
                 if (s.media.thumbnail_image) {
                     const tStat = document.getElementById('thumbnail-status');
                     if (tStat) tStat.textContent = s.media.thumbnail_image.split('/').pop();
+                    const tClr = document.getElementById('clear-thumbnail-btn');
+                    if (tClr) tClr.classList.remove('hidden');
                 }
             }
             // Format
@@ -1832,8 +1836,6 @@
                 body: formData,
             });
             if (!resp.ok) throw new Error('Upload failed');
-            var data = await resp.json();
-            // Update status label
             var statusMap = {
                 'banner_image': 'banner-status',
                 'thumbnail_image': 'thumbnail-status',
@@ -1842,8 +1844,31 @@
             };
             var statusEl = document.getElementById(statusMap[fieldName]);
             if (statusEl) statusEl.textContent = file.name;
+            // Show the clear button now that an image is set
+            var clearBtnMap = {
+                'banner_image': 'clear-banner-btn',
+                'thumbnail_image': 'clear-thumbnail-btn',
+            };
+            var clrEl = document.getElementById(clearBtnMap[fieldName]);
+            if (clrEl) clrEl.classList.remove('hidden');
             toast(fieldName.replace(/_/g, ' ') + ' uploaded', 'success');
         } catch (e) { toast('Upload failed: ' + e.message, 'error'); }
+    }
+
+    async function clearImage (fieldName, statusElId, clearBtnId) {
+        try {
+            var clearKey = fieldName === 'banner_image' ? 'clear_banner_image' : 'clear_thumbnail_image';
+            var payload = {};
+            payload[clearKey] = true;
+            if (_settingsVersion) payload.settings_version = _settingsVersion;
+            var result = await API('settings/', { method: 'PUT', body: JSON.stringify(payload) });
+            _updateSettingsVersionFromResponse(result);
+            var statusEl = document.getElementById(statusElId);
+            if (statusEl) statusEl.textContent = 'No file chosen';
+            var clrBtn = document.getElementById(clearBtnId);
+            if (clrBtn) clrBtn.classList.add('hidden');
+            toast(fieldName.replace(/_/g, ' ') + ' removed', 'success');
+        } catch (e) { toast('Could not remove image', 'error'); }
     }
 
     /* ==================================================================
@@ -2227,6 +2252,7 @@
         dismissPaymentOverlay,
         deletePaymentMethod,
         uploadFile,
+        clearImage,
         // S27: Scoring system
         saveScoringConfig,
         onScoringTypeChange,

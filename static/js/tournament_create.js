@@ -1621,6 +1621,55 @@
       });
   }
 
+  /* ---- Minimal rich-text editor ---- */
+  function initRichTextEditors() {
+    // Toolbar button clicks
+    document.querySelectorAll('.dc-rt-toolbar button[data-rt-cmd]').forEach(function (btn) {
+      btn.addEventListener('mousedown', function (e) {
+        e.preventDefault(); // prevent blur on contenteditable
+        var cmd = btn.dataset.rtCmd;
+        var val = btn.dataset.rtVal || null;
+        document.execCommand(cmd, false, val);
+      });
+    });
+
+    // Sync contenteditable → hidden textarea on every input
+    document.querySelectorAll('[data-rt-editor]').forEach(function (editor) {
+      var targetId = editor.dataset.rtEditor;
+      var hidden = document.getElementById(targetId);
+      if (!hidden) return;
+
+      // Placeholder handling
+      var ph = editor.dataset.placeholder || '';
+      if (ph) {
+        editor.setAttribute('data-empty', 'true');
+        editor.style.setProperty('--rt-ph', JSON.stringify(ph));
+        editor.setAttribute('data-ph', ph);
+        if (!editor.textContent.trim()) editor.setAttribute('data-empty', 'true');
+        editor.addEventListener('focus', function () {
+          if (editor.getAttribute('data-empty') === 'true') {
+            editor.textContent = '';
+          }
+        });
+        editor.addEventListener('blur', function () {
+          if (!editor.textContent.trim()) editor.setAttribute('data-empty', 'true');
+          else editor.removeAttribute('data-empty');
+        });
+      }
+
+      // Sync to hidden textarea
+      editor.addEventListener('input', function () {
+        hidden.value = editor.innerHTML;
+        editor.dispatchEvent(new Event('rt-sync'));
+        if (!editor.textContent.trim()) editor.setAttribute('data-empty', 'true');
+        else editor.removeAttribute('data-empty');
+      });
+
+      // Allow the existing syncIdentityState / buildPayload to pick up HTML
+      hidden.value = editor.innerHTML;
+    });
+  }
+
   function bindInputs() {
     var gameSearch = byId("gameSearch");
     if (gameSearch) {
@@ -1955,6 +2004,7 @@
   }
 
   function initialize() {
+    initRichTextEditors();
     renderSteppers();
     renderCategoryFilters();
     renderGameCards();

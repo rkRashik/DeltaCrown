@@ -754,7 +754,11 @@ class TOCSettingsService:
             current_version = getattr(tournament, "updated_at", None)
             if current_version:
                 delta_seconds = abs((current_version - parsed_expected).total_seconds())
-                if delta_seconds > 0.001:
+                # 300-second window: allows for Celery background tasks (~5-min cadence)
+                # that touch tournament.updated_at without the user's knowledge.
+                # True concurrent-edit conflicts (two humans editing simultaneously)
+                # are caught at > 5 minutes apart, which is still meaningful protection.
+                if delta_seconds > 300:
                     return {
                         "error": {
                             "type": "conflict",
@@ -763,6 +767,17 @@ class TOCSettingsService:
                             "server_settings_version": current_version.isoformat(),
                         }
                     }
+
+        # Handle image clear requests (clear_banner_image / clear_thumbnail_image = true)
+        _IMAGE_CLEAR_MAP = {
+            "clear_banner_image": "banner_image",
+            "clear_thumbnail_image": "thumbnail_image",
+        }
+        _image_clears = []
+        for clear_key, field_name in _IMAGE_CLEAR_MAP.items():
+            if data.get(clear_key):
+                _image_clears.append(field_name)
+                data.pop(clear_key, None)
 
         lobby_capabilities = TOCSettingsService._lobby_capabilities_for_tournament(tournament)
 
@@ -968,6 +983,17 @@ class TOCSettingsService:
 
         if config_changed:
             changed.append("config")
+
+        # Apply image clears (from clear_banner_image / clear_thumbnail_image flags)
+        for img_field in _image_clears:
+            try:
+                file_obj = getattr(tournament, img_field, None)
+                if file_obj and file_obj.name:
+                    file_obj.delete(save=False)
+                setattr(tournament, img_field, None)
+                changed.append(img_field)
+            except Exception:
+                pass
 
         if changed:
             unique_fields = sorted(set(changed))
