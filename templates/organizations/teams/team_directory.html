@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}{% if active_filter == 'recruiting' %}Recruiting Teams{% else %}Team Directory{% endif %} | DeltaCrown{% endblock %}
-{% block og_title %}{% if active_filter == 'recruiting' %}Recruiting Teams{% else %}Team Directory{% endif %} | DeltaCrown{% endblock %}
+{% block title %}{% if is_recruiting_filter %}Find Team - Scouting Grounds{% else %}Team Directory{% endif %} | DeltaCrown{% endblock %}
+{% block og_title %}{% if is_recruiting_filter %}Find Team - Scouting Grounds{% else %}Team Directory{% endif %} | DeltaCrown{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -82,6 +82,16 @@
     border: 1px solid rgba(34,197,94,0.25);
     color: #22c55e;
   }
+  .find-team-callout {
+    background: linear-gradient(135deg, rgba(34,197,94,0.08), rgba(6,182,212,0.05));
+    border: 1px solid rgba(34,197,94,0.18);
+    border-radius: 1rem;
+  }
+  .lft-card {
+    background: rgba(15,23,42,0.45);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 0.875rem;
+  }
   @keyframes fadeInUp {
     from { opacity: 0; transform: translateY(16px); }
     to { opacity: 1; transform: translateY(0); }
@@ -105,45 +115,60 @@
       <div class="inline-flex items-center gap-2 text-[10px] sm:text-xs font-bold uppercase tracking-[0.25em] text-slate-500 mb-4">
         <i class="fas fa-users text-[#06b6d4]"></i>
         DeltaCrown Teams
-        {% if active_filter == 'recruiting' %}
+        {% if is_recruiting_filter %}
         <span class="chip green"><i class="fas fa-bullhorn mr-1"></i> Recruiting</span>
         {% endif %}
       </div>
       <h1 class="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white uppercase tracking-tight" style="font-family: Rajdhani, sans-serif;">
-        {% if active_filter == 'recruiting' %}
-        <span class="bg-gradient-to-r from-[#22c55e] to-[#06b6d4] bg-clip-text text-transparent">Recruiting</span> Teams
+        {% if is_recruiting_filter %}
+        <span class="bg-gradient-to-r from-[#22c55e] to-[#06b6d4] bg-clip-text text-transparent">Find Team</span>
+        <span class="block text-2xl sm:text-3xl md:text-4xl mt-1 text-slate-200">Scouting Grounds</span>
         {% else %}
         Team <span class="bg-gradient-to-r from-[#06b6d4] via-[#8b5cf6] to-[#facc15] bg-clip-text text-transparent">Directory</span>
         {% endif %}
       </h1>
       <p class="text-sm sm:text-base text-slate-400 mt-3 max-w-2xl mx-auto leading-relaxed">
-        {% if active_filter == 'recruiting' %}
-        These teams are actively looking for new players. Find your squad, join their ranks, and compete.
+        {% if is_recruiting_filter %}
+        Find teams recruiting now. Filter by game, region, platform, or search, then apply from the team page when a roster opening fits your role.
         {% else %}
         Browse all public teams on DeltaCrown. Filter by game, region, or find teams actively recruiting.
         {% endif %}
       </p>
+      {% if is_recruiting_filter %}
+      <div class="mt-5 flex flex-wrap justify-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+        <span class="chip green"><i class="fas fa-crosshairs mr-1"></i> Active openings</span>
+        <span class="chip cyan"><i class="fas fa-filter mr-1"></i> Game / Region / Platform</span>
+        <span class="chip gold"><i class="fas fa-paper-plane mr-1"></i> Apply via team page</span>
+      </div>
+      {% endif %}
     </div>
 
     <!-- ===== STATS ROW ===== -->
     <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 mb-8 fade-in-up" style="animation-delay: 0.15s">
       <div class="stat-card">
-        <div class="text-2xl sm:text-3xl font-bold text-white" style="font-family: Rajdhani, sans-serif;">{{ total_teams }}</div>
-        <div class="text-[10px] sm:text-xs text-slate-500 uppercase tracking-widest font-bold mt-1">Total Teams</div>
+        <div class="text-2xl sm:text-3xl font-bold text-white" style="font-family: Rajdhani, sans-serif;">{% if is_recruiting_filter %}{{ recruiting_result_count }}{% else %}{{ total_teams }}{% endif %}</div>
+        <div class="text-[10px] sm:text-xs text-slate-500 uppercase tracking-widest font-bold mt-1">{% if is_recruiting_filter %}Matching Teams{% else %}Total Teams{% endif %}</div>
       </div>
       <div class="stat-card">
         <div class="text-2xl sm:text-3xl font-bold text-[#22c55e]" style="font-family: Rajdhani, sans-serif;">{{ recruiting_count }}</div>
         <div class="text-[10px] sm:text-xs text-slate-500 uppercase tracking-widest font-bold mt-1">Recruiting Now</div>
       </div>
       <div class="stat-card hidden sm:block">
-        <div class="text-2xl sm:text-3xl font-bold text-[#06b6d4]" style="font-family: Rajdhani, sans-serif;">{{ active_games|length }}</div>
-        <div class="text-[10px] sm:text-xs text-slate-500 uppercase tracking-widest font-bold mt-1">Active Games</div>
+        <div class="text-2xl sm:text-3xl font-bold text-[#06b6d4]" style="font-family: Rajdhani, sans-serif;">{% if is_recruiting_filter %}{{ open_role_count }}{% else %}{{ active_games|length }}{% endif %}</div>
+        <div class="text-[10px] sm:text-xs text-slate-500 uppercase tracking-widest font-bold mt-1">{% if is_recruiting_filter %}Open Roles{% else %}Active Games{% endif %}</div>
       </div>
     </div>
 
     <!-- ===== FILTER BAR ===== -->
     <div class="glass-panel p-4 sm:p-5 mb-5 fade-in-up" style="animation-delay: 0.2s">
       <div class="flex flex-col gap-3">
+        {% if is_recruiting_filter %}
+        <div class="find-team-callout p-4">
+          <p class="text-xs sm:text-sm text-slate-300 leading-relaxed">
+            Scouting Grounds shows public teams that are actively recruiting. Use the filters to narrow by game, region, platform, or team name, then open a card to view the full roster and apply.
+          </p>
+        </div>
+        {% endif %}
         <!-- Mode pills -->
         <div class="flex flex-wrap gap-2">
           <a href="{% url 'organizations:team_directory' %}" class="filter-pill {% if active_filter == 'all' %}active{% endif %}">
@@ -156,7 +181,7 @@
 
         <!-- Game + Search filter -->
         <form method="get" class="flex flex-col sm:flex-row flex-wrap gap-3 items-stretch sm:items-end">
-          {% if active_filter == 'recruiting' %}
+          {% if is_recruiting_filter %}
           <input type="hidden" name="filter" value="recruiting">
           {% endif %}
 
@@ -192,6 +217,17 @@
             </select>
           </div>
 
+          <!-- Platform filter -->
+          <div class="min-w-[130px]">
+            <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Platform</label>
+            <select name="platform" class="w-full bg-white/[0.04] border border-white/10 text-white rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-[#06b6d4] focus:border-[#06b6d4] outline-none transition appearance-none">
+              <option value="" style="background:#0A0A0F">All Platforms</option>
+              {% for platform in platforms %}
+              <option value="{{ platform }}" style="background:#0A0A0F" {% if platform == platform_filter %}selected{% endif %}>{{ platform }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
           <!-- Search -->
           <div class="flex-[2] min-w-[180px]">
             <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Search</label>
@@ -208,13 +244,49 @@
       </div>
     </div>
 
+    {% if is_recruiting_filter and lft_teasers %}
+    <!-- ===== PLAYERS LOOKING FOR TEAM TEASER ===== -->
+    <section class="glass-panel p-4 sm:p-5 mb-6 fade-in-up" style="animation-delay: 0.25s">
+      <div class="flex items-start justify-between gap-4 mb-4">
+        <div>
+          <p class="text-[10px] font-bold uppercase tracking-[0.22em] text-[#22c55e] mb-1">Available Players</p>
+          <h2 class="text-lg font-bold text-white uppercase tracking-wider" style="font-family: Rajdhani, sans-serif;">Players Looking For Team</h2>
+          <p class="text-xs text-slate-500 mt-1">Public LFT profiles only. Teams can review profiles and contact players through normal platform flows.</p>
+        </div>
+        <span class="chip green">{{ lft_teasers|length }} visible</span>
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        {% for player in lft_teasers %}
+        <a href="{{ player.profile_url }}" class="lft-card p-4 block no-underline hover:border-[#22c55e]/30 transition">
+          <div class="flex items-center justify-between gap-3">
+            <div class="min-w-0">
+              <p class="text-sm font-bold text-white truncate">{{ player.display_name }}</p>
+              <p class="text-[11px] text-slate-500 truncate">@{{ player.username }}</p>
+            </div>
+            <span class="w-9 h-9 rounded-xl bg-[#22c55e]/10 border border-[#22c55e]/20 text-[#22c55e] flex items-center justify-center shrink-0">
+              <i class="fas fa-user-plus text-xs"></i>
+            </span>
+          </div>
+          <div class="flex flex-wrap gap-1.5 mt-3">
+            {% for role in player.roles %}
+            <span class="chip cyan">{{ role }}</span>
+            {% endfor %}
+            {% if player.region %}<span class="chip">{{ player.region }}</span>{% endif %}
+            {% if player.availability %}<span class="chip">{{ player.availability }}</span>{% endif %}
+          </div>
+        </a>
+        {% endfor %}
+      </div>
+    </section>
+    {% endif %}
+
     <!-- ===== TEAM GRID ===== -->
     <div class="fade-in-up" style="animation-delay: 0.3s">
       <div class="flex items-center justify-between mb-4">
         <div class="flex items-center gap-3">
           <h2 class="text-lg font-bold text-white uppercase tracking-wider" style="font-family: Rajdhani, sans-serif;">
             <i class="fas fa-th-large text-[#06b6d4] mr-2"></i>
-            {% if active_filter == 'recruiting' %}Recruiting Teams{% else %}All Teams{% endif %}
+            {% if is_recruiting_filter %}Scouting Grounds Openings{% else %}All Teams{% endif %}
           </h2>
           <span class="chip cyan">{{ teams|length }} result{{ teams|length|pluralize }}</span>
         </div>
@@ -269,7 +341,12 @@
             <!-- Recruitment summary / Description -->
             {% if item.recruitment_summary.has_position %}
             <div class="mb-3">
-              <p class="text-sm font-bold text-white group-hover:text-[#06b6d4] transition line-clamp-1">{{ item.recruitment_summary.title }}</p>
+              <div class="flex items-start justify-between gap-2">
+                <p class="text-sm font-bold text-white group-hover:text-[#06b6d4] transition line-clamp-1">{{ item.recruitment_summary.title }}</p>
+                {% if item.recruitment_summary.open_role_count > 1 %}
+                <span class="chip green shrink-0">{{ item.recruitment_summary.open_role_count }} roles</span>
+                {% endif %}
+              </div>
               <div class="flex flex-wrap gap-1.5 mt-2">
                 {% if item.recruitment_summary.rank_requirement %}<span class="chip gold">{{ item.recruitment_summary.rank_requirement }}</span>{% endif %}
                 {% if item.recruitment_summary.region %}<span class="chip">{{ item.recruitment_summary.region }}</span>{% endif %}
@@ -293,7 +370,7 @@
               </div>
               {% endif %}
               <span class="text-[10px] text-[#06b6d4] font-bold uppercase tracking-wider opacity-0 group-hover:opacity-100 transition">
-                View <i class="fas fa-arrow-right ml-1"></i>
+                {% if is_recruiting_filter %}View &amp; Apply{% else %}View{% endif %} <i class="fas fa-arrow-right ml-1"></i>
               </span>
             </div>
           </div>
@@ -309,8 +386,8 @@
           </div>
           <p class="text-base font-bold text-slate-400 uppercase tracking-wider mb-2">No teams found</p>
           <p class="text-sm text-slate-600 mb-4">
-            {% if active_filter == 'recruiting' %}
-            No teams are currently recruiting. Check back soon or browse all teams.
+            {% if is_recruiting_filter %}
+            No recruiting teams match those filters yet. Clear the filters to scan every active opening, or browse all public teams.
             {% elif search_query %}
             No teams match "{{ search_query }}". Try a different search.
             {% else %}
@@ -318,14 +395,18 @@
             {% endif %}
           </p>
           <div class="flex flex-wrap justify-center gap-3">
-            {% if active_filter == 'recruiting' %}
+            {% if is_recruiting_filter %}
+            <a href="{% url 'organizations:team_directory' %}?filter=recruiting" class="px-4 py-2 text-xs font-bold uppercase tracking-widest text-[#22c55e] border border-[#22c55e]/20 rounded-lg hover:bg-[#22c55e]/10 transition no-underline">
+              <i class="fas fa-filter-circle-xmark mr-2"></i>Clear Recruiting Filters
+            </a>
             <a href="{% url 'organizations:team_directory' %}" class="px-4 py-2 text-xs font-bold uppercase tracking-widest text-[#06b6d4] border border-[#06b6d4]/20 rounded-lg hover:bg-[#06b6d4]/10 transition no-underline">
               <i class="fas fa-globe mr-2"></i>Browse All
             </a>
-            {% endif %}
+            {% else %}
             <a href="{% url 'organizations:team_directory' %}" class="px-4 py-2 text-xs font-bold uppercase tracking-widest text-slate-400 border border-white/10 rounded-lg hover:bg-white/5 transition no-underline">
               <i class="fas fa-times mr-2"></i>Clear Filters
             </a>
+            {% endif %}
           </div>
         </div>
       </div>
@@ -335,14 +416,14 @@
     <!-- ===== CTA ===== -->
     <div class="mt-10 sm:mt-14 glass-panel p-6 sm:p-10 text-center fade-in-up" style="animation-delay: 0.4s">
       <h2 class="text-xl sm:text-2xl font-bold text-white uppercase tracking-wider mb-3" style="font-family: Rajdhani, sans-serif;">
-        {% if active_filter == 'recruiting' %}
+        {% if is_recruiting_filter %}
         Can't Find the Right Team?
         {% else %}
         Start Your Own Squad
         {% endif %}
       </h2>
       <p class="text-sm text-slate-400 max-w-lg mx-auto mb-6 leading-relaxed">
-        {% if active_filter == 'recruiting' %}
+        {% if is_recruiting_filter %}
         Create your own team and start recruiting players. Build your roster, compete in tournaments, and climb the rankings.
         {% else %}
         Set up your team in seconds — pick your game, brand your squad, and start competing on DeltaCrown.
@@ -352,7 +433,7 @@
         <a href="{% url 'organizations:team_create' %}" class="px-6 py-3 bg-[#facc15] text-black text-xs font-bold uppercase tracking-widest rounded-lg hover:brightness-110 shadow-lg shadow-[#facc15]/10 transition no-underline">
           <i class="fas fa-plus mr-2"></i>Create Team
         </a>
-        {% if active_filter != 'recruiting' %}
+        {% if not is_recruiting_filter %}
         <a href="{% url 'organizations:team_directory' %}?filter=recruiting" class="px-6 py-3 bg-[#22c55e]/10 border border-[#22c55e]/25 text-[#22c55e] text-xs font-bold uppercase tracking-widest rounded-lg hover:bg-[#22c55e]/20 transition no-underline">
           <i class="fas fa-bullhorn mr-2"></i>Find Recruiting Teams
         </a>

@@ -39,6 +39,7 @@ def build_recruitment_summary(team):
     if not position:
         return {
             "has_position": False,
+            "open_role_count": 0,
             "title": "",
             "role_category": "",
             "rank_requirement": "",
@@ -50,6 +51,7 @@ def build_recruitment_summary(team):
     role_label = position.get_role_category_display() if position.role_category else ""
     return {
         "has_position": True,
+        "open_role_count": len(positions),
         "title": position.title or role_label,
         "role_category": role_label,
         "rank_requirement": position.rank_requirement,

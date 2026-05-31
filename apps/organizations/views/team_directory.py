@@ -20,6 +20,45 @@ from apps.games.models import Game
 from apps.common.seo import breadcrumb_schema, build_seo
 
 
+def _lft_teasers(limit=4):
+    """Return public-safe LFT profile snippets for the recruiting directory."""
+    try:
+        from django.urls import reverse
+        from apps.user_profile.models import CareerProfile
+
+        careers = (
+            CareerProfile.objects.filter(
+                lft_enabled=True,
+                recruiter_visibility='PUBLIC',
+                career_status__in=['LOOKING', 'FREE_AGENT'],
+            )
+            .select_related('user_profile', 'user_profile__user')
+            .order_by('-last_updated')[:limit]
+        )
+
+        teasers = []
+        for career in careers:
+            profile = career.user_profile
+            user = profile.user
+            roles = career.primary_roles if isinstance(career.primary_roles, list) else []
+            username = user.username
+            try:
+                profile_url = reverse('user_profile:public_profile', kwargs={'username': username})
+            except Exception:
+                profile_url = f'/@{username}/'
+            teasers.append({
+                'display_name': profile.display_name or username,
+                'username': username,
+                'profile_url': profile_url,
+                'roles': roles[:3],
+                'region': career.preferred_region,
+                'availability': career.get_availability_display() if career.availability else '',
+            })
+        return teasers
+    except Exception:
+        return []
+
+
 def team_directory(request):
     """
     Public team directory with optional filter.
@@ -34,19 +73,21 @@ def team_directory(request):
     active_filter = request.GET.get('filter', 'all')
     game_filter = request.GET.get('game', '')
     region_filter = request.GET.get('region', '')
+    platform_filter = request.GET.get('platform', '')
     search_query = request.GET.get('q', '')
     sort_by = request.GET.get('sort', 'newest')
+    is_recruiting_filter = active_filter == 'recruiting'
 
     # Base queryset: active, public teams only
     teams = (
         Team.objects
         .filter(status=TeamStatus.ACTIVE, visibility='PUBLIC')
         .select_related('organization')
-        .annotate(member_count=Count('vnext_memberships'))
+        .annotate(member_count=Count('vnext_memberships', distinct=True))
     )
 
     # Apply filters
-    if active_filter == 'recruiting':
+    if is_recruiting_filter:
         teams = teams.filter(is_recruiting=True).prefetch_related(
             active_recruitment_positions_prefetch()
         )
@@ -60,6 +101,15 @@ def team_directory(request):
 
     if region_filter:
         teams = teams.filter(region__icontains=region_filter)
+
+    if platform_filter:
+        if is_recruiting_filter:
+            teams = teams.filter(
+                Q(platform__icontains=platform_filter) |
+                Q(recruitment_positions__platform__icontains=platform_filter)
+            ).distinct()
+        else:
+            teams = teams.filter(platform__icontains=platform_filter)
 
     if search_query:
         teams = teams.filter(
@@ -88,15 +138,21 @@ def team_directory(request):
             Team.objects.filter(status=TeamStatus.ACTIVE, visibility='PUBLIC')
             .values_list('region', flat=True).distinct().order_by('region')
         )
+        platforms_qs = list(
+            Team.objects.filter(status=TeamStatus.ACTIVE, visibility='PUBLIC')
+            .values_list('platform', flat=True).distinct().order_by('platform')
+        )
         return {
             'total_teams': total,
             'recruiting_count': recruiting,
             'regions': [r for r in regions_qs if r],
+            'platforms': [p for p in platforms_qs if p],
         }
-    facets = cache.get_or_set('orgs:team_directory:facets:v1', _directory_facets, 300)
+    facets = cache.get_or_set('orgs:team_directory:facets:v2', _directory_facets, 300)
     total_teams = facets['total_teams']
     recruiting_count = facets['recruiting_count']
     regions = facets['regions']
+    platforms = facets['platforms']
 
     # Single fetch of active games — feeds both the filter pills and the
     # per-team game_obj lookup (was 2 duplicated DB hits).
@@ -105,33 +161,47 @@ def team_directory(request):
 
     # Annotate teams with game info via wrapper dicts
     team_list = []
+    open_role_count = 0
     for team in teams:
+        recruitment_summary = (
+            build_recruitment_summary(team)
+            if is_recruiting_filter and team.is_recruiting
+            else None
+        )
+        if recruitment_summary:
+            open_role_count += recruitment_summary.get('open_role_count', 0)
         team_list.append({
             'team': team,
             'game_obj': game_map.get(team.game_id),
-            'recruitment_summary': (
-                build_recruitment_summary(team)
-                if active_filter == 'recruiting' and team.is_recruiting
-                else None
-            ),
+            'recruitment_summary': recruitment_summary,
         })
 
     context = {
         'teams': team_list,
         'total_teams': total_teams,
         'recruiting_count': recruiting_count,
+        'recruiting_result_count': len(team_list),
+        'open_role_count': open_role_count,
+        'is_recruiting_filter': is_recruiting_filter,
         'active_filter': active_filter,
         'game_filter': game_filter,
         'region_filter': region_filter,
+        'platform_filter': platform_filter,
         'search_query': search_query,
         'sort_by': sort_by,
         'active_games': active_games,
         'regions': regions,
+        'platforms': platforms,
+        'lft_teasers': _lft_teasers() if is_recruiting_filter else [],
         'seo': build_seo(
-            title='Esports Team Directory | DeltaCrown',
-            description='Browse public DeltaCrown esports teams by game, region, recruiting status, and organization across Bangladesh and South Asia.',
+            title='Find Team - Scouting Grounds | DeltaCrown' if is_recruiting_filter else 'Esports Team Directory | DeltaCrown',
+            description=(
+                'Find DeltaCrown teams recruiting now. Filter by game, region, platform, and apply from each team page.'
+                if is_recruiting_filter
+                else 'Browse public DeltaCrown esports teams by game, region, recruiting status, and organization across Bangladesh and South Asia.'
+            ),
             path='/teams/directory/',
-            noindex=bool(search_query or active_filter != 'all' or sort_by != 'newest'),
+            noindex=bool(search_query or active_filter != 'all' or sort_by != 'newest' or platform_filter),
             schema=breadcrumb_schema([('Home', '/'), ('Teams', '/teams/'), ('Directory', '/teams/directory/')]),
         ),
     }
