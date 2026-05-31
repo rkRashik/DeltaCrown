@@ -244,19 +244,20 @@
       </div>
     </div>
 
-    {% if is_recruiting_filter and lft_teasers %}
-    <!-- ===== PLAYERS LOOKING FOR TEAM TEASER ===== -->
+    {% if is_recruiting_filter %}
+    <!-- ===== PLAYERS LOOKING FOR TEAM ===== -->
     <section class="glass-panel p-4 sm:p-5 mb-6 fade-in-up" style="animation-delay: 0.25s">
       <div class="flex items-start justify-between gap-4 mb-4">
         <div>
           <p class="text-[10px] font-bold uppercase tracking-[0.22em] text-[#22c55e] mb-1">Available Players</p>
           <h2 class="text-lg font-bold text-white uppercase tracking-wider" style="font-family: Rajdhani, sans-serif;">Players Looking For Team</h2>
-          <p class="text-xs text-slate-500 mt-1">Public LFT profiles only. Teams can review profiles and contact players through normal platform flows.</p>
+          <p class="text-xs text-slate-500 mt-1">Public LFT profiles and public active passports only. Open a profile to review before contacting a player.</p>
         </div>
-        <span class="chip green">{{ lft_teasers|length }} visible</span>
+        <span class="chip green">{{ available_players|length }} visible</span>
       </div>
+      {% if available_players %}
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        {% for player in lft_teasers %}
+        {% for player in available_players %}
         <a href="{{ player.profile_url }}" class="lft-card p-4 block no-underline hover:border-[#22c55e]/30 transition">
           <div class="flex items-center justify-between gap-3">
             <div class="min-w-0">
@@ -274,9 +275,36 @@
             {% if player.region %}<span class="chip">{{ player.region }}</span>{% endif %}
             {% if player.availability %}<span class="chip">{{ player.availability }}</span>{% endif %}
           </div>
+          {% if player.primary_passport %}
+          <div class="mt-3 pt-3 border-t border-white/[0.06]">
+            <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">Public Passport</p>
+            <div class="flex items-center justify-between gap-3">
+              <div class="min-w-0">
+                <p class="text-xs font-bold text-white truncate">{{ player.primary_passport.game }}</p>
+                {% if player.primary_passport.in_game_name %}
+                <p class="text-[11px] text-slate-500 truncate">{{ player.primary_passport.in_game_name }}</p>
+                {% endif %}
+              </div>
+              {% if player.primary_passport.rank_name %}
+              <span class="chip gold shrink-0">{{ player.primary_passport.rank_name }}</span>
+              {% endif %}
+            </div>
+            <div class="flex flex-wrap gap-1.5 mt-2">
+              {% if player.primary_passport.main_role %}<span class="chip cyan">{{ player.primary_passport.main_role }}</span>{% endif %}
+              {% if player.primary_passport.platform %}<span class="chip">{{ player.primary_passport.platform }}</span>{% endif %}
+              {% if player.primary_passport.region %}<span class="chip">{{ player.primary_passport.region }}</span>{% endif %}
+            </div>
+          </div>
+          {% endif %}
+          <p class="mt-3 text-[10px] font-bold uppercase tracking-widest text-[#22c55e]">View Profile</p>
         </a>
         {% endfor %}
       </div>
+      {% else %}
+      <div class="lft-card p-4 text-sm text-slate-400">
+        No public LFT players are visible yet. Players can enable Looking For Team from career settings and public game passports.
+      </div>
+      {% endif %}
     </section>
     {% endif %}
 

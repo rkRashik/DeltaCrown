@@ -15,48 +15,10 @@ from apps.organizations.choices import TeamStatus
 from apps.organizations.services.recruitment_discovery import (
     active_recruitment_positions_prefetch,
     build_recruitment_summary,
+    get_available_player_summaries,
 )
 from apps.games.models import Game
 from apps.common.seo import breadcrumb_schema, build_seo
-
-
-def _lft_teasers(limit=4):
-    """Return public-safe LFT profile snippets for the recruiting directory."""
-    try:
-        from django.urls import reverse
-        from apps.user_profile.models import CareerProfile
-
-        careers = (
-            CareerProfile.objects.filter(
-                lft_enabled=True,
-                recruiter_visibility='PUBLIC',
-                career_status__in=['LOOKING', 'FREE_AGENT'],
-            )
-            .select_related('user_profile', 'user_profile__user')
-            .order_by('-last_updated')[:limit]
-        )
-
-        teasers = []
-        for career in careers:
-            profile = career.user_profile
-            user = profile.user
-            roles = career.primary_roles if isinstance(career.primary_roles, list) else []
-            username = user.username
-            try:
-                profile_url = reverse('user_profile:public_profile', kwargs={'username': username})
-            except Exception:
-                profile_url = f'/@{username}/'
-            teasers.append({
-                'display_name': profile.display_name or username,
-                'username': username,
-                'profile_url': profile_url,
-                'roles': roles[:3],
-                'region': career.preferred_region,
-                'availability': career.get_availability_display() if career.availability else '',
-            })
-        return teasers
-    except Exception:
-        return []
 
 
 def team_directory(request):
@@ -176,6 +138,8 @@ def team_directory(request):
             'recruitment_summary': recruitment_summary,
         })
 
+    available_players = get_available_player_summaries(limit=8) if is_recruiting_filter else []
+
     context = {
         'teams': team_list,
         'total_teams': total_teams,
@@ -192,7 +156,8 @@ def team_directory(request):
         'active_games': active_games,
         'regions': regions,
         'platforms': platforms,
-        'lft_teasers': _lft_teasers() if is_recruiting_filter else [],
+        'available_players': available_players,
+        'lft_teasers': available_players,
         'seo': build_seo(
             title='Find Team - Scouting Grounds | DeltaCrown' if is_recruiting_filter else 'Esports Team Directory | DeltaCrown',
             description=(

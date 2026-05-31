@@ -7,7 +7,7 @@ from apps.games.models import Game
 from apps.organizations.choices import TeamStatus
 from apps.organizations.models import Team
 from apps.organizations.models.recruitment import RecruitmentPosition
-from apps.user_profile.models import CareerProfile, UserProfile
+from apps.user_profile.models import CareerProfile, GameProfile, UserProfile
 
 
 class TeamDiscoveryF2RecruitmentPostTests(TestCase):
@@ -64,6 +64,58 @@ class TeamDiscoveryF2RecruitmentPostTests(TestCase):
             sort_order=sort_order,
             is_active=is_active,
         )
+
+    def _lft_player(
+        self,
+        username,
+        *,
+        display_name=None,
+        lft_enabled=True,
+        recruiter_visibility="PUBLIC",
+        career_status="LOOKING",
+        roles=None,
+        passport_visibility=None,
+        passport_status=GameProfile.STATUS_ACTIVE,
+        passport_rank="Diamond 2",
+        passport_platform="PC",
+        passport_is_lft=True,
+    ):
+        user = get_user_model().objects.create_user(
+            username=username,
+            email=f"{username}@example.com",
+            password="testpass123",
+        )
+        profile, _ = UserProfile.objects.get_or_create(user=user)
+        profile.display_name = display_name or username.replace("_", " ").title()
+        profile.save(update_fields=["display_name"])
+        CareerProfile.objects.update_or_create(
+            user_profile=profile,
+            defaults={
+                "career_status": career_status,
+                "lft_enabled": lft_enabled,
+                "primary_roles": roles or ["IGL", "Support"],
+                "secondary_roles": ["Flex"],
+                "preferred_region": "BD",
+                "availability": "WEEKENDS",
+                "recruiter_visibility": recruiter_visibility,
+            },
+        )
+        if passport_visibility:
+            GameProfile.objects.create(
+                user=user,
+                game=self.game,
+                ign=f"{username}Main",
+                in_game_name=f"{username}#123",
+                rank_name=passport_rank,
+                rank_tier=7,
+                main_role="Initiator",
+                platform=passport_platform,
+                region="BD",
+                visibility=passport_visibility,
+                status=passport_status,
+                is_lft=passport_is_lft,
+            )
+        return user
 
     def _hub_html(self):
         self.client.force_login(self.user)
@@ -180,7 +232,7 @@ class TeamDiscoveryF2RecruitmentPostTests(TestCase):
         self.assertIn("Mobile Scanner", html)
         self.assertNotIn("PC Controller", html)
 
-    def test_recruiting_directory_lft_teaser_shows_public_profiles_only(self):
+    def test_recruiting_directory_available_players_shows_public_profiles_only(self):
         public_user = get_user_model().objects.create_user(
             username="public_lft_player",
             email="public-lft@example.com",
@@ -229,3 +281,88 @@ class TeamDiscoveryF2RecruitmentPostTests(TestCase):
         self.assertIn("/@public_lft_player/", html)
         self.assertIn("IGL", html)
         self.assertNotIn("Private LFT Player", html)
+
+    def test_recruiting_directory_available_player_shows_public_passport_summary(self):
+        self._lft_player(
+            "passport_lft_player",
+            display_name="Passport LFT Player",
+            passport_visibility=GameProfile.VISIBILITY_PUBLIC,
+            passport_rank="Ascendant 1",
+            passport_platform="PC",
+        )
+
+        response = self.client.get(reverse("organizations:team_directory") + "?filter=recruiting")
+
+        self.assertEqual(response.status_code, 200)
+        html = response.content.decode()
+        self.assertIn("Passport LFT Player", html)
+        self.assertIn("Discovery F2", html)
+        self.assertIn("passport_lft_player#123", html)
+        self.assertIn("Ascendant 1", html)
+        self.assertIn("Initiator", html)
+        self.assertIn("PC", html)
+
+    def test_recruiting_directory_hides_lft_disabled_career_profile(self):
+        self._lft_player(
+            "not_lft_player",
+            display_name="Not LFT Player",
+            lft_enabled=False,
+            passport_visibility=GameProfile.VISIBILITY_PUBLIC,
+            passport_rank="Hidden Rank",
+        )
+
+        response = self.client.get(reverse("organizations:team_directory") + "?filter=recruiting")
+
+        self.assertEqual(response.status_code, 200)
+        html = response.content.decode()
+        self.assertNotIn("Not LFT Player", html)
+        self.assertNotIn("Hidden Rank", html)
+
+    def test_recruiting_directory_hides_private_game_profile_data(self):
+        self._lft_player(
+            "private_passport_player",
+            display_name="Private Passport Player",
+            passport_visibility=GameProfile.VISIBILITY_PRIVATE,
+            passport_rank="Private Immortal",
+        )
+
+        response = self.client.get(reverse("organizations:team_directory") + "?filter=recruiting")
+
+        self.assertEqual(response.status_code, 200)
+        html = response.content.decode()
+        self.assertIn("Private Passport Player", html)
+        self.assertNotIn("private_passport_player#123", html)
+        self.assertNotIn("Private Immortal", html)
+
+    def test_recruiting_directory_hides_protected_game_profile_data(self):
+        self._lft_player(
+            "protected_passport_player",
+            display_name="Protected Passport Player",
+            passport_visibility=GameProfile.VISIBILITY_PROTECTED,
+            passport_rank="Protected Immortal",
+        )
+
+        response = self.client.get(reverse("organizations:team_directory") + "?filter=recruiting")
+
+        self.assertEqual(response.status_code, 200)
+        html = response.content.decode()
+        self.assertIn("Protected Passport Player", html)
+        self.assertNotIn("protected_passport_player#123", html)
+        self.assertNotIn("Protected Immortal", html)
+
+    def test_recruiting_directory_hides_suspended_game_profile_data(self):
+        self._lft_player(
+            "suspended_passport_player",
+            display_name="Suspended Passport Player",
+            passport_visibility=GameProfile.VISIBILITY_PUBLIC,
+            passport_status=GameProfile.STATUS_SUSPENDED,
+            passport_rank="Suspended Radiant",
+        )
+
+        response = self.client.get(reverse("organizations:team_directory") + "?filter=recruiting")
+
+        self.assertEqual(response.status_code, 200)
+        html = response.content.decode()
+        self.assertIn("Suspended Passport Player", html)
+        self.assertNotIn("suspended_passport_player#123", html)
+        self.assertNotIn("Suspended Radiant", html)
