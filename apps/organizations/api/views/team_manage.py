@@ -1800,6 +1800,117 @@ def search_players(request, slug):
     return JsonResponse({'results': results})
 
 
+def _create_team_user_invite(team, user, inviter, role=MembershipRole.PLAYER):
+    if user == inviter:
+        return None, None, JsonResponse({'error': 'You cannot invite yourself.'}, status=400)
+
+    if team.vnext_memberships.filter(user=user, status=MembershipStatus.ACTIVE).exists():
+        return None, None, JsonResponse({'error': f'{user.username} is already a member of this team.'}, status=400)
+
+    existing_invite = TeamInvite.objects.filter(
+        team=team,
+        invited_user=user,
+        status='PENDING',
+    ).first()
+    if existing_invite and not existing_invite.is_expired():
+        return None, None, JsonResponse({'error': f'{user.username} already has a pending invite.'}, status=400)
+    if existing_invite:
+        existing_invite.mark_expired_if_needed()
+
+    from apps.organizations.services.team_invite_service import (
+        InviteConflictError,
+        _assert_no_active_game_membership,
+    )
+    try:
+        _assert_no_active_game_membership(user, team)
+    except InviteConflictError as exc:
+        return None, None, JsonResponse({
+            'error': exc.safe_message,
+            'error_code': exc.error_code,
+        }, status=400)
+
+    invite = TeamInvite.objects.create(
+        team=team,
+        invited_user=user,
+        inviter=inviter,
+        role=role,
+    )
+
+    membership, created = TeamMembership.objects.get_or_create(
+        team=team,
+        user=user,
+        defaults={
+            'role': role,
+            'status': MembershipStatus.INVITED,
+            'game_id': team.game_id,
+        },
+    )
+    if not created and membership.status != MembershipStatus.INVITED:
+        membership.status = MembershipStatus.INVITED
+        membership.role = role
+        membership.game_id = team.game_id
+        membership.organization_id = team.organization_id
+        membership.save(update_fields=['status', 'role', 'game_id', 'organization_id'])
+
+    TeamMembershipEvent.objects.create(
+        membership=membership,
+        team=team,
+        user=user,
+        actor=inviter,
+        event_type=MembershipEventType.INVITED,
+        new_role=role,
+        new_status=MembershipStatus.INVITED,
+        metadata={'invite_id': invite.id, 'source': 'available_player_discovery'},
+    )
+
+    return invite, membership, None
+
+
+@require_http_methods(["POST"])
+@api_login_required
+@transaction.atomic
+def invite_available_player(request, slug, user_id):
+    """
+    POST /api/vnext/teams/<slug>/available-players/<user_id>/invite/
+
+    Invite a public Looking For Team player by user ID.
+    """
+    team = get_object_or_404(Team, slug=slug, status=TeamStatus.ACTIVE)
+
+    has_permission, reason = _check_manage_permissions(team, request.user)
+    if not has_permission:
+        return JsonResponse({'error': reason, 'error_code': 'INSUFFICIENT_PERMISSIONS'}, status=403)
+
+    target_user = get_object_or_404(User, pk=user_id, is_active=True)
+
+    from apps.organizations.services.recruitment_discovery import is_public_available_player
+    if not is_public_available_player(target_user):
+        return JsonResponse({
+            'error': 'Available player not found.',
+            'error_code': 'AVAILABLE_PLAYER_NOT_FOUND',
+        }, status=404)
+
+    invite, _membership, error_response = _create_team_user_invite(
+        team=team,
+        user=target_user,
+        inviter=request.user,
+        role=MembershipRole.PLAYER,
+    )
+    if error_response is not None:
+        return error_response
+
+    return JsonResponse({
+        'success': True,
+        'message': f'Invitation sent to {target_user.username}.',
+        'invite': {
+            'id': invite.id,
+            'username': target_user.username,
+            'role': MembershipRole.PLAYER,
+            'status': invite.status,
+        },
+    })
+
+
 # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 # 14c. Send Invite (invite a player to the team)
 # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€

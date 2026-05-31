@@ -185,3 +185,22 @@ def get_available_player_summaries(limit=8, passports_per_player=2):
             "primary_passport": player_passports[0] if player_passports else None,
         })
     return players
+
+
+def is_public_available_player(user):
+    """Return True when a user is visible in public LFT discovery."""
+    from apps.user_profile.models import CareerProfile
+
+    if not user or not getattr(user, "is_active", False):
+        return False
+    career_statuses = tuple(
+        value
+        for value, _label in CareerProfile._meta.get_field("career_status").choices
+        if value in LFT_CAREER_STATUS_VALUES
+    )
+    return CareerProfile.objects.filter(
+        user_profile__user=user,
+        lft_enabled=True,
+        recruiter_visibility="PUBLIC",
+        career_status__in=career_statuses,
+    ).exists()
