@@ -12,6 +12,10 @@ from django.core.cache import cache
 
 from apps.organizations.models.team import Team
 from apps.organizations.choices import TeamStatus
+from apps.organizations.services.recruitment_discovery import (
+    active_recruitment_positions_prefetch,
+    build_recruitment_summary,
+)
 from apps.games.models import Game
 from apps.common.seo import breadcrumb_schema, build_seo
 
@@ -43,7 +47,9 @@ def team_directory(request):
 
     # Apply filters
     if active_filter == 'recruiting':
-        teams = teams.filter(is_recruiting=True)
+        teams = teams.filter(is_recruiting=True).prefetch_related(
+            active_recruitment_positions_prefetch()
+        )
 
     if game_filter:
         try:
@@ -103,6 +109,11 @@ def team_directory(request):
         team_list.append({
             'team': team,
             'game_obj': game_map.get(team.game_id),
+            'recruitment_summary': (
+                build_recruitment_summary(team)
+                if active_filter == 'recruiting' and team.is_recruiting
+                else None
+            ),
         })
 
     context = {

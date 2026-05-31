@@ -540,13 +540,19 @@ def vnext_hub(request):
     try:
         from apps.organizations.models import Team as VNextTeam
         from apps.organizations.choices import TeamStatus
+        from apps.organizations.services.recruitment_discovery import (
+            active_recruitment_positions_prefetch,
+            attach_recruitment_summaries,
+        )
 
         recruiting_qs = VNextTeam.objects.filter(
             status=TeamStatus.ACTIVE,
             visibility='PUBLIC',
             is_recruiting=True,
-        ).select_related('organization').order_by('-updated_at')[:6]
-        recruiting_teams = list(recruiting_qs)
+        ).select_related('organization').prefetch_related(
+            active_recruitment_positions_prefetch()
+        ).order_by('-updated_at')[:6]
+        recruiting_teams = attach_recruitment_summaries(list(recruiting_qs))
     except Exception as e:
         logger.warning(f"Could not fetch recruiting teams: {e}")
 
@@ -736,22 +742,35 @@ def vnext_hub_filter(request):
     try:
         from apps.organizations.models import Team as VNextTeam
         from apps.organizations.choices import TeamStatus
+        from apps.organizations.services.recruitment_discovery import (
+            active_recruitment_positions_prefetch,
+            attach_recruitment_summaries,
+        )
 
         qs = VNextTeam.objects.filter(
             status=TeamStatus.ACTIVE,
             visibility='PUBLIC',
             is_recruiting=True,
-        ).select_related('organization').order_by('-updated_at')
+        ).select_related('organization').prefetch_related(
+            active_recruitment_positions_prefetch()
+        ).order_by('-updated_at')
         if game_id:
             qs = qs.filter(game_id=game_id)
-        for t in qs[:6]:
+        for t in attach_recruitment_summaries(list(qs[:6])):
+            summary = t.recruitment_summary
             recruiting_data.append({
                 'name': t.name,
                 'slug': t.slug,
                 'tag': t.tag or (t.name[:2] if t.name else '??'),
                 'game': t.get_game_display() or 'Unknown',
                 'logo_url': t.logo.url if t.logo else None,
-                'description': (t.description or 'Looking for skilled players to join the roster.')[:120],
+                'description': (summary['short_pitch'] or 'Looking for skilled players to join the roster.')[:120],
+                'recruitment_title': summary['title'],
+                'recruitment_role_category': summary['role_category'],
+                'recruitment_rank_requirement': summary['rank_requirement'],
+                'recruitment_region': summary['region'],
+                'recruitment_platform': summary['platform'],
+                'has_recruitment_position': summary['has_position'],
                 'url': f'/teams/{t.slug}/',
             })
     except Exception as exc:

@@ -266,8 +266,18 @@
               {% endif %}
             </div>
 
-            <!-- Description -->
-            {% if item.team.description %}
+            <!-- Recruitment summary / Description -->
+            {% if item.recruitment_summary.has_position %}
+            <div class="mb-3">
+              <p class="text-sm font-bold text-white group-hover:text-[#06b6d4] transition line-clamp-1">{{ item.recruitment_summary.title }}</p>
+              <div class="flex flex-wrap gap-1.5 mt-2">
+                {% if item.recruitment_summary.rank_requirement %}<span class="chip gold">{{ item.recruitment_summary.rank_requirement }}</span>{% endif %}
+                {% if item.recruitment_summary.region %}<span class="chip">{{ item.recruitment_summary.region }}</span>{% endif %}
+                {% if item.recruitment_summary.platform %}<span class="chip">{{ item.recruitment_summary.platform }}</span>{% endif %}
+              </div>
+            </div>
+            <p class="text-xs text-slate-500 leading-relaxed line-clamp-2">{{ item.recruitment_summary.short_pitch|truncatewords:25 }}</p>
+            {% elif item.team.description %}
             <p class="text-xs text-slate-500 leading-relaxed line-clamp-2">{{ item.team.description|truncatewords:25 }}</p>
             {% endif %}
 
