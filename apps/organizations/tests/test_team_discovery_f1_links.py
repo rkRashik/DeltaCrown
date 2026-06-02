@@ -39,13 +39,14 @@ class TeamDiscoveryF1LinkTests(TestCase):
             description="Recruiting for the focused F1 link regression test.",
         )
 
-    def test_hub_recruiting_links_use_team_directory(self):
+    def test_hub_recruiting_links_use_find_team_route(self):
         self.client.force_login(self.user)
 
         response = self.client.get(reverse("organizations:vnext_hub"))
 
         self.assertEqual(response.status_code, 200)
         html = response.content.decode()
-        expected_href = 'href="/teams/directory/?filter=recruiting"'
+        expected_href = 'href="/teams/find/"'
         self.assertGreaterEqual(html.count(expected_href), 2)
+        self.assertNotIn('href="/teams/directory/?filter=recruiting"', html)
         self.assertNotIn('href="/teams?filter=recruiting"', html)

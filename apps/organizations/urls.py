@@ -22,6 +22,7 @@ from apps.organizations.views import (
     org_control_plane,
     org_hub,
     org_directory,
+    find_team,
     team_directory,
 )
 from apps.organizations.views.hub import vnext_hub_filter
@@ -39,6 +40,7 @@ urlpatterns = [
     
     # UI views - Team Directory (public browseable listing)
     path('teams/directory/', team_directory, name='team_directory'),
+    path('teams/find/', find_team, name='team_find'),
     
     # UI views - Team invites dashboard
     path('teams/invites/', team_invites, name='team_invites'),

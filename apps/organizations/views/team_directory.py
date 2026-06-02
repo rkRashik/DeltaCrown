@@ -9,9 +9,13 @@ Phase 11: Premium dark theme team directory.
 from django.db.models import Count, Q
 from django.shortcuts import render
 from django.core.cache import cache
+from django.urls import reverse
+from django.utils.text import slugify
 
+from apps.organizations.choices import MembershipRole, MembershipStatus, TeamStatus
+from apps.organizations.models.recruitment import RecruitmentPosition
 from apps.organizations.models.team import Team
-from apps.organizations.choices import TeamStatus
+from apps.organizations.models.membership import TeamMembership
 from apps.organizations.services.recruitment_discovery import (
     active_recruitment_positions_prefetch,
     build_recruitment_summary,
@@ -21,7 +25,334 @@ from apps.games.models import Game
 from apps.common.seo import breadcrumb_schema, build_seo
 
 
-def team_directory(request):
+GAME_SELECTOR_CATALOG = [
+    {
+        "slug": "valorant",
+        "label": "Valorant",
+        "short_label": "VAL",
+        "initials": "VAL",
+        "color": "#ff4655",
+        "aliases": ("valorant", "val"),
+    },
+    {
+        "slug": "pubg-mobile",
+        "label": "PUBG Mobile",
+        "short_label": "PUBGM",
+        "initials": "PUB",
+        "color": "#f2a900",
+        "aliases": ("pubg-mobile", "pubgm", "pubg"),
+    },
+    {
+        "slug": "free-fire",
+        "label": "Free Fire",
+        "short_label": "FF",
+        "initials": "FF",
+        "color": "#ff7a00",
+        "aliases": ("free-fire", "freefire", "ff"),
+    },
+    {
+        "slug": "cs2",
+        "label": "CS2",
+        "short_label": "CS2",
+        "initials": "CS2",
+        "color": "#f59e0b",
+        "aliases": ("cs2", "counter-strike-2", "counter-strike", "counter-strike-global-offensive"),
+    },
+    {
+        "slug": "dota-2",
+        "label": "Dota 2",
+        "short_label": "DOTA",
+        "initials": "D2",
+        "color": "#a11d20",
+        "aliases": ("dota-2", "dota2", "dota"),
+    },
+    {
+        "slug": "mobile-legends-bang-bang",
+        "label": "Mobile Legends: Bang Bang",
+        "short_label": "MLBB",
+        "initials": "ML",
+        "color": "#2563eb",
+        "aliases": ("mobile-legends-bang-bang", "mobile-legends", "mlbb", "ml"),
+    },
+    {
+        "slug": "efootball",
+        "label": "eFootball",
+        "short_label": "eFB",
+        "initials": "eF",
+        "color": "#22c55e",
+        "aliases": ("efootball", "e-football", "pes"),
+    },
+    {
+        "slug": "fc-26",
+        "label": "FC 26",
+        "short_label": "FC26",
+        "initials": "FC",
+        "color": "#14b8a6",
+        "aliases": ("fc-26", "fc26", "ea-sports-fc-26", "fifa-26"),
+    },
+    {
+        "slug": "rocket-league",
+        "label": "Rocket League",
+        "short_label": "RL",
+        "initials": "RL",
+        "color": "#0ea5e9",
+        "aliases": ("rocket-league", "rocketleague", "rl"),
+    },
+    {
+        "slug": "apex-legends",
+        "label": "Apex Legends",
+        "short_label": "Apex",
+        "initials": "APX",
+        "color": "#ef4444",
+        "aliases": ("apex-legends", "apex"),
+    },
+    {
+        "slug": "call-of-duty-mobile",
+        "label": "Call of Duty: Mobile",
+        "short_label": "CODM",
+        "initials": "COD",
+        "color": "#facc15",
+        "aliases": ("call-of-duty-mobile", "cod-mobile", "codm", "call-of-duty"),
+    },
+]
+
+
+def _game_key(value):
+    return slugify(str(value or "")).replace("-", "")
+
+
+def _game_image_url(game, field_name):
+    image = getattr(game, field_name, None)
+    if not image:
+        return ""
+    try:
+        return image.url
+    except ValueError:
+        return ""
+
+
+def _find_team_url_with(request, **overrides):
+    query = request.GET.copy()
+    query.pop("filter", None)
+    for key, value in overrides.items():
+        if value in (None, ""):
+            query.pop(key, None)
+        else:
+            query[key] = value
+    encoded = query.urlencode()
+    url = reverse("organizations:team_find")
+    return f"{url}?{encoded}" if encoded else url
+
+
+def _team_manage_url(team):
+    if team.organization:
+        url = reverse(
+            "organizations:org_team_manage",
+            kwargs={"org_slug": team.organization.slug, "team_slug": team.slug},
+        )
+    else:
+        url = reverse("organizations:team_manage", kwargs={"team_slug": team.slug})
+    return f"{url}#join-requests"
+
+
+def _manageable_team_options(user):
+    if not user.is_authenticated:
+        return []
+
+    team_ids = set(
+        TeamMembership.objects.filter(
+            user=user,
+            status=MembershipStatus.ACTIVE,
+            role__in=[MembershipRole.OWNER, MembershipRole.MANAGER],
+        ).values_list("team_id", flat=True)
+    )
+    created_team_ids = set(
+        Team.objects.filter(
+            created_by=user,
+            status=TeamStatus.ACTIVE,
+        ).values_list("id", flat=True)
+    )
+    team_ids.update(created_team_ids)
+    if not team_ids:
+        return []
+
+    teams = (
+        Team.objects.filter(id__in=team_ids, status=TeamStatus.ACTIVE)
+        .select_related("organization")
+        .order_by("name")[:8]
+    )
+    game_map = {
+        game.id: game
+        for game in Game.objects.filter(id__in=[team.game_id for team in teams], is_active=True)
+    }
+    return [
+        {
+            "name": team.name,
+            "tag": team.tag,
+            "slug": team.slug,
+            "manage_url": _team_manage_url(team),
+            "api_url": reverse("organizations_api:team_recruitment_position_save", kwargs={"slug": team.slug}),
+            "game_slug": getattr(game_map.get(team.game_id), "slug", ""),
+            "game_label": getattr(game_map.get(team.game_id), "display_name", "") or "Team game",
+            "region": team.region or "",
+            "platform": team.platform or "",
+        }
+        for team in teams
+    ]
+
+
+def _preferred_game_for_user(user):
+    if not user.is_authenticated:
+        return None
+
+    try:
+        from apps.user_profile.models import GameProfile, UserProfile
+    except Exception:
+        return None
+
+    profile = (
+        UserProfile.objects.filter(user=user)
+        .select_related("primary_team", "primary_game")
+        .first()
+    )
+    if profile:
+        if profile.primary_team and profile.primary_team.game_id:
+            game = Game.objects.filter(id=profile.primary_team.game_id, is_active=True).first()
+            if game:
+                return game
+        if profile.primary_game and profile.primary_game.is_active:
+            return profile.primary_game
+
+    passport = (
+        GameProfile.objects.filter(
+            user=user,
+            status=GameProfile.STATUS_ACTIVE,
+            visibility=GameProfile.VISIBILITY_PUBLIC,
+            game__is_active=True,
+        )
+        .select_related("game")
+        .order_by("-is_lft", "-is_pinned", "pinned_order", "sort_order", "game__display_name")
+        .first()
+    )
+    return passport.game if passport else None
+
+
+def _game_selector_options(request, active_games, game_filter, *, preferred_game=None):
+    all_games_url = (
+        _find_team_url_with(request, game="all")
+        if preferred_game
+        else _find_team_url_with(request, game="")
+    )
+    options = [{
+        "slug": "",
+        "label": "All Games",
+        "short_label": "All",
+        "color": "#3b82f6",
+        "url": all_games_url,
+        "is_active": not bool(game_filter),
+        "icon_url": "",
+        "logo_url": "",
+        "initials": "ALL",
+        "is_available": True,
+        "is_catalog": True,
+    }]
+
+    game_by_key = {}
+    for game in active_games:
+        keys = {
+            _game_key(game.slug),
+            _game_key(game.name),
+            _game_key(game.display_name),
+            _game_key(game.short_code),
+        }
+        for key in keys:
+            if key:
+                game_by_key.setdefault(key, game)
+
+    used_game_ids = set()
+    for catalog_game in GAME_SELECTOR_CATALOG:
+        game = None
+        for alias in catalog_game["aliases"]:
+            game = game_by_key.get(_game_key(alias))
+            if game:
+                break
+        slug = game.slug if game else catalog_game["slug"]
+        if game:
+            used_game_ids.add(game.id)
+        options.append({
+            "slug": slug,
+            "label": game.display_name if game else catalog_game["label"],
+            "short_label": (game.short_code if game else catalog_game["short_label"]) or catalog_game["short_label"],
+            "color": (game.primary_color if game else catalog_game["color"]) or catalog_game["color"],
+            "url": _find_team_url_with(request, game=slug),
+            "is_active": slug == game_filter,
+            "icon_url": _game_image_url(game, "icon") if game else "",
+            "logo_url": _game_image_url(game, "logo") if game else "",
+            "initials": ((game.short_code if game else catalog_game["initials"]) or catalog_game["initials"]).upper(),
+            "is_available": bool(game),
+            "is_catalog": True,
+        })
+
+    for game in active_games:
+        if game.id in used_game_ids:
+            continue
+        options.append({
+            "slug": game.slug,
+            "label": game.display_name,
+            "short_label": game.short_code or game.display_name,
+            "color": game.primary_color or "#3b82f6",
+            "url": _find_team_url_with(request, game=game.slug),
+            "is_active": game.slug == game_filter,
+            "icon_url": _game_image_url(game, "icon"),
+            "logo_url": _game_image_url(game, "logo"),
+            "initials": (game.short_code or game.display_name[:3]).upper(),
+            "is_available": True,
+            "is_catalog": False,
+        })
+    return options
+
+
+def _public_passport_options(user):
+    if not user.is_authenticated:
+        return []
+
+    try:
+        from apps.user_profile.models import GameProfile
+    except Exception:
+        return []
+
+    passports = (
+        GameProfile.objects.filter(
+            user=user,
+            status=GameProfile.STATUS_ACTIVE,
+            visibility=GameProfile.VISIBILITY_PUBLIC,
+            game__is_active=True,
+        )
+        .select_related("game")
+        .order_by("-is_lft", "-is_pinned", "pinned_order", "sort_order", "game__display_name")[:12]
+    )
+    return [
+        {
+            "id": passport.id,
+            "game_slug": passport.game.slug,
+            "game_label": passport.game.display_name,
+            "label": f"{passport.game.display_name} - {passport.in_game_name or passport.ign or 'Public passport'}",
+            "is_lft": bool(passport.is_lft),
+        }
+        for passport in passports
+    ]
+
+
+def _choice_options(choices, *, allowed_values=None):
+    allowed = set(allowed_values or [])
+    return [
+        {"value": value, "label": label}
+        for value, label in choices
+        if not allowed or value in allowed
+    ]
+
+
+def team_directory(request, force_recruiting=False):
     """
     Public team directory with optional filter.
 
@@ -32,13 +363,16 @@ def team_directory(request):
     - q: search query (team name or tag)
     - sort: 'newest' | 'name' | 'members' (default: 'newest')
     """
-    active_filter = request.GET.get('filter', 'all')
-    game_filter = request.GET.get('game', '')
+    active_filter = 'recruiting' if force_recruiting else request.GET.get('filter', 'all')
+    raw_game_filter = request.GET.get('game', '')
+    skip_preferred_game = raw_game_filter == 'all'
+    game_filter = '' if skip_preferred_game else raw_game_filter
     region_filter = request.GET.get('region', '')
     platform_filter = request.GET.get('platform', '')
     search_query = request.GET.get('q', '')
     sort_by = request.GET.get('sort', 'newest')
     is_recruiting_filter = active_filter == 'recruiting'
+    selected_game = None
 
     # Base queryset: active, public teams only
     teams = (
@@ -54,12 +388,18 @@ def team_directory(request):
             active_recruitment_positions_prefetch()
         )
 
+    preferred_game = _preferred_game_for_user(request.user) if is_recruiting_filter else None
+    if not game_filter and is_recruiting_filter and not skip_preferred_game:
+        if preferred_game:
+            game_filter = preferred_game.slug
+            selected_game = preferred_game
+
     if game_filter:
-        try:
-            game = Game.objects.get(slug=game_filter, is_active=True)
-            teams = teams.filter(game_id=game.id)
-        except Game.DoesNotExist:
-            pass
+        selected_game = selected_game or Game.objects.filter(slug=game_filter, is_active=True).first()
+        if selected_game and not is_recruiting_filter:
+            teams = teams.filter(game_id=selected_game.id)
+        elif not selected_game and not is_recruiting_filter:
+            game_filter = ''
 
     if region_filter:
         teams = teams.filter(region__icontains=region_filter)
@@ -120,6 +460,16 @@ def team_directory(request):
     # per-team game_obj lookup (was 2 duplicated DB hits).
     active_games = list(Game.objects.filter(is_active=True).order_by('display_name'))
     game_map = {game.id: game for game in active_games}
+    game_selector_options = _game_selector_options(
+        request,
+        active_games,
+        game_filter,
+        preferred_game=preferred_game,
+    )
+    selected_game_label = next(
+        (option["label"] for option in game_selector_options if option.get("is_active") and option.get("slug")),
+        getattr(selected_game, "display_name", "") if selected_game else "",
+    )
 
     # Annotate teams with game info via wrapper dicts
     team_list = []
@@ -138,7 +488,18 @@ def team_directory(request):
             'recruitment_summary': recruitment_summary,
         })
 
-    available_players = get_available_player_summaries(limit=8) if is_recruiting_filter else []
+    available_players = (
+        get_available_player_summaries(
+            limit=24,
+            game_slug="" if is_recruiting_filter else (selected_game.slug if selected_game else ""),
+            region=region_filter,
+            platform=platform_filter,
+            search_query=search_query,
+            sort_by=sort_by,
+        )
+        if is_recruiting_filter
+        else []
+    )
 
     context = {
         'teams': team_list,
@@ -146,9 +507,15 @@ def team_directory(request):
         'recruiting_count': recruiting_count,
         'recruiting_result_count': len(team_list),
         'open_role_count': open_role_count,
+        'available_player_count': len(available_players),
+        'scout_result_count': len(team_list) + len(available_players),
         'is_recruiting_filter': is_recruiting_filter,
         'active_filter': active_filter,
         'game_filter': game_filter,
+        'selected_game': selected_game,
+        'selected_game_label': selected_game_label,
+        'preferred_game': preferred_game,
+        'game_selector_options': game_selector_options,
         'region_filter': region_filter,
         'platform_filter': platform_filter,
         'search_query': search_query,
@@ -158,6 +525,27 @@ def team_directory(request):
         'platforms': platforms,
         'available_players': available_players,
         'lft_teasers': available_players,
+        'find_team_url': reverse('organizations:team_find'),
+        'directory_recruiting_url': f"{reverse('organizations:team_directory')}?filter=recruiting",
+        'manageable_teams': _manageable_team_options(request.user),
+        'user_public_passports': _public_passport_options(request.user),
+        'team_recruitment_role_choices': _choice_options(RecruitmentPosition.RoleCategory.choices),
+        'lft_career_status_choices': _choice_options(
+            [
+                ("LOOKING", "Actively Looking"),
+                ("FREE_AGENT", "Free Agent"),
+            ]
+        ),
+        'lft_availability_choices': _choice_options(
+            [
+                ("FULL_TIME", "Full Time"),
+                ("PART_TIME", "Part Time"),
+                ("WEEKENDS", "Weekends Only"),
+                ("CUSTOM", "Custom Schedule"),
+            ]
+        ),
+        'lft_save_url': reverse('organizations_api:discovery_lft_profile_save'),
+        'career_settings_save_url': reverse('user_profile:settings_career_save'),
         'seo': build_seo(
             title='Find Team - Scouting Grounds | DeltaCrown' if is_recruiting_filter else 'Esports Team Directory | DeltaCrown',
             description=(
@@ -165,10 +553,14 @@ def team_directory(request):
                 if is_recruiting_filter
                 else 'Browse public DeltaCrown esports teams by game, region, recruiting status, and organization across Bangladesh and South Asia.'
             ),
-            path='/teams/directory/',
-            noindex=bool(search_query or active_filter != 'all' or sort_by != 'newest' or platform_filter),
+            path='/teams/find/' if is_recruiting_filter else '/teams/directory/',
+            noindex=bool(search_query or game_filter or region_filter or sort_by != 'newest' or platform_filter),
             schema=breadcrumb_schema([('Home', '/'), ('Teams', '/teams/'), ('Directory', '/teams/directory/')]),
         ),
     }
 
     return render(request, 'organizations/teams/team_directory.html', context)
+
+
+def find_team(request):
+    return team_directory(request, force_recruiting=True)

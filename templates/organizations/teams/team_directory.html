@@ -97,10 +97,875 @@
     to { opacity: 1; transform: translateY(0); }
   }
   .fade-in-up { animation: fadeInUp 0.5s ease forwards; opacity: 0; }
+
+  .scout-page {
+    --scout-bg: #050507;
+    --scout-surface: #0b0b0f;
+    --scout-panel: #121218;
+    --scout-border: rgba(255,255,255,0.08);
+    --scout-border-strong: rgba(255,255,255,0.14);
+    --scout-text: #8f8f9d;
+    --scout-bright: #e2e2e8;
+    --scout-accent: #3b82f6;
+    min-height: 100vh;
+    padding-top: 0;
+    padding-bottom: 80px;
+    background:
+      linear-gradient(rgba(255,255,255,0.018) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.018) 1px, transparent 1px),
+      linear-gradient(180deg, #050507 0%, #07070b 48%, #050507 100%);
+    background-size: 40px 40px, 40px 40px, auto;
+    color: var(--scout-bright);
+  }
+  .scout-shell { max-width: 1680px; margin: 0 auto; padding: 0 0.875rem; }
+  @media (min-width: 768px) { .scout-shell { padding: 0 1.25rem; } }
+  @media (min-width: 1280px) { .scout-shell { padding: 0 1.75rem; } }
+  @media (min-width: 1536px) { .scout-shell { padding: 0 2.25rem; } }
+  @media (max-width: 767px) { .scout-page { padding-top: 0; padding-bottom: 120px; } }
+  .scout-game-strip {
+    position: sticky;
+    top: var(--nav-height-desktop, 72px);
+    z-index: 30;
+    background: rgba(11,11,15,0.92);
+    border-bottom: 1px solid var(--scout-border);
+    box-shadow: 0 12px 28px rgba(0,0,0,0.22);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+  @media (max-width: 767px) { .scout-game-strip { top: var(--nav-height-mobile, 64px); } }
+  .scout-pill,
+  .scout-tab,
+  .scout-btn,
+  .scout-field,
+  .scout-select {
+    border-radius: 8px;
+  }
+  .scout-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    border: 1px solid transparent;
+    color: var(--scout-text);
+    background: transparent;
+    padding: 0.48rem 0.9rem;
+    font-size: 0.82rem;
+    font-weight: 700;
+    white-space: nowrap;
+    transition: background .2s ease, border-color .2s ease, color .2s ease;
+  }
+  .scout-pill:hover,
+  .scout-pill.is-active {
+    color: #fff;
+    border-color: color-mix(in srgb, var(--game-color, var(--scout-accent)) 48%, transparent);
+    background: color-mix(in srgb, var(--game-color, var(--scout-accent)) 14%, transparent);
+  }
+  .scout-pill.is-unavailable:not(.is-active) { opacity: .72; }
+  .scout-pill.is-unavailable .scout-game-icon { border-style: dashed; }
+  .scout-game-icon {
+    width: 1.55rem;
+    height: 1.55rem;
+    flex: 0 0 auto;
+    border-radius: 7px;
+    display: inline-grid;
+    place-items: center;
+    overflow: hidden;
+    border: 1px solid color-mix(in srgb, var(--game-color, var(--scout-accent)) 45%, transparent);
+    background: color-mix(in srgb, var(--game-color, var(--scout-accent)) 18%, #050507);
+    color: #fff;
+    font-size: 0.62rem;
+    font-weight: 900;
+    line-height: 1;
+  }
+  .scout-game-icon img { width: 100%; height: 100%; object-fit: cover; }
+  @media (max-width: 479px) {
+    .scout-pill { padding: 0.42rem; }
+    .scout-game-label { display: none; }
+  }
+  .scout-panel {
+    background: rgba(18,18,24,0.72);
+    border: 1px solid var(--scout-border);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+  .scout-card {
+    background: linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.01));
+    border: 1px solid var(--scout-border);
+    border-radius: 12px;
+    transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease;
+  }
+  .scout-card:hover {
+    transform: translateY(-2px);
+    border-color: color-mix(in srgb, var(--card-accent, var(--scout-accent)) 42%, transparent);
+    box-shadow: 0 18px 40px rgba(0,0,0,0.32);
+  }
+  .scout-card.is-hidden { display: none; }
+  .scout-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.28rem;
+    border: 1px solid var(--scout-border);
+    background: rgba(255,255,255,0.04);
+    color: #b8b8c5;
+    border-radius: 6px;
+    padding: 0.22rem 0.5rem;
+    font-size: 0.68rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    line-height: 1.2;
+  }
+  .scout-chip.good { border-color: rgba(0,255,102,0.24); background: rgba(0,255,102,0.08); color: #6ee7a8; }
+  .scout-chip.info { border-color: rgba(59,130,246,0.28); background: rgba(59,130,246,0.1); color: #93c5fd; }
+  .scout-chip.warn { border-color: rgba(250,204,21,0.28); background: rgba(250,204,21,0.09); color: #fde68a; }
+  .scout-tab {
+    padding: 0.62rem 1rem;
+    color: var(--scout-text);
+    font-weight: 800;
+    transition: background .2s ease, color .2s ease;
+  }
+  .scout-tab.is-active {
+    background: rgba(255,255,255,0.12);
+    color: #fff;
+  }
+  .scout-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: .5rem;
+    border: 1px solid var(--scout-border-strong);
+    padding: .7rem 1rem;
+    font-size: .78rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    color: #fff;
+    text-decoration: none;
+    transition: background .2s ease, border-color .2s ease, color .2s ease;
+  }
+  .scout-btn.primary { border-color: transparent; background: #fff; color: #050507; }
+  .scout-btn.accent { border-color: rgba(59,130,246,0.4); background: rgba(59,130,246,0.14); color: #bfdbfe; }
+  .scout-btn.success { border-color: rgba(34,197,94,0.38); background: rgba(34,197,94,0.14); color: #bbf7d0; }
+  .scout-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
+  .scout-btn.primary:hover { background: #e5e7eb; color: #050507; }
+  .scout-btn[disabled],
+  .scout-btn.is-disabled { cursor: not-allowed; opacity: .5; }
+  .scout-field,
+  .scout-select {
+    width: 100%;
+    border: 1px solid var(--scout-border-strong);
+    background: #050507;
+    color: #fff;
+    padding: .7rem .8rem;
+    font-size: .9rem;
+    outline: none;
+  }
+  .scout-field:focus,
+  .scout-select:focus { border-color: rgba(59,130,246,0.75); box-shadow: 0 0 0 1px rgba(59,130,246,0.35); }
+  .scout-filter-panel {
+    position: sticky;
+    top: calc(var(--nav-height-desktop, 80px) + 64px);
+    max-height: calc(100vh - var(--nav-height-desktop, 80px) - 82px);
+    overflow-y: auto;
+  }
+  @media (max-width: 767px) {
+    .scout-filter-panel {
+      position: fixed;
+      inset: 0 0 0 auto;
+      z-index: 150;
+      width: min(92vw, 360px);
+      max-height: none;
+      transform: translateX(100%);
+      transition: transform .25s ease;
+      background: rgba(11,11,15,0.98);
+      border-left: 1px solid var(--scout-border-strong);
+      padding: 1rem;
+    }
+    .scout-filter-panel.is-open { transform: translateX(0); }
+  }
+  .scout-drawer,
+  .scout-modal-card { background: linear-gradient(270deg, #0b0b0f 0%, rgba(11,11,15,0.98) 100%); }
+  .scout-modal-card { max-height: calc(100vh - 2rem); overflow-y: auto; }
+  .scout-drawer {
+    transform: translateX(100%);
+    transition: transform .25s ease;
+  }
+  .scout-drawer.is-open { transform: translateX(0); }
+  .scout-overlay { opacity: 0; pointer-events: none; transition: opacity .2s ease; }
+  .scout-overlay.is-open { opacity: 1; pointer-events: auto; }
+  .scout-empty { padding: 2rem; }
+  .scout-post-choice {
+    width: 100%;
+    text-align: left;
+    border: 1px solid var(--scout-border);
+    background: #050507;
+    border-radius: 12px;
+    padding: 1rem;
+    transition: border-color .2s ease, background .2s ease, transform .2s ease;
+  }
+  .scout-post-choice:hover { border-color: rgba(59,130,246,.5); background: rgba(59,130,246,.08); transform: translateY(-1px); }
+  .scout-post-choice[disabled] { opacity: .55; cursor: not-allowed; transform: none; }
+  .scout-form-grid { display: grid; gap: .875rem; grid-template-columns: 1fr; }
+  @media (min-width: 768px) { .scout-form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .scout-form-span { grid-column: 1 / -1; }
+  .scout-status { min-height: 1.25rem; }
+  [data-post-step][hidden] { display: none !important; }
 </style>
 {% endblock %}
 
 {% block content %}
+{% if is_recruiting_filter %}
+<div class="scout-page" data-scout-page>
+  <div class="scout-game-strip">
+    <div class="scout-shell py-2">
+      <nav class="flex items-center gap-2 overflow-x-auto no-scrollbar" aria-label="Filter scouting grounds by game">
+        {% for opt in game_selector_options %}
+        <a href="{{ opt.url }}" class="scout-pill {% if opt.is_active %}is-active{% endif %} {% if not opt.is_available %}is-unavailable{% endif %}" style="--game-color:{{ opt.color }}" data-game-filter="{{ opt.slug }}" data-game-available="{% if opt.is_available %}1{% else %}0{% endif %}" title="{{ opt.label }}{% if not opt.is_available %} - no configured game data yet{% endif %}" {% if opt.is_active %}aria-current="page"{% endif %}>
+          <span class="scout-game-icon" aria-hidden="true">
+            {% if opt.icon_url %}
+            <img src="{{ opt.icon_url }}" alt="" loading="lazy" decoding="async">
+            {% elif opt.logo_url %}
+            <img src="{{ opt.logo_url }}" alt="" loading="lazy" decoding="async">
+            {% elif opt.slug %}
+            {{ opt.initials|slice:":3" }}
+            {% else %}
+            <i class="fa-solid fa-layer-group text-[0.7rem]"></i>
+            {% endif %}
+          </span>
+          <span class="scout-game-label">
+            <span class="hidden xl:inline">{{ opt.label }}</span>
+            <span class="hidden sm:inline xl:hidden">{{ opt.short_label }}</span>
+            <span class="sm:hidden">{{ opt.short_label }}</span>
+          </span>
+        </a>
+        {% endfor %}
+      </nav>
+    </div>
+  </div>
+
+  <section class="border-b border-white/[0.08] bg-[#0b0b0f]/80">
+    <div class="scout-shell py-6 lg:py-8">
+      <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[minmax(0,1fr)_380px] lg:items-center">
+        <div>
+          <div class="inline-flex items-center gap-2 rounded-full border border-white/10 bg-[#121218] px-3 py-1">
+            <span class="relative flex h-2.5 w-2.5">
+              <span class="absolute inline-flex h-full w-full rounded-full bg-[#00ff66] opacity-75 animate-ping"></span>
+              <span class="relative inline-flex h-2.5 w-2.5 rounded-full bg-[#00ff66]"></span>
+            </span>
+            <span class="text-[11px] font-bold uppercase text-[#e2e2e8]" style="letter-spacing:.12em">Live Scouting Network</span>
+          </div>
+
+          <h1 class="mt-4 text-4xl font-bold text-white md:text-6xl" style="font-family: Outfit, Space Grotesk, sans-serif; letter-spacing:0;">
+            Recruit.
+            <span class="text-transparent bg-clip-text bg-gradient-to-r from-[#3b82f6] to-[#06b6d4]">
+              {% if selected_game_label %}{{ selected_game_label }}{% else %}Dominate.{% endif %}
+            </span>
+          </h1>
+          <p class="mt-3 max-w-3xl text-base leading-relaxed text-[#9ca3af] md:text-lg">
+            Public roster openings and public Looking For Team profiles, wired directly to DeltaCrown teams, recruitment posts, and game passports.
+          </p>
+
+          <div class="mt-5 inline-flex w-full flex-col gap-2 rounded-xl border border-white/10 bg-[#121218] p-1.5 shadow-xl sm:w-auto sm:flex-row">
+            <div class="flex rounded-lg border border-white/10 bg-[#050507] p-1">
+              <button type="button" class="scout-tab is-active flex-1 sm:w-36" data-scout-tab="teams">
+                LFP <span class="hidden sm:inline">(Teams)</span>
+              </button>
+              <button type="button" class="scout-tab flex-1 sm:w-36" data-scout-tab="players">
+                LFT <span class="hidden sm:inline">(Players)</span>
+              </button>
+            </div>
+
+            <form method="get" action="{% url 'organizations:team_find' %}" class="relative min-h-[42px] flex-1 sm:w-80">
+              {% if game_filter %}<input type="hidden" name="game" value="{{ game_filter }}">{% endif %}
+              {% if region_filter %}<input type="hidden" name="region" value="{{ region_filter }}">{% endif %}
+              {% if platform_filter %}<input type="hidden" name="platform" value="{{ platform_filter }}">{% endif %}
+              {% if sort_by != 'newest' %}<input type="hidden" name="sort" value="{{ sort_by }}">{% endif %}
+              <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[#8f8f9d]"></i>
+              <input id="scout-live-search" name="q" value="{{ search_query }}" type="search" placeholder="Search teams, roles, players..." class="h-full w-full bg-transparent pl-9 pr-3 text-sm text-white outline-none placeholder:text-[#8f8f9d]" autocomplete="off">
+            </form>
+
+            <button type="button" class="scout-btn primary" data-open-post-modal>
+              <i class="fa-solid fa-bullhorn text-xs"></i>
+              Post Need
+            </button>
+          </div>
+        </div>
+
+        <div class="scout-panel rounded-2xl p-5 shadow-xl">
+          <h2 class="border-b border-white/10 pb-3 text-xs font-bold uppercase text-[#8f8f9d]" style="letter-spacing:.14em">
+            {% if selected_game_label %}{{ selected_game_label }}{% else %}Scouting{% endif %} Network
+          </h2>
+          <dl class="mt-4 space-y-4">
+            <div class="flex items-center justify-between">
+              <dt class="flex items-center gap-2 text-sm text-[#e2e2e8]"><i class="fa-solid fa-shield-halved text-[#3b82f6]"></i> LFP Teams</dt>
+              <dd class="font-gaming text-xl font-bold text-white">{{ recruiting_result_count }}</dd>
+            </div>
+            <div class="flex items-center justify-between">
+              <dt class="flex items-center gap-2 text-sm text-[#e2e2e8]"><i class="fa-solid fa-user-plus text-[#00ff66]"></i> LFT Players</dt>
+              <dd class="font-gaming text-xl font-bold text-white">{{ available_player_count }}</dd>
+            </div>
+            <div class="flex items-center justify-between">
+              <dt class="flex items-center gap-2 text-sm text-[#e2e2e8]"><i class="fa-solid fa-crosshairs text-[#facc15]"></i> Open Roles</dt>
+              <dd class="font-gaming text-xl font-bold text-white">{{ open_role_count }}</dd>
+            </div>
+          </dl>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="scout-shell py-8">
+    <div class="grid gap-8 md:grid-cols-[260px_minmax(0,1fr)]">
+      <aside id="scout-filters" class="scout-filter-panel scout-panel rounded-xl p-5">
+        <div class="mb-5 flex items-center justify-between">
+          <h2 class="flex items-center gap-2 font-bold text-white" style="font-family: Outfit, Space Grotesk, sans-serif;">
+            <i class="fa-solid fa-filter text-[#8f8f9d]"></i>
+            Filters
+          </h2>
+          <button type="button" class="text-sm text-[#8f8f9d] hover:text-white md:hidden" data-close-filters aria-label="Close filters">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
+        <form method="get" action="{% url 'organizations:team_find' %}" class="space-y-5">
+          <div>
+            <label for="scout-filter-q" class="mb-2 block text-[11px] font-bold uppercase text-[#8f8f9d]" style="letter-spacing:.14em">Search</label>
+            <input id="scout-filter-q" name="q" value="{{ search_query }}" class="scout-field" placeholder="Team, role, player..." type="search">
+          </div>
+
+          <div>
+            <label for="scout-filter-game" class="mb-2 block text-[11px] font-bold uppercase text-[#8f8f9d]" style="letter-spacing:.14em">Game</label>
+            <select id="scout-filter-game" name="game" class="scout-select">
+              {% for opt in game_selector_options %}
+              <option value="{{ opt.slug }}" {% if opt.slug == game_filter %}selected{% endif %}>{{ opt.label }}{% if not opt.is_available %} - no live rows{% endif %}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div>
+            <label for="scout-filter-region" class="mb-2 block text-[11px] font-bold uppercase text-[#8f8f9d]" style="letter-spacing:.14em">Region</label>
+            <select id="scout-filter-region" name="region" class="scout-select">
+              <option value="">All Regions</option>
+              {% for r in regions %}
+              <option value="{{ r }}" {% if r == region_filter %}selected{% endif %}>{{ r }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div>
+            <label for="scout-filter-platform" class="mb-2 block text-[11px] font-bold uppercase text-[#8f8f9d]" style="letter-spacing:.14em">Platform</label>
+            <select id="scout-filter-platform" name="platform" class="scout-select">
+              <option value="">All Platforms</option>
+              {% for platform in platforms %}
+              <option value="{{ platform }}" {% if platform == platform_filter %}selected{% endif %}>{{ platform }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div>
+            <label for="scout-filter-sort" class="mb-2 block text-[11px] font-bold uppercase text-[#8f8f9d]" style="letter-spacing:.14em">Sort</label>
+            <select id="scout-filter-sort" name="sort" class="scout-select">
+              <option value="newest" {% if sort_by == 'newest' %}selected{% endif %}>Newest Posted</option>
+              <option value="name" {% if sort_by == 'name' %}selected{% endif %}>Name A-Z</option>
+              <option value="members" {% if sort_by == 'members' %}selected{% endif %}>Most Members</option>
+            </select>
+          </div>
+
+          <button type="submit" class="scout-btn accent w-full">
+            <i class="fa-solid fa-search text-xs"></i>
+            Apply Filters
+          </button>
+          <a href="{% url 'organizations:team_find' %}" class="block text-center text-xs font-bold uppercase text-[#8f8f9d] hover:text-white" style="letter-spacing:.12em" data-reset-filters>Reset</a>
+        </form>
+
+        <div class="mt-8 space-y-4 border-t border-white/10 pt-6" aria-disabled="true">
+          <h3 class="text-[11px] font-bold uppercase text-[#8f8f9d]" style="letter-spacing:.14em">Future Filters</h3>
+          <label class="flex items-center justify-between gap-3 text-sm text-[#e2e2e8]/60">
+            <span><i class="fa-solid fa-certificate mr-2 text-[#facc15]"></i>Verified profiles</span>
+            <input type="checkbox" disabled>
+          </label>
+          <label class="flex items-center justify-between gap-3 text-sm text-[#e2e2e8]/60">
+            <span><i class="fa-solid fa-signal mr-2 text-[#06b6d4]"></i>Recently active</span>
+            <input type="checkbox" disabled>
+          </label>
+        </div>
+
+        <div class="mt-6 rounded-xl border border-white/10 bg-[#050507] p-4">
+          <p class="text-[11px] leading-relaxed text-[#8f8f9d]">
+            Public LFT data, public active passports, and active LFP roles only.
+          </p>
+        </div>
+      </aside>
+
+      <div class="min-w-0">
+        <div class="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/10 bg-[#121218] px-4 py-3">
+          <div>
+            <p class="text-sm text-[#8f8f9d]">
+              <strong id="scout-result-count" class="text-base text-white">{{ recruiting_result_count }}</strong>
+              <span id="scout-result-label">LFP matches found</span>
+            </p>
+          </div>
+          <div class="flex items-center gap-3">
+            <button type="button" class="scout-btn md:hidden" data-open-filters>
+              <i class="fa-solid fa-filter text-xs"></i>
+              Filters
+            </button>
+            <form method="get" action="{% url 'organizations:team_find' %}" class="hidden items-center gap-2 sm:flex">
+              {% if game_filter %}<input type="hidden" name="game" value="{{ game_filter }}">{% endif %}
+              {% if region_filter %}<input type="hidden" name="region" value="{{ region_filter }}">{% endif %}
+              {% if platform_filter %}<input type="hidden" name="platform" value="{{ platform_filter }}">{% endif %}
+              {% if search_query %}<input type="hidden" name="q" value="{{ search_query }}">{% endif %}
+              <label for="scout-top-sort" class="text-xs font-bold uppercase text-[#8f8f9d]" style="letter-spacing:.12em">Sort</label>
+              <select id="scout-top-sort" name="sort" class="rounded border border-white/10 bg-[#050507] px-2 py-1 text-sm font-semibold text-white outline-none" data-autosubmit-sort>
+                <option value="newest" {% if sort_by == 'newest' %}selected{% endif %}>Newest</option>
+                <option value="name" {% if sort_by == 'name' %}selected{% endif %}>Name</option>
+                <option value="members" {% if sort_by == 'members' %}selected{% endif %}>Members</option>
+              </select>
+            </form>
+          </div>
+        </div>
+
+        <section data-scout-panel="teams">
+          {% if teams %}
+          <div class="grid grid-cols-1 gap-5 lg:grid-cols-2" data-scout-grid="teams">
+            {% for item in teams %}
+            <article class="scout-card flex h-full flex-col p-5" style="--card-accent:{% if item.game_obj %}{{ item.game_obj.primary_color|default:'#3b82f6' }}{% else %}{{ item.team.primary_color|default:'#3b82f6' }}{% endif %}" data-scout-card data-card-type="team" data-game-slug="{% if item.game_obj %}{{ item.game_obj.slug }}{% endif %}" data-region="{{ item.recruitment_summary.region|default:item.team.region }}" data-platform="{{ item.recruitment_summary.platform|default:item.team.platform }}" data-sort-name="{{ item.team.name }}" data-sort-members="{{ item.team.member_count }}" data-search="{{ item.team.name }} {{ item.team.tag }} {{ item.team.region }} {{ item.team.platform }} {% if item.game_obj %}{{ item.game_obj.display_name }}{% endif %} {{ item.recruitment_summary.title }} {{ item.recruitment_summary.role_category }} {{ item.recruitment_summary.rank_requirement }} {{ item.recruitment_summary.short_pitch }}">
+              <div class="mb-4 flex items-start justify-between gap-4">
+                <div class="flex min-w-0 gap-3">
+                  <div class="h-12 w-12 shrink-0 overflow-hidden rounded-lg border border-white/10 bg-[#050507]">
+                    {% if item.team.logo %}
+                    <img src="{{ item.team.logo.url }}" alt="{{ item.team.name }} logo" class="h-full w-full object-cover" loading="lazy" decoding="async">
+                    {% else %}
+                    <div class="grid h-full w-full place-items-center text-lg font-bold text-white" style="background:linear-gradient(135deg, {{ item.team.primary_color|default:'#3b82f6' }}, {{ item.team.accent_color|default:'#06b6d4' }});">{{ item.team.name|slice:":1" }}</div>
+                    {% endif %}
+                  </div>
+                  <div class="min-w-0">
+                    <h3 class="flex items-center gap-2 text-lg font-bold leading-tight text-white">
+                      <span class="truncate">{{ item.team.name }}</span>
+                      {% if item.team.organization %}<i class="fa-solid fa-shield-halved text-sm text-[#facc15]" title="Organization-backed"></i>{% endif %}
+                    </h3>
+                    <p class="mt-1 truncate text-xs font-semibold text-[#8f8f9d]">
+                      {% if item.game_obj %}{{ item.game_obj.display_name }}{% else %}Team{% endif %}
+                      {% if item.team.region %} &middot; {{ item.team.region }}{% endif %}
+                    </p>
+                  </div>
+                </div>
+                <span class="scout-chip good shrink-0"><i class="fa-solid fa-bullhorn"></i> LFP</span>
+              </div>
+
+              <div class="mb-4 flex-1">
+                <p class="mb-1 text-[10px] font-bold uppercase text-[#8f8f9d]" style="letter-spacing:.14em">Looking For</p>
+                <p class="text-base font-bold" style="color:var(--card-accent)">
+                  {% if item.recruitment_summary.title %}{{ item.recruitment_summary.title }}{% else %}Open roster slot{% endif %}
+                </p>
+                <p class="mt-3 line-clamp-2 text-sm leading-relaxed text-[#e2e2e8]">
+                  {{ item.recruitment_summary.short_pitch|default:item.team.description|truncatewords:28 }}
+                </p>
+              </div>
+
+              <div class="mb-4 flex flex-wrap gap-2">
+                {% if item.recruitment_summary.open_role_count > 1 %}<span class="scout-chip good">{{ item.recruitment_summary.open_role_count }} roles</span>{% endif %}
+                {% if item.recruitment_summary.role_category %}<span class="scout-chip info">{{ item.recruitment_summary.role_category }}</span>{% endif %}
+                {% if item.recruitment_summary.rank_requirement %}<span class="scout-chip warn">{{ item.recruitment_summary.rank_requirement }}</span>{% endif %}
+                {% if item.recruitment_summary.region %}<span class="scout-chip">{{ item.recruitment_summary.region }}</span>{% endif %}
+                {% if item.recruitment_summary.platform %}<span class="scout-chip">{{ item.recruitment_summary.platform }}</span>{% elif item.team.platform %}<span class="scout-chip">{{ item.team.platform }}</span>{% endif %}
+              </div>
+
+              <div class="mt-auto grid grid-cols-3 gap-2 border-t border-white/10 pt-4">
+                <div class="rounded border border-white/10 bg-[#050507]/70 p-2">
+                  <span class="block text-[10px] font-bold uppercase text-[#8f8f9d]">Min Rank</span>
+                  <span class="block truncate text-xs font-bold text-white">{{ item.recruitment_summary.rank_requirement|default:"Open" }}</span>
+                </div>
+                <div class="rounded border border-white/10 bg-[#050507]/70 p-2">
+                  <span class="block text-[10px] font-bold uppercase text-[#8f8f9d]">Platform</span>
+                  <span class="block truncate text-xs font-bold text-white">{{ item.recruitment_summary.platform|default:item.team.platform|default:"Any" }}</span>
+                </div>
+                <div class="rounded border border-white/10 bg-[#050507]/70 p-2">
+                  <span class="block text-[10px] font-bold uppercase text-[#8f8f9d]">Members</span>
+                  <span class="block truncate text-xs font-bold text-white">{{ item.team.member_count }}</span>
+                </div>
+              </div>
+
+              <div class="mt-4 flex flex-wrap gap-2">
+                <a href="{{ item.team.get_absolute_url }}" class="scout-btn accent flex-1">View &amp; Apply</a>
+                <a href="{{ item.team.get_absolute_url }}" class="scout-btn flex-1">View Team Profile</a>
+                <button type="button" class="scout-btn w-full" data-drawer-template="scout-drawer-team-{{ forloop.counter }}">
+                  <i class="fa-solid fa-file-lines text-xs"></i>
+                  Quick View
+                </button>
+              </div>
+
+              <template id="scout-drawer-team-{{ forloop.counter }}">
+                <div class="space-y-6">
+                  <div class="flex items-center gap-4 border-b border-white/10 pb-6">
+                    <div class="h-16 w-16 overflow-hidden rounded-xl border border-white/15 bg-[#050507]">
+                      {% if item.team.logo %}
+                      <img src="{{ item.team.logo.url }}" alt="{{ item.team.name }} logo" class="h-full w-full object-cover" loading="lazy" decoding="async">
+                      {% else %}
+                      <div class="grid h-full w-full place-items-center text-2xl font-bold text-white" style="background:linear-gradient(135deg, {{ item.team.primary_color|default:'#3b82f6' }}, {{ item.team.accent_color|default:'#06b6d4' }});">{{ item.team.name|slice:":1" }}</div>
+                      {% endif %}
+                    </div>
+                    <div class="min-w-0">
+                      <h3 class="text-2xl font-bold leading-none text-white">{{ item.team.name }}</h3>
+                      <p class="mt-2 text-sm font-semibold text-[#93c5fd]">{% if item.game_obj %}{{ item.game_obj.display_name }}{% endif %}{% if item.team.region %} &middot; {{ item.team.region }}{% endif %}</p>
+                    </div>
+                  </div>
+                  <div class="flex flex-wrap gap-2">
+                    <span class="scout-chip good">Recruiting</span>
+                    {% if item.team.organization %}<span class="scout-chip warn">{{ item.team.organization.name }}</span>{% endif %}
+                    {% if item.team.platform %}<span class="scout-chip">{{ item.team.platform }}</span>{% endif %}
+                  </div>
+                  <div>
+                    <h4 class="mb-3 text-[11px] font-bold uppercase text-[#8f8f9d]" style="letter-spacing:.14em">Recruitment Brief</h4>
+                    <p class="rounded-xl border border-white/10 bg-[#050507] p-4 text-sm leading-relaxed text-[#e2e2e8]">{{ item.recruitment_summary.short_pitch|default:item.team.description }}</p>
+                  </div>
+                  <div>
+                    <h4 class="mb-3 text-[11px] font-bold uppercase text-[#8f8f9d]" style="letter-spacing:.14em">Requirements</h4>
+                    <div class="grid grid-cols-2 gap-3">
+                      <div class="rounded-xl border border-white/10 bg-[#050507] p-3"><span class="block text-[10px] font-bold uppercase text-[#8f8f9d]">Role</span><span class="text-sm font-bold text-white">{{ item.recruitment_summary.title|default:"Open role" }}</span></div>
+                      <div class="rounded-xl border border-white/10 bg-[#050507] p-3"><span class="block text-[10px] font-bold uppercase text-[#8f8f9d]">Rank</span><span class="text-sm font-bold text-white">{{ item.recruitment_summary.rank_requirement|default:"Open" }}</span></div>
+                      <div class="rounded-xl border border-white/10 bg-[#050507] p-3"><span class="block text-[10px] font-bold uppercase text-[#8f8f9d]">Region</span><span class="text-sm font-bold text-white">{{ item.recruitment_summary.region|default:item.team.region|default:"Any" }}</span></div>
+                      <div class="rounded-xl border border-white/10 bg-[#050507] p-3"><span class="block text-[10px] font-bold uppercase text-[#8f8f9d]">Platform</span><span class="text-sm font-bold text-white">{{ item.recruitment_summary.platform|default:item.team.platform|default:"Any" }}</span></div>
+                    </div>
+                  </div>
+                  <div class="flex gap-3">
+                    <a href="{{ item.team.get_absolute_url }}" class="scout-btn accent flex-1">View &amp; Apply</a>
+                    <a href="{{ item.team.get_absolute_url }}" class="scout-btn flex-1">Team Profile</a>
+                  </div>
+                </div>
+              </template>
+            </article>
+            {% endfor %}
+          </div>
+          <div class="scout-empty hidden rounded-xl border border-dashed border-white/15 bg-[#121218] text-center" data-scout-empty="teams">
+            <i class="fa-solid fa-magnifying-glass mb-4 text-3xl text-[#333344]"></i>
+            <h3 class="text-lg font-bold text-white">No LFP matches found</h3>
+            <p class="mt-2 text-sm text-[#8f8f9d]">No rendered team openings match the current filters.</p>
+            <button type="button" class="scout-btn accent mt-5" data-clear-game-filter>All Games</button>
+          </div>
+          {% else %}
+          <div class="rounded-xl border border-dashed border-white/15 bg-[#121218] p-12 text-center" data-scout-static-empty>
+            <i class="fa-solid fa-magnifying-glass mb-4 text-3xl text-[#333344]"></i>
+            <h3 class="text-lg font-bold text-white">No LFP matches found</h3>
+            <p class="mt-2 text-sm text-[#8f8f9d]">No recruiting teams match the current filters.</p>
+          </div>
+          {% endif %}
+        </section>
+
+        <section data-scout-panel="players" hidden>
+          {% if available_players %}
+          <div class="grid grid-cols-1 gap-5 lg:grid-cols-2" data-scout-grid="players">
+            {% for player in available_players %}
+            <article class="scout-card flex h-full flex-col p-5" style="--card-accent:#00ff66" data-scout-card data-card-type="player" data-game-slug="{% if player.primary_passport %}{{ player.primary_passport.game_slug }}{% endif %}" data-region="{% if player.primary_passport and player.primary_passport.region %}{{ player.primary_passport.region }}{% else %}{{ player.region }}{% endif %}" data-platform="{% if player.primary_passport %}{{ player.primary_passport.platform }}{% endif %}" data-sort-name="{{ player.display_name }}" data-sort-members="0" data-search="{{ player.display_name }} {{ player.username }} {{ player.region }} {{ player.availability }} {% for role in player.roles %}{{ role }} {% endfor %}{% if player.primary_passport %}{{ player.primary_passport.game }} {{ player.primary_passport.in_game_name }} {{ player.primary_passport.rank_name }} {{ player.primary_passport.main_role }} {{ player.primary_passport.platform }} {{ player.primary_passport.region }}{% endif %}">
+              <div class="mb-4 flex items-start justify-between gap-4">
+                <div class="flex min-w-0 gap-3">
+                  <div class="grid h-12 w-12 shrink-0 place-items-center rounded-full border-2 border-white/10 bg-[#050507] text-lg font-bold text-[#00ff66]">
+                    {{ player.display_name|slice:":1" }}
+                  </div>
+                  <div class="min-w-0">
+                    <h3 class="truncate text-lg font-bold leading-tight text-white">{{ player.display_name }}</h3>
+                    <p class="mt-1 truncate text-xs font-semibold text-[#8f8f9d]">@{{ player.username }}</p>
+                  </div>
+                </div>
+                <span class="scout-chip good shrink-0"><i class="fa-solid fa-user-plus"></i> LFT</span>
+              </div>
+
+              <div class="mb-4 flex flex-wrap gap-2">
+                {% for role in player.roles %}<span class="scout-chip info">{{ role }}</span>{% endfor %}
+                {% if player.region %}<span class="scout-chip">{{ player.region }}</span>{% endif %}
+                {% if player.availability %}<span class="scout-chip">{{ player.availability }}</span>{% endif %}
+              </div>
+
+              <div class="mb-4 flex-1">
+                <p class="mb-2 text-[10px] font-bold uppercase text-[#8f8f9d]" style="letter-spacing:.14em">Public Passport</p>
+                {% if player.primary_passport %}
+                <div class="rounded-xl border border-white/10 bg-[#050507] p-4">
+                  <div class="flex items-start justify-between gap-3">
+                    <div class="min-w-0">
+                      <p class="truncate text-sm font-bold text-white">{{ player.primary_passport.game }}</p>
+                      {% if player.primary_passport.in_game_name %}<p class="mt-1 truncate text-xs text-[#8f8f9d]">{{ player.primary_passport.in_game_name }}</p>{% endif %}
+                    </div>
+                    {% if player.primary_passport.rank_name %}<span class="scout-chip warn shrink-0">{{ player.primary_passport.rank_name }}</span>{% endif %}
+                  </div>
+                  <div class="mt-3 flex flex-wrap gap-2">
+                    {% if player.primary_passport.main_role %}<span class="scout-chip info">{{ player.primary_passport.main_role }}</span>{% endif %}
+                    {% if player.primary_passport.platform %}<span class="scout-chip">{{ player.primary_passport.platform }}</span>{% endif %}
+                    {% if player.primary_passport.region %}<span class="scout-chip">{{ player.primary_passport.region }}</span>{% endif %}
+                    {% if player.primary_passport.rank_tier %}<span class="scout-chip">Tier {{ player.primary_passport.rank_tier }}</span>{% endif %}
+                  </div>
+                </div>
+                {% else %}
+                <div class="rounded-xl border border-white/10 bg-[#050507] p-4 text-sm text-[#8f8f9d]">No public active passport is visible for the current filters.</div>
+                {% endif %}
+              </div>
+
+              <div class="mt-auto flex flex-wrap gap-2">
+                <a href="{{ player.profile_url }}" class="scout-btn accent flex-1">View Profile</a>
+                <button type="button" class="scout-btn flex-1" data-drawer-template="scout-drawer-player-{{ forloop.counter }}">Quick View</button>
+              </div>
+
+              <template id="scout-drawer-player-{{ forloop.counter }}">
+                <div class="space-y-6">
+                  <div class="flex items-center gap-4 border-b border-white/10 pb-6">
+                    <div class="grid h-16 w-16 rounded-full border border-white/15 bg-[#050507] place-items-center text-2xl font-bold text-[#00ff66]">{{ player.display_name|slice:":1" }}</div>
+                    <div class="min-w-0">
+                      <h3 class="text-2xl font-bold leading-none text-white">{{ player.display_name }}</h3>
+                      <p class="mt-2 text-sm font-semibold text-[#00ff66]">@{{ player.username }}</p>
+                    </div>
+                  </div>
+                  <div class="flex flex-wrap gap-2">
+                    <span class="scout-chip good">Looking For Team</span>
+                    {% for role in player.roles %}<span class="scout-chip info">{{ role }}</span>{% endfor %}
+                    {% if player.region %}<span class="scout-chip">{{ player.region }}</span>{% endif %}
+                  </div>
+                  <div>
+                    <h4 class="mb-3 text-[11px] font-bold uppercase text-[#8f8f9d]" style="letter-spacing:.14em">Career Summary</h4>
+                    <div class="grid grid-cols-2 gap-3">
+                      <div class="rounded-xl border border-white/10 bg-[#050507] p-3"><span class="block text-[10px] font-bold uppercase text-[#8f8f9d]">Availability</span><span class="text-sm font-bold text-white">{{ player.availability|default:"Available" }}</span></div>
+                      <div class="rounded-xl border border-white/10 bg-[#050507] p-3"><span class="block text-[10px] font-bold uppercase text-[#8f8f9d]">Region</span><span class="text-sm font-bold text-white">{{ player.region|default:"Any" }}</span></div>
+                    </div>
+                  </div>
+                  {% if player.primary_passport %}
+                  <div>
+                    <h4 class="mb-3 text-[11px] font-bold uppercase text-[#8f8f9d]" style="letter-spacing:.14em">Public Passport</h4>
+                    <div class="grid grid-cols-2 gap-3">
+                      <div class="rounded-xl border border-white/10 bg-[#050507] p-3"><span class="block text-[10px] font-bold uppercase text-[#8f8f9d]">Game</span><span class="text-sm font-bold text-white">{{ player.primary_passport.game }}</span></div>
+                      <div class="rounded-xl border border-white/10 bg-[#050507] p-3"><span class="block text-[10px] font-bold uppercase text-[#8f8f9d]">IGN</span><span class="text-sm font-bold text-white">{{ player.primary_passport.in_game_name|default:"Public" }}</span></div>
+                      <div class="rounded-xl border border-white/10 bg-[#050507] p-3"><span class="block text-[10px] font-bold uppercase text-[#8f8f9d]">Rank</span><span class="text-sm font-bold text-white">{{ player.primary_passport.rank_name|default:"Unranked" }}</span></div>
+                      <div class="rounded-xl border border-white/10 bg-[#050507] p-3"><span class="block text-[10px] font-bold uppercase text-[#8f8f9d]">Role</span><span class="text-sm font-bold text-white">{{ player.primary_passport.main_role|default:"Flex" }}</span></div>
+                      {% if player.primary_passport.rank_tier %}
+                      <div class="rounded-xl border border-white/10 bg-[#050507] p-3"><span class="block text-[10px] font-bold uppercase text-[#8f8f9d]">Tier</span><span class="text-sm font-bold text-white">{{ player.primary_passport.rank_tier }}</span></div>
+                      {% endif %}
+                    </div>
+                  </div>
+                  {% endif %}
+                  <div class="flex gap-3">
+                    <a href="{{ player.profile_url }}" class="scout-btn accent flex-1">View Profile</a>
+                    <span class="scout-btn flex-1 opacity-60" aria-disabled="true">Invite from Team HQ</span>
+                  </div>
+                </div>
+              </template>
+            </article>
+            {% endfor %}
+          </div>
+          <div class="scout-empty hidden rounded-xl border border-dashed border-white/15 bg-[#121218] text-center" data-scout-empty="players">
+            <i class="fa-solid fa-user-plus mb-4 text-3xl text-[#333344]"></i>
+            <h3 class="text-lg font-bold text-white">No LFT players found</h3>
+            <p class="mt-2 text-sm text-[#8f8f9d]">No rendered public LFT profiles match the current filters.</p>
+            <button type="button" class="scout-btn accent mt-5" data-clear-game-filter>All Games</button>
+          </div>
+          {% else %}
+          <div class="rounded-xl border border-dashed border-white/15 bg-[#121218] p-12 text-center" data-scout-static-empty>
+            <i class="fa-solid fa-user-plus mb-4 text-3xl text-[#333344]"></i>
+            <h3 class="text-lg font-bold text-white">No LFT players found</h3>
+            <p class="mt-2 text-sm text-[#8f8f9d]">No public Looking For Team profiles match the current filters.</p>
+          </div>
+          {% endif %}
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <div id="scout-filter-overlay" class="scout-overlay fixed inset-0 z-[140] bg-black/70 backdrop-blur-sm md:hidden" data-close-filters></div>
+
+  <div id="scout-drawer-overlay" class="scout-overlay fixed inset-0 z-[150] bg-black/70 backdrop-blur-sm" data-close-drawer></div>
+  <aside id="scout-drawer" class="scout-drawer fixed right-0 top-0 z-[160] flex h-full w-full flex-col overflow-hidden border-l border-white/15 shadow-2xl sm:w-[460px]">
+    <div class="flex items-center justify-between border-b border-white/10 bg-[#121218] p-5">
+      <div class="flex items-center gap-2">
+        <span class="h-2 w-2 rounded-full bg-[#3b82f6] animate-ping"></span>
+        <h2 id="scout-drawer-title" class="text-lg font-bold uppercase text-white" style="font-family: Outfit, Space Grotesk, sans-serif; letter-spacing:.08em">Scouting Report</h2>
+      </div>
+      <button type="button" class="rounded-lg border border-white/10 bg-[#050507] px-2.5 py-2 text-[#8f8f9d] hover:text-white" data-close-drawer aria-label="Close quick view">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+    <div id="scout-drawer-content" class="flex-1 overflow-y-auto p-6"></div>
+  </aside>
+
+  <div id="scout-post-modal" class="scout-overlay fixed inset-0 z-[170] grid place-items-center bg-black/80 p-4 backdrop-blur-md" data-close-post-modal>
+    <div class="scout-modal-card w-full max-w-4xl rounded-2xl border border-white/15 shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="scout-post-modal-title">
+      <div class="flex items-start justify-between border-b border-white/10 p-5">
+        <div>
+          <h2 id="scout-post-modal-title" class="text-xl font-bold text-white" style="font-family: Outfit, Space Grotesk, sans-serif;">What do you want to post?</h2>
+          <p class="mt-1 text-sm text-[#8f8f9d]">Publish from existing DeltaCrown team recruitment and career profile fields.</p>
+        </div>
+        <button type="button" class="rounded-lg border border-white/10 bg-[#050507] px-2.5 py-2 text-[#8f8f9d] hover:text-white" data-close-post-modal aria-label="Close post options">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div class="p-5">
+        <div data-post-step="choice">
+          <div class="grid gap-4 md:grid-cols-3">
+            <button type="button" class="scout-post-choice" data-post-path="team">
+              <span class="mb-4 grid h-11 w-11 place-items-center rounded-lg border border-[#3b82f6]/30 bg-[#3b82f6]/10 text-[#93c5fd]">
+                <i class="fa-solid fa-users-gear"></i>
+              </span>
+              <span class="block font-bold text-white">Team Recruitment Post</span>
+              <span class="mt-2 block text-sm leading-relaxed text-[#8f8f9d]">I manage a team and want to recruit players for an open roster position.</span>
+            </button>
+            <button type="button" class="scout-post-choice" data-post-path="lft">
+              <span class="mb-4 grid h-11 w-11 place-items-center rounded-lg border border-[#00ff66]/30 bg-[#00ff66]/10 text-[#86efac]">
+                <i class="fa-solid fa-user-plus"></i>
+              </span>
+              <span class="block font-bold text-white">Looking For Team Profile</span>
+              <span class="mt-2 block text-sm leading-relaxed text-[#8f8f9d]">I am a solo player and want teams to discover my public LFT profile.</span>
+            </button>
+            <button type="button" class="scout-post-choice" disabled>
+              <span class="mb-4 grid h-11 w-11 place-items-center rounded-lg border border-white/10 bg-[#121218] text-[#8f8f9d]">
+                <i class="fa-solid fa-tower-broadcast"></i>
+              </span>
+              <span class="block font-bold text-white/60">Organization Scout</span>
+              <span class="mt-2 block text-sm leading-relaxed text-[#8f8f9d]">Community cross-posting is coming soon.</span>
+            </button>
+          </div>
+        </div>
+
+        <div data-post-step="team" hidden>
+          <button type="button" class="mb-4 text-sm font-bold text-[#93c5fd] hover:text-white" data-post-back>
+            <i class="fa-solid fa-arrow-left mr-2"></i>Back
+          </button>
+          {% if request.user.is_authenticated and manageable_teams %}
+          <form class="space-y-5" data-team-post-form>
+            {% csrf_token %}
+            <div class="rounded-xl border border-white/10 bg-[#050507] p-4">
+              <label for="scout-post-team" class="mb-2 block text-[11px] font-bold uppercase text-[#8f8f9d]" style="letter-spacing:.14em">Post for team</label>
+              <select id="scout-post-team" name="team" class="scout-select" data-team-post-team>
+                {% for team_option in manageable_teams %}
+                <option value="{{ team_option.slug }}" data-api-url="{{ team_option.api_url }}" data-region="{{ team_option.region }}" data-platform="{{ team_option.platform }}" data-game="{{ team_option.game_slug }}">
+                  {{ team_option.name }}{% if team_option.tag %} [{{ team_option.tag }}]{% endif %} - {{ team_option.game_label }}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="scout-form-grid">
+              <div>
+                <label for="scout-post-title" class="mb-2 block text-[11px] font-bold uppercase text-[#8f8f9d]" style="letter-spacing:.14em">Position title</label>
+                <input id="scout-post-title" name="title" class="scout-field" maxlength="60" required placeholder="Entry Fragger, IGL, Support">
+              </div>
+              <div>
+                <label for="scout-post-role" class="mb-2 block text-[11px] font-bold uppercase text-[#8f8f9d]" style="letter-spacing:.14em">Role category</label>
+                <select id="scout-post-role" name="role_category" class="scout-select">
+                  {% for choice in team_recruitment_role_choices %}
+                  <option value="{{ choice.value }}">{{ choice.label }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div>
+                <label for="scout-post-rank" class="mb-2 block text-[11px] font-bold uppercase text-[#8f8f9d]" style="letter-spacing:.14em">Rank requirement</label>
+                <input id="scout-post-rank" name="rank_requirement" class="scout-field" maxlength="60" placeholder="Diamond+, Immortal 1+">
+              </div>
+              <div>
+                <label for="scout-post-region" class="mb-2 block text-[11px] font-bold uppercase text-[#8f8f9d]" style="letter-spacing:.14em">Region</label>
+                <input id="scout-post-region" name="region" class="scout-field" maxlength="30" placeholder="BD, South Asia, EU">
+              </div>
+              <div>
+                <label for="scout-post-platform" class="mb-2 block text-[11px] font-bold uppercase text-[#8f8f9d]" style="letter-spacing:.14em">Platform</label>
+                <input id="scout-post-platform" name="platform" class="scout-field" maxlength="30" placeholder="PC, Mobile, Console">
+              </div>
+              <label class="flex items-center gap-3 rounded-lg border border-white/10 bg-[#050507] px-3 py-3 text-sm font-bold text-white">
+                <input type="checkbox" name="is_active" checked>
+                Publish as active
+              </label>
+              <div class="scout-form-span">
+                <label for="scout-post-pitch" class="mb-2 block text-[11px] font-bold uppercase text-[#8f8f9d]" style="letter-spacing:.14em">Short pitch</label>
+                <textarea id="scout-post-pitch" name="short_pitch" class="scout-field min-h-[92px]" maxlength="140" placeholder="Tell players what you need and why they should apply."></textarea>
+              </div>
+              <label class="scout-form-span flex items-center gap-3 rounded-lg border border-white/10 bg-[#050507] px-3 py-3 text-sm text-[#e2e2e8]">
+                <input type="checkbox" name="cross_post_community">
+                Cross-post to community feed when supported
+              </label>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-3 border-t border-white/10 pt-4">
+              <button type="submit" class="scout-btn success">
+                <i class="fa-solid fa-paper-plane text-xs"></i>
+                Publish Recruitment Post
+              </button>
+              <p class="scout-status text-sm text-[#8f8f9d]" data-team-post-status></p>
+            </div>
+          </form>
+          {% elif request.user.is_authenticated %}
+          <div class="rounded-xl border border-white/10 bg-[#050507] p-5">
+            <h3 class="font-bold text-white">You need to own or manage a team first.</h3>
+            <p class="mt-2 text-sm text-[#8f8f9d]">Create a team or ask an owner to add you as a manager before posting recruitment needs.</p>
+            <a href="{% url 'organizations:team_create' %}" class="scout-btn accent mt-4">Create Team</a>
+          </div>
+          {% else %}
+          <div class="rounded-xl border border-white/10 bg-[#050507] p-5">
+            <h3 class="font-bold text-white">Sign in to post for a team.</h3>
+            <a href="/accounts/login/?next={% url 'organizations:team_find' %}" class="scout-btn accent mt-4">Sign In</a>
+          </div>
+          {% endif %}
+        </div>
+
+        <div data-post-step="lft" hidden>
+          <button type="button" class="mb-4 text-sm font-bold text-[#93c5fd] hover:text-white" data-post-back>
+            <i class="fa-solid fa-arrow-left mr-2"></i>Back
+          </button>
+          {% if request.user.is_authenticated %}
+          <form class="space-y-5" data-lft-post-form data-lft-api-url="{{ lft_save_url }}">
+            {% csrf_token %}
+            <div class="scout-form-grid">
+              <div>
+                <label for="scout-lft-status" class="mb-2 block text-[11px] font-bold uppercase text-[#8f8f9d]" style="letter-spacing:.14em">Career status</label>
+                <select id="scout-lft-status" name="career_status" class="scout-select">
+                  {% for choice in lft_career_status_choices %}
+                  <option value="{{ choice.value }}">{{ choice.label }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div>
+                <label for="scout-lft-availability" class="mb-2 block text-[11px] font-bold uppercase text-[#8f8f9d]" style="letter-spacing:.14em">Availability</label>
+                <select id="scout-lft-availability" name="availability" class="scout-select">
+                  {% for choice in lft_availability_choices %}
+                  <option value="{{ choice.value }}">{{ choice.label }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div>
+                <label for="scout-lft-primary" class="mb-2 block text-[11px] font-bold uppercase text-[#8f8f9d]" style="letter-spacing:.14em">Primary roles</label>
+                <input id="scout-lft-primary" name="primary_roles" class="scout-field" placeholder="IGL, Duelist, Support">
+              </div>
+              <div>
+                <label for="scout-lft-secondary" class="mb-2 block text-[11px] font-bold uppercase text-[#8f8f9d]" style="letter-spacing:.14em">Secondary roles</label>
+                <input id="scout-lft-secondary" name="secondary_roles" class="scout-field" placeholder="Flex, Analyst">
+              </div>
+              <div>
+                <label for="scout-lft-region" class="mb-2 block text-[11px] font-bold uppercase text-[#8f8f9d]" style="letter-spacing:.14em">Preferred region</label>
+                <input id="scout-lft-region" name="preferred_region" class="scout-field" maxlength="10" placeholder="BD, SEA, EU">
+              </div>
+              <div>
+                <label for="scout-lft-passport" class="mb-2 block text-[11px] font-bold uppercase text-[#8f8f9d]" style="letter-spacing:.14em">Public passport</label>
+                <select id="scout-lft-passport" name="passport_id" class="scout-select">
+                  <option value="">Career profile only</option>
+                  {% for passport in user_public_passports %}
+                  <option value="{{ passport.id }}">{{ passport.label }}{% if passport.is_lft %} - already LFT{% endif %}</option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+            <div class="rounded-xl border border-white/10 bg-[#050507] p-4 text-sm text-[#8f8f9d]">
+              This publishes your career profile as public LFT and only marks a passport LFT when you choose one of your public active passports.
+            </div>
+            <div class="flex flex-wrap items-center gap-3 border-t border-white/10 pt-4">
+              <button type="submit" class="scout-btn success">
+                <i class="fa-solid fa-user-check text-xs"></i>
+                Publish LFT Profile
+              </button>
+              <a href="{% url 'user_profile:settings' %}#career" class="scout-btn">Advanced Settings</a>
+              <p class="scout-status text-sm text-[#8f8f9d]" data-lft-post-status></p>
+            </div>
+          </form>
+          {% else %}
+          <div class="rounded-xl border border-white/10 bg-[#050507] p-5">
+            <h3 class="font-bold text-white">Sign in to publish your LFT profile.</h3>
+            <a href="/accounts/login/?next={% url 'organizations:team_find' %}" class="scout-btn accent mt-4">Sign In</a>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% else %}
 <div class="directory-hero min-h-screen">
   <!-- Decorative Glows -->
   <div class="fixed inset-0 z-0 pointer-events-none overflow-hidden">
@@ -174,7 +1039,7 @@
           <a href="{% url 'organizations:team_directory' %}" class="filter-pill {% if active_filter == 'all' %}active{% endif %}">
             <i class="fas fa-globe"></i> All Teams
           </a>
-          <a href="{% url 'organizations:team_directory' %}?filter=recruiting" class="filter-pill recruiting {% if active_filter == 'recruiting' %}active{% endif %}">
+          <a href="{% url 'organizations:team_find' %}" class="filter-pill recruiting {% if active_filter == 'recruiting' %}active{% endif %}">
             <i class="fas fa-bullhorn"></i> Recruiting
           </a>
         </div>
@@ -333,7 +1198,7 @@
               <div class="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 overflow-hidden
                 {% if item.team.logo %}bg-white/5{% else %}bg-gradient-to-br from-[#06b6d4]/20 to-[#8b5cf6]/20 border border-white/5{% endif %}">
                 {% if item.team.logo %}
-                <img src="{{ item.team.logo.url }}" alt="{{ item.team.name }}" class="w-full h-full object-cover">
+                <img src="{{ item.team.logo.url }}" alt="{{ item.team.name }}" class="w-full h-full object-cover" loading="lazy" decoding="async">
                 {% else %}
                 <i class="fas fa-shield-alt text-lg text-[#06b6d4]/60"></i>
                 {% endif %}
@@ -424,7 +1289,7 @@
           </p>
           <div class="flex flex-wrap justify-center gap-3">
             {% if is_recruiting_filter %}
-            <a href="{% url 'organizations:team_directory' %}?filter=recruiting" class="px-4 py-2 text-xs font-bold uppercase tracking-widest text-[#22c55e] border border-[#22c55e]/20 rounded-lg hover:bg-[#22c55e]/10 transition no-underline">
+            <a href="{% url 'organizations:team_find' %}" class="px-4 py-2 text-xs font-bold uppercase tracking-widest text-[#22c55e] border border-[#22c55e]/20 rounded-lg hover:bg-[#22c55e]/10 transition no-underline">
               <i class="fas fa-filter-circle-xmark mr-2"></i>Clear Recruiting Filters
             </a>
             <a href="{% url 'organizations:team_directory' %}" class="px-4 py-2 text-xs font-bold uppercase tracking-widest text-[#06b6d4] border border-[#06b6d4]/20 rounded-lg hover:bg-[#06b6d4]/10 transition no-underline">
@@ -462,7 +1327,7 @@
           <i class="fas fa-plus mr-2"></i>Create Team
         </a>
         {% if not is_recruiting_filter %}
-        <a href="{% url 'organizations:team_directory' %}?filter=recruiting" class="px-6 py-3 bg-[#22c55e]/10 border border-[#22c55e]/25 text-[#22c55e] text-xs font-bold uppercase tracking-widest rounded-lg hover:bg-[#22c55e]/20 transition no-underline">
+        <a href="{% url 'organizations:team_find' %}" class="px-6 py-3 bg-[#22c55e]/10 border border-[#22c55e]/25 text-[#22c55e] text-xs font-bold uppercase tracking-widest rounded-lg hover:bg-[#22c55e]/20 transition no-underline">
           <i class="fas fa-bullhorn mr-2"></i>Find Recruiting Teams
         </a>
         {% else %}
@@ -475,4 +1340,456 @@
 
   </div>
 </div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+{% if is_recruiting_filter %}
+<script nonce="{{ request.csp_nonce }}">
+  (function () {
+    const page = document.querySelector('[data-scout-page]');
+    if (!page) return;
+
+    const panels = Array.from(page.querySelectorAll('[data-scout-panel]'));
+    const tabs = Array.from(page.querySelectorAll('[data-scout-tab]'));
+    const resultCount = document.getElementById('scout-result-count');
+    const resultLabel = document.getElementById('scout-result-label');
+    const searchInputs = [
+      document.getElementById('scout-live-search'),
+      document.getElementById('scout-filter-q'),
+    ].filter(Boolean);
+    const gameFilters = Array.from(page.querySelectorAll('[data-game-filter]'));
+    const serverGameFilter = "{{ game_filter|escapejs }}";
+    const findTeamUrl = "{{ find_team_url|escapejs }}";
+    const controls = {
+      game: document.getElementById('scout-filter-game'),
+      region: document.getElementById('scout-filter-region'),
+      platform: document.getElementById('scout-filter-platform'),
+      sort: document.getElementById('scout-filter-sort'),
+      topSort: document.getElementById('scout-top-sort'),
+    };
+    const allCards = Array.from(page.querySelectorAll('[data-scout-card]'));
+    allCards.forEach((card, index) => {
+      card.dataset.originalIndex = String(index);
+    });
+
+    function clean(value) {
+      return (value || '').trim();
+    }
+
+    function normalize(value) {
+      return clean(value).toLowerCase();
+    }
+
+    function readStateFromUrl(useServerDefault) {
+      const params = new URLSearchParams(window.location.search);
+      const rawGame = params.get('game');
+      const mode = params.get('mode') === 'players' ? 'players' : 'teams';
+      const forceAllGames = rawGame === 'all';
+      let game = rawGame && rawGame !== 'all' ? rawGame : '';
+      if (!rawGame && useServerDefault) game = serverGameFilter || '';
+      return {
+        mode,
+        game,
+        all: forceAllGames,
+        q: params.get('q') || "{{ search_query|escapejs }}",
+        region: params.get('region') || "{{ region_filter|escapejs }}",
+        platform: params.get('platform') || "{{ platform_filter|escapejs }}",
+        sort: params.get('sort') || "{{ sort_by|escapejs }}" || "newest",
+      };
+    }
+
+    let state = readStateFromUrl(true);
+
+    function activePanel() {
+      return panels.find((panel) => !panel.hidden) || panels[0];
+    }
+
+    function buildStateUrl() {
+      const url = new URL(findTeamUrl, window.location.origin);
+      if (state.game) url.searchParams.set('game', state.game);
+      else if (state.all) url.searchParams.set('game', 'all');
+      if (state.mode === 'players') url.searchParams.set('mode', 'players');
+      if (clean(state.q)) url.searchParams.set('q', clean(state.q));
+      if (clean(state.region)) url.searchParams.set('region', clean(state.region));
+      if (clean(state.platform)) url.searchParams.set('platform', clean(state.platform));
+      if (state.sort && state.sort !== 'newest') url.searchParams.set('sort', state.sort);
+      return `${url.pathname}${url.search}`;
+    }
+
+    function pushStateUrl() {
+      const nextUrl = buildStateUrl();
+      const currentUrl = `${window.location.pathname}${window.location.search}`;
+      if (nextUrl !== currentUrl) {
+        window.history.pushState({ scoutState: state }, '', nextUrl);
+      }
+    }
+
+    function setSelectValue(select, value) {
+      if (!select) return;
+      select.value = value || '';
+      if (select.value !== (value || '')) select.value = '';
+    }
+
+    function syncControls() {
+      tabs.forEach((tab) => tab.classList.toggle('is-active', tab.dataset.scoutTab === state.mode));
+      panels.forEach((panel) => {
+        panel.hidden = panel.dataset.scoutPanel !== state.mode;
+      });
+      searchInputs.forEach((input) => {
+        if (input.value !== (state.q || '')) input.value = state.q || '';
+      });
+      setSelectValue(controls.game, state.game);
+      setSelectValue(controls.region, state.region);
+      setSelectValue(controls.platform, state.platform);
+      setSelectValue(controls.sort, state.sort || 'newest');
+      setSelectValue(controls.topSort, state.sort || 'newest');
+      updateGameFilterState();
+    }
+
+    function sortActiveGrid() {
+      const panel = activePanel();
+      if (!panel) return;
+      const grid = panel.querySelector('[data-scout-grid]');
+      if (!grid) return;
+      const cards = Array.from(grid.querySelectorAll('[data-scout-card]'));
+      const sortBy = state.sort || 'newest';
+      cards.sort((a, b) => {
+        if (sortBy === 'name') {
+          return normalize(a.dataset.sortName).localeCompare(normalize(b.dataset.sortName));
+        }
+        if (sortBy === 'members') {
+          return Number(b.dataset.sortMembers || 0) - Number(a.dataset.sortMembers || 0);
+        }
+        return Number(a.dataset.originalIndex || 0) - Number(b.dataset.originalIndex || 0);
+      });
+      cards.forEach((card) => grid.appendChild(card));
+    }
+
+    function updateCount() {
+      const panel = activePanel();
+      if (!panel || !resultCount || !resultLabel) return;
+      const cards = Array.from(panel.querySelectorAll('[data-scout-card]'));
+      const visibleCards = cards.filter((card) => !card.classList.contains('is-hidden')).length;
+      const type = panel.dataset.scoutPanel === 'players' ? 'LFT matches found' : 'LFP matches found';
+      resultCount.textContent = String(visibleCards);
+      resultLabel.textContent = type;
+      const empty = panel.querySelector(`[data-scout-empty="${panel.dataset.scoutPanel}"]`);
+      if (empty && cards.length) {
+        empty.classList.toggle('hidden', visibleCards > 0);
+      }
+    }
+
+    function applyClientFilters() {
+      const panel = activePanel();
+      if (!panel) return;
+      sortActiveGrid();
+      const query = normalize(state.q);
+      const region = normalize(state.region);
+      const platform = normalize(state.platform);
+      panel.querySelectorAll('[data-scout-card]').forEach((card) => {
+        const haystack = normalize(card.dataset.search);
+        const matchesSearch = !query || haystack.includes(query);
+        const matchesGame = !state.game || card.dataset.gameSlug === state.game;
+        const matchesRegion = !region || normalize(card.dataset.region).includes(region);
+        const matchesPlatform = !platform || normalize(card.dataset.platform).includes(platform);
+        card.classList.toggle('is-hidden', !(matchesSearch && matchesGame && matchesRegion && matchesPlatform));
+      });
+      updateCount();
+    }
+
+    function debounce(fn, wait) {
+      let timeoutId;
+      return function () {
+        window.clearTimeout(timeoutId);
+        const args = arguments;
+        timeoutId = window.setTimeout(() => fn.apply(null, args), wait);
+      };
+    }
+
+    function updateGameFilterState() {
+      gameFilters.forEach((link) => {
+        const isActive = (state.game || '') === (link.dataset.gameFilter || '');
+        link.classList.toggle('is-active', isActive);
+        if (isActive) {
+          link.setAttribute('aria-current', 'page');
+        } else {
+          link.removeAttribute('aria-current');
+        }
+      });
+    }
+
+    function setState(patch, options) {
+      if (Object.prototype.hasOwnProperty.call(patch, 'game') && !patch.game && !Object.prototype.hasOwnProperty.call(patch, 'all')) {
+        patch.all = Boolean(serverGameFilter);
+      }
+      if (patch.game) patch.all = false;
+      state = Object.assign({}, state, patch);
+      syncControls();
+      applyClientFilters();
+      if (!options || options.push !== false) pushStateUrl();
+    }
+
+    tabs.forEach((tab) => {
+      tab.addEventListener('click', () => setState({ mode: tab.dataset.scoutTab || 'teams' }));
+    });
+
+    const debouncedSearch = debounce((value) => setState({ q: value }), 140);
+    searchInputs.forEach((input) => {
+      input.addEventListener('input', () => debouncedSearch(input.value));
+      if (input.form) {
+        input.form.addEventListener('submit', (event) => {
+          event.preventDefault();
+          setState({ q: input.value });
+        });
+      }
+    });
+
+    gameFilters.forEach((link) => {
+      link.addEventListener('click', (event) => {
+        event.preventDefault();
+        const nextGame = link.dataset.gameFilter || '';
+        const linkUrl = new URL(link.href, window.location.origin);
+        setState({ game: nextGame, all: !nextGame && linkUrl.searchParams.get('game') === 'all' });
+      });
+    });
+
+    Object.entries({
+      game: controls.game,
+      region: controls.region,
+      platform: controls.platform,
+      sort: controls.sort,
+      topSort: controls.topSort,
+    }).forEach(([key, control]) => {
+      if (!control) return;
+      control.addEventListener('change', () => {
+        const patchKey = key === 'topSort' ? 'sort' : key;
+        setState({ [patchKey]: control.value || (patchKey === 'sort' ? 'newest' : '') });
+      });
+      if (control.form) {
+        control.form.addEventListener('submit', (event) => {
+          event.preventDefault();
+          setState({
+            game: controls.game ? controls.game.value : state.game,
+            region: controls.region ? controls.region.value : state.region,
+            platform: controls.platform ? controls.platform.value : state.platform,
+            sort: controls.sort ? controls.sort.value : state.sort,
+            q: document.getElementById('scout-filter-q') ? document.getElementById('scout-filter-q').value : state.q,
+          });
+        });
+      }
+    });
+
+    page.querySelectorAll('[data-reset-filters]').forEach((link) => {
+      link.addEventListener('click', (event) => {
+        event.preventDefault();
+        setState({ game: '', all: Boolean(serverGameFilter), q: '', region: '', platform: '', sort: 'newest', mode: 'teams' });
+      });
+    });
+
+    page.querySelectorAll('[data-clear-game-filter]').forEach((button) => {
+      button.addEventListener('click', () => setState({ game: '' }));
+    });
+
+    const filters = document.getElementById('scout-filters');
+    const filterOverlay = document.getElementById('scout-filter-overlay');
+    function openFilters() {
+      if (!filters || !filterOverlay) return;
+      filters.classList.add('is-open');
+      filterOverlay.classList.add('is-open');
+    }
+    function closeFilters() {
+      if (!filters || !filterOverlay) return;
+      filters.classList.remove('is-open');
+      filterOverlay.classList.remove('is-open');
+    }
+    page.querySelectorAll('[data-open-filters]').forEach((btn) => btn.addEventListener('click', openFilters));
+    document.querySelectorAll('[data-close-filters]').forEach((el) => el.addEventListener('click', closeFilters));
+
+    const drawer = document.getElementById('scout-drawer');
+    const drawerOverlay = document.getElementById('scout-drawer-overlay');
+    const drawerContent = document.getElementById('scout-drawer-content');
+    function openDrawer(templateId) {
+      const template = document.getElementById(templateId);
+      if (!template || !drawer || !drawerOverlay || !drawerContent) return;
+      drawerContent.innerHTML = template.innerHTML;
+      drawer.classList.add('is-open');
+      drawerOverlay.classList.add('is-open');
+      document.body.style.overflow = 'hidden';
+    }
+    function closeDrawer() {
+      if (!drawer || !drawerOverlay || !drawerContent) return;
+      drawer.classList.remove('is-open');
+      drawerOverlay.classList.remove('is-open');
+      drawerContent.innerHTML = '';
+      document.body.style.overflow = '';
+    }
+    page.querySelectorAll('[data-drawer-template]').forEach((btn) => {
+      btn.addEventListener('click', () => openDrawer(btn.dataset.drawerTemplate));
+    });
+    document.querySelectorAll('[data-close-drawer]').forEach((el) => el.addEventListener('click', closeDrawer));
+
+    const modal = document.getElementById('scout-post-modal');
+    const postSteps = Array.from(document.querySelectorAll('[data-post-step]'));
+    function openPostModal() {
+      if (!modal) return;
+      showPostStep('choice');
+      modal.classList.add('is-open');
+      document.body.style.overflow = 'hidden';
+    }
+    function closePostModal() {
+      if (!modal) return;
+      modal.classList.remove('is-open');
+      document.body.style.overflow = '';
+    }
+    function showPostStep(stepName) {
+      postSteps.forEach((step) => {
+        step.hidden = step.dataset.postStep !== stepName;
+      });
+    }
+    page.querySelectorAll('[data-open-post-modal]').forEach((btn) => btn.addEventListener('click', openPostModal));
+    document.querySelectorAll('[data-close-post-modal]').forEach((el) => {
+      el.addEventListener('click', (event) => {
+        if (event.target === el || el.hasAttribute('aria-label')) closePostModal();
+      });
+    });
+    document.querySelectorAll('[data-post-path]').forEach((button) => {
+      button.addEventListener('click', () => showPostStep(button.dataset.postPath || 'choice'));
+    });
+    document.querySelectorAll('[data-post-back]').forEach((button) => {
+      button.addEventListener('click', () => showPostStep('choice'));
+    });
+
+    function csrfToken() {
+      const input = modal ? modal.querySelector('[name=csrfmiddlewaretoken]') : null;
+      if (input && input.value && input.value !== 'NOTPROVIDED') return input.value;
+      const cookie = document.cookie.split(';').map((part) => part.trim()).find((part) => part.startsWith('csrftoken='));
+      return cookie ? decodeURIComponent(cookie.split('=').slice(1).join('=')) : '';
+    }
+
+    async function postJson(url, payload) {
+      const response = await fetch(url, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrfToken(),
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+        body: JSON.stringify(payload),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || data.success === false || data.error) {
+        throw new Error(typeof data.error === 'string' ? data.error : 'Request failed.');
+      }
+      return data;
+    }
+
+    function setStatus(node, message, ok) {
+      if (!node) return;
+      node.textContent = message || '';
+      node.classList.toggle('text-[#86efac]', Boolean(ok));
+      node.classList.toggle('text-[#fca5a5]', !ok && Boolean(message));
+    }
+
+    const teamForm = document.querySelector('[data-team-post-form]');
+    const teamSelect = document.querySelector('[data-team-post-team]');
+    function fillTeamDefaults(force) {
+      if (!teamSelect) return;
+      const selected = teamSelect.selectedOptions[0];
+      if (!selected) return;
+      const region = document.getElementById('scout-post-region');
+      const platform = document.getElementById('scout-post-platform');
+      if (region && (force || !region.value)) region.value = selected.dataset.region || '';
+      if (platform && (force || !platform.value)) platform.value = selected.dataset.platform || '';
+    }
+    if (teamSelect) {
+      teamSelect.addEventListener('change', () => fillTeamDefaults(true));
+      fillTeamDefaults(false);
+    }
+    if (teamForm) {
+      teamForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const statusNode = teamForm.querySelector('[data-team-post-status]');
+        const submit = teamForm.querySelector('[type=submit]');
+        const selected = teamSelect ? teamSelect.selectedOptions[0] : null;
+        if (!selected || !selected.dataset.apiUrl) {
+          setStatus(statusNode, 'Choose a manageable team first.', false);
+          return;
+        }
+        const formData = new FormData(teamForm);
+        const shortPitch = clean(formData.get('short_pitch'));
+        const payload = {
+          title: clean(formData.get('title')),
+          role_category: clean(formData.get('role_category')),
+          rank_requirement: clean(formData.get('rank_requirement')),
+          region: clean(formData.get('region')),
+          platform: clean(formData.get('platform')),
+          short_pitch: shortPitch,
+          description: shortPitch,
+          cross_post_community: formData.has('cross_post_community'),
+          is_active: formData.has('is_active'),
+        };
+        try {
+          if (submit) submit.disabled = true;
+          setStatus(statusNode, 'Publishing recruitment post...', true);
+          await postJson(selected.dataset.apiUrl, payload);
+          setStatus(statusNode, 'Published. Refresh results when you want to see the new card.', true);
+          teamForm.reset();
+          fillTeamDefaults(true);
+        } catch (error) {
+          setStatus(statusNode, error.message || 'Could not publish recruitment post.', false);
+        } finally {
+          if (submit) submit.disabled = false;
+        }
+      });
+    }
+
+    const lftForm = document.querySelector('[data-lft-post-form]');
+    if (lftForm) {
+      lftForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const statusNode = lftForm.querySelector('[data-lft-post-status]');
+        const submit = lftForm.querySelector('[type=submit]');
+        const formData = new FormData(lftForm);
+        const payload = {
+          career_status: clean(formData.get('career_status')),
+          availability: clean(formData.get('availability')),
+          primary_roles: clean(formData.get('primary_roles')),
+          secondary_roles: clean(formData.get('secondary_roles')),
+          preferred_region: clean(formData.get('preferred_region')),
+          passport_id: clean(formData.get('passport_id')),
+        };
+        try {
+          if (submit) submit.disabled = true;
+          setStatus(statusNode, 'Publishing LFT profile...', true);
+          await postJson(lftForm.dataset.lftApiUrl, payload);
+          setStatus(statusNode, 'Published. Refresh results when you want to see your LFT card.', true);
+        } catch (error) {
+          setStatus(statusNode, error.message || 'Could not publish LFT profile.', false);
+        } finally {
+          if (submit) submit.disabled = false;
+        }
+      });
+    }
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key !== 'Escape') return;
+      closeFilters();
+      closeDrawer();
+      closePostModal();
+    });
+
+    window.addEventListener('popstate', () => {
+      state = readStateFromUrl(true);
+      syncControls();
+      applyClientFilters();
+    });
+
+    syncControls();
+    applyClientFilters();
+  })();
+</script>
+{% endif %}
 {% endblock %}

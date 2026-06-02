@@ -106,6 +106,7 @@ class URLNamingContractTests(SimpleTestCase):
         expected_names = {
             'vnext_hub',
             'vnext_hub_filter',
+            'team_find',
             'team_directory',
             'team_create',
             'team_invites',
@@ -146,6 +147,7 @@ class TemplatURLReferencesTests(SimpleTestCase):
         cls.allowed_url_names = {
             'vnext_hub',
             'vnext_hub_filter',
+            'team_find',
             'team_directory',
             'team_create',
             'team_invites',

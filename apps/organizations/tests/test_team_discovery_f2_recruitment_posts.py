@@ -1,3 +1,5 @@
+import json
+
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
 from django.test import TestCase
@@ -167,14 +169,249 @@ class TeamDiscoveryF2RecruitmentPostTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         html = response.content.decode()
-        self.assertIn("Find Team", html)
+        self.assertIn("Live Scouting Network", html)
         self.assertIn("Scouting Grounds", html)
-        self.assertIn("Filter by game, region, platform, or search", html)
+        self.assertIn("Recruit.", html)
+        self.assertIn("LFP", html)
+        self.assertIn("LFT", html)
         self.assertIn("Directory IGL", html)
         self.assertIn("Shot-calling role open.", html)
         self.assertIn("Diamond+", html)
         self.assertIn("2 roles", html)
+        self.assertIn('href="/teams/directory-protocol/"', html)
         self.assertIn("View &amp; Apply", html)
+        self.assertIn("View Team Profile", html)
+
+    def test_find_team_route_renders_recruiting_scouting_grounds(self):
+        team = self._team("Find Route Protocol", "find-route-protocol")
+        self._position(team, "Find Route Controller", short_pitch="Controller role from clean route.")
+
+        response = self.client.get(reverse("organizations:team_find"))
+
+        self.assertEqual(response.status_code, 200)
+        html = response.content.decode()
+        self.assertIn("Live Scouting Network", html)
+        self.assertIn("Scouting Grounds", html)
+        self.assertIn("Find Route Controller", html)
+        self.assertIn("Controller role from clean route.", html)
+
+    def test_old_recruiting_directory_url_still_renders_scouting_grounds(self):
+        team = self._team("Legacy Route Protocol", "legacy-route-protocol")
+        self._position(team, "Legacy Route IGL", short_pitch="Old query URL still works.")
+
+        response = self.client.get(reverse("organizations:team_directory") + "?filter=recruiting")
+
+        self.assertEqual(response.status_code, 200)
+        html = response.content.decode()
+        self.assertIn("Live Scouting Network", html)
+        self.assertIn("Legacy Route IGL", html)
+        self.assertIn("Old query URL still works.", html)
+
+    def test_find_team_catalog_game_query_preselects_without_server_pruning_cards(self):
+        team = self._team("Catalog Query Protocol", "catalog-query-protocol")
+        self._position(team, "Catalog Query IGL", short_pitch="Still rendered for client-side filtering.")
+
+        response = self.client.get(reverse("organizations:team_find") + "?game=cs2")
+
+        self.assertEqual(response.status_code, 200)
+        html = response.content.decode()
+        self.assertIn('title="CS2 - no configured game data yet" aria-current="page"', html)
+        self.assertIn("Catalog Query IGL", html)
+        self.assertIn("Still rendered for client-side filtering.", html)
+
+    def test_find_team_game_selector_renders_all_games_and_real_games(self):
+        response = self.client.get(reverse("organizations:team_find"))
+
+        self.assertEqual(response.status_code, 200)
+        html = response.content.decode()
+        self.assertIn('title="All Games"', html)
+        for label in [
+            "Valorant",
+            "PUBG Mobile",
+            "Free Fire",
+            "CS2",
+            "Dota 2",
+            "Mobile Legends: Bang Bang",
+            "eFootball",
+            "FC 26",
+            "Rocket League",
+            "Apex Legends",
+            "Call of Duty: Mobile",
+        ]:
+            self.assertIn(label, html)
+        self.assertIn('data-game-filter="discovery-f2"', html)
+        self.assertIn("Discovery F2", html)
+        self.assertIn("scout-game-icon", html)
+
+    def test_find_team_anonymous_defaults_to_all_games(self):
+        response = self.client.get(reverse("organizations:team_find"))
+
+        self.assertEqual(response.status_code, 200)
+        html = response.content.decode()
+        self.assertIn('data-game-filter="" data-game-available="1" title="All Games" aria-current="page"', html)
+        self.assertNotIn("game=&", html)
+        self.assertNotIn("region=&", html)
+        self.assertNotIn("platform=&", html)
+        self.assertNotIn("q=&", html)
+
+    def test_find_team_defaults_to_authenticated_primary_team_game(self):
+        primary_team = self._team("Primary Game Team", "primary-game-team")
+        self._position(primary_team, "Primary Game Role", short_pitch="Primary game role.")
+        other_game = Game.objects.create(
+            name="Other Discovery Game",
+            display_name="Other Discovery",
+            slug="other-discovery",
+            short_code="OD",
+            category="MOBA",
+            game_type="TEAM_VS_TEAM",
+            platforms=["PC"],
+            is_active=True,
+        )
+        other_team = Team.objects.create(
+            name="Other Game Team",
+            slug="other-game-team",
+            tag="ODT",
+            created_by=self.user,
+            game_id=other_game.id,
+            region="Bangladesh",
+            status=TeamStatus.ACTIVE,
+            visibility="PUBLIC",
+            is_recruiting=True,
+            description="Other game team should be filtered out by default.",
+        )
+        self._position(other_team, "Other Game Role", short_pitch="Other game role.")
+        profile, _ = UserProfile.objects.get_or_create(user=self.user)
+        profile.primary_team = primary_team
+        profile.primary_game = self.game
+        profile.save(update_fields=["primary_team", "primary_game"])
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse("organizations:team_find"))
+
+        self.assertEqual(response.status_code, 200)
+        html = response.content.decode()
+        self.assertIn('data-game-filter="discovery-f2"', html)
+        self.assertIn('title="Discovery F2" aria-current="page"', html)
+        self.assertIn("Primary Game Role", html)
+        self.assertIn("Other Game Role", html)
+
+    def test_find_team_post_need_modal_has_real_role_options(self):
+        team = self._team("Modal Protocol", "modal-protocol")
+        self._position(team, "Modal Recruit", short_pitch="Modal role.")
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse("organizations:team_find"))
+
+        self.assertEqual(response.status_code, 200)
+        html = response.content.decode()
+        self.assertIn("What do you want to post?", html)
+        self.assertIn("Team Recruitment Post", html)
+        self.assertIn("Looking For Team Profile", html)
+        self.assertIn("Publish Recruitment Post", html)
+        self.assertIn("Publish LFT Profile", html)
+        self.assertIn('data-team-post-form', html)
+        self.assertIn('data-lft-post-form', html)
+        self.assertIn('/api/vnext/teams/modal-protocol/recruitment/positions/save/', html)
+        self.assertNotIn("Publish to Network", html)
+
+    def test_find_team_team_recruitment_post_endpoint_creates_position(self):
+        team = Team.objects.create(
+            name="Post Modal Team",
+            slug="post-modal-team",
+            tag="PMT",
+            created_by=self.user,
+            game_id=self.game.id,
+            region="Bangladesh",
+            platform="PC",
+            status=TeamStatus.ACTIVE,
+            visibility="PUBLIC",
+            is_recruiting=False,
+            description="Created inactive until posting.",
+        )
+        self.client.force_login(self.user)
+
+        response = self.client.post(
+            reverse("organizations_api:team_recruitment_position_save", kwargs={"slug": team.slug}),
+            data=json.dumps({
+                "title": "Modal Entry",
+                "role_category": RecruitmentPosition.RoleCategory.ENTRY,
+                "rank_requirement": "Diamond+",
+                "region": "BD",
+                "platform": "PC",
+                "short_pitch": "Direct modal post.",
+                "description": "Direct modal post.",
+                "is_active": True,
+            }),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(RecruitmentPosition.objects.filter(team=team, title="Modal Entry").exists())
+        team.refresh_from_db()
+        self.assertTrue(team.is_recruiting)
+
+    def test_find_team_team_recruitment_post_endpoint_blocks_non_manager(self):
+        team = self._team("Blocked Modal Team", "blocked-modal-team")
+        other_user = get_user_model().objects.create_user(
+            username="blocked_modal_user",
+            email="blocked-modal@example.com",
+            password="testpass123",
+        )
+        self.client.force_login(other_user)
+
+        response = self.client.post(
+            reverse("organizations_api:team_recruitment_position_save", kwargs={"slug": team.slug}),
+            data=json.dumps({"title": "Blocked Entry"}),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 403)
+        self.assertFalse(RecruitmentPosition.objects.filter(team=team, title="Blocked Entry").exists())
+
+    def test_find_team_lft_publish_endpoint_updates_career_and_public_passport(self):
+        player = get_user_model().objects.create_user(
+            username="modal_lft_player",
+            email="modal-lft@example.com",
+            password="testpass123",
+        )
+        profile, _ = UserProfile.objects.get_or_create(user=player)
+        passport = GameProfile.objects.create(
+            user=player,
+            game=self.game,
+            ign="ModalMain",
+            in_game_name="ModalMain#BD",
+            rank_name="Ascendant 2",
+            rank_tier=8,
+            main_role="Controller",
+            platform="PC",
+            region="BD",
+            visibility=GameProfile.VISIBILITY_PUBLIC,
+            status=GameProfile.STATUS_ACTIVE,
+            is_lft=False,
+        )
+        self.client.force_login(player)
+
+        response = self.client.post(
+            reverse("organizations_api:discovery_lft_profile_save"),
+            data=json.dumps({
+                "career_status": "FREE_AGENT",
+                "availability": "WEEKENDS",
+                "primary_roles": "Controller, IGL",
+                "secondary_roles": "Flex",
+                "preferred_region": "BD",
+                "passport_id": passport.id,
+            }),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        career = CareerProfile.objects.get(user_profile=profile)
+        self.assertTrue(career.lft_enabled)
+        self.assertEqual(career.career_status, "FREE_AGENT")
+        self.assertEqual(career.recruiter_visibility, "PUBLIC")
+        self.assertEqual(career.primary_roles, ["Controller", "IGL"])
+        passport.refresh_from_db()
+        self.assertTrue(passport.is_lft)
 
     def test_recruiting_directory_does_not_render_inactive_recruitment_position(self):
         team = self._team(
@@ -215,7 +452,7 @@ class TeamDiscoveryF2RecruitmentPostTests(TestCase):
         html = response.content.decode()
         self.assertIn("Team Directory", html)
         self.assertNotIn("Players Looking For Team", html)
-        self.assertNotIn("Scouting Grounds shows public teams that are actively recruiting", html)
+        self.assertNotIn("Live Scouting Network", html)
 
     def test_recruiting_directory_platform_filter_matches_recruitment_position(self):
         pc_team = self._team("PC Protocol", "pc-protocol")
@@ -276,11 +513,13 @@ class TeamDiscoveryF2RecruitmentPostTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         html = response.content.decode()
-        self.assertIn("Players Looking For Team", html)
+        self.assertIn("LFT", html)
         self.assertIn("Public LFT Player", html)
         self.assertIn("/@public_lft_player/", html)
+        self.assertIn("View Profile", html)
         self.assertIn("IGL", html)
         self.assertNotIn("Private LFT Player", html)
+        self.assertNotIn("/available-players/", html)
 
     def test_recruiting_directory_available_player_shows_public_passport_summary(self):
         self._lft_player(
@@ -301,6 +540,29 @@ class TeamDiscoveryF2RecruitmentPostTests(TestCase):
         self.assertIn("Ascendant 1", html)
         self.assertIn("Initiator", html)
         self.assertIn("PC", html)
+        self.assertIn("Tier 7", html)
+
+    def test_recruiting_directory_does_not_render_prototype_fake_data_or_nav(self):
+        team = self._team("Real Directory Squad", "real-directory-squad")
+        self._position(team, "Real Support", short_pitch="Real backend post.")
+        self._lft_player(
+            "real_lft_player",
+            display_name="Real LFT Player",
+            passport_visibility=GameProfile.VISIBILITY_PUBLIC,
+        )
+
+        response = self.client.get(reverse("organizations:team_directory") + "?filter=recruiting")
+
+        self.assertEqual(response.status_code, 200)
+        html = response.content.decode()
+        self.assertIn("Real Directory Squad", html)
+        self.assertIn("Real LFT Player", html)
+        self.assertNotIn("Neon Paradox", html)
+        self.assertNotIn("FlickGod", html)
+        self.assertNotIn("ClutchRex", html)
+        self.assertNotIn("Virtual Galacticos", html)
+        self.assertNotIn("dicebear.com", html)
+        self.assertNotIn(">Scouting</a>", html)
 
     def test_recruiting_directory_hides_lft_disabled_career_profile(self):
         self._lft_player(

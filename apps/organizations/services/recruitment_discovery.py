@@ -2,7 +2,7 @@
 
 from collections import defaultdict
 
-from django.db.models import Prefetch
+from django.db.models import Prefetch, Q
 from django.urls import reverse
 
 from apps.organizations.models.recruitment import RecruitmentPosition
@@ -108,36 +108,95 @@ def _passport_summary(passport):
     }
 
 
-def get_available_player_summaries(limit=8, passports_per_player=2):
+def _public_passport_queryset():
+    from apps.user_profile.models import GameProfile
+
+    return GameProfile.objects.filter(
+        status=GameProfile.STATUS_ACTIVE,
+        visibility=GameProfile.VISIBILITY_PUBLIC,
+    )
+
+
+def get_available_player_summaries(
+    limit=8,
+    passports_per_player=2,
+    *,
+    game_slug="",
+    region="",
+    platform="",
+    search_query="",
+    sort_by="newest",
+):
     """Return public-safe Looking For Team player summaries for discovery."""
-    from apps.user_profile.models import CareerProfile, GameProfile
+    from apps.user_profile.models import CareerProfile
 
     career_statuses = tuple(
         value
         for value, _label in CareerProfile._meta.get_field("career_status").choices
         if value in LFT_CAREER_STATUS_VALUES
     )
-    careers = list(
-        CareerProfile.objects.filter(
-            lft_enabled=True,
-            recruiter_visibility="PUBLIC",
-            career_status__in=career_statuses,
-            user_profile__user__is_active=True,
+    careers_qs = CareerProfile.objects.filter(
+        lft_enabled=True,
+        recruiter_visibility="PUBLIC",
+        career_status__in=career_statuses,
+        user_profile__user__is_active=True,
+    ).select_related("user_profile", "user_profile__user")
+
+    public_passports = _public_passport_queryset()
+
+    if game_slug:
+        game_user_ids = public_passports.filter(game__slug=game_slug).values("user_id")
+        careers_qs = careers_qs.filter(user_profile__user_id__in=game_user_ids)
+
+    if platform:
+        platform_user_ids = public_passports.filter(platform__icontains=platform).values("user_id")
+        careers_qs = careers_qs.filter(user_profile__user_id__in=platform_user_ids)
+
+    if region:
+        region_user_ids = public_passports.filter(region__icontains=region).values("user_id")
+        careers_qs = careers_qs.filter(
+            Q(preferred_region__icontains=region) |
+            Q(user_profile__user_id__in=region_user_ids)
         )
-        .select_related("user_profile", "user_profile__user")
-        .order_by("-last_updated")[:limit]
-    )
+
+    if search_query:
+        matching_passport_user_ids = public_passports.filter(
+            Q(ign__icontains=search_query) |
+            Q(in_game_name__icontains=search_query) |
+            Q(rank_name__icontains=search_query) |
+            Q(main_role__icontains=search_query) |
+            Q(game__display_name__icontains=search_query) |
+            Q(game__name__icontains=search_query)
+        ).values("user_id")
+        careers_qs = careers_qs.filter(
+            Q(user_profile__display_name__icontains=search_query) |
+            Q(user_profile__user__username__icontains=search_query) |
+            Q(preferred_region__icontains=search_query) |
+            Q(user_profile__user_id__in=matching_passport_user_ids)
+        )
+
+    if sort_by == "name":
+        careers_qs = careers_qs.order_by("user_profile__display_name", "user_profile__user__username")
+    else:
+        careers_qs = careers_qs.order_by("-last_updated")
+
+    careers = list(careers_qs.distinct()[:limit])
     if not careers:
         return []
 
     user_ids = [career.user_profile.user_id for career in careers]
     passports_by_user = defaultdict(list)
+    passport_filters = Q(user_id__in=user_ids)
+    if game_slug:
+        passport_filters &= Q(game__slug=game_slug)
+    if platform:
+        passport_filters &= Q(platform__icontains=platform)
+    if region:
+        passport_filters &= Q(region__icontains=region)
+
     passports = (
-        GameProfile.objects.filter(
-            user_id__in=user_ids,
-            status=GameProfile.STATUS_ACTIVE,
-            visibility=GameProfile.VISIBILITY_PUBLIC,
-        )
+        _public_passport_queryset()
+        .filter(passport_filters)
         .select_related("game")
         .only(
             "id",

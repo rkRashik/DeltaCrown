@@ -75,6 +75,9 @@ urlpatterns = [
     path('teams/<str:slug>/activity/', team_manage.activity_timeline, name='team_manage_activity'),
     path('teams/<str:slug>/payment-methods/', team_manage.update_payment_methods, name='team_manage_payment_methods'),
 
+    # Find Team / Scouting Grounds self-publish helpers
+    path('discovery/lft-profile/save/', team_manage.discovery_lft_profile_save, name='discovery_lft_profile_save'),
+
     # Applicant-facing team application history
     path('me/team-applications/', training.my_team_applications, name='my_team_applications'),
 

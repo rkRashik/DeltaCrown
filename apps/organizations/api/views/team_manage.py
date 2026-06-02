@@ -32,6 +32,7 @@ from urllib.parse import urlparse
 
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import ValidationError
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.utils.text import slugify
@@ -3370,6 +3371,9 @@ def recruitment_position_save(request, slug):
         for k, v in save_fields.items():
             setattr(pos, k, v)
         pos.save(update_fields=list(save_fields.keys()))
+        if save_fields.get('is_active') and not team.is_recruiting:
+            team.is_recruiting = True
+            team.save(update_fields=['is_recruiting'])
         return JsonResponse({'success': True, 'id': pos.pk, 'message': 'Position updated.'})
 
     # Check limit (max 10 active positions)
@@ -3382,6 +3386,9 @@ def recruitment_position_save(request, slug):
         sort_order=active_count,
         **save_fields,
     )
+    if save_fields.get('is_active') and not team.is_recruiting:
+        team.is_recruiting = True
+        team.save(update_fields=['is_recruiting'])
     return JsonResponse({'success': True, 'id': pos.pk, 'message': 'Position added.'})
 
 
@@ -3398,6 +3405,112 @@ def recruitment_position_delete(request, slug, position_id):
     pos = get_object_or_404(RecruitmentPosition, pk=position_id, team=team)
     pos.delete()
     return JsonResponse({'success': True, 'message': 'Position removed.'})
+
+
+def _discovery_list_value(value, *, limit=6):
+    if isinstance(value, list):
+        raw_items = value
+    elif isinstance(value, str):
+        raw_items = value.replace("\n", ",").split(",")
+    else:
+        raw_items = []
+
+    items = []
+    for item in raw_items:
+        label = str(item).strip()
+        if label and label not in items:
+            items.append(label[:40])
+        if len(items) >= limit:
+            break
+    return items
+
+
+@api_login_required
+@require_http_methods(["POST"])
+def discovery_lft_profile_save(request):
+    """POST /api/vnext/discovery/lft-profile/save/ — publish current user's LFT profile."""
+    try:
+        data = json.loads(request.body or "{}")
+    except (json.JSONDecodeError, ValueError):
+        return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+
+    from apps.user_profile.models import CareerProfile, GameProfile, UserProfile
+
+    try:
+        profile = UserProfile.objects.get(user=request.user)
+    except UserProfile.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'User profile not found'}, status=404)
+
+    allowed_statuses = {"LOOKING", "FREE_AGENT"}
+    career_status = (data.get("career_status") or "LOOKING").strip().upper()
+    if career_status not in allowed_statuses:
+        return JsonResponse({'success': False, 'error': 'Choose Looking or Free Agent status.'}, status=400)
+
+    availability_choices = {value for value, _label in CareerProfile._meta.get_field("availability").choices}
+    availability = (data.get("availability") or "PART_TIME").strip().upper()
+    if availability not in availability_choices:
+        return JsonResponse({'success': False, 'error': 'Invalid availability.'}, status=400)
+
+    career, _created = CareerProfile.objects.get_or_create(user_profile=profile)
+    career.career_status = career_status
+    career.lft_enabled = True
+    career.primary_roles = _discovery_list_value(data.get("primary_roles"))
+    career.secondary_roles = _discovery_list_value(data.get("secondary_roles"))
+    career.preferred_region = (data.get("preferred_region") or "").strip()[:10]
+    career.availability = availability
+    career.recruiter_visibility = "PUBLIC"
+
+    try:
+        career.full_clean()
+        career.save()
+    except ValidationError as exc:
+        return JsonResponse({'success': False, 'error': exc.message_dict if hasattr(exc, "message_dict") else exc.messages}, status=400)
+
+    passport_payload = None
+    passport_id = data.get("passport_id")
+    if passport_id:
+        try:
+            passport_id = int(passport_id)
+        except (TypeError, ValueError):
+            return JsonResponse({'success': False, 'error': 'Invalid passport.'}, status=400)
+
+        passport = (
+            GameProfile.objects.select_related("game")
+            .filter(
+                id=passport_id,
+                user=request.user,
+                status=GameProfile.STATUS_ACTIVE,
+                visibility=GameProfile.VISIBILITY_PUBLIC,
+            )
+            .first()
+        )
+        if not passport:
+            return JsonResponse({'success': False, 'error': 'Choose one of your public active passports.'}, status=400)
+        if not passport.is_lft:
+            passport.is_lft = True
+            passport.save(update_fields=["is_lft"])
+        passport_payload = {
+            "id": passport.id,
+            "game_slug": passport.game.slug,
+            "game": passport.game.display_name,
+            "in_game_name": passport.in_game_name or passport.ign or "",
+            "is_lft": True,
+        }
+
+    return JsonResponse({
+        'success': True,
+        'message': 'Looking For Team profile published.',
+        'career': {
+            'career_status': career.career_status,
+            'lft_enabled': career.lft_enabled,
+            'primary_roles': career.primary_roles,
+            'secondary_roles': career.secondary_roles,
+            'preferred_region': career.preferred_region,
+            'availability': career.availability,
+            'recruiter_visibility': career.recruiter_visibility,
+        },
+        'passport': passport_payload,
+    })
 
 
 @api_login_required
