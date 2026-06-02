@@ -9,6 +9,7 @@ Phase 11: Premium dark theme team directory.
 from django.db.models import Count, Q
 from django.shortcuts import render
 from django.core.cache import cache
+from django.templatetags.static import static
 from django.urls import reverse
 from django.utils.text import slugify
 
@@ -32,6 +33,7 @@ GAME_SELECTOR_CATALOG = [
         "short_label": "VAL",
         "initials": "VAL",
         "color": "#ff4655",
+        "asset_key": "valorant",
         "aliases": ("valorant", "val"),
     },
     {
@@ -40,6 +42,7 @@ GAME_SELECTOR_CATALOG = [
         "short_label": "PUBGM",
         "initials": "PUB",
         "color": "#f2a900",
+        "asset_key": "pubg",
         "aliases": ("pubg-mobile", "pubgm", "pubg"),
     },
     {
@@ -48,6 +51,7 @@ GAME_SELECTOR_CATALOG = [
         "short_label": "FF",
         "initials": "FF",
         "color": "#ff7a00",
+        "asset_key": "freefire",
         "aliases": ("free-fire", "freefire", "ff"),
     },
     {
@@ -56,6 +60,7 @@ GAME_SELECTOR_CATALOG = [
         "short_label": "CS2",
         "initials": "CS2",
         "color": "#f59e0b",
+        "asset_key": "cs2",
         "aliases": ("cs2", "counter-strike-2", "counter-strike", "counter-strike-global-offensive"),
     },
     {
@@ -64,6 +69,7 @@ GAME_SELECTOR_CATALOG = [
         "short_label": "DOTA",
         "initials": "D2",
         "color": "#a11d20",
+        "asset_key": "dota2",
         "aliases": ("dota-2", "dota2", "dota"),
     },
     {
@@ -72,6 +78,7 @@ GAME_SELECTOR_CATALOG = [
         "short_label": "MLBB",
         "initials": "ML",
         "color": "#2563eb",
+        "asset_key": "mlbb",
         "aliases": ("mobile-legends-bang-bang", "mobile-legends", "mlbb", "ml"),
     },
     {
@@ -80,6 +87,7 @@ GAME_SELECTOR_CATALOG = [
         "short_label": "eFB",
         "initials": "eF",
         "color": "#22c55e",
+        "asset_key": "efootball",
         "aliases": ("efootball", "e-football", "pes"),
     },
     {
@@ -88,6 +96,7 @@ GAME_SELECTOR_CATALOG = [
         "short_label": "FC26",
         "initials": "FC",
         "color": "#14b8a6",
+        "asset_key": "fc26",
         "aliases": ("fc-26", "fc26", "ea-sports-fc-26", "fifa-26"),
     },
     {
@@ -96,6 +105,7 @@ GAME_SELECTOR_CATALOG = [
         "short_label": "RL",
         "initials": "RL",
         "color": "#0ea5e9",
+        "asset_key": "rocketleague",
         "aliases": ("rocket-league", "rocketleague", "rl"),
     },
     {
@@ -104,6 +114,7 @@ GAME_SELECTOR_CATALOG = [
         "short_label": "Apex",
         "initials": "APX",
         "color": "#ef4444",
+        "asset_key": "",
         "aliases": ("apex-legends", "apex"),
     },
     {
@@ -112,6 +123,7 @@ GAME_SELECTOR_CATALOG = [
         "short_label": "CODM",
         "initials": "COD",
         "color": "#facc15",
+        "asset_key": "codm",
         "aliases": ("call-of-duty-mobile", "cod-mobile", "codm", "call-of-duty"),
     },
 ]
@@ -129,6 +141,12 @@ def _game_image_url(game, field_name):
         return image.url
     except ValueError:
         return ""
+
+
+def _game_design_logo_url(asset_key):
+    if not asset_key:
+        return ""
+    return static(f"organizations/team_find/assets/games/logos/{asset_key}.jpg")
 
 
 def _find_team_url_with(request, **overrides):
@@ -252,6 +270,7 @@ def _game_selector_options(request, active_games, game_filter, *, preferred_game
         "is_active": not bool(game_filter),
         "icon_url": "",
         "logo_url": "",
+        "design_logo_url": "",
         "initials": "ALL",
         "is_available": True,
         "is_catalog": True,
@@ -288,6 +307,7 @@ def _game_selector_options(request, active_games, game_filter, *, preferred_game
             "is_active": slug == game_filter,
             "icon_url": _game_image_url(game, "icon") if game else "",
             "logo_url": _game_image_url(game, "logo") if game else "",
+            "design_logo_url": _game_design_logo_url(catalog_game.get("asset_key")),
             "initials": ((game.short_code if game else catalog_game["initials"]) or catalog_game["initials"]).upper(),
             "is_available": bool(game),
             "is_catalog": True,
@@ -305,6 +325,7 @@ def _game_selector_options(request, active_games, game_filter, *, preferred_game
             "is_active": game.slug == game_filter,
             "icon_url": _game_image_url(game, "icon"),
             "logo_url": _game_image_url(game, "logo"),
+            "design_logo_url": "",
             "initials": (game.short_code or game.display_name[:3]).upper(),
             "is_available": True,
             "is_catalog": False,
@@ -501,8 +522,17 @@ def team_directory(request, force_recruiting=False):
         else []
     )
 
+    manageable_teams = _manageable_team_options(request.user)
+    if not request.user.is_authenticated:
+        scout_role = 'guest'
+    elif manageable_teams:
+        scout_role = 'manager'
+    else:
+        scout_role = 'player'
+
     context = {
         'teams': team_list,
+        'scout_role': scout_role,
         'total_teams': total_teams,
         'recruiting_count': recruiting_count,
         'recruiting_result_count': len(team_list),
@@ -527,7 +557,7 @@ def team_directory(request, force_recruiting=False):
         'lft_teasers': available_players,
         'find_team_url': reverse('organizations:team_find'),
         'directory_recruiting_url': f"{reverse('organizations:team_directory')}?filter=recruiting",
-        'manageable_teams': _manageable_team_options(request.user),
+        'manageable_teams': manageable_teams,
         'user_public_passports': _public_passport_options(request.user),
         'team_recruitment_role_choices': _choice_options(RecruitmentPosition.RoleCategory.choices),
         'lft_career_status_choices': _choice_options(

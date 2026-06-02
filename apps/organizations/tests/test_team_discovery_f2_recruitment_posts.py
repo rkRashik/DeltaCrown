@@ -171,7 +171,7 @@ class TeamDiscoveryF2RecruitmentPostTests(TestCase):
         html = response.content.decode()
         self.assertIn("Live Scouting Network", html)
         self.assertIn("Scouting Grounds", html)
-        self.assertIn("Recruit.", html)
+        self.assertIn("Build your roster. Find your team.", html)
         self.assertIn("LFP", html)
         self.assertIn("LFT", html)
         self.assertIn("Directory IGL", html)
@@ -192,8 +192,15 @@ class TeamDiscoveryF2RecruitmentPostTests(TestCase):
         html = response.content.decode()
         self.assertIn("Live Scouting Network", html)
         self.assertIn("Scouting Grounds", html)
+        self.assertIn("Build your roster. Find your team.", html)
+        self.assertIn("Browse all games", html)
         self.assertIn("Find Route Controller", html)
         self.assertIn("Controller role from clean route.", html)
+        self.assertIn('data-find-team-v2', html)
+        self.assertIn('data-game-grid', html)
+        self.assertIn('data-cmdk-overlay', html)
+        self.assertNotIn("scout-game-strip", html)
+        self.assertNotIn("overflow-x-auto", html)
 
     def test_old_recruiting_directory_url_still_renders_scouting_grounds(self):
         team = self._team("Legacy Route Protocol", "legacy-route-protocol")
@@ -215,7 +222,9 @@ class TeamDiscoveryF2RecruitmentPostTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         html = response.content.decode()
-        self.assertIn('title="CS2 - no configured game data yet" aria-current="page"', html)
+        self.assertIn('title="CS2 - no configured game data yet"', html)
+        self.assertIn('data-game="cs2"', html)
+        self.assertIn('aria-current="page"', html)
         self.assertIn("Catalog Query IGL", html)
         self.assertIn("Still rendered for client-side filtering.", html)
 
@@ -239,16 +248,21 @@ class TeamDiscoveryF2RecruitmentPostTests(TestCase):
             "Call of Duty: Mobile",
         ]:
             self.assertIn(label, html)
-        self.assertIn('data-game-filter="discovery-f2"', html)
+        self.assertIn('data-game-grid', html)
+        self.assertIn('data-game="discovery-f2"', html)
         self.assertIn("Discovery F2", html)
-        self.assertIn("scout-game-icon", html)
+        self.assertIn("gs-logo", html)
+        self.assertNotIn("scout-game-strip", html)
+        self.assertNotIn("overflow-x-auto", html)
 
     def test_find_team_anonymous_defaults_to_all_games(self):
         response = self.client.get(reverse("organizations:team_find"))
 
         self.assertEqual(response.status_code, 200)
         html = response.content.decode()
-        self.assertIn('data-game-filter="" data-game-available="1" title="All Games" aria-current="page"', html)
+        self.assertIn('data-game=""', html)
+        self.assertIn('title="All Games"', html)
+        self.assertIn('aria-current="page"', html)
         self.assertNotIn("game=&", html)
         self.assertNotIn("region=&", html)
         self.assertNotIn("platform=&", html)
@@ -290,8 +304,9 @@ class TeamDiscoveryF2RecruitmentPostTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         html = response.content.decode()
-        self.assertIn('data-game-filter="discovery-f2"', html)
-        self.assertIn('title="Discovery F2" aria-current="page"', html)
+        self.assertIn('data-game="discovery-f2"', html)
+        self.assertIn('title="Discovery F2"', html)
+        self.assertIn('aria-current="page"', html)
         self.assertIn("Primary Game Role", html)
         self.assertIn("Other Game Role", html)
 
@@ -561,8 +576,12 @@ class TeamDiscoveryF2RecruitmentPostTests(TestCase):
         self.assertNotIn("FlickGod", html)
         self.assertNotIn("ClutchRex", html)
         self.assertNotIn("Virtual Galacticos", html)
+        self.assertNotIn("Iron Vanguard", html)
+        self.assertNotIn("Storm Riders", html)
+        self.assertNotIn("AeroFlip", html)
         self.assertNotIn("dicebear.com", html)
         self.assertNotIn(">Scouting</a>", html)
+        self.assertNotIn("scout-data.js", html)
 
     def test_recruiting_directory_hides_lft_disabled_career_profile(self):
         self._lft_player(

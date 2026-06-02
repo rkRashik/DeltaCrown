@@ -98,6 +98,7 @@
   }
   .fade-in-up { animation: fadeInUp 0.5s ease forwards; opacity: 0; }
 
+{% if never_render_legacy_scout_page %}
   .scout-page {
     --scout-bg: #050507;
     --scout-surface: #0b0b0f;
@@ -307,11 +308,17 @@
   .scout-form-span { grid-column: 1 / -1; }
   .scout-status { min-height: 1.25rem; }
   [data-post-step][hidden] { display: none !important; }
+{% endif %}
 </style>
+{% if is_recruiting_filter %}
+<link rel="stylesheet" href="{% static 'organizations/team_find/find_team_v2.css' %}">
+{% endif %}
 {% endblock %}
 
 {% block content %}
 {% if is_recruiting_filter %}
+{% include "organizations/teams/partials/find_team_v2.html" %}
+{% elif never_render_legacy_scout_page %}
 <div class="scout-page" data-scout-page>
   <div class="scout-game-strip">
     <div class="scout-shell py-2">
@@ -1346,6 +1353,8 @@
 {% block extra_js %}
 {{ block.super }}
 {% if is_recruiting_filter %}
+<script src="{% static 'organizations/team_find/find_team_v2.js' %}" defer></script>
+{% elif never_render_legacy_scout_page %}
 <script nonce="{{ request.csp_nonce }}">
   (function () {
     const page = document.querySelector('[data-scout-page]');

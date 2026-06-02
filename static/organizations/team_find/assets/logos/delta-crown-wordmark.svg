@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-15 0 880 180" role="img" aria-label="DeltaCrown — Gradient Pulse A">
+  <defs>
+    <linearGradient id="dc-pulse-a" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%">
+        
+      </stop>
+      <stop offset="100%">
+        
+      </stop>
+    </linearGradient>
+    
+  </defs>
+
+  
+  <text x="24" y="112" font-size="92" class="dcf" fill="url(#dc-pulse-a)">DELT</text>
+
+  
+  <g transform="translate(320,0)" fill="url(#dc-pulse-a)">
+    <path fill-rule="evenodd" d="M0 28 L48 112 L-48 112 Z M0 62 L-22 112 L22 112 Z"></path>
+    <circle cx="-16" cy="28" r="6"></circle>
+    <circle cx="0" cy="18" r="6"></circle>
+    <circle cx="16" cy="28" r="6"></circle>
+  </g>
+
+  
+  <text x="410" y="112" font-size="92" class="dcf" fill="url(#dc-pulse-a)">CROWN</text>
+</svg>

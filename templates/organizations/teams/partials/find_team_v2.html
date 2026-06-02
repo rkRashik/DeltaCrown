@@ -1,0 +1,503 @@
+{% load static %}
+<script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
+
+<div class="dc-find-v2"
+     data-find-team-v2
+     data-theme="dark"
+     data-role="{{ scout_role|default:'guest' }}"
+     data-canonical-url="{{ find_team_url }}"
+     data-initial-game="{{ game_filter|default:'' }}">
+
+  <div class="aurora" aria-hidden="true"><b class="a1"></b><b class="a2"></b><b class="a3"></b></div>
+  <div class="grain" aria-hidden="true"></div>
+
+  <div class="shell">
+    <section class="hero" aria-labelledby="dc-find-title">
+      <div class="hero-grid">
+        <div>
+          <span class="live-badge"><span class="pulse-dot"></span><span class="label">Live Scouting Network</span></span>
+          <h1 id="dc-find-title">Build your roster. Find your team.</h1>
+          <p class="sub">The <strong>Scouting Grounds</strong> connect open roster positions (LFP) with public Looking For Team profiles (LFT). Filter live by game, role, region and platform — every card is real backend data.</p>
+
+          <div class="command-bar">
+            <div class="seg" role="tablist" aria-label="Discovery mode">
+              <button type="button" class="lfp active" data-mode-tab="teams" role="tab" aria-selected="true"><i class="ph-fill ph-shield-chevron"></i>LFP Teams</button>
+              <button type="button" class="lft" data-mode-tab="players" role="tab" aria-selected="false"><i class="ph-fill ph-identification-badge"></i>LFT Players</button>
+            </div>
+            <form class="search-wrap" action="{{ find_team_url }}" method="get" role="search">
+              <i class="ph ph-magnifying-glass"></i>
+              <input type="search" name="q" value="{{ search_query }}" placeholder="Search teams, players, roles, ranks, IGN…" autocomplete="off" data-find-search aria-label="Search Scouting Grounds">
+            </form>
+            <button type="button" class="btn btn-primary" data-open-post-modal><i class="ph-bold ph-bullhorn"></i><span>Post Recruitment</span></button>
+          </div>
+
+          <div class="cta-row">
+            <button type="button" class="btn btn-secondary btn-sm" data-mode-tab="teams"><i class="ph-bold ph-shield-chevron"></i>Browse Teams</button>
+            <button type="button" class="btn btn-secondary btn-sm" data-mode-tab="players"><i class="ph-bold ph-users-three"></i>Browse Players</button>
+            <button type="button" class="btn btn-violet btn-sm" data-open-post-modal data-playeronly><i class="ph-bold ph-identification-card"></i>Create LFT Profile</button>
+            <span class="guest-hint btn btn-ghost btn-sm" style="cursor:default"><i class="ph-bold ph-lock-simple"></i>Sign in to apply or post</span>
+          </div>
+        </div>
+
+        <aside class="spotlight glass" id="dc-spotlight" aria-label="Featured">
+          <div class="spot-glow" id="dc-spot-glow"></div>
+          <div class="spot-head">
+            <span class="tag"><i class="ph-fill ph-sparkle"></i>Featured Right Now</span>
+            <div class="spot-dots" id="dc-spot-dots"></div>
+          </div>
+          <div class="spot-stage" id="dc-spot-stage"></div>
+        </aside>
+      </div>
+
+      <div class="stat-ribbon reveal">
+        <div class="rib glass azure"><div class="rk"><i class="ph-fill ph-shield-chevron"></i>Recruiting teams</div><div class="rn" data-count="{{ recruiting_count|default:0 }}">0</div><div class="rt">live network</div></div>
+        <div class="rib glass violet"><div class="rk"><i class="ph-fill ph-door-open"></i>Open roles</div><div class="rn" data-count="{{ open_role_count|default:0 }}">0</div><div class="rt">in this view</div></div>
+        <div class="rib glass"><div class="rk"><i class="ph-fill ph-users-three"></i>Available players</div><div class="rn" data-count="{{ available_player_count|default:0 }}">0</div><div class="rt">public LFT profiles</div></div>
+        <div class="rib glass gold"><div class="rk"><i class="ph-fill ph-game-controller"></i>Active games</div><div class="rn" data-count="{{ active_games|length }}">0</div><div class="rt">live now</div></div>
+      </div>
+
+      <div class="ticker reveal"><div class="ticker-track" id="dc-ticker-track"></div></div>
+    </section>
+
+    <div class="layout">
+      <aside class="filter-rail" aria-label="Filters">
+        <div class="rail-card game-select" data-game-select>
+          <div class="gs-head" data-gs-toggle>
+            <span class="eyebrow"><i class="ph-fill ph-game-controller"></i>Game</span>
+            <span class="gs-hint">{{ game_selector_options|length }} games <i class="ph-bold ph-caret-down gs-caret"></i></span>
+          </div>
+          {% for opt in game_selector_options %}{% if opt.is_active %}
+          <button type="button" class="gs-current {% if not opt.slug %}all{% endif %}" style="--g: {{ opt.color }}" data-gs-toggle>
+            <span class="gicon">
+              {% if opt.slug %}{% if opt.icon_url %}<img src="{{ opt.icon_url }}" alt="" loading="lazy">{% elif opt.logo_url %}<img src="{{ opt.logo_url }}" alt="" loading="lazy">{% elif opt.design_logo_url %}<img src="{{ opt.design_logo_url }}" alt="" loading="lazy">{% else %}{{ opt.initials|slice:":2" }}{% endif %}{% else %}<i class="ph-fill ph-squares-four"></i>{% endif %}
+            </span>
+            <span class="gs-cur-info"><span class="gs-cur-name">{{ opt.label }}</span><span class="gs-cur-sub">tap to change game</span></span>
+            <i class="ph-bold ph-caret-down gs-caret"></i>
+          </button>
+          {% endif %}{% endfor %}
+          <div class="gs-panel">
+            <div class="gs-list no-bar" data-game-grid>
+              {% for opt in game_selector_options %}
+              <a href="{{ opt.url }}"
+                 class="gs-item {% if not opt.slug %}all{% endif %} {% if opt.is_active %}active{% endif %} {% if not opt.is_available %}is-unavailable{% endif %}"
+                 style="--g: {{ opt.color }}"
+                 data-game-option
+                 data-game="{{ opt.slug }}"
+                 data-game-available="{% if opt.is_available %}1{% else %}0{% endif %}"
+                 title="{{ opt.label }}{% if opt.slug and not opt.is_available %} - no configured game data yet{% endif %}"
+                 {% if opt.is_active %}aria-current="page"{% endif %}>
+                <span class="gicon gs-logo" aria-hidden="true">
+                  {% if opt.slug %}{% if opt.icon_url %}<img src="{{ opt.icon_url }}" alt="" loading="lazy" decoding="async">{% elif opt.logo_url %}<img src="{{ opt.logo_url }}" alt="" loading="lazy" decoding="async">{% elif opt.design_logo_url %}<img src="{{ opt.design_logo_url }}" alt="" loading="lazy" decoding="async">{% else %}{{ opt.initials|slice:":2" }}{% endif %}{% else %}<i class="ph-fill ph-squares-four"></i>{% endif %}
+                </span>
+                <span class="gs-it-name">{{ opt.label }}</span>
+                {% if not opt.is_available and opt.slug %}<span class="gcount">soon</span>{% endif %}
+              </a>
+              {% endfor %}
+            </div>
+            <button type="button" class="gs-searchall" data-open-cmdk><i class="ph ph-magnifying-glass"></i>Browse all games · ⌘K</button>
+          </div>
+        </div>
+
+        <div class="rail-card">
+          <div class="filter-head">
+            <span class="ttl"><i class="ph-bold ph-sliders-horizontal"></i>Filters</span>
+            <button type="button" class="reset" data-reset-filters>Reset</button>
+          </div>
+          <form class="filter-stack" action="{{ find_team_url }}" method="get">
+            <div class="fgroup nopad">
+              <div class="fttl"><span><i class="ph ph-globe-hemisphere-west"></i>Region</span></div>
+              <select name="region" class="fselect" data-filter-control="region">
+                <option value="">Any region</option>
+                {% for region in regions %}<option value="{{ region }}" {% if region == region_filter %}selected{% endif %}>{{ region }}</option>{% endfor %}
+              </select>
+            </div>
+            <div class="fgroup">
+              <div class="fttl"><span><i class="ph ph-devices"></i>Platform</span></div>
+              <select name="platform" class="fselect" data-filter-control="platform">
+                <option value="">Any platform</option>
+                {% for platform in platforms %}<option value="{{ platform }}" {% if platform == platform_filter %}selected{% endif %}>{{ platform }}</option>{% endfor %}
+              </select>
+            </div>
+            <div class="fgroup">
+              <div class="fttl"><span><i class="ph ph-arrows-down-up"></i>Sort</span></div>
+              <select name="sort" class="fselect" data-filter-control="sort">
+                <option value="newest" {% if sort_by == 'newest' %}selected{% endif %}>Newest</option>
+                <option value="name" {% if sort_by == 'name' %}selected{% endif %}>Name A–Z</option>
+                <option value="members" {% if sort_by == 'members' %}selected{% endif %}>Most members</option>
+              </select>
+            </div>
+            <noscript><button type="submit" class="btn btn-secondary btn-sm btn-block" style="margin-top:14px">Apply filters</button></noscript>
+            <div class="privacy-note" style="margin-top:14px"><i class="ph-fill ph-lock-simple"></i> Only public LFT profiles and active recruitment roles are shown. Private profiles stay hidden.</div>
+          </form>
+        </div>
+      </aside>
+
+      <section>
+        <div class="results-head">
+          <div class="results-count"><strong data-result-count>{{ recruiting_result_count }}</strong> <span data-result-label>LFP teams</span></div>
+          <div class="results-tools">
+            <button type="button" class="btn btn-secondary btn-sm filter-mobile-btn" data-open-mobile-filter><i class="ph-bold ph-sliders-horizontal"></i>Filters</button>
+            <button type="button" class="btn btn-secondary btn-sm" data-open-cmdk><i class="ph-bold ph-game-controller"></i>Games</button>
+          </div>
+        </div>
+
+        <section class="panel" data-result-panel="teams" role="tabpanel">
+          <div class="card-grid" data-card-grid>
+            {% for item in teams %}
+            <article class="scard"
+                     style="--g: {% if item.game_obj %}{{ item.game_obj.primary_color|default:'#0A84FF' }}{% else %}#0A84FF{% endif %}"
+                     data-find-card
+                     data-card-type="team"
+                     data-game-slug="{% if item.game_obj %}{{ item.game_obj.slug }}{% endif %}"
+                     data-region="{{ item.recruitment_summary.region|default:item.team.region }}"
+                     data-platform="{{ item.recruitment_summary.platform|default:item.team.platform }}"
+                     data-sort-name="{{ item.team.name }}"
+                     data-sort-members="{{ item.team.member_count }}"
+                     data-open-drawer="team-drawer-{{ item.team.id }}"
+                     data-search="{{ item.team.name }} {{ item.team.tag }} {{ item.team.region }} {{ item.team.platform }} {% if item.game_obj %}{{ item.game_obj.display_name }}{% endif %} {{ item.recruitment_summary.title }} {{ item.recruitment_summary.role_category }} {{ item.recruitment_summary.rank_requirement }} {{ item.recruitment_summary.short_pitch }}">
+              <div class="scard-top">
+                <div class="crest" style="background: {% if item.game_obj %}{{ item.game_obj.primary_color|default:'#0A84FF' }}{% else %}#0A84FF{% endif %}22">
+                  {% if item.team.logo %}<img src="{{ item.team.logo.url }}" alt="" loading="lazy" decoding="async">
+                  {% elif item.game_obj and item.game_obj.logo %}<img src="{{ item.game_obj.logo.url }}" alt="" loading="lazy" decoding="async">
+                  {% else %}{{ item.team.tag|default:item.team.name|slice:":3" }}{% endif %}
+                </div>
+                <div class="scard-id">
+                  <div class="scard-name"><span class="nm">{{ item.team.name }}</span>{% if item.team.organization %}<i class="ph-fill ph-seal-check verified org" title="Organization verified"></i>{% endif %}</div>
+                  <div class="scard-meta">
+                    <span class="gtag">{% if item.game_obj and item.game_obj.logo %}<span class="gd"><img src="{{ item.game_obj.logo.url }}" alt=""></span>{% endif %}{% if item.game_obj %}{{ item.game_obj.display_name }}{% else %}Team{% endif %}</span>
+                    {% if item.team.platform %}<span class="mi"><i class="ph ph-devices"></i>{{ item.team.platform }}</span>{% endif %}
+                    {% if item.team.region %}<span class="mi"><i class="ph-fill ph-map-pin"></i>{{ item.team.region }}</span>{% endif %}
+                  </div>
+                </div>
+              </div>
+              <div style="display:flex;gap:6px;flex-wrap:wrap">
+                <span class="chip chip-recruit"><i class="ph-fill ph-megaphone"></i>RECRUITING</span>
+                {% if item.recruitment_summary.open_role_count > 1 %}<span class="chip chip-muted"><i class="ph-fill ph-stack"></i>{{ item.recruitment_summary.open_role_count }} roles</span>{% endif %}
+                {% if item.team.tag %}<span class="chip chip-muted">[{{ item.team.tag }}]</span>{% endif %}
+              </div>
+              {% if item.recruitment_summary.title or item.recruitment_summary.role_category %}
+              <div class="brief">
+                <div class="brief-role"><div><div class="need">Open role</div><div class="role">{{ item.recruitment_summary.title|default:item.recruitment_summary.role_category }}</div></div></div>
+                <div class="req-row">
+                  {% if item.recruitment_summary.rank_requirement %}<span class="req"><i class="ph-fill ph-medal"></i>Min <b>{{ item.recruitment_summary.rank_requirement }}</b></span>{% endif %}
+                  <span class="req"><i class="ph-fill ph-users-three"></i><b>{{ item.team.member_count|default:0 }}</b> members</span>
+                </div>
+              </div>
+              {% else %}
+              <div class="req-row">
+                {% if item.recruitment_summary.rank_requirement %}<span class="req"><i class="ph-fill ph-medal"></i>Min <b>{{ item.recruitment_summary.rank_requirement }}</b></span>{% endif %}
+                <span class="req"><i class="ph-fill ph-users-three"></i><b>{{ item.team.member_count|default:0 }}</b> members</span>
+              </div>
+              {% endif %}
+              {% if item.recruitment_summary.short_pitch %}<p class="pitch q">{{ item.recruitment_summary.short_pitch }}</p>{% endif %}
+              <div class="scard-foot">
+                <a class="btn btn-primary" href="{{ item.team.get_absolute_url }}"><i class="ph-bold ph-paper-plane-tilt"></i>View &amp; Apply</a>
+                <button type="button" class="btn btn-secondary flex-none" data-open-drawer="team-drawer-{{ item.team.id }}" title="View brief"><i class="ph-bold ph-arrow-right"></i></button>
+              </div>
+            </article>
+
+            <template id="team-drawer-{{ item.team.id }}">
+              <div class="dhero"><div class="crest" style="background: {% if item.game_obj %}{{ item.game_obj.primary_color|default:'#0A84FF' }}{% else %}#0A84FF{% endif %}22">{% if item.team.logo %}<img src="{{ item.team.logo.url }}" alt="">{% elif item.game_obj and item.game_obj.logo %}<img src="{{ item.game_obj.logo.url }}" alt="">{% else %}{{ item.team.tag|default:item.team.name|slice:":3" }}{% endif %}</div>
+                <div><div class="dn">{{ item.team.name }}{% if item.team.organization %} <i class="ph-fill ph-seal-check verified org"></i>{% endif %}</div>
+                <div class="scard-meta">{% if item.game_obj %}<span class="gtag">{{ item.game_obj.display_name }}</span>{% endif %}{% if item.team.region %}<span class="mi"><i class="ph-fill ph-map-pin"></i>{{ item.team.region }}</span>{% endif %}</div></div></div>
+              <div style="display:flex;gap:6px;flex-wrap:wrap"><span class="chip chip-recruit"><i class="ph-fill ph-megaphone"></i>RECRUITING</span>{% if item.team.organization %}<span class="chip chip-muted"><i class="ph-fill ph-buildings"></i>{{ item.team.organization.name }}</span>{% endif %}</div>
+              {% if item.recruitment_summary.title or item.recruitment_summary.role_category %}
+              <div class="dsection"><div class="dst">Open Role</div><div class="brief"><div class="brief-role"><div><div class="need">Recruiting</div><div class="role">{{ item.recruitment_summary.title|default:item.recruitment_summary.role_category }}</div></div></div>
+                <div class="req-row">{% if item.recruitment_summary.rank_requirement %}<span class="req"><i class="ph-fill ph-medal"></i>Min <b>{{ item.recruitment_summary.rank_requirement }}</b></span>{% endif %}<span class="req"><i class="ph-fill ph-door-open"></i><b>{{ item.recruitment_summary.open_role_count }}</b> open</span></div></div></div>
+              {% endif %}
+              {% if item.recruitment_summary.short_pitch %}<div class="dsection"><div class="dst">Recruitment Pitch</div><p class="pitch q">{{ item.recruitment_summary.short_pitch }}</p></div>{% endif %}
+              <div class="dsection"><div class="dst">Snapshot</div><div class="kv-grid"><div class="kv"><div class="k">Members</div><div class="v">{{ item.team.member_count|default:0 }}</div></div><div class="kv"><div class="k">Platform</div><div class="v">{{ item.recruitment_summary.platform|default:item.team.platform|default:"Any" }}</div></div></div></div>
+              <div class="scard-foot"><a class="btn btn-primary" href="{{ item.team.get_absolute_url }}"><i class="ph-bold ph-paper-plane-tilt"></i>View &amp; Apply</a><a class="btn btn-secondary" href="{{ item.team.get_absolute_url }}">View Team Profile</a></div>
+            </template>
+            {% endfor %}
+          </div>
+          <div class="state-panel empty {% if teams %}is-hidden{% endif %}" data-empty-state>
+            <div class="si"><i class="ph ph-binoculars"></i></div>
+            <h3>No LFP teams match this view.</h3>
+            <p>Try All Games or clear search / region / platform. No placeholder recruitment cards are generated.</p>
+            <button type="button" class="btn btn-secondary" data-clear-game>Clear game filter</button>
+          </div>
+        </section>
+
+        <section class="panel" data-result-panel="players" role="tabpanel" hidden>
+          <div class="card-grid" data-card-grid>
+            {% for player in available_players %}
+            <article class="scard"
+                     style="--g:#8470EE"
+                     data-find-card
+                     data-card-type="player"
+                     data-game-slug="{% if player.primary_passport %}{{ player.primary_passport.game_slug }}{% endif %}"
+                     data-region="{% if player.primary_passport and player.primary_passport.region %}{{ player.primary_passport.region }}{% else %}{{ player.region }}{% endif %}"
+                     data-platform="{% if player.primary_passport %}{{ player.primary_passport.platform }}{% endif %}"
+                     data-sort-name="{{ player.display_name }}"
+                     data-sort-members="0"
+                     data-open-drawer="player-drawer-{{ forloop.counter }}"
+                     data-search="{{ player.display_name }} {{ player.username }} {{ player.region }} {{ player.availability }} {% for role in player.roles %}{{ role }} {% endfor %}{% if player.primary_passport %}{{ player.primary_passport.game }} {{ player.primary_passport.in_game_name }} {{ player.primary_passport.rank_name }} {{ player.primary_passport.main_role }} {{ player.primary_passport.platform }} {{ player.primary_passport.region }}{% endif %}">
+              <div class="scard-top">
+                <div class="crest round" style="background:linear-gradient(135deg,#8470EE,#8470EE88)">{{ player.display_name|slice:":2"|upper }}</div>
+                <div class="scard-id">
+                  <div class="scard-name"><span class="nm">{{ player.display_name }}</span></div>
+                  <div class="scard-ign">@{{ player.username }}</div>
+                  <div class="scard-meta">
+                    {% if player.primary_passport and player.primary_passport.game %}<span class="gtag">{{ player.primary_passport.game }}</span>{% endif %}
+                    {% if player.primary_passport.platform %}<span class="mi"><i class="ph ph-devices"></i>{{ player.primary_passport.platform }}</span>{% endif %}
+                    {% if player.region %}<span class="mi"><i class="ph-fill ph-map-pin"></i>{{ player.region }}</span>{% endif %}
+                  </div>
+                </div>
+              </div>
+              <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+                <span class="chip chip-free"><i class="ph-fill ph-flag-banner"></i>LOOKING FOR TEAM</span>
+                {% for role in player.roles %}<span class="chip chip-muted">{{ role }}</span>{% endfor %}
+                {% if player.primary_passport.rank_name %}<span class="chip chip-muted"><i class="ph-fill ph-medal"></i>{{ player.primary_passport.rank_name }}</span>{% endif %}
+              </div>
+              {% if player.primary_passport %}
+              <div class="statline">
+                <div class="statcell"><div class="sv">{{ player.primary_passport.rank_name|default:"—" }}</div><div class="sk">Rank</div></div>
+                <div class="statcell"><div class="sv">{{ player.primary_passport.main_role|default:"—" }}</div><div class="sk">Role</div></div>
+                <div class="statcell"><div class="sv">{% if player.primary_passport.rank_tier %}Tier {{ player.primary_passport.rank_tier }}{% else %}Public{% endif %}</div><div class="sk">Tier</div></div>
+              </div>
+              {% else %}
+              <div class="statline">
+                <div class="statcell"><div class="sv">{{ player.region|default:"Any" }}</div><div class="sk">Region</div></div>
+                <div class="statcell"><div class="sv">{{ player.availability|default:"Open" }}</div><div class="sk">Avail</div></div>
+                <div class="statcell"><div class="sv">Public</div><div class="sk">Profile</div></div>
+              </div>
+              {% endif %}
+              {% if player.availability %}<div class="scard-meta" style="margin-top:-2px"><span class="mi"><i class="ph-fill ph-calendar-dots"></i>{{ player.availability }}</span></div>{% endif %}
+              <div class="scard-foot">
+                <a class="btn btn-secondary" href="{{ player.profile_url }}"><i class="ph-bold ph-identification-card"></i>View Profile</a>
+                <button type="button" class="btn btn-gold flex-none" data-mgronly title="Invite from Team HQ"><i class="ph-bold ph-paper-plane-tilt"></i>Invite</button>
+              </div>
+            </article>
+
+            <template id="player-drawer-{{ forloop.counter }}">
+              <div class="dhero"><div class="crest round" style="background:linear-gradient(135deg,#8470EE,#8470EE88)">{{ player.display_name|slice:":2"|upper }}</div>
+                <div><div class="dn">{{ player.display_name }}</div><div class="scard-ign">@{{ player.username }}{% if player.region %} · {{ player.region }}{% endif %}</div></div></div>
+              <div style="display:flex;gap:6px;flex-wrap:wrap"><span class="chip chip-free"><i class="ph-fill ph-flag-banner"></i>LOOKING FOR TEAM</span>{% if player.primary_passport.game %}<span class="chip chip-muted">{{ player.primary_passport.game }}</span>{% endif %}</div>
+              {% if player.roles %}<div class="dsection"><div class="dst">Roles</div><div style="display:flex;gap:6px;flex-wrap:wrap">{% for role in player.roles %}<span class="chip {% if forloop.first %}chip-info{% else %}chip-muted{% endif %}">{{ role }}</span>{% endfor %}</div></div>{% endif %}
+              {% if player.primary_passport %}
+              <div class="dsection"><div class="dst">Public Passport</div><div class="kv-grid">
+                <div class="kv"><div class="k">IGN</div><div class="v mono">{{ player.primary_passport.in_game_name|default:"—" }}</div></div>
+                <div class="kv"><div class="k">Rank</div><div class="v">{{ player.primary_passport.rank_name|default:"—" }}</div></div>
+                <div class="kv"><div class="k">Main role</div><div class="v">{{ player.primary_passport.main_role|default:"—" }}</div></div>
+                <div class="kv"><div class="k">Platform</div><div class="v">{{ player.primary_passport.platform|default:"—" }}</div></div>
+              </div></div>
+              {% endif %}
+              {% if player.availability %}<div class="dsection"><div class="dst">Availability</div><p class="pitch">{{ player.availability }}</p></div>{% endif %}
+              <div class="scard-foot"><a class="btn btn-secondary" href="{{ player.profile_url }}"><i class="ph-bold ph-identification-card"></i>View Profile</a><span class="btn btn-gold" data-mgronly aria-disabled="true">Invite from Team HQ</span></div>
+            </template>
+            {% endfor %}
+          </div>
+          <div class="state-panel empty {% if available_players %}is-hidden{% endif %}" data-empty-state>
+            <div class="si"><i class="ph ph-binoculars"></i></div>
+            <h3>No LFT players match this view.</h3>
+            <p>Try All Games or clear filters. Private, protected and suspended passports remain hidden.</p>
+            <button type="button" class="btn btn-secondary" data-clear-game>Clear game filter</button>
+          </div>
+        </section>
+      </section>
+
+      <aside class="insights-rail" aria-label="Insights">
+        <div class="rail-card">
+          <div class="insight-ttl"><i class="ph-fill ph-sparkle"></i>Recommended Openings</div>
+          <div id="dc-rec-list">
+            {% for item in teams|slice:":4" %}
+            <button type="button" class="rec" data-open-drawer="team-drawer-{{ item.team.id }}">
+              <span class="rcrest" style="background: {% if item.game_obj %}{{ item.game_obj.primary_color|default:'#0A84FF' }}{% else %}#0A84FF{% endif %}22">{% if item.team.logo %}<img src="{{ item.team.logo.url }}" alt="">{% else %}{{ item.team.tag|default:item.team.name|slice:":2" }}{% endif %}</span>
+              <span class="rinfo"><span class="rname">{{ item.team.name }}</span><span class="rmeta">{% if item.recruitment_summary.title %}{{ item.recruitment_summary.title }}{% else %}Open roster slot{% endif %}{% if item.team.region %} · {{ item.team.region }}{% endif %}</span></span>
+              <i class="ph-bold ph-arrow-right rec-go"></i>
+            </button>
+            {% empty %}
+            <p class="rec-empty">No team openings are visible yet.</p>
+            {% endfor %}
+          </div>
+        </div>
+        <div class="crosspost">
+          <div class="cp-eyebrow"><i class="ph-fill ph-broadcast"></i> Community Cross-Post</div>
+          <h4>Reach beyond the grounds</h4>
+          <p>Recruitment posts can mirror to the Community feed — same identity, game and role, with one-tap Apply.</p>
+          <button type="button" class="btn btn-violet btn-sm btn-block" data-open-post-modal><i class="ph-bold ph-broadcast"></i>Post &amp; Cross-Share</button>
+        </div>
+        <div class="rail-card" style="display:flex;gap:13px;align-items:flex-start">
+          <i class="ph-fill ph-shield-check" style="font-size:24px;color:var(--dc-azure-400)"></i>
+          <div><div style="font-weight:600;font-size:13.5px">Verified-first scouting</div>
+          <p style="font-size:12px;color:var(--dc-fg-muted);margin:5px 0 0;line-height:1.55">Organization verification and public profiles keep the grounds trustworthy.</p></div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <!-- ============ MEGA GAME SELECTOR ============ -->
+  <div class="cmdk-overlay" data-cmdk-overlay>
+    <div class="cmdk" role="dialog" aria-label="Browse games">
+      <div class="cmdk-search"><i class="ph ph-magnifying-glass"></i><input type="text" placeholder="Search all games…" data-cmdk-search aria-label="Search games"></div>
+      <div class="cmdk-body no-bar"><div class="cmdk-grid">
+        {% for opt in game_selector_options %}
+        <a href="{{ opt.url }}"
+           class="cmdk-game {% if not opt.is_available and opt.slug %}disabled{% endif %}"
+           style="--g: {{ opt.color }}"
+           data-game-option
+           data-game="{{ opt.slug }}"
+           data-cmdk-game="{{ opt.label }} {{ opt.short_label }}"
+           title="{{ opt.label }}{% if opt.slug and not opt.is_available %} - no configured game data yet{% endif %}">
+          <span class="gicon" aria-hidden="true">
+            {% if opt.slug %}{% if opt.icon_url %}<img src="{{ opt.icon_url }}" alt="">{% elif opt.logo_url %}<img src="{{ opt.logo_url }}" alt="">{% elif opt.design_logo_url %}<img src="{{ opt.design_logo_url }}" alt="">{% else %}{{ opt.initials|slice:":2" }}{% endif %}{% else %}<i class="ph-fill ph-squares-four"></i>{% endif %}
+          </span>
+          <span style="min-width:0"><span class="nm">{{ opt.label }}</span><span class="mt">{% if not opt.slug %}All games{% elif opt.is_available %}Live data{% else %}Not enabled yet{% endif %}</span></span>
+        </a>
+        {% endfor %}
+      </div></div>
+      <div class="cmdk-foot"><span><kbd>↵</kbd> select · <kbd>esc</kbd> close</span><span>Driven by your enabled games</span></div>
+    </div>
+  </div>
+
+  <!-- ============ DRAWER ============ -->
+  <div class="drawer-overlay" data-drawer-overlay></div>
+  <aside class="drawer" data-drawer aria-label="Quick view">
+    <div class="drawer-head"><span class="dt"><i class="ph-fill ph-identification-badge"></i>Quick View</span>
+      <button type="button" class="icon-btn" data-close-drawer><i class="ph-bold ph-x"></i></button></div>
+    <div class="drawer-body no-bar" data-drawer-body></div>
+  </aside>
+
+  <!-- ============ POST MODAL (real forms → real endpoints) ============ -->
+  <div class="modal-overlay" data-post-modal>
+    <div class="modal" role="dialog" aria-label="Create post">
+      <div class="modal-head">
+        <div><h2>What do you want to post?</h2><p>Publish real data using your existing permissions.</p></div>
+        <button type="button" class="icon-btn" data-close-post-modal><i class="ph-bold ph-x"></i></button>
+      </div>
+      <div class="modal-cols">
+        <div class="modal-form no-bar">
+          {% csrf_token %}
+          <section data-post-step="choice">
+            <div class="path-grid">
+              <button type="button" class="path-card" data-post-path="team">
+                <span class="eyebrow">Team Recruitment Post</span>
+                <strong>I manage a team and want to recruit players</strong>
+                <p>Create or update an open roster position using Team HQ permissions.</p>
+              </button>
+              <button type="button" class="path-card" data-post-path="player">
+                <span class="eyebrow">Looking For Team Profile</span>
+                <strong>I am a solo player looking for a team</strong>
+                <p>Publish a public LFT profile and optionally mark one passport LFT.</p>
+              </button>
+            </div>
+          </section>
+
+          <section data-post-step="team" hidden>
+            <button type="button" class="btn btn-ghost btn-sm" data-post-back style="margin-bottom:6px"><i class="ph-bold ph-arrow-left"></i> Back</button>
+            <h3 style="font-family:var(--dc-font-display);margin:4px 0 12px">Team Recruitment Post</h3>
+            {% if request.user.is_authenticated %}
+              {% if manageable_teams %}
+              <form class="form-grid" data-team-post-form>
+                <label class="label form-span">Team
+                  <select name="team" class="field-input" data-team-post-team required>
+                    {% for team_option in manageable_teams %}
+                    <option value="{{ team_option.slug }}" data-api-url="{{ team_option.api_url }}" data-region="{{ team_option.region }}" data-platform="{{ team_option.platform }}">{{ team_option.name }}{% if team_option.tag %} [{{ team_option.tag }}]{% endif %} - {{ team_option.game_label }}</option>
+                    {% endfor %}
+                  </select>
+                </label>
+                <label class="label form-span">Position title
+                  <input class="field-input" type="text" name="title" maxlength="60" placeholder="IGL / Controller / Coach" required>
+                </label>
+                <label class="label">Role category
+                  <select class="field-input" name="role_category">
+                    {% for role in team_recruitment_role_choices %}<option value="{{ role.value }}">{{ role.label }}</option>{% endfor %}
+                  </select>
+                </label>
+                <label class="label">Rank requirement
+                  <input class="field-input" type="text" name="rank_requirement" maxlength="60" placeholder="Diamond+">
+                </label>
+                <label class="label">Region
+                  <input class="field-input" type="text" name="region" maxlength="30" data-team-post-region placeholder="BD / SEA / EU">
+                </label>
+                <label class="label">Platform
+                  <input class="field-input" type="text" name="platform" maxlength="30" data-team-post-platform placeholder="PC / Mobile">
+                </label>
+                <label class="label form-span">Short pitch
+                  <textarea name="short_pitch" maxlength="140" placeholder="What kind of player should apply?" required></textarea>
+                </label>
+                <label class="check-row"><input type="checkbox" name="cross_post_community"> Cross-post to Community</label>
+                <label class="check-row"><input type="checkbox" name="is_active" checked> Publish active</label>
+                <div class="status form-span" data-team-post-status></div>
+                <button type="submit" class="btn btn-primary form-span"><i class="ph-bold ph-rocket-launch"></i> Publish Recruitment Post</button>
+              </form>
+              {% else %}
+              <div class="state-panel" style="padding:32px 8px"><div class="si"><i class="ph ph-users-three"></i></div>
+                <h3>You need to own/manage a team first.</h3><p>Create a team or become a manager before posting recruitment needs.</p>
+                <a class="btn btn-primary" href="{% url 'organizations:team_create' %}">Create Team</a></div>
+              {% endif %}
+            {% else %}
+            <div class="state-panel" style="padding:32px 8px"><div class="si"><i class="ph ph-lock-simple"></i></div>
+              <h3>Sign in to post team recruitment.</h3><p>Recruitment posts require a manageable team context.</p>
+              <a class="btn btn-primary" href="{% url 'account:login' %}?next={{ request.path|urlencode }}">Sign in</a></div>
+            {% endif %}
+          </section>
+
+          <section data-post-step="player" hidden>
+            <button type="button" class="btn btn-ghost btn-sm" data-post-back style="margin-bottom:6px"><i class="ph-bold ph-arrow-left"></i> Back</button>
+            <h3 style="font-family:var(--dc-font-display);margin:4px 0 12px">Looking For Team Profile</h3>
+            {% if request.user.is_authenticated %}
+            <form class="form-grid" data-lft-post-form data-lft-api-url="{{ lft_save_url }}">
+              <label class="label">Career status
+                <select class="field-input" name="career_status">{% for status in lft_career_status_choices %}<option value="{{ status.value }}">{{ status.label }}</option>{% endfor %}</select>
+              </label>
+              <label class="label">Availability
+                <select class="field-input" name="availability">{% for availability in lft_availability_choices %}<option value="{{ availability.value }}">{{ availability.label }}</option>{% endfor %}</select>
+              </label>
+              <label class="label">Primary roles
+                <input class="field-input" type="text" name="primary_roles" placeholder="Controller, IGL">
+              </label>
+              <label class="label">Secondary roles
+                <input class="field-input" type="text" name="secondary_roles" placeholder="Flex, Support">
+              </label>
+              <label class="label">Preferred region
+                <input class="field-input" type="text" name="preferred_region" maxlength="10" placeholder="BD">
+              </label>
+              <label class="label">Public passport
+                <select class="field-input" name="passport_id"><option value="">No passport update</option>{% for passport in user_public_passports %}<option value="{{ passport.id }}">{{ passport.label }}{% if passport.is_lft %} - already LFT{% endif %}</option>{% endfor %}</select>
+              </label>
+              <div class="status form-span" data-lft-post-status></div>
+              <button type="submit" class="btn btn-primary form-span"><i class="ph-bold ph-rocket-launch"></i> Publish LFT Profile</button>
+              <a class="btn btn-ghost form-span" href="{% url 'user_profile:profile_settings' %}">Open Profile Settings</a>
+            </form>
+            {% else %}
+            <div class="state-panel" style="padding:32px 8px"><div class="si"><i class="ph ph-lock-simple"></i></div>
+              <h3>Sign in to create an LFT profile.</h3><p>Your public profile and passport visibility stay under your account controls.</p>
+              <a class="btn btn-primary" href="{% url 'account:login' %}?next={{ request.path|urlencode }}">Sign in</a></div>
+            {% endif %}
+          </section>
+        </div>
+        <div class="modal-preview no-bar">
+          <div class="dst" style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--dc-fg-soft);margin-bottom:12px">Live Preview</div>
+          <div id="dc-modal-preview-card"><div class="privacy-note"><i class="ph-fill ph-eye"></i> Pick a path — a live preview of your card appears here as you type.</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ MOBILE FILTER ============ -->
+  <div class="mfilter-overlay" data-mobile-filter-overlay></div>
+  <aside class="mfilter" data-mobile-filter aria-label="Filters">
+    <div class="mfilter-head"><span class="filter-head" style="margin:0"><span class="ttl"><i class="ph-bold ph-sliders-horizontal"></i>Filters</span></span>
+      <button type="button" class="icon-btn" data-close-mobile-filter><i class="ph-bold ph-x"></i></button></div>
+    <div class="mfilter-body no-bar">
+      <label class="search-wrap" style="margin-bottom:16px"><i class="ph ph-magnifying-glass"></i><input type="search" placeholder="Search…" data-find-search></label>
+      <form class="filter-stack" action="{{ find_team_url }}" method="get">
+        <div class="fgroup nopad"><div class="fttl"><span><i class="ph ph-globe-hemisphere-west"></i>Region</span></div>
+          <select name="region" class="fselect" data-filter-control="region"><option value="">Any region</option>{% for region in regions %}<option value="{{ region }}" {% if region == region_filter %}selected{% endif %}>{{ region }}</option>{% endfor %}</select></div>
+        <div class="fgroup"><div class="fttl"><span><i class="ph ph-devices"></i>Platform</span></div>
+          <select name="platform" class="fselect" data-filter-control="platform"><option value="">Any platform</option>{% for platform in platforms %}<option value="{{ platform }}" {% if platform == platform_filter %}selected{% endif %}>{{ platform }}</option>{% endfor %}</select></div>
+        <div class="fgroup"><div class="fttl"><span><i class="ph ph-arrows-down-up"></i>Sort</span></div>
+          <select name="sort" class="fselect" data-filter-control="sort"><option value="newest" {% if sort_by == 'newest' %}selected{% endif %}>Newest</option><option value="name" {% if sort_by == 'name' %}selected{% endif %}>Name A–Z</option><option value="members" {% if sort_by == 'members' %}selected{% endif %}>Most members</option></select></div>
+      </form>
+    </div>
+    <div class="mfilter-foot">
+      <button type="button" class="btn btn-ghost" data-reset-filters style="flex:1">Clear</button>
+      <button type="button" class="btn btn-primary" data-close-mobile-filter style="flex:2">Apply Filters</button>
+    </div>
+  </aside>
+
+  <button type="button" class="fab" data-open-mobile-filter><i class="ph-bold ph-sliders-horizontal"></i>Filters</button>
+  <div class="toast-wrap" data-toast-wrap></div>
+</div>
