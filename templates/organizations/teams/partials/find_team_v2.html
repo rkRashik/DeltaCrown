@@ -1,10 +1,12 @@
 {% load static %}
 <script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
+{{ scout_games|json_script:"dc-scout-games" }}
 
 <div class="dc-find-v2"
      data-find-team-v2
      data-theme="dark"
      data-role="{{ scout_role|default:'guest' }}"
+     data-has-match="{% if has_match_context %}1{% else %}0{% endif %}"
      data-canonical-url="{{ find_team_url }}"
      data-initial-game="{{ game_filter|default:'' }}">
 
@@ -103,8 +105,9 @@
             <span class="ttl"><i class="ph-bold ph-sliders-horizontal"></i>Filters</span>
             <button type="button" class="reset" data-reset-filters>Reset</button>
           </div>
+          <div data-filter-advanced></div>
           <form class="filter-stack" action="{{ find_team_url }}" method="get">
-            <div class="fgroup nopad">
+            <div class="fgroup">
               <div class="fttl"><span><i class="ph ph-globe-hemisphere-west"></i>Region</span></div>
               <select name="region" class="fselect" data-filter-control="region">
                 <option value="">Any region</option>
@@ -121,6 +124,7 @@
             <div class="fgroup">
               <div class="fttl"><span><i class="ph ph-arrows-down-up"></i>Sort</span></div>
               <select name="sort" class="fselect" data-filter-control="sort">
+                <option value="match" data-match-sort {% if sort_by == 'match' %}selected{% endif %}>Best Match</option>
                 <option value="newest" {% if sort_by == 'newest' %}selected{% endif %}>Newest</option>
                 <option value="name" {% if sort_by == 'name' %}selected{% endif %}>Name A–Z</option>
                 <option value="members" {% if sort_by == 'members' %}selected{% endif %}>Most members</option>
@@ -154,7 +158,13 @@
                      data-sort-name="{{ item.team.name }}"
                      data-sort-members="{{ item.team.member_count }}"
                      data-open-drawer="team-drawer-{{ item.team.id }}"
+                     {% if item.match is not None %}data-score="{{ item.match }}"{% endif %}
+                     data-role="{{ item.recruitment_summary.title }} {{ item.recruitment_summary.role_category }}"
+                     data-rank="{{ item.recruitment_summary.rank_requirement }}"
+                     data-verified="{% if item.team.organization %}1{% else %}0{% endif %}"
+                     data-openroles="{{ item.recruitment_summary.open_role_count|default:0 }}"
                      data-search="{{ item.team.name }} {{ item.team.tag }} {{ item.team.region }} {{ item.team.platform }} {% if item.game_obj %}{{ item.game_obj.display_name }}{% endif %} {{ item.recruitment_summary.title }} {{ item.recruitment_summary.role_category }} {{ item.recruitment_summary.rank_requirement }} {{ item.recruitment_summary.short_pitch }}">
+              {% if item.match is not None %}<div class="match-pill {% if item.match >= 90 %}high{% elif item.match >= 75 %}good{% endif %}" title="Smart match score"><span class="pct">{{ item.match }}</span><span class="cap">Match</span></div>{% endif %}
               <div class="scard-top">
                 <div class="crest" style="background: {% if item.game_obj %}{{ item.game_obj.primary_color|default:'#0A84FF' }}{% else %}#0A84FF{% endif %}22">
                   {% if item.team.logo %}<img src="{{ item.team.logo.url }}" alt="" loading="lazy" decoding="async">
@@ -201,6 +211,17 @@
                 <div><div class="dn">{{ item.team.name }}{% if item.team.organization %} <i class="ph-fill ph-seal-check verified org"></i>{% endif %}</div>
                 <div class="scard-meta">{% if item.game_obj %}<span class="gtag">{{ item.game_obj.display_name }}</span>{% endif %}{% if item.team.region %}<span class="mi"><i class="ph-fill ph-map-pin"></i>{{ item.team.region }}</span>{% endif %}</div></div></div>
               <div style="display:flex;gap:6px;flex-wrap:wrap"><span class="chip chip-recruit"><i class="ph-fill ph-megaphone"></i>RECRUITING</span>{% if item.team.organization %}<span class="chip chip-muted"><i class="ph-fill ph-buildings"></i>{{ item.team.organization.name }}</span>{% endif %}</div>
+              {% if item.compat %}
+              <div class="dsection"><div class="dst">Compatibility</div>
+                <div class="compat">
+                  <div class="compat-head">
+                    <div class="compat-ring" style="background:conic-gradient({% if item.match >= 90 %}var(--dc-gold-400){% elif item.match >= 75 %}var(--dc-azure-500){% else %}var(--dc-fg-soft){% endif %} {% widthratio item.match 100 360 %}deg, var(--dc-surface-3) 0)"><span class="rv">{{ item.match }}</span></div>
+                    <div><div class="compat-ttl">{% if item.match >= 90 %}Excellent fit{% elif item.match >= 75 %}Strong fit{% else %}Worth a look{% endif %}</div><div class="compat-sub">Compatibility with your profile</div></div>
+                  </div>
+                  {% for c in item.compat %}<div class="compat-line"><span class="ci {% if c.met %}ok{% else %}no{% endif %}"><i class="ph-bold {% if c.met %}ph-check{% else %}ph-x{% endif %}"></i></span><span class="ct">{{ c.label }}</span><span class="cv">{{ c.value }}</span></div>{% endfor %}
+                </div>
+              </div>
+              {% endif %}
               {% if item.recruitment_summary.title or item.recruitment_summary.role_category %}
               <div class="dsection"><div class="dst">Open Role</div><div class="brief"><div class="brief-role"><div><div class="need">Recruiting</div><div class="role">{{ item.recruitment_summary.title|default:item.recruitment_summary.role_category }}</div></div></div>
                 <div class="req-row">{% if item.recruitment_summary.rank_requirement %}<span class="req"><i class="ph-fill ph-medal"></i>Min <b>{{ item.recruitment_summary.rank_requirement }}</b></span>{% endif %}<span class="req"><i class="ph-fill ph-door-open"></i><b>{{ item.recruitment_summary.open_role_count }}</b> open</span></div></div></div>
@@ -232,7 +253,11 @@
                      data-sort-name="{{ player.display_name }}"
                      data-sort-members="0"
                      data-open-drawer="player-drawer-{{ forloop.counter }}"
+                     {% if player.match is not None %}data-score="{{ player.match }}"{% endif %}
+                     data-role="{% for role in player.roles %}{{ role }} {% endfor %}{{ player.primary_passport.main_role }}"
+                     data-rank="{{ player.primary_passport.rank_name }}"
                      data-search="{{ player.display_name }} {{ player.username }} {{ player.region }} {{ player.availability }} {% for role in player.roles %}{{ role }} {% endfor %}{% if player.primary_passport %}{{ player.primary_passport.game }} {{ player.primary_passport.in_game_name }} {{ player.primary_passport.rank_name }} {{ player.primary_passport.main_role }} {{ player.primary_passport.platform }} {{ player.primary_passport.region }}{% endif %}">
+              {% if player.match is not None %}<div class="match-pill {% if player.match >= 90 %}high{% elif player.match >= 75 %}good{% endif %}" title="Smart match score"><span class="pct">{{ player.match }}</span><span class="cap">Match</span></div>{% endif %}
               <div class="scard-top">
                 <div class="crest round" style="background:linear-gradient(135deg,#8470EE,#8470EE88)">{{ player.display_name|slice:":2"|upper }}</div>
                 <div class="scard-id">
@@ -274,6 +299,17 @@
               <div class="dhero"><div class="crest round" style="background:linear-gradient(135deg,#8470EE,#8470EE88)">{{ player.display_name|slice:":2"|upper }}</div>
                 <div><div class="dn">{{ player.display_name }}</div><div class="scard-ign">@{{ player.username }}{% if player.region %} · {{ player.region }}{% endif %}</div></div></div>
               <div style="display:flex;gap:6px;flex-wrap:wrap"><span class="chip chip-free"><i class="ph-fill ph-flag-banner"></i>LOOKING FOR TEAM</span>{% if player.primary_passport.game %}<span class="chip chip-muted">{{ player.primary_passport.game }}</span>{% endif %}</div>
+              {% if player.compat %}
+              <div class="dsection"><div class="dst">Compatibility</div>
+                <div class="compat">
+                  <div class="compat-head">
+                    <div class="compat-ring" style="background:conic-gradient({% if player.match >= 90 %}var(--dc-gold-400){% elif player.match >= 75 %}var(--dc-azure-500){% else %}var(--dc-fg-soft){% endif %} {% widthratio player.match 100 360 %}deg, var(--dc-surface-3) 0)"><span class="rv">{{ player.match }}</span></div>
+                    <div><div class="compat-ttl">{% if player.match >= 90 %}Excellent fit{% elif player.match >= 75 %}Strong fit{% else %}Worth a look{% endif %}</div><div class="compat-sub">Compatibility with your roster need</div></div>
+                  </div>
+                  {% for c in player.compat %}<div class="compat-line"><span class="ci {% if c.met %}ok{% else %}no{% endif %}"><i class="ph-bold {% if c.met %}ph-check{% else %}ph-x{% endif %}"></i></span><span class="ct">{{ c.label }}</span><span class="cv">{{ c.value }}</span></div>{% endfor %}
+                </div>
+              </div>
+              {% endif %}
               {% if player.roles %}<div class="dsection"><div class="dst">Roles</div><div style="display:flex;gap:6px;flex-wrap:wrap">{% for role in player.roles %}<span class="chip {% if forloop.first %}chip-info{% else %}chip-muted{% endif %}">{{ role }}</span>{% endfor %}</div></div>{% endif %}
               {% if player.primary_passport %}
               <div class="dsection"><div class="dst">Public Passport</div><div class="kv-grid">
@@ -390,23 +426,26 @@
             {% if request.user.is_authenticated %}
               {% if manageable_teams %}
               <form class="form-grid" data-team-post-form>
-                <label class="label form-span">Team
-                  <select name="team" class="field-input" data-team-post-team required>
+                <div class="form-span">
+                  <div class="label">Posting as <span style="color:var(--dc-fg-soft);font-weight:400">— this publishes to the team's manage page too</span></div>
+                  <div class="perm-switch" data-perm-switch>
                     {% for team_option in manageable_teams %}
-                    <option value="{{ team_option.slug }}" data-api-url="{{ team_option.api_url }}" data-region="{{ team_option.region }}" data-platform="{{ team_option.platform }}">{{ team_option.name }}{% if team_option.tag %} [{{ team_option.tag }}]{% endif %} - {{ team_option.game_label }}</option>
+                    <button type="button" class="perm-team {% if forloop.first %}active{% endif %}" data-perm-team
+                            data-slug="{{ team_option.slug }}" data-api-url="{{ team_option.api_url }}"
+                            data-game="{{ team_option.game_slug }}" data-region="{{ team_option.region }}"
+                            data-platform="{{ team_option.platform }}" data-color="{{ team_option.game_color }}">
+                      <span class="pcrest" style="background:{{ team_option.game_color }}">{{ team_option.tag|default:team_option.name|slice:":2"|upper }}</span>
+                      <span style="flex:1;min-width:0"><span class="pn">{{ team_option.name }}{% if team_option.tag %} [{{ team_option.tag }}]{% endif %}</span><span class="pr">{{ team_option.game_label }} <span class="perm-badge">{{ team_option.role_label }}</span></span></span>
+                      <i class="ph-bold ph-check-circle" style="color:var(--dc-azure-500);font-size:18px"></i>
+                    </button>
                     {% endfor %}
-                  </select>
+                  </div>
+                </div>
+                <label class="label">Needed role <span data-pf-gamelabel class="fttl-game"></span>
+                  <select class="field-input" name="role" data-pf-role required></select>
                 </label>
-                <label class="label form-span">Position title
-                  <input class="field-input" type="text" name="title" maxlength="60" placeholder="IGL / Controller / Coach" required>
-                </label>
-                <label class="label">Role category
-                  <select class="field-input" name="role_category">
-                    {% for role in team_recruitment_role_choices %}<option value="{{ role.value }}">{{ role.label }}</option>{% endfor %}
-                  </select>
-                </label>
-                <label class="label">Rank requirement
-                  <input class="field-input" type="text" name="rank_requirement" maxlength="60" placeholder="Diamond+">
+                <label class="label">Minimum rank
+                  <select class="field-input" name="rank_requirement" data-pf-rank></select>
                 </label>
                 <label class="label">Region
                   <input class="field-input" type="text" name="region" maxlength="30" data-team-post-region placeholder="BD / SEA / EU">
@@ -414,11 +453,18 @@
                 <label class="label">Platform
                   <input class="field-input" type="text" name="platform" maxlength="30" data-team-post-platform placeholder="PC / Mobile">
                 </label>
+                <label class="label form-span">Position title <span style="color:var(--dc-fg-soft);font-weight:400">(optional — defaults to the role)</span>
+                  <input class="field-input" type="text" name="title" maxlength="60" placeholder="e.g. Starting IGL for the ranked grind">
+                </label>
                 <label class="label form-span">Short pitch
                   <textarea name="short_pitch" maxlength="140" placeholder="What kind of player should apply?" required></textarea>
                 </label>
-                <label class="check-row"><input type="checkbox" name="cross_post_community"> Cross-post to Community</label>
-                <label class="check-row"><input type="checkbox" name="is_active" checked> Publish active</label>
+                <label class="ftoggle form-span" style="padding:13px;background:var(--dc-surface-3);border-radius:13px;margin:0">
+                  <span class="lbl"><i class="ph-fill ph-broadcast" style="color:var(--dc-violet-400)"></i>Also cross-post to the Community feed</span>
+                  <span class="switch" data-cross-switch></span>
+                  <input type="checkbox" name="cross_post_community" hidden data-cross-input>
+                </label>
+                <input type="checkbox" name="is_active" checked hidden>
                 <div class="status form-span" data-team-post-status></div>
                 <button type="submit" class="btn btn-primary form-span"><i class="ph-bold ph-rocket-launch"></i> Publish Recruitment Post</button>
               </form>
@@ -489,7 +535,8 @@
         <div class="fgroup"><div class="fttl"><span><i class="ph ph-devices"></i>Platform</span></div>
           <select name="platform" class="fselect" data-filter-control="platform"><option value="">Any platform</option>{% for platform in platforms %}<option value="{{ platform }}" {% if platform == platform_filter %}selected{% endif %}>{{ platform }}</option>{% endfor %}</select></div>
         <div class="fgroup"><div class="fttl"><span><i class="ph ph-arrows-down-up"></i>Sort</span></div>
-          <select name="sort" class="fselect" data-filter-control="sort"><option value="newest" {% if sort_by == 'newest' %}selected{% endif %}>Newest</option><option value="name" {% if sort_by == 'name' %}selected{% endif %}>Name A–Z</option><option value="members" {% if sort_by == 'members' %}selected{% endif %}>Most members</option></select></div>
+          <select name="sort" class="fselect" data-filter-control="sort"><option value="match" {% if sort_by == 'match' %}selected{% endif %}>Best Match</option><option value="newest" {% if sort_by == 'newest' %}selected{% endif %}>Newest</option><option value="name" {% if sort_by == 'name' %}selected{% endif %}>Name A–Z</option><option value="members" {% if sort_by == 'members' %}selected{% endif %}>Most members</option></select></div>
+        <div data-filter-advanced-m style="margin-top:16px"></div>
       </form>
     </div>
     <div class="mfilter-foot">

@@ -6,6 +6,8 @@ Supports ?filter=recruiting to show only recruiting teams.
 
 Phase 11: Premium dark theme team directory.
 """
+from collections import defaultdict
+
 from django.db.models import Count, Q
 from django.shortcuts import render
 from django.core.cache import cache
@@ -177,20 +179,24 @@ def _manageable_team_options(user):
     if not user.is_authenticated:
         return []
 
-    team_ids = set(
-        TeamMembership.objects.filter(
-            user=user,
-            status=MembershipStatus.ACTIVE,
-            role__in=[MembershipRole.OWNER, MembershipRole.MANAGER],
-        ).values_list("team_id", flat=True)
-    )
+    # role per team (Owner/Manager) so the post flow is permission-aware
+    role_by_team = {}
+    for team_id, role in TeamMembership.objects.filter(
+        user=user,
+        status=MembershipStatus.ACTIVE,
+        role__in=[MembershipRole.OWNER, MembershipRole.MANAGER],
+    ).values_list("team_id", "role"):
+        role_by_team[team_id] = role
     created_team_ids = set(
         Team.objects.filter(
             created_by=user,
             status=TeamStatus.ACTIVE,
         ).values_list("id", flat=True)
     )
-    team_ids.update(created_team_ids)
+    for team_id in created_team_ids:
+        role_by_team.setdefault(team_id, MembershipRole.OWNER)
+
+    team_ids = set(role_by_team)
     if not team_ids:
         return []
 
@@ -203,20 +209,26 @@ def _manageable_team_options(user):
         game.id: game
         for game in Game.objects.filter(id__in=[team.game_id for team in teams], is_active=True)
     }
-    return [
-        {
+    role_labels = dict(MembershipRole.choices)
+    options = []
+    for team in teams:
+        game = game_map.get(team.game_id)
+        role_value = role_by_team.get(team.id, MembershipRole.MANAGER)
+        options.append({
             "name": team.name,
             "tag": team.tag,
             "slug": team.slug,
             "manage_url": _team_manage_url(team),
             "api_url": reverse("organizations_api:team_recruitment_position_save", kwargs={"slug": team.slug}),
-            "game_slug": getattr(game_map.get(team.game_id), "slug", ""),
-            "game_label": getattr(game_map.get(team.game_id), "display_name", "") or "Team game",
+            "game_slug": getattr(game, "slug", ""),
+            "game_label": getattr(game, "display_name", "") or "Team game",
+            "game_color": getattr(game, "primary_color", "") or "#0A84FF",
+            "role": role_value,
+            "role_label": role_labels.get(role_value, "Manager"),
             "region": team.region or "",
             "platform": team.platform or "",
-        }
-        for team in teams
-    ]
+        })
+    return options
 
 
 def _preferred_game_for_user(user):
@@ -371,6 +383,191 @@ def _choice_options(choices, *, allowed_values=None):
         for value, label in choices
         if not allowed or value in allowed
     ]
+
+
+def _game_ranks(game):
+    ranks = []
+    for item in (getattr(game, "available_ranks", None) or []):
+        if isinstance(item, dict):
+            label = item.get("label") or item.get("value")
+            if label:
+                ranks.append(str(label))
+        elif item:
+            ranks.append(str(item))
+    return ranks
+
+
+def _serialize_games(active_games, game_selector_options):
+    """Per-game roles + ranks + colour, so the client can drive game-aware
+    filters and the post form. Roles come from GameRole, ranks from the
+    game's available_ranks ladder — all real config, no invented values."""
+    logo_by_slug = {}
+    for opt in game_selector_options:
+        slug = opt.get("slug")
+        if slug:
+            logo_by_slug[slug] = opt.get("icon_url") or opt.get("logo_url") or opt.get("design_logo_url") or ""
+
+    roles_by_game = defaultdict(list)
+    try:
+        from apps.games.models import GameRole
+
+        for game_id, role_name in (
+            GameRole.objects.filter(game_id__in=[g.id for g in active_games], is_active=True)
+            .order_by("game_id", "order", "role_name")
+            .values_list("game_id", "role_name")
+        ):
+            if role_name and role_name not in roles_by_game[game_id]:
+                roles_by_game[game_id].append(role_name)
+    except Exception:
+        pass
+
+    games = {}
+    for game in active_games:
+        games[game.slug] = {
+            "name": game.display_name,
+            "short": game.short_code or (game.display_name or "")[:4],
+            "color": game.primary_color or "#0A84FF",
+            "logo": logo_by_slug.get(game.slug, ""),
+            "roles": roles_by_game.get(game.id, []),
+            "ranks": _game_ranks(game),
+        }
+    return games
+
+
+def _norm(value):
+    return str(value or "").strip().lower()
+
+
+def _role_hit(need, role_set):
+    n = _norm(need)
+    if not n or not role_set:
+        return False
+    return any(r and (r in n or n in r) for r in role_set)
+
+
+def _viewer_player_ctx(user, preferred_game):
+    """What the signed-in user looks like as a candidate (for scoring teams)."""
+    if not user.is_authenticated:
+        return None
+    try:
+        from apps.user_profile.models import CareerProfile, GameProfile
+    except Exception:
+        return None
+
+    career = (
+        CareerProfile.objects.filter(user_profile__user=user)
+        .only("primary_roles", "secondary_roles", "preferred_region")
+        .first()
+    )
+    roles = set()
+    region = ""
+    if career:
+        for grp in (career.primary_roles, career.secondary_roles):
+            if isinstance(grp, list):
+                roles.update(_norm(r) for r in grp if r)
+        region = _norm(career.preferred_region)
+
+    game_slug = preferred_game.slug if preferred_game else ""
+    rank_name, platform = "", ""
+    passport_qs = GameProfile.objects.filter(
+        user=user,
+        status=GameProfile.STATUS_ACTIVE,
+        visibility=GameProfile.VISIBILITY_PUBLIC,
+        game__is_active=True,
+    ).select_related("game")
+    passport = None
+    if game_slug:
+        passport = passport_qs.filter(game__slug=game_slug).first()
+    passport = passport or passport_qs.order_by("-is_lft", "-is_pinned").first()
+    if passport:
+        if not game_slug:
+            game_slug = passport.game.slug
+        rank_name = passport.rank_name or ""
+        platform = _norm(passport.platform)
+        if not region:
+            region = _norm(passport.region)
+        if passport.main_role:
+            roles.add(_norm(passport.main_role))
+
+    if not (game_slug or roles or region):
+        return None
+    return {"game": game_slug, "roles": roles, "region": region, "platform": platform, "rank": rank_name}
+
+
+def _viewer_manager_ctx(user, manageable_teams):
+    """The signed-in manager's open needs (for scoring players)."""
+    if not user.is_authenticated or not manageable_teams:
+        return None
+    slugs = [t["slug"] for t in manageable_teams]
+    teams = list(Team.objects.filter(slug__in=slugs).only("id", "game_id", "region", "platform"))
+    if not teams:
+        return None
+    games = {opt["game_slug"] for opt in manageable_teams if opt.get("game_slug")}
+    regions = {_norm(t.region) for t in teams if t.region}
+    platforms = {_norm(t.platform) for t in teams if t.platform}
+    roles = set()
+    positions = (
+        RecruitmentPosition.objects.filter(team_id__in=[t.id for t in teams], is_active=True)
+        .only("role_category", "title", "region", "platform")
+    )
+    for pos in positions:
+        if pos.role_category:
+            roles.add(_norm(pos.get_role_category_display()))
+        if pos.title:
+            roles.add(_norm(pos.title))
+        if pos.region:
+            regions.add(_norm(pos.region))
+        if pos.platform:
+            platforms.add(_norm(pos.platform))
+    if not (games or roles or regions or platforms):
+        return None
+    return {"games": games, "roles": roles, "regions": regions, "platforms": platforms}
+
+
+def _score_components(components):
+    """components: list of (label, weight, applicable, met, value).
+    Returns (score 0-100 or None, breakdown list)."""
+    applicable = [c for c in components if c[2]]
+    breakdown = [{"label": c[0], "met": bool(c[3]), "value": c[4]} for c in applicable]
+    total = sum(c[1] for c in applicable)
+    if not total:
+        return None, []
+    got = sum(c[1] for c in applicable if c[3])
+    return round(100 * got / total), breakdown
+
+
+def _match_team(team, game_obj, summary, pctx):
+    if not pctx:
+        return None, []
+    g = getattr(game_obj, "slug", "")
+    need = summary.get("title") or summary.get("role_category") or ""
+    region = summary.get("region") or team.region or ""
+    platform = summary.get("platform") or team.platform or ""
+    return _score_components([
+        ("Same game", 45, bool(pctx["game"]), bool(g) and g == pctx["game"], getattr(game_obj, "display_name", "")),
+        ("Needs your role", 25, bool(pctx["roles"]), _role_hit(need, pctx["roles"]), need or "—"),
+        ("Region compatible", 15, bool(pctx["region"]), bool(region) and _norm(region) == pctx["region"], region or "—"),
+        ("Platform compatible", 15, bool(pctx["platform"]), bool(platform) and _norm(platform) == pctx["platform"], platform or "—"),
+    ])
+
+
+def _match_player(player, mctx):
+    if not mctx:
+        return None, []
+    pp = player.get("primary_passport") or {}
+    game = pp.get("game_slug") or ""
+    roles = {_norm(r) for r in (player.get("roles") or []) if r}
+    if pp.get("main_role"):
+        roles.add(_norm(pp.get("main_role")))
+    region = player.get("region") or pp.get("region") or ""
+    platform = pp.get("platform") or ""
+    role_met = any(_role_hit(r, mctx["roles"]) for r in roles) if (roles and mctx["roles"]) else False
+    return _score_components([
+        ("Fits your game", 45, bool(mctx["games"]), bool(game) and game in mctx["games"], pp.get("game") or "—"),
+        ("Fills a roster need", 25, bool(mctx["roles"]), role_met, (player.get("roles") or ["—"])[0]),
+        ("Region compatible", 15, bool(mctx["regions"]), bool(region) and _norm(region) in mctx["regions"], region or "—"),
+        ("Platform compatible", 15, bool(mctx["platforms"]), bool(platform) and _norm(platform) in mctx["platforms"], platform or "—"),
+    ])
 
 
 def team_directory(request, force_recruiting=False):
@@ -530,9 +727,30 @@ def team_directory(request, force_recruiting=False):
     else:
         scout_role = 'player'
 
+    # ---- Smart matching (real attributes only; None when no viewer context) ----
+    scout_games = {}
+    has_match_context = False
+    if is_recruiting_filter:
+        scout_games = _serialize_games(active_games, game_selector_options)
+        pctx = _viewer_player_ctx(request.user, preferred_game or selected_game)
+        mctx = _viewer_manager_ctx(request.user, manageable_teams)
+        has_match_context = bool(pctx or mctx)
+        for item in team_list:
+            score, compat = _match_team(
+                item['team'], item['game_obj'], item.get('recruitment_summary') or {}, pctx
+            )
+            item['match'] = score
+            item['compat'] = compat
+        for player in available_players:
+            score, compat = _match_player(player, mctx)
+            player['match'] = score
+            player['compat'] = compat
+
     context = {
         'teams': team_list,
         'scout_role': scout_role,
+        'scout_games': scout_games,
+        'has_match_context': has_match_context,
         'total_teams': total_teams,
         'recruiting_count': recruiting_count,
         'recruiting_result_count': len(team_list),

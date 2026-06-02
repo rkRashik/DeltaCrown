@@ -42,7 +42,13 @@
       sort: p.get("sort") || "newest",
     };
   }
+  const GAMES = (() => { try { return JSON.parse((document.getElementById("dc-scout-games") || {}).textContent || "{}"); } catch (e) { return {}; } })();
+  const hasMatch = page.dataset.hasMatch === "1";
   let state = readUrlState(true);
+  state.fr = new Set();   /* role filters (lowercased) */
+  state.fk = new Set();   /* rank filters (lowercased) */
+  state.tg = { verified: false, openroles: false, ranked: false };
+  state.minScore = 0;
 
   function stateUrl() {
     const url = new URL(canonicalUrl, window.location.origin);
@@ -104,6 +110,7 @@
     const cards = [...grid.querySelectorAll("[data-find-card]")];
     const by = state.sort || "newest";
     cards.sort((a, b) => {
+      if (by === "match") return Number(b.dataset.score || 0) - Number(a.dataset.score || 0);
       if (by === "name") return normalize(a.dataset.sortName).localeCompare(normalize(b.dataset.sortName));
       if (by === "members") return Number(b.dataset.sortMembers || 0) - Number(a.dataset.sortMembers || 0);
       return Number(a.dataset.originalIndex || 0) - Number(b.dataset.originalIndex || 0);
@@ -114,10 +121,17 @@
   function matchesCard(card) {
     const q = normalize(state.q), region = normalize(state.region), platform = normalize(state.platform);
     const hay = normalize(card.dataset.search);
-    return (!q || hay.includes(q))
-      && (!state.game || (card.dataset.gameSlug || "") === state.game)
-      && (!region || normalize(card.dataset.region).includes(region))
-      && (!platform || normalize(card.dataset.platform).includes(platform));
+    if (q && !hay.includes(q)) return false;
+    if (state.game && (card.dataset.gameSlug || "") !== state.game) return false;
+    if (region && !normalize(card.dataset.region).includes(region)) return false;
+    if (platform && !normalize(card.dataset.platform).includes(platform)) return false;
+    if (state.fr.size) { const cr = normalize(card.dataset.role); if (![...state.fr].some(r => cr.includes(r))) return false; }
+    if (state.fk.size) { const ck = normalize(card.dataset.rank); if (![...state.fk].some(r => ck.includes(r))) return false; }
+    if (state.tg.verified && card.dataset.verified !== "1") return false;
+    if (state.tg.openroles && !(Number(card.dataset.openroles || 0) > 1)) return false;
+    if (state.tg.ranked && !normalize(card.dataset.rank)) return false;
+    if (state.minScore && Number(card.dataset.score || 0) < state.minScore) return false;
+    return true;
   }
 
   function updateCount(panel) {
@@ -140,12 +154,48 @@
   }
 
   function setState(patch, opts) {
+    const rebuild = ("game" in patch) || ("mode" in patch);
+    if ("mode" in patch) { state.fr.clear(); state.fk.clear(); state.tg = { verified: false, openroles: false, ranked: false }; state.minScore = 0; }
     state = Object.assign({}, state, patch);
     syncControls();
+    if (rebuild) buildAdvanced();
     applyFilters();
     if (!opts || opts.push !== false) pushStateUrl();
   }
   function debounce(fn, wait) { let t; return function () { const a = arguments; clearTimeout(t); t = setTimeout(() => fn.apply(null, a), wait); }; }
+
+  /* ---- advanced game-aware filters (quick pills, role/rank chips, match slider) ---- */
+  function qfPill(k, icon, label) { return `<button type="button" class="qf ${state.tg[k] ? "on" : ""}" data-ftoggle="${k}"><i class="ph-fill ${icon}"></i>${label}</button>`; }
+  function advancedHtml() {
+    const g = state.game && GAMES[state.game] ? GAMES[state.game] : null;
+    const isTeams = state.mode === "teams";
+    let h = `<div class="fgroup nopad"><div class="fttl"><span><i class="ph ph-lightning"></i>Quick filters</span></div><div class="qf-row">`;
+    h += isTeams ? (qfPill("verified", "ph-seal-check", "Org verified") + qfPill("openroles", "ph-stack", "Multi-role")) : qfPill("ranked", "ph-medal", "Has rank");
+    h += `</div></div>`;
+    h += `<div class="fgroup"><div class="fttl"><span><i class="ph ph-user-focus"></i>Role</span>${g ? `<span class="fttl-game">${esc(g.name)}</span>` : ""}</div>`;
+    if (g && g.roles && g.roles.length) h += `<div class="chip-multi">` + g.roles.map(r => `<button type="button" class="fchip ${state.fr.has(r.toLowerCase()) ? "on" : ""}" data-frole="${esc(r)}">${esc(r)}</button>`).join("") + `</div>`;
+    else h += `<div class="privacy-note"><i class="ph-fill ph-info"></i> Pick a game above to filter by its specific roles &amp; ranks.</div>`;
+    h += `</div>`;
+    if (g && g.ranks && g.ranks.length) h += `<div class="fgroup"><div class="fttl"><span><i class="ph ph-trophy"></i>Rank</span></div><div class="chip-multi">` + g.ranks.map(r => `<button type="button" class="fchip ${state.fk.has(r.toLowerCase()) ? "on" : ""}" data-frank="${esc(r)}">${esc(r)}</button>`).join("") + `</div></div>`;
+    if (hasMatch) h += `<div class="fgroup"><div class="fttl"><span><i class="ph ph-target"></i>Minimum match</span></div><div class="fslider"><div class="vrow"><span>Any</span><span class="v" data-scoreval>${state.minScore ? state.minScore + "%+" : "Any"}</span></div><input type="range" min="0" max="95" step="5" value="${state.minScore}" data-minscore style="--fill:${state.minScore}%"></div></div>`;
+    return h;
+  }
+  function buildAdvanced() { $$("[data-filter-advanced],[data-filter-advanced-m]").forEach(h => { h.innerHTML = advancedHtml(); }); }
+  page.addEventListener("click", e => {
+    const ro = e.target.closest("[data-frole]");
+    if (ro) { const v = ro.dataset.frole.toLowerCase(); state.fr.has(v) ? state.fr.delete(v) : state.fr.add(v); buildAdvanced(); applyFilters(); return; }
+    const rk = e.target.closest("[data-frank]");
+    if (rk) { const v = rk.dataset.frank.toLowerCase(); state.fk.has(v) ? state.fk.delete(v) : state.fk.add(v); buildAdvanced(); applyFilters(); return; }
+    const tg = e.target.closest("[data-ftoggle]");
+    if (tg) { const k = tg.dataset.ftoggle; state.tg[k] = !state.tg[k]; buildAdvanced(); applyFilters(); return; }
+  });
+  page.addEventListener("input", e => {
+    if (!e.target.matches("[data-minscore]")) return;
+    state.minScore = +e.target.value;
+    e.target.style.setProperty("--fill", state.minScore + "%");
+    $$("[data-scoreval]").forEach(s => s.textContent = state.minScore ? state.minScore + "%+" : "Any");
+    applyFilters();
+  });
 
   /* ---- tabs / search / game / filters ---- */
   tabs.forEach(tab => tab.addEventListener("click", () => setState({ mode: tab.dataset.modeTab || "teams" })));
@@ -164,7 +214,14 @@
     c.addEventListener("change", () => { const k = c.dataset.filterControl; if (!k) return; const patch = {}; patch[k] = c.value || (k === "sort" ? "newest" : ""); setState(patch); });
     if (c.form) c.form.addEventListener("submit", e => e.preventDefault());
   });
-  $$("[data-reset-filters]").forEach(b => b.addEventListener("click", e => { e.preventDefault(); setState({ game: "", q: "", region: "", platform: "", sort: "newest" }); }));
+  $$("[data-reset-filters]").forEach(b => b.addEventListener("click", e => {
+    e.preventDefault();
+    state.fr.clear(); state.fk.clear();
+    state.tg = { verified: false, openroles: false, ranked: false };
+    state.minScore = 0;
+    setState({ game: "", q: "", region: "", platform: "", sort: "newest" });
+    buildAdvanced();
+  }));
   $$("[data-clear-game]").forEach(b => b.addEventListener("click", e => { e.preventDefault(); setState({ game: "" }); }));
 
   /* ---- collapsible game selector ---- */
@@ -217,14 +274,17 @@
     const host = $("#dc-modal-preview-card"); if (!host) return;
     if (step === "team") {
       const f = $("[data-team-post-form]"); if (!f) { host.innerHTML = ""; return; }
-      const opt = f.querySelector("[data-team-post-team]") && f.querySelector("[data-team-post-team]").selectedOptions[0];
-      const name = opt ? opt.textContent.split(" - ")[0].trim() : "Your Team";
-      const role = clean(f.querySelector("[name=title]").value) || (f.querySelector("[name=role_category]").selectedOptions[0] || {}).textContent || "Open role";
-      const rank = clean(f.querySelector("[name=rank_requirement]").value);
+      const team = activePerm();
+      const name = team ? clean((team.querySelector(".pn") || {}).textContent) || "Your Team" : "Your Team";
+      const color = (team && team.dataset.color) || "#0A84FF";
+      const roleSel = f.querySelector("[data-pf-role]");
+      const role = clean(f.querySelector("[name=title]").value) || (roleSel && roleSel.value) || "Open role";
+      const rankSel = f.querySelector("[data-pf-rank]");
+      const rank = rankSel ? clean(rankSel.value) : "";
       const region = clean(f.querySelector("[name=region]").value);
       const pitch = clean(f.querySelector("[name=short_pitch]").value) || "Your recruitment pitch appears here.";
-      host.innerHTML = `<article class="scard" style="--g:#0A84FF">
-        <div class="scard-top"><div class="crest" style="background:#0A84FF22">${esc(name.slice(0, 3))}</div>
+      host.innerHTML = `<article class="scard" style="--g:${color}">
+        <div class="scard-top"><div class="crest" style="background:${color}22">${esc(name.slice(0, 3).toUpperCase())}</div>
           <div class="scard-id"><div class="scard-name"><span class="nm">${esc(name)}</span></div>
           <div class="scard-meta">${region ? `<span class="mi"><i class="ph-fill ph-map-pin"></i>${esc(region)}</span>` : ""}</div></div></div>
         <div style="display:flex;gap:6px"><span class="chip chip-recruit"><i class="ph-fill ph-megaphone"></i>RECRUITING</span></div>
@@ -267,35 +327,65 @@
   }
   function setStatus(node, msg, ok) { if (!node) return; node.textContent = msg || ""; node.classList.toggle("is-ok", !!ok); node.classList.toggle("is-error", !!msg && !ok); }
 
-  const teamForm = $("[data-team-post-form]");
-  const teamSelect = teamForm && teamForm.querySelector("[data-team-post-team]");
-  function fillTeamDefaults(force) {
-    if (!teamSelect) return;
-    const sel = teamSelect.selectedOptions[0]; if (!sel) return;
-    const region = teamForm.querySelector("[data-team-post-region]");
-    const platform = teamForm.querySelector("[data-team-post-platform]");
-    if (region && (force || !region.value)) region.value = sel.dataset.region || "";
-    if (platform && (force || !platform.value)) platform.value = sel.dataset.platform || "";
+  /* permission-aware team switcher + game-aware role/rank fields */
+  function activePerm() { return $("[data-perm-team].active") || $("[data-perm-team]"); }
+  function fillGameFields(gameSlug) {
+    const g = GAMES[gameSlug];
+    const roleSel = $("[data-pf-role]"), rankSel = $("[data-pf-rank]"), glabel = $("[data-pf-gamelabel]");
+    if (glabel) glabel.textContent = g ? g.name : "";
+    const roles = (g && g.roles && g.roles.length) ? g.roles : ["IGL", "Entry", "Support", "Flex", "Coach"];
+    if (roleSel) roleSel.innerHTML = roles.map(r => `<option>${esc(r)}</option>`).join("");
+    const ranks = (g && g.ranks) ? g.ranks : [];
+    if (rankSel) rankSel.innerHTML = `<option value="">Any rank</option>` + ranks.map(r => `<option>${esc(r)}</option>`).join("");
   }
-  if (teamSelect) { teamSelect.addEventListener("change", () => { fillTeamDefaults(true); previewFor("team"); }); fillTeamDefaults(false); }
+  function mapRoleCategory(role) {
+    const n = (role || "").toLowerCase();
+    const map = [["igl", "IGL"], ["shot", "IGL"], ["call", "IGL"], ["duelist", "DUELIST"], ["entry", "ENTRY"], ["rush", "ENTRY"], ["assault", "ENTRY"], ["fragger", "ENTRY"], ["awp", "SNIPER"], ["sniper", "SNIPER"], ["controller", "CONTROLLER"], ["smoke", "CONTROLLER"], ["sentinel", "SENTINEL"], ["anchor", "SENTINEL"], ["initiat", "INITIATOR"], ["support", "SUPPORT"], ["sup", "SUPPORT"], ["lurk", "LURKER"], ["tank", "TANK"], ["dps", "DPS"], ["carry", "DPS"], ["mid", "DPS"], ["heal", "HEALER"], ["coach", "COACH"], ["analyst", "ANALYST"], ["manager", "MANAGER"], ["content", "CONTENT"]];
+    for (const [k, v] of map) if (n.includes(k)) return v;
+    return "OTHER";
+  }
+  const teamForm = $("[data-team-post-form]");
+  $$("[data-perm-team]").forEach(b => b.addEventListener("click", () => {
+    $$("[data-perm-team]").forEach(o => o.classList.toggle("active", o === b));
+    fillGameFields(b.dataset.game);
+    const r = teamForm.querySelector("[data-team-post-region]"), p = teamForm.querySelector("[data-team-post-platform]");
+    if (r) r.value = b.dataset.region || ""; if (p) p.value = b.dataset.platform || "";
+    previewFor("team");
+  }));
+  const crossSwitch = teamForm && teamForm.querySelector("[data-cross-switch]");
+  const crossInput = teamForm && teamForm.querySelector("[data-cross-input]");
+  if (crossSwitch) crossSwitch.addEventListener("click", () => { const on = crossSwitch.classList.toggle("on"); if (crossInput) crossInput.checked = on; });
   if (teamForm) {
+    const init = activePerm();
+    if (init) {
+      fillGameFields(init.dataset.game);
+      const r = teamForm.querySelector("[data-team-post-region]"), p = teamForm.querySelector("[data-team-post-platform]");
+      if (r && !r.value) r.value = init.dataset.region || ""; if (p && !p.value) p.value = init.dataset.platform || "";
+    }
     teamForm.addEventListener("input", () => previewFor("team"));
     teamForm.addEventListener("submit", async e => {
       e.preventDefault();
       const status = teamForm.querySelector("[data-team-post-status]");
       const submit = teamForm.querySelector("[type=submit]");
-      const sel = teamSelect && teamSelect.selectedOptions[0];
-      if (!sel || !sel.dataset.apiUrl) { setStatus(status, "Choose a manageable team first.", false); return; }
+      const team = activePerm();
+      if (!team || !team.dataset.apiUrl) { setStatus(status, "Pick a team to post as.", false); return; }
+      const roleSel = teamForm.querySelector("[data-pf-role]");
+      const role = roleSel ? clean(roleSel.value) : "";
       const d = new FormData(teamForm);
       const pitch = clean(d.get("short_pitch"));
-      const payload = { title: clean(d.get("title")), role_category: clean(d.get("role_category")), rank_requirement: clean(d.get("rank_requirement")),
-        region: clean(d.get("region")), platform: clean(d.get("platform")), short_pitch: pitch, description: pitch,
-        cross_post_community: d.has("cross_post_community"), is_active: d.has("is_active") };
+      const payload = {
+        title: clean(d.get("title")) || role,
+        role_category: mapRoleCategory(role),
+        rank_requirement: clean(d.get("rank_requirement")),
+        region: clean(d.get("region")), platform: clean(d.get("platform")),
+        short_pitch: pitch, description: pitch,
+        cross_post_community: crossInput ? crossInput.checked : false,
+        is_active: true,
+      };
       try { if (submit) submit.disabled = true; setStatus(status, "Publishing…", true);
-        await postJson(sel.dataset.apiUrl, payload);
-        setStatus(status, "Published. Reload to see it in the grid.", true);
-        toast("success", "Recruitment published", "Live on the Scouting Grounds.");
-        teamForm.reset(); fillTeamDefaults(true); previewFor("team");
+        await postJson(team.dataset.apiUrl, payload);
+        setStatus(status, "Published to the Scouting Grounds and your team's manage page. Reload to see it.", true);
+        toast("success", "Recruitment published", "Live for " + (clean((team.querySelector(".pn") || {}).textContent) || "your team") + ".");
       } catch (err) { setStatus(status, err.message || "Could not publish.", false); toast("error", "Publish failed", err.message || ""); }
       finally { if (submit) submit.disabled = false; }
     });
@@ -436,10 +526,15 @@
     if (e.key !== "Escape") return;
     closeCmdk(); closeDrawer(); closePost(); closeMfilter();
   });
-  window.addEventListener("popstate", () => { state = readUrlState(false); syncControls(); applyFilters(); });
+  window.addEventListener("popstate", () => {
+    const adv = { fr: state.fr, fk: state.fk, tg: state.tg, minScore: state.minScore };
+    state = Object.assign(readUrlState(false), adv);
+    syncControls(); buildAdvanced(); applyFilters();
+  });
 
   /* ---- init ---- */
   syncControls();
+  buildAdvanced();
   applyFilters();
   buildSpotlight();
   buildTicker();
