@@ -13,7 +13,7 @@
 <div class="relative w-full">
 
   {# ── Cinematic Banner — fixed-height absolute positioned (demo layout) ─ #}
-  <div class="absolute inset-0 h-[450px] lg:h-[550px] top-0 z-0">
+  <div class="absolute inset-0 h-[500px] lg:h-[640px] top-0 z-0">
     {% if team.banner_url %}
     <img src="{{ team.banner_url }}"
          alt="{{ team.name }} banner"
@@ -31,7 +31,7 @@
   <div class="ambient-glow"></div>
 
   {# ── Hero Content (overlaid on banner with padding-top) ──────────────── #}
-  <div class="relative z-20 w-full max-w-[1400px] mx-auto px-6 lg:px-12 pt-[180px] lg:pt-[240px] pb-8 dc-hero-shell">
+  <div class="relative z-20 w-full max-w-[1400px] mx-auto px-6 lg:px-12 pt-[240px] lg:pt-[340px] pb-8 dc-hero-shell">
     <div class="flex flex-col lg:flex-row lg:items-end gap-8 lg:gap-10 dc-hero-layout">
 
       {# ── Avatar Ring ─────────────────────────────────────────────────────── #}
@@ -1149,7 +1149,9 @@
 
                   {# Opponent #}
                   <div class="flex items-center gap-2.5 min-w-0 flex-1 flex-row-reverse text-right dc-score-team dc-score-team-away">
-                    <div class="h-10 w-10 rounded-xl bg-white/8 border border-white/12 grid place-items-center shrink-0 text-[11px] font-black text-white/55 overflow-hidden {% if is_win == 'loss' %}ring-1 ring-red-400/35{% endif %}">{{ match.opponent_name|default:"TBD"|truncatechars:3|upper }}</div>
+                    <div class="h-10 w-10 rounded-xl bg-white/8 border border-white/12 grid place-items-center shrink-0 overflow-hidden {% if is_win == 'loss' %}ring-1 ring-red-400/35{% endif %}">
+                      {% if match.opponent_logo_url %}<img src="{{ match.opponent_logo_url }}" alt="{{ match.opponent_name }}" class="w-full h-full object-cover" loading="lazy" decoding="async">{% else %}<span class="text-[11px] font-black text-white/55">{{ match.opponent_name|default:"TBD"|truncatechars:3|upper }}</span>{% endif %}
+                    </div>
                     <div class="min-w-0">
                       <p class="text-sm font-bold text-white leading-tight truncate">{{ match.opponent_name|default:"TBD" }}</p>
                       <p class="text-[10px] text-white/40 uppercase tracking-wide">Opponent</p>
@@ -1289,6 +1291,82 @@
         font-family:ui-monospace,SFMono-Regular,monospace;background:rgba(255,255,255,.05);
         padding:.12rem .5rem;border-radius:999px;border:1px solid rgba(255,255,255,.07);}
       .dc-aside-bd{position:relative;padding:.75rem 1.15rem 1.15rem;}
+
+      /* ── Competitive Identity Card (cid-*) ──────────────────────────── */
+      @keyframes cidRise{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:translateY(0)}}
+      @keyframes cidPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.8)}}
+      .cid-anim{animation:cidRise 380ms var(--ease-out-expo,cubic-bezier(.16,1,.3,1)) calc(var(--ci,0)*55ms) both}
+      .cid-icon{display:grid;place-items:center;width:2.5rem;height:2.5rem;flex-shrink:0;border-radius:.875rem;background:color-mix(in oklab,var(--team-primary) 12%,transparent);border:1px solid color-mix(in oklab,var(--team-primary) 26%,transparent);color:var(--team-primary);box-shadow:0 0 14px color-mix(in oklab,var(--team-primary) 18%,transparent);}
+      .cid-chip{display:inline-flex;align-items:center;gap:.35rem;padding:.2rem .6rem;border-radius:999px;font-size:.52rem;font-weight:700;text-transform:uppercase;letter-spacing:.17em;white-space:nowrap;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:rgba(148,163,184,.85);}
+      .cid-chip-tryouts{border-color:rgba(96,165,250,.28);background:rgba(96,165,250,.09);color:rgb(147,197,253)}
+      .cid-chip-recruiting{border-color:rgba(52,211,153,.28);background:rgba(52,211,153,.09);color:rgb(110,231,183)}
+      .cid-chip-active{border-color:color-mix(in oklab,var(--team-primary) 45%,transparent);background:color-mix(in oklab,var(--team-primary) 11%,transparent);color:var(--team-primary)}
+      .cid-pulse{display:inline-block;width:.38rem;height:.38rem;border-radius:50%;background:currentColor;animation:cidPulse 2s ease-in-out infinite;}
+      .cid-stats{display:flex;border-radius:.875rem;border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.025);overflow:hidden;}
+      .cid-stat{flex:1;display:flex;flex-direction:column;align-items:center;padding:.65rem .4rem;gap:.2rem;transition:background .2s ease;position:relative;}
+      .cid-stat:hover{background:rgba(255,255,255,.03)}
+      .cid-stat+.cid-stat::before{content:'';position:absolute;left:0;top:18%;height:64%;width:1px;background:rgba(255,255,255,.07)}
+      .cid-stat-lbl{font-size:.44rem;text-transform:uppercase;letter-spacing:.17em;color:rgba(100,116,139,.8);font-weight:700}
+      .cid-stat-num{font-size:1.35rem;font-weight:900;line-height:1;font-family:var(--font-gaming,'Outfit',sans-serif)}
+      .cid-num-w{color:rgb(52,211,153);text-shadow:0 0 10px rgba(52,211,153,.3)}
+      .cid-num-l{color:rgba(248,113,113,.85)}
+      .cid-num-dc{color:rgb(251,191,36);text-shadow:0 0 10px rgba(251,191,36,.28)}
+      .cid-sep{height:1px;margin:0 1.1rem;background:linear-gradient(90deg,transparent,rgba(255,255,255,.07) 30%,rgba(255,255,255,.07) 70%,transparent)}
+      .cid-section-lbl{display:flex;align-items:center;gap:.4rem;font-size:.49rem;text-transform:uppercase;letter-spacing:.2em;color:rgba(100,116,139,.75);font-weight:700;margin-bottom:.45rem}
+      .cid-dot-live{display:inline-block;width:.35rem;height:.35rem;border-radius:50%;background:rgb(34,211,238);box-shadow:0 0 5px rgb(34,211,238);animation:cidPulse 1.8s ease-in-out infinite;flex-shrink:0}
+      .cid-tile{display:flex;align-items:center;gap:.65rem;position:relative;padding:.6rem .7rem;border-radius:.75rem;border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.022);text-decoration:none;overflow:hidden;transition:border-color .2s ease,background .2s ease,transform .2s var(--ease-out-quart,cubic-bezier(.25,1,.5,1))}
+      .cid-tile::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;background:rgba(255,255,255,.08);transition:background .2s ease}
+      .cid-tile-open::before{background:rgb(34,211,238);box-shadow:0 0 6px rgba(34,211,238,.4)}
+      .cid-tile-accepted::before{background:rgb(251,191,36);box-shadow:0 0 6px rgba(251,191,36,.4)}
+      .cid-tile:hover{border-color:rgba(255,255,255,.14);background:rgba(255,255,255,.042);transform:translateX(2px)}
+      .cid-tile-status{font-size:.45rem;font-weight:700;text-transform:uppercase;letter-spacing:.17em;padding:.15rem .38rem;border-radius:.22rem;border:1px solid}
+      .cid-ts-open{border-color:rgba(34,211,238,.3);background:rgba(34,211,238,.1);color:rgb(103,232,249)}
+      .cid-ts-accepted{border-color:rgba(251,191,36,.3);background:rgba(251,191,36,.1);color:rgb(253,224,71)}
+      .cid-ts-other{border-color:rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:rgba(148,163,184,.75)}
+      .cid-tile-fmt{font-size:.49rem;font-weight:600;color:rgba(100,116,139,.7);font-family:ui-monospace,monospace}
+      .cid-tile-title{font-size:.74rem;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.3}
+      .cid-tile-sub{font-size:.59rem;color:rgba(100,116,139,.65);margin-top:.08rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+      .cid-tile-arr{color:rgba(100,116,139,.35);transition:color .15s ease,transform .2s var(--ease-out-quart);flex-shrink:0}
+      .cid-tile:hover .cid-tile-arr{color:rgb(34,211,238);transform:translateX(3px)}
+      .cid-pot-lbl{font-size:.44rem;text-transform:uppercase;letter-spacing:.15em;color:rgba(251,191,36,.58);font-weight:700}
+      .cid-pot-val{font-size:.875rem;font-weight:900;color:rgb(251,191,36);line-height:1.1}
+      .cid-pot-val span{font-size:.48rem;opacity:.55;margin-left:.12rem}
+      .cid-cta{display:flex;align-items:center;justify-content:space-between;gap:.75rem;padding:.85rem 1rem;border-radius:.875rem;text-decoration:none;overflow:hidden;position:relative;transition:border-color .25s ease,transform .2s var(--ease-out-quart),box-shadow .25s ease}
+      .cid-cta-challenge{border:1px solid color-mix(in oklab,var(--team-primary) 36%,transparent);background:linear-gradient(135deg,color-mix(in oklab,var(--team-primary) 13%,transparent),color-mix(in oklab,var(--team-primary) 5%,transparent))}
+      .cid-cta-challenge:hover{border-color:color-mix(in oklab,var(--team-primary) 55%,transparent);box-shadow:0 8px 24px -8px color-mix(in oklab,var(--team-primary) 32%,transparent);transform:translateY(-1px)}
+      .cid-cta-auth{border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.022)}
+      .cid-cta-auth:hover{border-color:rgba(255,255,255,.14);background:rgba(255,255,255,.04)}
+      .cid-cta-locked{padding:.7rem 1rem;border-radius:.875rem;border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.018)}
+      .cid-eyebrow{font-size:.49rem;text-transform:uppercase;letter-spacing:.2em;font-weight:700;margin-bottom:.15rem;position:relative}
+      .cid-cta-challenge .cid-eyebrow{color:color-mix(in oklab,var(--team-primary) 70%,white)}
+      .cid-cta-auth .cid-eyebrow{color:rgba(100,116,139,.75)}
+      .cid-cta-title{font-size:.875rem;font-weight:700;color:#fff;line-height:1.2;position:relative}
+      .cid-cta-sub{font-size:.59rem;color:rgba(148,163,184,.55);margin-top:.18rem;position:relative}
+      .cid-arrow-btn{display:grid;place-items:center;width:2.1rem;height:2.1rem;border-radius:.6rem;flex-shrink:0;position:relative;transition:transform .2s var(--ease-out-quart),background .2s ease}
+      .cid-cta-challenge .cid-arrow-btn{border:1px solid color-mix(in oklab,var(--team-primary) 24%,transparent);background:color-mix(in oklab,var(--team-primary) 10%,transparent);color:color-mix(in oklab,var(--team-primary) 75%,white)}
+      .cid-cta-challenge:hover .cid-arrow-btn{transform:translateX(2px)}
+      .cid-cta-auth .cid-arrow-btn{border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.04);color:rgba(148,163,184,.5)}
+      .cid-rows{display:flex;flex-direction:column;gap:.35rem}
+      .cid-row{display:flex;align-items:center;gap:.6rem;padding:.48rem .6rem;border-radius:.6rem;border:1px solid rgba(255,255,255,.06);background:rgba(255,255,255,.018);text-decoration:none;cursor:pointer;width:100%;text-align:left;transition:border-color .15s ease,background .15s ease,transform .15s var(--ease-out-quart)}
+      .cid-row:hover{border-color:rgba(255,255,255,.12);background:rgba(255,255,255,.042);transform:translateX(2px)}
+      .cid-row-muted{opacity:.5}
+      .cid-row-muted:hover{opacity:.72}
+      .cid-row-ic{display:grid;place-items:center;width:1.7rem;height:1.7rem;border-radius:.48rem;flex-shrink:0;border:1px solid}
+      .cid-ic-bounty{background:rgba(167,139,250,.1);color:rgb(196,181,253);border-color:rgba(167,139,250,.2)}
+      .cid-ic-missions{background:rgba(251,191,36,.08);color:rgb(253,224,71);border-color:rgba(251,191,36,.16)}
+      .cid-ic-scrim{background:rgba(52,211,153,.08);color:rgb(110,231,183);border-color:rgba(52,211,153,.16)}
+      .cid-ic-tryout{background:rgba(96,165,250,.08);color:rgb(147,197,253);border-color:rgba(96,165,250,.16)}
+      .cid-row-title{font-size:.71rem;font-weight:700;color:rgba(255,255,255,.82);line-height:1.2}
+      .cid-row-sub{font-size:.54rem;color:rgba(100,116,139,.65);margin-top:.04rem}
+      .cid-row-badge{flex-shrink:0;font-size:.44rem;text-transform:uppercase;letter-spacing:.14em;font-weight:700;padding:.18rem .48rem;border-radius:.35rem;border:1px solid}
+      .cid-badge-bounty{border-color:rgba(167,139,250,.38);background:rgba(167,139,250,.14);color:rgb(216,180,254);box-shadow:0 0 7px rgba(167,139,250,.18)}
+      .cid-badge-arrow{color:rgba(100,116,139,.3);transition:color .15s ease,transform .15s var(--ease-out-quart)}
+      .cid-row:hover .cid-badge-arrow{color:rgba(148,163,184,.6);transform:translateX(2px)}
+      .cid-footer{display:flex;align-items:center;justify-content:space-between;padding-top:.48rem;border-top:1px solid rgba(255,255,255,.05)}
+      .cid-footer-txt{font-size:.52rem;color:rgba(71,85,105,.8)}
+      .cid-footer-lnk{font-size:.52rem;text-transform:uppercase;letter-spacing:.17em;font-weight:700;color:color-mix(in oklab,var(--team-primary) 65%,white);text-decoration:none;transition:color .15s ease}
+      .cid-footer-lnk:hover{color:color-mix(in oklab,var(--team-primary) 88%,white)}
+      @media(prefers-reduced-motion:reduce){.cid-anim,.cid-pulse,.cid-dot-live{animation:none!important}}
     </style>
     <div class="lg:col-span-4 flex flex-col gap-5 dc-sidebar">
 
@@ -1516,125 +1594,202 @@
       </div>
       {% endif %}
 
-      {# Competitive Identity #}
-      <div class="dc-aside dcx-card group">
+      {% comment %}Competitive Identity — Premium Redesign{% endcomment %}
+      <div class="dc-aside group" id="dc-competitive-id">
         <span class="dc-aside-glow"></span>
-        <div class="relative px-5 pt-5 pb-4">
-          <div class="flex items-start gap-3">
-            <span class="dc-aside-ic mt-0.5"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg></span>
-            <div class="min-w-0 flex-1">
-              <p class="text-[9px] uppercase tracking-[0.2em] font-black mb-0.5" style="color:color-mix(in oklab,var(--team-primary) 70%,white)">Competitive Identity</p>
-              <h4 class="text-white font-display font-black text-lg leading-tight truncate">{{ team.name }}</h4>
+
+        {% comment %}── HEADER ────────────────────────────────────────────────────{% endcomment %}
+        <div class="relative px-5 pt-5 pb-4 cid-anim" style="--ci:0">
+          <div class="flex items-start justify-between gap-2 mb-4">
+            <div class="flex items-center gap-3">
+              <span class="cid-icon">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+              </span>
+              <div>
+                <p class="cid-eyebrow" style="color:rgba(100,116,139,.72)">Competitive Arena</p>
+                <h4 class="cid-team-name">{{ team.name }}</h4>
+              </div>
             </div>
-            <span class="dcx-chip shrink-0 px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-[8px] font-black uppercase tracking-widest text-slate-300">
-              {% if training.tryouts_enabled %}Tryouts{% elif training.has_public_scrims %}Scrim{% elif challenges.open_count %}Active{% else %}Standby{% endif %}
+            <span class="cid-chip shrink-0
+              {% if training.tryouts_enabled %}cid-chip-tryouts
+              {% elif team.is_recruiting %}cid-chip-recruiting
+              {% elif challenges.open_count %}cid-chip-active
+              {% endif %}">
+              {% if challenges.open_count or training.tryouts_enabled or team.is_recruiting %}<span class="cid-pulse"></span>{% endif %}
+              {% if training.tryouts_enabled %}Tryouts
+              {% elif team.is_recruiting %}Recruiting
+              {% elif challenges.open_count %}Active
+              {% else %}Standby{% endif %}
             </span>
           </div>
-          <p class="mt-2 text-[11px] text-slate-400 leading-relaxed">Challenge availability, public scrims, tryout signals, and recent competitive activity.</p>
+
+          {% comment %}Stats bar{% endcomment %}
+          <div class="cid-stats">
+            <div class="cid-stat">
+              <span class="cid-stat-lbl">Wins</span>
+              <span class="cid-stat-num cid-num-w">{{ challenges.stats.wins|default:"0" }}</span>
+            </div>
+            <div class="cid-stat">
+              <span class="cid-stat-lbl">Losses</span>
+              <span class="cid-stat-num cid-num-l">{{ challenges.stats.losses|default:"0" }}</span>
+            </div>
+            <div class="cid-stat">
+              <span class="cid-stat-lbl">DC Earned</span>
+              <span class="cid-stat-num cid-num-dc">{{ challenges.stats.total_earned|floatformat:0|default:"0" }}</span>
+            </div>
+          </div>
         </div>
-        <div class="px-4 pb-4 space-y-4">
-          <div class="grid grid-cols-3 gap-2">
-            <div class="dcx-stat rounded-2xl border border-white/10 bg-white/[0.035] p-3 transition hover:border-white/20 hover:bg-white/[0.055]">
-              <p class="text-[8px] uppercase tracking-widest text-slate-500 font-black">Live Ops</p>
-              <p class="mt-1 text-2xl font-black text-white">{{ challenges.items|length|default:"0" }}</p>
-            </div>
-            <div class="dcx-stat rounded-2xl border border-emerald-400/15 bg-emerald-400/10 p-3 transition hover:border-emerald-300/25">
-              <p class="text-[8px] uppercase tracking-widest text-emerald-200/70 font-black">Scrims</p>
-              <p class="mt-1 text-2xl font-black text-emerald-200">{{ training.public_scrims|length|default:"0" }}</p>
-            </div>
-            <div class="dcx-stat rounded-2xl border border-cyan-400/15 bg-cyan-400/10 p-3 transition hover:border-cyan-300/25">
-              <p class="text-[8px] uppercase tracking-widest text-cyan-200/70 font-black">Status</p>
-              <p class="mt-1 text-xs font-black text-white uppercase">{% if challenges.open_count %}Open{% elif team.is_recruiting %}Recruiting{% else %}Invite{% endif %}</p>
-            </div>
-          </div>
-          <div class="grid grid-cols-1 gap-2">
-            {% if competitive_actions.can_challenge %}
-            <a href="{{ competitive_actions.challenge_url }}"
-               class="dcx-lift group/challenge relative flex items-center justify-between gap-3 rounded-2xl border border-cyan-400/35 bg-cyan-400/10 px-4 py-3 no-underline hover:bg-cyan-400/15 hover:border-cyan-300/55 transition-all overflow-hidden">
-              <span class="absolute inset-y-0 left-0 w-1 bg-cyan-300/70"></span>
-              <span>
-                <span class="block text-[9px] font-black uppercase tracking-[0.2em] text-cyan-300">Public Challenge Action</span>
-                <span class="block text-sm font-bold text-white mt-0.5">Challenge Team</span>
-                <span class="block text-[10px] text-slate-400 mt-0.5">Creates a Showdown against {{ team.name }} from your authorized team.</span>
-              </span>
-              <span class="h-9 w-9 rounded-xl border border-cyan-300/25 bg-cyan-300/10 grid place-items-center text-cyan-100 transition-transform group-hover/challenge:translate-x-1"><i class="fa-solid fa-arrow-right text-xs"></i></span>
-            </a>
-            {% elif not user.is_authenticated %}
-            <a href="{% url 'account:login' %}?next={{ request.path }}"
-               class="flex items-center justify-between gap-3 rounded-2xl border border-cyan-400/20 bg-cyan-400/10 px-4 py-3 no-underline">
-              <span>
-                <span class="block text-[9px] font-black uppercase tracking-[0.2em] text-cyan-300">Challenge Access</span>
-                <span class="block text-sm font-bold text-white mt-0.5">Sign in to challenge or apply</span>
-              </span>
-              <i class="fa-solid fa-arrow-right text-cyan-200 text-xs"></i>
-            </a>
-            {% else %}
-            <div class="rounded-2xl border border-white/10 bg-white/[0.035] px-4 py-3">
-              <p class="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500">Challenge Access</p>
-              <p class="mt-1 text-sm font-bold text-white">{{ competitive_actions.reason|default:"Join or manage another team to challenge this roster." }}</p>
-            </div>
-            {% endif %}
-            {% if competitive_actions.has_open_bounty %}
-            <a href="{{ competitive_actions.bounty_url }}" class="flex items-center justify-between gap-3 rounded-2xl border border-violet-400/20 bg-violet-400/10 px-4 py-3 no-underline hover:bg-violet-400/15 transition">
-              <span>
-                <span class="block text-sm font-bold text-white">Claim this team’s Bounty</span>
-                <span class="block text-[10px] text-slate-400 mt-0.5">{{ competitive_actions.open_bounty_count }} open Bounty challenge{{ competitive_actions.open_bounty_count|pluralize }} available.</span>
-              </span>
-              <span class="text-[9px] uppercase tracking-widest text-violet-300 font-black">Bounty</span>
-            </a>
-            {% elif user.is_authenticated %}
-            <a href="{% url 'dashboard:competitive_hub' %}#bounty" class="flex items-center justify-between gap-3 rounded-2xl border border-violet-400/15 bg-violet-400/5 px-4 py-3 no-underline hover:bg-violet-400/10 transition">
-              <span>
-                <span class="block text-sm font-bold text-white">View Bounties</span>
-                <span class="block text-[10px] text-slate-400 mt-0.5">Post a Bounty for your own team or claim open Bounties.</span>
-              </span>
-              <span class="text-[9px] uppercase tracking-widest text-violet-300 font-black">Board</span>
-            </a>
-            {% endif %}
-            {% if training.has_public_scrims %}
-            <a href="#public-scrims" class="flex items-center justify-between gap-3 rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 no-underline hover:bg-emerald-400/15 transition">
-              <span class="text-sm font-bold text-white">Request Scrim through Team HQ</span>
-              <span class="text-[9px] uppercase tracking-widest text-emerald-300 font-black">Practice</span>
-            </a>
-            {% endif %}
-            {% if training.tryouts_enabled and viewer.role == 'PUBLIC' and not training.applicant_status.has_any %}
-            <button class="flex items-center justify-between gap-3 rounded-2xl border border-blue-400/20 bg-blue-400/10 px-4 py-3 hover:bg-blue-400/15 transition dc-open-tryout-modal"
-                    data-team-slug="{{ team.slug }}">
-              <span class="text-sm font-bold text-white">Apply for Tryout</span>
-              <span class="text-[9px] uppercase tracking-widest text-blue-300 font-black">Recruiting</span>
-            </button>
-            {% endif %}
-          </div>
-          <div class="rounded-2xl border border-white/10 bg-black/25 p-3">
-            <div class="flex items-center justify-between mb-2">
-              <p class="text-[9px] uppercase tracking-widest text-slate-500 font-black">Recent Activity</p>
-              <a href="{% url 'dashboard:competitive_hub' %}?target_team_id={{ team.id }}&amp;target_team_slug={{ team.slug|urlencode }}&amp;target_team_name={{ team.name|urlencode }}#showdown" class="text-[9px] uppercase tracking-widest text-cyan-300 font-black no-underline">Open Hub</a>
-            </div>
-            {% if challenges.items %}
-            <div class="space-y-2">
-              {% for challenge in challenges.items|slice:":3" %}
-              <div class="flex items-center justify-between gap-3 rounded-xl border border-white/5 bg-white/[0.03] px-3 py-2 transition hover:border-cyan-300/20 hover:bg-white/[0.05]">
-                <div class="min-w-0">
-                  <p class="truncate text-xs font-bold text-white">{{ challenge.title }}</p>
-                  <p class="text-[10px] text-slate-500">{% if challenge.format %}{{ challenge.format }} &middot; {% endif %}{{ challenge.status|default:"Open" }}</p>
+
+        <div class="cid-sep"></div>
+
+        {% comment %}── BODY ──────────────────────────────────────────────────────{% endcomment %}
+        <div class="px-4 py-4 flex flex-col gap-3">
+
+          {% comment %}Active Showdowns{% endcomment %}
+          {% if challenges.items %}
+          <div class="cid-anim" style="--ci:1">
+            <p class="cid-section-lbl">
+              <span class="cid-dot-live"></span>
+              Active Showdowns
+            </p>
+            <div class="flex flex-col gap-1.5">
+              {% for challenge in challenges.items|slice:":2" %}
+              <a href="{% url 'dashboard:competitive_hub' %}?target_team_id={{ team.id }}&target_team_slug={{ team.slug|urlencode }}&target_team_name={{ team.name|urlencode }}&challenge_id={{ challenge.id }}#showdown"
+                 class="cid-tile cid-anim
+                 {% if 'Open' in challenge.status %}cid-tile-open
+                 {% elif 'Accept' in challenge.status %}cid-tile-accepted{% endif %}"
+                 style="--ci:{{ forloop.counter|add:1 }}">
+                <div class="flex-1 min-w-0">
+                  <div class="cid-tile-meta">
+                    <span class="cid-tile-status
+                      {% if 'Open' in challenge.status %}cid-ts-open
+                      {% elif 'Accept' in challenge.status %}cid-ts-accepted
+                      {% else %}cid-ts-other{% endif %}">{{ challenge.status }}</span>
+                    {% if challenge.format %}<span class="cid-tile-fmt">{{ challenge.format }}</span>{% endif %}
+                  </div>
+                  <p class="cid-tile-title">{{ challenge.title|default:"Showdown Challenge" }}</p>
+                  <p class="cid-tile-sub">vs {{ challenge.opponent_name }}</p>
                 </div>
-                <span class="shrink-0 rounded-lg border border-cyan-400/20 bg-cyan-400/10 px-2 py-1 text-[8px] font-black uppercase tracking-widest text-cyan-200">Showdown</span>
-              </div>
+                {% if challenge.prize_amount and challenge.prize_amount > 0 %}
+                <div class="shrink-0 text-right">
+                  <p class="cid-pot-lbl">Pot</p>
+                  <p class="cid-pot-val">{{ challenge.prize_amount|floatformat:0 }}<span>DC</span></p>
+                </div>
+                {% else %}
+                <svg class="w-3.5 h-3.5 cid-tile-arr shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                {% endif %}
+              </a>
               {% endfor %}
             </div>
-            {% else %}
-            <p class="text-[11px] leading-relaxed text-slate-500">No public Showdowns are active right now. Authorized teams can start from the Competitive Hub.</p>
-            {% endif %}
           </div>
-          <div class="rounded-2xl border border-white/10 bg-black/25 p-3">
-            <p class="text-[9px] uppercase tracking-widest text-slate-500 font-black mb-2">Operation Flow</p>
-            <div class="grid grid-cols-4 gap-1.5 text-center">
-              <span class="rounded-lg bg-cyan-400/10 border border-cyan-400/15 px-2 py-1.5 text-[8px] font-bold text-cyan-200 uppercase">Showdown</span>
-              <span class="rounded-lg bg-violet-400/10 border border-violet-400/15 px-2 py-1.5 text-[8px] font-bold text-violet-200 uppercase">Bounty</span>
-              <span class="rounded-lg bg-amber-400/10 border border-amber-400/15 px-2 py-1.5 text-[8px] font-bold text-amber-200 uppercase">Dropzone</span>
-              <span class="rounded-lg bg-emerald-400/10 border border-emerald-400/15 px-2 py-1.5 text-[8px] font-bold text-emerald-200 uppercase">Scrim</span>
+          {% endif %}
+
+          {% comment %}Primary CTA — Challenge / Auth / Locked{% endcomment %}
+          {% if competitive_actions.can_challenge %}
+          <a href="{{ competitive_actions.challenge_url }}"
+             class="cid-cta cid-cta-challenge cid-anim" style="--ci:3">
+            <div>
+              <p class="cid-eyebrow">Head-to-Head</p>
+              <p class="cid-cta-title">Challenge {{ team.name }}</p>
+              <p class="cid-cta-sub">Create a Showdown from your team</p>
             </div>
+            <span class="cid-arrow-btn">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5-5 5M6 12h12"/></svg>
+            </span>
+          </a>
+          {% elif not user.is_authenticated %}
+          <a href="{% url 'account:login' %}?next={{ request.path }}"
+             class="cid-cta cid-cta-auth cid-anim" style="--ci:3">
+            <div>
+              <p class="cid-eyebrow">Challenge Access</p>
+              <p class="cid-cta-title">Sign in to challenge</p>
+            </div>
+            <span class="cid-arrow-btn">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14"/></svg>
+            </span>
+          </a>
+          {% else %}
+          <div class="cid-cta-locked cid-anim" style="--ci:3">
+            <p class="cid-eyebrow" style="margin-bottom:.2rem">Challenge Access</p>
+            <p style="font-size:.75rem;font-weight:600;color:rgba(255,255,255,.65);line-height:1.4">{{ competitive_actions.reason|default:"Captain authority on another team required." }}</p>
           </div>
+          {% endif %}
+
+          {% comment %}Action rows — Bounty, Missions, Scrim, Tryout{% endcomment %}
+          <div class="cid-rows cid-anim" style="--ci:4">
+
+            {% if competitive_actions.has_open_bounty %}
+            <a href="{{ competitive_actions.bounty_url }}" class="cid-row">
+              <span class="cid-row-ic cid-ic-bounty">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              </span>
+              <div class="cid-action-body flex-1 min-w-0">
+                <p class="cid-row-title">Bounty Board</p>
+                <p class="cid-row-sub">{{ competitive_actions.open_bounty_count }} open challenge{{ competitive_actions.open_bounty_count|pluralize }}</p>
+              </div>
+              <span class="cid-row-badge cid-badge-bounty">Claim</span>
+            </a>
+            {% elif user.is_authenticated %}
+            <a href="{% url 'dashboard:competitive_hub' %}#bounty" class="cid-row cid-row-muted">
+              <span class="cid-row-ic cid-ic-bounty">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              </span>
+              <div class="cid-action-body flex-1 min-w-0">
+                <p class="cid-row-title">Bounty Board</p>
+                <p class="cid-row-sub">No active bounties</p>
+              </div>
+              <svg class="w-3.5 h-3.5 cid-badge-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+            </a>
+            {% endif %}
+
+            {% if user.is_authenticated %}
+            <a href="{% url 'dashboard:competitive_hub' %}#missions" class="cid-row">
+              <span class="cid-row-ic cid-ic-missions">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              </span>
+              <div class="cid-action-body flex-1 min-w-0">
+                <p class="cid-row-title">Missions</p>
+                <p class="cid-row-sub">Earn DeltaCoins</p>
+              </div>
+              <svg class="w-3.5 h-3.5 cid-badge-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+            </a>
+            {% endif %}
+
+            {% if training.has_public_scrims %}
+            <a href="#public-scrims" class="cid-row">
+              <span class="cid-row-ic cid-ic-scrim">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+              </span>
+              <div class="cid-action-body flex-1 min-w-0">
+                <p class="cid-row-title">Request Scrim</p>
+                <p class="cid-row-sub">Practice together</p>
+              </div>
+              <svg class="w-3.5 h-3.5 cid-badge-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+            </a>
+            {% endif %}
+
+            {% if training.tryouts_enabled and viewer.role == 'PUBLIC' and not training.applicant_status.has_any %}
+            <button class="cid-row dc-open-tryout-modal" data-team-slug="{{ team.slug }}">
+              <span class="cid-row-ic cid-ic-tryout">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
+              </span>
+              <div class="cid-action-body flex-1 min-w-0">
+                <p class="cid-row-title">Apply for Tryout</p>
+                <p class="cid-row-sub">Join the roster</p>
+              </div>
+              <svg class="w-3.5 h-3.5 cid-badge-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+            </button>
+            {% endif %}
+
+          </div>
+
+          {% comment %}Hub footer{% endcomment %}
+          <div class="cid-footer cid-anim" style="--ci:5">
+            <p class="cid-footer-txt">All ops via Competitive Hub</p>
+            <a href="{% url 'dashboard:competitive_hub' %}?target_team_id={{ team.id }}&target_team_slug={{ team.slug|urlencode }}&target_team_name={{ team.name|urlencode }}#showdown"
+               class="cid-footer-lnk">Open Hub &rarr;</a>
+          </div>
+
         </div>
       </div>
 

@@ -1809,11 +1809,11 @@ def _build_match_history_context(team: Team, is_restricted: bool) -> List[Dict[s
                 opponent_ids.add(opp_id)
         registration_team_names = _build_registration_team_name_map(opponent_ids)
         opponent_map = {}
+        opponent_logo_map = {}
         if opponent_ids:
-            opponent_map = {
-                t.id: t.name
-                for t in Team.objects.filter(id__in=opponent_ids).only('id', 'name')
-            }
+            for t in Team.objects.filter(id__in=opponent_ids).only('id', 'name', 'logo'):
+                opponent_map[t.id] = t.name
+                opponent_logo_map[t.id] = _safe_image_url(getattr(t, 'logo', None), '')
 
         for m in match_list:
             side = _get_match_side_for_team(m, participant_ids)
@@ -1873,6 +1873,7 @@ def _build_match_history_context(team: Team, is_restricted: bool) -> List[Dict[s
                     else ''
                 ),
                 'opponent_name': opponent_name,
+                'opponent_logo_url': opponent_logo_map.get(opponent_id, ''),
                 'result': result,
                 'result_label': result.upper(),
                 'score': score_display,
