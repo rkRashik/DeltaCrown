@@ -60,6 +60,69 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  // ── MOBILE APP SHELL ──────────────────────────────────────────────────
+  document.body.classList.add('dc-team-page');
+
+  (function initMobileShell() {
+    const scrollEl = document.getElementById('dc-mob-scroll');
+    const header   = document.getElementById('dc-mobile-header');
+    if (scrollEl && header) {
+      scrollEl.addEventListener('scroll', function () {
+        header.classList.toggle('mob-scrolled', this.scrollTop > 80);
+      }, { passive: true });
+    }
+
+    // Tab pane switching
+    document.querySelectorAll('.mob-segtab[data-mob-tab]').forEach(function (tab) {
+      tab.addEventListener('click', function () {
+        const target = this.dataset.mobTab;
+        document.querySelectorAll('.mob-segtab').forEach(function (t) { t.classList.remove('active'); });
+        this.classList.add('active');
+        document.querySelectorAll('.mob-pane').forEach(function (p) { p.classList.remove('active'); });
+        const pane = document.getElementById('dc-mob-pane-' + target);
+        if (pane) pane.classList.add('active');
+        // Keep the active tab visible in the scrollable tab bar
+        this.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+      });
+    });
+
+    // Proxy buttons (follow/CTA) forward clicks to desktop follow button
+    document.querySelectorAll('[data-proxy="dc-follow-btn"]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var target = document.getElementById('dc-follow-btn');
+        if (target) target.click();
+      });
+    });
+
+    // Match filter chips (Matches tab)
+    var filterRow = document.getElementById('dc-mob-match-filters');
+    if (filterRow) {
+      filterRow.addEventListener('click', function (e) {
+        var chip = e.target.closest('.mob-filter-chip');
+        if (!chip) return;
+        var filter = chip.dataset.filter;
+        filterRow.querySelectorAll('.mob-filter-chip').forEach(function (c) { c.classList.remove('active'); });
+        chip.classList.add('active');
+        var rows = document.querySelectorAll('#dc-mob-match-list .mob-match-row');
+        rows.forEach(function (row) {
+          var result = (row.dataset.result || '').toLowerCase();
+          var show = filter === 'all'
+            || (filter === 'upcoming' && result === 'upcoming')
+            || (filter === 'wins'     && (result === 'w' || result === 'win'))
+            || (filter === 'losses'   && (result === 'l' || result === 'loss'));
+          row.style.display = show ? '' : 'none';
+        });
+      });
+    }
+
+    // Mobile roster rows → open player popup (same dcOpenPlayerPopup as desktop cards)
+    document.querySelectorAll('.mob-roster-card-trigger').forEach(function (row) {
+      row.addEventListener('click', function () {
+        if (typeof dcOpenPlayerPopup === 'function') dcOpenPlayerPopup(this);
+      });
+    });
+  })();
+
   // ── ROLE-BASED BUTTON VISIBILITY ──────────────────────────────────────
   const currentRole = document.body.getAttribute("data-role") || "PUBLIC";
   document.querySelectorAll("[data-role-show]").forEach(el => {
@@ -987,5 +1050,36 @@ function dcClosePlayerPopup() {
       followBtn.disabled = false;
     }
   });
+})();
+
+// ── Mobile sticky action bar — proxy to hero buttons + mirror follow state ──
+(function() {
+  const bar = document.getElementById('dc-mobile-actionbar');
+  if (!bar) return;
+
+  // Proxy taps to the canonical hero buttons (reuses all their logic).
+  bar.querySelectorAll('[data-proxy]').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      const target = document.getElementById(btn.dataset.proxy);
+      if (target) target.click();
+    });
+  });
+
+  // Keep the bar's Follow button in sync with the hero Follow button.
+  const heroFollow = document.getElementById('dc-follow-btn');
+  if (heroFollow) {
+    const sync = function() {
+      const following = heroFollow.dataset.following === 'true';
+      bar.classList.toggle('is-following', following);
+      const lbl = bar.querySelector('.dc-mab-follow-label');
+      if (lbl) lbl.textContent = following ? 'Following' : 'Follow';
+      const plus = bar.querySelector('.dc-mab-follow-plus');
+      const check = bar.querySelector('.dc-mab-follow-check');
+      if (plus) plus.style.display = following ? 'none' : '';
+      if (check) check.style.display = following ? '' : 'none';
+    };
+    sync();
+    new MutationObserver(sync).observe(heroFollow, { attributes: true, attributeFilter: ['data-following'] });
+  }
 })();
 </script>

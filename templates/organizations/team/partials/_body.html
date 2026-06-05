@@ -3,11 +3,11 @@
 {# All hardcoded demo data replaced with Django context variables.           #}
 {# Structure: Background → Hero → Subnav → Main Grid (8+4) → Partners       #}
 {# ── Background Effects ──────────────────────────────────────────────────── #}
-<div class="fixed inset-0 z-0 pointer-events-none">
+<div class="dc-desktop-bg fixed inset-0 z-0 pointer-events-none">
   <div class="absolute inset-x-0 top-0 h-[620px] dc-page-atmosphere opacity-80"></div>
 </div>
 
-<div class="relative z-10 dc-team-detail-page">
+<div id="dc-desktop-layout" class="relative z-10 dc-team-detail-page">
 
 {# ── IMMERSIVE HUB — Hero Section ──────────────────────────────────────── #}
 <div class="relative w-full">
@@ -344,36 +344,36 @@
     </div>{# /hero flex #}
   </div>
 
-  {# ── Tab Navigation ────────────────────────────────────────────────────── #}
-  <div class="relative z-20 w-full mt-4 border-b border-white/10 bg-gradient-to-r from-white/[0.02] to-transparent dc-tabbar">
-    <div class="max-w-[1400px] mx-auto px-6 lg:px-12 flex items-center gap-8 overflow-x-auto dc-tabs-scroll" style="-ms-overflow-style: none; scrollbar-width: none;">
-      <button class="cursor-pointer dc-tab-btn dc-tab-active py-4 text-sm tracking-wide flex items-center gap-2 whitespace-nowrap" data-tab="overview" aria-pressed="true">
-        <i data-lucide="layout-grid" class="w-4 h-4"></i> Overview
-      </button>
-      <button class="cursor-pointer dc-tab-btn py-4 text-sm tracking-wide flex items-center gap-2 whitespace-nowrap" data-tab="roster" aria-pressed="false">
-        <i data-lucide="users" class="w-4 h-4"></i> Roster
-        <span class="ml-1 px-2 py-0.5 rounded-full bg-white/10 text-[10px] text-white font-bold">{{ roster.count|default:"0" }}</span>
-      </button>
-      <button class="cursor-pointer dc-tab-btn py-4 text-sm tracking-wide flex items-center gap-2 whitespace-nowrap" data-tab="matches" aria-pressed="false">
-        <i data-lucide="swords" class="w-4 h-4"></i> Matches
-      </button>
-      <button class="cursor-pointer dc-tab-btn py-4 text-sm tracking-wide flex items-center gap-2 whitespace-nowrap" data-tab="stats" aria-pressed="false">
-        <i data-lucide="bar-chart-3" class="w-4 h-4"></i> Stats
-      </button>
-      <button class="cursor-pointer dc-tab-btn py-4 text-sm tracking-wide flex items-center gap-2 whitespace-nowrap" data-tab="trophies" aria-pressed="false">
-        <i data-lucide="trophy" class="w-4 h-4"></i> Trophies
-      </button>
-      {# Manage HQ — server-gated to team members only #}
-      {% if viewer.role and viewer.role != 'PUBLIC' %}
-      <a href="{% url 'organizations:team_manage' team.slug %}" data-role-show="MEMBER"
-         class="dc-tab-btn py-4 text-sm tracking-wide flex items-center gap-2 whitespace-nowrap ml-auto" style="color: var(--team-primary); opacity: 0.8;">
-        <i data-lucide="settings" class="w-4 h-4"></i> Manage HQ
-      </a>
-      {% endif %}
-    </div>
-  </div>
-
 </div>{# /immersive hub #}
+
+{# ── Tab Navigation (outside hero wrapper so sticky works across the page) ── #}
+<div class="relative z-20 w-full border-b border-white/10 bg-gradient-to-r from-white/[0.02] to-transparent dc-tabbar">
+  <div class="max-w-[1400px] mx-auto px-6 lg:px-12 flex items-center gap-8 overflow-x-auto dc-tabs-scroll" style="-ms-overflow-style: none; scrollbar-width: none;">
+    <button class="cursor-pointer dc-tab-btn dc-tab-active py-4 text-sm tracking-wide flex items-center gap-2 whitespace-nowrap" data-tab="overview" aria-pressed="true">
+      <i data-lucide="layout-grid" class="w-4 h-4"></i> Overview
+    </button>
+    <button class="cursor-pointer dc-tab-btn py-4 text-sm tracking-wide flex items-center gap-2 whitespace-nowrap" data-tab="roster" aria-pressed="false">
+      <i data-lucide="users" class="w-4 h-4"></i> Roster
+      <span class="ml-1 px-2 py-0.5 rounded-full bg-white/10 text-[10px] text-white font-bold">{{ roster.count|default:"0" }}</span>
+    </button>
+    <button class="cursor-pointer dc-tab-btn py-4 text-sm tracking-wide flex items-center gap-2 whitespace-nowrap" data-tab="matches" aria-pressed="false">
+      <i data-lucide="swords" class="w-4 h-4"></i> Matches
+    </button>
+    <button class="cursor-pointer dc-tab-btn py-4 text-sm tracking-wide flex items-center gap-2 whitespace-nowrap" data-tab="stats" aria-pressed="false">
+      <i data-lucide="bar-chart-3" class="w-4 h-4"></i> Stats
+    </button>
+    <button class="cursor-pointer dc-tab-btn py-4 text-sm tracking-wide flex items-center gap-2 whitespace-nowrap" data-tab="trophies" aria-pressed="false">
+      <i data-lucide="trophy" class="w-4 h-4"></i> Trophies
+    </button>
+    {# Manage HQ — server-gated to team members only #}
+    {% if viewer.role and viewer.role != 'PUBLIC' %}
+    <a href="{% url 'organizations:team_manage' team.slug %}" data-role-show="MEMBER"
+       class="dc-tab-btn py-4 text-sm tracking-wide flex items-center gap-2 whitespace-nowrap ml-auto" style="color: var(--team-primary); opacity: 0.8;">
+      <i data-lucide="settings" class="w-4 h-4"></i> Manage HQ
+    </a>
+    {% endif %}
+  </div>
+</div>
 
 {# Motto truncation #}
 <script nonce="{{ request.csp_nonce }}">
@@ -414,28 +414,78 @@
       if (activeTab) requestAnimationFrame(function() { moveIndicatorTo(activeTab); });
     }
 
-    /* ── Tab click → scroll to section + active styling ─────── */
+    /* ── Tabs: pane-switch on mobile (<768), scroll-jump on desktop ─────── */
     var tabs = document.querySelectorAll(".dc-tab-btn[data-tab]");
-    tabs.forEach(function(tab) {
-      tab.addEventListener("click", function(e) {
-        var sectionId = tab.getAttribute("data-tab");
-        var target = document.getElementById(sectionId);
-        if (!target) return;
-        e.preventDefault();
-        target.scrollIntoView({ behavior: "smooth", block: "start" });
-        tabs.forEach(function(t) {
-          t.classList.remove("dc-tab-active");
-          t.setAttribute("aria-pressed", "false");
-        });
-        tab.classList.add("dc-tab-active");
-        tab.setAttribute("aria-pressed", "true");
-        if (moveIndicatorTo) moveIndicatorTo(tab);
+    var mqMobile = window.matchMedia("(max-width: 767px)");
+
+    /* Tab key → section id for desktop scroll-jump (where they differ) */
+    var SECTION_ID_BY_TAB = { matches: "match-history" };
+
+    /* Section/card id → which mobile pane it belongs to (default: overview) */
+    var PANE_BY_ID = {
+      overview: "overview", community: "overview", "dc-competitive-id": "overview", "public-scrims": "overview",
+      roster: "roster",
+      "up-next": "matches", "match-history": "matches", media: "matches",
+      stats: "stats", journey: "stats",
+      trophies: "trophies"
+    };
+
+    /* Tag every top-level content block in both columns with its pane. */
+    var paneEls = [];
+    ["dc-main-stack", "dc-sidebar"].forEach(function(cls) {
+      var host = document.querySelector("." + cls);
+      if (!host) return;
+      [].forEach.call(host.children, function(el) {
+        if (el.nodeType !== 1 || el.tagName === "SCRIPT" || el.tagName === "STYLE") return;
+        el.setAttribute("data-pane", PANE_BY_ID[el.id] || "overview");
+        paneEls.push(el);
       });
     });
 
-    /* ── Scroll reveal via IntersectionObserver ──────────────── */
+    function showPane(pane) {
+      paneEls.forEach(function(el) {
+        el.style.display = (el.getAttribute("data-pane") === pane) ? "" : "none";
+      });
+    }
+    function showAllPanes() { paneEls.forEach(function(el) { el.style.display = ""; }); }
+    function setActiveTab(tab) {
+      tabs.forEach(function(t) { t.classList.remove("dc-tab-active"); t.setAttribute("aria-pressed", "false"); });
+      tab.classList.add("dc-tab-active"); tab.setAttribute("aria-pressed", "true");
+      if (moveIndicatorTo) moveIndicatorTo(tab);
+    }
+
+    tabs.forEach(function(tab) {
+      tab.addEventListener("click", function(e) {
+        var key = tab.getAttribute("data-tab");
+        setActiveTab(tab);
+        if (mqMobile.matches) {
+          e.preventDefault();
+          showPane(key);
+          var main = document.querySelector(".dc-team-detail-main");
+          if (main) main.scrollIntoView({ behavior: "smooth", block: "start" });
+        } else {
+          var target = document.getElementById(SECTION_ID_BY_TAB[key] || key);
+          if (target) { e.preventDefault(); target.scrollIntoView({ behavior: "smooth", block: "start" }); }
+        }
+      });
+    });
+
+    function applyPaneMode() {
+      if (mqMobile.matches) {
+        var active = document.querySelector(".dc-tab-btn.dc-tab-active[data-tab]");
+        showPane(active ? active.getAttribute("data-tab") : "overview");
+      } else {
+        showAllPanes();
+      }
+    }
+    applyPaneMode();
+    if (mqMobile.addEventListener) mqMobile.addEventListener("change", applyPaneMode);
+    else if (mqMobile.addListener) mqMobile.addListener(applyPaneMode);
+
+    /* ── Scroll reveal via IntersectionObserver (desktop only — on mobile
+          panes hide/show, so reveal gating would leave shown panes invisible) ── */
     var prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (window.IntersectionObserver && !prefersReduced) {
+    if (window.IntersectionObserver && !prefersReduced && !mqMobile.matches) {
       var revealEls = document.querySelectorAll("[data-reveal]");
       if (revealEls.length) {
         revealEls.forEach(function(el) { el.classList.add("dc-reveal-set"); });
@@ -2089,3 +2139,438 @@
   </div>
 </div>
 {% endif %}
+
+{# ── MOBILE STICKY ACTION BAR (native-app pattern, < md only) ───────────── #}
+{% if viewer.role == 'PUBLIC' %}
+<div id="dc-mobile-actionbar" class="md:hidden" aria-label="Team quick actions">
+  <button type="button" class="dc-mab-btn dc-mab-ghost" data-proxy="dc-share-btn" aria-label="Share team">
+    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/></svg>
+  </button>
+  {% if team.is_recruiting and training.tryouts_enabled and not training.applicant_status.has_any %}
+  <button type="button" class="dc-mab-btn dc-mab-apply dc-open-tryout-modal" data-team-slug="{{ team.slug }}" aria-label="Apply for tryout">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
+    <span>Apply</span>
+  </button>
+  {% endif %}
+  <button type="button" class="dc-mab-btn dc-mab-primary" data-proxy="dc-follow-btn" aria-label="Follow team">
+    <svg class="w-4 h-4 dc-mab-follow-plus" fill="none" stroke="currentColor" viewBox="0 0 24 24" {% if follow.is_following %}style="display:none"{% endif %}><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+    <svg class="w-4 h-4 dc-mab-follow-check" fill="none" stroke="currentColor" viewBox="0 0 24 24" {% if not follow.is_following %}style="display:none"{% endif %}><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+    <span class="dc-mab-follow-label">{% if follow.is_following %}Following{% else %}Follow{% endif %}</span>
+  </button>
+</div>
+{% endif %}
+
+{% comment %}Mobile App Shell — replaces desktop layout on narrow viewports{% endcomment %}
+<div id="dc-mobile-layout" style="--team:#6C4FF8;--team-glow:rgba(108,79,248,.45);">
+  <div id="dc-mob-scroll">
+    <div id="dc-mob-hero">
+      {% if team.banner_url %}
+      <img id="dc-mob-hero-img" src="{{ team.banner_url }}" alt="{{ team.name }} banner" loading="eager">
+      {% else %}
+      <div class="dc-mob-hero-cover-placeholder" style="background:linear-gradient(160deg,#1a0e3a 0%,#0d1a2e 100%);"></div>
+      {% endif %}
+      <div id="dc-mob-hero-grad"></div>
+      <div id="dc-mob-hero-side"></div>
+      <div id="dc-mob-hero-content">
+        <div class="mob-crest-wrap">
+          <div class="mob-crest-glow" style="background:var(--team);opacity:.5;"></div>
+          <div class="mob-crest-ring"></div>
+          <div class="mob-crest-gap"></div>
+          <div class="mob-crest-face">
+            {% if team.logo_url %}
+            <img src="{{ team.logo_url }}" alt="{{ team.name }} logo">
+            {% else %}
+            <span class="mob-crest-initials">{{ team.tag|slice:":2"|upper }}</span>
+            {% endif %}
+          </div>
+        </div>
+        <h1 class="mob-team-name">{{ team.name }}</h1>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center;padding:0 16px;">
+          {% if team.tag %}<span class="mob-chip mob-chip-game">[{{ team.tag }}]</span>{% endif %}
+          {% if team.game.name %}<span class="mob-chip mob-chip-game">{{ team.game.name }}</span>{% endif %}
+          {% if team.is_recruiting %}<span class="mob-chip mob-chip-recruit"><i class="mob-rec-dot"></i> RECRUITING</span>{% endif %}
+        </div>
+        {% if organization %}
+        <a href="{{ organization.url }}" class="mob-org-link mob-tap">
+          <span class="mob-org-icon" style="background:rgba(108,79,248,.22);">
+            {% if organization.logo_url %}<img src="{{ organization.logo_url }}" alt="{{ organization.name }}">{% else %}{{ organization.name|slice:":1"|upper }}{% endif %}
+          </span>
+          <span class="mob-org-name">{{ organization.name|upper }}</span>
+        </a>
+        {% endif %}
+      </div>
+    </div>
+
+    <div id="dc-mob-stats">
+      <div class="mob-stats-grid">
+        <div class="mob-stat-cell">
+          <span class="mob-stat-val" style="color:#34d399;">{{ leaderboard_stats.win_rate }}%</span>
+          <span class="mob-stat-lbl">WIN RATE</span>
+        </div>
+        <div class="mob-stat-cell">
+          <span class="mob-stat-val" style="color:#CFA75A;">{{ leaderboard_stats.trophies_count }}</span>
+          <span class="mob-stat-lbl">TROPHIES</span>
+        </div>
+        <div class="mob-stat-cell">
+          <span class="mob-stat-val" style="color:#0A84FF;">{{ roster.count }}</span>
+          <span class="mob-stat-lbl">MEMBERS</span>
+        </div>
+      </div>
+    </div>
+
+    <div id="dc-mob-actions">
+      {% if viewer.role == "PUBLIC" %}
+        {% if training.tryouts_enabled %}
+        <button type="button" class="mob-cta-primary mob-tap dc-open-tryout-modal" data-team-slug="{{ team.slug }}" style="background:linear-gradient(135deg,#9A7EFF,#6C4FF8,#5440DF);">
+          <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Apply to Join
+        </button>
+        <div class="mob-cta-secondary-row">
+          <a href="{% url 'organizations:team_manage' team.slug %}" class="mob-cta-ghost mob-tap" style="flex:1;text-decoration:none;">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Team HQ
+          </a>
+          <button type="button" class="mob-cta-ghost mob-tap" style="flex:1;" data-proxy="dc-follow-btn">
+            {% if follow.is_following %}<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg> Following
+            {% else %}<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4" stroke-linecap="round" stroke-linejoin="round"/></svg> Follow{% endif %}
+          </button>
+        </div>
+        {% else %}
+        <button type="button" class="mob-cta-primary mob-tap" data-proxy="dc-follow-btn" style="background:linear-gradient(135deg,#9A7EFF,#6C4FF8,#5440DF);">
+          {% if follow.is_following %}<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg> Following
+          {% else %}<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4" stroke-linecap="round" stroke-linejoin="round"/></svg> Follow Team{% endif %}
+        </button>
+        <a href="{% url 'organizations:team_manage' team.slug %}" class="mob-cta-ghost mob-tap" style="text-decoration:none;justify-content:center;height:44px;border-radius:12px;display:flex;align-items:center;gap:6px;font-family:'Inter',sans-serif;font-weight:600;font-size:13px;background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.09);color:rgba(255,255,255,.85);">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Team HQ
+        </a>
+        {% endif %}
+      {% elif viewer.role == "MEMBER" or viewer.role == "PLAYER" %}
+      <a href="{% url 'organizations:team_manage' team.slug %}" class="mob-cta-primary mob-tap" style="background:linear-gradient(135deg,#9A7EFF,#6C4FF8,#5440DF);text-decoration:none;">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Team HQ
+      </a>
+      {% else %}
+      <a href="{% url 'organizations:team_manage' team.slug %}" class="mob-cta-primary mob-tap" style="background:linear-gradient(135deg,#9A7EFF,#6C4FF8,#5440DF);text-decoration:none;">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Manage Team
+      </a>
+      {% endif %}
+    </div>
+
+    <div id="dc-mob-segtabs">
+      <div class="mob-segtabs-scroll">
+        <button class="mob-segtab active" data-mob-tab="overview">Overview</button>
+        <button class="mob-segtab" data-mob-tab="roster">Roster</button>
+        <button class="mob-segtab" data-mob-tab="matches">Matches</button>
+        <button class="mob-segtab" data-mob-tab="stats">Stats</button>
+        <button class="mob-segtab" data-mob-tab="trophies">Trophies</button>
+      </div>
+    </div>
+
+    <div class="mob-pane active" id="dc-mob-pane-overview">
+
+      {% comment %}── 1. Competitive Standing ──{% endcomment %}
+      <div class="mob-ov-section" style="padding-top:16px;">
+        <div class="mob-identity-card">
+          <div class="mob-identity-glow" style="background:radial-gradient(circle,rgba(108,79,248,.18) 0%,transparent 65%);"></div>
+          <div class="mob-identity-eyebrow">COMPETITIVE STANDING</div>
+          <div class="mob-identity-rank-row">
+            <div style="flex:1;">
+              <div style="display:flex;align-items:baseline;gap:5px;">
+                <span class="mob-rank-num">{% if leaderboard_stats.global_rank %}#{{ leaderboard_stats.global_rank }}{% else %}—{% endif %}</span>
+                <span class="mob-rank-lbl">GLOBAL</span>
+              </div>
+              <div class="mob-rank-context">{{ team.game.name|default:"Competitive" }}</div>
+            </div>
+            {% if leaderboard_stats.current_streak and leaderboard_stats.current_streak > 0 %}
+            <div class="mob-streak-badge {% if leaderboard_stats.streak_type == 'W' %}is-w{% elif leaderboard_stats.streak_type == 'L' %}is-l{% else %}is-n{% endif %}">
+              <div class="mob-streak-val">{{ leaderboard_stats.current_streak }}{{ leaderboard_stats.streak_type }}</div>
+              <div class="mob-streak-label">STREAK</div>
+            </div>
+            {% endif %}
+          </div>
+          {% if match_history %}
+          <div class="mob-form-row">
+            <span style="font-family:'Inter',sans-serif;font-size:9px;font-weight:600;letter-spacing:.09em;color:rgba(255,255,255,.25);">LAST 5</span>
+            <div class="mob-form-strip">
+              {% for match in match_history|slice:":5" %}
+              {% with r=match.result|lower %}
+              <div class="mob-form-pill {% if r == 'w' or r == 'win' %}win{% elif r == 'd' or r == 'draw' %}draw{% else %}loss{% endif %}">{% if r == 'w' or r == 'win' %}W{% elif r == 'd' or r == 'draw' %}D{% else %}L{% endif %}</div>
+              {% endwith %}
+              {% endfor %}
+            </div>
+          </div>
+          {% endif %}
+          {% if team.playstyle or team.playpace or team.playfocus %}
+          <div class="mob-style-chips">
+            {% if team.playstyle %}<span class="mob-style-chip" style="color:#FF8585;background:rgba(255,133,133,.10);border-color:rgba(255,133,133,.22);">{{ team.playstyle|upper }}</span>{% endif %}
+            {% if team.playpace %}<span class="mob-style-chip" style="color:#60a5fa;background:rgba(96,165,250,.10);border-color:rgba(96,165,250,.22);">{{ team.playpace|upper }}</span>{% endif %}
+            {% if team.playfocus %}<span class="mob-style-chip" style="color:#C4B0FF;background:rgba(108,79,248,.12);border-color:rgba(108,79,248,.27);">{{ team.playfocus|upper }}</span>{% endif %}
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      {% comment %}── 2. Mission & Identity ──{% endcomment %}
+      <div class="mob-ov-section">
+        <div class="mob-identity-card" style="border-color:rgba(108,79,248,.15);">
+          <div class="mob-identity-eyebrow">MISSION &amp; IDENTITY</div>
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+            {% if team.game.logo_url %}
+            <img src="{{ team.game.logo_url }}" class="mob-game-logo" alt="{{ team.game.name }}" onerror="this.style.display='none'">
+            {% else %}
+            <div class="mob-game-logo" style="background:rgba(108,79,248,.22);display:flex;align-items:center;justify-content:center;font-family:'Sora',sans-serif;font-size:12px;font-weight:800;color:#fff;">{{ team.game.name|slice:":1"|upper }}</div>
+            {% endif %}
+            <div style="flex:1;min-width:0;">
+              <div style="font-family:'Inter',sans-serif;font-size:11px;font-weight:700;letter-spacing:.07em;color:rgba(255,255,255,.75);">{{ team.game.name|upper }}</div>
+              <div style="font-family:'Inter',sans-serif;font-size:10px;color:rgba(255,255,255,.35);margin-top:1px;">Competitive Division</div>
+            </div>
+          </div>
+          {% if team.description %}
+          <div class="mob-tagline">{{ team.description }}</div>
+          {% endif %}
+          <div class="mob-style-info-rows">
+            <div class="mob-style-info-row">
+              <span class="mob-style-key">Style</span>
+              <span class="mob-style-val">{{ team.playstyle|default:"Not Set" }}</span>
+            </div>
+            <div class="mob-style-info-row">
+              <span class="mob-style-key">Pace</span>
+              <span class="mob-style-val">{{ team.playpace|default:"Not Set" }}</span>
+            </div>
+            <div class="mob-style-info-row">
+              <span class="mob-style-key">Focus</span>
+              <span class="mob-style-val">{{ team.playfocus|default:"Not Set" }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {% comment %}── 3. Active Operations (conditional) ──{% endcomment %}
+      {% if active_showdowns %}
+      <div class="mob-ov-section">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <div class="mob-identity-eyebrow" style="margin-bottom:0;">ACTIVE OPERATIONS</div>
+          <span style="font-family:'Inter',sans-serif;font-size:12px;font-weight:600;color:var(--team,#6C4FF8);cursor:pointer;">View all</span>
+        </div>
+        <div class="mob-op-cards">
+          {% for op in active_showdowns %}
+          <div class="mob-op-card mob-tap">
+            <div class="mob-op-icon" style="background:rgba(10,132,255,.17);border:1px solid rgba(10,132,255,.27);">
+              <svg width="18" height="18" fill="none" stroke="#0A84FF" stroke-width="2" viewBox="0 0 24 24"><path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <div style="flex:1;min-width:0;">
+              <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">
+                <span class="mob-op-badge" style="color:#0A84FF;background:rgba(10,132,255,.20);border:1px solid rgba(10,132,255,.35);">SHOWDOWN</span>
+                <span class="mob-op-status">ACTIVE</span>
+              </div>
+              <div class="mob-op-name">{{ op.name }}</div>
+              <div class="mob-op-meta">{{ op.prize_pool }} · {{ op.matches_remaining }} matches left</div>
+            </div>
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="color:rgba(255,255,255,.22);flex-shrink:0;"><path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+
+      {% comment %}── 4. Open Tryouts ──{% endcomment %}
+      {% if training.tryouts_enabled %}
+      <div class="mob-ov-section">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <div class="mob-identity-eyebrow" style="margin-bottom:0;">TRYOUTS OPEN</div>
+          <span style="font-family:'Inter',sans-serif;font-size:10px;font-weight:600;color:#4ade80;background:rgba(74,222,128,.12);border:1px solid rgba(74,222,128,.25);padding:2px 8px;border-radius:999px;">ACCEPTING</span>
+        </div>
+        <div class="mob-tryout-list">
+          <div class="mob-tryout-row mob-tap">
+            <div class="mob-tryout-role-icon" style="background:rgba(108,79,248,.22);border:1px solid rgba(108,79,248,.40);color:#9A7EFF;">
+              <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <div style="flex:1;min-width:0;">
+              <div style="font-family:'Inter',sans-serif;font-size:13px;font-weight:600;color:rgba(255,255,255,.85);">Open Position</div>
+              <div style="display:flex;gap:8px;margin-top:3px;flex-wrap:wrap;">
+                {% if training.applicant_status.has_any %}<span style="font-family:'Inter',sans-serif;font-size:10px;color:rgba(255,255,255,.35);">{% endif %}{{ team.name }} is recruiting{% if training.applicant_status.has_any %}</span>{% endif %}
+              </div>
+            </div>
+            <button type="button" class="mob-apply-btn dc-open-tryout-modal mob-tap" data-team-slug="{{ team.slug }}">Apply</button>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      {% comment %}── 5. Upcoming Match ──{% endcomment %}
+      {% for match in match_history|slice:":1" %}{% if match.result == "upcoming" %}
+      <div class="mob-ov-section">
+        <div class="mob-identity-eyebrow" style="margin-bottom:8px;">NEXT MATCH</div>
+        <div class="mob-next-match mob-tap">
+          <div style="font-family:'Inter',sans-serif;font-size:9px;font-weight:600;letter-spacing:.09em;color:rgba(255,255,255,.28);margin-bottom:10px;">{{ match.tournament_name|upper }}</div>
+          <div class="mob-vs-grid">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
+              <div class="mob-vs-crest" style="background:linear-gradient(135deg,#8B72FF,#5A40DF);">{% if team.logo_url %}<img src="{{ team.logo_url }}" alt="{{ team.name }}">{% else %}{{ team.tag|slice:":3"|upper }}{% endif %}</div>
+              <span style="font-family:'Inter',sans-serif;font-size:11px;font-weight:600;color:rgba(255,255,255,.7);">{{ team.name|truncatechars:12 }}</span>
+            </div>
+            <div style="text-align:center;">
+              <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:14px;color:rgba(255,255,255,.35);letter-spacing:.04em;">VS</div>
+              <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--team,#6C4FF8);font-weight:600;margin-top:4px;">TBD</div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
+              <div class="mob-vs-crest" style="background:rgba(255,255,255,.08);">{% if match.opponent_logo_url %}<img src="{{ match.opponent_logo_url }}" alt="{{ match.opponent_name }}" onerror="this.style.display='none'">{% else %}{{ match.opponent_name|slice:":3"|upper }}{% endif %}</div>
+              <span style="font-family:'Inter',sans-serif;font-size:11px;font-weight:600;color:rgba(255,255,255,.7);">{{ match.opponent_name|truncatechars:12 }}</span>
+            </div>
+          </div>
+          <button type="button" class="mob-reminder-btn mob-tap">
+            <svg width="15" height="15" fill="none" stroke="var(--team,#6C4FF8)" stroke-width="2" viewBox="0 0 24 24"><path d="M15 17H20L18.595 15.595A1 1 0 0118 14.83V11a6 6 0 10-12 0v3.83a1 1 0 01-.595.765L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Set Reminder
+          </button>
+        </div>
+      </div>
+      {% endif %}{% endfor %}
+
+      {% comment %}── 6. The Journey ──{% endcomment %}
+      {% if trophy_cabinet or leaderboard_stats.current_streak > 2 %}
+      <div class="mob-ov-section">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <div class="mob-identity-eyebrow" style="margin-bottom:0;">THE JOURNEY</div>
+          {% if trophy_cabinet %}<button class="mob-segtab" data-mob-tab="trophies" style="font-size:11px;font-weight:600;color:#CFA75A;padding:0;border:none;background:none;">All Trophies</button>{% endif %}
+        </div>
+        <div class="mob-journey-wrap">
+          <div class="mob-journey-line"></div>
+          <div>
+            {% if leaderboard_stats.global_rank and leaderboard_stats.global_rank <= 3 %}
+            <div class="mob-journey-item">
+              <div class="mob-journey-node" style="background:rgba(207,167,90,.22);border:1px solid rgba(207,167,90,.40);">
+                <svg width="17" height="17" fill="none" stroke="#CFA75A" stroke-width="2" viewBox="0 0 24 24"><path d="M8 21h8M12 17v4M5 5h14v6a7 7 0 01-14 0V5z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+              <div style="flex:1;padding-top:3px;"><div style="font-family:'Inter',sans-serif;font-size:13px;font-weight:600;color:rgba(255,255,255,.82);">#{{ leaderboard_stats.global_rank }} Global Rank</div><div style="font-family:'Inter',sans-serif;font-size:11px;color:rgba(255,255,255,.35);margin-top:2px;">{{ team.game.name }} ladder</div></div>
+              <span style="font-family:'Inter',sans-serif;font-size:10px;color:rgba(255,255,255,.22);padding-top:4px;flex-shrink:0;">Now</span>
+            </div>
+            {% endif %}
+            {% if leaderboard_stats.current_streak > 2 %}
+            <div class="mob-journey-item">
+              <div class="mob-journey-node" style="background:rgba(255,133,133,.22);border:1px solid rgba(255,133,133,.40);">
+                <svg width="17" height="17" fill="none" stroke="#FF8585" stroke-width="2" viewBox="0 0 24 24"><path d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" stroke-linecap="round" stroke-linejoin="round"/><path d="M9.879 16.121A3 3 0 1012.015 11" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+              <div style="flex:1;padding-top:3px;"><div style="font-family:'Inter',sans-serif;font-size:13px;font-weight:600;color:rgba(255,255,255,.82);">{{ leaderboard_stats.current_streak }}-match win streak</div><div style="font-family:'Inter',sans-serif;font-size:11px;color:rgba(255,255,255,.35);margin-top:2px;">Current tournament form</div></div>
+              <span style="font-family:'Inter',sans-serif;font-size:10px;color:rgba(255,255,255,.22);padding-top:4px;flex-shrink:0;">Active</span>
+            </div>
+            {% endif %}
+            {% for trophy in trophy_cabinet|slice:":3" %}
+            <div class="mob-journey-item">
+              <div class="mob-journey-node" style="background:rgba(207,167,90,.22);border:1px solid rgba(207,167,90,.40);">
+                <svg width="17" height="17" fill="none" stroke="#CFA75A" stroke-width="2" viewBox="0 0 24 24"><path d="M8 21h8M12 17v4M5 5h14v6a7 7 0 01-14 0V5z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+              <div style="flex:1;padding-top:3px;"><div style="font-family:'Inter',sans-serif;font-size:13px;font-weight:600;color:rgba(255,255,255,.82);">{{ trophy.title }}</div><div style="font-family:'Inter',sans-serif;font-size:11px;color:rgba(255,255,255,.35);margin-top:2px;">{{ trophy.tournament_name }}</div></div>
+              <span style="font-family:'Inter',sans-serif;font-size:10px;color:rgba(255,255,255,.22);padding-top:4px;flex-shrink:0;">{{ trophy.placement }}</span>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+    </div>
+
+    <div class="mob-pane" id="dc-mob-pane-roster">
+      {% if roster.items %}
+      <div class="mob-roster-list">
+        {% if roster.starting_lineup_size %}<div class="mob-roster-section-label">Starting Lineup ({{ roster.starting_lineup_size }}v{{ roster.starting_lineup_size }})</div>{% endif %}
+        {% for member in roster.items %}
+        {% if forloop.counter == roster.starting_lineup_size|add:1 %}
+        <div class="mob-roster-section-label" style="margin-top:4px;">Bench / Substitutes</div>
+        {% endif %}
+        <div class="mob-roster-row mob-tap mob-roster-card-trigger"
+             data-player-name="{{ member.display_name }}"
+             data-player-username="{{ member.username }}"
+             data-player-avatar="{{ member.avatar_url|default:'' }}"
+             data-player-role="{{ member.player_role|default:'' }}"
+             data-player-country="{{ member.country|default:'' }}"
+             data-player-captain="{% if member.is_captain %}1{% endif %}"
+             data-player-ign="{{ member.game_passport.ign|default:'' }}"
+             data-player-rank="{{ member.game_passport.rank|default:'' }}"
+             data-player-profile-url="{{ member.user_profile_url|default:'' }}">
+          <div class="mob-roster-avatar" style="background:rgba(108,79,248,.22);">{% if member.avatar_url %}<img src="{{ member.avatar_url }}" alt="{{ member.display_name }}" onerror="this.style.display='none'">{% else %}{{ member.display_name|slice:":1"|upper }}{% endif %}</div>
+          <div class="mob-roster-info">
+            <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;">
+              <div class="mob-roster-name">{{ member.display_name }}</div>
+              {% if member.is_captain %}<span style="font-size:8px;font-weight:800;letter-spacing:.06em;color:#CFA75A;background:rgba(207,167,90,.15);border:1px solid rgba(207,167,90,.3);padding:1px 5px;border-radius:4px;line-height:1.6;">CAP</span>{% endif %}
+              {% if forloop.counter > roster.starting_lineup_size %}<span style="font-size:8px;font-weight:700;letter-spacing:.06em;color:rgba(255,255,255,.4);background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);padding:1px 5px;border-radius:4px;line-height:1.6;">SUB</span>{% endif %}
+            </div>
+            <div class="mob-roster-ign">{% if member.game_passport.ign %}{{ member.game_passport.ign }}{% else %}@{{ member.username }}{% endif %}</div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;">
+            {% if member.player_role %}<span style="font-family:'Inter',sans-serif;font-size:10px;font-weight:700;letter-spacing:.05em;color:rgba(255,255,255,.45);">{{ member.player_role }}</span>{% endif %}
+            {% if member.game_passport.rank %}<span style="font-family:'Inter',sans-serif;font-size:10px;font-weight:600;color:rgba(207,167,90,.75);">{{ member.game_passport.rank }}</span>{% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="mob-pane-placeholder">No roster members yet</div>
+      {% endif %}
+    </div>
+
+    <div class="mob-pane" id="dc-mob-pane-matches" style="padding-top:16px;">
+      <div class="mob-filter-row" id="dc-mob-match-filters">
+        <button class="mob-filter-chip active" data-filter="all">All</button>
+        <button class="mob-filter-chip" data-filter="upcoming">Upcoming</button>
+        <button class="mob-filter-chip" data-filter="wins">Wins</button>
+        <button class="mob-filter-chip" data-filter="losses">Losses</button>
+      </div>
+      {% if match_history %}
+      <div class="mob-match-list" id="dc-mob-match-list">
+        {% for match in match_history %}
+        {% with r=match.result|lower %}
+        <a href="{{ match.detail_url }}" class="mob-match-row mob-tap" data-result="{{ r }}">
+          <div class="mob-match-bar {% if r == 'w' or r == 'win' %}win{% elif r == 'upcoming' %}upcoming{% else %}loss{% endif %}"></div>
+          <div class="mob-mini-crest" style="background:linear-gradient(135deg,rgba(139,114,255,.5),rgba(90,64,223,.5));">{% if team.logo_url %}<img src="{{ team.logo_url }}" alt="{{ team.name }}" onerror="this.style.display='none'">{% else %}{{ team.tag|slice:":2"|upper }}{% endif %}</div>
+          <div class="mob-match-score">{% if r == 'upcoming' %}<span style="font-family:'Inter',sans-serif;font-size:11px;color:rgba(255,255,255,.5);font-weight:600;">TBD</span>{% else %}{{ match.score_parts.0 }}–{{ match.score_parts.1 }}{% endif %}</div>
+          <div class="mob-mini-crest" style="background:rgba(255,255,255,.07);">{% if match.opponent_logo_url %}<img src="{{ match.opponent_logo_url }}" alt="{{ match.opponent_name }}" onerror="this.style.display='none'">{% else %}{{ match.opponent_name|slice:":2"|upper }}{% endif %}</div>
+          <div class="mob-match-info">
+            <div class="mob-match-opp">{{ match.opponent_name }}</div>
+            <div class="mob-match-context">{{ match.tournament_name }}</div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;flex-shrink:0;">
+            <div class="mob-match-result {% if r == 'w' or r == 'win' %}win{% elif r == 'upcoming' %}upcoming{% else %}loss{% endif %}">{% if r == 'w' or r == 'win' %}WIN{% elif r == 'upcoming' %}UPCOMING{% else %}LOSS{% endif %}</div>
+          </div>
+        </a>
+        {% endwith %}
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="mob-pane-placeholder">No match history yet</div>
+      {% endif %}
+    </div>
+
+    <div class="mob-pane" id="dc-mob-pane-stats">
+      <div class="mob-stats-2col">
+        <div class="mob-stat-box"><div class="mob-stat-box-val" style="color:#34d399;">{{ leaderboard_stats.win_rate }}%</div><div class="mob-stat-box-lbl">WIN RATE</div></div>
+        <div class="mob-stat-box"><div class="mob-stat-box-val" style="color:#CFA75A;">{{ leaderboard_stats.trophies_count }}</div><div class="mob-stat-box-lbl">TROPHIES</div></div>
+        <div class="mob-stat-box"><div class="mob-stat-box-val" style="color:#0A84FF;">{{ roster.count }}</div><div class="mob-stat-box-lbl">MEMBERS</div></div>
+        {% if leaderboard_stats.global_rank %}<div class="mob-stat-box"><div class="mob-stat-box-val" style="color:#fff;">#{{ leaderboard_stats.global_rank }}</div><div class="mob-stat-box-lbl">GLOBAL RANK</div></div>{% endif %}
+      </div>
+    </div>
+
+    <div class="mob-pane" id="dc-mob-pane-trophies">
+      {% if trophy_cabinet %}
+      <div class="mob-match-list">
+        {% for trophy in trophy_cabinet %}
+        <div class="mob-match-row">
+          <div class="mob-mini-crest" style="background:rgba(207,167,90,.15);">
+            <svg width="14" height="14" fill="none" stroke="#CFA75A" stroke-width="2" viewBox="0 0 24 24"><path d="M8 21h8M12 17v4M5 5h14v6a7 7 0 01-14 0V5z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div class="mob-match-info">
+            <div class="mob-match-opp">{{ trophy.title }}</div>
+            <div class="mob-match-context">{{ trophy.tournament_name }}</div>
+          </div>
+          <span class="mob-roster-badge" style="color:#CFA75A;">{{ trophy.placement }}</span>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="mob-pane-placeholder">No trophies yet — first one incoming</div>
+      {% endif %}
+    </div>
+
+  </div>
+</div>
