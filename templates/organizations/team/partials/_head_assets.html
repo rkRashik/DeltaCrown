@@ -424,9 +424,11 @@
   .dc-action-btn,
   .dc-action-icon {
     min-height: 44px;
+    cursor: pointer;
     align-items: center;
     justify-content: center;
   }
+  .dc-tab-btn { cursor: pointer; }
   .dc-action-ghost {
     background: rgba(255,255,255,0.045);
     border: 1px solid rgba(255,255,255,0.10);
@@ -454,6 +456,7 @@
   }
   .dc-recruiting-action {
     min-height: 44px;
+    cursor: pointer;
     background: linear-gradient(135deg, rgba(16,185,129,0.96), rgba(52,211,153,0.84));
     border: 1px solid rgba(110,231,183,0.44);
     color: #020204 !important;
@@ -546,6 +549,27 @@
   .dc-match-footer { min-width: 0; }
   .dc-score-pill { min-width: 86px; }
   .dc-sidebar { width: 100%; }
+
+  /* Section header accent bar — glow pulse on team color */
+  .dc-team-detail-page h3 > span.w-1 {
+    box-shadow: 0 0 10px var(--team-glow), 0 0 20px var(--team-glow);
+    transition: box-shadow 0.4s ease;
+  }
+  /* Journey timeline icon wrappers */
+  .dc-journey-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  /* Roster card — crown icon should inherit team color */
+  .dc-roster-card .dc-roster-crown { color: var(--team-primary); }
+  /* Improve form chip readability */
+  .dc-form-chip {
+    min-width: 1.75rem;
+    min-height: 1.75rem;
+    transition: transform 0.15s ease;
+  }
+  .dc-form-chip:hover { transform: scale(1.1); }
 
   .dc-team-detail-page .text-slate-500 {
     color: #94a3b8 !important;
@@ -736,6 +760,142 @@
       visibility: visible;
       pointer-events: auto;
     }
+  }
+</style>
+
+<style nonce="{{ request.csp_nonce }}">
+  /* ── QUIETER: reduce visual intensity ─────────────────────────────────── */
+
+  /* Ambient glow — pull back from 0.14 to 0.07 opacity */
+  .ambient-glow {
+    background: radial-gradient(ellipse at center, rgba(var(--team-color-rgb), 0.07) 0%, transparent 68%) !important;
+  }
+
+  /* Page atmosphere — single layer, remove the cyan/purple haze */
+  .dc-page-atmosphere {
+    background: linear-gradient(180deg,
+      color-mix(in srgb, var(--team-primary) 7%, transparent) 0%,
+      transparent 55%) !important;
+  }
+
+  /* Glass panel — shadow was 0 20px 40px (way too much for a button/stat card) */
+  .glass-panel {
+    box-shadow: 0 1px 4px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.04) !important;
+  }
+
+  /* Hero logo — drop-shadow toned down */
+  .dc-hero-logo { filter: drop-shadow(0 8px 20px rgba(0,0,0,0.4)) !important; }
+
+  /* Avatar ring — reduce glow radius */
+  .avatar-ring {
+    box-shadow: 0 0 22px rgba(var(--team-color-rgb), 0.28), inset 0 0 10px rgba(255,255,255,0.06) !important;
+  }
+
+  /* Section accent bar — single soft glow only */
+  .dc-team-detail-page h3 > span.w-1 {
+    box-shadow: 0 0 6px var(--team-glow) !important;
+  }
+
+  /* Aside hover — pull back from 0 22px 60px -40px rgba(0,0,0,0.9) */
+  .dc-aside:hover {
+    border-color: rgba(255,255,255,0.12) !important;
+    box-shadow: 0 6px 24px -12px rgba(0,0,0,0.55) !important;
+  }
+
+  /* Follow button — strip the triple-gradient; single tinted layer */
+  .btn-follow {
+    background: rgba(var(--team-action-rgb), 0.10) !important;
+    border: 1px solid rgba(var(--team-action-rgb), 0.28) !important;
+    box-shadow: none !important;
+  }
+  .btn-follow:hover {
+    background: rgba(var(--team-action-rgb), 0.17) !important;
+    border-color: rgba(var(--team-action-rgb), 0.46) !important;
+    box-shadow: none !important;
+  }
+
+  /* ── ANIMATION SYSTEM ──────────────────────────────────────────────────── */
+  :root {
+    --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+    --ease-out-expo:  cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  /* Hero entrance keyframes */
+  @keyframes dcHeroScale {
+    from { opacity: 0; transform: scale(0.88); }
+    to   { opacity: 1; transform: scale(1); }
+  }
+  @keyframes dcHeroRise {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Staggered hero sequence */
+  .dc-hero-logo .avatar-ring      { animation: dcHeroScale 580ms var(--ease-out-expo)  0ms   both; }
+  .dc-badges-row                  { animation: dcHeroRise  440ms var(--ease-out-quart) 110ms both; }
+  .dc-hero-title                  { animation: dcHeroRise  560ms var(--ease-out-expo)  170ms both; }
+  #dc-team-motto                  { animation: dcHeroRise  380ms var(--ease-out-quart) 260ms both; }
+  .dc-hero-stats                  { animation: dcHeroRise  440ms var(--ease-out-quart) 210ms both; }
+  .dc-action-zone                 { animation: dcHeroRise  380ms var(--ease-out-quart) 290ms both; }
+
+  /* Roster card stagger — index set via style="--i: N" on each card */
+  @keyframes dcRosterEnter {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .dc-roster-card {
+    animation: dcRosterEnter 380ms var(--ease-out-quart) calc(var(--i, 0) * 55ms) both;
+  }
+
+  /* Tab sliding indicator — real DOM element positioned by JS */
+  .dc-tab-indicator {
+    position: absolute;
+    bottom: -1px;
+    height: 2px;
+    background: var(--team-primary);
+    box-shadow: 0 0 8px var(--team-glow);
+    border-radius: 1px;
+    transition: left 230ms var(--ease-out-expo), width 230ms var(--ease-out-expo);
+    pointer-events: none;
+    will-change: left, width;
+  }
+
+  /* Roster toggle chevron rotation */
+  #dc-roster-toggle svg:last-child,
+  #dc-roster-toggle > svg {
+    transition: transform 250ms var(--ease-out-quart);
+  }
+  #dc-roster-toggle[aria-expanded="true"] svg {
+    transform: rotate(180deg);
+  }
+
+  /* Scroll reveal system — JS adds .dc-reveal-set, then .dc-in when visible */
+  .dc-reveal-set {
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity 420ms var(--ease-out-quart), transform 420ms var(--ease-out-quart);
+  }
+  .dc-reveal-set.dc-in {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* Match history cards — individual reveal stagger via JS-set --i */
+  .dc-match-history-card.dc-reveal-set {
+    transition-delay: calc(var(--i, 0) * 45ms);
+  }
+
+  /* Reduced motion: disable all custom animations */
+  @media (prefers-reduced-motion: reduce) {
+    .dc-hero-logo .avatar-ring,
+    .dc-badges-row, .dc-hero-title, #dc-team-motto,
+    .dc-hero-stats, .dc-action-zone, .dc-roster-card {
+      animation: none !important;
+    }
+    .dc-reveal-set {
+      opacity: 1 !important; transform: none !important; transition: none !important;
+    }
+    .dc-tab-indicator { transition: none !important; }
   }
 </style>
 
