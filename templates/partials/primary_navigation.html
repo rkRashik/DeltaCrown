@@ -12,7 +12,7 @@
       </div>
       <input type="text" id="dc-cmd-input" placeholder="Search tournaments, teams, players..."
         class="flex-1 bg-transparent border-none outline-none text-white text-xl font-sans placeholder-gray-400 font-medium" autocomplete="off">
-      <button id="dc-search-close" class="w-10 h-10 text-gray-400 hover:text-white transition p-2 rounded-xl hover:bg-white/5 ml-3">
+      <button id="dc-search-close" class="w-11 h-11 text-gray-400 hover:text-white transition p-2 rounded-xl hover:bg-white/5 ml-3">
         <i class="fa-solid fa-xmark text-lg"></i>
       </button>
     </div>
@@ -53,13 +53,13 @@
   </a>
   <div class="flex items-center gap-3">
     {% if request.user.is_authenticated %}
-    <button id="dc-mobile-notif-btn" class="w-9 h-9 rounded-full flex items-center justify-center text-gray-400 hover:text-white relative" aria-label="Notifications">
+    <button id="dc-mobile-notif-btn" class="w-11 h-11 rounded-full flex items-center justify-center text-gray-400 hover:text-white relative" aria-label="Notifications">
       <i class="fa-regular fa-bell text-lg"></i>
       {% with nav_unread_count|default:0 as unread_count %}{% if unread_count > 0 %}<span id="dc-mobile-notif-badge" class="absolute -top-0.5 -right-0.5 min-w-[16px] h-[16px] px-0.5 flex items-center justify-center bg-red-500 rounded-full border-2 border-[#020005] text-[9px] font-bold text-white leading-none">{{ unread_count }}</span>{% endif %}{% endwith %}
     </button>
     {% endif %}
     <button id="dc-mobile-menu-toggle" aria-label="Open menu" aria-expanded="false"
-      class="w-10 h-10 rounded-lg flex items-center justify-center text-white">
+      class="w-11 h-11 rounded-lg flex items-center justify-center text-white">
       <span id="dc-hamburger" class="dc-hamburger"><span></span><span></span><span></span></span>
     </button>
   </div>
@@ -98,7 +98,7 @@
         <div class="dc-nav-item{% if c_a %} active{% endif %}"><a href="/community/" class="dc-nav-link" {% if c_a %}aria-current="page"{% endif %}>Community</a></div>
         <div class="dc-nav-item{% if ar_a %} active{% endif %}">
           <a href="/arena/" class="dc-nav-link flex items-center gap-1.5">Arena
-            <span class="w-1.5 h-1.5 bg-red-500 rounded-full animate-ping" aria-hidden="true"></span>
+            <span class="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-ping" aria-hidden="true"></span>
           </a>
         </div>
         <div class="dc-nav-item{% if st_a %} active{% endif %}"><a href="/crownstore/" class="dc-nav-link text-yellow-400/90 hover:text-white">Store</a></div>
@@ -137,7 +137,7 @@
       <!-- Notifications bell -->
       {% if request.user.is_authenticated %}
       <div class="relative">
-        <button id="dc-notif-btn" class="w-10 h-10 rounded-xl flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/5 transition-all relative" aria-label="Notifications" aria-haspopup="true" aria-expanded="false">
+        <button id="dc-notif-btn" class="w-11 h-11 rounded-xl flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/5 transition-all relative" aria-label="Notifications" aria-haspopup="true" aria-expanded="false">
           <i class="fa-regular fa-bell text-[1.2rem]"></i>
           {% with nav_unread_count|default:0 as uc %}{% if uc > 0 %}
           <span class="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 flex items-center justify-center bg-red-500 rounded-full border-2 border-[#020005] text-[10px] font-bold text-white leading-none">{{ uc }}</span>
@@ -189,9 +189,9 @@
       <div class="dc-nav-item{% if arena_active %} active{% endif %}">
         <a href="/arena/" class="dc-nav-link flex items-center gap-2" {% if arena_active %}aria-current="page"{% endif %}>
           Arena
-          <span class="w-1.5 h-1.5 bg-red-500 rounded-full animate-ping" aria-hidden="true"></span>
+          <span class="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-ping" aria-hidden="true"></span>
           {% if nav_live_count %}
-          <span id="nav-live-badge" style="font-size:10px;font-family:ui-monospace,monospace;font-weight:700;letter-spacing:.06em;background:rgba(255,70,85,0.15);color:#FF4655;border:1px solid rgba(255,70,85,0.4);border-radius:999px;padding:1px 7px;line-height:1.6;transition:all .3s ease;">{{ nav_live_count }} LIVE</span>
+          <span id="nav-live-badge" style="font-size:10px;font-family:ui-monospace,monospace;font-weight:700;letter-spacing:.06em;background:rgba(0,229,255,0.14);color:#67e8f9;border:1px solid rgba(0,229,255,0.4);border-radius:999px;padding:1px 7px;line-height:1.6;transition:all .3s ease;">{{ nav_live_count }} LIVE</span>
           {% else %}
           <span id="nav-live-badge" style="display:none;font-size:10px;font-family:ui-monospace,monospace;font-weight:700;letter-spacing:.06em;background:rgba(255,70,85,0.15);color:#FF4655;border:1px solid rgba(255,70,85,0.4);border-radius:999px;padding:1px 7px;line-height:1.6;"></span>
           {% endif %}
@@ -203,13 +203,13 @@
     </nav>
     <!-- Right: Actions & Profile -->
     <div class="flex items-center gap-5 justify-self-end">
-      <button id="dc-search-btn" class="w-10 h-10 rounded-xl flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/5 transition-all group" title="Search (Cmd+K)" aria-label="Open search">
+      <button id="dc-search-btn" class="w-11 h-11 rounded-xl flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/5 transition-all group" title="Search (Cmd+K)" aria-label="Open search">
         <i class="fa-solid fa-magnifying-glass text-[1.1rem] group-hover:scale-110 transition-transform"></i>
       </button>
       {% if request.user.is_authenticated %}
       <!-- Notifications -->
       <div class="relative">
-        <button id="dc-notif-btn" class="w-10 h-10 rounded-xl flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/5 transition-all relative group" aria-label="Notifications" aria-haspopup="true" aria-expanded="false">
+        <button id="dc-notif-btn" class="w-11 h-11 rounded-xl flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/5 transition-all relative group" aria-label="Notifications" aria-haspopup="true" aria-expanded="false">
           <i class="fa-regular fa-bell text-[1.25rem] group-hover:rotate-12 transition-transform"></i>
           {% with nav_unread_count|default:0 as unread_count %}
           {% if unread_count > 0 %}
@@ -256,8 +256,8 @@
       </div>
       {% else %}
       <div class="flex items-center gap-3">
-        <a href="/accounts/login/" class="px-4 py-2 text-gray-300 hover:text-white transition font-medium">Sign In</a>
-        <a href="/accounts/signup/" class="px-5 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg font-semibold transition">Sign Up</a>
+        <a href="/accounts/login/" class="min-h-[44px] inline-flex items-center px-4 py-2 text-gray-300 hover:text-white transition font-medium">Sign In</a>
+        <a href="/accounts/signup/" class="min-h-[44px] inline-flex items-center px-5 py-2 bg-cyan-400 hover:bg-cyan-300 text-black rounded-lg font-semibold transition">Sign Up</a>
       </div>
       {% endif %}
     </div>
@@ -332,7 +332,7 @@
   <div class="p-6">
     <div class="flex justify-between items-center mb-6">
       <h2 class="text-xl font-bold text-white">Menu</h2>
-      <button id="dc-drawer-close" aria-label="Close menu" class="w-10 h-10 rounded-full flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10">
+      <button id="dc-drawer-close" aria-label="Close menu" class="w-11 h-11 rounded-full flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10">
         <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M5 5l10 10M15 5l-10 10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
       </button>
     </div>
@@ -361,8 +361,8 @@
     </div>
     {% else %}
     <div class="space-y-3">
-      <a href="/accounts/login/" class="block w-full px-6 py-3 bg-cyan-500 hover:bg-cyan-600 text-white text-center rounded-lg font-semibold transition">Sign In</a>
-      <a href="/accounts/signup/" class="block w-full px-6 py-3 border border-white/20 hover:bg-white/5 text-white text-center rounded-lg font-semibold transition">Create Account</a>
+      <a href="/accounts/login/" class="min-h-[44px] flex items-center justify-center w-full px-6 py-3 bg-cyan-400 hover:bg-cyan-300 text-black text-center rounded-lg font-semibold transition">Sign In</a>
+      <a href="/accounts/signup/" class="min-h-[44px] flex items-center justify-center w-full px-6 py-3 border border-white/20 hover:bg-white/5 text-white text-center rounded-lg font-semibold transition">Create Account</a>
     </div>
     {% endif %}
   </div>
@@ -377,6 +377,25 @@
 
 <!-- Inline Nav Styles -->
 <style>
+.dc-nav-link {
+  min-height: 44px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+}
+#dc-search-btn,
+#dc-notif-btn,
+#dc-mobile-menu-toggle,
+#dc-mobile-notif-btn,
+#dc-search-close,
+#dc-drawer-close {
+  min-width: 44px !important;
+  min-height: 44px !important;
+  flex: 0 0 44px;
+}
+#dc-mobile-header > a,
+#dc-navbar a[aria-label="DeltaCrown Home"] {
+  min-height: 44px;
+}
 /* Hamburger Icon */
 .dc-hamburger { display:flex;flex-direction:column;justify-content:center;align-items:center;width:22px;height:22px;gap:5px;cursor:pointer; }
 .dc-hamburger span { display:block;width:100%;height:2px;background:#fff;border-radius:2px;transition:transform .3s ease,opacity .3s ease;transform-origin:center; }

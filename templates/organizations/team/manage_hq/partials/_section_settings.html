@@ -5,6 +5,17 @@ Settings auto-save via AJAX.
 {% endcomment %}
 <section id="settings" class="hq-section space-y-4">
 
+    {# ── Header ── #}
+    <div class="flex items-center gap-3">
+        <div class="h-11 w-11 rounded-2xl bg-amber-500/12 border border-amber-500/20 grid place-items-center shrink-0">
+            <i data-lucide="settings" class="w-5 h-5 text-amber-400"></i>
+        </div>
+        <div>
+            <h2 class="text-lg font-bold font-display leading-tight">Settings &amp; Security</h2>
+            <p class="text-sm text-white/45 leading-tight">Membership, visibility, permissions &amp; danger zone</p>
+        </div>
+    </div>
+
     {# ── Your Membership (visible to ALL members) ── #}
     <div class="rounded-3xl border border-line bg-gradient-to-br from-white/[0.03] to-transparent shadow-soft p-5 lg:p-6">
         <h2 class="text-base font-bold mb-1 flex items-center gap-2">
@@ -59,6 +70,41 @@ Settings auto-save via AJAX.
             {% endif %}
         </div>
     </div>
+
+    {# ── Permissions: Registration Authority (moved from Roster Ops) ── #}
+    {% if is_admin or is_owner %}
+    <div class="rounded-3xl border border-line bg-card shadow-soft p-5 lg:p-6">
+        <h2 class="text-base font-bold mb-1 flex items-center gap-2">
+            <i data-lucide="shield-check" class="w-4 h-4 text-cyan-400"></i>
+            Registration Authority
+        </h2>
+        <p class="text-xs text-white/40 mb-4">These members and org staff can register this team for tournaments.</p>
+        <div class="flex flex-wrap gap-2">
+            {% for m in members %}
+            {% if m.role == 'OWNER' or m.role == 'MANAGER' %}
+            <span class="inline-flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg bg-card2 border border-line text-white/70">
+                <span class="h-5 w-5 rounded-full bg-white/10 grid place-items-center text-[9px] font-bold overflow-hidden shrink-0">
+                    {% if m.user.profile.avatar %}<img src="{{ m.user.profile.avatar.url }}" class="w-full h-full object-cover" alt="" data-fallback-text="{{ m.user.username|slice:':1'|upper }}">
+                    {% else %}{{ m.user.username|slice:":1"|upper }}{% endif %}
+                </span>
+                {{ m.user.username }}
+                <span class="text-[9px] px-1 py-0.5 rounded bg-cyan-500/10 text-cyan-400/70 font-medium">{{ m.get_role_display }}</span>
+            </span>
+            {% endif %}
+            {% endfor %}
+            {% for s in org_staff %}
+            <span class="inline-flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg bg-fuchsia-500/5 border border-fuchsia-500/15 text-white/70">
+                <span class="h-5 w-5 rounded-full bg-fuchsia-500/15 grid place-items-center text-[9px] font-bold overflow-hidden shrink-0">
+                    {% if s.avatar_url %}<img src="{{ s.avatar_url }}" class="w-full h-full object-cover" alt="" data-fallback-text="{{ s.username|slice:':1'|upper }}">
+                    {% else %}{{ s.username|slice:":1"|upper }}{% endif %}
+                </span>
+                {{ s.username }}
+                <span class="text-[9px] px-1 py-0.5 rounded bg-fuchsia-500/10 text-fuchsia-400/70 font-medium">Org {{ s.role }}</span>
+            </span>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
 
     {# ── Leave Team (Non-Owners) — Prominent Position ── #}
     {% if not is_owner %}

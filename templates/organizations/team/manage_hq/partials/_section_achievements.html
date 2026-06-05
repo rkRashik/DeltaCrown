@@ -5,21 +5,48 @@
 <section id="achievements" class="hq-section space-y-5">
 
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-            <h2 class="text-lg font-bold flex items-center gap-2">
-                <svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15l-2 5-1-3H6l3-2-1-3 4 3 4-3-1 3 3 2h-3l-1 3-2-5z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 4h8l2 4H6l2-4z"/></svg>
-                Trophy Cabinet
-            </h2>
-            <p class="text-sm text-white/40 mt-0.5">Manage tournament wins, awards, and achievements</p>
+        <div class="flex items-center gap-3">
+            <div class="h-11 w-11 rounded-2xl bg-amber-500/12 border border-amber-500/20 grid place-items-center shrink-0">
+                <i data-lucide="trophy" class="w-5 h-5 text-amber-400"></i>
+            </div>
+            <div>
+                <h2 class="text-lg font-bold font-display leading-tight">Trophy Cabinet</h2>
+                <p class="text-sm text-white/45 leading-tight">Tournament wins, awards &amp; achievements</p>
+            </div>
         </div>
-        <button data-click="TrophyManager.openForm" class="h-9 px-4 rounded-xl bg-amber-500/15 border border-amber-500/25 text-amber-400 text-xs font-bold uppercase tracking-wider hover:bg-amber-500/25 transition flex items-center gap-2">
-            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+        <button data-click="TrophyManager.openForm" class="h-10 px-4 rounded-xl text-white text-xs font-bold uppercase tracking-wider transition flex items-center gap-2 shadow-lg shadow-amber-500/20"
+                style="background:linear-gradient(135deg,#f59e0b,#d97706)">
+            <i data-lucide="plus" class="w-4 h-4"></i>
             Add Trophy
         </button>
     </div>
 
+    {# ── Career stats strip ── #}
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div class="stat-card rounded-2xl border border-line bg-card p-4">
+            <span class="h-8 w-8 rounded-lg bg-amber-500/12 text-amber-400 grid place-items-center mb-2"><i data-lucide="trophy" class="w-4 h-4"></i></span>
+            <div class="text-3xl font-black font-mono leading-none" id="ach-stat-total">0</div>
+            <div class="text-[10px] text-white/45 uppercase tracking-wide mt-1.5 font-semibold">Total Trophies</div>
+        </div>
+        <div class="stat-card rounded-2xl border border-line bg-card p-4">
+            <span class="h-8 w-8 rounded-lg bg-yellow-500/12 text-yellow-400 grid place-items-center mb-2"><i data-lucide="medal" class="w-4 h-4"></i></span>
+            <div class="text-3xl font-black font-mono leading-none text-yellow-400" id="ach-stat-gold">0</div>
+            <div class="text-[10px] text-white/45 uppercase tracking-wide mt-1.5 font-semibold">Gold / 1st</div>
+        </div>
+        <div class="stat-card rounded-2xl border border-line bg-card p-4">
+            <span class="h-8 w-8 rounded-lg bg-purple-500/12 text-purple-400 grid place-items-center mb-2"><i data-lucide="swords" class="w-4 h-4"></i></span>
+            <div class="text-3xl font-black font-mono leading-none text-purple-400">{{ team_tournament_count|default:"0" }}</div>
+            <div class="text-[10px] text-white/45 uppercase tracking-wide mt-1.5 font-semibold">Tournaments</div>
+        </div>
+        <div class="stat-card rounded-2xl border border-line bg-card p-4">
+            <span class="h-8 w-8 rounded-lg bg-cyan-500/12 text-cyan-400 grid place-items-center mb-2"><i data-lucide="award" class="w-4 h-4"></i></span>
+            <div class="text-xl font-black leading-none mt-1 truncate" id="ach-stat-best">—</div>
+            <div class="text-[10px] text-white/45 uppercase tracking-wide mt-1.5 font-semibold">Best Finish</div>
+        </div>
+    </div>
+
     {# Add/Edit Form (hidden by default) #}
-    <div id="trophy-form" class="hidden rounded-2xl border border-amber-500/15 bg-white/[0.03] p-5 space-y-3">
+    <div id="trophy-form" class="hidden rounded-2xl border border-amber-500/15 bg-card p-5 space-y-3">
         <h3 class="text-sm font-bold text-amber-400">Add Trophy</h3>
         <input type="hidden" id="trophy-edit-id" value="" />
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -70,43 +97,76 @@
         return PLACEMENT_ICONS[key] || '\ud83c\udfc6';
     }
 
+    // Medal-gradient by placement \u2014 gold / silver / bronze / default
+    function placementStyle(p) {
+        const k = (p || '').toLowerCase().trim();
+        if (['1st','champion','first','winner','gold'].includes(k))
+            return { card: 'border-amber-500/35', bg: 'background:linear-gradient(160deg, rgba(245,158,11,.18), rgba(217,119,6,.04))', badge: 'bg-amber-500/20 text-amber-300', ring: 'ring-1 ring-amber-500/20' };
+        if (['2nd','runner-up','second','silver'].includes(k))
+            return { card: 'border-slate-300/30', bg: 'background:linear-gradient(160deg, rgba(203,213,225,.15), rgba(148,163,184,.03))', badge: 'bg-slate-300/15 text-slate-200', ring: '' };
+        if (['3rd','third','bronze'].includes(k))
+            return { card: 'border-orange-600/30', bg: 'background:linear-gradient(160deg, rgba(234,88,12,.15), rgba(154,52,18,.04))', badge: 'bg-orange-600/15 text-orange-300', ring: '' };
+        return { card: 'border-line', bg: '', badge: 'bg-amber-500/10 text-amber-400', ring: '' };
+    }
+
+    function renderStats(trophies) {
+        const total = trophies.length;
+        let gold = 0, best = '\u2014', bestRank = 99;
+        const rankMap = { '1st':1,'champion':1,'first':1,'winner':1,'gold':1,'2nd':2,'runner-up':2,'second':2,'silver':2,'3rd':3,'third':3,'bronze':3 };
+        trophies.forEach(t => {
+            const k = (t.placement||'').toLowerCase().trim();
+            if (rankMap[k] === 1) gold++;
+            if (rankMap[k] && rankMap[k] < bestRank) { bestRank = rankMap[k]; best = t.placement; }
+            else if (best === '\u2014' && t.placement) best = t.placement;
+        });
+        const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+        set('ach-stat-total', total);
+        set('ach-stat-gold', gold);
+        set('ach-stat-best', best);
+    }
+
     const TrophyManager = {
         async load() {
             const resp = await fetch(`${API_BASE}/trophies/`, { headers: { "X-CSRFToken": CSRF } });
             const data = await resp.json();
             const list = document.getElementById("trophy-list");
             const trophies = data.trophies || [];
+            renderStats(trophies);
 
             if (trophies.length === 0) {
                 list.innerHTML = `
-                    <div class="col-span-full text-center py-12">
-                        <svg class="w-10 h-10 text-white/10 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 15l-2 5-1-3H6l3-2-1-3 4 3 4-3-1 3 3 2h-3l-1 3-2-5z"/></svg>
-                        <p class="text-sm text-white/30">No trophies yet</p>
+                    <div class="col-span-full rounded-2xl border border-dashed border-line bg-card2 text-center py-12">
+                        <div class="text-4xl mb-2">\ud83c\udfc6</div>
+                        <p class="text-sm text-white/40 font-medium">No trophies yet</p>
+                        <p class="text-xs text-white/25 mt-1">Win tournaments and immortalize them here.</p>
                     </div>`;
                 return;
             }
 
-            list.innerHTML = trophies.map(t => `
-                <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-4 hover:border-amber-500/20 transition group">
+            list.innerHTML = trophies.map(t => {
+                const s = placementStyle(t.placement);
+                return `
+                <div class="relative overflow-hidden rounded-2xl border ${s.card} ${s.ring} bg-card p-4 lift hover:-translate-y-0.5 group" style="${s.bg}">
                     <div class="flex items-start justify-between gap-2">
-                        <div class="text-2xl">${placementIcon(t.placement)}</div>
+                        <div class="text-3xl drop-shadow">${placementIcon(t.placement)}</div>
                         <div class="opacity-0 group-hover:opacity-100 transition flex gap-1">
-                            <button data-click="TrophyManager.edit" data-click-args='${JSON.stringify([t]).replace(/'/g, "\\'")}' class="p-1 rounded hover:bg-white/10 text-white/30 hover:text-white/60" title="Edit">
-                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                            <button data-click="TrophyManager.edit" data-click-args='${JSON.stringify([t]).replace(/'/g, "\\'")}' class="p-1.5 rounded-lg hover:bg-white/10 text-white/40 hover:text-white/70" title="Edit">
+                                <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
                             </button>
-                            <button data-click="TrophyManager.remove" data-click-args='["${t.id}"]' class="p-1 rounded hover:bg-red-500/10 text-white/30 hover:text-red-400" title="Delete">
-                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                            <button data-click="TrophyManager.remove" data-click-args='["${t.id}"]' class="p-1.5 rounded-lg hover:bg-red-500/10 text-white/40 hover:text-red-400" title="Delete">
+                                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
                             </button>
                         </div>
                     </div>
-                    <p class="text-sm font-bold text-white mt-2">${esc(t.title)}</p>
-                    ${t.event ? `<p class="text-[10px] text-white/40 mt-0.5">${esc(t.event)}</p>` : ''}
-                    <div class="flex items-center gap-2 mt-2 text-[10px] text-white/30">
-                        ${t.placement ? `<span class="px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 font-bold">${esc(t.placement)}</span>` : ''}
-                        ${t.date || ''}
+                    <p class="text-sm font-bold font-display text-white mt-3">${esc(t.title)}</p>
+                    ${t.event ? `<p class="text-[11px] text-white/45 mt-0.5">${esc(t.event)}</p>` : ''}
+                    <div class="flex items-center gap-2 mt-3 text-[10px]">
+                        ${t.placement ? `<span class="px-2 py-0.5 rounded-full ${s.badge} font-bold uppercase tracking-wide">${esc(t.placement)}</span>` : ''}
+                        ${t.date ? `<span class="text-white/30 font-mono">${t.date}</span>` : ''}
                     </div>
-                </div>
-            `).join("");
+                </div>`;
+            }).join("");
+            if (window.lucide) lucide.createIcons({ nodes: [list] });
         },
 
         openForm() {

@@ -4,22 +4,32 @@
 {% if is_admin or is_owner %}
 <section id="store" class="hq-section space-y-5">
 
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-            <h2 class="text-lg font-bold flex items-center gap-2">
-                <svg class="w-5 h-5 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
-                Team Store
-            </h2>
-            <p class="text-sm text-white/40 mt-0.5">Manage merch links and digital items for fans</p>
+    {# ── Coming Soon hero ── #}
+    <div class="premium-card relative overflow-hidden p-8 lg:p-10 text-center">
+        <div class="absolute inset-0 pointer-events-none opacity-50"
+             style="background:radial-gradient(480px 240px at 50% 0%, color-mix(in oklab, #7c3aed 26%, transparent), transparent 70%)"></div>
+        <div class="relative">
+            <div class="h-16 w-16 rounded-3xl bg-violet-500/15 border border-violet-500/25 grid place-items-center mx-auto mb-4 shadow-lg shadow-violet-500/20">
+                <i data-lucide="shopping-bag" class="w-8 h-8 text-violet-400"></i>
+            </div>
+            <span class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-widest border border-violet-400/30 bg-violet-400/10 text-violet-300 mb-4">
+                <span class="h-1.5 w-1.5 rounded-full bg-violet-400 animate-pulse"></span>
+                Coming Soon
+            </span>
+            <h2 class="text-2xl font-bold font-display text-white mb-2">Team Store</h2>
+            <p class="text-sm text-white/50 max-w-sm mx-auto leading-relaxed">
+                Sell official team merch, digital items, and fan packs directly from your team page. Full integration with the DeltaCrown economy.
+            </p>
+            <div class="mt-5 flex flex-wrap items-center justify-center gap-4 text-xs text-white/35">
+                <span class="flex items-center gap-1.5"><i data-lucide="package" class="w-3.5 h-3.5 text-violet-400/50"></i> Merch links</span>
+                <span class="flex items-center gap-1.5"><i data-lucide="sparkles" class="w-3.5 h-3.5 text-violet-400/50"></i> Digital items</span>
+                <span class="flex items-center gap-1.5"><i data-lucide="wallet" class="w-3.5 h-3.5 text-violet-400/50"></i> DC wallet integration</span>
+            </div>
         </div>
-        <button data-click="MerchStore.openForm" class="h-9 px-4 rounded-xl bg-violet-500/15 border border-violet-500/25 text-violet-400 text-xs font-bold uppercase tracking-wider hover:bg-violet-500/25 transition flex items-center gap-2">
-            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
-            Add Item
-        </button>
     </div>
 
     {# Add/Edit Form #}
-    <div id="merch-form" class="hidden rounded-2xl border border-violet-500/15 bg-white/[0.03] p-5 space-y-3">
+    <div id="merch-form" class="hidden rounded-2xl border border-violet-500/15 bg-card p-5 space-y-3">
         <h3 class="text-sm font-bold text-violet-400">Add Merch Item</h3>
         <input type="hidden" id="merch-edit-id" value="" />
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -76,7 +86,7 @@
             }
 
             list.innerHTML = items.map(item => `
-                <div class="rounded-2xl border border-white/10 bg-white/[0.03] overflow-hidden hover:border-violet-500/20 transition group">
+                <div class="rounded-2xl border border-white/10 bg-card overflow-hidden hover:border-violet-500/20 transition group">
                     ${item.image_url ? `
                         <div class="aspect-square bg-white/5 relative overflow-hidden">
                             <img src="${esc(item.image_url)}" alt="${esc(item.name)}" class="w-full h-full object-cover" data-fallback="hide" />

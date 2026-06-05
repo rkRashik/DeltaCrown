@@ -8,8 +8,28 @@
     <meta name="csrf-token" content="{{ csrf_token }}" />
     <title>{{ team.name|default:"Team" }} — Team HQ</title>
 
+    <!-- Type system: Sora (display) · Inter (body) · JetBrains Mono (stats) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&family=Sora:wght@600;700;800&display=swap">
+
     <!-- Tailwind CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <script nonce="{{ request.csp_nonce }}">
+        // Map design-system fonts so `font-display` / `font-mono` resolve to the
+        // intended typefaces (previously no-ops — fonts were never loaded).
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+                        display: ['Sora', 'Inter', 'ui-sans-serif', 'sans-serif'],
+                        mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
+                    },
+                },
+            },
+        };
+    </script>
 
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -88,11 +108,23 @@
             display: block;
         }
 
+        .nav-item { position: relative; transition: transform .16s ease, background-color .16s ease; }
+        .nav-item:hover { transform: translateX(3px); }
         .nav-item[aria-current="page"] {
             background: linear-gradient(135deg,
-                    color-mix(in oklab, var(--team-primary) 28%, rgba(255, 255, 255, .06)),
-                    rgba(255, 255, 255, .05));
-            border-color: color-mix(in oklab, var(--team-primary) 38%, rgba(255, 255, 255, .14));
+                    color-mix(in oklab, var(--team-primary) 26%, rgba(255, 255, 255, .06)),
+                    rgba(255, 255, 255, .035));
+            border-color: color-mix(in oklab, var(--team-primary) 42%, rgba(255, 255, 255, .14));
+        }
+        .nav-item[aria-current="page"]::before {
+            content: ""; position: absolute; left: -1px; top: 50%; transform: translateY(-50%);
+            height: 56%; width: 3px; border-radius: 999px;
+            background: linear-gradient(var(--team-primary), var(--team-accent));
+            box-shadow: 0 0 12px color-mix(in oklab, var(--team-primary) 60%, transparent);
+        }
+        .nav-item[aria-current="page"] > div:first-child {
+            background: color-mix(in oklab, var(--team-primary) 22%, transparent);
+            border: 1px solid color-mix(in oklab, var(--team-primary) 30%, transparent);
         }
 
         /* Safe area for mobile bottom nav */
@@ -122,16 +154,202 @@
             background-color: #2563eb;
             color: #fff;
         }
+
+        /* ── Mobile bottom-nav active indicator ─────────────────── */
+        .mobile-nav-btn .nav-dot {
+            position: absolute;
+            top: 0;
+            height: 2px;
+            width: 18px;
+            border-radius: 999px;
+            background: var(--team-primary);
+            opacity: 0;
+            transition: opacity 150ms ease;
+        }
+        .mobile-nav-btn.is-active .nav-dot { opacity: 1; }
+
+        /* ── Topbar quick-action pill hover ─────────────────────── */
+        .action-pill:hover { filter: brightness(1.25); }
+
+        /* ── Standard interactive glass card ────────────────────── */
+        .clickable-card {
+            transition: background 150ms ease, border-color 150ms ease, transform 80ms ease;
+        }
+        .clickable-card:hover {
+            background: var(--card2);
+            border-color: rgba(255, 255, 255, .20);
+        }
+        .clickable-card:active { transform: scale(0.98); }
+
+        /* ── Liquid-glass modal surface ─────────────────────────── */
+        .glass-modal {
+            background: rgba(11, 16, 32, 0.85);
+            backdrop-filter: blur(28px) saturate(180%);
+            -webkit-backdrop-filter: blur(28px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, .14);
+            border-radius: 28px;
+            box-shadow: 0 32px 80px rgba(0, 0, 0, .65);
+        }
+
+        /* ── Mobile bottom sheet ────────────────────────────────── */
+        .glass-sheet {
+            background: rgba(11, 16, 32, 0.92);
+            backdrop-filter: blur(24px) saturate(200%);
+            -webkit-backdrop-filter: blur(24px) saturate(200%);
+            border-top: 1px solid rgba(255, 255, 255, .12);
+            border-radius: 28px 28px 0 0;
+        }
+
+        /* ── Modal entrance animation ───────────────────────────── */
+        @keyframes modal-in {
+            from { opacity: 0; transform: scale(0.96) translateY(8px); }
+            to   { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .animate-modal-in { animation: modal-in 220ms cubic-bezier(0.22, 1, 0.36, 1); }
+
+        /* ═══════════════════════════════════════════════════════════
+           PREMIUM DESIGN LAYER — elevates shared primitives so every
+           section inherits depth, motion, and a tactile feel.
+           ═══════════════════════════════════════════════════════════ */
+
+        /* Density: shrink the whole desktop UI ~10% for a compact 1080p view.
+           Only rem-based sizes scale; fixed text-[Npx] labels stay readable. */
+        @media (min-width: 1024px) {
+            html { font-size: 14.5px; }
+        }
+
+        /* Layered depth + inner top highlight on every primary card */
+        .shadow-soft {
+            box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, .07),
+                0 1px 2px rgba(0, 0, 0, .35),
+                0 24px 48px -26px rgba(0, 0, 0, .80);
+        }
+
+        /* Section content rises in on navigation (staggered) */
+        @keyframes hq-rise {
+            from { opacity: 0; transform: translateY(16px) scale(.985); }
+            to   { opacity: 1; transform: none; }
+        }
+        .hq-section.is-active > * {
+            animation: hq-rise .55s cubic-bezier(.22, 1, .36, 1) both;
+        }
+        .hq-section.is-active > *:nth-child(1) { animation-delay: .02s; }
+        .hq-section.is-active > *:nth-child(2) { animation-delay: .07s; }
+        .hq-section.is-active > *:nth-child(3) { animation-delay: .12s; }
+        .hq-section.is-active > *:nth-child(4) { animation-delay: .17s; }
+        .hq-section.is-active > *:nth-child(5) { animation-delay: .22s; }
+        .hq-section.is-active > *:nth-child(6) { animation-delay: .27s; }
+        .hq-section.is-active > *:nth-child(n+7) { animation-delay: .3s; }
+        /* never animate fixed overlays/scripts that live inside a section */
+        .hq-section.is-active > .fixed,
+        .hq-section.is-active > script { animation: none !important; }
+
+        /* Premium elevated card — gradient surface + lift on hover */
+        .premium-card {
+            position: relative;
+            background:
+                linear-gradient(180deg, rgba(255, 255, 255, .055), rgba(255, 255, 255, .022));
+            border: 1px solid rgba(255, 255, 255, .10);
+            border-radius: 26px;
+            box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, .07),
+                0 24px 50px -28px rgba(0, 0, 0, .85);
+            transition: transform .32s cubic-bezier(.22, 1, .36, 1), border-color .32s ease, box-shadow .32s ease;
+        }
+        .premium-card.is-hoverable:hover {
+            transform: translateY(-3px);
+            border-color: color-mix(in oklab, var(--team-primary) 34%, rgba(255, 255, 255, .14));
+            box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, .09),
+                0 34px 64px -26px rgba(0, 0, 0, .9),
+                0 0 0 1px color-mix(in oklab, var(--team-primary) 22%, transparent);
+        }
+
+        /* Generic hover-lift for tiles/clickables */
+        .lift { transition: transform .25s cubic-bezier(.22,1,.36,1), box-shadow .25s, border-color .25s; }
+        .lift:hover { transform: translateY(-2px); }
+
+        /* Premium stat tile — gradient accent bar that lights up on hover */
+        .stat-card {
+            position: relative;
+            overflow: hidden;
+            transition: transform .25s cubic-bezier(.22,1,.36,1), border-color .25s;
+        }
+        .stat-card::after {
+            content: "";
+            position: absolute; left: 0; right: 0; bottom: 0; height: 2px;
+            background: linear-gradient(90deg, var(--team-primary), var(--team-accent));
+            opacity: .35; transition: opacity .25s ease;
+        }
+        .stat-card:hover { transform: translateY(-2px); border-color: rgba(255,255,255,.20); }
+        .stat-card:hover::after { opacity: 1; }
+
+        /* Eyebrow label utility */
+        .eyebrow { font-size: 10px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
+
+        /* Soft team-tinted glow ring for emphasis */
+        .glow-ring { box-shadow: 0 0 0 1px color-mix(in oklab, var(--team-primary) 30%, transparent), 0 0 40px -8px color-mix(in oklab, var(--team-primary) 40%, transparent); }
+
+        /* Premium inputs/selects — consistent focus ring */
+        .hq-section input:not([type=checkbox]):not([type=radio]):focus,
+        .hq-section select:focus,
+        .hq-section textarea:focus {
+            outline: none;
+            border-color: color-mix(in oklab, var(--team-primary) 55%, transparent);
+            box-shadow: 0 0 0 3px color-mix(in oklab, var(--team-primary) 18%, transparent);
+        }
+
+        /* ── Guided help system ─────────────────────────────────── */
+        .help-fab {
+            position: fixed; right: 18px; bottom: 80px; z-index: 45;
+            height: 44px; width: 44px; border-radius: 14px;
+            display: grid; place-items: center;
+            background: linear-gradient(135deg, var(--team-primary), color-mix(in oklab, var(--team-accent) 70%, var(--team-primary)));
+            color: #fff; border: 1px solid rgba(255,255,255,.25);
+            box-shadow: 0 12px 30px -8px color-mix(in oklab, var(--team-primary) 60%, transparent);
+            transition: transform .2s ease, box-shadow .2s ease;
+        }
+        .help-fab:hover { transform: translateY(-2px) scale(1.05); }
+        @media (min-width: 1024px) { .help-fab { bottom: 20px; } }
+
+        .help-drawer {
+            position: fixed;
+            top: 64px;       /* below h-16 topbar */
+            right: 0;
+            bottom: 56px;    /* above mobile bottom nav h-14 on small screens */
+            z-index: 60;
+            width: min(420px, 92vw);
+            background: rgba(11, 16, 32, 0.94);
+            backdrop-filter: blur(26px) saturate(180%);
+            -webkit-backdrop-filter: blur(26px) saturate(180%);
+            border-left: 1px solid rgba(255,255,255,.12);
+            border-radius: 0 0 0 16px;
+            box-shadow: -30px 0 80px rgba(0,0,0,.6);
+            transform: translateX(105%);
+            transition: transform .38s cubic-bezier(.22,1,.36,1);
+            overflow-y: auto;
+        }
+        @media (min-width: 1024px) {
+            .help-drawer { bottom: 0; border-radius: 0; }
+        }
+        .help-drawer.is-open { transform: translateX(0); }
+
+        @media (prefers-reduced-motion: reduce) {
+            .animate-modal-in,
+            .hq-section.is-active > *,
+            .help-drawer, .lift, .stat-card, .premium-card { animation: none !important; transition: none !important; }
+        }
     </style>
 </head>
 
 <body class="min-h-screen">
     <div id="scrim" class="fixed inset-0 bg-black/60 hidden z-40"></div>
 
-    <div class="min-h-screen grid lg:grid-cols-[320px_1fr]">
+    <div class="min-h-screen">
         {% include "organizations/team/manage_hq/partials/_sidebar.html" %}
-        
-        <main class="min-h-screen lg:pl-0">
+
+        <main class="min-h-screen lg:pl-[280px]">
             {% include "organizations/team/manage_hq/partials/_topbar.html" %}
             
             <div class="mx-3 lg:mx-6 mt-4 lg:mt-6 pb-20 lg:pb-24">
@@ -144,6 +362,79 @@
     </div>
 
     {% include "organizations/team/manage_hq/partials/_mobile_nav.html" %}
+
+    {# ═══════════ Guided help system ═══════════ #}
+    <button id="hqHelpFab" class="help-fab" aria-label="Open help guide" title="Need help? Open the guide">
+        <i data-lucide="life-buoy" class="w-5 h-5"></i>
+    </button>
+
+    <div id="hqHelpBackdrop" class="fixed inset-0 bg-black/50 z-[55] hidden"></div>
+    <aside id="hqHelpDrawer" class="help-drawer" role="dialog" aria-modal="true" aria-label="Section help">
+        <div class="sticky top-0 z-10 flex items-center gap-3 px-5 py-4 border-b border-line bg-[var(--bg1)]/80 backdrop-blur-xl">
+            <div class="h-9 w-9 rounded-xl bg-[var(--team-primary)]/15 grid place-items-center shrink-0">
+                <i data-lucide="life-buoy" class="w-4 h-4" style="color:color-mix(in oklab, var(--team-primary) 60%, white)"></i>
+            </div>
+            <div class="min-w-0 flex-1">
+                <p class="eyebrow text-white/40">Guide</p>
+                <h3 id="hqHelpTitle" class="text-base font-bold font-display truncate">Command Center</h3>
+            </div>
+            <button id="hqHelpClose" class="h-8 w-8 rounded-lg hover:bg-white/10 grid place-items-center transition shrink-0" aria-label="Close help">
+                <i data-lucide="x" class="w-4 h-4 text-white/60"></i>
+            </button>
+        </div>
+        <div id="hqHelpBody" class="p-5 space-y-5"></div>
+        <div class="px-5 pb-6">
+            <a href="#guide" id="hqHelpFullGuide" class="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl border border-line bg-card2 hover:bg-white/10 transition text-sm font-semibold">
+                <i data-lucide="book-open" class="w-4 h-4 text-teal-400"></i>
+                Open full Guide &amp; Rules
+            </a>
+        </div>
+    </aside>
+
+    {# First-visit welcome #}
+    <div id="hqWelcome" class="fixed inset-0 z-[70] hidden items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+        <div class="glass-modal animate-modal-in w-full max-w-lg overflow-hidden">
+            <div class="relative p-6 border-b border-line overflow-hidden">
+                <div class="absolute inset-0 opacity-60 pointer-events-none"
+                     style="background:radial-gradient(420px 160px at 20% 0%, color-mix(in oklab, var(--team-primary) 40%, transparent), transparent 70%)"></div>
+                <div class="relative flex items-center gap-3">
+                    <div class="h-12 w-12 rounded-2xl grid place-items-center shrink-0 glow-ring"
+                         style="background:linear-gradient(135deg,var(--team-primary),var(--team-accent))">
+                        <i data-lucide="sparkles" class="w-6 h-6 text-white"></i>
+                    </div>
+                    <div>
+                        <p class="eyebrow text-white/50">Welcome to</p>
+                        <h2 class="text-xl font-bold font-display">{{ team.name }} · Team HQ</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="p-6 space-y-3">
+                <p class="text-sm text-white/60">This is your team's control center. Here's how it's organized:</p>
+                <div class="space-y-2.5">
+                    <div class="flex items-start gap-3 p-3 rounded-2xl border border-line bg-card2">
+                        <div class="h-8 w-8 rounded-lg bg-purple-500/15 grid place-items-center shrink-0"><i data-lucide="layout-dashboard" class="w-4 h-4 text-purple-400"></i></div>
+                        <div><p class="text-sm font-semibold">Command Center</p><p class="text-xs text-white/45">Your dashboard — health, alerts, and quick jumps to everything.</p></div>
+                    </div>
+                    <div class="flex items-start gap-3 p-3 rounded-2xl border border-line bg-card2">
+                        <div class="h-8 w-8 rounded-lg bg-cyan-500/15 grid place-items-center shrink-0"><i data-lucide="users" class="w-4 h-4 text-cyan-400"></i></div>
+                        <div><p class="text-sm font-semibold">Roster &amp; Scouting</p><p class="text-xs text-white/45">Build your lineup and recruit new talent.</p></div>
+                    </div>
+                    <div class="flex items-start gap-3 p-3 rounded-2xl border border-line bg-card2">
+                        <div class="h-8 w-8 rounded-lg bg-amber-500/15 grid place-items-center shrink-0"><i data-lucide="swords" class="w-4 h-4 text-amber-400"></i></div>
+                        <div><p class="text-sm font-semibold">Compete &amp; Train</p><p class="text-xs text-white/45">Enter tournaments, run scrims, and track results.</p></div>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 text-xs text-white/45 pt-1">
+                    <i data-lucide="life-buoy" class="w-4 h-4" style="color:color-mix(in oklab, var(--team-primary) 60%, white)"></i>
+                    Stuck anywhere? Tap the help button (bottom-right) for a guide on any screen.
+                </div>
+                <button id="hqWelcomeStart" class="w-full mt-2 py-3 rounded-xl text-sm font-bold text-white transition"
+                        style="background:linear-gradient(135deg,var(--team-primary),var(--team-accent))">
+                    Start exploring →
+                </button>
+            </div>
+        </div>
+    </div>
 
     <script nonce="{{ request.csp_nonce }}">
         try { lucide.createIcons(); } catch(e) { console.warn('lucide.createIcons failed on initial load:', e); }
@@ -172,6 +463,56 @@
             guide:       { title: "Guide & Rules",       sub: "Platform rulebook & team handbook" },
         };
 
+        // Contextual help shown in the guide drawer, per section.
+        const HELP = {
+            command: { icon: 'layout-dashboard', what: "Your team's mission control. At a glance you can see what needs attention, how complete your team setup is, and jump straight into any workspace.",
+                tips: ["The amber <b>Attention</b> banner lists anything blocking tournament play — tap Review to expand it.", "<b>Quick Actions</b> are shortcuts into the deeper workspaces.", "<b>Team Health</b> grades how ready your team profile is (A+ to D)."],
+                who: "Everyone on the team can view this. Invite & setup actions appear for managers and owners." },
+            roster: { icon: 'users', what: "Manage who's on the team. Organize your starting lineup, bench, and staff, and handle pending invites.",
+                tips: ["Switch between <b>Starters / Bench / Staff / Pending</b> using the tabs.", "Hover any player card to reveal <b>Edit · Move · Remove</b>.", "Assign exactly one <b>Tournament Captain</b> — it's required for match check-ins."],
+                who: "Owners & managers can edit the roster. Players can edit their own card." },
+            'join-requests': { icon: 'radar', what: "Recruit new talent. Review applications, run a tryout pipeline, and present your team to potential recruits.",
+                tips: ["The <b>Pipeline</b> moves applicants from Pending → Tryout → Offer → Signed.", "<b>Recruitment Post</b> sets the positions and requirements you're hiring for.", "<b>Team Pitch</b> is how your team appears to people browsing for a team."],
+                who: "Visible to owners & managers only." },
+            competition: { icon: 'swords', what: "Your competitive command center — create Showdowns, place Bounties, browse Dropzone lobbies, and track upcoming matches and results.",
+                tips: ["The colored <b>pills</b> jump you to Live, Review, Rooms, or History below.", "<b>Upcoming Matches</b> shows your scheduled fixtures.", "<b>Recent Results</b> lists your completed tournaments."],
+                who: "Everyone can view. Competitive policy settings are owner/manager only." },
+            training: { icon: 'crosshair', what: "Sharpen the team. Post scrims, schedule tryouts and practice sessions, and review VODs.",
+                tips: ["<b>Scrims</b> = practice matches vs other teams.", "<b>Tryouts</b> = evaluating a specific recruit (different from Scouting, which is the application pipeline).", "Add VODs to review and improve as a team."],
+                who: "Owners, managers, and coaches can schedule sessions." },
+            community: { icon: 'message-square', what: "Your team's public voice. Post announcements, build a media gallery, showcase highlights, and manage comms links.",
+                tips: ["Switch between <b>Feed / Media / Highlights / Comms</b> with the tabs.", "Pin important posts so they stay at the top of the feed.", "Discord is your primary comms channel — keep it linked."],
+                who: "Owners & managers can post and upload. Everyone can view." },
+            discord: { icon: 'message-circle', what: "Connect your Discord server for two-way sync — chat, announcements, voice, and automatic role syncing.",
+                tips: ["Connect the DeltaCrown bot, then paste your server & channel IDs.", "Enable Developer Mode in Discord to copy IDs (right-click → Copy ID).", "Role Sync auto-assigns Discord roles when members are promoted."],
+                who: "Setup is owner/manager only. The team chat is open to all members." },
+            profile: { icon: 'palette', what: "Your team's public identity — logo, banner, colors, bio, and social links. This is what everyone sees on your public page.",
+                tips: ["A <b>logo</b> and <b>banner</b> are required for tournament visibility.", "Your colors theme this entire HQ.", "Use <b>Preview Public Page</b> to see exactly what fans see."],
+                who: "Owners & managers only." },
+            settings: { icon: 'settings', what: "Team configuration — visibility, recruiting status, game & region, registration authority, and the danger zone.",
+                tips: ["Set <b>Recruiting</b> on to appear in Scouting searches.", "<b>Registration Authority</b> lists who can enter the team into tournaments.", "Leave Team and Disband live at the bottom — these need confirmation."],
+                who: "Everyone sees their membership. Edits are owner/manager; disband is owner/CEO only." },
+            treasury: { icon: 'wallet', what: "The team's money view — tournament prize earnings, registration fees, and (for owners) the wallet and payout methods.",
+                tips: ["<b>Prize History</b> is visible to the whole team.", "The <b>Wallet</b> and payment methods are owner-only.", "For org teams, prizes flow to the Organization master wallet."],
+                who: "Prize history: everyone. Wallet & payouts: owner only." },
+            achievements: { icon: 'trophy', what: "Your trophy cabinet — every tournament placement and award the team has earned.",
+                tips: ["Career stats summarize your tournaments, win rate, and best finish.", "Add custom trophies to celebrate milestones."],
+                who: "Visible to owners & managers." },
+            store: { icon: 'shopping-bag', what: "Sell team merch and digital items to your fans and members.",
+                tips: ["Add items with a name, price, and image.", "Items appear on your public team store."],
+                who: "Owners & managers only." },
+            sponsors: { icon: 'handshake', what: "Manage brand partnerships and sponsor placements that appear on your team page.",
+                tips: ["Add sponsors with a logo and link.", "Sponsors show on your public profile."],
+                who: "Owners & managers only." },
+            history: { icon: 'scroll-text', what: "A full audit trail of everything that's happened — roster moves, tournament events, settings changes, and finance.",
+                tips: ["Filter by <b>Roster / Tournaments / Settings / Finance</b> using the pills.", "Use the date range to narrow things down.", "Owners can pin key moments to the public Hall of Fame."],
+                who: "Owners, managers, and coaches." },
+            guide: { icon: 'book-open', what: "The handbook — how roles & permissions work, tournament rules, and platform policies.",
+                tips: ["Check the role table to understand what each role can do.", "Read the tournament rules before registering."],
+                who: "Everyone." },
+        };
+        let __hqRoute = 'command';
+
         function openSidebar() {
             sidebar.classList.remove('-translate-x-[110%]');
             scrim.classList.remove('hidden');
@@ -197,6 +538,20 @@
             if (pageTitle) pageTitle.textContent = meta.title;
             if (pageSub) pageSub.textContent = meta.sub;
 
+            // Update the topbar section icon
+            const iconBox = document.getElementById('pageIcon');
+            const ic = (HELP[route] || HELP.command).icon;
+            if (iconBox) {
+                iconBox.innerHTML = `<i data-lucide="${ic}" class="w-5 h-5" style="color:color-mix(in oklab, var(--team-primary) 60%, white)"></i>`;
+                if (window.lucide) lucide.createIcons({ nodes: [iconBox] });
+            }
+
+            // Track route for the help drawer; re-render if it's open
+            __hqRoute = route;
+            if (typeof renderHelp === 'function' && document.getElementById('hqHelpDrawer')?.classList.contains('is-open')) {
+                renderHelp(route);
+            }
+
             // Update breadcrumb
             const bc = document.getElementById('breadcrumbSection');
             if (bc) bc.textContent = meta.title;
@@ -214,7 +569,7 @@
 
             // Update mobile nav active state
             // Routes that live under More menu (not in the main 4 bottom buttons)
-            const MORE_ROUTES = new Set(['competition', 'profile', 'settings', 'treasury', 'achievements', 'store', 'sponsors', 'history', 'guide']);
+            const MORE_ROUTES = new Set(['training', 'community', 'profile', 'settings', 'treasury', 'achievements', 'store', 'sponsors', 'history', 'guide']);
             const isMoreRoute = MORE_ROUTES.has(route);
             document.querySelectorAll('.mobile-nav-btn').forEach(btn => {
                 const btnRoute = btn.dataset.route;
@@ -226,6 +581,7 @@
                 }
                 btn.classList.toggle('text-white', isActive);
                 btn.classList.toggle('text-white/40', !isActive);
+                btn.classList.toggle('is-active', isActive);
             });
         }
 
@@ -266,19 +622,38 @@
             guide: [],
         };
 
+        // RGB triples keyed by the color names used in TOPBAR_ACTIONS.
+        // Inline styles are used (not bg-${color} Tailwind classes) because the
+        // Tailwind CDN JIT cannot see runtime-concatenated class names and purges
+        // them, leaving the quick-action buttons invisible. See design notes §1.
+        const ACTION_COLORS = {
+            cyan:    '6,182,212',
+            blue:    '59,130,246',
+            amber:   '245,158,11',
+            emerald: '16,185,129',
+            purple:  '168,85,247',
+            pink:    '236,72,153',
+            violet:  '139,92,246',
+            rose:    '244,63,94',
+            white:   '255,255,255',
+        };
+
         function updateTopbarActions(route) {
             const container = document.getElementById('topbarActions');
             if (!container) return;
             const actions = TOPBAR_ACTIONS[route] || [];
             if (!actions.length) { container.classList.add('hidden'); return; }
             container.classList.remove('hidden');
-            container.innerHTML = actions.map(a => `
-                <button data-click="${a.onclick}"
-                    class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-semibold bg-${a.color}-500/15 text-${a.color}-400 border border-${a.color}-500/20 hover:bg-${a.color}-500/25 transition whitespace-nowrap">
+            container.innerHTML = actions.map(a => {
+                const rgb = ACTION_COLORS[a.color] || ACTION_COLORS.white;
+                const style = `background:rgba(${rgb},.14);color:rgb(${rgb});border-color:rgba(${rgb},.24)`;
+                return `
+                <button data-click="${a.onclick}" style="${style}"
+                    class="action-pill flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-semibold border transition whitespace-nowrap">
                     <i data-lucide="${a.icon}" class="w-3 h-3"></i>
                     <span class="hidden md:inline">${a.label}</span>
-                </button>
-            `).join('');
+                </button>`;
+            }).join('');
             if (window.lucide) lucide.createIcons({ nodes: [container] });
         }
 
@@ -297,6 +672,74 @@
             if (e.key === 'Escape') closeSidebar();
         });
 
+        // ── Guided help drawer ──────────────────────────────────
+        function renderHelp(route) {
+            const h = HELP[route] || HELP.command;
+            const meta = ROUTES[route] || ROUTES.command;
+            const titleEl = document.getElementById('hqHelpTitle');
+            const body = document.getElementById('hqHelpBody');
+            if (titleEl) titleEl.textContent = meta.title;
+            if (!body) return;
+            const tips = (h.tips || []).map(t =>
+                `<li class="flex items-start gap-2.5">
+                    <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400/80 shrink-0 mt-0.5"></i>
+                    <span class="text-sm text-white/65 leading-relaxed">${t}</span>
+                 </li>`).join('');
+            body.innerHTML = `
+                <div class="rounded-2xl border border-line bg-card2 p-4 flex items-start gap-3">
+                    <div class="h-9 w-9 rounded-xl bg-[var(--team-primary)]/15 grid place-items-center shrink-0">
+                        <i data-lucide="${h.icon}" class="w-4 h-4" style="color:color-mix(in oklab, var(--team-primary) 60%, white)"></i>
+                    </div>
+                    <p class="text-sm text-white/70 leading-relaxed">${h.what}</p>
+                </div>
+                <div>
+                    <p class="eyebrow text-white/40 mb-2.5">Quick tips</p>
+                    <ul class="space-y-2.5">${tips}</ul>
+                </div>
+                <div class="rounded-2xl border border-line bg-card2 p-3.5 flex items-start gap-2.5">
+                    <i data-lucide="shield-check" class="w-4 h-4 text-cyan-400 shrink-0 mt-0.5"></i>
+                    <p class="text-xs text-white/50 leading-relaxed">${h.who}</p>
+                </div>`;
+            if (window.lucide) lucide.createIcons({ nodes: [body, titleEl?.closest('.help-drawer')].filter(Boolean) });
+        }
+
+        const helpDrawer = document.getElementById('hqHelpDrawer');
+        const helpBackdrop = document.getElementById('hqHelpBackdrop');
+        function openHelp() {
+            renderHelp(__hqRoute);
+            helpDrawer?.classList.add('is-open');
+            helpBackdrop?.classList.remove('hidden');
+        }
+        function closeHelp() {
+            helpDrawer?.classList.remove('is-open');
+            helpBackdrop?.classList.add('hidden');
+        }
+        document.getElementById('hqHelpFab')?.addEventListener('click', openHelp);
+        document.getElementById('hqHelpClose')?.addEventListener('click', closeHelp);
+        helpBackdrop?.addEventListener('click', closeHelp);
+        document.getElementById('hqHelpFullGuide')?.addEventListener('click', () => { closeHelp(); setActiveRoute('guide'); });
+        document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeHelp(); });
+
+        // ── First-visit welcome ─────────────────────────────────
+        (function() {
+            const KEY = 'dc-hq-welcome-{{ team.slug|escapejs }}';
+            const welcome = document.getElementById('hqWelcome');
+            const startBtn = document.getElementById('hqWelcomeStart');
+            function dismiss() {
+                welcome?.classList.add('hidden');
+                welcome?.classList.remove('flex');
+                try { localStorage.setItem(KEY, '1'); } catch (e) {}
+            }
+            startBtn?.addEventListener('click', dismiss);
+            let seen = false;
+            try { seen = localStorage.getItem(KEY) === '1'; } catch (e) {}
+            if (!seen && welcome) {
+                welcome.classList.remove('hidden');
+                welcome.classList.add('flex');
+                if (window.lucide) lucide.createIcons({ nodes: [welcome] });
+            }
+        })();
+
         const initialRoute = (location.hash || '#command').replace('#', '');
         setActiveRoute(document.getElementById(initialRoute) ? initialRoute : 'command');
     </script>
@@ -312,6 +755,6 @@
     </script>
     <!-- CSP-safe data-click / data-change event delegator (required for all data-click buttons) -->
     <script src="{% static 'js/csp-delegator.js' %}"></script>
-    <script src="{% static 'organizations/js/team-manage-hq.js' %}?v=20260517-phase9a"></script>
+    <script src="{% static 'organizations/js/team-manage-hq.js' %}?v=20260604-editmember"></script>
 </body>
 </html>

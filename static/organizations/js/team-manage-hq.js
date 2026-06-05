@@ -444,6 +444,18 @@
       if (card) {
         try { memberPerms = JSON.parse(card.dataset.permissions || "{}"); } catch (e) { /* ignore */ }
       }
+
+      // ── Header avatar — roster photo, else the member's profile pic from their card ──
+      const headerAvatar = qs("#role-modal-avatar");
+      if (headerAvatar) {
+        const cardImg = card ? card.querySelector("img") : null;
+        const imgSrc = rosterImageUrl || (cardImg ? cardImg.getAttribute("src") : "");
+        if (imgSrc) {
+          headerAvatar.innerHTML = `<img src="${imgSrc}" class="w-full h-full object-cover">`;
+        } else {
+          headerAvatar.innerHTML = `<span class="text-lg font-black text-white/75">${(username || "?").slice(0, 2).toUpperCase()}</span>`;
+        }
+      }
       // Populate checkboxes
       document.querySelectorAll(".perm-cb").forEach(cb => {
         const perm = cb.dataset.perm;
@@ -3739,6 +3751,19 @@
     openInviteModal:   ()                        => Roster.openInviteModal(),
     cancelInvite:      (id, btn)                 => Roster.cancelInvite(id, btn),
     openRoleModal:     (id, role, name, cap, pr, slot, dn, img) => Roster.openRoleModal(id, role, name, cap, pr, slot, dn, img),
+    togglePermGrid:    () => {
+      const grid = document.getElementById("role-perm-grid");
+      const chev = document.querySelector("#role-permissions-section .perm-chevron");
+      if (grid) grid.classList.toggle("hidden");
+      if (chev) chev.classList.toggle("rotate-180");
+    },
+    previewRolePhoto:  () => {
+      const input = document.getElementById("role-photo-input");
+      const prev  = document.getElementById("role-photo-preview");
+      const file  = input && input.files && input.files[0];
+      if (!file || !prev) return;
+      prev.innerHTML = `<img src="${URL.createObjectURL(file)}" class="w-full h-full object-cover">`;
+    },
     openRemoveModal:   (id, name)                => Roster.openRemoveModal(id, name),
     confirmRemove:     ()                        => Roster.confirmRemove(),
     handleJoinRequest: (id, act, btn)            => Roster.handleJoinRequest(id, act, btn),
@@ -3752,6 +3777,31 @@
     closeMemberInfo:   (e)                        => MemberInfo.close(e),
     // Command Center
     loadMoreActivity:  ()                        => Command.loadMore(),
+    toggleAttention:   () => {
+      const d = document.getElementById("cmd-attention-details");
+      const t = document.getElementById("cmd-attention-toggle");
+      if (!d) return;
+      const isHidden = d.classList.toggle("hidden");
+      if (t) t.textContent = isHidden ? "Review" : "Hide";
+    },
+    dismissAttention:  () => { document.getElementById("cmd-attention")?.remove(); },
+    // History filter pills — syncs hidden select + re-runs filter
+    historyFilter:     (val) => {
+      const sel = document.getElementById("history-filter-type");
+      if (sel) sel.value = val || "";
+      document.querySelectorAll(".history-filter-pill").forEach(btn => {
+        let btnVal = "";
+        try { btnVal = JSON.parse(btn.dataset.clickArgs || '[""]')[0]; } catch {}
+        const isActive = btnVal === (val || "");
+        btn.classList.toggle("bg-card2", isActive);
+        btn.classList.toggle("border-white\\/20", isActive);
+        btn.classList.toggle("text-white", isActive);
+        btn.classList.toggle("bg-card", !isActive);
+        btn.classList.toggle("border-line", !isActive);
+        btn.classList.toggle("text-white\\/45", !isActive);
+      });
+      History.applyFilters();
+    },
     // Competitive Control Center
     Competition: {
       refresh: () => Competition.refresh(),
@@ -3828,6 +3878,11 @@
     saveBankAccount:   ()                        => Treasury.saveBankAccount(),
     removeBankAccount: ()                        => Treasury.removeBankAccount(),
   };
+
+  /* ── Expose tab-switchers globally for data-click delegator ── */
+  window.historyFilter   = window.ManageHQ.historyFilter;
+  window.rosterTab       = window.rosterTab || function(n) { window.ManageHQ && window.ManageHQ.historyFilter && window.ManageHQ.rosterTab && window.ManageHQ.rosterTab(n); };
+  window.communityTab    = window.communityTab || function() {};  // defined inline in the template
 
   /* ── Init on DOM ready ── */
   document.addEventListener("DOMContentLoaded", () => {

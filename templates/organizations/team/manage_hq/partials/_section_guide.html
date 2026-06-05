@@ -1,185 +1,239 @@
 {% comment %}
-Guide & Rules — Platform rulebook, team management handbook, and competitive guidelines.
-Accessible to all team members.
+Guide & Rules — Animated, modern reference. Roles, roster rules, competitive policy, handbook.
 {% endcomment %}
-<section id="guide" class="hq-section space-y-4" aria-labelledby="guide-heading">
+<section id="guide" class="hq-section space-y-5" aria-labelledby="guide-heading">
 
-    {# ── Quick Reference Cards ── #}
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div class="rounded-3xl border border-line bg-card shadow-soft p-5">
-            <div class="flex items-center gap-3 mb-3">
-                <div class="h-10 w-10 rounded-xl bg-teal-500/15 grid place-items-center">
-                    <i data-lucide="shield" class="w-5 h-5 text-teal-400"></i>
+    <style>
+        /* Entrance animation for guide cards */
+        @keyframes guide-fade-up {
+            from { opacity: 0; transform: translateY(14px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        #guide.is-active .guide-card {
+            animation: guide-fade-up .45s cubic-bezier(.22,1,.36,1) both;
+        }
+        #guide.is-active .guide-card:nth-child(1) { animation-delay: .04s; }
+        #guide.is-active .guide-card:nth-child(2) { animation-delay: .10s; }
+        #guide.is-active .guide-card:nth-child(3) { animation-delay: .16s; }
+        #guide.is-active .guide-card:nth-child(4) { animation-delay: .22s; }
+        #guide.is-active .guide-card:nth-child(5) { animation-delay: .28s; }
+        #guide.is-active .guide-card:nth-child(6) { animation-delay: .34s; }
+
+        /* Role pill hover */
+        .role-pill { transition: transform .2s ease, box-shadow .2s ease; }
+        .role-pill:hover { transform: translateY(-2px); }
+
+        /* FAQ accordion */
+        .faq-item summary { list-style: none; }
+        .faq-item summary::-webkit-details-marker { display: none; }
+        .faq-item[open] summary .faq-chevron { transform: rotate(180deg); }
+        .faq-chevron { transition: transform .22s ease; }
+    </style>
+
+    {# ── Header ── #}
+    <div class="guide-card flex items-center gap-3">
+        <div class="h-11 w-11 rounded-2xl bg-teal-500/12 border border-teal-500/20 grid place-items-center shrink-0">
+            <i data-lucide="book-open" class="w-5 h-5 text-teal-400"></i>
+        </div>
+        <div>
+            <h2 id="guide-heading" class="text-lg font-bold font-display leading-tight">Guide &amp; Rules</h2>
+            <p class="text-sm text-white/45 leading-tight">Role system, roster policy, competitive rules &amp; platform handbook</p>
+        </div>
+    </div>
+
+    {# ── Role System — visual cards ── #}
+    <div class="guide-card premium-card p-5">
+        <h3 class="text-sm font-bold font-display text-white mb-4 flex items-center gap-2">
+            <i data-lucide="shield" class="w-4 h-4 text-teal-400"></i>
+            Team Role System
+        </h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            <div class="role-pill rounded-2xl border border-amber-500/25 bg-amber-500/8 p-3.5 flex items-start gap-3">
+                <div class="h-9 w-9 rounded-xl bg-amber-500/15 grid place-items-center shrink-0 mt-0.5">
+                    <i data-lucide="crown" class="w-4 h-4 text-amber-400"></i>
                 </div>
                 <div>
-                    <h3 class="text-sm font-bold">Team Roles</h3>
-                    <p class="text-[10px] text-white/40">4 role tiers</p>
+                    <p class="text-sm font-bold text-amber-300 leading-tight">Owner</p>
+                    <p class="text-[11px] text-white/50 mt-0.5 leading-relaxed">Full control — wallet, transfer, disband, all settings</p>
                 </div>
             </div>
-            <ul class="space-y-1.5 text-xs text-white/60">
-                <li class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-amber-400 shrink-0"></span> <strong class="text-white/80">Owner</strong> — Full control, transfer team, delete</li>
-                <li class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-purple-400 shrink-0"></span> <strong class="text-white/80">Manager</strong> — Roster ops, profile editing, treasury</li>
-                <li class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-cyan-400 shrink-0"></span> <strong class="text-white/80">Coach</strong> — Training, scrims, strategy tools</li>
-                <li class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-green-400 shrink-0"></span> <strong class="text-white/80">Player</strong> — View stats, mark availability, team chat</li>
+            <div class="role-pill rounded-2xl border border-violet-500/25 bg-violet-500/8 p-3.5 flex items-start gap-3">
+                <div class="h-9 w-9 rounded-xl bg-violet-500/15 grid place-items-center shrink-0 mt-0.5">
+                    <i data-lucide="shield" class="w-4 h-4 text-violet-400"></i>
+                </div>
+                <div>
+                    <p class="text-sm font-bold text-violet-300 leading-tight">Manager</p>
+                    <p class="text-[11px] text-white/50 mt-0.5 leading-relaxed">Roster ops, tournament registration, profile editing</p>
+                </div>
+            </div>
+            <div class="role-pill rounded-2xl border border-sky-500/25 bg-sky-500/8 p-3.5 flex items-start gap-3">
+                <div class="h-9 w-9 rounded-xl bg-sky-500/15 grid place-items-center shrink-0 mt-0.5">
+                    <i data-lucide="megaphone" class="w-4 h-4 text-sky-400"></i>
+                </div>
+                <div>
+                    <p class="text-sm font-bold text-sky-300 leading-tight">Coach</p>
+                    <p class="text-[11px] text-white/50 mt-0.5 leading-relaxed">Training, scrims, strategy — no roster edits</p>
+                </div>
+            </div>
+            <div class="role-pill rounded-2xl border border-emerald-500/25 bg-emerald-500/8 p-3.5 flex items-start gap-3">
+                <div class="h-9 w-9 rounded-xl bg-emerald-500/15 grid place-items-center shrink-0 mt-0.5">
+                    <i data-lucide="gamepad-2" class="w-4 h-4 text-emerald-400"></i>
+                </div>
+                <div>
+                    <p class="text-sm font-bold text-emerald-300 leading-tight">Player / Substitute</p>
+                    <p class="text-[11px] text-white/50 mt-0.5 leading-relaxed">Active competitor — needs a Game Passport to play</p>
+                </div>
+            </div>
+            <div class="role-pill rounded-2xl border border-pink-500/25 bg-pink-500/8 p-3.5 flex items-start gap-3">
+                <div class="h-9 w-9 rounded-xl bg-pink-500/15 grid place-items-center shrink-0 mt-0.5">
+                    <i data-lucide="bar-chart-3" class="w-4 h-4 text-pink-400"></i>
+                </div>
+                <div>
+                    <p class="text-sm font-bold text-pink-300 leading-tight">Analyst</p>
+                    <p class="text-[11px] text-white/50 mt-0.5 leading-relaxed">Data &amp; VOD review access — view-only roster</p>
+                </div>
+            </div>
+            <div class="role-pill rounded-2xl border border-line bg-card2 p-3.5 flex items-start gap-3">
+                <div class="h-9 w-9 rounded-xl bg-white/8 grid place-items-center shrink-0 mt-0.5">
+                    <i data-lucide="search" class="w-4 h-4 text-white/50"></i>
+                </div>
+                <div>
+                    <p class="text-sm font-bold text-white/70 leading-tight">Scout</p>
+                    <p class="text-[11px] text-white/40 mt-0.5 leading-relaxed">Player stats &amp; scouting access only</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# ── Quick-rule strips ── #}
+    <div class="guide-card grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div class="premium-card p-4">
+            <div class="flex items-center gap-2 mb-3">
+                <div class="h-8 w-8 rounded-lg bg-blue-500/15 grid place-items-center"><i data-lucide="users" class="w-4 h-4 text-blue-400"></i></div>
+                <h3 class="text-sm font-bold font-display">Roster Rules</h3>
+            </div>
+            <ul class="space-y-2 text-xs text-white/60">
+                <li class="flex items-start gap-2"><i data-lucide="check-circle" class="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5"></i>Max <strong class="text-white/80">{{ max_roster_size|default:"10" }}</strong> players per roster</li>
+                <li class="flex items-start gap-2"><i data-lucide="check-circle" class="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5"></i>1 team per player per game title</li>
+                <li class="flex items-start gap-2"><i data-lucide="check-circle" class="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5"></i>Invitations expire after <strong class="text-white/80">7 days</strong></li>
+                <li class="flex items-start gap-2"><i data-lucide="lock" class="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5"></i>Roster locks when tournament bracket generates</li>
             </ul>
         </div>
-
-        <div class="rounded-3xl border border-line bg-card shadow-soft p-5">
-            <div class="flex items-center gap-3 mb-3">
-                <div class="h-10 w-10 rounded-xl bg-blue-500/15 grid place-items-center">
-                    <i data-lucide="users" class="w-5 h-5 text-blue-400"></i>
-                </div>
-                <div>
-                    <h3 class="text-sm font-bold">Roster Rules</h3>
-                    <p class="text-[10px] text-white/40">Capacity & eligibility</p>
-                </div>
+        <div class="premium-card p-4">
+            <div class="flex items-center gap-2 mb-3">
+                <div class="h-8 w-8 rounded-lg bg-amber-500/15 grid place-items-center"><i data-lucide="timer" class="w-4 h-4 text-amber-400"></i></div>
+                <h3 class="text-sm font-bold font-display">Edit Cooldowns</h3>
             </div>
-            <ul class="space-y-1.5 text-xs text-white/60">
-                <li class="flex items-center gap-2"><i data-lucide="check" class="w-3 h-3 text-green-400 shrink-0"></i> Max {{ max_roster_size|default:"10" }} players per roster</li>
-                <li class="flex items-center gap-2"><i data-lucide="check" class="w-3 h-3 text-green-400 shrink-0"></i> Players can join 1 team per game</li>
-                <li class="flex items-center gap-2"><i data-lucide="check" class="w-3 h-3 text-green-400 shrink-0"></i> Invites expire after 7 days</li>
-                <li class="flex items-center gap-2"><i data-lucide="check" class="w-3 h-3 text-green-400 shrink-0"></i> Roster locked during active tournaments</li>
-            </ul>
-        </div>
-
-        <div class="rounded-3xl border border-line bg-card shadow-soft p-5">
-            <div class="flex items-center gap-3 mb-3">
-                <div class="h-10 w-10 rounded-xl bg-amber-500/15 grid place-items-center">
-                    <i data-lucide="lock" class="w-5 h-5 text-amber-400"></i>
-                </div>
-                <div>
-                    <h3 class="text-sm font-bold">Edit Cooldowns</h3>
-                    <p class="text-[10px] text-white/40">Identity protection</p>
-                </div>
-            </div>
-            <ul class="space-y-1.5 text-xs text-white/60">
-                <li class="flex items-center gap-2"><i data-lucide="timer" class="w-3 h-3 text-amber-400 shrink-0"></i> Name — 30 day cooldown</li>
-                <li class="flex items-center gap-2"><i data-lucide="timer" class="w-3 h-3 text-amber-400 shrink-0"></i> Tag — 30 day cooldown</li>
-                <li class="flex items-center gap-2"><i data-lucide="timer" class="w-3 h-3 text-amber-400 shrink-0"></i> Region — 30 day cooldown</li>
-                <li class="flex items-center gap-2"><i data-lucide="ban" class="w-3 h-3 text-red-400 shrink-0"></i> Game — Permanent (contact support)</li>
+            <ul class="space-y-2 text-xs text-white/60">
+                <li class="flex items-start gap-2"><i data-lucide="clock" class="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5"></i>Team name &amp; tag — <strong class="text-white/80">30-day</strong> cooldown</li>
+                <li class="flex items-start gap-2"><i data-lucide="clock" class="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5"></i>Region — <strong class="text-white/80">30-day</strong> cooldown</li>
+                <li class="flex items-start gap-2"><i data-lucide="ban" class="w-3.5 h-3.5 text-red-400 shrink-0 mt-0.5"></i>Game — <strong class="text-white/80">permanent</strong> (contact support)</li>
+                <li class="flex items-start gap-2"><i data-lucide="check-circle" class="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5"></i>Colors, bio, logo — anytime</li>
             </ul>
         </div>
     </div>
 
-    {# ── Competitive Rules ── #}
-    <div class="rounded-3xl border border-line bg-card shadow-soft p-5 lg:p-6">
-        <h2 class="text-base font-bold mb-4 flex items-center gap-2">
-            <i data-lucide="trophy" class="w-4 h-4 text-amber-400"></i>
-            Competitive Rules
-        </h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="space-y-3">
-                <h3 class="text-sm font-semibold text-white/80 flex items-center gap-2">
-                    <i data-lucide="swords" class="w-3.5 h-3.5 text-red-400"></i>
-                    Tournament Eligibility
-                </h3>
-                <ul class="text-xs text-white/60 space-y-1.5 pl-5 list-disc">
-                    <li>Team must have the minimum number of active players for the tournament format</li>
-                    <li>All players must have a completed Game Passport for the team's game</li>
-                    <li>Team must be in ACTIVE status (not suspended or disbanded)</li>
-                    <li>Entry fee (if any) must be paid before registration closes</li>
-                    <li>Roster changes are locked once tournament check-in begins</li>
-                </ul>
+    {# ── Competitive rules ── #}
+    <div class="guide-card premium-card p-5">
+        <div class="flex items-center gap-2 mb-4">
+            <div class="h-8 w-8 rounded-lg bg-amber-500/15 grid place-items-center"><i data-lucide="trophy" class="w-4 h-4 text-amber-400"></i></div>
+            <h3 class="text-sm font-bold font-display">Competitive Rules</h3>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs text-white/60">
+            <div class="space-y-2">
+                <p class="text-[10px] font-bold uppercase tracking-widest text-white/40 mb-2">Tournament Eligibility</p>
+                <div class="space-y-1.5">
+                    <div class="flex items-start gap-2"><i data-lucide="check" class="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5"></i>Minimum active players for format</div>
+                    <div class="flex items-start gap-2"><i data-lucide="check" class="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5"></i>All players need a Game Passport</div>
+                    <div class="flex items-start gap-2"><i data-lucide="check" class="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5"></i>Team must be in ACTIVE status</div>
+                    <div class="flex items-start gap-2"><i data-lucide="check" class="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5"></i>Entry fee paid before registration closes</div>
+                </div>
             </div>
-            <div class="space-y-3">
-                <h3 class="text-sm font-semibold text-white/80 flex items-center gap-2">
-                    <i data-lucide="scale" class="w-3.5 h-3.5 text-blue-400"></i>
-                    Fair Play & Conduct
-                </h3>
-                <ul class="text-xs text-white/60 space-y-1.5 pl-5 list-disc">
-                    <li>No smurfing or account sharing during competitive play</li>
-                    <li>Match results must be reported within the allotted time window</li>
-                    <li>Disputes are handled by platform moderators — no retaliation</li>
-                    <li>Cheating, exploits, or toxic behavior leads to team suspension</li>
-                    <li>Prize payouts follow the tournament payout schedule</li>
-                </ul>
+            <div class="space-y-2">
+                <p class="text-[10px] font-bold uppercase tracking-widest text-white/40 mb-2">Fair Play</p>
+                <div class="space-y-1.5">
+                    <div class="flex items-start gap-2"><i data-lucide="x" class="w-3.5 h-3.5 text-red-400 shrink-0 mt-0.5"></i>No smurfing or account sharing</div>
+                    <div class="flex items-start gap-2"><i data-lucide="x" class="w-3.5 h-3.5 text-red-400 shrink-0 mt-0.5"></i>No exploits or cheating — results in suspension</div>
+                    <div class="flex items-start gap-2"><i data-lucide="check" class="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5"></i>Report results within the allotted window</div>
+                    <div class="flex items-start gap-2"><i data-lucide="check" class="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5"></i>Disputes handled by platform moderators</div>
+                </div>
             </div>
         </div>
     </div>
 
-    {# ── Team Management Handbook ── #}
-    <div class="rounded-3xl border border-line bg-card shadow-soft p-5 lg:p-6">
-        <h2 class="text-base font-bold mb-4 flex items-center gap-2">
-            <i data-lucide="book-open" class="w-4 h-4 text-teal-400"></i>
-            Team Management Handbook
-        </h2>
-        <div class="space-y-4">
-            <details class="group">
-                <summary class="cursor-pointer flex items-center gap-2 text-sm font-medium text-white/80 hover:text-white transition py-2 px-3 rounded-xl hover:bg-white/5">
-                    <i data-lucide="chevron-right" class="w-4 h-4 text-white/40 group-open:rotate-90 transition-transform"></i>
-                    How do I invite a player?
+    {# ── Handbook FAQ — animated accordions ── #}
+    <div class="guide-card premium-card overflow-hidden">
+        <div class="p-4 border-b border-line flex items-center gap-2">
+            <div class="h-8 w-8 rounded-lg bg-teal-500/15 grid place-items-center"><i data-lucide="help-circle" class="w-4 h-4 text-teal-400"></i></div>
+            <h3 class="text-sm font-bold font-display">Handbook — Common Questions</h3>
+        </div>
+        <div class="divide-y divide-line">
+            <details class="faq-item group">
+                <summary class="flex items-center justify-between gap-3 px-4 py-3.5 cursor-pointer hover:bg-white/3 transition">
+                    <span class="text-sm font-medium text-white/80 group-open:text-white transition">How do I invite a player?</span>
+                    <i data-lucide="chevron-down" class="faq-chevron w-4 h-4 text-white/30 shrink-0"></i>
                 </summary>
-                <div class="ml-6 text-xs text-white/60 leading-relaxed pb-2 px-3">
-                    Go to <strong class="text-white/70">Roster Ops</strong> and click <strong class="text-white/70">Invite Player</strong>.
-                    Enter their username or email. They'll receive a notification and have 7 days to accept.
-                    You can also share an invite link from the same modal.
+                <div class="px-4 pb-4 pt-1 text-xs text-white/55 leading-relaxed">
+                    Go to <strong class="text-white/75">Roster Ops</strong> → <strong class="text-white/75">Invite Member</strong>. Enter their username or email. They receive a notification and have 7 days to accept. You can also share an invite link from the same modal.
                 </div>
             </details>
-            <details class="group">
-                <summary class="cursor-pointer flex items-center gap-2 text-sm font-medium text-white/80 hover:text-white transition py-2 px-3 rounded-xl hover:bg-white/5">
-                    <i data-lucide="chevron-right" class="w-4 h-4 text-white/40 group-open:rotate-90 transition-transform"></i>
-                    How do I change my team name?
+            <details class="faq-item group">
+                <summary class="flex items-center justify-between gap-3 px-4 py-3.5 cursor-pointer hover:bg-white/3 transition">
+                    <span class="text-sm font-medium text-white/80 group-open:text-white transition">How do I change my team name?</span>
+                    <i data-lucide="chevron-down" class="faq-chevron w-4 h-4 text-white/30 shrink-0"></i>
                 </summary>
-                <div class="ml-6 text-xs text-white/60 leading-relaxed pb-2 px-3">
-                    Go to <strong class="text-white/70">Team Profile → Team Information</strong>.
-                    Name changes have a <strong class="text-white/70">30-day cooldown</strong>. If your team is in an active tournament, name and tag changes are blocked.
-                    For urgent changes, <a href="/support/contact/" class="text-blue-400 hover:underline">contact support</a>.
+                <div class="px-4 pb-4 pt-1 text-xs text-white/55 leading-relaxed">
+                    Go to <strong class="text-white/75">Team Profile → Team Information</strong>. Name changes have a 30-day cooldown. If your team is in an active tournament, name and tag changes are blocked. <a href="/support/contact/" class="text-teal-400 hover:underline">Contact support</a> for urgent changes.
                 </div>
             </details>
-            <details class="group">
-                <summary class="cursor-pointer flex items-center gap-2 text-sm font-medium text-white/80 hover:text-white transition py-2 px-3 rounded-xl hover:bg-white/5">
-                    <i data-lucide="chevron-right" class="w-4 h-4 text-white/40 group-open:rotate-90 transition-transform"></i>
-                    How do I register for a tournament?
+            <details class="faq-item group">
+                <summary class="flex items-center justify-between gap-3 px-4 py-3.5 cursor-pointer hover:bg-white/3 transition">
+                    <span class="text-sm font-medium text-white/80 group-open:text-white transition">How do I register for a tournament?</span>
+                    <i data-lucide="chevron-down" class="faq-chevron w-4 h-4 text-white/30 shrink-0"></i>
                 </summary>
-                <div class="ml-6 text-xs text-white/60 leading-relaxed pb-2 px-3">
-                    Go to <strong class="text-white/70">Competition Hub</strong> and browse available tournaments.
-                    Click <strong class="text-white/70">Register</strong>, select your lineup, and confirm. If there's an entry fee, it will be charged from your Treasury wallet.
+                <div class="px-4 pb-4 pt-1 text-xs text-white/55 leading-relaxed">
+                    Go to <strong class="text-white/75">Competitive</strong> and browse available tournaments. Click Register, select your lineup, and confirm. Entry fees are deducted from your Treasury wallet.
                 </div>
             </details>
-            <details class="group">
-                <summary class="cursor-pointer flex items-center gap-2 text-sm font-medium text-white/80 hover:text-white transition py-2 px-3 rounded-xl hover:bg-white/5">
-                    <i data-lucide="chevron-right" class="w-4 h-4 text-white/40 group-open:rotate-90 transition-transform"></i>
-                    What is a Game Passport?
+            <details class="faq-item group">
+                <summary class="flex items-center justify-between gap-3 px-4 py-3.5 cursor-pointer hover:bg-white/3 transition">
+                    <span class="text-sm font-medium text-white/80 group-open:text-white transition">What is a Game Passport?</span>
+                    <i data-lucide="chevron-down" class="faq-chevron w-4 h-4 text-white/30 shrink-0"></i>
                 </summary>
-                <div class="ml-6 text-xs text-white/60 leading-relaxed pb-2 px-3">
-                    A Game Passport is your player profile for a specific game. It includes your in-game name (IGN), rank, platform, and primary role.
-                    Each team member should have a Game Passport for the team's game. Managers can check player passport status from the roster cards.
+                <div class="px-4 pb-4 pt-1 text-xs text-white/55 leading-relaxed">
+                    A Game Passport links your in-game account (IGN, rank, platform, region) to your DeltaCrown profile for a specific game. Every player competing in tournaments needs one. Managers can check passport status from roster cards.
                 </div>
             </details>
-            <details class="group">
-                <summary class="cursor-pointer flex items-center gap-2 text-sm font-medium text-white/80 hover:text-white transition py-2 px-3 rounded-xl hover:bg-white/5">
-                    <i data-lucide="chevron-right" class="w-4 h-4 text-white/40 group-open:rotate-90 transition-transform"></i>
-                    How do I transfer or disband the team?
+            <details class="faq-item group">
+                <summary class="flex items-center justify-between gap-3 px-4 py-3.5 cursor-pointer hover:bg-white/3 transition">
+                    <span class="text-sm font-medium text-white/80 group-open:text-white transition">How do I transfer or disband the team?</span>
+                    <i data-lucide="chevron-down" class="faq-chevron w-4 h-4 text-white/30 shrink-0"></i>
                 </summary>
-                <div class="ml-6 text-xs text-white/60 leading-relaxed pb-2 px-3">
-                    Only the <strong class="text-white/70">Owner</strong> can transfer or disband a team. Go to <strong class="text-white/70">Settings → Danger Zone</strong>.
-                    Transferring ownership will make you a Manager. Disbanding is irreversible and will remove all members.
-                    Teams in active tournaments cannot be disbanded.
+                <div class="px-4 pb-4 pt-1 text-xs text-white/55 leading-relaxed">
+                    Only the <strong class="text-white/75">Owner</strong> can transfer or disband. Go to <strong class="text-white/75">Settings → Danger Zone</strong>. Disbanding is irreversible — all members are removed. Teams in active tournaments cannot be disbanded.
                 </div>
             </details>
         </div>
     </div>
 
-    {# ── Support & Links ── #}
-    <div class="rounded-3xl border border-line bg-card shadow-soft p-5">
-        <div class="flex flex-wrap gap-3">
-            <a href="/support/contact/" class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 hover:bg-white/8 transition text-sm">
-                <i data-lucide="headphones" class="w-4 h-4 text-blue-400"></i>
-                <span class="text-white/70">Contact Support</span>
-            </a>
-            <a href="/legal/terms/" class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 hover:bg-white/8 transition text-sm">
-                <i data-lucide="file-text" class="w-4 h-4 text-white/40"></i>
-                <span class="text-white/70">Terms of Service</span>
-            </a>
-            <a href="/legal/conduct/" class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 hover:bg-white/8 transition text-sm">
-                <i data-lucide="heart-handshake" class="w-4 h-4 text-pink-400"></i>
-                <span class="text-white/70">Code of Conduct</span>
-            </a>
-            <a href="/legal/privacy/" class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 hover:bg-white/8 transition text-sm">
-                <i data-lucide="eye-off" class="w-4 h-4 text-white/40"></i>
-                <span class="text-white/70">Privacy Policy</span>
-            </a>
-        </div>
+    {# ── Platform links ── #}
+    <div class="guide-card flex flex-wrap gap-2">
+        <a href="/support/contact/" class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-card2 border border-line hover:bg-white/10 transition text-sm text-white/60 hover:text-white">
+            <i data-lucide="headphones" class="w-4 h-4 text-blue-400"></i>
+            Contact Support
+        </a>
+        <a href="/legal/terms/" class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-card2 border border-line hover:bg-white/10 transition text-sm text-white/60 hover:text-white">
+            <i data-lucide="file-text" class="w-4 h-4 text-white/40"></i>
+            Terms of Service
+        </a>
+        <a href="/legal/conduct/" class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-card2 border border-line hover:bg-white/10 transition text-sm text-white/60 hover:text-white">
+            <i data-lucide="heart-handshake" class="w-4 h-4 text-pink-400"></i>
+            Code of Conduct
+        </a>
+        <a href="/legal/privacy/" class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-card2 border border-line hover:bg-white/10 transition text-sm text-white/60 hover:text-white">
+            <i data-lucide="eye-off" class="w-4 h-4 text-white/40"></i>
+            Privacy Policy
+        </a>
     </div>
 
 </section>

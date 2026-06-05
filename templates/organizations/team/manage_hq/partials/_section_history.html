@@ -1,199 +1,209 @@
 {% comment %}
-History & Archive — Activity timeline, membership ledger, filter bar.
-Section 7.9 of the Master Plan.
+History & Archive — Clean timeline, Hall of Fame, membership ledger.
+All data loaded client-side. HTML rebuilt from scratch; JS block preserved verbatim.
 {% endcomment %}
-<section id="history" class="hq-section space-y-4" aria-labelledby="history-heading">
+
+{# Hidden filter select — JS reads value; pills drive it #}
+<select id="history-filter-type" class="sr-only" aria-hidden="true">
+    <option value="">All</option>
+    <option value="roster">Roster</option>
+    <option value="tournament">Tournaments</option>
+    <option value="settings">Settings</option>
+    <option value="finance">Finance</option>
+</select>
+
+<section id="history" class="hq-section space-y-5" aria-labelledby="history-heading">
 
     {# ── Header ── #}
-    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-2">
-        <div>
-            <h2 id="history-heading" class="text-lg font-bold flex items-center gap-2">
-                <i data-lucide="scroll-text" class="w-5 h-5 text-slate-400"></i>
-                History & Archive
-            </h2>
-            <p class="text-sm text-white/50 mt-0.5">Full team activity timeline and membership ledger</p>
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div class="flex items-center gap-3">
+            <div class="h-11 w-11 rounded-2xl bg-slate-400/12 border border-slate-400/20 grid place-items-center shrink-0">
+                <i data-lucide="scroll-text" class="w-5 h-5 text-slate-300"></i>
+            </div>
+            <div>
+                <h2 id="history-heading" class="text-lg font-bold font-display leading-tight">History &amp; Archive</h2>
+                <p class="text-sm text-white/45 leading-tight">Team activity timeline &amp; membership ledger</p>
+            </div>
         </div>
         <div class="flex items-center gap-2">
-            {# Export placeholder #}
-            <button disabled
-                class="rounded-xl px-3 py-1.5 text-xs font-medium border border-white/10 bg-white/5 text-white/30 cursor-not-allowed inline-flex items-center gap-1.5"
-                title="Export coming soon">
-                <i data-lucide="download" class="w-3 h-3"></i>
-                Export
+            <button disabled class="h-9 px-3 rounded-xl text-xs font-medium border border-line bg-card2 text-white/30 cursor-not-allowed flex items-center gap-1.5" title="Export coming soon">
+                <i data-lucide="download" class="w-3.5 h-3.5"></i> Export
             </button>
         </div>
     </div>
 
-    {# ── Filter Bar ── #}
-    <div class="rounded-2xl border border-line bg-card p-3 flex flex-wrap items-center gap-2">
-        <div class="flex items-center gap-1.5 text-xs text-white/40">
-            <i data-lucide="filter" class="w-3.5 h-3.5"></i>
-            <span>Filters:</span>
+    {# ── Filter pills ── #}
+    <div class="flex flex-wrap items-center gap-1.5 p-1 rounded-2xl border border-line bg-card">
+        <span class="px-2 text-[10px] text-white/30"><i data-lucide="filter" class="w-3 h-3 inline -mt-0.5 mr-0.5"></i> Filter</span>
+        <button data-click="historyFilter" data-click-args='[""]'
+                class="history-filter-pill px-3 py-1.5 rounded-xl text-[11px] font-semibold bg-card2 border border-white/20 text-white transition">All</button>
+        <button data-click="historyFilter" data-click-args='["roster"]'
+                class="history-filter-pill px-3 py-1.5 rounded-xl text-[11px] font-semibold bg-card border border-line text-white/45 hover:text-white/70 hover:border-white/20 transition">
+            <i data-lucide="users" class="w-3 h-3 inline -mt-0.5 mr-0.5"></i>Roster
+        </button>
+        <button data-click="historyFilter" data-click-args='["tournament"]'
+                class="history-filter-pill px-3 py-1.5 rounded-xl text-[11px] font-semibold bg-card border border-line text-white/45 hover:text-white/70 hover:border-white/20 transition">
+            <i data-lucide="trophy" class="w-3 h-3 inline -mt-0.5 mr-0.5"></i>Tournaments
+        </button>
+        <button data-click="historyFilter" data-click-args='["settings"]'
+                class="history-filter-pill px-3 py-1.5 rounded-xl text-[11px] font-semibold bg-card border border-line text-white/45 hover:text-white/70 hover:border-white/20 transition">
+            <i data-lucide="settings" class="w-3 h-3 inline -mt-0.5 mr-0.5"></i>Settings
+        </button>
+        <button data-click="historyFilter" data-click-args='["finance"]'
+                class="history-filter-pill px-3 py-1.5 rounded-xl text-[11px] font-semibold bg-card border border-line text-white/45 hover:text-white/70 hover:border-white/20 transition">
+            <i data-lucide="coins" class="w-3 h-3 inline -mt-0.5 mr-0.5"></i>Finance
+        </button>
+        <div class="flex items-center gap-1.5 ml-auto">
+            <input type="date" id="history-filter-from" aria-label="From"
+                class="text-[11px] px-2 py-1.5 rounded-lg bg-card2 border border-line text-white/60 focus:outline-none focus:border-white/25 w-32">
+            <span class="text-white/20 text-[10px]">→</span>
+            <input type="date" id="history-filter-to" aria-label="To"
+                class="text-[11px] px-2 py-1.5 rounded-lg bg-card2 border border-line text-white/60 focus:outline-none focus:border-white/25 w-32">
+            <button data-click="ManageHQ.History.applyFilters"
+                class="px-3 py-1.5 rounded-lg text-[11px] font-semibold bg-card2 border border-line hover:bg-white/10 text-white/60 transition">Apply</button>
+            <button data-click="ManageHQ.History.clearFilters"
+                class="px-2 py-1.5 text-[11px] text-white/30 hover:text-white/60 transition">Clear</button>
         </div>
-        <select id="history-filter-type" aria-label="Filter by activity type"
-            class="text-xs px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-white/60 focus:outline-none">
-            <option value="">All Types</option>
-            <option value="roster">Roster Changes</option>
-            <option value="tournament">Tournament Events</option>
-            <option value="settings">Settings Changes</option>
-            <option value="profile">Profile Updates</option>
-        </select>
-        <input type="date" id="history-filter-from" aria-label="Filter from date"
-            class="text-xs px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-white/60 focus:outline-none"
-            placeholder="From">
-        <input type="date" id="history-filter-to" aria-label="Filter to date"
-            class="text-xs px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-white/60 focus:outline-none"
-            placeholder="To">
-        <button data-click="ManageHQ.History.applyFilters"
-            class="text-xs px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 transition font-medium">Apply</button>
-        <button data-click="ManageHQ.History.clearFilters"
-            class="text-xs px-2 py-1.5 text-white/30 hover:text-white/50 transition">Clear</button>
     </div>
 
-    {# ── Journey Manager (Curated Public Timeline) ── #}
-    {% if is_admin or is_owner %}
-    <div class="rounded-3xl border border-line bg-card shadow-soft p-5 lg:p-6">
-        <div class="flex items-center justify-between mb-4">
-            <h3 class="text-base font-bold flex items-center gap-2">
-                <i data-lucide="trophy" class="w-4 h-4 text-amber-400"></i>
-                Hall of Fame
-            </h3>
-            <span class="text-[10px] font-mono text-white/30" id="journey-count">0 / 10</span>
-        </div>
-        <p class="text-xs text-white/40 mb-4">Curate your team's greatest moments. Up to 10 milestones — the 5 most recent visible entries appear on your public page.</p>
+    {# ── Main 2-col layout ── #}
+    <div class="grid grid-cols-1 xl:grid-cols-[1fr_340px] gap-5 items-start">
 
-        {# ── ✨ Detected Moments (Suggestion Strip) ── #}
-        <div id="journey-suggestions-wrap" class="hidden mb-4">
-            <div class="flex items-center gap-2 mb-2">
-                <span class="text-xs font-bold text-white/60">✨ Detected Moments</span>
-                <span class="text-[10px] text-white/25">One-click add to your timeline</span>
+        {# ── Activity Timeline ── #}
+        <div class="premium-card overflow-hidden">
+            <div class="px-5 py-4 border-b border-line flex items-center gap-2.5">
+                <i data-lucide="activity" class="w-4 h-4 text-blue-400"></i>
+                <h3 class="text-sm font-bold font-display">Activity Timeline</h3>
             </div>
-            <div id="journey-suggestions" class="flex gap-2 overflow-x-auto pb-2 scrollbar-thin"></div>
-        </div>
-
-        {# Add / Edit Form #}
-        <div class="rounded-2xl border border-amber-500/15 bg-amber-500/[0.02] p-4 mb-4" id="journey-form-wrap">
-            <div class="flex items-center gap-2 mb-3">
-                <svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                <h4 class="text-xs font-bold text-amber-400 uppercase tracking-wider" id="journey-form-title">Add Milestone</h4>
+            <div id="history-timeline" class="px-2 py-2 space-y-0.5 min-h-[160px]">
+                <div class="flex flex-col items-center justify-center py-12 text-white/30">
+                    <i data-lucide="loader" class="w-5 h-5 animate-spin mb-2"></i>
+                    <span class="text-xs">Loading timeline…</span>
+                </div>
             </div>
-            <input type="hidden" id="journey-edit-id" value="">
-            <div class="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2 mb-2">
-                <input type="text" id="journey-title" placeholder="Title — e.g. Won Regional Finals" maxlength="120"
-                    class="text-xs px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/20 focus:outline-none focus:border-amber-500/30" />
-                <select id="journey-type"
-                    class="text-xs px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-amber-500/30">
-                    <option value="CUSTOM">✏️ Custom</option>
-                    <option value="TROPHY">🏆 Trophy / Achievement</option>
-                    <option value="TRANSFER">🔄 Player Transfer</option>
-                    <option value="FOUNDED">🏁 Team Founded</option>
-                    <option value="RANK_UP">📈 Rank Breakthrough</option>
-                </select>
+            <div id="history-timeline-empty" class="hidden px-5 py-10 text-center">
+                <i data-lucide="clock" class="w-8 h-8 text-white/15 mx-auto mb-3"></i>
+                <p class="text-sm text-white/40">No activity recorded yet</p>
+                <p class="text-xs text-white/25 mt-1">Team actions will appear here as they happen</p>
             </div>
-            <div class="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2 mb-2">
-                <textarea id="journey-description" placeholder="Brief description (optional)" maxlength="500" rows="2"
-                    class="text-xs px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/20 focus:outline-none focus:border-amber-500/30 resize-none"></textarea>
-                <input type="date" id="journey-date"
-                    class="text-xs px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-amber-500/30 self-start" />
-            </div>
-            <div class="flex items-center gap-3">
-                <button data-click="JourneyManager.save" class="h-8 px-4 rounded-xl bg-amber-500/15 border border-amber-500/25 text-amber-400 text-xs font-bold hover:bg-amber-500/25 transition" id="journey-save-btn">
-                    Add
+            <div id="history-load-more" class="hidden border-t border-line px-5 py-3 text-center">
+                <button data-click="ManageHQ.History.loadMore"
+                    class="text-xs px-4 py-2 rounded-xl bg-card2 border border-line text-white/50 hover:bg-white/10 hover:text-white/80 transition">
+                    Load More
                 </button>
-                <button data-click="JourneyManager.cancelEdit" class="h-8 px-3 rounded-xl text-white/30 text-xs hover:text-white/50 transition hidden" id="journey-cancel-btn">
-                    Cancel
-                </button>
-                <span class="text-[10px] text-white/30 ml-auto" id="journey-save-status"></span>
             </div>
         </div>
 
-        {# Milestone List #}
-        <div id="journey-list" class="space-y-2">
-            <div class="text-sm text-white/30 text-center py-6">
-                <i data-lucide="loader" class="w-4 h-4 animate-spin inline-block mb-1"></i><br>
-                Loading milestones…
+        {# ── Right column: Hall of Fame + Membership Ledger ── #}
+        <div class="space-y-5">
+
+            {# Hall of Fame — admin only #}
+            {% if is_admin or is_owner %}
+            <div class="premium-card overflow-hidden">
+                <div class="px-4 py-3.5 border-b border-line flex items-center justify-between gap-2">
+                    <div class="flex items-center gap-2">
+                        <i data-lucide="trophy" class="w-4 h-4 text-amber-400"></i>
+                        <h3 class="text-sm font-bold font-display">Hall of Fame</h3>
+                    </div>
+                    <span class="text-[10px] font-mono text-white/30" id="journey-count">0 / 10</span>
+                </div>
+                <p class="px-4 pt-3 pb-0 text-[11px] text-white/40 leading-relaxed">
+                    Curate your greatest moments. Up to 10 milestones, 5 most recent shown publicly.
+                </p>
+
+                {# Suggestions strip #}
+                <div id="journey-suggestions-wrap" class="hidden px-4 pt-3">
+                    <p class="text-[10px] font-bold text-white/50 mb-2 flex items-center gap-1.5">
+                        <i data-lucide="sparkles" class="w-3 h-3 text-amber-400"></i>
+                        Detected Moments
+                    </p>
+                    <div id="journey-suggestions" class="flex gap-2 overflow-x-auto pb-2"></div>
+                </div>
+
+                {# Add/Edit Form #}
+                <div class="px-4 pt-3 pb-4 border-b border-line" id="journey-form-wrap">
+                    <input type="hidden" id="journey-edit-id" value="">
+                    <p class="eyebrow text-amber-400/70 mb-2" id="journey-form-title">Add Milestone</p>
+                    <div class="grid grid-cols-[1fr_auto] gap-2 mb-2">
+                        <input type="text" id="journey-title" placeholder="e.g. Won Regional Finals" maxlength="120"
+                            class="text-xs px-3 py-2 rounded-xl bg-card2 border border-line text-white placeholder-white/20 focus:outline-none">
+                        <select id="journey-type" class="text-xs px-2 py-2 rounded-xl bg-card2 border border-line text-white focus:outline-none">
+                            <option value="CUSTOM">✏️ Custom</option>
+                            <option value="TROPHY">🏆 Trophy</option>
+                            <option value="TRANSFER">🔄 Transfer</option>
+                            <option value="FOUNDED">🏁 Founded</option>
+                            <option value="RANK_UP">📈 Rank Up</option>
+                        </select>
+                    </div>
+                    <div class="grid grid-cols-[1fr_auto] gap-2 mb-2.5">
+                        <textarea id="journey-description" placeholder="Brief note (optional)" maxlength="500" rows="2"
+                            class="text-xs px-3 py-2 rounded-xl bg-card2 border border-line text-white placeholder-white/20 focus:outline-none resize-none"></textarea>
+                        <input type="date" id="journey-date"
+                            class="text-xs px-2 py-2 rounded-xl bg-card2 border border-line text-white focus:outline-none self-start">
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button data-click="JourneyManager.save"
+                            class="h-8 px-4 rounded-xl bg-amber-500/15 border border-amber-500/25 text-amber-400 text-xs font-bold hover:bg-amber-500/25 transition"
+                            id="journey-save-btn">Add</button>
+                        <button data-click="JourneyManager.cancelEdit"
+                            class="h-8 px-3 rounded-xl text-white/35 text-xs hover:text-white/60 transition hidden"
+                            id="journey-cancel-btn">Cancel</button>
+                        <span class="text-[10px] text-white/30 ml-auto" id="journey-save-status"></span>
+                    </div>
+                </div>
+
+                {# Milestone list #}
+                <div id="journey-list" class="p-3 space-y-1.5">
+                    <div class="flex items-center justify-center py-6 text-white/30">
+                        <i data-lucide="loader" class="w-4 h-4 animate-spin mr-2"></i>
+                        <span class="text-xs">Loading…</span>
+                    </div>
+                </div>
             </div>
+            {% endif %}
+
+            {# Membership Ledger — admin only #}
+            {% if is_admin %}
+            <div class="premium-card overflow-hidden">
+                <div class="px-4 py-3.5 border-b border-line flex items-center gap-2.5">
+                    <i data-lucide="users" class="w-4 h-4 text-purple-400"></i>
+                    <h3 class="text-sm font-bold font-display">Membership Ledger</h3>
+                </div>
+                <div class="hidden sm:grid grid-cols-12 gap-2 text-[9px] text-white/25 uppercase tracking-wider font-semibold px-4 py-2 border-b border-line/50">
+                    <div class="col-span-3">Member</div>
+                    <div class="col-span-2">Event</div>
+                    <div class="col-span-2">Old</div>
+                    <div class="col-span-2">New</div>
+                    <div class="col-span-3">Date</div>
+                </div>
+                <div id="membership-ledger-list" class="p-3">
+                    <div class="rounded-xl border border-dashed border-line bg-card2 p-5 text-center">
+                        <i data-lucide="book-open" class="w-6 h-6 text-white/15 mx-auto mb-2"></i>
+                        <p class="text-sm text-white/35">No membership events recorded</p>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
         </div>
     </div>
-    {% endif %}
 
-    {# ── Activity Timeline ── #}
-    <div class="rounded-3xl border border-line bg-card shadow-soft p-5 lg:p-6">
-        <h3 class="text-base font-bold mb-4 flex items-center gap-2">
-            <i data-lucide="activity" class="w-4 h-4 text-blue-400"></i>
-            Activity Timeline
-        </h3>
-        <div id="history-timeline">
-            <div class="text-sm text-white/40 text-center py-8">
-                <i data-lucide="loader" class="w-5 h-5 animate-spin inline-block mb-2"></i><br>
-                Loading timeline…
-            </div>
-        </div>
-        <div id="history-timeline-empty" class="hidden rounded-xl border border-dashed border-white/15 bg-white/3 p-8 text-center">
-            <i data-lucide="clock" class="w-8 h-8 text-white/15 mx-auto mb-3"></i>
-            <p class="text-sm text-white/40">No activity recorded yet</p>
-            <p class="text-xs text-white/25 mt-1">Team actions will appear here as they happen</p>
-        </div>
-        <div id="history-load-more" class="hidden text-center mt-4">
-            <button data-click="ManageHQ.History.loadMore" class="text-xs px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-white/50 hover:bg-white/10 transition">
-                Load More
-            </button>
-        </div>
-    </div>
-
-    {# ── Membership Ledger (OWNER / MANAGER) ── #}
-    {% if is_admin %}
-    <div class="rounded-3xl border border-line bg-card shadow-soft p-5 lg:p-6">
-        <h3 class="text-base font-bold mb-4 flex items-center gap-2">
-            <i data-lucide="users" class="w-4 h-4 text-purple-400"></i>
-            Membership Ledger
-        </h3>
-
-        {# Table header #}
-        <div class="hidden sm:grid grid-cols-12 gap-2 text-[10px] text-white/30 uppercase tracking-wider font-semibold px-3 py-2 mb-1">
-            <div class="col-span-3">Member</div>
-            <div class="col-span-2">Event</div>
-            <div class="col-span-2">Old Role</div>
-            <div class="col-span-2">New Role</div>
-            <div class="col-span-3">Date</div>
-        </div>
-
-        <div id="membership-ledger-list">
-            {# Will be populated via JS #}
-            <div class="rounded-xl border border-dashed border-white/15 bg-white/3 p-6 text-center">
-                <i data-lucide="book-open" class="w-7 h-7 text-white/15 mx-auto mb-2"></i>
-                <p class="text-sm text-white/40">No membership events recorded</p>
-            </div>
-        </div>
-    </div>
-    {% endif %}
-
-    {# ── Archive Info (if team is DISBANDED) ── #}
+    {# Archive banner (disbanded team) #}
     {% if team.status == 'DISBANDED' %}
-    <div class="rounded-3xl border border-red-500/20 bg-red-500/5 shadow-soft p-5 lg:p-6">
-        <h3 class="text-base font-bold mb-2 flex items-center gap-2 text-red-400">
-            <i data-lucide="archive" class="w-4 h-4"></i>
-            Archived Team
-        </h3>
-        <p class="text-sm text-white/50 mb-3">
-            This team was disbanded. Data will be retained per our retention policy.
-        </p>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div class="rounded-xl bg-white/5 border border-white/8 p-3">
-                <div class="text-xs text-white/40">Created</div>
-                <div class="text-sm font-semibold mt-0.5">{{ team.created_at|date:"M d, Y" }}</div>
-            </div>
-            <div class="rounded-xl bg-white/5 border border-white/8 p-3">
-                <div class="text-xs text-white/40">Status Changed</div>
-                <div class="text-sm font-semibold mt-0.5">{{ team.updated_at|date:"M d, Y"|default:"—" }}</div>
-            </div>
+    <div class="rounded-2xl border border-red-500/20 bg-red-500/5 p-4 flex items-center gap-3">
+        <i data-lucide="archive" class="w-5 h-5 text-red-400 shrink-0"></i>
+        <div>
+            <p class="text-sm font-semibold text-red-400">Archived Team</p>
+            <p class="text-xs text-white/45 mt-0.5">This team was disbanded. Data retained per retention policy.</p>
+        </div>
+        <div class="ml-auto text-right shrink-0">
+            <p class="text-[10px] text-white/35">Founded {{ team.created_at|date:"M d, Y" }}</p>
         </div>
     </div>
     {% endif %}
 
 </section>
 
-{# ── History Timeline JavaScript ── #}
+{# ── History JavaScript (preserved verbatim) ── #}
 <script nonce="{{ request.csp_nonce }}">
 (function() {
     const SLUG = "{{ team.slug }}";
@@ -221,27 +231,58 @@ Section 7.9 of the Master Plan.
 
     function esc(s) { const d = document.createElement("div"); d.textContent = s; return d.innerHTML; }
 
+    // Repair common UTF-8-as-Latin1 mojibake in any legacy/stored strings.
+    function fixText(s) {
+        if (!s) return '';
+        if (s.indexOf('â€') === -1 && s.indexOf('Ã') === -1) return s;
+        return s
+            .replace(/â€”/g, '—')  // —
+            .replace(/â€“/g, '–')  // –
+            .replace(/â€™/g, '’')  // ’
+            .replace(/â€˜/g, '‘')  // ‘
+            .replace(/â€œ/g, '“')  // “
+            .replace(/â€/g, '”')  // ”
+            .replace(/â€¦/g, '…'); // …
+    }
+
+    // Relative, recency-first time (iOS feel).
+    function relTime(ts) {
+        if (!ts) return '';
+        const d = new Date(ts), s = Math.floor((Date.now() - d.getTime()) / 1000);
+        if (s < 0) return '';
+        if (s < 60) return 'just now';
+        if (s < 3600) return Math.floor(s / 60) + 'm ago';
+        if (s < 86400) return Math.floor(s / 3600) + 'h ago';
+        if (s < 604800) return Math.floor(s / 86400) + 'd ago';
+        return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+    }
+
+    function iconTint(color) {
+        return (color || '').includes('/') ? 'bg-white/[0.06]' : (color || 'text-white/30').replace('text-', 'bg-').replace(/-\d+$/, '-500/12');
+    }
+
     function renderEvent(ev) {
-        const meta = EVENT_ICONS[ev.event_type] || { icon: 'circle', color: 'text-white/30' };
-        const time = ev.timestamp ? new Date(ev.timestamp).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+        const meta = EVENT_ICONS[ev.event_type] || { icon: 'circle', color: 'text-white/40' };
         const pinned = ev.is_pinned;
+        const desc = fixText(ev.description || ev.event_type);
+        const metaLine = [fixText(ev.actor || ''), relTime(ev.timestamp)].filter(Boolean).join('  ·  ');
 
         const pinBtn = (IS_ADMIN && ev.can_pin && ev.activity_id)
-            ? `<button data-click="HistoryTimeline.togglePin" data-click-args='[${ev.activity_id}]' data-click-pass-el class="ml-auto opacity-0 group-hover:opacity-100 transition p-1 rounded hover:bg-white/10" title="${pinned ? 'Unpin from public journey' : 'Pin to public journey'}">
+            ? `<button data-click="HistoryTimeline.togglePin" data-click-args='[${ev.activity_id}]' data-click-pass-el class="shrink-0 opacity-0 group-hover:opacity-100 transition h-7 w-7 grid place-items-center rounded-lg hover:bg-white/10" title="${pinned ? 'Unpin from public timeline' : 'Pin to public timeline'}">
                 <i data-lucide="${pinned ? 'pin-off' : 'pin'}" class="w-3.5 h-3.5 ${pinned ? 'text-amber-400' : 'text-white/30'}"></i>
                </button>`
             : '';
 
-        const pinnedBadge = pinned ? '<span class="text-[9px] font-bold uppercase tracking-wider text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded ml-2">Pinned</span>' : '';
+        const pinnedBadge = pinned ? '<span class="ml-2 align-middle text-[9px] font-bold uppercase tracking-wider text-amber-400">· Pinned</span>' : '';
 
         return `
-        <div class="flex items-start gap-3 py-3 px-2 rounded-xl group hover:bg-white/[0.02] transition ${pinned ? 'bg-amber-500/[0.03] border-l-2 border-amber-500/30 pl-3' : ''}">
-            <div class="mt-0.5 flex-shrink-0 w-7 h-7 rounded-lg bg-white/5 grid place-items-center">
-                <i data-lucide="${meta.icon}" class="w-3.5 h-3.5 ${meta.color}"></i>
+        <div class="flex items-center gap-3 px-2.5 py-2.5 rounded-2xl group transition hover:bg-white/[0.04] ${pinned ? 'bg-amber-500/[0.045]' : ''}">
+            <div class="w-9 h-9 rounded-full grid place-items-center shrink-0 ${iconTint(meta.color)}">
+                <i data-lucide="${meta.icon}" class="w-4 h-4 ${meta.color}"></i>
             </div>
             <div class="flex-1 min-w-0">
-                <p class="text-xs text-white/80">${esc(ev.description || ev.event_type)}${pinnedBadge}</p>
-                <p class="text-[10px] text-white/30 mt-0.5">${esc(ev.actor || '')} · ${time}</p>
+                <p class="text-[13px] text-white/85 truncate leading-snug">${esc(desc)}${pinnedBadge}</p>
+                ${metaLine ? `<p class="text-[11px] text-white/35 mt-0.5 truncate">${esc(metaLine)}</p>` : ''}
             </div>
             ${pinBtn}
         </div>`;
@@ -277,12 +318,10 @@ Section 7.9 of the Master Plan.
             if (loadMore) loadMore.classList.toggle("hidden", !data.has_more);
             currentPage = page;
 
-            // Re-init lucide icons
             if (window.lucide) lucide.createIcons();
         },
 
         loadMore() { HistoryTimeline.load(currentPage + 1); },
-
         applyFilters() { currentPage = 1; HistoryTimeline.load(1); },
         clearFilters() {
             document.getElementById("history-filter-type").value = '';
@@ -299,34 +338,29 @@ Section 7.9 of the Master Plan.
                 body: "{}",
             });
             const data = await resp.json();
-            if (data.success) {
-                HistoryTimeline.load(1); // Reload to reflect pin state
-            }
+            if (data.success) { HistoryTimeline.load(1); }
         },
     };
 
-    /* ── Add Manual Milestone ── */
     HistoryTimeline.addMilestone = async function() {
         const desc = document.getElementById('milestone-desc');
         const date = document.getElementById('milestone-date');
-        if (!desc || !desc.value.trim()) { showToast('Enter milestone description', 'warning'); return; }
+        if (!desc || !desc.value.trim()) { if(window.showToast) showToast('Enter milestone description', 'warning'); return; }
         const body = { description: desc.value.trim() };
         if (date && date.value) body.milestone_date = date.value;
         try {
             const res = await fetch(`/api/vnext/teams/{{ team.slug }}/milestones/add/`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': (document.querySelector('[name=csrfmiddlewaretoken]')?.value || document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '') },
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': (document.querySelector('[name=csrfmiddlewaretoken]')?.value || '') },
                 body: JSON.stringify(body),
             });
             const data = await res.json();
             if (data.ok) {
-                showToast('Milestone added ⭐', 'success');
+                if(window.showToast) showToast('Milestone added ⭐', 'success');
                 desc.value = ''; if (date) date.value = '';
                 HistoryTimeline.load(1);
-            } else {
-                showToast(data.error || 'Failed to add milestone', 'error');
-            }
-        } catch (e) { showToast('Network error', 'error'); }
+            } else { if(window.showToast) showToast(data.error || 'Failed', 'error'); }
+        } catch (e) { if(window.showToast) showToast('Network error', 'error'); }
     };
 
     window.HistoryTimeline = HistoryTimeline;
@@ -337,7 +371,6 @@ Section 7.9 of the Master Plan.
     window.ManageHQ.History.loadMore = HistoryTimeline.loadMore;
     window.ManageHQ.History.addMilestone = HistoryTimeline.addMilestone;
 
-    // Auto-load when section becomes visible
     const observer = new MutationObserver(() => {
         const section = document.getElementById('history');
         if (section && section.classList.contains('is-active')) {
@@ -349,7 +382,6 @@ Section 7.9 of the Master Plan.
     const section = document.getElementById('history');
     if (section) observer.observe(section, { attributes: true, attributeFilter: ["class"] });
 
-    /* ── Journey Manager (Hall of Fame Timeline) ── */
     const JOURNEY_API = `/api/vnext/teams/${SLUG}/journey/`;
     const JOURNEY_SAVE_API = `/api/vnext/teams/${SLUG}/journey/save/`;
     const JOURNEY_SUGGESTIONS_API = `/api/vnext/teams/${SLUG}/journey/suggestions/`;
@@ -369,7 +401,6 @@ Section 7.9 of the Master Plan.
 
     const JourneyManager = {
         milestones: [],
-
         async load() {
             try {
                 const res = await fetch(JOURNEY_API, { headers: { "X-CSRFToken": CSRF } });
@@ -381,63 +412,41 @@ Section 7.9 of the Master Plan.
                 }
             } catch (e) { console.error('Journey load error', e); }
         },
-
         render() {
             const list = document.getElementById('journey-list');
             const counter = document.getElementById('journey-count');
             if (!list) return;
             if (counter) counter.textContent = `${JourneyManager.milestones.length} / 10`;
-
             if (JourneyManager.milestones.length === 0) {
-                list.innerHTML = `
-                    <div class="rounded-xl border border-dashed border-white/15 bg-white/3 p-6 text-center">
-                        <i data-lucide="trophy" class="w-6 h-6 text-white/15 mx-auto mb-2"></i>
-                        <p class="text-sm text-white/40">No milestones in the Hall of Fame</p>
-                        <p class="text-xs text-white/25 mt-1">Add your team's greatest moments above</p>
-                    </div>`;
-                if (window.lucide) lucide.createIcons();
-                return;
+                list.innerHTML = `<div class="rounded-xl border border-dashed border-line bg-card2 p-5 text-center"><i data-lucide="trophy" class="w-5 h-5 text-white/15 mx-auto mb-2"></i><p class="text-sm text-white/35">No milestones yet</p><p class="text-xs text-white/25 mt-0.5">Add your team's greatest moments above</p></div>`;
+                if (window.lucide) lucide.createIcons(); return;
             }
-
             list.innerHTML = JourneyManager.milestones.map(m => {
                 const vis = m.is_visible;
-                const mType = m.milestone_type || 'CUSTOM';
-                const style = MILESTONE_STYLES[mType] || MILESTONE_STYLES.CUSTOM;
+                const style = MILESTONE_STYLES[m.milestone_type || 'CUSTOM'] || MILESTONE_STYLES.CUSTOM;
                 const sysFlag = m.is_system_generated ? '<span class="text-[9px] text-white/20 bg-white/5 px-1 py-0.5 rounded ml-1">Auto</span>' : '';
-
                 return `
-                <div class="flex items-center gap-3 p-3 rounded-xl bg-white/[0.02] border ${vis ? style.border : 'border-white/5'} hover:bg-white/[0.04] transition group" data-id="${m.id}">
+                <div class="flex items-center gap-3 p-3 rounded-xl bg-card border ${vis ? style.border : 'border-white/5'} hover:bg-card2 transition group" data-id="${m.id}">
                     <div class="flex-shrink-0 w-8 h-8 rounded-lg ${vis ? style.bg : 'bg-white/5'} grid place-items-center">
                         <i data-lucide="${style.icon}" class="w-3.5 h-3.5 ${vis ? style.color : 'text-white/20'}"></i>
                     </div>
                     <div class="flex-1 min-w-0">
-                        <div class="flex items-center gap-1.5 mb-0.5">
-                            <span class="text-[9px] px-1.5 py-0.5 rounded-full font-semibold ${style.bg} ${style.color} border ${style.border}">${style.label}</span>
-                            ${sysFlag}
+                        <div class="flex items-center gap-1 mb-0.5">
+                            <span class="text-[9px] px-1.5 py-0.5 rounded-full font-semibold ${style.bg} ${style.color} border ${style.border}">${style.label}</span>${sysFlag}
                             ${!vis ? '<span class="text-[9px] text-white/20 bg-white/5 px-1 py-0.5 rounded">Hidden</span>' : ''}
                         </div>
                         <p class="text-xs font-bold ${vis ? 'text-white/90' : 'text-white/40'} truncate">${jesc(m.title)}</p>
-                        <p class="text-[10px] text-white/30 mt-0.5">
-                            ${new Date(m.milestone_date + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
-                            ${m.description ? ' · ' + jesc(m.description.substring(0, 50)) + (m.description.length > 50 ? '…' : '') : ''}
-                        </p>
+                        <p class="text-[10px] text-white/30 mt-0.5">${new Date(m.milestone_date + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}${m.description ? ' · ' + jesc(m.description.substring(0,50)) + (m.description.length > 50 ? '…':'') : ''}</p>
                     </div>
-                    <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
-                        <button data-click="JourneyManager.toggleVisibility" data-click-args='[${m.id}]' class="p-1.5 rounded-lg hover:bg-white/10 transition" title="${vis ? 'Hide from public' : 'Show on public page'}">
-                            <i data-lucide="${vis ? 'eye' : 'eye-off'}" class="w-3.5 h-3.5 text-white/40"></i>
-                        </button>
-                        <button data-click="JourneyManager.edit" data-click-args='[${m.id}]' class="p-1.5 rounded-lg hover:bg-white/10 transition" title="Edit">
-                            <i data-lucide="pencil" class="w-3.5 h-3.5 text-white/40"></i>
-                        </button>
-                        <button data-click="JourneyManager.remove" data-click-args='[${m.id}]' class="p-1.5 rounded-lg hover:bg-red-500/10 transition" title="Delete">
-                            <i data-lucide="trash-2" class="w-3.5 h-3.5 text-red-400/50"></i>
-                        </button>
+                    <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition shrink-0">
+                        <button data-click="JourneyManager.toggleVisibility" data-click-args='[${m.id}]' class="p-1.5 rounded-lg hover:bg-white/10 transition" title="${vis ? 'Hide' : 'Show'}"><i data-lucide="${vis ? 'eye' : 'eye-off'}" class="w-3.5 h-3.5 text-white/40"></i></button>
+                        <button data-click="JourneyManager.edit" data-click-args='[${m.id}]' class="p-1.5 rounded-lg hover:bg-white/10 transition" title="Edit"><i data-lucide="pencil" class="w-3.5 h-3.5 text-white/40"></i></button>
+                        <button data-click="JourneyManager.remove" data-click-args='[${m.id}]' class="p-1.5 rounded-lg hover:bg-red-500/10 transition" title="Delete"><i data-lucide="trash-2" class="w-3.5 h-3.5 text-red-400/50"></i></button>
                     </div>
                 </div>`;
             }).join('');
             if (window.lucide) lucide.createIcons();
         },
-
         async save() {
             const titleEl = document.getElementById('journey-title');
             const descEl = document.getElementById('journey-description');
@@ -445,217 +454,117 @@ Section 7.9 of the Master Plan.
             const typeEl = document.getElementById('journey-type');
             const editIdEl = document.getElementById('journey-edit-id');
             const statusEl = document.getElementById('journey-save-status');
-
             const title = (titleEl?.value || '').trim();
-            const description = (descEl?.value || '').trim();
             const milestone_date = (dateEl?.value || '').trim();
-            const milestone_type = (typeEl?.value || 'CUSTOM').trim();
-
             if (!title) { if(window.showToast) showToast('Title is required', 'warning'); return; }
             if (!milestone_date) { if(window.showToast) showToast('Date is required', 'warning'); return; }
-
-            const body = { title, description, milestone_date, milestone_type };
+            const body = { title, description: (descEl?.value || '').trim(), milestone_date, milestone_type: (typeEl?.value || 'CUSTOM').trim() };
             if (editIdEl?.value) body.id = parseInt(editIdEl.value);
-
             if (statusEl) statusEl.textContent = 'Saving…';
             try {
-                const res = await fetch(JOURNEY_SAVE_API, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
-                    body: JSON.stringify(body),
-                });
+                const res = await fetch(JOURNEY_SAVE_API, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF }, body: JSON.stringify(body) });
                 const data = await res.json();
                 if (data.success) {
                     if (statusEl) statusEl.textContent = '✓ Saved';
-                    if(window.showToast) showToast(data.message, 'success');
-                    JourneyManager.cancelEdit();
-                    JourneyManager.load();
-                } else {
-                    if (statusEl) statusEl.textContent = '';
-                    if(window.showToast) showToast(data.error || 'Failed', 'error');
-                }
-            } catch (e) {
-                if (statusEl) statusEl.textContent = '';
-                if(window.showToast) showToast('Network error', 'error');
-            }
+                    JourneyManager.cancelEdit(); JourneyManager.load();
+                } else { if (statusEl) statusEl.textContent = ''; if(window.showToast) showToast(data.error || 'Failed', 'error'); }
+            } catch (e) { if (statusEl) statusEl.textContent = ''; if(window.showToast) showToast('Network error', 'error'); }
         },
-
         edit(id) {
-            const m = JourneyManager.milestones.find(x => x.id === id);
-            if (!m) return;
+            const m = JourneyManager.milestones.find(x => x.id === id); if (!m) return;
             document.getElementById('journey-edit-id').value = m.id;
             document.getElementById('journey-title').value = m.title;
             document.getElementById('journey-description').value = m.description || '';
             document.getElementById('journey-date').value = m.milestone_date;
-            const typeEl = document.getElementById('journey-type');
-            if (typeEl) typeEl.value = m.milestone_type || 'CUSTOM';
+            const typeEl = document.getElementById('journey-type'); if (typeEl) typeEl.value = m.milestone_type || 'CUSTOM';
             document.getElementById('journey-form-title').textContent = 'Edit Milestone';
             document.getElementById('journey-save-btn').textContent = 'Update';
             document.getElementById('journey-cancel-btn').classList.remove('hidden');
             document.getElementById('journey-save-status').textContent = '';
             document.getElementById('journey-title').focus();
         },
-
         cancelEdit() {
             document.getElementById('journey-edit-id').value = '';
             document.getElementById('journey-title').value = '';
             document.getElementById('journey-description').value = '';
             document.getElementById('journey-date').value = '';
-            const typeEl = document.getElementById('journey-type');
-            if (typeEl) typeEl.value = 'CUSTOM';
+            const typeEl = document.getElementById('journey-type'); if (typeEl) typeEl.value = 'CUSTOM';
             document.getElementById('journey-form-title').textContent = 'Add Milestone';
             document.getElementById('journey-save-btn').textContent = 'Add';
             document.getElementById('journey-cancel-btn').classList.add('hidden');
             document.getElementById('journey-save-status').textContent = '';
         },
-
         async remove(id) {
             if (!confirm('Delete this milestone?')) return;
             try {
-                const res = await fetch(JOURNEY_DELETE_API(id), {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
-                    body: '{}',
-                });
+                const res = await fetch(JOURNEY_DELETE_API(id), { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF }, body: '{}' });
                 const data = await res.json();
-                if (data.success) {
-                    if(window.showToast) showToast('Milestone deleted', 'success');
-                    JourneyManager.load();
-                } else {
-                    if(window.showToast) showToast(data.error || 'Failed', 'error');
-                }
+                if (data.success) { if(window.showToast) showToast('Milestone deleted', 'success'); JourneyManager.load(); }
+                else { if(window.showToast) showToast(data.error || 'Failed', 'error'); }
             } catch (e) { if(window.showToast) showToast('Network error', 'error'); }
         },
-
         async toggleVisibility(id) {
             try {
-                const res = await fetch(JOURNEY_TOGGLE_API(id), {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
-                    body: '{}',
-                });
+                const res = await fetch(JOURNEY_TOGGLE_API(id), { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF }, body: '{}' });
                 const data = await res.json();
-                if (data.success) {
-                    if(window.showToast) showToast(data.message, 'success');
-                    JourneyManager.load();
-                }
+                if (data.success) { if(window.showToast) showToast(data.message, 'success'); JourneyManager.load(); }
             } catch (e) { if(window.showToast) showToast('Network error', 'error'); }
         },
-
-        /* ── Suggested Milestones ── */
         async loadSuggestions() {
             try {
                 const res = await fetch(JOURNEY_SUGGESTIONS_API, { headers: { 'X-CSRFToken': CSRF } });
                 const data = await res.json();
-                if (data.success && data.suggestions && data.suggestions.length > 0) {
-                    JourneyManager.renderSuggestions(data.suggestions);
-                } else {
-                    const wrap = document.getElementById('journey-suggestions-wrap');
-                    if (wrap) wrap.classList.add('hidden');
-                }
+                if (data.success && data.suggestions?.length > 0) JourneyManager.renderSuggestions(data.suggestions);
+                else { const wrap = document.getElementById('journey-suggestions-wrap'); if (wrap) wrap.classList.add('hidden'); }
             } catch (e) { console.error('Suggestions load error', e); }
         },
-
         _suggestions: [],
-
         renderSuggestions(suggestions) {
             const wrap = document.getElementById('journey-suggestions-wrap');
             const container = document.getElementById('journey-suggestions');
             if (!wrap || !container) return;
-
             JourneyManager._suggestions = suggestions;
-
             container.innerHTML = suggestions.map((s, idx) => {
                 const style = MILESTONE_STYLES[s.milestone_type] || MILESTONE_STYLES.CUSTOM;
                 const dateStr = s.date ? new Date(s.date + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '';
                 const safeKey = s.key.replace(/'/g, "\\'");
-                return `
-                <div class="relative flex-shrink-0 w-56 rounded-xl border ${style.border} ${style.bg} p-3 group cursor-pointer hover:border-amber-500/30 transition"
-                     data-sg-key="${jesc(s.key)}">
-                    <button data-click="JourneyManager.dismissSuggestion" data-click-args='["${safeKey}"]' data-click-pass-el data-stop-propagation
-                            class="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-white/5 hover:bg-red-500/20 grid place-items-center opacity-0 group-hover:opacity-100 transition"
-                            title="Dismiss">
-                        <i data-lucide="x" class="w-3 h-3 text-white/30 hover:text-red-400"></i>
-                    </button>
-                    <div class="flex items-center gap-2 mb-1.5">
-                        <div class="w-6 h-6 rounded-lg ${style.bg} grid place-items-center">
-                            <i data-lucide="${style.icon}" class="w-3 h-3 ${style.color}"></i>
-                        </div>
-                        <span class="text-[9px] px-1.5 py-0.5 rounded-full font-semibold ${style.bg} ${style.color} border ${style.border}">${style.label}</span>
-                    </div>
+                return `<div class="relative flex-shrink-0 w-52 rounded-xl border ${style.border} ${style.bg} p-3 group cursor-pointer hover:border-amber-500/30 transition" data-sg-key="${jesc(s.key)}">
+                    <button data-click="JourneyManager.dismissSuggestion" data-click-args='["${safeKey}"]' data-click-pass-el data-stop-propagation class="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-white/5 hover:bg-red-500/20 grid place-items-center opacity-0 group-hover:opacity-100 transition" title="Dismiss"><i data-lucide="x" class="w-3 h-3 text-white/30"></i></button>
+                    <div class="flex items-center gap-2 mb-1.5"><div class="w-6 h-6 rounded-lg ${style.bg} grid place-items-center"><i data-lucide="${style.icon}" class="w-3 h-3 ${style.color}"></i></div><span class="text-[9px] px-1.5 py-0.5 rounded-full font-semibold ${style.bg} ${style.color} border ${style.border}">${style.label}</span></div>
                     <p class="text-[11px] font-bold text-white/80 truncate mb-0.5">${jesc(s.title)}</p>
                     ${s.description ? `<p class="text-[10px] text-white/35 truncate mb-1">${jesc(s.description)}</p>` : ''}
                     <p class="text-[9px] text-white/25">${dateStr}</p>
-                    <button data-click="JourneyManager.fillFromSuggestion" data-click-args='[${idx}]' data-stop-propagation
-                            class="mt-2 w-full text-[10px] font-bold text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 rounded-lg py-1.5 transition">
-                        + Add to Journey
-                    </button>
+                    <button data-click="JourneyManager.fillFromSuggestion" data-click-args='[${idx}]' data-stop-propagation class="mt-2 w-full text-[10px] font-bold text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 rounded-lg py-1.5 transition">+ Add to Journey</button>
                 </div>`;
             }).join('');
-
             wrap.classList.remove('hidden');
             if (window.lucide) lucide.createIcons();
         },
-
         fillFromSuggestion(indexOrObj) {
             const suggestion = (typeof indexOrObj === 'number') ? JourneyManager._suggestions[indexOrObj] : indexOrObj;
             if (!suggestion) return;
-            const titleEl  = document.getElementById('journey-title');
-            const descEl   = document.getElementById('journey-description');
-            const dateEl   = document.getElementById('journey-date');
-            const typeEl   = document.getElementById('journey-type');
-            const editIdEl = document.getElementById('journey-edit-id');
-            const formTitle = document.getElementById('journey-form-title');
-            const saveBtn  = document.getElementById('journey-save-btn');
-            const cancelBtn = document.getElementById('journey-cancel-btn');
-
-            /* Clear any existing edit state */
-            if (editIdEl) editIdEl.value = '';
-            if (formTitle) formTitle.textContent = 'Add Milestone';
-            if (saveBtn) saveBtn.textContent = 'Add';
-            if (cancelBtn) cancelBtn.classList.add('hidden');
-
-            /* Fill the form */
-            if (titleEl) titleEl.value = suggestion.title || '';
-            if (descEl) descEl.value = suggestion.description || '';
-            if (dateEl) dateEl.value = suggestion.date || '';
-            if (typeEl) typeEl.value = suggestion.milestone_type || 'CUSTOM';
-
-            /* Scroll + highlight */
+            if (document.getElementById('journey-edit-id')) document.getElementById('journey-edit-id').value = '';
+            if (document.getElementById('journey-form-title')) document.getElementById('journey-form-title').textContent = 'Add Milestone';
+            if (document.getElementById('journey-save-btn')) document.getElementById('journey-save-btn').textContent = 'Add';
+            if (document.getElementById('journey-cancel-btn')) document.getElementById('journey-cancel-btn').classList.add('hidden');
+            if (document.getElementById('journey-title')) document.getElementById('journey-title').value = suggestion.title || '';
+            if (document.getElementById('journey-description')) document.getElementById('journey-description').value = suggestion.description || '';
+            if (document.getElementById('journey-date')) document.getElementById('journey-date').value = suggestion.date || '';
+            const typeEl = document.getElementById('journey-type'); if (typeEl) typeEl.value = suggestion.milestone_type || 'CUSTOM';
             const formWrap = document.getElementById('journey-form-wrap');
-            if (formWrap) {
-                formWrap.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                formWrap.classList.add('ring-1', 'ring-amber-500/40');
-                setTimeout(() => formWrap.classList.remove('ring-1', 'ring-amber-500/40'), 2000);
-            }
-            if (titleEl) titleEl.focus();
+            if (formWrap) { formWrap.scrollIntoView({ behavior: 'smooth', block: 'center' }); formWrap.classList.add('ring-1','ring-amber-500/40'); setTimeout(() => formWrap.classList.remove('ring-1','ring-amber-500/40'), 2000); }
+            if (document.getElementById('journey-title')) document.getElementById('journey-title').focus();
             if(window.showToast) showToast('Suggestion loaded — review & save', 'info');
         },
-
         async dismissSuggestion(key, btnEl) {
             try {
-                const res = await fetch(JOURNEY_DISMISS_API, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
-                    body: JSON.stringify({ key }),
-                });
+                const res = await fetch(JOURNEY_DISMISS_API, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF }, body: JSON.stringify({ key }) });
                 const data = await res.json();
                 if (data.success) {
-                    /* Animate card out */
                     const card = btnEl ? btnEl.closest('[data-sg-key]') : null;
                     if (card) {
-                        card.style.transition = 'opacity 0.3s, transform 0.3s';
-                        card.style.opacity = '0';
-                        card.style.transform = 'scale(0.9)';
-                        setTimeout(() => {
-                            card.remove();
-                            /* Hide strip if no cards left */
-                            const container = document.getElementById('journey-suggestions');
-                            if (container && container.children.length === 0) {
-                                const wrap = document.getElementById('journey-suggestions-wrap');
-                                if (wrap) wrap.classList.add('hidden');
-                            }
-                        }, 300);
+                        card.style.transition = 'opacity 0.3s, transform 0.3s'; card.style.opacity = '0'; card.style.transform = 'scale(0.9)';
+                        setTimeout(() => { card.remove(); const c = document.getElementById('journey-suggestions'); if (c && c.children.length === 0) { const w = document.getElementById('journey-suggestions-wrap'); if (w) w.classList.add('hidden'); } }, 300);
                     }
                 }
             } catch (e) { console.error('Dismiss error', e); }

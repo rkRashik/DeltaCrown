@@ -5,65 +5,71 @@ Scrims, tryouts, practice, and VOD reviews are operational team workflows.
 <section id="training" class="hq-section space-y-4" aria-label="Team training"
          data-team-id="{{ team.pk }}" data-team-slug="{{ team.slug }}" data-game-id="{{ team.game_id }}">
 
+    {# ── Header ── #}
     <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3">
-        <div>
-            <h2 class="text-lg font-bold flex items-center gap-2">
+        <div class="flex items-center gap-3">
+            <div class="h-11 w-11 rounded-2xl bg-teal-500/12 border border-teal-500/20 grid place-items-center shrink-0">
                 <i data-lucide="crosshair" class="w-5 h-5 text-teal-300"></i>
-                Team Training
-            </h2>
-            <p class="text-sm text-white/50 mt-0.5">
-                Scrims, tryouts, practice, and VOD review are team operations for scheduling, evaluation, and improvement tracking.
-            </p>
+            </div>
+            <div>
+                <h2 class="text-lg font-bold font-display leading-tight">Training Lab</h2>
+                <p class="text-sm text-white/45 leading-tight">Scrims, tryouts, practice &amp; VOD review</p>
+            </div>
         </div>
         <div class="flex flex-wrap gap-2">
             <button type="button" data-click="ManageHQ.Training.openScrimModal"
-                    class="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition">
-                <i data-lucide="swords" class="w-4 h-4 inline-block mr-1"></i> Post Scrim
+                    class="px-3 py-2 rounded-xl bg-emerald-500/15 text-emerald-300 border border-emerald-500/25 hover:bg-emerald-500/25 text-xs font-semibold transition flex items-center gap-1.5">
+                <i data-lucide="swords" class="w-3.5 h-3.5"></i> Post Scrim
             </button>
             <button type="button" data-click="ManageHQ.Training.openTryoutModal"
-                    class="px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition">
-                <i data-lucide="user-plus" class="w-4 h-4 inline-block mr-1"></i> Add Tryout
+                    class="px-3 py-2 rounded-xl bg-blue-500/15 text-blue-300 border border-blue-500/25 hover:bg-blue-500/25 text-xs font-semibold transition flex items-center gap-1.5">
+                <i data-lucide="user-plus" class="w-3.5 h-3.5"></i> Add Tryout
             </button>
             <button type="button" data-click="ManageHQ.Training.openScheduleModal"
-                    class="px-3 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold transition">
-                <i data-lucide="calendar-plus" class="w-4 h-4 inline-block mr-1"></i> Schedule Practice
+                    class="px-3 py-2 rounded-xl bg-cyan-500/15 text-cyan-300 border border-cyan-500/25 hover:bg-cyan-500/25 text-xs font-semibold transition flex items-center gap-1.5">
+                <i data-lucide="calendar-plus" class="w-3.5 h-3.5"></i> Practice
             </button>
             <button type="button" data-click="ManageHQ.Training.openVodModal"
-                    class="px-3 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold transition">
-                <i data-lucide="video" class="w-4 h-4 inline-block mr-1"></i> Add VOD
+                    class="px-3 py-2 rounded-xl bg-purple-500/15 text-purple-300 border border-purple-500/25 hover:bg-purple-500/25 text-xs font-semibold transition flex items-center gap-1.5">
+                <i data-lucide="video" class="w-3.5 h-3.5"></i> Add VOD
             </button>
         </div>
     </div>
 
+    {# ── Stat tiles ── #}
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <div class="rounded-xl border border-emerald-500/15 bg-emerald-500/5 p-4">
-            <div class="text-[10px] uppercase tracking-widest text-emerald-300/70 font-bold">Open Scrims</div>
-            <div id="scrim-stat-total" class="text-2xl font-black mt-1">0</div>
+        <div class="stat-card rounded-2xl border border-line bg-card p-4">
+            <span class="h-8 w-8 rounded-lg bg-emerald-500/12 text-emerald-400 grid place-items-center mb-2"><i data-lucide="swords" class="w-4 h-4"></i></span>
+            <div id="scrim-stat-total" class="text-2xl font-black font-mono leading-none text-emerald-400">0</div>
+            <div class="text-[10px] text-white/45 uppercase tracking-wide mt-1.5 font-semibold">Open Scrims</div>
         </div>
-        <div class="rounded-xl border border-blue-500/15 bg-blue-500/5 p-4">
-            <div class="text-[10px] uppercase tracking-widest text-blue-300/70 font-bold">Tryouts</div>
-            <div id="tryout-stat-total" class="text-2xl font-black mt-1">0</div>
+        <div class="stat-card rounded-2xl border border-line bg-card p-4">
+            <span class="h-8 w-8 rounded-lg bg-blue-500/12 text-blue-400 grid place-items-center mb-2"><i data-lucide="user-check" class="w-4 h-4"></i></span>
+            <div id="tryout-stat-total" class="text-2xl font-black font-mono leading-none text-blue-400">0</div>
+            <div class="text-[10px] text-white/45 uppercase tracking-wide mt-1.5 font-semibold">Tryouts</div>
         </div>
-        <div class="rounded-xl border border-cyan-500/15 bg-cyan-500/5 p-4">
-            <div class="text-[10px] uppercase tracking-widest text-cyan-300/70 font-bold">Practice</div>
-            <div id="practice-stat-total" class="text-2xl font-black mt-1">0</div>
+        <div class="stat-card rounded-2xl border border-line bg-card p-4">
+            <span class="h-8 w-8 rounded-lg bg-cyan-500/12 text-cyan-400 grid place-items-center mb-2"><i data-lucide="calendar" class="w-4 h-4"></i></span>
+            <div id="practice-stat-total" class="text-2xl font-black font-mono leading-none text-cyan-400">0</div>
+            <div class="text-[10px] text-white/45 uppercase tracking-wide mt-1.5 font-semibold">Practice</div>
         </div>
-        <div class="rounded-xl border border-purple-500/15 bg-purple-500/5 p-4">
-            <div class="text-[10px] uppercase tracking-widest text-purple-300/70 font-bold">VOD Reviews</div>
-            <div id="vod-stat-total" class="text-2xl font-black mt-1">0</div>
+        <div class="stat-card rounded-2xl border border-line bg-card p-4">
+            <span class="h-8 w-8 rounded-lg bg-purple-500/12 text-purple-400 grid place-items-center mb-2"><i data-lucide="video" class="w-4 h-4"></i></span>
+            <div id="vod-stat-total" class="text-2xl font-black font-mono leading-none text-purple-400">0</div>
+            <div class="text-[10px] text-white/45 uppercase tracking-wide mt-1.5 font-semibold">VOD Reviews</div>
         </div>
     </div>
 
-    <div class="rounded-2xl border border-white/10 bg-white/[0.03] overflow-hidden">
-        <div class="flex flex-wrap gap-1 p-2 border-b border-white/10 bg-white/[0.02]">
+    <div class="premium-card overflow-hidden">
+        <div class="flex flex-wrap gap-1 p-2 border-b border-line">
             <button type="button" data-tab="scrims" data-click="ManageHQ.Training.switchSubTab" data-click-args='["scrims"]'
-                    class="training-sub-tab px-3 py-2 rounded-lg bg-white/10 text-white text-xs font-bold transition">Scrims</button>
+                    class="training-sub-tab px-3.5 py-2 rounded-xl bg-card2 text-white text-xs font-semibold transition">Scrims</button>
             <button type="button" data-tab="tryouts" data-click="ManageHQ.Training.switchSubTab" data-click-args='["tryouts"]'
-                    class="training-sub-tab px-3 py-2 rounded-lg text-white/50 hover:text-white text-xs font-bold transition">Tryouts</button>
+                    class="training-sub-tab px-3.5 py-2 rounded-xl text-white/50 hover:text-white hover:bg-white/5 text-xs font-semibold transition">Tryouts</button>
             <button type="button" data-tab="practice" data-click="ManageHQ.Training.switchSubTab" data-click-args='["practice"]'
-                    class="training-sub-tab px-3 py-2 rounded-lg text-white/50 hover:text-white text-xs font-bold transition">Practice</button>
+                    class="training-sub-tab px-3.5 py-2 rounded-xl text-white/50 hover:text-white hover:bg-white/5 text-xs font-semibold transition">Practice</button>
             <button type="button" data-tab="vods" data-click="ManageHQ.Training.switchSubTab" data-click-args='["vods"]'
-                    class="training-sub-tab px-3 py-2 rounded-lg text-white/50 hover:text-white text-xs font-bold transition">VOD Review</button>
+                    class="training-sub-tab px-3.5 py-2 rounded-xl text-white/50 hover:text-white hover:bg-white/5 text-xs font-semibold transition">VOD Review</button>
         </div>
 
         <div class="p-4">
@@ -74,7 +80,7 @@ Scrims, tryouts, practice, and VOD reviews are operational team workflows.
                         <span class="text-[10px] text-white/40">Team vs team practice</span>
                     </div>
                     <div id="scrim-list" class="space-y-2">
-                        <div class="rounded-xl border border-white/10 bg-white/[0.03] p-4 text-sm text-white/45">No scrim requests yet.</div>
+                        <div class="rounded-xl border border-line bg-card2 p-4 text-sm text-white/45">No scrim requests yet.</div>
                     </div>
                 </div>
                 <div>
@@ -83,18 +89,27 @@ Scrims, tryouts, practice, and VOD reviews are operational team workflows.
                         <span class="text-[10px] text-white/40">Open requests from other teams</span>
                     </div>
                     <div id="open-scrim-list" class="space-y-2">
-                        <div class="rounded-xl border border-white/10 bg-white/[0.03] p-4 text-sm text-white/45">No open scrims available.</div>
+                        <div class="rounded-xl border border-line bg-card2 p-4 text-sm text-white/45">No open scrims available.</div>
                     </div>
                 </div>
             </div>
 
             <div id="training-panel-tryouts" class="training-panel hidden">
+                {# Distinction banner — Tryouts vs Scouting #}
+                <div class="rounded-2xl border border-blue-500/20 bg-blue-500/[0.05] p-3 mb-4 flex items-start gap-3">
+                    <i data-lucide="info" class="w-4 h-4 text-blue-400 shrink-0 mt-0.5"></i>
+                    <p class="text-xs text-white/55 leading-relaxed">
+                        <strong class="text-white/80">Tryouts</strong> are scheduled gameplay evaluations of a specific recruit.
+                        Looking for the application pipeline instead?
+                        <button data-click="setActiveRoute" data-click-args='["join-requests"]' class="text-blue-400 hover:underline font-medium">Open Scouting Grounds →</button>
+                    </p>
+                </div>
                 <div class="flex items-center justify-between gap-2 mb-3">
-                    <h3 class="text-sm font-bold">Tryout Management</h3>
-                    <span class="text-[10px] text-white/40">Gameplay evaluations, separate from Join Requests</span>
+                    <h3 class="text-sm font-bold font-display">Tryout Management</h3>
+                    <span class="text-[10px] text-white/40">Evaluation sessions</span>
                 </div>
                 <div id="tryout-list" class="space-y-2">
-                    <div class="rounded-xl border border-white/10 bg-white/[0.03] p-4 text-sm text-white/45">No tryout applications yet.</div>
+                    <div class="rounded-xl border border-line bg-card2 p-4 text-sm text-white/45">No tryout applications yet.</div>
                 </div>
             </div>
 
@@ -104,7 +119,7 @@ Scrims, tryouts, practice, and VOD reviews are operational team workflows.
                     <span class="text-[10px] text-white/40">Internal team sessions</span>
                 </div>
                 <div id="upcoming-sessions" class="space-y-2">
-                    <div class="rounded-xl border border-white/10 bg-white/[0.03] p-4 text-sm text-white/45">No practice sessions scheduled.</div>
+                    <div class="rounded-xl border border-line bg-card2 p-4 text-sm text-white/45">No practice sessions scheduled.</div>
                 </div>
             </div>
 
@@ -114,7 +129,7 @@ Scrims, tryouts, practice, and VOD reviews are operational team workflows.
                     <span class="text-[10px] text-white/40">Private team review notes</span>
                 </div>
                 <div id="vod-library-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-                    <div class="rounded-xl border border-white/10 bg-white/[0.03] p-4 text-sm text-white/45">No VOD reviews yet.</div>
+                    <div class="rounded-xl border border-line bg-card2 p-4 text-sm text-white/45">No VOD reviews yet.</div>
                 </div>
             </div>
         </div>

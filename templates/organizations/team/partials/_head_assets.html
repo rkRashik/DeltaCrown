@@ -2,60 +2,13 @@
 {# Rebuilt from Demo_Team_detail_templete.html — pixel-perfect parity #}
 {% load static %}
 
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
 <meta name="color-scheme" content="dark" />
 
-<script src="https://cdn.tailwindcss.com"></script>
 <script src="https://unpkg.com/lucide@latest"></script>
 
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@700;800;900&family=Space+Grotesk:wght@500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet" />
-
-<script nonce="{{ request.csp_nonce }}">
-  tailwind.config = {
-    darkMode: "class",
-    theme: {
-      extend: {
-        fontFamily: {
-          display: ['"Space Grotesk"', "sans-serif"],
-          ui: ['"Plus Jakarta Sans"', "sans-serif"],
-          mono: ['"JetBrains Mono"', "monospace"],
-          gaming: ['"Outfit"', "sans-serif"],
-        },
-        colors: {
-          delta: {
-            base: "#000000",
-            surface: "#0A0A0F",
-            gold: "#FFD700",
-            violet: "#6C00FF",
-            electric: "#00E5FF",
-            danger: "#FF3131",
-            success: "#00FF41",
-          },
-        },
-        boxShadow: {
-          "glow-team": "0 0 44px var(--team-glow)",
-        },
-        animation: {
-          shimmer: "shimmer 2.2s linear infinite",
-          float: "float 6s ease-in-out infinite",
-        },
-        keyframes: {
-          shimmer: {
-            "0%": { transform: "translateX(-120%) skewX(-12deg)" },
-            "100%": { transform: "translateX(240%) skewX(-12deg)" },
-          },
-          float: {
-            "0%, 100%": { transform: "translateY(0)" },
-            "50%": { transform: "translateY(-6px)" },
-          },
-        },
-      },
-    },
-  };
-</script>
 
 <style>
   :root {
@@ -65,6 +18,12 @@
     --team-glow: color-mix(in srgb, {{ team.primary_color|default:"#3B82F6" }} 26%, transparent);
     --team-btn-fg: #000000;
     --team-color-rgb: 59, 130, 246;
+    --team-action: #22D3EE;
+    --team-action-rgb: 34, 211, 238;
+    --team-action-fg: #020204;
+    --team-action-border: rgba(34, 211, 238, 0.42);
+    --team-action-soft: rgba(34, 211, 238, 0.12);
+    --team-action-glow: rgba(34, 211, 238, 0.26);
     --bg-base: #020204;
     --glass-bg: rgba(10, 10, 15, 0.6);
     --glass-brd: rgba(255, 255, 255, 0.12);
@@ -83,6 +42,7 @@
 
   html, body { height: 100%; }
   body { background: var(--bg-base); color: #E2E8F0; overflow-x: hidden; }
+  img, video { max-width: 100%; }
 
   /* Banner fade — dissolves into body bg */
   .fade-bottom {
@@ -144,13 +104,13 @@
   /* Ambient Team Glow */
   .ambient-glow {
     position: absolute;
-    width: 700px;
-    height: 500px;
-    background: radial-gradient(circle, rgba(var(--team-color-rgb), 0.2) 0%, transparent 70%);
-    filter: blur(70px);
+    width: min(760px, 88vw);
+    height: 420px;
+    background: radial-gradient(ellipse at center, rgba(var(--team-color-rgb), 0.14) 0%, transparent 68%);
+    filter: blur(60px);
     z-index: 10;
-    bottom: -100px;
-    left: 5%;
+    bottom: -90px;
+    left: clamp(1rem, 6vw, 5rem);
     pointer-events: none;
   }
 
@@ -180,15 +140,20 @@
 
   /* Follow Button */
   .btn-follow {
-    background: linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0) 100%), rgba(var(--team-color-rgb), 0.15);
-    border: 1px solid rgba(var(--team-color-rgb), 0.4);
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.1);
+    background:
+      linear-gradient(135deg, rgba(var(--team-action-rgb), 0.16), rgba(139, 92, 246, 0.12)),
+      rgba(15, 23, 42, 0.78);
+    border: 1px solid var(--team-action-border);
+    color: #e0f7ff !important;
+    box-shadow: 0 16px 42px -24px var(--team-action-glow), inset 0 1px 0 rgba(255,255,255,0.14);
     transition: all 0.3s ease;
   }
   .btn-follow:hover {
-    background: linear-gradient(180deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 100%), rgba(var(--team-color-rgb), 0.25);
-    border-color: rgba(var(--team-color-rgb), 0.8);
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.2), 0 0 20px rgba(var(--team-color-rgb), 0.4);
+    background:
+      linear-gradient(135deg, rgba(var(--team-action-rgb), 0.24), rgba(139, 92, 246, 0.16)),
+      rgba(15, 23, 42, 0.88);
+    border-color: rgba(var(--team-action-rgb), 0.72);
+    box-shadow: 0 20px 50px -22px var(--team-action-glow), inset 0 1px 0 rgba(255,255,255,0.2);
   }
 
   /* Modal animation */
@@ -326,6 +291,30 @@
   .safe-pad { padding-bottom: max(16px, env(safe-area-inset-bottom)); }
   :focus-visible { outline: 2px solid var(--team-primary); outline-offset: 3px; border-radius: 10px; }
 
+  section, #trophies, #public-scrims { scroll-margin-top: 96px; }
+  .dc-team-detail-main { padding-bottom: max(6rem, calc(6rem + env(safe-area-inset-bottom))); }
+  .dc-team-name { overflow-wrap: anywhere; }
+  .dc-bench-label.hidden { display: none !important; }
+
+  @media (max-width: 768px) {
+    .dc-hero-banner { object-position: center top; }
+    .dc-team-detail-main { padding-bottom: max(8.5rem, calc(8.5rem + env(safe-area-inset-bottom))); }
+    #team-info-actions { width: 100%; }
+  }
+
+  @media (max-width: 640px) {
+    .dc-team-title {
+      flex-direction: column;
+      align-items: center;
+      line-height: 0.95;
+    }
+    .dc-team-tag {
+      font-size: 1rem;
+      line-height: 1.2;
+      max-width: 100%;
+    }
+  }
+
   /* Team Card */
   .team-card {
     border: 1px solid rgba(255,255,255,0.10);
@@ -405,6 +394,349 @@
     .logo-slab { width: 150px; height: 150px; border-radius: 2rem; }
     .logo-slab__inner { border-radius: 1.6rem; }
   }
+
+  /* Team detail polish layer */
+  .dc-page-atmosphere {
+    background:
+      linear-gradient(180deg, color-mix(in srgb, var(--team-primary) 10%, transparent) 0%, transparent 58%),
+      linear-gradient(110deg, rgba(0,229,255,0.055) 0%, transparent 42%, rgba(124,58,237,0.05) 100%);
+  }
+  .dc-panel {
+    background: linear-gradient(180deg, rgba(255,255,255,0.045), rgba(255,255,255,0.018)), rgba(5,7,12,0.78);
+    border: 1px solid rgba(255,255,255,0.09);
+    box-shadow: 0 24px 70px rgba(0,0,0,0.36);
+  }
+  .dc-hero-shell { padding-top: clamp(8.5rem, 18vw, 15rem); padding-bottom: clamp(1.75rem, 4vw, 2.75rem); }
+  .dc-hero-layout { align-items: flex-end; }
+  .dc-hero-logo { filter: drop-shadow(0 20px 42px rgba(0,0,0,0.55)); }
+  .dc-badges-row > * { min-height: 28px; border-radius: 999px; letter-spacing: 0.09em; }
+  .dc-hero-title { max-width: min(100%, 850px); letter-spacing: 0; }
+  .dc-hero-side { width: min(100%, 430px); }
+  .dc-hero-stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    width: min(100%, 430px);
+    overflow: hidden;
+  }
+  .dc-hero-stats > div { min-width: 0; }
+  .dc-action-zone { row-gap: .75rem; }
+  .dc-action-social { row-gap: .5rem; }
+  .dc-action-btn,
+  .dc-action-icon {
+    min-height: 44px;
+    align-items: center;
+    justify-content: center;
+  }
+  .dc-action-ghost {
+    background: rgba(255,255,255,0.045);
+    border: 1px solid rgba(255,255,255,0.10);
+  }
+  .dc-action-success {
+    background: rgba(16,185,129,0.92);
+    color: #020204;
+    border: 1px solid rgba(110,231,183,0.35);
+    box-shadow: 0 14px 32px -22px rgba(16,185,129,0.75);
+  }
+  .dc-action-staff {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(148,163,184,0.18);
+    color: rgba(226,232,240,0.88);
+    box-shadow: none;
+  }
+  .dc-action-staff:hover,
+  .dc-action-ghost:hover {
+    background: rgba(255,255,255,0.08);
+    border-color: rgba(255,255,255,0.18);
+  }
+  .dc-action-staff-strong {
+    color: color-mix(in srgb, var(--team-primary) 74%, white 26%);
+    border-color: color-mix(in srgb, var(--team-primary) 22%, transparent);
+  }
+  .dc-recruiting-action {
+    min-height: 44px;
+    background: linear-gradient(135deg, rgba(16,185,129,0.96), rgba(52,211,153,0.84));
+    border: 1px solid rgba(110,231,183,0.44);
+    color: #020204 !important;
+    box-shadow: 0 18px 44px -26px rgba(16,185,129,0.78), inset 0 1px 0 rgba(255,255,255,0.28);
+  }
+  .dc-recruiting-action:hover {
+    background: linear-gradient(135deg, rgba(52,211,153,0.96), rgba(110,231,183,0.86));
+    border-color: rgba(167,243,208,0.64);
+    transform: translateY(-1px);
+  }
+  .dc-action-status {
+    min-height: 44px;
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.10);
+  }
+  .dc-tabbar {
+    position: relative;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+  .dc-tabs-scroll { overscroll-behavior-inline: contain; }
+  .dc-main-stack { gap: clamp(2rem, 3vw, 3.25rem); }
+  .dc-roster-grid { max-width: 100%; }
+  .dc-roster-card {
+    contain: layout paint;
+    min-height: 320px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.01)), #07080d;
+  }
+  .dc-roster-card:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--team-primary) 75%, white 25%);
+    outline-offset: 3px;
+  }
+  .dc-roster-media { object-position: center 18%; }
+  .dc-roster-card::after {
+    content: "";
+    position: absolute;
+    inset: auto 0 0 0;
+    height: 45%;
+    background: linear-gradient(to top, rgba(0,0,0,0.92), transparent);
+    pointer-events: none;
+  }
+  .dc-captain-badge,
+  .dc-roster-slot-badge {
+    border-radius: 999px;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+  .dc-roster-body { z-index: 1; }
+  .dc-roster-name {
+    overflow-wrap: anywhere;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .dc-roster-username {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .dc-roster-reveal {
+    opacity: 0;
+    transform: translateY(12px);
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity .24s ease, transform .24s ease, visibility 0s linear .24s;
+  }
+  .dc-roster-card:hover .dc-roster-reveal,
+  .dc-roster-card:focus-visible .dc-roster-reveal,
+  .dc-roster-card:focus-within .dc-roster-reveal {
+    opacity: 1;
+    transform: translateY(0);
+    visibility: visible;
+    pointer-events: auto;
+    transition-delay: 0s;
+  }
+  .empty-state {
+    padding: 1.25rem;
+    border-width: 1px;
+    background: rgba(255,255,255,0.025);
+  }
+  .empty-state__icon { width: 38px; height: 38px; margin: 0 auto .65rem; opacity: .45; }
+  .dc-empty-compact { padding: 1rem; }
+  .dc-team-detail-main { padding-bottom: max(5rem, calc(5rem + env(safe-area-inset-bottom))); }
+  .dc-team-name { word-break: normal; }
+  .dc-match-history-card { background: rgba(7,8,13,0.82); }
+  .dc-scoreboard,
+  .dc-score-team,
+  .dc-match-footer { min-width: 0; }
+  .dc-score-pill { min-width: 86px; }
+  .dc-sidebar { width: 100%; }
+
+  .dc-team-detail-page .text-slate-500 {
+    color: #94a3b8 !important;
+  }
+  .dc-team-detail-page .text-slate-600 {
+    color: #64748b !important;
+  }
+  .dc-team-detail-page .text-white\/35 {
+    color: rgba(226,232,240,0.58) !important;
+  }
+  .dc-team-detail-page .text-white\/40 {
+    color: rgba(226,232,240,0.62) !important;
+  }
+  .dc-match-filter,
+  .dc-history-filter,
+  .dc-compact-action,
+  .dc-view-full-history,
+  .dc-announcement-action,
+  .dc-match-detail-action,
+  .dc-modal-action,
+  .dc-set-reminder,
+  .dc-stream-action,
+  .dc-offer-action,
+  .dc-invite-accept,
+  .dc-invite-decline,
+  .dc-withdraw-btn,
+  .dc-team-detail-page .dc-action-btn {
+    min-height: 44px;
+  }
+  .dc-match-filter,
+  .dc-history-filter,
+  .dc-compact-action,
+  .dc-view-full-history {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .dc-announcement-action,
+  .dc-match-detail-action,
+  .dc-modal-action,
+  .dc-set-reminder,
+  .dc-stream-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .dc-match-filter,
+  .dc-history-filter {
+    padding-left: 0.9rem;
+    padding-right: 0.9rem;
+  }
+  .dc-icon-control {
+    min-width: 44px;
+    min-height: 44px;
+    display: inline-grid;
+    place-items: center;
+  }
+  .dc-action-social a,
+  .dc-team-detail-page .dc-action-icon {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  #dc-tryout-modal .text-slate-500,
+  #dc-apply-modal .text-slate-500 {
+    color: #94a3b8 !important;
+  }
+
+  #dc-tryout-modal .text-slate-600,
+  #dc-apply-modal .text-slate-600 {
+    color: #64748b !important;
+  }
+
+  @media (max-width: 768px) {
+    .ambient-glow { opacity: .55; filter: blur(46px); }
+    .hover-lift:hover,
+    .hover-glow:hover {
+      transform: none;
+      box-shadow: none;
+    }
+  }
+
+  @media (max-width: 640px) {
+    section, #trophies, #public-scrims { scroll-margin-top: 74px; }
+    .dc-hero-shell {
+      padding-left: 1rem;
+      padding-right: 1rem;
+      padding-top: 7.75rem;
+    }
+    .dc-hero-layout { gap: 1.25rem; }
+    .dc-hero-logo .avatar-ring {
+      width: 118px !important;
+      height: 118px !important;
+      border-radius: 1.15rem;
+    }
+    .dc-hero-logo .avatar-inner { border-radius: .95rem; }
+    .dc-team-title {
+      line-height: 1;
+      font-size: clamp(2.15rem, 13vw, 3.25rem);
+    }
+    .dc-hero-side,
+    .dc-hero-stats { width: 100%; }
+    .dc-hero-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .dc-hero-stats > div {
+      border: 0 !important;
+      padding: .75rem .5rem;
+    }
+    .dc-action-zone {
+      display: grid !important;
+      grid-template-columns: 1fr;
+      align-items: stretch;
+    }
+    .dc-action-social {
+      width: 100%;
+      justify-content: center;
+      margin-right: 0 !important;
+    }
+    .dc-action-btn {
+      width: 100%;
+      min-height: 46px;
+    }
+    .dc-action-icon {
+      min-width: 44px;
+      min-height: 44px;
+    }
+    .dc-tabs-scroll {
+      padding-left: 1rem;
+      padding-right: 1rem;
+      gap: 1.25rem;
+    }
+    .dc-team-detail-main {
+      padding-left: 1rem;
+      padding-right: 1rem;
+      padding-top: 2rem;
+    }
+    .dc-main-stack { gap: 2rem; }
+    .dc-roster-card {
+      width: min(78vw, 286px) !important;
+      max-width: 286px !important;
+      min-height: 330px;
+    }
+    .dc-roster-reveal {
+      opacity: 1;
+      transform: none;
+      visibility: visible;
+      pointer-events: auto;
+    }
+    .dc-match-row { flex-direction: column; }
+    .dc-result-rail {
+      width: 100% !important;
+      min-height: 44px;
+      border-right: 0 !important;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .dc-scoreboard {
+      flex-direction: column;
+      align-items: stretch !important;
+      gap: .75rem;
+    }
+    .dc-score-team,
+    .dc-score-team-away {
+      flex-direction: row !important;
+      text-align: left !important;
+    }
+    .dc-score-pill {
+      width: 100%;
+      justify-content: center;
+    }
+    .dc-match-meta,
+    .dc-match-footer { flex-wrap: wrap; }
+  }
+
+  @media (max-width: 1023px) {
+    .dc-sidebar {
+      position: static !important;
+      top: auto !important;
+      max-height: none !important;
+      overflow: visible !important;
+      padding-bottom: 0 !important;
+    }
+  }
+
+  @media (hover: none) {
+    .dc-roster-card:hover img { transform: none !important; }
+    .dc-roster-card .dc-roster-reveal {
+      opacity: 1;
+      transform: none;
+      visibility: visible;
+      pointer-events: auto;
+    }
+  }
 </style>
 
 {# ── Smart Color System — auto-adjust dark team colors for visibility ──── #}
@@ -455,9 +787,24 @@
 
   var rgb = hexToRgb(raw);
   var lum = luminance(rgb[0], rgb[1], rgb[2]);
+  var rawHsl = rgbToHsl(rgb[0], rgb[1], rgb[2]);
+  var isRedAccent = rawHsl[1] >= 35 && (rawHsl[0] <= 25 || rawHsl[0] >= 345);
   var css = '';
 
-  if (lum < 0.12) {
+  if (isRedAccent) {
+    /* Red is reserved for danger/loss. Use cyan for general UI affordances. */
+    var safeUi = '#22D3EE';
+    var safeUiRgb = hexToRgb(safeUi);
+    css += ':root, body, body[data-theme="CRIMSON"], body[data-custom-colors="true"] {\n';
+    css += '  --team-primary: ' + safeUi + ';\n';
+    css += '  --team-color-rgb: ' + safeUiRgb[0] + ', ' + safeUiRgb[1] + ', ' + safeUiRgb[2] + ';\n';
+    css += '  --team-dim: color-mix(in srgb, ' + safeUi + ' 14%, transparent);\n';
+    css += '  --team-glow: color-mix(in srgb, ' + safeUi + ' 24%, transparent);\n';
+    css += '  --team-btn-fg: #020204;\n';
+    css += '  --team-primary-raw: ' + raw + ';\n';
+    css += '}\n';
+    document.documentElement.dataset.semanticRedTeam = 'true';
+  } else if (lum < 0.12) {
     /* Color too dark — lighten it so text/icons/accents are visible on #000 bg */
     var hsl = rgbToHsl(rgb[0], rgb[1], rgb[2]);
     var h = hsl[0], s = hsl[1], l = hsl[2];

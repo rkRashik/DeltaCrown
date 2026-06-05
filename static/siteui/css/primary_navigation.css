@@ -66,6 +66,9 @@
   padding: 0.5rem clamp(0.5rem, 1vw, 1rem);
   text-decoration: none;
   position: relative;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
 }
 
 .dc-nav-item:hover .dc-nav-link,

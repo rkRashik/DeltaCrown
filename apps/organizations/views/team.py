@@ -696,9 +696,13 @@ def team_detail(request, team_slug, org_slug=None):
         roster = context.get('roster')
         if isinstance(roster, dict):
             roster_count = len(roster.get('members') or roster.get('starters') or [])
+        team_context = context.get('team') if isinstance(context.get('team'), dict) else {}
+        game_context = team_context.get('game') if isinstance(team_context.get('game'), dict) else {}
+        game_slug = game_context.get('slug') or team.game_id
+        game_rankings_url = f"/competition/leaderboards/{game_slug}/" if game_slug else "/competition/leaderboards/"
         context['entity_links'] = [
             {'label': 'Crown Points Rankings', 'url': '/competition/leaderboards/', 'detail': 'Compare teams across the platform'},
-            {'label': f"{game_name} Rankings" if game_name else 'Game Rankings', 'url': f"/competition/leaderboards/{team.game_id}/", 'detail': 'Game-specific leaderboard'},
+            {'label': f"{game_name} Rankings" if game_name else 'Game Rankings', 'url': game_rankings_url, 'detail': 'Game-specific leaderboard'},
             {'label': 'Tournaments', 'url': '/tournaments/', 'detail': 'Find events this roster can enter'},
         ]
         if team.organization:

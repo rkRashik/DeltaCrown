@@ -2,6 +2,41 @@
 {# Rebuilt from Demo_Team_detail_templete.html — production-ready #}
 
 <script nonce="{{ request.csp_nonce }}">
+// CSRF_COOKIE_HTTPONLY=True means JS can't read the cookie.
+// Read from <meta name="csrf-token"> (set in base.html) first.
+function getCookie(name) {
+  function isValidCsrfToken(token) {
+    if (!token || typeof token !== "string") return false;
+    const normalized = token.trim();
+    if (!/^[A-Za-z0-9]+$/.test(normalized)) return false;
+    return normalized.length === 32 || normalized.length === 64;
+  }
+
+  if (name === "csrftoken") {
+    const meta = document.querySelector('meta[name="csrf-token"]');
+    if (meta && isValidCsrfToken(meta.content)) return meta.content.trim();
+
+    const el = document.querySelector("[name=csrfmiddlewaretoken]");
+    if (el && isValidCsrfToken(el.value)) return el.value.trim();
+  }
+
+  let value = null;
+  if (document.cookie) {
+    document.cookie.split(";").forEach(cookie => {
+      cookie = cookie.trim();
+      if (cookie.startsWith(name + "=")) {
+        value = decodeURIComponent(cookie.substring(name.length + 1));
+      }
+    });
+  }
+
+  if (name === "csrftoken") {
+    return isValidCsrfToken(value) ? value.trim() : "";
+  }
+
+  return value;
+}
+
 document.addEventListener("DOMContentLoaded", () => {
 
   // ── BOOTSTRAP: Read data attributes & apply to body ───────────────────
@@ -53,12 +88,29 @@ document.addEventListener("DOMContentLoaded", () => {
   // ── MATCH FILTER TABS ─────────────────────────────────────────────────
   document.querySelectorAll(".dc-match-filter").forEach(btn => {
     btn.addEventListener("click", () => {
+      const filter = btn.dataset.filter || "upcoming";
       document.querySelectorAll(".dc-match-filter").forEach(b => {
         b.classList.remove("bg-white/10", "text-white");
-        b.classList.add("text-slate-500");
+        b.classList.add("text-slate-400");
+        b.setAttribute("aria-pressed", "false");
       });
-      btn.classList.remove("text-slate-500");
+      btn.classList.remove("text-slate-400");
       btn.classList.add("bg-white/10", "text-white");
+
+      btn.setAttribute("aria-pressed", "true");
+      const resultsEmpty = document.getElementById("dc-match-results-empty");
+      if (filter === "results") {
+        const history = document.getElementById("match-history");
+        if (history) {
+          if (resultsEmpty) resultsEmpty.classList.add("hidden");
+          history.scrollIntoView({ behavior: "smooth", block: "start" });
+        } else if (resultsEmpty) {
+          resultsEmpty.classList.remove("hidden");
+        }
+      } else {
+        if (resultsEmpty) resultsEmpty.classList.add("hidden");
+        document.getElementById("matches")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
     });
   });
 
@@ -67,9 +119,9 @@ document.addEventListener("DOMContentLoaded", () => {
     btn.addEventListener("click", () => {
       document.querySelectorAll(".dc-history-filter").forEach(b => {
         b.classList.remove("bg-white/10", "text-white");
-        b.classList.add("text-slate-500", "hover:bg-white/5");
+        b.classList.add("text-slate-400", "hover:bg-white/5");
       });
-      btn.classList.remove("text-slate-500", "hover:bg-white/5");
+      btn.classList.remove("text-slate-400", "hover:bg-white/5");
       btn.classList.add("bg-white/10", "text-white");
 
       const filter = btn.dataset.filter || "all";
@@ -97,9 +149,12 @@ document.addEventListener("DOMContentLoaded", () => {
       const m = Math.floor((diff % 3600000) / 60000);
       const s = Math.floor((diff % 60000) / 1000);
       el.textContent = `${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
-      requestAnimationFrame(tick);
     }
     tick();
+    const timer = window.setInterval(() => {
+      tick();
+      if (el.textContent === "Expired") window.clearInterval(timer);
+    }, 1000);
   });
 
   // ── ROSTER TOGGLE (Starting Lineup / Full Squad) ──────────────────────
@@ -129,45 +184,64 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // ── LAZY LOADING FOR IMAGES ───────────────────────────────────────────
   const lazyImages = document.querySelectorAll(".lazy-media");
-  const imageObserver = new IntersectionObserver((entries, observer) => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        const img = entry.target;
-        img.classList.add("loaded");
-        observer.unobserve(img);
-      }
-    });
-  }, { rootMargin: "50px" });
+  if ("IntersectionObserver" in window) {
+    const imageObserver = new IntersectionObserver((entries, observer) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const img = entry.target;
+          img.classList.add("loaded");
+          observer.unobserve(img);
+        }
+      });
+    }, { rootMargin: "50px" });
 
-  lazyImages.forEach(img => {
-    img.classList.remove("loaded");
-    imageObserver.observe(img);
-  });
+    lazyImages.forEach(img => {
+      img.classList.remove("loaded");
+      imageObserver.observe(img);
+    });
+  } else {
+    lazyImages.forEach(img => img.classList.add("loaded"));
+  }
 
   // ── SCROLL ANIMATIONS ────────────────────────────────────────────────
-  const animatedElements = document.querySelectorAll("section");
-  const scrollObserver = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        entry.target.style.opacity = "0";
-        entry.target.style.transform = "translateY(20px)";
-        requestAnimationFrame(() => {
-          entry.target.style.transition = "opacity 0.6s ease, transform 0.6s ease";
-          entry.target.style.opacity = "1";
-          entry.target.style.transform = "translateY(0)";
-        });
-        scrollObserver.unobserve(entry.target);
-      }
-    });
-  }, { threshold: 0.1 });
+  const allowScrollMotion = window.innerWidth >= 768
+    && !window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    && "IntersectionObserver" in window;
+  if (allowScrollMotion) {
+    const animatedElements = document.querySelectorAll("section");
+    const scrollObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.style.opacity = "0";
+          entry.target.style.transform = "translateY(16px)";
+          requestAnimationFrame(() => {
+            entry.target.style.transition = "opacity 0.45s ease, transform 0.45s ease";
+            entry.target.style.opacity = "1";
+            entry.target.style.transform = "translateY(0)";
+          });
+          scrollObserver.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.08 });
 
-  animatedElements.forEach(el => scrollObserver.observe(el));
+    animatedElements.forEach(el => scrollObserver.observe(el));
+  }
 
   // ── SMART SIDEBAR POSITIONING ─────────────────────────────────────────
+  function resetSidebarPosition(sidebar) {
+    if (!sidebar) return;
+    sidebar.style.position = "";
+    sidebar.style.top = "";
+    sidebar.style.alignSelf = "";
+  }
+
   function adjustSidebarPosition() {
-    const mainContent = document.querySelector(".lg\\:col-span-8");
-    const sidebar = document.querySelector(".lg\\:col-span-4");
-    if (!mainContent || !sidebar || window.innerWidth < 1024) return;
+    const mainContent = document.querySelector(".dc-main-stack") || document.querySelector(".lg\\:col-span-8");
+    const sidebar = document.querySelector(".dc-sidebar") || document.querySelector(".lg\\:col-span-4");
+    if (!mainContent || !sidebar || window.innerWidth < 1024) {
+      resetSidebarPosition(sidebar);
+      return;
+    }
 
     const mainHeight = mainContent.offsetHeight;
     const sidebarHeight = sidebar.offsetHeight;
@@ -176,6 +250,8 @@ document.addEventListener("DOMContentLoaded", () => {
       sidebar.style.position = "sticky";
       sidebar.style.top = "80px";
       sidebar.style.alignSelf = "start";
+    } else {
+      resetSidebarPosition(sidebar);
     }
   }
   adjustSidebarPosition();
@@ -455,9 +531,10 @@ document.addEventListener("DOMContentLoaded", () => {
       btn.textContent = "ACCEPTING…";
 
       try {
-        const resp = await fetch(`/api/teams/invites/${inviteId}/accept/`, {
+        const resp = await fetch(`/api/vnext/teams/invites/membership/${encodeURIComponent(inviteId)}/accept/`, {
           method: "POST",
           headers: { "X-CSRFToken": getCookie("csrftoken"), "Content-Type": "application/json" },
+          credentials: "same-origin",
         });
         if (resp.ok) {
           window.location.reload();
@@ -478,9 +555,10 @@ document.addEventListener("DOMContentLoaded", () => {
       btn.textContent = "DECLINING…";
 
       try {
-        const resp = await fetch(`/api/teams/invites/${inviteId}/decline/`, {
+        const resp = await fetch(`/api/vnext/teams/invites/membership/${encodeURIComponent(inviteId)}/decline/`, {
           method: "POST",
           headers: { "X-CSRFToken": getCookie("csrftoken"), "Content-Type": "application/json" },
+          credentials: "same-origin",
         });
         if (resp.ok) {
           window.location.reload();
@@ -494,40 +572,6 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // ── CSRF COOKIE HELPER ────────────────────────────────────────────────
-  // CSRF_COOKIE_HTTPONLY=True means JS can't read the cookie.
-  // Read from <meta name="csrf-token"> (set in base.html) first.
-  function getCookie(name) {
-    function isValidCsrfToken(token) {
-      if (!token || typeof token !== 'string') return false;
-      const normalized = token.trim();
-      if (!/^[A-Za-z0-9]+$/.test(normalized)) return false;
-      return normalized.length === 32 || normalized.length === 64;
-    }
-
-    if (name === 'csrftoken') {
-      const meta = document.querySelector('meta[name="csrf-token"]');
-      if (meta && isValidCsrfToken(meta.content)) return meta.content.trim();
-
-      const el = document.querySelector('[name=csrfmiddlewaretoken]');
-      if (el && isValidCsrfToken(el.value)) return el.value.trim();
-    }
-
-    let v = null;
-    if (document.cookie) {
-      document.cookie.split(';').forEach(c => {
-        c = c.trim();
-        if (c.startsWith(name + '='))
-          v = decodeURIComponent(c.substring(name.length + 1));
-      });
-    }
-
-    if (name === 'csrftoken') {
-      return isValidCsrfToken(v) ? v.trim() : '';
-    }
-
-    return v;
-  }
-
   // ── MENU DROPDOWN TOGGLE ──────────────────────────────────────────────
   const menuToggle = document.getElementById("dc-menu-toggle");
   const menuDropdown = document.getElementById("dc-menu-dropdown");
@@ -611,6 +655,11 @@ document.addEventListener("DOMContentLoaded", () => {
   // ── CSP-SAFE: Roster card clicks → open player popup ────────────────
   document.querySelectorAll(".dc-roster-card").forEach(card => {
     card.addEventListener("click", function() { dcOpenPlayerPopup(this); });
+    card.addEventListener("keydown", function(e) {
+      if (e.key !== "Enter" && e.key !== " ") return;
+      e.preventDefault();
+      dcOpenPlayerPopup(this);
+    });
   });
 
   // ── CSP-SAFE: Lightbox close (backdrop + button) ────────────────────
@@ -759,14 +808,30 @@ function dcOpenPlayerPopup(cardEl) {
   document.getElementById("pp-role-tag").textContent = role;
 
   const avatarEl = document.getElementById("pp-avatar");
-  if (avatar) { avatarEl.src = avatar; avatarEl.style.display = ""; }
-  else { avatarEl.style.display = "none"; }
+  if (avatarEl) {
+    if (avatar) {
+      avatarEl.src = avatar;
+      avatarEl.alt = `${name} avatar`;
+      avatarEl.style.display = "";
+    } else {
+      avatarEl.removeAttribute("src");
+      avatarEl.alt = "";
+      avatarEl.style.display = "none";
+    }
+  }
 
   const flagEl = document.getElementById("pp-flag");
-  if (country) {
-    flagEl.src = `https://flagcdn.com/${country.toLowerCase()}.svg`;
-    flagEl.classList.remove("hidden");
-  } else { flagEl.classList.add("hidden"); }
+  if (flagEl) {
+    if (country) {
+      flagEl.src = `https://flagcdn.com/${country.toLowerCase()}.svg`;
+      flagEl.alt = `${country} flag`;
+      flagEl.classList.remove("hidden");
+    } else {
+      flagEl.removeAttribute("src");
+      flagEl.alt = "";
+      flagEl.classList.add("hidden");
+    }
+  }
 
   const badge = document.getElementById("pp-badge");
   if (isCaptain) {
@@ -903,14 +968,17 @@ function dcClosePlayerPopup() {
         credentials: 'same-origin',
       });
       if (resp.status === 401) {
-        window.location.href = '/accounts/login/?next=' + encodeURIComponent(window.location.pathname);
+        window.location.href = '/account/login/?next=' + encodeURIComponent(window.location.pathname);
         return;
       }
       const data = await resp.json();
       if (data.success) {
         setFollowState(data.is_following, data.follower_count);
       }
-    } catch (_) { /* network error */ }
+    } catch (_) {
+      followBtn.classList.add("border-red-400/50");
+      window.setTimeout(() => followBtn.classList.remove("border-red-400/50"), 1600);
+    }
     finally {
       followBtn.disabled = false;
     }

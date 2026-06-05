@@ -2133,7 +2133,7 @@ def activity_timeline(request, slug):
             'id': f'me-{ev.id}',
             'source': 'membership',
             'event_type': ev.event_type,
-            'description': f'{ev.user.username if ev.user else "?"} â€” {ev.get_event_type_display() if hasattr(ev, "get_event_type_display") else ev.event_type}',
+            'description': f'{ev.user.username if ev.user else "?"} — {ev.get_event_type_display() if hasattr(ev, "get_event_type_display") else ev.event_type}',
             'user': ev.user.username if ev.user else None,
             'actor': ev.actor.username if ev.actor else None,
             'old_role': ev.old_role or '',

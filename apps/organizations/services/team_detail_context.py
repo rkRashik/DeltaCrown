@@ -180,7 +180,9 @@ def get_team_detail_context(
     # ── Cached public context (team-specific, 60s TTL) ──
     # These sections are viewer-independent and expensive to compute.
     cache_variant = 'restricted' if is_private_restricted else 'full'
-    cache_key = f'team_detail:{team.slug}:{cache_variant}'
+    updated_at = getattr(team, 'updated_at', None)
+    cache_version = int(updated_at.timestamp()) if updated_at else 'static'
+    cache_key = f'team_detail:{team.slug}:{cache_variant}:{cache_version}'
     public_ctx = cache.get(cache_key)
     if public_ctx is None:
         public_ctx = {
@@ -238,6 +240,7 @@ def _build_team_context(team: Team, is_restricted: bool) -> Dict[str, Any]:
 
     # Tier 1: Always present (even for private teams)
     team_data = {
+        'id': getattr(team, 'id', None),
         'name': team_name,
         'slug': getattr(team, 'slug', ''),
         'tag': getattr(team, 'tag', ''),
@@ -1561,6 +1564,12 @@ def _build_upcoming_matches_context(team: Team, is_restricted: bool) -> List[Dic
         return [
             {
                 'id': m.id,
+                'tournament_slug': getattr(m.tournament, 'slug', '') if m.tournament_id else '',
+                'detail_url': (
+                    f'/tournaments/{m.tournament.slug}/matches/{m.id}/'
+                    if m.tournament_id and getattr(m.tournament, 'slug', '')
+                    else ''
+                ),
                 'tournament_name': m.tournament.name if m.tournament else 'Unknown',
                 'opponent_name': _resolve_participant_name(
                     m.participant2_id if _get_match_side_for_team(m, participant_ids) == 1 else m.participant1_id,
@@ -1827,20 +1836,55 @@ def _build_match_history_context(team: Team, is_restricted: bool) -> List[Dict[s
                 result = 'draw'
 
             score_display = ''
+            our_score = 0
+            opponent_score = 0
             if hasattr(m, 'participant1_score') and hasattr(m, 'participant2_score'):
                 if is_p1:
-                    score_display = f'{m.participant1_score or 0}-{m.participant2_score or 0}'
+                    our_score = m.participant1_score or 0
+                    opponent_score = m.participant2_score or 0
                 else:
-                    score_display = f'{m.participant2_score or 0}-{m.participant1_score or 0}'
+                    our_score = m.participant2_score or 0
+                    opponent_score = m.participant1_score or 0
+                score_display = f'{our_score}-{opponent_score}'
+
+            map_scores = []
+            raw_game_scores = getattr(m, 'game_scores', None) or []
+            if isinstance(raw_game_scores, list):
+                for game_score in raw_game_scores[:5]:
+                    if not isinstance(game_score, dict):
+                        continue
+                    p1_score = game_score.get('p1', 0) or 0
+                    p2_score = game_score.get('p2', 0) or 0
+                    team_score = p1_score if is_p1 else p2_score
+                    opp_score = p2_score if is_p1 else p1_score
+                    winner_slot = game_score.get('winner_slot')
+                    map_scores.append({
+                        'name': f"Game {game_score.get('game') or len(map_scores) + 1}",
+                        'score': f'{team_score}-{opp_score}',
+                        'won': (winner_slot == 1 and is_p1) or (winner_slot == 2 and not is_p1),
+                    })
 
             matches.append({
                 'id': m.id,
+                'tournament_slug': getattr(m.tournament, 'slug', '') if m.tournament_id else '',
+                'detail_url': (
+                    f'/tournaments/{m.tournament.slug}/matches/{m.id}/'
+                    if m.tournament_id and getattr(m.tournament, 'slug', '')
+                    else ''
+                ),
                 'opponent_name': opponent_name,
                 'result': result,
+                'result_label': result.upper(),
                 'score': score_display,
+                'score_parts': [our_score, opponent_score],
+                'maps': map_scores,
                 'tournament_name': getattr(m.tournament, 'name', '') if m.tournament_id else '',
                 'match_type': getattr(m, 'match_type', 'official'),
-                'date': m.updated_at,
+                'format': f'BO{getattr(m, "best_of", 1) or 1}',
+                'round_label': f'Round {getattr(m, "round_number", "")}'.strip(),
+                'match_label': f'Match {getattr(m, "match_number", "")}'.strip(),
+                'state_label': m.get_state_display() if hasattr(m, 'get_state_display') else getattr(m, 'state', ''),
+                'date': getattr(m, 'completed_at', None) or m.updated_at,
             })
     except Exception:
         pass

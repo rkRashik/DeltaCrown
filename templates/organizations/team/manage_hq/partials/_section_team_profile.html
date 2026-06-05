@@ -5,6 +5,23 @@ All changes submit via AJAX — no page reload required.
 {% endcomment %}
 <section id="profile" class="hq-section space-y-4">
 
+    {# ── Header ── #}
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div class="flex items-center gap-3">
+            <div class="h-11 w-11 rounded-2xl bg-emerald-500/12 border border-emerald-500/20 grid place-items-center shrink-0">
+                <i data-lucide="palette" class="w-5 h-5 text-emerald-400"></i>
+            </div>
+            <div>
+                <h2 class="text-lg font-bold font-display leading-tight">Team Profile</h2>
+                <p class="text-sm text-white/45 leading-tight">Your public identity — logo, banner, colors &amp; socials</p>
+            </div>
+        </div>
+        <a href="/teams/{{ team.slug }}/" target="_blank" rel="noopener"
+           class="px-3 py-2 rounded-xl text-xs font-semibold bg-card2 border border-line text-white/60 hover:bg-white/10 hover:text-white transition flex items-center gap-1.5 shrink-0">
+            <i data-lucide="external-link" class="w-3.5 h-3.5"></i> Preview Public Page
+        </a>
+    </div>
+
     {# ── Brand Inheritance Banner (Org teams with enforce_brand) ── #}
     {% if org_policies.enforce_brand %}
     <div class="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4 flex items-center gap-3">
@@ -53,8 +70,15 @@ All changes submit via AJAX — no page reload required.
 
             {# Banner Upload #}
             <div>
-                <label class="block text-xs text-white/60 mb-2 font-medium">Team Banner / Cover</label>
-                <div class="relative rounded-2xl border-2 border-dashed border-white/15 hover:border-white/25 transition bg-white/5 p-4 text-center group cursor-pointer"
+                <label class="block text-xs text-white/60 mb-2 font-medium flex items-center gap-2">
+                    Team Banner / Cover
+                    {% if not team.banner %}
+                    <span class="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/25 inline-flex items-center gap-1">
+                        <i data-lucide="alert-triangle" class="w-2.5 h-2.5"></i> Missing
+                    </span>
+                    {% endif %}
+                </label>
+                <div class="relative rounded-2xl border-2 border-dashed {% if not team.banner %}border-amber-500/30{% else %}border-white/15{% endif %} hover:border-white/25 transition bg-white/5 p-4 text-center group cursor-pointer"
                      data-click-child="input[type=file]">
                     <div class="h-24 w-full rounded-xl overflow-hidden bg-white/10 grid place-items-center mb-3">
                         {% if team.banner %}
@@ -141,7 +165,7 @@ All changes submit via AJAX — no page reload required.
                         {% endif %}
                     </label>
                     {% if identity_locks.name.locked %}
-                    <div class="w-full px-3 py-2.5 rounded-xl bg-white/[0.02] border border-white/8 text-sm text-white/40 select-none flex items-center gap-2">
+                    <div class="w-full px-3 py-2.5 rounded-xl bg-card border border-white/8 text-sm text-white/40 select-none flex items-center gap-2">
                         <i data-lucide="lock" class="w-3.5 h-3.5 text-red-400/50 shrink-0"></i>
                         <span>{{ team.name }}</span>
                     </div>
@@ -169,7 +193,7 @@ All changes submit via AJAX — no page reload required.
                         {% endif %}
                     </label>
                     {% if identity_locks.tag.locked %}
-                    <div class="w-full px-3 py-2.5 rounded-xl bg-white/[0.02] border border-white/8 text-sm text-white/40 select-none flex items-center gap-2 uppercase">
+                    <div class="w-full px-3 py-2.5 rounded-xl bg-card border border-white/8 text-sm text-white/40 select-none flex items-center gap-2 uppercase">
                         <i data-lucide="lock" class="w-3.5 h-3.5 text-red-400/50 shrink-0"></i>
                         <span>{{ team.tag }}</span>
                     </div>
@@ -200,7 +224,7 @@ All changes submit via AJAX — no page reload required.
                         {% endif %}
                     </label>
                     {% if identity_locks.region.locked %}
-                    <div class="w-full px-3 py-2.5 rounded-xl bg-white/[0.02] border border-white/8 text-sm text-white/40 select-none flex items-center gap-2">
+                    <div class="w-full px-3 py-2.5 rounded-xl bg-card border border-white/8 text-sm text-white/40 select-none flex items-center gap-2">
                         <i data-lucide="lock" class="w-3.5 h-3.5 text-red-400/50 shrink-0"></i>
                         <span>{{ team.region|default:"Not set" }}</span>
                     </div>
@@ -225,7 +249,7 @@ All changes submit via AJAX — no page reload required.
                             <i data-lucide="lock" class="w-2.5 h-2.5"></i> Permanent
                         </span>
                     </label>
-                    <div class="w-full px-3 py-2.5 rounded-xl bg-white/[0.02] border border-white/8 text-sm text-white/40 select-none flex items-center gap-2">
+                    <div class="w-full px-3 py-2.5 rounded-xl bg-card border border-white/8 text-sm text-white/40 select-none flex items-center gap-2">
                         <i data-lucide="lock" class="w-3.5 h-3.5 text-white/20 shrink-0"></i>
                         <span>{{ game_display }}</span>
                     </div>
@@ -427,7 +451,7 @@ All changes submit via AJAX — no page reload required.
             </div>
 
             {# Live Color Preview #}
-            <div class="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+            <div class="rounded-xl border border-white/10 bg-card p-4">
                 <p class="text-[10px] text-white/40 uppercase tracking-wider font-semibold mb-3">Live Preview</p>
                 <div class="flex items-center gap-4 flex-wrap">
                     <div id="color-preview-gradient" class="h-10 w-32 rounded-lg" style="background:linear-gradient(135deg,{{ team.primary_color|default:'#3B82F6' }},{{ team.accent_color|default:'#10B981' }})"></div>
