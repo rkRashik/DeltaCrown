@@ -52,6 +52,7 @@
 /* Skip link */
 .skip-link {
   position: absolute; left: 0; top: 0; transform: translateY(-120%);
+  display: inline-flex; align-items: center; min-height: 44px;
   background: var(--surface); color: var(--text);
   padding: .5rem .75rem; border: 1px solid var(--border); border-radius: .5rem;
 }

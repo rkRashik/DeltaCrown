@@ -667,21 +667,43 @@
     const sheet = document.getElementById("dc-mobile-notif-sheet");
     const closeBtn = document.getElementById("dc-mobile-notif-close");
     if (!openBtn || !overlay || !sheet) return;
+    let isOpen = false;
+    let closeTimer = null;
 
     function openSheet() {
+      if (isOpen) return;
+      isOpen = true;
+      if (window.dcNav && typeof window.dcNav.closeMenu === "function") {
+        window.dcNav.closeMenu();
+      }
+      clearTimeout(closeTimer);
       overlay.classList.remove("hidden");
+      overlay.setAttribute("aria-hidden", "false");
+      sheet.setAttribute("aria-hidden", "false");
+      openBtn.setAttribute("aria-expanded", "true");
+      document.documentElement.classList.add("dc-mobile-notif-open");
+      document.body.classList.add("dc-mobile-notif-open");
       requestAnimationFrame(function () {
         overlay.classList.add("opacity-100");
         overlay.classList.remove("opacity-0");
+        sheet.classList.remove("translate-y-full");
       });
-      sheet.classList.remove("translate-y-full");
     }
 
     function closeSheet() {
+      if (!isOpen) return;
+      isOpen = false;
       sheet.classList.add("translate-y-full");
       overlay.classList.remove("opacity-100");
       overlay.classList.add("opacity-0");
-      setTimeout(function () { overlay.classList.add("hidden"); }, 280);
+      overlay.setAttribute("aria-hidden", "true");
+      sheet.setAttribute("aria-hidden", "true");
+      openBtn.setAttribute("aria-expanded", "false");
+      document.documentElement.classList.remove("dc-mobile-notif-open");
+      document.body.classList.remove("dc-mobile-notif-open");
+      closeTimer = setTimeout(function () {
+        if (!isOpen) overlay.classList.add("hidden");
+      }, 220);
     }
 
     openBtn.addEventListener("click", function (e) {
@@ -690,6 +712,12 @@
     });
     overlay.addEventListener("click", closeSheet);
     if (closeBtn) closeBtn.addEventListener("click", closeSheet);
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") closeSheet();
+    });
+    window.addEventListener("resize", function () {
+      if (window.innerWidth >= 768) closeSheet();
+    });
 
     const handle = document.getElementById("dc-mobile-notif-handle");
     if (handle) {

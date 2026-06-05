@@ -55,7 +55,7 @@
     {% if request.user.is_authenticated %}
     <button id="dc-mobile-notif-btn" class="w-11 h-11 rounded-full flex items-center justify-center text-gray-400 hover:text-white relative" aria-label="Notifications">
       <i class="fa-regular fa-bell text-lg"></i>
-      {% with nav_unread_count|default:0 as unread_count %}{% if unread_count > 0 %}<span id="dc-mobile-notif-badge" class="absolute -top-0.5 -right-0.5 min-w-[16px] h-[16px] px-0.5 flex items-center justify-center bg-red-500 rounded-full border-2 border-[#020005] text-[9px] font-bold text-white leading-none">{{ unread_count }}</span>{% endif %}{% endwith %}
+      {% with nav_unread_count|default:0 as unread_count %}{% if unread_count > 0 %}<span id="dc-mobile-notif-badge" class="absolute -top-0.5 -right-0.5 min-w-[16px] h-[16px] px-0.5 flex items-center justify-center bg-amber-400 rounded-full border-2 border-[#020005] text-[9px] font-bold text-black leading-none">{{ unread_count }}</span>{% endif %}{% endwith %}
     </button>
     {% endif %}
     <button id="dc-mobile-menu-toggle" aria-label="Open menu" aria-expanded="false"
@@ -213,7 +213,7 @@
           <i class="fa-regular fa-bell text-[1.25rem] group-hover:rotate-12 transition-transform"></i>
           {% with nav_unread_count|default:0 as unread_count %}
           {% if unread_count > 0 %}
-          <span id="dc-notif-badge" class="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 flex items-center justify-center bg-red-500 rounded-full border-2 border-[#020005] text-[10px] font-bold text-white leading-none animate-pulse">{{ unread_count }}</span>
+          <span id="dc-notif-badge" class="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 flex items-center justify-center bg-amber-400 rounded-full border-2 border-[#020005] text-[10px] font-bold text-black leading-none">{{ unread_count }}</span>
           {% endif %}
           {% endwith %}
         </button>

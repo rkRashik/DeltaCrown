@@ -133,6 +133,8 @@ urlpatterns = [
     # Trophy management (5-Point Overhaul — Point 4)
     path('teams/<str:slug>/trophies/', team_manage.list_trophies, name='team_trophies'),
     path('teams/<str:slug>/trophies/save/', team_manage.save_trophy, name='team_save_trophy'),
+    path('teams/<str:slug>/trophies/visibility/', team_manage.toggle_trophy_visibility, name='team_trophy_visibility'),
+    path('teams/<str:slug>/trophies/layout/', team_manage.set_trophy_layout, name='team_trophy_layout'),
     path('teams/<str:slug>/trophies/<str:trophy_id>/delete/', team_manage.delete_trophy, name='team_delete_trophy'),
     
     # Merch management (5-Point Overhaul — Point 4)

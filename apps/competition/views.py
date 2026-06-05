@@ -121,29 +121,51 @@ def match_report_detail(request, match_id):
     return render(request, 'competition/match_report_detail.html', context)
 
 
-@login_required
 def match_report_list(request):
     """
-    List all match reports for user's teams
+    List match reports.
+
+    Two modes:
+      - ?team=<slug>: public, complete match history for a single team
+        (linked from the public team detail page).
+      - no slug: the signed-in user's own teams' reports (requires login).
     """
-    # Get user's teams
-    user_teams = request.user.teams.filter(
-        teammembership__status='ACTIVE'
-    ).distinct()
-    
-    # Get all reports involving user's teams
-    match_reports = MatchReport.objects.filter(
-        Q(team1__in=user_teams) | Q(team2__in=user_teams)
-    ).select_related('team1', 'team2', 'verification').order_by('-submitted_at')
-    
+    team_slug = (request.GET.get('team') or '').strip()
+    focus_team = None
+
+    if team_slug:
+        # Public per-team history. No login required.
+        focus_team = get_object_or_404(Team, slug=team_slug)
+        match_reports = MatchReport.objects.filter(
+            Q(team1=focus_team) | Q(team2=focus_team)
+        )
+    else:
+        # Personal view across the user's active teams.
+        if not request.user.is_authenticated:
+            return redirect(f"{settings.LOGIN_URL}?next={request.get_full_path()}")
+        user_teams = Team.objects.filter(
+            vnext_memberships__user=request.user,
+            vnext_memberships__status='ACTIVE',
+        ).distinct()
+        match_reports = MatchReport.objects.filter(
+            Q(team1__in=user_teams) | Q(team2__in=user_teams)
+        )
+
+    match_reports = (
+        match_reports
+        .select_related('team1', 'team2', 'verification')
+        .order_by('-submitted_at')
+    )
+
     # Filter by status if provided
     status_filter = request.GET.get('status')
     if status_filter:
         match_reports = match_reports.filter(verification__status=status_filter)
-    
+
     context = {
         'match_reports': match_reports,
         'status_filter': status_filter,
+        'focus_team': focus_team,
     }
     return render(request, 'competition/match_report_list.html', context)
 

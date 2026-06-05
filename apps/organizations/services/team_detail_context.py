@@ -198,6 +198,7 @@ def get_team_detail_context(
             'announcements': _build_announcements_context(team, is_private_restricted),
             'upcoming_matches': _build_upcoming_matches_context(team, is_private_restricted),
             'trophy_cabinet': _build_trophy_cabinet_context(team, is_private_restricted),
+            'trophy_layout': (getattr(team, 'metadata', None) or {}).get('trophy_layout', 'grid') if not is_private_restricted else 'grid',
             'media_highlights': _build_media_highlights_context(team, is_private_restricted),
             'challenges': _build_challenges_context(team, is_private_restricted),
             'match_history': _build_match_history_context(team, is_private_restricted),
@@ -1412,98 +1413,81 @@ def _build_pending_actions_context(
 
 def _build_journey_context(team: Team, is_restricted: bool) -> List[Dict[str, Any]]:
     """
-    P6 — Curated Journey Milestones.
-    
-    Shows up to 5 owner-curated milestones from TeamJourneyMilestone (is_visible=True).
-    Falls back to legacy activity-based timeline if no curated milestones exist.
+    P6 — The Journey: an AUTOMATIC highlight reel of a team's story.
+
+    Built from real signals so it's meaningful with zero manual upkeep:
+      • Founded — team.created_at
+      • Trophies — every top-3 tournament placement (build_team_trophies)
+      • Rank Up — current competitive tier when above Rookie
+    Any owner-curated TeamJourneyMilestone (is_visible) entries are merged on top,
+    so teams can add custom highlights without losing the automatic ones.
     """
     if is_restricted:
         return []
 
-    # ── Primary: Curated milestones ──
+    entries: List[Dict[str, Any]] = []
+
+    # ── Founded ──
+    try:
+        if getattr(team, 'created_at', None):
+            entries.append({
+                'type': 'auto',
+                'milestone_type': 'FOUNDED',
+                'title': f'{team.name} founded',
+                'description': 'The team was established on DeltaCrown.',
+                'timestamp': team.created_at,
+            })
+    except Exception:
+        pass
+
+    # ── Trophies (top-3 tournament placements) ──
+    try:
+        for tr in build_team_trophies(team, include_hidden=False):
+            entries.append({
+                'type': 'auto',
+                'milestone_type': 'TROPHY',
+                'title': f"{tr['placement_label']} — {tr['tournament_name']}",
+                'description': '',
+                'timestamp': tr.get('date'),
+            })
+    except Exception:
+        pass
+
+    # ── Rank / tier achievement ──
+    try:
+        from apps.organizations.models import TeamRanking as OrgTeamRanking
+        ranking = OrgTeamRanking.objects.filter(team=team).first()
+        tier = (getattr(ranking, 'tier', '') or '').upper() if ranking else ''
+        if tier and tier != 'ROOKIE':
+            tier_label = 'The Crown' if tier == 'THE_CROWN' else tier.title()
+            entries.append({
+                'type': 'auto',
+                'milestone_type': 'RANK_UP',
+                'title': f'Reached {tier_label} tier',
+                'description': f'Climbed the competitive ladder to {tier_label}.',
+                'timestamp': getattr(ranking, 'updated_at', None) or getattr(team, 'created_at', None),
+            })
+    except Exception:
+        pass
+
+    # ── Owner-curated custom milestones (merged on top) ──
     try:
         from apps.organizations.models.journey import TeamJourneyMilestone
-        milestones = TeamJourneyMilestone.objects.filter(
-            team=team, is_visible=True
-        ).order_by('-milestone_date')[:5]
-        if milestones.exists():
-            return [
-                {
-                    'type': 'milestone',
-                    'milestone_type': getattr(m, 'milestone_type', 'CUSTOM'),
-                    'title': m.title,
-                    'description': m.description,
-                    'timestamp': m.milestone_date,
-                    'id': m.pk,
-                }
-                for m in milestones
-            ]
-    except Exception:
-        pass
-
-    # ── Fallback: Legacy activity log timeline ──
-    timeline = []
-    PUBLIC_ACTIVITY_TYPES = {'CREATE', 'TOURNAMENT_REGISTER', 'ACQUIRE', 'DELETE'}
-    try:
-        from apps.organizations.models import TeamActivityLog
-        from django.db.models import Q
-        activities = TeamActivityLog.objects.filter(
-            Q(team=team) & (
-                Q(action_type__in=PUBLIC_ACTIVITY_TYPES) |
-                Q(is_pinned=True) |
-                Q(is_milestone=True)
-            )
-        ).order_by('-timestamp')[:5]
-        for act in activities:
-            # Map activity types to milestone categories
-            act_type = getattr(act, 'action_type', '')
-            m_type = 'CUSTOM'
-            if act_type == 'CREATE':
-                m_type = 'FOUNDED'
-            elif act_type == 'ACQUIRE':
-                m_type = 'TRANSFER'
-            elif act_type == 'TOURNAMENT_REGISTER':
-                m_type = 'TROPHY'
-            title = getattr(act, 'description', '') or act_type.replace('_', ' ').title()
-            timeline.append({
-                'type': 'activity',
-                'milestone_type': m_type,
-                'title': title,
-                'action': act_type,
-                'description': '',
-                'actor': getattr(act, 'actor_username', ''),
-                'timestamp': act.timestamp,
-                'metadata': getattr(act, 'metadata', {}),
-                'is_pinned': getattr(act, 'is_pinned', False),
-                'is_milestone': getattr(act, 'is_milestone', False),
-                'id': act.pk,
+        for m in TeamJourneyMilestone.objects.filter(team=team, is_visible=True).order_by('-milestone_date')[:8]:
+            entries.append({
+                'type': 'milestone',
+                'milestone_type': getattr(m, 'milestone_type', 'CUSTOM'),
+                'title': m.title,
+                'description': m.description,
+                'timestamp': m.milestone_date,
+                'id': m.pk,
             })
     except Exception:
         pass
 
-    try:
-        from apps.organizations.models import TeamMembershipEvent
-        PUBLIC_MEMBERSHIP_EVENTS = {'JOINED', 'REMOVED', 'LEFT'}
-        events = TeamMembershipEvent.objects.filter(
-            team=team,
-            event_type__in=PUBLIC_MEMBERSHIP_EVENTS,
-        ).order_by('-created_at')[:5]
-        for evt in events:
-            timeline.append({
-                'type': 'membership',
-                'event_type': getattr(evt, 'event_type', ''),
-                'actor': getattr(evt.actor, 'username', '') if evt.actor else '',
-                'user': getattr(evt.user, 'username', '') if evt.user else '',
-                'old_role': getattr(evt, 'old_role', ''),
-                'new_role': getattr(evt, 'new_role', ''),
-                'timestamp': evt.created_at,
-                'metadata': getattr(evt, 'metadata', {}),
-            })
-    except Exception:
-        pass
-
-    timeline.sort(key=lambda x: x.get('timestamp') or '', reverse=True)
-    return timeline[:5]
+    # Newest first; mixed date/datetime values compared as ISO strings.
+    entries.sort(key=lambda x: str(x.get('timestamp') or ''), reverse=True)
+    return entries[:8]
 
 
 def _build_announcements_context(team: Team, is_restricted: bool) -> List[Dict[str, Any]]:
@@ -1590,64 +1574,72 @@ def _build_upcoming_matches_context(team: Team, is_restricted: bool) -> List[Dic
         return []
 
 
-def _build_trophy_cabinet_context(team: Team, is_restricted: bool) -> List[Dict[str, Any]]:
+def build_team_trophies(team: Team, include_hidden: bool = False) -> List[Dict[str, Any]]:
     """
-    P13: Trophy Cabinet — fetch tournament placements.
-    Queries TournamentResult + Registration to find team's placement history.
-    """
-    if is_restricted:
-        return []
+    Single source of truth for a team's Trophy Cabinet.
 
-    trophies = []
+    Trophies are EARNED, not authored: every entry comes automatically from a
+    top-3 placement in a real tournament (TournamentResult). The only owner
+    customization is visibility — each trophy carries a stable ``key`` and a
+    ``hidden`` flag (from team.metadata['trophies_hidden']). When ``include_hidden``
+    is False, hidden trophies are dropped — that's the public-facing list.
+    """
+    meta = getattr(team, 'metadata', None) or {}
+    hidden_keys = set(meta.get('trophies_hidden', []) or [])
+    trophies: List[Dict[str, Any]] = []
+
     try:
         from apps.tournaments.models import TournamentResult, Registration
-        # Find all registrations for this team
-        reg_id_set = set(Registration.objects.filter(
-            team_id=team.id
-        ).values_list('id', flat=True))
-
+        from django.db.models import Q
+        reg_id_set = set(Registration.objects.filter(team_id=team.id).values_list('id', flat=True))
         if reg_id_set:
-            # Find results where this team placed
-            from django.db.models import Q
             results = TournamentResult.objects.filter(
                 Q(winner_id__in=reg_id_set) |
                 Q(runner_up_id__in=reg_id_set) |
                 Q(third_place_id__in=reg_id_set)
-            ).select_related('tournament')[:12]
-
+            ).select_related('tournament')[:24]
             for result in results:
-                placement = None
-                placement_label = None
-                placement_emoji = None
                 if result.winner_id in reg_id_set:
-                    placement = 1
-                    placement_label = '1st Place'
-                    placement_emoji = '🏆'
+                    placement, label, emoji = 1, '1st Place', '🏆'
                 elif result.runner_up_id and result.runner_up_id in reg_id_set:
-                    placement = 2
-                    placement_label = '2nd Place'
-                    placement_emoji = '🥈'
+                    placement, label, emoji = 2, '2nd Place', '🥈'
                 elif result.third_place_id and result.third_place_id in reg_id_set:
-                    placement = 3
-                    placement_label = '3rd Place'
-                    placement_emoji = '🥉'
-
-                if placement:
-                    tournament = result.tournament
-                    trophies.append({
-                        'tournament_name': tournament.name if tournament else 'Unknown',
-                        'placement': placement,
-                        'placement_label': placement_label,
-                        'emoji': placement_emoji,
-                        'date': getattr(tournament, 'end_date', None) or getattr(tournament, 'created_at', None),
-                        'prize': None,  # Could query PrizeTransaction
-                    })
+                    placement, label, emoji = 3, '3rd Place', '🥉'
+                else:
+                    continue
+                tournament = result.tournament
+                trophies.append({
+                    'key': f'tr-{result.id}',
+                    'source': 'tournament',
+                    'tournament_name': tournament.name if tournament else 'Unknown',
+                    'event': tournament.name if tournament else '',
+                    'placement': placement,
+                    'placement_label': label,
+                    'emoji': emoji,
+                    'date': getattr(tournament, 'end_date', None) or getattr(tournament, 'created_at', None),
+                    'prize': None,
+                })
     except Exception:
         pass
 
-    # Sort by placement (1st first), then date
+    # Annotate hidden state; optionally drop hidden for the public view.
+    for tr in trophies:
+        tr['hidden'] = tr['key'] in hidden_keys
+    if not include_hidden:
+        trophies = [tr for tr in trophies if not tr['hidden']]
+
     trophies.sort(key=lambda x: (x['placement'], str(x.get('date') or '')))
     return trophies
+
+
+def _build_trophy_cabinet_context(team: Team, is_restricted: bool) -> List[Dict[str, Any]]:
+    """
+    P13: Trophy Cabinet — automatic tournament placements, with hidden entries
+    filtered out for the public page.
+    """
+    if is_restricted:
+        return []
+    return build_team_trophies(team, include_hidden=False)
 
 
 def _build_media_highlights_context(team: Team, is_restricted: bool) -> Dict[str, Any]:

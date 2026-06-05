@@ -343,6 +343,14 @@ class Team(models.Model):
         help_text="Spotlight badge text (e.g. 'Season 1 Champion', 'Community Pick')"
     )
 
+    # Flexible JSON store for opt-in extras that don't warrant dedicated columns:
+    # trophy cabinet prefs (hidden keys, layout), merch items, etc.
+    metadata = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="Flexible key-value store (trophy visibility/layout prefs, merch, etc.)"
+    )
+
     # Metadata
     is_temporary = models.BooleanField(
         default=False,

@@ -207,6 +207,42 @@ a.hl-org {
   backdrop-filter: blur(30px);
   -webkit-backdrop-filter: blur(30px);
   border-top: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 -30px 80px rgba(0, 0, 0, 0.6);
+  overscroll-behavior: contain;
+}
+
+html.dc-mobile-notif-open,
+body.dc-mobile-notif-open {
+  overflow: hidden;
+  touch-action: none;
+}
+
+@media (max-width: 767px) {
+  #dc-mobile-notif-sheet {
+    border-radius: 0;
+  }
+
+  #dc-mobile-notif-content {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  #dc-mobile-notif-sheet button,
+  #dc-mobile-notif-sheet a {
+    min-height: 44px;
+  }
+
+  #dc-mobile-notif-sheet .dropdown-item > div,
+  #dc-mobile-notif-sheet .dropdown-item .flex.gap-4 {
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #dc-mobile-notif-overlay,
+  #dc-mobile-notif-sheet {
+    transition-duration: 1ms !important;
+  }
 }
 
 .dc-notif-page-wrap {

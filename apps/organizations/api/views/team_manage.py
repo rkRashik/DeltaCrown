@@ -3720,12 +3720,83 @@ def toggle_activity_pin(request, slug, activity_id):
 @api_login_required
 @require_http_methods(["GET"])
 def list_trophies(request, slug):
-    """GET /api/vnext/teams/<slug>/trophies/ â€” list team trophies from metadata."""
+    """GET /api/vnext/teams/<slug>/trophies/ — merged cabinet (tournament + manual)
+    with hidden flags and the saved layout, so the manager controls everything the
+    public page shows from one place."""
     team = get_object_or_404(Team, slug=slug, status=TeamStatus.ACTIVE)
-    # Public endpoint â€” no perm check
+    from apps.organizations.services.team_detail_context import build_team_trophies
+
+    trophies = build_team_trophies(team, include_hidden=True)
+    # JSON-safe dates (tournament dates are datetime/date objects).
+    for tr in trophies:
+        d = tr.get('date')
+        if d and not isinstance(d, str):
+            try:
+                tr['date'] = d.strftime('%Y-%m-%d')
+            except Exception:
+                tr['date'] = str(d)
     meta = team.metadata or {}
-    trophies = meta.get('trophies', [])
-    return JsonResponse({'trophies': trophies})
+    return JsonResponse({
+        'trophies': trophies,
+        'layout': meta.get('trophy_layout', 'grid'),
+    })
+
+
+@api_login_required
+@require_http_methods(["POST"])
+def toggle_trophy_visibility(request, slug):
+    """POST /api/vnext/teams/<slug>/trophies/visibility/ — show/hide a trophy on the
+    public page. Body: {key, hidden}. Works for both tournament and manual trophies."""
+    team = get_object_or_404(Team, slug=slug, status=TeamStatus.ACTIVE)
+    has_perm, reason = _check_manage_permissions(team, request.user)
+    if not has_perm:
+        return JsonResponse({'error': reason, 'error_code': 'INSUFFICIENT_PERMISSIONS'}, status=403)
+
+    try:
+        data = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    key = (data.get('key') or '').strip()
+    if not key:
+        return JsonResponse({'error': 'Trophy key is required.'}, status=400)
+
+    meta = team.metadata or {}
+    hidden = set(meta.get('trophies_hidden', []) or [])
+    if data.get('hidden'):
+        hidden.add(key)
+    else:
+        hidden.discard(key)
+    meta['trophies_hidden'] = sorted(hidden)
+    team.metadata = meta
+    team.save(update_fields=['metadata'])
+    return JsonResponse({'success': True, 'hidden': data.get('hidden', False)})
+
+
+@api_login_required
+@require_http_methods(["POST"])
+def set_trophy_layout(request, slug):
+    """POST /api/vnext/teams/<slug>/trophies/layout/ — set the public cabinet layout.
+    Body: {layout}. Allowed: grid | list | showcase."""
+    team = get_object_or_404(Team, slug=slug, status=TeamStatus.ACTIVE)
+    has_perm, reason = _check_manage_permissions(team, request.user)
+    if not has_perm:
+        return JsonResponse({'error': reason, 'error_code': 'INSUFFICIENT_PERMISSIONS'}, status=403)
+
+    try:
+        data = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    layout = (data.get('layout') or '').strip().lower()
+    if layout not in ('grid', 'list', 'showcase'):
+        return JsonResponse({'error': 'Invalid layout.'}, status=400)
+
+    meta = team.metadata or {}
+    meta['trophy_layout'] = layout
+    team.metadata = meta
+    team.save(update_fields=['metadata'])
+    return JsonResponse({'success': True, 'layout': layout})
 
 
 @api_login_required

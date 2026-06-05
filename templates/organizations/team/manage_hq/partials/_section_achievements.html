@@ -10,15 +10,35 @@
                 <i data-lucide="trophy" class="w-5 h-5 text-amber-400"></i>
             </div>
             <div>
-                <h2 class="text-lg font-bold font-display leading-tight">Trophy Cabinet</h2>
-                <p class="text-sm text-white/45 leading-tight">Tournament wins, awards &amp; achievements</p>
+                <p class="text-sm text-white/55 font-medium leading-tight">Tournament wins, awards &amp; achievements</p>
             </div>
         </div>
-        <button data-click="TrophyManager.openForm" class="h-10 px-4 rounded-xl text-white text-xs font-bold uppercase tracking-wider transition flex items-center gap-2 shadow-lg shadow-amber-500/20"
-                style="background:linear-gradient(135deg,#f59e0b,#d97706)">
-            <i data-lucide="plus" class="w-4 h-4"></i>
-            Add Trophy
-        </button>
+        <div class="flex items-center gap-3">
+            <span class="hidden sm:inline text-[10px] text-white/35 uppercase tracking-wider font-semibold">Public layout</span>
+            {# Public cabinet layout selector #}
+            <div class="flex items-center gap-1 rounded-xl border border-line bg-card2 p-1" role="group" aria-label="Public cabinet layout">
+                <button data-click="TrophyManager.setLayout" data-click-args='["grid"]' data-layout-btn="grid"
+                        class="trophy-layout-btn h-7 w-7 grid place-items-center rounded-lg text-white/45 hover:text-white/80 transition" title="Grid layout">
+                    <i data-lucide="layout-grid" class="w-3.5 h-3.5"></i>
+                </button>
+                <button data-click="TrophyManager.setLayout" data-click-args='["list"]' data-layout-btn="list"
+                        class="trophy-layout-btn h-7 w-7 grid place-items-center rounded-lg text-white/45 hover:text-white/80 transition" title="List layout">
+                    <i data-lucide="list" class="w-3.5 h-3.5"></i>
+                </button>
+                <button data-click="TrophyManager.setLayout" data-click-args='["showcase"]' data-layout-btn="showcase"
+                        class="trophy-layout-btn h-7 w-7 grid place-items-center rounded-lg text-white/45 hover:text-white/80 transition" title="Showcase layout">
+                    <i data-lucide="gallery-horizontal-end" class="w-3.5 h-3.5"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="rounded-2xl border border-line bg-card2 p-3.5 flex items-center gap-3">
+        <i data-lucide="sparkles" class="w-4 h-4 text-amber-400 shrink-0"></i>
+        <p class="text-xs text-white/50">
+            Trophies are awarded <b class="text-white/70">automatically</b> when your team finishes top-3 in a tournament.
+            Use the <i data-lucide="eye" class="inline w-3 h-3 -mt-0.5"></i> toggle to hide any trophy from your public page, and the layout buttons to choose how the cabinet looks.
+        </p>
     </div>
 
     {# ── Career stats strip ── #}
@@ -45,26 +65,6 @@
         </div>
     </div>
 
-    {# Add/Edit Form (hidden by default) #}
-    <div id="trophy-form" class="hidden rounded-2xl border border-amber-500/15 bg-card p-5 space-y-3">
-        <h3 class="text-sm font-bold text-amber-400">Add Trophy</h3>
-        <input type="hidden" id="trophy-edit-id" value="" />
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <input type="text" id="trophy-title" placeholder="Trophy title (e.g. VALORANT Masters)" maxlength="80"
-                class="text-xs px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/20 focus:outline-none focus:border-amber-500/30" />
-            <input type="text" id="trophy-event" placeholder="Event / Tournament name" maxlength="100"
-                class="text-xs px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/20 focus:outline-none focus:border-amber-500/30" />
-            <input type="text" id="trophy-placement" placeholder="Placement (e.g. 1st, Champion)" maxlength="30"
-                class="text-xs px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/20 focus:outline-none focus:border-amber-500/30" />
-            <input type="date" id="trophy-date"
-                class="text-xs px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-amber-500/30" />
-        </div>
-        <div class="flex items-center gap-2">
-            <button data-click="TrophyManager.save" class="h-8 px-5 rounded-xl bg-amber-500/20 border border-amber-500/30 text-amber-300 text-xs font-bold hover:bg-amber-500/30 transition">Save</button>
-            <button data-click="TrophyManager.closeForm" class="h-8 px-4 rounded-xl bg-white/5 border border-white/10 text-white/40 text-xs hover:bg-white/10 transition">Cancel</button>
-        </div>
-    </div>
-
     {# Trophy Grid #}
     <div id="trophy-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         <div class="col-span-full text-center py-12">
@@ -86,38 +86,29 @@
 
     function esc(s) { const d = document.createElement("div"); d.textContent = s; return d.innerHTML; }
 
-    const PLACEMENT_ICONS = {
-        '1st': '\ud83e\uddc1', 'champion': '\ud83e\uddc1', 'first': '\ud83e\uddc1',
-        '2nd': '\ud83e\udd48', 'runner-up': '\ud83e\udd48', 'second': '\ud83e\udd48',
-        '3rd': '\ud83e\udd49', 'third': '\ud83e\udd49',
-    };
-
-    function placementIcon(p) {
-        const key = (p || '').toLowerCase().trim();
-        return PLACEMENT_ICONS[key] || '\ud83c\udfc6';
+    // Feedback toast — uses the manage HQ toast (ManageHQ.toast); falls back to a global.
+    function notify(msg, type = 'success') {
+        if (window.ManageHQ && typeof ManageHQ.toast === 'function') ManageHQ.toast(msg, type);
+        else if (typeof window.showToast === 'function') window.showToast(msg, type);
     }
 
-    // Medal-gradient by placement \u2014 gold / silver / bronze / default
+    // Medal styling keyed by numeric placement (1/2/3) \u2014 gold / silver / bronze / default
     function placementStyle(p) {
-        const k = (p || '').toLowerCase().trim();
-        if (['1st','champion','first','winner','gold'].includes(k))
+        if (p === 1)
             return { card: 'border-amber-500/35', bg: 'background:linear-gradient(160deg, rgba(245,158,11,.18), rgba(217,119,6,.04))', badge: 'bg-amber-500/20 text-amber-300', ring: 'ring-1 ring-amber-500/20' };
-        if (['2nd','runner-up','second','silver'].includes(k))
+        if (p === 2)
             return { card: 'border-slate-300/30', bg: 'background:linear-gradient(160deg, rgba(203,213,225,.15), rgba(148,163,184,.03))', badge: 'bg-slate-300/15 text-slate-200', ring: '' };
-        if (['3rd','third','bronze'].includes(k))
+        if (p === 3)
             return { card: 'border-orange-600/30', bg: 'background:linear-gradient(160deg, rgba(234,88,12,.15), rgba(154,52,18,.04))', badge: 'bg-orange-600/15 text-orange-300', ring: '' };
         return { card: 'border-line', bg: '', badge: 'bg-amber-500/10 text-amber-400', ring: '' };
     }
 
     function renderStats(trophies) {
         const total = trophies.length;
-        let gold = 0, best = '\u2014', bestRank = 99;
-        const rankMap = { '1st':1,'champion':1,'first':1,'winner':1,'gold':1,'2nd':2,'runner-up':2,'second':2,'silver':2,'3rd':3,'third':3,'bronze':3 };
+        let gold = 0, bestRank = 99, best = '\u2014';
         trophies.forEach(t => {
-            const k = (t.placement||'').toLowerCase().trim();
-            if (rankMap[k] === 1) gold++;
-            if (rankMap[k] && rankMap[k] < bestRank) { bestRank = rankMap[k]; best = t.placement; }
-            else if (best === '\u2014' && t.placement) best = t.placement;
+            if (t.placement === 1) gold++;
+            if (t.placement && t.placement < bestRank) { bestRank = t.placement; best = t.placement_label || t.placement; }
         });
         const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
         set('ach-stat-total', total);
@@ -126,11 +117,21 @@
     }
 
     const TrophyManager = {
+        setLayoutActive(layout) {
+            document.querySelectorAll('.trophy-layout-btn').forEach(b => {
+                const on = b.dataset.layoutBtn === layout;
+                b.classList.toggle('bg-amber-500/20', on);
+                b.classList.toggle('text-amber-300', on);
+                b.classList.toggle('text-white/45', !on);
+            });
+        },
+
         async load() {
             const resp = await fetch(`${API_BASE}/trophies/`, { headers: { "X-CSRFToken": CSRF } });
             const data = await resp.json();
             const list = document.getElementById("trophy-list");
             const trophies = data.trophies || [];
+            TrophyManager.setLayoutActive(data.layout || 'grid');
             renderStats(trophies);
 
             if (trophies.length === 0) {
@@ -138,7 +139,7 @@
                     <div class="col-span-full rounded-2xl border border-dashed border-line bg-card2 text-center py-12">
                         <div class="text-4xl mb-2">\ud83c\udfc6</div>
                         <p class="text-sm text-white/40 font-medium">No trophies yet</p>
-                        <p class="text-xs text-white/25 mt-1">Win tournaments and immortalize them here.</p>
+                        <p class="text-xs text-white/25 mt-1">Finish top-3 in a tournament and the trophy appears here automatically.</p>
                     </div>`;
                 return;
             }
@@ -146,72 +147,55 @@
             list.innerHTML = trophies.map(t => {
                 const s = placementStyle(t.placement);
                 return `
-                <div class="relative overflow-hidden rounded-2xl border ${s.card} ${s.ring} bg-card p-4 lift hover:-translate-y-0.5 group" style="${s.bg}">
+                <div class="relative overflow-hidden rounded-2xl border ${s.card} ${s.ring} bg-card p-4 group ${t.hidden ? 'opacity-50' : ''}" style="${s.bg}">
                     <div class="flex items-start justify-between gap-2">
-                        <div class="text-3xl drop-shadow">${placementIcon(t.placement)}</div>
-                        <div class="opacity-0 group-hover:opacity-100 transition flex gap-1">
-                            <button data-click="TrophyManager.edit" data-click-args='${JSON.stringify([t]).replace(/'/g, "\\'")}' class="p-1.5 rounded-lg hover:bg-white/10 text-white/40 hover:text-white/70" title="Edit">
-                                <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
-                            </button>
-                            <button data-click="TrophyManager.remove" data-click-args='["${t.id}"]' class="p-1.5 rounded-lg hover:bg-red-500/10 text-white/40 hover:text-red-400" title="Delete">
-                                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-                            </button>
-                        </div>
+                        <div class="text-3xl drop-shadow">${t.emoji || '\ud83c\udfc6'}</div>
+                        <button data-click="TrophyManager.toggleVisibility" data-click-args='["${t.key}", ${t.hidden ? 'false' : 'true'}]' class="p-1.5 rounded-lg hover:bg-white/10 text-white/40 hover:text-white/80" title="${t.hidden ? 'Show on public page' : 'Hide from public page'}">
+                            <i data-lucide="${t.hidden ? 'eye-off' : 'eye'}" class="w-3.5 h-3.5"></i>
+                        </button>
                     </div>
-                    <p class="text-sm font-bold font-display text-white mt-3">${esc(t.title)}</p>
-                    ${t.event ? `<p class="text-[11px] text-white/45 mt-0.5">${esc(t.event)}</p>` : ''}
-                    <div class="flex items-center gap-2 mt-3 text-[10px]">
-                        ${t.placement ? `<span class="px-2 py-0.5 rounded-full ${s.badge} font-bold uppercase tracking-wide">${esc(t.placement)}</span>` : ''}
-                        ${t.date ? `<span class="text-white/30 font-mono">${t.date}</span>` : ''}
+                    <p class="text-sm font-bold font-display text-white mt-3">${esc(t.tournament_name)}</p>
+                    ${t.event && t.event !== t.tournament_name ? `<p class="text-[11px] text-white/45 mt-0.5">${esc(t.event)}</p>` : ''}
+                    <div class="flex items-center gap-2 mt-3 text-[10px] flex-wrap">
+                        <span class="px-2 py-0.5 rounded-full ${s.badge} font-bold uppercase tracking-wide">${esc(t.placement_label || 'Award')}</span>
+                        ${t.date ? `<span class="text-white/30 font-mono">${esc(String(t.date).slice(0,10))}</span>` : ''}
+                        ${t.hidden ? `<span class="text-amber-400/70 font-semibold uppercase tracking-wide">Hidden</span>` : ''}
                     </div>
                 </div>`;
             }).join("");
             if (window.lucide) lucide.createIcons({ nodes: [list] });
         },
 
-        openForm() {
-            document.getElementById("trophy-form").classList.remove("hidden");
-            document.getElementById("trophy-edit-id").value = '';
-            document.getElementById("trophy-title").value = '';
-            document.getElementById("trophy-event").value = '';
-            document.getElementById("trophy-placement").value = '';
-            document.getElementById("trophy-date").value = '';
+        async setLayout(layout) {
+            const LABELS = { grid: 'Grid', list: 'List', showcase: 'Showcase' };
+            TrophyManager.setLayoutActive(layout);
+            try {
+                const resp = await fetch(`${API_BASE}/trophies/layout/`, {
+                    method: "POST", headers: HEADERS, body: JSON.stringify({ layout }),
+                });
+                const data = await resp.json();
+                if (data.success) notify(`Public cabinet set to ${LABELS[layout] || layout} layout`, 'success');
+                else notify(data.error || 'Could not update layout', 'error');
+            } catch (e) {
+                notify('Network error, layout not saved', 'error');
+            }
         },
 
-        closeForm() { document.getElementById("trophy-form").classList.add("hidden"); },
-
-        edit(t) {
-            document.getElementById("trophy-form").classList.remove("hidden");
-            document.getElementById("trophy-edit-id").value = t.id;
-            document.getElementById("trophy-title").value = t.title || '';
-            document.getElementById("trophy-event").value = t.event || '';
-            document.getElementById("trophy-placement").value = t.placement || '';
-            document.getElementById("trophy-date").value = t.date || '';
-        },
-
-        async save() {
-            const body = {
-                id: document.getElementById("trophy-edit-id").value || undefined,
-                title: document.getElementById("trophy-title").value,
-                event: document.getElementById("trophy-event").value,
-                placement: document.getElementById("trophy-placement").value,
-                date: document.getElementById("trophy-date").value,
-            };
-            const resp = await fetch(`${API_BASE}/trophies/save/`, {
-                method: "POST", headers: HEADERS, body: JSON.stringify(body),
-            });
-            const data = await resp.json();
-            if (data.success) { TrophyManager.closeForm(); TrophyManager.load(); }
-            else alert(data.error || "Failed");
-        },
-
-        async remove(id) {
-            if (!confirm("Delete this trophy?")) return;
-            const resp = await fetch(`${API_BASE}/trophies/${id}/delete/`, {
-                method: "POST", headers: HEADERS, body: "{}",
-            });
-            const data = await resp.json();
-            if (data.success) TrophyManager.load();
+        async toggleVisibility(key, hidden) {
+            try {
+                const resp = await fetch(`${API_BASE}/trophies/visibility/`, {
+                    method: "POST", headers: HEADERS, body: JSON.stringify({ key, hidden }),
+                });
+                const data = await resp.json();
+                if (data.success) {
+                    notify(hidden ? 'Trophy hidden from public page' : 'Trophy now visible on public page', 'success');
+                    TrophyManager.load();
+                } else {
+                    notify(data.error || 'Could not update visibility', 'error');
+                }
+            } catch (e) {
+                notify('Network error, change not saved', 'error');
+            }
         },
     };
 
