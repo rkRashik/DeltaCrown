@@ -334,12 +334,12 @@ def _get_fallback_context() -> Dict[str, Any]:
             "games_count": 11,
         },
         "hero": {
-            "badge_text": "Bangladesh's #1 Esports Platform",
+            "badge_text": "Competitive Gaming Platform",
             "title": "From the Delta to the Crown",
             "subtitle": "Where Champions Rise",
             "description": (
-                "Building a world where geography does not define destinyâ€”where a gamer in "
-                "Bangladesh has the same trusted path to global glory as a pro on the main stage."
+                "DeltaCrown connects tournaments, teams, player profiles, rankings, "
+                "and competitive operations for gaming communities in Bangladesh and beyond."
             ),
             "primary_cta": {
                 "text": "Join Tournament",
@@ -397,7 +397,7 @@ def _get_fallback_context() -> Dict[str, Any]:
         },
         "payments": {
             "title": "Local Payment Partners",
-            "description": "Bangladesh-first infrastructure",
+            "description": "Local payment support",
             "methods": [],
             "trust_message": "No credit cards required. Built for South Asian markets.",
         },

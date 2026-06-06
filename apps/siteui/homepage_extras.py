@@ -529,7 +529,7 @@ def _ticker_items(limit: int = 14) -> List[Dict[str, str]]:
             {"kind": "info", "text": "11 titles · mobile to PC"},
             {"kind": "info", "text": "Disputes resolved · platform-managed"},
             {"kind": "info", "text": "Team HQ · scrims · tryouts · VOD review"},
-            {"kind": "info", "text": "Bangladesh-first · built for esports"},
+            {"kind": "info", "text": "Built for competitive communities"},
         ]
         for f in fallbacks:
             if len(items) >= limit:

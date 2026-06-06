@@ -33,7 +33,7 @@ class HomePageContent(models.Model):
     # === HERO SECTION ===
     hero_badge_text = models.CharField(
         max_length=100,
-        default="Bangladesh's #1 Esports Platform",
+        default="Competitive Gaming Platform",
         help_text="Badge text above hero title"
     )
     hero_title = models.CharField(
@@ -48,8 +48,8 @@ class HomePageContent(models.Model):
     )
     hero_description = models.TextField(
         default=(
-            "Building a world where geography does not define destiny—where a gamer in "
-            "Bangladesh has the same trusted path to global glory as a pro on the main stage."
+            "DeltaCrown connects tournaments, teams, player profiles, rankings, "
+            "and competitive operations for gaming communities in Bangladesh and beyond."
         ),
         help_text="Hero description paragraph"
     )
@@ -166,7 +166,7 @@ class HomePageContent(models.Model):
         help_text="Payments section headline"
     )
     payments_section_description = models.TextField(
-        default="Bangladesh-first infrastructure—we support the payment methods you already trust",
+        default="Local payment support for familiar payment methods and platform workflows",
         help_text="Payments section description"
     )
     payment_methods = models.JSONField(

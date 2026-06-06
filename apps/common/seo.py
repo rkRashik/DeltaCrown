@@ -12,8 +12,8 @@ from django.urls import NoReverseMatch, reverse
 
 DEFAULT_TITLE = "DeltaCrown"
 DEFAULT_DESCRIPTION = (
-    "DeltaCrown is a Bangladesh-first esports ecosystem for tournaments, teams, "
-    "Crown Points rankings, Game Passport profiles, and competitive operations."
+    "DeltaCrown is a connected competitive gaming platform for tournaments, teams, "
+    "player identity, rankings, and structured competitive operations."
 )
 DEFAULT_IMAGE = "siteui/og/default.png"
 
@@ -84,9 +84,14 @@ def reverse_absolute(viewname: str, kwargs: dict[str, Any] | None = None) -> str
 
 def truncate_meta(value: str, length: int = 155) -> str:
     value = " ".join((value or "").split())
+    if length <= 0:
+        return ""
     if len(value) <= length:
         return value
-    return value[: length - 1].rstrip(" .,;:-") + "..."
+    ellipsis = "..."
+    if length <= len(ellipsis):
+        return ellipsis[:length]
+    return value[: length - len(ellipsis)].rstrip(" .,;:-") + ellipsis
 
 
 def _json_default(value: Any) -> str:

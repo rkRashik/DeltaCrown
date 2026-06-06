@@ -38,11 +38,14 @@ def home(request):
     # Per-user hero CTA/copy — not cached, lightweight exists() queries only
     context["hero_ctx"] = get_home_hero_context(request.user)
     context["seo"] = build_seo(
-        title="DeltaCrown | Bangladesh-First Esports Infrastructure",
+        title="DeltaCrown | Competitive Gaming Platform",
         description=(
-            "DeltaCrown connects tournaments, teams, Game Passport profiles, "
-            "Crown Points rankings, DeltaCoin utility rewards, and competitive "
-            "operations for Bangladesh and South Asia."
+            "DeltaCrown connects tournaments, teams, player profiles, rankings, "
+            "and competitive operations for gaming communities in Bangladesh and beyond."
+        ),
+        og_description=(
+            "Discover tournaments, team profiles, rankings, match history, and "
+            "competitive operations in one connected gaming platform."
         ),
         path="/",
         schema=[organization_schema(), website_schema()],
@@ -103,10 +106,10 @@ def about(request):
     return render(request, "about.html", {
         "stats": stats,
         "seo": build_seo(
-            title="About DeltaCrown | Esports Infrastructure From Bangladesh",
+            title="About DeltaCrown | Competitive Gaming Platform",
             description=(
-                "DeltaCrown is a Bangladesh-first esports ecosystem for tournaments, teams and organizations, "
-                "Game Passport identity, Crown Points rankings, DeltaCoin utility rewards, Team HQ workflows, and competitive integrity."
+                "Learn how DeltaCrown connects tournaments, teams, player identity, rankings, rewards, "
+                "proof review, and organizer tools in one competitive gaming platform."
             ),
             path="/about/",
             schema=breadcrumb_schema([("Home", "/"), ("About", "/about/")]),

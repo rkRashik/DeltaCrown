@@ -50,9 +50,9 @@ def homepage_context(request):
     featured_tournament = get_featured_tournament()
     
     hero = {
-        'title': 'Dominate The Arena',
-        'subtitle': 'Bangladesh\'s Premier Esports Platform',
-        'description': 'Compete in legendary tournaments. Earn glory. Claim prizes. Join thousands of gamers in the ultimate competitive experience.',
+        'title': 'Competitive Gaming Platform',
+        'subtitle': 'Tournaments, Teams & Rankings',
+        'description': 'DeltaCrown connects tournaments, teams, player profiles, rankings, and competitive operations for gaming communities in Bangladesh and beyond.',
         'cta_primary': {
             'text': 'Join Tournament',
             'url': featured_tournament['url'] if featured_tournament else '/tournaments/',
