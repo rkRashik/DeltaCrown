@@ -1,401 +1,128 @@
-/* DeltaCrown — homepage scroll & motion engine */
+/* ============================================================================
+   DeltaCrown Homepage — "Front Row Hybrid" body runtime.
+
+   Deliberately tiny and render-safe. All section + ambient motion is pure CSS
+   (see home.css). This file only owns two isolated, framework-free behaviours:
+
+     1. Live registration countdown — writes ONLY to its own text node every
+        second (never re-renders the tree; the handoff "Lessons" regression).
+     2. Hero state rotation — optional subtle fade between the server-provided
+        CTA variants (hero_ctx.rotation_items). Static markup always works
+        without JS; respects prefers-reduced-motion.
+   ============================================================================ */
 (function () {
   'use strict';
 
-  function $(s, c) { return (c || document).querySelector(s); }
-  function $$(s, c) { return Array.prototype.slice.call((c || document).querySelectorAll(s)); }
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
 
-  /* ---------- Scroll progress ---------- */
-  var progressBar = $('#homeProgressBar');
-  function updateProgress() {
-    if (!progressBar) return;
-    var h = document.documentElement;
-    var max = h.scrollHeight - h.clientHeight;
-    var pct = max > 0 ? (h.scrollTop / max) * 100 : 0;
-    progressBar.style.width = pct.toFixed(2) + '%';
-  }
+  /* ── 1. Live countdown ──────────────────────────────────────────────────
+     Renders the time remaining until an ISO deadline as HH:MM:SS, where the
+     hour field is NOT capped at 24 (matches the design's "31:48:06"). */
+  function initCountdowns() {
+    var els = document.querySelectorAll('[data-countdown]');
+    if (!els.length) return;
 
-  /* ---------- Reveal on scroll ---------- */
-  var revealObs = new IntersectionObserver(function (entries) {
-    entries.forEach(function (e) {
-      if (e.isIntersecting) { e.target.classList.add('in'); revealObs.unobserve(e.target); }
-    });
-  }, { threshold: 0.10, rootMargin: '0px 0px -100px 0px' });
-  $$('.reveal').forEach(function (el) { revealObs.observe(el); });
-
-  /* ---------- Number counters ---------- */
-  function animateCount(el) {
-    var target = parseFloat(el.dataset.target || '0');
-    var dur = 1700;
-    var start = performance.now();
-    var fmt = function (n) {
-      if (target >= 1000) return Math.round(n).toLocaleString();
-      if (target % 1 !== 0) return n.toFixed(2);
-      return Math.round(n);
-    };
-    function tick(now) {
-      var t = Math.min(1, (now - start) / dur);
-      var eased = 1 - Math.pow(1 - t, 3);
-      el.textContent = fmt(target * eased);
-      if (t < 1) requestAnimationFrame(tick);
-    }
-    requestAnimationFrame(tick);
-  }
-  var counterObs = new IntersectionObserver(function (entries) {
-    entries.forEach(function (e) {
-      if (e.isIntersecting) { animateCount(e.target); counterObs.unobserve(e.target); }
-    });
-  }, { threshold: 0.4 });
-  $$('.counter').forEach(function (el) { counterObs.observe(el); });
-
-  /* ---------- Navbar scrolled state (project nav handled by primary_navigation.js) ---------- */
-  function updateNav() { /* no-op: project nav manages its own scroll state */ }
-
-  /* ---------- Live ribbon (hero) ---------- */
-  var ribbon = $('#ribbon');
-  var channels = $('#channels');
-  var matchCount = ribbon ? ribbon.children.length : 0;
-  var matchHeight = 234;
-  var idx = 0;
-  var isMobileDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
-  var ribbonInterval = isMobileDevice ? 6500 : 4400; // slower on mobile for readability
-
-  function setMatch(i) {
-    if (!ribbon || matchCount === 0) return;
-    idx = ((i % matchCount) + matchCount) % matchCount;
-    ribbon.style.transform = 'translateY(-' + (idx * matchHeight) + 'px)';
-    if (channels) {
-      Array.prototype.forEach.call(channels.children, function (c, j) {
-        c.style.background = j === idx
-          ? 'linear-gradient(90deg, #06b6d4, #8b5cf6, #facc15)'
-          : 'rgba(255,255,255,0.08)';
-      });
-    }
-  }
-  if (matchCount > 0) {
-    setMatch(0);
-    var liveTimer = setInterval(function () { setMatch(idx + 1); }, ribbonInterval);
-    if (channels) {
-      Array.prototype.forEach.call(channels.children, function (c) {
-        c.addEventListener('click', function () {
-          clearInterval(liveTimer);
-          setMatch(parseInt(c.dataset.i, 10));
-          liveTimer = setInterval(function () { setMatch(idx + 1); }, ribbonInterval);
-        });
-      });
-    }
-  }
-
-  /* ---------- Featured event countdown ---------- */
-  function pad(n) { return String(Math.max(0, Math.floor(n))).padStart(2, '0'); }
-  var countdownEls = $$('#cdBig, #cdSmall');
-  var deadlineSource = countdownEls.find(function (el) { return el.dataset && el.dataset.deadline; });
-  var deadlineStr = deadlineSource ? deadlineSource.dataset.deadline
-    : (window.DC_DEADLINE || null);
-  var deadline = deadlineStr ? new Date(deadlineStr).getTime() : null;
-  function tickCd() {
-    if (!countdownEls.length || !deadline) return;
-    var diff = deadline - Date.now();
-    if (diff <= 0) {
-      countdownEls.forEach(function (el) { el.textContent = 'CLOSED'; });
-      return;
-    }
-    var d = Math.floor(diff / 86400000);
-    var h = Math.floor((diff % 86400000) / 3600000);
-    var m = Math.floor((diff % 3600000) / 60000);
-    var s = Math.floor((diff % 60000) / 1000);
-    var label = pad(d) + 'd ' + pad(h) + 'h ' + pad(m) + 'm ' + pad(s) + 's';
-    countdownEls.forEach(function (el) { el.textContent = label; });
-  }
-  if (deadline) { tickCd(); setInterval(tickCd, 1000); }
-
-  /* ---------- Parallax blobs ---------- */
-  var blobs = $$('.home-backdrop .blob');
-  var mouseX = 0, mouseY = 0;
-  window.addEventListener('mousemove', function (e) {
-    mouseX = (e.clientX / window.innerWidth - 0.5);
-    mouseY = (e.clientY / window.innerHeight - 0.5);
-  });
-  function applyBlobs(scrollY) {
-    blobs.forEach(function (el, i) {
-      var k = (i % 3) === 0 ? 24 : (i % 3) === 1 ? -32 : 18;
-      var sy = scrollY * 0.04 * (i % 2 === 0 ? 1 : -1);
-      el.style.translate = (mouseX * k).toFixed(1) + 'px ' + ((mouseY * k) + sy).toFixed(1) + 'px';
-    });
-  }
-
-  /* ---------- Game rail ---------- */
-  var rail = $('#gameRail');
-  var railFill = $('#railFill');
-  if (rail) {
-    $$('.rail-btn').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        rail.scrollBy({ left: parseInt(btn.dataset.dir, 10) * 360, behavior: 'smooth' });
-      });
-    });
-    var isDown = false, startX, startScroll;
-    rail.addEventListener('mousedown', function (e) { isDown = true; rail.classList.add('dragging'); startX = e.pageX - rail.offsetLeft; startScroll = rail.scrollLeft; });
-    document.addEventListener('mouseup', function () { isDown = false; rail.classList.remove('dragging'); });
-    document.addEventListener('mousemove', function (e) { if (!isDown) return; rail.scrollLeft = startScroll - (e.pageX - rail.offsetLeft - startX); });
-    function updateRail() {
-      var max = rail.scrollWidth - rail.clientWidth;
-      if (railFill) railFill.style.width = Math.max(8, max > 0 ? (rail.scrollLeft / max) * 100 : 0).toFixed(1) + '%';
-    }
-    rail.addEventListener('scroll', updateRail, { passive: true });
-    updateRail();
-  }
-
-  /* ---------- Game card tilt ---------- */
-  $$('.gcard').forEach(function (card) {
-    card.addEventListener('mousemove', function (e) {
-      var r = card.getBoundingClientRect();
-      var px = (e.clientX - r.left) / r.width - 0.5;
-      var py = (e.clientY - r.top) / r.height - 0.5;
-      card.style.transform = 'translateY(-8px) perspective(900px) rotateX(' + (-py * 5).toFixed(2) + 'deg) rotateY(' + (px * 7).toFixed(2) + 'deg)';
-    });
-    card.addEventListener('mouseleave', function () { card.style.transform = ''; });
-  });
-
-  /* ---------- Bento cells ---------- */
-  var bentoObs = new IntersectionObserver(function (entries) {
-    entries.forEach(function (e) {
-      if (e.isIntersecting) { e.target.classList.add('in-active'); setTimeout(function () { e.target.classList.remove('in-active'); }, 1400); bentoObs.unobserve(e.target); }
-    });
-  }, { threshold: 0.4 });
-  $$('.bento-cell').forEach(function (el) { bentoObs.observe(el); });
-
-  /* ---------- Tier rail pulse ---------- */
-  var tierObs = new IntersectionObserver(function (entries) {
-    entries.forEach(function (e) {
-      if (e.isIntersecting) {
-        var nodes = $$('.tier-node', e.target);
-        var step = 0;
-        function pulseNext() { nodes.forEach(function (n) { n.setAttribute('data-active', '0'); }); if (nodes[step]) nodes[step].setAttribute('data-active', '1'); step = (step + 1) % nodes.length; }
-        pulseNext();
-        setInterval(pulseNext, 1600);
-        tierObs.unobserve(e.target);
-      }
-    });
-  }, { threshold: 0.45 });
-  $$('.tier-rail').forEach(function (el) { tierObs.observe(el); });
-
-  /* ---------- Personas tabs ---------- */
-  $$('.ptab').forEach(function (tab) {
-    tab.addEventListener('click', function () {
-      var target = tab.dataset.target;
-      $$('.ptab').forEach(function (t) { t.classList.remove('active'); t.setAttribute('aria-selected', 'false'); });
-      tab.classList.add('active'); tab.setAttribute('aria-selected', 'true');
-      $$('.persona-panel').forEach(function (p) { p.classList.toggle('active', p.id === target); });
-    });
-  });
-
-  /* ---------- Path draw on scroll ---------- */
-  var pathLine = $('#pathLine');
-  var pathRail = $('#pathRail');
-  var pathLen = 2400;
-  if (pathLine) { try { pathLen = pathLine.getTotalLength(); pathLine.setAttribute('stroke-dasharray', pathLen); pathLine.setAttribute('stroke-dashoffset', pathLen); } catch (e) {} }
-  function updatePath() {
-    if (!pathLine || !pathRail) return;
-    var rect = pathRail.getBoundingClientRect();
-    var t = Math.max(0, Math.min(1, (window.innerHeight * 0.85 - rect.top) / (window.innerHeight * 0.85 + rect.height * 0.4)));
-    pathLine.style.strokeDashoffset = (pathLen * (1 - t)).toFixed(1);
-  }
-
-  /* ---------- Arena parallax ---------- */
-  var arenaImg = $('.arena-img');
-  function updateArena() {
-    if (!arenaImg) return;
-    var rect = arenaImg.getBoundingClientRect();
-    var off = (window.innerHeight / 2 - (rect.top + rect.height / 2)) * 0.08;
-    arenaImg.style.transform = 'scale(1.08) translateY(' + off.toFixed(1) + 'px)';
-  }
-
-  /* ---------- Bento feature parallax ---------- */
-  var bentoFeat = $('.bento-feature-img');
-  function updateBentoFeat() {
-    if (!bentoFeat) return;
-    var rect = bentoFeat.getBoundingClientRect();
-    var off = (window.innerHeight / 2 - (rect.top + rect.height / 2)) * 0.05;
-    bentoFeat.style.transform = 'translateY(' + off.toFixed(1) + 'px)';
-  }
-
-  /* ---------- Master scroll ---------- */
-  var ticking = false;
-  function onScroll() {
-    if (ticking) return;
-    ticking = true;
-    requestAnimationFrame(function () {
-      updateProgress(); updatePath(); updateArena(); updateBentoFeat(); updateNav(); applyBlobs(window.scrollY);
-      ticking = false;
-    });
-  }
-  window.addEventListener('scroll', onScroll, { passive: true });
-  window.addEventListener('resize', onScroll, { passive: true });
-  updateProgress(); updatePath(); updateArena(); updateBentoFeat(); updateNav();
-
-  /* ---------- Back to top button ---------- */
-  var backTopBtn = $('#homeBackTop');
-  if (backTopBtn) {
-    var showThreshold = document.documentElement.scrollHeight * 0.15;
-    function updateBackTop() {
-      if (window.scrollY > showThreshold) backTopBtn.classList.add('visible');
-      else backTopBtn.classList.remove('visible');
-    }
-    backTopBtn.addEventListener('click', function () {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    });
-    window.addEventListener('scroll', updateBackTop, { passive: true });
-    updateBackTop();
-  }
-
-  /* ---------- Ticker touch pause ---------- */
-  var tickerTrackEl = $('.ticker-track');
-  if (tickerTrackEl && isMobileDevice) {
-    tickerTrackEl.addEventListener('touchstart', function () {
-      tickerTrackEl.style.animationPlayState = 'paused';
-    }, { passive: true });
-    tickerTrackEl.addEventListener('touchend', function () {
-      tickerTrackEl.style.animationPlayState = 'running';
-    }, { passive: true });
-  }
-
-  /* ---------- Game rail keyboard navigation ---------- */
-  var gameRailEl = $('#gameRail');
-  if (gameRailEl) {
-    gameRailEl.setAttribute('tabindex', '0');
-    gameRailEl.addEventListener('keydown', function (e) {
-      if (e.key === 'ArrowRight') { gameRailEl.scrollBy({ left: 340, behavior: 'smooth' }); e.preventDefault(); }
-      if (e.key === 'ArrowLeft')  { gameRailEl.scrollBy({ left: -340, behavior: 'smooth' }); e.preventDefault(); }
-    });
-  }
-
-  /* ---------- Mobile rail dots ---------- */
-  var railDotsEl = $('#railDots');
-  if (railDotsEl && gameRailEl && isMobileDevice) {
-    var cards = $$('.gcard', gameRailEl);
-    var cardWidth = cards.length > 0 ? cards[0].offsetWidth + 18 : 338;
-    var visibleCount = Math.ceil(gameRailEl.offsetWidth / cardWidth) || 1;
-    var dotCount = Math.max(1, Math.ceil(cards.length / visibleCount));
-    for (var di = 0; di < dotCount; di++) {
-      var dot = document.createElement('div');
-      dot.className = 'rail-dot' + (di === 0 ? ' active' : '');
-      railDotsEl.appendChild(dot);
-    }
-    gameRailEl.addEventListener('scroll', function () {
-      var maxScroll = gameRailEl.scrollWidth - gameRailEl.clientWidth;
-      var dotIdx = maxScroll > 0 ? Math.round((gameRailEl.scrollLeft / maxScroll) * (dotCount - 1)) : 0;
-      $$('.rail-dot', railDotsEl).forEach(function (d, i) {
-        d.classList.toggle('active', i === dotIdx);
-      });
-    }, { passive: true });
-  }
-
-  /* ---------- Smooth anchor scroll ---------- */
-  $$('a[href^="#"]').forEach(function (a) {
-    a.addEventListener('click', function (e) {
-      var hash = a.getAttribute('href');
-      if (!hash || hash === '#') return;
-      if (hash === '#top') { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
-      var target = document.querySelector(hash);
-      if (!target) return;
-      e.preventDefault();
-      window.scrollTo({ top: target.getBoundingClientRect().top + window.scrollY - 96, behavior: 'smooth' });
-    });
-  });
-
-  /* ---------- Real-time homepage WebSocket ---------- */
-  (function () {
-    if (!window.WebSocket) return;
-
-    var tickerTrack = $('.ticker-track');
-    var navBadge = document.getElementById('nav-live-badge');
-    var reconnectDelay = 5000;
-    var maxDelay = 60000;
-    var ws;
-
-    function tickerFlag(kind) {
-      if (kind === 'live') return { className: 'live-flag', text: 'LIVE' };
-      if (kind === 'tournament') return { className: 'event-flag', text: 'EVENT' };
-      if (kind === 'signup') return { className: 'up-flag', text: '▲' };
-      return null;
-    }
-
-    function appendTickerItems(track, items) {
-      var frag = document.createDocumentFragment();
-      items.forEach(function (item) {
-        var row = document.createElement('span');
-        var flag = tickerFlag(item.kind);
-        if (flag) {
-          var flagEl = document.createElement('b');
-          flagEl.className = flag.className;
-          flagEl.textContent = flag.text;
-          row.appendChild(flagEl);
-          row.appendChild(document.createTextNode(' '));
+    function tick() {
+      var now = Date.now();
+      for (var i = 0; i < els.length; i++) {
+        var el = els[i];
+        var iso = el.getAttribute('data-countdown');
+        var target = iso ? Date.parse(iso) : NaN;
+        if (isNaN(target)) { continue; }
+        var diff = Math.floor((target - now) / 1000);
+        if (diff <= 0) {
+          el.textContent = el.getAttribute('data-countdown-done') || 'Closed';
+          el.removeAttribute('data-countdown');
+          continue;
         }
-        // WebSocket payload text can include user-controlled tournament or
-        // participant names. Render dynamic text as text nodes only.
-        row.appendChild(document.createTextNode(String(item.text || '')));
-        frag.appendChild(row);
+        var h = Math.floor(diff / 3600);
+        var m = Math.floor((diff % 3600) / 60);
+        var s = diff % 60;
+        el.textContent = pad(h) + ':' + pad(m) + ':' + pad(s);
+      }
+    }
 
-        var sep = document.createElement('span');
-        sep.className = 'sep';
-        sep.textContent = '//';
-        frag.appendChild(sep);
+    tick();
+    setInterval(tick, 1000);
+  }
+
+  /* ── 2. Hero state rotation ─────────────────────────────────────────────
+     Each rotation item may carry: subcopy, primary_label/url, secondary_label/url.
+     Primary CTA stays stable for critical states (the resolver only supplies
+     rotation_items where rotating is safe). */
+  function initHeroRotation() {
+    var subEl = document.getElementById('heroSub');
+    var dataEl = document.getElementById('heroRotationItems');
+    var primaryBtn = document.getElementById('heroPrimaryBtn');
+    var secondaryBtn = document.getElementById('heroSecondaryBtn');
+    if (!subEl || !dataEl) return;
+
+    var items;
+    try { items = JSON.parse(dataEl.textContent); } catch (e) { return; }
+    if (!Array.isArray(items) || items.length < 2) return;
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    var idx = 0;
+    var paused = false;
+    var DUR = 380;
+
+    var heroEl = subEl.closest('[data-section="hero"]');
+    if (heroEl) {
+      heroEl.addEventListener('mouseenter', function () { paused = true; }, { passive: true });
+      heroEl.addEventListener('mouseleave', function () { paused = false; }, { passive: true });
+      heroEl.addEventListener('focusin', function () { paused = true; }, { passive: true });
+      heroEl.addEventListener('focusout', function () { paused = false; }, { passive: true });
+    }
+
+    function applyItem(item) {
+      if (item.subcopy) subEl.textContent = item.subcopy;
+      if (primaryBtn && item.primary_label) {
+        var span = primaryBtn.querySelector('span');
+        if (span) span.textContent = item.primary_label;
+        if (item.primary_url) primaryBtn.setAttribute('href', item.primary_url);
+      }
+      if (secondaryBtn && item.secondary_label) {
+        var sspan = secondaryBtn.querySelector('span');
+        if (sspan) sspan.textContent = item.secondary_label;
+        else secondaryBtn.textContent = item.secondary_label;
+        if (item.secondary_url) secondaryBtn.setAttribute('href', item.secondary_url);
+      }
+    }
+
+    function fadeEls(els, out) {
+      els.forEach(function (el) {
+        el.style.transition = 'opacity ' + DUR + 'ms ease, transform ' + DUR + 'ms ease';
+        el.style.opacity = out ? '0' : '1';
+        el.style.transform = out ? 'translateY(5px)' : 'translateY(0)';
       });
-      track.replaceChildren(frag);
     }
 
-    function applyUpdate(data) {
-      /* Update ticker */
-      if (data.ticker && data.ticker.length && tickerTrack) {
-        appendTickerItems(tickerTrack, data.ticker);
-      }
+    function rotate() {
+      if (paused) return;
+      idx = (idx + 1) % items.length;
+      var next = items[idx];
+      var els = [subEl];
+      if (primaryBtn && next.primary_label) els.push(primaryBtn);
+      if (secondaryBtn && next.secondary_label) els.push(secondaryBtn);
 
-      /* Update Arena nav badge */
-      var count = data.live_count || 0;
-      if (navBadge) {
-        if (count > 0) {
-          navBadge.textContent = count + ' LIVE';
-          navBadge.style.display = '';
-        } else {
-          navBadge.style.display = 'none';
-        }
-      }
+      fadeEls(els, true);
+      setTimeout(function () {
+        applyItem(next);
+        fadeEls(els, false);
+      }, DUR);
     }
 
-    function connect() {
-      var proto = location.protocol === 'https:' ? 'wss' : 'ws';
-      var url = proto + '://' + location.host + '/ws/homepage/live/';
-      try { ws = new WebSocket(url); } catch (e) { return; }
+    setInterval(rotate, 9000);
+  }
 
-      ws.onmessage = function (evt) {
-        try {
-          var data = JSON.parse(evt.data);
-          if (data.type === 'live_update') applyUpdate(data);
-        } catch (e) {}
-      };
+  function init() {
+    initCountdowns();
+    initHeroRotation();
+  }
 
-      ws.onclose = function () {
-        /* Exponential back-off reconnect */
-        setTimeout(function () {
-          reconnectDelay = Math.min(reconnectDelay * 1.5, maxDelay);
-          connect();
-        }, reconnectDelay);
-      };
-
-      ws.onerror = function () { ws.close(); };
-    }
-
-    /* Only connect when the page is visible */
-    if (document.visibilityState !== 'hidden') {
-      connect();
-    }
-    document.addEventListener('visibilitychange', function () {
-      if (document.visibilityState === 'visible' && (!ws || ws.readyState > 1)) {
-        reconnectDelay = 5000;
-        connect();
-      }
-    });
-  })();
-
-})();
+  if (document.readyState !== 'loading') {
+    init();
+  } else {
+    document.addEventListener('DOMContentLoaded', init);
+  }
+}());

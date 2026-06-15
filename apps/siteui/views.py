@@ -28,15 +28,38 @@ from apps.common.seo import (
 
 
 
+# Maps homepage_hero resolver modes → the canonical design `data-home-state`
+# values from the DeltaCrown Homepage handoff (§4). Purely a semantic hook the
+# body uses to brand the active competitive item; it does not drive layout.
+_HOME_STATE_BY_MODE = {
+    "guest":          "guest",
+    "onboarding":     "new-player",
+    "pending_action": "pending-action",
+    "active_match":   "match-live",
+    "operations":     "registered",
+    "no_team":        "no-team",
+    "team_manager":   "has-team",
+    "team_ready":     "has-team",
+    "default":        "registered",
+}
+
+
 def home(request):
-    """DeltaCrown homepage — Command Center design (home_v3)."""
+    """DeltaCrown homepage — "Front Row Hybrid" body on the Monument hero."""
     from .homepage_context import get_homepage_context
     from .homepage_extras import get_homepage_extras
     from .homepage_hero import get_home_hero_context
+    from .homepage_sections import get_homepage_sections
     context = get_homepage_context()
     context.update(get_homepage_extras(request))
+    # Static body-section copy + icons (why / ecosystem / daily-ops / trust / …)
+    context.update(get_homepage_sections())
     # Per-user hero CTA/copy — not cached, lightweight exists() queries only
-    context["hero_ctx"] = get_home_hero_context(request.user)
+    hero_ctx = get_home_hero_context(request.user)
+    context["hero_ctx"] = hero_ctx
+    context["home_state"] = _HOME_STATE_BY_MODE.get(
+        (hero_ctx or {}).get("mode"), "guest"
+    )
     context["seo"] = build_seo(
         title="DeltaCrown | Competitive Gaming Platform",
         description=(

@@ -10,1075 +10,575 @@
 {% block twitter_image %}{% static 'siteui/og/default.png' %}{% endblock %}
 
 {% block extra_css %}
-<link rel="preload" href="{% static 'siteui/css/home.css' %}?v=20260523a" as="style">
-<link rel="stylesheet" href="{% static 'siteui/css/home.css' %}?v=20260523a">
+{# Sora (display/numerals) + JetBrains Mono (eyebrows/scores) — Inter ships from base.html #}
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="preload" href="{% static 'siteui/css/home.css' %}?v=20260615a" as="style">
+<link rel="stylesheet" href="{% static 'siteui/css/home.css' %}?v=20260615a">
 {% endblock %}
 
-{% block body_class %}home-page{% endblock %}
+{% block body_class %}home-page dc-home-page{% endblock %}
 
 {% block content %}
+{% comment %}
+  DeltaCrown homepage BODY — "Front Row Hybrid" on the Monument hero.
+  Ported from the Claude Design handoff (DeltaCrown Homepage.dc.html). The live
+  primary_navigation.html and footer_modern.html (included by base.html) are kept
+  as-is; only the body between them is implemented here. `data-home-state` is the
+  resolved hero state; sections carry `data-section` hooks per the handoff.
+{% endcomment %}
+<div class="dc-home" data-dc data-home-state="{{ home_state|default:'guest' }}" style="position:relative;width:100%;overflow-x:hidden;background:var(--bg);color:var(--fg);font-family:var(--text);-webkit-font-smoothing:antialiased;">
 
-<div class="home-progress-rail"><div class="home-progress-bar" id="homeProgressBar"></div></div>
+  <!-- ============ 01 · HERO — MONUMENT ============ -->
+  <section data-screen-label="Hero" data-section="hero" style="position:relative;overflow:hidden;border-bottom:1px solid var(--hair);">
+    <!-- monument background -->
+    <div aria-hidden="true" data-anim style="position:absolute;left:50%;bottom:2%;width:min(760px,80vw);height:62%;transform:translateX(-50%);background:radial-gradient(closest-side,rgba(10,132,255,.16),rgba(104,73,229,.06) 54%,transparent 76%);filter:blur(20px);animation:dch-breathe 11s ease-in-out infinite;"></div>
+    <svg aria-hidden="true" viewBox="0 0 1440 760" preserveAspectRatio="xMidYMax slice" style="position:absolute;inset:0;width:100%;height:100%;">
+      <defs>
+        <linearGradient id="hmF" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#8470EE" stop-opacity=".15"/><stop offset="60%" stop-color="#0A84FF" stop-opacity=".05"/><stop offset="100%" stop-color="#0A84FF" stop-opacity="0"/></linearGradient>
+        <linearGradient id="hmE" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#6849E5" stop-opacity=".28"/><stop offset="50%" stop-color="#E2C588" stop-opacity=".55"/><stop offset="100%" stop-color="#0A84FF" stop-opacity=".28"/></linearGradient>
+      </defs>
+      <path d="M150 760 L360 400 L540 560 L720 320 L900 560 L1080 400 L1290 760 Z" fill="url(#hmF)"></path>
+      <path data-anim d="M150 760 L360 400 L540 560 L720 320 L900 560 L1080 400 L1290 760" fill="none" stroke="url(#hmE)" stroke-width="1.5" stroke-linejoin="round" stroke-dasharray="2600" stroke-dashoffset="2600" style="animation:dch-draw 3.6s .4s var(--eo) forwards;"></path>
+    </svg>
+    <div aria-hidden="true" style="position:absolute;left:50%;top:24%;width:130px;height:130px;transform:translateX(-50%);background:radial-gradient(closest-side,rgba(226,197,136,.2),transparent 70%);filter:blur(8px);"></div>
+    <div aria-hidden="true" style="position:absolute;inset:0;pointer-events:none;box-shadow:inset 0 0 200px 60px rgba(0,0,0,.3),inset 0 -140px 200px -120px rgba(0,0,0,.55);"></div>
 
-<div class="home-backdrop" aria-hidden="true">
-  <div class="grid-bg"></div>
-  <div class="grid-fine"></div>
-  <div class="vignette"></div>
-  <div class="blob blob-violet"></div>
-  <div class="blob blob-teal"></div>
-  <div class="blob blob-gold"></div>
-  <div class="scanlines"></div>
-  <div class="grain"></div>
-</div>
-
-<div id="top">
-
-<!-- ============================================================ HERO ============================================================ -->
-<section class="hero">
-  <div class="hero-orbit" aria-hidden="true">
-    <div class="orbit-ring r1"></div>
-    <div class="orbit-ring r2"></div>
-    <div class="orbit-ring r3"></div>
-    <span class="orbit-dot d1"></span>
-    <span class="orbit-dot d2"></span>
-    <span class="orbit-dot d3"></span>
-  </div>
-
-  <div class="hero-shell">
-    <div class="hero-left">
-      <div class="hero-pills">
-        <span class="pill pill-live">
-          <span class="dot dot-live"></span>
-          <span class="tac">{{ hero_ctx.eyebrow_primary }}</span>
-        </span>
-        <span class="pill">
-          <span class="tac">{{ hero_ctx.eyebrow_secondary }}</span>
-        </span>
-      </div>
-
-      <h1 class="hero-h1">
-        <span class="line"><span class="word">FROM</span> <span class="word">THE</span> <span class="word word-muted">DELTA</span></span>
-        <span class="line"><span class="word">TO</span> <span class="word">THE</span> <span class="word word-grad">CROWN</span></span>
-      </h1>
-
-      <p class="hero-sub" id="heroSub">{{ hero_ctx.subcopy }}</p>
-      {% if hero_ctx.rotation_items %}{{ hero_ctx.rotation_items|json_script:"heroRotationItems" }}{% endif %}
-
-      <div class="hero-cta">
-        <a href="{{ hero_ctx.primary_cta_url }}" class="btn btn-primary btn-lg" id="heroPrimaryBtn" style="min-width:185px;justify-content:center;">
-          <span>{{ hero_ctx.primary_cta_label }}</span>
-          <i class="fa-solid fa-arrow-right"></i>
-        </a>
-        <a href="{{ hero_ctx.secondary_cta_url }}" class="btn btn-ghost btn-lg" id="heroSecondaryBtn" style="min-width:160px;justify-content:center;">{{ hero_ctx.secondary_cta_label }}</a>
-      </div>
-
-      {% if hero_ctx.hero_chips %}
-      <div class="hero-trust">
-        {% for chip in hero_ctx.hero_chips %}
-        <div class="trust-item">
-          {% if chip.value %}<b>{{ chip.value }}</b> {% endif %}{{ chip.label }}
+    <div style="position:relative;z-index:1;max-width:1280px;margin:0 auto;padding:clamp(48px,7vh,92px) clamp(18px,4vw,48px) clamp(56px,8vh,104px);display:flex;flex-wrap:wrap;align-items:center;gap:clamp(32px,4vw,72px);">
+      <!-- left -->
+      <div style="flex:1 1 460px;min-width:0;">
+        <div style="display:inline-flex;align-items:center;gap:10px;">
+          <span style="width:22px;height:1px;background:linear-gradient(90deg,transparent,var(--go4));"></span>
+          <span class="m" style="font-size:10px;letter-spacing:.26em;text-transform:uppercase;color:var(--go4);">From the Delta to the Crown</span>
         </div>
-        {% endfor %}
-        {% if v3.hero_stats.active_prize_label %}
-        <div class="trust-item"><b>{{ v3.hero_stats.active_prize_label }}</b> active prize</div>
-        {% endif %}
+        <div style="margin-top:16px;display:inline-flex;align-items:center;gap:8px;padding:6px 13px 6px 10px;border:1px solid var(--stroke);border-radius:999px;background:var(--s1);">
+          <span style="width:6px;height:6px;border-radius:50%;background:var(--suc);box-shadow:0 0 9px var(--suc);"></span>
+          <span class="m" style="font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--mut);">{{ hero_ctx.eyebrow_secondary|default:"Season 03 · Open registration" }}</span>
+        </div>
+        <h1 style="margin:14px 0 0;font-family:var(--disp);font-weight:800;line-height:1.05;letter-spacing:-.028em;font-size:clamp(26px,4.6vw,58px);white-space:nowrap;">
+          <span style="display:block;">Play tournaments.</span>
+          <span style="display:block;">Build your squad.</span>
+          <span class="grad" style="display:block;padding-bottom:.08em;">Rise to the Crown.</span>
+        </h1>
+        <p id="heroSub" style="margin:18px 0 0;max-width:48ch;font-size:16px;line-height:1.6;color:var(--mut);">{% if user.is_authenticated and hero_ctx.subcopy %}{{ hero_ctx.subcopy }}{% else %}<b style="color:var(--fg);font-weight:600;">The competitive home for players, teams &amp; organizers.</b> Join verified tournaments, build a real team, and climb from Rookie to The Crown — across 11 titles, mobile to PC.{% endif %}</p>
+        {% if hero_ctx.rotation_items %}{{ hero_ctx.rotation_items|json_script:"heroRotationItems" }}{% endif %}
+        <div style="margin-top:26px;display:flex;flex-wrap:wrap;gap:11px;align-items:center;">
+          {% if user.is_authenticated %}
+          <a href="{{ hero_ctx.primary_cta_url|default:'/tournaments/' }}" id="heroPrimaryBtn" class="cta press" style="display:inline-flex;align-items:center;gap:8px;padding:14px 24px;border-radius:13px;background:var(--az);color:#fff;font-weight:700;font-size:15px;text-decoration:none;white-space:nowrap;box-shadow:0 12px 30px -14px rgba(10,132,255,.8);"><span>{{ hero_ctx.primary_cta_label|default:"Start competing" }}</span><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+          <a href="{{ hero_ctx.secondary_cta_url|default:'/tournaments/' }}" id="heroSecondaryBtn" class="ghost press" style="display:inline-flex;align-items:center;padding:14px 22px;border-radius:13px;background:var(--s1);border:1px solid var(--stroke);color:var(--mut);font-weight:600;font-size:15px;text-decoration:none;white-space:nowrap;"><span>{{ hero_ctx.secondary_cta_label|default:"Browse tournaments" }}</span></a>
+          {% else %}
+          <a href="/tournaments/" id="heroPrimaryBtn" class="cta press" style="display:inline-flex;align-items:center;gap:8px;padding:14px 24px;border-radius:13px;background:var(--az);color:#fff;font-weight:700;font-size:15px;text-decoration:none;white-space:nowrap;box-shadow:0 12px 30px -14px rgba(10,132,255,.8);"><span>Start competing</span><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+          <a href="/tournaments/" id="heroSecondaryBtn" class="ghost press" style="display:inline-flex;align-items:center;padding:14px 22px;border-radius:13px;background:var(--s1);border:1px solid var(--stroke);color:var(--mut);font-weight:600;font-size:15px;text-decoration:none;white-space:nowrap;"><span>Browse tournaments</span></a>
+          {% endif %}
+        </div>
+        <!-- routing tiles -->
+        <div style="margin-top:28px;display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;max-width:520px;">
+          <a href="/tournaments/" class="tile press" style="display:flex;flex-direction:column;gap:9px;padding:13px;border:1px solid var(--stroke);border-radius:14px;background:var(--s1);text-decoration:none;">
+            <span data-i style="display:inline-flex;color:var(--soft);transition:color .2s;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4h10v3a5 5 0 0 1-10 0V4Z"/><path d="M9 14v3h6v-3M8 21h8M12 12v2"/></svg></span>
+            <span style="font-family:var(--disp);font-weight:600;font-size:13px;color:var(--fg);line-height:1.2;">Join a tournament</span>
+          </a>
+          <a href="/teams/" class="tile press" style="display:flex;flex-direction:column;gap:9px;padding:13px;border:1px solid var(--stroke);border-radius:14px;background:var(--s1);text-decoration:none;">
+            <span data-i style="display:inline-flex;color:var(--soft);transition:color .2s;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3 3-5 6-5s6 2 6 5"/><circle cx="17" cy="9" r="2"/><path d="M19 19c0-2-1.4-3.4-3-3.8"/></svg></span>
+            <span style="font-family:var(--disp);font-weight:600;font-size:13px;color:var(--fg);line-height:1.2;">Build or join a squad</span>
+          </a>
+          <a href="/dashboard/competitive/" class="tile press" style="display:flex;flex-direction:column;gap:9px;padding:13px;border:1px solid var(--stroke);border-radius:14px;background:var(--s1);text-decoration:none;">
+            <span data-i style="display:inline-flex;color:var(--soft);transition:color .2s;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z"/></svg></span>
+            <span style="font-family:var(--disp);font-weight:600;font-size:13px;color:var(--fg);line-height:1.2;">Play competitive modes</span>
+          </a>
+        </div>
       </div>
-      {% else %}
-      <div class="hero-trust">
-        <div class="trust-item"><b>Free</b> to compete</div>
-        <div class="trust-item"><b>0</b> entry wall</div>
-        {% if v3.hero_stats.active_prize_label %}
-        <div class="trust-item"><b>{{ v3.hero_stats.active_prize_label }}</b> active prize pool</div>
+      <!-- right: competition hub card -->
+      <div style="flex:1 1 420px;min-width:0;display:flex;justify-content:flex-end;">
+        {% with f=v3.featured_tournament %}
+        {% if f %}
+        <div style="position:relative;width:100%;max-width:500px;border:1px solid var(--stroke);border-radius:22px;background:rgba(16,20,29,.72);backdrop-filter:blur(22px) saturate(150%);box-shadow:0 40px 90px -46px rgba(0,0,0,.85);overflow:hidden;">
+          <div aria-hidden="true" style="position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(132,112,238,.5) 30%,rgba(10,132,255,.5) 50%,rgba(226,197,136,.5) 70%,transparent);z-index:2;"></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px 16px;border-bottom:1px solid var(--hair);">
+            <span style="display:inline-flex;align-items:center;gap:8px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--az4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8M5 10v10h14V10"/></svg><span class="m" style="font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--mut);">Featured · Competition Hub</span></span>
+            <span class="m" style="font-size:10px;letter-spacing:.06em;color:var(--soft);">{% if v3.hero_stats.tournaments_active %}Live · {{ v3.hero_stats.tournaments_active }} open{% else %}Open registration{% endif %}</span>
+          </div>
+          <div style="position:relative;height:138px;background:{% if f.poster_url %}url('{{ f.poster_url }}') center 30%/cover no-repeat{% else %}linear-gradient(135deg,var(--s2),var(--s1)){% endif %};">
+            <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,13,20,.2) 28%,rgba(16,20,29,.92));"></div>
+            <span style="position:absolute;top:12px;left:13px;display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:999px;background:var(--tAz);border:1px solid rgba(10,132,255,.4);backdrop-filter:blur(8px);"><span class="m" style="font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--az4);">Open registration</span></span>
+            {% if f.game_name %}<span class="m" style="position:absolute;bottom:11px;left:14px;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,.88);">{{ f.game_name }}</span>{% endif %}
+            {% if f.prize_pool_label %}<span class="m" style="position:absolute;bottom:11px;right:14px;font-size:11px;color:var(--go4);">{{ f.prize_pool_label }}</span>{% endif %}
+          </div>
+          <div style="padding:15px 16px 16px;">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;">
+              <div style="font-family:var(--disp);font-weight:700;font-size:19px;letter-spacing:-.01em;">{{ f.name }}</div>
+              {% if f.format_label %}<span class="m" style="flex-shrink:0;padding:4px 9px;border-radius:8px;font-size:9px;letter-spacing:.04em;text-transform:uppercase;color:var(--mut);background:var(--s3);">{{ f.format_label }}</span>{% endif %}
+            </div>
+            {% if f.slot_max %}
+            <div style="margin-top:13px;">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+                <span class="m" style="font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--soft);">Slots filling</span>
+                <span class="m" style="font-size:11px;color:var(--fg);">{{ f.slot_count }} <span style="color:var(--soft);">/ {{ f.slot_max }} teams</span></span>
+              </div>
+              <div style="height:6px;border-radius:999px;background:var(--s3);overflow:hidden;"><div data-anim style="height:100%;width:{{ f.slot_fill_pct }}%;border-radius:999px;background:var(--brand);transform-origin:left;animation:dch-grow 1.1s .5s var(--eo) both;"></div></div>
+            </div>
+            {% endif %}
+            <div style="margin-top:15px;display:flex;align-items:center;gap:13px;">
+              <div style="flex-shrink:0;"><div class="m" style="font-size:9px;letter-spacing:.07em;text-transform:uppercase;color:var(--soft);">{{ f.deadline_label|default:"Reg closes" }}</div><div class="m" style="font-size:18px;color:var(--fg);margin-top:2px;"{% if f.deadline_iso %} data-countdown="{{ f.deadline_iso }}" data-countdown-done="Closed"{% endif %}>{% if f.deadline_iso %}··:··:··{% else %}—{% endif %}</div></div>
+              <a href="{{ f.register_url|default:f.view_url }}" class="cta press" style="flex:1;display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:13px 16px;border-radius:12px;background:var(--az);color:#fff;font-weight:700;font-size:14px;text-decoration:none;white-space:nowrap;box-shadow:0 12px 30px -16px rgba(10,132,255,.75);">Join tournament<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+            </div>
+          </div>
+        </div>
+        {% else %}
+        <!-- empty-state module: no open tournaments -->
+        <div style="position:relative;width:100%;max-width:500px;border:1px solid var(--stroke);border-radius:22px;background:rgba(16,20,29,.72);backdrop-filter:blur(22px) saturate(150%);box-shadow:0 40px 90px -46px rgba(0,0,0,.85);overflow:hidden;">
+          <div aria-hidden="true" style="position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(132,112,238,.5) 30%,rgba(10,132,255,.5) 50%,rgba(226,197,136,.5) 70%,transparent);z-index:2;"></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px 16px;border-bottom:1px solid var(--hair);">
+            <span style="display:inline-flex;align-items:center;gap:8px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--az4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8M5 10v10h14V10"/></svg><span class="m" style="font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--mut);">Competition Hub</span></span>
+            <span class="m" style="font-size:10px;letter-spacing:.06em;color:var(--soft);">Coming soon</span>
+          </div>
+          <div style="padding:30px 22px 26px;text-align:center;">
+            <span style="display:inline-grid;place-items:center;width:48px;height:48px;border-radius:14px;background:var(--tAz);border:1px solid rgba(10,132,255,.3);margin-bottom:14px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--az4)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4h10v3a5 5 0 0 1-10 0V4Z"/><path d="M9 14v3h6v-3M8 21h8M12 12v2"/></svg></span>
+            <div style="font-family:var(--disp);font-weight:700;font-size:19px;letter-spacing:-.01em;">No open tournaments right now</div>
+            <p style="margin:9px auto 18px;max-width:34ch;font-size:13.5px;line-height:1.55;color:var(--mut);">New verified brackets open regularly across 11 titles. Get notified the moment registration opens.</p>
+            <a href="/tournaments/" class="cta press" style="display:inline-flex;align-items:center;gap:8px;padding:12px 20px;border-radius:12px;background:var(--az);color:#fff;font-weight:700;font-size:14px;text-decoration:none;box-shadow:0 12px 30px -16px rgba(10,132,255,.75);">Get notified<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+          </div>
+        </div>
         {% endif %}
-        {% if v3.hero_stats.teams %}
-        <div class="trust-item"><b>{{ v3.hero_stats.teams }}</b> verified teams</div>
-        {% endif %}
+        {% endwith %}
+      </div>
+    </div>
+    <!-- trust + games strip -->
+    <div style="position:relative;z-index:1;max-width:1280px;margin:0 auto;padding:0 clamp(18px,4vw,48px) 30px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px;">
+      <div class="m" style="display:flex;flex-wrap:wrap;gap:7px 13px;align-items:center;font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--soft);">
+        <span style="display:inline-flex;align-items:center;gap:6px;"><span style="width:5px;height:5px;border-radius:50%;background:var(--suc);"></span>Verified results</span>
+        <span style="color:var(--dim);">·</span><span>Dispute-aware rooms</span>
+        <span style="color:var(--dim);">·</span><span>Escrow-backed payouts</span>
+        <span style="color:var(--dim);">·</span><span>Fair competition</span>
+      </div>
+      {% if v3.game_posters %}
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="display:flex;align-items:center;">
+          {% for g in v3.game_posters|slice:":9" %}
+          <span title="{{ g.name }}" style="width:26px;height:26px;border-radius:7px;background:{% if g.poster_url %}url('{{ g.poster_url }}') center/cover{% else %}var(--s2){% endif %};border:1px solid var(--hair);margin-left:-5px;box-shadow:0 2px 6px rgba(0,0,0,.4);"></span>
+          {% endfor %}
+        </div>
+        <span class="m" style="font-size:10.5px;letter-spacing:.04em;color:var(--mut);">{{ v3.hero_stats.games_count|default:11 }} titles · mobile to PC</span>
       </div>
       {% endif %}
-
-      <div class="hero-stats">
-        <div class="hero-stat">
-          <div class="hero-stat-label">Players</div>
-          <div class="hero-stat-val">
-            {% if v3.hero_stats.players %}<span class="counter" data-target="{{ v3.hero_stats.players }}">0</span>{% else %}<span class="muted">—</span>{% endif %}
-          </div>
-          <div class="hero-stat-foot">All time</div>
-        </div>
-        <div class="hero-stat">
-          <div class="hero-stat-label">Tournaments</div>
-          <div class="hero-stat-val">
-            {% if v3.hero_stats.tournaments_total %}<span class="counter" data-target="{{ v3.hero_stats.tournaments_total }}">0</span>{% else %}<span class="muted">—</span>{% endif %}
-          </div>
-          <div class="hero-stat-foot {% if v3.hero_stats.tournaments_active %}text-live{% endif %}">
-            {% if v3.hero_stats.tournaments_active %}{{ v3.hero_stats.tournaments_active }} live now{% else %}All time{% endif %}
-          </div>
-        </div>
-        <div class="hero-stat">
-          <div class="hero-stat-label">Teams</div>
-          <div class="hero-stat-val">
-            {% if v3.hero_stats.teams %}<span class="counter" data-target="{{ v3.hero_stats.teams }}">0</span>{% else %}<span class="muted">—</span>{% endif %}
-          </div>
-          <div class="hero-stat-foot">{{ v3.hero_stats.games_count|default:"11" }} titles</div>
-        </div>
-        <div class="hero-stat">
-          <div class="hero-stat-label">Prizes paid</div>
-          <div class="hero-stat-val">
-            {% if v3.hero_stats.lifetime_prize_label %}
-              <span class="grad-text" style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:30px;">{{ v3.hero_stats.lifetime_prize_label }}</span>
-            {% else %}
-              <span class="muted" style="font-size:18px;">Starting up</span>
-            {% endif %}
-          </div>
-          <div class="hero-stat-foot">Lifetime</div>
-        </div>
-      </div>
     </div>
+  </section>
 
-    <aside class="hero-right">
-      <!-- LIVE FEED -->
-      <div class="livecard hud-4">
-        <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
-        <div class="beam"></div>
-        <div class="livecard-head">
-          {% if v3.live_ribbon %}
-          <span class="pill pill-red"><span class="dot dot-red"></span><span class="tac">LIVE · {{ v3.live_ribbon|length }} match{{ v3.live_ribbon|length|pluralize }}</span></span>
-          {% elif v3.recent_ribbon %}
-          <span class="pill" style="border-color:rgba(255,255,255,0.14);"><span class="tac" style="color:var(--mute);">RECENT RESULTS</span></span>
-          {% else %}
-          <span class="pill"><span class="tac" style="color:var(--mute);">MATCH CENTRE</span></span>
-          {% endif %}
-          <a href="/arena/" class="tac" style="font-size:10px;color:var(--mute);letter-spacing:.12em;">VIEW ALL →</a>
-        </div>
-        <div class="ribbon-window">
-          <div id="ribbon" class="ribbon-track">
-            {% if v3.live_ribbon %}
-              {% for m in v3.live_ribbon %}
-              <div class="match">
-                <div class="match-head">
-                  <span class="grad-text tac">{{ m.game }}</span>
-                  <span class="mono">{{ m.tag }}</span>
-                  <span class="mono live-time">{{ m.time_label }}</span>
-                </div>
-                <div class="match-score">
-                  <div class="team t-r">
-                    <div class="t-info"><div class="name">{{ m.team_a }}</div></div>
-                    <span class="team-logo logo-gold tlogo-sm">
-                      {% if m.team_a_logo %}<img src="{{ m.team_a_logo }}" alt="{{ m.team_a }}" loading="lazy">{% else %}<span>{{ m.team_a|slice:":2"|upper }}</span>{% endif %}
-                    </span>
-                  </div>
-                  <div class="score">
-                    <span {% if m.score_a > m.score_b %}class="hi"{% endif %}>{{ m.score_a }}</span>
-                    <span class="sep">:</span>
-                    <span {% if m.score_b > m.score_a %}class="hi"{% endif %}>{{ m.score_b }}</span>
-                  </div>
-                  <div class="team">
-                    <span class="team-logo logo-teal tlogo-sm">
-                      {% if m.team_b_logo %}<img src="{{ m.team_b_logo }}" alt="{{ m.team_b }}" loading="lazy">{% else %}<span>{{ m.team_b|slice:":2"|upper }}</span>{% endif %}
-                    </span>
-                    <div class="t-info"><div class="name">{{ m.team_b }}</div></div>
-                  </div>
-                </div>
-                <div class="match-foot">
-                  <span class="mono">{{ m.map_label }}</span>
-                  <a href="{{ m.match_url }}" class="tac watch">Watch <i class="fa-solid fa-arrow-right"></i></a>
-                </div>
-              </div>
-              {% endfor %}
-            {% elif v3.recent_ribbon %}
-              {% for m in v3.recent_ribbon %}
-              <div class="match">
-                <div class="match-head">
-                  <span class="grad-text tac">{{ m.game }}</span>
-                  <span class="mono">{{ m.tag }}</span>
-                  <span class="mono" style="color:var(--mute);">{{ m.time_label }}</span>
-                </div>
-                <div class="match-score">
-                  <div class="team t-r">
-                    <div class="t-info">
-                      <div class="name">{{ m.team_a }}</div>
-                      {% if m.winner == m.team_a %}<div class="tac sub result-winner">WON</div>{% endif %}
-                    </div>
-                    <span class="team-logo {% if m.winner == m.team_a %}logo-gold{% else %}logo-teal{% endif %} tlogo-sm">
-                      {% if m.team_a_logo %}<img src="{{ m.team_a_logo }}" alt="{{ m.team_a }}" loading="lazy">{% else %}<span>{{ m.team_a|slice:":2"|upper }}</span>{% endif %}
-                    </span>
-                  </div>
-                  <div class="score">
-                    <span {% if m.score_a > m.score_b %}class="hi"{% endif %}>{{ m.score_a }}</span>
-                    <span class="sep">:</span>
-                    <span {% if m.score_b > m.score_a %}class="hi"{% endif %}>{{ m.score_b }}</span>
-                  </div>
-                  <div class="team">
-                    <span class="team-logo {% if m.winner == m.team_b %}logo-gold{% else %}logo-teal{% endif %} tlogo-sm">
-                      {% if m.team_b_logo %}<img src="{{ m.team_b_logo }}" alt="{{ m.team_b }}" loading="lazy">{% else %}<span>{{ m.team_b|slice:":2"|upper }}</span>{% endif %}
-                    </span>
-                    <div class="t-info">
-                      <div class="name">{{ m.team_b }}</div>
-                      {% if m.winner == m.team_b %}<div class="tac sub result-winner">WON</div>{% endif %}
-                    </div>
-                  </div>
-                </div>
-                <div class="match-foot">
-                  <span class="mono">{{ m.map_label }}</span>
-                  <a href="{{ m.match_url }}" class="tac watch">Details <i class="fa-solid fa-arrow-right"></i></a>
-                </div>
-              </div>
-              {% endfor %}
-            {% else %}
-            <!-- No matches yet — show an invitation state -->
-            <div class="match" style="justify-content:center;align-items:center;text-align:center;gap:16px;">
-              <div style="padding:24px 16px;">
-                <div style="font-size:32px;margin-bottom:12px;opacity:.35;">🎮</div>
-                <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:18px;margin-bottom:8px;">No active matches</div>
-                <div style="color:var(--mute);font-size:13px;margin-bottom:18px;">Tournaments are warming up. Enter one to make it live.</div>
-                <a href="/tournaments/" class="btn btn-ghost btn-sm">Browse tournaments</a>
-              </div>
-            </div>
-            {% endif %}
-          </div>
-        </div>
-        <div class="livecard-foot">
-          <div id="channels" class="channels">
-            {% if v3.live_ribbon %}
-              {% for m in v3.live_ribbon %}<button class="ch" data-i="{{ forloop.counter0 }}"></button>{% endfor %}
-            {% elif v3.recent_ribbon %}
-              {% for m in v3.recent_ribbon %}<button class="ch" data-i="{{ forloop.counter0 }}"></button>{% endfor %}
-            {% endif %}
-          </div>
-        </div>
-      </div>
-
-      <!-- FEATURED EVENT MINI -->
-      {% if v3.featured_tournament %}
-      <a href="{{ v3.featured_tournament.view_url }}" class="featuredmini hud-4">
-        <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
-        <div class="fm-poster">
-          {% if v3.featured_tournament.poster_url %}
-          <img src="{{ v3.featured_tournament.poster_url }}" alt="{{ v3.featured_tournament.name }}" loading="lazy"/>
-          {% else %}
-          <div style="width:100%;height:100%;background:linear-gradient(135deg,#1a0d2e,#0d1a2e);display:grid;place-items:center;"><i class="fa-solid fa-trophy" style="font-size:32px;color:var(--violet);opacity:.5;"></i></div>
-          {% endif %}
-        </div>
-        <div class="fm-body">
-          <div class="fm-top">
-            <span class="tac fm-tag gold"><i class="fa-solid fa-star"></i> FEATURED</span>
-            <span class="mono fm-game">{{ v3.featured_tournament.game_name }} · {{ v3.featured_tournament.format_label|upper }}</span>
-          </div>
-          <div class="fm-name">{{ v3.featured_tournament.name|upper }}</div>
-          <div class="fm-stats">
-            <div><span class="mono">Prize</span> <span class="grad-text bold">{{ v3.featured_tournament.prize_pool_label }}</span></div>
-            <div><span class="mono">Slots</span> {{ v3.featured_tournament.slot_count }}/{{ v3.featured_tournament.slot_max }}</div>
-            {% if v3.featured_tournament.deadline_label %}
-            <div><span class="mono">{{ v3.featured_tournament.deadline_label }}</span> <span class="gold" id="cdSmall" data-deadline="{{ v3.featured_tournament.deadline_iso }}">...</span></div>
-            {% endif %}
-          </div>
-          <div class="fm-bar"><div class="fm-bar-fill" style="width:{{ v3.featured_tournament.slot_fill_pct }}%"></div></div>
-        </div>
-        <span class="fm-arrow"><i class="fa-solid fa-arrow-right"></i></span>
-      </a>
-      {% else %}
-      <a href="/tournaments/?status=registration_open" class="featuredmini hud-4">
-        <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
-        <div class="fm-poster" style="display:grid;place-items:center;background:rgba(139,92,246,0.08);"><i class="fa-solid fa-trophy" style="font-size:28px;color:var(--violet);opacity:.6;"></i></div>
-        <div class="fm-body">
-          <div class="fm-top"><span class="tac fm-tag" style="color:var(--mute);">TOURNAMENTS</span></div>
-          <div class="fm-name" style="font-size:14px;color:var(--paper-2);">No featured event right now</div>
-          <div class="fm-stats">
-            {% if v3.hero_stats.tournaments_active %}
-            <div><span class="mono" style="color:#06b6d4;">{{ v3.hero_stats.tournaments_active }} active event{{ v3.hero_stats.tournaments_active|pluralize }} available</span></div>
-            {% else %}
-            <div style="color:var(--mute);font-size:11px;line-height:1.4;">New events will appear here when registration opens.</div>
-            {% endif %}
-          </div>
-        </div>
-        <span class="fm-arrow"><i class="fa-solid fa-arrow-right"></i></span>
-      </a>
-      {% endif %}
-
-      <!-- UPCOMING SCHEDULE -->
-      <div class="schedule hud-4">
-        <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
-        <div class="schedule-head">
-          <span class="tac">COMING UP</span>
-          <a href="/tournaments/" class="schedule-all-link">All →</a>
-        </div>
-        <ul class="schedule-list">
-          {% if v3.upcoming_tournaments %}
-            {% for t in v3.upcoming_tournaments|slice:":4" %}
-            <li>
-              <span class="mono time" {% if t.tournament_start_iso %}data-ts="{{ t.tournament_start_iso }}"{% endif %}>
-                {% if t.scheduled_time %}{{ t.scheduled_time }}{% elif t.scheduled %}{{ t.scheduled }}{% else %}TBD{% endif %}
-              </span>
-              {% if t.poster_url %}
-              <img class="game-icon" src="{{ t.poster_url }}" alt="{{ t.game_name }}" loading="lazy" />
-              {% else %}
-              <span class="game-icon" style="background:rgba(255,255,255,0.05);display:inline-block;border-radius:6px;"></span>
-              {% endif %}
-              <span class="meet">{{ t.name }}</span>
-              <span class="mono stage">{{ t.format_label }}</span>
-            </li>
-            {% endfor %}
-          {% else %}
-          <li style="grid-column:1/-1;display:flex;align-items:center;gap:10px;padding:10px 4px;border-top:0;">
-            <i class="fa-solid fa-calendar-days" style="font-size:14px;color:var(--dim);opacity:.6;flex-shrink:0;width:28px;text-align:center;"></i>
-            <div style="flex:1;min-width:0;">
-              <div style="color:var(--paper);font-size:12px;font-weight:600;letter-spacing:.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">No events scheduled yet</div>
-              <div style="color:var(--mute);font-size:10px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Open registrations available.</div>
-            </div>
-            <a href="/tournaments/?status=registration_open" class="tac" style="font-size:10px;color:var(--teal);flex-shrink:0;letter-spacing:.06em;white-space:nowrap;">View open →</a>
-          </li>
-          {% endif %}
-        </ul>
-      </div>
-    </aside>
-  </div>
-
-</section>
-
-<!-- ============================================================ TICKER ============================================================ -->
-<section class="ticker" aria-hidden="true">
-  <div class="ticker-track">
-    {% for item in v3.ticker_items %}
-      {% if item.kind == "live" %}<span><b class="live-flag">LIVE</b> {{ item.text }}</span>
-      {% elif item.kind == "tournament" %}<span><b class="event-flag">EVENT</b> {{ item.text }}</span>
-      {% elif item.kind == "signup" %}<span><b class="up-flag">▲</b> {{ item.text }}</span>
-      {% else %}<span>{{ item.text }}</span>{% endif %}
-      <span class="sep">//</span>
-    {% empty %}
-    <span><b class="live-flag">LIVE</b> Matches running now · check the Arena</span><span class="sep">//</span>
-    <span><b class="event-flag">EVENT</b> Tournaments open for registration</span><span class="sep">//</span>
-    <span><b class="up-flag">▲</b> Crown Points ladder active · Season 3</span><span class="sep">//</span>
-    <span>Escrow-backed reward operations · structured payout tracking</span><span class="sep">//</span>
-    <span>11 titles · mobile to PC · game-agnostic engine</span><span class="sep">//</span>
-    {% endfor %}
-    {% for item in v3.ticker_items %}
-      {% if item.kind == "live" %}<span><b class="live-flag">LIVE</b> {{ item.text }}</span>
-      {% elif item.kind == "tournament" %}<span><b class="event-flag">EVENT</b> {{ item.text }}</span>
-      {% elif item.kind == "signup" %}<span><b class="up-flag">▲</b> {{ item.text }}</span>
-      {% else %}<span>{{ item.text }}</span>{% endif %}
-      <span class="sep">//</span>
-    {% endfor %}
-  </div>
-</section>
-
-<!-- ============================================================ WHY ============================================================ -->
-<section class="why reveal">
-  <div class="section-bound">
-    <div class="why-head">
-      <h2 class="section-h2">SCATTERED CHATS DON'T BUILD CAREERS<br/><span class="grad-text">VERIFIED COMPETITION DOES</span></h2>
-      <p class="section-lead">The same matches you already play — finally with rules, proof, escrow, and a ranking that actually counts.</p>
-    </div>
-    <div class="compare-grid">
-      <div class="compare-col cc-old">
-        <div class="cc-head"><span class="tac">Without DeltaCrown</span><span class="mono">The way it usually goes</span></div>
-        <ul class="cc-list">
-          {% for row in v3.comparison_rows %}
-          <li>
-            <span class="cc-ico old"><i class="fa-solid {{ row.old_icon }}"></i></span>
-            <div><b>{{ row.old_title }}</b><p>{{ row.old_blurb }}</p></div>
-          </li>
-          {% empty %}
-          <li><span class="cc-ico old"><i class="fa-solid fa-comments"></i></span><div><b>Discord &amp; DMs</b><p>"Send screenshot bro" · no structure, no record.</p></div></li>
-          <li><span class="cc-ico old"><i class="fa-solid fa-handshake-slash"></i></span><div><b>Verbal prize pools</b><p>Promised on stream, halfway paid out — if at all.</p></div></li>
-          <li><span class="cc-ico old"><i class="fa-solid fa-user-secret"></i></span><div><b>Stand-in subs mid-tournament</b><p>Fake rosters. Boosted accounts. No verification.</p></div></li>
-          <li><span class="cc-ico old"><i class="fa-solid fa-circle-question"></i></span><div><b>Disputed results</b><p>No referee. No log. Whoever screams loudest wins.</p></div></li>
-          {% endfor %}
-        </ul>
-      </div>
-      <div class="compare-arrow" aria-hidden="true">
-        <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
-          <circle cx="24" cy="24" r="23" stroke="rgba(139,92,246,0.4)" stroke-width="1"/>
-          <path d="M14 24h20m0 0l-7-7m7 7l-7 7" stroke="url(#a-grad)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          <defs><linearGradient id="a-grad" x1="14" y1="24" x2="34" y2="24" gradientUnits="userSpaceOnUse"><stop stop-color="#06b6d4"/><stop offset="0.5" stop-color="#8b5cf6"/><stop offset="1" stop-color="#facc15"/></linearGradient></defs>
-        </svg>
-      </div>
-      <div class="compare-col cc-new">
-        <div class="cc-head"><span class="pill pill-live"><span class="dot dot-live"></span><span class="tac">With DeltaCrown</span></span><span class="mono">The way it should be</span></div>
-        <ul class="cc-list">
-          {% for row in v3.comparison_rows %}
-          <li>
-            <span class="cc-ico new {% cycle 'teal' 'violet' 'gold' 'teal' 'violet' %}"><i class="fa-solid {{ row.new_icon }}"></i></span>
-            <div><b>{{ row.new_title }}</b><p>{{ row.new_blurb }}</p></div>
-          </li>
-          {% empty %}
-          <li><span class="cc-ico new teal"><i class="fa-solid fa-square-poll-vertical"></i></span><div><b>Match rooms</b><p>One page per match. Live score, chat, dispute, replay link.</p></div></li>
-          <li><span class="cc-ico new violet"><i class="fa-solid fa-vault"></i></span><div><b>Escrow payouts</b><p>Pot locked at registration. Released only on verified result.</p></div></li>
-          <li><span class="cc-ico new gold"><i class="fa-solid fa-id-badge"></i></span><div><b>Verified rosters</b><p>Real players, real game IDs, locked at start.</p></div></li>
-          <li><span class="cc-ico new teal"><i class="fa-solid fa-chart-line"></i></span><div><b>Crown Points ladder</b><p>Every verified match feeds your rank. Cross-game, anti-farmed.</p></div></li>
-          {% endfor %}
-        </ul>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ============================================================ FEATURED TOURNAMENT ============================================================ -->
-<section id="featured" class="arena reveal">
-  <div class="arena-bg">
-    {% if v3.featured_tournament and v3.featured_tournament.poster_url %}
-    <img src="{{ v3.featured_tournament.poster_url }}" alt="" class="arena-img" loading="lazy" />
-    {% else %}
-    {% if v3.featured_tournament and v3.featured_tournament.poster_url %}<img src="{{ v3.featured_tournament.poster_url }}" alt="" class="arena-img" loading="lazy"/>{% else %}<div class="arena-img" style="background:linear-gradient(135deg,#0d051a 0%,#1a0a2e 40%,#0a1a1a 100%);"></div>{% endif %}
-    {% endif %}
-    <div class="arena-veil"></div>
-    <div class="arena-scan"></div>
-  </div>
-  <div class="arena-shell">
-    {% if v3.featured_tournament %}
-    <div class="arena-row-top">
-      <span class="pill pill-live"><span class="dot dot-live"></span><span class="tac">{% if v3.featured_tournament.is_live %}Live now{% else %}Registration open{% endif %}</span></span>
-      <span class="mono">{{ v3.featured_tournament.game_name }} · {{ v3.featured_tournament.format_label|upper }}</span>
-      <span class="mono">PRIZE POOL {{ v3.featured_tournament.prize_pool_label }}</span>
-    </div>
-    <h2 class="arena-h2">THE BRACKET IS LIVE<br/><span class="grad-text">YOUR SLOT IS OPEN</span></h2>
-    <div class="arena-name">{{ v3.featured_tournament.name|upper }}</div>
-    <div class="arena-stats">
-      <div class="aerial"><div class="tac">Prize Pool</div><div class="big grad-text">{{ v3.featured_tournament.prize_pool_label }}</div></div>
-      <div class="aerial"><div class="tac">Slots Filled</div><div class="big">{{ v3.featured_tournament.slot_count }}<span class="muted">/{{ v3.featured_tournament.slot_max }}</span></div></div>
-      <div class="aerial"><div class="tac">Format</div><div class="big">{{ v3.featured_tournament.format_label|upper }}</div></div>
-      <div class="aerial"><div class="tac">{{ v3.featured_tournament.deadline_label|default:"Closes In" }}</div><div class="big gold mono-cd" id="cdBig" data-deadline="{{ v3.featured_tournament.deadline_iso }}">—</div></div>
-    </div>
-    <div class="arena-bar"><div class="arena-bar-fill" style="width:{{ v3.featured_tournament.slot_fill_pct }}%"></div></div>
-    <div class="arena-cta">
-      <a href="{{ v3.featured_tournament.register_url }}" class="btn btn-primary btn-lg">Register Squad <i class="fa-solid fa-arrow-right"></i></a>
-      <a href="{{ v3.featured_tournament.view_url }}" class="btn btn-ghost btn-lg">View Bracket</a>
-      <a href="/teams/" class="join-team"><i class="fa-solid fa-people-group"></i> Need a team? Find one →</a>
-    </div>
-    {% else %}
-    <h2 class="arena-h2">THE STAGE IS SET<br/><span class="grad-text">YOUR MOMENT IS COMING</span></h2>
-    <div class="arena-name">DELTACROWN · OPEN COMPETITION</div>
-    <div class="arena-cta" style="margin-top:40px;">
-      <a href="/tournaments/" class="btn btn-primary btn-lg">Browse Tournaments <i class="fa-solid fa-arrow-right"></i></a>
-      <a href="/teams/" class="btn btn-ghost btn-lg">Find a Team</a>
-    </div>
-    {% endif %}
-
-    <!-- Upcoming grid -->
-    {% if v3.upcoming_tournaments %}
-    <div class="up-row">
-      <div class="up-row-head">
-        <span class="tac">NEXT UP</span>
-        <a href="/tournaments/" class="tac more">View all <i class="fa-solid fa-arrow-right"></i></a>
-      </div>
-      <div class="up-grid">
-        {% for t in v3.upcoming_tournaments|slice:":4" %}
-        <a class="upcard hud-4" href="{{ t.url }}">
-          <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
-          <div class="up-img">
-            {% if t.poster_url %}<img src="{{ t.poster_url }}" alt="{{ t.name }}" loading="lazy"/>
-            {% else %}<div style="width:100%;height:100%;background:linear-gradient(135deg,#1a0d2e,#0d1a2e);display:grid;place-items:center;aspect-ratio:16/9;"><i class="fa-solid fa-gamepad" style="font-size:28px;color:rgba(255,255,255,.18);"></i></div>{% endif %}
-          </div>
-          <div class="up-body">
-            <span class="tac up-tag">{{ t.game_name }} · {{ t.format_label }}</span>
-            <div class="up-name">{{ t.name|upper }}</div>
-            <div class="up-foot">
-              <span class="mono">{{ t.scheduled|default:"TBD" }}</span>
-              <span class="mono">{% if t.is_free %}FREE{% else %}{{ t.prize_label }}{% endif %}</span>
-            </div>
-          </div>
+  {% comment %} Conditional — Recent verified results / live activity strip.
+     Only rendered when REAL live or recently-completed matches exist. Never faked. {% endcomment %}
+  {% with rib=v3.live_ribbon|default:v3.recent_ribbon %}
+  {% if rib %}
+  <section data-screen-label="Live activity" data-section="recent-results" style="position:relative;border-bottom:1px solid var(--hair);background:rgba(8,10,16,.5);">
+    <div style="max-width:1280px;margin:0 auto;padding:16px clamp(18px,4vw,48px);display:flex;align-items:center;gap:18px;">
+      <span class="m" style="flex-shrink:0;display:inline-flex;align-items:center;gap:8px;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--soft);">
+        <span style="width:6px;height:6px;border-radius:50%;background:{% if v3.live_ribbon %}var(--live){% else %}var(--suc){% endif %};box-shadow:0 0 9px {% if v3.live_ribbon %}var(--live){% else %}var(--suc){% endif %};"></span>
+        {% if v3.live_ribbon %}Live now{% else %}Recent verified results{% endif %}
+      </span>
+      <div style="flex:1;min-width:0;display:flex;gap:10px;overflow-x:auto;padding-bottom:2px;">
+        {% for r in rib|slice:":5" %}
+        <a href="{{ r.match_url }}" class="press" style="flex:0 0 auto;display:inline-flex;align-items:center;gap:10px;padding:8px 13px;border:1px solid var(--hair);border-radius:11px;background:var(--s1);text-decoration:none;white-space:nowrap;">
+          <span class="m" style="font-size:8.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--soft);">{{ r.game }}</span>
+          <span style="font-size:12px;font-weight:600;color:var(--fg);">{{ r.team_a }}</span>
+          <span class="m" style="font-size:12px;color:var(--go4);">{{ r.score_a }}–{{ r.score_b }}</span>
+          <span style="font-size:12px;font-weight:600;color:var(--fg);">{{ r.team_b }}</span>
+          <span class="m" style="font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;color:{% if r.is_result %}var(--suc){% else %}var(--live){% endif %};">{{ r.time_label }}</span>
         </a>
         {% endfor %}
       </div>
     </div>
-    {% endif %}
-  </div>
-</section>
+  </section>
+  {% endif %}
+  {% endwith %}
 
-<!-- ============================================================ GAME ROSTER ============================================================ -->
-<section id="games" class="games reveal">
-  <div class="games-head section-bound">
-    <h2 class="section-h2">ELEVEN TITLES<br/><span class="grad-text">ONE COMPETITIVE LAYER</span></h2>
-    <p class="section-lead">Every game ships with its own tournament engine, ruleset, and live ladder. Drag to scroll. Hover to focus. Click to enter.</p>
-  </div>
-  <div class="game-rail" id="gameRail">
-    <div class="game-track">
-      {% for g in v3.game_posters %}
-      <a class="gcard" href="{{ g.url }}">
-        <div class="gcard-img">
-          {% if g.poster_url %}
-          <img src="{{ g.poster_url }}" alt="{{ g.name }}" loading="lazy"/>
-          {% else %}
-          <div style="width:100%;height:100%;background:linear-gradient(135deg,{{ g.primary_color|default:'#1a1a2e' }}cc,{{ g.primary_color|default:'#0d0d1a' }}44);display:grid;place-items:center;">
-            {% if g.icon_url %}<img src="{{ g.icon_url }}" alt="{{ g.name }}" style="width:80px;height:80px;object-fit:contain;filter:drop-shadow(0 0 20px {{ g.primary_color|default:'#8b5cf6' }}88);opacity:.85;" loading="lazy">
-            {% else %}<span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:28px;color:rgba(255,255,255,.4);letter-spacing:-0.02em;">{{ g.name|slice:":3"|upper }}</span>{% endif %}
-          </div>
-          {% endif %}
-        </div>
-        <div class="gcard-mask"></div>
-        <div class="gcard-index mono">{% if g.index < 10 %}0{% endif %}{{ g.index }}</div>
-        {% if g.live_count %}<div class="gcard-live"><b class="live">●</b> {{ g.live_count }} LIVE</div>{% endif %}
-        <div class="gcard-meta">
-          <div class="tac gcard-tag">{{ g.meta|upper }}</div>
-          <div class="gcard-name">{{ g.name|upper }}</div>
-          {% if g.event_count %}
-          <div class="gcard-stats"><span class="mono">{{ g.event_count }} EVENTS</span></div>
-          {% endif %}
-        </div>
-        <span class="gcard-cta tac">Enter <i class="fa-solid fa-arrow-right"></i></span>
-      </a>
-      {% empty %}
-      <a class="gcard" href="/tournaments/?game=valorant"><div class="gcard-img"><img src="{% static 'img/games/posters/valorant.jpg' %}" alt="Valorant" loading="lazy" /></div><div class="gcard-mask"></div><div class="gcard-index mono">01</div><div class="gcard-meta"><div class="gcard-name">VALORANT</div></div><span class="gcard-cta tac">Enter <i class="fa-solid fa-arrow-right"></i></span></a>
-      <a class="gcard" href="/tournaments/?game=cs2"><div class="gcard-img"><img src="{% static 'img/games/posters/cs2.jpg' %}" alt="CS2" loading="lazy" /></div><div class="gcard-mask"></div><div class="gcard-index mono">02</div><div class="gcard-meta"><div class="gcard-name">CS2</div></div><span class="gcard-cta tac">Enter <i class="fa-solid fa-arrow-right"></i></span></a>
-      <a class="gcard" href="/tournaments/?game=dota2"><div class="gcard-img"><img src="{% static 'img/games/posters/dota2.jpg' %}" alt="Dota 2" loading="lazy" /></div><div class="gcard-mask"></div><div class="gcard-index mono">03</div><div class="gcard-meta"><div class="gcard-name">DOTA 2</div></div><span class="gcard-cta tac">Enter <i class="fa-solid fa-arrow-right"></i></span></a>
-      <a class="gcard" href="/tournaments/?game=pubg-mobile"><div class="gcard-img"><img src="{% static 'img/games/posters/pubg.jpg' %}" alt="PUBG Mobile" loading="lazy" /></div><div class="gcard-mask"></div><div class="gcard-index mono">04</div><div class="gcard-meta"><div class="gcard-name">PUBG MOBILE</div></div><span class="gcard-cta tac">Enter <i class="fa-solid fa-arrow-right"></i></span></a>
-      <a class="gcard" href="/tournaments/?game=free-fire"><div class="gcard-img"><img src="{% static 'img/games/posters/freefire.jpg' %}" alt="Free Fire" loading="lazy" /></div><div class="gcard-mask"></div><div class="gcard-index mono">05</div><div class="gcard-meta"><div class="gcard-name">FREE FIRE</div></div><span class="gcard-cta tac">Enter <i class="fa-solid fa-arrow-right"></i></span></a>
-      <a class="gcard" href="/tournaments/?game=mobile-legends"><div class="gcard-img"><img src="{% static 'img/games/posters/mlbb.jpg' %}" alt="MLBB" loading="lazy" /></div><div class="gcard-mask"></div><div class="gcard-index mono">06</div><div class="gcard-meta"><div class="gcard-name">MOBILE LEGENDS</div></div><span class="gcard-cta tac">Enter <i class="fa-solid fa-arrow-right"></i></span></a>
-      {% endfor %}
-      <a class="gcard gcard-empty" href="/tournaments/">
-        <div class="gcard-mask gcard-mask-empty"></div>
-        <div class="gcard-empty-body">
-          <span class="tac">YOUR TITLE</span>
-          <span class="grad-text gcard-name">NEXT.</span>
-          <span class="mono">GAME-AGNOSTIC ENGINE</span>
-          <span class="tac more">Request integration <i class="fa-solid fa-arrow-right"></i></span>
-        </div>
-      </a>
-    </div>
-  </div>
-  <div class="games-foot section-bound">
-    <div class="rail-progress" id="railProgress"><div class="rail-progress-fill" id="railFill"></div></div>
-    <div class="rail-ctrl">
-      <button class="rail-btn" data-dir="-1" aria-label="Scroll left"><i class="fa-solid fa-arrow-left"></i></button>
-      <button class="rail-btn" data-dir="1" aria-label="Scroll right"><i class="fa-solid fa-arrow-right"></i></button>
-      <a href="/tournaments/" class="tac more-link">Browse all events <i class="fa-solid fa-arrow-right"></i></a>
-    </div>
-  </div>
-</section>
-
-<!-- ============================================================ ECOSYSTEM ============================================================ -->
-<section id="ecosystem" class="ecosystem reveal">
-  <div class="section-bound">
-    <div class="eco-headline">
-      <h2 class="section-h2">ONE PLATFORM<br/><span class="grad-text">EVERY MATCH CONNECTED</span></h2>
-      <p class="section-lead">Tournaments, teams, match rooms, proof, rewards, and Crown Points stay connected — so every result can become history, ranking signal, and recognition.</p>
-    </div>
-    <div class="eco-count" aria-hidden="true">
-      <span class="eco-count-line"></span>
-      <span class="eco-count-pips"><span class="pip"></span><span class="pip"></span><span class="pip"></span><span class="pip"></span><span class="pip"></span><span class="pip"></span><span class="pip"></span><span class="pip"></span></span>
-      <span class="tac eco-count-label"><b>8</b> PILLARS · ONE CONNECTED PLATFORM</span>
-      <span class="eco-count-line"></span>
-    </div>
-    <div class="bento">
-      {% for module in v3.ecosystem_modules %}
-      {% if forloop.first %}
-      <article class="bento-cell bento-feature" data-color="{{ module.color }}">
-        <span class="bento-num">{{ forloop.counter }} <span class="of">/ {{ v3.ecosystem_modules|length }}</span></span>
-        <div class="bento-feature-img" style="background-image:url('{% static 'img/games/posters/valorant.jpg' %}')"></div>
-        <div class="bento-feature-mask"></div>
-        <div class="bento-feature-body">
-          <div class="bento-ico {{ module.color }}"><i class="fa-solid {{ module.icon }}"></i></div>
-          <div class="bento-name">{{ module.name }}</div>
-          <p>{{ module.blurb }}</p>
-        </div>
-      </article>
-      {% elif forloop.counter == 6 %}
-      <article class="bento-cell bento-coin" data-color="{{ module.color }}">
-        <span class="bento-num">{{ forloop.counter }} <span class="of">/ {{ v3.ecosystem_modules|length }}</span></span>
-        <div class="bento-coin-orbit" aria-hidden="true">
-          <div class="ring ring-a"></div>
-          <div class="ring ring-b"></div>
-          <div class="coin-disc"><span>D</span></div>
-        </div>
-        <div class="bento-coin-body">
-          <div class="bento-name">{{ module.name }}</div>
-          <p>{{ module.blurb }}</p>
-        </div>
-      </article>
-      {% else %}
-      <article class="bento-cell" data-color="{{ module.color }}">
-        <span class="bento-num">{{ forloop.counter }} <span class="of">/ {{ v3.ecosystem_modules|length }}</span></span>
-        <div class="bento-ico {{ module.color }}"><i class="fa-solid {{ module.icon }}"></i></div>
-        <div class="bento-name">{{ module.name }}</div>
-        <p>{{ module.blurb }}</p>
-      </article>
-      {% endif %}
-      {% endfor %}
-    </div>
-  </div>
-</section>
-
-<!-- ============================================================ COMPETITIVE HUB ============================================================ -->
-<section class="hub reveal">
-  <div class="section-bound">
-    <div class="hub-head">
-      <h2 class="section-h2">COMPETE EVERY DAY<br/><span class="grad-text">FOUR WAYS TO PLAY</span></h2>
-      <p class="section-lead">Beyond the tournament calendar, the Hub keeps reward matches running every day — escrow-backed, rules-enforced, dispute-aware.</p>
-    </div>
-    <div class="hub-grid">
-      {% for pillar in v3.competitive_pillars %}
-      <a class="hubcard hud-4" href="{{ pillar.url }}" data-tone="{{ pillar.color }}">
-        <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
-        <div class="hub-ico {{ pillar.color }}"><i class="fa-solid {{ pillar.icon }}"></i></div>
-        <div class="hub-name">{{ pillar.name }}</div>
-        <p>{{ pillar.tagline }}</p>
-        <p style="margin-top:0;font-size:12px;">{{ pillar.blurb }}</p>
-        <span class="hub-cta">Enter <i class="fa-solid fa-arrow-right"></i></span>
-      </a>
-      {% empty %}
-      <a class="hubcard hud-4" href="/dashboard/competitive/" data-tone="teal">
-        <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
-        <div class="hub-ico teal"><i class="fa-solid fa-bolt"></i></div>
-        <div class="hub-name">Showdown</div>
-        <p>Head-to-head reward matches. Escrow-locked from the start.</p>
-        <span class="hub-cta">Enter <i class="fa-solid fa-arrow-right"></i></span>
-      </a>
-      {% endfor %}
-    </div>
-  </div>
-</section>
-
-<!-- ============================================================ CROWN POINTS ============================================================ -->
-<section id="ladder" class="ascend reveal">
-  <div class="section-bound">
-    <div class="ascend-head">
-      <h2 class="section-h2">EVERY MATCH IS A STEP<br/><span class="grad-text">SOME STEPS MAKE LEGENDS</span></h2>
-      <p class="section-lead">Crown Points — a single, cross-game performance score scaled by opponent strength, anti-farming protected, and seasonally reset. Verified results only.</p>
-    </div>
-
-    <!-- Tier Rail -->
-    <div class="tier-rail">
-      <div class="tier-line"></div>
-      <ol class="tier-nodes">
-        {% for tier in v3.tier_rail %}
-        <li class="tier-node {{ tier.color }}{% if tier.is_crown %} tier-crown{% endif %}" data-active="{% if tier.active %}1{% else %}0{% endif %}">
-          <div class="ring"><div class="core"></div></div>
-          <div class="name {% if tier.is_crown %}grad-text{% endif %}">{{ tier.name }}</div>
-          <div class="mono range">{{ tier.range }}</div>
-        </li>
-        {% empty %}
-        <li class="tier-node teal" data-active="0"><div class="ring"><div class="core"></div></div><div class="name">Rookie</div><div class="mono range">0 – 100 CP</div></li>
-        <li class="tier-node teal" data-active="0"><div class="ring"><div class="core"></div></div><div class="name">Challenger</div><div class="mono range">100 – 500</div></li>
-        <li class="tier-node violet" data-active="1"><div class="ring"><div class="core"></div></div><div class="name">Elite</div><div class="mono range">500 – 2K</div></li>
-        <li class="tier-node violet" data-active="0"><div class="ring"><div class="core"></div></div><div class="name">Master</div><div class="mono range">2K – 8K</div></li>
-        <li class="tier-node gold" data-active="0"><div class="ring"><div class="core"></div></div><div class="name">Legend</div><div class="mono range">8K – 30K</div></li>
-        <li class="tier-node gold tier-crown" data-active="0"><div class="ring"><div class="core"></div></div><div class="name grad-text">The Crown</div><div class="mono range">30K+</div></li>
-        {% endfor %}
-      </ol>
-    </div>
-
-    <!-- Leaderboard + Spotlight + Activity -->
-    <div class="ascend-grid">
-      <div class="board hud-4">
-        <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
-        <div class="board-head">
-          <span class="tac">TOP TEAMS</span>
-          <span class="mono">· Crown Points · This season</span>
-          <a href="/teams/" class="tac more">Full ladder <i class="fa-solid fa-arrow-right"></i></a>
-        </div>
-        <ol class="board-list">
-          {% for team in v3.top_teams %}
-          <li class="board-row">
-            <span class="mono rank {{ team.rank_color }}">{{ team.rank_label }}</span>
-            {% if team.team_logo %}
-            <span class="team-logo logo-{{ team.rank_color }}" style="overflow:hidden;padding:0;">
-              <img src="{{ team.team_logo }}" alt="{{ team.team_name }}" style="width:100%;height:100%;object-fit:cover;border-radius:9px;" loading="lazy">
-            </span>
-            {% else %}
-            <span class="team-logo logo-{{ team.rank_color }}"><span>{{ team.team_name|slice:":2"|upper }}</span></span>
-            {% endif %}
-            <div class="board-team">
-              <div class="board-name">{{ team.team_name|upper }}</div>
-              <div class="mono meta">{{ team.meta }}</div>
-            </div>
-            <span class="tier-chip {{ team.tier_color }}">{{ team.tier_label }}</span>
-            <span class="mono cp">{{ team.cp_label }}</span>
-            <span class="mono delta {% if team.change > 0 %}up{% elif team.change < 0 %}down{% else %}same{% endif %}">
-              {% if team.change > 0 %}▲{{ team.change }}{% elif team.change < 0 %}▼{{ team.change|cut:"-" }}{% else %}—{% endif %}
-            </span>
-          </li>
-          {% empty %}
-          <li class="board-row"><span class="mono rank gold">#01</span><span class="team-logo logo-gold"><span>—</span></span><div class="board-team"><div class="board-name">No teams yet</div><div class="mono meta">Be the first to compete</div></div><span class="tier-chip teal">—</span><span class="mono cp">—</span><span class="mono delta same">—</span></li>
-          {% endfor %}
-        </ol>
+  <!-- ============ 02 · WHY DELTACROWN — PROBLEM / SOLUTION ============ -->
+  <section data-screen-label="Why DeltaCrown" data-section="why-deltacrown" style="position:relative;overflow:hidden;border-bottom:1px solid var(--hair);">
+    <div aria-hidden="true" style="position:absolute;left:0;top:0;bottom:0;width:50%;background:radial-gradient(70% 80% at 30% 50%,rgba(71,84,97,.1),transparent 70%);"></div>
+    <div aria-hidden="true" data-anim style="position:absolute;right:0;top:0;bottom:0;width:52%;background:radial-gradient(70% 80% at 70% 45%,rgba(10,132,255,.1),rgba(104,73,229,.05) 55%,transparent 72%);filter:blur(8px);animation:dch-breathe 12s ease-in-out infinite;"></div>
+    <div style="position:relative;z-index:1;max-width:1280px;margin:0 auto;padding:clamp(56px,8vh,96px) clamp(18px,4vw,48px);">
+      <div data-reveal class="rv" style="text-align:center;max-width:680px;margin:0 auto 36px;">
+        <div class="m" style="font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--az4);">Why DeltaCrown</div>
+        <h2 style="margin:10px 0 0;font-family:var(--disp);font-weight:700;font-size:clamp(26px,3vw,38px);letter-spacing:-.02em;">Informal esports is broken. <span class="grad">We fixed the flow.</span></h2>
+        <p style="margin:9px 0 0;font-size:15px;line-height:1.6;color:var(--mut);">Scattered chats, ghosted prize pools and screenshot arguments shouldn't decide who wins. Every match on DeltaCrown is operated, verified and recorded — so results are real.</p>
       </div>
-
-      <div class="ascend-side">
-        <!-- Player Spotlight -->
-        <div class="spotlight hud-4">
-          <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
-          <div class="spot-head">
-            <span class="tac gold"><i class="fa-solid fa-star"></i> SPOTLIGHT</span>
-            <span class="mono">· Season 3</span>
+      <div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:stretch;gap:clamp(14px,2.4vw,30px);">
+        <!-- before -->
+        <div class="wcard" style="border:1px solid var(--hair);border-radius:20px;background:rgba(17,21,30,.4);padding:22px;transition:border-color .3s;">
+          <div style="display:flex;align-items:center;gap:9px;margin-bottom:18px;">
+            <span class="m" style="padding:5px 11px;border-radius:999px;background:rgba(71,84,97,.16);border:1px solid var(--hair);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--soft);">The old way</span>
           </div>
-          {% if v3.player_spotlight %}
-          <div class="spot-body">
-            <div class="spot-avatar">
-              <div class="spot-avatar-ring">
-                {% if v3.player_spotlight.avatar_url %}
-                <img src="{{ v3.player_spotlight.avatar_url }}" alt="{{ v3.player_spotlight.display_name }}" style="width:74px;height:74px;border-radius:50%;object-fit:cover;" loading="lazy">
-                {% else %}
-                <span class="brand grad-text">{{ v3.player_spotlight.initials }}</span>
-                {% endif %}
-              </div>
-              <span class="spot-badge">TOP</span>
+          <div style="display:flex;flex-direction:column;gap:16px;">
+            {% for w in why_old %}
+            <div style="display:flex;gap:12px;align-items:flex-start;opacity:.78;">
+              <span style="width:28px;height:28px;flex-shrink:0;border-radius:8px;display:grid;place-items:center;background:rgba(71,84,97,.14);border:1px solid var(--hair);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--soft)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6L6 18"/></svg></span>
+              <div><div style="font-family:var(--disp);font-weight:600;font-size:14px;color:var(--mut);">{{ w.title }}</div><div style="margin-top:3px;font-size:12.5px;line-height:1.5;color:var(--soft);">{{ w.desc }}</div></div>
             </div>
-            <div class="spot-info">
-              <div class="spot-name">{{ v3.player_spotlight.display_name|upper }}</div>
-              <div class="mono spot-sub">{{ v3.player_spotlight.subtitle }}</div>
-              <div class="spot-cta" style="margin-top:14px;">
-                <a href="{{ v3.player_spotlight.profile_url }}" class="btn btn-ghost btn-sm">View profile</a>
-                <a href="{{ v3.player_spotlight.team_url }}" class="tac more">View team <i class="fa-solid fa-arrow-right"></i></a>
-              </div>
-            </div>
-          </div>
-          {% else %}
-          <div class="spot-body">
-            <div class="spot-info" style="padding:8px 0;">
-              <div class="spot-name" style="font-size:15px;color:var(--mute);">Compete to earn the spotlight</div>
-              <div class="mono spot-sub" style="margin-top:8px;">The top-ranked captain each season appears here.</div>
-              <div class="spot-cta" style="margin-top:14px;">
-                <a href="/tournaments/" class="btn btn-primary btn-sm">Enter a tournament <i class="fa-solid fa-arrow-right"></i></a>
-              </div>
-            </div>
-          </div>
-          {% endif %}
-        </div>
-
-        <!-- Activity Feed -->
-        <div class="activity hud-4">
-          <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
-          <div class="activity-head">
-            <span class="pill pill-live"><span class="dot dot-live"></span><span class="tac">ACTIVITY FEED</span></span>
-            <span class="mono">recent</span>
-          </div>
-          <ul class="activity-list">
-            {% for item in v3.activity_feed %}
-            <li>
-              <span class="mono kind {{ item.kind_color }}">{{ item.kind }}</span>
-              <span class="msg"><b>{{ item.highlight }}</b> {{ item.text }}</span>
-              <span class="mono t">{{ item.time_label }}</span>
-            </li>
-            {% empty %}
-            <li><span class="mono kind teal">INFO</span><span class="msg">Platform is live · be the first to compete today</span><span class="mono t">—</span></li>
             {% endfor %}
-          </ul>
+          </div>
+        </div>
+        <!-- arrow -->
+        <div class="deskonly" style="display:flex;align-items:center;justify-content:center;">
+          <span style="width:44px;height:44px;border-radius:50%;display:grid;place-items:center;border:1px solid rgba(10,132,255,.3);background:var(--tAz);"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--az4)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+        </div>
+        <!-- deltacrown -->
+        <div style="position:relative;border:1px solid rgba(10,132,255,.28);border-radius:20px;background:linear-gradient(180deg,rgba(16,22,34,.75),rgba(14,17,28,.66));backdrop-filter:blur(14px);padding:22px;box-shadow:0 30px 70px -46px rgba(10,132,255,.5);overflow:hidden;">
+          <div aria-hidden="true" style="position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(10,132,255,.5) 30%,rgba(132,112,238,.5) 60%,rgba(226,197,136,.4),transparent);"></div>
+          <div style="display:flex;align-items:center;gap:9px;margin-bottom:18px;">
+            <span class="m" style="display:inline-flex;align-items:center;gap:7px;padding:5px 11px;border-radius:999px;background:var(--tAz);border:1px solid rgba(10,132,255,.35);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--az4);"><span style="width:5px;height:5px;border-radius:50%;background:var(--suc);box-shadow:0 0 8px var(--suc);"></span>With DeltaCrown</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:16px;">
+            {% for w in why_new %}
+            <div style="display:flex;gap:12px;align-items:flex-start;">
+              <span style="width:28px;height:28px;flex-shrink:0;border-radius:8px;display:grid;place-items:center;background:var(--s2);border:1px solid var(--hair);"><span style="display:inline-flex;color:{{ w.color }};">{{ w.icon|safe }}</span></span>
+              <div><div style="font-family:var(--disp);font-weight:600;font-size:14px;color:var(--fg);">{{ w.title }}</div><div style="margin-top:3px;font-size:12.5px;line-height:1.5;color:var(--mut);">{{ w.desc }}</div></div>
+            </div>
+            {% endfor %}
+          </div>
         </div>
       </div>
     </div>
-  </div>
-</section>
+  </section>
 
-<!-- ============================================================ PERSONAS ============================================================ -->
-<section class="personas reveal">
-  <div class="section-bound">
-    <div class="personas-head">
-      <h2 class="section-h2">ONE PLATFORM<br/><span class="grad-text">FOUR WAYS IN</span></h2>
-      <p class="section-lead">Whether you're climbing the ladder, building a roster, running events, or backing the next wave of talent — there's a clean entry point here.</p>
-    </div>
-    <div class="persona-tabs" role="tablist">
-      {% for p in v3.personas %}
-      <button class="ptab{% if forloop.first %} active{% endif %}" role="tab" aria-selected="{% if forloop.first %}true{% else %}false{% endif %}" data-target="{{ p.id }}">
-        <i class="fa-solid {{ p.icon }} {{ p.color }}"></i>
+  <!-- ============ 03 · LIVE TOURNAMENTS — STAGE ============ -->
+  <section data-screen-label="Tournaments" data-section="tournaments" style="position:relative;overflow:hidden;border-bottom:1px solid var(--hair);">
+    <div aria-hidden="true" data-anim style="position:absolute;left:50%;top:-14%;width:min(900px,86vw);height:60%;transform:translateX(-50%);background:radial-gradient(46% 100% at 50% 0%,rgba(132,112,238,.2),rgba(10,132,255,.08) 48%,transparent 72%);filter:blur(8px);animation:dch-spot 13s ease-in-out infinite;"></div>
+    <div aria-hidden="true" style="position:absolute;left:50%;bottom:0;width:min(820px,80vw);height:180px;transform:translateX(-50%);background:radial-gradient(60% 100% at 50% 100%,rgba(10,132,255,.1),transparent 74%);filter:blur(12px);"></div>
+    <div style="position:relative;z-index:1;max-width:1280px;margin:0 auto;padding:clamp(56px,8vh,96px) clamp(18px,4vw,48px);">
+      <div data-reveal class="rv" style="display:flex;align-items:flex-end;justify-content:space-between;gap:18px;flex-wrap:wrap;margin-bottom:28px;">
         <div>
-          <div class="ptab-name">{{ p.name|upper }}</div>
-          {% if forloop.first and request.user.is_authenticated %}
-          <div class="mono">Your next move</div>
-          {% else %}
-          <div class="mono">{{ p.primary_cta.text }}</div>
-          {% endif %}
+          <div class="m" style="font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--az4);">Live &amp; open</div>
+          <h2 style="margin:10px 0 0;font-family:var(--disp);font-weight:700;font-size:clamp(26px,3vw,38px);letter-spacing:-.02em;">Verified tournaments, open now</h2>
+          <p style="margin:9px 0 0;max-width:54ch;font-size:15px;line-height:1.6;color:var(--mut);">Enter solo or bring your squad. Every bracket is verified, escrow-backed and dispute-aware — from check-in to payout.</p>
         </div>
-      </button>
-      {% endfor %}
+        <a href="/tournaments/" class="ghost press" style="display:inline-flex;align-items:center;gap:7px;padding:11px 18px;border-radius:11px;border:1px solid var(--stroke);background:var(--s1);color:var(--mut);font-weight:600;font-size:13px;text-decoration:none;white-space:nowrap;">All tournaments<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+      </div>
+      <div data-reveal class="rv" style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:20px;">
+        <a href="/tournaments/" class="filter press" style="padding:7px 14px;border-radius:999px;border:1px solid rgba(10,132,255,.4);background:var(--tAz);color:var(--fg);font-size:12px;font-weight:600;text-decoration:none;white-space:nowrap;">All games</a>
+        {% for g in v3.game_posters|slice:":3" %}
+        <a href="/tournaments/?game={{ g.slug }}" class="filter press" style="padding:7px 14px;border-radius:999px;border:1px solid var(--stroke);background:var(--s1);color:var(--soft);font-size:12px;font-weight:600;text-decoration:none;white-space:nowrap;">{{ g.name }}</a>
+        {% endfor %}
+        <a href="/tournaments/?entry=free" class="filter press" style="padding:7px 14px;border-radius:999px;border:1px solid var(--stroke);background:var(--s1);color:var(--soft);font-size:12px;font-weight:600;text-decoration:none;white-space:nowrap;">Free entry</a>
+      </div>
+      {% if v3.upcoming_tournaments %}
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;">
+        {% for t in v3.upcoming_tournaments %}
+        <a data-reveal class="rv tcard press" href="{{ t.url }}" style="display:flex;flex-direction:column;border:1px solid var(--stroke);border-radius:18px;background:var(--s1);overflow:hidden;text-decoration:none;transition:transform .3s var(--eo),border-color .3s,box-shadow .3s;">
+          <div style="position:relative;height:118px;background:{% if t.poster_url %}url('{{ t.poster_url }}') center 30%/cover no-repeat{% else %}linear-gradient(135deg,var(--s2),var(--s1)){% endif %};">
+            <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,13,20,.15) 30%,rgba(17,21,30,.95));"></div>
+            <span style="position:absolute;top:10px;left:11px;display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:999px;{% if t.is_live %}background:var(--tLi);border:1px solid rgba(255,59,92,.4);{% elif t.slot_fill_pct >= 85 %}background:var(--tGo);border:1px solid rgba(207,167,90,.4);{% else %}background:var(--tAz);border:1px solid rgba(10,132,255,.4);{% endif %}backdrop-filter:blur(6px);"><span class="m" style="font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;color:{% if t.is_live %}var(--live){% elif t.slot_fill_pct >= 85 %}var(--go4){% else %}var(--az4){% endif %};">{% if t.is_live %}Live{% elif t.slot_fill_pct >= 85 %}Filling fast{% else %}Open{% endif %}</span></span>
+            {% if t.game_name %}<span class="m" style="position:absolute;bottom:9px;left:12px;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.85);">{{ t.game_name }}</span>{% endif %}
+            <span class="m" style="position:absolute;bottom:9px;right:12px;font-size:11px;color:var(--go4);">{{ t.prize_label }}</span>
+          </div>
+          <div style="padding:14px;display:flex;flex-direction:column;gap:11px;flex:1;">
+            <div>
+              <div style="font-family:var(--disp);font-weight:600;font-size:16px;letter-spacing:-.01em;color:var(--fg);">{{ t.name }}</div>
+              {% if t.format_label %}<div class="m" style="margin-top:5px;font-size:10px;letter-spacing:.03em;color:var(--soft);">{{ t.format_label }}</div>{% endif %}
+            </div>
+            <div>
+              <div style="height:5px;border-radius:999px;background:var(--s3);overflow:hidden;margin-bottom:6px;"><span style="display:block;height:100%;width:{{ t.slot_fill_pct }}%;background:var(--brand);"></span></div>
+              <div style="display:flex;align-items:center;justify-content:space-between;">
+                <span class="m" style="font-size:10px;color:var(--soft);">{% if t.slot_max %}{{ t.slot_count }} / {{ t.slot_max }} teams{% else %}{{ t.slot_count }} registered{% endif %}</span>
+                <span class="m" style="font-size:10px;color:var(--az4);">{{ t.scheduled|default:"Open" }}</span>
+              </div>
+            </div>
+            <span class="joinp" style="margin-top:auto;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px;border-radius:11px;background:var(--s3);color:var(--fg);font-weight:700;font-size:13px;transition:background .2s,color .2s;">{% if t.is_free %}Join free{% else %}Join tournament{% endif %}</span>
+          </div>
+        </a>
+        {% endfor %}
+      </div>
+      {% else %}
+      <!-- empty-state: never fabricate tournaments -->
+      <div data-reveal class="rv" style="display:flex;flex-direction:column;align-items:center;text-align:center;gap:14px;padding:54px 22px;border:1px dashed var(--stroke);border-radius:20px;background:rgba(17,21,30,.4);">
+        <span style="display:inline-grid;place-items:center;width:52px;height:52px;border-radius:15px;background:var(--tAz);border:1px solid rgba(10,132,255,.3);"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--az4)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4h10v3a5 5 0 0 1-10 0V4Z"/><path d="M9 14v3h6v-3M8 21h8M12 12v2"/></svg></span>
+        <div style="font-family:var(--disp);font-weight:700;font-size:20px;letter-spacing:-.01em;">No open tournaments right now</div>
+        <p style="margin:0;max-width:46ch;font-size:14px;line-height:1.6;color:var(--mut);">Brackets open regularly across 11 titles, mobile to PC. Get notified the moment the next one opens.</p>
+        <a href="/tournaments/" class="cta press" style="display:inline-flex;align-items:center;gap:8px;padding:12px 22px;border-radius:12px;background:var(--az);color:#fff;font-weight:700;font-size:14px;text-decoration:none;box-shadow:0 12px 30px -16px rgba(10,132,255,.75);">Get notified<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+      </div>
+      {% endif %}
     </div>
-    <div class="persona-panels">
-      {% for p in v3.personas %}
-      <div class="persona-panel{% if forloop.first %} active{% endif %}" id="{{ p.id }}">
-        <div class="persona-headline">
-          <i class="fa-solid {{ p.icon }} {{ p.color }} big-ico"></i>
+  </section>
+
+  <!-- ============ 04 · ONE PLATFORM — ECOSYSTEM ============ -->
+  <section data-screen-label="Ecosystem" data-section="ecosystem" style="position:relative;overflow:hidden;border-bottom:1px solid var(--hair);">
+    <div aria-hidden="true" style="position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(132,112,238,.35),rgba(10,132,255,.35),transparent);"></div>
+    <div aria-hidden="true" style="position:absolute;left:50%;top:34%;width:min(1100px,92vw);height:78%;transform:translate(-50%,-50%);background:radial-gradient(60% 70% at 50% 35%,rgba(104,73,229,.09),transparent 64%),radial-gradient(48% 70% at 20% 60%,rgba(10,132,255,.06),transparent 70%),radial-gradient(48% 70% at 82% 55%,rgba(207,167,90,.05),transparent 70%);filter:blur(14px);"></div>
+    <div style="position:relative;z-index:1;max-width:1280px;margin:0 auto;padding:clamp(56px,8vh,96px) clamp(18px,4vw,48px);">
+      <div data-reveal class="rv" style="text-align:center;max-width:680px;margin:0 auto 14px;">
+        <div class="m" style="font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--vi4);">One platform</div>
+        <h2 style="margin:10px 0 0;font-family:var(--disp);font-weight:700;font-size:clamp(26px,3vw,38px);letter-spacing:-.02em;">Every match, <span class="grad">connected</span></h2>
+        <p style="margin:9px 0 0;font-size:15px;line-height:1.6;color:var(--mut);">DeltaCrown isn't just tournaments. Identity, teams, match operations, rewards and ranking stay connected — so every result becomes history, signal and recognition.</p>
+      </div>
+      <div data-reveal class="rv" style="display:flex;align-items:center;gap:12px;margin:0 auto 24px;max-width:420px;">
+        <span style="flex:1;height:1px;background:linear-gradient(90deg,transparent,var(--hair));"></span>
+        <span class="m" style="font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--soft);white-space:nowrap;"><b style="color:var(--fg);">8</b> connected pillars</span>
+        <span style="flex:1;height:1px;background:linear-gradient(90deg,var(--hair),transparent);"></span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(248px,1fr));gap:14px;">
+        {% for e in ecosystem_pillars %}
+        <div data-reveal class="rv ecocard" style="display:flex;flex-direction:column;gap:12px;padding:20px;border:1px solid var(--stroke);border-radius:18px;background:var(--s1);">
+          <span style="width:42px;height:42px;border-radius:12px;display:grid;place-items:center;background:{{ e.tint }};border:1px solid {{ e.bd }};"><span data-i style="display:inline-flex;color:{{ e.color }};transition:transform .3s var(--eo);">{{ e.icon|safe }}</span></span>
           <div>
-            <h3>{{ p.headline_html|safe }}</h3>
+            <div style="font-family:var(--disp);font-weight:600;font-size:16px;letter-spacing:-.01em;color:var(--fg);">{{ e.name }}</div>
+            <div style="margin-top:6px;font-size:13px;line-height:1.5;color:var(--mut);">{{ e.blurb }}</div>
           </div>
         </div>
-        <ul class="persona-bullets">
-          {% for bullet in p.bullets %}
-          <li><i class="fa-solid fa-check {{ p.color }}"></i> {{ bullet }}</li>
-          {% endfor %}
-        </ul>
-        <div class="persona-cta">
-          {% if forloop.first and request.user.is_authenticated %}
-          <a href="{{ hero_ctx.primary_cta_url }}" class="btn btn-primary">{{ hero_ctx.primary_cta_label }} <i class="fa-solid fa-arrow-right"></i></a>
-          <a href="{{ hero_ctx.secondary_cta_url }}" class="btn btn-ghost">{{ hero_ctx.secondary_cta_label }}</a>
-          {% else %}
-          <a href="{{ p.primary_cta.url }}" class="btn btn-primary">{{ p.primary_cta.text }} <i class="fa-solid fa-arrow-right"></i></a>
-          <a href="{{ p.secondary_cta.url }}" class="btn btn-ghost">{{ p.secondary_cta.text }}</a>
-          {% endif %}
-        </div>
-      </div>
-      {% endfor %}
-    </div>
-  </div>
-</section>
-
-<!-- ============================================================ PATH TO PRO ============================================================ -->
-<section id="path" class="path reveal">
-  <div class="section-bound">
-    <div class="path-head">
-      <h2 class="section-h2">FOUR STAGES<br/><span class="grad-text">ZERO SHORTCUTS</span></h2>
-      <p class="section-lead">From your first verified match to a sponsored career. Every step is structured — and verifiable.</p>
-    </div>
-    <div class="path-rail" id="pathRail">
-      <svg class="path-svg" viewBox="0 0 1200 220" preserveAspectRatio="none">
-        <defs><linearGradient id="pgrad" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#06b6d4"/><stop offset="50%" stop-color="#8b5cf6"/><stop offset="100%" stop-color="#facc15"/></linearGradient></defs>
-        <path d="M0,110 C 150,30 300,190 450,110 S 750,30 900,110 S 1200,190 1200,110" stroke="rgba(255,255,255,0.08)" stroke-width="2" fill="none"/>
-        <path id="pathLine" d="M0,110 C 150,30 300,190 450,110 S 750,30 900,110 S 1200,190 1200,110" stroke="url(#pgrad)" stroke-width="2.5" fill="none" stroke-dasharray="2400" stroke-dashoffset="2400" filter="drop-shadow(0 0 6px rgba(139,92,246,0.6))"/>
-      </svg>
-      <div class="path-steps">
-        {% for stage in v3.path_stages %}
-        <article class="step" data-color="{{ stage.color }}">
-          <div class="step-pin{% if stage.color == 'grad' %} grad{% endif %}"></div>
-          <div class="step-icon {{ stage.color }}"><i class="fa-solid {{ stage.icon }}"></i></div>
-          <div class="step-num mono">STAGE {{ stage.num }}</div>
-          <div class="step-name {% if stage.color == 'grad' %}grad-text{% endif %}">{{ stage.title }}</div>
-          <p>{{ stage.blurb }}</p>
-          {% if stage.tag %}<div class="mono" style="margin-top:8px;font-size:9px;color:var(--mute);">{{ stage.tag }}</div>{% endif %}
-        </article>
-        {% empty %}
-        <article class="step" data-color="teal"><div class="step-pin"></div><div class="step-icon teal"><i class="fa-solid fa-user-plus"></i></div><div class="step-num mono">STAGE 01</div><div class="step-name">Sign Up &amp; Verify</div><p>Free account. Link your game IDs. Get your Crown Tag.</p></article>
-        <article class="step" data-color="violet"><div class="step-pin"></div><div class="step-icon violet"><i class="fa-solid fa-bolt"></i></div><div class="step-num mono">STAGE 02</div><div class="step-name">Compete to Climb</div><p>Tournaments, Showdowns, Missions, Bounties — every result counts.</p></article>
-        <article class="step" data-color="gold"><div class="step-pin"></div><div class="step-icon gold"><i class="fa-solid fa-users"></i></div><div class="step-num mono">STAGE 03</div><div class="step-name">Find a Team</div><p>Join a roster, scout free agents, or start your own organization.</p></article>
-        <article class="step" data-color="grad"><div class="step-pin grad"></div><div class="step-icon grad"><i class="fa-solid fa-crown"></i></div><div class="step-num mono">STAGE 04</div><div class="step-name grad-text">Build a Career</div><p>Verified results attract sponsors. A record that travels with you.</p></article>
         {% endfor %}
       </div>
     </div>
-  </div>
-</section>
+  </section>
 
-<!-- ============================================================ RUN AN EVENT ============================================================ -->
-<section id="organize" class="organize reveal">
-  <div class="section-bound">
-    <div class="organize-head">
-      <h2 class="section-h2">RUN YOUR OWN EVENT<br/><span class="grad-text">THE ENGINE HANDLES THE REST</span></h2>
-      <p class="section-lead">From a 16-team weekend cup to a 256-squad battle royale league. Built-in check-in, match rooms, dispute review, and payout tracking keep the operation moving.</p>
+  <!-- ============ 05 · DAILY OPS — CURRENTS ============ -->
+  <section data-screen-label="Daily Ops" data-section="daily-ops" style="position:relative;overflow:hidden;border-bottom:1px solid var(--hair);">
+    <div aria-hidden="true" data-anim style="position:absolute;left:-14%;top:18%;width:128%;height:180px;transform:rotate(-8deg);background:linear-gradient(90deg,transparent,rgba(104,73,229,.16) 42%,rgba(10,132,255,.12) 64%,transparent);filter:blur(30px);animation:dch-drA 30s ease-in-out infinite;"></div>
+    <div aria-hidden="true" data-anim style="position:absolute;left:-14%;top:52%;width:128%;height:150px;transform:rotate(-13deg);background:linear-gradient(90deg,transparent,rgba(10,132,255,.14) 44%,rgba(226,197,136,.08) 68%,transparent);filter:blur(30px);animation:dch-drB 36s ease-in-out infinite;"></div>
+    <div style="position:relative;z-index:1;max-width:1280px;margin:0 auto;padding:clamp(56px,8vh,96px) clamp(18px,4vw,48px);">
+      <div data-reveal class="rv" style="text-align:center;max-width:640px;margin:0 auto 30px;">
+        <div class="m" style="font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--az4);">Daily competitive ops</div>
+        <h2 style="margin:10px 0 0;font-family:var(--disp);font-weight:700;font-size:clamp(26px,3vw,38px);letter-spacing:-.02em;">Something to compete for, every day</h2>
+        <p style="margin:9px 0 0;font-size:15px;line-height:1.6;color:var(--mut);">Between tournaments, the arena never sleeps. Earn Crown Points and DeltaCoin through always-on competitive modes.</p>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(228px,1fr));gap:14px;">
+        {% for o in daily_modes %}
+        <a data-reveal class="rv mode press" href="{{ o.url }}" style="display:flex;flex-direction:column;gap:13px;padding:20px;border:1px solid var(--stroke);border-radius:18px;background:var(--s1);text-decoration:none;transition:transform .3s var(--eo),border-color .3s,background .3s;">
+          <span style="width:42px;height:42px;border-radius:12px;display:grid;place-items:center;background:{{ o.tint }};border:1px solid {{ o.bd }};"><span data-i style="display:inline-flex;color:{{ o.color }};transition:color .2s;">{{ o.icon|safe }}</span></span>
+          <div>
+            <div style="font-family:var(--disp);font-weight:600;font-size:17px;letter-spacing:-.01em;color:var(--fg);">{{ o.name }}</div>
+            <div style="margin-top:6px;font-size:13px;line-height:1.5;color:var(--mut);">{{ o.desc }}</div>
+          </div>
+          <span class="m" style="margin-top:auto;font-size:10px;letter-spacing:.04em;color:var(--soft);">{{ o.meta }}</span>
+        </a>
+        {% endfor %}
+      </div>
     </div>
-    <ol class="org-steps">
-      {% for step in v3.organizer_steps %}
-      <li class="org-step hud-4">
-        <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
-        <div class="org-num">0{{ forloop.counter }}</div>
-        <div class="org-icon gold"><i class="fa-solid {{ step.icon }}"></i></div>
-        <div class="org-name">{{ step.title }}</div>
-        <p>{{ step.blurb }}</p>
-      </li>
-      {% empty %}
-      <li class="org-step hud-4"><span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span><div class="org-num">01</div><div class="org-icon gold"><i class="fa-solid fa-screwdriver-wrench"></i></div><div class="org-name">Configure the format</div><p>Pick from SE, DE, Swiss, RR, group → playoff, or BR. Set slot count, fees, prize split, and rules.</p></li>
-      <li class="org-step hud-4"><span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span><div class="org-num">02</div><div class="org-icon gold"><i class="fa-solid fa-bullhorn"></i></div><div class="org-name">Open registration</div><p>Get a branded page, a shareable link, and verified-only sign-ups. Escrow opens with the gates.</p></li>
-      <li class="org-step hud-4"><span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span><div class="org-num">03</div><div class="org-icon gold"><i class="fa-solid fa-broadcast-tower"></i></div><div class="org-name">Run match day</div><p>Match rooms auto-spawn. Refs &amp; mods watch the live queue. Disputes route to review.</p></li>
-      <li class="org-step hud-4"><span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span><div class="org-num">04</div><div class="org-icon gold"><i class="fa-solid fa-vault"></i></div><div class="org-name">Settle &amp; payout</div><p>Verified result triggers escrow release. Platform handles transfers, receipts, and audit trail.</p></li>
-      {% endfor %}
-    </ol>
-    <div class="organize-cta">
-      <a href="/tournaments/" class="btn btn-primary">Browse tournaments <i class="fa-solid fa-arrow-right"></i></a>
-      <a href="/about/" class="btn btn-ghost">Read platform docs</a>
-      <div class="mono organize-note">Open to verified community organizers</div>
-    </div>
-  </div>
-</section>
+  </section>
 
-<!-- ============================================================ TRUST STATS ============================================================ -->
-<section class="trust reveal">
-  <div class="section-bound">
-    <div class="trust-head">
-      <h2 class="section-h2">TRUST ISN'T CLAIMED<br/><span class="grad-text">IT'S BUILT INTO THE FLOW</span></h2>
-      <p class="section-lead">Reward matches are designed around escrow, proof, review, and clear operator history, so players and organizers can see how each result moved.</p>
-    </div>
-    <div class="trust-grid">
-      <div class="trust-cell"><div class="big-num">ESC<span class="grad-text">ROW</span></div><div class="tac">Reward flow</div><p>Entries and rewards are structured before match day starts.</p></div>
-      <div class="trust-cell"><div class="big-num">PRO<span class="grad-text">OF</span></div><div class="tac">Result review</div><p>Match rooms keep screenshots, reports, and confirmations together.</p></div>
-      <div class="trust-cell"><div class="big-num">ADM<span class="grad-text">IN</span></div><div class="tac">Dispute handling</div><p>Competitive operations route contested results to review queues.</p></div>
-      <div class="trust-cell"><div class="big-num">HIS<span class="grad-text">TORY</span></div><div class="tac">Transparent records</div><p>Crown Points, teams, and match outcomes build a visible trail.</p></div>
-    </div>
-  </div>
-</section>
-
-<!-- ============================================================ TESTIMONIALS ============================================================ -->
-<section class="quotes reveal">
-  <div class="section-bound">
-    <div class="quotes-head">
-      <h2 class="section-h2">MATCH-DAY PROBLEMS<br/><span class="grad-text">CLEANER FLOWS</span></h2>
-    </div>
-    <div class="quotes-grid">
-      {% for t in v3.testimonials %}
-      <figure class="quote hud-4">
-        <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
-        <i class="fa-solid fa-quote-left q-mark {{ t.color }}"></i>
-        <blockquote>{{ t.quote }}</blockquote>
-        <figcaption>
-          <div class="q-name">{{ t.name }}</div>
-          <div class="tac q-ctx">{{ t.context }}</div>
-        </figcaption>
-      </figure>
-      {% endfor %}
-    </div>
-  </div>
-</section>
-
-<!-- ============================================================ ROADMAP ============================================================ -->
-<section class="roadmap reveal">
-  <div class="section-bound">
-    <div class="roadmap-head">
-      <h2 class="section-h2">THE PLATFORM IS ALIVE<br/><span class="grad-text">AND IT'S MOVING</span></h2>
-    </div>
-    <div class="road-grid">
-      {% for item in v3.roadmap %}
-      <article class="road hud-4">
-        <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
-        <div class="road-head {% if item.tone == 'live' %}live{% elif item.tone == 'next' %}violet{% else %}gold{% endif %}">
-          {% if item.tone == 'live' %}<span class="dot dot-live"></span>
-          {% elif item.tone == 'next' %}<i class="fa-solid fa-hourglass-half"></i>
-          {% else %}<i class="fa-solid fa-binoculars"></i>{% endif %}
-          <span class="tac">{{ item.phase|upper }}</span>
+  <!-- ============ 06 · CROWN POINTS — ASCENT (GOLD) ============ -->
+  <section data-screen-label="Crown Points" data-section="crown-points" style="position:relative;overflow:hidden;border-bottom:1px solid var(--hair);">
+    <div aria-hidden="true" style="position:absolute;left:50%;bottom:-8%;width:min(900px,86vw);height:54%;transform:translateX(-50%);background:radial-gradient(closest-side,rgba(104,73,229,.16),transparent 70%);filter:blur(20px);"></div>
+    <div aria-hidden="true" data-anim style="position:absolute;left:50%;top:-6%;width:min(560px,64vw);height:50%;transform:translateX(-50%);background:radial-gradient(closest-side,rgba(226,197,136,.2),rgba(132,112,238,.06) 54%,transparent 74%);filter:blur(16px);animation:dch-breathe 9s ease-in-out infinite;"></div>
+    <div style="position:relative;z-index:1;max-width:1280px;margin:0 auto;padding:clamp(56px,8vh,96px) clamp(18px,4vw,48px);">
+      <div style="display:flex;flex-wrap:wrap;align-items:center;gap:clamp(32px,4vw,64px);">
+        <div data-reveal class="rv" style="flex:1 1 380px;min-width:0;">
+          <div class="m" style="font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--go4);">Crown Points</div>
+          <h2 style="margin:10px 0 0;font-family:var(--disp);font-weight:700;font-size:clamp(26px,3vw,38px);letter-spacing:-.02em;">Every result earns your climb to <span class="grad">The Crown</span></h2>
+          <p style="margin:12px 0 0;max-width:48ch;font-size:15px;line-height:1.6;color:var(--mut);">Win matches, place in tournaments, and complete ops to earn Crown Points. Your rank travels with you across every game — a single, verified record of how far you've risen.</p>
+          <div style="margin-top:22px;display:flex;flex-wrap:wrap;gap:10px;">
+            <a href="/dashboard/competitive/" class="cta press" style="display:inline-flex;align-items:center;gap:8px;padding:13px 22px;border-radius:13px;background:var(--az);color:#fff;font-weight:700;font-size:14px;text-decoration:none;box-shadow:0 12px 30px -16px rgba(10,132,255,.75);">See how ranking works<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+          </div>
         </div>
-        <ul><li>{{ item.items }}</li></ul>
-      </article>
-      {% empty %}
-      <article class="road hud-4">
-        <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
-        <div class="road-head live"><span class="dot dot-live"></span><span class="tac">SHIPPING NOW · Q2</span></div>
-        <ul><li>Crown Points cross-game ladder</li><li>Mobile match-room overhaul</li><li>Coach booking marketplace</li><li>Per-match watch-party rooms</li></ul>
-      </article>
-      <article class="road hud-4">
-        <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
-        <div class="road-head violet"><i class="fa-solid fa-hourglass-half"></i><span class="tac">NEXT · Q3</span></div>
-        <ul><li>Sponsorship marketplace (beta)</li><li>Org-level dashboards</li><li>Public organizer API</li><li>Team-level Crown Points</li></ul>
-      </article>
-      <article class="road hud-4">
-        <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
-        <div class="road-head gold"><i class="fa-solid fa-binoculars"></i><span class="tac">HORIZON · Q4+</span></div>
-        <ul><li>National qualifier circuit</li><li>College &amp; university league</li><li>Coach &amp; analyst certification</li><li>Cross-region match-making</li></ul>
-      </article>
-      {% endfor %}
+        <!-- ladder visual -->
+        <div data-reveal class="rv" style="flex:1 1 420px;min-width:0;">
+          <div style="border:1px solid var(--stroke);border-radius:20px;background:rgba(16,20,29,.66);backdrop-filter:blur(18px);padding:20px;box-shadow:0 36px 80px -48px rgba(0,0,0,.8);">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+              <span class="m" style="font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--mut);">The ladder</span>
+              <span class="m" style="font-size:10px;letter-spacing:.06em;color:var(--soft);">Rookie → <span style="color:var(--go4);">The Crown</span></span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              {% for r in crown_tiers %}
+              <div style="display:flex;align-items:center;gap:12px;padding:11px 13px;border-radius:13px;background:{{ r.row }};border:1px solid {{ r.rb }};">
+                <span style="width:10px;height:10px;border-radius:50%;background:{{ r.dot }};box-shadow:0 0 10px {{ r.glow }};flex-shrink:0;"></span>
+                <span style="font-family:var(--disp);font-weight:600;font-size:14px;color:{{ r.tx }};flex:1;">{{ r.name }}</span>
+                <span class="m" style="font-size:11px;color:var(--soft);">{{ r.cp }}</span>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
-  </div>
-</section>
+  </section>
 
-<!-- ============================================================ OUTRO CTA ============================================================ -->
-<section class="outro">
-  <div class="outro-grain"></div>
-  <div class="outro-shell">
-
-    <div class="outro-mark">
-      <img class="outro-wordmark" src="{% static 'img/DeltaCrown_wordmark.svg' %}" alt="DeltaCrown"/>
+  <!-- ============ 07 · TEAMS — VIOLET ============ -->
+  <section data-screen-label="Teams" data-section="teams" style="position:relative;overflow:hidden;border-bottom:1px solid var(--hair);">
+    <div aria-hidden="true" style="position:absolute;left:50%;top:30%;width:min(1100px,94vw);height:70%;transform:translate(-50%,-50%);background:radial-gradient(60% 120% at 28% 50%,rgba(104,73,229,.18),transparent 64%),radial-gradient(50% 120% at 86% 60%,rgba(132,112,238,.1),transparent 66%);filter:blur(16px);"></div>
+    <div style="position:relative;z-index:1;max-width:1280px;margin:0 auto;padding:clamp(56px,8vh,96px) clamp(18px,4vw,48px);">
+      <div style="display:flex;flex-wrap:wrap;align-items:center;gap:clamp(32px,4vw,64px);">
+        <!-- team card (illustrative — roles & structure, no fabricated identity/stats) -->
+        <div data-reveal class="rv" style="flex:1 1 400px;min-width:0;order:2;">
+          <div style="border:1px solid rgba(104,73,229,.3);border-radius:20px;background:linear-gradient(180deg,rgba(26,22,46,.7),rgba(16,18,30,.66));backdrop-filter:blur(18px);overflow:hidden;box-shadow:0 36px 80px -48px rgba(0,0,0,.8);">
+            <div style="display:flex;align-items:center;gap:14px;padding:18px 20px;">
+              <span style="width:54px;height:54px;border-radius:15px;display:grid;place-items:center;background:linear-gradient(140deg,#7C5CFF,#0A84FF);box-shadow:0 8px 22px -10px rgba(124,92,255,.8);flex-shrink:0;"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l2-9 4 5 3-7 3 7 4-5 2 9Z"/><path d="M3 20h18"/></svg></span>
+              <div style="flex:1;min-width:0;">
+                <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;"><span style="font-family:var(--disp);font-weight:600;font-size:19px;letter-spacing:-.01em;">Your squad</span><span class="m" style="padding:3px 9px;border-radius:999px;font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--vi4);background:var(--tVi);border:1px solid rgba(104,73,229,.35);">Roster-ready</span></div>
+                <div class="m" style="margin-top:5px;font-size:10.5px;letter-spacing:.03em;color:var(--soft);">Captain · roles · invites — all in Team HQ</div>
+              </div>
+              <div style="text-align:right;flex-shrink:0;"><span style="display:inline-flex;color:var(--go4);"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l2-9 4 5 3-7 3 7 4-5 2 9Z"/><path d="M3 20h18"/></svg></span><div class="m" style="font-size:8.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--soft);">Crown Pts</div></div>
+            </div>
+            <div style="display:flex;gap:1px;background:var(--hair);border-top:1px solid var(--hair);">
+              {% for p in team_roles %}
+              <div style="flex:1;padding:12px 6px;background:rgba(16,18,30,.5);text-align:center;"><div style="width:30px;height:30px;border-radius:50%;margin:0 auto;background:{{ p.bg }};display:grid;place-items:center;font-family:var(--mono);font-size:9px;font-weight:600;color:#fff;">{{ p.code }}</div><div class="m" style="margin-top:6px;font-size:8px;letter-spacing:.04em;color:var(--soft);">{{ p.role }}</div></div>
+              {% endfor %}
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 20px;border-top:1px solid var(--hair);background:rgba(104,73,229,.06);">
+              <span class="m" style="font-size:10px;letter-spacing:.04em;color:var(--mut);">Wins, rank &amp; CP follow the crest</span>
+              <a href="/teams/" class="m lnk" style="font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--vi4);text-decoration:none;transition:color .2s;">Open Team HQ →</a>
+            </div>
+          </div>
+        </div>
+        <!-- copy -->
+        <div data-reveal class="rv" style="flex:1 1 380px;min-width:0;order:1;">
+          <div class="m" style="font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--vi4);">Teams &amp; Team HQ</div>
+          <h2 style="margin:10px 0 0;font-family:var(--disp);font-weight:700;font-size:clamp(26px,3vw,38px);letter-spacing:-.02em;">Build a squad that carries its record</h2>
+          <p style="margin:12px 0 0;max-width:48ch;font-size:15px;line-height:1.6;color:var(--mut);">Create a team or get recruited, manage your roster from Team HQ, run scrims, and register together. Wins, rank, and reputation follow the crest — not just the player.</p>
+          <div style="margin-top:20px;display:flex;flex-direction:column;gap:11px;">
+            {% for ft in team_features %}
+            <div style="display:flex;align-items:center;gap:12px;"><span style="width:30px;height:30px;border-radius:9px;display:grid;place-items:center;background:var(--tVi);border:1px solid rgba(104,73,229,.3);flex-shrink:0;"><span style="display:inline-flex;color:var(--vi4);">{{ ft.icon|safe }}</span></span><span style="font-size:14px;color:var(--mut);"><b style="color:var(--fg);font-weight:600;">{{ ft.title }}</b> {{ ft.desc }}</span></div>
+            {% endfor %}
+          </div>
+          <div style="margin-top:22px;display:flex;flex-wrap:wrap;gap:10px;">
+            <a href="/teams/create/" class="cta press" style="display:inline-flex;align-items:center;gap:8px;padding:13px 22px;border-radius:13px;background:var(--vi);color:#fff;font-weight:700;font-size:14px;text-decoration:none;box-shadow:0 12px 30px -16px rgba(104,73,229,.8);">Create a team<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+            <a href="/teams/" class="ghost press" style="display:inline-flex;align-items:center;padding:13px 20px;border-radius:13px;background:var(--s1);border:1px solid var(--stroke);color:var(--mut);font-weight:600;font-size:14px;text-decoration:none;">Find a team</a>
+          </div>
+        </div>
+      </div>
     </div>
+  </section>
 
-    <h2 class="outro-h">
-      BUILD YOUR<br/>
-      <span class="grad-text glow-text">COMPETITIVE RECORD</span>
-    </h2>
-
-    {% if hero_ctx.outro_subcopy %}
-    <p class="outro-sub">{{ hero_ctx.outro_subcopy }}</p>
-    {% else %}
-    <p class="outro-sub">Talent is universal. Opportunity shouldn't be what decides who plays at the top. Join the platform built to change that.</p>
-    {% endif %}
-
-    <div class="outro-cta">
-      <a href="{{ hero_ctx.outro_primary_cta_url }}" class="btn btn-primary btn-xl">
-        {{ hero_ctx.outro_primary_cta_label }} <i class="fa-solid fa-arrow-right"></i>
-      </a>
-      {% if hero_ctx.mode == "guest" %}
-      <a href="{% if v3.any_live_url %}{{ v3.any_live_url }}{% else %}/arena/{% endif %}" class="btn btn-ghost btn-xl">
-        <i class="fa-solid fa-circle-play" style="color:#FF4655"></i> Watch live
-      </a>
-      {% else %}
-      <a href="{{ hero_ctx.outro_secondary_cta_url }}" class="btn btn-ghost btn-xl">
-        {{ hero_ctx.outro_secondary_cta_label }}
-      </a>
-      {% endif %}
+  <!-- ============ 08 · TRUST — CLASSIC CALM ============ -->
+  <section data-screen-label="Trust" data-section="trust" style="position:relative;overflow:hidden;border-bottom:1px solid var(--hair);">
+    <div aria-hidden="true" style="position:absolute;left:50%;top:40%;width:min(900px,80vw);height:60%;transform:translate(-50%,-50%);background:radial-gradient(80% 120% at 50% 40%,rgba(10,132,255,.06),transparent 66%);filter:blur(18px);"></div>
+    <div aria-hidden="true" style="position:absolute;left:clamp(18px,4vw,48px);top:64px;width:28px;height:28px;border-left:1.5px solid rgba(63,163,255,.28);border-top:1.5px solid rgba(63,163,255,.28);"></div>
+    <div aria-hidden="true" style="position:absolute;right:clamp(18px,4vw,48px);bottom:64px;width:28px;height:28px;border-right:1.5px solid rgba(63,163,255,.2);border-bottom:1.5px solid rgba(63,163,255,.2);"></div>
+    <div style="position:relative;z-index:1;max-width:1280px;margin:0 auto;padding:clamp(56px,8vh,96px) clamp(18px,4vw,48px);">
+      <div data-reveal class="rv" style="text-align:center;max-width:640px;margin:0 auto 32px;">
+        <div class="m" style="font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--soft);">Competition you can trust</div>
+        <h2 style="margin:10px 0 0;font-family:var(--disp);font-weight:700;font-size:clamp(26px,3vw,38px);letter-spacing:-.02em;">Trust isn't claimed. It's built into the flow.</h2>
+        <p style="margin:9px 0 0;font-size:15px;line-height:1.6;color:var(--mut);">No screenshots in a group chat. Every reward match moves through the same operated path — so results are real and payouts are clean.</p>
+      </div>
+      <!-- proof flow -->
+      <div data-reveal class="rv" style="margin:0 auto 28px;max-width:980px;display:flex;align-items:stretch;gap:8px;flex-wrap:wrap;justify-content:center;">
+        {% for s in trust_flow %}
+        <div style="flex:1 1 150px;min-width:130px;display:flex;align-items:center;gap:8px;">
+          <div style="flex:1;display:flex;flex-direction:column;gap:7px;padding:14px 14px;border:1px solid var(--hair);border-radius:14px;background:rgba(17,21,30,.5);">
+            <span style="display:inline-flex;align-items:center;gap:7px;"><span class="m" style="font-size:9px;color:var(--soft);">{{ s.no }}</span><span style="width:24px;height:24px;border-radius:7px;display:grid;place-items:center;background:{{ s.tint }};border:1px solid var(--hair);">{{ s.icon|safe }}</span></span>
+            <span style="font-family:var(--disp);font-weight:600;font-size:12.5px;color:var(--fg);line-height:1.25;">{{ s.name }}</span>
+          </div>
+          {% if not forloop.last %}<svg class="deskonly" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--dim)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M5 12h14M13 6l6 6-6 6"/></svg>{% endif %}
+        </div>
+        {% endfor %}
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(238px,1fr));gap:14px;">
+        {% for t in trust_cards %}
+        <div data-reveal class="rv" style="padding:22px 20px;border:1px solid var(--hair);border-radius:18px;background:rgba(17,21,30,.5);">
+          <span style="width:40px;height:40px;border-radius:11px;display:grid;place-items:center;background:var(--s2);border:1px solid var(--hair);"><span style="display:inline-flex;color:{{ t.color }};">{{ t.icon|safe }}</span></span>
+          <div style="margin-top:14px;font-family:var(--disp);font-weight:600;font-size:16px;letter-spacing:-.01em;">{{ t.title }}</div>
+          <div style="margin-top:7px;font-size:13px;line-height:1.55;color:var(--mut);">{{ t.desc }}</div>
+        </div>
+        {% endfor %}
+      </div>
     </div>
+  </section>
 
-    <div class="outro-trail tac">FROM THE DELTA · TO THE CROWN</div>
-  </div>
-</section>
+  <!-- ============ 09 · ORGANIZER — HORIZON STRUCTURED ============ -->
+  <section data-screen-label="Organizer" data-section="organizer" style="position:relative;overflow:hidden;border-bottom:1px solid var(--hair);">
+    <div aria-hidden="true" style="position:absolute;left:0;right:0;bottom:0;height:54%;background:linear-gradient(180deg,transparent,rgba(10,132,255,.1));"></div>
+    <div aria-hidden="true" style="position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(132,112,238,.4),rgba(10,132,255,.4),transparent);"></div>
+    <div aria-hidden="true" data-anim style="position:absolute;left:50%;bottom:24%;width:min(1100px,92vw);height:2px;transform:translateX(-50%);background:linear-gradient(90deg,transparent,rgba(63,163,255,.4) 35%,rgba(63,163,255,.4) 65%,transparent);box-shadow:0 0 26px rgba(63,163,255,.25);animation:dch-breathe 9s ease-in-out infinite;"></div>
+    <div style="position:relative;z-index:1;max-width:1280px;margin:0 auto;padding:clamp(56px,8vh,96px) clamp(18px,4vw,48px);">
+      <div style="display:flex;flex-wrap:wrap;align-items:center;gap:clamp(32px,4vw,64px);">
+        <div data-reveal class="rv" style="flex:1 1 360px;min-width:0;">
+          <div class="m" style="font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--az4);">Organizers &amp; operations</div>
+          <h2 style="margin:10px 0 0;font-family:var(--disp);font-weight:700;font-size:clamp(26px,3vw,38px);letter-spacing:-.02em;">Run world-class events, end to end</h2>
+          <p style="margin:12px 0 0;max-width:48ch;font-size:15px;line-height:1.6;color:var(--mut);">Check-in, seeded brackets, live match rooms, dispute review, and escrow-backed payouts — the engine runs the operation so you run the show.</p>
+          <div style="margin-top:22px;"><a href="/dashboard/" class="cta press" style="display:inline-flex;align-items:center;gap:8px;padding:13px 22px;border-radius:13px;background:var(--az);color:#fff;font-weight:700;font-size:14px;text-decoration:none;box-shadow:0 12px 30px -16px rgba(10,132,255,.75);">Create an event<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a></div>
+        </div>
+        <!-- ops console (capability preview — only the live-events count is real platform data) -->
+        <div data-reveal class="rv" style="flex:1 1 420px;min-width:0;">
+          <div style="border:1px solid var(--stroke);border-radius:20px;background:rgba(16,20,29,.7);backdrop-filter:blur(18px);overflow:hidden;box-shadow:0 36px 80px -48px rgba(0,0,0,.8);">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:13px 16px;border-bottom:1px solid var(--hair);"><span class="m" style="font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--mut);">Operations console</span><span class="m" style="font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--go4);">Organizer view</span></div>
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--hair);">
+              <div style="padding:16px 10px;background:rgba(16,20,29,.5);text-align:center;"><div style="font-family:var(--disp);font-weight:700;font-size:22px;color:var(--suc);">{{ v3.hero_stats.tournaments_active|default:"0" }}</div><div class="m" style="margin-top:6px;font-size:8px;letter-spacing:.06em;text-transform:uppercase;color:var(--soft);line-height:1.3;">Live events</div></div>
+              <div style="padding:16px 10px;background:rgba(16,20,29,.5);text-align:center;"><div style="font-family:var(--disp);font-weight:700;font-size:16px;color:var(--az4);margin-top:4px;">Auto</div><div class="m" style="margin-top:6px;font-size:8px;letter-spacing:.06em;text-transform:uppercase;color:var(--soft);line-height:1.3;">Check-in &amp; seeding</div></div>
+              <div style="padding:16px 10px;background:rgba(16,20,29,.5);text-align:center;"><div style="font-family:var(--disp);font-weight:700;font-size:16px;color:var(--live);margin-top:4px;">Review</div><div class="m" style="margin-top:6px;font-size:8px;letter-spacing:.06em;text-transform:uppercase;color:var(--soft);line-height:1.3;">Disputes</div></div>
+              <div style="padding:16px 10px;background:rgba(16,20,29,.5);text-align:center;"><div style="font-family:var(--disp);font-weight:700;font-size:16px;color:var(--go4);margin-top:4px;">Escrow</div><div class="m" style="margin-top:6px;font-size:8px;letter-spacing:.06em;text-transform:uppercase;color:var(--soft);line-height:1.3;">Backed payouts</div></div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:1px;background:var(--hair);">
+              {% for r in ops_rows %}
+              <div style="display:flex;align-items:center;gap:11px;padding:12px 16px;background:rgba(16,20,29,.5);"><span style="display:inline-flex;color:{{ r.color }};flex-shrink:0;">{{ r.icon|safe }}</span><span style="flex:1;font-size:13px;color:var(--mut);"><b style="color:var(--fg);font-weight:600;">{{ r.title }}</b> {{ r.desc }}</span><span class="m" style="font-size:9px;letter-spacing:.06em;text-transform:uppercase;color:var(--soft);">{{ r.tag }}</span></div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
 
-</div><!-- #top -->
+  <!-- ============ 10 · PATHWAYS — FOUR WAYS IN ============ -->
+  <section data-screen-label="Pathways" data-section="pathways" style="position:relative;overflow:hidden;border-bottom:1px solid var(--hair);">
+    <div aria-hidden="true" style="position:absolute;left:50%;top:34%;width:min(1200px,96vw);height:80%;transform:translate(-50%,-50%);background:radial-gradient(70% 70% at 50% 30%,rgba(132,112,238,.08),transparent 64%),radial-gradient(40% 80% at 14% 65%,rgba(10,132,255,.06),transparent 72%),radial-gradient(40% 80% at 86% 50%,rgba(207,167,90,.05),transparent 72%);filter:blur(14px);"></div>
+    <div style="position:relative;z-index:1;max-width:1280px;margin:0 auto;padding:clamp(56px,8vh,96px) clamp(18px,4vw,48px);">
+      <div data-reveal class="rv" style="text-align:center;max-width:640px;margin:0 auto 34px;">
+        <div class="m" style="font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--vi4);">Find your place</div>
+        <h2 style="margin:10px 0 0;font-family:var(--disp);font-weight:700;font-size:clamp(26px,3vw,38px);letter-spacing:-.02em;">One platform, <span class="grad">four ways in</span></h2>
+        <p style="margin:9px 0 0;font-size:15px;line-height:1.6;color:var(--mut);">Whether you're climbing the ladder, building a roster, running events, or backing the next wave of talent — there's a clean entry point here.</p>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(244px,1fr));gap:14px;">
+        {% for p in pathways %}
+        <a data-reveal class="rv pathcard" href="{{ p.url }}" style="position:relative;display:flex;flex-direction:column;gap:14px;padding:24px 22px;border:1px solid var(--stroke);border-radius:18px;background:var(--s1);text-decoration:none;overflow:hidden;">
+          <span aria-hidden="true" style="position:absolute;top:0;left:0;right:0;height:2px;background:{{ p.accent }};opacity:.5;"></span>
+          <span style="width:46px;height:46px;border-radius:13px;display:grid;place-items:center;background:{{ p.tint }};border:1px solid {{ p.bd }};">{{ p.icon|safe }}</span>
+          <div style="flex:1;">
+            <div style="font-family:var(--disp);font-weight:700;font-size:18px;letter-spacing:-.01em;color:var(--fg);">{{ p.name }}</div>
+            <div style="margin-top:8px;font-size:13.5px;line-height:1.55;color:var(--mut);">{{ p.line }}</div>
+          </div>
+          <span class="pathcta m" style="display:inline-flex;align-items:center;gap:7px;font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:{{ p.accent }};transition:gap .2s var(--eo);">{{ p.cta }}<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
 
-<!-- Back to top -->
-<button class="home-back-top" id="homeBackTop" aria-label="Back to top">
-  <i class="fa-solid fa-chevron-up"></i>
-</button>
+  <!-- ============ 11 · SUPPORTED GAMES — HORIZON OPEN ============ -->
+  <section data-screen-label="Games" data-section="supported-games" style="position:relative;overflow:hidden;border-bottom:1px solid var(--hair);">
+    <div aria-hidden="true" style="position:absolute;left:50%;top:30%;width:min(1200px,96vw);height:80%;transform:translate(-50%,-50%);background:radial-gradient(90% 80% at 50% 30%,rgba(132,112,238,.09),transparent 62%),radial-gradient(50% 90% at 16% 70%,rgba(10,132,255,.07),transparent 70%),radial-gradient(50% 90% at 84% 40%,rgba(104,73,229,.06),transparent 70%);filter:blur(14px);"></div>
+    <div style="position:relative;z-index:1;max-width:1280px;margin:0 auto;padding:clamp(56px,8vh,96px) clamp(18px,4vw,48px);">
+      <div data-reveal class="rv" style="text-align:center;max-width:640px;margin:0 auto 32px;">
+        <div class="m" style="font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--az4);">{{ v3.hero_stats.games_count|default:11 }} titles · one arena</div>
+        <h2 style="margin:10px 0 0;font-family:var(--disp);font-weight:700;font-size:clamp(26px,3vw,38px);letter-spacing:-.02em;">Bring your game. Find your people.</h2>
+        <p style="margin:9px 0 0;font-size:15px;line-height:1.6;color:var(--mut);">From Valorant and CS2 to Mobile Legends, eFootball and Free Fire — mobile to PC, casual ladder to prize finals. One identity across every title you play.</p>
+      </div>
+      <div data-reveal class="rv dock" id="gameDock" style="padding-top:20px;">
+        {% for g in v3.game_posters %}
+        <a href="{{ g.url }}" class="dock-item" style="position:relative;display:block;width:128px;aspect-ratio:3/4;border-radius:14px;overflow:hidden;border:1px solid var(--stroke);background:{% if g.poster_url %}url('{{ g.poster_url }}') center/cover{% else %}var(--s2){% endif %};text-decoration:none;">
+          <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,13,20,0) 38%,rgba(10,13,20,.92));"></div>
+          <div class="gover" style="position:absolute;inset:0;background:linear-gradient(165deg,rgba(10,132,255,.2),rgba(104,73,229,.08) 50%,transparent 70%);opacity:0;transition:opacity .3s;"></div>
+          <div class="dock-info" style="position:absolute;left:11px;right:11px;bottom:10px;">
+            <div style="font-family:var(--disp);font-weight:600;font-size:13px;color:#fff;line-height:1.2;">{{ g.name }}</div>
+            <div class="m" style="margin-top:3px;font-size:8.5px;letter-spacing:.05em;color:rgba(255,255,255,.78);">{{ g.meta }}</div>
+          </div>
+        </a>
+        {% endfor %}
+        <a href="/tournaments/" class="dock-item" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;width:128px;aspect-ratio:3/4;border-radius:14px;border:1px dashed var(--stroke);background:var(--s1);text-decoration:none;color:var(--mut);"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5v14"/></svg><span class="m" style="font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;">All titles</span></a>
+      </div>
+    </div>
+  </section>
 
-<!-- Mobile game rail dots -->
-<div class="rail-dots" id="railDots" aria-hidden="true"></div>
+  <!-- ============ 12 · FINAL CTA — MONUMENT GOLD ECHO ============ -->
+  <section data-screen-label="Join" data-section="final-cta" style="position:relative;overflow:hidden;">
+    <div aria-hidden="true" data-anim style="position:absolute;left:50%;bottom:0;width:min(820px,82vw);height:74%;transform:translateX(-50%);background:radial-gradient(closest-side,rgba(10,132,255,.16),rgba(104,73,229,.07) 52%,transparent 74%);filter:blur(18px);animation:dch-breathe 11s ease-in-out infinite;"></div>
+    <svg aria-hidden="true" viewBox="0 0 1440 620" preserveAspectRatio="xMidYMax slice" style="position:absolute;inset:0;width:100%;height:100%;opacity:.6;">
+      <defs><linearGradient id="fmE" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#6849E5" stop-opacity=".22"/><stop offset="50%" stop-color="#E2C588" stop-opacity=".5"/><stop offset="100%" stop-color="#0A84FF" stop-opacity=".22"/></linearGradient></defs>
+      <path data-anim d="M260 620 L450 330 L600 470 L720 280 L840 470 L990 330 L1180 620" fill="none" stroke="url(#fmE)" stroke-width="1.5" stroke-linejoin="round" stroke-dasharray="2200" stroke-dashoffset="2200" style="animation:dch-draw 3.4s .3s var(--eo) forwards;"></path>
+    </svg>
+    <div aria-hidden="true" style="position:absolute;left:50%;top:16%;width:240px;height:150px;transform:translateX(-50%);background:radial-gradient(closest-side,rgba(226,197,136,.2),transparent 70%);filter:blur(14px);"></div>
+    <!-- content-safe scrim -->
+    <div aria-hidden="true" style="position:absolute;left:50%;top:50%;width:min(940px,96vw);height:88%;transform:translate(-50%,-50%);background:radial-gradient(58% 62% at 50% 50%,rgba(8,10,16,.82),rgba(8,10,16,.45) 58%,transparent 82%);"></div>
+    <div style="position:relative;z-index:1;max-width:760px;margin:0 auto;text-align:center;padding:clamp(64px,9vh,116px) clamp(18px,4vw,48px);">
+      <div data-reveal class="rv" style="display:inline-flex;align-items:center;gap:10px;margin-bottom:18px;"><span style="width:22px;height:1px;background:linear-gradient(90deg,transparent,var(--go4));"></span><span class="m" style="font-size:10px;letter-spacing:.26em;text-transform:uppercase;color:var(--go4);">From the Delta to the Crown</span><span style="width:22px;height:1px;background:linear-gradient(90deg,var(--go4),transparent);"></span></div>
+      <h2 data-reveal class="rv" style="margin:0;font-family:var(--disp);font-weight:800;font-size:clamp(32px,5vw,60px);line-height:1.04;letter-spacing:-.03em;">Your arena is <span class="grad">waiting.</span></h2>
+      <p data-reveal class="rv" style="margin:18px auto 0;max-width:52ch;font-size:16px;line-height:1.6;color:var(--mut);">{% if user.is_authenticated and hero_ctx.outro_subcopy %}{{ hero_ctx.outro_subcopy }}{% else %}Create your free account, build your identity, and enter your first verified tournament in minutes. Where champions rise.{% endif %}</p>
+      <div data-reveal class="rv" style="margin-top:28px;display:flex;flex-wrap:wrap;gap:12px;justify-content:center;">
+        {% if user.is_authenticated %}
+        <a href="{{ hero_ctx.outro_primary_cta_url|default:'/dashboard/' }}" class="cta press" style="display:inline-flex;align-items:center;gap:8px;padding:15px 28px;border-radius:14px;background:var(--az);color:#fff;font-weight:700;font-size:15px;text-decoration:none;box-shadow:0 18px 44px -18px rgba(10,132,255,.8);">{{ hero_ctx.outro_primary_cta_label|default:"My dashboard" }}<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+        <a href="{{ hero_ctx.outro_secondary_cta_url|default:'/tournaments/' }}" class="ghost press" style="display:inline-flex;align-items:center;padding:15px 26px;border-radius:14px;background:var(--s1);border:1px solid var(--stroke);color:var(--fg);font-weight:600;font-size:15px;text-decoration:none;">{{ hero_ctx.outro_secondary_cta_label|default:"Browse tournaments" }}</a>
+        {% else %}
+        <a href="/account/signup/" class="cta press" style="display:inline-flex;align-items:center;gap:8px;padding:15px 28px;border-radius:14px;background:var(--az);color:#fff;font-weight:700;font-size:15px;text-decoration:none;box-shadow:0 18px 44px -18px rgba(10,132,255,.8);">Create free account<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+        <a href="/tournaments/" class="ghost press" style="display:inline-flex;align-items:center;padding:15px 26px;border-radius:14px;background:var(--s1);border:1px solid var(--stroke);color:var(--fg);font-weight:600;font-size:15px;text-decoration:none;">Browse tournaments</a>
+        {% endif %}
+      </div>
+    </div>
+  </section>
 
+</div>
 {% endblock %}
 
 {% block extra_js %}
-<script nonce="{{ request.csp_nonce }}">
-  {% if v3.featured_tournament and v3.featured_tournament.deadline_iso %}
-  window.DC_DEADLINE = "{{ v3.featured_tournament.deadline_iso }}";
-  {% else %}
-  window.DC_DEADLINE = null;
-  {% endif %}
-</script>
-<script src="{% static 'siteui/js/home.js' %}" defer></script>
-<script nonce="{{ request.csp_nonce }}">
-(function () {
-  'use strict';
-  /* Hero state rotation — subtle fade between server-provided CTA variants.
-     Each rotation_item may contain: subcopy, primary_label/url, secondary_label/url.
-     Primary CTA stays stable for critical states (pending/onboarding/guest).
-     Respects prefers-reduced-motion. Static fallback always works without JS. */
-  document.addEventListener('DOMContentLoaded', function () {
-    var subEl        = document.getElementById('heroSub');
-    var dataEl       = document.getElementById('heroRotationItems');
-    var primaryBtn   = document.getElementById('heroPrimaryBtn');
-    var secondaryBtn = document.getElementById('heroSecondaryBtn');
-    if (!subEl || !dataEl) return;
-
-    var items;
-    try { items = JSON.parse(dataEl.textContent); } catch (e) { return; }
-    if (!Array.isArray(items) || items.length < 2) return;
-    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-
-    var idx    = 0;
-    var paused = false;
-    var DUR    = 380;
-
-    var heroEl = subEl.closest('.hero');
-    if (heroEl) {
-      heroEl.addEventListener('mouseenter', function () { paused = true;  }, { passive: true });
-      heroEl.addEventListener('mouseleave', function () { paused = false; }, { passive: true });
-      heroEl.addEventListener('focusin',    function () { paused = true;  }, { passive: true });
-      heroEl.addEventListener('focusout',   function () { paused = false; }, { passive: true });
-    }
-
-    function applyItem(item) {
-      if (item.subcopy) subEl.textContent = item.subcopy;
-      if (primaryBtn && item.primary_label) {
-        var span = primaryBtn.querySelector('span');
-        if (span) span.textContent = item.primary_label;
-        if (item.primary_url) primaryBtn.setAttribute('href', item.primary_url);
-      }
-      if (secondaryBtn && item.secondary_label) {
-        secondaryBtn.textContent = item.secondary_label;
-        if (item.secondary_url) secondaryBtn.setAttribute('href', item.secondary_url);
-      }
-    }
-
-    function fadeEls(els, out) {
-      els.forEach(function (el) {
-        el.style.transition = 'opacity ' + DUR + 'ms ease, transform ' + DUR + 'ms ease';
-        el.style.opacity    = out ? '0' : '1';
-        el.style.transform  = out ? 'translateY(5px)' : 'translateY(0)';
-      });
-    }
-
-    function rotate() {
-      if (paused) return;
-      idx = (idx + 1) % items.length;
-      var next = items[idx];
-      var els  = [subEl];
-      if (primaryBtn   && next.primary_label)   els.push(primaryBtn);
-      if (secondaryBtn && next.secondary_label) els.push(secondaryBtn);
-
-      fadeEls(els, true);
-      setTimeout(function () {
-        applyItem(next);
-        fadeEls(els, false);
-      }, DUR);
-    }
-
-    setInterval(rotate, 9000);
-  });
-}());
-</script>
+<script src="{% static 'siteui/js/home.js' %}?v=20260615a" defer></script>
 {% endblock %}
