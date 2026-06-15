@@ -1503,7 +1503,12 @@ def dashboard_index(request: HttpRequest) -> HttpResponse:
     try:
         Profile = _safe_model("user_profile.UserProfile")
         if Profile:
-            profile = Profile.objects.filter(user=user).first()
+            profile_qs = Profile.objects.filter(user=user)
+            try:
+                profile_qs = profile_qs.select_related("primary_team", "primary_game")
+            except Exception:
+                pass
+            profile = profile_qs.first()
         if profile:
             avatar = _img_url(profile, "avatar")
             banner = _img_url(profile, "banner")
@@ -1539,14 +1544,38 @@ def dashboard_index(request: HttpRequest) -> HttpResponse:
             "kyc_status": "",
         }
 
+    primary_team_id = getattr(profile, "primary_team_id", None) if profile else None
+    primary_game_id = getattr(profile, "primary_game_id", None) if profile else None
+    if not primary_game_id and profile:
+        try:
+            primary_game_id = getattr(getattr(profile, "primary_team", None), "game_id", None)
+        except Exception:
+            primary_game_id = None
+
     # ── 2. MY TEAMS ─────────────────────────────────────────────────────
     my_teams = []
     try:
-        memberships = (
+        memberships_qs = (
             TeamMembership.objects.filter(user=user, status=MembershipStatus.ACTIVE)
             .select_related("team", "team__organization")
-            .order_by("-joined_at")[:8]
         )
+        if primary_team_id:
+            primary_order = models.Case(
+                models.When(team_id=primary_team_id, then=models.Value(0)),
+                default=models.Value(1),
+                output_field=models.IntegerField(),
+            )
+            memberships_qs = memberships_qs.order_by(primary_order, "-joined_at")
+        elif primary_game_id:
+            primary_order = models.Case(
+                models.When(team__game_id=primary_game_id, then=models.Value(0)),
+                default=models.Value(1),
+                output_field=models.IntegerField(),
+            )
+            memberships_qs = memberships_qs.order_by(primary_order, "-joined_at")
+        else:
+            memberships_qs = memberships_qs.order_by("-joined_at")
+        memberships = memberships_qs[:8]
         for m in memberships:
             t = m.team
             member_ct = _safe_int(
@@ -1575,11 +1604,15 @@ def dashboard_index(request: HttpRequest) -> HttpResponse:
                 }
             gd = game_detail_map.get(t.game_id, {})
             is_tc = bool(getattr(m, "is_tournament_captain", False))
+            is_primary_team = bool(primary_team_id and t.id == primary_team_id)
+            is_primary_game = bool(primary_game_id and t.game_id == primary_game_id)
             my_teams.append({
                 "id": t.id, "name": t.name, "slug": t.slug,
                 "logo_url": _img_url(t),
                 "role": m.role,
                 "is_tournament_captain": is_tc,
+                "is_primary": is_primary_team or (not primary_team_id and is_primary_game),
+                "is_primary_game": is_primary_game,
                 "game_id": t.game_id,
                 "game_name": game_map.get(t.game_id, ""),
                 "game_slug": gd.get("slug", ""),
@@ -1934,10 +1967,22 @@ def dashboard_index(request: HttpRequest) -> HttpResponse:
     game_passports_list = secondary.get("game_passports", [])
     lenses = []
     lenses_json = "{}"
+    primary_lens = None
     try:
         from .lens_builder import build_lenses
         import json as _json
-        lenses = build_lenses(user, my_teams, game_detail_map, game_passports=game_passports_list)
+        lenses = build_lenses(
+            user,
+            my_teams,
+            game_detail_map,
+            game_passports=game_passports_list,
+            primary_team_id=primary_team_id,
+            primary_game_id=primary_game_id,
+        )
+        primary_lens = next((lens for lens in lenses if lens.get("is_primary")), None)
+        if lenses and not primary_lens:
+            lenses[0]["is_primary"] = True
+            primary_lens = lenses[0]
         lenses_json = _json.dumps({l["id"]: l for l in lenses}, default=str)
     except Exception:
         logger.debug("Dashboard: lens builder failed", exc_info=True)
@@ -1993,6 +2038,10 @@ def dashboard_index(request: HttpRequest) -> HttpResponse:
         # New Command Center context
         "is_new_player": is_new_player,
         "lenses": lenses,
+        "primary_lens": primary_lens or {},
+        "primary_team": next((team for team in my_teams if team.get("is_primary")), my_teams[0] if my_teams else None),
+        "primary_team_id": primary_team_id,
+        "primary_game_id": primary_game_id,
         "lenses_json": lenses_json,
         "onboarding_steps": onboarding_steps,
         "onboarding_pct": onboarding_pct,

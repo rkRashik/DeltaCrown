@@ -1,14 +1,20 @@
 {% extends "base.html" %}
 {% load static %}
 
+{% block body_class %}dashboard-command-center{% endblock %}
+
 {% block extra_head %}
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/@phosphor-icons/web@2.1.1/src/index.js" defer></script>
 <link rel="stylesheet" href="{% static 'dashboard/command-center.css' %}">
 <style>
   body { background: #0A0D14 !important; }
   main#main { padding: 0 !important; }
+  @media (max-width: 768px) {
+    body.dashboard-command-center { padding-bottom: 0 !important; }
+    body.dashboard-command-center #dc-bottom-nav { display: none !important; }
+  }
 
   /* Week slider */
   .week-wrap { position: relative; padding: 0 20px; }
@@ -147,7 +153,7 @@
     {% endif %}
 
     {# STAT TILES #}
-    {% with dl=lenses|first %}
+    {% with dl=primary_lens %}
     <div class="grid" style="margin-bottom:var(--gap);">
       <div class="card stat col-3 hov">
         <div class="top"><div class="ic" style="background:var(--dc-tint-gold);color:var(--dc-gold-400);"><i class="ph-fill ph-crown-simple"></i></div><div class="lbl">Crown Points</div></div>
@@ -263,12 +269,12 @@
         {% if my_teams %}
         <div class="teams-grid">
           {% for team in my_teams|slice:":4" %}
-          <a class="team{% if forloop.first %} is-primary{% endif %}" href="{% url 'organizations:team_detail' team_slug=team.slug %}">
+          <a class="team{% if team.is_primary or forloop.first %} is-primary{% endif %}" href="{% url 'organizations:team_detail' team_slug=team.slug %}">
             <div class="crest" style="width:40px;height:40px;font-size:14px;background:linear-gradient(135deg,{{ team.game_color|default:'#0A84FF' }},#6849E5);">
               {% if team.logo_url %}<img src="{{ team.logo_url }}" alt="{{ team.name }}" onerror="this.style.display='none'">{% else %}{{ team.tag|default:team.name|slice:":3"|upper }}{% endif %}
             </div>
             <div class="grow">
-              <div class="nm">{{ team.name|truncatechars:18 }} <span class="gt">{{ team.tag }}</span>{% if forloop.first %} <span class="tag-primary"><i class="ph-fill ph-crown-simple"></i> Primary</span>{% endif %}</div>
+              <div class="nm">{{ team.name|truncatechars:18 }} <span class="gt">{{ team.tag }}</span>{% if team.is_primary or forloop.first %} <span class="tag-primary"><i class="ph-fill ph-crown-simple"></i> Primary</span>{% endif %}</div>
               <div class="mt">{{ team.game_name }} · {{ team.member_count }} member{{ team.member_count|pluralize }}</div>
             </div>
             {# Role: is_tournament_captain → IGL; else normalize org role #}
@@ -302,7 +308,7 @@
 
           {# ── Slide 0: Crown Rank ── #}
           <div class="rank-xp-slide">
-            {% with dl=lenses|first %}
+            {% with dl=primary_lens %}
             {% if dl %}
             <div class="rank-hero">
               <div class="rank-badge" id="rankBadge" style="background:{{ dl.rank.tier_color }};"><i class="ph-fill ph-medal"></i></div>
@@ -437,7 +443,7 @@
 
       <div class="card col-4">
         <div class="card-head"><div class="ic live"><i class="ph-fill ph-fire"></i></div><h3>Win Streak</h3></div>
-        {% with dl=lenses|first %}
+        {% with dl=primary_lens %}
         <div class="streak">
           <div class="flame"><i class="ph-fill ph-fire"></i></div>
           <div class="si"><div class="n" id="streakN" data-count="{{ dl.streak.current|default:0 }}">0</div><div class="l" id="streakLabel">{{ dl.streak.label|default:"no active streak" }}</div></div>
@@ -584,7 +590,7 @@
       <div class="card col-5">
         <div class="card-head"><div class="ic gold"><i class="ph-bold ph-ranking"></i></div><h3>Leaderboard</h3><a href="/leaderboards/" class="act">Full board <i class="ph-bold ph-arrow-right" style="font-size:12px;"></i></a></div>
         <div class="rows" id="boardRows">
-          {% with dl=lenses|first %}
+          {% with dl=primary_lens %}
           {% if dl and dl.board %}
             {% for row in dl.board %}
             <div class="row{% if row.is_me %} unread{% endif %}"{% if row.is_me %} style="background:var(--acc-tint);border-radius:10px;"{% endif %}>
@@ -766,6 +772,511 @@
     {% endif %}{# end active/new branch #}
 
   </div>{# .page #}
+
+  <div id="dc-m">
+    <div id="dc-m-scroll">
+
+    <section class="dc-m-greeting dc-m-fu">
+      <span class="dc-m-greeting-ey"><i class="ph-fill ph-crown-simple"></i> Command Center</span>
+      {% if is_new_player %}
+      <h1>Welcome to DeltaCrown, {{ profile.display_name|default:request.user.username }}.</h1>
+      <p>Finish your setup to unlock tournaments and teams.</p>
+      {% else %}
+      <h1>Welcome back, {{ profile.display_name|default:request.user.username }}</h1>
+      <p>
+        {% if next_match_info and next_match_info.is_live %}<span>1 live match</span>{% if invite_count %} · {% endif %}{% endif %}
+        {% if invite_count %}<strong>{{ invite_count }} pending invite{{ invite_count|pluralize }}</strong> waiting{% endif %}
+        {% if not next_match_info and not invite_count %}Your dashboard is up to date.{% endif %}
+      </p>
+      {% endif %}
+    </section>
+
+    {# ── HERO ZONE ─────────────────────────────────────────── #}
+    {% if next_match_info %}
+      {% if next_match_info.is_live %}
+      {# LIVE state #}
+      <div class="dc-m-hero dc-m-fu dc-m-lring" style="border:1px solid rgba(255,59,92,0.32);box-shadow:0 18px 44px -18px rgba(255,59,92,0.25);">
+        {% if next_match_info.game_art_url %}<img class="dc-m-hero-cover" src="{{ next_match_info.game_art_url }}" alt="">{% endif %}
+        <div class="dc-m-hero-grad"></div>
+        <div class="dc-m-hero-sheen" style="background:linear-gradient(90deg,transparent,rgba(255,59,92,0.6),transparent);"></div>
+        <div class="dc-m-hero-inner">
+          <div class="dc-m-hero-meta">
+            <div style="display:flex;align-items:center;gap:7px;">
+              <span class="dc-m-chip" style="background:rgba(255,59,92,0.22);border:1px solid rgba(255,59,92,0.45);color:#FF3B5C;">
+                <span class="dc-m-chip-dot" style="background:#FF3B5C;"></span>LIVE
+              </span>
+              <span style="font-family:'Inter',sans-serif;font-size:10px;color:rgba(255,255,255,.60);">{{ next_match_info.tournament_name|default:""|truncatechars:22 }}</span>
+            </div>
+          </div>
+          <div class="dc-m-vs">
+            <div class="dc-m-team-side">
+              <div class="dc-m-crest" style="background:linear-gradient(135deg,#6849E5,#6849E5AA);box-shadow:0 6px 18px -8px rgba(104,73,229,0.6);">
+                {% if my_teams %}{{ my_teams.0.tag|default:"YOU"|slice:":3" }}{% else %}YOU{% endif %}
+              </div>
+              <span class="dc-m-team-name">{% if my_teams %}{{ my_teams.0.name|truncatechars:12 }}{% else %}{{ identity.username }}{% endif %}</span>
+              <span class="dc-m-team-badge" style="color:#2ECC71;background:rgba(46,204,113,0.12);border:1px solid rgba(46,204,113,0.24);">YOU</span>
+            </div>
+            <div style="text-align:center;">
+              <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:17px;color:rgba(255,255,255,0.26);letter-spacing:.04em;">VS</div>
+              <div style="font-family:'JetBrains Mono',monospace;font-weight:600;font-size:9px;color:rgba(255,255,255,.38);margin-top:2px;">BO3</div>
+            </div>
+            <div class="dc-m-team-side">
+              <div class="dc-m-crest" style="background:linear-gradient(135deg,rgba(191,56,104,0.80),rgba(191,56,104,0.40));">
+                {{ next_match_info.opponent_name|default:"OPP"|slice:":3"|upper }}
+              </div>
+              <span class="dc-m-team-name">{{ next_match_info.opponent_name|default:"TBD"|truncatechars:12 }}</span>
+              <span class="dc-m-team-badge" style="color:rgba(255,255,255,.38);background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.07);">OPP</span>
+            </div>
+          </div>
+          <a href="{{ next_match_info.match_room_url }}" class="dc-m-cta" style="background:linear-gradient(135deg,#FF5B76,#FF3B5C);box-shadow:0 10px 28px -10px rgba(255,59,92,0.65);">
+            <i class="ph-fill ph-sign-in" style="font-size:17px;"></i> Enter Match Room
+          </a>
+        </div>
+      </div>
+
+      {% elif next_match_info.state == "check_in" %}
+      {# CHECK-IN state #}
+      <div class="dc-m-hero dc-m-fu" style="border:1px solid rgba(207,167,90,0.28);box-shadow:0 18px 44px -18px rgba(207,167,90,0.20);">
+        {% if next_match_info.game_art_url %}<img class="dc-m-hero-cover" src="{{ next_match_info.game_art_url }}" alt="">{% endif %}
+        <div class="dc-m-hero-grad"></div>
+        <div class="dc-m-hero-sheen" style="background:linear-gradient(90deg,transparent,rgba(207,167,90,0.6),transparent);"></div>
+        <div class="dc-m-hero-inner">
+          <div class="dc-m-hero-meta">
+            <span class="dc-m-chip" style="background:rgba(207,167,90,0.22);border:1px solid rgba(207,167,90,0.45);color:#FFB020;">
+              <span class="dc-m-chip-dot" style="background:#FFB020;"></span>CHECK-IN OPEN
+            </span>
+          </div>
+          <div class="dc-m-vs">
+            <div class="dc-m-team-side">
+              <div class="dc-m-crest" style="background:linear-gradient(135deg,#6849E5,#6849E5AA);">
+                {% if my_teams %}{{ my_teams.0.tag|default:"PRV"|slice:":3" }}{% else %}YOU{% endif %}
+              </div>
+              <span class="dc-m-team-name">{% if my_teams %}{{ my_teams.0.name|truncatechars:12 }}{% else %}{{ identity.username }}{% endif %}</span>
+              <span class="dc-m-team-badge" style="color:#2ECC71;background:rgba(46,204,113,0.12);border:1px solid rgba(46,204,113,0.24);">YOU</span>
+            </div>
+            <div style="text-align:center;">
+              <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:17px;color:rgba(255,255,255,0.26);letter-spacing:.04em;">VS</div>
+            </div>
+            <div class="dc-m-team-side">
+              <div class="dc-m-crest" style="background:rgba(90,98,115,0.50);">TBD</div>
+              <span class="dc-m-team-name">TBD</span>
+              <span class="dc-m-team-badge" style="color:rgba(255,255,255,.38);background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.07);">OPP</span>
+            </div>
+          </div>
+          <a href="{% if next_match_info.tournament_slug %}/tournaments/{{ next_match_info.tournament_slug }}/bracket/{% else %}#{% endif %}" class="dc-m-cta" style="background:linear-gradient(135deg,#E2C588,#CFA75A);color:#2A1F08;">
+            <i class="ph-fill ph-check-circle" style="font-size:17px;"></i> Check in now
+          </a>
+        </div>
+      </div>
+
+      {% else %}
+      {# UPCOMING state #}
+      <div class="dc-m-hero dc-m-fu" style="border:1px solid rgba(104,73,229,0.26);box-shadow:0 18px 44px -18px rgba(104,73,229,0.18);">
+        {% if next_match_info.game_art_url %}<img class="dc-m-hero-cover" src="{{ next_match_info.game_art_url }}" alt="">{% endif %}
+        <div class="dc-m-hero-grad"></div>
+        <div class="dc-m-hero-sheen" style="background:linear-gradient(90deg,transparent,rgba(104,73,229,0.6),transparent);"></div>
+        <div class="dc-m-hero-inner">
+          <div class="dc-m-hero-meta">
+            {% if next_match_info.scheduled_time %}
+            <span class="dc-m-chip" style="background:rgba(104,73,229,0.22);border:1px solid rgba(104,73,229,0.45);color:#A78BF9;">
+              {{ next_match_info.scheduled_time|date:"D g:iA" }}
+            </span>
+            {% endif %}
+          </div>
+          <div class="dc-m-vs">
+            <div class="dc-m-team-side">
+              <div class="dc-m-crest" style="background:linear-gradient(135deg,#6849E5,#6849E5AA);">
+                {% if my_teams %}{{ my_teams.0.tag|default:"PRV"|slice:":3" }}{% else %}YOU{% endif %}
+              </div>
+              <span class="dc-m-team-name">{% if my_teams %}{{ my_teams.0.name|truncatechars:12 }}{% else %}{{ identity.username }}{% endif %}</span>
+              <span class="dc-m-team-badge" style="color:#2ECC71;background:rgba(46,204,113,0.12);border:1px solid rgba(46,204,113,0.24);">YOU</span>
+            </div>
+            <div style="text-align:center;">
+              <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:17px;color:rgba(255,255,255,0.26);letter-spacing:.04em;">VS</div>
+              <div style="font-family:'JetBrains Mono',monospace;font-weight:600;font-size:9px;color:rgba(255,255,255,.38);margin-top:2px;">BO3</div>
+            </div>
+            <div class="dc-m-team-side">
+              <div class="dc-m-crest" style="background:linear-gradient(135deg,rgba(191,56,104,0.80),rgba(191,56,104,0.40));">
+                {{ next_match_info.opponent_name|default:"OPP"|slice:":3"|upper }}
+              </div>
+              <span class="dc-m-team-name">{{ next_match_info.opponent_name|default:"TBD"|truncatechars:12 }}</span>
+              <span class="dc-m-team-badge" style="color:rgba(255,255,255,.38);background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.07);">OPP</span>
+            </div>
+          </div>
+          <a href="{{ next_match_info.match_room_url|default:'#' }}" class="dc-m-cta" style="background:linear-gradient(135deg,#8B72FF,#6849E5);box-shadow:0 10px 28px -10px rgba(104,73,229,0.55);">
+            <i class="ph-fill ph-bell-simple" style="font-size:17px;"></i> Set reminder
+          </a>
+        </div>
+      </div>
+      {% endif %}
+
+    {% else %}
+    {# NO MATCH state #}
+    {% with dl=primary_lens %}
+    <div class="dc-m-hero dc-m-fu dc-m-no-match-bg" style="border:1px solid rgba(104,73,229,0.18);">
+      <div class="dc-m-hero-inner">
+        <div style="margin-bottom:12px;">
+          <div id="dcMHeroRankLabel" style="font-family:'Inter',sans-serif;font-weight:700;font-size:9px;letter-spacing:.12em;color:rgba(255,255,255,.38);text-transform:uppercase;margin-bottom:6px;">
+            {% if dl.rank.game_rank %}{{ dl.game_name }} · {{ dl.rank.game_rank }}{% elif dl %}{{ dl.rank.tier|default:"ROOKIE" }} RANK{% else %}ROOKIE RANK{% endif %}
+          </div>
+          <div style="font-family:'Sora',sans-serif;font-weight:800;font-size:24px;color:#fff;letter-spacing:-0.03em;line-height:1;">
+            <span id="dcMHeroCp">{{ dl.rank.cp|default:0 }}</span> <span style="font-size:14px;color:rgba(255,255,255,.44);">CP</span>
+          </div>
+          <div id="dcMHeroPromo" style="font-family:'Inter',sans-serif;font-size:11px;color:rgba(255,255,255,.44);margin-top:4px;">
+            {{ dl.rank.promo_text|default:"Keep competing to climb the ladder" }}
+          </div>
+          <div class="dc-m-cp-bar-wrap">
+            <div class="dc-m-cp-bar" id="dcMHeroBar" style="width:{{ dl.rank.xp_pct|default:0 }}%;"></div>
+          </div>
+        </div>
+        <a href="/tournaments/" class="dc-m-cta" style="background:linear-gradient(135deg,#6849E5,#0A84FF);box-shadow:0 10px 28px -10px rgba(10,132,255,0.50);">
+          <i class="ph-fill ph-trophy" style="font-size:17px;"></i> Browse tournaments
+        </a>
+      </div>
+    </div>
+    {% endwith %}
+    {% endif %}
+
+    {# ── DAILY REWARD ──────────────────────────────────────── #}
+    {% if daily_reward %}
+    <div class="dc-m-sec dc-m-fu dc-m-fu-1">
+      <div class="dc-m-dr-card">
+      <div class="dc-m-dr">
+        <div class="dc-m-dr-icon"><i class="ph-fill ph-gift"></i></div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-family:'Inter',sans-serif;font-weight:700;font-size:14px;color:rgba(255,255,255,.92);display:flex;align-items:center;gap:7px;">
+            Daily Reward
+            <span style="font-family:'JetBrains Mono',monospace;font-weight:700;font-size:11px;background:rgba(207,167,90,0.14);border:1px solid rgba(207,167,90,0.28);color:#CFA75A;padding:1px 7px;border-radius:999px;display:inline-flex;align-items:center;gap:3px;">
+              <i class="ph-fill ph-fire-simple" style="font-size:10px;"></i>{{ daily_reward.current_streak }}d
+            </span>
+          </div>
+          <div style="font-family:'Inter',sans-serif;font-size:11px;color:rgba(255,255,255,.44);margin-top:2px;">
+            {% if daily_reward.today_claimable %}+{{ daily_reward.today_xp }} XP{% if daily_reward.today_dc %} · +{{ daily_reward.today_dc }} DC{% endif %}{% else %}Claimed · +{{ daily_reward.today_xp }} XP{% if daily_reward.today_dc %} · +{{ daily_reward.today_dc }} DC{% endif %}{% endif %}
+          </div>
+        </div>
+        {% if daily_reward.today_claimable %}
+        <button class="dc-m-dr-claim" id="dcMDailyClaim"><i class="ph-fill ph-gift" style="font-size:14px;"></i> Claim</button>
+        {% else %}
+        <span class="dc-m-dr-done"><i class="ph-bold ph-check" style="font-size:11px;"></i> Claimed · +{{ daily_reward.today_xp }} XP</span>
+        {% endif %}
+      </div>
+      {% if daily_reward.week_schedule %}
+      <div class="dc-m-dr-week" aria-label="Daily reward week">
+        {% for day in daily_reward.week_schedule %}
+        <span class="{% if day.claimed %}done{% elif day.missed %}missed{% elif day.is_today %}today{% endif %}">
+          <b>{{ day.day }}</b>
+          {% if day.claimed %}<i class="ph-bold ph-check"></i>
+          {% elif day.missed %}<i class="ph-bold ph-x"></i>
+          {% elif day.is_today %}<i class="ph-fill ph-star"></i>
+          {% else %}<i class="ph-bold ph-lock-simple"></i>{% endif %}
+        </span>
+        {% endfor %}
+      </div>
+      {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="dc-m-sec dc-m-fu dc-m-fu-1">
+      <div class="dc-m-xp-card">
+        <div class="dc-m-xp-badge">
+          <span>LVL</span>
+          <b>{{ profile.level|default:1 }}</b>
+        </div>
+        <div class="dc-m-xp-main">
+          <div class="dc-m-xp-top">
+            <div>
+              <strong>XP &amp; Level</strong>
+              <small>{{ profile.xp_total|default:0|floatformat:0 }} XP total</small>
+            </div>
+            <em>{{ profile.xp_to_next|default:500 }} to next</em>
+          </div>
+          <div class="dc-m-xp-bar"><i style="width:{{ profile.xp_pct|default:0 }}%;"></i></div>
+          <div class="dc-m-xp-meta">
+            <span>{{ profile.xp_in_level|default:0 }} / {{ profile.xp_needed|default:500 }} XP</span>
+            <span>Level {{ profile.next_level|default:2 }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {# ── STAT TILES 2×2 ──────────────────────────────────────── #}
+    {% with dl=primary_lens %}
+    <div class="dc-m-sec dc-m-fu dc-m-fu-1">
+      <div class="dc-m-stats">
+        <div class="dc-m-stat">
+          <div class="dc-m-stat-ic" style="background:rgba(191,56,104,0.14);color:#BF3868;"><i class="ph-fill ph-medal" style="font-size:13px;"></i></div>
+          <div class="dc-m-stat-ey">Crown Points</div>
+          <div class="dc-m-stat-val" id="dcMStatCP" style="color:#fff;" data-count="{{ dl.rank.cp|default:0 }}">{{ dl.rank.cp|default:0 }}</div>
+          <div class="dc-m-stat-sub" id="dcMStatCPSub" style="color:{{ dl.rank.tier_color|default:'#94A3B8' }};">{{ dl.rank.tier|default:"ROOKIE" }}</div>
+        </div>
+        <div class="dc-m-stat">
+          <div class="dc-m-stat-ic" style="background:rgba(46,204,113,0.12);color:#2ECC71;"><i class="ph-bold ph-chart-line-up" style="font-size:13px;"></i></div>
+          <div class="dc-m-stat-ey">Win Rate</div>
+          <div class="dc-m-stat-val" id="dcMStatWR" style="color:#2ECC71;" data-count="{{ dl.stats.win_rate|default:match_stats.win_rate|default:0 }}" data-suffix="%">{{ dl.stats.win_rate|default:match_stats.win_rate|default:0 }}%</div>
+          <div class="dc-m-stat-sub" id="dcMStatWRSub">{{ dl.stats.wins|default:match_stats.wins|default:0 }}W · {{ dl.stats.losses|default:match_stats.losses|default:0 }}L · {{ dl.stats.draws|default:match_stats.draws|default:0 }}D</div>
+        </div>
+        <div class="dc-m-stat">
+          <div class="dc-m-stat-ic" style="background:rgba(207,167,90,0.14);color:#CFA75A;"><i class="ph-fill ph-coin-vertical" style="font-size:13px;"></i></div>
+          <div class="dc-m-stat-ey">DeltaCoin</div>
+          <div class="dc-m-stat-val" style="color:#CFA75A;" data-count="{{ wallet.balance|default:0|floatformat:0 }}">{{ wallet.balance|default:0|floatformat:0 }}</div>
+          <div class="dc-m-stat-sub">{% if wallet.recent_txns %}{% with t=wallet.recent_txns.0 %}{% if t.amount > 0 %}+{% endif %}{{ t.amount|floatformat:0 }} {{ t.reason|lower }}{% endwith %}{% else %}DC balance{% endif %}</div>
+        </div>
+        <div class="dc-m-stat">
+          <div class="dc-m-stat-ic" style="background:rgba(10,132,255,0.12);color:#0A84FF;"><i class="ph-bold ph-trophy" style="font-size:13px;"></i></div>
+          <div class="dc-m-stat-ey">Active Events</div>
+          <div class="dc-m-stat-val" style="color:#0A84FF;" data-count="{{ tournament_count|default:0 }}">{{ tournament_count|default:0 }}</div>
+          <div class="dc-m-stat-sub">{{ active_tournaments|length }} joined · {{ platform_tournament_count|default:0 }} platform-wide</div>
+        </div>
+      </div>
+    </div>
+    {% endwith %}
+
+    {# ── PERFORMANCE LENS ──────────────────────────────────── #}
+    {% if lenses %}
+    <div class="dc-m-sec dc-m-fu dc-m-fu-2">
+      <div class="dc-m-glass" style="padding:14px;">
+        <div class="dc-m-ey" style="margin-bottom:10px;"><i class="ph-bold ph-crosshair-simple" style="font-size:13px;color:#0A84FF;"></i>Performance Lens</div>
+        <div class="dc-m-lens-pills" id="dcMLensPills">
+          {% for lens in lenses %}
+          <button class="dc-m-lens-pill{% if lens.is_primary %} active{% endif %}" data-lens="{{ lens.id }}"{% if lens.is_primary %} data-primary="1"{% endif %} onclick="dcMSwitchLens(this,'{{ lens.id }}')">
+            {% if lens.game_icon %}<img src="{{ lens.game_icon }}" alt="">{% endif %}
+            {{ lens.game_name|default:lens.label }}
+          </button>
+          {% endfor %}
+        </div>
+        {% for lens in lenses %}
+        <div class="dc-m-lens-stats dc-m-lens-data{% if not lens.is_primary %} hide{% endif %}" id="dcMLens_{{ lens.id }}">
+          <div class="dc-m-lens-stat">
+            <div style="font-family:'Inter',sans-serif;font-size:8px;font-weight:700;letter-spacing:.12em;color:rgba(255,255,255,.38);text-transform:uppercase;margin-bottom:4px;">RANK</div>
+            <div style="font-family:'Sora',sans-serif;font-weight:800;font-size:17px;color:#fff;letter-spacing:-0.02em;">{{ lens.rank.game_rank|default:"—" }}</div>
+          </div>
+          <div class="dc-m-lens-stat">
+            <div style="font-family:'Inter',sans-serif;font-size:8px;font-weight:700;letter-spacing:.12em;color:rgba(255,255,255,.38);text-transform:uppercase;margin-bottom:4px;">WIN RATE</div>
+            <div style="font-family:'Sora',sans-serif;font-weight:800;font-size:17px;color:#2ECC71;letter-spacing:-0.02em;">{{ lens.stats.win_rate|default:0 }}%</div>
+          </div>
+          <div class="dc-m-lens-stat">
+            <div style="font-family:'Inter',sans-serif;font-size:8px;font-weight:700;letter-spacing:.12em;color:rgba(255,255,255,.38);text-transform:uppercase;margin-bottom:4px;">MATCHES</div>
+            <div style="font-family:'Sora',sans-serif;font-weight:800;font-size:17px;color:#fff;letter-spacing:-0.02em;">{{ lens.stats.wins|default:0 }}W</div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    {# ── COMPETITIVE OPS 2×2 ──────────────────────────────── #}
+    <div class="dc-m-sec dc-m-fu dc-m-fu-2">
+      <div class="dc-m-ey"><i class="ph-bold ph-target" style="font-size:13px;color:#FF3B5C;"></i>Competitive Ops</div>
+      <div class="dc-m-ops">
+        <a class="dc-m-op" href="{% url 'dashboard:competitive_hub' %}">
+          <div class="dc-m-op-ic" style="background:rgba(255,59,92,0.12);color:#FF3B5C;">
+            <i class="ph-bold ph-sword" style="font-size:18px;"></i>
+            {% if ops_counts.showdown_live %}<span class="dc-m-op-badge"></span>{% endif %}
+          </div>
+          <div style="font-family:'Inter',sans-serif;font-weight:700;font-size:13px;color:rgba(255,255,255,.92);">Showdown</div>
+          <div style="font-family:'Inter',sans-serif;font-size:11px;color:rgba(255,255,255,.44);margin-top:2px;"><b style="color:rgba(255,255,255,.75);">{{ ops_counts.showdown_live|default:0 }}</b> live now</div>
+        </a>
+        <a class="dc-m-op" href="{% url 'dashboard:competitive_hub' %}">
+          <div class="dc-m-op-ic" style="background:rgba(10,132,255,0.12);color:#0A84FF;">
+            <i class="ph-bold ph-list-checks" style="font-size:18px;"></i>
+          </div>
+          <div style="font-family:'Inter',sans-serif;font-weight:700;font-size:13px;color:rgba(255,255,255,.92);">Missions</div>
+          <div style="font-family:'Inter',sans-serif;font-size:11px;color:rgba(255,255,255,.44);margin-top:2px;"><b style="color:rgba(255,255,255,.75);">{{ ops_counts.missions_done|default:0 }}</b>/{{ ops_counts.missions_total|default:0 }} done</div>
+        </a>
+        <a class="dc-m-op" href="{% url 'dashboard:competitive_hub' %}">
+          <div class="dc-m-op-ic" style="background:rgba(207,167,90,0.12);color:#CFA75A;">
+            <i class="ph-bold ph-crosshair-simple" style="font-size:18px;"></i>
+            {% if ops_counts.bounty_claimable %}<span class="dc-m-op-badge"></span>{% endif %}
+          </div>
+          <div style="font-family:'Inter',sans-serif;font-weight:700;font-size:13px;color:rgba(255,255,255,.92);">Bounty</div>
+          <div style="font-family:'Inter',sans-serif;font-size:11px;color:rgba(255,255,255,.44);margin-top:2px;"><b style="color:rgba(255,255,255,.75);">{{ ops_counts.bounty_claimable|default:0 }}</b> claimable</div>
+        </a>
+        <a class="dc-m-op" href="{% url 'dashboard:competitive_hub' %}">
+          <div class="dc-m-op-ic" style="background:rgba(104,73,229,0.12);color:#6849E5;">
+            <i class="ph-bold ph-shooting-star" style="font-size:18px;"></i>
+          </div>
+          <div style="font-family:'Inter',sans-serif;font-weight:700;font-size:13px;color:rgba(255,255,255,.92);">Dropzone</div>
+          <div style="font-family:'Inter',sans-serif;font-size:11px;color:rgba(255,255,255,.44);margin-top:2px;"><b style="color:rgba(255,255,255,.75);">{{ ops_counts.dropzone_open|default:0 }}</b> open</div>
+        </a>
+      </div>
+    </div>
+
+    {# ── MY TEAMS BENTO ──────────────────────────────────────── #}
+    {% if my_teams %}
+    <div class="dc-m-sec dc-m-fu dc-m-fu-3">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <div class="dc-m-ey" style="margin-bottom:0;"><i class="ph-bold ph-shield-check" style="font-size:13px;color:#6849E5;"></i>My Teams</div>
+        <a href="{% url 'organizations:vnext_hub' %}" style="font-family:'Inter',sans-serif;font-weight:600;font-size:12px;color:#0A84FF;text-decoration:none;display:flex;align-items:center;gap:3px;">Team HQ <i class="ph-bold ph-caret-right" style="font-size:10px;"></i></a>
+      </div>
+      {# Primary team — full width #}
+      {% with pt=my_teams.0 %}
+      <a class="dc-m-team-primary" href="{% url 'organizations:team_detail' team_slug=pt.slug %}">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="width:46px;height:46px;border-radius:13px;background:linear-gradient(135deg,{{ pt.game_color|default:'#6849E5' }},#6849E5);display:flex;align-items:center;justify-content:center;font-family:'Sora',sans-serif;font-weight:800;font-size:15px;color:#fff;box-shadow:0 8px 20px -8px rgba(104,73,229,0.6);flex-shrink:0;overflow:hidden;">
+            {% if pt.logo_url %}<img src="{{ pt.logo_url }}" alt="{{ pt.name }}" style="width:100%;height:100%;object-fit:cover;" onerror="this.remove()">{% else %}
+            {{ pt.tag|default:pt.name|slice:":3"|upper }}
+            {% endif %}
+          </div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:16px;color:rgba(255,255,255,.92);letter-spacing:-0.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ pt.name }}</div>
+            <div style="font-family:'Inter',sans-serif;font-size:12px;color:rgba(255,255,255,.44);margin-top:2px;">{{ pt.game_name }} · {% if pt.role %}{{ pt.role|title }}{% else %}Player{% endif %}</div>
+          </div>
+          <span style="font-family:'Inter',sans-serif;font-weight:700;font-size:8px;letter-spacing:.07em;color:#CFA75A;background:rgba(207,167,90,0.14);border:1px solid rgba(207,167,90,0.28);padding:3px 8px;border-radius:999px;flex-shrink:0;">PRIMARY</span>
+        </div>
+      </a>
+      {% endwith %}
+      {# Secondary teams — 2-col grid #}
+      {% if my_teams|length > 1 %}
+      <div class="dc-m-team-grid" id="dcMTeamGrid">
+        {% for team in my_teams|slice:"1:3" %}
+        <a class="dc-m-team-mini" href="{% url 'organizations:team_detail' team_slug=team.slug %}">
+          <div style="display:flex;align-items:center;gap:9px;">
+            <div style="width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,{{ team.game_color|default:'#0A84FF' }},#6849E5);display:flex;align-items:center;justify-content:center;font-family:'Sora',sans-serif;font-weight:800;font-size:11px;color:#fff;flex-shrink:0;overflow:hidden;">
+              {% if team.logo_url %}<img src="{{ team.logo_url }}" alt="{{ team.name }}" style="width:100%;height:100%;object-fit:cover;" onerror="this.remove()">{% else %}
+              {{ team.tag|default:team.name|slice:":2"|upper }}
+              {% endif %}
+            </div>
+            <div style="min-width:0;">
+              <div style="font-family:'Inter',sans-serif;font-weight:700;font-size:12px;color:rgba(255,255,255,.92);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ team.name|truncatechars:14 }}</div>
+              <div style="font-family:'Inter',sans-serif;font-size:10px;color:rgba(255,255,255,.44);">{{ team.game_name|truncatechars:10 }}</div>
+            </div>
+          </div>
+        </a>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    {# ── TOURNAMENT ACTIVITY ──────────────────────────────── #}
+    {% if active_tournaments %}
+    <div class="dc-m-fu dc-m-fu-3" style="margin-bottom:8px;">
+      <div style="padding:0 14px;display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        <div class="dc-m-ey" style="margin-bottom:0;"><i class="ph-bold ph-trophy" style="font-size:13px;color:#0A84FF;"></i>Tournament Activity</div>
+        <a href="/tournaments/" style="font-family:'Inter',sans-serif;font-weight:600;font-size:12px;color:#0A84FF;text-decoration:none;display:flex;align-items:center;gap:3px;">Browse all <i class="ph-bold ph-caret-right" style="font-size:10px;"></i></a>
+      </div>
+      <div class="dc-m-tourn-rail">
+        {% for t in active_tournaments|slice:":6" %}
+        <a class="dc-m-tcard" href="/tournaments/{{ t.slug }}/">
+          {% if t.thumbnail_url or t.banner_url %}<img src="{{ t.thumbnail_url|default:t.banner_url }}" alt="{{ t.game_name }}" onerror="this.style.display='none'">{% else %}<div style="position:absolute;inset:0;background:linear-gradient(135deg,#11151E,#181D27);"></div>{% endif %}
+          <div class="dc-m-tcard-grad"></div>
+          <div class="dc-m-tcard-top">
+            {% if t.is_live %}<span class="dc-m-chip" style="background:rgba(0,0,0,.55);backdrop-filter:blur(8px);color:#FF3B5C;border:1px solid rgba(255,59,92,0.35);font-size:8px;padding:2px 7px;"><span class="dc-m-chip-dot" style="background:#FF3B5C;"></span>LIVE</span>
+            {% elif t.status == "check_in" %}<span class="dc-m-chip" style="background:rgba(0,0,0,.55);backdrop-filter:blur(8px);color:#FFB020;border:1px solid rgba(207,167,90,0.35);font-size:8px;padding:2px 7px;"><span class="dc-m-chip-dot" style="background:#FFB020;"></span>CHECK-IN</span>
+            {% elif t.status == "registration_open" or t.status == "open" %}<span class="dc-m-chip" style="background:rgba(0,0,0,.55);backdrop-filter:blur(8px);color:#2ECC71;border:1px solid rgba(46,204,113,0.35);font-size:8px;padding:2px 7px;">OPEN</span>
+            {% else %}<span class="dc-m-chip" style="background:rgba(0,0,0,.55);backdrop-filter:blur(8px);color:#0A84FF;border:1px solid rgba(10,132,255,0.35);font-size:8px;padding:2px 7px;">REGISTERED</span>{% endif %}
+          </div>
+          <div class="dc-m-tcard-bot">
+            <div style="font-family:'Inter',sans-serif;font-weight:700;font-size:12px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ t.name|truncatechars:22 }}</div>
+            {% if t.prize_pool %}<div style="font-family:'JetBrains Mono',monospace;font-weight:600;font-size:10px;color:#CFA75A;margin-top:2px;"><i class="ph-fill ph-coin-vertical" style="font-size:9px;"></i> {{ t.prize_pool|floatformat:0 }} DC</div>{% endif %}
+          </div>
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    {# ── PENDING INVITES ──────────────────────────────────── #}
+    {% if pending_invites %}
+    <div class="dc-m-sec dc-m-fu dc-m-fu-3">
+      <div class="dc-m-ey"><i class="ph-bold ph-envelope-open" style="font-size:13px;color:#6849E5;"></i>Pending Invites</div>
+      <div id="dcMInviteList">
+        {% for inv in pending_invites %}
+        <div class="dc-m-invite" data-invite-id="{{ inv.id }}" id="dcMInv_{{ inv.id }}">
+          <div class="dc-m-invite-ic">
+            {% if inv.team_logo %}<img src="{{ inv.team_logo }}" alt="{{ inv.team_name }}" style="width:100%;height:100%;object-fit:cover;border-radius:11px;" onerror="this.remove()">{% else %}
+            {{ inv.team_name|slice:":2"|upper }}
+            {% endif %}
+          </div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-family:'Inter',sans-serif;font-weight:700;font-size:13px;color:rgba(255,255,255,.92);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ inv.team_name }}</div>
+            <div style="font-family:'Inter',sans-serif;font-size:11px;color:rgba(255,255,255,.44);margin-top:2px;">as <b style="color:rgba(255,255,255,.65);">{{ inv.role|title }}</b> · @{{ inv.inviter }}</div>
+          </div>
+          <div class="dc-m-invite-actions">
+            <a href="{% url 'organizations:vnext_hub' %}" class="dc-m-btn-accept" title="Manage invite" style="display:flex;align-items:center;justify-content:center;text-decoration:none;"><i class="ph-bold ph-arrow-right" style="font-size:15px;"></i></a>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    {# ── JOIN REQUESTS ──────────────────────────────────────── #}
+    {% if join_requests %}
+    <div class="dc-m-sec dc-m-fu dc-m-fu-3">
+      <div class="dc-m-ey"><i class="ph-bold ph-user-plus" style="font-size:13px;color:#2ECC71;"></i>Join Requests</div>
+      {% for req in join_requests|slice:":3" %}
+      <div class="dc-m-invite">
+        {% if req.team_logo %}<img src="{{ req.team_logo }}" alt="{{ req.team_name }}" style="width:40px;height:40px;border-radius:50%;flex-shrink:0;object-fit:cover;">{% else %}<div style="width:40px;height:40px;border-radius:50%;flex-shrink:0;background:linear-gradient(135deg,#6849E5,#0A84FF);display:flex;align-items:center;justify-content:center;font-family:'Sora',sans-serif;font-weight:800;font-size:14px;color:#fff;">{{ req.team_tag|default:req.team_name|slice:":1"|upper }}</div>{% endif %}
+        <div style="flex:1;min-width:0;">
+          <div style="font-family:'Inter',sans-serif;font-weight:700;font-size:13px;color:rgba(255,255,255,.92);">{{ req.team_name }}</div>
+          <div style="font-family:'Inter',sans-serif;font-size:11px;color:rgba(255,255,255,.44);margin-top:2px;">{% if req.team_tag %}[{{ req.team_tag }}] · {% endif %}{{ req.status }}</div>
+        </div>
+        <a href="{{ req.team_url|default:'#' }}" style="font-family:'Inter',sans-serif;font-weight:700;font-size:12px;color:#0A84FF;text-decoration:none;padding:6px 12px;border-radius:10px;background:rgba(10,132,255,0.14);border:1px solid rgba(10,132,255,0.28);">View</a>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {# ── QUICK ACTIONS ──────────────────────────────────────── #}
+    <div class="dc-m-sec" style="margin-bottom:20px;">
+      <div class="dc-m-ey" style="margin-bottom:12px;"><i class="ph-bold ph-lightning" style="font-size:13px;color:#CFA75A;"></i>Quick Actions</div>
+      <div class="dc-m-qa">
+        <a href="/tournaments/" class="dc-m-qa-item">
+          <div class="dc-m-qa-ic" style="background:rgba(207,167,90,0.14);color:#CFA75A;"><i class="ph-bold ph-trophy" style="font-size:17px;"></i></div>
+          <span class="dc-m-qa-lbl">Tournaments</span>
+        </a>
+        <a href="{% url 'dashboard:competitive_hub' %}" class="dc-m-qa-item">
+          <div class="dc-m-qa-ic" style="background:rgba(10,132,255,0.12);color:#0A84FF;"><i class="ph-bold ph-sword" style="font-size:17px;"></i></div>
+          <span class="dc-m-qa-lbl">Matchmaking</span>
+        </a>
+        <a href="{% url 'organizations:vnext_hub' %}" class="dc-m-qa-item">
+          <div class="dc-m-qa-ic" style="background:rgba(104,73,229,0.12);color:#6849E5;"><i class="ph-bold ph-users-three" style="font-size:17px;"></i></div>
+          <span class="dc-m-qa-lbl">Find Team</span>
+        </a>
+        <a href="{% url 'dashboard:competitive_hub' %}" class="dc-m-qa-item">
+          <div class="dc-m-qa-ic" style="background:rgba(46,204,113,0.12);color:#2ECC71;"><i class="ph-bold ph-target" style="font-size:17px;"></i></div>
+          <span class="dc-m-qa-lbl">Operations</span>
+        </a>
+        <a href="{% url 'economy:wallet' %}" class="dc-m-qa-item">
+          <div class="dc-m-qa-ic" style="background:rgba(207,167,90,0.14);color:#CFA75A;"><i class="ph-bold ph-coin-vertical" style="font-size:17px;"></i></div>
+          <span class="dc-m-qa-lbl">Wallet</span>
+        </a>
+        <a href="{% url 'dashboard:competitive_hub' %}" class="dc-m-qa-item">
+          <div class="dc-m-qa-ic" style="background:rgba(255,59,92,0.12);color:#FF3B5C;"><i class="ph-bold ph-shooting-star" style="font-size:17px;"></i></div>
+          <span class="dc-m-qa-lbl">Dropzone</span>
+        </a>
+      </div>
+    </div>
+
+    </div>{# #dc-m-scroll #}
+  </div>{# #dc-m #}
+
+  {# ── BOTTOM TAB BAR (mobile) ──────────────────────────── #}
+  <nav id="dc-m-tabs" aria-label="Mobile navigation">
+    <a href="/arena/" class="dc-m-tab">
+      <i class="ph ph-squares-four"></i>
+      <span>Arena</span>
+    </a>
+    <a href="/tournaments/" class="dc-m-tab">
+      <i class="ph ph-trophy"></i>
+      <span>Tournaments</span>
+    </a>
+    <a href="/dashboard/" class="dc-m-tab active">
+      <i class="ph-fill ph-gauge"></i>
+      <span>Dashboard</span>
+    </a>
+    <a href="{% url 'organizations:vnext_hub' %}" class="dc-m-tab">
+      <i class="ph ph-shield-check"></i>
+      <span>Teams</span>
+    </a>
+    <a href="/@{{ request.user.username }}/" class="dc-m-tab">
+      <i class="ph ph-user-circle"></i>
+      <span>Profile</span>
+    </a>
+  </nav>
+
 </div>{# .dc-cc #}
 
 <script src="{% static 'dashboard/command-center.js' %}" defer></script>

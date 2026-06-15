@@ -1451,7 +1451,14 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
     
     # PERF: Log total request time
     step_start = time.perf_counter()
-    response = render(request, 'user_profile/profile/public_profile.html', context)
+    _ua = request.META.get('HTTP_USER_AGENT', '').lower()
+    _is_mobile = any(x in _ua for x in ('mobile', 'android', 'iphone', 'ipod', 'blackberry', 'windows phone'))
+    _template = (
+        'user_profile/profile/public_profile_mobile.html'
+        if _is_mobile else
+        'user_profile/profile/public_profile.html'
+    )
+    response = render(request, _template, context)
     perf_log.append(f"render={(time.perf_counter()-step_start)*1000:.2f}ms")
     
     total_time = (time.perf_counter() - perf_start) * 1000

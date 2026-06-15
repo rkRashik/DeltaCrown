@@ -244,9 +244,12 @@ def build_lenses(
     my_teams: list[dict],
     game_detail_map: dict,
     game_passports: list[dict] | None = None,
+    primary_team_id: int | None = None,
+    primary_game_id: int | None = None,
 ) -> list[dict]:
     lenses: list[dict] = []
     game_passports = game_passports or []
+    primary_assigned = False
 
     Match = _safe_model("tournaments.Match")
     GameProfile = _safe_model("user_profile.GameProfile")
@@ -260,7 +263,12 @@ def build_lenses(
         game_name = team.get("game_name", "")
         game_slug = team.get("game_slug", "")
         tag = (team.get("tag") or game_name[:3] or "TM").upper()[:4]
-        is_primary = idx == 0
+        team_is_primary = bool(primary_team_id and team_id == primary_team_id)
+        game_is_primary = bool(not primary_team_id and primary_game_id and game_id == primary_game_id)
+        is_primary = bool(team_is_primary or game_is_primary)
+        if is_primary and primary_assigned:
+            is_primary = False
+        primary_assigned = primary_assigned or is_primary
 
         # Stats from tournament matches (primary source)
         stats, streak = _match_stats_and_streak(user, team_id, Match)
@@ -335,6 +343,9 @@ def build_lenses(
         if gp_game_id:
             covered_game_ids.add(gp_game_id)
 
+        is_primary = bool(not primary_assigned and primary_game_id and gp_game_id == primary_game_id)
+        primary_assigned = primary_assigned or is_primary
+
         lenses.append({
             "id": f"solo_{(gp_slug or gp_game_name).lower().replace(' ', '_')}",
             "label": f"{gp_game_name} · Solo",
@@ -345,7 +356,7 @@ def build_lenses(
             "crest": crest,
             "crest_g1": g1,
             "crest_g2": g2,
-            "is_primary": False,
+            "is_primary": is_primary,
             "is_solo": True,
             "ign": ign,
             "rank": rank_data,
@@ -353,5 +364,8 @@ def build_lenses(
             "streak": {"current": 0, "label": _streak_label(0), "last_5": [], "best": 0},
             "board": [],
         })
+
+    if lenses and not any(l.get("is_primary") for l in lenses):
+        lenses[0]["is_primary"] = True
 
     return lenses

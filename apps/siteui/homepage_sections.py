@@ -104,8 +104,8 @@ def get_homepage_sections() -> Dict[str, Any]:
             {"name": "DeltaCoin", "color": _GO, "tint": "var(--tGo)", "bd": "rgba(207,167,90,.3)",
              "icon": _svg("coin", _GO, 19),
              "blurb": "Reward utility earned through verified competition across the platform."},
-            {"name": "Crown Store", "color": _VI, "tint": "var(--tVi)", "bd": "rgba(104,73,229,.3)",
-             "icon": _svg("store", _VI, 19),
+            {"name": "Crown Store", "color": _GO, "tint": "var(--tGo)", "bd": "rgba(207,167,90,.3)",
+             "icon": _svg("store", _GO, 19),
              "blurb": "Spend earned rewards on cosmetics, perks and event entries."},
         ],
         # §5 — Daily Ops (4 always-on modes)

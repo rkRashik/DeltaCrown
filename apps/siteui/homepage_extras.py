@@ -675,6 +675,8 @@ def _upcoming_cards(limit: int = 4, exclude_id: Optional[int] = None) -> List[Di
             "name": t.name,
             "slug": t.slug,
             "game_name": ((game.display_name or game.name) if game else "").upper(),
+            "game_slug": (game.slug if game else ""),
+            "game_label": ((game.display_name or game.name) if game else ""),
             "poster_url": poster,
             "prize_label": (
                 f"৳{_format_compact(int(t.prize_pool))}"
@@ -1270,7 +1272,10 @@ def _path_stages() -> List[Dict[str, str]]:
 
 def get_homepage_extras(request=None) -> Dict[str, Any]:
     """Build the homepage live-data context (cached 10 minutes)."""
-    cache_key = "homepage_extras"
+    # NOTE: bump this key whenever the cached card shape changes — a stale entry
+    # built by older code (e.g. missing tournament `game_slug`) would otherwise be
+    # served to the new template and break the client-side filter regroup.
+    cache_key = "homepage_extras_v2"
     cached = safe_cache_get(cache_key)
     if cached is not None:
         return cached

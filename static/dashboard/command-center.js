@@ -78,6 +78,7 @@
   /* ---- Performance lens / context switcher ---- */
   let lensesData = {};
   try { lensesData = JSON.parse((q("#lensesJson") || {}).textContent || "{}"); } catch(e) {}
+  window.__dcLensesData = lensesData;
 
   function boardRowHTML(row) {
     const rankColor = row.is_me ? "var(--acc-400)" : (row.c || "var(--dc-fg-soft)");
@@ -409,4 +410,101 @@
     }
   })();
 
+})();
+
+/* ================================================================
+   MOBILE DASHBOARD helpers
+   (called from inline onclick; must be window-level)
+   ================================================================ */
+window.dcMSwitchLens = function(btn, lensId) {
+  // Update pill states
+  document.querySelectorAll('.dc-m-lens-pill').forEach(function(p) { p.classList.remove('active'); });
+  btn.classList.add('active');
+  // Show the right data block
+  document.querySelectorAll('.dc-m-lens-data').forEach(function(el) { el.classList.add('hide'); });
+  var target = document.getElementById('dcMLens_' + lensId);
+  if (target) target.classList.remove('hide');
+
+  var lenses = window.__dcLensesData || {};
+  var d = lenses[lensId];
+  if (!d) return;
+  var rank = d.rank || {};
+  var stats = d.stats || {};
+  var setText = function(id, value) {
+    var el = document.getElementById(id);
+    if (el) el.textContent = value;
+  };
+  var cp = Number(rank.cp || 0);
+  var wr = Number(stats.win_rate || 0);
+  var wins = Number(stats.wins || 0);
+  var losses = Number(stats.losses || 0);
+  var draws = Number(stats.draws || 0);
+  setText('dcMHeroRankLabel', rank.game_rank ? ((d.game_name || d.label || 'Game') + ' · ' + rank.game_rank) : ((rank.tier || 'Rookie') + ' RANK'));
+  setText('dcMHeroCp', cp.toLocaleString());
+  setText('dcMHeroPromo', rank.promo_text || 'Keep competing to climb the ladder');
+  var bar = document.getElementById('dcMHeroBar');
+  if (bar) bar.style.width = Math.max(0, Math.min(100, Number(rank.xp_pct || 0))) + '%';
+  var cpEl = document.getElementById('dcMStatCP');
+  if (cpEl) {
+    cpEl.dataset.count = cp;
+    cpEl.textContent = cp.toLocaleString();
+  }
+  var cpSub = document.getElementById('dcMStatCPSub');
+  if (cpSub) {
+    cpSub.textContent = rank.tier || 'Rookie';
+    cpSub.style.color = rank.tier_color || '#94A3B8';
+  }
+  var wrEl = document.getElementById('dcMStatWR');
+  if (wrEl) {
+    wrEl.dataset.count = wr;
+    wrEl.textContent = wr.toLocaleString() + '%';
+  }
+  setText('dcMStatWRSub', wins + 'W · ' + losses + 'L · ' + draws + 'D');
+};
+
+window.dcMInviteAction = function(inviteId, action) {
+  window.location.href = '/teams/hub/';
+};
+
+(function() {
+  // Mobile daily claim
+  var dcMClaim = document.getElementById('dcMDailyClaim');
+  if (dcMClaim) {
+    dcMClaim.addEventListener('click', function() {
+      var csrf = (document.cookie.match('(^|;)\\s*csrftoken=([^;]+)') || [])[2] || '';
+      dcMClaim.disabled = true;
+      dcMClaim.textContent = 'Claiming…';
+      fetch('/api/daily-reward/claim/', {
+        method: 'POST',
+        headers: { 'X-CSRFToken': csrf, 'X-Requested-With': 'XMLHttpRequest' },
+        credentials: 'same-origin'
+      }).then(function(r) { return r.json(); })
+        .then(function(data) {
+          dcMClaim.style.background = 'rgba(46,204,113,0.14)';
+          dcMClaim.style.border = '1px solid rgba(46,204,113,0.24)';
+          dcMClaim.style.color = '#2ECC71';
+          dcMClaim.innerHTML = '✓ Claimed';
+          dcMClaim.disabled = true;
+          if (window.showToast) window.showToast({ message: data.message || 'Daily reward claimed!', type: 'ok' });
+        })
+        .catch(function() { dcMClaim.disabled = false; dcMClaim.textContent = 'Claim'; });
+    });
+  }
+
+  // Count-up animation for stat tiles
+  if (window.matchMedia && window.matchMedia('(max-width:768px)').matches) {
+    document.querySelectorAll('.dc-m-stat-val[data-count]').forEach(function(el) {
+      var target = parseFloat(el.dataset.count) || 0;
+      var suffix = el.dataset.suffix || '';
+      if (target === 0) { el.textContent = '0' + suffix; return; }
+      var dur = 900, t0 = Date.now();
+      function tick() {
+        var p = Math.min((Date.now() - t0) / dur, 1);
+        var v = target * (1 - Math.pow(1 - p, 3));
+        el.textContent = (target % 1 === 0 ? Math.floor(v).toLocaleString() : v.toFixed(1)) + suffix;
+        if (p < 1) requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+    });
+  }
 })();

@@ -115,9 +115,60 @@
     setInterval(rotate, 9000);
   }
 
+  /* ── 3. Tournament filters ──────────────────────────────────────────────
+     Client-side, no reload. Toggles card visibility by data-game / data-entry /
+     data-status, keeps aria-pressed in sync, prunes filters that match nothing,
+     and shows a polite empty note. Progressive enhancement: without JS every
+     card stays visible and the "All tournaments" link still works. */
+  function initTournamentFilters() {
+    var root = document.getElementById('homeTfilters');
+    var grid = document.getElementById('homeTgrid');
+    if (!root || !grid) return;
+    var btns = Array.prototype.slice.call(root.querySelectorAll('.dc-tfilter'));
+    var cards = Array.prototype.slice.call(grid.querySelectorAll('.dc-tcard'));
+    var emptyNote = document.getElementById('homeTempty');
+    if (!btns.length || !cards.length) return;
+
+    function matches(card, type, val) {
+      if (type === 'all') return true;
+      if (type === 'game') return card.getAttribute('data-game') === val;
+      if (type === 'entry') return card.getAttribute('data-entry') === val;
+      if (type === 'status') return card.getAttribute('data-status') === val;
+      return true;
+    }
+
+    // Hide any filter that would match zero cards (e.g. "Free entry" with no free events).
+    btns.forEach(function (b) {
+      var type = b.getAttribute('data-filter-type');
+      if (type === 'all') return;
+      var val = b.getAttribute('data-filter-value');
+      var any = cards.some(function (c) { return matches(c, type, val); });
+      if (!any) b.style.display = 'none';
+    });
+
+    function apply(type, val) {
+      var shown = 0;
+      cards.forEach(function (c) {
+        var ok = matches(c, type, val);
+        c.style.display = ok ? '' : 'none';
+        if (ok) shown++;
+      });
+      if (emptyNote) emptyNote.style.display = shown ? 'none' : '';
+    }
+
+    btns.forEach(function (b) {
+      b.addEventListener('click', function () {
+        btns.forEach(function (x) { x.setAttribute('aria-pressed', 'false'); });
+        b.setAttribute('aria-pressed', 'true');
+        apply(b.getAttribute('data-filter-type'), b.getAttribute('data-filter-value'));
+      });
+    });
+  }
+
   function init() {
     initCountdowns();
     initHeroRotation();
+    initTournamentFilters();
   }
 
   if (document.readyState !== 'loading') {

@@ -12,8 +12,8 @@
 {% block extra_css %}
 {# Sora (display/numerals) + JetBrains Mono (eyebrows/scores) — Inter ships from base.html #}
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
-<link rel="preload" href="{% static 'siteui/css/home.css' %}?v=20260615a" as="style">
-<link rel="stylesheet" href="{% static 'siteui/css/home.css' %}?v=20260615a">
+<link rel="preload" href="{% static 'siteui/css/home.css' %}?v=20260615d" as="style">
+<link rel="stylesheet" href="{% static 'siteui/css/home.css' %}?v=20260615d">
 {% endblock %}
 
 {% block body_class %}home-page dc-home-page{% endblock %}
@@ -54,10 +54,10 @@
           <span style="width:6px;height:6px;border-radius:50%;background:var(--suc);box-shadow:0 0 9px var(--suc);"></span>
           <span class="m" style="font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--mut);">{{ hero_ctx.eyebrow_secondary|default:"Season 03 · Open registration" }}</span>
         </div>
-        <h1 style="margin:14px 0 0;font-family:var(--disp);font-weight:800;line-height:1.05;letter-spacing:-.028em;font-size:clamp(26px,4.6vw,58px);white-space:nowrap;">
+        <h1 style="margin:14px 0 0;font-family:var(--disp);font-weight:800;line-height:1.05;letter-spacing:-.028em;font-size:clamp(26px,4.6vw,58px);white-space:nowrap;color:var(--fg);">
           <span style="display:block;">Play tournaments.</span>
-          <span style="display:block;">Build your squad.</span>
-          <span class="grad" style="display:block;padding-bottom:.08em;">Rise to the Crown.</span>
+          <span style="display:block;">Build your <span style="color:var(--vi4);">squad</span>.</span>
+          <span style="display:block;padding-bottom:.08em;">Rise to the <span style="color:var(--go4);text-shadow:0 0 26px rgba(226,197,136,.38);">Crown</span>.</span>
         </h1>
         <p id="heroSub" style="margin:18px 0 0;max-width:48ch;font-size:16px;line-height:1.6;color:var(--mut);">{% if user.is_authenticated and hero_ctx.subcopy %}{{ hero_ctx.subcopy }}{% else %}<b style="color:var(--fg);font-weight:600;">The competitive home for players, teams &amp; organizers.</b> Join verified tournaments, build a real team, and climb from Rookie to The Crown — across 11 titles, mobile to PC.{% endif %}</p>
         {% if hero_ctx.rotation_items %}{{ hero_ctx.rotation_items|json_script:"heroRotationItems" }}{% endif %}
@@ -141,52 +141,28 @@
         {% endwith %}
       </div>
     </div>
-    <!-- trust + games strip -->
-    <div style="position:relative;z-index:1;max-width:1280px;margin:0 auto;padding:0 clamp(18px,4vw,48px) 30px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px;">
-      <div class="m" style="display:flex;flex-wrap:wrap;gap:7px 13px;align-items:center;font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--soft);">
+    <!-- proof row + supported-games dock: one balanced hero-bottom row on desktop -->
+    <div class="hero-bottom" style="position:relative;z-index:1;max-width:1280px;margin:0 auto;padding:0 clamp(18px,4vw,48px) 32px;">
+      <div class="hero-proof m">
         <span style="display:inline-flex;align-items:center;gap:6px;"><span style="width:5px;height:5px;border-radius:50%;background:var(--suc);"></span>Verified results</span>
         <span style="color:var(--dim);">·</span><span>Dispute-aware rooms</span>
         <span style="color:var(--dim);">·</span><span>Escrow-backed payouts</span>
         <span style="color:var(--dim);">·</span><span>Fair competition</span>
       </div>
       {% if v3.game_posters %}
-      <div style="display:flex;align-items:center;gap:10px;">
-        <div style="display:flex;align-items:center;">
-          {% for g in v3.game_posters|slice:":9" %}
-          <span title="{{ g.name }}" style="width:26px;height:26px;border-radius:7px;background:{% if g.poster_url %}url('{{ g.poster_url }}') center/cover{% else %}var(--s2){% endif %};border:1px solid var(--hair);margin-left:-5px;box-shadow:0 2px 6px rgba(0,0,0,.4);"></span>
+      <div class="hero-games">
+        <div class="hero-dock" role="list" aria-label="Supported games">
+          {% for g in v3.game_posters|slice:":11" %}
+          <a href="{{ g.url }}" class="hero-dock-item" role="listitem" aria-label="{{ g.name }}" style="background-image:{% if g.poster_url %}url('{{ g.poster_url }}'){% else %}linear-gradient(135deg,var(--s2),var(--s1)){% endif %};">
+            <span class="hero-dock-tip" aria-hidden="true">{{ g.name }}</span>
+          </a>
           {% endfor %}
         </div>
-        <span class="m" style="font-size:10.5px;letter-spacing:.04em;color:var(--mut);">{{ v3.hero_stats.games_count|default:11 }} titles · mobile to PC</span>
+        <span class="m" style="flex-shrink:0;font-size:10.5px;letter-spacing:.04em;color:var(--mut);white-space:nowrap;">{{ v3.hero_stats.games_count|default:11 }} titles · mobile to PC</span>
       </div>
       {% endif %}
     </div>
   </section>
-
-  {% comment %} Conditional — Recent verified results / live activity strip.
-     Only rendered when REAL live or recently-completed matches exist. Never faked. {% endcomment %}
-  {% with rib=v3.live_ribbon|default:v3.recent_ribbon %}
-  {% if rib %}
-  <section data-screen-label="Live activity" data-section="recent-results" style="position:relative;border-bottom:1px solid var(--hair);background:rgba(8,10,16,.5);">
-    <div style="max-width:1280px;margin:0 auto;padding:16px clamp(18px,4vw,48px);display:flex;align-items:center;gap:18px;">
-      <span class="m" style="flex-shrink:0;display:inline-flex;align-items:center;gap:8px;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--soft);">
-        <span style="width:6px;height:6px;border-radius:50%;background:{% if v3.live_ribbon %}var(--live){% else %}var(--suc){% endif %};box-shadow:0 0 9px {% if v3.live_ribbon %}var(--live){% else %}var(--suc){% endif %};"></span>
-        {% if v3.live_ribbon %}Live now{% else %}Recent verified results{% endif %}
-      </span>
-      <div style="flex:1;min-width:0;display:flex;gap:10px;overflow-x:auto;padding-bottom:2px;">
-        {% for r in rib|slice:":5" %}
-        <a href="{{ r.match_url }}" class="press" style="flex:0 0 auto;display:inline-flex;align-items:center;gap:10px;padding:8px 13px;border:1px solid var(--hair);border-radius:11px;background:var(--s1);text-decoration:none;white-space:nowrap;">
-          <span class="m" style="font-size:8.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--soft);">{{ r.game }}</span>
-          <span style="font-size:12px;font-weight:600;color:var(--fg);">{{ r.team_a }}</span>
-          <span class="m" style="font-size:12px;color:var(--go4);">{{ r.score_a }}–{{ r.score_b }}</span>
-          <span style="font-size:12px;font-weight:600;color:var(--fg);">{{ r.team_b }}</span>
-          <span class="m" style="font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;color:{% if r.is_result %}var(--suc){% else %}var(--live){% endif %};">{{ r.time_label }}</span>
-        </a>
-        {% endfor %}
-      </div>
-    </div>
-  </section>
-  {% endif %}
-  {% endwith %}
 
   <!-- ============ 02 · WHY DELTACROWN — PROBLEM / SOLUTION ============ -->
   <section data-screen-label="Why DeltaCrown" data-section="why-deltacrown" style="position:relative;overflow:hidden;border-bottom:1px solid var(--hair);">
@@ -198,7 +174,7 @@
         <h2 style="margin:10px 0 0;font-family:var(--disp);font-weight:700;font-size:clamp(26px,3vw,38px);letter-spacing:-.02em;">Informal esports is broken. <span class="grad">We fixed the flow.</span></h2>
         <p style="margin:9px 0 0;font-size:15px;line-height:1.6;color:var(--mut);">Scattered chats, ghosted prize pools and screenshot arguments shouldn't decide who wins. Every match on DeltaCrown is operated, verified and recorded — so results are real.</p>
       </div>
-      <div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:stretch;gap:clamp(14px,2.4vw,30px);">
+      <div class="why-grid" style="display:grid;grid-template-columns:1fr auto 1fr;align-items:stretch;gap:clamp(14px,2.4vw,30px);">
         <!-- before -->
         <div class="wcard" style="border:1px solid var(--hair);border-radius:20px;background:rgba(17,21,30,.4);padding:22px;transition:border-color .3s;">
           <div style="display:flex;align-items:center;gap:9px;margin-bottom:18px;">
@@ -249,18 +225,20 @@
         </div>
         <a href="/tournaments/" class="ghost press" style="display:inline-flex;align-items:center;gap:7px;padding:11px 18px;border-radius:11px;border:1px solid var(--stroke);background:var(--s1);color:var(--mut);font-weight:600;font-size:13px;text-decoration:none;white-space:nowrap;">All tournaments<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
       </div>
-      <div data-reveal class="rv" style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:20px;">
-        <a href="/tournaments/" class="filter press" style="padding:7px 14px;border-radius:999px;border:1px solid rgba(10,132,255,.4);background:var(--tAz);color:var(--fg);font-size:12px;font-weight:600;text-decoration:none;white-space:nowrap;">All games</a>
-        {% for g in v3.game_posters|slice:":3" %}
-        <a href="/tournaments/?game={{ g.slug }}" class="filter press" style="padding:7px 14px;border-radius:999px;border:1px solid var(--stroke);background:var(--s1);color:var(--soft);font-size:12px;font-weight:600;text-decoration:none;white-space:nowrap;">{{ g.name }}</a>
-        {% endfor %}
-        <a href="/tournaments/?entry=free" class="filter press" style="padding:7px 14px;border-radius:999px;border:1px solid var(--stroke);background:var(--s1);color:var(--soft);font-size:12px;font-weight:600;text-decoration:none;white-space:nowrap;">Free entry</a>
-      </div>
       {% if v3.upcoming_tournaments %}
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;">
-        {% for t in v3.upcoming_tournaments %}
-        <a data-reveal class="rv tcard press" href="{{ t.url }}" style="display:flex;flex-direction:column;border:1px solid var(--stroke);border-radius:18px;background:var(--s1);overflow:hidden;text-decoration:none;transition:transform .3s var(--eo),border-color .3s,box-shadow .3s;">
-          <div style="position:relative;height:118px;background:{% if t.poster_url %}url('{{ t.poster_url }}') center 30%/cover no-repeat{% else %}linear-gradient(135deg,var(--s2),var(--s1)){% endif %};">
+      <div data-reveal class="rv" id="homeTfilters" role="group" aria-label="Filter tournaments" style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:20px;">
+        <button type="button" class="dc-tfilter press" data-filter-type="all" aria-pressed="true" style="padding:7px 14px;border-radius:999px;border:1px solid var(--stroke);background:var(--s1);color:var(--soft);font-size:12px;font-weight:600;white-space:nowrap;">All games</button>
+        {% regroup v3.upcoming_tournaments|slice:":4"|dictsort:"game_slug" by game_slug as t_game_groups %}
+        {% for grp in t_game_groups %}{% if grp.grouper %}
+        <button type="button" class="dc-tfilter press" data-filter-type="game" data-filter-value="{{ grp.grouper }}" aria-pressed="false" style="padding:7px 14px;border-radius:999px;border:1px solid var(--stroke);background:var(--s1);color:var(--soft);font-size:12px;font-weight:600;white-space:nowrap;">{{ grp.list.0.game_label|default:grp.list.0.game_name }}</button>
+        {% endif %}{% endfor %}
+        <button type="button" class="dc-tfilter press" data-filter-type="entry" data-filter-value="free" aria-pressed="false" style="padding:7px 14px;border-radius:999px;border:1px solid var(--stroke);background:var(--s1);color:var(--soft);font-size:12px;font-weight:600;white-space:nowrap;">Free entry</button>
+      </div>
+      <div id="homeTgrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;">
+        {% for t in v3.upcoming_tournaments|slice:":4" %}
+        <a data-reveal class="rv tcard press dc-tcard" href="{{ t.url }}" data-game="{{ t.game_slug }}" data-entry="{% if t.is_free %}free{% else %}paid{% endif %}" data-status="{% if t.is_live %}live{% else %}open{% endif %}" style="display:flex;flex-direction:column;border:1px solid var(--stroke);border-radius:18px;background:var(--s1);overflow:hidden;text-decoration:none;transition:transform .3s var(--eo),border-color .3s,box-shadow .3s;">
+          <div style="position:relative;height:118px;overflow:hidden;background:linear-gradient(135deg,var(--s2),var(--s1));">
+            {% if t.poster_url %}<img src="{{ t.poster_url }}" alt="" loading="lazy" decoding="async" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 30%;">{% endif %}
             <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,13,20,.15) 30%,rgba(17,21,30,.95));"></div>
             <span style="position:absolute;top:10px;left:11px;display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:999px;{% if t.is_live %}background:var(--tLi);border:1px solid rgba(255,59,92,.4);{% elif t.slot_fill_pct >= 85 %}background:var(--tGo);border:1px solid rgba(207,167,90,.4);{% else %}background:var(--tAz);border:1px solid rgba(10,132,255,.4);{% endif %}backdrop-filter:blur(6px);"><span class="m" style="font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;color:{% if t.is_live %}var(--live){% elif t.slot_fill_pct >= 85 %}var(--go4){% else %}var(--az4){% endif %};">{% if t.is_live %}Live{% elif t.slot_fill_pct >= 85 %}Filling fast{% else %}Open{% endif %}</span></span>
             {% if t.game_name %}<span class="m" style="position:absolute;bottom:9px;left:12px;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.85);">{{ t.game_name }}</span>{% endif %}
@@ -283,6 +261,7 @@
         </a>
         {% endfor %}
       </div>
+      <p id="homeTempty" role="status" style="display:none;text-align:center;color:var(--soft);font-size:14px;margin:26px 0 0;">No tournaments match this filter. <a href="/tournaments/" style="color:var(--az4);text-decoration:none;font-weight:600;">See all tournaments →</a></p>
       {% else %}
       <!-- empty-state: never fabricate tournaments -->
       <div data-reveal class="rv" style="display:flex;flex-direction:column;align-items:center;text-align:center;gap:14px;padding:54px 22px;border:1px dashed var(--stroke);border-radius:20px;background:rgba(17,21,30,.4);">
@@ -463,6 +442,24 @@
         </div>
         {% endfor %}
       </div>
+      {% comment %} Compact, conditional proof — real recent (or live) verified results only; hidden when empty. Never faked. {% endcomment %}
+      {% with rib=v3.recent_ribbon|default:v3.live_ribbon %}
+      {% if rib %}
+      <div data-reveal class="rv" style="margin-top:32px;padding-top:24px;border-top:1px solid var(--hair);display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:center;">
+        <span class="m" style="display:inline-flex;align-items:center;gap:7px;flex-shrink:0;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--soft);"><span style="width:6px;height:6px;border-radius:50%;background:{% if v3.recent_ribbon %}var(--suc){% else %}var(--live){% endif %};box-shadow:0 0 8px {% if v3.recent_ribbon %}var(--suc){% else %}var(--live){% endif %};"></span>{% if v3.recent_ribbon %}Recent verified results{% else %}Verified live right now{% endif %}</span>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;max-width:100%;">
+          {% for r in rib|slice:":4" %}
+          <a href="{{ r.match_url }}" class="press" style="display:inline-flex;align-items:center;gap:8px;padding:7px 12px;border:1px solid var(--hair);border-radius:10px;background:rgba(17,21,30,.6);text-decoration:none;white-space:nowrap;">
+            <span class="m" style="font-size:8px;letter-spacing:.1em;text-transform:uppercase;color:var(--soft);">{{ r.game }}</span>
+            <span style="font-size:11.5px;font-weight:600;color:var(--fg);">{{ r.team_a }}</span>
+            <span class="m" style="font-size:11.5px;color:var(--go4);">{{ r.score_a }}–{{ r.score_b }}</span>
+            <span style="font-size:11.5px;font-weight:600;color:var(--fg);">{{ r.team_b }}</span>
+          </a>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+      {% endwith %}
     </div>
   </section>
 
@@ -470,7 +467,7 @@
   <section data-screen-label="Organizer" data-section="organizer" style="position:relative;overflow:hidden;border-bottom:1px solid var(--hair);">
     <div aria-hidden="true" style="position:absolute;left:0;right:0;bottom:0;height:54%;background:linear-gradient(180deg,transparent,rgba(10,132,255,.1));"></div>
     <div aria-hidden="true" style="position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(132,112,238,.4),rgba(10,132,255,.4),transparent);"></div>
-    <div aria-hidden="true" data-anim style="position:absolute;left:50%;bottom:24%;width:min(1100px,92vw);height:2px;transform:translateX(-50%);background:linear-gradient(90deg,transparent,rgba(63,163,255,.4) 35%,rgba(63,163,255,.4) 65%,transparent);box-shadow:0 0 26px rgba(63,163,255,.25);animation:dch-breathe 9s ease-in-out infinite;"></div>
+    <div aria-hidden="true" data-anim style="position:absolute;left:50%;bottom:6%;width:min(1100px,92vw);height:2px;transform:translateX(-50%);background:linear-gradient(90deg,transparent,rgba(63,163,255,.35) 35%,rgba(63,163,255,.35) 65%,transparent);box-shadow:0 0 26px rgba(63,163,255,.2);animation:dch-breathe 9s ease-in-out infinite;"></div>
     <div style="position:relative;z-index:1;max-width:1280px;margin:0 auto;padding:clamp(56px,8vh,96px) clamp(18px,4vw,48px);">
       <div style="display:flex;flex-wrap:wrap;align-items:center;gap:clamp(32px,4vw,64px);">
         <div data-reveal class="rv" style="flex:1 1 360px;min-width:0;">
@@ -536,7 +533,8 @@
       </div>
       <div data-reveal class="rv dock" id="gameDock" style="padding-top:20px;">
         {% for g in v3.game_posters %}
-        <a href="{{ g.url }}" class="dock-item" style="position:relative;display:block;width:128px;aspect-ratio:3/4;border-radius:14px;overflow:hidden;border:1px solid var(--stroke);background:{% if g.poster_url %}url('{{ g.poster_url }}') center/cover{% else %}var(--s2){% endif %};text-decoration:none;">
+        <a href="{{ g.url }}" class="dock-item" style="position:relative;display:block;width:128px;aspect-ratio:3/4;border-radius:14px;overflow:hidden;border:1px solid var(--stroke);background:var(--s2);text-decoration:none;">
+          {% if g.poster_url %}<img src="{{ g.poster_url }}" alt="" loading="lazy" decoding="async" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;">{% endif %}
           <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,13,20,0) 38%,rgba(10,13,20,.92));"></div>
           <div class="gover" style="position:absolute;inset:0;background:linear-gradient(165deg,rgba(10,132,255,.2),rgba(104,73,229,.08) 50%,transparent 70%);opacity:0;transition:opacity .3s;"></div>
           <div class="dock-info" style="position:absolute;left:11px;right:11px;bottom:10px;">
@@ -553,11 +551,11 @@
   <!-- ============ 12 · FINAL CTA — MONUMENT GOLD ECHO ============ -->
   <section data-screen-label="Join" data-section="final-cta" style="position:relative;overflow:hidden;">
     <div aria-hidden="true" data-anim style="position:absolute;left:50%;bottom:0;width:min(820px,82vw);height:74%;transform:translateX(-50%);background:radial-gradient(closest-side,rgba(10,132,255,.16),rgba(104,73,229,.07) 52%,transparent 74%);filter:blur(18px);animation:dch-breathe 11s ease-in-out infinite;"></div>
-    <svg aria-hidden="true" viewBox="0 0 1440 620" preserveAspectRatio="xMidYMax slice" style="position:absolute;inset:0;width:100%;height:100%;opacity:.6;">
+    <svg aria-hidden="true" viewBox="0 0 1440 620" preserveAspectRatio="xMidYMax slice" style="position:absolute;left:0;right:0;bottom:0;width:100%;height:72%;opacity:.5;">
       <defs><linearGradient id="fmE" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#6849E5" stop-opacity=".22"/><stop offset="50%" stop-color="#E2C588" stop-opacity=".5"/><stop offset="100%" stop-color="#0A84FF" stop-opacity=".22"/></linearGradient></defs>
       <path data-anim d="M260 620 L450 330 L600 470 L720 280 L840 470 L990 330 L1180 620" fill="none" stroke="url(#fmE)" stroke-width="1.5" stroke-linejoin="round" stroke-dasharray="2200" stroke-dashoffset="2200" style="animation:dch-draw 3.4s .3s var(--eo) forwards;"></path>
     </svg>
-    <div aria-hidden="true" style="position:absolute;left:50%;top:16%;width:240px;height:150px;transform:translateX(-50%);background:radial-gradient(closest-side,rgba(226,197,136,.2),transparent 70%);filter:blur(14px);"></div>
+    <div aria-hidden="true" style="position:absolute;left:50%;bottom:20%;width:300px;height:170px;transform:translateX(-50%);background:radial-gradient(closest-side,rgba(226,197,136,.22),transparent 70%);filter:blur(16px);"></div>
     <!-- content-safe scrim -->
     <div aria-hidden="true" style="position:absolute;left:50%;top:50%;width:min(940px,96vw);height:88%;transform:translate(-50%,-50%);background:radial-gradient(58% 62% at 50% 50%,rgba(8,10,16,.82),rgba(8,10,16,.45) 58%,transparent 82%);"></div>
     <div style="position:relative;z-index:1;max-width:760px;margin:0 auto;text-align:center;padding:clamp(64px,9vh,116px) clamp(18px,4vw,48px);">
@@ -580,5 +578,5 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'siteui/js/home.js' %}?v=20260615a" defer></script>
+<script src="{% static 'siteui/js/home.js' %}?v=20260615c" defer></script>
 {% endblock %}

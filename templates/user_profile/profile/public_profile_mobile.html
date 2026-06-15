@@ -1,0 +1,883 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block extra_head %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/@phosphor-icons/web@2.1.1/src/index.js" defer></script>
+<style nonce="{{ request.csp_nonce }}">
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+img{max-width:100%;display:block}
+a{text-decoration:none;color:inherit}
+button{background:none;border:none;cursor:pointer;color:inherit;font-family:inherit;-webkit-tap-highlight-color:transparent}
+
+#pm-scroll{padding-top:0;padding-bottom:24px}
+
+.pm-hero{position:relative;height:168px;overflow:hidden}
+.pm-hero img,.pm-hero-bg{width:100%;height:100%;object-fit:cover;object-position:center 22%}
+.pm-hero-bg{background:linear-gradient(135deg,rgba(104,73,229,.30) 0%,rgba(10,132,255,.12) 55%,#0A0D14 100%)}
+.pm-hero-grad{position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,13,20,.30) 0%,rgba(10,13,20,0) 30%,rgba(10,13,20,.70) 64%,#0A0D14 100%)}
+
+.pm-identity{padding:0 16px;margin-top:-48px;position:relative;z-index:2}
+.pm-id-top{display:flex;align-items:flex-end;gap:14px}
+
+.av-wrap{position:relative;width:76px;height:76px;flex-shrink:0}
+.av-aura{position:absolute;inset:-7px;border-radius:50%;background:radial-gradient(circle,rgba(104,73,229,.40),transparent 70%);filter:blur(10px);pointer-events:none}
+.av-ring{position:absolute;inset:0;border-radius:50%;background:conic-gradient(from 0deg,#6849E5,#0A84FF,#8B72FF,#0A84FF,#6849E5);mask:radial-gradient(transparent 60%,#000 61%);-webkit-mask:radial-gradient(transparent 60%,#000 61%);animation:ringSpin 6s linear infinite}
+@keyframes ringSpin{to{transform:rotate(360deg)}}
+.av-inner{position:absolute;inset:4px;border-radius:50%;background:linear-gradient(150deg,#1C2B48 0%,#0D1520 60%,#08090E 100%);border:3px solid #0A0D14;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.av-inner img{width:100%;height:100%;object-fit:cover}
+.av-initials{font-family:'Sora',sans-serif;font-weight:800;font-size:24px;color:#fff;letter-spacing:-0.03em}
+.av-dot{position:absolute;bottom:5px;right:5px;width:14px;height:14px;border-radius:50%;background:#2ECC71;border:3px solid #0A0D14;box-shadow:0 0 8px rgba(46,204,113,.6);animation:blink 1.9s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.25;transform:scale(2.1)}}
+
+.pm-name-block{flex:1;padding-bottom:6px;min-width:0}
+.team-chip{display:inline-flex;align-items:center;gap:5px;margin-bottom:7px;padding:3px 9px 3px 4px;border-radius:999px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.07)}
+.team-chip-icon{width:16px;height:16px;border-radius:5px;background:linear-gradient(135deg,#6849E5,#8B72FF);display:flex;align-items:center;justify-content:center;font-family:'Sora',sans-serif;font-weight:800;font-size:8px;color:#fff;flex-shrink:0}
+.team-chip-name{font-family:'Inter',sans-serif;font-weight:700;font-size:9px;color:rgba(255,255,255,.6);letter-spacing:.08em;white-space:nowrap}
+.display-name-row{display:flex;align-items:center;gap:8px}
+.display-name{font-family:'Sora',sans-serif;font-weight:800;font-size:21px;color:#fff;letter-spacing:-0.03em;line-height:1}
+.level-badge{padding:2px 7px;border-radius:999px;background:linear-gradient(135deg,#E2C588,#CFA75A);font-family:'Inter',sans-serif;font-weight:800;font-size:8px;color:#2A1F08;letter-spacing:.04em;flex-shrink:0}
+
+.handle-row{display:flex;align-items:center;gap:9px;margin-top:11px;flex-wrap:wrap}
+.pm-handle{font-family:'JetBrains Mono',monospace;font-weight:600;font-size:12px;color:rgba(255,255,255,.44)}
+.sep-dot{width:3px;height:3px;border-radius:50%;background:rgba(255,255,255,.22);flex-shrink:0}
+.country-tag{font-family:'Inter',sans-serif;font-size:12px;color:rgba(255,255,255,.44);display:flex;align-items:center;gap:4px}
+.flag{width:14px;height:10px;object-fit:cover;border-radius:2px;display:inline}
+.pm-bio{font-family:'Inter',sans-serif;font-size:13.5px;color:rgba(255,255,255,.65);line-height:1.55;margin-top:12px;letter-spacing:-0.01em}
+.stats-strip{display:flex;align-items:center;margin-top:14px}
+.stat-item{display:flex;align-items:baseline;gap:5px;cursor:pointer}
+.stat-num{font-family:'Sora',sans-serif;font-weight:700;font-size:17px;color:#fff;letter-spacing:-0.02em}
+.stat-lbl{font-family:'Inter',sans-serif;font-size:11px;font-weight:500;color:rgba(255,255,255,.44)}
+.stat-sep{width:1px;height:22px;background:rgba(255,255,255,.07);margin:0 16px}
+
+.action-wrap{padding:16px 16px 0}
+.action-row{display:flex;gap:8px;align-items:stretch}
+.btn-action{height:44px;border-radius:13px;display:flex;align-items:center;justify-content:center;gap:7px;font-family:'Inter',sans-serif;font-weight:600;font-size:14px;cursor:pointer;transition:opacity 160ms;padding:0 16px;border:1px solid transparent}
+.btn-action:active{opacity:.8}
+.btn-action.flex-1{flex:1}
+.btn-follow{background:linear-gradient(135deg,#6849E5,#0A84FF);color:#fff;border-color:transparent;box-shadow:0 8px 24px -10px rgba(10,132,255,.6)}
+.btn-following{background:rgba(255,255,255,.06);color:#0A84FF;border-color:rgba(10,132,255,.32)}
+.btn-edit{background:rgba(255,255,255,.07);color:#fff;border-color:rgba(255,255,255,.13);text-decoration:none}
+.btn-requested{background:rgba(255,255,255,.04);color:rgba(255,255,255,.44);border-color:rgba(255,255,255,.08);cursor:not-allowed}
+.btn-action-icon{width:44px;height:44px;flex-shrink:0;border-radius:13px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.07);display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.55);cursor:pointer;gap:3px;font-size:15px;transition:background 160ms}
+.btn-action-icon:active{background:rgba(255,255,255,.10)}
+.btn-action-icon.connect-open{background:rgba(10,132,255,.12);border-color:rgba(10,132,255,.32);color:#0A84FF}
+
+.social-panel{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding:10px 0 0;flex-wrap:wrap}
+.social-panel::-webkit-scrollbar{display:none}
+.social-ic{flex-shrink:0;width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.07);font-size:16px}
+
+#pm-tabs{position:sticky;top:64px;z-index:10;margin-top:18px;border-bottom:1px solid rgba(255,255,255,.07);background:rgba(10,13,20,.88);backdrop-filter:blur(28px) saturate(180%);-webkit-backdrop-filter:blur(28px) saturate(180%)}
+@media(min-width:768px){#pm-tabs{top:80px}}
+.tab-scroll{display:flex;overflow-x:auto;padding:0 14px;gap:4px;scrollbar-width:none}
+.tab-scroll::-webkit-scrollbar{display:none}
+.tab-btn{flex-shrink:0;padding:11px 14px 12px;background:none;border:none;cursor:pointer;position:relative;color:rgba(255,255,255,.44);font-family:'Inter',sans-serif;font-weight:500;font-size:14px;white-space:nowrap;transition:color 180ms}
+.tab-btn.active{color:#fff;font-weight:600}
+.tab-btn.active::after{content:'';position:absolute;bottom:0;left:14px;right:14px;height:2.5px;border-radius:3px;background:linear-gradient(90deg,#6849E5,#0A84FF);box-shadow:0 0 12px rgba(10,132,255,.6)}
+.tab-pane{display:none}
+.tab-pane.active{display:block}
+
+.pm-glass{background:linear-gradient(165deg,rgba(255,255,255,.055) 0%,rgba(255,255,255,.02) 60%);border:1px solid rgba(255,255,255,.07);border-radius:20px;position:relative;overflow:hidden}
+.pm-glass::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.15),transparent);pointer-events:none}
+
+.pm-sec{padding:0 16px;margin-bottom:10px}
+.pm-pt{padding-top:18px}
+.pm-eyebrow{font-family:'Inter',sans-serif;font-weight:700;font-size:10px;letter-spacing:.14em;color:rgba(255,255,255,.26);text-transform:uppercase;display:flex;align-items:center;gap:7px;margin-bottom:12px}
+.pm-divider{height:1px;background:rgba(255,255,255,.07)}
+.pm-row{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.05)}
+.pm-row:last-child{border-bottom:none}
+
+.comp-card{background:linear-gradient(160deg,rgba(104,73,229,.14) 0%,rgba(10,132,255,.05) 42%,rgba(255,255,255,.02) 100%);border:1px solid rgba(255,255,255,.08);border-radius:20px;box-shadow:0 16px 40px -20px rgba(104,73,229,.4);overflow:hidden;position:relative}
+.comp-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.18),transparent);pointer-events:none}
+.comp-hdr{display:flex;align-items:center;justify-content:space-between;padding:16px 18px 0}
+.comp-icon{width:26px;height:26px;border-radius:8px;background:linear-gradient(135deg,#6849E5,#0A84FF);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px -4px rgba(10,132,255,.5)}
+.lft-banner{margin:14px 18px 0;border-radius:18px;background:linear-gradient(120deg,rgba(46,204,113,.14),rgba(46,204,113,.04));border:1px solid rgba(46,204,113,.24);padding:14px 16px;display:flex;align-items:center;gap:14px;animation:aura 2.6s ease-in-out infinite}
+@keyframes aura{0%,100%{box-shadow:0 0 0 0 rgba(46,204,113,0)}55%{box-shadow:0 0 22px 1px rgba(46,204,113,.16)}}
+.lft-blink{width:7px;height:7px;border-radius:50%;background:#2ECC71;display:inline-block;animation:blink 1.9s ease-in-out infinite}
+.lan-badge{display:flex;flex-direction:column;align-items:center;gap:4px;padding:9px 13px;border-radius:14px;background:rgba(207,167,90,.10);border:1px solid rgba(207,167,90,.22);flex-shrink:0}
+.comp-rows{padding:16px 18px 0;display:flex;flex-direction:column;gap:13px}
+.comp-row{display:flex;align-items:center;gap:12px}
+.comp-lbl{font-family:'Inter',sans-serif;font-size:9px;font-weight:700;letter-spacing:.11em;color:rgba(255,255,255,.22);width:90px;flex-shrink:0}
+.role-pill{padding:3px 10px;border-radius:999px;font-family:'Inter',sans-serif;font-weight:600;font-size:10px;letter-spacing:.05em}
+.role-p{background:rgba(10,132,255,.10);border:1px solid rgba(10,132,255,.24);color:#0A84FF}
+.role-s{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);color:rgba(255,255,255,.6)}
+.quote-block{margin:16px 18px 0;position:relative;padding-left:16px}
+.quote-bar{position:absolute;left:0;top:2px;bottom:2px;width:2.5px;border-radius:3px;background:linear-gradient(180deg,#6849E5,#0A84FF)}
+.quote-text{font-family:'Sora',sans-serif;font-style:italic;font-weight:400;font-size:13.5px;color:rgba(255,255,255,.65);line-height:1.6;letter-spacing:-0.01em}
+.meta-grid{margin:16px 18px 18px;border-radius:14px;padding:13px;background:rgba(0,0,0,.30);border:1px solid rgba(255,255,255,.05);display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.meta-lbl{font-family:'Inter',sans-serif;font-size:9px;font-weight:700;letter-spacing:.10em;color:rgba(255,255,255,.26);margin-bottom:3px}
+.meta-val{font-family:'Inter',sans-serif;font-size:12px;color:rgba(255,255,255,.7);display:flex;align-items:center;gap:4px}
+.meta-full{grid-column:1/-1}
+
+.win-big{font-family:'Sora',sans-serif;font-weight:800;font-size:36px;color:#2ECC71;letter-spacing:-0.04em;line-height:1}
+.win-pct{font-family:'Sora',sans-serif;font-weight:700;font-size:18px;color:#2ECC71}
+.stat-grid{display:flex;padding:13px 0}
+.stat-cell{flex:1;text-align:center}
+.stat-cell:not(:last-child){border-right:1px solid rgba(255,255,255,.07)}
+
+.trophy-rail{display:flex;gap:11px;overflow-x:auto;padding:0 16px 4px;scroll-snap-type:x mandatory;scrollbar-width:none}
+.trophy-rail::-webkit-scrollbar{display:none}
+.trophy-card{flex-shrink:0;width:192px;scroll-snap-align:start;border-radius:18px;overflow:hidden;position:relative;height:106px;border:1px solid rgba(207,167,90,.20);box-shadow:0 10px 28px -16px rgba(207,167,90,.4);background:linear-gradient(135deg,rgba(10,13,20,.45),rgba(10,13,20,.88))}
+.trophy-top{position:absolute;top:11px;left:12px;display:flex;align-items:center;gap:6px}
+.trophy-icon-box{width:30px;height:30px;border-radius:9px;background:rgba(207,167,90,.18);border:1px solid rgba(207,167,90,.4);display:flex;align-items:center;justify-content:center}
+.trophy-placement{padding:2px 8px;border-radius:999px;background:rgba(207,167,90,.20);border:1px solid rgba(207,167,90,.4);font-family:'Inter',sans-serif;font-weight:700;font-size:9px;color:#CFA75A;letter-spacing:.05em}
+.trophy-bot{position:absolute;bottom:11px;left:12px;right:12px}
+
+.team-logo-img{width:36px;height:36px;border-radius:10px;object-fit:cover;flex-shrink:0}
+.team-logo-ph{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#6849E5,#9B7BFF);display:flex;align-items:center;justify-content:center;font-family:'Sora',sans-serif;font-weight:800;font-size:12px;color:#fff;flex-shrink:0}
+.active-badge{font-family:'Inter',sans-serif;font-weight:600;font-size:11px;color:#2ECC71;background:rgba(46,204,113,.10);border:1px solid rgba(46,204,113,.24);padding:3px 9px;border-radius:999px;flex-shrink:0}
+
+.pp-icon{width:34px;height:34px;border-radius:9px;object-fit:contain;background:rgba(0,0,0,.30);padding:2px;border:1px solid rgba(255,255,255,.10);flex-shrink:0}
+.pp-icon-ph{width:34px;height:34px;border-radius:9px;background:rgba(255,255,255,.10);display:flex;align-items:center;justify-content:center;font-family:'Inter',sans-serif;font-size:9px;font-weight:800;color:#fff;flex-shrink:0}
+
+.wallet-card{background:linear-gradient(135deg,rgba(207,167,90,.09),rgba(255,255,255,.02));border:1px solid rgba(207,167,90,.22);border-radius:20px;padding:14px 16px}
+.wallet-bal{font-family:'Sora',sans-serif;font-weight:800;font-size:32px;color:#fff;letter-spacing:-0.03em;line-height:1}
+
+.empty{padding:32px 16px;text-align:center}
+.empty i{font-size:28px;color:rgba(255,255,255,.18);display:block;margin-bottom:8px}
+.empty p{font-family:'Inter',sans-serif;font-size:13px;color:rgba(255,255,255,.38)}
+
+.pm-aud{padding:5px 13px;border-radius:999px;font-family:'Inter',sans-serif;font-weight:600;font-size:12px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.05);color:rgba(255,255,255,.55);cursor:pointer}
+.pm-aud.active{background:rgba(10,132,255,.14);border-color:rgba(10,132,255,.35);color:#0A84FF}
+.pm-tag{padding:5px 12px;border-radius:999px;font-family:'Inter',sans-serif;font-weight:700;font-size:11px;letter-spacing:.05em;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:rgba(255,255,255,.60);cursor:pointer}
+.pm-tag.selected{background:rgba(104,73,229,.18);border-color:rgba(104,73,229,.40);color:#6849E5}
+</style>
+{% endblock %}
+
+{% block content %}
+<script id="pm-follow-state" type="application/json">
+{"isFollowing":{% if relationship_ctx.is_following %}true{% else %}false{% endif %},"canFollow":{% if relationship_ctx.can_follow %}true{% else %}false{% endif %},"followUrl":"{{ follow_url }}","unfollowUrl":"{{ unfollow_url }}","csrfToken":"{{ csrf_token }}"}
+</script>
+
+<div id="pm-scroll">
+
+  <div class="pm-hero">
+    {% if profile.banner_url %}
+    <img src="{{ profile.banner_url }}" alt="Banner">
+    {% else %}
+    <div class="pm-hero-bg"></div>
+    {% endif %}
+    <div class="pm-hero-grad"></div>
+  </div>
+
+  <div class="pm-identity">
+    <div class="pm-id-top">
+      <div class="av-wrap">
+        <div class="av-aura"></div>
+        <div class="av-ring"></div>
+        <div class="av-inner">
+          {% if profile.avatar_url %}
+          <img src="{{ profile.avatar_url }}" alt="{{ profile.display_name|default:profile_user.username }}" data-hide-on-error>
+          {% endif %}
+          <span class="av-initials">{{ profile.display_name|default:profile_user.username|slice:":1"|upper }}</span>
+        </div>
+        <div class="av-dot"></div>
+      </div>
+      <div class="pm-name-block">
+        {% if user_teams %}
+        <div class="team-chip">
+          <div class="team-chip-icon">{{ user_teams.0.tag|slice:":1"|upper }}</div>
+          <span class="team-chip-name">{{ user_teams.0.name|upper|truncatechars:16 }}</span>
+        </div>
+        {% endif %}
+        <div class="display-name-row">
+          <span class="display-name">{{ profile.display_name|default:profile_user.username }}</span>
+          {% if user_profile.level %}<span class="level-badge">LVL {{ user_profile.level }}</span>{% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div class="handle-row">
+      <span class="pm-handle">#{{ profile_user.username }}</span>
+      {% if identity_ctx.country_name %}
+      <span class="sep-dot"></span>
+      <span class="country-tag">
+        {% if identity_ctx.country_flag_url %}<img src="{{ identity_ctx.country_flag_url }}" alt="{{ identity_ctx.country_name }}" class="flag">{% endif %}
+        {{ identity_ctx.country_name }}
+      </span>
+      {% endif %}
+    </div>
+
+    {% if profile.bio %}<p class="pm-bio">{{ profile.bio }}</p>{% endif %}
+
+    <div class="stats-strip">
+      <div class="stat-item">
+        <span class="stat-num">{{ user_stats.followers_count|default:0 }}</span>
+        <span class="stat-lbl">Followers</span>
+      </div>
+      <span class="stat-sep"></span>
+      <div class="stat-item">
+        <span class="stat-num">{{ user_stats.following_count|default:0 }}</span>
+        <span class="stat-lbl">Following</span>
+      </div>
+      <span class="stat-sep"></span>
+      <div class="stat-item">
+        <span class="stat-num">{% if achievements_wins_count %}{{ achievements_wins_count }}{% else %}{{ user_stats.total_wins|default:0 }}{% endif %}</span>
+        <span class="stat-lbl">Wins</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ACTION ROW -->
+  <div class="action-wrap">
+    <div class="action-row">
+      {% if relationship_ctx.show_edit_button %}
+      <a href="{{ settings_url }}" class="btn-action btn-edit flex-1"><i class="fa-solid fa-pen-to-square" style="font-size:14px"></i> Edit Profile</a>
+      <a href="{{ settings_url }}#passports" class="btn-action-icon" title="Passports"><i class="fa-solid fa-id-card"></i></a>
+      {% elif relationship_ctx.is_following %}
+      <button id="pm-follow-btn" class="btn-action btn-following flex-1" data-following="true"><i class="fa-solid fa-user-check"></i> Following</button>
+      {% elif relationship_ctx.follow_requested %}
+      <button disabled class="btn-action btn-requested flex-1"><i class="fa-solid fa-clock"></i> Requested</button>
+      {% elif relationship_ctx.can_follow %}
+      <button id="pm-follow-btn" class="btn-action btn-follow flex-1" data-following="false"><i class="fa-solid fa-user-plus"></i> Follow</button>
+      {% endif %}
+      <button class="btn-action-icon" id="pm-share-btn" title="Share"><i class="fa-solid fa-share-nodes"></i></button>
+      {% if social_links %}<button class="btn-action-icon" id="pm-connect-btn" title="Socials"><i class="fa-solid fa-link"></i><i class="fa-solid fa-chevron-down" style="font-size:8px"></i></button>{% endif %}
+    </div>
+    {% if social_links %}
+    <div id="pm-social-panel" class="social-panel" style="display:none">
+      {% for link in social_links %}
+      <a href="{{ link.url }}" target="_blank" rel="noopener" class="social-ic" title="{{ link.platform }}">
+        {% if link.platform == 'discord' %}<i class="fa-brands fa-discord" style="color:#7289DA"></i>
+        {% elif link.platform == 'youtube' %}<i class="fa-brands fa-youtube" style="color:#FF0000"></i>
+        {% elif link.platform == 'twitch' %}<i class="fa-brands fa-twitch" style="color:#9146FF"></i>
+        {% elif link.platform == 'instagram' %}<i class="fa-brands fa-instagram" style="color:#E1306C"></i>
+        {% elif link.platform == 'twitter' or link.platform == 'x' %}<i class="fa-brands fa-x-twitter"></i>
+        {% elif link.platform == 'facebook' %}<i class="fa-brands fa-facebook" style="color:#1877F2"></i>
+        {% elif link.platform == 'steam' %}<i class="fa-brands fa-steam"></i>
+        {% elif link.platform == 'tiktok' %}<i class="fa-brands fa-tiktok"></i>
+        {% else %}<i class="fa-solid fa-link" style="font-size:13px"></i>
+        {% endif %}
+      </a>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- TAB BAR -->
+  <div id="pm-tabs">
+    <div class="tab-scroll">
+      <button class="tab-btn active" data-tab="overview">Overview</button>
+      <button class="tab-btn" data-tab="highlights">Highlights</button>
+      <button class="tab-btn" data-tab="career">Career</button>
+      <button class="tab-btn" data-tab="missions">Missions</button>
+      {% if is_owner %}<button class="tab-btn" data-tab="wallet">Wallet</button>{% endif %}
+      <button class="tab-btn" data-tab="posts">Posts</button>
+    </div>
+  </div>
+
+  <!-- OVERVIEW TAB -->
+  <div id="tab-overview" class="tab-pane active">
+    <div class="pm-sec pm-pt">
+      <div class="comp-card">
+        <div class="comp-hdr">
+          <div style="display:flex;align-items:center;gap:8px">
+            <div class="comp-icon"><i class="fa-solid fa-crosshairs" style="font-size:12px;color:#fff"></i></div>
+            <span style="font-family:'Sora',sans-serif;font-weight:700;font-size:14px;color:rgba(255,255,255,.92);letter-spacing:-0.01em">Competitive Profile</span>
+          </div>
+          {% if is_owner %}<a href="{{ settings_url }}" style="color:rgba(255,255,255,.38)"><i class="fa-solid fa-pen" style="font-size:13px"></i></a>{% endif %}
+        </div>
+
+        {% if competitive_ctx.lft_status_display %}
+        <div class="lft-banner">
+          <div style="flex:1">
+            <div style="display:flex;align-items:center;gap:7px;margin-bottom:4px">
+              <span class="lft-blink"></span>
+              <span style="font-family:'Inter',sans-serif;font-weight:700;font-size:9px;letter-spacing:.13em;color:rgba(46,204,113,.7)">CURRENT STATUS</span>
+            </div>
+            <div style="font-family:'Sora',sans-serif;font-weight:800;font-size:21px;color:#2ECC71;letter-spacing:-0.03em;line-height:1">{{ competitive_ctx.lft_status_display }}</div>
+          </div>
+          {% if competitive_ctx.lan_ready %}
+          <div class="lan-badge">
+            <i class="fa-solid fa-plane" style="font-size:16px;color:#CFA75A"></i>
+            <span style="font-family:'Inter',sans-serif;font-weight:700;font-size:8px;letter-spacing:.10em;color:#CFA75A">LAN READY</span>
+          </div>
+          {% endif %}
+        </div>
+        {% endif %}
+
+        <div class="comp-rows">
+          {% if competitive_ctx.home_team %}
+          <div class="comp-row">
+            <span class="comp-lbl">HOME TEAM</span>
+            <div style="display:flex;align-items:center;gap:8px;flex:1">
+              {% if competitive_ctx.home_team_logo_url %}
+              <img src="{{ competitive_ctx.home_team_logo_url }}" alt="" style="width:26px;height:26px;border-radius:7px;object-fit:cover;flex-shrink:0">
+              {% else %}
+              <div style="width:26px;height:26px;border-radius:7px;background:linear-gradient(135deg,#6849E5,#9B7BFF);display:flex;align-items:center;justify-content:center;font-family:'Sora',sans-serif;font-weight:800;font-size:10px;color:#fff;flex-shrink:0">{{ competitive_ctx.home_team_tag|default:"T"|slice:":1" }}</div>
+              {% endif %}
+              <span style="font-family:'Inter',sans-serif;font-weight:600;font-size:14px;color:rgba(255,255,255,.92)">{{ competitive_ctx.home_team_name }}</span>
+            </div>
+            <i class="fa-solid fa-chevron-right" style="font-size:11px;color:rgba(255,255,255,.22)"></i>
+          </div>
+          <div class="pm-divider"></div>
+          {% endif %}
+
+          {% if competitive_ctx.signature_game_name %}
+          <div class="comp-row">
+            <span class="comp-lbl">GAME</span>
+            <div style="display:flex;align-items:center;gap:8px;flex:1">
+              {% if competitive_ctx.signature_game_logo_url %}
+              <img src="{{ competitive_ctx.signature_game_logo_url }}" alt="" style="width:26px;height:26px;border-radius:7px;object-fit:cover;flex-shrink:0">
+              {% endif %}
+              <span style="font-family:'Inter',sans-serif;font-weight:600;font-size:14px;color:rgba(255,255,255,.92)">{{ competitive_ctx.signature_game_name }}</span>
+              {% if competitive_ctx.platform_display %}<span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(255,255,255,.44)">· {{ competitive_ctx.platform_display }}</span>{% endif %}
+            </div>
+          </div>
+          <div class="pm-divider"></div>
+          {% endif %}
+
+          {% if competitive_ctx.main_role_display or competitive_ctx.secondary_role_display %}
+          <div class="comp-row">
+            <span class="comp-lbl">ROLES</span>
+            <div style="display:flex;align-items:center;gap:6px;flex:1;flex-wrap:wrap">
+              {% if competitive_ctx.main_role_display %}<span class="role-pill role-p">{{ competitive_ctx.main_role_display }}</span>{% endif %}
+              {% if competitive_ctx.secondary_role_display %}<span class="role-pill role-s">{{ competitive_ctx.secondary_role_display }}</span>{% endif %}
+              {% if competitive_ctx.playstyle_display %}<span style="font-family:'Inter',sans-serif;font-size:11px;color:rgba(255,255,255,.44);margin-left:auto">{{ competitive_ctx.playstyle_display }}</span>{% endif %}
+            </div>
+          </div>
+          {% endif %}
+        </div>
+
+        {% if identity_ctx.player_snapshot %}
+        <div class="quote-block">
+          <div class="quote-bar"></div>
+          <p class="quote-text">"{{ identity_ctx.player_snapshot }}"</p>
+        </div>
+        {% endif %}
+
+        <div class="meta-grid">
+          {% if identity_ctx.country_name %}
+          <div>
+            <div class="meta-lbl">COUNTRY</div>
+            <div class="meta-val">{% if identity_ctx.country_flag_url %}<img src="{{ identity_ctx.country_flag_url }}" alt="" style="width:14px;height:10px;object-fit:cover;border-radius:2px">{% endif %}{{ identity_ctx.country_name }}</div>
+          </div>
+          {% endif %}
+          {% if identity_ctx.member_since %}
+          <div>
+            <div class="meta-lbl">MEMBER SINCE</div>
+            <div class="meta-val">{{ identity_ctx.member_since }}</div>
+          </div>
+          {% endif %}
+          {% if identity_ctx.age %}
+          <div>
+            <div class="meta-lbl">AGE</div>
+            <div class="meta-val">{{ identity_ctx.age }} years</div>
+          </div>
+          {% endif %}
+          {% if identity_ctx.languages_display %}
+          <div>
+            <div class="meta-lbl">LANGUAGES</div>
+            <div class="meta-val">{{ identity_ctx.languages_display }}</div>
+          </div>
+          {% endif %}
+          {% if competitive_ctx.active_hours %}
+          <div class="meta-full">
+            <div class="meta-lbl">ACTIVE HOURS</div>
+            <div class="meta-val" style="font-family:'JetBrains Mono',monospace">{{ competitive_ctx.active_hours }}</div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div class="pm-sec">
+      <div class="pm-glass" style="padding:0">
+        <div style="padding:16px 18px 12px;display:flex;align-items:center;justify-content:space-between">
+          <div style="display:flex;align-items:center;gap:7px">
+            <i class="fa-solid fa-chart-line" style="font-size:13px;color:#0A84FF"></i>
+            <span style="font-family:'Inter',sans-serif;font-weight:700;font-size:10px;letter-spacing:.14em;color:rgba(255,255,255,.44);text-transform:uppercase">Performance</span>
+          </div>
+          <button data-tab-target="career" style="font-family:'Inter',sans-serif;font-weight:600;font-size:12px;color:#0A84FF;display:flex;align-items:center;gap:3px">Full stats <i class="fa-solid fa-arrow-right" style="font-size:10px"></i></button>
+        </div>
+        <div class="pm-divider"></div>
+        <div style="padding:18px 18px 14px;display:flex;align-items:center;gap:18px">
+          <div style="flex:1">
+            <div style="font-family:'Inter',sans-serif;font-size:9px;font-weight:700;letter-spacing:.12em;color:rgba(255,255,255,.44);margin-bottom:5px">WIN RATE</div>
+            <div style="display:flex;align-items:baseline;gap:3px">
+              <span class="win-big">{{ stats_ctx.win_rate|default:0 }}</span>
+              <span class="win-pct">%</span>
+            </div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(255,255,255,.44);margin-top:3px">{{ stats_ctx.total_wins|default:0 }}W / {{ stats_ctx.total_matches|default:0 }}M</div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px">
+            <span style="font-family:'Inter',sans-serif;font-size:8px;font-weight:700;letter-spacing:.11em;color:rgba(255,255,255,.22)">TOURNAMENTS</span>
+            <div style="font-family:'JetBrains Mono',monospace;font-weight:700;font-size:20px;color:#CFA75A;letter-spacing:-0.02em">{{ stats_ctx.tournaments_won|default:0 }}<span style="font-size:12px;color:rgba(255,255,255,.26)">/{{ stats_ctx.tournaments_played|default:0 }}</span></div>
+          </div>
+        </div>
+        <div class="pm-divider"></div>
+        <div class="stat-grid">
+          <div class="stat-cell">
+            <div style="font-family:'JetBrains Mono',monospace;font-weight:700;font-size:18px;color:#fff;letter-spacing:-0.02em">{{ stats_ctx.total_matches|default:0 }}</div>
+            <div style="font-family:'Inter',sans-serif;font-size:8px;font-weight:700;letter-spacing:.10em;color:rgba(255,255,255,.22);margin-top:4px">MATCHES</div>
+          </div>
+          <div class="stat-cell">
+            <div style="font-family:'JetBrains Mono',monospace;font-weight:700;font-size:18px;color:#2ECC71;letter-spacing:-0.02em">{{ stats_ctx.total_wins|default:0 }}</div>
+            <div style="font-family:'Inter',sans-serif;font-size:8px;font-weight:700;letter-spacing:.10em;color:rgba(255,255,255,.22);margin-top:4px">WINS</div>
+          </div>
+          <div class="stat-cell">
+            <div style="font-family:'JetBrains Mono',monospace;font-weight:700;font-size:18px;color:#6849E5;letter-spacing:-0.02em">{{ stats_ctx.kd_ratio|default:"—" }}</div>
+            <div style="font-family:'Inter',sans-serif;font-size:8px;font-weight:700;letter-spacing:.10em;color:rgba(255,255,255,.22);margin-top:4px">K/D</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {% if sidebar_achievements_data %}
+    <div style="padding-top:6px">
+      <div class="pm-sec"><div class="pm-eyebrow"><i class="fa-solid fa-trophy" style="font-size:12px;color:#CFA75A"></i>Trophy Cabinet</div></div>
+      <div class="trophy-rail">
+        {% for ach in sidebar_achievements_data|slice:":5" %}
+        <div class="trophy-card">
+          <div class="trophy-top">
+            <div class="trophy-icon-box"><i class="fa-solid fa-trophy" style="font-size:14px;color:#CFA75A"></i></div>
+            <span class="trophy-placement">{{ ach.placement_label|default:"TOP" }}</span>
+          </div>
+          <div class="trophy-bot">
+            <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:14px;color:#fff;letter-spacing:-0.01em;line-height:1.2">{{ ach.tournament_name|truncatechars:28 }}</div>
+            <div style="font-family:'Inter',sans-serif;font-size:10px;color:rgba(255,255,255,.65);margin-top:5px">{{ ach.game_name }}</div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    {% if user_teams %}
+    <div class="pm-sec pm-pt">
+      <div class="pm-eyebrow"><i class="fa-solid fa-users" style="font-size:12px;color:#0A84FF"></i>Teams</div>
+      <div class="pm-glass" style="padding:0">
+        {% for team in user_teams %}
+        <a href="{{ team.url }}" style="display:flex;align-items:center;gap:13px;padding:13px 16px;border-bottom:{% if not forloop.last %}1px solid rgba(255,255,255,.06){% else %}none{% endif %}">
+          {% if team.logo_url %}<img src="{{ team.logo_url }}" alt="{{ team.name }}" class="team-logo-img">{% else %}<div class="team-logo-ph">{{ team.tag|default:team.name|slice:":2"|upper }}</div>{% endif %}
+          <div style="flex:1;min-width:0">
+            <div style="font-family:'Inter',sans-serif;font-weight:700;font-size:14px;color:rgba(255,255,255,.92);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ team.name }}</div>
+            <div style="font-family:'Inter',sans-serif;font-size:11px;color:rgba(255,255,255,.44);margin-top:2px">{{ team.role|default:"Member" }}{% if team.game %} · {{ team.game }}{% endif %}</div>
+          </div>
+          <span class="active-badge">Active</span>
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    {% if is_owner or permissions.can_view_game_passports %}
+    {% with all_passports=pinned_passports|add:unpinned_passports %}
+    {% if all_passports %}
+    <div class="pm-sec" style="padding-top:4px">
+      <div class="pm-eyebrow"><i class="fa-solid fa-id-card" style="font-size:12px;color:#6849E5"></i>Game Passports</div>
+      <div class="pm-glass" style="padding:0">
+        {% for passport in all_passports %}
+        {% if passport.visibility == 'PUBLIC' or is_owner %}
+        <div style="display:flex;align-items:center;gap:13px;padding:12px 16px;border-bottom:{% if not forloop.last %}1px solid rgba(255,255,255,.06){% else %}none{% endif %}">
+          {% if passport.game.icon %}<img src="{{ passport.game.icon.url }}" alt="{{ passport.game.name }}" class="pp-icon" data-hide-on-error>{% else %}<div class="pp-icon-ph">{{ passport.game.short_code|default:passport.game.name|slice:":2"|upper }}</div>{% endif %}
+          <div style="flex:1;min-width:0">
+            <div style="font-family:'Inter',sans-serif;font-weight:700;font-size:10px;letter-spacing:.07em;color:rgba(255,255,255,.44)">{{ passport.game.name }}</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-weight:600;font-size:13px;color:rgba(255,255,255,.92);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ passport.in_game_name|default:passport.ign|default:"—" }}</div>
+          </div>
+          {% if passport.verification_status == 'VERIFIED' %}
+          <div style="display:flex;align-items:center;gap:4px"><i class="fa-solid fa-circle-check" style="font-size:16px;color:#0A84FF"></i><span style="font-family:'Inter',sans-serif;font-size:10px;font-weight:600;color:#0A84FF">Verified</span></div>
+          {% else %}
+          <div style="display:flex;align-items:center;gap:4px"><i class="fa-solid fa-clock" style="font-size:14px;color:rgba(255,255,255,.26)"></i><span style="font-family:'Inter',sans-serif;font-size:10px;color:rgba(255,255,255,.26)">Pending</span></div>
+          {% endif %}
+        </div>
+        {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+    {% endwith %}
+    {% endif %}
+
+    {% if is_owner %}
+    <div class="pm-sec" style="padding-top:4px">
+      <div class="wallet-card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <div style="width:30px;height:30px;border-radius:9px;background:rgba(207,167,90,.18);border:1px solid rgba(207,167,90,.4);display:flex;align-items:center;justify-content:center"><i class="fa-solid fa-coins" style="font-size:13px;color:#CFA75A"></i></div>
+            <span style="font-family:'Inter',sans-serif;font-weight:700;font-size:10px;letter-spacing:.10em;color:#CFA75A">WALLET</span>
+          </div>
+          <button data-tab-target="wallet" style="font-family:'Inter',sans-serif;font-size:11px;color:rgba(207,167,90,.6)">View <i class="fa-solid fa-arrow-right" style="font-size:9px"></i></button>
+        </div>
+        <div class="wallet-bal">{{ wallet.balance|default:0 }} <span style="font-size:16px;color:#CFA75A;font-weight:700">DC</span></div>
+      </div>
+    </div>
+    {% endif %}
+
+    <div style="height:26px"></div>
+  </div>
+
+  <!-- POSTS TAB -->
+  <div id="tab-posts" class="tab-pane">
+    {% if is_owner %}
+    <div class="pm-sec pm-pt">
+      <div class="pm-glass" style="padding:12px 16px;cursor:pointer" id="pmComposerTrigger">
+        <div style="display:flex;align-items:center;gap:11px">
+          <div class="av-wrap" style="width:36px;height:36px">
+            <div class="av-inner" style="inset:0;border:2px solid #0A0D14">
+              {% if profile.avatar_url %}<img src="{{ profile.avatar_url }}" alt="" data-hide-on-error>{% endif %}
+              <span class="av-initials" style="font-size:14px">{{ profile.display_name|default:profile_user.username|slice:":1"|upper }}</span>
+            </div>
+          </div>
+          <span style="font-family:'Inter',sans-serif;font-size:14px;color:rgba(255,255,255,.38);flex:1">What's on your mind?</span>
+          <i class="ph-fill ph-pencil-simple" style="font-size:16px;color:rgba(255,255,255,.26)"></i>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+    {% if user_posts %}
+    <div class="pm-sec" style="padding-top:{% if is_owner %}8px{% else %}18px{% endif %}">
+      {% for post in user_posts %}
+      <div class="pm-glass" style="padding:14px 16px;margin-bottom:10px;{% if post.is_pinned %}border-color:rgba(207,167,90,.32){% endif %}">
+        {% if post.is_pinned %}<div style="display:flex;align-items:center;gap:5px;margin-bottom:8px;font-family:'Inter',sans-serif;font-size:10px;font-weight:700;letter-spacing:.08em;color:#CFA75A"><i class="ph-fill ph-push-pin" style="font-size:12px"></i> PINNED</div>{% endif %}
+        {% if post.title %}<div style="font-family:'Inter',sans-serif;font-weight:700;font-size:14px;color:rgba(255,255,255,.92);margin-bottom:5px">{{ post.title }}</div>{% endif %}
+        <div style="font-family:'Inter',sans-serif;font-size:14px;color:rgba(255,255,255,.85);line-height:1.55">{{ post.content }}</div>
+        <div style="display:flex;align-items:center;gap:12px;margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,.06)">
+          <button style="background:none;border:none;cursor:pointer;display:flex;align-items:center;gap:5px;font-family:'Inter',sans-serif;font-size:12px;color:rgba(255,255,255,.44)"><i class="ph-bold ph-heart" style="font-size:15px"></i>{{ post.likes_count }}</button>
+          <button style="background:none;border:none;cursor:pointer;display:flex;align-items:center;gap:5px;font-family:'Inter',sans-serif;font-size:12px;color:rgba(255,255,255,.44)"><i class="ph-bold ph-chat-circle" style="font-size:15px"></i>{{ post.comments_count }}</button>
+          <button style="background:none;border:none;cursor:pointer;display:flex;align-items:center;gap:5px;font-family:'Inter',sans-serif;font-size:12px;color:rgba(255,255,255,.44)"><i class="ph-bold ph-share-network" style="font-size:15px"></i></button>
+          <span style="margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(255,255,255,.26)">{{ post.created_at|timesince }} ago</span>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="pm-sec pm-pt"><div class="empty"><i class="ph-bold ph-chat-centered-text"></i><p>No posts yet</p></div></div>
+    {% endif %}
+  </div>
+
+  <!-- CAREER TAB -->
+  <div id="tab-career" class="tab-pane">
+    {% if user_teams %}
+    <div class="pm-sec pm-pt">
+      <div class="pm-eyebrow"><i class="fa-solid fa-shield-halved" style="font-size:12px;color:#6849E5"></i>Active Teams</div>
+      {% for team in user_teams %}
+      <div class="pm-glass" style="padding:16px;display:flex;align-items:center;gap:13px;margin-bottom:10px">
+        {% if team.logo_url %}<img src="{{ team.logo_url }}" alt="{{ team.name }}" style="width:50px;height:50px;border-radius:14px;object-fit:cover;flex-shrink:0">{% else %}<div style="width:50px;height:50px;border-radius:14px;background:linear-gradient(135deg,#6849E5,#9B7BFF);display:flex;align-items:center;justify-content:center;font-family:'Sora',sans-serif;font-weight:800;font-size:17px;color:#fff;flex-shrink:0">{{ team.tag|default:team.name|slice:":2"|upper }}</div>{% endif %}
+        <div style="flex:1;min-width:0">
+          <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:17px;color:rgba(255,255,255,.92);letter-spacing:-0.01em">{{ team.name }}</div>
+          <div style="font-family:'Inter',sans-serif;font-size:12px;color:rgba(255,255,255,.44);margin-top:3px">{{ team.role|default:"Member" }}{% if team.game %} · {{ team.game }}{% endif %}</div>
+        </div>
+        <span class="active-badge">Active</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if sidebar_achievements_data %}
+    <div class="pm-sec">
+      <div class="pm-eyebrow"><i class="fa-solid fa-trophy" style="font-size:12px;color:#CFA75A"></i>Tournament History</div>
+      <div class="pm-glass" style="padding:0">
+        {% for ach in sidebar_achievements_data %}
+        <div class="pm-row">
+          <div style="width:36px;height:36px;border-radius:11px;background:rgba(207,167,90,.10);border:1px solid rgba(207,167,90,.22);display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="fa-solid fa-trophy" style="font-size:16px;color:#CFA75A"></i></div>
+          <div style="flex:1;min-width:0">
+            <div style="font-family:'Inter',sans-serif;font-weight:600;font-size:13px;color:rgba(255,255,255,.92);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ ach.tournament_name }}</div>
+            <div style="font-family:'Inter',sans-serif;font-size:10px;color:rgba(255,255,255,.44);margin-top:2px">{{ ach.game_name }}</div>
+          </div>
+          <span style="font-family:'Inter',sans-serif;font-weight:700;font-size:10px;color:#CFA75A;letter-spacing:.05em;flex-shrink:0">{{ ach.placement_label|default:"TOP" }}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    {% if social_links %}
+    <div class="pm-sec">
+      <div class="pm-eyebrow"><i class="fa-solid fa-link" style="font-size:12px;color:#0A84FF"></i>Social &amp; Connections</div>
+      <div class="pm-glass" style="padding:0">
+        {% for link in social_links %}
+        <a href="{{ link.url }}" target="_blank" rel="noopener" class="pm-row" style="text-decoration:none">
+          <div style="width:36px;height:36px;border-radius:11px;background:rgba(255,255,255,.07);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">
+            {% if link.platform == 'discord' %}<i class="fa-brands fa-discord" style="color:#7289DA"></i>
+            {% elif link.platform == 'youtube' %}<i class="fa-brands fa-youtube" style="color:#FF0000"></i>
+            {% elif link.platform == 'twitch' %}<i class="fa-brands fa-twitch" style="color:#9146FF"></i>
+            {% elif link.platform == 'instagram' %}<i class="fa-brands fa-instagram" style="color:#E1306C"></i>
+            {% elif link.platform == 'twitter' or link.platform == 'x' %}<i class="fa-brands fa-x-twitter"></i>
+            {% else %}<i class="fa-solid fa-link" style="font-size:13px"></i>
+            {% endif %}
+          </div>
+          <div style="flex:1;min-width:0">
+            <div style="font-family:'Inter',sans-serif;font-weight:600;font-size:13px;color:rgba(255,255,255,.92);text-transform:capitalize">{{ link.platform }}</div>
+            {% if link.handle %}<div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(255,255,255,.44);margin-top:2px">{{ link.handle }}</div>{% endif %}
+          </div>
+          <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:11px;color:rgba(255,255,255,.22)"></i>
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    {% if not user_teams and not sidebar_achievements_data %}
+    <div class="empty"><i class="fa-solid fa-user-slash"></i><p>No career data yet</p></div>
+    {% endif %}
+    <div style="height:26px"></div>
+  </div>
+
+  <!-- HIGHLIGHTS TAB -->
+  <div id="tab-highlights" class="tab-pane">
+    <div class="pm-sec pm-pt">
+      {% if highlight_clips %}
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        {% for hl in highlight_clips %}
+        <a href="{{ hl.embed_url|default:'#' }}" target="_blank" rel="noopener" style="display:block;border-radius:16px;overflow:hidden;position:relative;height:140px;border:1px solid rgba(255,255,255,.07);text-decoration:none">
+          {% if hl.thumbnail_url %}<img src="{{ hl.thumbnail_url }}" alt="{{ hl.title }}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">{% else %}<div style="position:absolute;inset:0;background:linear-gradient(135deg,#11151E,#181D27)"></div>{% endif %}
+          <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,13,20,.10) 0%,rgba(10,13,20,.78) 100%)"></div>
+          <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-60%);width:38px;height:38px;border-radius:50%;background:rgba(10,13,20,.65);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.20);display:flex;align-items:center;justify-content:center">
+            <i class="ph-fill ph-play" style="font-size:16px;color:#fff;margin-left:2px"></i>
+          </div>
+          <div style="position:absolute;bottom:9px;left:10px;right:10px">
+            <div style="font-family:'Inter',sans-serif;font-weight:700;font-size:11px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ hl.title|truncatechars:24 }}</div>
+            {% if hl.game %}<div style="font-family:'Inter',sans-serif;font-size:9px;color:rgba(255,255,255,.55);margin-top:2px">{{ hl.game }}</div>{% endif %}
+          </div>
+        </a>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="empty"><i class="ph-fill ph-video"></i><p>No highlights yet</p></div>
+      {% endif %}
+    </div>
+    <div style="height:26px"></div>
+  </div>
+
+  <!-- MISSIONS TAB -->
+  <div id="tab-missions" class="tab-pane">
+    <div class="pm-sec pm-pt">
+      {% if active_bounties %}
+      {% for m in active_bounties %}
+      <div class="pm-glass" style="padding:15px 16px;margin-bottom:10px">
+        <div style="display:flex;align-items:flex-start;gap:12px">
+          <div style="width:42px;height:42px;border-radius:13px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:19px;background:rgba(207,167,90,.14);color:#CFA75A">
+            <i class="ph-bold ph-crosshair-simple"></i>
+          </div>
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;align-items:center;gap:7px;margin-bottom:5px">
+              <span style="font-family:'Inter',sans-serif;font-weight:700;font-size:8px;letter-spacing:.10em;text-transform:uppercase;padding:2px 7px;border-radius:999px;background:rgba(207,167,90,.14);color:#CFA75A">BOUNTY</span>
+              <span style="font-family:'Inter',sans-serif;font-weight:700;font-size:8px;letter-spacing:.08em;text-transform:uppercase;padding:2px 7px;border-radius:999px;background:rgba(10,132,255,.10);color:#0A84FF">{{ m.status_display }}</span>
+            </div>
+            <div style="font-family:'Inter',sans-serif;font-weight:700;font-size:14px;color:rgba(255,255,255,.92);margin-bottom:3px">{{ m.title }}</div>
+            <div style="font-family:'Inter',sans-serif;font-size:11px;color:rgba(255,255,255,.44);margin-bottom:10px">{% if m.game %}{{ m.game }} · {% endif %}Stake: {{ m.stake_amount }} DC</div>
+            <div style="font-family:'Inter',sans-serif;font-size:10px;color:rgba(255,255,255,.38)">{% if m.acceptor %}vs @{{ m.acceptor }}{% else %}Open challenge{% endif %}{% if m.expires_at %} · Expires {{ m.expires_at|timesince }} ago{% endif %}</div>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+      {% else %}
+      <div class="empty"><i class="ph-bold ph-target"></i><p>No active bounties right now</p></div>
+      {% endif %}
+    </div>
+    <div style="height:26px"></div>
+  </div>
+
+  <!-- WALLET TAB -->
+  {% if is_owner %}
+  <div id="tab-wallet" class="tab-pane">
+    <div class="pm-sec pm-pt">
+      <div style="border-radius:20px;padding:18px 20px;background:linear-gradient(135deg,rgba(207,167,90,.12),rgba(255,255,255,.02));border:1px solid rgba(207,167,90,.22);margin-bottom:12px">
+        <div style="display:flex;align-items:center;gap:9px;margin-bottom:14px">
+          <div style="width:34px;height:34px;border-radius:10px;background:rgba(207,167,90,.18);border:1px solid rgba(207,167,90,.35);display:flex;align-items:center;justify-content:center">
+            <i class="ph-fill ph-coin-vertical" style="font-size:16px;color:#CFA75A"></i>
+          </div>
+          <span style="font-family:'Inter',sans-serif;font-weight:700;font-size:10px;letter-spacing:.10em;text-transform:uppercase;color:#CFA75A">DELTACOIN WALLET</span>
+        </div>
+        <div style="font-family:'Sora',sans-serif;font-weight:800;font-size:36px;color:#fff;letter-spacing:-0.04em;line-height:1">{{ wallet.balance|default:0 }} <span style="font-size:18px;color:#CFA75A;font-weight:700">DC</span></div>
+        <div style="display:flex;gap:9px;margin-top:16px">
+          <a href="{% url 'economy:wallet' %}" style="flex:1;height:40px;border-radius:12px;background:rgba(207,167,90,.14);border:1px solid rgba(207,167,90,.28);display:flex;align-items:center;justify-content:center;gap:6px;font-family:'Inter',sans-serif;font-weight:600;font-size:13px;color:#CFA75A;text-decoration:none"><i class="ph-bold ph-plus" style="font-size:14px"></i> Add</a>
+          <a href="{% url 'economy:wallet' %}" style="flex:1;height:40px;border-radius:12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);display:flex;align-items:center;justify-content:center;gap:6px;font-family:'Inter',sans-serif;font-weight:600;font-size:13px;color:rgba(255,255,255,.75);text-decoration:none"><i class="ph-bold ph-arrow-up-right" style="font-size:14px"></i> Send</a>
+          <a href="{% url 'economy:wallet' %}" style="flex:1;height:40px;border-radius:12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);display:flex;align-items:center;justify-content:center;gap:6px;font-family:'Inter',sans-serif;font-weight:600;font-size:13px;color:rgba(255,255,255,.75);text-decoration:none"><i class="ph-bold ph-medal" style="font-size:14px"></i> Claim</a>
+        </div>
+      </div>
+      <div class="pm-eyebrow"><i class="ph-bold ph-clock-counter-clockwise" style="font-size:12px;color:rgba(255,255,255,.44)"></i>Recent Transactions</div>
+      {% if wallet_transactions %}
+      <div class="pm-glass" style="padding:0">
+        {% for txn in wallet_transactions %}
+        <div class="pm-row">
+          <div style="width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;{% if txn.amount > 0 %}background:rgba(46,204,113,.12);color:#2ECC71{% else %}background:rgba(255,77,94,.10);color:#FF4D5E{% endif %}">
+            {% if txn.amount > 0 %}<i class="ph-bold ph-arrow-down-left"></i>{% else %}<i class="ph-bold ph-arrow-up-right"></i>{% endif %}
+          </div>
+          <div style="flex:1;min-width:0">
+            <div style="font-family:'Inter',sans-serif;font-weight:600;font-size:13px;color:rgba(255,255,255,.92);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ txn.get_reason_display|truncatechars:32 }}</div>
+            <div style="font-family:'Inter',sans-serif;font-size:10px;color:rgba(255,255,255,.44);margin-top:2px">{{ txn.created_at|timesince }} ago</div>
+          </div>
+          <span style="font-family:'JetBrains Mono',monospace;font-weight:700;font-size:14px;{% if txn.amount > 0 %}color:#2ECC71{% else %}color:#FF4D5E{% endif %};flex-shrink:0">{% if txn.amount > 0 %}+{% endif %}{{ txn.amount|floatformat:0 }}</span>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="empty"><i class="ph-bold ph-receipt"></i><p>No transactions yet</p></div>
+      {% endif %}
+    </div>
+    <div style="height:26px"></div>
+  </div>
+  {% endif %}
+
+</div>
+
+<!-- POST COMPOSER OVERLAY -->
+{% if is_owner %}
+<div id="pm-composer" style="position:fixed;inset:0;z-index:200;display:none;flex-direction:column;background:#0A0D14">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid rgba(255,255,255,.07)">
+    <button id="pmCloseComposerBtn" style="font-family:'Inter',sans-serif;font-weight:600;font-size:15px;color:rgba(255,255,255,.60)">Cancel</button>
+    <span style="font-family:'Sora',sans-serif;font-weight:700;font-size:16px;color:#fff">New Post</span>
+    <button id="pm-post-btn" disabled style="padding:7px 18px;border-radius:12px;background:linear-gradient(135deg,#6849E5,#0A84FF);border:none;cursor:pointer;font-family:'Inter',sans-serif;font-weight:700;font-size:14px;color:#fff;opacity:0.45;transition:opacity 160ms">Post</button>
+  </div>
+  <div style="display:flex;gap:7px;padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.05)">
+    <button class="pm-aud active" data-aud="public">Public</button>
+    <button class="pm-aud" data-aud="team">Team</button>
+    <button class="pm-aud" data-aud="followers">Followers</button>
+  </div>
+  <div style="flex:1;padding:14px 16px;position:relative">
+    <div style="display:flex;gap:11px">
+      <div style="width:36px;height:36px;border-radius:50%;flex-shrink:0;background:linear-gradient(140deg,#1C2B48,#0D1520);display:flex;align-items:center;justify-content:center;font-family:'Sora',sans-serif;font-weight:800;font-size:14px;color:#fff">{{ profile.display_name|default:profile_user.username|slice:":1"|upper }}</div>
+      <textarea id="pm-post-text" placeholder="What's on your mind?" style="flex:1;background:none;border:none;outline:none;resize:none;font-family:'Inter',sans-serif;font-size:17px;color:rgba(255,255,255,.92);line-height:1.55;caret-color:#0A84FF;height:160px;padding-top:4px"></textarea>
+    </div>
+    <div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,.06)">
+      {% if competitive_ctx.signature_game_name %}<button class="pm-tag" data-pm-tag="{{ competitive_ctx.signature_game_name }}">{{ competitive_ctx.signature_game_name }}</button>{% endif %}
+      <button class="pm-tag" data-pm-tag="WIN">WIN</button>
+      <button class="pm-tag" data-pm-tag="LFT">LFT</button>
+      <button class="pm-tag" data-pm-tag="GENERAL">GENERAL</button>
+    </div>
+  </div>
+  <div style="padding:10px 16px max(16px, env(safe-area-inset-bottom));border-top:1px solid rgba(255,255,255,.07);display:flex;align-items:center;gap:14px">
+    <button style="color:rgba(255,255,255,.44);font-size:22px"><i class="ph-bold ph-image"></i></button>
+    <button style="color:rgba(255,255,255,.44);font-size:22px"><i class="ph-bold ph-video"></i></button>
+    <button style="color:rgba(255,255,255,.44);font-size:22px"><i class="ph-bold ph-smiley"></i></button>
+    <span id="pm-char-count" style="margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:12px;color:rgba(255,255,255,.26)">0/280</span>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script nonce="{{ request.csp_nonce }}">
+(function(){
+  var PM_TABS=['overview','highlights','career','missions','wallet','posts'];
+  var pmTabIdx=0;
+
+  function pmTab(name){
+    document.querySelectorAll('.tab-pane').forEach(function(el){el.classList.remove('active');});
+    document.querySelectorAll('.tab-btn').forEach(function(btn){btn.classList.remove('active');});
+    var pane=document.getElementById('tab-'+name);
+    if(pane){pane.classList.add('active');pane.style.animation='none';void pane.offsetWidth;pane.style.animation='';}
+    var btn=document.querySelector('.tab-btn[data-tab="'+name+'"]');
+    if(btn){btn.classList.add('active');btn.scrollIntoView({block:'nearest',inline:'center',behavior:'smooth'});}
+    var idx=PM_TABS.indexOf(name);
+    if(idx>=0) pmTabIdx=idx;
+  }
+
+  document.querySelectorAll('.tab-btn[data-tab]').forEach(function(btn){
+    btn.addEventListener('click',function(){pmTab(this.dataset.tab);});
+  });
+  document.querySelectorAll('[data-tab-target]').forEach(function(btn){
+    btn.addEventListener('click',function(){pmTab(this.dataset.tabTarget);});
+  });
+
+  (function(){
+    var c=document.getElementById('pm-scroll');
+    if(!c) return;
+    var sx=0,sy=0,sw=false;
+    c.addEventListener('touchstart',function(e){sx=e.touches[0].clientX;sy=e.touches[0].clientY;sw=true;},{passive:true});
+    c.addEventListener('touchmove',function(e){
+      if(!sw) return;
+      var dx=e.touches[0].clientX-sx,dy=e.touches[0].clientY-sy;
+      if(Math.abs(dx)>Math.abs(dy)*1.5&&Math.abs(dx)>30){
+        sw=false;
+        var at=PM_TABS.filter(function(t){return !!document.getElementById('tab-'+t);});
+        var ci=at.indexOf(PM_TABS[pmTabIdx]);if(ci<0)ci=0;
+        if(dx<0&&ci<at.length-1)pmTab(at[ci+1]);
+        else if(dx>0&&ci>0)pmTab(at[ci-1]);
+      }
+    },{passive:true});
+    c.addEventListener('touchend',function(){sw=false;},{passive:true});
+  })();
+
+  var followState={};
+  try{var fs=document.getElementById('pm-follow-state');if(fs)followState=JSON.parse(fs.textContent);}catch(e){}
+  function handleFollow(btn){
+    var isF=btn.dataset.following==='true';
+    var url=isF?followState.unfollowUrl:followState.followUrl;
+    if(!url)return;
+    btn.disabled=true;btn.style.opacity='0.6';
+    fetch(url,{method:'POST',headers:{'X-CSRFToken':followState.csrfToken,'X-Requested-With':'XMLHttpRequest','Content-Type':'application/x-www-form-urlencoded'},credentials:'same-origin'})
+      .then(function(r){return r.json();})
+      .then(function(d){
+        if(d.status==='following'||d.followed){btn.dataset.following='true';btn.className='btn-action btn-following flex-1';btn.innerHTML='<i class="fa-solid fa-user-check"></i> Following';}
+        else{btn.dataset.following='false';btn.className='btn-action btn-follow flex-1';btn.innerHTML='<i class="fa-solid fa-user-plus"></i> Follow';}
+      }).catch(function(){}).finally(function(){btn.disabled=false;btn.style.opacity='';});
+  }
+  var mb=document.getElementById('pm-follow-btn');
+  if(mb)mb.addEventListener('click',function(){handleFollow(this);});
+
+  var avImg=document.querySelector('.av-inner img');
+  var avInit=document.querySelector('.av-initials');
+  if(avImg&&avInit){
+    if(avImg.complete&&avImg.naturalWidth>0){avInit.style.display='none';}
+    else{avImg.addEventListener('load',function(){avInit.style.display='none';});avImg.addEventListener('error',function(){avImg.style.display='none';});}
+  }
+
+  document.addEventListener('error',function(e){
+    if(e.target.tagName==='IMG'&&'hideOnError' in e.target.dataset){e.target.style.display='none';}
+  },true);
+
+  var connectBtn=document.getElementById('pm-connect-btn');
+  var socialPanel=document.getElementById('pm-social-panel');
+  if(connectBtn&&socialPanel){
+    connectBtn.addEventListener('click',function(){
+      var open=socialPanel.style.display==='flex';
+      socialPanel.style.display=open?'none':'flex';
+      connectBtn.classList.toggle('connect-open',!open);
+    });
+  }
+
+  var shareBtn=document.getElementById('pm-share-btn');
+  if(shareBtn){
+    shareBtn.addEventListener('click',function(){
+      if(navigator.share){navigator.share({title:document.title,url:location.href}).catch(function(){});}
+      else if(navigator.clipboard){navigator.clipboard.writeText(location.href);}
+    });
+  }
+
+  var pmAud='public';
+  var composer=document.getElementById('pm-composer');
+  var composerTrigger=document.getElementById('pmComposerTrigger');
+  var closeBtn=document.getElementById('pmCloseComposerBtn');
+  var postBtn=document.getElementById('pm-post-btn');
+  var postText=document.getElementById('pm-post-text');
+
+  function pmOpenComposer(){if(composer){composer.style.display='flex';setTimeout(function(){if(postText)postText.focus();},60);}}
+  function pmCloseComposer(){if(composer)composer.style.display='none';}
+  function pmPostInput(){
+    var len=(postText?postText.value:'').length;
+    var cc=document.getElementById('pm-char-count');
+    if(cc)cc.textContent=len+'/280';
+    if(postBtn){postBtn.disabled=len===0;postBtn.style.opacity=len>0?'1':'0.45';}
+  }
+
+  if(composerTrigger)composerTrigger.addEventListener('click',pmOpenComposer);
+  if(closeBtn)closeBtn.addEventListener('click',pmCloseComposer);
+  if(postText)postText.addEventListener('input',pmPostInput);
+  if(postBtn)postBtn.addEventListener('click',function(){
+    if(!postText||!postText.value.trim())return;
+    var csrf=(document.cookie.match('(^|;)\\s*csrftoken=([^;]+)')||[])[2]||'{{ csrf_token }}';
+    postBtn.disabled=true;postBtn.textContent='Posting…';
+    fetch('/community/api/posts/create/',{method:'POST',headers:{'X-CSRFToken':csrf,'X-Requested-With':'XMLHttpRequest','Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({content:postText.value.trim(),visibility:pmAud})})
+      .then(function(){pmCloseComposer();pmTab('posts');})
+      .catch(function(){if(postBtn){postBtn.disabled=false;postBtn.textContent='Post';}});
+  });
+
+  document.addEventListener('click',function(e){
+    var ab=e.target.closest('.pm-aud');
+    if(ab){pmAud=ab.dataset.aud;document.querySelectorAll('.pm-aud').forEach(function(b){b.classList.remove('active');});ab.classList.add('active');}
+    var tb=e.target.closest('.pm-tag');
+    if(tb&&postText){
+      tb.classList.toggle('selected');
+      var tag=tb.dataset.pmTag||tb.textContent.trim();
+      if(tb.classList.contains('selected')){if(postText.value&&!postText.value.endsWith(' '))postText.value+=' ';postText.value+='#'+tag;}
+      pmPostInput();
+    }
+  });
+})();
+</script>
+{% endblock %}

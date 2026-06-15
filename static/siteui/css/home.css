@@ -18,7 +18,9 @@
   --hair:rgba(255,255,255,.07);--stroke:rgba(255,255,255,.11);--strong:rgba(255,255,255,.18);
   --tAz:rgba(10,132,255,.14);--tVi:rgba(104,73,229,.16);--tGo:rgba(207,167,90,.14);--tLi:rgba(255,59,92,.14);--tSu:rgba(46,204,113,.14);
   --brand:linear-gradient(135deg,#6849E5,#0A84FF);
-  --crown:linear-gradient(118deg,#8470EE,#0A84FF 52%,#E2C588);
+  /* identity -> prestige: violet through a soft mauve to champion gold, with only
+     a whisper of azure. Keeps the brand "crown" sweep without reading as blue. */
+  --crown:linear-gradient(116deg,#8470EE 0%,#A382D6 34%,#C99FAE 60%,#E2C588 100%);
   --disp:"Sora",-apple-system,system-ui,sans-serif;
   --text:"Inter",system-ui,sans-serif;
   --mono:"JetBrains Mono",ui-monospace,monospace;
@@ -70,6 +72,39 @@
   .dc-home .dock-item .dock-info{opacity:1;transform:none;}
 }
 
+/* ── Hero-bottom row: proof signals (left) + supported-games dock (right).
+   One balanced row on desktop; stacks at a single intentional breakpoint so it
+   never drops awkwardly at 1080p / 100%. ──────────────────────────────────── */
+.dc-home .hero-bottom{display:flex;align-items:center;justify-content:space-between;gap:clamp(20px,3vw,40px);}
+.dc-home .hero-proof{flex:1 1 auto;min-width:0;display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--soft);}
+.dc-home .hero-games{flex:0 0 auto;display:flex;align-items:flex-end;gap:14px;}
+@media (max-width:980px){
+  .dc-home .hero-bottom{flex-direction:column;align-items:flex-start;gap:18px;}
+  .dc-home .hero-games{align-self:flex-start;max-width:100%;}
+}
+
+/* ── Hero mini game dock — compact single row for all 11 titles; pure-CSS
+   scale + neighbour lift + tooltip. On touch it disables the hover lift and
+   falls back to horizontal scroll + tap. ───────────────────────────────── */
+.dc-home .hero-dock{display:flex;flex-wrap:nowrap;align-items:flex-end;gap:7px;padding:12px 2px 6px;max-width:100%;}
+.dc-home .hero-dock-item{position:relative;flex:0 0 auto;width:27px;height:27px;border-radius:8px;border:1px solid var(--hair);background-size:cover;background-position:center;box-shadow:0 2px 6px rgba(0,0,0,.4);transition:transform .3s var(--spring),border-color .25s,box-shadow .3s var(--eo);transform-origin:bottom center;will-change:transform;}
+.dc-home .hero-dock-item:hover,.dc-home .hero-dock-item:focus-visible{transform:translateY(-6px) scale(1.26);border-color:var(--strong);box-shadow:0 16px 28px -12px rgba(0,0,0,.85),0 0 0 1px rgba(132,112,238,.32);outline:none;z-index:3;}
+.dc-home .hero-dock-item:hover+.hero-dock-item,.dc-home .hero-dock-item:focus-visible+.hero-dock-item,.dc-home .hero-dock-item:has(+.hero-dock-item:hover),.dc-home .hero-dock-item:has(+.hero-dock-item:focus-visible){transform:translateY(-3px) scale(1.1);z-index:2;}
+.dc-home .hero-dock-tip{position:absolute;left:50%;bottom:calc(100% + 8px);transform:translateX(-50%) translateY(4px);white-space:nowrap;padding:3px 8px;border-radius:7px;background:var(--s3);border:1px solid var(--stroke);color:var(--fg);font-family:var(--mono);font-size:9px;letter-spacing:.04em;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s var(--eo);box-shadow:0 10px 22px -10px rgba(0,0,0,.8);z-index:6;}
+.dc-home .hero-dock-item:hover .hero-dock-tip,.dc-home .hero-dock-item:focus-visible .hero-dock-tip{opacity:1;transform:translateX(-50%) translateY(0);}
+@media (hover:none){
+  .dc-home .hero-dock{overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+  .dc-home .hero-dock::-webkit-scrollbar{display:none;}
+  .dc-home .hero-dock-item{transition:transform .18s var(--eo);}
+  .dc-home .hero-dock-tip{display:none;}
+}
+
+/* ── Tournament filter chips — client-side toggle; accessible pressed state ── */
+.dc-home .dc-tfilter{cursor:pointer;font-family:var(--text);transition:transform .14s var(--eo),background .2s,border-color .2s,color .2s;}
+.dc-home .dc-tfilter:hover{color:var(--fg);border-color:var(--strong);}
+.dc-home .dc-tfilter[aria-pressed="true"]{background:var(--tAz)!important;border-color:rgba(10,132,255,.45)!important;color:var(--fg)!important;}
+.dc-home .dc-tfilter:focus-visible{outline:2px solid var(--az4);outline-offset:2px;}
+
 /* ── Ambient motion keyframes (referenced by inline styles in home.html) ──── */
 .dc-home .rv{will-change:auto;}
 @keyframes dch-glow{0%,100%{opacity:.7;}50%{opacity:1;}}
@@ -84,6 +119,11 @@
 /* ── Responsive helpers (body uses these for the connector arrows) ───────── */
 @media (max-width:768px){.dc-home .deskonly{display:none !important;}}
 @media (min-width:769px){.dc-home .mobonly{display:none !important;}}
+
+/* Why-DeltaCrown comparison: 3-up (old | arrow | new) collapses to a single
+   stacked column at the same breakpoint the connector arrow hides, so the two
+   comparison cards never get squeezed side-by-side on phones. */
+@media (max-width:768px){.dc-home .why-grid{grid-template-columns:1fr !important;}}
 
 /* ── Scroll reveal — progressive enhancement only.
    Content is fully visible by default; the reveal applies only where the
