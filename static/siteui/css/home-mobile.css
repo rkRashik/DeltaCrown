@@ -94,3 +94,50 @@
   .dc-home-m .m-sheet{animation:none;transform:translate(-50%,0);}
   .dc-home-m .m-sheet-scrim{animation:none;}
 }
+
+/* ── Compact Crown Footer ─────────────────────────────────────────────────── */
+.dc-footer-mobile{
+  background:#0A0D14;color:#F4F6FA;
+  font-family:"Inter",system-ui,sans-serif;-webkit-font-smoothing:antialiased;
+  box-sizing:border-box;
+}
+.dc-footer-mobile *{box-sizing:border-box;}
+@media (min-width:1024px){.dc-footer-mobile{display:none!important;}}
+
+.dc-fm-inner{padding:22px 20px 24px;}
+@media (max-width:767px){.dc-fm-inner{padding-bottom:calc(72px + env(safe-area-inset-bottom));}}
+
+.dc-fm-brand{font-size:12px;line-height:1.65;color:#AEB6C7;margin:0 0 18px;max-width:280px;}
+
+/* Quick-link chips */
+.dc-fm-chip{
+  display:inline-flex;align-items:center;
+  padding:7px 14px;border-radius:999px;
+  border:1px solid rgba(255,255,255,.1);
+  color:#AEB6C7;font-size:12px;font-weight:500;
+  text-decoration:none;
+  transition:border-color .18s,color .18s,background .18s;
+}
+.dc-fm-chip:hover,.dc-fm-chip:focus-visible{
+  border-color:rgba(132,112,238,.45);color:#F4F6FA;
+  background:rgba(104,73,229,.1);outline:none;
+}
+
+/* Social icon buttons */
+.dc-fm-social{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:34px;height:34px;border-radius:10px;
+  border:1px solid rgba(255,255,255,.09);
+  background:rgba(255,255,255,.04);
+  color:#727B90;text-decoration:none;
+  transition:color .18s,border-color .18s,background .18s;
+}
+.dc-fm-social:hover,.dc-fm-social:focus-visible{
+  color:#F4F6FA;border-color:rgba(255,255,255,.2);
+  background:rgba(255,255,255,.08);outline:none;
+}
+
+/* Legal links & copyright */
+.dc-fm-legal{font-size:10.5px;color:#474F61;text-decoration:none;transition:color .15s;}
+.dc-fm-legal:hover,.dc-fm-legal:focus-visible{color:#AEB6C7;outline:none;}
+.dc-fm-copy{font-size:10.5px;color:#474F61;}
