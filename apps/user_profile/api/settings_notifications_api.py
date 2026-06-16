@@ -18,6 +18,16 @@ from apps.user_profile.models import UserProfile, NotificationPreferences
 logger = logging.getLogger(__name__)
 
 
+def _wants_settings_page(request):
+    """
+    Browser address-bar navigation to /me/settings/notifications/ should render
+    the settings page. AJAX/API callers keep receiving the existing JSON shape.
+    """
+    accept = (request.headers.get('Accept') or '').lower()
+    requested_with = (request.headers.get('X-Requested-With') or '').lower()
+    return 'text/html' in accept and requested_with != 'xmlhttprequest'
+
+
 @login_required
 @require_http_methods(["GET"])
 def notifications_settings_get(request):
@@ -29,6 +39,10 @@ def notifications_settings_get(request):
     Returns:
         JSON with success flag and notification preferences data
     """
+    if _wants_settings_page(request):
+        from apps.user_profile.views.public_profile_views import profile_settings_view
+        return profile_settings_view(request, section='notifications')
+
     try:
         profile = UserProfile.objects.get(user=request.user)
         prefs, created = NotificationPreferences.objects.get_or_create(user_profile=profile)

@@ -465,6 +465,10 @@ urlpatterns = [
     path("me/settings/security/sessions/logout-others/", logout_other_sessions, name="logout_other_sessions"),
     path("me/settings/security/sessions/info/", session_info, name="session_info"),
     
+    # Phase 1A: Settings section deep links.
+    # Keep this after concrete /me/settings/... API routes so it cannot shadow AJAX endpoints.
+    path("me/settings/<slug:section>/", profile_settings_view, name="profile_settings_section"),
+
     # LEGACY: Privacy Settings (old route - redirects to v2)
     # path("me/privacy/", privacy_settings_view, name="privacy_settings"),  # Replaced by profile_privacy_v2
     

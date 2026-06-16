@@ -14,6 +14,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
 <link rel="preload" href="{% static 'siteui/css/home.css' %}?v=20260615d" as="style">
 <link rel="stylesheet" href="{% static 'siteui/css/home.css' %}?v=20260615d">
+<link rel="stylesheet" href="{% static 'siteui/css/home-mobile.css' %}?v=20260616a">
 {% endblock %}
 
 {% block body_class %}home-page dc-home-page{% endblock %}
@@ -575,8 +576,352 @@
   </section>
 
 </div>
+
+{# ── MOBILE HOMEPAGE — "The Ascent" — visible at <1024px ─────────────────── #}
+<div class="dc-home-m" data-home-state="{{ home_state|default:'guest' }}" style="position:relative;width:100%;background:var(--bg);color:var(--fg);font-family:var(--text);-webkit-font-smoothing:antialiased;overflow-x:hidden;">
+<div class="m-stage" style="position:relative;width:100%;background:var(--bg);">
+
+{# ── 01 · HERO — cinematic arena ────────────────────────────────────────── #}
+<section data-section="hero" style="position:relative;min-height:600px;overflow:hidden;">
+  <div aria-hidden="true" style="position:absolute;inset:0;background:radial-gradient(150% 66% at 50% 4%,#1d2246,#0e1327 44%,#070910 100%);"></div>
+  <div aria-hidden="true" data-anim style="position:absolute;top:60px;left:-30%;width:160%;height:260px;background:linear-gradient(90deg,transparent,rgba(104,73,229,.34) 30%,rgba(10,132,255,.3) 58%,rgba(132,112,238,.16) 78%,transparent);filter:blur(46px);animation:dcm-auroraA 16s ease-in-out infinite;"></div>
+  <div aria-hidden="true" data-anim style="position:absolute;top:200px;left:-30%;width:160%;height:220px;background:linear-gradient(90deg,transparent,rgba(10,132,255,.26) 32%,rgba(226,197,136,.14) 60%,rgba(104,73,229,.2) 82%,transparent);filter:blur(50px);animation:dcm-auroraB 20s ease-in-out infinite;"></div>
+  <div aria-hidden="true" data-anim style="position:absolute;top:150px;left:-90px;width:300px;height:300px;background:radial-gradient(closest-side,rgba(104,73,229,.42),transparent 70%);filter:blur(26px);mix-blend-mode:screen;animation:dcm-driftA 22s ease-in-out infinite;"></div>
+  <div aria-hidden="true" data-anim style="position:absolute;top:120px;right:-90px;width:310px;height:310px;background:radial-gradient(closest-side,rgba(10,132,255,.34),transparent 70%);filter:blur(26px);mix-blend-mode:screen;animation:dcm-driftB 26s ease-in-out infinite;"></div>
+  <div aria-hidden="true" data-anim style="position:absolute;top:-60px;left:30%;width:60px;height:560px;background:linear-gradient(180deg,rgba(174,160,255,.22),transparent 70%);filter:blur(14px);animation:dcm-sweep 13s ease-in-out infinite;"></div>
+  <div aria-hidden="true" data-anim style="position:absolute;top:-60px;left:58%;width:48px;height:560px;background:linear-gradient(180deg,rgba(120,180,255,.2),transparent 70%);filter:blur(14px);animation:dcm-sweepB 17s ease-in-out 1.5s infinite;"></div>
+  <div aria-hidden="true" data-anim style="position:absolute;top:-50px;left:50%;width:260px;height:300px;transform:translateX(-50%);background:radial-gradient(60% 70% at 50% 0%,rgba(132,112,238,.3),transparent 72%);filter:blur(16px);animation:dcm-breathe 11s ease-in-out infinite;"></div>
+  <div aria-hidden="true" style="position:absolute;inset:0;overflow:hidden;pointer-events:none;">
+    <span data-anim style="position:absolute;left:16%;bottom:60px;width:3px;height:3px;border-radius:50%;background:rgba(226,197,136,.7);filter:blur(.5px);animation:dcm-mote 9s linear infinite;"></span>
+    <span data-anim style="position:absolute;left:40%;bottom:40px;width:2px;height:2px;border-radius:50%;background:rgba(174,160,255,.7);filter:blur(.5px);animation:dcm-mote 12s linear 1.4s infinite;"></span>
+    <span data-anim style="position:absolute;left:60%;bottom:70px;width:2px;height:2px;border-radius:50%;background:rgba(63,163,255,.7);filter:blur(.5px);animation:dcm-mote 10s linear .7s infinite;"></span>
+    <span data-anim style="position:absolute;left:80%;bottom:50px;width:3px;height:3px;border-radius:50%;background:rgba(132,112,238,.7);filter:blur(.5px);animation:dcm-mote 11s linear 2.1s infinite;"></span>
+  </div>
+  <div aria-hidden="true" style="position:absolute;inset:0;box-shadow:inset 0 0 130px 40px rgba(0,0,0,.5),inset 0 -110px 130px -56px rgba(0,0,0,.74);pointer-events:none;"></div>
+
+  <div style="position:relative;z-index:5;padding-top:28px;">
+    {% if v3.hero_stats.live_count %}
+    <div style="display:flex;justify-content:center;margin-bottom:20px;">
+      <div style="display:inline-flex;align-items:center;gap:7px;padding:6px 13px;border-radius:999px;background:rgba(255,59,92,.1);border:1px solid rgba(255,59,92,.3);">
+        <span data-anim style="width:6px;height:6px;border-radius:50%;background:var(--live);flex-shrink:0;animation:dcm-pulse 1.4s infinite;"></span>
+        <span class="m" style="font-size:9.5px;letter-spacing:.08em;color:#ff8a96;">{{ v3.hero_stats.live_count }} LIVE {{ v3.hero_stats.live_count|pluralize:"MATCH,MATCHES" }} · VERIFIED RIGHT NOW</span>
+      </div>
+    </div>
+    {% else %}
+    <div style="display:flex;justify-content:center;margin-bottom:20px;">
+      <div style="display:inline-flex;align-items:center;gap:7px;padding:6px 13px;border-radius:999px;background:rgba(46,204,113,.08);border:1px solid rgba(46,204,113,.25);">
+        <span style="width:6px;height:6px;border-radius:50%;background:var(--suc);flex-shrink:0;"></span>
+        <span class="m" style="font-size:9.5px;letter-spacing:.08em;color:#7ed9a4;">Verified competition · Fair results</span>
+      </div>
+    </div>
+    {% endif %}
+
+    <div data-anim style="text-align:center;padding:0 22px;animation:dcm-settle .6s var(--eo) both;">
+      <span class="m" style="font-size:9px;letter-spacing:.24em;text-transform:uppercase;color:var(--go4);">From the Delta to the Crown</span>
+      <h1 style="margin:14px 0 0;font-family:var(--disp);font-weight:800;font-size:clamp(28px,8.5vw,38px);line-height:1.06;letter-spacing:-.032em;text-shadow:0 6px 34px rgba(0,0,0,.5);">Play tournaments.<br>Build your squad.<br><span class="grad">Rise to the Crown.</span></h1>
+      <p style="margin:14px auto 0;max-width:32ch;font-size:13.5px;line-height:1.55;color:var(--mut);">Join structured tournaments, build your squad, and rise from Rookie to <i style="color:var(--go4);font-style:italic;">The Crown</i> — across 11 titles, mobile to PC.</p>
+    </div>
+
+    {% if v3.game_posters %}
+    <div style="display:flex;gap:7px;justify-content:center;margin-top:22px;padding:0 16px;flex-wrap:nowrap;overflow:hidden;">
+      {% for g in v3.game_posters|slice:":4" %}
+      <a href="{{ g.url }}" aria-label="{{ g.name }}" style="flex:0 0 auto;width:38px;height:48px;border-radius:9px;border:1px solid var(--stroke);box-shadow:0 6px 16px -6px #000;overflow:hidden;display:block;position:relative;background:var(--s2);">
+        {% if g.poster_url %}<img src="{{ g.poster_url }}" alt="" loading="lazy" decoding="async" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;"></a>{% else %}{% endif %}
+      </a>
+      {% endfor %}
+      {% with remaining=v3.game_posters|length %}
+      {% if remaining > 4 %}
+      <div class="m" style="flex:0 0 auto;width:38px;height:48px;border-radius:9px;background:rgba(24,29,39,.8);border:1px solid var(--hair);display:grid;place-items:center;color:var(--soft);font-size:9px;">+{{ remaining|add:"-4" }}</div>
+      {% endif %}
+      {% endwith %}
+    </div>
+    {% endif %}
+
+    <div style="display:flex;gap:9px;padding:22px 16px 0;">
+      <a href="{{ hero_ctx.primary_cta_url|default:'/account/signup/' }}" class="tap" style="flex:1;display:flex;align-items:center;justify-content:center;gap:7px;padding:15px;border-radius:14px;background:var(--az);color:#fff;font-weight:700;font-size:14.5px;text-decoration:none;box-shadow:0 14px 30px -12px rgba(10,132,255,.8);">{{ hero_ctx.primary_cta_label|default:"Create free account" }}</a>
+      <a href="/tournaments/" class="tap" style="padding:15px 18px;border-radius:14px;border:1px solid var(--stroke);background:rgba(20,24,34,.5);color:var(--mut);font-weight:600;font-size:14.5px;text-decoration:none;white-space:nowrap;">Explore</a>
+    </div>
+
+    <div style="display:flex;flex-direction:column;align-items:center;gap:3px;margin-top:22px;padding-bottom:8px;color:var(--soft);">
+      <span class="m" style="font-size:8px;letter-spacing:.18em;">SEE HOW IT WORKS</span>
+      <span data-anim style="font-size:13px;animation:dcm-floatCue 1.8s ease-in-out infinite;">⌄</span>
+    </div>
+  </div>
+</section>
+
+{# ── 02 · WHY DELTACROWN ─────────────────────────────────────────────────── #}
+<section id="why" data-section="why" style="position:relative;padding:40px 0 8px;">
+  <div style="text-align:center;max-width:32ch;margin:0 auto 22px;padding:0 16px;">
+    <div class="m" style="font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--az4);">Why DeltaCrown</div>
+    <h2 style="margin:9px 0 0;font-family:var(--disp);font-weight:700;font-size:22px;line-height:1.14;letter-spacing:-.02em;">Competitive gaming, <span class="gradv">done properly.</span></h2>
+    <p style="margin:9px 0 0;font-size:13px;line-height:1.55;color:var(--mut);">Informal scrims live in group chats — unverified scores, unclear results. DeltaCrown runs every match with structure and proof.</p>
+  </div>
+  <div class="scrollx">
+    <div class="snap" style="width:78%;border:1px solid var(--hair);border-radius:18px;background:rgba(17,21,30,.5);padding:18px;flex-shrink:0;">
+      <span class="m" style="display:inline-block;padding:5px 11px;border-radius:999px;background:rgba(71,79,97,.16);border:1px solid var(--hair);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--soft);">The old way</span>
+      <div style="margin-top:14px;display:flex;flex-direction:column;gap:13px;">
+        <div style="display:flex;gap:10px;align-items:flex-start;opacity:.8;"><span style="width:24px;height:24px;flex-shrink:0;border-radius:7px;display:grid;place-items:center;background:rgba(71,79,97,.16);color:var(--soft);"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></span><div><div style="font-family:var(--disp);font-weight:600;font-size:13px;color:var(--mut);">Scattered group chats</div><div style="margin-top:2px;font-size:11.5px;line-height:1.45;color:var(--soft);">Brackets buried in DMs, screenshots as proof.</div></div></div>
+        <div style="display:flex;gap:10px;align-items:flex-start;opacity:.8;"><span style="width:24px;height:24px;flex-shrink:0;border-radius:7px;display:grid;place-items:center;background:rgba(71,79,97,.16);color:var(--soft);"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></span><div><div style="font-family:var(--disp);font-weight:600;font-size:13px;color:var(--mut);">Unclear payouts</div><div style="margin-top:2px;font-size:11.5px;line-height:1.45;color:var(--soft);">Prizes promised, rarely tracked or confirmed.</div></div></div>
+        <div style="display:flex;gap:10px;align-items:flex-start;opacity:.8;"><span style="width:24px;height:24px;flex-shrink:0;border-radius:7px;display:grid;place-items:center;background:rgba(71,79,97,.16);color:var(--soft);"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></span><div><div style="font-family:var(--disp);font-weight:600;font-size:13px;color:var(--mut);">Disputed scores</div><div style="margin-top:2px;font-size:11.5px;line-height:1.45;color:var(--soft);">No record, no referee — loudest voice wins.</div></div></div>
+      </div>
+    </div>
+    <div class="snap" style="width:78%;flex-shrink:0;position:relative;border:1px solid rgba(10,132,255,.28);border-radius:18px;background:linear-gradient(180deg,rgba(16,22,34,.7),rgba(14,17,28,.62));padding:18px;overflow:hidden;">
+      <div aria-hidden="true" style="position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(10,132,255,.5) 30%,rgba(132,112,238,.5) 60%,rgba(226,197,136,.4),transparent);"></div>
+      <span class="m" style="display:inline-flex;align-items:center;gap:7px;padding:5px 11px;border-radius:999px;background:var(--tAz);border:1px solid rgba(10,132,255,.35);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--az4);"><span style="width:5px;height:5px;border-radius:50%;background:var(--suc);flex-shrink:0;"></span>With DeltaCrown</span>
+      <div style="margin-top:14px;display:flex;flex-direction:column;gap:13px;">
+        <div style="display:flex;gap:10px;align-items:flex-start;"><span style="width:24px;height:24px;flex-shrink:0;border-radius:7px;display:grid;place-items:center;background:var(--s2);color:var(--az4);"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></span><div><div style="font-family:var(--disp);font-weight:600;font-size:13px;color:var(--fg);">Verified match rooms</div><div style="margin-top:2px;font-size:11.5px;line-height:1.45;color:var(--mut);">One operated page per match — score, evidence, dispute.</div></div></div>
+        <div style="display:flex;gap:10px;align-items:flex-start;"><span style="width:24px;height:24px;flex-shrink:0;border-radius:7px;display:grid;place-items:center;background:var(--s2);color:var(--go4);"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><path d="M12 8v8M9.5 9.5h3.2a1.8 1.8 0 0 1 0 3.6H9.5"/></svg></span><div><div style="font-family:var(--disp);font-weight:600;font-size:13px;color:var(--fg);">Structured prizes</div><div style="margin-top:2px;font-size:11.5px;line-height:1.45;color:var(--mut);">Prize handling is structured, released on verified results.</div></div></div>
+        <div style="display:flex;gap:10px;align-items:flex-start;"><span style="width:24px;height:24px;flex-shrink:0;border-radius:7px;display:grid;place-items:center;background:var(--s2);color:var(--suc);"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M8.5 12.5 11 15l5-5.5"/></svg></span><div><div style="font-family:var(--disp);font-weight:600;font-size:13px;color:var(--fg);">Results that count</div><div style="margin-top:2px;font-size:11.5px;line-height:1.45;color:var(--mut);">Every confirmed match feeds your Crown Points record.</div></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+{# ── 03 · FAIR PLAY / PROOF FLOW ─────────────────────────────────────────── #}
+<section data-section="fair" style="position:relative;padding:34px 16px 8px;">
+  <div style="border:1px solid var(--hair);border-radius:20px;background:rgba(17,21,30,.5);overflow:hidden;">
+    <div style="padding:18px 18px 4px;text-align:center;">
+      <div class="m" style="font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--suc);">Fair play, built in</div>
+      <h2 style="margin:8px 0 0;font-family:var(--disp);font-weight:700;font-size:20px;letter-spacing:-.02em;">Every result is earned and proven</h2>
+      <p style="margin:8px 0 0;font-size:12.5px;line-height:1.5;color:var(--mut);">A platform-managed flow keeps competition structured from registration to final result.</p>
+    </div>
+    <div style="padding:18px;display:flex;align-items:flex-start;justify-content:space-between;gap:4px;">
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:7px;text-align:center;"><span style="width:38px;height:38px;border-radius:11px;display:grid;place-items:center;background:var(--tGo);border:1px solid rgba(207,167,90,.3);"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--go4)" stroke-width="1.7" stroke-linecap="round"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5M10 13h6M10 17h6"/></svg></span><span style="font-size:10px;font-weight:600;color:var(--fg);line-height:1.2;">Register</span></div>
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:7px;text-align:center;"><span style="width:38px;height:38px;border-radius:11px;display:grid;place-items:center;background:var(--tAz);border:1px solid rgba(10,132,255,.3);"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--az4)" stroke-width="1.7" stroke-linecap="round"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></span><span style="font-size:10px;font-weight:600;color:var(--fg);line-height:1.2;">Secured</span></div>
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:7px;text-align:center;"><span style="width:38px;height:38px;border-radius:11px;display:grid;place-items:center;background:var(--tVi);border:1px solid rgba(104,73,229,.3);"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--vi4)" stroke-width="1.7" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></span><span style="font-size:10px;font-weight:600;color:var(--fg);line-height:1.2;">Compete</span></div>
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:7px;text-align:center;"><span style="width:38px;height:38px;border-radius:11px;display:grid;place-items:center;background:var(--tAz);border:1px solid rgba(10,132,255,.3);"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--az4)" stroke-width="1.7" stroke-linecap="round"><path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3Z"/><path d="M9.5 12l1.8 1.8L15 10"/></svg></span><span style="font-size:10px;font-weight:600;color:var(--fg);line-height:1.2;">Verified</span></div>
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:7px;text-align:center;"><span style="width:38px;height:38px;border-radius:11px;display:grid;place-items:center;background:var(--tSu);border:1px solid rgba(46,204,113,.3);"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--suc)" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M8.5 12.5 11 15l5-5.5"/></svg></span><span style="font-size:10px;font-weight:600;color:var(--fg);line-height:1.2;">Confirmed</span></div>
+    </div>
+  </div>
+</section>
+
+{# ── 04 · TOURNAMENTS — swipe carousel ───────────────────────────────────── #}
+<section data-section="tournaments" style="position:relative;padding:34px 0 8px;">
+  <div style="display:flex;align-items:flex-end;justify-content:space-between;padding:0 16px 14px;">
+    <div><div class="m" style="font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--az4);">Open now</div><h2 style="margin:5px 0 0;font-family:var(--disp);font-weight:700;font-size:21px;letter-spacing:-.02em;">Tournaments to join</h2></div>
+    <a href="/tournaments/" class="m tap" style="font-size:11px;color:var(--soft);text-decoration:none;padding:4px 0;">All →</a>
+  </div>
+  {% if v3.upcoming_tournaments %}
+  <div class="scrollx" id="mTcarousel">
+    {% for t in v3.upcoming_tournaments|slice:":3" %}
+    <div class="snap tap m-tcard" style="width:272px;border:1px solid var(--stroke);border-radius:18px;background:var(--s1);overflow:hidden;cursor:pointer;transition:transform .2s var(--eo),border-color .2s;"
+         data-t-name="{{ t.name }}"
+         data-t-game="{{ t.game_label|default:'' }}"
+         data-t-prize="{{ t.prize_label }}"
+         data-t-format="{{ t.format_label }}"
+         data-t-slots="{{ t.slot_count }}/{{ t.slot_max }} teams"
+         data-t-pct="{{ t.slot_fill_pct }}"
+         data-t-countdown="{{ t.tournament_start_iso }}"
+         data-t-url="{{ t.url }}"
+         data-t-poster="{{ t.poster_url }}">
+      <div style="position:relative;height:124px;background:linear-gradient(135deg,var(--s2),var(--s1));">
+        {% if t.poster_url %}<img src="{{ t.poster_url }}" alt="" loading="lazy" decoding="async" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 28%;">{% endif %}
+        <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,13,20,.1) 30%,rgba(17,21,30,.95));"></div>
+        <span style="position:absolute;top:10px;left:10px;display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:999px;{% if t.is_live %}background:var(--tLi);border:1px solid rgba(255,59,92,.4);{% else %}background:var(--tAz);border:1px solid rgba(10,132,255,.4);{% endif %}">{% if t.is_live %}<span data-anim style="width:5px;height:5px;border-radius:50%;background:var(--live);flex-shrink:0;animation:dcm-pulse 1.4s infinite;"></span>{% endif %}<span class="m" style="font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;color:{% if t.is_live %}var(--live){% elif t.slot_fill_pct >= 90 %}var(--go4){% else %}var(--az4){% endif %};">{% if t.is_live %}Live{% elif t.slot_fill_pct >= 90 %}Filling{% else %}Open{% endif %}</span></span>
+        <span class="m" style="position:absolute;bottom:9px;left:12px;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.85);">{{ t.game_label|default:"—" }}</span>
+        <span class="m" style="position:absolute;bottom:9px;right:12px;font-size:11px;color:var(--go4);">{{ t.prize_label }}</span>
+      </div>
+      <div style="padding:13px;">
+        <div style="font-family:var(--disp);font-weight:600;font-size:15px;letter-spacing:-.01em;">{{ t.name }}</div>
+        <div class="m" style="margin-top:4px;font-size:9.5px;color:var(--soft);">{{ t.format_label }}</div>
+        <div style="margin-top:11px;height:5px;border-radius:999px;background:var(--s3);overflow:hidden;"><span style="display:block;height:100%;width:{{ t.slot_fill_pct }}%;background:var(--brand);border-radius:999px;"></span></div>
+        <div style="margin-top:7px;display:flex;align-items:center;justify-content:space-between;">
+          <span class="m" style="font-size:9.5px;color:var(--soft);">{{ t.slot_count }}/{{ t.slot_max }} teams</span>
+          {% if t.tournament_start_iso %}<span class="m" data-countdown="{{ t.tournament_start_iso }}" style="font-size:9.5px;color:var(--az4);">—</span>{% else %}<span class="m" style="font-size:9.5px;color:var(--soft);">{{ t.scheduled }}</span>{% endif %}
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div style="padding:24px 16px;text-align:center;border:1px solid var(--hair);border-radius:18px;margin:0 16px;">
+    <p style="margin:0 0 12px;font-size:13px;color:var(--mut);">No open tournaments right now.</p>
+    <a href="/tournaments/" class="tap" style="display:inline-block;padding:11px 20px;border-radius:12px;background:var(--tAz);border:1px solid rgba(10,132,255,.35);color:var(--az4);font-weight:600;font-size:13px;text-decoration:none;">Browse all tournaments →</a>
+  </div>
+  {% endif %}
+</section>
+
+{# ── 05 · TEAMS ──────────────────────────────────────────────────────────── #}
+<section data-section="teams" style="position:relative;padding:34px 16px 8px;">
+  <div style="position:relative;border:1px solid rgba(104,73,229,.28);border-radius:20px;background:linear-gradient(160deg,rgba(26,22,46,.7),rgba(14,16,26,.6));overflow:hidden;">
+    <div aria-hidden="true" style="position:absolute;top:-40px;right:-40px;width:160px;height:160px;background:radial-gradient(closest-side,rgba(104,73,229,.3),transparent 70%);filter:blur(10px);"></div>
+    <div style="position:relative;padding:20px;">
+      <div class="m" style="font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--vi4);">Teams &amp; Team HQ</div>
+      <h2 style="margin:8px 0 0;font-family:var(--disp);font-weight:700;font-size:21px;letter-spacing:-.02em;">Build a squad with a record</h2>
+      <p style="margin:8px 0 0;font-size:12.5px;line-height:1.5;color:var(--mut);">Create or join a team, manage your roster, and build a shared competitive history that follows the crest.</p>
+      <div style="margin-top:16px;display:flex;align-items:center;gap:8px;">
+        <div style="display:flex;margin-left:8px;">
+          <span style="width:34px;height:34px;border-radius:50%;background:linear-gradient(140deg,#7C5CFF,#0A84FF);border:2px solid var(--bg);display:grid;place-items:center;font-family:var(--mono);font-size:10px;font-weight:600;color:#fff;margin-left:-8px;">VX</span>
+          <span style="width:34px;height:34px;border-radius:50%;background:linear-gradient(140deg,#0A84FF,#3FA3FF);border:2px solid var(--bg);display:grid;place-items:center;font-family:var(--mono);font-size:10px;font-weight:600;color:#fff;margin-left:-8px;">Kz</span>
+          <span style="width:34px;height:34px;border-radius:50%;background:linear-gradient(140deg,#6849E5,#8470EE);border:2px solid var(--bg);display:grid;place-items:center;font-family:var(--mono);font-size:10px;font-weight:600;color:#fff;margin-left:-8px;">Re</span>
+          <span style="width:34px;height:34px;border-radius:50%;background:linear-gradient(140deg,#3FA3FF,#6849E5);border:2px solid var(--bg);display:grid;place-items:center;font-family:var(--mono);font-size:10px;font-weight:600;color:#fff;margin-left:-8px;">Ad</span>
+          <span style="width:34px;height:34px;border-radius:50%;background:linear-gradient(140deg,#8470EE,#0A84FF);border:2px solid var(--bg);display:grid;place-items:center;font-family:var(--mono);font-size:10px;font-weight:600;color:#fff;margin-left:-8px;">Ny</span>
+        </div>
+        <span class="m" style="font-size:10px;color:var(--soft);">5/5 ready · <span style="color:var(--go4);">Elite</span></span>
+      </div>
+      <div style="margin-top:18px;display:flex;gap:9px;">
+        <a href="/teams/create/" class="tap" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:13px;border-radius:13px;background:var(--vi);color:#fff;font-weight:700;font-size:13.5px;text-decoration:none;box-shadow:0 12px 26px -14px rgba(104,73,229,.8);">Create a team</a>
+        <a href="/teams/" class="tap" style="flex:1;display:flex;align-items:center;justify-content:center;padding:13px;border-radius:13px;border:1px solid var(--stroke);background:rgba(20,24,34,.5);color:var(--fg);font-weight:600;font-size:13.5px;text-decoration:none;">Find a team</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+{# ── 06 · COMPETITIVE MODES — horizontal rail ────────────────────────────── #}
+<section data-section="modes" style="position:relative;padding:34px 0 8px;">
+  <div style="padding:0 16px 14px;"><div class="m" style="font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--vi4);">Daily ops</div><h2 style="margin:5px 0 0;font-family:var(--disp);font-weight:700;font-size:21px;letter-spacing:-.02em;">Always something to play</h2></div>
+  <div class="scrollx">
+    <a href="/dashboard/showdown/" class="snap tap" style="width:158px;display:flex;flex-direction:column;gap:11px;padding:16px;border:1px solid var(--stroke);border-radius:18px;background:var(--s1);text-decoration:none;flex-shrink:0;">
+      <span style="width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:var(--tAz);border:1px solid rgba(10,132,255,.3);"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--az4)" stroke-width="1.7" stroke-linecap="round"><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z"/></svg></span>
+      <div><div style="font-family:var(--disp);font-weight:600;font-size:15px;color:var(--fg);">Showdown</div><div style="margin-top:4px;font-size:11.5px;line-height:1.4;color:var(--mut);">Reward matches for Crown Points.</div></div>
+      <span class="m" style="font-size:9px;letter-spacing:.04em;color:var(--soft);">Earns CP + DC</span>
+    </a>
+    <a href="/dashboard/missions/" class="snap tap" style="width:158px;display:flex;flex-direction:column;gap:11px;padding:16px;border:1px solid var(--stroke);border-radius:18px;background:var(--s1);text-decoration:none;flex-shrink:0;">
+      <span style="width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:var(--tVi);border:1px solid rgba(104,73,229,.3);"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--vi4)" stroke-width="1.7" stroke-linecap="round"><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></svg></span>
+      <div><div style="font-family:var(--disp);font-weight:600;font-size:15px;color:var(--fg);">Missions</div><div style="margin-top:4px;font-size:11.5px;line-height:1.4;color:var(--mut);">Daily and weekly objectives.</div></div>
+      <span class="m" style="font-size:9px;letter-spacing:.04em;color:var(--soft);">Resets daily</span>
+    </a>
+    <a href="/dashboard/bounty/" class="snap tap" style="width:158px;display:flex;flex-direction:column;gap:11px;padding:16px;border:1px solid var(--stroke);border-radius:18px;background:var(--s1);text-decoration:none;flex-shrink:0;">
+      <span style="width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:var(--tGo);border:1px solid rgba(207,167,90,.3);"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--go4)" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="M12 1v3M12 20v3M1 12h3M20 12h3"/></svg></span>
+      <div><div style="font-family:var(--disp);font-weight:600;font-size:15px;color:var(--fg);">Bounty</div><div style="margin-top:4px;font-size:11.5px;line-height:1.4;color:var(--mut);">Open challenges to claim.</div></div>
+      <span class="m" style="font-size:9px;letter-spacing:.04em;color:var(--soft);">Community-posted</span>
+    </a>
+    <a href="/dashboard/dropzone/" class="snap tap" style="width:158px;display:flex;flex-direction:column;gap:11px;padding:16px;border:1px solid var(--stroke);border-radius:18px;background:var(--s1);text-decoration:none;flex-shrink:0;">
+      <span style="width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:var(--tAz);border:1px solid rgba(10,132,255,.3);"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--az4)" stroke-width="1.7" stroke-linecap="round"><path d="M12 3v10M8 9l4 4 4-4M5 20h14"/></svg></span>
+      <div><div style="font-family:var(--disp);font-weight:600;font-size:15px;color:var(--fg);">Dropzone</div><div style="margin-top:4px;font-size:11.5px;line-height:1.4;color:var(--mut);">Fast drop-in lobbies.</div></div>
+      <span class="m" style="font-size:9px;letter-spacing:.04em;color:var(--soft);">Always open</span>
+    </a>
+  </div>
+</section>
+
+{# ── 07 · CROWN POINTS ───────────────────────────────────────────────────── #}
+<section data-section="crown" style="position:relative;padding:34px 16px 8px;">
+  <div style="position:relative;border:1px solid rgba(207,167,90,.25);border-radius:20px;background:linear-gradient(160deg,rgba(28,24,16,.7),rgba(16,18,28,.62));overflow:hidden;">
+    <div aria-hidden="true" style="position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(226,197,136,.5),transparent);"></div>
+    <div style="padding:20px;">
+      <div class="m" style="font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--go4);">Crown Points</div>
+      <h2 style="margin:8px 0 0;font-family:var(--disp);font-weight:700;font-size:21px;letter-spacing:-.02em;">One rank. Every game.</h2>
+      <p style="margin:8px 0 0;font-size:12.5px;line-height:1.5;color:var(--mut);">Every verified result moves you along the ladder — a single record of how far you've climbed, from Rookie to <i style="color:var(--go4);font-style:italic;">The Crown</i>.</p>
+      <div style="margin-top:18px;display:flex;align-items:flex-end;gap:6px;height:70px;">
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;"><div class="tier-bar" style="width:100%;height:24px;border-radius:6px 6px 3px 3px;background:#3a4256;"></div><span class="m" style="font-size:7px;letter-spacing:.02em;color:var(--soft);white-space:nowrap;">Rookie</span></div>
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;"><div class="tier-bar" style="width:100%;height:34px;border-radius:6px 6px 3px 3px;background:var(--az);animation-delay:.1s;"></div><span class="m" style="font-size:7px;letter-spacing:.02em;color:var(--soft);white-space:nowrap;">Chall.</span></div>
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;"><div class="tier-bar" style="width:100%;height:43px;border-radius:6px 6px 3px 3px;background:var(--az4);animation-delay:.2s;"></div><span class="m" style="font-size:7px;letter-spacing:.02em;color:var(--soft);white-space:nowrap;">Elite</span></div>
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;"><div class="tier-bar" style="width:100%;height:52px;border-radius:6px 6px 3px 3px;background:var(--vi);animation-delay:.3s;"></div><span class="m" style="font-size:7px;letter-spacing:.02em;color:var(--soft);white-space:nowrap;">Master</span></div>
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;"><div class="tier-bar" style="width:100%;height:61px;border-radius:6px 6px 3px 3px;background:var(--vi4);animation-delay:.4s;"></div><span class="m" style="font-size:7px;letter-spacing:.02em;color:var(--soft);white-space:nowrap;">Legend</span></div>
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;"><div class="tier-bar" style="width:100%;height:70px;border-radius:6px 6px 3px 3px;background:var(--go4);animation-delay:.5s;"></div><span class="m" style="font-size:7px;letter-spacing:.02em;color:var(--go4);white-space:nowrap;">Crown</span></div>
+      </div>
+      <a href="/dashboard/competitive/" class="tap" style="margin-top:18px;display:inline-flex;align-items:center;gap:7px;padding:11px 18px;border-radius:12px;background:var(--tGo);border:1px solid rgba(207,167,90,.35);color:var(--go4);font-weight:600;font-size:13px;text-decoration:none;">See how ranking works →</a>
+    </div>
+  </div>
+</section>
+
+{# ── 08 · SUPPORTED GAMES — swipe dock ───────────────────────────────────── #}
+{% if v3.game_posters %}
+<section data-section="games" style="position:relative;padding:34px 0 8px;">
+  <div style="display:flex;align-items:flex-end;justify-content:space-between;padding:0 16px 14px;">
+    <div><div class="m" style="font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--az4);">11 titles · one arena</div><h2 style="margin:5px 0 0;font-family:var(--disp);font-weight:700;font-size:21px;letter-spacing:-.02em;">Your game is here</h2></div>
+    <a href="/games/" class="m tap" style="font-size:11px;color:var(--soft);text-decoration:none;padding:4px 0;">All →</a>
+  </div>
+  <div class="scrollx">
+    {% for g in v3.game_posters %}
+    <a href="{{ g.url }}" class="snap tap" aria-label="{{ g.name }}" style="position:relative;flex-shrink:0;width:114px;height:152px;border-radius:16px;overflow:hidden;border:1px solid var(--stroke);background:var(--s2);text-decoration:none;display:block;">
+      {% if g.poster_url %}<img src="{{ g.poster_url }}" alt="" loading="lazy" decoding="async" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;">{% endif %}
+      <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,13,20,0) 42%,rgba(10,13,20,.92));"></div>
+      <div style="position:absolute;left:10px;right:10px;bottom:10px;"><div style="font-family:var(--disp);font-weight:600;font-size:12.5px;color:#fff;line-height:1.15;">{{ g.name }}</div></div>
+    </a>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+{# ── 09 · TRUST ──────────────────────────────────────────────────────────── #}
+<section data-section="trust" style="position:relative;padding:34px 16px 8px;">
+  <div style="text-align:center;max-width:30ch;margin:0 auto 16px;">
+    <div class="m" style="font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--soft);">Competition you can trust</div>
+    <h2 style="margin:8px 0 0;font-family:var(--disp);font-weight:700;font-size:21px;letter-spacing:-.02em;">Built for fair, verified play</h2>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+    <div style="padding:16px;border:1px solid var(--hair);border-radius:16px;background:rgba(17,21,30,.5);">
+      <span style="width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:var(--s2);border:1px solid var(--hair);"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--suc)" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M8.5 12.5 11 15l5-5.5"/></svg></span>
+      <div style="margin-top:11px;font-family:var(--disp);font-weight:600;font-size:13.5px;line-height:1.2;">Verified results</div>
+      <div style="margin-top:5px;font-size:11px;line-height:1.45;color:var(--mut);">Confirmed by both sides in-platform.</div>
+    </div>
+    <div style="padding:16px;border:1px solid var(--hair);border-radius:16px;background:rgba(17,21,30,.5);">
+      <span style="width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:var(--s2);border:1px solid var(--hair);"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--az4)" stroke-width="1.7" stroke-linecap="round"><path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3Z"/><path d="M9.5 12l1.8 1.8L15 10"/></svg></span>
+      <div style="margin-top:11px;font-family:var(--disp);font-weight:600;font-size:13.5px;line-height:1.2;">Dispute-aware rooms</div>
+      <div style="margin-top:5px;font-size:11px;line-height:1.45;color:var(--mut);">Evidence captured for fair review.</div>
+    </div>
+    <div style="padding:16px;border:1px solid var(--hair);border-radius:16px;background:rgba(17,21,30,.5);">
+      <span style="width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:var(--s2);border:1px solid var(--hair);"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--go4)" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><path d="M12 8v8M9.5 9.5h3.2a1.8 1.8 0 0 1 0 3.6H9.5"/></svg></span>
+      <div style="margin-top:11px;font-family:var(--disp);font-weight:600;font-size:13.5px;line-height:1.2;">Structured prizes</div>
+      <div style="margin-top:5px;font-size:11px;line-height:1.45;color:var(--mut);">Platform-managed, released on results.</div>
+    </div>
+    <div style="padding:16px;border:1px solid var(--hair);border-radius:16px;background:rgba(17,21,30,.5);">
+      <span style="width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:var(--s2);border:1px solid var(--hair);"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--vi4)" stroke-width="1.7" stroke-linecap="round"><path d="M12 4v16M7 8h10M5 8l-2.5 6h5L5 8ZM19 8l-2.5 6h5L19 8Z"/></svg></span>
+      <div style="margin-top:11px;font-family:var(--disp);font-weight:600;font-size:13.5px;line-height:1.2;">Fair competition</div>
+      <div style="margin-top:5px;font-size:11px;line-height:1.45;color:var(--mut);">Seeding, check-in and roster locks.</div>
+    </div>
+  </div>
+</section>
+
+{# ── 10 · FINAL CTA ──────────────────────────────────────────────────────── #}
+<section data-section="final" style="position:relative;padding:40px 16px 60px;overflow:hidden;">
+  <div aria-hidden="true" style="position:absolute;inset:0;background:radial-gradient(120% 60% at 50% 100%,rgba(10,132,255,.14),rgba(104,73,229,.06) 52%,transparent 76%);"></div>
+  <div aria-hidden="true" style="position:absolute;top:30px;left:50%;transform:translateX(-50%);width:180px;height:140px;background:radial-gradient(closest-side,rgba(226,197,136,.24),transparent 70%);filter:blur(12px);"></div>
+  <div aria-hidden="true" style="position:absolute;inset:0;background:radial-gradient(60% 50% at 50% 50%,rgba(8,10,16,.5),transparent 80%);"></div>
+  <div style="position:relative;z-index:1;text-align:center;">
+    <span class="m" style="font-size:9px;letter-spacing:.24em;text-transform:uppercase;color:var(--go4);">From the Delta to the Crown</span>
+    <h2 style="margin:14px 0 0;font-family:var(--disp);font-weight:800;font-size:28px;line-height:1.06;letter-spacing:-.03em;">Your path to <span class="grad">The Crown</span> starts here.</h2>
+    <p style="margin:12px auto 0;max-width:30ch;font-size:13.5px;line-height:1.55;color:var(--mut);">{% if user.is_authenticated %}Continue your climb — tournaments, teams, and Crown Points are waiting.{% else %}Create your free account and enter your first verified tournament in minutes.{% endif %}</p>
+    {% if user.is_authenticated %}
+    <a href="{{ hero_ctx.primary_cta_url|default:'/dashboard/' }}" class="tap" style="margin-top:22px;display:flex;align-items:center;justify-content:center;gap:8px;padding:16px;border-radius:15px;background:var(--az);color:#fff;font-weight:700;font-size:15px;text-decoration:none;box-shadow:0 16px 36px -14px rgba(10,132,255,.8);">{{ hero_ctx.primary_cta_label|default:"Go to dashboard" }}<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+    {% else %}
+    <a href="/account/signup/" class="tap" style="margin-top:22px;display:flex;align-items:center;justify-content:center;gap:8px;padding:16px;border-radius:15px;background:var(--az);color:#fff;font-weight:700;font-size:15px;text-decoration:none;box-shadow:0 16px 36px -14px rgba(10,132,255,.8);">Create free account<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+    <a href="/tournaments/" class="tap" style="margin-top:10px;display:inline-block;padding:13px;font-weight:600;font-size:13.5px;color:var(--mut);text-decoration:none;">Browse tournaments first →</a>
+    {% endif %}
+    <div class="m" style="margin-top:24px;font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);">Where Champions Rise ♕</div>
+  </div>
+</section>
+
+</div>{# /m-stage #}
+
+{# ── BOTTOM SHEET — tournament detail ────────────────────────────────────── #}
+<div class="m-sheet-scrim" aria-hidden="true"></div>
+<div class="m-sheet" role="dialog" aria-modal="true" aria-label="Tournament details">
+  <div style="position:sticky;top:0;background:var(--s1);padding:12px 0 4px;display:flex;justify-content:center;z-index:2;"><span style="width:40px;height:4px;border-radius:999px;background:var(--s3);"></span></div>
+  <div id="mSheetPoster" style="position:relative;height:172px;background:var(--s2) center 28%/cover no-repeat;">
+    <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(17,21,30,.2) 28%,rgba(17,21,30,.98));"></div>
+    <span style="position:absolute;top:14px;left:16px;display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:999px;background:var(--tAz);border:1px solid rgba(10,132,255,.4);"><span class="m" style="font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--az4);">Open now</span></span>
+    <div style="position:absolute;left:16px;right:16px;bottom:14px;">
+      <div class="m" id="mSheetGame" style="font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:rgba(255,255,255,.8);">—</div>
+      <div id="mSheetTitle" style="margin-top:5px;font-family:var(--disp);font-weight:700;font-size:20px;letter-spacing:-.01em;">—</div>
+    </div>
+  </div>
+  <div style="padding:16px 16px 32px;">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
+      <span id="mSheetFormat" class="m" style="padding:6px 11px;border-radius:9px;background:var(--s2);font-size:9.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--mut);">—</span>
+      <span id="mSheetPrize" class="m" style="padding:6px 11px;border-radius:9px;background:var(--s2);font-size:9.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--go4);">—</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;margin-bottom:7px;"><span class="m" style="font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--soft);">Slots filling</span><span id="mSheetSlots" class="m" style="font-size:11px;color:var(--fg);">—</span></div>
+    <div style="height:7px;border-radius:999px;background:var(--s3);overflow:hidden;margin-bottom:18px;"><div id="mSheetBar" style="height:100%;width:0%;border-radius:999px;background:var(--brand);"></div></div>
+    <div style="display:flex;gap:13px;padding:14px;border-radius:14px;background:var(--s2);margin-bottom:18px;">
+      <div style="text-align:center;flex:1;"><div class="m" style="font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--soft);">Reg closes</div><div id="mSheetClock" class="m" style="margin-top:4px;font-size:16px;color:var(--az4);">—</div></div>
+      <div style="width:1px;background:var(--hair);"></div>
+      <div style="text-align:center;flex:1;"><div class="m" style="font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--soft);">Prize</div><div id="mSheetPrizeAlt" class="m" style="margin-top:4px;font-size:16px;color:var(--fg);">—</div></div>
+    </div>
+    <a id="mSheetUrl" href="#" class="tap" style="display:flex;align-items:center;justify-content:center;gap:8px;padding:16px;border-radius:14px;background:var(--az);color:#fff;font-weight:700;font-size:15px;text-decoration:none;box-shadow:0 12px 30px -14px rgba(10,132,255,.8);">
+      {% if home_state == 'has_team' %}Register squad{% elif home_state == 'registered' %}View my slot{% elif home_state == 'match_live' %}Open match room{% elif home_state == 'organizer' %}Manage event{% elif user.is_authenticated %}View tournament{% else %}Sign up to join{% endif %}
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+    </a>
+    <button type="button" class="m-sheet-close tap" style="margin-top:10px;width:100%;padding:14px;border-radius:14px;border:1px solid var(--stroke);background:transparent;color:var(--mut);font-family:var(--text);font-weight:600;font-size:14px;cursor:pointer;">Close</button>
+  </div>
+</div>
+
+</div>{# /dc-home-m #}
+
 {% endblock %}
 
 {% block extra_js %}
 <script src="{% static 'siteui/js/home.js' %}?v=20260615c" defer></script>
+<script src="{% static 'siteui/js/home-mobile.js' %}?v=20260616a" defer></script>
 {% endblock %}

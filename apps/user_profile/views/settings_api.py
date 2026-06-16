@@ -361,6 +361,8 @@ def update_privacy_settings(request):
             'show_social_links', 'show_inventory_value', 'show_level_xp',
             'allow_team_invites', 'allow_friend_requests', 'allow_direct_messages',
             'show_followers_count', 'show_following_count', 'show_followers_list', 'show_following_list',
+            'show_nationality', 'show_device_platform', 'show_play_style',
+            'show_roles', 'show_active_hours', 'show_preferred_contact',
             'is_private_account'  # Phase 6A: Private Account toggle
         ]
         
@@ -443,6 +445,12 @@ def get_privacy_settings(request):
             'show_inventory_value': privacy.show_inventory_value,
             'show_level_xp': privacy.show_level_xp,
             'show_following_list': privacy.show_following_list,  # Phase 7C
+            'show_nationality': privacy.show_nationality,
+            'show_device_platform': privacy.show_device_platform,
+            'show_play_style': privacy.show_play_style,
+            'show_roles': privacy.show_roles,
+            'show_active_hours': privacy.show_active_hours,
+            'show_preferred_contact': privacy.show_preferred_contact,
             'allow_team_invites': privacy.allow_team_invites,
             'allow_friend_requests': privacy.allow_friend_requests,
             'allow_direct_messages': privacy.allow_direct_messages,

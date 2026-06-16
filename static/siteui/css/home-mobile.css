@@ -1,0 +1,96 @@
+/* ============================================================================
+   DeltaCrown Mobile Homepage — "The Ascent"
+   Shown at <1024px (mobile + tablet). The desktop .dc-home tree is hidden
+   at <1024px via a rule in home.css. Both trees are server-rendered; CSS
+   breakpoints control which is visible — no UA sniffing.
+   ============================================================================ */
+
+/* ── Design tokens (same triad as desktop, scoped to mobile namespace) ─── */
+.dc-home-m{
+  --az:#0A84FF;--az4:#3FA3FF;--vi:#6849E5;--vi4:#8470EE;--go:#CFA75A;--go4:#E2C588;
+  --live:#FF3B5C;--suc:#2ECC71;
+  --bg:#0A0D14;--s1:#11151E;--s2:#181D27;--s3:#222936;
+  --fg:#F4F6FA;--mut:#AEB6C7;--soft:#727B90;--dim:#474F61;
+  --hair:rgba(255,255,255,.07);--stroke:rgba(255,255,255,.11);--strong:rgba(255,255,255,.18);
+  --tAz:rgba(10,132,255,.14);--tVi:rgba(104,73,229,.16);--tGo:rgba(207,167,90,.14);
+  --tLi:rgba(255,59,92,.14);--tSu:rgba(46,204,113,.14);
+  --brand:linear-gradient(135deg,#6849E5,#0A84FF);
+  --crown:linear-gradient(118deg,#8470EE,#0A84FF 52%,#E2C588);
+  --disp:"Sora",-apple-system,system-ui,sans-serif;
+  --text:"Inter",system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,monospace;
+  --eo:cubic-bezier(.22,1,.36,1);--spring:cubic-bezier(.34,1.56,.64,1);
+}
+.dc-home-m,.dc-home-m *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+
+/* ── Show/hide switching ─────────────────────────────────────────────────── */
+@media (min-width:1024px){.dc-home-m{display:none!important;}}
+
+/* ── Type helpers ────────────────────────────────────────────────────────── */
+.dc-home-m .m{font-family:var(--mono);font-variant-numeric:tabular-nums;}
+.dc-home-m .grad{background:var(--crown);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
+.dc-home-m .gradv{background:var(--brand);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
+
+/* ── Press / tap feedback ────────────────────────────────────────────────── */
+.dc-home-m .tap{transition:transform .12s var(--spring),background .2s,border-color .2s,box-shadow .2s;}
+.dc-home-m .tap:active{transform:scale(.96);}
+
+/* ── Horizontal scroll carousels ─────────────────────────────────────────── */
+.dc-home-m .scrollx{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;scroll-padding-left:16px;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding:2px 16px 8px;margin:0;}
+.dc-home-m .scrollx::-webkit-scrollbar{display:none;}
+.dc-home-m .snap{scroll-snap-align:start;flex:0 0 auto;}
+
+/* ── Tablet stage: centered column on extended cinematic field ───────────── */
+@media (min-width:768px){
+  .dc-home-m{background:radial-gradient(90% 60% at 50% 0%,#0e1322 0%,#080a11 52%,#05060b 100%) fixed;}
+  .dc-home-m .m-stage{max-width:560px;margin:0 auto;min-height:100vh;box-shadow:0 50px 120px -44px #000,0 0 0 1px var(--hair);}
+}
+
+/* ── Tournament card hover (pointer devices only) ───────────────────────── */
+@media (hover:hover){
+  .dc-home-m .m-tcard:hover{border-color:var(--strong);transform:translateY(-2px);}
+}
+
+/* ── Keyframes ───────────────────────────────────────────────────────────── */
+@keyframes dcm-pulse{0%,100%{opacity:1;}50%{opacity:.35;}}
+@keyframes dcm-breathe{0%,100%{opacity:.6;}50%{opacity:1;}}
+@keyframes dcm-mote{0%{transform:translateY(0);opacity:0;}20%{opacity:.6;}80%{opacity:.6;}100%{transform:translateY(-260px);opacity:0;}}
+@keyframes dcm-sheetUp{from{transform:translate(-50%,100%);}to{transform:translate(-50%,0);}}
+@keyframes dcm-fadeIn{from{opacity:0;}to{opacity:1;}}
+@keyframes dcm-settle{from{transform:translateY(12px);}to{transform:none;}}
+@keyframes dcm-floatCue{0%,100%{transform:translateY(0);}50%{transform:translateY(4px);}}
+@keyframes dcm-auroraA{0%,100%{transform:translateX(-7%) skewY(-3deg);opacity:.5;}50%{transform:translateX(7%) skewY(-3deg);opacity:.85;}}
+@keyframes dcm-auroraB{0%,100%{transform:translateX(6%) skewY(4deg);opacity:.38;}50%{transform:translateX(-6%) skewY(4deg);opacity:.7;}}
+@keyframes dcm-driftA{0%,100%{transform:translate(0,0);}50%{transform:translate(26px,-20px);}}
+@keyframes dcm-driftB{0%,100%{transform:translate(0,0);}50%{transform:translate(-24px,18px);}}
+@keyframes dcm-sweep{0%,100%{transform:translateX(-26px) rotate(14deg);opacity:.4;}50%{transform:translateX(26px) rotate(14deg);opacity:.75;}}
+@keyframes dcm-sweepB{0%,100%{transform:translateX(26px) rotate(-10deg);opacity:.3;}50%{transform:translateX(-26px) rotate(-10deg);opacity:.6;}}
+@keyframes dcm-growY{from{transform:scaleY(0);}to{transform:scaleY(1);}}
+
+/* ── Bottom sheet ────────────────────────────────────────────────────────── */
+.dc-home-m .m-sheet-scrim{
+  position:fixed;inset:0;z-index:50;
+  background:rgba(4,5,9,.64);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);
+  animation:dcm-fadeIn .2s both;display:none;
+}
+.dc-home-m .m-sheet{
+  position:fixed;left:50%;transform:translate(-50%,100%);bottom:0;z-index:51;
+  width:min(560px,100%);border-radius:28px 28px 0 0;
+  background:var(--s1);border-top:1px solid var(--stroke);
+  box-shadow:0 -20px 60px -20px rgba(0,0,0,.8);
+  max-height:90%;overflow-y:auto;display:none;
+}
+.dc-home-m.m-sheet-open .m-sheet-scrim{display:block;}
+.dc-home-m.m-sheet-open .m-sheet{display:block;animation:dcm-sheetUp .36s var(--eo) both;}
+
+/* ── Tier bars ───────────────────────────────────────────────────────────── */
+.dc-home-m .tier-bar{transform-origin:bottom;animation:dcm-growY .7s var(--eo) both;}
+
+/* ── Reduced motion: disable all ambient animation ──────────────────────── */
+@media (prefers-reduced-motion:reduce){
+  .dc-home-m [data-anim]{animation:none!important;opacity:.85;}
+  .dc-home-m .tap{transition:none;}
+  .dc-home-m .tier-bar{animation:none;}
+  .dc-home-m .m-sheet{animation:none;transform:translate(-50%,0);}
+  .dc-home-m .m-sheet-scrim{animation:none;}
+}

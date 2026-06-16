@@ -1,6 +1,6 @@
 {% load static %}
 {% with gp_identity_lock_days=game_passport_identity_lock_days|default:30 gp_readd_cooldown_days=game_passport_readd_cooldown_days|default:90 %}
-<div id="tab-passports" class="tab-section" data-policy-identity-lock-days="{{ gp_identity_lock_days }}" data-policy-readd-cooldown-days="{{ gp_readd_cooldown_days }}">
+<div id="tab-passports" class="tab-section{% if settings_initial_tab == 'passports' %} active{% endif %}" data-policy-identity-lock-days="{{ gp_identity_lock_days }}" data-policy-readd-cooldown-days="{{ gp_readd_cooldown_days }}">
     <div class="w-full max-w-[1400px] mx-auto px-0 space-y-8">
 
         {# ── Ambient glows ── #}

@@ -123,7 +123,7 @@
         width: 100%; text-align: left; padding: 12px 16px; border-radius: 12px;
         color: #94a3b8; font-weight: 500; font-size: 0.9rem;
         display: flex; align-items: center; gap: 12px;
-        transition: all 0.2s; border-left: 3px solid transparent;
+        transition: all 0.2s; border-left: 3px solid transparent; text-decoration: none;
     }
     .nav-btn:hover { background: rgba(255,255,255,0.03); color: white; }
     .nav-btn.active {
@@ -136,7 +136,7 @@
     .mobile-nav-btn {
         padding: 10px 20px; border-radius: 100px; font-size: 0.85rem;
         font-weight: 600; white-space: nowrap; color: #94a3b8;
-        background: rgba(255,255,255,0.05); border: 1px solid transparent; transition: all 0.2s;
+        background: rgba(255,255,255,0.05); border: 1px solid transparent; transition: all 0.2s; text-decoration: none;
     }
     .mobile-nav-btn.active {
         background: #00F0FF; color: black; font-weight: 800;
@@ -257,7 +257,7 @@
             <div class="flex items-center gap-2 text-sm min-w-0">
                 <span class="text-gray-500 font-medium hidden sm:block whitespace-nowrap">Control Deck</span>
                 <i class="fa-solid fa-chevron-right text-[8px] text-gray-600 hidden sm:block shrink-0"></i>
-                <span id="header-tab-label" class="text-white font-bold truncate">Identity</span>
+                <span id="header-tab-label" class="text-white font-bold truncate">{{ settings_initial_tab_label|default:"Identity" }}</span>
             </div>
         </div>
 
@@ -266,9 +266,9 @@
             <span class="hidden md:flex items-center gap-1.5 text-xs text-amber-400 font-semibold animate-pulse" id="unsaved-changes" style="display:none;">
                 <span class="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block"></span> Unsaved
             </span>
-            <button id="save-all-btn" class="bg-z-cyan text-black px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-white transition shadow-neon-cyan flex items-center gap-1.5">
+            <button id="save-all-btn" type="button" class="bg-z-cyan text-black px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-white transition shadow-neon-cyan flex items-center gap-1.5">
                 <i class="fa-solid fa-floppy-disk"></i>
-                <span class="hidden sm:inline">Save</span>
+                <span class="hidden sm:inline" data-save-label>Save</span>
             </button>
         </div>
     </header>
@@ -281,65 +281,70 @@
                 <div>
                     <div class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3 pl-3">Account</div>
                     <div class="space-y-1">
-                        <button class="nav-btn active" data-target="identity" data-nav="identity"><i class="fa-regular fa-id-card w-5 text-center"></i> Identity</button>
-                        <button class="nav-btn" data-target="about" data-nav="about"><i class="fa-solid fa-address-card w-5 text-center"></i> About</button>
-                        <button class="nav-btn" data-target="connections" data-nav="connections"><i class="fa-solid fa-address-book w-5 text-center"></i> Connections</button>
-                        <button class="nav-btn" data-target="security" data-nav="security"><i class="fa-solid fa-shield-halved w-5 text-center"></i> Security</button>
-                        <button class="nav-btn" data-target="privacy" data-nav="privacy"><i class="fa-solid fa-user-shield w-5 text-center"></i> Privacy & Vis.</button>
-                        <button class="nav-btn" data-target="platform" data-nav="platform"><i class="fa-solid fa-globe w-5 text-center"></i> Platform</button>
-                        <button class="nav-btn relative" data-target="notifications" data-nav="notifications">
+                        <a href="{{ settings_tab_urls.identity }}" class="nav-btn{% if settings_initial_tab == 'identity' %} active{% endif %}" data-target="identity" data-nav="identity"><i class="fa-regular fa-id-card w-5 text-center"></i> Identity</a>
+                        <a href="{{ settings_tab_urls.about }}" class="nav-btn{% if settings_initial_tab == 'about' %} active{% endif %}" data-target="about" data-nav="about"><i class="fa-solid fa-address-card w-5 text-center"></i> About</a>
+                        <a href="{{ settings_tab_urls.connections }}" class="nav-btn{% if settings_initial_tab == 'connections' %} active{% endif %}" data-target="connections" data-nav="connections"><i class="fa-solid fa-address-book w-5 text-center"></i> Connections</a>
+                        <a href="{{ settings_tab_urls.security }}" class="nav-btn{% if settings_initial_tab == 'security' %} active{% endif %}" data-target="security" data-nav="security"><i class="fa-solid fa-shield-halved w-5 text-center"></i> Security</a>
+                        <a href="{{ settings_tab_urls.privacy }}" class="nav-btn{% if settings_initial_tab == 'privacy' %} active{% endif %}" data-target="privacy" data-nav="privacy"><i class="fa-solid fa-user-shield w-5 text-center"></i> Privacy & Vis.</a>
+                        <a href="{{ settings_tab_urls.platform }}" class="nav-btn{% if settings_initial_tab == 'platform' %} active{% endif %}" data-target="platform" data-nav="platform"><i class="fa-solid fa-globe w-5 text-center"></i> Platform</a>
+                        <a href="{{ settings_tab_urls.notifications }}" class="nav-btn relative{% if settings_initial_tab == 'notifications' %} active{% endif %}" data-target="notifications" data-nav="notifications">
                             <i class="fa-regular fa-bell w-5 text-center"></i> Notifications
                             <!-- UP PHASE 8: Follow Requests Badge -->
                             <span id="follow-requests-badge" class="hidden absolute top-2 right-2 bg-red-500 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center animate-pulse">0</span>
-                        </button>
+                        </a>
                     </div>
                 </div>
 
                 <div>
                     <div class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3 pl-3">Esports</div>
                     <div class="space-y-1">
-                        <button class="nav-btn" data-target="recruitment"><i class="fa-solid fa-briefcase w-5 text-center"></i> Career & LFT</button>
-                        <button class="nav-btn" data-target="passports"><i class="fa-solid fa-gamepad w-5 text-center"></i> Game Passports</button>
+                        <a href="{{ settings_tab_urls.recruitment }}" class="nav-btn{% if settings_initial_tab == 'recruitment' %} active{% endif %}" data-target="recruitment" data-nav="recruitment"><i class="fa-solid fa-briefcase w-5 text-center"></i> Career & LFT</a>
+                        <a href="{{ settings_tab_urls.passports }}" class="nav-btn{% if settings_initial_tab == 'passports' %} active{% endif %}" data-target="passports" data-nav="passports"><i class="fa-solid fa-gamepad w-5 text-center"></i> Game Passports</a>
                         <a class="nav-btn" href="{% url 'dashboard:competitive_hub' %}" style="text-decoration: none; display: flex; align-items: center;"><i class="fa-solid fa-crown w-5 text-center"></i> Competitive Hub</a>
-                        <button class="nav-btn" data-target="loadout"><i class="fa-solid fa-computer-mouse w-5 text-center"></i> Pro Loadout</button>
+                        <a href="{{ settings_tab_urls.loadout }}" class="nav-btn{% if settings_initial_tab == 'loadout' %} active{% endif %}" data-target="loadout" data-nav="loadout"><i class="fa-solid fa-computer-mouse w-5 text-center"></i> Pro Loadout</a>
                     </div>
                 </div>
 
                 <div>
                     <div class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3 pl-3">Assets</div>
                     <div class="space-y-1">
-                        <button class="nav-btn" data-target="inventory"><i class="fa-solid fa-box-open w-5 text-center"></i> Inventory</button>
-                        <button class="nav-btn" data-target="stream"><i class="fa-brands fa-twitch w-5 text-center"></i> Live Feed</button>
-                        <button class="nav-btn" data-target="community"><i class="fa-solid fa-users w-5 text-center"></i> Community</button>
+                        <a href="{{ settings_tab_urls.billing }}" class="nav-btn{% if settings_initial_tab == 'billing' %} active{% endif %}" data-target="billing" data-nav="billing"><i class="fa-solid fa-wallet w-5 text-center"></i> Assets & Wallet</a>
+                        <a href="{{ settings_tab_urls.inventory }}" class="nav-btn{% if settings_initial_tab == 'inventory' %} active{% endif %}" data-target="inventory" data-nav="inventory"><i class="fa-solid fa-box-open w-5 text-center"></i> Inventory</a>
+                        <a href="{{ settings_tab_urls.stream }}" class="nav-btn{% if settings_initial_tab == 'stream' %} active{% endif %}" data-target="stream" data-nav="stream"><i class="fa-brands fa-twitch w-5 text-center"></i> Live Feed</a>
+                        <a href="{{ settings_tab_urls.community }}" class="nav-btn{% if settings_initial_tab == 'community' %} active{% endif %}" data-target="community" data-nav="community"><i class="fa-solid fa-users w-5 text-center"></i> Community</a>
                     </div>
                 </div>
 
                 <div class="pt-4 border-t border-white/5">
-                    <button class="nav-btn text-red-400 hover:text-red-300 hover:bg-red-500/10" data-target="danger"><i class="fa-solid fa-power-off w-5 text-center"></i> Danger Zone</button>
+                    <a href="{{ settings_tab_urls.danger }}" class="nav-btn text-red-400 hover:text-red-300 hover:bg-red-500/10{% if settings_initial_tab == 'danger' %} active{% endif %}" data-target="danger" data-nav="danger"><i class="fa-solid fa-power-off w-5 text-center"></i> Danger Zone</a>
                 </div>
             </div>
         </aside>
 
         <div class="lg:hidden absolute top-0 left-0 right-0 h-14 bg-z-bg/95 border-b border-white/5 z-40 overflow-x-auto no-scrollbar flex items-center px-4 gap-3">
-            <button class="mobile-nav-btn active" data-target="identity" data-nav="identity">Identity</button>
-            <button class="mobile-nav-btn" data-target="about" data-nav="about">About</button>
-            <button class="mobile-nav-btn" data-target="connections" data-nav="connections">Connections</button>
-            <button class="mobile-nav-btn" data-target="recruitment" data-nav="recruitment">Career</button>
+            <a href="{{ settings_tab_urls.identity }}" class="mobile-nav-btn{% if settings_initial_tab == 'identity' %} active{% endif %}" data-target="identity" data-nav="identity">Identity</a>
+            <a href="{{ settings_tab_urls.about }}" class="mobile-nav-btn{% if settings_initial_tab == 'about' %} active{% endif %}" data-target="about" data-nav="about">About</a>
+            <a href="{{ settings_tab_urls.connections }}" class="mobile-nav-btn{% if settings_initial_tab == 'connections' %} active{% endif %}" data-target="connections" data-nav="connections">Connections</a>
+            <a href="{{ settings_tab_urls.recruitment }}" class="mobile-nav-btn{% if settings_initial_tab == 'recruitment' %} active{% endif %}" data-target="recruitment" data-nav="recruitment">Career</a>
             <a class="mobile-nav-btn" href="{% url 'dashboard:competitive_hub' %}" style="text-decoration: none;">Competitive Hub</a>
-            <button class="mobile-nav-btn" data-target="privacy" data-nav="privacy">Privacy</button>
-            <button class="mobile-nav-btn" data-target="platform" data-nav="platform">Platform</button>
-            <button class="mobile-nav-btn" data-target="passports" data-nav="passports">Games</button>
-            <button class="mobile-nav-btn" data-target="loadout" data-nav="loadout">Loadout</button>
-            <button class="mobile-nav-btn" data-target="stream" data-nav="stream">Stream</button>
-            <button class="mobile-nav-btn" data-target="inventory" data-nav="inventory">Inv.</button>
-            <button class="mobile-nav-btn" data-target="security" data-nav="security">Security</button>
+            <a href="{{ settings_tab_urls.notifications }}" class="mobile-nav-btn{% if settings_initial_tab == 'notifications' %} active{% endif %}" data-target="notifications" data-nav="notifications">Notifications</a>
+            <a href="{{ settings_tab_urls.privacy }}" class="mobile-nav-btn{% if settings_initial_tab == 'privacy' %} active{% endif %}" data-target="privacy" data-nav="privacy">Privacy</a>
+            <a href="{{ settings_tab_urls.platform }}" class="mobile-nav-btn{% if settings_initial_tab == 'platform' %} active{% endif %}" data-target="platform" data-nav="platform">Platform</a>
+            <a href="{{ settings_tab_urls.passports }}" class="mobile-nav-btn{% if settings_initial_tab == 'passports' %} active{% endif %}" data-target="passports" data-nav="passports">Games</a>
+            <a href="{{ settings_tab_urls.loadout }}" class="mobile-nav-btn{% if settings_initial_tab == 'loadout' %} active{% endif %}" data-target="loadout" data-nav="loadout">Loadout</a>
+            <a href="{{ settings_tab_urls.stream }}" class="mobile-nav-btn{% if settings_initial_tab == 'stream' %} active{% endif %}" data-target="stream" data-nav="stream">Stream</a>
+            <a href="{{ settings_tab_urls.billing }}" class="mobile-nav-btn{% if settings_initial_tab == 'billing' %} active{% endif %}" data-target="billing" data-nav="billing">Wallet</a>
+            <a href="{{ settings_tab_urls.inventory }}" class="mobile-nav-btn{% if settings_initial_tab == 'inventory' %} active{% endif %}" data-target="inventory" data-nav="inventory">Inv.</a>
+            <a href="{{ settings_tab_urls.community }}" class="mobile-nav-btn{% if settings_initial_tab == 'community' %} active{% endif %}" data-target="community" data-nav="community">Community</a>
+            <a href="{{ settings_tab_urls.security }}" class="mobile-nav-btn{% if settings_initial_tab == 'security' %} active{% endif %}" data-target="security" data-nav="security">Security</a>
+            <a href="{{ settings_tab_urls.danger }}" class="mobile-nav-btn{% if settings_initial_tab == 'danger' %} active{% endif %}" data-target="danger" data-nav="danger">Danger</a>
         </div>
 
         <main class="flex-1 overflow-y-auto pt-16 lg:pt-8 p-4 lg:p-8 pb-32 scroll-smooth">
             <div class="space-y-8">
 
                 <!-- IDENTITY TAB (READY) -->
-                <div id="tab-identity" class="tab-section active">
+                <div id="tab-identity" class="tab-section{% if settings_initial_tab == 'identity' %} active{% endif %}">
                     <h2 class="text-3xl font-display font-bold text-white mb-2">Identity Protocol</h2>
                     <p class="text-gray-400 mb-4">Manage how you appear to the world and team scouts.</p>
                     
@@ -449,7 +454,7 @@
                 </div>
 
                 <!-- CONNECTIONS TAB (Contact & Social) -->
-                <div id="tab-connections" class="tab-section space-y-6">
+                <div id="tab-connections" class="tab-section space-y-6{% if settings_initial_tab == 'connections' %} active{% endif %}">
                     <h2 class="text-3xl font-display font-bold text-white mb-2">Connections Hub</h2>
                     <p class="text-gray-400 mb-4">Manage how people can reach you and connect with your social presence.</p>
                     
@@ -1001,7 +1006,7 @@
                 </div>
 
                 <!-- ABOUT TAB (Phase 4C.1) -->
-                <div id="tab-about" class="tab-section space-y-6">
+                <div id="tab-about" class="tab-section space-y-6{% if settings_initial_tab == 'about' %} active{% endif %}">
                     <h2 class="text-3xl font-display font-bold text-white mb-2">About / Competitive DNA</h2>
                     <p class="text-gray-400 mb-4">Build your esports CV - visible on your public profile to recruiters and teammates.</p>
                     
@@ -1316,7 +1321,7 @@
                 </div>
 
                 <!-- RECRUITMENT TAB (Career & LFT) -->
-                <div id="tab-recruitment" class="tab-section space-y-6">
+                <div id="tab-recruitment" class="tab-section space-y-6{% if settings_initial_tab == 'recruitment' %} active{% endif %}">
                     <div class="flex justify-between items-center">
                         <h2 class="text-3xl font-display font-bold text-white">Career & LFT</h2>
                         <span class="bg-z-purple/10 text-z-purple border border-z-purple/20 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider">Visible to Recruiters</span>
@@ -1434,7 +1439,7 @@
                     </form>
                 </div>
 
-                <div id="tab-matchmaking" class="tab-section space-y-8">
+                <div id="tab-matchmaking" class="tab-section space-y-8{% if settings_initial_tab == 'matchmaking' %} active{% endif %}">
                   <div class="relative rounded-2xl overflow-hidden p-8 md:p-10"
                        style="background: linear-gradient(135deg, rgba(99,102,241,.20), rgba(255,70,85,.10) 60%, rgba(255,215,0,.08));
                               border: 1px solid rgba(99,102,241,.40);
@@ -1478,10 +1483,8 @@
                   </div>
                 </div>
 
-                </div>
-
                 <!-- PRIVACY TAB (PHASE 7C-P0: FULL MATRIX) -->
-                <div id="tab-privacy" class="tab-section space-y-6">
+                <div id="tab-privacy" class="tab-section space-y-6{% if settings_initial_tab == 'privacy' %} active{% endif %}">
                     <h2 class="text-3xl font-display font-bold text-white">Privacy & Visibility</h2>
                     
                     <form id="privacy-form">
@@ -1716,7 +1719,7 @@
                 </div>
 
                 <!-- PLATFORM TAB (PHASE 5A - GLOBAL WIRING) -->
-                <div id="tab-platform" class="tab-section space-y-6">
+                <div id="tab-platform" class="tab-section space-y-6{% if settings_initial_tab == 'platform' %} active{% endif %}">
                     <h2 class="text-3xl font-display font-bold text-white mb-2">Platform Preferences</h2>
                     <p class="text-gray-400 mb-8">Global settings for timezone, language, time format, and currency display.</p>
 
@@ -1792,7 +1795,7 @@
                 </div>
 
                 <!-- INVENTORY TAB (PHASE 3A - BETA, PHASE 4A UX, PHASE 4B ENHANCED) -->
-                <div id="tab-inventory" class="tab-section space-y-6">
+                <div id="tab-inventory" class="tab-section space-y-6{% if settings_initial_tab == 'inventory' %} active{% endif %}">
                     <h2 class="text-3xl font-display font-bold text-white">Inventory & Trade<span class="bg-yellow-500/20 text-yellow-500 px-2 py-1 rounded-lg text-xs font-bold ml-3">Beta</span></h2>
                     
                     <!-- My Inventory Viewer (PHASE 4B ENHANCED) -->
@@ -1942,7 +1945,7 @@
                 {% include "user_profile/profile/settings/partials/_game_passports.html" %}
 
                 <!-- LOADOUT TAB (MODERNIZED) -->
-                <div id="tab-loadout" class="tab-section space-y-6">
+                <div id="tab-loadout" class="tab-section space-y-6{% if settings_initial_tab == 'loadout' %} active{% endif %}">
 
                     {# ── Header ── #}
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -2163,7 +2166,7 @@
                 </div>
 
                 <!-- STREAM TAB (READY) -->
-                <div id="tab-stream" class="tab-section space-y-6">
+                <div id="tab-stream" class="tab-section space-y-6{% if settings_initial_tab == 'stream' %} active{% endif %}">
                     <h2 class="text-3xl font-display font-bold text-white">Stream Settings</h2>
                     <p class="text-gray-400">Link your streaming channel so fans can watch you live.</p>
                     
@@ -2193,7 +2196,7 @@
                 </div>
 
                 <!-- SECURITY TAB (PHASE 4C.3 - PRODUCTION READY) -->
-                <div id="tab-security" class="tab-section space-y-6">
+                <div id="tab-security" class="tab-section space-y-6{% if settings_initial_tab == 'security' %} active{% endif %}">
                     <h2 class="text-3xl font-display font-bold text-white">Security</h2>
                     <p class="text-gray-400 mb-6">Manage your account security, password, and active sessions</p>
                     
@@ -2362,7 +2365,7 @@
                     </div>
                 </div>
 
-                <div id="tab-notifications" class="tab-section space-y-6">
+                <div id="tab-notifications" class="tab-section space-y-6{% if settings_initial_tab == 'notifications' %} active{% endif %}">
                     <h2 class="text-3xl font-display font-bold text-white">Notifications</h2>
                     <p class="text-gray-400 mb-4">Control how and when you receive notifications</p>
                     
@@ -2496,7 +2499,7 @@
                 </div>
 
                 <!-- BILLING/WALLET TAB (READY) -->
-                <div id="tab-billing" class="tab-section space-y-6">
+                <div id="tab-billing" class="tab-section space-y-6{% if settings_initial_tab == 'billing' %} active{% endif %}">
                     <h2 class="text-3xl font-display font-bold text-white">Wallet</h2>
                     <div class="glass-panel p-8 bg-gradient-to-r from-z-gold/10 to-transparent border border-z-gold/20 relative overflow-hidden">
                         <div class="absolute -right-10 -top-10 w-40 h-40 bg-z-gold/20 rounded-full blur-3xl"></div>
@@ -2610,7 +2613,7 @@
                 </div>
 
                 <!-- COMMUNITY APPEARANCE TAB -->
-                <div id="tab-community" class="tab-section space-y-6">
+                <div id="tab-community" class="tab-section space-y-6{% if settings_initial_tab == 'community' %} active{% endif %}">
                     <div>
                         <h2 class="text-2xl font-display font-bold text-white">Community</h2>
                         <p class="text-sm text-gray-400 mt-1">Customise how the Community page looks and behaves for you. Changes are saved instantly.</p>
@@ -2772,7 +2775,7 @@
                 </script>
 
                 <!-- DANGER ZONE TAB -->
-                <div id="tab-danger" class="tab-section space-y-6">
+                <div id="tab-danger" class="tab-section space-y-6{% if settings_initial_tab == 'danger' %} active{% endif %}">
                     <h2 class="text-3xl font-display font-bold text-red-500">Danger Zone</h2>
                     
                     <!-- Deletion Status Display (shown if scheduled) -->
@@ -2857,6 +2860,54 @@
 </div>
 
 <script nonce="{{ request.csp_nonce }}">
+    const SETTINGS_INITIAL_TAB = '{{ settings_initial_tab|default:"identity"|escapejs }}';
+    const SETTINGS_HAS_SECTION_SLUG = '{{ settings_section_slug|default:""|escapejs }}' !== '';
+    const SETTINGS_BASE_URL = '{{ settings_base_url|default:"/me/settings/"|escapejs }}';
+    const SETTINGS_SECTION_SLUGS = JSON.parse('{{ settings_section_slugs_json|default:"{}"|escapejs }}');
+    const SETTINGS_TAB_URLS = JSON.parse('{{ settings_tab_urls_json|default:"{}"|escapejs }}');
+
+    function normalizeSettingsPath(pathname) {
+        if (!pathname) return '/';
+        return pathname.endsWith('/') ? pathname : pathname + '/';
+    }
+
+    function settingsTabFromPath(pathname) {
+        const currentPath = normalizeSettingsPath(pathname);
+        for (const [tab, url] of Object.entries(SETTINGS_TAB_URLS)) {
+            const tabPath = normalizeSettingsPath(new URL(url, window.location.origin).pathname);
+            if (currentPath === tabPath) return tab;
+        }
+        const slug = currentPath.replace(/\/$/, '').split('/').pop();
+        if (slug && SETTINGS_SECTION_SLUGS[slug]) return SETTINGS_SECTION_SLUGS[slug];
+        return null;
+    }
+
+    function settingsTabFromUrl() {
+        const pathTab = settingsTabFromPath(window.location.pathname);
+        if (pathTab && document.getElementById('tab-' + pathTab)) return pathTab;
+
+        const hashTab = window.location.hash ? window.location.hash.slice(1) : '';
+        if (hashTab && document.getElementById('tab-' + hashTab)) return hashTab;
+
+        const queryTab = new URLSearchParams(window.location.search).get('tab');
+        if (queryTab && document.getElementById('tab-' + queryTab)) return queryTab;
+
+        return null;
+    }
+
+    function settingsUrlForTab(tab) {
+        return SETTINGS_TAB_URLS[tab] || SETTINGS_BASE_URL;
+    }
+
+    function updateSettingsUrl(tab, replaceState = false) {
+        if (!window.history || !window.history.pushState) return;
+        const nextUrl = settingsUrlForTab(tab);
+        const nextPath = normalizeSettingsPath(new URL(nextUrl, window.location.origin).pathname);
+        const currentPath = normalizeSettingsPath(window.location.pathname);
+        if (nextPath === currentPath && !window.location.search && !window.location.hash) return;
+        const method = replaceState ? 'replaceState' : 'pushState';
+        window.history[method]({ settingsTab: tab }, '', nextUrl);
+    }
     // Get CSRF token — multiple fallbacks for CSRF_COOKIE_HTTPONLY=True
     function getCookie(name) {
         if (name === 'csrftoken') {
@@ -3066,36 +3117,53 @@
         setTimeout(() => feedback.remove(), 3000);
     }
 
-    // Save All Forms (header button)
+    const HEADER_SAVE_FORM_MAP = {
+        'tab-identity': 'identity-form',
+        'tab-about': 'about-form',
+        'tab-connections': 'connections-form',
+        'tab-recruitment': 'career-form',
+        'tab-privacy': 'privacy-form',
+        'tab-platform': 'platform-form',
+        'tab-notifications': 'notifications-form',
+        'tab-loadout': 'loadout-form',
+        'tab-stream': 'stream-form'
+    };
+
+    function updateHeaderSaveState(targetId) {
+        const saveBtn = document.getElementById('save-all-btn');
+        if (!saveBtn) return;
+
+        const activeTabId = targetId ? `tab-${targetId}` : document.querySelector('.tab-section.active')?.id;
+        const formId = activeTabId ? HEADER_SAVE_FORM_MAP[activeTabId] : null;
+        const canSave = Boolean(formId && document.getElementById(formId));
+        const label = saveBtn.querySelector('[data-save-label]');
+
+        saveBtn.disabled = !canSave;
+        saveBtn.setAttribute('aria-disabled', canSave ? 'false' : 'true');
+        saveBtn.title = canSave ? 'Save current section' : 'This section uses its own actions or has no single save action';
+        saveBtn.classList.toggle('opacity-50', !canSave);
+        saveBtn.classList.toggle('cursor-not-allowed', !canSave);
+        if (label) label.textContent = canSave ? 'Save' : 'No Save';
+    }
+
+    // Save current section from the header button.
     async function saveAll() {
-        if (!hasUnsavedChanges) {
-            showToast('No unsaved changes', 'info');
-            return;
-        }
-        
         const activeTab = document.querySelector('.tab-section.active');
         if (!activeTab) return;
         
-        const tabId = activeTab.id;
-        const formMap = {
-            'tab-identity': 'identity-form',
-            'tab-about': 'about-form',
-            'tab-connections': 'connections-form',
-            'tab-recruitment': 'career-form',
-            'tab-matchmaking': 'matchmaking-form',
-            'tab-notifications': 'notifications-form',
-            'tab-loadout': 'loadout-form',
-            'tab-stream': 'stream-form'
-        };
-        
-        const formId = formMap[tabId];
+        const formId = HEADER_SAVE_FORM_MAP[activeTab.id];
         if (!formId) {
-            showToast('No saveable form in current tab', 'info');
+            showToast('This section uses its own actions or has no single save action', 'info');
             return;
         }
         
         const form = document.getElementById(formId);
         if (!form) return;
+
+        if (!hasUnsavedChanges) {
+            showToast('No unsaved changes', 'info');
+            return;
+        }
         
         // Trigger the form's submit event
         const submitEvent = new Event('submit', { bubbles: true, cancelable: true });
@@ -3103,7 +3171,10 @@
     }
 
     // Tab switching
-    function switchTab(targetId) {
+    function switchTab(targetId, options = {}) {
+        const targetSection = document.getElementById('tab-' + targetId);
+        if (!targetSection) return false;
+
         // Hide all tabs
         document.querySelectorAll('.tab-section').forEach(el => el.classList.remove('active'));
 
@@ -3116,8 +3187,7 @@
         });
 
         // Show target
-        const targetSection = document.getElementById('tab-' + targetId);
-        if(targetSection) targetSection.classList.add('active');
+        targetSection.classList.add('active');
 
         // Highlight buttons
         document.querySelectorAll(`[data-target="${targetId}"]`).forEach(btn => {
@@ -3135,10 +3205,11 @@
             notifications: 'Notifications', recruitment: 'Career & LFT',
             passports: 'Game Passports', matchmaking: 'Competitive Hub',
             loadout: 'Pro Loadout', inventory: 'Inventory', stream: 'Live Feed',
-            billing: 'Wallet', danger: 'Danger Zone'
+            community: 'Community', billing: 'Wallet', danger: 'Danger Zone'
         };
         const headerLabel = document.getElementById('header-tab-label');
         if (headerLabel) headerLabel.textContent = tabLabelMap[targetId] || targetId;
+        updateHeaderSaveState(targetId);
 
         // PHASE 9A: Initialize Game Passports tab on first activation
         if (targetId === 'passports') {
@@ -3164,6 +3235,14 @@
             // Graceful degradation if localStorage unavailable
             console.warn('Could not persist tab selection:', e);
         }
+
+        if (options.pushState) {
+            updateSettingsUrl(targetId, false);
+        } else if (options.replaceState) {
+            updateSettingsUrl(targetId, true);
+        }
+
+        return true;
     }
 
     // Smart auto-fill for pronouns based on gender selection
@@ -4747,7 +4826,9 @@
                 'is_private_account', 'show_real_name', 'show_email', 'show_phone', 'show_age', 'show_gender', 'show_country',
                 'show_game_ids', 'show_match_history', 'show_teams', 'show_achievements',
                 'show_inventory_value', 'show_level_xp', 'show_social_links',  /* REMOVED: show_following_list */
-                'allow_team_invites', 'allow_friend_requests', 'allow_direct_messages'
+                'allow_team_invites', 'allow_friend_requests', 'allow_direct_messages',
+                'show_nationality', 'show_device_platform', 'show_play_style',
+                'show_roles', 'show_active_hours', 'show_preferred_contact'
             ];
             
             fields.forEach(field => {
@@ -5836,19 +5917,24 @@
 
     // Init
     document.addEventListener('DOMContentLoaded', () => {
-        // Phase 9A-10C: Restore last active tab from localStorage
-        let initialTab = 'identity';
-        try {
-            const savedTab = localStorage.getItem('settings_active_tab');
-            if (savedTab) {
-                // Verify tab exists before restoring
-                const targetSection = document.getElementById('tab-' + savedTab);
-                if (targetSection) {
-                    initialTab = savedTab;
+        // Phase 1A: URL section slug wins. Hash/query tab and localStorage remain fallbacks only without a section slug.
+        let initialTab = SETTINGS_INITIAL_TAB || 'identity';
+        const urlTab = settingsTabFromUrl();
+        if (urlTab) {
+            initialTab = urlTab;
+        } else if (!SETTINGS_HAS_SECTION_SLUG) {
+            try {
+                const savedTab = localStorage.getItem('settings_active_tab');
+                if (savedTab) {
+                    // Verify tab exists before restoring
+                    const targetSection = document.getElementById('tab-' + savedTab);
+                    if (targetSection) {
+                        initialTab = savedTab;
+                    }
                 }
+            } catch (e) {
+                console.warn('Could not restore tab selection:', e);
             }
-        } catch (e) {
-            console.warn('Could not restore tab selection:', e);
         }
         
         switchTab(initialTab);
@@ -5904,12 +5990,9 @@
         const targetTab = hash || tabParam;
         
         if (targetTab) {
-            // Find the corresponding nav link
-            const navLink = document.querySelector(`[data-nav="${targetTab}"]`);
-            if (navLink) {
-                // Simulate click to switch tab
-                navLink.click();
-                
+            if (document.getElementById('tab-' + targetTab)) {
+                switchTab(targetTab);
+
                 // Scroll to top after tab switch
                 setTimeout(() => {
                     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -6470,7 +6553,8 @@
         document.addEventListener('click', function(e) {
             const btn = e.target.closest('[data-target]');
             if (btn && (btn.classList.contains('nav-btn') || btn.classList.contains('mobile-nav-btn'))) {
-                switchTab(btn.dataset.target);
+                e.preventDefault();
+                switchTab(btn.dataset.target, { pushState: true });
             }
         });
 
@@ -6484,10 +6568,15 @@
             };
             for (const [key, tab] of Object.entries(tabMap)) {
                 if (text.includes(key.split(' ')[0]) && link.closest('.text-sm, .text-xs, p, strong')) {
-                    link.addEventListener('click', function(ev) { ev.preventDefault(); switchTab(tab); });
+                    link.addEventListener('click', function(ev) { ev.preventDefault(); switchTab(tab, { pushState: true }); });
                     break;
                 }
             }
+        });
+
+        window.addEventListener('popstate', function() {
+            const targetTab = settingsTabFromUrl() || 'identity';
+            switchTab(targetTab);
         });
 
         // 3. Save All button
@@ -6500,7 +6589,6 @@
             'connections-form': saveConnections,
             'about-form': saveAboutSettings,
             'career-form': saveCareerSettings,
-            'matchmaking-form': saveMatchmakingSettings,
             'privacy-form': savePrivacyFull,
             'platform-form': savePlatformSettings,
             'gift-form': sendGift,

@@ -26,6 +26,7 @@ from django.contrib import messages
 from django.urls import reverse
 from django.conf import settings
 from django.views.decorators.http import require_http_methods
+import json
 import logging
 import os
 
@@ -38,6 +39,62 @@ from apps.user_profile.models import UserProfile, SocialLink
 from apps.common.seo import absolute_url, breadcrumb_schema, build_seo, truncate_meta
 
 logger = logging.getLogger(__name__)
+
+
+SETTINGS_SECTION_SLUGS = {
+    "profile": "identity",
+    "contact-connections": "connections",
+    "about": "about",
+    "career-lft": "recruitment",
+    "competitive-profile": "about",
+    "game-passports": "passports",
+    "pro-loadout": "loadout",
+    "stream": "stream",
+    "privacy-safety": "privacy",
+    "security": "security",
+    "notifications": "notifications",
+    "platform-preferences": "platform",
+    "community-preferences": "community",
+    "assets-wallet": "billing",
+    "inventory": "inventory",
+    "danger-zone": "danger",
+}
+
+SETTINGS_TAB_SLUGS = {
+    "identity": "profile",
+    "connections": "contact-connections",
+    "about": "about",
+    "recruitment": "career-lft",
+    "passports": "game-passports",
+    "loadout": "pro-loadout",
+    "stream": "stream",
+    "privacy": "privacy-safety",
+    "security": "security",
+    "notifications": "notifications",
+    "platform": "platform-preferences",
+    "community": "community-preferences",
+    "billing": "assets-wallet",
+    "inventory": "inventory",
+    "danger": "danger-zone",
+}
+
+SETTINGS_TAB_LABELS = {
+    "identity": "Identity",
+    "connections": "Connections",
+    "about": "About",
+    "recruitment": "Career & LFT",
+    "passports": "Game Passports",
+    "loadout": "Pro Loadout",
+    "stream": "Live Feed",
+    "privacy": "Privacy & Visibility",
+    "security": "Security",
+    "notifications": "Notifications",
+    "platform": "Platform",
+    "community": "Community",
+    "billing": "Wallet",
+    "inventory": "Inventory",
+    "danger": "Danger Zone",
+}
 
 
 def format_time_range(time_str: str, time_format: str = '12h', timezone_str: str = 'BDT') -> str:
@@ -1527,11 +1584,11 @@ def profile_activity_view(request: HttpRequest, username: str) -> HttpResponse:
 
 @login_required
 @ensure_csrf_cookie
-def profile_settings_view(request: HttpRequest) -> HttpResponse:
+def profile_settings_view(request: HttpRequest, section: str = None) -> HttpResponse:
     """
     Profile settings page - owner-only.
     
-    Route: /me/settings/
+    Route: /me/settings/ or /me/settings/<section>/
     
     Shows:
     - Display name, bio, avatar, banner (edit forms)
@@ -1556,6 +1613,12 @@ def profile_settings_view(request: HttpRequest) -> HttpResponse:
     import logging
     
     logger = logging.getLogger(__name__)
+
+    selected_settings_tab = "identity"
+    if section:
+        selected_settings_tab = SETTINGS_SECTION_SLUGS.get(section)
+        if not selected_settings_tab:
+            raise Http404(f"Unknown settings section: {section}")
     
     # CRITICAL: Use direct DB query to get canonical profile instance
     user_profile = UserProfile.objects.select_related('user').get(user=request.user)
@@ -1708,6 +1771,16 @@ def profile_settings_view(request: HttpRequest) -> HttpResponse:
     # Add page metadata
     context['page_title'] = 'Profile Settings - DeltaCrown Esports'
     context['current_page'] = 'settings'
+    context['settings_section_slug'] = section or ''
+    context['settings_initial_tab'] = selected_settings_tab
+    context['settings_initial_tab_label'] = SETTINGS_TAB_LABELS.get(selected_settings_tab, 'Identity')
+    context['settings_section_slugs_json'] = json.dumps(SETTINGS_SECTION_SLUGS)
+    context['settings_tab_urls'] = {
+        tab: reverse('user_profile:profile_settings_section', kwargs={'section': slug})
+        for tab, slug in SETTINGS_TAB_SLUGS.items()
+    }
+    context['settings_tab_urls_json'] = json.dumps(context['settings_tab_urls'])
+    context['settings_base_url'] = reverse('user_profile:profile_settings')
     
     # Add UserProfile object for template access to FileFields (avatar, banner)
     context['user_profile'] = user_profile
@@ -1742,8 +1815,6 @@ def profile_settings_view(request: HttpRequest) -> HttpResponse:
     from apps.games.models import Game
     from apps.user_profile.services.game_passport_service import GamePassportService
     from apps.user_profile.models import SocialLink
-    import json
-    
     # TASK 1 FIX: Pass actual Game objects for template loop + schema matrix
     supported_game_slugs = list(SUPPORTED_GAMES.keys())
     games_queryset = Game.objects.filter(slug__in=supported_game_slugs).order_by('name')

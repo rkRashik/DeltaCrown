@@ -139,6 +139,9 @@
   }
 }
 
+/* ── Desktop-only: hide at mobile/tablet breakpoints (mobile uses .dc-home-m) */
+@media (max-width:1023px){.dc-home{display:none!important;}}
+
 /* ── Reduced-motion: kill all ambient + reveal animation ─────────────────── */
 @media (prefers-reduced-motion:reduce){
   .dc-home [data-anim]{animation:none !important;}
