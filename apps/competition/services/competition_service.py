@@ -223,9 +223,12 @@ class CompetitionService:
             is_global=True,
             query_count=2,
         )
-        cache.set(cache_key, response, CompetitionService.GLOBAL_RANKINGS_CACHE_TIMEOUT)
+        # Never cache an empty result: a transient zero would otherwise poison
+        # the cache for the full timeout and hide all teams from every visitor.
+        if total_count > 0:
+            cache.set(cache_key, response, CompetitionService.GLOBAL_RANKINGS_CACHE_TIMEOUT)
         return response
-    
+
     @staticmethod
     def get_game_rankings(
         game_id: str,
@@ -329,7 +332,8 @@ class CompetitionService:
                 is_global=False,
                 query_count=2,
             )
-            cache.set(cache_key, response, CompetitionService.GAME_RANKINGS_CACHE_TIMEOUT)
+            if total_count > 0:
+                cache.set(cache_key, response, CompetitionService.GAME_RANKINGS_CACHE_TIMEOUT)
             return response
 
         queryset = Team.objects.filter(
@@ -405,9 +409,10 @@ class CompetitionService:
             is_global=False,
             query_count=2,
         )
-        cache.set(cache_key, response, CompetitionService.GAME_RANKINGS_CACHE_TIMEOUT)
+        if total_count > 0:
+            cache.set(cache_key, response, CompetitionService.GAME_RANKINGS_CACHE_TIMEOUT)
         return response
-    
+
     @staticmethod
     def get_team_rank(team_id: int, game_id: Optional[str] = None) -> Dict:
         """

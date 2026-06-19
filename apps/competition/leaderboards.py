@@ -1,12 +1,39 @@
 """Leaderboard views for competition app (Phase 9 - Service Layer)."""
+import json
 from django.conf import settings
 from django.http import JsonResponse
 from django.shortcuts import render, get_object_or_404
 from django.template.response import TemplateResponse
+from django.utils.safestring import mark_safe
 from apps.competition.models import GameRankingConfig
 from apps.competition.services.competition_service import CompetitionService
 from apps.games.models import Game
 from apps.common.seo import breadcrumb_schema, build_seo
+
+
+def _entries_modal_json(entries):
+    """Serialize entries into a {team_url: {...}} map for the detail modal."""
+    data = {}
+    for e in entries:
+        data[e.team_url] = {
+            'name': e.team_name,
+            'tag': e.team_tag or '',
+            'url': e.team_url,
+            'logo': e.team_logo_url or '',
+            'banner': e.team_banner_url or '',
+            'org': e.organization_name or '',
+            'org_slug': e.organization_slug or '',
+            'independent': bool(e.is_independent),
+            'score': e.score,
+            'tier': e.tier,
+            'activity': e.activity_score,
+            'game': e.game_name or '',
+            'game_color': getattr(e, 'game_color', '#A9B1C2'),
+            'game_short': getattr(e, 'game_short', ''),
+            'rank': e.rank,
+            'roster': e.roster_avatars or [],
+        }
+    return mark_safe(json.dumps(data))
 
 
 def _ranking_itemlist_schema(entries, page_url):
@@ -206,6 +233,63 @@ def leaderboard_global(request):
     # Game configs for the game selector tabs
     game_configs = _get_game_configs_with_colors(user=request.user)
 
+    # Build sidebar games list from the Game model (only truly active games).
+    sidebar_games = []
+    try:
+        for _g in Game.objects.filter(is_active=True).order_by('name'):
+            sidebar_games.append({
+                'id': _g.id,
+                'short_code': _g.short_code or '',
+                'display_name': _g.display_name or _g.name,
+                'slug': _g.slug or '',
+                'color': _g.primary_color or '#64748b',
+                'icon_url': _g.icon.url if _g.icon else (_g.logo.url if _g.logo else None),
+            })
+    except Exception:
+        pass
+
+    # Enrich each entry with its game's accent color + short code.
+    from collections import Counter as _Counter
+    _game_meta = {}
+    for _sg in sidebar_games:
+        _dn = _sg['display_name']
+        _game_meta[_dn] = (_sg['color'], _sg['short_code'])
+    for _cfg in game_configs:
+        _game_meta.setdefault(_cfg.game_name, (_cfg.color, _cfg.game_id))
+        _dn = getattr(_cfg, 'display_name', None)
+        if _dn:
+            _game_meta.setdefault(_dn, (_cfg.color, _cfg.game_id))
+    _counts = _Counter((getattr(e, 'game_name', '') or '') for e in response.entries)
+    for _e in response.entries:
+        _gn = getattr(_e, 'game_name', '') or ''
+        _meta = _game_meta.get(_gn)
+        _e.game_color = _meta[0] if _meta else '#A9B1C2'
+        _e.game_short = _meta[1] if _meta else (_gn[:4].upper() if _gn else '')
+
+    # Build per-game sections for the global view (top 5 per game)
+    game_sections = []
+    entries_by_game = {}
+    for entry in response.entries:
+        gn = getattr(entry, 'game_name', '') or ''
+        if gn:
+            entries_by_game.setdefault(gn, []).append(entry)
+    for cfg in game_configs:
+        game_entries = entries_by_game.get(cfg.game_name, [])
+        if not game_entries:
+            game_entries = entries_by_game.get(getattr(cfg, 'display_name', ''), [])
+        if game_entries:
+            sec_max = max((e.score for e in game_entries), default=1) or 1
+            game_sections.append({
+                'game_id': cfg.game_id,
+                'display_name': getattr(cfg, 'display_name', cfg.game_name),
+                'game_name': cfg.game_name,
+                'color': cfg.color,
+                'icon_url': getattr(cfg, 'icon_url', None),
+                'entries': game_entries[:5],
+                'total_count': len(game_entries),
+                'max_score': sec_max,
+            })
+
     # AJAX load-more: return JSON
     if request.GET.get('format') == 'json' and request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return JsonResponse({
@@ -218,6 +302,7 @@ def leaderboard_global(request):
     context = {
         'rankings': response,
         'entries': response.entries,
+        'sidebar_games': sidebar_games,
         'total_count': response.total_count,
         'tier_filter': tier_filter,
         'verified_only': verified_only,
@@ -227,6 +312,8 @@ def leaderboard_global(request):
         'user_teams_display': user_teams_display,
         'query_count': response.query_count,
         'game_configs': game_configs,
+        'game_sections': game_sections,
+        'entries_json': _entries_modal_json(response.entries),
         'max_score': max_score,
         'selected_game': None,
         'selected_game_name': None,
@@ -248,7 +335,7 @@ def leaderboard_global(request):
     }
 
     response = render(request, 'competition/leaderboards/leaderboard_global.html', context)
-    # Ensure tests can inspect which template was used
+    response['Cache-Control'] = 'no-cache, no-store, must-revalidate'
     try:
         response.template_name = [ 'competition/leaderboards/leaderboard_global.html' ]
     except Exception:
@@ -316,6 +403,40 @@ def leaderboard_game(request, game_id):
     # Game configs for the game selector tabs
     game_configs = _get_game_configs_with_colors(user=request.user)
 
+    # Build sidebar games from Game model (same as global view)
+    sidebar_games = []
+    try:
+        for _g in Game.objects.filter(is_active=True).order_by('name'):
+            sidebar_games.append({
+                'id': _g.id,
+                'short_code': _g.short_code or '',
+                'display_name': _g.display_name or _g.name,
+                'slug': _g.slug or '',
+                'color': _g.primary_color or '#64748b',
+                'icon_url': _g.icon.url if _g.icon else (_g.logo.url if _g.logo else None),
+            })
+    except Exception:
+        pass
+
+    # Enrich each entry with its game's accent color + short code
+    from collections import Counter as _Counter
+    _game_meta = {}
+    for _sg in sidebar_games:
+        _game_meta[_sg['display_name']] = (_sg['color'], _sg['short_code'])
+    for _cfg in game_configs:
+        _game_meta.setdefault(_cfg.game_name, (_cfg.color, _cfg.game_id))
+        _dn = getattr(_cfg, 'display_name', None)
+        if _dn:
+            _game_meta.setdefault(_dn, (_cfg.color, _cfg.game_id))
+    _counts = _Counter((getattr(e, 'game_name', '') or '') for e in response.entries)
+    for _e in response.entries:
+        _gn = getattr(_e, 'game_name', '') or ''
+        _meta = _game_meta.get(_gn)
+        _e.game_color = _meta[0] if _meta else '#A9B1C2'
+        _e.game_short = _meta[1] if _meta else (_gn[:4].upper() if _gn else '')
+    for _cfg in game_configs:
+        _cfg.team_count = _counts.get(_cfg.game_name, 0)
+
     # AJAX load-more: return JSON
     if request.GET.get('format') == 'json' and request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return JsonResponse({
@@ -328,7 +449,9 @@ def leaderboard_game(request, game_id):
     context = {
         'rankings': response,
         'entries': response.entries,
+        'sidebar_games': sidebar_games,
         'total_count': response.total_count,
+        'entries_json': _entries_modal_json(response.entries),
         'game_config': game_config,
         'game_id': game_id,
         'tier_filter': tier_filter,
@@ -364,6 +487,7 @@ def leaderboard_game(request, game_id):
     }
 
     response = render(request, 'competition/leaderboards/leaderboard_global.html', context)
+    response['Cache-Control'] = 'no-cache, no-store, must-revalidate'
     try:
         response.template_name = [ 'competition/leaderboards/leaderboard_global.html' ]
     except Exception:
