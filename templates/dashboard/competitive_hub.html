@@ -1,50 +1,37 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}Competitive Hub - DeltaCrown{% endblock %}
+{% block title %}DeltaCrown Arena — Competitive{% endblock %}
 
 {% block extra_head %}
-  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="{% static 'dashboard/competitive-design-system.css' %}?v=20260518-x1">
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'dashboard/competitive-arena.css' %}?v=20260620">
   <script nonce="{{ request.csp_nonce }}">
     tailwind.config = {
       darkMode: 'class',
       theme: {
         extend: {
           fontFamily: {
-            sans: ['Inter', 'sans-serif'],
-            display: ['Rajdhani', 'sans-serif'],
+            display: ['Sora', 'system-ui'],
+            sans: ['Inter', 'system-ui'],
             mono: ['JetBrains Mono', 'monospace'],
           },
           colors: {
             dc: {
-              bg: '#010103',
-              surface: '#08080c',
-              panel: 'rgba(12, 12, 18, 0.75)',
-              border: 'rgba(255, 255, 255, 0.08)',
-              cyan: '#00e5ff',
-              cyanHover: '#66f0ff',
-              violet: '#8a2be2',
-              neon: '#ff0055',
-              gold: '#ffd700',
-              success: '#00fa9a',
-              warning: '#ff8c00',
+              bg: '#04060A',
+              surface: '#0A0D14',
+              panel: 'rgba(14,17,26,.7)',
+              border: 'rgba(255,255,255,.09)',
+              cyan: '#0A84FF',
+              violet: '#6849E5',
+              'violet-400': '#8470EE',
+              gold: '#CFA75A',
+              'gold-400': '#E2C588',
+              neon: '#BF3868',
+              'neon-display': '#E2557F',
+              success: '#2ECC71',
+              live: '#FF3B5C',
             },
-          },
-          animation: {
-            'spin-slow': 'spin 8s linear infinite',
-            'pulse-glow': 'pulseGlow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-            'float': 'float 5s ease-in-out infinite',
-            'slide-up': 'slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards',
-            'fade-in': 'fadeIn 0.4s ease-out forwards',
-            'shimmer': 'shimmer 2s linear infinite',
-          },
-          keyframes: {
-            pulseGlow: { '0%, 100%': { opacity: 1, filter: 'brightness(1)' }, '50%': { opacity: .7, filter: 'brightness(1.5)' } },
-            float: { '0%, 100%': { transform: 'translateY(0)' }, '50%': { transform: 'translateY(-8px)' } },
-            slideUp: { '0%': { transform: 'translateY(40px)', opacity: '0' }, '100%': { transform: 'translateY(0)', opacity: '1' } },
-            fadeIn: { '0%': { opacity: '0' }, '100%': { opacity: '1' } },
-            shimmer: { '0%': { backgroundPosition: '-1000px 0' }, '100%': { backgroundPosition: '1000px 0' } },
           },
         },
       },
@@ -54,870 +41,533 @@
 
 {% block extra_css %}
 <style>
-  body { background-color: #010103; color: #e2e8f0; }
-  ::-webkit-scrollbar { width: 6px; height: 6px; }
-  ::-webkit-scrollbar-track { background: #010103; }
-  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 10px; }
-  ::-webkit-scrollbar-thumb:hover { background: rgba(0, 229, 255, 0.4); }
-
-  .grid-bg {
-    position: fixed; inset: 0; z-index: -2;
-    background-size: 40px 40px;
-    background-image:
-      linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-      linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
-    -webkit-mask-image: radial-gradient(circle at center, black, transparent 80%);
-            mask-image: radial-gradient(circle at center, black, transparent 80%);
+  body { background-color: #04060A; }
+  ::selection { background: rgba(10,132,255,.3) }
+  .hidden-spa { display: none !important }
+  .field-input, .field-select {
+    width: 100%; padding: .85rem 1rem;
+    background: rgba(0,0,0,.6); border: 1px solid rgba(255,255,255,0.08);
+    color: #fff; border-radius: 12px; font-size: .9rem; font-weight: 500; transition: all 0.2s;
   }
-  .ambient-orbs {
-    position: fixed; inset: 0; z-index: -1; pointer-events: none;
-    background:
-      radial-gradient(circle at 15% 30%, rgba(138, 43, 226, 0.08) 0%, transparent 40%),
-      radial-gradient(circle at 85% 60%, rgba(0, 229, 255, 0.06) 0%, transparent 40%),
-      radial-gradient(circle at 50% 90%, rgba(255, 0, 85, 0.05) 0%, transparent 50%);
+  .field-input:focus, .field-select:focus {
+    outline: none; border-color: rgba(10,132,255,.5);
+    background: rgba(0,0,0,.8); box-shadow: 0 0 0 3px rgba(10,132,255,.10);
   }
-  .scanline-overlay {
-    position: fixed; inset: 0; z-index: 50; pointer-events: none; opacity: 0.03;
-    background: linear-gradient(to bottom, transparent 50%, rgba(0,0,0,1) 51%);
-    background-size: 100% 4px;
+  .field-input.is-invalid, .field-select.is-invalid {
+    border-color: rgba(191,56,104,.6) !important; box-shadow: 0 0 0 3px rgba(191,56,104,.10) !important;
   }
-  .hide-scrollbar::-webkit-scrollbar { display: none; }
-  .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-
-  .glass-heavy {
-    background: rgba(10, 10, 15, 0.8);
-    backdrop-filter: blur(40px) saturate(180%);
-    -webkit-backdrop-filter: blur(40px) saturate(180%);
-    border: 1px solid rgba(255,255,255,0.06);
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), 0 10px 40px -10px rgba(0,0,0,0.8);
+  .field-select {
+    appearance: none; -webkit-appearance: none; padding-right: 2.4rem;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23A1A1AA' stroke-width='2'><polyline points='6 9 12 15 18 9'/></svg>");
+    background-repeat: no-repeat; background-position: right .85rem center;
   }
-  .glass-light {
-    background: rgba(255, 255, 255, 0.02);
-    backdrop-filter: blur(20px);
-    border: 1px solid rgba(255,255,255,0.04);
+  .form-error {
+    margin-top: .65rem; padding: .55rem .85rem; border-radius: 10px;
+    background: rgba(191,56,104,.10); border: 1px solid rgba(191,56,104,.40);
+    color: #fca5a5; font-size: .75rem; font-weight: 600;
   }
-  .glass-light:hover { background: rgba(255, 255, 255, 0.04); border-color: rgba(255,255,255,0.1); }
-
-  .command-shell {
-    background:
-      linear-gradient(180deg, rgba(255,255,255,.065), rgba(255,255,255,.018)),
-      radial-gradient(circle at 18% 0%, rgba(0,229,255,.10), transparent 34%),
-      radial-gradient(circle at 88% 28%, rgba(255,215,0,.055), transparent 32%),
-      #07070d;
-    border: 1px solid rgba(255,255,255,.095);
-    box-shadow: 0 28px 90px -52px rgba(0,229,255,.55), 0 26px 70px -48px rgba(0,0,0,.95), inset 0 1px 0 rgba(255,255,255,.07);
-  }
-  .command-shell::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    opacity: .24;
-    background: linear-gradient(112deg, transparent 8%, rgba(255,255,255,.12) 45%, transparent 58%);
-    transform: translateX(-85%);
-    animation: softSweep 9s ease-in-out infinite;
-  }
-  .surface-card {
-    background: linear-gradient(145deg, rgba(255,255,255,.07), rgba(255,255,255,.018));
-    border: 1px solid rgba(255,255,255,.085);
-    box-shadow: 0 18px 52px -36px rgba(0,0,0,.92), inset 0 1px 0 rgba(255,255,255,.055);
-  }
-  .surface-card:hover {
-    border-color: rgba(255,255,255,.18);
-    transform: translateY(-2px);
-    box-shadow: 0 24px 60px -38px rgba(0,229,255,.45), inset 0 1px 0 rgba(255,255,255,.075);
-  }
-  .interactive-lift {
-    transition: transform .22s cubic-bezier(.16,1,.3,1), border-color .22s ease, background .22s ease, box-shadow .22s ease, opacity .22s ease;
-  }
-  .interactive-lift:active { transform: translateY(0) scale(.985); }
-  .section-kicker {
-    font-size: .62rem;
-    line-height: 1;
-    font-weight: 900;
-    letter-spacing: .22em;
-    text-transform: uppercase;
-    color: rgba(148,163,184,.76);
-  }
-  .selector-menu {
-    opacity: 0;
-    transform: translateY(-8px) scale(.98);
-    pointer-events: none;
-    transition: opacity .18s ease, transform .18s cubic-bezier(.16,1,.3,1), border-color .18s ease;
-  }
-  .selector-menu.is-open {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-    pointer-events: auto;
-  }
-  .drawer-panel {
-    transition: transform .42s cubic-bezier(.16,1,.3,1), opacity .28s ease;
-    opacity: 1;
-  }
-  .drawer-panel.translate-x-full { opacity: .58; }
-  .drawer-section {
-    border: 1px solid rgba(255,255,255,.075);
-    background: linear-gradient(145deg, rgba(255,255,255,.05), rgba(255,255,255,.015));
-    border-radius: 1rem;
-    padding: 1rem;
-  }
-  .live-dot {
-    position: relative;
-  }
-  .live-dot::after {
-    content: '';
-    position: absolute;
-    inset: -.35rem;
-    border-radius: 999px;
-    border: 1px solid currentColor;
-    opacity: .24;
-    animation: liveRing 2.4s ease-out infinite;
-  }
-  @keyframes softSweep {
-    0%, 45% { transform: translateX(-85%); opacity: 0; }
-    55% { opacity: .22; }
-    100% { transform: translateX(85%); opacity: 0; }
-  }
-  @keyframes liveRing {
-    0% { transform: scale(.7); opacity: .3; }
-    100% { transform: scale(1.55); opacity: 0; }
-  }
-  @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; }
-    .interactive-lift, .premium-card, .surface-card, .action-dock-card { transition: none !important; }
-  }
-
+  .form-error.hidden { display: none }
+  .modal-shell { position: fixed; inset: 0; background: rgba(0,0,0,.7); backdrop-filter: blur(8px); z-index: 140; display: flex; align-items: center; justify-content: center; padding: 1rem }
+  .modal-card { max-width: 28rem; width: 100%; padding: 1.75rem; border-radius: 24px; background: linear-gradient(180deg, rgba(20,20,28,.95), rgba(10,10,15,.98)); border: 1px solid rgba(255,255,255,.10); box-shadow: 0 24px 64px -12px rgba(0,0,0,.8) }
   .btn-cyber {
     position: relative; overflow: hidden; transition: all 0.3s;
     clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
   }
   .btn-cyber::before {
     content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-    transition: all 0.5s;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent); transition: all 0.5s;
   }
-  .btn-cyber:hover::before { left: 100%; }
-  .btn-cyber:disabled { opacity: .55; cursor: not-allowed; filter: grayscale(.5); }
-  .btn-cyber:disabled::before { display: none; }
-
-  .text-gradient-cyan { background: linear-gradient(to right, #ffffff, #00e5ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-  .text-gradient-gold { background: linear-gradient(to right, #ffd700, #ffaa00); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-  .text-gradient-violet { background: linear-gradient(to right, #ffffff, #8a2be2); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-
-  .hidden-spa { display: none !important; }
-  .fade-enter { animation: fadeIn 0.3s ease-out forwards; }
-  .skeleton-block {
-    background: #111;
-    background-image: linear-gradient(to right, #111 0%, #222 20%, #111 40%, #111 100%);
-    background-repeat: no-repeat;
-    background-size: 1000px 100%;
-    animation: shimmer 2s infinite linear forwards;
+  .btn-cyber:hover::before { left: 100% }
+  .btn-cyber:disabled { opacity: .55; cursor: not-allowed; filter: grayscale(.5) }
+  .btn-cyber:disabled::before { display: none }
+  .glass-heavy {
+    background: rgba(10,10,15,0.8); backdrop-filter: blur(40px) saturate(180%);
+    border: 1px solid rgba(255,255,255,0.06);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), 0 10px 40px -10px rgba(0,0,0,0.8);
   }
-
-  .tab-content { display: none; }
-  .tab-content.active { display: block; animation: tabReveal 0.28s cubic-bezier(.16,1,.3,1); }
-  .tab-trigger { will-change: transform; }
-  .tab-trigger:hover { transform: translateY(-2px); }
-  .tab-trigger.active { background: rgba(255,255,255,0.065); border-color: rgba(255,255,255,0.18) !important; box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 16px 42px -34px rgba(0,229,255,.8); }
-  .tab-trigger.active i { color: #fff; }
-  .tab-trigger.active span { color: #fff; }
-  @keyframes tabReveal {
-    from { opacity: 0; transform: translateY(8px); }
-    to { opacity: 1; transform: translateY(0); }
+  .drawer-panel {
+    transition: transform .42s cubic-bezier(.16,1,.3,1), opacity .28s ease; opacity: 1;
   }
-
-  .command-metric {
-    position: relative;
-    overflow: hidden;
-    border-radius: 18px;
-    background: linear-gradient(135deg, rgba(255,255,255,.075), rgba(255,255,255,.018));
-    border: 1px solid rgba(255,255,255,.085);
-    box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
+  .drawer-panel.translate-x-full { opacity: .58 }
+  .drawer-section {
+    border: 1px solid rgba(255,255,255,.075);
+    background: linear-gradient(145deg, rgba(255,255,255,.05), rgba(255,255,255,.015));
+    border-radius: 1rem; padding: 1rem;
   }
-  .command-metric::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    opacity: .36;
-    pointer-events: none;
-    background: linear-gradient(110deg, transparent 0%, rgba(255,255,255,.08) 48%, transparent 60%);
-    transform: translateX(-120%);
-    transition: transform .7s cubic-bezier(.16,1,.3,1);
+  .guide-shell { max-width: 76rem; max-height: min(88vh, 860px); overflow: hidden; padding: 0 }
+  .guide-tab.is-active { border-color: rgba(10,132,255,.42); background: rgba(10,132,255,.12); color: #93c5fd }
+  .guide-panel { display: none }
+  .guide-panel.is-active { display: block }
+  .guide-rail { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .5rem }
+  .guide-rail span {
+    min-height: 5.9rem; border-radius: 1rem; border: 1px solid rgba(255,255,255,.09);
+    background: linear-gradient(180deg, rgba(255,255,255,.065), rgba(255,255,255,.025));
+    padding: .85rem .7rem; text-align: left; color: rgba(226,232,240,.78);
   }
-  .command-metric:hover::after { transform: translateX(120%); }
-  .status-rail {
-    display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-    gap: .35rem;
+  .guide-rail strong { display: block; font-size: .64rem; font-weight: 950; letter-spacing: .12em; text-transform: uppercase; color: #fff }
+  .guide-rail small { display: block; margin-top: .45rem; font-size: .68rem; line-height: 1.25; color: rgba(203,213,225,.68) }
+  .selector-menu {
+    opacity: 0; transform: translateY(-8px) scale(.98); pointer-events: none;
+    transition: opacity .18s ease, transform .18s cubic-bezier(.16,1,.3,1);
   }
-  .status-rail span {
-    height: 4px;
-    border-radius: 999px;
-    background: rgba(255,255,255,.10);
-  }
-  .status-rail span.is-on { background: currentColor; box-shadow: 0 0 12px currentColor; }
-  .premium-card {
-    background: linear-gradient(145deg, rgba(255,255,255,.075), rgba(255,255,255,.018));
-    border: 1px solid rgba(255,255,255,.08);
-    box-shadow: 0 20px 60px -28px rgba(0,0,0,.9), inset 0 1px 0 rgba(255,255,255,.05);
-  }
-  .premium-card:hover {
-    transform: translateY(-2px);
-    border-color: rgba(255,255,255,.18);
-  }
-  .guidance-card {
-    position: relative;
-    overflow: hidden;
-    border-radius: 18px;
-    background: linear-gradient(145deg, rgba(255,255,255,.07), rgba(255,255,255,.018));
-    border: 1px solid rgba(255,255,255,.085);
-  }
-  .guidance-card::before {
-    content: '';
-    position: absolute;
-    inset: 0 auto 0 0;
-    width: 3px;
-    background: currentColor;
-    opacity: .75;
-  }
-  .flow-node {
-    min-width: 0;
-    border-radius: 16px;
-    border: 1px solid rgba(255,255,255,.08);
-    background: rgba(0,0,0,.26);
-    padding: .85rem;
-  }
-  .action-dock-card {
-    position: relative;
-    overflow: hidden;
-    border-radius: 22px;
-    background: linear-gradient(145deg, rgba(255,255,255,.075), rgba(255,255,255,.02));
-    border: 1px solid rgba(255,255,255,.085);
-    transition: transform .22s cubic-bezier(.16,1,.3,1), border-color .22s ease, background .22s ease, box-shadow .22s ease;
-  }
-  .action-dock-card:hover {
-    transform: translateY(-3px);
-    border-color: rgba(255,255,255,.2);
-    background: linear-gradient(145deg, rgba(255,255,255,.105), rgba(255,255,255,.035));
-    box-shadow: 0 24px 64px -42px rgba(0,229,255,.55);
-  }
-  .action-dock-card:active { transform: translateY(-1px) scale(.99); }
-  .guide-chip {
-    border: 1px solid rgba(255,255,255,.1);
-    background: rgba(255,255,255,.045);
-    border-radius: 999px;
-    padding: .45rem .7rem;
-    font-size: .68rem;
-    font-weight: 800;
-    letter-spacing: .11em;
-    text-transform: uppercase;
-    color: rgba(226,232,240,.8);
-  }
-
-  /* Accent rings on cards */
-  .accent-cyan   { border-color: rgba(0,229,255,.18) !important; }
-  .accent-cyan:hover   { border-color: rgba(0,229,255,.55) !important; box-shadow: 0 16px 56px -14px rgba(0,229,255,.50), 0 0 28px -4px rgba(0,229,255,.35); }
-  .accent-violet { border-color: rgba(138,43,226,.18) !important; }
-  .accent-violet:hover { border-color: rgba(138,43,226,.55) !important; box-shadow: 0 16px 56px -14px rgba(138,43,226,.55); }
-  .accent-neon   { border-color: rgba(255,0,85,.18) !important; }
-  .accent-neon:hover   { border-color: rgba(255,0,85,.55) !important; box-shadow: 0 16px 56px -14px rgba(255,0,85,.50); }
-  .accent-gold   { border-color: rgba(255,215,0,.18) !important; }
-  .accent-gold:hover   { border-color: rgba(255,215,0,.55) !important; box-shadow: 0 16px 56px -14px rgba(255,215,0,.40); }
-
-  /* Form fields inside slide-overs */
-  .field-input, .field-select {
-    width: 100%; padding: .85rem 1rem;
-    background: rgba(0,0,0,.6);
-    border: 1px solid rgba(255,255,255,0.08);
-    color: #fff; border-radius: 12px;
-    font-size: .9rem; font-weight: 500;
-    transition: all 0.2s;
-  }
-  .field-input:focus, .field-select:focus {
-    outline: none;
-    border-color: rgba(0,229,255,.5);
-    background: rgba(0,0,0,.8);
-    box-shadow: 0 0 0 3px rgba(0,229,255,.10);
-  }
-  .field-input.is-invalid, .field-select.is-invalid {
-    border-color: rgba(255,0,85,.6) !important;
-    box-shadow: 0 0 0 3px rgba(255,0,85,.10) !important;
-  }
-  .field-select { appearance: none; -webkit-appearance: none; padding-right: 2.4rem;
-    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23A1A1AA' stroke-width='2'><polyline points='6 9 12 15 18 9'/></svg>");
-    background-repeat: no-repeat; background-position: right .85rem center;
-  }
-  .form-error {
-    margin-top: .65rem; padding: .55rem .85rem; border-radius: 10px;
-    background: rgba(255,0,85,.10); border: 1px solid rgba(255,0,85,.40);
-    color: #fca5a5; font-size: .75rem; font-weight: 600;
-  }
-  .form-error.hidden { display: none; }
-
-  /* Confirmation modal */
-  .modal-shell { position: fixed; inset: 0; background: rgba(0,0,0,.7); backdrop-filter: blur(8px); z-index: 140; display: flex; align-items: center; justify-content: center; padding: 1rem; }
-  .modal-card { max-width: 28rem; width: 100%; padding: 1.75rem; border-radius: 24px; background: linear-gradient(180deg, rgba(20,20,28,.95), rgba(10,10,15,.98)); border: 1px solid rgba(255,255,255,.10); box-shadow: 0 24px 64px -12px rgba(0,0,0,.8), 0 0 60px -10px rgba(0,229,255,.30); }
-  .modal-card.modal-wide { max-width: 48rem; }
-  .guide-shell { max-width: 76rem; max-height: min(88vh, 860px); overflow: hidden; padding: 0; }
-  .guide-tab.is-active { border-color: rgba(34,211,238,.42); background: rgba(34,211,238,.12); color: #a5f3fc; }
-  .guide-panel { display: none; }
-  .guide-panel.is-active { display: block; animation: tabReveal .24s cubic-bezier(.16,1,.3,1); }
-  .guide-rail { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .5rem; }
-  .guide-rail span { min-height: 5.9rem; border-radius: 1rem; border: 1px solid rgba(255,255,255,.09); background: linear-gradient(180deg, rgba(255,255,255,.065), rgba(255,255,255,.025)); padding: .85rem .7rem; text-align: left; color: rgba(226,232,240,.78); }
-  .guide-rail strong { display: block; font-size: .64rem; font-weight: 950; letter-spacing: .12em; text-transform: uppercase; color: #fff; }
-  .guide-rail small { display: block; margin-top: .45rem; font-size: .68rem; line-height: 1.25; color: rgba(203,213,225,.68); }
-  .competitive-search-icon { left: 1.1rem; top: 50%; width: 2.2rem; height: 2.2rem; transform: translateY(-50%); border-radius: .9rem; background: rgba(255,255,255,.045); border: 1px solid rgba(255,255,255,.07); color: rgba(148,163,184,.82); }
-  .competitive-search-input { height: 3.25rem; padding-left: 4.9rem !important; padding-right: 1rem; }
-  .bounty-team-mark { width: 9rem; height: 9rem; border-radius: 2.15rem; border: 1px solid rgba(255,255,255,.18); background: radial-gradient(circle at 35% 18%, rgba(255,255,255,.16), transparent 34%), #07070b; box-shadow: 0 24px 64px -40px rgba(255,0,85,.95), inset 0 1px 0 rgba(255,255,255,.10); }
-  .bounty-team-mark img { width: 100%; height: 100%; object-fit: contain; padding: .45rem; filter: drop-shadow(0 12px 24px rgba(0,0,0,.58)); transform: scale(1.08); }
-  .bounty-team-mark[data-has-logo="true"] { background: radial-gradient(circle at 50% 18%, rgba(255,255,255,.14), transparent 38%), linear-gradient(145deg, rgba(255,255,255,.11), rgba(255,255,255,.032)), #09090f; }
-  .bounty-team-mark.is-fallback { display: flex; align-items: center; justify-content: center; color: #fff; font-family: Rajdhani, sans-serif; font-weight: 950; font-size: 2.35rem; letter-spacing: .04em; }
-  @media (max-width: 640px) {
-    .guide-shell { max-height: 92vh; }
-    .guide-rail { grid-template-columns: 1fr; }
-    .competitive-search-input { padding-left: 4.65rem !important; }
-  }
+  .selector-menu.is-open { opacity: 1; transform: translateY(0) scale(1); pointer-events: auto }
+  @media (max-width: 640px) { .guide-shell { max-height: 92vh } .guide-rail { grid-template-columns: 1fr } }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="grid-bg"></div>
-<div class="ambient-orbs"></div>
-<div class="scanline-overlay"></div>
+<div class="dc-arena" id="main-app">
 
-<main class="dcx-no-x max-w-[1840px] mx-auto min-h-screen flex flex-col pt-6 sm:pt-8 pb-20 px-4 sm:px-6 lg:px-8 relative" id="main-app">
-
-  {# ── HERO ───────────────────────────────────────────────────────────── #}
-  <section id="smart-hero" class="dcx-command command-shell relative w-full rounded-[2rem] overflow-hidden mb-6 flex-shrink-0 transition-all duration-500 min-h-[250px] flex items-center">
-    <div id="hero-bg" class="absolute inset-0 z-0 opacity-40 mix-blend-screen bg-cover bg-center transition-all duration-700"
-         style="background-image: url('https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=2070&auto=format&fit=crop');"></div>
-    <div class="absolute inset-0 bg-gradient-to-r from-dc-bg via-dc-bg/95 via-58% to-dc-bg/35 z-10"></div>
-
-    <div class="relative z-20 w-full px-6 md:px-10 lg:px-14 py-8 flex flex-col md:flex-row items-center justify-between gap-8">
-      <div class="max-w-3xl w-full">
-        <div class="inline-flex items-center gap-2 px-3 py-1.5 bg-dc-cyan/10 border border-dc-cyan/25 rounded-full mb-5 shadow-[0_0_28px_-18px_rgba(0,229,255,.9)]">
-          <span class="live-dot w-2 h-2 rounded-full bg-dc-cyan text-dc-cyan"></span>
-          <span class="text-[10px] font-bold uppercase tracking-widest text-dc-cyan">Competitive Hub Live</span>
-        </div>
-        <h1 id="hero-title" class="font-display text-4xl md:text-6xl font-black text-white mb-3 leading-[1.05] tracking-tight uppercase">
-          DeltaCrown <span class="text-gradient-cyan">Competitive Hub</span>
-        </h1>
-        <p id="hero-desc" class="text-gray-400 text-sm md:text-base mb-5 max-w-2xl leading-relaxed font-medium">
-          Initializing competitive engine&hellip;
-        </p>
-        <div class="flex flex-wrap items-center gap-3">
+  {# ── MARQUEE ─────────────────────────────────────────────────────── #}
+  <div class="dc-app">
+    <section id="smart-hero" class="dc-marquee dc-marquee-match" style="min-height:180px">
+      <div class="relative z-10 p-6 md:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-2 mb-3">
+            <span class="dc-live-dot w-2 h-2 rounded-full bg-[var(--dc-azure)]" style="color:var(--dc-azure)"></span>
+            <span class="text-[10px] font-bold uppercase tracking-[.22em]" style="color:var(--dc-azure)" id="marquee-eyebrow">COMPETITIVE HUB LIVE</span>
+          </div>
+          <h1 id="hero-title" class="font-display text-2xl md:text-3xl font-extrabold text-white mb-2 leading-tight">
+            DeltaCrown <span style="color:var(--dc-azure)">Arena</span>
+          </h1>
+          <p id="hero-desc" class="text-sm text-[var(--dc-ink-300)] mb-4 max-w-xl leading-relaxed">Initializing competitive engine&hellip;</p>
           <div id="hero-actions" class="flex flex-wrap items-center gap-3"></div>
-          <button type="button" data-open-guide class="dcx-btn dcx-btn-ghost interactive-lift inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.05] px-4 py-3 text-[10px] font-black uppercase tracking-widest text-gray-300 hover:text-white hover:bg-white/[0.09] hover:border-white/20 transition">
-            <i class="fa-solid fa-circle-question text-dc-cyan"></i> How this works
-          </button>
         </div>
-        <div id="operating-team-switcher" class="hidden-spa mt-5 max-w-xl rounded-2xl border border-white/10 bg-black/35 p-3">
-          <div class="flex flex-col sm:flex-row sm:items-center gap-3">
-            <div class="min-w-0 flex-1">
-              <label for="operating-team-select" class="block text-[9px] uppercase tracking-[0.22em] text-gray-500 font-black mb-1">Operating Team</label>
-              <select id="operating-team-select" class="field-select !py-2.5 text-sm"></select>
-            </div>
-            <div class="sm:w-56">
-              <p id="operating-team-hint" class="text-[10px] leading-relaxed text-gray-400">Team context controls Showdown, Bounty, and team-scoped operations. Missions stay solo.</p>
-            </div>
-          </div>
-        </div>
-        <div id="hero-command-strip" class="grid grid-cols-2 md:grid-cols-5 gap-2 mt-6 max-w-4xl">
-          <div class="command-metric p-3">
-            <p class="text-[9px] uppercase tracking-widest text-gray-500 font-black">Active Ops</p>
-            <p id="metric-active-ops" class="font-display text-2xl font-black text-white leading-none mt-1">--</p>
-          </div>
-          <div class="command-metric p-3">
-            <p class="text-[9px] uppercase tracking-widest text-gray-500 font-black">Upcoming</p>
-            <p id="metric-upcoming" class="font-display text-2xl font-black text-dc-cyan leading-none mt-1">--</p>
-          </div>
-          <div class="command-metric p-3">
-            <p class="text-[9px] uppercase tracking-widest text-gray-500 font-black">Review</p>
-            <p id="metric-review" class="font-display text-2xl font-black text-dc-neon leading-none mt-1">--</p>
-          </div>
-          <div class="command-metric p-3">
-            <p class="text-[9px] uppercase tracking-widest text-gray-500 font-black">Team Ops</p>
-            <p id="metric-team-ops" class="font-display text-2xl font-black text-emerald-300 leading-none mt-1">--</p>
-          </div>
-          <div class="command-metric p-3 col-span-2 md:col-span-1">
-            <p class="text-[9px] uppercase tracking-widest text-gray-500 font-black">Rewards</p>
-            <p id="metric-rewards" class="font-display text-2xl font-black text-dc-gold leading-none mt-1">--</p>
-          </div>
-        </div>
-      </div>
-      <div id="hero-visualizer" class="hidden lg:flex flex-col items-end justify-center w-72 flex-shrink-0"></div>
-    </div>
-  </section>
-
-  <section class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-7" id="action-dock">
-    <button type="button" data-open-slide="create-clash" id="dock-create-showdown" class="dcx-card action-dock-card p-4 sm:p-5 text-left">
-      <i class="fa-solid fa-bolt text-dc-cyan mb-3"></i>
-      <p class="text-sm font-black text-white">Create Showdown</p>
-      <p class="text-[10px] text-gray-500 mt-1">Team vs team challenge</p>
-    </button>
-    <button type="button" data-go-tab="missions" class="dcx-card action-dock-card p-4 sm:p-5 text-left">
-      <i class="fa-solid fa-scroll text-dc-violet mb-3"></i>
-      <p class="text-sm font-black text-white">Browse Missions</p>
-      <p class="text-[10px] text-gray-500 mt-1">Solo progression path</p>
-    </button>
-    <button type="button" data-go-tab="bounty" class="dcx-card action-dock-card p-4 sm:p-5 text-left">
-      <i class="fa-solid fa-crosshairs text-dc-neon mb-3"></i>
-      <p class="text-sm font-black text-white">Open Bounty Board</p>
-      <p class="text-[10px] text-gray-500 mt-1">Post or claim team rewards</p>
-    </button>
-    <button type="button" data-go-tab="dropzone" class="dcx-card action-dock-card p-4 sm:p-5 text-left">
-      <i class="fa-solid fa-parachute-box text-dc-gold mb-3"></i>
-      <p class="text-sm font-black text-white">Enter Dropzone</p>
-      <p class="text-[10px] text-gray-500 mt-1">Reserve battle royale slots</p>
-    </button>
-  </section>
-
-  {# ── 3-COLUMN ARENA CORE ────────────────────────────────────────────── #}
-  <div class="grid grid-cols-1 xl:grid-cols-12 gap-6 lg:gap-7 flex-grow relative" id="arena-core-grid">
-
-    {# ── LEFT COLUMN ─────────────────────────────────────────────── #}
-    <aside class="hidden" id="col-left">
-
-      {# Operating Entity #}
-      <div class="glass-heavy rounded-2xl p-6 relative overflow-hidden border-t-2 border-t-dc-violet group">
-        <div class="absolute -right-10 -top-10 w-32 h-32 bg-dc-violet opacity-20 blur-[40px] rounded-full group-hover:opacity-40 transition-opacity"></div>
-        <div class="flex justify-between items-center mb-5">
-          <h3 class="text-[10px] uppercase font-bold text-gray-500 tracking-widest flex items-center gap-2">
-            <i class="fa-solid fa-microchip"></i> Operating Entity
-          </h3>
-        </div>
-        <div id="context-identity-card" class="flex items-center gap-4 bg-white/5 p-3 rounded-xl border border-white/5 mb-5">
-          <div class="w-12 h-12 rounded-lg bg-gray-800 border border-white/10 overflow-hidden flex items-center justify-center" id="ctx-avatar">
-            <span class="text-dc-cyan font-bold text-sm" id="ctx-avatar-fallback">--</span>
-          </div>
-          <div class="flex-grow">
-            <p class="font-bold text-white text-sm leading-tight" id="ctx-name">--</p>
-            <p class="text-[10px] text-dc-cyan font-bold uppercase tracking-widest" id="ctx-role">--</p>
-          </div>
-        </div>
-        <div id="context-stats-grid" class="grid grid-cols-2 gap-3">
-          <div class="bg-black/40 rounded-lg p-3 border border-white/5">
-            <p class="text-[9px] text-gray-500 uppercase font-bold mb-1">Active Ops</p>
-            <p class="font-mono text-lg text-white font-bold" id="ctx-stat-1">--</p>
-          </div>
-          <div class="bg-black/40 rounded-lg p-3 border border-white/5">
-            <p class="text-[9px] text-gray-500 uppercase font-bold mb-1">Authority</p>
-            <p class="font-mono text-lg text-white font-bold" id="ctx-stat-2">--</p>
-          </div>
-        </div>
-      </div>
-
-      {# Financial Ledger #}
-      <div class="glass-heavy rounded-2xl p-6 border-t-2 border-t-dc-gold">
-        <div class="flex justify-between items-center mb-5">
-          <h3 class="text-[10px] uppercase font-bold text-gray-500 tracking-widest flex items-center gap-2">
-            <i class="fa-solid fa-vault"></i> Financial Ledger
-          </h3>
-          <i class="fa-solid fa-circle-info text-gray-600 text-xs"></i>
-        </div>
-        <div class="relative bg-gradient-to-br from-[#1a1a1a] to-[#0a0a0a] rounded-xl p-6 border border-dc-gold/20 overflow-hidden mb-4 shadow-[inset_0_0_20px_rgba(0,0,0,0.8)]">
-          <div class="relative z-10">
-            <p class="text-[10px] text-gray-400 uppercase tracking-widest mb-1 font-bold" id="wallet-type-label">Personal Wallet</p>
-            <div class="flex items-end gap-2 mb-2">
-              <i class="fa-solid fa-coins text-dc-gold text-2xl mb-1"></i>
-              <span class="font-display font-black text-4xl text-transparent bg-clip-text bg-gradient-to-b from-white to-gray-400" id="wallet-balance">--</span>
-              <span class="text-sm font-bold text-gray-500 mb-1.5">DC</span>
-            </div>
-          </div>
-        </div>
-        <div class="bg-black/40 rounded-lg p-3 border border-white/5 flex justify-between items-center mb-5">
-          <div class="flex items-center gap-3">
-            <div class="w-8 h-8 rounded bg-white/5 flex items-center justify-center border border-white/10">
-              <i class="fa-solid fa-lock text-gray-400 text-xs"></i>
-            </div>
-            <div>
-              <p class="text-[10px] uppercase font-bold text-gray-500">Escrow Locked</p>
-              <p class="font-mono text-sm font-bold text-white" id="wallet-escrow">-- DC</p>
-            </div>
-          </div>
-          <a href="{% url 'economy:wallet_hub' %}" class="text-[10px] text-dc-cyan uppercase font-bold hover:underline">View Ledger</a>
-        </div>
-        <a href="{% url 'economy:wallet_hub' %}?tab=acquire" class="block w-full bg-white/5 hover:bg-white/10 border border-white/10 text-white py-3 rounded-lg text-xs font-bold uppercase tracking-widest text-center transition-all hover:border-white/30 no-underline">
-          Access Treasury
-        </a>
-      </div>
-
-      {# My Operations #}
-      <div class="glass-heavy rounded-2xl p-6 flex-grow flex flex-col">
-        <div class="flex justify-between items-center mb-5">
-          <h3 class="text-[10px] uppercase font-bold text-gray-500 tracking-widest flex items-center gap-2">
-            <i class="fa-solid fa-bars-progress"></i> My Operations
-          </h3>
-          <span class="bg-dc-cyan/20 border border-dc-cyan/30 text-dc-cyan text-[9px] px-2 py-0.5 rounded font-black tracking-widest" id="ops-count-legacy">-- ACTIVE</span>
-        </div>
-        <div id="active-ops-container-legacy" class="space-y-3 flex-grow overflow-y-auto pr-1 min-h-[200px]">
-          <div class="text-center py-8 text-xs text-gray-600">Loading&hellip;</div>
-        </div>
-      </div>
-    </aside>
-
-    {# ── CENTER COLUMN ───────────────────────────────────────────── #}
-    <section class="xl:col-span-8 2xl:col-span-9 flex flex-col min-h-[760px]" id="col-center">
-
-      {# Search + game filter #}
-      <div class="dcx-surface surface-card rounded-3xl p-3 sm:p-4 mb-5 flex flex-col sm:flex-row gap-3 z-30 relative">
-        <div class="relative flex-grow min-w-0">
-          <span class="competitive-search-icon absolute grid place-items-center pointer-events-none">
-            <i class="fa-solid fa-magnifying-glass text-[13px] leading-none"></i>
-          </span>
-          <input type="text" id="global-search" placeholder="Search teams, missions, or players&hellip;"
-                 class="competitive-search-input w-full bg-black/40 border border-white/10 rounded-2xl text-sm text-white focus:outline-none focus:border-dc-cyan/50 focus:bg-black/60 focus:shadow-[0_0_0_3px_rgba(0,229,255,.08)] transition-all font-medium placeholder-gray-600">
-        </div>
-        <div id="game-selector" class="relative w-full sm:w-[330px]" aria-label="Game selector">
-          <button type="button" id="game-selector-trigger"
-                  class="interactive-lift h-12 w-full rounded-2xl border border-white/10 bg-black/45 px-3 text-left hover:border-dc-cyan/35 hover:bg-black/60 focus:outline-none focus:border-dc-cyan/45 focus:shadow-[0_0_0_3px_rgba(0,229,255,.08)] transition flex items-center justify-between gap-3"
-                  aria-haspopup="listbox" aria-expanded="false">
-            <span class="flex min-w-0 items-center gap-3">
-              <span id="selected-game-icon" class="h-9 w-9 rounded-xl border border-white/10 bg-white/[0.06] grid place-items-center text-[10px] font-black uppercase text-white shadow-inner">All</span>
-              <span class="min-w-0">
-                <span id="selected-game-name" class="block truncate text-sm font-black text-white">All Games</span>
-                <span id="selected-game-code" class="block text-[9px] font-black uppercase tracking-[0.18em] text-gray-500">Global filter</span>
-              </span>
-            </span>
-            <i class="fa-solid fa-chevron-down text-xs text-gray-500"></i>
-          </button>
-          <div id="game-selector-menu" class="selector-menu absolute right-0 top-[calc(100%+0.65rem)] z-[60] w-full max-h-[340px] overflow-y-auto rounded-2xl border border-white/10 bg-[#07070b] shadow-[0_24px_80px_-30px_rgba(0,0,0,.95)] backdrop-blur-xl" style="background-color: rgba(7,7,11,.96);" role="listbox" aria-hidden="true">
-            <button type="button" class="game-option flex w-full items-center gap-3 px-3 py-3 text-left hover:bg-white/[0.06] focus:bg-white/[0.08] focus:outline-none transition" data-game-code="ALL" data-game-name="All Games" data-game-id="" data-game-icon="" role="option">
-              <span class="h-10 w-10 rounded-xl border border-white/10 bg-white/[0.06] grid place-items-center text-[10px] font-black uppercase text-white">All</span>
-              <span>
-                <span class="block text-sm font-black text-white">All Games</span>
-                <span class="block text-[9px] font-black uppercase tracking-[0.18em] text-gray-500">Global filter</span>
-              </span>
-            </button>
-            {% for g in hub_context.games %}
-            <button type="button" class="game-option flex w-full items-center gap-3 px-3 py-3 text-left hover:bg-white/[0.06] focus:bg-white/[0.08] focus:outline-none transition" data-game-code="{{ g.short_code }}" data-game-name="{{ g.name }}" data-game-id="{{ g.id }}" data-game-icon="{% firstof g.icon_url g.logo_url '' %}" role="option">
-              {% if g.icon_url %}
-              <img src="{{ g.icon_url }}" alt="{{ g.short_code }}" class="h-10 w-10 rounded-xl object-cover border border-white/10">
-              {% elif g.logo_url %}
-              <img src="{{ g.logo_url }}" alt="{{ g.short_code }}" class="h-10 w-10 rounded-xl object-cover border border-white/10">
-              {% else %}
-              <span class="h-10 w-10 rounded-xl border border-white/10 bg-white/[0.06] grid place-items-center text-[10px] font-black uppercase text-white">{{ g.short_code }}</span>
-              {% endif %}
-              <span class="min-w-0">
-                <span class="block truncate text-sm font-black text-white">{{ g.name }}</span>
-                <span class="block text-[9px] font-black uppercase tracking-[0.18em] text-gray-500">{{ g.short_code }}</span>
-              </span>
-            </button>
-            {% endfor %}
-          </div>
-        </div>
-      </div>
-      <div id="target-context-banner" class="hidden-spa mb-4 rounded-2xl border border-dc-cyan/25 bg-dc-cyan/10 px-4 py-3 text-sm text-cyan-100"></div>
-
-      {# Tab triggers #}
-      <div class="flex gap-2 sm:gap-3 mb-6 z-20 overflow-x-auto hide-scrollbar pb-2" id="tab-triggers">
-        <button class="tab-trigger active relative flex-1 min-w-[140px] glass-light border border-white/10 px-5 py-4 rounded-xl flex flex-col items-center justify-center transition-all group overflow-hidden" data-tab="showdown">
-          <div class="absolute inset-0 bg-gradient-to-t from-dc-cyan/20 to-transparent opacity-100 transition-opacity"></div>
-          <i class="fa-solid fa-bolt text-xl mb-1.5 text-dc-cyan group-hover:scale-110 transition-transform relative z-10"></i>
-          <span class="font-bold text-sm tracking-wide text-white relative z-10">Showdown</span>
-        </button>
-        <button class="tab-trigger relative flex-1 min-w-[140px] glass-light border border-transparent px-5 py-4 rounded-xl flex flex-col items-center justify-center transition-all group overflow-hidden" data-tab="missions">
-          <div class="absolute inset-0 bg-gradient-to-t from-dc-violet/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-          <i class="fa-solid fa-scroll text-xl mb-1.5 text-gray-500 group-hover:text-dc-violet transition-colors relative z-10"></i>
-          <span class="font-bold text-sm tracking-wide text-gray-400 group-hover:text-white relative z-10">Missions</span>
-        </button>
-        <button class="tab-trigger relative flex-1 min-w-[140px] glass-light border border-transparent px-5 py-4 rounded-xl flex flex-col items-center justify-center transition-all group overflow-hidden" data-tab="bounty">
-          <div class="absolute inset-0 bg-gradient-to-t from-dc-neon/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-          <i class="fa-solid fa-crosshairs text-xl mb-1.5 text-gray-500 group-hover:text-dc-neon transition-colors relative z-10"></i>
-          <span class="font-bold text-sm tracking-wide text-gray-400 group-hover:text-white relative z-10">Bounty</span>
-        </button>
-        <button class="tab-trigger relative flex-1 min-w-[140px] glass-light border border-transparent px-5 py-4 rounded-xl flex flex-col items-center justify-center transition-all group overflow-hidden" data-tab="dropzone">
-          <div class="absolute inset-0 bg-gradient-to-t from-dc-gold/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-          <i class="fa-solid fa-parachute-box text-xl mb-1.5 text-gray-500 group-hover:text-dc-gold transition-colors relative z-10"></i>
-          <span class="font-bold text-sm tracking-wide text-gray-400 group-hover:text-white relative z-10">Dropzone</span>
-        </button>
-      </div>
-
-      <div id="review-alert" class="hidden-spa mb-4 rounded-2xl border border-dc-neon/25 bg-dc-neon/10 p-4"></div>
-
-      {# Tab content container #}
-      <div class="dcx-panel relative flex-grow surface-card rounded-3xl p-1.5 overflow-hidden" id="tab-container-main">
-
-        <div id="tab-content-showdown" class="tab-content active w-full h-full p-5 sm:p-6 space-y-5">
-          <div class="flex justify-between items-end mb-4 border-b border-white/5 pb-4">
-            <div>
-              <h2 class="font-display text-2xl font-bold text-white flex items-center gap-2">
-                <span class="relative flex h-3 w-3 mr-1"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-dc-cyan opacity-75"></span><span class="relative inline-flex rounded-full h-3 w-3 bg-dc-cyan"></span></span>
-                Live Radar
-              </h2>
-              <p class="text-xs text-gray-400 mt-1">Open team reward matches. Acceptance locks the entry fee after confirmation.</p>
-            </div>
-            <div id="clash-action-container"></div>
-          </div>
-          <div id="showdown-feed" class="space-y-4 overflow-y-auto max-h-[640px] pr-2"></div>
-        </div>
-
-        <div id="tab-content-missions" class="tab-content w-full h-full p-5 sm:p-6 space-y-5">
-          <div class="flex justify-between items-end mb-4 border-b border-white/5 pb-4">
-            <div>
-              <h2 class="font-display text-2xl font-bold text-white flex items-center gap-2">
-                <i class="fa-solid fa-scroll text-dc-violet"></i> Mission Database
-              </h2>
-              <p class="text-xs text-gray-400 mt-1">Admin-curated solo objectives, daily rewards, weekly missions, proof review, and progression rewards.</p>
-            </div>
-          </div>
-          <div id="missions-feed" class="grid grid-cols-1 md:grid-cols-2 gap-4 overflow-y-auto max-h-[640px] pr-2"></div>
-        </div>
-
-        <div id="tab-content-bounty" class="tab-content w-full h-full p-5 sm:p-6 space-y-5">
-          <div class="flex justify-between items-end mb-4 border-b border-white/5 pb-4">
-            <div>
-              <h2 class="font-display text-2xl font-bold text-white flex items-center gap-2">
-                <i class="fa-solid fa-skull text-dc-neon"></i> Bounty
-              </h2>
-              <p class="text-xs text-gray-400 mt-1">Post a Bounty for challengers to claim, or claim one through verified team play.</p>
-            </div>
-            <div id="hitlist-action-container"></div>
-          </div>
-          <div id="bounty-feed" class="space-y-5 overflow-y-auto max-h-[640px] pr-2"></div>
-        </div>
-
-        <div id="tab-content-dropzone" class="tab-content w-full h-full p-5 sm:p-6 space-y-5">
-          <div class="flex justify-between items-end mb-4 border-b border-white/5 pb-4">
-            <div>
-              <h2 class="font-display text-2xl font-bold text-white flex items-center gap-2">
-                <i class="fa-solid fa-parachute-box text-dc-gold"></i> Dropzone
-              </h2>
-              <p class="text-xs text-gray-400 mt-1">Large custom battle royale lobbies with slot reservation, room credentials, and scoring.</p>
-            </div>
-          </div>
-          <div id="dropzone-feed" class="space-y-4 overflow-y-auto max-h-[660px] pr-2"></div>
-        </div>
-
+        <div id="hero-visualizer" class="hidden lg:block w-64 flex-shrink-0"></div>
       </div>
     </section>
 
-    {# ── RIGHT COLUMN ────────────────────────────────────────────── #}
-    <aside class="xl:col-span-4 2xl:col-span-3 flex flex-col gap-5" id="col-right">
-      <div class="dcx-card surface-card rounded-3xl p-5 border border-white/10">
-        <div class="flex justify-between items-center mb-4">
-          <h3 class="section-kicker flex items-center gap-2">
-            <i class="fa-solid fa-bars-progress"></i> My Operations
-          </h3>
-          <span class="bg-dc-cyan/20 border border-dc-cyan/30 text-dc-cyan text-[9px] px-2 py-0.5 rounded font-black tracking-widest" id="ops-count">-- ACTIVE</span>
-        </div>
-        <div id="active-ops-container" class="space-y-4 max-h-[470px] overflow-y-auto pr-1 overscroll-contain">
-          <div class="text-center py-8 text-xs text-gray-600">Loading&hellip;</div>
-        </div>
+    {# ── MOBILE OPS STRIP ──────────────────────────────────────────── #}
+    <div class="dc-mob overflow-x-auto pb-2 mb-3 gap-2" id="mobile-ops-strip" style="display:none"></div>
+
+    {# ── MODE RAIL + GAME FILTER ───────────────────────────────────── #}
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+      <div class="flex items-center gap-1 overflow-x-auto pb-1" id="tab-triggers" role="tablist">
+        <button class="dc-mode-tab tab-trigger is-active active dc-press" data-tab="showdown" role="tab" aria-selected="true" style="--dc-mode-color:var(--dc-azure)">
+          <i class="fa-solid fa-bolt" style="color:var(--dc-azure)"></i>
+          <span>Showdown</span>
+          <span class="text-[10px] font-mono opacity-60" id="mode-count-showdown"></span>
+        </button>
+        <button class="dc-mode-tab tab-trigger dc-press" data-tab="missions" role="tab" aria-selected="false" style="--dc-mode-color:var(--dc-violet-400)">
+          <i class="fa-solid fa-scroll" style="color:var(--dc-violet-400)"></i>
+          <span>Missions</span>
+          <span class="text-[10px] font-mono opacity-60" id="mode-count-missions"></span>
+        </button>
+        <button class="dc-mode-tab tab-trigger dc-press" data-tab="bounty" role="tab" aria-selected="false" style="--dc-mode-color:var(--dc-rose)">
+          <i class="fa-solid fa-crosshairs" style="color:var(--dc-rose)"></i>
+          <span>Bounty</span>
+          <span class="text-[10px] font-mono opacity-60" id="mode-count-bounty"></span>
+        </button>
+        <button class="dc-mode-tab tab-trigger dc-press" data-tab="dropzone" role="tab" aria-selected="false" style="--dc-mode-color:var(--dc-gold)">
+          <i class="fa-solid fa-parachute-box" style="color:var(--dc-gold)"></i>
+          <span>Dropzone</span>
+          <span class="text-[10px] font-mono opacity-60" id="mode-count-dropzone"></span>
+        </button>
       </div>
 
-      <div class="dcx-card surface-card rounded-3xl p-5 border border-white/10">
-        <div class="flex items-center justify-between gap-3 mb-4">
-          <h3 class="section-kicker flex items-center gap-2">
-            <i class="fa-solid fa-compass text-dc-cyan"></i> Smart Assist
-          </h3>
-          <button type="button" data-open-guide class="text-[10px] font-black uppercase tracking-widest text-dc-cyan hover:text-white">Guide</button>
-        </div>
-        <div id="objectives-feed" class="space-y-3">
-          <div class="text-center py-5 text-xs text-gray-600">Guidance is loading.</div>
-        </div>
+      {# Game filter chips #}
+      <div class="flex items-center gap-2 overflow-x-auto pb-1" id="game-chips">
+        <button class="dc-game-chip is-active dc-press" data-game-code="ALL">All</button>
+        {% for g in hub_context.games %}
+        <button class="dc-game-chip dc-press" data-game-code="{{ g.short_code }}" data-game-id="{{ g.id }}" title="{{ g.name }}">
+          {{ g.short_code }}
+        </button>
+        {% endfor %}
       </div>
+    </div>
 
-      {% if request.user.is_staff %}
-      <div class="glass-heavy rounded-2xl p-5 border border-dc-gold/20 bg-dc-gold/[0.035]">
-        <div class="flex items-center justify-between gap-3 mb-4">
-          <h3 class="text-[10px] uppercase font-bold text-dc-gold tracking-widest flex items-center gap-2">
-            <i class="fa-solid fa-screwdriver-wrench"></i> Operator Creation
-          </h3>
-          <a href="/dashboard/competitive/review/" class="text-[10px] font-black uppercase tracking-widest text-dc-gold hover:text-white">Queue</a>
-        </div>
-        <p class="text-[11px] text-gray-400 leading-relaxed mb-3">Mission templates and Dropzone lobbies are staff-created. Showdown and Bounty actions are service-backed and controlled by team authority.</p>
-        <div class="grid grid-cols-2 gap-2">
-          <a href="/admin/contracts/contracttemplate/" class="rounded-xl border border-white/10 bg-black/25 px-3 py-2 text-[10px] font-black uppercase tracking-widest text-gray-300 hover:text-white hover:border-dc-gold/40">Missions</a>
-          <a href="/admin/royale/royalelobby/" class="rounded-xl border border-white/10 bg-black/25 px-3 py-2 text-[10px] font-black uppercase tracking-widest text-gray-300 hover:text-white hover:border-dc-gold/40">Dropzone</a>
-          <a href="/admin/competition/challenge/" class="rounded-xl border border-white/10 bg-black/25 px-3 py-2 text-[10px] font-black uppercase tracking-widest text-gray-300 hover:text-white hover:border-dc-gold/40">Showdown</a>
-          <a href="/admin/competition/bountyclaim/" class="rounded-xl border border-white/10 bg-black/25 px-3 py-2 text-[10px] font-black uppercase tracking-widest text-gray-300 hover:text-white hover:border-dc-gold/40">Claims</a>
-        </div>
-      </div>
-      {% endif %}
+    <div id="target-context-banner" class="hidden-spa mb-4 rounded-2xl border border-[var(--dc-azure)]/25 bg-[rgba(10,132,255,.08)] px-4 py-3 text-sm" style="color:var(--dc-ink-200)"></div>
+    <div id="review-alert" class="hidden-spa mb-4 rounded-2xl border border-[var(--dc-rose)]/25 bg-[rgba(191,56,104,.08)] p-4"></div>
 
-      <div class="dcx-card surface-card rounded-3xl p-5 flex-grow flex flex-col border border-white/10">
-        <div class="flex justify-between items-center mb-5">
-          <h3 class="section-kicker flex items-center gap-2">
-            <i class="fa-solid fa-wave-square text-dc-cyan"></i> Recent Signals
-          </h3>
+    {# ── 2-COLUMN GRID ─────────────────────────────────────────────── #}
+    <div class="dc-grid">
+
+      {# ── MAIN FEED ─────────────────────────────────────────────── #}
+      <section id="col-center">
+
+        {# Showdown stage header #}
+        <div id="tab-content-showdown" class="tab-content active" role="tabpanel">
+          <div class="flex justify-between items-center mb-4">
+            <div>
+              <h2 class="font-display text-lg font-bold text-white flex items-center gap-2">
+                <span class="relative flex h-2.5 w-2.5"><span class="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style="background:var(--dc-azure)"></span><span class="relative inline-flex rounded-full h-2.5 w-2.5" style="background:var(--dc-azure)"></span></span>
+                Live Radar
+              </h2>
+              <p class="text-xs mt-1" style="color:var(--dc-ink-400)">Open team reward matches. Acceptance locks the entry fee.</p>
+            </div>
+            <div id="clash-action-container"></div>
+          </div>
+          <div id="showdown-feed" class="space-y-3"></div>
         </div>
-        <div class="flex-grow overflow-y-auto pr-1 relative" id="activity-feed">
-          <div class="space-y-5 pt-2 pb-4" id="telemetry-list">
-            <div class="text-center py-6 text-xs text-gray-600">Telemetry idle.</div>
+
+        <div id="tab-content-missions" class="tab-content" role="tabpanel">
+          <div class="flex justify-between items-center mb-4">
+            <div>
+              <h2 class="font-display text-lg font-bold text-white flex items-center gap-2">
+                <i class="fa-solid fa-scroll" style="color:var(--dc-violet-400)"></i> Mission Database
+              </h2>
+              <p class="text-xs mt-1" style="color:var(--dc-ink-400)">Staff-curated solo objectives and progression rewards.</p>
+            </div>
+          </div>
+          <div id="missions-feed" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+        </div>
+
+        <div id="tab-content-bounty" class="tab-content" role="tabpanel">
+          <div class="flex justify-between items-center mb-4">
+            <div>
+              <h2 class="font-display text-lg font-bold text-white flex items-center gap-2">
+                <i class="fa-solid fa-crosshairs" style="color:var(--dc-rose-display)"></i> Bounty Board
+              </h2>
+              <p class="text-xs mt-1" style="color:var(--dc-ink-400)">Post a Bounty for challengers to claim, or claim one through verified team play.</p>
+            </div>
+            <div id="hitlist-action-container"></div>
+          </div>
+          <div id="bounty-feed" class="space-y-4"></div>
+        </div>
+
+        <div id="tab-content-dropzone" class="tab-content" role="tabpanel">
+          <div class="flex justify-between items-center mb-4">
+            <div>
+              <h2 class="font-display text-lg font-bold text-white flex items-center gap-2">
+                <i class="fa-solid fa-parachute-box" style="color:var(--dc-gold)"></i> Dropzone
+              </h2>
+              <p class="text-xs mt-1" style="color:var(--dc-ink-400)">Custom battle royale lobbies with slot reservation and scoring.</p>
+            </div>
+          </div>
+          <div id="dropzone-feed" class="space-y-4"></div>
+        </div>
+
+      </section>
+
+      {# ── SIDE PANEL ────────────────────────────────────────────── #}
+      <aside class="dc-panel dc-scroll dc-desk">
+
+        {# Acting-as trigger #}
+        <div class="rounded-[13px] p-3 cursor-pointer dc-lift" id="panel-acting-as"
+             style="background:rgba(0,0,0,.32); border:1px solid rgba(255,255,255,.1)"
+             onclick="document.getElementById('team-switcher-sheet').classList.remove('dc-hidden')">
+          <div class="flex items-center gap-3">
+            <div class="w-[38px] h-[38px] rounded-xl border border-white/10 bg-white/5 flex items-center justify-center overflow-hidden" id="ctx-avatar">
+              <span class="text-sm font-bold" style="color:var(--dc-azure)" id="ctx-avatar-fallback">--</span>
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-bold text-white truncate font-display" id="ctx-name">--</p>
+              <p class="text-[10px] font-bold uppercase tracking-[.16em]" id="ctx-role" style="color:var(--dc-gold-400)">--</p>
+            </div>
+            <i class="fa-solid fa-caret-down text-xs" style="color:var(--dc-ink-400)"></i>
           </div>
         </div>
-      </div>
-    </aside>
-  </div>
-</main>
 
+        {# Chip row — tier & game #}
+        <div class="flex gap-2">
+          <span class="flex-1 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold" style="background:rgba(207,167,90,.1); border:1px solid rgba(207,167,90,.2); color:var(--dc-gold-400)">
+            <i class="fa-solid fa-medal text-[9px]"></i>
+            <span id="ctx-stat-2">--</span>
+          </span>
+          <span class="flex-1 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold" style="background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08); color:var(--dc-ink-200)">
+            <i class="fa-solid fa-gamepad text-[9px]"></i>
+            <span id="panel-game-label">--</span>
+          </span>
+        </div>
+
+        {# Wallet card #}
+        <div class="dc-wallet">
+          <div class="flex items-center justify-between mb-2">
+            <div class="flex items-center gap-2">
+              <i class="fa-solid fa-wallet text-sm" style="color:var(--dc-gold)"></i>
+              <span class="text-[10px] font-bold uppercase tracking-[.16em]" style="color:var(--dc-ink-400)" id="wallet-type-label">WALLET</span>
+            </div>
+            <a href="{% url 'economy:wallet_hub' %}?tab=acquire" class="text-[10px] font-bold uppercase tracking-[.12em] dc-press px-2.5 py-1 rounded-lg" style="color:var(--dc-azure); border:1px solid rgba(10,132,255,.2)">Get DC</a>
+          </div>
+          <div class="flex items-baseline gap-1.5 mb-2">
+            <i class="fa-solid fa-coins" style="color:var(--dc-gold)"></i>
+            <span class="dc-coin text-xl font-bold" id="wallet-balance">--</span>
+            <span class="text-[10px] font-bold" style="color:var(--dc-ink-500)">DC</span>
+          </div>
+          <div class="flex items-center gap-2 text-[10px]" style="color:var(--dc-ink-400)">
+            <i class="fa-solid fa-lock text-[8px]"></i>
+            <span id="wallet-escrow">-- DC</span>
+            <span>escrow</span>
+          </div>
+        </div>
+
+        {# Quick creates (captain only) #}
+        <div id="panel-quick-creates" class="grid grid-cols-2 gap-2 dc-hidden">
+          <button type="button" data-open-slide="create-clash" class="dc-press dc-lift rounded-xl p-3 text-left text-[11px] font-bold" style="background:rgba(10,132,255,.08); border:1px solid rgba(10,132,255,.18); color:var(--dc-azure)">
+            <i class="fa-solid fa-bolt mb-1 block"></i> Create Showdown
+          </button>
+          <button type="button" data-open-slide="create-hitlist" class="dc-press dc-lift rounded-xl p-3 text-left text-[11px] font-bold" style="background:rgba(191,56,104,.08); border:1px solid rgba(191,56,104,.18); color:var(--dc-rose-display)">
+            <i class="fa-solid fa-crosshairs mb-1 block"></i> Post Bounty
+          </button>
+        </div>
+
+        {# Setup nudge (if needed) #}
+        <div id="panel-setup-nudge" class="dc-hidden rounded-xl p-3 dc-lift cursor-pointer" style="background:rgba(10,132,255,.06); border:1px solid rgba(10,132,255,.15)">
+          <div class="flex items-center gap-2">
+            <i class="fa-solid fa-triangle-exclamation" style="color:var(--dc-azure)"></i>
+            <span class="text-[11px] font-bold" style="color:var(--dc-azure)">Complete your Game Passport to compete.</span>
+            <i class="fa-solid fa-arrow-right text-[9px]" style="color:var(--dc-azure)"></i>
+          </div>
+        </div>
+
+        {# Active Operations #}
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-[10px] font-bold uppercase tracking-[.16em]" style="color:var(--dc-ink-400)">
+              <i class="fa-solid fa-bars-progress mr-1"></i> ACTIVE OPERATIONS
+            </span>
+            <span class="text-[9px] font-bold px-2 py-0.5 rounded" style="background:rgba(10,132,255,.12); color:var(--dc-azure)" id="ops-count">0</span>
+          </div>
+          <div id="active-ops-container" class="space-y-2 dc-scroll" style="max-height:220px; overflow-y:auto">
+            <p class="text-center py-4 text-xs" style="color:var(--dc-ink-500)">Loading&hellip;</p>
+          </div>
+        </div>
+
+        {# Mode guide #}
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-[10px] font-bold uppercase tracking-[.16em]" style="color:var(--dc-ink-400)" id="panel-mode-label">SHOWDOWN GUIDE</span>
+            <button type="button" data-open-guide class="text-[10px] font-bold uppercase tracking-[.12em] dc-press" style="color:var(--dc-azure)">Full Guide</button>
+          </div>
+          <p class="dc-mode-guide" id="panel-mode-text">Use Showdown when your team wants a direct competitive match against another team.</p>
+        </div>
+
+        {# Smart Rec #}
+        <div id="panel-recommendation" class="dc-hidden">
+          <span class="text-[10px] font-bold uppercase tracking-[.16em] mb-2 block" style="color:var(--dc-ink-400)">RECOMMENDED</span>
+          <div class="dc-rec-card" id="panel-rec-content"></div>
+        </div>
+
+        {# Guidance / smart assist #}
+        <div id="objectives-feed" class="space-y-2"></div>
+
+        {% if request.user.is_staff %}
+        <div class="rounded-xl p-3" style="border:1px solid rgba(207,167,90,.15); background:rgba(207,167,90,.04)">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-[10px] font-bold uppercase tracking-[.12em]" style="color:var(--dc-gold)">
+              <i class="fa-solid fa-screwdriver-wrench mr-1"></i> Staff Tools
+            </span>
+            <a href="/dashboard/competitive/review/" class="text-[10px] font-bold" style="color:var(--dc-gold)">Queue</a>
+          </div>
+          <div class="grid grid-cols-2 gap-1.5">
+            <a href="/admin/contracts/contracttemplate/" class="rounded-lg px-2.5 py-1.5 text-[9px] font-bold uppercase tracking-widest text-center dc-press" style="border:1px solid rgba(255,255,255,.08); color:var(--dc-ink-300)">Missions</a>
+            <a href="/admin/royale/royalelobby/" class="rounded-lg px-2.5 py-1.5 text-[9px] font-bold uppercase tracking-widest text-center dc-press" style="border:1px solid rgba(255,255,255,.08); color:var(--dc-ink-300)">Dropzone</a>
+          </div>
+        </div>
+        {% endif %}
+
+      </aside>
+    </div>
+
+    {# ── HIDDEN LEGACY ELEMENTS (keep IDs for JS compat) ───────── #}
+    <div class="dc-hidden">
+      <div id="active-ops-container-legacy"></div>
+      <span id="ops-count-legacy"></span>
+      <span id="ctx-stat-1"></span>
+      <span id="metric-active-ops"></span>
+      <span id="metric-upcoming"></span>
+      <span id="metric-review"></span>
+      <span id="metric-team-ops"></span>
+      <span id="metric-rewards"></span>
+      <span id="hero-bg"></span>
+      <div id="col-left"></div>
+      <div id="col-right"></div>
+      <div id="dock-create-showdown"></div>
+      <div id="action-dock"></div>
+      <div id="telemetry-list"></div>
+      <div id="activity-feed"></div>
+      <div id="game-selector">
+        <button id="game-selector-trigger"></button>
+        <div id="game-selector-menu" class="selector-menu"></div>
+        <span id="selected-game-icon"></span>
+        <span id="selected-game-name"></span>
+        <span id="selected-game-code"></span>
+      </div>
+      <input type="text" id="global-search">
+      <div id="operating-team-switcher">
+        <select id="operating-team-select"></select>
+        <p id="operating-team-hint"></p>
+      </div>
+    </div>
+
+  </div>
+
+  {# ── MOBILE BOTTOM NAV ───────────────────────────────────────────── #}
+  <nav class="dc-bottom-nav dc-mob" style="display:none" id="mobile-bottom-nav">
+    <div class="flex items-center justify-around h-full max-w-md mx-auto px-4">
+      <button class="flex flex-col items-center gap-0.5 text-[10px] font-bold dc-press" data-tab="showdown" style="color:var(--dc-azure)">
+        <i class="fa-solid fa-bolt text-lg"></i><span>Showdown</span>
+      </button>
+      <button class="flex flex-col items-center gap-0.5 text-[10px] font-bold dc-press" data-tab="missions" style="color:var(--dc-ink-400)">
+        <i class="fa-solid fa-scroll text-lg"></i><span>Missions</span>
+      </button>
+      <button class="dc-fab dc-press" id="mobile-fab" title="Create">
+        <i class="fa-solid fa-plus text-lg"></i>
+      </button>
+      <button class="flex flex-col items-center gap-0.5 text-[10px] font-bold dc-press" data-tab="bounty" style="color:var(--dc-ink-400)">
+        <i class="fa-solid fa-crosshairs text-lg"></i><span>Bounty</span>
+      </button>
+      <button class="flex flex-col items-center gap-0.5 text-[10px] font-bold dc-press" data-tab="dropzone" style="color:var(--dc-ink-400)">
+        <i class="fa-solid fa-parachute-box text-lg"></i><span>Dropzone</span>
+      </button>
+    </div>
+  </nav>
+
+  {# ── TEAM SWITCHER BOTTOM SHEET ─────────────────────────────────── #}
+  <div id="team-switcher-sheet" class="dc-hidden" style="z-index:70">
+    <div class="fixed inset-0 bg-black/55" style="backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px)" onclick="document.getElementById('team-switcher-sheet').classList.add('dc-hidden')"></div>
+    <div class="dc-sheet dc-scroll" style="z-index:71; position:fixed; bottom:0; left:50%; transform:translateX(-50%); animation:dcSheet .32s cubic-bezier(.22,1,.36,1)">
+      <div class="p-5">
+        <div class="w-10 h-1 rounded-full mx-auto mb-4" style="background:rgba(255,255,255,.15)"></div>
+        <h3 class="font-display text-lg font-bold text-white mb-4">Switch Team</h3>
+        <div id="team-switcher-list" class="space-y-2"></div>
+        <p class="text-[10px] mt-4 leading-relaxed" style="color:var(--dc-ink-400)">Switching updates recommendations, marketplace, and available actions.</p>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+{# ── GUIDE MODAL ───────────────────────────────────────────────────── #}
 <div id="guide-modal" class="modal-shell hidden-spa">
   <div class="modal-card guide-shell">
-    <div class="relative overflow-hidden border-b border-white/10 bg-[#07070b] px-5 py-5 sm:px-7 sm:py-6">
-      <div class="absolute inset-0 pointer-events-none opacity-70" style="background:radial-gradient(circle at 12% 0%,rgba(34,211,238,.16),transparent 34%),radial-gradient(circle at 88% 10%,rgba(251,191,36,.10),transparent 30%);"></div>
+    <div class="relative overflow-hidden border-b border-white/10 px-5 py-5 sm:px-7 sm:py-6" style="background:var(--dc-ink-900)">
+      <div class="absolute inset-0 pointer-events-none opacity-70" style="background:radial-gradient(circle at 12% 0%,rgba(10,132,255,.16),transparent 34%),radial-gradient(circle at 88% 10%,rgba(207,167,90,.10),transparent 30%)"></div>
       <div class="relative flex items-start justify-between gap-4">
         <div class="max-w-3xl">
-          <p class="text-[10px] uppercase tracking-[0.28em] text-dc-cyan font-black mb-2">DeltaCrown Intelligence Overlay</p>
-          <h2 class="font-display text-3xl sm:text-5xl font-black text-white leading-none">Your competitive map</h2>
-          <p class="mt-3 text-sm leading-6 text-gray-400">DeltaCrown has four paths. Choose the one that matches what you want to do, then follow the next action shown in My Operations.</p>
+          <p class="text-[10px] uppercase tracking-[0.28em] font-black mb-2" style="color:var(--dc-azure)">DeltaCrown Intelligence Overlay</p>
+          <h2 class="font-display text-3xl sm:text-5xl font-extrabold text-white leading-none">Your competitive map</h2>
+          <p class="mt-3 text-sm leading-6" style="color:var(--dc-ink-400)">DeltaCrown has four paths. Choose the one that matches what you want to do.</p>
         </div>
-        <button type="button" data-close-guide class="h-11 w-11 shrink-0 rounded-2xl border border-white/10 bg-white/[0.04] text-gray-400 hover:text-white hover:bg-white/[0.08]">
+        <button type="button" data-close-guide class="h-11 w-11 shrink-0 rounded-2xl border border-white/10 bg-white/[0.04] hover:bg-white/[0.08]" style="color:var(--dc-ink-400)">
           <i class="fa-solid fa-xmark"></i>
         </button>
       </div>
       <div class="relative mt-5 grid grid-cols-2 lg:grid-cols-4 gap-2">
-        <button type="button" data-guide-mode="showdown" class="guide-tab is-active rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-3 text-left text-gray-300 transition">
-          <i class="fa-solid fa-bolt text-dc-cyan mb-2"></i>
-          <span class="block text-sm font-black text-white">Showdown</span>
-          <span class="block text-[10px] text-gray-500">Team vs team</span>
+        <button type="button" data-guide-mode="showdown" class="guide-tab is-active rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-3 text-left transition" style="color:var(--dc-ink-200)">
+          <i class="fa-solid fa-bolt mb-2" style="color:var(--dc-azure)"></i>
+          <span class="block text-sm font-bold text-white">Showdown</span>
+          <span class="block text-[10px]" style="color:var(--dc-ink-500)">Team vs team</span>
         </button>
-        <button type="button" data-guide-mode="missions" class="guide-tab rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-3 text-left text-gray-300 transition">
-          <i class="fa-solid fa-scroll text-dc-violet mb-2"></i>
-          <span class="block text-sm font-black text-white">Missions</span>
-          <span class="block text-[10px] text-gray-500">Solo progression</span>
+        <button type="button" data-guide-mode="missions" class="guide-tab rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-3 text-left transition" style="color:var(--dc-ink-200)">
+          <i class="fa-solid fa-scroll mb-2" style="color:var(--dc-violet-400)"></i>
+          <span class="block text-sm font-bold text-white">Missions</span>
+          <span class="block text-[10px]" style="color:var(--dc-ink-500)">Solo progression</span>
         </button>
-        <button type="button" data-guide-mode="bounty" class="guide-tab rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-3 text-left text-gray-300 transition">
-          <i class="fa-solid fa-crosshairs text-dc-neon mb-2"></i>
-          <span class="block text-sm font-black text-white">Bounty</span>
-          <span class="block text-[10px] text-gray-500">Claim team rewards</span>
+        <button type="button" data-guide-mode="bounty" class="guide-tab rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-3 text-left transition" style="color:var(--dc-ink-200)">
+          <i class="fa-solid fa-crosshairs mb-2" style="color:var(--dc-rose-display)"></i>
+          <span class="block text-sm font-bold text-white">Bounty</span>
+          <span class="block text-[10px]" style="color:var(--dc-ink-500)">Claim team rewards</span>
         </button>
-        <button type="button" data-guide-mode="dropzone" class="guide-tab rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-3 text-left text-gray-300 transition">
-          <i class="fa-solid fa-parachute-box text-dc-gold mb-2"></i>
-          <span class="block text-sm font-black text-white">Dropzone</span>
-          <span class="block text-[10px] text-gray-500">Battle royale lobbies</span>
+        <button type="button" data-guide-mode="dropzone" class="guide-tab rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-3 text-left transition" style="color:var(--dc-ink-200)">
+          <i class="fa-solid fa-parachute-box mb-2" style="color:var(--dc-gold)"></i>
+          <span class="block text-sm font-bold text-white">Dropzone</span>
+          <span class="block text-[10px]" style="color:var(--dc-ink-500)">Battle royale lobbies</span>
         </button>
       </div>
     </div>
-
     <div class="max-h-[56vh] overflow-y-auto p-5 sm:p-7">
       <section data-guide-panel="showdown" class="guide-panel is-active">
         <div class="grid lg:grid-cols-[.8fr_1.2fr] gap-5">
-          <div class="rounded-3xl border border-cyan-300/20 bg-cyan-300/[0.06] p-5">
-            <p class="text-[10px] uppercase tracking-[0.22em] text-cyan-200 font-black">Showdown</p>
-            <h3 class="mt-2 text-2xl font-black text-white">Challenge another team.</h3>
-            <p class="mt-3 text-sm leading-6 text-gray-400">Use Showdown when your team wants a direct competitive match. You can open a challenge for any eligible opponent or target a specific team.</p>
+          <div class="rounded-3xl p-5" style="border:1px solid rgba(10,132,255,.2); background:rgba(10,132,255,.06)">
+            <p class="text-[10px] uppercase tracking-[0.22em] font-black" style="color:var(--dc-azure-400)">Showdown</p>
+            <h3 class="mt-2 text-2xl font-extrabold text-white">Challenge another team.</h3>
+            <p class="mt-3 text-sm leading-6" style="color:var(--dc-ink-400)">Use Showdown when your team wants a direct competitive match. You can open a challenge for any eligible opponent or target a specific team.</p>
           </div>
           <div class="space-y-4">
-            <div class="guide-rail text-dc-cyan"><span><strong>Create</strong><small>Captain or manager sets game, format, entry fee, and opponent.</small></span><span><strong>Match Room</strong><small>Teams get the room for match details, proof, and result flow.</small></span><span><strong>Result</strong><small>One side submits the winner and score.</small></span><span><strong>Review</strong><small>The opponent confirms, or the case goes under review.</small></span><span><strong>Settled</strong><small>When confirmed, the result and reward state are closed safely.</small></span></div>
-            <div class="grid sm:grid-cols-2 gap-3 text-sm text-gray-400">
-              <div class="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><strong class="text-white">Who can act:</strong> team owner, manager, or captain.</div>
-              <div class="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><strong class="text-white">What happens next:</strong> My Operations will show Enter Match Room, Submit Result, or Waiting for Confirmation.</div>
-            </div>
+            <div class="guide-rail" style="color:var(--dc-azure)"><span><strong>Create</strong><small>Captain sets game, format, entry fee, and opponent.</small></span><span><strong>Match Room</strong><small>Teams get the room for match details.</small></span><span><strong>Result</strong><small>One side submits the winner and score.</small></span><span><strong>Review</strong><small>The opponent confirms, or the case goes under review.</small></span><span><strong>Settled</strong><small>Confirmed result and reward state are closed.</small></span></div>
           </div>
         </div>
       </section>
-
       <section data-guide-panel="missions" class="guide-panel">
         <div class="grid lg:grid-cols-[.8fr_1.2fr] gap-5">
-          <div class="rounded-3xl border border-violet-300/20 bg-violet-300/[0.06] p-5">
-            <p class="text-[10px] uppercase tracking-[0.22em] text-violet-200 font-black">Missions</p>
-            <h3 class="mt-2 text-2xl font-black text-white">Solo goals for progression.</h3>
-            <p class="mt-3 text-sm leading-6 text-gray-400">Use Missions when you want individual objectives. Start a mission, complete the goal, then submit proof if the mission asks for review.</p>
+          <div class="rounded-3xl p-5" style="border:1px solid rgba(104,73,229,.2); background:rgba(104,73,229,.06)">
+            <p class="text-[10px] uppercase tracking-[0.22em] font-black" style="color:var(--dc-violet-400)">Missions</p>
+            <h3 class="mt-2 text-2xl font-extrabold text-white">Solo goals for progression.</h3>
+            <p class="mt-3 text-sm leading-6" style="color:var(--dc-ink-400)">Use Missions when you want individual objectives. Start, complete, then submit proof if required.</p>
           </div>
           <div class="space-y-4">
-            <div class="guide-rail text-dc-violet"><span><strong>Start</strong><small>Pick an available daily, weekly, or special mission.</small></span><span><strong>Progress</strong><small>Follow the objective and deadline from the mission page.</small></span><span><strong>Proof</strong><small>Add a link, note, or file when proof is required.</small></span><span><strong>Review</strong><small>Staff checks the submission before the mission is closed.</small></span><span><strong>Reward</strong><small>If approved, the mission outcome becomes visible in your feed.</small></span></div>
-            <div class="grid sm:grid-cols-2 gap-3 text-sm text-gray-400">
-              <div class="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><strong class="text-white">Solo path:</strong> no team authority required.</div>
-              <div class="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><strong class="text-white">What happens next:</strong> Track Mission, Submit Proof, or Proof Under Review.</div>
-            </div>
+            <div class="guide-rail" style="color:var(--dc-violet-400)"><span><strong>Start</strong><small>Pick a daily, weekly, or special mission.</small></span><span><strong>Progress</strong><small>Follow the objective and deadline.</small></span><span><strong>Proof</strong><small>Add link/note/file when proof is required.</small></span><span><strong>Review</strong><small>Staff checks the submission.</small></span><span><strong>Reward</strong><small>Approved mission outcome visible in feed.</small></span></div>
           </div>
         </div>
       </section>
-
       <section data-guide-panel="bounty" class="guide-panel">
         <div class="grid lg:grid-cols-[.8fr_1.2fr] gap-5">
-          <div class="rounded-3xl border border-rose-300/20 bg-rose-300/[0.06] p-5">
-            <p class="text-[10px] uppercase tracking-[0.22em] text-rose-200 font-black">Bounty</p>
-            <h3 class="mt-2 text-2xl font-black text-white">Post a challenge for others to claim.</h3>
-            <p class="mt-3 text-sm leading-6 text-gray-400">A team posts a Bounty on itself. Other teams can claim it, play the challenge, and wait for verification before any reward result is finalized.</p>
+          <div class="rounded-3xl p-5" style="border:1px solid rgba(191,56,104,.2); background:rgba(191,56,104,.06)">
+            <p class="text-[10px] uppercase tracking-[0.22em] font-black" style="color:var(--dc-rose-display)">Bounty</p>
+            <h3 class="mt-2 text-2xl font-extrabold text-white">Post a challenge for others to claim.</h3>
+            <p class="mt-3 text-sm leading-6" style="color:var(--dc-ink-400)">A team posts a Bounty on itself. Other teams claim it, play the challenge, and wait for verification.</p>
           </div>
           <div class="space-y-4">
-            <div class="guide-rail text-dc-neon"><span><strong>Post</strong><small>Your team announces the Bounty reward and challenge condition.</small></span><span><strong>Claim</strong><small>An eligible opponent accepts the challenge from the Bounty board.</small></span><span><strong>Match Room</strong><small>The linked room keeps proof and result flow in one place.</small></span><span><strong>Verify</strong><small>Staff checks the claim before it is approved or rejected.</small></span><span><strong>Reward</strong><small>Approved claims move through the safe settlement path.</small></span></div>
-            <div class="grid sm:grid-cols-2 gap-3 text-sm text-gray-400">
-              <div class="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><strong class="text-white">Important:</strong> this is not placing a Bounty on another team.</div>
-              <div class="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><strong class="text-white">What happens next:</strong> Enter Match Room, Waiting for Review, or Claim Rejected.</div>
-            </div>
+            <div class="guide-rail" style="color:var(--dc-rose)"><span><strong>Post</strong><small>Team announces the Bounty.</small></span><span><strong>Claim</strong><small>Opponent accepts from Bounty board.</small></span><span><strong>Match Room</strong><small>Linked room for proof and result.</small></span><span><strong>Verify</strong><small>Staff checks the claim.</small></span><span><strong>Reward</strong><small>Approved claims settle safely.</small></span></div>
           </div>
         </div>
       </section>
-
       <section data-guide-panel="dropzone" class="guide-panel">
         <div class="grid lg:grid-cols-[.8fr_1.2fr] gap-5">
-          <div class="rounded-3xl border border-amber-300/20 bg-amber-300/[0.06] p-5">
-            <p class="text-[10px] uppercase tracking-[0.22em] text-amber-200 font-black">Dropzone</p>
-            <h3 class="mt-2 text-2xl font-black text-white">Reserve a battle royale slot.</h3>
-            <p class="mt-3 text-sm leading-6 text-gray-400">Use Dropzone for large custom lobbies. Reserve your slot, wait for the room reveal, play the lobby, then check scoring and results.</p>
+          <div class="rounded-3xl p-5" style="border:1px solid rgba(207,167,90,.2); background:rgba(207,167,90,.06)">
+            <p class="text-[10px] uppercase tracking-[0.22em] font-black" style="color:var(--dc-gold-400)">Dropzone</p>
+            <h3 class="mt-2 text-2xl font-extrabold text-white">Reserve a battle royale slot.</h3>
+            <p class="mt-3 text-sm leading-6" style="color:var(--dc-ink-400)">Use Dropzone for large custom lobbies. Reserve, wait for room reveal, play, then check scoring.</p>
           </div>
           <div class="space-y-4">
-            <div class="guide-rail text-dc-gold"><span><strong>Reserve</strong><small>Choose an open lobby and secure an available slot.</small></span><span><strong>Reveal</strong><small>Room ID and credentials appear only when allowed.</small></span><span><strong>Lobby</strong><small>Join the custom room and play the scheduled match.</small></span><span><strong>Scoring</strong><small>Operators record placement, kills, and score.</small></span><span><strong>Results</strong><small>Leaderboard and rewards appear after scoring is complete.</small></span></div>
-            <div class="grid sm:grid-cols-2 gap-3 text-sm text-gray-400">
-              <div class="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><strong class="text-white">Room details:</strong> hidden until the configured reveal/live state.</div>
-              <div class="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><strong class="text-white">What happens next:</strong> View Entry, View Room Details, Awaiting Results, or View Result.</div>
-            </div>
+            <div class="guide-rail" style="color:var(--dc-gold)"><span><strong>Reserve</strong><small>Choose lobby and secure slot.</small></span><span><strong>Reveal</strong><small>Room credentials appear when allowed.</small></span><span><strong>Lobby</strong><small>Join the custom room.</small></span><span><strong>Scoring</strong><small>Operators record results.</small></span><span><strong>Results</strong><small>Leaderboard after scoring complete.</small></span></div>
           </div>
         </div>
       </section>
-
-      <div class="mt-5 rounded-3xl border border-white/10 bg-white/[0.035] p-4">
-        <p class="text-[10px] uppercase tracking-[0.22em] text-gray-500 font-black mb-2">Smart rule</p>
-        <p class="text-sm leading-6 text-gray-400">When unsure, check <strong class="text-white">My Operations</strong>. It shows the safest next button for your current state, so you do not need to guess where to go.</p>
+      <div class="mt-5 rounded-3xl p-4" style="border:1px solid rgba(255,255,255,.08); background:rgba(255,255,255,.03)">
+        <p class="text-[10px] uppercase tracking-[0.22em] font-bold mb-2" style="color:var(--dc-ink-500)">Smart rule</p>
+        <p class="text-sm leading-6" style="color:var(--dc-ink-400)">When unsure, check <strong class="text-white">My Operations</strong>. It shows the safest next button for your current state.</p>
       </div>
     </div>
   </div>
 </div>
 
-{# Create Showdown slide-over #}
+{# ── Create Showdown slide-over ────────────────────────────────────── #}
 <div id="slide-over-backdrop" class="fixed inset-0 bg-black/[0.82] backdrop-blur-md z-[120] hidden-spa opacity-0 transition-all duration-300"></div>
 
-<div id="slide-over-create-clash" class="dcx-drawer drawer-panel fixed inset-y-0 right-0 h-dvh w-full max-w-xl bg-[#08080c] border-l border-white/10 shadow-[-28px_0_80px_rgba(0,0,0,0.88)] z-[130] transform translate-x-full flex flex-col">
+<div id="slide-over-create-clash" class="drawer-panel fixed inset-y-0 right-0 h-dvh w-full max-w-xl border-l border-white/10 shadow-[-28px_0_80px_rgba(0,0,0,0.88)] z-[130] transform translate-x-full flex flex-col" style="background:var(--dc-ink-900)">
   <div class="glass-heavy p-5 sm:p-6 border-b border-white/10 flex justify-between items-center relative overflow-hidden flex-shrink-0">
-    <div class="absolute -right-10 -top-10 w-40 h-40 bg-dc-cyan opacity-20 blur-[50px] rounded-full pointer-events-none"></div>
+    <div class="absolute -right-10 -top-10 w-40 h-40 opacity-20 blur-[50px] rounded-full pointer-events-none" style="background:var(--dc-azure)"></div>
     <div>
-      <h2 class="font-display text-3xl font-black text-white uppercase tracking-wider flex items-center gap-3">
-        <i class="fa-solid fa-bolt text-dc-cyan"></i> Create Showdown
+      <h2 class="font-display text-2xl font-extrabold text-white uppercase tracking-wider flex items-center gap-3">
+        <i class="fa-solid fa-bolt" style="color:var(--dc-azure)"></i> Create Showdown
       </h2>
-      <p class="text-xs text-gray-400 mt-1 font-medium tracking-wide">Configure match parameters and lock the entry fee.</p>
+      <p class="text-xs mt-1 font-medium tracking-wide" style="color:var(--dc-ink-400)">Configure match parameters and lock the entry fee.</p>
     </div>
-    <button type="button" data-close-slide="create-clash" class="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-gray-400 hover:text-white transition-colors border border-white/10 hover:border-white/30">
+    <button type="button" data-close-slide="create-clash" class="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center hover:text-white transition-colors border border-white/10" style="color:var(--dc-ink-400)">
       <i class="fa-solid fa-times text-lg"></i>
     </button>
   </div>
-
   <form id="form-create-clash" class="flex-grow overflow-y-auto overscroll-contain" novalidate>
     <div class="p-5 sm:p-8 space-y-5">
-      <div class="drawer-section flex items-start gap-4 border-dc-cyan/25 bg-dc-cyan/[0.055]">
-        <i class="fa-solid fa-shield-halved text-dc-cyan text-xl mt-1"></i>
+      <div class="drawer-section flex items-start gap-4" style="border-color:rgba(10,132,255,.25); background:rgba(10,132,255,.055)">
+        <i class="fa-solid fa-shield-halved mt-1 text-xl" style="color:var(--dc-azure)"></i>
         <div>
           <p class="text-sm text-white font-bold mb-1" id="so-acting-as">Acting as: --</p>
-          <p class="text-[10px] text-gray-400 leading-relaxed uppercase tracking-wider">Entry fee locks from the selected team wallet on submit. Opponent's matching entry fee locks on accept.</p>
+          <p class="text-[10px] leading-relaxed uppercase tracking-wider" style="color:var(--dc-ink-400)">Entry fee locks from the selected team wallet on submit.</p>
         </div>
       </div>
-
       <div class="drawer-section">
-        <label class="block text-[10px] uppercase font-bold text-gray-500 tracking-widest mb-2">Your Team</label>
+        <label class="block text-[10px] uppercase font-bold tracking-widest mb-2" style="color:var(--dc-ink-500)">Your Team</label>
         <select id="clash-team" name="challenger_team_id" class="field-select" required></select>
       </div>
-
       <div class="drawer-section">
-        <label class="text-[10px] uppercase font-bold text-gray-500 tracking-widest mb-2 flex justify-between">
-          <span>Target Opponent</span>
-          <span class="text-dc-cyan">Open Radar (Optional)</span>
+        <label class="text-[10px] uppercase font-bold tracking-widest mb-2 flex justify-between" style="color:var(--dc-ink-500)">
+          <span>Target Opponent</span><span style="color:var(--dc-azure)">Open Radar (Optional)</span>
         </label>
         <select id="clash-opponent" name="challenged_team_id" class="field-select">
           <option value="">— Open challenge (any team may accept) —</option>
         </select>
-        <p class="text-[10px] text-gray-500 mt-1.5" id="clash-opponent-hint">Leave blank to broadcast on the open radar.</p>
+        <p class="text-[10px] mt-1.5" style="color:var(--dc-ink-500)" id="clash-opponent-hint">Leave blank to broadcast on the open radar.</p>
       </div>
-
       <div class="drawer-section">
-        <label class="block text-[10px] uppercase font-bold text-gray-500 tracking-widest mb-2">Game</label>
+        <label class="block text-[10px] uppercase font-bold tracking-widest mb-2" style="color:var(--dc-ink-500)">Game</label>
         <select id="clash-game" name="game_id" class="field-select" required></select>
       </div>
-
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div class="drawer-section">
-          <label class="block text-[10px] uppercase font-bold text-gray-500 tracking-widest mb-2">Match Format</label>
+          <label class="block text-[10px] uppercase font-bold tracking-widest mb-2" style="color:var(--dc-ink-500)">Match Format</label>
           <select id="clash-format" name="best_of" class="field-select">
             <option value="1">BO1 — Single map</option>
             <option value="3" selected>BO3 — Best of 3</option>
@@ -926,171 +576,159 @@
           </select>
         </div>
         <div class="drawer-section">
-          <label class="block text-[10px] uppercase font-bold text-gray-500 tracking-widest mb-2">Headline</label>
+          <label class="block text-[10px] uppercase font-bold tracking-widest mb-2" style="color:var(--dc-ink-500)">Headline</label>
           <input id="clash-title" name="title" type="text" maxlength="120" placeholder="Friday Night Showdown" class="field-input" required>
         </div>
       </div>
-
-      <div class="bg-gradient-to-br from-[#1a1a10] to-black p-5 rounded-2xl border border-dc-gold/30 relative overflow-hidden mt-6 shadow-[0_18px_45px_-24px_rgba(255,215,0,0.45)]">
-        <div class="absolute -left-10 -bottom-10 w-32 h-32 bg-dc-gold opacity-10 blur-2xl rounded-full pointer-events-none"></div>
+      <div class="p-5 rounded-2xl border relative overflow-hidden mt-6" style="background:linear-gradient(135deg,rgba(207,167,90,.08),rgba(0,0,0,.4)); border-color:rgba(207,167,90,.3)">
         <div class="flex justify-between items-end mb-4 relative z-10">
-          <label class="block text-[10px] uppercase font-bold text-dc-gold tracking-widest">Entry Fee (Per Team)</label>
-          <span class="text-[10px] uppercase font-bold text-gray-500 bg-black/50 px-2 py-1 rounded border border-white/10" id="so-wallet-bal">Bal: -- DC</span>
+          <label class="block text-[10px] uppercase font-bold tracking-widest" style="color:var(--dc-gold)">Entry Fee (Per Team)</label>
+          <span class="text-[10px] uppercase font-bold px-2 py-1 rounded" style="color:var(--dc-ink-500); background:rgba(0,0,0,.5); border:1px solid rgba(255,255,255,.1)" id="so-wallet-bal">Bal: -- DC</span>
         </div>
         <div class="relative flex items-center mb-4 z-10">
-          <i class="fa-solid fa-coins absolute left-4 text-dc-gold text-xl z-10"></i>
-          <input id="clash-fee" name="entry_fee_dc" type="number" min="1" max="1000" step="1" value="300"
-                 class="field-input pl-12 font-display font-black text-3xl !text-white border-dc-gold/50 focus:border-dc-gold" required>
+          <i class="fa-solid fa-coins absolute left-4 text-xl z-10" style="color:var(--dc-gold)"></i>
+          <input id="clash-fee" name="entry_fee_dc" type="number" min="1" max="1000" step="1" value="300" class="field-input pl-12 font-display font-extrabold text-3xl !text-white" style="border-color:rgba(207,167,90,.5)" required>
         </div>
-        <p class="text-[10px] text-gray-500 mb-3 relative z-10">Anti-whale cap: <strong class="text-dc-gold">1,000 DC</strong> per side.</p>
-        <div class="bg-black/40 border border-white/5 p-3 rounded-lg flex justify-between items-center relative z-10">
+        <p class="text-[10px] mb-3 relative z-10" style="color:var(--dc-ink-500)">Anti-whale cap: <strong style="color:var(--dc-gold)">1,000 DC</strong> per side.</p>
+        <div class="flex justify-between items-center p-3 rounded-lg relative z-10" style="background:rgba(0,0,0,.4); border:1px solid rgba(255,255,255,.05)">
           <div class="flex items-center gap-2">
-            <div class="w-6 h-6 rounded-full bg-dc-gold/20 flex items-center justify-center border border-dc-gold/40">
-              <i class="fa-solid fa-trophy text-[10px] text-dc-gold"></i>
+            <div class="w-6 h-6 rounded-full flex items-center justify-center" style="background:rgba(207,167,90,.2); border:1px solid rgba(207,167,90,.4)">
+              <i class="fa-solid fa-trophy text-[10px]" style="color:var(--dc-gold)"></i>
             </div>
-            <span class="text-xs font-bold text-gray-300 uppercase tracking-widest">Reward Pool</span>
+            <span class="text-xs font-bold uppercase tracking-widest" style="color:var(--dc-ink-300)">Reward Pool</span>
           </div>
-          <span class="text-dc-gold font-display font-black text-2xl" id="clash-pot-display"><i class="fa-solid fa-coins text-sm mr-1"></i>600</span>
+          <span class="font-display font-extrabold text-2xl" style="color:var(--dc-gold)" id="clash-pot-display"><i class="fa-solid fa-coins text-sm mr-1"></i>600</span>
         </div>
       </div>
-
       <div id="clash-form-error" class="form-error hidden" role="alert"></div>
     </div>
-
-    <div class="dcx-sticky-footer p-5 sm:p-6 border-t border-white/10 bg-[#050508]/95 backdrop-blur-xl flex-shrink-0 sticky bottom-0">
-      <button type="submit" id="clash-submit" class="btn-cyber w-full bg-dc-cyan text-black font-black uppercase tracking-widest py-4 transition-all shadow-[0_0_20px_rgba(0,229,255,0.3)] hover:shadow-[0_0_30px_rgba(0,229,255,0.5)] flex justify-center items-center gap-3 text-lg">
+    <div class="p-5 sm:p-6 border-t border-white/10 flex-shrink-0 sticky bottom-0" style="background:rgba(4,6,10,.95); backdrop-filter:blur(20px)">
+      <button type="submit" id="clash-submit" class="btn-cyber w-full font-extrabold uppercase tracking-widest py-4 transition-all flex justify-center items-center gap-3 text-lg" style="background:var(--dc-azure); color:#000; box-shadow:0 0 20px rgba(10,132,255,.3)">
         <i class="fa-solid fa-lock"></i>
         <span class="submit-label">Lock <span id="submit-btn-amt">300</span> DC &amp; Create</span>
       </button>
-      <p class="text-[9px] text-gray-500 text-center mt-4 uppercase tracking-widest font-mono">Platform fee (5%) applies only during reward settlement.</p>
+      <p class="text-[9px] text-center mt-4 uppercase tracking-widest font-mono" style="color:var(--dc-ink-500)">Platform fee (5%) applies only during reward settlement.</p>
     </div>
   </form>
 </div>
 
-{# Place Bounty slide-over #}
-<div id="slide-over-create-hitlist" class="dcx-drawer drawer-panel fixed inset-y-0 right-0 h-dvh w-full max-w-xl bg-[#08080c] border-l border-white/10 shadow-[-28px_0_80px_rgba(0,0,0,0.88)] z-[130] transform translate-x-full flex flex-col">
+{# ── Post Bounty slide-over ────────────────────────────────────────── #}
+<div id="slide-over-create-hitlist" class="drawer-panel fixed inset-y-0 right-0 h-dvh w-full max-w-xl border-l border-white/10 shadow-[-28px_0_80px_rgba(0,0,0,0.88)] z-[130] transform translate-x-full flex flex-col" style="background:var(--dc-ink-900)">
   <div class="glass-heavy p-6 border-b border-white/10 flex justify-between items-center relative overflow-hidden flex-shrink-0">
-    <div class="absolute -right-10 -top-10 w-40 h-40 bg-dc-neon opacity-20 blur-[50px] rounded-full pointer-events-none"></div>
+    <div class="absolute -right-10 -top-10 w-40 h-40 opacity-20 blur-[50px] rounded-full pointer-events-none" style="background:var(--dc-rose)"></div>
     <div>
-      <h2 class="font-display text-3xl font-black text-white uppercase tracking-wider flex items-center gap-3">
-        <i class="fa-solid fa-skull text-dc-neon"></i> Post Bounty
+      <h2 class="font-display text-2xl font-extrabold text-white uppercase tracking-wider flex items-center gap-3">
+        <i class="fa-solid fa-crosshairs" style="color:var(--dc-rose-display)"></i> Post Bounty
       </h2>
-      <p class="text-xs text-gray-400 mt-1 font-medium tracking-wide">Team authority required. Post a Bounty for challengers to claim.</p>
+      <p class="text-xs mt-1 font-medium tracking-wide" style="color:var(--dc-ink-400)">Team authority required. Post a Bounty for challengers.</p>
     </div>
-    <button type="button" data-close-slide="create-hitlist" class="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-gray-400 hover:text-white transition-colors border border-white/10 hover:border-white/30">
+    <button type="button" data-close-slide="create-hitlist" class="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center hover:text-white transition-colors border border-white/10" style="color:var(--dc-ink-400)">
       <i class="fa-solid fa-times text-lg"></i>
     </button>
   </div>
-
   <form id="form-create-hitlist" class="flex-grow overflow-y-auto overscroll-contain" novalidate>
     <div class="p-8 space-y-6">
-      <div class="rounded-2xl border border-dc-neon/25 bg-dc-neon/[0.06] p-4">
-        <p class="text-[10px] uppercase tracking-[0.22em] text-dc-neon font-black mb-1">Team-based operation</p>
-        <p class="text-xs leading-relaxed text-gray-300">Solo Bounty posting is not supported. Your selected team posts this Bounty on itself, and other authorized teams can claim it through the Bounty board.</p>
+      <div class="rounded-2xl p-4" style="border:1px solid rgba(191,56,104,.25); background:rgba(191,56,104,.06)">
+        <p class="text-[10px] uppercase tracking-[0.22em] font-bold mb-1" style="color:var(--dc-rose-display)">Team-based operation</p>
+        <p class="text-xs leading-relaxed" style="color:var(--dc-ink-300)">Your selected team posts this Bounty on itself. Other authorized teams can claim it.</p>
       </div>
       <div>
-        <label class="block text-[10px] uppercase font-bold text-gray-500 tracking-widest mb-2">Your Team (Issuer)</label>
+        <label class="block text-[10px] uppercase font-bold tracking-widest mb-2" style="color:var(--dc-ink-500)">Your Team (Issuer)</label>
         <select id="hitlist-team" name="issuer_team_id" class="field-select" required></select>
-        <p class="text-[10px] text-gray-500 mt-1.5">This team posts the Bounty on itself. Another team claims it by challenging and completing the criteria.</p>
       </div>
       <div>
-        <label class="block text-[10px] uppercase font-bold text-gray-500 tracking-widest mb-2">Game</label>
+        <label class="block text-[10px] uppercase font-bold tracking-widest mb-2" style="color:var(--dc-ink-500)">Game</label>
         <select id="hitlist-game" name="game_id" class="field-select" required></select>
       </div>
       <div>
-        <label class="block text-[10px] uppercase font-bold text-gray-500 tracking-widest mb-2">Bounty Headline</label>
+        <label class="block text-[10px] uppercase font-bold tracking-widest mb-2" style="color:var(--dc-ink-500)">Bounty Headline</label>
         <input id="hitlist-title" name="title" type="text" maxlength="120" placeholder="Can You Beat the Kings?" class="field-input" required>
       </div>
-      <div class="bg-gradient-to-br from-[#1a0a0e] to-black p-5 rounded-xl border border-dc-neon/30 relative overflow-hidden mt-2 shadow-[0_10px_30px_-10px_rgba(255,0,85,0.1)]">
-        <div class="absolute -right-10 -bottom-10 w-32 h-32 bg-dc-neon opacity-10 blur-2xl rounded-full pointer-events-none"></div>
+      <div class="p-5 rounded-xl relative overflow-hidden mt-2" style="background:linear-gradient(135deg,rgba(191,56,104,.08),rgba(0,0,0,.4)); border:1px solid rgba(191,56,104,.3)">
         <div class="grid grid-cols-2 gap-4 relative z-10">
           <div>
-            <label class="block text-[10px] uppercase font-bold text-dc-neon tracking-widest mb-2">Reward (DC)</label>
-            <input id="hitlist-reward" name="reward_amount_dc" type="number" min="1" step="1" value="1000" placeholder="1000" class="field-input" required>
-            <p class="text-[10px] text-gray-500 mt-1.5">Locked from your wallet immediately.</p>
+            <label class="block text-[10px] uppercase font-bold tracking-widest mb-2" style="color:var(--dc-rose-display)">Reward (DC)</label>
+            <input id="hitlist-reward" name="reward_amount_dc" type="number" min="1" step="1" value="1000" class="field-input" required>
+            <p class="text-[10px] mt-1.5" style="color:var(--dc-ink-500)">Locked from your wallet immediately.</p>
           </div>
           <div>
-            <label class="block text-[10px] uppercase font-bold text-dc-gold tracking-widest mb-2">Challenger Entry (DC)</label>
-            <input id="hitlist-entry" name="challenger_entry_fee_dc" type="number" min="1" max="1000" step="1" value="200" placeholder="200" class="field-input" required>
-            <p class="text-[10px] text-gray-500 mt-1.5">Cap: 1,000 DC.</p>
+            <label class="block text-[10px] uppercase font-bold tracking-widest mb-2" style="color:var(--dc-gold)">Challenger Entry (DC)</label>
+            <input id="hitlist-entry" name="challenger_entry_fee_dc" type="number" min="1" max="1000" step="1" value="200" class="field-input" required>
+            <p class="text-[10px] mt-1.5" style="color:var(--dc-ink-500)">Cap: 1,000 DC.</p>
           </div>
         </div>
       </div>
       <div id="hitlist-form-error" class="form-error hidden" role="alert"></div>
     </div>
-
-    <div class="p-6 border-t border-white/10 bg-[#050508] flex-shrink-0 sticky bottom-0">
-      <button type="submit" id="hitlist-submit" class="btn-cyber w-full bg-dc-neon text-white font-black uppercase tracking-widest py-4 transition-all shadow-[0_0_20px_rgba(255,0,85,0.3)] hover:shadow-[0_0_30px_rgba(255,0,85,0.5)] flex justify-center items-center gap-3 text-lg">
-        <i class="fa-solid fa-skull"></i>
+    <div class="p-6 border-t border-white/10 flex-shrink-0 sticky bottom-0" style="background:rgba(4,6,10,.95)">
+      <button type="submit" id="hitlist-submit" class="btn-cyber w-full font-extrabold uppercase tracking-widest py-4 transition-all flex justify-center items-center gap-3 text-lg" style="background:var(--dc-rose); color:#fff; box-shadow:0 0 20px rgba(191,56,104,.3)">
+        <i class="fa-solid fa-crosshairs"></i>
         <span class="submit-label">Lock Reward &amp; Post Bounty</span>
       </button>
     </div>
   </form>
 </div>
 
-{# ── Escrow confirmation modal ──────────────────────────────────── #}
+{# ── Result submission modal ──────────────────────────────────────── #}
 <div id="showdown-result-modal" class="modal-shell hidden-spa" role="dialog" aria-modal="true">
   <form id="form-showdown-result" class="modal-card">
     <div class="flex items-start justify-between gap-4 mb-5">
       <div>
-        <h3 class="font-display text-2xl font-black text-white uppercase tracking-wider">Submit Result</h3>
-        <p id="result-showdown-title" class="text-xs text-gray-400 mt-1">Showdown Result</p>
+        <h3 class="font-display text-2xl font-extrabold text-white uppercase tracking-wider">Submit Result</h3>
+        <p id="result-showdown-title" class="text-xs mt-1" style="color:var(--dc-ink-400)">Showdown Result</p>
       </div>
-      <button type="button" class="text-gray-400 hover:text-white text-2xl leading-none" data-close-result-modal>&times;</button>
+      <button type="button" class="text-2xl leading-none hover:text-white" style="color:var(--dc-ink-400)" data-close-result-modal>&times;</button>
     </div>
     <div id="showdown-result-form-error" class="form-error hidden" role="alert"></div>
-
     <div class="space-y-4">
       <label class="block">
-        <span class="block text-[10px] uppercase font-bold text-gray-500 tracking-widest mb-2">Result</span>
+        <span class="block text-[10px] uppercase font-bold tracking-widest mb-2" style="color:var(--dc-ink-500)">Result</span>
         <select id="showdown-result-result" class="field-select"></select>
       </label>
-
       <div class="grid grid-cols-2 gap-3">
         <label class="block">
-          <span id="showdown-result-challenger-label" class="block text-[10px] uppercase font-bold text-gray-500 tracking-widest mb-2">Challenger</span>
+          <span id="showdown-result-challenger-label" class="block text-[10px] uppercase font-bold tracking-widest mb-2" style="color:var(--dc-ink-500)">Challenger</span>
           <input id="showdown-result-challenger-score" type="number" min="0" step="1" class="field-input" placeholder="0">
         </label>
         <label class="block">
-          <span id="showdown-result-challenged-label" class="block text-[10px] uppercase font-bold text-gray-500 tracking-widest mb-2">Opponent</span>
+          <span id="showdown-result-challenged-label" class="block text-[10px] uppercase font-bold tracking-widest mb-2" style="color:var(--dc-ink-500)">Opponent</span>
           <input id="showdown-result-challenged-score" type="number" min="0" step="1" class="field-input" placeholder="0">
         </label>
       </div>
-
       <label class="block">
-        <span class="block text-[10px] uppercase font-bold text-gray-500 tracking-widest mb-2">Evidence URL</span>
+        <span class="block text-[10px] uppercase font-bold tracking-widest mb-2" style="color:var(--dc-ink-500)">Evidence URL</span>
         <input id="showdown-result-evidence" type="url" class="field-input" placeholder="https://">
       </label>
     </div>
-
     <div class="flex gap-3 justify-end mt-6">
       <button type="button" class="px-4 py-2 rounded-xl text-sm font-bold bg-white/5 border border-white/10 text-white hover:bg-white/10" data-close-result-modal>Cancel</button>
-      <button type="submit" class="btn-cyber px-5 py-2 bg-dc-cyan text-black text-sm font-black uppercase tracking-widest">Submit Result</button>
+      <button type="submit" class="btn-cyber px-5 py-2 text-sm font-extrabold uppercase tracking-widest" style="background:var(--dc-azure); color:#000">Submit Result</button>
     </div>
   </form>
 </div>
 
+{# ── Confirmation modal ───────────────────────────────────────────── #}
 <div id="confirm-modal" class="modal-shell hidden-spa" role="dialog" aria-modal="true">
   <div class="modal-card">
     <div class="flex items-center justify-between mb-4">
-      <h3 id="confirm-title" class="text-base font-black text-white">Confirm action</h3>
-      <button type="button" class="text-gray-400 hover:text-white text-2xl leading-none" data-cancel-confirm>&times;</button>
+      <h3 id="confirm-title" class="text-base font-extrabold text-white">Confirm action</h3>
+      <button type="button" class="text-2xl leading-none hover:text-white" style="color:var(--dc-ink-400)" data-cancel-confirm>&times;</button>
     </div>
-    <p id="confirm-body" class="text-sm text-gray-400 leading-relaxed mb-2">…</p>
+    <p id="confirm-body" class="text-sm leading-relaxed mb-2" style="color:var(--dc-ink-400)">&hellip;</p>
     <div id="confirm-team-wrap" class="hidden-spa mb-4">
-      <label class="block text-[10px] uppercase font-bold text-gray-500 tracking-widest mb-2">Accepting Team</label>
+      <label class="block text-[10px] uppercase font-bold tracking-widest mb-2" style="color:var(--dc-ink-500)">Accepting Team</label>
       <select id="confirm-team-select" class="field-select"></select>
-      <p class="text-[10px] text-gray-500 mt-1.5">Choose which managed team will accept this Showdown.</p>
+      <p class="text-[10px] mt-1.5" style="color:var(--dc-ink-500)">Choose which managed team will accept.</p>
     </div>
-    <p id="confirm-lock" class="text-xs text-dc-gold font-mono mb-6 font-bold">…</p>
+    <p id="confirm-lock" class="text-xs font-mono mb-6 font-bold" style="color:var(--dc-gold)">&hellip;</p>
     <div class="flex gap-3 justify-end">
       <button type="button" class="px-4 py-2 rounded-xl text-sm font-bold bg-white/5 border border-white/10 text-white hover:bg-white/10" data-cancel-confirm>Cancel</button>
-      <button type="button" id="confirm-go" class="btn-cyber px-5 py-2 bg-dc-cyan text-black text-sm font-black uppercase tracking-widest">Confirm &amp; Lock</button>
+      <button type="button" id="confirm-go" class="btn-cyber px-5 py-2 text-sm font-extrabold uppercase tracking-widest" style="background:var(--dc-azure); color:#000">Confirm &amp; Lock</button>
     </div>
   </div>
 </div>
 
-{# ── Toast shelf ────────────────────────────────────────────────── #}
+{# ── Toast shelf ────────────────────────────────────────────────────── #}
 <div id="toast-container" class="fixed bottom-6 right-6 z-[100] flex flex-col gap-3 pointer-events-none"></div>
 
 {{ hub_context|json_script:"hub-context" }}
@@ -1098,5 +736,6 @@
 {% endblock %}
 
 {% block extra_js %}
-<script defer src="{% static 'dashboard/competitive-hub.js' %}?v=20260517-phase9a"></script>
+<script defer src="{% static 'dashboard/competitive-hub.js' %}?v=20260620-arena"></script>
+<script defer src="{% static 'dashboard/competitive-arena-ui.js' %}?v=20260620"></script>
 {% endblock %}
