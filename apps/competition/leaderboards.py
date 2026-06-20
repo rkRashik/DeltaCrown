@@ -230,6 +230,25 @@ def leaderboard_global(request):
     # Compute max score for score bar width
     max_score = max((e.score for e in response.entries), default=1) or 1
 
+    # Seasons for the season selector
+    seasons = []
+    active_season = None
+    try:
+        from apps.leaderboards.models import Season
+        for _s in Season.objects.all().order_by('-start_date'):
+            sd = {
+                'id': _s.season_id,
+                'name': _s.name,
+                'start': _s.start_date,
+                'end': _s.end_date,
+                'active': _s.is_active,
+            }
+            seasons.append(sd)
+            if _s.is_active:
+                active_season = sd
+    except Exception:
+        pass
+
     # Game configs for the game selector tabs
     game_configs = _get_game_configs_with_colors(user=request.user)
 
@@ -265,6 +284,13 @@ def leaderboard_global(request):
         _meta = _game_meta.get(_gn)
         _e.game_color = _meta[0] if _meta else '#A9B1C2'
         _e.game_short = _meta[1] if _meta else (_gn[:4].upper() if _gn else '')
+
+    # Mark entries that belong to the logged-in user's teams
+    _user_slugs = set()
+    if user_teams_display:
+        _user_slugs = {t.get('team_slug', '') for t in user_teams_display}
+    for _e in response.entries:
+        _e.is_user_team = (_e.team_slug in _user_slugs) if _user_slugs else False
 
     # Build per-game sections for the global view (top 5 per game)
     game_sections = []
@@ -303,6 +329,8 @@ def leaderboard_global(request):
         'rankings': response,
         'entries': response.entries,
         'sidebar_games': sidebar_games,
+        'seasons': seasons,
+        'active_season': active_season,
         'total_count': response.total_count,
         'tier_filter': tier_filter,
         'verified_only': verified_only,

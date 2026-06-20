@@ -54,19 +54,40 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
 [data-tier="CHALLENGER"] { --tc:#8470EE; --tc-rgb:132,112,238; }
 [data-tier="ROOKIE"]     { --tc:#94A3B8; --tc-rgb:148,163,184; }
 .tier-badge { display:inline-block; background:rgba(var(--tc-rgb),.12); border:1px solid rgba(var(--tc-rgb),.28); color:var(--tc); font-size:10px; font-weight:700; letter-spacing:.05em; padding:3px 9px; border-radius:999px; white-space:nowrap; }
-.tier-avatar { background:linear-gradient(135deg,rgba(var(--tc-rgb),.16),rgba(var(--tc-rgb),.32)); border:1px solid rgba(var(--tc-rgb),.26); }
 .tier-bar { background:var(--tc); }
+
+/* Team avatar — crisp, no blurry overlay */
+.team-av { border-radius:10px; overflow:hidden; display:flex; align-items:center; justify-content:center; flex-shrink:0; background:#161B28; border:1px solid rgba(255,255,255,.08); }
+.team-av img { width:100%; height:100%; object-fit:cover; display:block; image-rendering:auto; }
+.team-av-round { border-radius:50%; }
 
 /* ── Table ── */
 .tbl { width:100%; border-collapse:collapse; }
-.tbl th { padding:0 12px; height:34px; font-size:11px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:#5A6273; border-bottom:1px solid rgba(255,255,255,.07); text-align:left; white-space:nowrap; }
-.tbl td { padding:0 12px; height:52px; border-bottom:1px solid rgba(255,255,255,.04); vertical-align:middle; }
+.tbl th { padding:0 12px; height:36px; font-size:11px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:#7A8399; border-bottom:1px solid rgba(255,255,255,.07); text-align:left; white-space:nowrap; }
+.tbl td { padding:0 12px; height:56px; border-bottom:1px solid rgba(255,255,255,.04); vertical-align:middle; }
 .tbl tbody tr:last-child td { border-bottom:none; }
 .tbl tbody tr { cursor:pointer; transition:background .12s; }
-.tbl tbody tr:hover { background:rgba(255,255,255,.032) !important; }
+.tbl tbody tr:hover { background:rgba(255,255,255,.04) !important; }
+
+/* "Your team" pinned row */
+.rk-your-row { background:rgba(207,167,90,.04); border-left:3px solid #CFA75A; }
+.rk-your-row:hover { background:rgba(207,167,90,.07) !important; }
+.rk-you-tag { font-family:'JetBrains Mono',monospace; font-size:9px; font-weight:700; letter-spacing:.06em; padding:2px 7px; border-radius:999px; background:rgba(207,167,90,.14); border:1px solid rgba(207,167,90,.28); color:#CFA75A; }
+
+/* Sort active header */
+.rk-sortable:hover { color:#B0B8CC !important; }
+.rk-sortable.sort-active { color:#E8ECF4 !important; }
+.rk-sortable.sort-active .fa-sort { opacity:1 !important; }
+
+/* Skeleton shimmer */
+@keyframes rk-shimmer { 0%{background-position:-200px 0} 100%{background-position:calc(200px + 100%) 0} }
+.rk-skeleton td { position:relative; }
+.rk-skeleton td > * { visibility:hidden; }
+.rk-skeleton td::after { content:''; position:absolute; top:50%; left:12px; right:12px; height:14px; margin-top:-7px; border-radius:6px; background:linear-gradient(90deg,rgba(255,255,255,.04) 25%,rgba(255,255,255,.08) 50%,rgba(255,255,255,.04) 75%); background-size:200px 100%; animation:rk-shimmer 1.2s ease-in-out infinite; }
+@media (prefers-reduced-motion:reduce){ .rk-skeleton td::after{animation:none} }
 
 /* ── Sidebar game button ── */
-.side-g { display:flex; align-items:center; gap:10px; padding:0 10px; height:38px; border-radius:9px; border-left:2px solid transparent; background:transparent; width:100%; cursor:pointer; margin-bottom:2px; border-top:none; border-right:none; border-bottom:none; transition:background .12s,border-color .12s; }
+.side-g { display:flex; align-items:center; gap:8px; padding:0 8px; height:34px; border-radius:8px; border-left:2px solid transparent; background:transparent; width:100%; cursor:pointer; margin-bottom:1px; border-top:none; border-right:none; border-bottom:none; transition:background .12s,border-color .12s; }
 .side-g:hover { background:rgba(255,255,255,.04); }
 .side-g .sg-name { font-size:13px; font-weight:500; color:#818A9D; flex:1; text-align:left; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .side-g .sg-count { font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:600; color:#5A6273; background:rgba(255,255,255,.05); border-radius:999px; padding:1px 7px; flex-shrink:0; }
@@ -107,6 +128,38 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
 #rkSearchBox:focus-within { border-color:rgba(104,73,229,.50); box-shadow:0 0 0 3px rgba(104,73,229,.10); }
 #rkSearchBox:focus-within kbd { display:none; }
 
+/* Season dropdown */
+.rk-season-opt:hover { background:rgba(255,255,255,.05) !important; }
+.rk-season-opt.active { background:rgba(104,73,229,.10) !important; color:#E8ECF4 !important; }
+#rkSeasonBtn:hover { border-color:rgba(255,255,255,.15); }
+
+/* ── Keyboard navigation focus ring ── */
+.rk-entry.rk-kb-focus, .rk-entry-m.rk-kb-focus { outline:2px solid rgba(104,73,229,.6); outline-offset:-2px; background:rgba(104,73,229,.06) !important; }
+
+/* ── Compare mode ── */
+.rk-cmp-check { width:18px; height:18px; border-radius:5px; border:1.5px solid rgba(255,255,255,.12); background:transparent; display:flex; align-items:center; justify-content:center; flex-shrink:0; cursor:pointer; transition:all .12s; }
+.rk-cmp-check:hover { border-color:rgba(104,73,229,.5); }
+.rk-cmp-check.checked { background:#6849E5; border-color:#6849E5; }
+.rk-cmp-check.checked::after { content:'✓'; color:#fff; font-size:11px; font-weight:700; line-height:1; }
+#rkCompareBar { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); z-index:500; display:none; align-items:center; gap:12px; padding:10px 20px; border-radius:14px; background:#161B28; border:1px solid rgba(104,73,229,.30); box-shadow:0 12px 40px rgba(0,0,0,.5); }
+#rkCompareBar.show { display:flex; animation:rk-fade .25s ease both; }
+
+/* ── Compare modal ── */
+.rk-cmp-card { flex:1; min-width:0; background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.06); border-radius:14px; padding:20px; text-align:center; }
+.rk-cmp-vs { width:36px; height:36px; border-radius:50%; background:rgba(104,73,229,.15); border:1px solid rgba(104,73,229,.30); display:flex; align-items:center; justify-content:center; flex-shrink:0; font-family:'Sora',sans-serif; font-weight:800; font-size:11px; color:#8B5CF6; }
+.rk-cmp-row { display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid rgba(255,255,255,.04); }
+.rk-cmp-row:last-child { border-bottom:none; }
+.rk-cmp-winner { color:#CFA75A !important; }
+
+/* ── Infinite scroll sentinel ── */
+#rkScrollSentinel { height:1px; width:100%; }
+.rk-loading-more { display:flex; align-items:center; justify-content:center; gap:8px; padding:16px; color:#7A8399; font-size:12px; font-weight:600; }
+@keyframes rk-dots { 0%,80%,100%{opacity:.3} 40%{opacity:1} }
+.rk-ldot { width:5px; height:5px; border-radius:50%; background:#7A8399; display:inline-block; }
+.rk-ldot:nth-child(1) { animation:rk-dots 1.2s infinite .0s; }
+.rk-ldot:nth-child(2) { animation:rk-dots 1.2s infinite .2s; }
+.rk-ldot:nth-child(3) { animation:rk-dots 1.2s infinite .4s; }
+
 /* ── Team detail modal ── */
 @keyframes rk-backIn { from{opacity:0} to{opacity:1} }
 @keyframes rk-cardIn  { from{opacity:0;transform:translateY(16px) scale(.96)} to{opacity:1;transform:translateY(0) scale(1)} }
@@ -114,24 +167,24 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
 #rkModal.open { display:flex; }
 #rkModalBack { position:absolute; inset:0; background:rgba(4,6,12,.74); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); animation:rk-backIn .2s ease both; }
 #rkModalCard {
-  position:relative; width:100%; max-width:440px; background:#11151E;
-  border:1px solid rgba(255,255,255,.08); border-radius:20px; overflow:hidden;
-  box-shadow:0 24px 70px rgba(0,0,0,.6); animation:rk-cardIn .28s cubic-bezier(.22,1,.36,1) both;
+  position:relative; width:100%; max-width:460px; background:#0F1320;
+  border:1px solid rgba(255,255,255,.10); border-radius:20px; overflow:hidden;
+  box-shadow:0 32px 80px rgba(0,0,0,.7),0 0 0 1px rgba(255,255,255,.04); animation:rk-cardIn .28s cubic-bezier(.22,1,.36,1) both;
   max-height:calc(100vh - 40px); overflow-y:auto;
 }
 .rk-mclose { position:absolute; top:12px; right:12px; z-index:3; width:32px; height:32px; border-radius:10px; background:rgba(0,0,0,.4); border:1px solid rgba(255,255,255,.1); color:#C2C8D4; font-size:13px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:background .15s,color .15s; }
 .rk-mclose:hover { background:rgba(0,0,0,.65); color:#fff; }
-.rk-mbanner { height:104px; position:relative; overflow:hidden; background:linear-gradient(135deg,rgba(var(--tc-rgb),.30),rgba(var(--tc-rgb),.10)); }
-.rk-mbanner img { width:100%; height:100%; object-fit:cover; opacity:.6; }
-.rk-mbanner::after { content:''; position:absolute; inset:0; background:linear-gradient(to top,#11151E 0%,rgba(17,21,30,.2) 60%,transparent 100%); }
-.rk-mlogo { position:absolute; left:24px; bottom:-26px; width:72px; height:72px; border-radius:18px; overflow:hidden; border:3px solid #11151E; background:linear-gradient(135deg,rgba(var(--tc-rgb),.18),rgba(var(--tc-rgb),.34)); display:flex; align-items:center; justify-content:center; font-family:'Sora',sans-serif; font-weight:800; font-size:24px; color:#fff; z-index:2; box-shadow:0 8px 24px rgba(0,0,0,.4); }
+.rk-mbanner { height:120px; position:relative; overflow:hidden; background:linear-gradient(135deg,rgba(var(--tc-rgb),.25),rgba(var(--tc-rgb),.08) 60%,#0F1320); }
+.rk-mbanner img { width:100%; height:100%; object-fit:cover; opacity:.55; }
+.rk-mbanner::after { content:''; position:absolute; inset:0; background:linear-gradient(to top,#0F1320 0%,rgba(15,19,32,.3) 55%,transparent 100%); }
+.rk-mlogo { position:absolute; left:24px; bottom:-28px; width:76px; height:76px; border-radius:18px; overflow:hidden; border:3px solid #0F1320; background:#161B28; display:flex; align-items:center; justify-content:center; font-family:'Sora',sans-serif; font-weight:800; font-size:26px; color:#8A92A6; z-index:2; box-shadow:0 8px 24px rgba(0,0,0,.5); }
 .rk-mlogo img { width:100%; height:100%; object-fit:cover; }
-.rk-mstat { background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.06); border-radius:12px; padding:11px 14px; text-align:center; }
-.rk-mstat .lbl { font-size:9px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:#5A6273; }
-.rk-mstat .val { font-family:'JetBrains Mono',monospace; font-weight:700; font-size:18px; color:#F4F6FA; margin-top:3px; }
-.rk-visit { display:flex; align-items:center; justify-content:center; gap:8px; width:100%; height:46px; border-radius:13px; background:linear-gradient(135deg,#6849E5,#0A84FF); color:#fff; font-size:14px; font-weight:700; cursor:pointer; transition:filter .15s,transform .1s; }
-.rk-visit:hover { filter:brightness(1.08); }
-.rk-visit:active { transform:scale(.99); }
+.rk-mstat { background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.07); border-radius:12px; padding:12px 14px; text-align:center; }
+.rk-mstat .lbl { font-size:9px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:#7A8399; }
+.rk-mstat .val { font-family:'JetBrains Mono',monospace; font-weight:700; font-size:20px; color:#F4F6FA; margin-top:4px; }
+.rk-visit { display:flex; align-items:center; justify-content:center; gap:8px; width:100%; height:48px; border-radius:13px; background:linear-gradient(135deg,#6849E5 0%,#0A84FF 100%); color:#fff; font-size:14px; font-weight:700; letter-spacing:-.01em; cursor:pointer; transition:filter .15s,transform .1s; border:none; text-decoration:none; }
+.rk-visit:hover { filter:brightness(1.1); color:#fff; }
+.rk-visit:active { transform:scale(.98); }
 @media (prefers-reduced-motion: reduce){ #rkModalBack,#rkModalCard{animation:none} }
 </style>
 {% endblock %}
@@ -150,47 +203,88 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
 
   <!-- ═══════ SIDEBAR ═══════ -->
   <aside class="rk-sidebar no-sb">
-    <!-- Brand -->
-    <div style="padding:16px 14px;border-bottom:1px solid rgba(255,255,255,.08);background:linear-gradient(160deg,rgba(104,73,229,.10) 0%,transparent 70%);">
-      <div style="display:flex;align-items:center;gap:11px;">
-        <div style="width:38px;height:38px;border-radius:11px;background:linear-gradient(145deg,rgba(104,73,229,.50),rgba(10,132,255,.32));display:flex;align-items:center;justify-content:center;border:1px solid rgba(104,73,229,.40);flex-shrink:0;box-shadow:0 4px 14px rgba(104,73,229,.24),inset 0 1px 0 rgba(255,255,255,.10);">
-          <i class="fa-solid fa-trophy" style="font-size:15px;color:#CFA75A;"></i>
+    <!-- Brand + actions -->
+    <div style="padding:14px;border-bottom:1px solid rgba(255,255,255,.06);">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,#6849E5,#0A84FF);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <i class="fa-solid fa-trophy" style="font-size:13px;color:#fff;"></i>
+          </div>
+          <div>
+            <div style="font-family:'Sora',sans-serif;font-weight:800;font-size:15px;letter-spacing:-.02em;color:#F4F6FA;line-height:1;">Rankings</div>
+            <div style="font-size:9px;color:#5A6273;margin-top:2px;letter-spacing:.06em;text-transform:uppercase;font-weight:600;">Crown Points</div>
+          </div>
         </div>
-        <div>
-          <div style="font-family:'Sora',sans-serif;font-weight:800;font-size:16px;letter-spacing:-.025em;color:#F4F6FA;line-height:1.1;">Rankings</div>
-          <div style="font-size:10px;color:#6B7385;margin-top:3px;letter-spacing:.07em;text-transform:uppercase;font-weight:600;">Crown Points · DCRS</div>
-        </div>
+        <button type="button" id="rkCompareToggle" title="Compare teams" style="width:30px;height:30px;border-radius:8px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);display:flex;align-items:center;justify-content:center;cursor:pointer;color:#5A6273;transition:all .15s;">
+          <i class="fa-solid fa-code-compare" style="font-size:11px;"></i>
+        </button>
       </div>
     </div>
 
-    <!-- Search (prominent, right after brand) -->
-    <div style="padding:14px 14px 12px;border-bottom:1px solid rgba(255,255,255,.07);">
-      <div style="display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:0 12px;height:38px;transition:border-color .2s,box-shadow .2s;" id="rkSearchBox">
-        <i class="fa-solid fa-magnifying-glass" style="color:#4A5268;font-size:13px;flex-shrink:0;"></i>
+    <!-- Season -->
+    {% if seasons %}
+    <div style="padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.06);">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">
+        <div style="display:flex;align-items:center;gap:5px;">
+          <span style="width:5px;height:5px;border-radius:50%;background:{% if active_season %}#FF3B5C{% else %}#5A6273{% endif %};{% if active_season %}animation:rk-livedot 1.4s ease-in-out infinite;{% endif %}"></span>
+          <span id="rkSeasonLabel" style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#8A92A6;">{% if active_season %}{{ active_season.name }}{% else %}Off-Season{% endif %}</span>
+        </div>
+        <span id="rkCd" style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:#CFA75A;">—</span>
+      </div>
+      {% if active_season %}
+      <div style="height:3px;background:rgba(255,255,255,.05);border-radius:999px;overflow:hidden;margin-bottom:5px;">
+        <div id="rkSeasonBar" style="height:100%;width:0%;background:linear-gradient(90deg,#6849E5,#0A84FF,#CFA75A);border-radius:999px;transition:width 1s;"></div>
+      </div>
+      {% endif %}
+      <div style="position:relative;" id="rkSeasonWrap">
+        <button type="button" id="rkSeasonBtn" style="display:flex;align-items:center;justify-content:space-between;width:100%;padding:5px 8px;border-radius:7px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);color:#B0B8CC;font-size:11px;font-weight:600;cursor:pointer;">
+          <span id="rkSeasonBtnLabel">{% if active_season %}{{ active_season.name }}{% else %}All Time{% endif %}</span>
+          <i class="fa-solid fa-chevron-down" style="font-size:7px;color:#5A6273;"></i>
+        </button>
+        <div id="rkSeasonDrop" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:#161B28;border:1px solid rgba(255,255,255,.10);border-radius:10px;box-shadow:0 12px 36px rgba(0,0,0,.5);z-index:60;overflow:hidden;">
+          <button type="button" class="rk-season-opt{% if not active_season %} active{% endif %}" data-season="all" style="display:flex;align-items:center;gap:8px;width:100%;padding:7px 10px;border:none;background:transparent;color:#B0B8CC;font-size:11px;font-weight:600;cursor:pointer;text-align:left;">
+            <i class="fa-solid fa-infinity" style="font-size:9px;color:#5A6273;"></i> All Time
+          </button>
+          {% for s in seasons %}
+          <button type="button" class="rk-season-opt{% if s.active %} active{% endif %}" data-season="{{ s.id }}" data-start="{{ s.start|date:'c' }}" data-end="{{ s.end|date:'c' }}" style="display:flex;align-items:center;gap:7px;width:100%;padding:7px 10px;border:none;background:transparent;color:#B0B8CC;font-size:11px;font-weight:600;cursor:pointer;text-align:left;">
+            {% if s.active %}<span style="width:4px;height:4px;border-radius:50%;background:#FF3B5C;flex-shrink:0;animation:rk-livedot 1.4s ease-in-out infinite;"></span>{% else %}<i class="fa-solid fa-clock-rotate-left" style="font-size:9px;color:#5A6273;"></i>{% endif %}
+            {{ s.name }}
+            {% if s.active %}<span style="font-size:8px;color:#5A6273;margin-left:auto;">Current</span>{% else %}<span style="font-size:8px;color:#3D4558;margin-left:auto;">{{ s.start|date:"M Y" }}</span>{% endif %}
+          </button>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Search -->
+    <div style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.06);">
+      <div style="display:flex;align-items:center;gap:7px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.06);border-radius:8px;padding:0 10px;height:34px;transition:border-color .2s,box-shadow .2s;" id="rkSearchBox">
+        <i class="fa-solid fa-magnifying-glass" style="color:#3D4558;font-size:11px;flex-shrink:0;"></i>
         <input type="text" id="rkSearch" placeholder="Search teams..." autocomplete="off"
-               style="background:transparent;color:#F4F6FA;font-size:13px;font-weight:500;width:100%;caret-color:#0A84FF;border:none;outline:none;">
-        <kbd style="font-size:9px;font-family:'JetBrains Mono',monospace;color:#3D4558;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);border-radius:5px;padding:2px 5px;flex-shrink:0;line-height:1;">⌘K</kbd>
+               style="background:transparent;color:#F4F6FA;font-size:12px;font-weight:500;width:100%;caret-color:#0A84FF;border:none;outline:none;">
+        <kbd style="font-size:8px;font-family:'JetBrains Mono',monospace;color:#3D4558;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.06);border-radius:4px;padding:1px 4px;flex-shrink:0;line-height:1;">⌘K</kbd>
       </div>
     </div>
 
-    <!-- Games (from active Game model only) -->
-    <div style="padding:12px 8px 4px;">
-      <div style="font-size:10px;font-weight:700;letter-spacing:.10em;text-transform:uppercase;color:#6B7385;padding:0 8px 8px;">Games</div>
+    <!-- Games -->
+    <div style="padding:8px 6px 4px;">
+      <div style="font-size:9px;font-weight:700;letter-spacing:.10em;text-transform:uppercase;color:#5A6273;padding:0 8px 6px;">Games</div>
       <button type="button" class="side-g rk-gamebtn active" data-gf="all" style="--gc:#6849E5;">
-        <div style="width:26px;height:26px;border-radius:7px;background:rgba(104,73,229,.16);display:flex;align-items:center;justify-content:center;flex-shrink:0;border:1px solid rgba(104,73,229,.30);">
-          <i class="fa-solid fa-globe" style="font-size:12px;color:#A9B1C2;"></i>
+        <div style="width:24px;height:24px;border-radius:6px;background:rgba(104,73,229,.16);display:flex;align-items:center;justify-content:center;flex-shrink:0;border:1px solid rgba(104,73,229,.30);">
+          <i class="fa-solid fa-globe" style="font-size:10px;color:#A9B1C2;"></i>
         </div>
         <span class="sg-name">All Games</span>
         <span class="sg-count">{{ total_count }}</span>
       </button>
       {% for g in sidebar_games %}
       <button type="button" class="side-g rk-gamebtn" data-gf="{{ g.display_name }}" data-gid="{{ g.short_code }}" style="--gc:{{ g.color }};">
-        <div style="width:26px;height:26px;border-radius:7px;overflow:hidden;background:{{ g.color }}12;display:flex;align-items:center;justify-content:center;flex-shrink:0;border:1px solid {{ g.color }}24;">
+        <div style="width:24px;height:24px;border-radius:6px;overflow:hidden;background:{{ g.color }}10;display:flex;align-items:center;justify-content:center;flex-shrink:0;border:1px solid {{ g.color }}20;">
           {% if g.icon_url %}
           <img src="{{ g.icon_url }}" class="gicon-img" alt="{{ g.display_name }}">
-          <span class="gicon-fb" style="display:none;font-size:9px;color:{{ g.color }};">{{ g.short_code }}</span>
+          <span class="gicon-fb" style="display:none;font-size:8px;color:{{ g.color }};">{{ g.short_code }}</span>
           {% else %}
-          <span class="gicon-fb" style="font-size:9px;color:{{ g.color }};">{{ g.short_code }}</span>
+          <span class="gicon-fb" style="font-size:8px;color:{{ g.color }};">{{ g.short_code }}</span>
           {% endif %}
         </div>
         <span class="sg-name">{{ g.display_name }}</span>
@@ -198,28 +292,28 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
       {% endfor %}
     </div>
 
-    <!-- Tier filter -->
-    <div style="padding:10px 8px;border-top:1px solid rgba(255,255,255,.07);">
-      <div style="font-size:10px;font-weight:700;letter-spacing:.10em;text-transform:uppercase;color:#6B7385;padding:0 8px 8px;">Tier</div>
-      <div style="display:flex;flex-direction:column;gap:2px;">
-        <button type="button" class="tier-pill rk-tierbtn active" data-tf="all"><span class="tp-dot" style="background:#0A84FF;"></span><span class="tp-lbl" style="color:#F4F6FA;">All</span></button>
-        <button type="button" class="tier-pill rk-tierbtn" data-tf="THE_CROWN"><span class="tp-dot" style="background:#CFA75A;"></span><span class="tp-lbl">Crown</span></button>
-        <button type="button" class="tier-pill rk-tierbtn" data-tf="LEGEND"><span class="tp-dot" style="background:#E5902F;"></span><span class="tp-lbl">Legend</span></button>
-        <button type="button" class="tier-pill rk-tierbtn" data-tf="MASTER"><span class="tp-dot" style="background:#BF3868;"></span><span class="tp-lbl">Master</span></button>
-        <button type="button" class="tier-pill rk-tierbtn" data-tf="ELITE"><span class="tp-dot" style="background:#3EA7FF;"></span><span class="tp-lbl">Elite</span></button>
-        <button type="button" class="tier-pill rk-tierbtn" data-tf="CHALLENGER"><span class="tp-dot" style="background:#8470EE;"></span><span class="tp-lbl">Challenger</span></button>
-        <button type="button" class="tier-pill rk-tierbtn" data-tf="ROOKIE"><span class="tp-dot" style="background:#94A3B8;"></span><span class="tp-lbl">Rookie</span></button>
+    <!-- Tier filter (compact horizontal chips) -->
+    <div style="padding:8px 12px;border-top:1px solid rgba(255,255,255,.05);">
+      <div style="font-size:9px;font-weight:700;letter-spacing:.10em;text-transform:uppercase;color:#5A6273;margin-bottom:6px;">Tier</div>
+      <div style="display:flex;flex-wrap:wrap;gap:4px;">
+        <button type="button" class="tier-chip rk-tierbtn active" data-tf="all" style="background:rgba(255,255,255,.10);border-color:rgba(255,255,255,.22);color:#F4F6FA;font-size:10px;height:24px;padding:0 9px;">All</button>
+        <button type="button" class="tier-chip rk-tierbtn" data-tf="THE_CROWN" data-tc="#CFA75A" style="font-size:10px;height:24px;padding:0 9px;">Crown</button>
+        <button type="button" class="tier-chip rk-tierbtn" data-tf="LEGEND" data-tc="#E5902F" style="font-size:10px;height:24px;padding:0 9px;">Legend</button>
+        <button type="button" class="tier-chip rk-tierbtn" data-tf="MASTER" data-tc="#BF3868" style="font-size:10px;height:24px;padding:0 9px;">Master</button>
+        <button type="button" class="tier-chip rk-tierbtn" data-tf="ELITE" data-tc="#3EA7FF" style="font-size:10px;height:24px;padding:0 9px;">Elite</button>
+        <button type="button" class="tier-chip rk-tierbtn" data-tf="CHALLENGER" data-tc="#8470EE" style="font-size:10px;height:24px;padding:0 9px;">Chall.</button>
+        <button type="button" class="tier-chip rk-tierbtn" data-tf="ROOKIE" data-tc="#94A3B8" style="font-size:10px;height:24px;padding:0 9px;">Rookie</button>
       </div>
     </div>
 
     <!-- Footer -->
-    <div style="padding:10px 16px 20px;border-top:1px solid rgba(255,255,255,.07);">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:7px;flex-wrap:wrap;">
-        <span style="font-size:11px;color:#6B7385;">{{ total_count }} team{{ total_count|pluralize }}</span>
-        <span style="font-size:11px;color:#3D4558;">·</span>
-        <span style="font-size:11px;color:#6B7385;">{{ sidebar_games|length }} game{{ sidebar_games|length|pluralize }}</span>
+    <div style="padding:8px 14px 14px;border-top:1px solid rgba(255,255,255,.05);">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;">
+        <span style="font-size:10px;color:#5A6273;">{{ total_count }} teams</span>
+        <span style="font-size:10px;color:#2D3340;">·</span>
+        <span style="font-size:10px;color:#5A6273;">{{ sidebar_games|length }} games</span>
       </div>
-      <a href="{% url 'competition:ranking_about' %}" style="font-size:11px;color:#6B7385;" class="rk-lnk">How rankings work →</a>
+      <a href="{% url 'competition:ranking_about' %}" style="font-size:10px;color:#5A6273;display:flex;align-items:center;gap:4px;" class="rk-lnk"><i class="fa-solid fa-circle-info" style="font-size:8px;"></i> How rankings work</a>
     </div>
   </aside>
 
@@ -293,7 +387,7 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
             </div>
             <div>
               <div id="rkSecTitle" style="font-family:'Sora',sans-serif;font-weight:700;font-size:15px;color:#F4F6FA;letter-spacing:-.01em;">{% if selected_game_name %}{{ selected_game_name }} Rankings{% else %}Global Power Rankings{% endif %}</div>
-              <div id="rkSecSub" style="font-size:11px;color:#5A6273;margin-top:2px;">{% if is_global %}Cross-game · Season 3 · {% endif %}<span id="rkSecCount">{{ total_count }}</span> teams</div>
+              <div id="rkSecSub" style="font-size:11px;color:#7A8399;margin-top:2px;">{% if is_global %}Cross-game{% if active_season %} · {{ active_season.name }}{% endif %} · {% endif %}<span id="rkSecCount">{{ total_count }}</span> teams</div>
             </div>
           </div>
           <div style="font-size:11px;font-weight:600;color:#3D4558;text-align:right;">
@@ -306,40 +400,46 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
           <table class="tbl">
             <thead>
               <tr>
-                <th style="width:48px;padding-left:16px;">#</th>
+                <th style="width:30px;padding-left:12px;padding-right:0;" class="col-tier" title="Select teams to compare"></th>
+                <th style="width:48px;padding-left:8px;">#</th>
                 <th>Team</th>
                 <th style="width:130px;" class="col-tier">Tier</th>
-                <th style="width:170px;">Crown Points</th>
-                <th style="width:80px;text-align:right;padding-right:18px;" class="col-act">Activity</th>
+                <th style="width:170px;cursor:pointer;user-select:none;" class="rk-sortable" data-sort="score">Crown Points <i class="fa-solid fa-sort" style="font-size:8px;opacity:.4;margin-left:2px;"></i></th>
+                <th style="width:80px;text-align:right;padding-right:18px;cursor:pointer;user-select:none;" class="col-act rk-sortable" data-sort="activity">Activity <i class="fa-solid fa-sort" style="font-size:8px;opacity:.4;margin-left:2px;"></i></th>
               </tr>
             </thead>
             <tbody id="rkDeskBody">
               {% for entry in entries %}
-              <tr class="rk-entry" data-tier="{{ entry.tier }}" data-name="{{ entry.team_name|lower }}" data-tag="{{ entry.team_tag|lower }}" data-org="{{ entry.organization_name|lower }}" data-game="{{ entry.game_name }}" data-url="{{ entry.team_url }}" data-rank="{{ entry.rank }}" style="background:{% if entry.rank == 1 %}rgba(207,167,90,.04){% else %}transparent{% endif %};">
-                <td style="padding-left:16px;"><span class="rk-rank" style="font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:700;color:{% if entry.rank == 1 %}#CFA75A{% elif entry.rank == 2 %}#A8A8B5{% elif entry.rank == 3 %}#B07238{% else %}#3D4558{% endif %};">{{ entry.rank }}</span></td>
+              <tr class="rk-entry{% if entry.is_user_team %} rk-your-row{% endif %}" data-tier="{{ entry.tier }}" data-name="{{ entry.team_name|lower }}" data-tag="{{ entry.team_tag|lower }}" data-org="{{ entry.organization_name|lower }}" data-game="{{ entry.game_name }}" data-url="{{ entry.team_url }}" data-rank="{{ entry.rank }}" data-score="{{ entry.score }}" data-activity="{{ entry.activity_score }}" style="background:{% if entry.rank == 1 %}rgba(207,167,90,.04){% else %}transparent{% endif %};">
+                <td style="padding-left:12px;padding-right:0;" class="col-tier"><div class="rk-cmp-check" data-cmp-url="{{ entry.team_url }}"></div></td>
+                <td style="padding-left:8px;"><span class="rk-rank" style="font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:700;color:{% if entry.rank == 1 %}#CFA75A{% elif entry.rank == 2 %}#A8A8B5{% elif entry.rank == 3 %}#B07238{% else %}#4D5566{% endif %};">{{ entry.rank }}</span></td>
                 <td>
                   <div style="display:flex;align-items:center;gap:11px;">
-                    <div class="tier-avatar" data-tier="{{ entry.tier }}" style="width:34px;height:34px;border-radius:10px;overflow:hidden;display:flex;align-items:center;justify-content:center;font-family:'Sora',sans-serif;font-weight:700;font-size:12px;color:rgba(255,255,255,.88);flex-shrink:0;">
-                      {% if entry.team_logo_url %}<img src="{{ entry.team_logo_url }}" class="gicon-img" alt=""><span style="display:none;">{{ entry.team_name|first|upper }}</span>{% else %}{{ entry.team_name|first|upper }}{% endif %}
+                    <div class="team-av" style="width:36px;height:36px;">
+                      {% if entry.team_logo_url %}<img src="{{ entry.team_logo_url }}" class="gicon-img" alt=""><span style="display:none;font-family:'Sora',sans-serif;font-weight:700;font-size:13px;color:#8A92A6;">{{ entry.team_name|first|upper }}</span>{% else %}<span style="font-family:'Sora',sans-serif;font-weight:700;font-size:13px;color:#8A92A6;">{{ entry.team_name|first|upper }}</span>{% endif %}
                     </div>
                     <div style="min-width:0;">
-                      <div style="font-size:14px;font-weight:600;color:#F4F6FA;">{{ entry.team_name }} {% if entry.team_tag %}<span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#5A6273;">[{{ entry.team_tag }}]</span>{% endif %}</div>
+                      <div style="display:flex;align-items:center;gap:6px;">
+                        <span style="font-size:14px;font-weight:600;color:#E8ECF4;">{{ entry.team_name }}</span>
+                        {% if entry.team_tag %}<span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#6B7385;">[{{ entry.team_tag }}]</span>{% endif %}
+                        {% if entry.is_user_team %}<span class="rk-you-tag">You</span>{% endif %}
+                      </div>
                       <div style="display:flex;align-items:center;gap:4px;margin-top:3px;">
-                        <span style="font-size:11px;color:#6B7385;">{% if entry.organization_name and not entry.is_independent %}{{ entry.organization_name }}{% else %}Independent{% endif %}</span>
-                        {% if entry.game_short %}<span class="rk-glabel" style="display:flex;align-items:center;gap:4px;"><span style="color:#3D4558;font-size:10px;">·</span><span style="font-size:11px;font-weight:600;color:{{ entry.game_color }};">{{ entry.game_short }}</span></span>{% endif %}
+                        <span style="font-size:11px;color:#8A92A6;">{% if entry.organization_name and not entry.is_independent %}{{ entry.organization_name }}{% else %}Independent{% endif %}</span>
+                        {% if entry.game_short %}<span class="rk-glabel" style="display:flex;align-items:center;gap:4px;"><span style="color:#4D5566;font-size:10px;">·</span><span style="font-size:11px;font-weight:600;color:{{ entry.game_color }};">{{ entry.game_short }}</span></span>{% endif %}
                       </div>
                     </div>
                   </div>
                 </td>
                 <td class="col-tier"><span class="tier-badge" data-tier="{{ entry.tier }}">{% if entry.tier == 'THE_CROWN' %}THE CROWN{% else %}{{ entry.tier }}{% endif %}</span></td>
                 <td>
-                  <div style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;color:#F4F6FA;margin-bottom:5px;">{{ entry.score|intcomma }} <span style="font-size:10px;color:#3D4558;">CP</span></div>
-                  <div style="height:3px;background:rgba(255,255,255,.07);border-radius:999px;overflow:hidden;width:110px;"><div class="tier-bar" data-tier="{{ entry.tier }}" style="height:100%;width:{% widthratio entry.score max_score 100 %}%;border-radius:999px;opacity:.75;"></div></div>
+                  <div style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;color:#E8ECF4;margin-bottom:5px;">{{ entry.score|intcomma }} <span style="font-size:10px;color:#4D5566;">CP</span></div>
+                  <div style="height:3px;background:rgba(255,255,255,.07);border-radius:999px;overflow:hidden;width:110px;"><div class="tier-bar" data-tier="{{ entry.tier }}" style="height:100%;width:{% widthratio entry.score max_score 100 %}%;border-radius:999px;opacity:.80;"></div></div>
                 </td>
                 <td style="text-align:right;padding-right:18px;" class="col-act">
                   <div style="display:inline-flex;align-items:center;gap:6px;">
                     <span style="width:7px;height:7px;border-radius:50%;background:{% if entry.activity_score >= 80 %}#2ECC71{% elif entry.activity_score >= 40 %}#FFB020{% else %}#5A6273{% endif %};display:inline-block;flex-shrink:0;{% if entry.activity_score >= 80 %}animation:rk-actpulse 1.4s ease-in-out infinite;{% endif %}"></span>
-                    <span style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;color:{% if entry.activity_score >= 80 %}#2ECC71{% elif entry.activity_score >= 40 %}#FFB020{% else %}#5A6273{% endif %};">{{ entry.activity_score }}%</span>
+                    <span style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;color:{% if entry.activity_score >= 80 %}#2ECC71{% elif entry.activity_score >= 40 %}#FFB020{% else %}#6B7385{% endif %};">{{ entry.activity_score }}%</span>
                   </div>
                 </td>
               </tr>
@@ -354,7 +454,7 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
             {% for entry in entries %}
             <div class="m-row rk-entry-m" data-tier="{{ entry.tier }}" data-name="{{ entry.team_name|lower }}" data-tag="{{ entry.team_tag|lower }}" data-org="{{ entry.organization_name|lower }}" data-game="{{ entry.game_name }}" data-url="{{ entry.team_url }}">
               <span class="rk-rank" style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;color:{% if entry.rank == 1 %}#CFA75A{% elif entry.rank == 2 %}#A8A8B5{% elif entry.rank == 3 %}#B07238{% else %}#3D4558{% endif %};width:28px;text-align:right;flex-shrink:0;">{{ entry.rank }}</span>
-              <div class="tier-avatar" data-tier="{{ entry.tier }}" style="width:42px;height:42px;border-radius:50%;overflow:hidden;display:flex;align-items:center;justify-content:center;font-family:'Sora',sans-serif;font-weight:700;font-size:14px;color:rgba(255,255,255,.90);flex-shrink:0;">
+              <div class="team-av team-av-round" style="width:42px;height:42px;">
                 {% if entry.team_logo_url %}<img src="{{ entry.team_logo_url }}" class="gicon-img" alt=""><span style="display:none;">{{ entry.team_name|first|upper }}</span>{% else %}{{ entry.team_name|first|upper }}{% endif %}
               </div>
               <div style="flex:1;min-width:0;">
@@ -385,6 +485,15 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
         </button>
       </div>
 
+      <!-- Infinite scroll sentinel -->
+      {% if has_next_page %}
+      <div id="rkScrollSentinel" data-page="{{ current_page }}" data-url="{{ request.path }}" data-tier="{{ tier_filter }}" data-max-score="{{ max_score }}"></div>
+      <div id="rkLoadingMore" class="rk-loading-more" style="display:none;">
+        <span class="rk-ldot"></span><span class="rk-ldot"></span><span class="rk-ldot"></span>
+        <span style="margin-left:4px;">Loading more teams</span>
+      </div>
+      {% endif %}
+
       <!-- ════ GAME SECTIONS ════ -->
       {% if is_global and game_sections %}
       <div id="rkGameSecs">
@@ -410,7 +519,7 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
                   <td style="width:44px;padding-left:16px;"><span style="font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;color:{% if forloop.counter == 1 %}#CFA75A{% elif forloop.counter == 2 %}#A8A8B5{% elif forloop.counter == 3 %}#B07238{% else %}#3D4558{% endif %};">{{ forloop.counter }}</span></td>
                   <td>
                     <div style="display:flex;align-items:center;gap:11px;">
-                      <div class="tier-avatar" data-tier="{{ entry.tier }}" style="width:32px;height:32px;border-radius:9px;overflow:hidden;display:flex;align-items:center;justify-content:center;font-family:'Sora',sans-serif;font-weight:700;font-size:11px;color:rgba(255,255,255,.88);flex-shrink:0;">
+                      <div class="team-av" style="width:32px;height:32px;">
                         {% if entry.team_logo_url %}<img src="{{ entry.team_logo_url }}" class="gicon-img" alt=""><span style="display:none;">{{ entry.team_name|first|upper }}</span>{% else %}{{ entry.team_name|first|upper }}{% endif %}
                       </div>
                       <div style="min-width:0;">
@@ -445,6 +554,27 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
 </div>
 
 <!-- ════ TEAM DETAIL MODAL ════ -->
+<!-- ════ COMPARE BAR ════ -->
+<div id="rkCompareBar">
+  <span style="font-size:12px;color:#8A92A6;"><span id="rkCmpCount">0</span> / 2 selected</span>
+  <button type="button" id="rkCmpBtn" style="display:flex;align-items:center;gap:6px;padding:8px 18px;border-radius:10px;background:linear-gradient(135deg,#6849E5,#0A84FF);color:#fff;font-size:13px;font-weight:700;border:none;cursor:pointer;transition:filter .15s;" disabled>
+    <i class="fa-solid fa-code-compare" style="font-size:11px;"></i> Compare
+  </button>
+  <button type="button" id="rkCmpClear" style="padding:6px 12px;border-radius:8px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);color:#8A92A6;font-size:11px;font-weight:600;cursor:pointer;">Clear</button>
+</div>
+
+<!-- ════ COMPARE MODAL ════ -->
+<div id="rkCmpModal" style="position:fixed;inset:0;z-index:1001;display:none;align-items:center;justify-content:center;padding:20px;">
+  <div id="rkCmpBack" style="position:absolute;inset:0;background:rgba(4,6,12,.78);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);"></div>
+  <div id="rkCmpCard" style="position:relative;width:100%;max-width:640px;background:#0F1320;border:1px solid rgba(255,255,255,.10);border-radius:20px;overflow:hidden;box-shadow:0 32px 80px rgba(0,0,0,.7);max-height:calc(100vh - 40px);overflow-y:auto;animation:rk-cardIn .28s cubic-bezier(.22,1,.36,1) both;">
+    <div style="padding:20px 24px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:space-between;">
+      <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:16px;color:#F4F6FA;">Team Comparison</div>
+      <button type="button" id="rkCmpClose" class="rk-mclose" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div id="rkCmpBody" style="padding:20px 24px;"></div>
+  </div>
+</div>
+
 <div id="rkModal" role="dialog" aria-modal="true" aria-labelledby="rkmName">
   <div id="rkModalBack"></div>
   <div id="rkModalCard" data-tier="ROOKIE">
@@ -462,7 +592,7 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
         </div>
         <span id="rkmTag" style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#5A6273;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);padding:3px 8px;border-radius:7px;flex-shrink:0;white-space:nowrap;"></span>
       </div>
-      <div id="rkmOrg" style="font-size:12px;color:#6B7385;margin-bottom:16px;"></div>
+      <div id="rkmOrg" style="font-size:12px;color:#8A92A6;margin-bottom:18px;"></div>
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px;">
         <div class="rk-mstat"><div class="lbl">Rank</div><div class="val" id="rkmRank"></div></div>
         <div class="rk-mstat"><div class="lbl">Crown Pts</div><div class="val" id="rkmCp" style="color:#CFA75A;"></div></div>
@@ -541,7 +671,8 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
       if(st) st.textContent='Global Power Rankings';
       if(hdr){ hdr.style.background='linear-gradient(135deg,rgba(104,73,229,.16) 0%,rgba(10,132,255,.12) 55%,rgba(207,167,90,.06) 100%)'; hdr.style.borderLeft=''; }
       if(ic){ ic.innerHTML='<i class="fa-solid fa-trophy" style="font-size:17px;color:#CFA75A;"></i>'; ic.style.background='linear-gradient(135deg,rgba(104,73,229,.30),rgba(10,132,255,.25))'; ic.style.border='1px solid rgba(104,73,229,.30)'; }
-      if(sub) sub.innerHTML='Cross-game · Season 3 · <span id="rkSecCount">0</span> teams';
+      var sn=document.getElementById('rkSeasonLabel'); var snTxt=sn?sn.textContent.trim():'';
+      if(sub) sub.innerHTML='Cross-game'+(snTxt?' · '+esc(snTxt):'')+' · <span id="rkSecCount">0</span> teams';
     } else {
       var dname = activeSide ? (activeSide.querySelector('.sg-name')||{}).textContent : gf;
       dname = (dname||gf).trim();
@@ -635,30 +766,111 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
   document.getElementById('rkmClose').addEventListener('click', closeTeam);
   document.addEventListener('keydown', function(e){ if(e.key==='Escape' && modal.classList.contains('open')) closeTeam(); });
 
+  /* ── Sorting ── */
+  var sortCol='', sortDir='desc';
+  function sortRows(){
+    if(!sortCol) return;
+    var body=document.getElementById('rkDeskBody'); if(!body) return;
+    var rows=Array.from(body.querySelectorAll('.rk-entry'));
+    rows.sort(function(a,b){
+      var va = parseInt(a.dataset[sortCol]||'0',10);
+      var vb = parseInt(b.dataset[sortCol]||'0',10);
+      return sortDir==='desc' ? vb-va : va-vb;
+    });
+    rows.forEach(function(r){ body.appendChild(r); });
+    /* update sort header indicators */
+    $$('.rk-sortable').forEach(function(th){
+      var isActive = th.dataset.sort===sortCol;
+      th.classList.toggle('sort-active', isActive);
+      var icon=th.querySelector('i');
+      if(icon){
+        icon.className = isActive ? (sortDir==='desc'?'fa-solid fa-sort-down':'fa-solid fa-sort-up') : 'fa-solid fa-sort';
+        icon.style.opacity = isActive ? '1' : '.4';
+      }
+    });
+    apply();
+  }
+  $$('.rk-sortable').forEach(function(th){
+    th.addEventListener('click', function(){
+      var col=this.dataset.sort;
+      if(sortCol===col){ sortDir = sortDir==='desc'?'asc':'desc'; }
+      else { sortCol=col; sortDir='desc'; }
+      sortRows();
+    });
+  });
+
+  /* ── URL sync (pushState) ── */
+  function syncUrl(){
+    var params=new URLSearchParams();
+    if(game!=='all') params.set('game', game);
+    if(tier!=='all') params.set('tier', tier);
+    if(q) params.set('q', q);
+    var qs=params.toString();
+    var newUrl=window.location.pathname+(qs?'?'+qs:'');
+    if(newUrl!==window.location.pathname+window.location.search){
+      history.pushState({game:game,tier:tier,q:q}, '', newUrl);
+    }
+  }
+  /* Restore state from URL on load */
+  (function(){
+    var p=new URLSearchParams(window.location.search);
+    if(p.get('game')){ game=p.get('game'); }
+    if(p.get('tier')){ tier=p.get('tier'); }
+    if(p.get('q')){ q=p.get('q'); var ms=document.getElementById('rkSearch'); if(ms) ms.value=q; }
+    if(game!=='all' || tier!=='all' || q){ setGame(game); setTier(tier); }
+  })();
+  /* Back/forward browser navigation */
+  window.addEventListener('popstate', function(e){
+    if(e.state){
+      game=e.state.game||'all'; tier=e.state.tier||'all'; q=e.state.q||'';
+      var ms=document.getElementById('rkSearch'); if(ms) ms.value=q;
+      $$('.rk-search-sync').forEach(function(i){i.value=q;});
+      setGame(game); setTier(tier);
+    }
+  });
+
+  /* ── Skeleton loading effect ── */
+  function showSkeleton(){
+    var body=document.getElementById('rkDeskBody'); if(!body) return;
+    var rows=body.querySelectorAll('.rk-entry');
+    rows.forEach(function(r){ r.classList.add('rk-skeleton'); });
+    setTimeout(function(){ rows.forEach(function(r){ r.classList.remove('rk-skeleton'); }); }, 180);
+  }
+
+  /* ── Public API ── */
   window.RK={
     clear:function(){
       var ms=document.getElementById('rkSearch'); if(ms) ms.value='';
       $$('.rk-search-sync').forEach(function(i){i.value='';});
-      q=''; setTier('all'); setGame('all');
+      q=''; sortCol=''; sortDir='desc';
+      $$('.rk-sortable').forEach(function(th){ th.classList.remove('sort-active'); var ic=th.querySelector('i'); if(ic){ic.className='fa-solid fa-sort';ic.style.opacity='.4';} });
+      setTier('all'); setGame('all');
+      syncUrl();
     },
-    gameById:function(gid){ setGame(gid); window.scrollTo({top:0,behavior:'smooth'}); },
-    gameByName:function(gid){ setGame(gid); window.scrollTo({top:0,behavior:'smooth'}); },
+    gameById:function(gid){ showSkeleton(); setGame(gid); syncUrl(); window.scrollTo({top:0,behavior:'smooth'}); },
+    gameByName:function(gid){ showSkeleton(); setGame(gid); syncUrl(); window.scrollTo({top:0,behavior:'smooth'}); },
     openTeam:openTeam, closeTeam:closeTeam
   };
+
+  /* Hook syncUrl into setGame/setTier/onSearch */
+  var _origSetGame=setGame, _origSetTier=setTier, _origSearch=onSearch;
+  setGame=function(g){ showSkeleton(); _origSetGame(g); syncUrl(); };
+  setTier=function(t){ _origSetTier(t); syncUrl(); };
+  onSearch=function(v){ _origSearch(v); syncUrl(); };
 
   $$('.rk-gamebtn').forEach(function(b){ b.addEventListener('click',function(e){ e.preventDefault(); setGame(this.dataset.gf||'all'); }); });
   $$('.rk-tierbtn').forEach(function(b){ b.addEventListener('click',function(){ setTier(this.dataset.tf||'all'); }); });
 
-  /* Team rows + section rows open the modal (CSP forbids inline onclick) */
+  /* Team rows + section rows open the modal */
   $$('.rk-entry, .rk-entry-m, .rk-secrow').forEach(function(el){
     el.addEventListener('click', function(){ openTeam(this.dataset.url); });
   });
-  /* "Full table" buttons jump to that game */
+  /* "Full table" buttons */
   $$('.rk-fulltable').forEach(function(b){ b.addEventListener('click', function(){ RK.gameById(this.dataset.gid); }); });
   /* Empty-state reset */
   var rst=document.getElementById('rkReset'); if(rst) rst.addEventListener('click', function(){ RK.clear(); });
 
-  /* Image fallbacks (CSP forbids inline onerror): show the sibling initial/text */
+  /* Image fallbacks */
   function wireImg(img){
     function fail(){ img.style.display='none'; var fb=img.nextElementSibling; if(fb) fb.style.display=''; }
     img.addEventListener('error', fail);
@@ -672,17 +884,219 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
 
   var clr=document.getElementById('rkClear'); if(clr) clr.addEventListener('click',function(){ RK.clear(); });
 
-  /* Season countdown */
-  (function(){
-    var start=new Date('2026-03-01T00:00:00Z').getTime();
-    var end=new Date('2026-08-31T23:59:59Z').getTime();
-    var cd=document.getElementById('rkCd'), bar=document.getElementById('rkSeasonBar');
-    function tick(){
-      var now=Date.now(), ms=Math.max(0,end-now), s=Math.floor(ms/1000), dd=Math.floor(s/86400), h=Math.floor((s%86400)/3600);
-      if(cd) cd.textContent=dd+'d '+String(h).padStart(2,'0')+'h';
-      if(bar){ var p=Math.min(100,Math.max(0,Math.round((now-start)/(end-start)*100))); bar.style.width=p+'%'; }
+  /* Cmd/Ctrl+K → focus search */
+  document.addEventListener('keydown', function(e){
+    if((e.metaKey||e.ctrlKey) && e.key==='k'){
+      e.preventDefault();
+      var s=document.getElementById('rkSearch'); if(s) s.focus();
     }
-    tick(); setInterval(tick,60000);
+  });
+
+  /* Season dropdown */
+  (function(){
+    var btn=document.getElementById('rkSeasonBtn'), drop=document.getElementById('rkSeasonDrop');
+    if(!btn||!drop) return;
+    var open=false;
+    function toggle(){ open=!open; drop.style.display=open?'':'none'; }
+    btn.addEventListener('click', toggle);
+    document.addEventListener('click', function(e){
+      if(open && !document.getElementById('rkSeasonWrap').contains(e.target)) { open=false; drop.style.display='none'; }
+    });
+    document.addEventListener('keydown', function(e){ if(e.key==='Escape'&&open){ open=false; drop.style.display='none'; } });
+    $$('.rk-season-opt').forEach(function(opt){
+      opt.addEventListener('click', function(){
+        $$('.rk-season-opt').forEach(function(o){o.classList.remove('active');});
+        this.classList.add('active');
+        var sid=this.dataset.season;
+        var label=this.textContent.trim().split('\n')[0].trim();
+        document.getElementById('rkSeasonBtnLabel').textContent=label;
+        var sl=document.getElementById('rkSeasonLabel'); if(sl) sl.textContent=label;
+        toggle();
+        /* Update countdown for selected season */
+        var cdEl=document.getElementById('rkCd'), barEl=document.getElementById('rkSeasonBar');
+        if(sid==='all'){
+          if(cdEl) cdEl.textContent='∞';
+          if(barEl) barEl.style.width='100%';
+        } else {
+          var startStr=this.dataset.start, endStr=this.dataset.end;
+          if(startStr&&endStr){
+            seasonStart=new Date(startStr).getTime();
+            seasonEnd=new Date(endStr).getTime();
+            tickSeason();
+          }
+        }
+      });
+    });
+  })();
+
+  /* Season countdown (dynamic) */
+  var seasonStart, seasonEnd;
+  (function(){
+    var activeOpt=document.querySelector('.rk-season-opt.active[data-start]');
+    if(activeOpt){
+      seasonStart=new Date(activeOpt.dataset.start).getTime();
+      seasonEnd=new Date(activeOpt.dataset.end).getTime();
+    }
+  })();
+  function tickSeason(){
+    var cd=document.getElementById('rkCd'), bar=document.getElementById('rkSeasonBar');
+    if(!seasonStart||!seasonEnd) return;
+    var now=Date.now(), ms=Math.max(0,seasonEnd-now), s=Math.floor(ms/1000), dd=Math.floor(s/86400), h=Math.floor((s%86400)/3600);
+    if(cd) cd.textContent = ms<=0 ? 'Ended' : dd+'d '+String(h).padStart(2,'0')+'h';
+    if(bar){ var p=Math.min(100,Math.max(0,Math.round((now-seasonStart)/(seasonEnd-seasonStart)*100))); bar.style.width=p+'%'; }
+  }
+  tickSeason(); setInterval(tickSeason,60000);
+
+  /* ── Compare toggle in sidebar ── */
+  (function(){
+    var tog=document.getElementById('rkCompareToggle');
+    if(!tog) return;
+    var active=false;
+    tog.addEventListener('click', function(){
+      active=!active;
+      tog.style.background = active ? 'rgba(104,73,229,.20)' : 'rgba(255,255,255,.04)';
+      tog.style.borderColor = active ? 'rgba(104,73,229,.40)' : 'rgba(255,255,255,.07)';
+      tog.style.color = active ? '#8B5CF6' : '#5A6273';
+      $$('.rk-cmp-check').forEach(function(c){ c.style.display = active ? 'flex' : 'none'; });
+      if(!active){
+        $$('.rk-cmp-check.checked').forEach(function(c){c.classList.remove('checked');});
+        var bar=document.getElementById('rkCompareBar'); if(bar) bar.classList.remove('show');
+      }
+    });
+    $$('.rk-cmp-check').forEach(function(c){ c.style.display='none'; });
+  })();
+
+  /* ── Team comparison ── */
+  (function(){
+    var sel=[], bar=document.getElementById('rkCompareBar'), cntEl=document.getElementById('rkCmpCount'), cmpBtn=document.getElementById('rkCmpBtn');
+    if(!bar) return;
+    function updateBar(){
+      cntEl.textContent=sel.length;
+      bar.classList.toggle('show', sel.length>0);
+      cmpBtn.disabled=sel.length<2;
+      cmpBtn.style.opacity=sel.length<2?'.5':'1';
+    }
+    $$('.rk-cmp-check').forEach(function(cb){
+      cb.addEventListener('click', function(e){
+        e.stopPropagation();
+        var url=this.dataset.cmpUrl;
+        if(this.classList.contains('checked')){
+          this.classList.remove('checked');
+          sel=sel.filter(function(u){return u!==url;});
+        } else {
+          if(sel.length>=2){ var old=document.querySelector('.rk-cmp-check.checked'); if(old){old.classList.remove('checked'); sel.shift();} }
+          this.classList.add('checked');
+          sel.push(url);
+        }
+        updateBar();
+      });
+    });
+    document.getElementById('rkCmpClear').addEventListener('click', function(){
+      sel=[]; $$('.rk-cmp-check.checked').forEach(function(c){c.classList.remove('checked');});
+      updateBar();
+    });
+    cmpBtn.addEventListener('click', function(){
+      if(sel.length<2) return;
+      var a=TEAMS[sel[0]], b=TEAMS[sel[1]];
+      if(!a||!b) return;
+      var body=document.getElementById('rkCmpBody');
+      var rows=[
+        {lbl:'Rank',k:'rank',fmt:function(v){return '#'+v;},better:'lower'},
+        {lbl:'Crown Points',k:'score',fmt:function(v){return v.toLocaleString();},better:'higher'},
+        {lbl:'Activity',k:'activity',fmt:function(v){return v+'%';},better:'higher'},
+        {lbl:'Tier',k:'tier',fmt:function(v){return v==='THE_CROWN'?'Crown':v.charAt(0)+v.slice(1).toLowerCase();},better:null},
+        {lbl:'Game',k:'game',fmt:function(v){return v||'—';},better:null},
+      ];
+      var TIER_ORDER={THE_CROWN:6,LEGEND:5,MASTER:4,ELITE:3,CHALLENGER:2,ROOKIE:1};
+      function makeCard(t){
+        return '<div class="rk-cmp-card"><div class="team-av" style="width:56px;height:56px;margin:0 auto 10px;">'+(t.logo?'<img src="'+esc(t.logo)+'" style="width:100%;height:100%;object-fit:cover;">':'<span style="font-family:Sora,sans-serif;font-weight:800;font-size:20px;color:#8A92A6;">'+esc(t.name.charAt(0))+'</span>')+'</div><div style="font-family:Sora,sans-serif;font-weight:700;font-size:15px;color:#F4F6FA;">'+esc(t.name)+'</div><div style="font-size:11px;color:#8A92A6;margin-top:2px;">'+esc(t.org||'Independent')+'</div></div>';
+      }
+      var h='<div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;">'+makeCard(a)+'<div class="rk-cmp-vs">VS</div>'+makeCard(b)+'</div>';
+      h+='<div style="background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.05);border-radius:12px;overflow:hidden;">';
+      rows.forEach(function(r){
+        var va=a[r.k], vb=b[r.k];
+        var aw='', bw='';
+        if(r.better==='higher'){ if(va>vb) aw='rk-cmp-winner'; else if(vb>va) bw='rk-cmp-winner'; }
+        else if(r.better==='lower'){ if(va<vb) aw='rk-cmp-winner'; else if(vb<va) bw='rk-cmp-winner'; }
+        else if(r.k==='tier'){ var ta=TIER_ORDER[va]||0, tb=TIER_ORDER[vb]||0; if(ta>tb) aw='rk-cmp-winner'; else if(tb>ta) bw='rk-cmp-winner'; }
+        h+='<div class="rk-cmp-row"><span style="font-family:JetBrains Mono,monospace;font-size:13px;font-weight:700;padding:0 14px;" class="'+aw+'">'+r.fmt(va)+'</span><span style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#5A6273;">'+r.lbl+'</span><span style="font-family:JetBrains Mono,monospace;font-size:13px;font-weight:700;padding:0 14px;" class="'+bw+'">'+r.fmt(vb)+'</span></div>';
+      });
+      h+='</div>';
+      body.innerHTML=h;
+      document.getElementById('rkCmpModal').style.display='flex';
+      document.body.style.overflow='hidden';
+    });
+    document.getElementById('rkCmpBack').addEventListener('click', function(){ document.getElementById('rkCmpModal').style.display='none'; document.body.style.overflow=''; });
+    document.getElementById('rkCmpClose').addEventListener('click', function(){ document.getElementById('rkCmpModal').style.display='none'; document.body.style.overflow=''; });
+  })();
+
+  /* ── Infinite scroll (replace load-more button) ── */
+  (function(){
+    var sentinel=document.getElementById('rkScrollSentinel');
+    if(!sentinel || !('IntersectionObserver' in window)) return;
+    var loading=false, done=false;
+    var loadingEl=document.getElementById('rkLoadingMore');
+    var obs=new IntersectionObserver(function(entries){
+      if(!entries[0].isIntersecting || loading || done) return;
+      loading=true;
+      if(loadingEl) loadingEl.style.display='flex';
+      var pg=parseInt(sentinel.dataset.page,10), url=sentinel.dataset.url, ms=parseInt(sentinel.dataset.maxScore,10)||1;
+      var params=new URLSearchParams(); params.set('page', pg+1); params.set('format','json');
+      if(sentinel.dataset.tier) params.set('tier', sentinel.dataset.tier);
+      fetch(url+'?'+params.toString(), {headers:{'X-Requested-With':'XMLHttpRequest'}})
+      .then(function(r){return r.json();})
+      .then(function(d){
+        if(d.entries && d.entries.length){
+          var db=document.getElementById('rkDeskBody'), mb=document.getElementById('rkMobBody');
+          d.entries.forEach(function(e){
+            if(db){ var tr=document.createElement('tr'); tr.className='rk-entry'; tr.dataset.tier=e.tier; tr.dataset.name=(e.team_name||'').toLowerCase(); tr.dataset.tag=(e.team_tag||'').toLowerCase(); tr.dataset.org=(e.organization_name||'').toLowerCase(); tr.dataset.game=e.game_name||''; tr.dataset.url=e.team_url; tr.dataset.rank=e.rank; tr.dataset.score=e.score; tr.dataset.activity=e.activity_score;
+              tr.innerHTML='<td style="padding-left:12px;padding-right:0;" class="col-tier"><div class="rk-cmp-check" data-cmp-url="'+esc(e.team_url)+'"></div></td><td style="padding-left:8px;"><span class="rk-rank" style="font-family:JetBrains Mono,monospace;font-size:16px;font-weight:700;color:#4D5566;">'+e.rank+'</span></td><td><div style="display:flex;align-items:center;gap:11px;"><div class="team-av" style="width:36px;height:36px;">'+(e.team_logo_url?'<img src="'+esc(e.team_logo_url)+'" class="gicon-img" alt="">':'')+'<span style="'+(e.team_logo_url?'display:none;':'')+'font-family:Sora,sans-serif;font-weight:700;font-size:13px;color:#8A92A6;">'+esc((e.team_name||'?').charAt(0).toUpperCase())+'</span></div><div style="min-width:0;"><div style="display:flex;align-items:center;gap:6px;"><span style="font-size:14px;font-weight:600;color:#E8ECF4;">'+esc(e.team_name)+'</span>'+(e.team_tag?'<span style="font-family:JetBrains Mono,monospace;font-size:10px;color:#6B7385;">['+esc(e.team_tag)+']</span>':'')+'</div><div style="font-size:11px;color:#8A92A6;margin-top:3px;">'+(e.organization_name&&!e.is_independent?esc(e.organization_name):'Independent')+'</div></div></div></td><td class="col-tier"><span class="tier-badge" data-tier="'+esc(e.tier)+'">'+(e.tier==='THE_CROWN'?'THE CROWN':esc(e.tier))+'</span></td><td><div style="font-family:JetBrains Mono,monospace;font-size:14px;font-weight:700;color:#E8ECF4;margin-bottom:5px;">'+e.score.toLocaleString()+' <span style="font-size:10px;color:#4D5566;">CP</span></div></td><td style="text-align:right;padding-right:18px;" class="col-act"><div style="display:inline-flex;align-items:center;gap:6px;"><span style="width:7px;height:7px;border-radius:50%;background:'+(e.activity_score>=80?'#2ECC71':e.activity_score>=40?'#FFB020':'#5A6273')+';display:inline-block;"></span><span style="font-family:JetBrains Mono,monospace;font-size:13px;font-weight:600;color:'+(e.activity_score>=80?'#2ECC71':e.activity_score>=40?'#FFB020':'#6B7385')+';">'+e.activity_score+'%</span></div></td>';
+              tr.addEventListener('click', function(){ openTeam(this.dataset.url); });
+              db.appendChild(tr);
+            }
+          });
+          sentinel.dataset.page=pg+1;
+          /* Re-wire new compare checkboxes */
+          db.querySelectorAll('.rk-cmp-check:not([data-wired])').forEach(function(cb){ cb.dataset.wired='1'; cb.addEventListener('click',function(e){e.stopPropagation(); this.classList.toggle('checked');}); });
+          /* Re-wire new images */
+          db.querySelectorAll('.gicon-img:not([data-wired])').forEach(function(img){ img.dataset.wired='1'; wireImg(img); });
+        }
+        if(!d.has_next_page){ done=true; sentinel.remove(); }
+      })
+      .finally(function(){ loading=false; if(loadingEl) loadingEl.style.display='none'; });
+    }, {rootMargin:'200px'});
+    obs.observe(sentinel);
+  })();
+
+  /* ── Keyboard navigation ── */
+  (function(){
+    var focusIdx=-1;
+    function getVisibleRows(){
+      var w=window.innerWidth;
+      if(w>=900) return Array.from(document.querySelectorAll('#rkDeskBody .rk-entry')).filter(function(r){return r.style.display!=='none';});
+      else return Array.from(document.querySelectorAll('#rkMobBody .rk-entry-m')).filter(function(r){return r.style.display!=='none';});
+    }
+    function setFocus(rows, idx){
+      rows.forEach(function(r){r.classList.remove('rk-kb-focus');});
+      if(idx>=0 && idx<rows.length){
+        rows[idx].classList.add('rk-kb-focus');
+        rows[idx].scrollIntoView({block:'nearest',behavior:'smooth'});
+        focusIdx=idx;
+      }
+    }
+    document.addEventListener('keydown', function(e){
+      if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA') return;
+      if(document.getElementById('rkModal').classList.contains('open')) return;
+      if(document.getElementById('rkCmpModal').style.display==='flex') return;
+      var rows=getVisibleRows();
+      if(!rows.length) return;
+      if(e.key==='ArrowDown'||e.key==='j'){ e.preventDefault(); setFocus(rows, Math.min(focusIdx+1, rows.length-1)); }
+      else if(e.key==='ArrowUp'||e.key==='k'){ e.preventDefault(); setFocus(rows, Math.max(focusIdx-1, 0)); }
+      else if(e.key==='Enter' && focusIdx>=0 && focusIdx<rows.length){ e.preventDefault(); openTeam(rows[focusIdx].dataset.url); }
+    });
+    /* Reset focus when filters change */
+    var origApply=apply;
+    apply=function(){ focusIdx=-1; var rows=getVisibleRows(); rows.forEach(function(r){r.classList.remove('rk-kb-focus');}); origApply(); };
   })();
 })();
 </script>
