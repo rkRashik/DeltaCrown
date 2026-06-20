@@ -1881,6 +1881,33 @@ if _HAS_UNFOLD:
                     },
                 ],
             },
+            # ── Rankings & Seasons ──
+            {
+                "title": "Rankings & Seasons",
+                "separator": True,
+                "items": [
+                    {
+                        "title": "Seasons",
+                        "icon": "calendar_month",
+                        "link": reverse_lazy("admin:leaderboards_season_changelist"),
+                    },
+                    {
+                        "title": "Leaderboard Entries",
+                        "icon": "leaderboard",
+                        "link": reverse_lazy("admin:leaderboards_leaderboardentry_changelist"),
+                    },
+                    {
+                        "title": "Ranking Snapshots",
+                        "icon": "history",
+                        "link": reverse_lazy("admin:leaderboards_leaderboardsnapshot_changelist"),
+                    },
+                    {
+                        "title": "Game Rankings",
+                        "icon": "emoji_events",
+                        "link": reverse_lazy("admin:competition_gamerankingconfig_changelist"),
+                    },
+                ],
+            },
             # ── Tournament Configuration ──
             {
                 "title": "Tournament Config",

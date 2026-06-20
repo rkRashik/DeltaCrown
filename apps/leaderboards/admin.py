@@ -1,11 +1,12 @@
 from django.contrib import admin
 from django.utils import timezone
 from django.utils.html import format_html
+from unfold.admin import ModelAdmin
 from apps.leaderboards.models import Season, LeaderboardEntry, LeaderboardSnapshot
 
 
 @admin.register(Season)
-class SeasonAdmin(admin.ModelAdmin):
+class SeasonAdmin(ModelAdmin):
     list_display = ('season_id', 'name', 'status_badge', 'start_date', 'end_date', 'time_remaining', 'is_active')
     list_filter = ('is_active',)
     search_fields = ('season_id', 'name')
@@ -80,7 +81,7 @@ class SeasonAdmin(admin.ModelAdmin):
 
 
 @admin.register(LeaderboardEntry)
-class LeaderboardEntryAdmin(admin.ModelAdmin):
+class LeaderboardEntryAdmin(ModelAdmin):
     list_display = ('leaderboard_type', 'rank', 'points', 'player', 'team', 'is_active')
     list_filter = ('leaderboard_type', 'is_active')
     search_fields = ('player__username', 'team__name')
@@ -89,7 +90,7 @@ class LeaderboardEntryAdmin(admin.ModelAdmin):
 
 
 @admin.register(LeaderboardSnapshot)
-class LeaderboardSnapshotAdmin(admin.ModelAdmin):
+class LeaderboardSnapshotAdmin(ModelAdmin):
     list_display = ('date', 'leaderboard_type', 'team', 'rank', 'points')
     list_filter = ('leaderboard_type', 'date')
     search_fields = ('team__name',)

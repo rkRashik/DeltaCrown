@@ -183,6 +183,27 @@ def dashboard_callback(request, context):
         total_teams = 0
         active_teams = 0
 
+    # ── Season stats ──────────────────────────────────────────────────────
+    season_name = None
+    season_progress = 0
+    season_days_left = 0
+    season_total_days = 0
+    season_status = 'off'
+    try:
+        from apps.leaderboards.models import Season
+        active_season = Season.objects.filter(is_active=True).first()
+        if active_season:
+            season_name = active_season.name
+            total = (active_season.end_date - active_season.start_date).total_seconds()
+            elapsed = (now - active_season.start_date).total_seconds()
+            season_progress = min(100, max(0, int(elapsed / total * 100))) if total > 0 else 0
+            remaining = max(0, (active_season.end_date - now).total_seconds())
+            season_days_left = int(remaining / 86400)
+            season_total_days = int(total / 86400)
+            season_status = 'live'
+    except Exception:
+        pass
+
     # ══════════════════════════════════════════════════════════════════════
     # CHARTS
     # ══════════════════════════════════════════════════════════════════════
@@ -540,6 +561,12 @@ def dashboard_callback(request, context):
         "dc_live_tourn_table": live_tourn_table,
         "dc_recent_txn_table": recent_txn_table,
         "dc_open_abuse_reports": open_abuse_reports,
+        # ── Season ──────────────────────────────────────────────────────
+        "dc_season_name": season_name,
+        "dc_season_progress": season_progress,
+        "dc_season_days_left": season_days_left,
+        "dc_season_total_days": season_total_days,
+        "dc_season_status": season_status,
     }
 
     # Cache the dashboard payload (excludes user-specific greeting/time)
