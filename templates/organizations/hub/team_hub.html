@@ -97,25 +97,14 @@ body::after {
     box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 12px 48px rgba(0,0,0,0.4), 0 0 20px rgba(6,182,212,0.05);
 }
 .hub-team-card {
-    transition: transform .35s ease, box-shadow .35s ease, border-color .35s ease;
+    transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease;
 }
 .hub-team-card:hover {
-    transform: translateY(-6px);
-    border-color: rgba(6, 182, 212, 0.4);
-    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.45), 0 0 36px rgba(6, 182, 212, 0.25);
+    transform: translateY(-3px);
+    border-color: rgba(6, 182, 212, 0.3);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35), 0 0 16px rgba(6, 182, 212, 0.1);
 }
 .glass-glow { position: relative; overflow: hidden }
-.glass-glow::before {
-    content: '';
-    position: absolute;
-    inset: -1px;
-    z-index: -1;
-    border-radius: inherit;
-    background: conic-gradient(from 0deg, transparent 40%, #06b6d4 50%, #8b5cf6 60%, transparent 70%);
-    opacity: 0;
-    transition: opacity .5s;
-}
-.glass-glow:hover::before { opacity: 0.6 }
 
 /* ===== TILT CARD (B2 — simplified, no 3D perspective) ===== */
 .tilt-card {
@@ -128,10 +117,7 @@ body::after {
 
 /* ===== GRADIENTS & TEXT ===== */
 .grad-text {
-    background: linear-gradient(135deg, #06b6d4, #8b5cf6 50%, #facc15);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text
+    color: #06b6d4;
 }
 .hero-mesh {
     background: radial-gradient(ellipse 80% 50% at 20% 40%, rgba(6, 182, 212, .08) 0%, transparent 50%),
@@ -237,20 +223,8 @@ body::after {
 .pro-path-card:nth-child(3) { transition-delay: 0.25s; }
 .pro-path-card:nth-child(4) { transition-delay: 0.35s; }
 
-/* ===== CARD SHINE SWEEP (C4) ===== */
+/* card-shine class kept for DOM compat but effect removed */
 .card-shine { position: relative; overflow: hidden; }
-.card-shine::after {
-    content: '';
-    position: absolute;
-    top: -50%; left: -50%;
-    width: 200%; height: 200%;
-    background: linear-gradient(to right, transparent 40%, rgba(255,255,255,0.04) 50%, transparent 60%);
-    transform: rotate(30deg) translateX(-100%);
-    transition: transform 0.8s cubic-bezier(.22,1,.36,1);
-    pointer-events: none;
-    z-index: 1;
-}
-.card-shine:hover::after { transform: rotate(30deg) translateX(100%); }
 
 /* ===== SECTION DIVIDERS (C5) ===== */
 .section-divider {
@@ -423,11 +397,31 @@ body::after {
 .back-to-top.visible { transform: translateY(0); opacity: 1 }
 .back-to-top:hover { background: rgba(6, 182, 212, .15); border-color: rgba(6, 182, 212, .3) }
 
+/* ===== LOGO CLARITY ===== */
+img[loading="lazy"] {
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+}
+/* Team logos: contain (don't crop), pad slightly, dark bg for transparency */
+.team-logo-img {
+    object-fit: contain !important;
+    padding: 3px;
+    background: rgba(0,0,0,.4);
+    image-rendering: auto;
+    image-rendering: -webkit-optimize-contrast;
+}
+
+/* ===== READABILITY FLOOR ===== */
+.hub-content-grid .text-\[9px\] { font-size: 10px !important }
+.hub-content-grid .text-gray-500 { color: #8b97a8 !important }
+.hub-content-grid .text-gray-400 { color: #9ba8b9 !important }
+.hub-content-grid .text-gray-600 { color: #6b7a8d !important }
+
 /* ===== SCROLLBAR ===== */
-::-webkit-scrollbar { width: 6px; height: 6px }
-::-webkit-scrollbar-track { background: #0a0a0a }
-::-webkit-scrollbar-thumb { background: #222; border-radius: 3px }
-::-webkit-scrollbar-thumb:hover { background: #06b6d4 }
+::-webkit-scrollbar { width: 5px; height: 5px }
+::-webkit-scrollbar-track { background: transparent }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,.08); border-radius: 3px }
+::-webkit-scrollbar-thumb:hover { background: rgba(6,182,212,.3) }
 
 /* ===== SEARCH MODAL (Redesigned) ===== */
 .search-modal { display: none; position: fixed; inset: 0; z-index: 100; background: rgba(0, 0, 0, .92); align-items: flex-start; justify-content: center; padding-top: 12vh; }
@@ -479,9 +473,9 @@ body::after {
 .rank-row-silver { background: linear-gradient(90deg, rgba(148,163,184,0.04) 0%, transparent 60%); border: 1px solid rgba(148,163,184,0.1); border-radius: 12px; }
 .rank-row-bronze { background: linear-gradient(90deg, rgba(234,179,8,0.04) 0%, transparent 60%); border: 1px solid rgba(234,179,8,0.1); border-radius: 12px; }
 
-/* ===== RANKING ROW HOVER (demo-style) ===== */
-.rank-row { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-.rank-row:hover { transform: scale(1.01); background: linear-gradient(90deg, rgba(6,182,212,0.05), transparent); border-left: 2px solid #06b6d4; }
+/* ===== RANKING ROW HOVER ===== */
+.rank-row { transition: background .2s, transform .2s; }
+.rank-row:hover { background: rgba(6,182,212,0.04); transform: translateX(2px); }
 
 /* ===== COMBAT ZONE GRID ===== */
 .game-grid-item {
@@ -505,16 +499,15 @@ body::after {
     box-shadow: 0 0 25px rgba(6,182,212,0.2), inset 0 0 15px rgba(6,182,212,0.05);
 }
 
-/* Card image: clear at rest, blurred on hover */
+/* Card image: clear at rest, dim slightly on hover — no blur */
 .game-grid-item .game-card-bg {
     opacity: 1;
-    filter: blur(0);
-    transition: opacity 0.4s ease, filter 0.4s ease;
+    transition: opacity 0.3s ease, transform 0.5s ease;
 }
 .game-grid-item:hover .game-card-bg,
 .game-grid-item.active .game-card-bg {
-    opacity: 0.35;
-    filter: blur(3px);
+    opacity: 0.5;
+    transform: scale(1.05);
 }
 /* Gradient veil: hidden at rest, visible on hover */
 .game-grid-item .game-card-veil {
@@ -600,26 +593,58 @@ body::after {
 
 /* ===== MOBILE-FIRST SECTION PRIORITY ORDERING ===== */
 @media (max-width: 1023px) {
-    .hub-content-grid { display: flex !important; flex-direction: column; gap: 1.5rem; }
+    .hub-content-grid { display: flex !important; flex-direction: column; gap: 1.25rem; }
     .hub-col-left, .hub-col-right { display: contents; }
-    /* Mobile priority order: 1=highest */
-    .mob-order-1 { order: 1; } /* Global Standings */
-    .mob-order-2 { order: 2; } /* My Teams */
-    .mob-order-3 { order: 3; } /* Featured Teams */
-    .mob-order-4 { order: 4; } /* Scouting Grounds */
-    .mob-order-5 { order: 5; } /* Open Challenges */
-    .mob-order-6 { order: 6; } /* Top Organizations */
-    .mob-order-7 { order: 7; } /* Match Finder */
-    /* Hide low-priority sections on very small screens */
+    .mob-order-1 { order: 1; }
+    .mob-order-2 { order: 2; }
+    .mob-order-3 { order: 3; }
+    .mob-order-4 { order: 4; }
+    .mob-order-5 { order: 5; }
+    .mob-order-6 { order: 6; }
+    .mob-order-7 { order: 7; }
     .mob-hide-sm { display: none; }
+    .hub-col-left > .section-divider,
+    .hub-col-right > .section-divider { display: none; }
+
+    /* Mobile native app feel */
+    .hub-content-grid h2 { font-size: 1.125rem !important; }
+    .hub-content-grid .glass { border-radius: 14px; }
+    .hub-team-card .h-36 { height: 100px; }
+    .hub-team-card img[class*="w-[72px]"] { width: 56px !important; height: 56px !important; border-radius: 10px; }
+    .hub-team-card .px-5 { padding-left: 14px; padding-right: 14px; }
+    .hub-team-card .pb-6 { padding-bottom: 14px; }
+    .hub-team-card .-mt-10 { margin-top: -28px; }
+
+    /* Touch target minimum */
+    .hub-content-grid a,
+    .hub-content-grid button {
+        min-height: 44px;
+    }
+
+    /* Rankings rows — tighter */
+    .rank-row { padding: 10px 12px !important; }
+    .rank-row img { border-radius: 8px; }
 }
 @media (min-width: 640px) and (max-width: 1023px) {
     .mob-hide-sm { display: block; }
 }
-/* Hide section dividers within reordered layout on mobile */
-@media (max-width: 1023px) {
-    .hub-col-left > .section-divider,
-    .hub-col-right > .section-divider { display: none; }
+
+/* ===== PHONE-SPECIFIC (<480px) ===== */
+@media (max-width: 480px) {
+    .hub-content-grid { gap: 1rem; }
+    .hub-content-grid h2 { font-size: 1rem !important; }
+
+    /* Single column cards on phone */
+    .hub-content-grid .grid-cols-1.sm\:grid-cols-2 { grid-template-columns: 1fr !important; }
+
+    /* Hero CTA buttons — full width on phone */
+    .btn-cta-primary, .btn-cta-search {
+        width: 100%; justify-content: center;
+        padding: 0.875rem 1.5rem; font-size: 0.8125rem;
+    }
+
+    /* Spotlight card — tighter */
+    .spotlight-card { padding: 16px !important; }
 }
 
 /* ===== GRASSROOTS PATH (E1 - Animated) ===== */
@@ -931,7 +956,7 @@ body::after {
                             <!-- Team identity -->
                             <div class="flex items-center gap-4 mb-3">
                                 {% if item.team.logo %}
-                                <img src="{{ item.team.logo.url }}" alt="{{ item.team.name }}" class="w-14 h-14 rounded-xl object-cover border border-white/10 flex-shrink-0" loading="lazy" draggable="false">
+                                <img src="{{ item.team.logo.url }}" alt="{{ item.team.name }}" class="w-16 h-16 rounded-xl team-logo-img border border-white/10 flex-shrink-0" loading="lazy" draggable="false">
                                 {% else %}
                                 <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-dc-cyan/20 to-dc-purple/20 border border-white/10 flex items-center justify-center flex-shrink-0">
                                     <span class="font-display font-bold text-lg text-white/80">{{ item.team.tag|default:item.team.name|truncatechars:2 }}</span>
@@ -1166,9 +1191,9 @@ body::after {
                             <div class="flex items-end gap-4 mb-4">
                                 {# Team logo overlapping banner #}
                                 {% if team.logo %}
-                                <img src="{{ team.logo.url }}" class="w-[72px] h-[72px] rounded-xl object-cover border-2 border-dc-dark flex-shrink-0 shadow-2xl group-hover:border-dc-cyan/50 transition-all duration-300 bg-dc-dark" alt="{{ team.name }}" loading="lazy">
+                                <img src="{{ team.logo.url }}" class="w-[80px] h-[80px] rounded-xl team-logo-img border-2 border-white/10 flex-shrink-0 shadow-xl group-hover:border-dc-cyan/40 transition-all duration-300" alt="{{ team.name }}" loading="lazy">
                                 {% else %}
-                                <div class="w-[72px] h-[72px] rounded-xl border-2 border-dc-dark bg-gradient-to-br from-dc-cyan/25 to-dc-purple/25 flex items-center justify-center text-xl font-black text-white flex-shrink-0 shadow-2xl font-display">{{ team.tag|default:team.name|truncatechars:3 }}</div>
+                                <div class="w-[80px] h-[80px] rounded-xl border-2 border-white/10 bg-gradient-to-br from-dc-cyan/15 to-dc-purple/15 flex items-center justify-center text-xl font-bold text-white flex-shrink-0 shadow-xl font-display">{{ team.tag|default:team.name|truncatechars:3 }}</div>
                                 {% endif %}
                                 <div class="flex-1 min-w-0 pb-1">
                                     <h4 class="font-bold text-white text-base group-hover:text-dc-cyan transition-colors leading-tight" style="display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden;">{{ team.name }}</h4>
@@ -1297,9 +1322,9 @@ body::after {
                             <!-- Team Info -->
                             <div class="col-span-5 flex items-center gap-3 sm:gap-4 relative z-10">
                                 {% if entry.team_logo_url %}
-                                <img src="{{ entry.team_logo_url }}" class="{% if forloop.counter <= 3 %}w-10 h-10{% else %}w-8 h-8{% endif %} rounded-lg object-cover flex-shrink-0 border {% if forloop.counter == 1 %}border-dc-gold/50{% else %}border-white/10{% endif %}" alt="{{ entry.team_name }}" loading="lazy">
+                                <img src="{{ entry.team_logo_url }}" class="{% if forloop.counter <= 3 %}w-11 h-11{% else %}w-9 h-9{% endif %} rounded-lg team-logo-img flex-shrink-0 border {% if forloop.counter == 1 %}border-dc-gold/40{% else %}border-white/10{% endif %}" alt="{{ entry.team_name }}" loading="lazy">
                                 {% else %}
-                                <div class="{% if forloop.counter <= 3 %}w-10 h-10{% else %}w-8 h-8{% endif %} rounded-lg bg-dc-dark border {% if forloop.counter == 1 %}border-dc-gold/50{% else %}border-white/10{% endif %} flex items-center justify-center overflow-hidden flex-shrink-0 relative">
+                                <div class="{% if forloop.counter <= 3 %}w-11 h-11{% else %}w-9 h-9{% endif %} rounded-lg bg-dc-dark border {% if forloop.counter == 1 %}border-dc-gold/40{% else %}border-white/10{% endif %} flex items-center justify-center overflow-hidden flex-shrink-0 relative">
                                     {% if forloop.counter == 1 %}<div class="absolute inset-0 bg-dc-gold/20"></div>{% endif %}
                                     <span class="font-bold {% if forloop.counter == 1 %}text-dc-gold{% else %}text-gray-400{% endif %} relative z-10 text-xs">{{ entry.team_tag|default:entry.team_name|truncatechars:3 }}</span>
                                 </div>
@@ -1365,7 +1390,7 @@ body::after {
                         <div class="p-5 bg-gradient-to-b from-white/[0.04] to-transparent">
                             <div class="flex items-start gap-3.5 mb-3.5">
                                 {% if team.logo %}
-                                <img src="{{ team.logo.url }}" class="w-12 h-12 rounded-xl object-cover border border-white/10 flex-shrink-0 group-hover:border-dc-cyan/30 transition-colors" alt="{{ team.name }}" loading="lazy">
+                                <img src="{{ team.logo.url }}" class="w-14 h-14 rounded-xl team-logo-img border border-white/10 flex-shrink-0 group-hover:border-dc-cyan/30 transition-colors" alt="{{ team.name }}" loading="lazy">
                                 {% else %}
                                 <div class="w-12 h-12 rounded-xl border border-white/10 bg-gradient-to-br from-dc-cyan/20 to-dc-purple/20 flex items-center justify-center text-sm font-bold text-white flex-shrink-0 group-hover:border-dc-cyan/30 transition-colors">{{ team.tag|default:team.name|truncatechars:2 }}</div>
                                 {% endif %}
@@ -1510,52 +1535,63 @@ body::after {
                           box-shadow: 0 0 32px -6px rgba(99,102,241,.45), inset 0 1px 0 0 rgba(255,255,255,.07);
                           backdrop-filter: blur(28px) saturate(140%);">
 
-                <div class="absolute inset-0 opacity-50 group-hover:opacity-90 transition-opacity duration-700 pointer-events-none crown-arena-flow"></div>
-                <div class="absolute -top-16 -right-16 w-48 h-48 rounded-full blur-3xl pointer-events-none animate-pulse"
-                     style="background: radial-gradient(circle, rgba(99,102,241,.45), transparent 70%); animation-duration: 4.5s;"></div>
-                <div class="absolute -bottom-16 -left-16 w-44 h-44 rounded-full blur-3xl pointer-events-none animate-pulse"
-                     style="background: radial-gradient(circle, rgba(236,72,153,.30), transparent 70%); animation-duration: 6s; animation-delay: .7s;"></div>
-                <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-indigo-300/55 to-transparent"></div>
-
                 <div class="relative">
-                  <div class="flex items-center gap-2 mb-3">
-                    <span class="text-[10px] font-bold uppercase tracking-[0.22em] text-indigo-200/90">Competitive Hub</span>
-                    <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 text-[8px] font-bold uppercase tracking-wider">
-                      <span class="inline-block w-1 h-1 rounded-full bg-emerald-400 mr-1.5 animate-pulse"></span>Live
+                  <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center gap-2">
+                      <i data-lucide="zap" class="w-4 h-4 text-dc-cyan"></i>
+                      <span class="text-sm font-bold text-white">Competitive</span>
+                    </div>
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold" style="background:rgba(16,185,129,.1); border:1px solid rgba(16,185,129,.25); color:#34d399">
+                      <span class="w-1 h-1 rounded-full bg-emerald-400 mr-1 animate-pulse"></span>Live
                     </span>
                   </div>
 
-                  <h3 class="font-display font-black text-white text-2xl leading-tight mb-2 transition-[text-shadow] duration-300 group-hover:[text-shadow:0_0_28px_rgba(165,180,252,0.55)]">
-                    DeltaCrown <span class="bg-clip-text text-transparent bg-gradient-to-r from-indigo-300 via-fuchsia-300 to-amber-300">Competitive Hub</span>
-                  </h3>
-
-                  <p class="text-[13px] text-gray-300 leading-relaxed mb-4">
-                    Skill-based competitive rewards, missions, team Showdowns, Bounty challenges, and Dropzone lobbies.
-                  </p>
-
-                  <div class="grid grid-cols-2 gap-2 mb-4">
-                    <div class="px-3 py-2 rounded-lg bg-white/[0.03] border border-white/[0.07] text-[11px] text-gray-300 transition-all duration-300 hover:bg-indigo-500/[0.10] hover:border-indigo-400/60 hover:shadow-[0_0_20px_-6px_rgba(99,102,241,0.65)]">
-                      <div class="text-[9px] font-bold uppercase tracking-widest text-indigo-300/80">Missions</div>
-                      <div class="font-bold text-white">Solo Missions</div>
-                    </div>
-                    <div class="px-3 py-2 rounded-lg bg-white/[0.03] border border-white/[0.07] text-[11px] text-gray-300 transition-all duration-300 hover:bg-cyan-500/[0.10] hover:border-cyan-400/60 hover:shadow-[0_0_20px_-6px_rgba(34,211,238,0.65)]">
-                      <div class="text-[9px] font-bold uppercase tracking-widest text-cyan-300/80">Showdown</div>
-                      <div class="font-bold text-white">Head-to-Head</div>
-                    </div>
-                    <div class="px-3 py-2 rounded-lg bg-white/[0.03] border border-white/[0.07] text-[11px] text-gray-300 transition-all duration-300 hover:bg-rose-500/[0.10] hover:border-rose-400/60 hover:shadow-[0_0_20px_-6px_rgba(244,63,94,0.65)]">
-                      <div class="text-[9px] font-bold uppercase tracking-widest text-rose-300/80">🎯 Bounty</div>
-                      <div class="font-bold text-white">Beat the Kings</div>
-                    </div>
-                    <div class="px-3 py-2 rounded-lg bg-white/[0.03] border border-white/[0.07] text-[11px] text-gray-300 transition-all duration-300 hover:bg-amber-500/[0.10] hover:border-amber-400/60 hover:shadow-[0_0_20px_-6px_rgba(251,191,36,0.65)]">
-                      <div class="text-[9px] font-bold uppercase tracking-widest text-amber-300/80">Dropzone</div>
-                      <div class="font-bold text-white">BR Lobbies</div>
-                    </div>
+                  <div class="space-y-2 mb-4" id="comp-mode-carousel">
+                    <a href="{% url 'dashboard:competitive_hub' %}#showdown" class="flex items-center gap-3 p-3 rounded-xl transition-all hover:bg-white/[0.04]" style="border:1px solid rgba(10,132,255,.12); background:rgba(10,132,255,.04)">
+                      <div class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style="background:rgba(10,132,255,.12)">
+                        <i data-lucide="zap" class="w-4 h-4 text-dc-cyan"></i>
+                      </div>
+                      <div class="flex-1 min-w-0">
+                        <p class="text-sm font-bold text-white">Showdown</p>
+                        <p class="text-[11px] text-gray-400">Team vs team head-to-head</p>
+                      </div>
+                      <i data-lucide="chevron-right" class="w-4 h-4 text-gray-600 flex-shrink-0"></i>
+                    </a>
+                    <a href="{% url 'dashboard:competitive_hub' %}#missions" class="flex items-center gap-3 p-3 rounded-xl transition-all hover:bg-white/[0.04]" style="border:1px solid rgba(139,92,246,.12); background:rgba(139,92,246,.04)">
+                      <div class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style="background:rgba(139,92,246,.12)">
+                        <i data-lucide="scroll-text" class="w-4 h-4 text-violet-400"></i>
+                      </div>
+                      <div class="flex-1 min-w-0">
+                        <p class="text-sm font-bold text-white">Missions</p>
+                        <p class="text-[11px] text-gray-400">Solo objectives and rewards</p>
+                      </div>
+                      <i data-lucide="chevron-right" class="w-4 h-4 text-gray-600 flex-shrink-0"></i>
+                    </a>
+                    <a href="{% url 'dashboard:competitive_hub' %}#bounty" class="flex items-center gap-3 p-3 rounded-xl transition-all hover:bg-white/[0.04]" style="border:1px solid rgba(191,56,104,.12); background:rgba(191,56,104,.04)">
+                      <div class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style="background:rgba(191,56,104,.12)">
+                        <i data-lucide="crosshair" class="w-4 h-4 text-rose-400"></i>
+                      </div>
+                      <div class="flex-1 min-w-0">
+                        <p class="text-sm font-bold text-white">Bounty</p>
+                        <p class="text-[11px] text-gray-400">Challenge and claim rewards</p>
+                      </div>
+                      <i data-lucide="chevron-right" class="w-4 h-4 text-gray-600 flex-shrink-0"></i>
+                    </a>
+                    <a href="{% url 'dashboard:competitive_hub' %}#dropzone" class="flex items-center gap-3 p-3 rounded-xl transition-all hover:bg-white/[0.04]" style="border:1px solid rgba(207,167,90,.12); background:rgba(207,167,90,.04)">
+                      <div class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style="background:rgba(207,167,90,.12)">
+                        <i data-lucide="target" class="w-4 h-4 text-amber-400"></i>
+                      </div>
+                      <div class="flex-1 min-w-0">
+                        <p class="text-sm font-bold text-white">Dropzone</p>
+                        <p class="text-[11px] text-gray-400">Battle royale lobbies</p>
+                      </div>
+                      <i data-lucide="chevron-right" class="w-4 h-4 text-gray-600 flex-shrink-0"></i>
+                    </a>
                   </div>
 
-                  <div class="flex items-center justify-between px-4 py-3 rounded-xl bg-white/[0.04] border border-white/15 transition-all duration-300 group-hover:bg-indigo-500/[0.16] group-hover:border-indigo-400/65 group-hover:shadow-[inset_0_0_24px_rgba(99,102,241,0.30)]">
-                    <span class="text-sm font-bold text-white tracking-wide group-hover:[text-shadow:0_0_14px_rgba(165,180,252,0.7)]">Open Competitive Hub</span>
-                    <i data-lucide="arrow-right" class="w-4 h-4 text-white transition-transform duration-300 group-hover:translate-x-1.5"></i>
-                  </div>
+                  <a href="{% url 'dashboard:competitive_hub' %}" class="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-sm font-bold text-white transition-all" style="background:rgba(10,132,255,.1); border:1px solid rgba(10,132,255,.25)">
+                    Open Arena <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                  </a>
                 </div>
               </div>
             </a>
