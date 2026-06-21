@@ -320,8 +320,9 @@ body::after {
 .neon-line:hover::after { width: 100% }
 
 /* ===== STAGGERED SCROLL REVEAL (C2) ===== */
-.reveal { opacity: 0; transform: translateY(28px); transition: all .8s cubic-bezier(.22, 1, .36, 1) }
-.reveal.visible { opacity: 1; transform: translateY(0) }
+.reveal { opacity: 1; transform: translateY(0); transition: all .6s cubic-bezier(.22, 1, .36, 1) }
+.reveal.reveal-init { opacity: 0; transform: translateY(20px) }
+.reveal-init.visible { opacity: 1; transform: translateY(0) }
 .reveal-delay-1 { transition-delay: .1s }
 .reveal-delay-2 { transition-delay: .2s }
 .reveal-delay-3 { transition-delay: .3s }
@@ -402,13 +403,25 @@ img[loading="lazy"] {
     -webkit-backface-visibility: hidden;
     backface-visibility: hidden;
 }
-/* Team logos: contain (don't crop), pad slightly, dark bg for transparency */
 .team-logo-img {
-    object-fit: contain !important;
-    padding: 3px;
-    background: rgba(0,0,0,.4);
+    object-fit: cover;
     image-rendering: auto;
     image-rendering: -webkit-optimize-contrast;
+}
+/* Ranking row logos — clean circular style, no boxy frame */
+.rank-logo {
+    border-radius: 50%;
+    object-fit: cover;
+    background: #0e111a;
+    box-shadow: 0 0 0 2px rgba(255,255,255,.06);
+    image-rendering: -webkit-optimize-contrast;
+}
+.rank-logo-gold { box-shadow: 0 0 0 2px rgba(250,204,21,.25), 0 0 12px rgba(250,204,21,.1) }
+.rank-logo-fallback {
+    border-radius: 50%;
+    background: linear-gradient(135deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 0 0 2px rgba(255,255,255,.06);
 }
 
 /* ===== READABILITY FLOOR ===== */
@@ -849,7 +862,7 @@ img[loading="lazy"] {
         <div class="p-4 border-b border-white/10 flex items-center gap-3">
             <i data-lucide="search" class="w-5 h-5 text-dc-cyan flex-shrink-0"></i>
             <input id="search-input" type="text" placeholder="Search teams, players, tournaments..." class="flex-1 bg-transparent text-white text-lg outline-none placeholder-gray-500">
-            <button class="hidden sm:flex items-center justify-center w-7 h-7 rounded-lg bg-white/5 border border-white/10 text-gray-500 hover:text-white hover:bg-white/10 transition-all flex-shrink-0" aria-label="Close search">
+            <button class="flex items-center justify-center w-8 h-8 rounded-lg bg-white/5 border border-white/10 text-gray-500 hover:text-white hover:bg-white/10 transition-all flex-shrink-0" aria-label="Close search" onclick="document.getElementById('search-modal').classList.remove('active')"
                 <i data-lucide="x" class="w-3.5 h-3.5"></i>
             </button>
         </div>
@@ -1158,9 +1171,8 @@ img[loading="lazy"] {
                             {% else %}
                             <div class="absolute inset-0 bg-gradient-to-br from-dc-cyan/10 via-dc-purple/10 to-transparent"></div>
                             {% endif %}
-                            {# Dark gradient overlay #}
-                            <div class="absolute inset-0 bg-gradient-to-t from-dc-dark via-dc-dark/50 to-transparent"></div>
-                            <div class="absolute inset-0 bg-gradient-to-r from-dc-dark/60 via-transparent to-transparent"></div>
+                            {# Dark gradient overlay — lighter to show more banner #}
+                            <div class="absolute inset-0 bg-gradient-to-t from-dc-dark via-dc-dark/35 to-transparent"></div>
 
                             {# ⭐ FEATURED badge – top left #}
                             <div class="absolute top-3 left-3 z-10">
@@ -1191,9 +1203,9 @@ img[loading="lazy"] {
                             <div class="flex items-end gap-4 mb-4">
                                 {# Team logo overlapping banner #}
                                 {% if team.logo %}
-                                <img src="{{ team.logo.url }}" class="w-[80px] h-[80px] rounded-xl team-logo-img border-2 border-white/10 flex-shrink-0 shadow-xl group-hover:border-dc-cyan/40 transition-all duration-300" alt="{{ team.name }}" loading="lazy">
+                                <img src="{{ team.logo.url }}" class="w-[76px] h-[76px] rounded-2xl team-logo-img flex-shrink-0 ring-2 ring-white/8 group-hover:ring-dc-cyan/30 transition-all duration-300" style="box-shadow:0 4px 16px rgba(0,0,0,.5)" alt="{{ team.name }}" loading="lazy">
                                 {% else %}
-                                <div class="w-[80px] h-[80px] rounded-xl border-2 border-white/10 bg-gradient-to-br from-dc-cyan/15 to-dc-purple/15 flex items-center justify-center text-xl font-bold text-white flex-shrink-0 shadow-xl font-display">{{ team.tag|default:team.name|truncatechars:3 }}</div>
+                                <div class="w-[76px] h-[76px] rounded-2xl bg-gradient-to-br from-dc-cyan/12 to-dc-purple/12 flex items-center justify-center text-xl font-bold text-white flex-shrink-0 ring-2 ring-white/8" style="box-shadow:0 4px 16px rgba(0,0,0,.5)">{{ team.tag|default:team.name|truncatechars:3 }}</div>
                                 {% endif %}
                                 <div class="flex-1 min-w-0 pb-1">
                                     <h4 class="font-bold text-white text-base group-hover:text-dc-cyan transition-colors leading-tight" style="display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden;">{{ team.name }}</h4>
@@ -1282,7 +1294,7 @@ img[loading="lazy"] {
 
             <!-- GLOBAL STANDINGS -->
             <div class="reveal section-glow section-glow-gold mob-order-1">
-                <div class="glass rounded-2xl p-0 overflow-hidden border-t-4 border-t-dc-gold card-shine">
+                <div class="glass rounded-2xl p-0 overflow-hidden">
                     <div class="p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-gradient-to-b from-white/5 to-transparent">
                         <div>
                             <h2 class="font-display text-2xl font-bold text-white flex items-center gap-2">
@@ -1316,17 +1328,16 @@ img[loading="lazy"] {
                             <img src="{{ entry.team_banner_url }}" class="absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-15 transition-opacity duration-500 z-0 pointer-events-none" alt="" loading="lazy">
                             {% endif %}
                             <!-- Rank Number -->
-                            <div class="col-span-1 text-center font-display font-bold relative z-10 {% if forloop.counter == 1 %}text-xl text-dc-gold{% elif forloop.counter == 2 %}text-lg text-gray-300{% elif forloop.counter == 3 %}text-lg text-orange-400{% else %}text-gray-500{% endif %}">
+                            <div class="col-span-1 text-center font-bold relative z-10 {% if forloop.counter == 1 %}text-xl text-dc-gold{% elif forloop.counter == 2 %}text-lg text-gray-300{% elif forloop.counter == 3 %}text-lg text-orange-400{% else %}text-gray-500{% endif %}">
                                 {{ entry.rank }}
                             </div>
                             <!-- Team Info -->
                             <div class="col-span-5 flex items-center gap-3 sm:gap-4 relative z-10">
                                 {% if entry.team_logo_url %}
-                                <img src="{{ entry.team_logo_url }}" class="{% if forloop.counter <= 3 %}w-11 h-11{% else %}w-9 h-9{% endif %} rounded-lg team-logo-img flex-shrink-0 border {% if forloop.counter == 1 %}border-dc-gold/40{% else %}border-white/10{% endif %}" alt="{{ entry.team_name }}" loading="lazy">
+                                <img src="{{ entry.team_logo_url }}" class="{% if forloop.counter <= 3 %}w-11 h-11{% else %}w-9 h-9{% endif %} rank-logo {% if forloop.counter == 1 %}rank-logo-gold{% endif %} flex-shrink-0" alt="{{ entry.team_name }}" loading="lazy">
                                 {% else %}
-                                <div class="{% if forloop.counter <= 3 %}w-11 h-11{% else %}w-9 h-9{% endif %} rounded-lg bg-dc-dark border {% if forloop.counter == 1 %}border-dc-gold/40{% else %}border-white/10{% endif %} flex items-center justify-center overflow-hidden flex-shrink-0 relative">
-                                    {% if forloop.counter == 1 %}<div class="absolute inset-0 bg-dc-gold/20"></div>{% endif %}
-                                    <span class="font-bold {% if forloop.counter == 1 %}text-dc-gold{% else %}text-gray-400{% endif %} relative z-10 text-xs">{{ entry.team_tag|default:entry.team_name|truncatechars:3 }}</span>
+                                <div class="{% if forloop.counter <= 3 %}w-11 h-11{% else %}w-9 h-9{% endif %} rank-logo-fallback flex-shrink-0">
+                                    <span class="font-bold {% if forloop.counter == 1 %}text-dc-gold{% else %}text-gray-400{% endif %} text-xs">{{ entry.team_tag|default:entry.team_name|truncatechars:3 }}</span>
                                 </div>
                                 {% endif %}
                                 <div class="min-w-0">
@@ -1348,7 +1359,7 @@ img[loading="lazy"] {
                                 <span class="text-[10px] px-2 py-0.5 rounded-full font-bold {% if entry.tier == 'THE_CROWN' %}tier-the_crown{% elif entry.tier == 'LEGEND' %}tier-legend{% elif entry.tier == 'MASTER' %}tier-master{% elif entry.tier == 'ELITE' %}tier-elite{% elif entry.tier == 'CHALLENGER' %}tier-challenger{% else %}tier-rookie{% endif %}">{{ entry.tier|default:"ROOKIE" }}</span>
                             </div>
                             <!-- CP -->
-                            <div class="col-span-2 text-right font-display font-bold relative z-10 {% if forloop.counter <= 3 %}text-white text-lg{% else %}text-gray-300{% endif %}">{{ entry.score|intcomma }} <span class="text-[10px] text-slate-500 font-normal">CP</span></div>
+                            <div class="col-span-2 text-right font-bold relative z-10 {% if forloop.counter <= 3 %}text-white text-lg{% else %}text-gray-300{% endif %}">{{ entry.score|intcomma }} <span class="text-[10px] text-slate-500 font-normal">CP</span></div>
                             <!-- Activity -->
                             <div class="col-span-2 flex justify-center relative z-10">
                                 <div class="flex items-center gap-1.5">
@@ -1385,8 +1396,7 @@ img[loading="lazy"] {
                     {% if recruiting_teams %}
                     {% for team in recruiting_teams %}
                     <div class="group relative rounded-2xl overflow-hidden border border-white/[0.06] hover:border-dc-cyan/30 transition-all duration-300 hover:-translate-y-1">
-                        <!-- Top gradient bar -->
-                        <div class="h-1 w-full bg-gradient-to-r from-dc-cyan via-dc-purple to-dc-cyan"></div>
+                        <div class="h-0.5 w-full bg-green-500/40"></div>
                         <div class="p-5 bg-gradient-to-b from-white/[0.04] to-transparent">
                             <div class="flex items-start gap-3.5 mb-3.5">
                                 {% if team.logo %}
@@ -2183,7 +2193,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (cards.length > 0) {
             cards[0].classList.add('snap-active');
         }
-        if (cards.length > 1) startAuto();
+        if (cards.length > 1 && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) startAuto();
     })();
 
     // === SINGLE UNIFIED SCROLL OBSERVER (replaces 5 separate observers) ===
@@ -2193,7 +2203,10 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }, { threshold: 0.08, rootMargin: '0px 0px -40px 0px' });
 
-    document.querySelectorAll('.reveal, .stagger-grid, .pro-path-card').forEach(el => revealObs.observe(el));
+    document.querySelectorAll('.reveal, .stagger-grid, .pro-path-card').forEach(el => {
+        el.classList.add('reveal-init');
+        revealObs.observe(el);
+    });
 
     // Section glow
     const glowObs = new IntersectionObserver(entries => {
