@@ -7,7 +7,7 @@
 {% block extra_head %}
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700;800&family=Sora:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/lucide@latest" defer></script>
 {% endblock %}
 
@@ -605,191 +605,273 @@ img[loading="lazy"] {
 }
 
 /* ==========================================================================
-   MOBILE NATIVE APP LAYOUT — Claude Design handoff implementation
+   MOBILE — Claude Design "Team Hub Mobile.dc.html" implementation
    ========================================================================== */
 
-/* ── Hide tab bar on desktop ── */
 .th-tabbar { display: none; }
 
-/* ── Tablet (<1024px): single column ── */
+/* ── Tablet: single column reorder ── */
 @media (max-width: 1023px) {
-    .hub-content-grid {
-        display: flex !important; flex-direction: column; gap: 0;
-    }
+    .hub-content-grid { display: flex !important; flex-direction: column; gap: 22px; }
     .hub-col-left, .hub-col-right { display: contents; }
-    .mob-order-1 { order: 1; }
-    .mob-order-2 { order: 2; }
-    .mob-order-3 { order: 3; }
-    .mob-order-4 { order: 4; }
-    .mob-order-5 { order: 5; }
-    .mob-order-6 { order: 6; }
+    .mob-order-1 { order: 1; } .mob-order-2 { order: 2; } .mob-order-3 { order: 3; }
+    .mob-order-4 { order: 4; } .mob-order-5 { order: 5; } .mob-order-6 { order: 6; }
     .mob-order-7 { order: 7; }
     .mob-hide-sm { display: none; }
-    .hub-col-left > .section-divider,
-    .hub-col-right > .section-divider { display: none; }
-    .hub-content-grid > * { margin-bottom: 0; }
+    .hub-col-left > .section-divider, .hub-col-right > .section-divider { display: none; }
     #scouting-list { grid-template-columns: 1fr !important; }
 }
-@media (min-width: 640px) and (max-width: 1023px) { .mob-hide-sm { display: block; } }
+@media (min-width: 641px) and (max-width: 1023px) { .mob-hide-sm { display: block; } }
 
-/* ── Phone (<640px): native app ── */
+/* ── Phone (<640px): native app skin ── */
 @media (max-width: 640px) {
 
-    /* --- Tab bar --- */
+    /* ░░ BOTTOM TAB BAR ░░ */
     .th-tabbar {
         display: flex; position: fixed; bottom: 0; left: 0; right: 0; z-index: 60;
-        background: rgba(10,13,20,.88);
-        backdrop-filter: blur(24px) saturate(160%);
-        -webkit-backdrop-filter: blur(24px) saturate(160%);
+        background: rgba(10,13,20,.7);
+        backdrop-filter: blur(28px) saturate(180%);
+        -webkit-backdrop-filter: blur(28px) saturate(180%);
         border-top: 1px solid rgba(255,255,255,.06);
-        padding: 8px 0 calc(8px + env(safe-area-inset-bottom, 0px));
-        justify-content: space-around; align-items: center;
+        padding: 9px 6px calc(9px + env(safe-area-inset-bottom, 16px));
+        justify-content: space-around;
     }
     .th-tab {
-        display: flex; flex-direction: column; align-items: center; gap: 2px;
+        display: flex; flex-direction: column; align-items: center; gap: 3px;
         text-decoration: none; color: #6B7385; font-size: 10px; font-weight: 500;
-        padding: 4px 0; min-width: 56px; transition: color 160ms ease;
-        -webkit-tap-highlight-color: transparent;
+        letter-spacing: -0.01em; padding: 4px;
+        -webkit-tap-highlight-color: transparent; transition: color 160ms ease;
     }
     .th-tab-active { color: #0A84FF; font-weight: 600; }
-    .th-tab svg { width: 22px; height: 22px; }
+    .th-tab svg { width: 24px; height: 24px; }
 
-    /* --- Body accommodations --- */
-    body { padding-bottom: 0 !important; }
-    footer { padding-bottom: 80px !important; }
+    /* ░░ GLOBAL MOBILE RESETS ░░ */
+    body { background: #0A0D14 !important; }
+    body::after { display: none; }
+    footer { padding-bottom: 90px !important; }
+    .fab, .back-to-top { display: none !important; }
 
-    /* --- Hide desktop-heavy elements --- */
+    /* Kill desktop hero decorations */
     #hero-section .hero-grid-overlay,
     #hero-section .hero-vignette,
     #hero-section canvas,
-    .section-glow::before,
-    body::after,
-    .fab,
-    .back-to-top { display: none !important; }
+    .section-glow::before { display: none !important; }
 
-    /* --- Global typography --- */
-    .hub-content-grid h2 { font-size: 1.125rem !important; font-weight: 700 !important; }
-    .hub-content-grid .glass { border-radius: 16px; padding: 0; overflow: hidden; }
-
-    /* --- Container padding --- */
-    .hub-content-grid { gap: 20px; padding: 0 !important; }
-
-    /* --- Hero: compact, no bg effects --- */
-    #hero-section { padding-top: 0 !important; padding-bottom: 0 !important; }
-    #hero-section .hero-mesh { opacity: 0.3; }
-    #hero-section h1 { font-size: 1.5rem !important; }
-    #hero-section p { font-size: 0.8125rem !important; }
-    .btn-cta-primary, .btn-cta-search {
-        width: 100%; justify-content: center;
-        height: 50px; border-radius: 15px;
-        font-size: 0.875rem;
-    }
-    /* Quick action pair: side by side */
-    #hero-section .flex-col.sm\:flex-row { flex-direction: row !important; }
-    #hero-section .flex-col.sm\:flex-row > * { flex: 1; }
-
-    /* --- Spotlight carousel: native scroll --- */
-    .spotlight-track { padding: 0 16px; gap: 12px; }
-    .spotlight-card { width: 248px !important; padding: 16px !important; border-radius: 20px !important; }
-
-    /* --- Game filter: full-width chip strip --- */
-    .game-grid-full { display: none !important; }
-    .game-strip-mobile { display: flex !important; padding: 0 16px; gap: 8px; }
-    .game-chip { height: 38px; border-radius: 999px; font-size: 13px; }
-
-    /* --- Featured team cards: horizontal scroll instead of grid --- */
-    .hub-content-grid .sm\:grid-cols-2 {
-        display: flex !important; overflow-x: auto; scroll-snap-type: x mandatory;
-        gap: 12px; padding: 0 16px 8px;
-        scrollbar-width: none; -webkit-overflow-scrolling: touch;
-    }
-    .hub-content-grid .sm\:grid-cols-2::-webkit-scrollbar { display: none; }
-    .hub-content-grid .sm\:grid-cols-2 > * {
-        flex: none; width: 280px; scroll-snap-align: start;
-    }
-    /* Featured cards: compact variant */
-    .hub-team-card .h-36 { height: 72px; }
-    .hub-team-card img[class*="w-[76px]"] { width: 52px !important; height: 52px !important; border-radius: 15px !important; }
-    .hub-team-card div[class*="w-[76px]"] { width: 52px !important; height: 52px !important; border-radius: 15px !important; font-size: 14px !important; }
-    .hub-team-card .px-5 { padding-left: 14px; padding-right: 14px; }
-    .hub-team-card .pb-6 { padding-bottom: 14px; }
-    .hub-team-card .-mt-10 { margin-top: -20px; }
-
-    /* --- Rankings: 3-column compact --- */
-    .rank-row {
-        grid-template-columns: 28px 1fr auto !important;
-        gap: 10px !important; padding: 11px 14px !important;
-    }
-    .rank-row > .col-span-1 { grid-column: 1; font-size: 15px !important; width: 28px; text-align: center; }
-    .rank-row > .col-span-5 { grid-column: 2; }
-    /* Hide Tier column */
-    .rank-row > .col-span-2.hidden.sm\:block { display: none !important; }
-    /* CP column */
-    .rank-row > .col-span-2:not(.hidden):not(:last-child) { grid-column: 3; }
-    /* Hide Activity column */
-    .rank-row > .col-span-2:last-child { display: none; }
-    /* Table header */
-    .rank-row + .rank-row { border-top: none; }
-    #rankings-list .grid-cols-12 {
-        grid-template-columns: 28px 1fr auto !important;
-    }
-    /* Table header: hide extra cols */
-    .glass .grid-cols-12.gap-4.px-6.py-3 {
-        grid-template-columns: 28px 1fr auto !important;
-    }
-    .glass .grid-cols-12.gap-4.px-6.py-3 > .col-span-2 { display: none; }
-    .glass .grid-cols-12.gap-4.px-6.py-3 > .col-span-2:nth-child(4) { display: block; }
-
-    /* Ranking logos: 40px, circular, clean */
-    .rank-logo { width: 40px !important; height: 40px !important; border-radius: 12px !important; }
-    .rank-logo-fallback { width: 40px !important; height: 40px !important; border-radius: 12px !important; }
-
-    /* --- Scouting cards: compact --- */
-    #scouting-list { gap: 10px !important; padding: 0 16px; }
-    #scouting-list > div { border-radius: 18px; }
-    #scouting-list .w-14 { width: 44px !important; height: 44px !important; border-radius: 13px !important; }
-
-    /* --- Competitive Hub widget --- */
-    #comp-mode-carousel { padding: 0; }
-    #comp-mode-carousel a { padding: 12px !important; border-radius: 14px !important; }
-
-    /* --- My Teams sidebar → horizontal scroll cards --- */
-    .sidebar-sticky { position: static !important; }
-
-    /* --- Stats strip: compact row --- */
-    .hub-content-grid .flex.flex-wrap.items-center.justify-center { flex-wrap: nowrap; gap: 8px; }
-
-    /* --- Section spacing --- */
-    .hub-content-grid .section-glow { margin-top: 0; }
+    /* Kill all reveal/stagger animations — instant render */
     .reveal, .reveal.reveal-init { opacity: 1 !important; transform: none !important; transition: none !important; }
     .stagger-grid > * { opacity: 1 !important; transform: none !important; transition: none !important; }
 
-    /* --- Footer: compact with tab bar clearance --- */
-    footer { margin-bottom: 0; }
+    /* Tap feedback */
+    .hub-content-grid a:active,
+    .hub-content-grid button:active { transform: scale(0.97); }
 
-    /* --- Touch targets --- */
-    .hub-content-grid a,
-    .hub-content-grid button { min-height: 44px; }
+    /* ░░ CONTAINER ░░ */
+    .hub-content-grid {
+        gap: 0 !important; padding: 0 !important;
+    }
+    .hub-content-grid > * { margin-bottom: 0; }
 
-    /* --- Search modal: bottom sheet on phone --- */
+    /* ░░ SECTION TITLES — Sora 20px 700 ░░ */
+    .hub-content-grid h2 {
+        font-family: 'Sora', 'Space Grotesk', sans-serif !important;
+        font-size: 20px !important; font-weight: 700 !important;
+        letter-spacing: -0.01em !important; color: #F4F6FA !important;
+        padding: 0 16px; margin: 22px 0 11px !important;
+    }
+    .hub-content-grid h3 { font-size: 16px !important; font-weight: 700 !important; }
+
+    /* ░░ HERO — compact quick actions ░░ */
+    #hero-section {
+        padding: 0 !important; margin: 0 !important;
+    }
+    #hero-section .hero-mesh { opacity: 0.15; }
+    #hero-section > div { padding: 10px 0 0 !important; max-width: 100% !important; }
+    /* Hide hero text — actions are the hero on mobile */
+    #hero-section h1 { font-size: 1.25rem !important; margin-bottom: 4px !important; }
+    #hero-section .reveal-delay-2 { display: none; } /* subtitle */
+    #hero-section .reveal-delay-4 { display: none; } /* stats strip (moved below) */
+
+    /* CTA buttons: 50px height, side by side */
+    #hero-section .flex-col.sm\:flex-row {
+        flex-direction: row !important; gap: 10px !important;
+        padding: 14px 16px 4px !important;
+    }
+    .btn-cta-primary, .btn-cta-search {
+        flex: 1 !important; width: auto !important;
+        height: 50px !important; border-radius: 15px !important;
+        font-size: 15px !important; font-weight: 600 !important;
+        padding: 0 16px !important;
+    }
+    .btn-cta-primary { box-shadow: inset 0 1px 0 rgba(255,255,255,0.3), 0 10px 24px -10px rgba(10,132,255,0.6) !important; }
+
+    /* Hide spotlight carousel hero right column */
+    #hero-section .lg\:w-\[42\%\] { display: none; }
+    /* Hide season badge, hero decorative elements */
+    #hero-section .reveal-delay-0,
+    #hero-section .inline-flex.items-center.gap-2.px-3.py-1\.5 { display: none; }
+
+    /* ░░ GAME FILTER CHIPS — 38px pill strip ░░ */
+    .game-grid-full { display: none !important; }
+    .game-strip-mobile {
+        display: flex !important; gap: 8px !important;
+        padding: 18px 16px 2px !important;
+    }
+    .game-chip {
+        height: 38px !important; border-radius: 999px !important;
+        font-size: 13px !important; font-weight: 600 !important;
+        padding: 0 14px !important; background: #181D27 !important;
+        border-color: rgba(255,255,255,.07) !important; color: #A9B1C2 !important;
+    }
+    .game-chip.active {
+        background: rgba(10,132,255,.18) !important;
+        border-color: rgba(10,132,255,.9) !important;
+        color: #fff !important;
+    }
+    .game-chip img { width: 22px !important; height: 22px !important; border-radius: 7px !important; }
+
+    /* ░░ GLASS CARDS — #11151E bg, 1px border ░░ */
+    .hub-content-grid .glass {
+        background: #11151E !important;
+        border: none !important;
+        box-shadow: 0 0 0 1px rgba(255,255,255,.06) !important;
+        border-radius: 16px !important;
+    }
+    .hub-content-grid .glass:hover {
+        transform: none !important; box-shadow: 0 0 0 1px rgba(255,255,255,.06) !important;
+    }
+
+    /* ░░ RANKINGS — compact rows, 40px crest ░░ */
+    .rank-row {
+        display: flex !important; grid-template-columns: none !important;
+        align-items: center !important; gap: 12px !important;
+        padding: 11px 14px !important;
+        border-bottom: 1px solid rgba(255,255,255,.05);
+    }
+    /* Hide 12-col grid behavior */
+    .rank-row > * { grid-column: unset !important; }
+    /* Rank number: 22px wide */
+    .rank-row > .col-span-1 {
+        width: 22px !important; flex: none;
+        font-family: 'JetBrains Mono', monospace !important;
+        font-size: 15px !important; font-weight: 700 !important;
+        text-align: center !important;
+        font-variant-numeric: tabular-nums;
+    }
+    /* Team info */
+    .rank-row > .col-span-5 { flex: 1; min-width: 0; }
+    .rank-row > .col-span-5 .text-sm { font-size: 15px !important; font-weight: 600 !important; }
+    /* Hide Tier + Activity columns on phone */
+    .rank-row > .col-span-2.hidden.sm\:block { display: none !important; }
+    .rank-row > .col-span-2:last-child { display: none !important; }
+    /* CP column: right-aligned */
+    .rank-row > .col-span-2:not(.hidden):not(:last-child) {
+        flex: none; text-align: right !important;
+        font-family: 'JetBrains Mono', monospace !important;
+        font-size: 15px !important; font-weight: 700 !important;
+    }
+    /* Table header: same 3-col layout */
+    .glass .grid-cols-12.gap-4.px-6.py-3 {
+        display: flex !important; gap: 12px; padding: 8px 14px !important;
+    }
+    .glass .grid-cols-12.gap-4.px-6.py-3 > .col-span-1 { width: 22px; flex: none; text-align: center; }
+    .glass .grid-cols-12.gap-4.px-6.py-3 > .col-span-5 { flex: 1; }
+    .glass .grid-cols-12.gap-4.px-6.py-3 > .col-span-2 { display: none; }
+    .glass .grid-cols-12.gap-4.px-6.py-3 > .col-span-2:nth-child(4) { display: block; flex: none; }
+    /* Rankings container */
+    .glass.rounded-2xl.p-0.overflow-hidden { margin: 0 16px; border-radius: 16px !important; }
+    /* Ranking header area */
+    .glass.rounded-2xl.p-0.overflow-hidden > .p-6 { padding: 14px 16px !important; }
+    .glass.rounded-2xl.p-0.overflow-hidden > .p-6 h2 { padding: 0 !important; margin: 0 !important; font-size: 20px !important; }
+    .glass.rounded-2xl.p-0.overflow-hidden > .p-6 .flex.gap-3 { display: none; } /* hide policy/view all btns in header */
+
+    /* Ranking logos — 40px, 12px radius (not circular) */
+    .rank-logo { width: 40px !important; height: 40px !important; border-radius: 12px !important; }
+    .rank-logo-fallback { width: 40px !important; height: 40px !important; border-radius: 12px !important; }
+
+    /* ░░ FEATURED TEAMS — horizontal scroll ░░ */
+    .hub-content-grid .grid.grid-cols-1.sm\:grid-cols-2 {
+        display: flex !important; overflow-x: auto !important;
+        scroll-snap-type: x mandatory; gap: 12px !important;
+        padding: 0 16px 8px !important;
+        scrollbar-width: none; -webkit-overflow-scrolling: touch;
+    }
+    .hub-content-grid .grid.grid-cols-1.sm\:grid-cols-2::-webkit-scrollbar { display: none; }
+    .hub-content-grid .grid.grid-cols-1.sm\:grid-cols-2 > * {
+        flex: none !important; width: 260px !important; scroll-snap-align: start;
+    }
+    /* Card internals */
+    .hub-team-card .h-36 { height: 64px !important; }
+    .hub-team-card img[class*="w-[76px]"] { width: 52px !important; height: 52px !important; border-radius: 15px !important; }
+    .hub-team-card div[class*="w-[76px]"] { width: 52px !important; height: 52px !important; border-radius: 15px !important; font-size: 15px !important; }
+    .hub-team-card .px-5 { padding-left: 14px !important; padding-right: 14px !important; }
+    .hub-team-card .pb-6 { padding-bottom: 14px !important; }
+    .hub-team-card .-mt-10 { margin-top: -18px !important; }
+    /* Hide featured badge overlay on phone (saves vertical space) */
+    .hub-team-card .absolute.top-3.left-3 { display: none; }
+
+    /* ░░ SCOUTING — 44px crests, 18px radius ░░ */
+    #scouting-list {
+        grid-template-columns: 1fr !important; gap: 10px !important;
+        padding: 0 16px !important;
+    }
+    #scouting-list > div {
+        border-radius: 18px !important;
+        background: #11151E !important;
+        box-shadow: 0 0 0 1px rgba(255,255,255,.06) !important;
+        border: none !important;
+    }
+    #scouting-list > div > .h-0\.5 { display: none; } /* hide green top bar */
+    #scouting-list .w-14 { width: 44px !important; height: 44px !important; border-radius: 13px !important; }
+
+    /* ░░ COMPETITIVE HUB — 2x2 mode grid ░░ */
+    #comp-mode-carousel a {
+        padding: 12px !important; border-radius: 14px !important;
+        background: rgba(255,255,255,.04) !important;
+        box-shadow: inset 0 0 0 1px rgba(255,255,255,.06) !important;
+        border: none !important;
+    }
+    #comp-mode-carousel .w-9 { width: 38px !important; height: 38px !important; border-radius: 11px !important; }
+
+    /* ░░ MY TEAMS — horizontal scroll ░░ */
+    .sidebar-sticky { position: static !important; }
+
+    /* ░░ STATS — compact 4-col row ░░ */
+    .hub-content-grid .flex.flex-wrap.items-center.justify-center {
+        flex-wrap: nowrap !important; gap: 8px !important;
+        padding: 18px 16px 0 !important;
+    }
+
+    /* ░░ SEARCH MODAL → BOTTOM SHEET ░░ */
     .search-modal {
         align-items: flex-end !important;
         padding-top: 0 !important;
+        background: rgba(0,0,0,.55) !important;
+        backdrop-filter: blur(3px) !important;
     }
     .search-modal > div {
-        border-radius: 24px 24px 0 0 !important;
+        border-radius: 30px 30px 0 0 !important;
         max-height: 78vh !important;
         height: auto !important;
-        animation: thsheet 340ms cubic-bezier(0.22, 1, 0.36, 1);
+        background: #11151E !important;
+        animation: thsheet 340ms cubic-bezier(0.22, 1, 0.36, 1) !important;
+        box-shadow: 0 -10px 40px rgba(0,0,0,.5) !important;
     }
     @keyframes thsheet { from { transform: translateY(100%); } to { transform: translateY(0); } }
 
-    /* --- Grassroots path: hide on phone (too complex) --- */
+    /* ░░ MISC CLEANUP ░░ */
+    /* Section glow containers: no overflow tricks needed */
+    .section-glow { overflow: visible !important; }
+    /* Grassroots path: too complex for phone */
     .path-line, .path-node, .path-tooltip { display: none !important; }
-
-    /* --- Platform rules: 2-col on phone --- */
+    /* Platform rules: 2-col */
     .hub-content-grid .grid-cols-2.lg\:grid-cols-4 { grid-template-columns: 1fr 1fr !important; gap: 8px !important; }
     .hub-content-grid .grid-cols-2.lg\:grid-cols-4 .glass { padding: 12px !important; }
+    /* Footer spacing */
+    footer { margin-bottom: 0 !important; }
+
+    /* ░░ TOUCH TARGETS ░░ */
+    .hub-content-grid a,
+    .hub-content-grid button { min-height: 44px; }
 }
 
 /* ===== GRASSROOTS PATH (E1 - Animated) ===== */
@@ -983,11 +1065,394 @@ img[loading="lazy"] {
     to   { transform: rotate(360deg); }
 }
 .crown-arena-cta:hover .crown-arena-flow { animation-duration: 6s; }
+
+/* ==========================================================================
+   MOBILE NATIVE HUB  —  imported from Claude Design "DeltaCrown Team Hub Mobile"
+   Desktop layout (.dc-hub-desktop) is unchanged; on <=1023px it is hidden and
+   the native app feed (.dc-hub-mobile) takes over.
+   ========================================================================== */
+.dc-hub-mobile { display: none; }
+@media (max-width: 1023px) {
+    .dc-hub-desktop { display: none !important; }
+    .dc-hub-mobile  { display: block; }
+    /* Replace the global community bottom nav with our dynamic Team Hub tab bar */
+    #dc-bottom-nav { display: none !important; }
+    body { padding-bottom: 0 !important; }
+}
+
+.dc-hub-mobile {
+    --m-surf: #11151E;
+    --m-surf2: #1c212b;
+    --m-chip: #181D27;
+    --m-ink: #F4F6FA;
+    --m-ink2: #A9B1C2;
+    --m-mut: #6B7385;
+    --m-blue: #0A84FF;
+    --m-blue2: #2997FF;
+    --m-blue3: #3FA3FF;
+    --m-gold: #CFA75A;
+    --m-gold2: #E2C588;
+    --m-green: #2ECC71;
+    --m-red: #FF3B5C;
+    --m-line: rgba(255,255,255,0.06);
+    font-family: 'Inter', system-ui, sans-serif;
+    color: var(--m-ink);
+    padding: 14px 0 calc(82px + env(safe-area-inset-bottom));
+    position: relative;
+    background:
+        radial-gradient(120% 60% at 50% -5%, rgba(10,132,255,0.08) 0%, transparent 55%);
+}
+.dc-hub-mobile *, .dc-hub-mobile *::before, .dc-hub-mobile *::after { box-sizing: border-box; }
+.dcm-display { font-family: 'Sora', 'Space Grotesk', sans-serif; letter-spacing: -0.01em; }
+.dcm-mono { font-family: 'JetBrains Mono', monospace; font-variant-numeric: tabular-nums; }
+.dcm-tap { transition: transform 120ms cubic-bezier(0.34,1.56,0.64,1); -webkit-tap-highlight-color: transparent; }
+.dcm-tap:active { transform: scale(0.97); }
+.dc-hub-mobile a { text-decoration: none; color: inherit; }
+
+/* section header */
+.dcm-sec-head { display:flex; align-items:baseline; justify-content:space-between; padding:0 16px; margin:22px 0 11px; }
+.dcm-sec-title { font-family:'Sora','Space Grotesk',sans-serif; font-weight:700; font-size:20px; letter-spacing:-0.01em; color:var(--m-ink); }
+.dcm-sec-link { font-size:13px; font-weight:600; color:var(--m-blue3); }
+
+/* horizontal scrollers */
+.dcm-hx { display:flex; gap:12px; overflow-x:auto; padding:0 16px 4px; scroll-snap-type:x mandatory; }
+.dcm-hx::-webkit-scrollbar, .dcm-chips::-webkit-scrollbar { display:none; }
+.dcm-hx, .dcm-chips { scrollbar-width:none; -webkit-overflow-scrolling:touch; }
+
+/* quick actions */
+.dcm-qa { display:flex; gap:10px; padding:4px 16px 0; }
+.dcm-qa-btn { flex:1; height:50px; border-radius:15px; display:flex; align-items:center; justify-content:center; gap:8px; font-size:15px; font-weight:600; border:none; }
+.dcm-qa-create { color:#fff; background:linear-gradient(180deg,var(--m-blue2),var(--m-blue)); box-shadow:inset 0 1px 0 rgba(255,255,255,0.3),0 10px 24px -10px rgba(10,132,255,0.6); }
+.dcm-qa-find { color:var(--m-ink); background:rgba(255,255,255,0.06); box-shadow:inset 0 0 0 1px rgba(255,255,255,0.1); cursor:pointer; }
+
+/* cards */
+.dcm-card { border-radius:20px; background:var(--m-surf); box-shadow:0 0 0 1px var(--m-line); }
+.dcm-crest { display:flex; align-items:center; justify-content:center; font-family:'Sora','Space Grotesk',sans-serif; font-weight:800; color:#fff; flex:none; background:linear-gradient(135deg,#0A84FF,#6849E5); object-fit:cover; overflow:hidden; }
+.dcm-trunc { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+/* stats */
+.dcm-stats { display:flex; gap:8px; padding:18px 16px 0; }
+.dcm-stat { flex:1; padding:12px 6px; border-radius:14px; background:var(--m-surf); box-shadow:0 0 0 1px rgba(255,255,255,0.05); text-align:center; }
+.dcm-stat-val { font-family:'JetBrains Mono',monospace; font-weight:700; font-size:18px; font-variant-numeric:tabular-nums; letter-spacing:-0.02em; }
+.dcm-stat-lbl { font-size:9px; font-weight:600; letter-spacing:.07em; color:var(--m-mut); margin-top:3px; }
+
+/* game chips */
+.dcm-chips { display:flex; gap:8px; overflow-x:auto; padding:18px 16px 2px; }
+.dcm-chip { flex:none; display:flex; align-items:center; gap:7px; height:38px; padding:0 14px; border-radius:999px; font-size:13px; font-weight:600; white-space:nowrap; background:var(--m-chip); color:var(--m-ink2); box-shadow:inset 0 0 0 1px rgba(255,255,255,0.07); }
+.dcm-chip.is-active { background:rgba(10,132,255,0.18); color:#fff; box-shadow:inset 0 0 0 1px rgba(10,132,255,0.9); }
+.dcm-chip img { width:22px; height:22px; border-radius:7px; object-fit:cover; }
+.dcm-chip.has-logo { padding-left:7px; }
+
+/* rankings */
+.dcm-rank-wrap { margin:0 16px; border-radius:16px; background:var(--m-surf); box-shadow:0 0 0 1px var(--m-line); overflow:hidden; }
+.dcm-rank-row { display:flex; align-items:center; gap:12px; padding:11px 14px; border-bottom:1px solid rgba(255,255,255,0.05); }
+.dcm-rank-row:last-child { border-bottom:none; }
+.dcm-rank-num { width:22px; text-align:center; font-family:'JetBrains Mono',monospace; font-weight:700; font-size:15px; font-variant-numeric:tabular-nums; }
+.dcm-empty { padding:26px 16px; text-align:center; font-size:13px; color:var(--m-mut); }
+
+/* tier pill */
+.dcm-tier { font-size:11px; font-weight:600; letter-spacing:.04em; }
+.dcm-tier-pill { font-size:10px; font-weight:700; letter-spacing:.04em; padding:3px 8px; border-radius:999px; }
+.dcm-t-the_crown { color:#CFA75A; background:rgba(207,167,90,0.16); }
+.dcm-t-legend    { color:#CFA75A; background:rgba(207,167,90,0.14); }
+.dcm-t-master    { color:#D85A86; background:rgba(191,56,104,0.18); }
+.dcm-t-elite     { color:#3EA7FF; background:rgba(62,167,255,0.14); }
+.dcm-t-challenger{ color:#8470EE; background:rgba(104,73,229,0.16); }
+.dcm-t-rookie    { color:#94A3B8; background:rgba(148,163,184,0.14); }
+
+/* featured */
+.dcm-feat { flex:none; width:172px; scroll-snap-align:start; padding:16px; }
+.dcm-cp { font-family:'JetBrains Mono',monospace; font-weight:700; font-variant-numeric:tabular-nums; }
+
+/* scouting */
+.dcm-scout-list { display:flex; flex-direction:column; gap:10px; padding:0 16px; }
+.dcm-scout { padding:14px; border-radius:18px; background:var(--m-surf); box-shadow:0 0 0 1px var(--m-line); }
+.dcm-pill { display:flex; align-items:center; gap:5px; font-size:11.5px; font-weight:600; padding:5px 9px; border-radius:9px; }
+.dcm-scout-cta { width:100%; height:42px; margin-top:12px; border-radius:12px; font-size:14px; font-weight:600; color:var(--m-ink); background:rgba(255,255,255,0.06); box-shadow:inset 0 0 0 1px rgba(255,255,255,0.1); display:flex; align-items:center; justify-content:center; gap:7px; }
+
+/* competitive hub */
+.dcm-arena { margin:24px 16px 0; padding:18px; border-radius:22px; background:linear-gradient(135deg,#161a24,var(--m-surf)); box-shadow:0 0 0 1px var(--m-line); }
+.dcm-arena-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:15px; }
+.dcm-mode { display:flex; align-items:center; gap:11px; padding:12px; border-radius:14px; background:rgba(255,255,255,0.04); box-shadow:inset 0 0 0 1px rgba(255,255,255,0.06); }
+.dcm-mode-ico { width:38px; height:38px; border-radius:11px; display:flex; align-items:center; justify-content:center; color:#fff; flex:none; }
+.dcm-arena-cta { width:100%; height:48px; margin-top:14px; border-radius:14px; font-size:15px; font-weight:600; color:#fff; background:linear-gradient(180deg,var(--m-blue2),var(--m-blue)); box-shadow:inset 0 1px 0 rgba(255,255,255,0.3),0 10px 24px -12px rgba(10,132,255,0.6); display:flex; align-items:center; justify-content:center; gap:8px; }
+@keyframes dcmpulse { 0%,100%{transform:scale(1);opacity:1;} 50%{transform:scale(1.5);opacity:.5;} }
+
+/* promo / empty cards */
+.dcm-promo { margin:16px 16px 0; padding:20px; border-radius:22px; position:relative; overflow:hidden; background:linear-gradient(135deg,rgba(104,73,229,0.28),rgba(10,132,255,0.22) 60%,rgba(207,167,90,0.18)); box-shadow:0 0 0 1px rgba(132,112,238,0.25),0 18px 40px -18px rgba(104,73,229,0.5); }
+.dcm-promo-btn { height:46px; padding:0 18px; border-radius:14px; font-size:14px; font-weight:600; display:flex; align-items:center; gap:7px; }
+
+/* dynamic bottom tab bar (replaces global #dc-bottom-nav on this page) */
+.dcm-tabbar { position:fixed; bottom:0; left:0; right:0; z-index:95; display:flex; padding:8px 6px calc(8px + env(safe-area-inset-bottom)); background:rgba(10,13,20,0.82); backdrop-filter:blur(28px) saturate(180%); -webkit-backdrop-filter:blur(28px) saturate(180%); border-top:1px solid rgba(255,255,255,0.06); }
+.dcm-tab { flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; padding:4px 2px; color:var(--m-mut); background:none; border:none; font:inherit; cursor:pointer; -webkit-tap-highlight-color:transparent; position:relative; }
+.dcm-tab span { font-size:10px; font-weight:500; letter-spacing:-0.01em; }
+.dcm-tab.is-active { color:var(--m-blue); }
+.dcm-tab.is-active span { font-weight:600; }
+.dcm-tab.is-active::before { content:''; position:absolute; top:-8px; left:50%; transform:translateX(-50%); width:34px; height:3px; border-radius:0 0 2px 2px; background:#0A84FF; box-shadow:0 0 10px rgba(10,132,255,0.6); }
+
+/* search bottom sheet */
+.dcm-sheet-wrap { position:fixed; inset:0; z-index:170; display:none; align-items:flex-end; }
+.dcm-sheet-wrap.is-open { display:flex; }
+.dcm-sheet-bd { position:absolute; inset:0; background:rgba(0,0,0,0.55); backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px); animation:dcmfade 220ms ease; }
+@keyframes dcmfade { from{opacity:0;} to{opacity:1;} }
+@keyframes dcmsheet { from{transform:translateY(100%);} to{transform:translateY(0);} }
+.dcm-sheet { position:relative; width:100%; max-height:80%; background:var(--m-surf); border-radius:30px 30px 0 0; padding:12px 16px calc(30px + env(safe-area-inset-bottom)); animation:dcmsheet 320ms cubic-bezier(0.22,1,0.36,1); box-shadow:0 -10px 40px rgba(0,0,0,0.5); overflow-y:auto; }
+.dcm-sheet-grab { width:38px; height:5px; border-radius:999px; background:rgba(255,255,255,0.18); margin:0 auto 14px; }
+.dcm-search-in { display:flex; align-items:center; gap:9px; height:46px; padding:0 14px; border-radius:14px; background:var(--m-surf2); box-shadow:inset 0 0 0 1px rgba(255,255,255,0.07); }
+.dcm-search-in input { flex:1; background:none; border:none; outline:none; font-family:'Inter',sans-serif; font-size:15px; color:var(--m-ink); }
+.dcm-result { display:flex; align-items:center; gap:12px; padding:10px; border-radius:14px; background:var(--m-surf2); }
 </style>
 {% endblock %}
 
 {% block content %}
 
+{# ===================== MOBILE NATIVE HUB (<=1023px) ===================== #}
+<div class="dc-hub-mobile">
+
+    {# ----- Quick actions ----- #}
+    <div class="dcm-qa">
+        {% if user.is_authenticated %}
+        <a href="{% url 'organizations:team_create' %}" class="dcm-qa-btn dcm-qa-create dcm-tap">
+            <i data-lucide="plus-circle" class="w-[18px] h-[18px]"></i>Create Team
+        </a>
+        {% else %}
+        <a href="/accounts/signup/" class="dcm-qa-btn dcm-qa-create dcm-tap">
+            <i data-lucide="plus-circle" class="w-[18px] h-[18px]"></i>Create Team
+        </a>
+        {% endif %}
+        <button type="button" class="dcm-qa-btn dcm-qa-find dcm-tap" data-dcm-search-open>
+            <i data-lucide="search" class="w-[17px] h-[17px]"></i>Find a Squad
+        </button>
+    </div>
+
+    {# ----- My Teams / Sign-in / Empty (state-driven) ----- #}
+    {% if not user.is_authenticated %}
+    <div class="dcm-promo">
+        <div style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(244,246,250,0.7);">From the Delta to the Crown</div>
+        <div class="dcm-display" style="font-weight:800;font-size:25px;line-height:1.12;color:#fff;margin-top:8px;">Join the arena.<br>Build your team.</div>
+        <div style="font-size:14px;line-height:1.45;color:rgba(244,246,250,0.82);margin-top:8px;max-width:250px;">Create a squad or get scouted by ranked teams competing across every title.</div>
+        <div style="display:flex;gap:10px;margin-top:16px;">
+            <a href="/accounts/signup/" class="dcm-promo-btn dcm-tap" style="color:#04060A;background:#fff;box-shadow:0 8px 20px -10px rgba(0,0,0,0.6);"><i data-lucide="rocket" class="w-4 h-4"></i>Join &amp; Create</a>
+            <a href="/accounts/login/" class="dcm-promo-btn dcm-tap" style="color:#fff;background:rgba(255,255,255,0.12);box-shadow:inset 0 0 0 1px rgba(255,255,255,0.2);">Sign in</a>
+        </div>
+    </div>
+    {% elif not user_teams %}
+    <div class="dcm-card" style="margin:16px 16px 0;padding:22px 20px;text-align:center;">
+        <div style="width:54px;height:54px;margin:0 auto;border-radius:16px;display:flex;align-items:center;justify-content:center;background:rgba(10,132,255,0.12);color:#3FA3FF;"><i data-lucide="shield-plus" class="w-7 h-7"></i></div>
+        <div class="dcm-display" style="font-weight:700;font-size:18px;color:var(--m-ink);margin-top:12px;">No team yet</div>
+        <div style="font-size:13.5px;line-height:1.5;color:var(--m-ink2);margin-top:5px;">Start your own roster or browse Scouting Grounds to get recruited.</div>
+        <div style="display:flex;gap:10px;margin-top:16px;">
+            <a href="{% url 'organizations:team_create' %}" class="dcm-tap" style="flex:1;height:46px;border-radius:14px;font-size:14px;font-weight:600;color:#fff;display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,#2997FF,#0A84FF);box-shadow:0 10px 24px -12px rgba(10,132,255,0.6);">Create Team</a>
+            <a href="{% url 'organizations:team_find' %}" class="dcm-tap" style="flex:1;height:46px;border-radius:14px;font-size:14px;font-weight:600;color:#B8A6F2;display:flex;align-items:center;justify-content:center;background:rgba(132,112,238,0.14);box-shadow:inset 0 0 0 1px rgba(132,112,238,0.22);">Find Teams</a>
+        </div>
+    </div>
+    {% else %}
+    <div class="dcm-sec-head" style="margin-top:22px;">
+        <div class="dcm-sec-title">My Teams</div>
+        <a href="/dashboard/teams" class="dcm-sec-link">Manage</a>
+    </div>
+    <div class="dcm-hx">
+        {% for m in user_teams %}
+        <a href="{{ m.team.get_absolute_url|default:'#' }}" class="dcm-card dcm-tap" style="flex:none;width:248px;scroll-snap-align:start;padding:16px;">
+            <div style="display:flex;align-items:center;gap:12px;">
+                <div class="dcm-crest" style="width:50px;height:50px;border-radius:15px;font-size:17px;">
+                    {% if m.team.logo %}<img src="{{ m.team.logo.url }}" alt="" style="width:100%;height:100%;object-fit:cover;">{% else %}{{ m.team.tag|default:m.team.name|truncatechars:3 }}{% endif %}
+                </div>
+                <div style="min-width:0;flex:1;">
+                    <div class="dcm-display dcm-trunc" style="font-weight:700;font-size:16px;color:var(--m-ink);">{{ m.team.name }}</div>
+                    <div style="font-size:12px;color:var(--m-ink2);margin-top:4px;">{{ m.team.get_game_display|default:"Esports" }}</div>
+                </div>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px;padding-top:13px;border-top:1px solid var(--m-line);">
+                <span style="padding:4px 10px;border-radius:999px;font-size:10.5px;font-weight:700;letter-spacing:.05em;background:rgba(207,167,90,0.15);color:#E2C588;">{{ m.role|default:"MEMBER" }}</span>
+                {% if m.team.ranking.current_cp %}<span class="dcm-cp" style="font-size:14px;color:var(--m-ink);">{{ m.team.ranking.current_cp|intcomma }} <span style="font-size:10px;color:var(--m-mut);">CP</span></span>{% endif %}
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {# ----- Staff tools ----- #}
+    {% if user.is_staff %}
+    <div style="margin:16px 16px 0;padding:6px;border-radius:16px;background:rgba(207,167,90,0.08);box-shadow:inset 0 0 0 1px rgba(207,167,90,0.2);display:flex;gap:6px;align-items:center;">
+        <div style="display:flex;align-items:center;gap:7px;padding:9px 12px;flex:1;font-size:12px;font-weight:600;color:#E2C588;"><i data-lucide="shield-check" class="w-4 h-4"></i>Staff tools</div>
+        <a href="{% url 'dashboard:competitive_hub' %}" class="dcm-tap" style="display:flex;align-items:center;gap:6px;padding:9px 12px;border-radius:11px;background:rgba(207,167,90,0.14);color:#E2C588;font-size:12px;font-weight:600;"><i data-lucide="list-checks" class="w-3.5 h-3.5"></i>Arena</a>
+        <a href="/admin/" class="dcm-tap" style="display:flex;align-items:center;gap:6px;padding:9px 12px;border-radius:11px;background:rgba(207,167,90,0.14);color:#E2C588;font-size:12px;font-weight:600;"><i data-lucide="sliders-horizontal" class="w-3.5 h-3.5"></i>Admin</a>
+    </div>
+    {% endif %}
+
+    {# ----- Stats strip ----- #}
+    <div class="dcm-stats">
+        <div class="dcm-stat"><div class="dcm-stat-val" style="color:var(--m-ink);">{{ stats.teams_active|default:0|intcomma }}</div><div class="dcm-stat-lbl">TEAMS</div></div>
+        <div class="dcm-stat"><div class="dcm-stat-val" style="color:var(--m-red);">{{ stats.live_matches|default:0|intcomma }}</div><div class="dcm-stat-lbl">LIVE</div></div>
+        <div class="dcm-stat"><div class="dcm-stat-val" style="color:var(--m-gold);">৳{{ stats.total_prize_pool|default:0|intcomma }}</div><div class="dcm-stat-lbl">PRIZE</div></div>
+        <div class="dcm-stat"><div class="dcm-stat-val" style="color:var(--m-green);">{{ stats.players_online|default:0|intcomma }}</div><div class="dcm-stat-lbl">ONLINE</div></div>
+    </div>
+
+    {# ----- Game filter chips ----- #}
+    <div class="dcm-chips">
+        <a href="?game=all" class="dcm-chip dcm-tap {% if selected_game_slug == 'all' %}is-active{% endif %}">All</a>
+        {% for game in available_games %}
+        <a href="?game={{ game.slug }}" class="dcm-chip dcm-tap {% if game.icon or game.logo %}has-logo{% endif %} {% if selected_game_slug == game.slug %}is-active{% endif %}">
+            {% if game.icon %}<img src="{{ game.icon.url }}" alt="">{% elif game.logo %}<img src="{{ game.logo.url }}" alt="">{% endif %}{{ game.short_code|default:game.display_name }}
+        </a>
+        {% endfor %}
+    </div>
+
+    {# ----- Rankings ----- #}
+    <div class="dcm-sec-head">
+        <div style="display:flex;align-items:center;gap:8px;">
+            <div class="dcm-sec-title">Rankings</div>
+            <span style="padding:2px 8px;border-radius:999px;font-size:10px;font-weight:700;letter-spacing:.04em;color:#CFA75A;background:rgba(207,167,90,0.14);">{% if selected_game %}{{ selected_game.display_name|upper }}{% else %}GLOBAL{% endif %}</span>
+        </div>
+        <a href="{% if selected_game %}{% url 'competition:rankings_game' selected_game.id %}{% else %}{% url 'competition:rankings_global' %}{% endif %}" class="dcm-sec-link">See all</a>
+    </div>
+    <div class="dcm-rank-wrap">
+        {% for entry in rankings_preview|slice:":10" %}
+        <a href="{{ entry.team_url|default:'#' }}" class="dcm-rank-row dcm-tap">
+            <span class="dcm-rank-num" style="color:{% if entry.rank <= 3 %}#CFA75A{% else %}#6B7385{% endif %};">{{ entry.rank }}</span>
+            <div class="dcm-crest" style="width:40px;height:40px;border-radius:12px;font-size:13px;">
+                {% if entry.team_logo_url %}<img src="{{ entry.team_logo_url }}" alt="" style="width:100%;height:100%;object-fit:cover;">{% else %}{{ entry.team_tag|default:entry.team_name|truncatechars:3 }}{% endif %}
+            </div>
+            <div style="flex:1;min-width:0;">
+                <div class="dcm-trunc" style="font-weight:600;font-size:15px;color:var(--m-ink);">{{ entry.team_name }}</div>
+                <div class="dcm-tier dcm-t-{{ entry.tier|default:'ROOKIE'|lower }}" style="margin-top:2px;">{% if entry.tier == 'THE_CROWN' %}THE CROWN{% else %}{{ entry.tier|default:'ROOKIE' }}{% endif %}</div>
+            </div>
+            <div style="text-align:right;flex:none;">
+                <div class="dcm-cp" style="font-size:15px;color:var(--m-ink);letter-spacing:-0.02em;">{{ entry.score|intcomma }}</div>
+                <div style="font-size:9px;font-weight:600;letter-spacing:.06em;color:var(--m-mut);">CP</div>
+            </div>
+        </a>
+        {% empty %}
+        <div class="dcm-empty">No ranked teams {% if selected_game %}for {{ selected_game.display_name }}{% endif %} yet.</div>
+        {% endfor %}
+    </div>
+
+    {# ----- Featured Teams ----- #}
+    {% if featured_ranked_teams %}
+    <div class="dcm-sec-head">
+        <div class="dcm-sec-title">Featured Teams</div>
+        <a href="{% url 'organizations:team_directory' %}" class="dcm-sec-link">All</a>
+    </div>
+    <div class="dcm-hx">
+        {% for team in featured_ranked_teams %}
+        <a href="{% url 'organizations:team_detail' team.slug %}" class="dcm-card dcm-feat dcm-tap">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;">
+                <div class="dcm-crest" style="width:52px;height:52px;border-radius:15px;font-size:17px;">
+                    {% if team.logo %}<img src="{{ team.logo.url }}" alt="" style="width:100%;height:100%;object-fit:cover;">{% else %}{{ team.tag|default:team.name|truncatechars:3 }}{% endif %}
+                </div>
+                {% if team.ranking.tier %}<span class="dcm-tier-pill dcm-t-{{ team.ranking.tier|lower }}">{% if team.ranking.tier == 'THE_CROWN' %}CROWN{% else %}{{ team.ranking.tier }}{% endif %}</span>{% endif %}
+            </div>
+            <div class="dcm-display dcm-trunc" style="font-weight:700;font-size:16px;color:var(--m-ink);margin-top:13px;">{{ team.name }}</div>
+            <div class="dcm-trunc" style="font-size:12px;color:var(--m-ink2);margin-top:5px;">{{ team.get_game_display|default:"Esports" }}</div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px;padding-top:12px;border-top:1px solid var(--m-line);">
+                <span style="display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--m-mut);"><i data-lucide="users" class="w-[15px] h-[15px]"></i>{{ team.vnext_memberships.count }}</span>
+                {% if team.ranking.current_cp %}<span class="dcm-cp" style="font-size:13.5px;color:var(--m-ink);">{{ team.ranking.current_cp|intcomma }} <span style="font-size:9px;color:var(--m-mut);">CP</span></span>{% endif %}
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {# ----- Scouting Grounds ----- #}
+    <div class="dcm-sec-head">
+        <div style="display:flex;align-items:center;gap:8px;">
+            <div class="dcm-sec-title">Scouting Grounds</div>
+            <span style="width:7px;height:7px;border-radius:999px;background:#2ECC71;box-shadow:0 0 0 3px rgba(46,204,113,0.18);"></span>
+        </div>
+        <a href="{% url 'organizations:team_find' %}" class="dcm-sec-link">See all</a>
+    </div>
+    <div class="dcm-scout-list">
+        {% for team in recruiting_teams %}
+        <div class="dcm-scout">
+            <div style="display:flex;align-items:center;gap:12px;">
+                <div class="dcm-crest" style="width:44px;height:44px;border-radius:13px;font-size:14px;">
+                    {% if team.logo %}<img src="{{ team.logo.url }}" alt="" style="width:100%;height:100%;object-fit:cover;">{% else %}{{ team.tag|default:team.name|truncatechars:3 }}{% endif %}
+                </div>
+                <div style="flex:1;min-width:0;">
+                    <div style="display:flex;align-items:center;gap:7px;">
+                        <span class="dcm-display dcm-trunc" style="font-weight:700;font-size:15.5px;color:var(--m-ink);">{{ team.name }}</span>
+                        <span style="font-size:9.5px;font-weight:700;letter-spacing:.06em;color:#2ECC71;background:rgba(46,204,113,0.14);padding:2px 7px;border-radius:999px;flex:none;">OPEN</span>
+                    </div>
+                    <div class="dcm-trunc" style="font-size:13px;color:var(--m-ink2);margin-top:2px;">{% if team.recruitment_summary.has_position %}Looking for <span style="color:var(--m-ink);font-weight:600;">{{ team.recruitment_summary.title }}</span>{% else %}{{ team.get_game_display|default:"Recruiting now" }}{% endif %}</div>
+                </div>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:12px;">
+                {% if team.recruitment_summary.rank_requirement %}<span class="dcm-pill" style="color:#CFA75A;background:rgba(207,167,90,0.12);"><i data-lucide="medal" class="w-[13px] h-[13px]"></i>{{ team.recruitment_summary.rank_requirement }}</span>{% endif %}
+                {% if team.recruitment_summary.region %}<span class="dcm-pill" style="color:var(--m-ink2);background:#1c212b;"><i data-lucide="map-pin" class="w-[13px] h-[13px]"></i>{{ team.recruitment_summary.region }}</span>{% endif %}
+                {% if team.recruitment_summary.platform %}<span class="dcm-pill" style="color:var(--m-ink2);background:#1c212b;"><i data-lucide="gamepad-2" class="w-[13px] h-[13px]"></i>{{ team.recruitment_summary.platform }}</span>{% endif %}
+            </div>
+            <a href="{% url 'organizations:team_detail' team.slug %}" class="dcm-scout-cta dcm-tap"><i data-lucide="send" class="w-[15px] h-[15px]"></i>View &amp; Apply</a>
+        </div>
+        {% empty %}
+        <div class="dcm-card dcm-empty">No open recruitments {% if selected_game %}for {{ selected_game.display_name }}{% endif %} right now.</div>
+        {% endfor %}
+    </div>
+
+    {# ----- Competitive Hub ----- #}
+    <div class="dcm-arena">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+            <div>
+                <div style="font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--m-mut);">Competitive</div>
+                <div class="dcm-display" style="font-weight:800;font-size:20px;color:var(--m-ink);margin-top:3px;">The Arena</div>
+            </div>
+            {% if stats.live_matches %}<span style="display:flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:#FF3B5C;background:rgba(255,59,92,0.1);padding:5px 10px;border-radius:999px;"><span style="width:6px;height:6px;border-radius:999px;background:#FF3B5C;animation:dcmpulse 1.4s ease-in-out infinite;"></span>{{ stats.live_matches }} LIVE</span>{% endif %}
+        </div>
+        <div class="dcm-arena-grid">
+            <a href="{% url 'dashboard:competitive_hub' %}" class="dcm-mode dcm-tap"><div class="dcm-mode-ico" style="background:linear-gradient(135deg,#0A84FF,#006FE6);"><i data-lucide="swords" class="w-[19px] h-[19px]"></i></div><div style="min-width:0;"><div class="dcm-display" style="font-weight:700;font-size:14px;color:var(--m-ink);">Showdown</div><div style="font-size:10.5px;color:var(--m-mut);white-space:nowrap;">Reward matches</div></div></a>
+            <a href="{% url 'dashboard:competitive_hub' %}" class="dcm-mode dcm-tap"><div class="dcm-mode-ico" style="background:linear-gradient(135deg,#6849E5,#3F289C);"><i data-lucide="target" class="w-[19px] h-[19px]"></i></div><div style="min-width:0;"><div class="dcm-display" style="font-weight:700;font-size:14px;color:var(--m-ink);">Missions</div><div style="font-size:10.5px;color:var(--m-mut);white-space:nowrap;">Daily &amp; weekly</div></div></a>
+            <a href="{% url 'dashboard:competitive_hub' %}" class="dcm-mode dcm-tap"><div class="dcm-mode-ico" style="background:linear-gradient(135deg,#E2C588,#A07F35);"><i data-lucide="crosshair" class="w-[19px] h-[19px]"></i></div><div style="min-width:0;"><div class="dcm-display" style="font-weight:700;font-size:14px;color:var(--m-ink);">Bounty</div><div style="font-size:10.5px;color:var(--m-mut);white-space:nowrap;">Claim rewards</div></div></a>
+            <a href="{% url 'dashboard:competitive_hub' %}" class="dcm-mode dcm-tap"><div class="dcm-mode-ico" style="background:linear-gradient(135deg,#2ECC71,#13694a);"><i data-lucide="send" class="w-[19px] h-[19px]"></i></div><div style="min-width:0;"><div class="dcm-display" style="font-weight:700;font-size:14px;color:var(--m-ink);">Dropzone</div><div style="font-size:10.5px;color:var(--m-mut);white-space:nowrap;">Open lobbies</div></div></a>
+        </div>
+        <a href="{% url 'dashboard:competitive_hub' %}" class="dcm-arena-cta dcm-tap"><i data-lucide="arrow-right" class="w-[18px] h-[18px]"></i>Open Arena</a>
+    </div>
+
+    <div style="text-align:center;padding:26px 0 8px;">
+        <div class="dcm-mono" style="font-size:10px;letter-spacing:.1em;color:#3a4150;">WHERE CHAMPIONS RISE</div>
+    </div>
+
+    {# ----- Dynamic bottom tab bar (state-driven) ----- #}
+    <nav class="dcm-tabbar" aria-label="Team Hub navigation">
+        <a href="{% url 'organizations:vnext_hub' %}" class="dcm-tab is-active" aria-current="page"><i data-lucide="layout-grid" class="w-6 h-6"></i><span>Hub</span></a>
+        <a href="{% url 'competition:rankings_global' %}" class="dcm-tab"><i data-lucide="trophy" class="w-6 h-6"></i><span>Rankings</span></a>
+        {% if not user.is_authenticated %}
+        <button type="button" class="dcm-tab" data-dcm-search-open><i data-lucide="search" class="w-6 h-6"></i><span>Find Teams</span></button>
+        <a href="/accounts/login/?next={{ request.path }}" class="dcm-tab"><i data-lucide="log-in" class="w-6 h-6"></i><span>Sign In</span></a>
+        {% elif user.is_staff %}
+        <a href="{% if user_primary_team %}{{ user_primary_team.get_absolute_url }}{% else %}{% url 'organizations:team_find' %}{% endif %}" class="dcm-tab"><i data-lucide="shield-check" class="w-6 h-6"></i><span>Team HQ</span></a>
+        <a href="/admin/" class="dcm-tab"><i data-lucide="sliders-horizontal" class="w-6 h-6"></i><span>Admin</span></a>
+        {% elif user_teams %}
+        <a href="{{ user_primary_team.get_absolute_url|default:'#' }}" class="dcm-tab"><i data-lucide="shield-check" class="w-6 h-6"></i><span>Team HQ</span></a>
+        <a href="{% url 'dashboard:competitive_hub' %}" class="dcm-tab"><i data-lucide="swords" class="w-6 h-6"></i><span>Compete</span></a>
+        {% else %}
+        <button type="button" class="dcm-tab" data-dcm-search-open><i data-lucide="search" class="w-6 h-6"></i><span>Find Teams</span></button>
+        <a href="{% url 'organizations:team_create' %}" class="dcm-tab"><i data-lucide="plus-circle" class="w-6 h-6"></i><span>Create</span></a>
+        {% endif %}
+    </nav>
+
+    {# ----- Search bottom sheet ----- #}
+    <div class="dcm-sheet-wrap" id="dcm-search">
+        <div class="dcm-sheet-bd" data-dcm-search-close></div>
+        <div class="dcm-sheet">
+            <div class="dcm-sheet-grab"></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+                <div class="dcm-display" style="font-weight:700;font-size:20px;color:var(--m-ink);">Find a Squad</div>
+                <button type="button" class="dcm-tap" style="background:none;border:none;font-size:14px;font-weight:600;color:var(--m-blue3);" data-dcm-search-close>Cancel</button>
+            </div>
+            <div class="dcm-search-in">
+                <i data-lucide="search" class="w-[18px] h-[18px]" style="color:var(--m-mut);"></i>
+                <input type="text" id="dcm-search-input" placeholder="Search teams, tags" autocomplete="off">
+            </div>
+            <div style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--m-mut);margin:18px 0 8px;">Top results</div>
+            <div style="display:flex;flex-direction:column;gap:8px;" id="dcm-search-results"></div>
+        </div>
+    </div>
+
+    <script type="application/json" id="dcm-search-data">[{% for e in rankings_preview %}{"name":"{{ e.team_name|escapejs }}","tag":"{{ e.team_tag|default:''|escapejs }}","game":"{{ e.game_name|default:''|escapejs }}","rank":{{ e.rank|default:0 }},"url":"{{ e.team_url|default:'#'|escapejs }}","logo":"{{ e.team_logo_url|default:''|escapejs }}"}{% if not forloop.last %},{% endif %}{% endfor %}]</script>
+</div>
+{# ===================== END MOBILE NATIVE HUB ===================== #}
+
+<div class="dc-hub-desktop">
 <!-- ========== SEARCH MODAL ========== -->
 <div id="search-modal" class="search-modal items-start justify-center pt-[15vh]">
     <div class="w-full max-w-2xl mx-4 bg-dc-surface border border-white/10 rounded-2xl shadow-2xl overflow-hidden fade-in">
@@ -2112,6 +2577,8 @@ img[loading="lazy"] {
     </a>
     {% endif %}
 </nav>
+</div>
+{# ===================== END DESKTOP HUB ===================== #}
 {% endblock %}
 
 {% block footer %}{% endblock %}
@@ -2797,5 +3264,46 @@ if (searchInput) {
 
 // === BACK TO TOP BUTTON ===
 // (handled in DOMContentLoaded scroll listener above)
+
+// === MOBILE NATIVE HUB — search bottom sheet (client-side filter over loaded teams) ===
+(function dcmMobileHub() {
+    const sheet = document.getElementById('dcm-search');
+    if (!sheet) return;
+    const input = document.getElementById('dcm-search-input');
+    const list = document.getElementById('dcm-search-results');
+    let teams = [];
+    try { teams = JSON.parse(document.getElementById('dcm-search-data').textContent || '[]'); } catch (e) { teams = []; }
+
+    function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+
+    function render(q) {
+        q = (q || '').trim().toLowerCase();
+        const rows = teams.filter(t => !q || (t.name || '').toLowerCase().includes(q) || (t.tag || '').toLowerCase().includes(q)).slice(0, 8);
+        if (!rows.length) {
+            list.innerHTML = '<div class="dcm-empty">' + (q ? 'No teams match “' + esc(q) + '”.' : 'No teams to show yet.') + '</div>';
+            return;
+        }
+        list.innerHTML = rows.map(t => {
+            const crest = t.logo
+                ? '<img src="' + esc(t.logo) + '" alt="" style="width:100%;height:100%;object-fit:cover;">'
+                : esc((t.tag || t.name || '??').slice(0, 3));
+            const meta = esc(t.game || '') + (t.rank ? ' · #' + t.rank : '');
+            return '<a href="' + esc(t.url || '#') + '" class="dcm-result dcm-tap">'
+                + '<div class="dcm-crest" style="width:42px;height:42px;border-radius:12px;font-size:13px;">' + crest + '</div>'
+                + '<div style="flex:1;min-width:0;"><div class="dcm-trunc" style="font-weight:600;font-size:15px;color:var(--m-ink);">' + esc(t.name) + '</div>'
+                + '<div class="dcm-trunc" style="font-size:12px;color:var(--m-ink2);margin-top:2px;">' + meta + '</div></div>'
+                + '<i data-lucide="chevron-right" style="width:16px;height:16px;color:var(--m-mut);"></i></a>';
+        }).join('');
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+
+    function open() { sheet.classList.add('is-open'); render(''); setTimeout(() => input && input.focus(), 120); }
+    function close() { sheet.classList.remove('is-open'); if (input) input.value = ''; }
+
+    document.querySelectorAll('[data-dcm-search-open]').forEach(b => b.addEventListener('click', open));
+    sheet.querySelectorAll('[data-dcm-search-close]').forEach(b => b.addEventListener('click', close));
+    if (input) input.addEventListener('input', () => render(input.value));
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && sheet.classList.contains('is-open')) close(); });
+})();
 </script>
 {% endblock %}
