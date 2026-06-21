@@ -103,6 +103,7 @@ def competitive_hub_view(request: HttpRequest) -> HttpResponse:
             'name': t.name,
             'slug': getattr(t, 'slug', '') or '',
             'tag': getattr(t, 'tag', '') or '',
+            'game_id': primary.game_id,
             'role': primary.role,
             'is_captain': bool(getattr(primary, 'is_tournament_captain', False)),
             'can_issue': bool(primary.role in ('OWNER', 'MANAGER') or getattr(primary, 'is_tournament_captain', False)),

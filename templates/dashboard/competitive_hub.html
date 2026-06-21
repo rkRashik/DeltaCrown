@@ -111,6 +111,58 @@
     transition: opacity .18s ease, transform .18s cubic-bezier(.16,1,.3,1);
   }
   .selector-menu.is-open { opacity: 1; transform: translateY(0) scale(1); pointer-events: auto }
+  .glass-light {
+    background: rgba(255,255,255,.02); backdrop-filter: blur(20px);
+    border: 1px solid rgba(255,255,255,.04);
+  }
+  .glass-light:hover { background: rgba(255,255,255,.04); border-color: rgba(255,255,255,.1) }
+  .surface-card {
+    background: linear-gradient(145deg, rgba(255,255,255,.07), rgba(255,255,255,.018));
+    border: 1px solid rgba(255,255,255,.085);
+    box-shadow: 0 18px 52px -36px rgba(0,0,0,.92), inset 0 1px 0 rgba(255,255,255,.055);
+  }
+  .surface-card:hover { border-color: rgba(255,255,255,.18); transform: translateY(-2px) }
+  .interactive-lift {
+    transition: transform .22s cubic-bezier(.16,1,.3,1), border-color .22s ease, background .22s ease, box-shadow .22s ease, opacity .22s ease;
+  }
+  .interactive-lift:active { transform: translateY(0) scale(.985) }
+  .premium-card {
+    background: linear-gradient(145deg, rgba(255,255,255,.075), rgba(255,255,255,.018));
+    border: 1px solid rgba(255,255,255,.08);
+    box-shadow: 0 20px 60px -28px rgba(0,0,0,.9), inset 0 1px 0 rgba(255,255,255,.05);
+  }
+  .premium-card:hover { transform: translateY(-2px); border-color: rgba(255,255,255,.18) }
+  .guidance-card {
+    position: relative; overflow: hidden; border-radius: 18px;
+    background: linear-gradient(145deg, rgba(255,255,255,.07), rgba(255,255,255,.018));
+    border: 1px solid rgba(255,255,255,.085);
+  }
+  .guidance-card::before {
+    content: ''; position: absolute; inset: 0 auto 0 0;
+    width: 3px; background: currentColor; opacity: .75;
+  }
+  .flow-node {
+    min-width: 0; border-radius: 16px;
+    border: 1px solid rgba(255,255,255,.08);
+    background: rgba(0,0,0,.26); padding: .85rem;
+  }
+  .bounty-team-mark {
+    width: 9rem; height: 9rem; border-radius: 2.15rem;
+    border: 1px solid rgba(255,255,255,.18);
+    background: radial-gradient(circle at 35% 18%, rgba(255,255,255,.16), transparent 34%), #07070b;
+    box-shadow: 0 24px 64px -40px rgba(191,56,104,.65), inset 0 1px 0 rgba(255,255,255,.10);
+    overflow: hidden;
+  }
+  .bounty-team-mark img { width: 100%; height: 100%; object-fit: contain; padding: .45rem; filter: drop-shadow(0 12px 24px rgba(0,0,0,.58)); transform: scale(1.08) }
+  .bounty-team-mark[data-has-logo="true"] { background: radial-gradient(circle at 50% 18%,rgba(255,255,255,.14),transparent 38%),linear-gradient(145deg,rgba(255,255,255,.11),rgba(255,255,255,.032)),#09090f }
+  .bounty-team-mark.is-fallback { display: flex; align-items: center; justify-content: center; color: #fff; font-family: Sora, system-ui; font-weight: 950; font-size: 2.35rem; letter-spacing: .04em }
+  .status-rail { display: grid; grid-template-columns: repeat(5, minmax(0,1fr)); gap: .35rem }
+  .status-rail span { height: 4px; border-radius: 999px; background: rgba(255,255,255,.10) }
+  .status-rail span.is-on { background: currentColor; box-shadow: 0 0 12px currentColor }
+  .text-gradient-cyan { background: linear-gradient(to right, #fff, #0A84FF); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text }
+  .text-gradient-violet { background: linear-gradient(to right, #fff, #8470EE); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text }
+  .text-gradient-gold { background: linear-gradient(to right, #CFA75A, #E2C588); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text }
+  .line-clamp-3 { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden }
   @media (max-width: 640px) { .guide-shell { max-height: 92vh } .guide-rail { grid-template-columns: 1fr } }
 </style>
 {% endblock %}
@@ -120,20 +172,20 @@
 
   {# ── MARQUEE ─────────────────────────────────────────────────────── #}
   <div class="dc-app">
-    <section id="smart-hero" class="dc-marquee dc-marquee-match" style="min-height:180px">
-      <div class="relative z-10 p-6 md:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+    <section id="smart-hero" class="dc-marquee dc-marquee-match">
+      <div class="relative z-10 p-5 lg:p-6 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
         <div class="flex-1 min-w-0">
-          <div class="flex items-center gap-2 mb-3">
-            <span class="dc-live-dot w-2 h-2 rounded-full bg-[var(--dc-azure)]" style="color:var(--dc-azure)"></span>
-            <span class="text-[10px] font-bold uppercase tracking-[.22em]" style="color:var(--dc-azure)" id="marquee-eyebrow">COMPETITIVE HUB LIVE</span>
+          <div class="flex items-center gap-2 mb-2">
+            <span class="dc-live-dot w-1.5 h-1.5 rounded-full" style="background:var(--dc-azure); color:var(--dc-azure)"></span>
+            <span class="text-[9px] font-bold uppercase tracking-[.18em]" style="color:var(--dc-azure)" id="marquee-eyebrow">COMPETITIVE HUB</span>
           </div>
-          <h1 id="hero-title" class="font-display text-2xl md:text-3xl font-extrabold text-white mb-2 leading-tight">
+          <h1 id="hero-title" class="font-display text-xl lg:text-2xl font-extrabold text-white mb-1.5 leading-tight">
             DeltaCrown <span style="color:var(--dc-azure)">Arena</span>
           </h1>
-          <p id="hero-desc" class="text-sm text-[var(--dc-ink-300)] mb-4 max-w-xl leading-relaxed">Initializing competitive engine&hellip;</p>
-          <div id="hero-actions" class="flex flex-wrap items-center gap-3"></div>
+          <p id="hero-desc" class="text-[13px] mb-3 max-w-lg leading-relaxed" style="color:var(--dc-ink-300)">Initializing competitive engine&hellip;</p>
+          <div id="hero-actions" class="flex flex-wrap items-center gap-2"></div>
         </div>
-        <div id="hero-visualizer" class="hidden lg:block w-64 flex-shrink-0"></div>
+        <div id="hero-visualizer" class="hidden xl:block w-56 flex-shrink-0"></div>
       </div>
     </section>
 
@@ -141,8 +193,8 @@
     <div class="dc-mob overflow-x-auto pb-2 mb-3 gap-2" id="mobile-ops-strip" style="display:none"></div>
 
     {# ── MODE RAIL + GAME FILTER ───────────────────────────────────── #}
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-      <div class="flex items-center gap-1 overflow-x-auto pb-1" id="tab-triggers" role="tablist">
+    <div class="flex items-center justify-between gap-3 mb-4" style="min-width:0">
+      <div class="flex items-center gap-0.5 flex-shrink-0" id="tab-triggers" role="tablist">
         <button class="dc-mode-tab tab-trigger is-active active dc-press" data-tab="showdown" role="tab" aria-selected="true" style="--dc-mode-color:var(--dc-azure)">
           <i class="fa-solid fa-bolt" style="color:var(--dc-azure)"></i>
           <span>Showdown</span>
@@ -165,15 +217,8 @@
         </button>
       </div>
 
-      {# Game filter chips #}
-      <div class="flex items-center gap-2 overflow-x-auto pb-1" id="game-chips">
-        <button class="dc-game-chip is-active dc-press" data-game-code="ALL">All</button>
-        {% for g in hub_context.games %}
-        <button class="dc-game-chip dc-press" data-game-code="{{ g.short_code }}" data-game-id="{{ g.id }}" title="{{ g.name }}">
-          {{ g.short_code }}
-        </button>
-        {% endfor %}
-      </div>
+      {# Game filter chips — built by JS for proper ordering #}
+      <div class="flex items-center gap-1.5 dc-game-strip" id="game-chips"></div>
     </div>
 
     <div id="target-context-banner" class="hidden-spa mb-4 rounded-2xl border border-[var(--dc-azure)]/25 bg-[rgba(10,132,255,.08)] px-4 py-3 text-sm" style="color:var(--dc-ink-200)"></div>
@@ -197,7 +242,11 @@
             </div>
             <div id="clash-action-container"></div>
           </div>
-          <div id="showdown-feed" class="space-y-3"></div>
+          <div id="showdown-feed" class="space-y-3">
+            <div class="dc-skel rounded-xl" style="height:72px"></div>
+            <div class="dc-skel rounded-xl" style="height:72px"></div>
+            <div class="dc-skel rounded-xl" style="height:72px"></div>
+          </div>
         </div>
 
         <div id="tab-content-missions" class="tab-content" role="tabpanel">
@@ -209,7 +258,10 @@
               <p class="text-xs mt-1" style="color:var(--dc-ink-400)">Staff-curated solo objectives and progression rewards.</p>
             </div>
           </div>
-          <div id="missions-feed" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+          <div id="missions-feed" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="dc-skel rounded-xl" style="height:200px"></div>
+            <div class="dc-skel rounded-xl" style="height:200px"></div>
+          </div>
         </div>
 
         <div id="tab-content-bounty" class="tab-content" role="tabpanel">
@@ -222,7 +274,10 @@
             </div>
             <div id="hitlist-action-container"></div>
           </div>
-          <div id="bounty-feed" class="space-y-4"></div>
+          <div id="bounty-feed" class="space-y-4">
+            <div class="dc-skel rounded-xl" style="height:100px"></div>
+            <div class="dc-skel rounded-xl" style="height:100px"></div>
+          </div>
         </div>
 
         <div id="tab-content-dropzone" class="tab-content" role="tabpanel">
@@ -234,7 +289,10 @@
               <p class="text-xs mt-1" style="color:var(--dc-ink-400)">Custom battle royale lobbies with slot reservation and scoring.</p>
             </div>
           </div>
-          <div id="dropzone-feed" class="space-y-4"></div>
+          <div id="dropzone-feed" class="space-y-4">
+            <div class="dc-skel rounded-xl" style="height:180px"></div>
+            <div class="dc-skel rounded-xl" style="height:180px"></div>
+          </div>
         </div>
 
       </section>
@@ -264,9 +322,9 @@
             <i class="fa-solid fa-medal text-[9px]"></i>
             <span id="ctx-stat-2">--</span>
           </span>
-          <span class="flex-1 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold" style="background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08); color:var(--dc-ink-200)">
-            <i class="fa-solid fa-gamepad text-[9px]"></i>
-            <span id="panel-game-label">--</span>
+          <span class="flex-1 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold" style="background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08); color:var(--dc-ink-200)" id="panel-game-badge">
+            <span id="panel-game-icon" class="flex-shrink-0"><i class="fa-solid fa-gamepad text-[9px]"></i></span>
+            <span id="panel-game-label" class="truncate">--</span>
           </span>
         </div>
 
@@ -319,7 +377,8 @@
             <span class="text-[9px] font-bold px-2 py-0.5 rounded" style="background:rgba(10,132,255,.12); color:var(--dc-azure)" id="ops-count">0</span>
           </div>
           <div id="active-ops-container" class="space-y-2 dc-scroll" style="max-height:220px; overflow-y:auto">
-            <p class="text-center py-4 text-xs" style="color:var(--dc-ink-500)">Loading&hellip;</p>
+            <div class="dc-skel rounded-lg" style="height:56px"></div>
+            <div class="dc-skel rounded-lg" style="height:56px"></div>
           </div>
         </div>
 
@@ -394,21 +453,25 @@
 
   {# ── MOBILE BOTTOM NAV ───────────────────────────────────────────── #}
   <nav class="dc-bottom-nav dc-mob" style="display:none" id="mobile-bottom-nav">
-    <div class="flex items-center justify-around h-full max-w-md mx-auto px-4">
-      <button class="flex flex-col items-center gap-0.5 text-[10px] font-bold dc-press" data-tab="showdown" style="color:var(--dc-azure)">
-        <i class="fa-solid fa-bolt text-lg"></i><span>Showdown</span>
+    <div class="flex items-center justify-around h-full w-full px-2">
+      <button class="flex flex-col items-center justify-center gap-1 min-w-[52px] py-1 dc-press" data-tab="showdown" style="color:var(--dc-azure)">
+        <i class="fa-solid fa-bolt text-base"></i>
+        <span class="text-[9px] font-semibold leading-none">Showdown</span>
       </button>
-      <button class="flex flex-col items-center gap-0.5 text-[10px] font-bold dc-press" data-tab="missions" style="color:var(--dc-ink-400)">
-        <i class="fa-solid fa-scroll text-lg"></i><span>Missions</span>
+      <button class="flex flex-col items-center justify-center gap-1 min-w-[52px] py-1 dc-press" data-tab="missions" style="color:var(--dc-ink-400)">
+        <i class="fa-solid fa-scroll text-base"></i>
+        <span class="text-[9px] font-semibold leading-none">Missions</span>
       </button>
       <button class="dc-fab dc-press" id="mobile-fab" title="Create">
-        <i class="fa-solid fa-plus text-lg"></i>
+        <i class="fa-solid fa-plus text-base"></i>
       </button>
-      <button class="flex flex-col items-center gap-0.5 text-[10px] font-bold dc-press" data-tab="bounty" style="color:var(--dc-ink-400)">
-        <i class="fa-solid fa-crosshairs text-lg"></i><span>Bounty</span>
+      <button class="flex flex-col items-center justify-center gap-1 min-w-[52px] py-1 dc-press" data-tab="bounty" style="color:var(--dc-ink-400)">
+        <i class="fa-solid fa-crosshairs text-base"></i>
+        <span class="text-[9px] font-semibold leading-none">Bounty</span>
       </button>
-      <button class="flex flex-col items-center gap-0.5 text-[10px] font-bold dc-press" data-tab="dropzone" style="color:var(--dc-ink-400)">
-        <i class="fa-solid fa-parachute-box text-lg"></i><span>Dropzone</span>
+      <button class="flex flex-col items-center justify-center gap-1 min-w-[52px] py-1 dc-press" data-tab="dropzone" style="color:var(--dc-ink-400)">
+        <i class="fa-solid fa-parachute-box text-base"></i>
+        <span class="text-[9px] font-semibold leading-none">Drop</span>
       </button>
     </div>
   </nav>
@@ -435,9 +498,9 @@
       <div class="absolute inset-0 pointer-events-none opacity-70" style="background:radial-gradient(circle at 12% 0%,rgba(10,132,255,.16),transparent 34%),radial-gradient(circle at 88% 10%,rgba(207,167,90,.10),transparent 30%)"></div>
       <div class="relative flex items-start justify-between gap-4">
         <div class="max-w-3xl">
-          <p class="text-[10px] uppercase tracking-[0.28em] font-black mb-2" style="color:var(--dc-azure)">DeltaCrown Intelligence Overlay</p>
-          <h2 class="font-display text-3xl sm:text-5xl font-extrabold text-white leading-none">Your competitive map</h2>
-          <p class="mt-3 text-sm leading-6" style="color:var(--dc-ink-400)">DeltaCrown has four paths. Choose the one that matches what you want to do.</p>
+          <p class="text-[9px] uppercase tracking-[0.2em] font-bold mb-1.5" style="color:var(--dc-azure)">Competitive Guide</p>
+          <h2 class="text-xl sm:text-2xl font-bold text-white leading-tight">Four competitive paths</h2>
+          <p class="mt-2 text-sm leading-relaxed" style="color:var(--dc-ink-400)">Choose the one that matches what you want to do.</p>
         </div>
         <button type="button" data-close-guide class="h-11 w-11 shrink-0 rounded-2xl border border-white/10 bg-white/[0.04] hover:bg-white/[0.08]" style="color:var(--dc-ink-400)">
           <i class="fa-solid fa-xmark"></i>
@@ -526,17 +589,16 @@
 {# ── Create Showdown slide-over ────────────────────────────────────── #}
 <div id="slide-over-backdrop" class="fixed inset-0 bg-black/[0.82] backdrop-blur-md z-[120] hidden-spa opacity-0 transition-all duration-300"></div>
 
-<div id="slide-over-create-clash" class="drawer-panel fixed inset-y-0 right-0 h-dvh w-full max-w-xl border-l border-white/10 shadow-[-28px_0_80px_rgba(0,0,0,0.88)] z-[130] transform translate-x-full flex flex-col" style="background:var(--dc-ink-900)">
-  <div class="glass-heavy p-5 sm:p-6 border-b border-white/10 flex justify-between items-center relative overflow-hidden flex-shrink-0">
-    <div class="absolute -right-10 -top-10 w-40 h-40 opacity-20 blur-[50px] rounded-full pointer-events-none" style="background:var(--dc-azure)"></div>
+<div id="slide-over-create-clash" class="drawer-panel fixed inset-y-0 right-0 h-dvh w-full max-w-lg z-[130] transform translate-x-full flex flex-col" style="background:var(--dc-ink-950); border-left:1px solid rgba(255,255,255,.06); box-shadow:-12px 0 40px rgba(0,0,0,.6)">
+  <div class="p-4 sm:p-5 flex justify-between items-center flex-shrink-0" style="border-bottom:1px solid rgba(255,255,255,.06)">
     <div>
-      <h2 class="font-display text-2xl font-extrabold text-white uppercase tracking-wider flex items-center gap-3">
-        <i class="fa-solid fa-bolt" style="color:var(--dc-azure)"></i> Create Showdown
+      <h2 class="text-lg font-bold text-white flex items-center gap-2">
+        <i class="fa-solid fa-bolt text-sm" style="color:var(--dc-azure)"></i> Create Showdown
       </h2>
-      <p class="text-xs mt-1 font-medium tracking-wide" style="color:var(--dc-ink-400)">Configure match parameters and lock the entry fee.</p>
+      <p class="text-xs mt-0.5" style="color:var(--dc-ink-400)">Configure match parameters and lock the entry fee.</p>
     </div>
-    <button type="button" data-close-slide="create-clash" class="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center hover:text-white transition-colors border border-white/10" style="color:var(--dc-ink-400)">
-      <i class="fa-solid fa-times text-lg"></i>
+    <button type="button" data-close-slide="create-clash" class="w-8 h-8 rounded-lg flex items-center justify-center hover:text-white transition-colors" style="background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.06); color:var(--dc-ink-400)">
+      <i class="fa-solid fa-times"></i>
     </button>
   </div>
   <form id="form-create-clash" class="flex-grow overflow-y-auto overscroll-contain" novalidate>
@@ -613,17 +675,16 @@
 </div>
 
 {# ── Post Bounty slide-over ────────────────────────────────────────── #}
-<div id="slide-over-create-hitlist" class="drawer-panel fixed inset-y-0 right-0 h-dvh w-full max-w-xl border-l border-white/10 shadow-[-28px_0_80px_rgba(0,0,0,0.88)] z-[130] transform translate-x-full flex flex-col" style="background:var(--dc-ink-900)">
-  <div class="glass-heavy p-6 border-b border-white/10 flex justify-between items-center relative overflow-hidden flex-shrink-0">
-    <div class="absolute -right-10 -top-10 w-40 h-40 opacity-20 blur-[50px] rounded-full pointer-events-none" style="background:var(--dc-rose)"></div>
+<div id="slide-over-create-hitlist" class="drawer-panel fixed inset-y-0 right-0 h-dvh w-full max-w-lg z-[130] transform translate-x-full flex flex-col" style="background:var(--dc-ink-950); border-left:1px solid rgba(255,255,255,.06); box-shadow:-12px 0 40px rgba(0,0,0,.6)">
+  <div class="p-4 sm:p-5 flex justify-between items-center flex-shrink-0" style="border-bottom:1px solid rgba(255,255,255,.06)">
     <div>
-      <h2 class="font-display text-2xl font-extrabold text-white uppercase tracking-wider flex items-center gap-3">
-        <i class="fa-solid fa-crosshairs" style="color:var(--dc-rose-display)"></i> Post Bounty
+      <h2 class="text-lg font-bold text-white flex items-center gap-2">
+        <i class="fa-solid fa-crosshairs text-sm" style="color:var(--dc-rose-display)"></i> Post Bounty
       </h2>
-      <p class="text-xs mt-1 font-medium tracking-wide" style="color:var(--dc-ink-400)">Team authority required. Post a Bounty for challengers.</p>
+      <p class="text-xs mt-0.5" style="color:var(--dc-ink-400)">Team authority required. Post a Bounty for challengers.</p>
     </div>
-    <button type="button" data-close-slide="create-hitlist" class="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center hover:text-white transition-colors border border-white/10" style="color:var(--dc-ink-400)">
-      <i class="fa-solid fa-times text-lg"></i>
+    <button type="button" data-close-slide="create-hitlist" class="w-8 h-8 rounded-lg flex items-center justify-center hover:text-white transition-colors" style="background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.06); color:var(--dc-ink-400)">
+      <i class="fa-solid fa-times"></i>
     </button>
   </div>
   <form id="form-create-hitlist" class="flex-grow overflow-y-auto overscroll-contain" novalidate>

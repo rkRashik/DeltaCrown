@@ -1,12 +1,8 @@
 /* ==========================================================================
    DeltaCrown Competitive Arena — Design System
-   Claude Design handoff for competitive gaming command center
    ========================================================================== */
 
-/* ---------------------------------------------------------------------------
-   1. Color Tokens
-   --------------------------------------------------------------------------- */
-
+/* --- 1. Tokens --- */
 :root {
   --dc-bg: #04060A;
   --dc-ink-950: #04060A;
@@ -33,10 +29,7 @@
   --dc-win: #2ECC71;
 }
 
-/* ---------------------------------------------------------------------------
-   2. Root & Scrollbar
-   --------------------------------------------------------------------------- */
-
+/* --- 2. Root --- */
 .dc-arena {
   min-height: 100vh;
   background:
@@ -45,643 +38,370 @@
     var(--dc-bg);
   color: var(--dc-ink-200);
   font-family: 'Inter', system-ui, sans-serif;
+  overflow-x: hidden;
 }
 
-.dc-scroll::-webkit-scrollbar { width: 5px; height: 5px }
-.dc-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,.14); border-radius: 9px }
+.dc-scroll::-webkit-scrollbar { width: 4px; height: 4px }
+.dc-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,.10); border-radius: 9px }
 .dc-scroll::-webkit-scrollbar-track { background: transparent }
 
-/* ---------------------------------------------------------------------------
-   3. Keyframe Animations
-   --------------------------------------------------------------------------- */
+/* --- 3. Keyframes --- */
+@keyframes dcRing { 0% { transform:scale(.7); opacity:.55 } 100% { transform:scale(2); opacity:0 } }
+@keyframes dcSheet { from { transform:translateY(100%) } to { transform:translateY(0) } }
+@keyframes dcDrop { from { opacity:0; transform:translateY(-7px) scale(.97) } to { opacity:1; transform:translateY(0) scale(1) } }
 
-@keyframes dcRing {
-  0%   { transform: scale(.7); opacity: .55 }
-  100% { transform: scale(2); opacity: 0 }
-}
-
-@keyframes dcSheet {
-  from { transform: translateY(100%) }
-  to   { transform: translateY(0) }
-}
-
-@keyframes dcDrop {
-  from { opacity: 0; transform: translateY(-7px) scale(.97) }
-  to   { opacity: 1; transform: translateY(0) scale(1) }
-}
-
-/* ---------------------------------------------------------------------------
-   4. Transition Utilities
-   --------------------------------------------------------------------------- */
-
+/* --- 4. Transitions --- */
 .dc-lift {
-  transition: transform .22s cubic-bezier(.22,1,.36,1),
-              box-shadow .22s,
-              border-color .22s,
-              background .22s;
+  transition: transform .2s cubic-bezier(.22,1,.36,1), box-shadow .2s, border-color .2s, background .2s;
 }
-.dc-lift:hover  { transform: translateY(-3px) }
+.dc-lift:hover { transform: translateY(-2px) }
 .dc-lift:active { transform: scale(.993) }
 
 .dc-press {
-  transition: transform .14s cubic-bezier(.34,1.56,.64,1),
-              background .18s,
-              color .18s,
-              border-color .18s;
+  transition: transform .12s cubic-bezier(.34,1.56,.64,1), background .15s, color .15s, border-color .15s;
 }
-.dc-press:active { transform: scale(.95) }
+.dc-press:active { transform: scale(.96) }
 
-.dc-row-hover:hover {
-  background: rgba(255,255,255,.04);
-  border-radius: 10px;
-}
+.dc-row-hover:hover { background: rgba(255,255,255,.04); border-radius: 8px }
 
-/* ---------------------------------------------------------------------------
-   5. Topbar (sticky glass bar)
-   --------------------------------------------------------------------------- */
-
-.dc-bar {
-  position: sticky;
-  top: 0;
-  z-index: 50;
-  backdrop-filter: blur(20px) saturate(160%);
-  -webkit-backdrop-filter: blur(20px) saturate(160%);
-  background: rgba(4,6,10,.78);
-  border-bottom: 1px solid rgba(255,255,255,.07);
-}
-
-.dc-bar-inner {
-  max-width: 1600px;
-  margin: 0 auto;
-  padding: 10px 22px;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-/* ---------------------------------------------------------------------------
-   6. Content Grid & Layout
-   --------------------------------------------------------------------------- */
-
+/* --- 5. Layout --- */
 .dc-app {
-  max-width: 1600px;
+  max-width: 1440px;
   margin: 0 auto;
-  padding: 18px 22px 48px;
+  padding: 16px 20px 48px;
 }
 
 .dc-grid {
   display: grid;
-  grid-template-columns: minmax(0,1fr) 316px;
+  grid-template-columns: minmax(0, 1fr) 300px;
   gap: 20px;
   align-items: start;
 }
 
-/* ---------------------------------------------------------------------------
-   7. Side Panel
-   --------------------------------------------------------------------------- */
-
+/* --- 6. Side Panel --- */
 .dc-panel {
-  border-radius: 18px;
-  border: 1px solid rgba(255,255,255,.09);
-  background: rgba(14,17,26,.7);
-  padding: 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,.07);
+  background: rgba(14,17,26,.65);
+  padding: 12px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   position: sticky;
   top: 60px;
   max-height: calc(100vh - 80px);
   overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,.08) transparent;
 }
+.dc-panel::-webkit-scrollbar { width: 3px }
+.dc-panel::-webkit-scrollbar-thumb { background: rgba(255,255,255,.06); border-radius: 9px }
+.dc-panel::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,.14) }
+.dc-panel::-webkit-scrollbar-track { background: transparent }
 
-/* ---------------------------------------------------------------------------
-   8. Marquee Wrapper
-   --------------------------------------------------------------------------- */
-
+/* --- 7. Marquee --- */
 .dc-marquee {
   position: relative;
   overflow: hidden;
-  border-radius: 20px;
-  border: 1px solid rgba(255,255,255,.09);
-  margin-bottom: 18px;
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,.07);
+  margin-bottom: 16px;
 }
+.dc-marquee-match   { background: linear-gradient(135deg, rgba(10,132,255,.06), transparent 50%), var(--dc-ink-900) }
+.dc-marquee-mission { background: linear-gradient(135deg, rgba(104,73,229,.08), transparent 50%), var(--dc-ink-900) }
+.dc-marquee-setup   { background: linear-gradient(135deg, rgba(10,132,255,.08), transparent 50%), var(--dc-ink-900) }
 
-.dc-marquee-match {
-  background: linear-gradient(135deg, rgba(10,132,255,.08), transparent 50%), var(--dc-ink-900);
-}
-
-.dc-marquee-mission {
-  background: linear-gradient(135deg, rgba(104,73,229,.10), transparent 50%), var(--dc-ink-900);
-}
-
-.dc-marquee-setup {
-  background: linear-gradient(135deg, rgba(10,132,255,.10), transparent 50%), var(--dc-ink-900);
-}
-
-/* ---------------------------------------------------------------------------
-   9. Mode Tabs
-   --------------------------------------------------------------------------- */
-
+/* --- 8. Mode Tabs --- */
 .dc-mode-tab {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 16px;
-  border-radius: 10px;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 8px;
   border: none;
   background: transparent;
-  color: var(--dc-ink-300);
+  color: var(--dc-ink-400);
   font-weight: 600;
   font-size: .8125rem;
   cursor: pointer;
-  transition: all .2s;
+  transition: color .15s, background .15s;
   border-bottom: 2px solid transparent;
   white-space: nowrap;
 }
-
-.dc-mode-tab:hover    { color: var(--dc-ink-100) }
+.dc-mode-tab:hover { color: var(--dc-ink-200); background: rgba(255,255,255,.03) }
 .dc-mode-tab.is-active,
-.dc-mode-tab.active { color: var(--dc-ink-100); border-bottom-color: var(--dc-mode-color, var(--dc-azure)) }
+.dc-mode-tab.active {
+  color: var(--dc-ink-100);
+  border-bottom-color: var(--dc-mode-color, var(--dc-azure));
+}
 
-/* ---------------------------------------------------------------------------
-   10. Game Filter Chips
-   --------------------------------------------------------------------------- */
+/* --- 9. Game Filter Chips --- */
+.dc-game-strip {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  flex-shrink: 0;
+  position: relative;
+}
+.dc-game-strip::-webkit-scrollbar { display: none }
 
 .dc-game-chip {
-  padding: 6px 12px;
-  border-radius: 8px;
-  border: 1px solid rgba(255,255,255,.09);
-  background: transparent;
-  color: var(--dc-ink-300);
-  font-weight: 600;
-  font-size: .75rem;
-  cursor: pointer;
-  transition: all .18s;
-  white-space: nowrap;
-}
-
-.dc-game-chip:hover { border-color: rgba(255,255,255,.18); color: var(--dc-ink-100) }
-
-.dc-game-chip.is-active {
-  background: rgba(255,255,255,.10);
-  border-color: rgba(255,255,255,.24);
-  color: var(--dc-ink-100);
-  font-weight: 700;
-}
-
-/* ---------------------------------------------------------------------------
-   11. Feed Cards
-   --------------------------------------------------------------------------- */
-
-/* Showdown */
-.dc-showdown-card {
-  border: 1px solid rgba(10,132,255,.15);
-  border-radius: 16px;
-  background: linear-gradient(145deg, rgba(255,255,255,.04), rgba(255,255,255,.01));
-  padding: 16px;
-  transition: all .22s cubic-bezier(.22,1,.36,1);
-}
-.dc-showdown-card:hover { border-color: rgba(10,132,255,.35); transform: translateY(-3px) }
-
-.dc-showdown-featured {
-  border: 1px solid rgba(207,167,90,.22);
-  border-radius: 18px;
-  background: linear-gradient(145deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
-  padding: 20px;
-}
-
-/* Mission */
-.dc-mission-card {
-  border: 1px solid rgba(104,73,229,.18);
-  border-radius: 16px;
-  background: linear-gradient(145deg, rgba(255,255,255,.04), rgba(255,255,255,.01));
-  padding: 16px;
-  transition: all .22s cubic-bezier(.22,1,.36,1);
-}
-.dc-mission-card:hover { border-color: rgba(104,73,229,.35); transform: translateY(-3px) }
-
-/* Bounty */
-.dc-bounty-card {
-  border: 1px solid rgba(191,56,104,.22);
-  border-radius: 16px;
-  border-left: 3px solid rgba(191,56,104,.4);
-  background: linear-gradient(145deg, rgba(255,255,255,.04), rgba(255,255,255,.01));
-  padding: 18px;
-  transition: all .22s cubic-bezier(.22,1,.36,1);
-}
-.dc-bounty-card:hover { border-color: rgba(191,56,104,.4); transform: translateY(-3px) }
-
-/* Dropzone */
-.dc-dropzone-card {
-  border: 1px solid rgba(207,167,90,.17);
-  border-radius: 16px;
-  background: linear-gradient(145deg, rgba(255,255,255,.04), rgba(255,255,255,.01));
-  padding: 18px;
-  transition: all .22s cubic-bezier(.22,1,.36,1);
-}
-.dc-dropzone-card:hover { border-color: rgba(207,167,90,.35); transform: translateY(-3px) }
-
-/* ---------------------------------------------------------------------------
-   12. Team Crest
-   --------------------------------------------------------------------------- */
-
-.dc-crest {
-  background-size: cover;
-  background-position: center;
-  border: 1px solid rgba(255,255,255,.12);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  overflow: hidden;
-}
-
-.dc-crest-overlay {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
-  background: rgba(4,6,10,.48);
-  font-family: 'Sora', system-ui;
-  font-weight: 800;
-  letter-spacing: .03em;
-  color: var(--dc-ink-100);
-}
-
-/* ---------------------------------------------------------------------------
-   13. Wallet Widget
-   --------------------------------------------------------------------------- */
-
-.dc-wallet {
-  border: 1px solid rgba(207,167,90,.18);
-  background: rgba(0,0,0,.28);
-  border-radius: 14px;
-  padding: 14px;
-}
-
-.dc-coin {
-  font-family: 'JetBrains Mono', monospace;
-  font-weight: 700;
-  color: var(--dc-gold-400);
-}
-
-/* ---------------------------------------------------------------------------
-   14. Operations Widget
-   --------------------------------------------------------------------------- */
-
-.dc-op-item {
-  display: flex;
-  gap: 10px;
-  padding: 10px;
-  border-radius: 12px;
-  border: 1px solid rgba(255,255,255,.06);
-  background: rgba(0,0,0,.22);
-  transition: background .18s;
-}
-.dc-op-item:hover { background: rgba(255,255,255,.04) }
-
-.dc-op-spine {
-  width: 3px;
-  border-radius: 999px;
-  flex-shrink: 0;
-}
-
-/* ---------------------------------------------------------------------------
-   15. Buttons
-   --------------------------------------------------------------------------- */
-
-.dc-btn-primary {
-  cursor: pointer;
-  border: none;
-  border-radius: 12px;
-  font-weight: 700;
-  font-size: .8125rem;
-  padding: 10px 18px;
-  transition: all .18s;
-}
-.dc-btn-primary:disabled { cursor: not-allowed; opacity: .5; filter: grayscale(.4) }
-
-.dc-btn-azure { background: var(--dc-azure); color: #000 }
-.dc-btn-azure:hover:not(:disabled) { background: var(--dc-azure-400); box-shadow: 0 10px 24px -16px var(--dc-azure) }
-
-.dc-btn-rose { background: var(--dc-rose); color: #fff }
-.dc-btn-rose:hover:not(:disabled) { background: var(--dc-rose-display); box-shadow: 0 10px 24px -16px var(--dc-rose) }
-
-.dc-btn-gold { background: var(--dc-gold); color: #000 }
-.dc-btn-gold:hover:not(:disabled) { background: var(--dc-gold-400); box-shadow: 0 10px 24px -16px var(--dc-gold) }
-
-.dc-btn-ghost {
-  cursor: pointer;
-  border: 1px solid rgba(255,255,255,.07);
-  background: rgba(0,0,0,.3);
-  color: var(--dc-ink-400);
-  border-radius: 12px;
-  font-weight: 700;
-  font-size: .8125rem;
-  padding: 10px 18px;
-  transition: all .18s;
-}
-.dc-btn-ghost:disabled { cursor: not-allowed; opacity: .5 }
-
-/* ---------------------------------------------------------------------------
-   16. Progress Bar
-   --------------------------------------------------------------------------- */
-
-.dc-progress {
-  height: 7px;
-  border-radius: 999px;
-  background: rgba(255,255,255,.06);
-  overflow: hidden;
-}
-
-.dc-progress-fill {
-  height: 100%;
-  border-radius: 999px;
-  transition: width .4s cubic-bezier(.22,1,.36,1);
-}
-
-/* ---------------------------------------------------------------------------
-   17. Bottom Sheet (team switcher, create flow)
-   --------------------------------------------------------------------------- */
-
-.dc-sheet-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 70;
-  background: rgba(0,0,0,.55);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-}
-
-.dc-sheet {
-  position: fixed;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 100%;
-  max-width: 420px;
-  background: var(--dc-ink-900);
-  border: 1px solid rgba(255,255,255,.09);
-  border-radius: 24px 24px 0 0;
-  animation: dcSheet .32s cubic-bezier(.22,1,.36,1);
-  max-height: 80vh;
-  overflow-y: auto;
-}
-
-.dc-create-sheet {
-  max-width: 500px;
-  max-height: 88vh;
-  border-radius: 26px 26px 0 0;
-  z-index: 80;
-}
-
-.dc-create-sheet .dc-sheet-backdrop {
-  z-index: 75;
-  background: rgba(0,0,0,.65);
-  backdrop-filter: blur(6px);
-}
-
-/* ---------------------------------------------------------------------------
-   18. Mobile Bottom Nav
-   --------------------------------------------------------------------------- */
-
-.dc-bottom-nav {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 60;
-  height: 62px;
-  background: rgba(4,6,10,.88);
-  backdrop-filter: blur(20px) saturate(160%);
-  -webkit-backdrop-filter: blur(20px) saturate(160%);
-  border-top: 1px solid rgba(255,255,255,.08);
-  display: none;
-}
-
-.dc-fab {
-  width: 48px;
-  height: 48px;
-  border-radius: 15px;
-  background: linear-gradient(135deg, var(--dc-violet), var(--dc-azure));
-  border: none;
-  color: #fff;
-  cursor: pointer;
-  margin-top: -12px;
-  box-shadow: 0 10px 26px -10px rgba(10,132,255,.85);
-  transition: transform .14s cubic-bezier(.34,1.56,.64,1);
-}
-.dc-fab:active { transform: scale(.92) }
-
-/* ---------------------------------------------------------------------------
-   19. Toast
-   --------------------------------------------------------------------------- */
-
-.dc-toast {
-  position: fixed;
-  bottom: 80px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 90;
-  animation: dcDrop .3s cubic-bezier(.22,1,.36,1);
-}
-
-/* ---------------------------------------------------------------------------
-   20. Empty State
-   --------------------------------------------------------------------------- */
-
-.dc-empty {
-  text-align: center;
-  padding: 40px 24px;
-  border: 1px dashed rgba(255,255,255,.12);
-  border-radius: 16px;
-}
-
-.dc-empty-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 14px;
-  border: 1px solid rgba(255,255,255,.1);
-  background: rgba(255,255,255,.04);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 14px;
-}
-
-/* ---------------------------------------------------------------------------
-   21. Form Fields (create flows)
-   --------------------------------------------------------------------------- */
-
-.dc-field {
-  width: 100%;
-  padding: 11px 13px;
-  background: rgba(0,0,0,.4);
-  border: 1px solid rgba(255,255,255,.09);
-  color: #fff;
-  border-radius: 12px;
-  font-size: .875rem;
-  font-weight: 500;
-  transition: all .2s;
-}
-
-.dc-field:focus {
-  outline: none;
-  border-color: rgba(10,132,255,.5);
-  background: rgba(0,0,0,.6);
-  box-shadow: 0 0 0 3px rgba(10,132,255,.1);
-}
-
-.dc-field-select {
-  appearance: none;
-  -webkit-appearance: none;
-  padding-right: 2.4rem;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23A1A1AA' stroke-width='2'><polyline points='6 9 12 15 18 9'/></svg>");
-  background-repeat: no-repeat;
-  background-position: right .85rem center;
-}
-
-/* ---------------------------------------------------------------------------
-   22. Typography Helpers
-   --------------------------------------------------------------------------- */
-
-.dc-kicker {
-  font-size: .55rem;
-  line-height: 1;
-  font-weight: 900;
-  letter-spacing: .22em;
-  text-transform: uppercase;
-  color: var(--dc-ink-300);
-}
-
-.dc-mode-guide {
-  font-size: .72rem;
-  line-height: 1.5;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,.07);
+  background: rgba(255,255,255,.03);
   color: var(--dc-ink-400);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all .15s;
+  flex-shrink: 0;
+}
+.dc-game-chip:hover {
+  border-color: rgba(255,255,255,.18);
+  background: rgba(255,255,255,.06);
+}
+.dc-game-chip.is-active {
+  background: rgba(10,132,255,.12);
+  border-color: rgba(10,132,255,.35);
+  box-shadow: 0 0 0 1px rgba(10,132,255,.15);
 }
 
-/* ---------------------------------------------------------------------------
-   23. Status Rail (5-stage dropzone progress)
-   --------------------------------------------------------------------------- */
-
-.dc-status-rail {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: .35rem;
-}
-
-.dc-status-rail span {
-  height: 4px;
-  border-radius: 999px;
-  background: rgba(255,255,255,.10);
-}
-
-.dc-status-rail span.is-on {
-  background: currentColor;
-  box-shadow: 0 0 12px currentColor;
-}
-
-/* ---------------------------------------------------------------------------
-   24. Live Dot (pulsing ring)
-   --------------------------------------------------------------------------- */
-
-.dc-live-dot { position: relative }
-
-.dc-live-dot::after {
-  content: '';
-  position: absolute;
-  inset: -.35rem;
-  border-radius: 999px;
-  border: 1px solid currentColor;
-  opacity: .24;
-  animation: dcRing 2.4s ease-out infinite;
-}
-
-/* ---------------------------------------------------------------------------
-   25. Recommended Match Widget
-   --------------------------------------------------------------------------- */
-
-.dc-rec-card {
-  border: 1px solid rgba(255,255,255,.08);
-  background: rgba(0,0,0,.22);
-  border-radius: 14px;
-  padding: 12px;
-  transition: all .22s;
-}
-
-.dc-rec-card:hover {
-  border-color: rgba(255,255,255,.16);
-  background: rgba(255,255,255,.04);
-}
-
-/* ---------------------------------------------------------------------------
-   26. Confirmation Modal
-   --------------------------------------------------------------------------- */
-
-.dc-modal-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 100;
-  background: rgba(0,0,0,.65);
-  backdrop-filter: blur(6px);
+.dc-chip-fb {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 1rem;
+  background: rgba(255,255,255,.05);
+  font-size: 8px;
+  font-weight: 800;
+  color: var(--dc-ink-300);
+  text-transform: uppercase;
+  letter-spacing: -.02em;
 }
 
-.dc-modal-card {
-  max-width: 28rem;
-  width: 100%;
-  padding: 1.75rem;
-  border-radius: 20px;
-  background: linear-gradient(180deg, rgba(20,20,28,.95), rgba(10,10,15,.98));
+.dc-more-trigger { font-size: 14px }
+
+/* Overflow dropdown — positioned outside scroll context */
+.dc-game-more {
+  position: relative;
+  flex-shrink: 0;
+}
+.dc-game-overflow {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 200;
+  min-width: 200px;
+  max-height: 300px;
+  overflow-y: auto;
+  background: var(--dc-ink-900);
   border: 1px solid rgba(255,255,255,.10);
-  box-shadow: 0 24px 64px -12px rgba(0,0,0,.8);
+  border-radius: 12px;
+  padding: 4px;
+  box-shadow: 0 16px 48px -12px rgba(0,0,0,.9);
+}
+.dc-overflow-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--dc-ink-200);
+  font-size: .8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background .12s;
+  text-align: left;
+}
+.dc-overflow-item:hover { background: rgba(255,255,255,.05) }
+.dc-overflow-item.is-active { background: rgba(10,132,255,.10); color: var(--dc-ink-100) }
+.dc-overflow-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+
+/* --- 10. Feed card accents (used by competitive-hub.js) --- */
+.accent-cyan   { border-color: rgba(10,132,255,.15) !important }
+.accent-cyan:hover   { border-color: rgba(10,132,255,.35) !important; box-shadow: 0 8px 32px -10px rgba(10,132,255,.3) }
+.accent-violet { border-color: rgba(104,73,229,.15) !important }
+.accent-violet:hover { border-color: rgba(104,73,229,.35) !important; box-shadow: 0 8px 32px -10px rgba(104,73,229,.35) }
+.accent-neon   { border-color: rgba(191,56,104,.15) !important }
+.accent-neon:hover   { border-color: rgba(191,56,104,.35) !important; box-shadow: 0 8px 32px -10px rgba(191,56,104,.3) }
+.accent-gold   { border-color: rgba(207,167,90,.15) !important }
+.accent-gold:hover   { border-color: rgba(207,167,90,.35) !important; box-shadow: 0 8px 32px -10px rgba(207,167,90,.25) }
+
+.fade-enter { animation: dcDrop .25s cubic-bezier(.22,1,.36,1) }
+
+/* --- 11. Wallet --- */
+.dc-wallet {
+  border: 1px solid rgba(207,167,90,.12);
+  background: rgba(0,0,0,.2);
+  border-radius: 12px;
+  padding: 12px;
+}
+.dc-coin { font-family: 'JetBrains Mono', monospace; font-weight: 700; color: var(--dc-gold-400) }
+
+/* --- 12. Operations --- */
+.dc-op-item {
+  display: flex; gap: 8px; padding: 8px;
+  border-radius: 10px; border: 1px solid rgba(255,255,255,.05);
+  background: rgba(0,0,0,.18); transition: background .15s;
+}
+.dc-op-item:hover { background: rgba(255,255,255,.03) }
+.dc-op-spine { width: 3px; border-radius: 999px; flex-shrink: 0 }
+
+/* --- 13. Buttons --- */
+.dc-btn-primary {
+  cursor: pointer; border: none; border-radius: 10px;
+  font-weight: 700; font-size: .8125rem;
+  padding: 8px 16px; transition: all .15s;
+}
+.dc-btn-primary:disabled { cursor: not-allowed; opacity: .5; filter: grayscale(.4) }
+
+/* --- 14. Progress --- */
+.dc-progress { height: 6px; border-radius: 999px; background: rgba(255,255,255,.05); overflow: hidden }
+.dc-progress-fill { height: 100%; border-radius: 999px; transition: width .3s cubic-bezier(.22,1,.36,1) }
+
+/* --- 15. Bottom sheet --- */
+.dc-sheet {
+  position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+  width: 100%; max-width: 420px;
+  background: var(--dc-ink-900);
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 20px 20px 0 0;
+  animation: dcSheet .28s cubic-bezier(.22,1,.36,1);
+  max-height: 80vh; overflow-y: auto;
 }
 
-/* ---------------------------------------------------------------------------
-   27. Utility
-   --------------------------------------------------------------------------- */
+/* --- 16. Mobile bottom nav --- */
+.dc-bottom-nav {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 60;
+  height: 60px;
+  background: rgba(4,6,10,.92);
+  backdrop-filter: blur(16px) saturate(150%);
+  -webkit-backdrop-filter: blur(16px) saturate(150%);
+  border-top: 1px solid rgba(255,255,255,.06);
+  display: none;
+}
+.dc-fab {
+  width: 44px; height: 44px; border-radius: 13px;
+  background: linear-gradient(135deg, var(--dc-violet), var(--dc-azure));
+  border: none; color: #fff; cursor: pointer;
+  margin-top: -10px;
+  box-shadow: 0 6px 20px -6px rgba(10,132,255,.6);
+  transition: transform .12s cubic-bezier(.34,1.56,.64,1);
+}
+.dc-fab:active { transform: scale(.9) }
+
+/* --- 17. Toast --- */
+.dc-toast {
+  position: fixed; bottom: 76px; left: 50%; transform: translateX(-50%); z-index: 90;
+  animation: dcDrop .25s cubic-bezier(.22,1,.36,1);
+}
+
+/* --- 18. Empty state --- */
+.dc-empty {
+  text-align: center; padding: 32px 20px;
+  border: 1px dashed rgba(255,255,255,.10); border-radius: 14px;
+}
+
+/* --- 19. Misc components --- */
+.dc-live-dot { position: relative }
+.dc-live-dot::after {
+  content: ''; position: absolute; inset: -.35rem;
+  border-radius: 999px; border: 1px solid currentColor;
+  opacity: .2; animation: dcRing 2.4s ease-out infinite;
+}
+.dc-status-rail { display: grid; grid-template-columns: repeat(5, minmax(0,1fr)); gap: .3rem }
+.dc-status-rail span { height: 3px; border-radius: 999px; background: rgba(255,255,255,.08) }
+.dc-status-rail span.is-on { background: currentColor; box-shadow: 0 0 8px currentColor }
+
+.dc-rec-card {
+  border: 1px solid rgba(255,255,255,.06); background: rgba(0,0,0,.18);
+  border-radius: 12px; padding: 10px; transition: all .2s;
+}
+.dc-rec-card:hover { border-color: rgba(255,255,255,.12); background: rgba(255,255,255,.03) }
+
+.dc-modal-backdrop {
+  position: fixed; inset: 0; z-index: 100;
+  background: rgba(0,0,0,.6); backdrop-filter: blur(4px);
+  display: flex; align-items: center; justify-content: center; padding: 1rem;
+}
+.dc-modal-card {
+  max-width: 28rem; width: 100%; padding: 1.5rem; border-radius: 16px;
+  background: linear-gradient(180deg, rgba(20,20,28,.95), rgba(10,10,15,.98));
+  border: 1px solid rgba(255,255,255,.08);
+  box-shadow: 0 20px 48px -12px rgba(0,0,0,.8);
+}
+
+.dc-mode-guide { font-size: .75rem; line-height: 1.55; color: var(--dc-ink-400) }
+
+/* Skeleton loader */
+@keyframes dcShimmer { from { background-position: -400px 0 } to { background-position: 400px 0 } }
+.dc-skel {
+  background: rgba(255,255,255,.03);
+  background-image: linear-gradient(90deg, rgba(255,255,255,.03) 0%, rgba(255,255,255,.06) 40%, rgba(255,255,255,.03) 80%);
+  background-size: 400px 100%;
+  animation: dcShimmer 1.4s linear infinite;
+  border: 1px solid rgba(255,255,255,.04);
+}
 
 .dc-hidden { display: none !important }
 
-/* ---------------------------------------------------------------------------
-   28. Responsive Breakpoints
-   --------------------------------------------------------------------------- */
-
-/* ---------------------------------------------------------------------------
-   29. Tab Content
-   --------------------------------------------------------------------------- */
-
+/* --- 20. Tab Content --- */
 .tab-content { display: none }
 .tab-content.active { display: block }
 
-/* ---------------------------------------------------------------------------
-   30. Responsive Breakpoints
-   --------------------------------------------------------------------------- */
+/* ==========================================================================
+   Responsive
+   ========================================================================== */
 
-@media (max-width: 1023px) {
-  .dc-grid { grid-template-columns: 1fr; gap: 14px }
-  .dc-desk { display: none !important }
-  .dc-mob  { display: flex !important }
-  .dc-app  { padding: 14px 14px 100px !important }
+/* Tablet: collapse to single column */
+@media (max-width: 1120px) {
+  .dc-grid { grid-template-columns: 1fr }
   .dc-panel { display: none !important }
-  .dc-bottom-nav { display: flex }
 }
 
-@media (min-width: 1024px) {
+/* Mobile: show bottom nav, tighten spacing */
+@media (max-width: 1023px) {
+  .dc-desk { display: none !important }
+  .dc-mob  { display: flex !important }
+  .dc-app  { padding: 12px 12px 80px }
+  .dc-bottom-nav { display: flex }
+
+  .dc-marquee { border-radius: 12px; margin-bottom: 12px }
+
+  .dc-mode-tab { padding: 7px 10px; font-size: .75rem; gap: 5px }
+  .dc-mode-tab i { font-size: .8rem }
+
+  .dc-game-chip { width: 32px; height: 32px; border-radius: 8px; font-size: 11px }
+
+  .dc-game-overflow { max-width: calc(100vw - 24px) }
+
+  .tab-content h2 { font-size: .9375rem }
+}
+
+@media (max-width: 480px) {
+  .dc-app { padding: 10px 10px 76px }
+  .dc-mode-tab { padding: 6px 8px; font-size: .6875rem }
+  .dc-game-chip { width: 30px; height: 30px; border-radius: 7px; font-size: 10px }
+  .dc-bottom-nav { height: 56px }
+  .dc-fab { width: 40px; height: 40px; border-radius: 11px; margin-top: -8px }
+}
+
+@media (min-width: 1121px) {
   .dc-mob { display: none !important }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
+  *, *::before, *::after {
     animation-duration: .001ms !important;
     animation-iteration-count: 1 !important;
   }
-  .dc-lift,
-  .dc-press { transition: none !important }
+  .dc-lift, .dc-press { transition: none !important }
 }

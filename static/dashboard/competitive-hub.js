@@ -558,17 +558,13 @@
 
   function emptyState({ icon, title, sub, ctaText, ctaTab }) {
     return `
-      <div class="dcx-empty surface-card rounded-3xl p-8 sm:p-10 text-center relative overflow-hidden">
-        <div class="absolute inset-0 pointer-events-none opacity-[0.12]"
-             style="background-image: linear-gradient(rgba(255,255,255,.06) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.06) 1px, transparent 1px); background-size: 30px 30px; -webkit-mask-image: radial-gradient(circle at center, black 24%, transparent 74%); mask-image: radial-gradient(circle at center, black 24%, transparent 74%);"></div>
-        <div class="relative">
-          <div class="mx-auto mb-4 h-16 w-16 rounded-3xl border border-white/10 bg-white/[0.045] grid place-items-center shadow-[0_18px_50px_-34px_rgba(0,229,255,.8)]">
-            <i class="fa-solid ${icon} text-2xl text-gray-400"></i>
-          </div>
-          <p class="font-display text-xl font-black text-white mb-1">${esc(title)}</p>
-          <p class="text-gray-400 text-sm max-w-md mx-auto leading-relaxed mb-5">${esc(sub)}</p>
-          ${ctaText ? `<button type="button" data-go-tab="${esc(ctaTab || '')}" class="interactive-lift inline-flex items-center gap-2 rounded-xl bg-dc-cyan/15 border border-dc-cyan/35 text-dc-cyan hover:bg-dc-cyan hover:text-black px-5 py-2.5 text-xs font-bold uppercase tracking-widest transition-all">${esc(ctaText)} <i class="fa-solid fa-arrow-right text-[10px]"></i></button>` : ''}
+      <div class="dc-empty rounded-2xl p-8 text-center" style="border:1px dashed rgba(255,255,255,.08)">
+        <div class="mx-auto mb-3 h-12 w-12 rounded-xl border border-white/8 bg-white/[0.03] grid place-items-center">
+          <i class="fa-solid ${icon} text-lg text-gray-500"></i>
         </div>
+        <p class="text-base font-bold text-white mb-1">${esc(title)}</p>
+        <p class="text-gray-500 text-sm max-w-sm mx-auto leading-relaxed mb-4">${esc(sub)}</p>
+        ${ctaText ? `<button type="button" data-go-tab="${esc(ctaTab || '')}" class="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-xs font-bold transition-all" style="background:rgba(10,132,255,.1); border:1px solid rgba(10,132,255,.25); color:var(--dc-azure)">${esc(ctaText)} <i class="fa-solid fa-arrow-right text-[9px]"></i></button>` : ''}
       </div>`;
   }
 
@@ -593,44 +589,32 @@
       const isHigh = Number(c.entry_fee_dc) >= 1000;
       const canAccept = canIssueSelectedTeam() && !closed && c.status === 'OPEN' && !c.challenged_team_id;
       const btnState = canAccept ? '' : 'disabled';
-      const btnClass = canAccept
-        ? 'bg-white/10 hover:bg-dc-cyan hover:text-black border-white/20 hover:border-dc-cyan text-white'
-        : 'bg-black/40 border-white/5 text-gray-600 cursor-not-allowed';
+      const btnStyle = canAccept
+        ? 'background:rgba(10,132,255,.12); border:1px solid rgba(10,132,255,.3); color:#3FA3FF'
+        : 'background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.06); color:#475569; cursor:not-allowed';
       const btnText = canAccept
-        ? 'Accept Match'
-        : (HUB.primary_team ? '<i class="fa-solid fa-lock text-[10px]"></i> Captain Only' : '<i class="fa-solid fa-lock text-[10px]"></i> Team Reqd');
+        ? 'Accept'
+        : (HUB.primary_team ? '<i class="fa-solid fa-lock text-[9px] mr-1"></i>Locked' : '<i class="fa-solid fa-lock text-[9px] mr-1"></i>Team Reqd');
+      const accentBorder = isHigh ? 'rgba(207,167,90,.15)' : 'rgba(10,132,255,.10)';
 
       return `
-        <div class="glass-heavy ${isHigh ? 'accent-gold' : 'accent-cyan'} rounded-2xl p-4 flex flex-col lg:flex-row items-center justify-between gap-5 group relative overflow-hidden fade-enter border border-white/5 transition-all">
-          <div class="flex items-center gap-4 flex-1 w-full relative z-10">
-            <div class="relative flex-shrink-0 w-14 h-14 rounded-xl border ${isHigh ? 'border-dc-gold/50 shadow-[0_0_15px_rgba(255,215,0,0.3)]' : 'border-white/10'} bg-gradient-to-br from-gray-800 to-black flex items-center justify-center text-white font-bold">
+        <div class="rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center gap-4 fade-enter" style="border:1px solid ${accentBorder}; background:rgba(255,255,255,.02); transition:border-color .15s, transform .15s">
+          <div class="flex items-center gap-3 flex-1 min-w-0">
+            <div class="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center text-sm font-bold text-white" style="background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.08)">
               ${esc((c.challenger_team_tag || c.challenger_team_name || '?').slice(0, 2).toUpperCase())}
             </div>
-            <div>
-              <div class="flex items-center gap-2 mb-0.5">
-                <h3 class="font-bold text-white text-xl leading-tight">${esc(c.challenger_team_name || 'Team')}</h3>
-                ${isHigh ? `<span class="bg-dc-gold/20 text-dc-gold text-[9px] px-1.5 py-0.5 rounded font-black uppercase tracking-widest border border-dc-gold/30">Featured</span>` : ''}
-              </div>
-              <p class="text-xs text-gray-400 font-medium">${esc(c.game_short_code || '')} &bull; ${esc(c.challenged_team_name || 'Open Radar')}</p>
+            <div class="min-w-0">
+              <p class="text-sm font-bold text-white truncate">${esc(c.challenger_team_name || 'Team')}${isHigh ? ' <span class="text-[9px] font-bold px-1.5 py-0.5 rounded" style="background:rgba(207,167,90,.15); color:#E2C588; border:1px solid rgba(207,167,90,.2)">HIGH</span>' : ''}</p>
+              <p class="text-xs truncate" style="color:var(--dc-ink-400)">${esc(c.game_short_code || '')} · ${esc(c.challenged_team_name || 'Open Radar')}</p>
               ${closureHtml(c)}
             </div>
           </div>
-          <div class="flex items-center gap-6 lg:px-8 lg:border-x border-white/10 flex-shrink-0 w-full lg:w-auto justify-between lg:justify-center bg-black/30 lg:bg-transparent p-4 lg:p-0 rounded-xl relative z-10">
-            <div class="text-center">
-              <p class="text-[10px] uppercase font-bold text-gray-500 tracking-widest mb-1">Format</p>
-              <span class="inline-block px-3 py-1 bg-white/5 border border-white/10 rounded-lg text-xs font-bold text-white">BO${c.best_of || 1}</span>
-            </div>
-            <div class="text-center">
-              <p class="text-[10px] uppercase font-bold ${isHigh ? 'text-dc-gold' : 'text-gray-500'} tracking-widest mb-1">Reward Pool</p>
-              <p class="font-display font-black text-2xl ${isHigh ? 'text-dc-gold' : 'text-white'} leading-none">
-                <i class="fa-solid fa-coins text-sm mr-1 ${isHigh ? '' : 'text-dc-gold'}"></i>${pot.toLocaleString()}
-              </p>
-            </div>
-          </div>
-          <div class="flex-shrink-0 w-full lg:w-auto relative z-10">
+          <div class="flex items-center gap-4 flex-shrink-0">
+            <span class="text-xs font-bold px-2 py-1 rounded" style="background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.07); color:var(--dc-ink-200)">BO${c.best_of || 1}</span>
+            <span class="text-sm font-bold font-mono" style="color:var(--dc-gold-400)"><i class="fa-solid fa-coins text-[10px] mr-1" style="color:var(--dc-gold)"></i>${pot.toLocaleString()}</span>
             <button ${btnState} data-accept-clash="${esc(c.id)}" data-fee="${Number(c.entry_fee_dc)}" data-challenger-team="${esc(c.challenger_team_id || '')}"
-                    class="w-full lg:w-auto ${btnClass} border px-8 py-3 rounded-xl text-sm font-bold uppercase tracking-wider transition-all">
-              ${btnText} <span class="ml-1 opacity-70">(${Number(c.entry_fee_dc).toLocaleString()} DC)</span>
+                    class="rounded-lg px-4 py-2 text-xs font-bold transition-all" style="${btnStyle}">
+              ${btnText}
             </button>
           </div>
         </div>`;
@@ -648,38 +632,35 @@
       const fee = Number(t.entry_fee_dc || 0);
       const reward = Number(t.reward_dc || 0);
       const missionText = `${t.title || ''} ${t.goal_type_display || ''} ${t.reset_period || ''} ${t.frequency || ''}`.toLowerCase();
-      const cadence = missionText.includes('daily') ? 'Daily' : (missionText.includes('weekly') ? 'Weekly' : 'Admin Curated');
+      const cadence = missionText.includes('daily') ? 'Daily' : (missionText.includes('weekly') ? 'Weekly' : 'Curated');
       return `
-        <div class="glass-heavy accent-violet rounded-2xl p-1 relative overflow-hidden group fade-enter border border-white/5 transition-all">
-          <div class="absolute inset-0 bg-gradient-to-br from-dc-violet/10 to-transparent opacity-40 z-0"></div>
-          <div class="bg-black/60 rounded-xl p-5 h-full flex flex-col relative z-10 border border-white/5">
-            <div class="flex justify-between items-start mb-4">
-              <div class="w-12 h-12 bg-dc-violet/20 rounded-xl flex items-center justify-center border border-dc-violet/30 text-dc-violet">
-                <i class="fa-solid fa-scroll text-xl"></i>
-              </div>
-              <div class="flex flex-col items-end gap-1">
-                <span class="bg-dc-violet/10 text-dc-violet text-[9px] font-bold uppercase tracking-widest px-2.5 py-1 rounded border border-dc-violet/25">${esc(cadence)}</span>
-                <span class="bg-black/80 text-gray-300 text-[9px] font-bold uppercase tracking-widest px-2.5 py-1 rounded border border-white/10">${esc(t.goal_type_display || 'MISSION')}</span>
-              </div>
+        <div class="rounded-xl p-4 h-full flex flex-col fade-enter" style="border:1px solid rgba(104,73,229,.12); background:rgba(255,255,255,.02); transition:border-color .15s">
+          <div class="flex items-start justify-between gap-2 mb-3">
+            <div class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style="background:rgba(104,73,229,.12); border:1px solid rgba(104,73,229,.2)">
+              <i class="fa-solid fa-scroll text-sm" style="color:var(--dc-violet-400)"></i>
             </div>
-            <h3 class="font-display text-2xl font-bold text-white mb-2 group-hover:text-dc-violet transition-colors">${esc(t.title)}</h3>
-            <p class="text-sm text-gray-400 mb-6 flex-grow leading-relaxed font-medium line-clamp-3">${esc(t.description || '')}</p>
-            <div class="bg-black/50 rounded-xl p-3 border border-white/5 flex justify-between items-center mb-3">
-              <div>
-                <p class="text-[9px] uppercase font-bold text-gray-500 mb-0.5 tracking-widest">Entry</p>
-                <p class="font-bold text-white text-sm"><i class="fa-solid fa-coins text-dc-gold text-[10px] mr-1"></i> ${fee.toLocaleString()}</p>
-              </div>
-              <i class="fa-solid fa-arrow-right text-gray-600 text-xs"></i>
-              <div class="text-right">
-                <p class="text-[9px] uppercase font-bold text-dc-gold mb-0.5 tracking-widest">Reward</p>
-                <p class="font-bold text-dc-gold text-xl leading-none"><i class="fa-solid fa-coins text-[10px] mr-1"></i> ${reward.toLocaleString()}</p>
-              </div>
+            <div class="flex items-center gap-1.5">
+              <span class="text-[9px] font-bold px-2 py-0.5 rounded" style="background:rgba(104,73,229,.1); color:var(--dc-violet-400); border:1px solid rgba(104,73,229,.18)">${esc(cadence)}</span>
+              <span class="text-[9px] font-bold px-2 py-0.5 rounded" style="background:rgba(255,255,255,.03); color:var(--dc-ink-400); border:1px solid rgba(255,255,255,.06)">${esc(t.goal_type_display || 'MISSION')}</span>
             </div>
-            <button type="button" data-enroll-contract="${esc(t.id)}" data-fee="${fee}"
-                    class="w-full bg-white/5 hover:bg-white text-white hover:text-black border border-white/10 hover:border-white py-2.5 rounded-lg text-xs font-bold uppercase tracking-widest transition-all">
-              Start Mission
-            </button>
           </div>
+          <h3 class="text-base font-bold text-white mb-1.5 leading-snug">${esc(t.title)}</h3>
+          <p class="text-xs leading-relaxed mb-4 flex-grow line-clamp-3" style="color:var(--dc-ink-400)">${esc(t.description || '')}</p>
+          <div class="flex items-center justify-between mb-3 py-2 px-3 rounded-lg" style="background:rgba(0,0,0,.2); border:1px solid rgba(255,255,255,.04)">
+            <div>
+              <p class="text-[9px] font-bold" style="color:var(--dc-ink-500)">Entry</p>
+              <p class="text-sm font-bold text-white"><i class="fa-solid fa-coins text-[9px] mr-1" style="color:var(--dc-gold)"></i>${fee.toLocaleString()}</p>
+            </div>
+            <i class="fa-solid fa-arrow-right text-[9px]" style="color:var(--dc-ink-600)"></i>
+            <div class="text-right">
+              <p class="text-[9px] font-bold" style="color:var(--dc-gold)">Reward</p>
+              <p class="text-lg font-bold font-mono" style="color:var(--dc-gold-400)">${reward.toLocaleString()}</p>
+            </div>
+          </div>
+          <button type="button" data-enroll-contract="${esc(t.id)}" data-fee="${fee}"
+                  class="w-full py-2 rounded-lg text-xs font-bold transition-all" style="background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08); color:var(--dc-ink-200)">
+            Start Mission
+          </button>
         </div>`;
     }).join('');
   }
@@ -703,55 +684,42 @@
       const isOwnBounty = team && b.issuer_team_id && String(b.issuer_team_id) === String(team.id);
       const canHunt = canIssueSelectedTeam() && !closed && b.is_claimable && !isOwnBounty;
       const btnState = canHunt ? '' : 'disabled';
-      const btnClass = canHunt ? 'bg-dc-neon hover:bg-red-600 text-white shadow-[0_0_20px_rgba(255,0,85,0.3)]' : 'bg-black/40 border border-white/5 text-gray-600 cursor-not-allowed';
-      const btnText = canHunt ? 'Claim Bounty' : (isOwnBounty ? '<i class="fa-solid fa-shield-halved mr-1"></i> Your Bounty' : (selectedTeam() ? '<i class="fa-solid fa-lock mr-1"></i> Captain Only' : '<i class="fa-solid fa-lock mr-1"></i> Team Reqd'));
+      const btnStyle = canHunt
+        ? 'background:rgba(191,56,104,.12); border:1px solid rgba(191,56,104,.3); color:#E2557F'
+        : 'background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.06); color:#475569; cursor:not-allowed';
+      const btnText = canHunt ? 'Claim Bounty' : (isOwnBounty ? '<i class="fa-solid fa-shield-halved mr-1 text-[9px]"></i>Yours' : (selectedTeam() ? '<i class="fa-solid fa-lock mr-1 text-[9px]"></i>Locked' : '<i class="fa-solid fa-lock mr-1 text-[9px]"></i>Team Reqd'));
       const teamLogo = cleanBountyLogoUrl(b.issuer_team_logo_url);
       const teamInitials = esc((b.issuer_team_name || '?').slice(0, 2).toUpperCase());
-      const avatarHtml = teamLogo
-        ? `<img src="${esc(teamLogo)}" alt="${esc(b.issuer_team_name || 'Team')}" data-bounty-logo class="block"><span class="hidden">${teamInitials}</span>`
-        : `<span>${teamInitials}</span>`;
       return `
-        <div class="glass-heavy accent-neon rounded-2xl p-6 relative overflow-hidden group fade-enter border border-white/5 transition-all">
-          <div class="absolute inset-0 bg-gradient-to-r from-dc-neon/10 to-transparent z-0 opacity-40"></div>
-          <div class="relative z-10 flex flex-col md:flex-row gap-8 items-center">
-            <div class="flex-shrink-0 text-center">
-              <div class="relative inline-block mb-3">
-                <div class="absolute inset-[-6px] bg-dc-neon blur-[26px] opacity-20 rounded-[2.25rem]"></div>
-                <div class="bounty-team-mark relative z-10 overflow-hidden ${teamLogo ? '' : 'is-fallback'}" data-has-logo="${teamLogo ? 'true' : 'false'}">
-                  ${avatarHtml}
-                </div>
-              </div>
-              <div class="mb-2 flex justify-center">
-                <span class="inline-flex items-center gap-1.5 rounded-full border border-dc-neon/35 bg-dc-neon/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-dc-neon">
-                  <i class="fa-solid fa-crosshairs text-[9px]"></i> Bounty
-                </span>
-              </div>
-              <h3 class="font-bold text-2xl text-white">${esc(b.issuer_team_name || 'Team')}</h3>
-              <p class="text-xs font-bold text-dc-cyan uppercase tracking-widest mt-1">${esc(b.game_short_code || '')}</p>
+        <div class="rounded-xl p-4 fade-enter" style="border:1px solid rgba(191,56,104,.12); background:rgba(255,255,255,.02); transition:border-color .15s">
+          <div class="flex items-start gap-4 mb-3">
+            <div class="flex-shrink-0 w-12 h-12 rounded-lg flex items-center justify-center overflow-hidden" style="background:rgba(191,56,104,.08); border:1px solid rgba(191,56,104,.18)">
+              ${teamLogo ? `<img src="${esc(teamLogo)}" alt="${esc(b.issuer_team_name || 'Team')}" data-bounty-logo class="w-full h-full object-cover"><span class="hidden text-sm font-bold" style="color:var(--dc-rose-display)">${teamInitials}</span>` : `<span class="text-sm font-bold" style="color:var(--dc-rose-display)">${teamInitials}</span>`}
             </div>
-            <div class="flex-grow w-full bg-black/60 rounded-2xl p-6 border border-white/5 relative">
-              <i class="fa-solid fa-quote-left absolute top-5 left-5 text-4xl text-white/5"></i>
-              <p class="text-base text-gray-300 italic mb-6 relative z-10 pl-8 border-l-2 border-dc-neon/50 leading-relaxed font-medium">"${esc(b.title || 'Beat us.')}"</p>
-              ${closureHtml(b)}
-              <div class="flex flex-col sm:flex-row items-center justify-between gap-5 border-t border-white/10 pt-5 mt-2">
-                <div class="flex gap-8">
-                  <div>
-                    <p class="text-[10px] uppercase font-bold text-gray-500 tracking-widest mb-1">Challenger Entry</p>
-                    <p class="font-bold text-white text-lg"><i class="fa-solid fa-coins text-dc-gold text-sm mr-1"></i> ${entry.toLocaleString()} DC</p>
-                  </div>
-                  <div>
-                    <p class="text-[10px] uppercase font-black text-dc-neon tracking-widest mb-1">Bounty Reward</p>
-                    <p class="font-display font-black text-3xl text-white leading-none drop-shadow-[0_0_15px_rgba(255,0,85,0.5)]">
-                      <i class="fa-solid fa-coins text-dc-gold text-xl mr-1"></i> ${reward.toLocaleString()}
-                    </p>
-                  </div>
-                </div>
-                <button ${btnState} data-hunt-bounty="${esc(b.id)}" data-fee="${entry}"
-                        class="w-full sm:w-auto ${btnClass} px-10 py-3.5 rounded-xl font-bold text-sm uppercase tracking-widest transition-all">
-                  ${btnText}
-                </button>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2 mb-1">
+                <p class="text-sm font-bold text-white truncate">${esc(b.issuer_team_name || 'Team')}</p>
+                <span class="text-[9px] font-bold px-1.5 py-0.5 rounded flex-shrink-0" style="background:rgba(191,56,104,.1); color:var(--dc-rose-display); border:1px solid rgba(191,56,104,.2)">Bounty</span>
+              </div>
+              <p class="text-xs" style="color:var(--dc-ink-400)">${esc(b.game_short_code || '')}${b.game_short_code ? ' · ' : ''}"${esc(b.title || 'Beat us.')}"</p>
+            </div>
+          </div>
+          ${closureHtml(b)}
+          <div class="flex items-center justify-between gap-3 pt-3" style="border-top:1px solid rgba(255,255,255,.05)">
+            <div class="flex items-center gap-4">
+              <div>
+                <p class="text-[9px] font-bold" style="color:var(--dc-ink-500)">Entry</p>
+                <p class="text-sm font-bold text-white">${entry.toLocaleString()} DC</p>
+              </div>
+              <div>
+                <p class="text-[9px] font-bold" style="color:var(--dc-rose-display)">Reward</p>
+                <p class="text-lg font-bold font-mono" style="color:var(--dc-gold-400)"><i class="fa-solid fa-coins text-[10px] mr-1" style="color:var(--dc-gold)"></i>${reward.toLocaleString()}</p>
               </div>
             </div>
+            <button ${btnState} data-hunt-bounty="${esc(b.id)}" data-fee="${entry}"
+                    class="rounded-lg px-4 py-2 text-xs font-bold transition-all flex-shrink-0" style="${btnStyle}">
+              ${btnText}
+            </button>
           </div>
         </div>`;
     }).join('');
@@ -764,7 +732,7 @@
       feed.innerHTML = `<div class="col-span-full">${emptyState({ icon: 'fa-crown', title: 'No Lobbies Scheduled', sub: 'Custom rooms drop on the schedule. Check back soon.' })}</div>`;
       return;
     }
-    feed.innerHTML = list.map((l, idx) => {
+    feed.innerHTML = list.map((l) => {
       const fee = Number(l.entry_fee_per_slot_dc || 0);
       const max = Number(l.max_slots || 0);
       const taken = Number(l.reserved_slots || 0);
@@ -773,94 +741,61 @@
       const sched = l.scheduled_at ? new Date(l.scheduled_at) : null;
       const schedText = sched ? sched.toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
       const fillPct = max ? Math.min(100, Math.round((taken / max) * 100)) : 0;
-      const splits = (l.prize_distribution && l.prize_distribution.splits) || {};
-      const mode = (l.prize_distribution && l.prize_distribution.mode) || 'PERCENT';
       const lobbyUrl = `/dashboard/competitive/dropzone/lobbies/${esc(l.id)}/`;
       const status = String(l.status || '').toUpperCase();
       const phase = status.includes('SETTLED') || status.includes('SCORED') ? 5 : status.includes('SCOR') || status.includes('LIVE') ? 4 : status.includes('READY') || status.includes('REVEAL') ? 3 : taken > 0 ? 2 : 1;
-      const featured = idx === 0 || fillPct >= 70;
-      const splitChips = Object.keys(splits).sort((a, b) => +a - +b).slice(0, 5).map((k) =>
-        `<span class="font-mono text-[10px] text-dc-gold">#${esc(k)}: ${esc(splits[k])}${mode === 'PERCENT' ? '%' : ' DC'}</span>`
-      ).join('<span class="text-gray-700">&middot;</span>');
       const canReserve = !closed && remaining > 0;
       const urgency = canReserve && remaining <= Math.max(3, Math.ceil(max * 0.12));
+      const reserveStyle = canReserve
+        ? 'background:rgba(207,167,90,.12); border:1px solid rgba(207,167,90,.3); color:#E2C588'
+        : 'background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.06); color:#475569; cursor:not-allowed';
       return `
-        <div class="glass-heavy accent-gold rounded-3xl p-5 md:p-6 relative overflow-hidden group fade-enter border border-white/5 transition-all ${featured ? 'md:col-span-2' : ''}">
-          <div class="absolute inset-0 opacity-60 pointer-events-none" style="background: linear-gradient(135deg, rgba(255,215,0,.10), transparent 38%), radial-gradient(circle at 86% 18%, rgba(0,229,255,.08), transparent 32%);"></div>
-          <div class="relative z-10 grid ${featured ? 'lg:grid-cols-[1.15fr_.85fr]' : 'grid-cols-1'} gap-5">
-            <div>
-              <div class="flex items-start justify-between gap-3 mb-4">
-                <div>
-                  <div class="flex items-center gap-2 mb-2">
-                    <span class="px-2.5 py-1 rounded-full bg-dc-gold/15 border border-dc-gold/30 text-dc-gold text-[9px] font-black uppercase tracking-widest">${esc(l.game_short_code || 'DROPZONE')}</span>
-                    ${featured ? '<span class="px-2.5 py-1 rounded-full bg-dc-cyan/10 border border-dc-cyan/25 text-dc-cyan text-[9px] font-black uppercase tracking-widest">Featured Lobby</span>' : ''}
-                    ${urgency ? '<span class="px-2.5 py-1 rounded-full bg-dc-neon/10 border border-dc-neon/25 text-dc-neon text-[9px] font-black uppercase tracking-widest">Filling Fast</span>' : ''}
-                  </div>
-                  <h3 class="font-display font-black text-white text-3xl leading-tight">${esc(l.title)}</h3>
-                </div>
-                <span class="px-2 py-1 rounded bg-white/5 border border-white/10 text-[9px] font-bold uppercase tracking-widest text-gray-300">${esc(l.status_display || l.status)}</span>
+        <div class="rounded-xl p-4 fade-enter" style="border:1px solid rgba(207,167,90,.12); background:rgba(255,255,255,.02); transition:border-color .15s">
+          <div class="flex items-start justify-between gap-3 mb-3">
+            <div class="min-w-0">
+              <div class="flex items-center gap-2 mb-1.5 flex-wrap">
+                <span class="text-[9px] font-bold px-2 py-0.5 rounded" style="background:rgba(207,167,90,.1); color:var(--dc-gold-400); border:1px solid rgba(207,167,90,.2)">${esc(l.game_short_code || 'DROP')}</span>
+                ${urgency ? '<span class="text-[9px] font-bold px-2 py-0.5 rounded" style="background:rgba(191,56,104,.08); color:var(--dc-rose-display); border:1px solid rgba(191,56,104,.15)">Filling</span>' : ''}
+                <span class="text-[9px] font-bold px-2 py-0.5 rounded" style="background:rgba(255,255,255,.03); color:var(--dc-ink-400); border:1px solid rgba(255,255,255,.06)">${esc(l.status_display || l.status)}</span>
               </div>
-            ${closureHtml(l)}
-              ${closed ? '' : (sched ? `<p class="text-xs text-gray-400 mb-4 font-mono"><i class="fa-solid fa-clock text-dc-cyan mr-1"></i> ${esc(schedText)}</p>` : '')}
-              <div class="status-rail text-dc-gold mb-4" aria-label="Dropzone lifecycle">
-                ${[1, 2, 3, 4, 5].map((i) => `<span class="${i <= phase ? 'is-on' : ''}"></span>`).join('')}
-              </div>
-              <div class="grid grid-cols-3 gap-2 mb-4">
-                <div class="rounded-2xl border border-white/[0.08] bg-black/30 p-3">
-                  <p class="text-[9px] uppercase tracking-widest text-gray-500 font-black">Slots</p>
-                  <p class="font-display text-2xl font-black text-white">${taken}<span class="text-sm text-gray-500">/${max}</span></p>
-                </div>
-                <div class="rounded-2xl border border-white/[0.08] bg-black/30 p-3">
-                  <p class="text-[9px] uppercase tracking-widest text-gray-500 font-black">Left</p>
-                  <p class="font-display text-2xl font-black text-dc-cyan">${remaining}</p>
-                </div>
-                <div class="rounded-2xl border border-dc-gold/20 bg-dc-gold/10 p-3">
-                  <p class="text-[9px] uppercase tracking-widest text-dc-gold/70 font-black">Entry</p>
-                  <p class="font-display text-2xl font-black text-dc-gold">${fee}</p>
-                </div>
-              </div>
-              <div class="mb-4">
-                <div class="flex items-center justify-between text-[10px] font-mono text-gray-500 mb-1.5">
-                  <span>Capacity</span>
-                  <span>${fillPct}% filled</span>
-                </div>
-                <div class="h-2 rounded-full bg-white/[0.06] overflow-hidden">
-                  <div class="h-full" style="width: ${fillPct}%; background: linear-gradient(90deg, #00e5ff, #ffd700); box-shadow: 0 0 12px rgba(255,215,0,.55)"></div>
-                </div>
-              </div>
-              <div class="flex items-center gap-2 flex-wrap">
-                ${splitChips ? `<div class="flex items-center gap-1.5 flex-wrap">${splitChips}</div>` : '<span class="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Reward distribution pending</span>'}
-              </div>
+              <h3 class="text-base font-bold text-white leading-snug">${esc(l.title)}</h3>
             </div>
-            <div class="flex flex-col justify-between rounded-3xl border border-white/[0.08] bg-black/35 p-4">
-              <div>
-                <p class="text-[10px] uppercase tracking-widest text-gray-500 font-black mb-2">Room Reveal</p>
-                <p class="text-sm text-gray-300 leading-relaxed">${status.includes('LIVE') || status.includes('READY') ? 'Room details may be available to reserved entrants on the detail page.' : 'Room credentials stay hidden until the configured reveal window.'}</p>
-                <div class="mt-4 grid grid-cols-2 gap-2">
-                  <div class="rounded-2xl border border-white/[0.08] bg-black/30 p-3">
-                    <p class="text-[9px] uppercase tracking-widest text-gray-500 font-black">Queue State</p>
-                    <p class="mt-1 text-xs font-black uppercase ${urgency ? 'text-dc-neon' : 'text-dc-cyan'}">${urgency ? 'Filling Fast' : (canReserve ? 'Open' : 'Closed')}</p>
-                  </div>
-                  <div class="rounded-2xl border border-white/[0.08] bg-black/30 p-3">
-                    <p class="text-[9px] uppercase tracking-widest text-gray-500 font-black">Launch</p>
-                    <p class="mt-1 text-xs font-black text-white">${schedText ? esc(schedText) : 'TBA'}</p>
-                  </div>
-                </div>
-                <div class="mt-4 rounded-2xl border border-white/[0.08] bg-white/[0.03] p-3">
-                  <p class="text-[10px] uppercase tracking-widest text-gray-500 font-black">Results Preview</p>
-                  <p class="text-xs text-gray-400 mt-1">${phase >= 4 ? 'Scoring/review is in progress or complete. Open lobby details for standings.' : 'Leaderboard appears after scoring starts.'}</p>
-                </div>
-              </div>
-              <div class="grid grid-cols-1 gap-2 mt-5">
-                <a href="${lobbyUrl}" class="inline-flex items-center justify-center rounded-xl border border-dc-gold/25 bg-dc-gold/10 px-3 py-3 text-xs font-black uppercase tracking-widest text-dc-gold hover:bg-dc-gold/20">
-                  View Lobby
-                </a>
-                <button ${canReserve ? '' : 'disabled'} data-reserve-royale="${esc(l.id)}" data-fee="${fee}"
-                        class="btn-cyber w-full bg-dc-gold hover:bg-yellow-400 text-black font-black uppercase tracking-widest py-3 transition-all ${canReserve ? '' : 'opacity-50 cursor-not-allowed'}">
-                  Reserve Slot
-                </button>
-              </div>
+          </div>
+          ${closureHtml(l)}
+          ${closed ? '' : (schedText ? `<p class="text-xs mb-3 font-mono" style="color:var(--dc-ink-400)"><i class="fa-solid fa-clock text-[10px] mr-1" style="color:var(--dc-azure)"></i>${esc(schedText)}</p>` : '')}
+          <div class="status-rail mb-3" style="color:var(--dc-gold)" aria-label="Lifecycle">
+            ${[1, 2, 3, 4, 5].map((i) => `<span class="${i <= phase ? 'is-on' : ''}"></span>`).join('')}
+          </div>
+          <div class="flex items-center gap-3 mb-3">
+            <div class="flex-1 py-2 px-3 rounded-lg text-center" style="background:rgba(0,0,0,.2); border:1px solid rgba(255,255,255,.05)">
+              <p class="text-[9px] font-bold" style="color:var(--dc-ink-500)">Slots</p>
+              <p class="text-lg font-bold font-mono text-white">${taken}<span class="text-xs" style="color:var(--dc-ink-500)">/${max}</span></p>
             </div>
+            <div class="flex-1 py-2 px-3 rounded-lg text-center" style="background:rgba(0,0,0,.2); border:1px solid rgba(255,255,255,.05)">
+              <p class="text-[9px] font-bold" style="color:var(--dc-ink-500)">Left</p>
+              <p class="text-lg font-bold font-mono" style="color:var(--dc-azure)">${remaining}</p>
+            </div>
+            <div class="flex-1 py-2 px-3 rounded-lg text-center" style="background:rgba(207,167,90,.06); border:1px solid rgba(207,167,90,.12)">
+              <p class="text-[9px] font-bold" style="color:var(--dc-gold)">Entry</p>
+              <p class="text-lg font-bold font-mono" style="color:var(--dc-gold-400)">${fee}</p>
+            </div>
+          </div>
+          <div class="mb-3">
+            <div class="flex items-center justify-between text-[10px] font-mono mb-1" style="color:var(--dc-ink-500)">
+              <span>Capacity</span><span>${fillPct}%</span>
+            </div>
+            <div class="h-1.5 rounded-full overflow-hidden" style="background:rgba(255,255,255,.05)">
+              <div class="h-full rounded-full" style="width:${fillPct}%; background:linear-gradient(90deg, var(--dc-azure), var(--dc-gold))"></div>
+            </div>
+          </div>
+          <div class="flex gap-2">
+            <a href="${lobbyUrl}" class="flex-1 text-center rounded-lg py-2 text-xs font-bold transition-all" style="background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08); color:var(--dc-ink-200)">
+              View Lobby
+            </a>
+            <button ${canReserve ? '' : 'disabled'} data-reserve-royale="${esc(l.id)}" data-fee="${fee}"
+                    class="flex-1 rounded-lg py-2 text-xs font-bold transition-all" style="${reserveStyle}">
+              Reserve Slot
+            </button>
           </div>
         </div>`;
     }).join('');
@@ -1126,46 +1061,47 @@
     const lobbyDetailUrl = op.lobby_detail_url || '';
     const reviewLabel = op.review_state_label || '';
     const progress = operationProgressIndex(op);
-    const pad = compact ? 'p-3' : 'p-5';
-    const titleSize = compact ? 'text-xs' : 'text-base';
+    const pad = compact ? 'padding:10px' : 'padding:14px';
+    const titleSize = compact ? 'text-xs' : 'text-sm';
+    const actionBtnStyle = op.is_action_required
+      ? 'background:rgba(10,132,255,.1); border:1px solid rgba(10,132,255,.25); color:#3FA3FF'
+      : 'background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.06); color:var(--dc-ink-300)';
     return `
-      <div class="premium-card rounded-2xl ${pad} transition-all group relative overflow-hidden hover:-translate-y-0.5">
-        <div class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
-        <div class="flex items-start justify-between gap-3 mb-3">
+      <div class="rounded-xl transition-all" style="${pad}; border:1px solid rgba(255,255,255,.06); background:rgba(255,255,255,.02)">
+        <div class="flex items-start justify-between gap-2 mb-2">
           <div class="min-w-0">
-            <div class="flex items-center gap-2 mb-1">
-              <span class="w-2 h-2 rounded-full ${typeMeta.dot} ${op.is_action_required ? 'animate-pulse' : ''}"></span>
-              <span class="text-[9px] font-black uppercase tracking-widest ${typeMeta.text}">${typeMeta.label}</span>
-              ${isTeamOp(op) ? '<span class="text-[9px] px-2 py-0.5 rounded-full border border-emerald-400/20 bg-emerald-400/10 text-emerald-300 font-black uppercase tracking-widest">Team Ops</span>' : ''}
+            <div class="flex items-center gap-1.5 mb-1">
+              <span class="w-1.5 h-1.5 rounded-full ${typeMeta.dot} ${op.is_action_required ? 'animate-pulse' : ''}"></span>
+              <span class="text-[9px] font-bold uppercase tracking-wide ${typeMeta.text}">${typeMeta.label}</span>
             </div>
             <p class="${titleSize} font-bold text-white truncate">${esc(op.title || typeMeta.label)}</p>
           </div>
-          <span class="dcx-chip ${operationStatusClass(op)} shrink-0">${esc(op.status || 'READY')}</span>
+          <span class="text-[8px] font-bold px-1.5 py-0.5 rounded flex-shrink-0" style="background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.06); color:var(--dc-ink-400)">${esc(op.status || 'READY')}</span>
         </div>
-        <div class="status-rail ${typeMeta.text} mb-3" aria-hidden="true">
+        <div class="status-rail ${typeMeta.text} mb-2" aria-hidden="true">
           ${[1, 2, 3, 4, 5].map((i) => `<span class="${i <= progress ? 'is-on' : ''}"></span>`).join('')}
         </div>
-        <div class="flex items-center gap-2 flex-wrap text-[10px] font-mono text-gray-500 mb-3">
+        <div class="flex items-center gap-1.5 flex-wrap text-[9px] font-mono mb-2" style="color:var(--dc-ink-500)">
           <span>${esc(game)}</span>
-          ${op.team_name ? `<span class="text-gray-700">&middot;</span><span>${esc(op.team_name)}</span>` : ''}
-          ${scheduledText ? `<span class="text-gray-700">&middot;</span><span>${esc(scheduledText)}</span>` : ''}
-          ${fee ? `<span class="text-gray-700">&middot;</span><span>${fee.toLocaleString()} DC entry</span>` : ''}
-          ${reward ? `<span class="text-gray-700">&middot;</span><span class="text-dc-gold">${esc(reward)}</span>` : ''}
+          ${op.team_name ? `<span>·</span><span>${esc(op.team_name)}</span>` : ''}
+          ${scheduledText ? `<span>·</span><span>${esc(scheduledText)}</span>` : ''}
+          ${fee ? `<span>·</span><span>${fee.toLocaleString()} DC</span>` : ''}
+          ${reward ? `<span>·</span><span style="color:var(--dc-gold-400)">${esc(reward)}</span>` : ''}
         </div>
-        ${reviewLabel ? `<div class="mb-3 rounded-xl border border-white/5 bg-white/[0.035] px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-gray-400">${esc(reviewLabel)}</div>` : ''}
+        ${reviewLabel ? `<div class="mb-2 rounded-lg px-2.5 py-1.5 text-[9px] font-bold" style="background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.05); color:var(--dc-ink-400)">${esc(reviewLabel)}</div>` : ''}
         ${isPrimarySubmit ? `
-          <button type="button" data-submit-showdown-result="${esc(op.id)}" class="interactive-lift inline-flex items-center justify-center gap-2 w-full rounded-xl border px-3 py-2.5 text-[10px] font-black uppercase tracking-widest ${actionClass}">
-            <i class="fa-solid fa-flag-checkered"></i> Submit Result
+          <button type="button" data-submit-showdown-result="${esc(op.id)}" class="flex items-center justify-center gap-1.5 w-full rounded-lg px-3 py-2 text-[10px] font-bold transition-all" style="${actionBtnStyle}">
+            <i class="fa-solid fa-flag-checkered text-[9px]"></i> Submit Result
           </button>
         ` : `
-          <a href="${esc(actionUrl)}" class="interactive-lift inline-flex items-center justify-center gap-2 w-full rounded-xl border px-3 py-2.5 text-[10px] font-black uppercase tracking-widest ${actionClass}">
-            ${op.is_action_required ? '<i class="fa-solid fa-bolt"></i>' : '<i class="fa-solid fa-arrow-right"></i>'}
+          <a href="${esc(actionUrl)}" class="flex items-center justify-center gap-1.5 w-full rounded-lg px-3 py-2 text-[10px] font-bold transition-all" style="${actionBtnStyle}">
+            <i class="fa-solid ${op.is_action_required ? 'fa-bolt' : 'fa-arrow-right'} text-[9px]"></i>
             ${esc(op.next_action_label || 'View Details')}
           </a>
         `}
-        ${showDetailLink ? `<a href="${esc(detailUrl)}" class="mt-2 inline-flex items-center justify-center gap-2 w-full rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-[10px] font-black uppercase tracking-widest text-gray-300 hover:text-white hover:border-dc-cyan/30"><i class="fa-solid fa-list-check"></i> View Detail Timeline</a>` : ''}
-        ${lobbyDetailUrl ? `<a href="${esc(lobbyDetailUrl)}" class="mt-2 inline-flex items-center justify-center gap-2 w-full rounded-xl border border-dc-gold/20 bg-dc-gold/10 px-3 py-2 text-[10px] font-black uppercase tracking-widest text-dc-gold hover:bg-dc-gold/20"><i class="fa-solid fa-map-location-dot"></i> View Lobby</a>` : ''}
-        ${canSecondarySubmit ? `<button type="button" data-submit-showdown-result="${esc(op.id)}" class="inline-flex items-center justify-center gap-2 w-full rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 mt-2 text-[10px] font-black uppercase tracking-widest text-gray-300 hover:text-white hover:border-dc-cyan/30"><i class="fa-solid fa-flag-checkered"></i> Submit Result</button>` : ''}
+        ${showDetailLink ? `<a href="${esc(detailUrl)}" class="mt-1.5 flex items-center justify-center gap-1.5 w-full rounded-lg px-3 py-1.5 text-[9px] font-bold transition-all" style="background:rgba(255,255,255,.02); border:1px solid rgba(255,255,255,.05); color:var(--dc-ink-300)"><i class="fa-solid fa-list-check text-[8px]"></i> Timeline</a>` : ''}
+        ${lobbyDetailUrl ? `<a href="${esc(lobbyDetailUrl)}" class="mt-1.5 flex items-center justify-center gap-1.5 w-full rounded-lg px-3 py-1.5 text-[9px] font-bold transition-all" style="background:rgba(207,167,90,.06); border:1px solid rgba(207,167,90,.12); color:var(--dc-gold-400)"><i class="fa-solid fa-map-location-dot text-[8px]"></i> Lobby</a>` : ''}
+        ${canSecondarySubmit ? `<button type="button" data-submit-showdown-result="${esc(op.id)}" class="mt-1.5 flex items-center justify-center gap-1.5 w-full rounded-lg px-3 py-1.5 text-[9px] font-bold transition-all" style="background:rgba(255,255,255,.02); border:1px solid rgba(255,255,255,.05); color:var(--dc-ink-300)"><i class="fa-solid fa-flag-checkered text-[8px]"></i> Submit Result</button>` : ''}
       </div>`;
   }
 
