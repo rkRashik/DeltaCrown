@@ -11,6 +11,212 @@
 
 {% block tournament_css %}
 <style>
+    /* ===== MOBILE NATIVE APP FEED ===== */
+    .dc-tourn-mobile { display: none; }
+    @media (max-width: 1023px) {
+        .dc-tourn-desktop { display: none !important; }
+        .dc-tourn-mobile  { display: block; }
+    }
+
+    .dc-tourn-mobile {
+        min-height: 100vh;
+        width: 100%;
+        background: radial-gradient(120% 80% at 50% 0%, #15171e 0%, #0c0d11 60%, #08090c 100%);
+        font-family: 'Inter', system-ui, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        padding-bottom: 32px;
+    }
+    .dc-tourn-mobile *, .dc-tourn-mobile *::before, .dc-tourn-mobile *::after { box-sizing: border-box; }
+    .dc-tourn-mobile a { text-decoration: none; color: inherit; }
+    .dc-tourn-mobile img { display: block; }
+
+    /* Scrollbar hide */
+    .tm-hscroll::-webkit-scrollbar { display: none; }
+    .tm-hscroll { scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+
+    /* Tap effect */
+    .tm-tap { transition: transform 120ms cubic-bezier(0.34,1.56,0.64,1); -webkit-tap-highlight-color: transparent; }
+    .tm-tap:active { transform: scale(0.97); }
+
+    /* Pulse animation for live dots */
+    @keyframes tm-pulse { 0%,100%{ transform:scale(1); opacity:1; } 50%{ transform:scale(1.5); opacity:.5; } }
+
+    /* Mobile sticky header */
+    .tm-header {
+        position: sticky; top: 0; z-index: 40;
+        backdrop-filter: blur(28px) saturate(180%);
+        -webkit-backdrop-filter: blur(28px) saturate(180%);
+        background: rgba(10,13,20,0.72);
+        border-bottom: 1px solid rgba(255,255,255,0.05);
+        padding: 12px 16px 14px;
+    }
+    .tm-header-row {
+        display: flex; align-items: center; justify-content: space-between;
+    }
+    .tm-header-title {
+        display: flex; align-items: center; gap: 8px;
+    }
+    .tm-header-title h1 {
+        font-family: 'Sora', sans-serif; font-weight: 800; font-size: 20px;
+        letter-spacing: -0.02em; color: #F4F6FA; margin: 0;
+    }
+    .tm-icon-btn {
+        width: 38px; height: 38px; border-radius: 999px; background: #232936;
+        display: flex; align-items: center; justify-content: center;
+        color: #F4F6FA; font-size: 19px; border: none; cursor: pointer;
+    }
+
+    /* Section heading */
+    .tm-section-head {
+        display: flex; align-items: baseline; justify-content: space-between;
+        padding: 0 16px; margin: 22px 0 11px;
+    }
+    .tm-section-head h2 {
+        font-family: 'Sora', sans-serif; font-weight: 700; font-size: 20px;
+        letter-spacing: -0.01em; color: #F4F6FA; margin: 0;
+    }
+    .tm-section-head .count {
+        font-family: 'JetBrains Mono', monospace; font-size: 13px;
+        font-weight: 600; color: #6B7385; margin-left: 8px;
+    }
+
+    /* Featured card */
+    .tm-featured-card {
+        flex: none; width: 300px; scroll-snap-align: start;
+        border-radius: 22px; overflow: hidden; position: relative;
+        background: #11151E; box-shadow: 0 0 0 1px rgba(255,255,255,0.06);
+    }
+    .tm-featured-card .tm-fc-img {
+        position: relative; height: 186px; overflow: hidden;
+    }
+    .tm-featured-card .tm-fc-img img {
+        width: 100%; height: 100%; object-fit: cover;
+    }
+    .tm-featured-card .tm-fc-overlay {
+        position: absolute; inset: 0;
+        background: linear-gradient(180deg, rgba(4,6,10,0) 32%, rgba(4,6,10,0.92) 100%);
+    }
+
+    /* Tournament list card */
+    .tm-card {
+        padding: 13px; border-radius: 18px; background: #11151E;
+        box-shadow: 0 0 0 1px rgba(255,255,255,0.06);
+    }
+    .tm-card-body { display: flex; gap: 12px; }
+    .tm-card-thumb {
+        position: relative; width: 66px; height: 66px;
+        border-radius: 14px; overflow: hidden; flex: none;
+    }
+    .tm-card-thumb img { width: 100%; height: 100%; object-fit: cover; }
+    .tm-card-thumb .tm-thumb-overlay {
+        position: absolute; inset: 0;
+        background: linear-gradient(180deg, rgba(0,0,0,0) 40%, rgba(0,0,0,0.5));
+    }
+    .tm-card-thumb .tm-game-badge {
+        position: absolute; bottom: 5px; left: 5px;
+        width: 16px; height: 16px; border-radius: 4px; object-fit: cover;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.5);
+    }
+
+    /* Status badge */
+    .tm-badge {
+        display: inline-flex; align-items: center; gap: 5px;
+        padding: 4px 9px; border-radius: 999px;
+        font-size: 9.5px; font-weight: 700; letter-spacing: 0.04em;
+    }
+    .tm-badge-live { background: rgba(255,59,92,0.14); color: #FF6076; }
+    .tm-badge-open { background: rgba(46,204,113,0.14); color: #2ECC71; }
+    .tm-badge-soon { background: rgba(62,167,255,0.14); color: #3EA7FF; }
+    .tm-badge-closed { background: rgba(255,176,32,0.16); color: #FFB020; }
+    .tm-badge-done { background: rgba(148,163,184,0.14); color: #94A3B8; }
+
+    /* Slots progress bar */
+    .tm-slots-bar { height: 5px; border-radius: 999px; background: #1c212b; overflow: hidden; }
+    .tm-slots-fill { height: 100%; border-radius: 999px; }
+
+    /* CTA buttons */
+    .tm-cta {
+        height: 38px; padding: 0 16px; border-radius: 12px;
+        font-size: 13.5px; font-weight: 600;
+        display: inline-flex; align-items: center; gap: 7px;
+        border: none; cursor: pointer;
+    }
+    .tm-cta-azure { color: #fff; background: linear-gradient(180deg,#2997FF,#0A84FF); box-shadow: 0 8px 18px -10px rgba(10,132,255,0.7); }
+    .tm-cta-ghost { color: #F4F6FA; background: rgba(255,255,255,0.06); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); }
+    .tm-cta-green { color: #2ECC71; background: rgba(46,204,113,0.13); box-shadow: inset 0 0 0 1px rgba(46,204,113,0.3); }
+    .tm-cta-gold { color: #2A1F08; background: linear-gradient(180deg,#E2C588,#CFA75A); box-shadow: 0 8px 18px -10px rgba(207,167,90,0.6); }
+    .tm-cta-violet { color: #B8A6F2; background: rgba(132,112,238,0.16); box-shadow: inset 0 0 0 1px rgba(132,112,238,0.26); }
+
+    /* Filter chips */
+    .tm-chip {
+        flex: none; height: 34px; padding: 0 15px; border-radius: 999px;
+        font-size: 13px; font-weight: 600; white-space: nowrap;
+        background: #181D27; color: #A9B1C2;
+        box-shadow: inset 0 0 0 1px rgba(255,255,255,0.07);
+        border: none; cursor: pointer; transition: all 140ms ease;
+    }
+    .tm-chip.active {
+        background: rgba(10,132,255,0.18); color: #FFFFFF;
+        box-shadow: inset 0 0 0 1px rgba(10,132,255,0.9);
+    }
+    .tm-game-chip {
+        flex: none; display: flex; align-items: center; gap: 7px;
+        height: 38px; padding: 0 14px; border-radius: 999px;
+        font-size: 13px; font-weight: 600; white-space: nowrap;
+        background: #181D27; color: #A9B1C2;
+        box-shadow: inset 0 0 0 1px rgba(255,255,255,0.07);
+        border: none; cursor: pointer; transition: all 140ms ease;
+    }
+    .tm-game-chip.active {
+        background: rgba(10,132,255,0.18); color: #FFFFFF;
+        box-shadow: inset 0 0 0 1px rgba(10,132,255,0.9);
+    }
+    .tm-game-chip img { width: 22px; height: 22px; border-radius: 7px; object-fit: cover; }
+
+    /* Winners card */
+    .tm-winners { margin: 0 16px; border-radius: 16px; background: #11151E; box-shadow: 0 0 0 1px rgba(255,255,255,0.06); overflow: hidden; }
+    .tm-winner-row { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+    .tm-winner-row:last-child { border-bottom: none; }
+
+    /* My tournaments horizontal scroll */
+    .tm-my-card {
+        flex: none; width: 260px; scroll-snap-align: start;
+        padding: 13px; border-radius: 18px; background: #11151E;
+        box-shadow: 0 0 0 1px rgba(255,255,255,0.06);
+    }
+
+    /* Empty state */
+    .tm-empty {
+        margin: 18px 16px 0; padding: 20px; border-radius: 22px;
+        background: #11151E; box-shadow: 0 0 0 1px rgba(255,255,255,0.06);
+        text-align: center;
+    }
+
+    /* Sign-in card */
+    .tm-signin-card {
+        margin: 18px 16px 0; padding: 18px 20px; border-radius: 22px;
+        position: relative; overflow: hidden;
+        background: linear-gradient(135deg, rgba(104,73,229,0.26), rgba(10,132,255,0.2) 65%, rgba(207,167,90,0.16));
+        box-shadow: 0 0 0 1px rgba(132,112,238,0.22);
+    }
+
+    /* Search/filter bottom sheet */
+    .tm-sheet-overlay {
+        position: fixed; inset: 0; z-index: 90;
+        background: rgba(0,0,0,0.55); backdrop-filter: blur(3px);
+        display: flex; align-items: flex-end;
+        animation: tm-fade 220ms ease;
+    }
+    .tm-sheet {
+        width: 100%; max-height: 80%; background: #11151E;
+        border-radius: 30px 30px 0 0; padding: 12px 16px 30px;
+        box-shadow: 0 -10px 40px rgba(0,0,0,0.5);
+        overflow-y: auto; animation: tm-sheet-up 340ms cubic-bezier(0.22,1,0.36,1);
+    }
+    @keyframes tm-fade { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes tm-sheet-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
+</style>
+<style>
     /* --- GLOBAL ESPORTS BACKGROUND --- */
     .esports-bg {
         background-color: #030406;
@@ -135,7 +341,15 @@
 {% endblock %}
 
 {% block tournament_content %}
-<div class="esports-bg min-h-screen select-none">
+{% comment %}
+  Mobile native app feed (≤1023px) — designed from Claude Design handoff.
+  Desktop view remains unchanged, just wrapped in .dc-tourn-desktop.
+{% endcomment %}
+<div class="dc-tourn-mobile">
+  {% include "tournaments/mobile/feed.html" %}
+</div>
+
+<div class="dc-tourn-desktop esports-bg min-h-screen select-none">
 
     {# ── Standardized Swipable Hero Carousel ── #}
     <div id="discovery-hero" tabindex="0" class="hero-container w-full h-[360px] md:h-[420px] bg-black focus:outline-none">

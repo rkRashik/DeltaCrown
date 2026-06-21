@@ -1,0 +1,401 @@
+{% load static humanize %}
+{% comment %}
+  Tournaments Mobile Native App Feed
+  Shown only on ≤1023px via .dc-tourn-mobile wrapper.
+  Design: Claude Design project "Tournaments Mobile.dc.html"
+{% endcomment %}
+
+{# ── Sticky Header ── #}
+<div class="tm-header">
+  <div class="tm-header-row">
+    <div class="tm-header-title">
+      <img src="{% static 'img/favicon/favicon-32x32.png' %}" alt="" style="height:22px;width:auto;">
+      <h1>Tournaments</h1>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <a href="?{% if current_game %}game={{ current_game }}{% endif %}{% if current_status %}&status={{ current_status }}{% endif %}" class="tm-icon-btn tm-tap" aria-label="Search">
+        <svg width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="9" r="6"/><path d="M14 14l4 4"/></svg>
+      </a>
+      <button class="tm-icon-btn tm-tap" id="tm-filter-btn" aria-label="Filters" type="button">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 5h12M5 9h8M7 13h4"/></svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+{# ── Featured Carousel ── #}
+{% if featured_tournaments %}
+<div class="tm-section-head" style="margin-top:16px;">
+  <h2>Featured</h2>
+</div>
+<div class="tm-hscroll" style="display:flex;gap:13px;overflow-x:auto;padding:0 16px 4px;scroll-snap-type:x mandatory;">
+  {% for t in featured_tournaments %}
+  <a href="{% url 'tournaments:detail' t.slug %}" class="tm-featured-card tm-tap">
+    <div class="tm-fc-img">
+      <img src="{% if t.banner_image %}{{ t.banner_image.url }}{% elif t.game.card_image %}{{ t.game.card_image.url }}{% elif t.game.banner %}{{ t.game.banner.url }}{% else %}https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=800&auto=format&fit=crop{% endif %}" alt="{{ t.name }}"
+           onerror="this.src='https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=800&auto=format&fit=crop'">
+      <div class="tm-fc-overlay"></div>
+      <div style="position:absolute;top:13px;left:13px;display:flex;gap:7px;align-items:center;">
+        <span class="tm-badge {% if t.effective_status == 'live' %}tm-badge-live{% elif t.effective_status == 'registration_open' %}tm-badge-open{% elif t.effective_status == 'published' %}tm-badge-soon{% else %}tm-badge-closed{% endif %}" style="backdrop-filter:blur(8px);">
+          {% if t.effective_status == 'live' %}<span style="width:6px;height:6px;border-radius:999px;background:#FF3B5C;animation:tm-pulse 1.4s ease-in-out infinite;"></span>{% endif %}
+          {% if t.effective_status == 'live' %}LIVE{% elif t.effective_status == 'registration_open' %}OPEN{% elif t.effective_status == 'published' %}SOON{% else %}CLOSED{% endif %}
+        </span>
+      </div>
+      <div style="position:absolute;left:14px;right:14px;bottom:13px;">
+        <div style="display:flex;align-items:center;gap:7px;">
+          {% if t.game.logo %}
+          <img src="{{ t.game.logo.url }}" style="width:18px;height:18px;border-radius:5px;object-fit:cover;" alt=""
+               onerror="this.style.display='none'">
+          {% endif %}
+          <span style="font-size:11px;font-weight:600;color:rgba(255,255,255,0.85);">{{ t.game.display_name }}</span>
+        </div>
+        <div style="font-family:'Sora',sans-serif;font-weight:800;font-size:19px;line-height:1.12;letter-spacing:-0.02em;color:#fff;margin-top:5px;">{{ t.name }}</div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;">
+      {% if t.prize_pool %}
+      <span style="display:flex;align-items:center;gap:6px;font-family:'JetBrains Mono',monospace;font-weight:700;font-size:15px;color:#CFA75A;">
+        <svg width="15" height="15" fill="#CFA75A" viewBox="0 0 256 256"><path d="M232,64H208V48a8,8,0,0,0-8-8H56a8,8,0,0,0-8,8V64H24A16,16,0,0,0,8,80V128a40,40,0,0,0,40,40h3.65A80.13,80.13,0,0,0,120,207.6V232H96a8,8,0,0,0,0,16h64a8,8,0,0,0,0-16H136V207.6A80.13,80.13,0,0,0,204.35,168H208a40,40,0,0,0,40-40V80A16,16,0,0,0,232,64ZM48,152a24,24,0,0,1-24-24V80H48v72Zm184-24a24,24,0,0,1-24,24V80h24Z"/></svg>
+        ৳{{ t.prize_pool|floatformat:0|intcomma }}
+      </span>
+      {% else %}
+      <span style="font-family:'JetBrains Mono',monospace;font-weight:700;font-size:13px;color:#6B7385;">TBA</span>
+      {% endif %}
+      <span style="display:flex;align-items:center;gap:6px;font-size:12px;color:#A9B1C2;">
+        <svg width="15" height="15" fill="none" stroke="#A9B1C2" stroke-width="2"><path d="M7.5 1C4.5 1 2 3 2 5.5S4.5 9 7.5 8c3 1 5.5-1 5.5-3S10.5 1 7.5 1z"/><circle cx="5" cy="5" r="1.5" fill="#A9B1C2"/><circle cx="10" cy="5" r="1.5" fill="#A9B1C2"/><circle cx="7.5" cy="9" r="1.5" fill="#A9B1C2"/></svg>
+        {{ t.max_participants }} slots
+      </span>
+    </div>
+  </a>
+  {% endfor %}
+</div>
+{% endif %}
+
+{# ── Status Filter Chips ── #}
+<div class="tm-hscroll" style="display:flex;gap:8px;overflow-x:auto;padding:18px 16px 2px;">
+  <a href="?{% if current_game %}game={{ current_game }}{% endif %}{% if current_search %}&search={{ current_search }}{% endif %}"
+     class="tm-chip{% if not current_status %} active{% endif %}" style="text-decoration:none;">All</a>
+  {% for opt in status_options %}
+  {% if opt.value %}
+  <a href="?status={{ opt.value }}{% if current_game %}&game={{ current_game }}{% endif %}{% if current_search %}&search={{ current_search }}{% endif %}"
+     class="tm-chip{% if current_status == opt.value %} active{% endif %}" style="text-decoration:none;">{{ opt.label }}</a>
+  {% endif %}
+  {% endfor %}
+</div>
+
+{# ── Game Filter Chips ── #}
+<div class="tm-hscroll" style="display:flex;gap:8px;overflow-x:auto;padding:10px 16px 2px;">
+  <a href="?{% if current_status %}status={{ current_status }}{% endif %}{% if current_search %}&search={{ current_search }}{% endif %}"
+     class="tm-game-chip{% if not current_game %} active{% endif %}" style="text-decoration:none;padding-left:14px;">All</a>
+  {% for game in games %}
+  <a href="?game={{ game.slug }}{% if current_status %}&status={{ current_status }}{% endif %}{% if current_search %}&search={{ current_search }}{% endif %}"
+     class="tm-game-chip{% if current_game == game.slug %} active{% endif %}" style="text-decoration:none;{% if game.icon %}padding-left:7px;{% else %}padding-left:14px;{% endif %}">
+    {% if game.icon %}<img src="{{ game.icon }}" alt="" onerror="this.style.display='none'">{% endif %}
+    {{ game.name }}
+  </a>
+  {% endfor %}
+</div>
+
+{# ── My Tournaments (authenticated users) ── #}
+{% if not user.is_authenticated %}
+<div class="tm-signin-card">
+  <div style="display:flex;align-items:center;gap:14px;">
+    <div style="width:46px;height:46px;border-radius:14px;background:rgba(255,255,255,0.12);display:flex;align-items:center;justify-content:center;color:#fff;font-size:24px;flex:none;">
+      <svg width="24" height="24" fill="currentColor" viewBox="0 0 256 256"><path d="M227.19,104.48A16,16,0,0,0,216,96H152V56a40,40,0,0,0-80,0V96H8a16,16,0,0,0-11.19,8.48,16,16,0,0,0,.72,14L60.88,218.07A16,16,0,0,0,75.26,228H180.74a16,16,0,0,0,14.38-9.93l63.35-99.59A16,16,0,0,0,227.19,104.48Z"/></svg>
+    </div>
+    <div style="flex:1;min-width:0;">
+      <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:16px;color:#fff;letter-spacing:-0.01em;">Sign in to compete</div>
+      <div style="font-size:13px;line-height:1.4;color:rgba(244,246,250,0.82);margin-top:2px;">Register, check in and track your brackets.</div>
+    </div>
+  </div>
+  <a href="/accounts/login/?next=/tournaments/" class="tm-tap" style="display:block;width:100%;height:44px;margin-top:14px;border-radius:13px;font-size:14px;font-weight:600;color:#04060A;background:#fff;text-align:center;line-height:44px;text-decoration:none;">Sign in</a>
+</div>
+{% elif my_tournaments_sidebar %}
+<div class="tm-section-head">
+  <h2>My Tournaments</h2>
+</div>
+<div class="tm-hscroll" style="display:flex;gap:12px;overflow-x:auto;padding:0 16px 4px;scroll-snap-type:x mandatory;">
+  {% for mt in my_tournaments_sidebar %}
+  <a href="{% if mt.status == 'live' %}{% url 'tournaments:tournament_hub' mt.slug %}{% else %}{% url 'tournaments:detail' mt.slug %}{% endif %}" class="tm-my-card tm-tap" style="text-decoration:none;">
+    <div style="display:flex;align-items:center;gap:11px;">
+      {% if mt.game_logo %}
+      <img src="{{ mt.game_logo }}" style="width:46px;height:46px;border-radius:12px;object-fit:cover;flex:none;" alt=""
+           onerror="this.style.display='none'">
+      {% else %}
+      <div style="width:46px;height:46px;border-radius:12px;background:#232936;display:flex;align-items:center;justify-content:center;flex:none;">
+        <svg width="20" height="20" fill="#6B7385" viewBox="0 0 256 256"><path d="M176,112H152a8,8,0,0,1,0-16h24a8,8,0,0,1,0,16Zm-72-16H80a8,8,0,0,0,0,16h24a8,8,0,0,0,0-16Zm136,40a88.1,88.1,0,0,1-176,0,87.39,87.39,0,0,1,2.34-20.2l-17-8.51A8,8,0,0,1,48,96V64A16,16,0,0,1,64,48H192a16,16,0,0,1,16,16V96a8,8,0,0,1-1.34,4.44l-17,8.51A87.39,87.39,0,0,1,240,136Z"/></svg>
+      </div>
+      {% endif %}
+      <div style="flex:1;min-width:0;">
+        <div style="font-weight:700;font-size:14.5px;color:#F4F6FA;letter-spacing:-0.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ mt.name }}</div>
+        <div style="display:flex;align-items:center;gap:6px;margin-top:3px;">
+          <span style="font-size:11.5px;color:#A9B1C2;">{{ mt.game_name }}</span>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:12px;">
+      <span class="tm-badge {% if mt.status == 'live' %}tm-badge-live{% elif mt.reg_status == 'confirmed' %}tm-badge-open{% elif mt.reg_status == 'pending' or mt.reg_status == 'payment_submitted' %}tm-badge-closed{% else %}tm-badge-soon{% endif %}">
+        {% if mt.status == 'live' %}<span style="width:6px;height:6px;border-radius:999px;background:currentColor;animation:tm-pulse 1.4s ease-in-out infinite;"></span>{% endif %}
+        {% if mt.status == 'live' %}LIVE{% elif mt.reg_status == 'confirmed' %}CONFIRMED{% elif mt.reg_status == 'pending' or mt.reg_status == 'payment_submitted' %}PAYMENT DUE{% else %}REGISTERED{% endif %}
+      </span>
+      {% if mt.tournament_start %}
+      <span style="font-family:'JetBrains Mono',monospace;font-size:11.5px;font-weight:600;color:#6B7385;">{{ mt.tournament_start|date:"M j" }}</span>
+      {% endif %}
+    </div>
+    <div style="margin-top:11px;">
+      {% if mt.status == 'live' %}
+      <div class="tm-cta tm-cta-gold" style="width:100%;justify-content:center;">
+        <svg width="15" height="15" fill="currentColor" viewBox="0 0 256 256"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm45.66,109.66-32,32a8,8,0,0,1-11.32-11.32L148.69,136H88a8,8,0,0,1,0-16h60.69l-18.35-18.34a8,8,0,0,1,11.32-11.32l32,32A8,8,0,0,1,173.66,133.66Z"/></svg>
+        Enter Hub
+      </div>
+      {% elif mt.reg_status == 'pending' or mt.reg_status == 'payment_submitted' %}
+      <div class="tm-cta tm-cta-azure" style="width:100%;justify-content:center;">
+        <svg width="15" height="15" fill="currentColor" viewBox="0 0 256 256"><path d="M216,64H168V48a24,24,0,0,0-24-24H112A24,24,0,0,0,88,48V64H40A16,16,0,0,0,24,80V208a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V80A16,16,0,0,0,216,64Z"/></svg>
+        Pay now
+      </div>
+      {% else %}
+      <div class="tm-cta tm-cta-ghost" style="width:100%;justify-content:center;">
+        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12l5-5 5 5"/></svg>
+        View
+      </div>
+      {% endif %}
+    </div>
+  </a>
+  {% endfor %}
+</div>
+{% elif user.is_authenticated %}
+<div class="tm-empty">
+  <div style="width:50px;height:50px;margin:0 auto;border-radius:15px;display:flex;align-items:center;justify-content:center;background:rgba(10,132,255,0.12);color:#3FA3FF;font-size:26px;">
+    <svg width="26" height="26" fill="currentColor" viewBox="0 0 256 256"><path d="M227.19,104.48A16,16,0,0,0,216,96H152V56a40,40,0,0,0-80,0V96H8a16,16,0,0,0-11.19,8.48,16,16,0,0,0,.72,14L60.88,218.07A16,16,0,0,0,75.26,228H180.74a16,16,0,0,0,14.38-9.93l63.35-99.59A16,16,0,0,0,227.19,104.48Z"/></svg>
+  </div>
+  <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:17px;color:#F4F6FA;margin-top:11px;letter-spacing:-0.01em;">No tournaments yet</div>
+  <div style="font-size:13px;line-height:1.45;color:#A9B1C2;margin-top:4px;">Find one below and register your squad to get on a bracket.</div>
+</div>
+{% endif %}
+
+{# ── Tournament List ── #}
+<div class="tm-section-head" style="margin-top:24px;">
+  <div style="display:flex;align-items:center;gap:8px;">
+    <h2>{% if current_status or current_game %}Filtered{% else %}All Tournaments{% endif %}</h2>
+    <span class="count">{{ tournament_list|length }}</span>
+  </div>
+</div>
+<div style="display:flex;flex-direction:column;gap:11px;padding:0 16px;">
+  {% for t in tournament_list %}
+  <a href="{% url 'tournaments:detail' t.slug %}" class="tm-card tm-tap" style="text-decoration:none;">
+    <div class="tm-card-body">
+      <div class="tm-card-thumb">
+        <img src="{% if t.banner_image %}{{ t.banner_image.url }}{% elif t.game.card_image %}{{ t.game.card_image.url }}{% elif t.game.banner %}{{ t.game.banner.url }}{% else %}https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=400&auto=format&fit=crop{% endif %}" alt=""
+             onerror="this.src='https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=400&auto=format&fit=crop'">
+        <div class="tm-thumb-overlay"></div>
+        {% if t.game.logo %}
+        <img src="{{ t.game.logo.url }}" class="tm-game-badge" alt="" onerror="this.style.display='none'">
+        {% endif %}
+      </div>
+      <div style="flex:1;min-width:0;">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
+          <span style="font-family:'Sora',sans-serif;font-weight:700;font-size:15.5px;color:#F4F6FA;letter-spacing:-0.01em;line-height:1.2;">{{ t.name }}</span>
+          <span class="tm-badge {% if t.effective_status == 'live' %}tm-badge-live{% elif t.effective_status == 'registration_open' %}tm-badge-open{% elif t.effective_status == 'published' %}tm-badge-soon{% elif t.effective_status == 'registration_closed' %}tm-badge-closed{% else %}tm-badge-done{% endif %}" style="flex:none;">
+            {% if t.effective_status == 'live' %}<span style="width:5px;height:5px;border-radius:999px;background:#FF3B5C;animation:tm-pulse 1.4s ease-in-out infinite;"></span>{% endif %}
+            {% if t.effective_status == 'live' %}LIVE{% elif t.effective_status == 'registration_open' %}OPEN{% elif t.effective_status == 'published' %}SOON{% elif t.effective_status == 'registration_closed' %}CLOSED{% else %}DONE{% endif %}
+          </span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:4px;font-size:12px;color:#A9B1C2;">
+          <span>{{ t.game.display_name }}</span>
+          <span style="width:3px;height:3px;border-radius:999px;background:#3a4150;"></span>
+          <span>{{ t.get_format_display }}</span>
+          <span style="width:3px;height:3px;border-radius:999px;background:#3a4150;"></span>
+          <span style="color:{% if not t.has_entry_fee or not t.entry_fee_amount %}#2ECC71{% else %}#A9B1C2{% endif %};font-weight:600;">{% if t.has_entry_fee and t.entry_fee_amount %}৳{{ t.entry_fee_amount|floatformat:0|intcomma }}{% else %}Free{% endif %}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;margin-top:9px;">
+          {% if t.prize_pool %}
+          <span style="display:flex;align-items:center;gap:5px;font-family:'JetBrains Mono',monospace;font-weight:700;font-size:14px;color:#CFA75A;">
+            <svg width="13" height="13" fill="#CFA75A" viewBox="0 0 256 256"><path d="M232,64H208V48a8,8,0,0,0-8-8H56a8,8,0,0,0-8,8V64H24A16,16,0,0,0,8,80V128a40,40,0,0,0,40,40h3.65A80.13,80.13,0,0,0,120,207.6V232H96a8,8,0,0,0,0,16h64a8,8,0,0,0,0-16H136V207.6A80.13,80.13,0,0,0,204.35,168H208a40,40,0,0,0,40-40V80A16,16,0,0,0,232,64ZM48,152a24,24,0,0,1-24-24V80H48v72Zm184-24a24,24,0,0,1-24,24V80h24Z"/></svg>
+            ৳{{ t.prize_pool|floatformat:0|intcomma }}
+          </span>
+          {% else %}
+          <span style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;color:#6B7385;">Prize TBA</span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    {# Slots progress bar #}
+    <div style="margin-top:11px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">
+        <span style="font-size:11px;font-weight:600;color:#6B7385;display:flex;align-items:center;gap:5px;">
+          <svg width="13" height="13" fill="none" stroke="#6B7385" stroke-width="2"><path d="M6.5 1C4 1 2 2.5 2 4.5S4 7.5 6.5 7c2.5.5 4.5-1 4.5-2.5S9 1 6.5 1z"/><circle cx="4.5" cy="4" r="1" fill="#6B7385"/><circle cx="8.5" cy="4" r="1" fill="#6B7385"/><circle cx="6.5" cy="7.5" r="1" fill="#6B7385"/></svg>
+          {{ t.registration_count }} / {{ t.max_participants }} slots
+        </span>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;color:#6B7385;">{% widthratio t.registration_count t.max_participants 100 %}%</span>
+      </div>
+      <div class="tm-slots-bar">
+        <div class="tm-slots-fill" style="width:{% widthratio t.registration_count t.max_participants 100 %}%;background:#2ECC71;"></div>
+      </div>
+    </div>
+
+    {# Footer with date + CTA #}
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:13px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.06);">
+      <span style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:#A9B1C2;">
+        {% if t.effective_status == 'live' %}
+        <svg width="15" height="15" fill="#6B7385" viewBox="0 0 256 256"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Z"/><circle cx="128" cy="128" r="12" fill="#FF3B5C"/></svg>
+        Live now
+        {% elif t.effective_status == 'completed' %}
+        <svg width="15" height="15" fill="#6B7385" viewBox="0 0 256 256"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm45.66,85.66-56,56a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35a8,8,0,0,1,11.32,11.32Z"/></svg>
+        {{ t.tournament_start|date:"M j" }}
+        {% else %}
+        <svg width="15" height="15" fill="#6B7385" viewBox="0 0 256 256"><path d="M208,32H184V24a8,8,0,0,0-16,0v8H88V24a8,8,0,0,0-16,0v8H48A16,16,0,0,0,32,48V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V48A16,16,0,0,0,208,32Z"/></svg>
+        {{ t.tournament_start|date:"M j, g:i A" }}
+        {% endif %}
+      </span>
+
+      {% if t.id in organizer_tournaments %}
+        <span class="tm-cta tm-cta-violet">
+          <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 5h12M5 9h8M7 13h4"/></svg>
+          Manage
+        </span>
+      {% elif t.id in user_registered_tournaments %}
+        {% if t.effective_status == 'live' %}
+        <span class="tm-cta tm-cta-gold">
+          <svg width="15" height="15" fill="currentColor" viewBox="0 0 256 256"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm45.66,109.66-32,32a8,8,0,0,1-11.32-11.32L148.69,136H88a8,8,0,0,1,0-16h60.69l-18.35-18.34a8,8,0,0,1,11.32-11.32l32,32A8,8,0,0,1,173.66,133.66Z"/></svg>
+          Check in
+        </span>
+        {% elif t.effective_status == 'completed' %}
+        <span class="tm-cta tm-cta-ghost">
+          <svg width="15" height="15" fill="currentColor" viewBox="0 0 256 256"><path d="M232,64H208V48a8,8,0,0,0-8-8H56a8,8,0,0,0-8,8V64H24A16,16,0,0,0,8,80V128a40,40,0,0,0,40,40h3.65A80.13,80.13,0,0,0,120,207.6V232H96a8,8,0,0,0,0,16h64a8,8,0,0,0,0-16H136V207.6A80.13,80.13,0,0,0,204.35,168H208a40,40,0,0,0,40-40V80A16,16,0,0,0,232,64ZM48,152a24,24,0,0,1-24-24V80H48v72Zm184-24a24,24,0,0,1-24,24V80h24Z"/></svg>
+          Results
+        </span>
+        {% else %}
+        <span class="tm-cta tm-cta-green">
+          <svg width="15" height="15" fill="currentColor" viewBox="0 0 256 256"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm45.66,85.66-56,56a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35a8,8,0,0,1,11.32,11.32Z"/></svg>
+          Registered
+        </span>
+        {% endif %}
+      {% else %}
+        {% if t.effective_status == 'live' %}
+        <span class="tm-cta tm-cta-ghost">
+          <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="5,3 12,7.5 5,12"/></svg>
+          Watch
+        </span>
+        {% elif t.effective_status == 'registration_open' %}
+        <span class="tm-cta tm-cta-azure">
+          <svg width="15" height="15" fill="currentColor" viewBox="0 0 256 256"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm40,112H136v32a8,8,0,0,1-16,0V136H88a8,8,0,0,1,0-16h32V88a8,8,0,0,1,16,0v32h32a8,8,0,0,1,0,16Z"/></svg>
+          Register
+        </span>
+        {% elif t.effective_status == 'completed' %}
+        <span class="tm-cta tm-cta-ghost">
+          <svg width="15" height="15" fill="currentColor" viewBox="0 0 256 256"><path d="M232,64H208V48a8,8,0,0,0-8-8H56a8,8,0,0,0-8,8V64H24A16,16,0,0,0,8,80V128a40,40,0,0,0,40,40h3.65A80.13,80.13,0,0,0,120,207.6V232H96a8,8,0,0,0,0,16h64a8,8,0,0,0,0-16H136V207.6A80.13,80.13,0,0,0,204.35,168H208a40,40,0,0,0,40-40V80A16,16,0,0,0,232,64ZM48,152a24,24,0,0,1-24-24V80H48v72Zm184-24a24,24,0,0,1-24,24V80h24Z"/></svg>
+          Results
+        </span>
+        {% elif t.effective_status == 'published' %}
+        <span class="tm-cta tm-cta-ghost">
+          <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 3v10l3-2 3 2 3-2 3 2V3"/></svg>
+          Notify me
+        </span>
+        {% else %}
+        <span class="tm-cta tm-cta-ghost">
+          <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12l5-5 5 5"/></svg>
+          View
+        </span>
+        {% endif %}
+      {% endif %}
+    </div>
+  </a>
+  {% empty %}
+  <div style="padding:30px 16px;text-align:center;font-size:13px;color:#6B7385;background:#11151E;border-radius:18px;box-shadow:0 0 0 1px rgba(255,255,255,0.06);">No tournaments match these filters.</div>
+  {% endfor %}
+</div>
+
+{# ── Pagination ── #}
+{% if page_obj.has_next %}
+<div style="padding:16px;">
+  <a href="?page={{ page_obj.next_page_number }}{% if current_game %}&game={{ current_game }}{% endif %}{% if current_status %}&status={{ current_status }}{% endif %}{% if current_search %}&search={{ current_search }}{% endif %}"
+     class="tm-tap" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;height:48px;border-radius:14px;background:#11151E;box-shadow:0 0 0 1px rgba(255,255,255,0.06);font-size:13px;font-weight:600;color:#A9B1C2;text-decoration:none;">
+    Load more
+    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 5l4 4 4-4"/></svg>
+  </a>
+</div>
+{% endif %}
+
+{# ── Latest Winners ── #}
+{% if latest_winners %}
+<div class="tm-section-head" style="margin-top:26px;">
+  <h2>Latest Winners <span style="font-size:14px;color:#CFA75A;">♕</span></h2>
+</div>
+<div class="tm-winners">
+  {% for w in latest_winners %}
+  <a href="{% url 'tournaments:detail' w.tournament_slug %}" class="tm-winner-row tm-tap">
+    <div style="position:relative;flex:none;">
+      {% if w.game_icon %}
+      <img src="{{ w.game_icon }}" style="width:38px;height:38px;border-radius:11px;object-fit:cover;" alt=""
+           onerror="this.style.display='none'">
+      {% else %}
+      <div style="width:38px;height:38px;border-radius:11px;background:#232936;display:flex;align-items:center;justify-content:center;">
+        <svg width="16" height="16" fill="#CFA75A" viewBox="0 0 256 256"><path d="M232,64H208V48a8,8,0,0,0-8-8H56a8,8,0,0,0-8,8V64H24A16,16,0,0,0,8,80V128a40,40,0,0,0,40,40h3.65A80.13,80.13,0,0,0,120,207.6V232H96a8,8,0,0,0,0,16h64a8,8,0,0,0,0-16H136V207.6A80.13,80.13,0,0,0,204.35,168H208a40,40,0,0,0,40-40V80A16,16,0,0,0,232,64ZM48,152a24,24,0,0,1-24-24V80H48v72Zm184-24a24,24,0,0,1-24,24V80h24Z"/></svg>
+      </div>
+      {% endif %}
+      <div style="position:absolute;bottom:-4px;right:-4px;width:18px;height:18px;border-radius:999px;background:linear-gradient(135deg,#E2C588,#CFA75A);display:flex;align-items:center;justify-content:center;font-size:10px;color:#2A1F08;box-shadow:0 0 0 2px #11151E;">
+        <svg width="10" height="10" fill="currentColor" viewBox="0 0 256 256"><path d="M232,64H208V48a8,8,0,0,0-8-8H56a8,8,0,0,0-8,8V64H24A16,16,0,0,0,8,80V128a40,40,0,0,0,40,40h3.65A80.13,80.13,0,0,0,120,207.6V232H96a8,8,0,0,0,0,16h64a8,8,0,0,0,0-16H136V207.6A80.13,80.13,0,0,0,204.35,168H208a40,40,0,0,0,40-40V80A16,16,0,0,0,232,64ZM48,152a24,24,0,0,1-24-24V80H48v72Zm184-24a24,24,0,0,1-24,24V80h24Z"/></svg>
+      </div>
+    </div>
+    <div style="flex:1;min-width:0;">
+      <div style="font-weight:600;font-size:14.5px;color:#F4F6FA;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ w.winner_name }}</div>
+      <div style="font-size:12px;color:#A9B1C2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px;">{{ w.tournament_name }}</div>
+    </div>
+    <div style="text-align:right;flex:none;">
+      {% if w.prize_pool %}
+      <div style="font-family:'JetBrains Mono',monospace;font-weight:700;font-size:13.5px;color:#CFA75A;">৳{{ w.prize_pool|floatformat:0|intcomma }}</div>
+      {% endif %}
+      <div style="font-size:10px;color:#6B7385;margin-top:1px;">{{ w.game_name }}</div>
+    </div>
+  </a>
+  {% endfor %}
+</div>
+{% endif %}
+
+{# ── Search / Filter Bottom Sheet ── #}
+<div id="tm-search-sheet" class="tm-sheet-overlay" style="display:none;">
+  <div class="tm-sheet tm-hscroll" id="tm-sheet-body">
+    <div style="width:38px;height:5px;border-radius:999px;background:rgba(255,255,255,0.18);margin:0 auto 14px;"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+      <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:20px;letter-spacing:-0.01em;color:#F4F6FA;">Find a Tournament</div>
+      <button type="button" id="tm-sheet-done" style="font-size:14px;font-weight:600;color:#3FA3FF;background:none;border:none;cursor:pointer;">Done</button>
+    </div>
+    <form method="get" action="{% url 'tournaments:list' %}">
+      {% if current_game %}<input type="hidden" name="game" value="{{ current_game }}">{% endif %}
+      {% if current_status %}<input type="hidden" name="status" value="{{ current_status }}">{% endif %}
+      <div style="display:flex;align-items:center;gap:9px;height:46px;padding:0 14px;border-radius:14px;background:#1c212b;box-shadow:inset 0 0 0 1px rgba(255,255,255,0.07);">
+        <svg width="18" height="18" fill="none" stroke="#6B7385" stroke-width="2" stroke-linecap="round"><circle cx="8" cy="8" r="5.5"/><path d="M12 12l4 4"/></svg>
+        <input type="text" name="search" value="{{ current_search }}" placeholder="Search by name or game" autocomplete="off"
+               style="flex:1;background:none;border:none;outline:none;font-family:'Inter',sans-serif;font-size:15px;color:#F4F6FA;">
+      </div>
+      <button type="submit" class="tm-tap" style="width:100%;height:44px;margin-top:12px;border-radius:13px;font-size:14px;font-weight:600;color:#fff;background:linear-gradient(180deg,#2997FF,#0A84FF);border:none;cursor:pointer;">Search</button>
+    </form>
+    {% if current_search %}
+    <div style="margin-top:14px;text-align:center;">
+      <a href="?{% if current_game %}game={{ current_game }}{% endif %}{% if current_status %}&status={{ current_status }}{% endif %}" style="font-size:13px;font-weight:600;color:#FF6076;text-decoration:none;">Clear search: "{{ current_search }}"</a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{# ── Footer mark ── #}
+<div style="text-align:center;padding:26px 0 8px;">
+  <img src="{% static 'img/favicon/favicon-32x32.png' %}" alt="" style="height:18px;opacity:0.35;margin:0 auto;">
+  <div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.1em;color:#3a4150;margin-top:7px;">WHERE CHAMPIONS RISE</div>
+</div>
+
+<script nonce="{{ request.csp_nonce }}">
+document.addEventListener('DOMContentLoaded', function() {
+  var btn = document.getElementById('tm-filter-btn');
+  var sheet = document.getElementById('tm-search-sheet');
+  var body = document.getElementById('tm-sheet-body');
+  var done = document.getElementById('tm-sheet-done');
+  if (!btn || !sheet) return;
+  function closeSheet() { sheet.style.display = 'none'; }
+  btn.addEventListener('click', function() { sheet.style.display = 'flex'; });
+  sheet.addEventListener('click', closeSheet);
+  if (body) body.addEventListener('click', function(e) { e.stopPropagation(); });
+  if (done) done.addEventListener('click', closeSheet);
+});
+</script>
