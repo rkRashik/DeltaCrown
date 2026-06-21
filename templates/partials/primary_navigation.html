@@ -54,8 +54,8 @@
   <div class="flex items-center gap-3">
     {% if request.user.is_authenticated %}
     <button id="dc-mobile-notif-btn" class="w-11 h-11 rounded-full flex items-center justify-center text-gray-400 hover:text-white relative" aria-label="Notifications">
-      <i class="fa-regular fa-bell text-lg"></i>
-      {% with nav_unread_count|default:0 as unread_count %}{% if unread_count > 0 %}<span id="dc-mobile-notif-badge" class="absolute -top-0.5 -right-0.5 min-w-[16px] h-[16px] px-0.5 flex items-center justify-center bg-amber-400 rounded-full border-2 border-[#020005] text-[9px] font-bold text-black leading-none">{{ unread_count }}</span>{% endif %}{% endwith %}
+      <i class="ph ph-bell" style="font-size:1.25rem"></i>
+      {% with nav_unread_count|default:0 as unread_count %}<span id="dc-mobile-notif-badge" class="notif-badge" data-count="{{ unread_count }}" {% if unread_count == 0 %}style="display:none"{% endif %}>{% if unread_count > 0 %}{{ unread_count }}{% endif %}</span>{% endwith %}
     </button>
     {% endif %}
     <button id="dc-mobile-menu-toggle" aria-label="Open menu" aria-expanded="false"
@@ -138,10 +138,8 @@
       {% if request.user.is_authenticated %}
       <div class="relative">
         <button id="dc-notif-btn" class="w-11 h-11 rounded-xl flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/5 transition-all relative" aria-label="Notifications" aria-haspopup="true" aria-expanded="false">
-          <i class="fa-regular fa-bell text-[1.2rem]"></i>
-          {% with nav_unread_count|default:0 as uc %}{% if uc > 0 %}
-          <span class="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 flex items-center justify-center bg-red-500 rounded-full border-2 border-[#020005] text-[10px] font-bold text-white leading-none">{{ uc }}</span>
-          {% endif %}{% endwith %}
+          <i class="ph ph-bell" style="font-size:1.25rem"></i>
+          {% with nav_unread_count|default:0 as uc %}<span id="dc-notif-badge" class="notif-badge" data-count="{{ uc }}" {% if uc == 0 %}style="display:none"{% endif %}>{% if uc > 0 %}{{ uc }}{% endif %}</span>{% endwith %}
         </button>
         {% include "partials/notifications/nav_dropdown.html" %}
       </div>
@@ -210,12 +208,8 @@
       <!-- Notifications -->
       <div class="relative">
         <button id="dc-notif-btn" class="w-11 h-11 rounded-xl flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/5 transition-all relative group" aria-label="Notifications" aria-haspopup="true" aria-expanded="false">
-          <i class="fa-regular fa-bell text-[1.25rem] group-hover:rotate-12 transition-transform"></i>
-          {% with nav_unread_count|default:0 as unread_count %}
-          {% if unread_count > 0 %}
-          <span id="dc-notif-badge" class="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 flex items-center justify-center bg-amber-400 rounded-full border-2 border-[#020005] text-[10px] font-bold text-black leading-none">{{ unread_count }}</span>
-          {% endif %}
-          {% endwith %}
+          <i class="ph ph-bell" style="font-size:1.3rem"></i>
+          {% with nav_unread_count|default:0 as unread_count %}<span id="dc-notif-badge" class="notif-badge" data-count="{{ unread_count }}" {% if unread_count == 0 %}style="display:none"{% endif %}>{% if unread_count > 0 %}{{ unread_count }}{% endif %}</span>{% endwith %}
         </button>
         {% include "partials/notifications/nav_dropdown.html" %}
       </div>
@@ -354,7 +348,7 @@
         <i class="fa-solid fa-user-plus w-5"></i> Team Invites
         {% if pending_invites_count > 0 %}<span class="absolute top-2 right-2 inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-red-500 rounded-full">{{ pending_invites_count }}</span>{% endif %}
       </a>
-      <a href="/notifications/" class="dc-drawer-link"><i class="fa-solid fa-bell w-5"></i> Notifications</a>
+      <a href="/notifications/" class="dc-drawer-link"><i class="ph ph-bell w-5"></i> Notifications</a>
       <a href="{% url 'user_profile:settings' %}" class="dc-drawer-link"><i class="fa-solid fa-cog w-5"></i> Settings</a>
       <div class="h-px bg-white/10 my-3"></div>
       <a href="/accounts/logout/" class="dc-drawer-link !text-red-400 hover:!text-red-300 hover:!bg-red-500/10"><i class="fa-solid fa-arrow-right-from-bracket w-5"></i> Sign Out</a>

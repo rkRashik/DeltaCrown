@@ -1,7 +1,7 @@
 (function () {
   "use strict";
 
-  const state = {
+  var state = {
     mainItems: [],
     previewItems: [],
     unreadCount: 0,
@@ -15,432 +15,642 @@
     sseReconnectDelayMs: 5000,
   };
 
-  const AudioEngine = (function () {
-    let ctx = null;
-    function init() {
-      const AudioCtx = window.AudioContext || window.webkitAudioContext;
-      if (!AudioCtx) return false;
-      if (!ctx) ctx = new AudioCtx();
-      if (ctx.state === "suspended") ctx.resume();
-      return true;
-    }
-    return {
-      play: function (type) {
-        try {
-          if (!init()) return;
-          const osc = ctx.createOscillator();
-          const gain = ctx.createGain();
-          osc.connect(gain);
-          gain.connect(ctx.destination);
-          const now = ctx.currentTime;
-          if (type === "read") {
-            osc.type = "sine";
-            osc.frequency.setValueAtTime(800, now);
-            osc.frequency.exponentialRampToValueAtTime(300, now + 0.1);
-            gain.gain.setValueAtTime(0.2, now);
-            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
-            osc.start(now);
-            osc.stop(now + 0.1);
-          } else if (type === "delete") {
-            osc.type = "triangle";
-            osc.frequency.setValueAtTime(200, now);
-            osc.frequency.exponentialRampToValueAtTime(50, now + 0.2);
-            gain.gain.setValueAtTime(0.3, now);
-            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
-            osc.start(now);
-            osc.stop(now + 0.2);
-          } else if (type === "action") {
-            osc.type = "sine";
-            osc.frequency.setValueAtTime(600, now);
-            osc.frequency.setValueAtTime(900, now + 0.1);
-            gain.gain.setValueAtTime(0, now);
-            gain.gain.linearRampToValueAtTime(0.2, now + 0.05);
-            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
-            osc.start(now);
-            osc.stop(now + 0.3);
-          }
-        } catch (e) {
-          console.warn("Audio not supported or interaction required first.");
-        }
-      }
-    };
-  })();
-
-  const ICONS = {
-    TOURNAMENT: '<svg class="w-5 h-5 text-dc-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>',
-    ECONOMY: '<svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>',
-    SOCIAL: '<svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>',
-    TEAM: '<svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>',
-    SYSTEM: '<svg class="w-5 h-5 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>',
-    WARNING: '<svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>'
+  /* ─── Category → Phosphor icon map ─── */
+  var CAT_ICON = {
+    TOURNAMENT: "ph-fill ph-trophy",
+    TEAM:       "ph-fill ph-shield-check",
+    ECONOMY:    "ph-fill ph-coins",
+    SOCIAL:     "ph-fill ph-users-three",
+    SYSTEM:     "ph-fill ph-gear-six",
+    WARNING:    "ph-fill ph-warning",
   };
 
-  const CATEGORY_COLORS = {
-    TOURNAMENT: 'bg-gradient-to-br from-yellow-500/20 to-orange-600/10 border-yellow-500/20 shadow-[inset_0_0_10px_rgba(245,158,11,0.1)]',
-    ECONOMY: 'bg-gradient-to-br from-emerald-500/20 to-teal-600/10 border-emerald-500/20 shadow-[inset_0_0_10px_rgba(16,185,129,0.1)]',
-    SOCIAL: 'bg-gradient-to-br from-blue-500/20 to-indigo-600/10 border-blue-500/20 shadow-[inset_0_0_10px_rgba(59,130,246,0.1)]',
-    TEAM: 'bg-gradient-to-br from-purple-500/20 to-fuchsia-600/10 border-purple-500/20 shadow-[inset_0_0_10px_rgba(168,85,247,0.1)]',
-    SYSTEM: 'bg-gradient-to-br from-slate-500/20 to-slate-700/10 border-slate-500/20',
-    WARNING: 'bg-gradient-to-br from-red-500/20 to-rose-700/10 border-red-500/20'
+  var CAT_GRADIENT = {
+    TOURNAMENT: "linear-gradient(135deg,#0A84FF,#0066CC)",
+    TEAM:       "linear-gradient(135deg,#6849E5,#5438C0)",
+    ECONOMY:    "linear-gradient(135deg,#CFA75A,#B8913D)",
+    SOCIAL:     "linear-gradient(135deg,#2ED3A7,#22B08A)",
+    SYSTEM:     "linear-gradient(135deg,#788395,#616C7D)",
+    WARNING:    "linear-gradient(135deg,#FF3B5C,#D9304E)",
   };
 
-  const ACTION_ICONS = {
-    check: '<svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>',
-    x: '<svg class="w-4 h-4 mr-1.5 text-slate-400 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>',
-    "log-in": '<svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"></path></svg>',
-    eye: '<svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>'
-  };
+  var GOLD_ACTION_TYPES = ["checkin_open", "payout_received", "payment_verified", "achievement_earned"];
+  var AZURE_ACTION_TYPES = ["bracket_ready", "match_scheduled", "tournament_registered", "reg_confirmed"];
+
+  /* ─── Helpers ─── */
+  function $(id) { return document.getElementById(id); }
 
   function getCsrfToken() {
-    const meta = document.querySelector('meta[name="csrf-token"]');
+    var meta = document.querySelector('meta[name="csrf-token"]');
     if (meta && meta.content) return meta.content;
-    const el = document.querySelector('[name=csrfmiddlewaretoken]');
+    var el = document.querySelector("[name=csrfmiddlewaretoken]");
     if (el && el.value) return el.value;
-    const cookie = document.cookie
-      .split(";")
-      .map(function (part) { return part.trim(); })
-      .find(function (part) { return part.indexOf("csrftoken=") === 0; });
+    var cookie = document.cookie.split(";").map(function(p){return p.trim();}).find(function(p){return p.indexOf("csrftoken=")===0;});
     return cookie ? decodeURIComponent(cookie.substring("csrftoken=".length)) : "";
   }
 
-  async function fetchJson(url, options) {
-    const res = await fetch(url, options);
-    if (!res.ok) throw new Error("HTTP " + res.status);
-    return res.json();
-  }
-
-  function playFallbackTone() {
-    try {
-      const AudioCtx = window.AudioContext || window.webkitAudioContext;
-      if (!AudioCtx) return Promise.resolve(false);
-      const ctx = new AudioCtx();
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = "sine";
-      osc.frequency.value = 880;
-      gain.gain.value = 0.0001;
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      const now = ctx.currentTime;
-      gain.gain.exponentialRampToValueAtTime(0.08, now + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.22);
-      osc.start(now);
-      osc.stop(now + 0.24);
-      return Promise.resolve(true).finally(function () {
-        setTimeout(function () {
-          if (typeof ctx.close === "function") {
-            ctx.close().catch(function () {});
-          }
-        }, 300);
-      });
-    } catch (e) {
-      return Promise.resolve(false);
-    }
-  }
-
-  function playPriorityAlertSound() {
-    const audio = new Audio("/static/media/notification_alert.mp3");
-    return audio.play().then(function () {
-      return true;
-    }).catch(function (e) {
-      console.warn("Audio file play blocked/missing, using fallback tone", e);
-      return playFallbackTone();
+  function fetchJson(url, opts) {
+    return fetch(url, opts).then(function(r) {
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      return r.json();
     });
   }
 
-  function formatTimeAgo(iso) {
-    const date = new Date(iso);
-    const now = new Date();
-    const mins = Math.floor((now - date) / 60000);
-    if (mins < 1) return "Just now";
-    if (mins < 60) return mins + "m ago";
-    const hrs = Math.floor(mins / 60);
-    if (hrs < 24) return hrs + "h ago";
-    const days = Math.floor(hrs / 24);
-    if (days === 1) return "Yesterday";
-    if (days < 7) return days + "d ago";
-    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  function timeAgo(iso) {
+    var d = new Date(iso), now = new Date();
+    var m = Math.floor((now - d) / 60000);
+    if (m < 1) return "now";
+    if (m < 60) return m + "m";
+    var h = Math.floor(m / 60);
+    if (h < 24) return h + "h";
+    var days = Math.floor(h / 24);
+    if (days === 1) return "1d";
+    if (days < 7) return days + "d";
+    return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
   }
 
-  function getTimeGroup(iso) {
-    const date = new Date(iso);
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-    if (date >= today) return "Today";
-    if (date >= yesterday) return "Yesterday";
-    return "Older";
+  function timeGroup(iso) {
+    var d = new Date(iso), now = new Date();
+    var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    var yesterday = new Date(today); yesterday.setDate(yesterday.getDate() - 1);
+    if (d >= today) return "TODAY";
+    if (d >= yesterday) return "YESTERDAY";
+    return "EARLIER";
   }
 
-  function createCardHTML(n, context) {
-    const isUnread = !n.read;
-    const categoryType = (n.type || "SYSTEM").toUpperCase();
-    const catColor = CATEGORY_COLORS[categoryType] || CATEGORY_COLORS.SYSTEM;
-    const catIcon = ICONS[categoryType] || ICONS.SYSTEM;
-    const timeAgo = formatTimeAgo(n.timestamp || n.time);
-
-    const baseClasses = context === "main" ? "swipe-container notif-card-hover group cursor-pointer" : "dropdown-item group cursor-pointer";
-    const innerClasses = context === "main"
-      ? "swipe-content p-5 border " + (isUnread ? "bg-dc-card/90 border-dc-gold/20 shadow-[0_0_15px_rgba(245,158,11,0.05)]" : "bg-transparent border-white/5")
-      : "p-4 border-b border-white/5 last:border-0 " + (isUnread ? "bg-white/[0.02]" : "bg-transparent");
-
-    const unreadDot = isUnread && context === "main"
-      ? '<div class="w-2.5 h-2.5 rounded-full bg-dc-gold absolute top-5 right-5 shadow-[0_0_8px_rgba(245,158,11,0.8)] z-10"></div>'
-      : "";
-
-    let sideImage = "";
-    const imgSize = context === "main" ? "w-12 h-12" : "w-10 h-10";
-    if (n.avatar) {
-      sideImage = '<img src="' + n.avatar + '" class="' + imgSize + ' rounded-full object-cover border border-white/10 shrink-0">';
-    } else if (n.image) {
-      sideImage = '<img src="' + n.image + '" class="' + imgSize + ' rounded-xl object-cover border border-white/10 shrink-0">';
-    } else {
-      sideImage = '<div class="' + imgSize + ' rounded-xl ' + catColor + ' flex items-center justify-center shrink-0 border border-white/5">' + catIcon + '</div>';
+  function dedup(items) {
+    var seen = {}; var out = [];
+    for (var i = 0; i < items.length; i++) {
+      if (!seen[items[i].id]) { seen[items[i].id] = 1; out.push(items[i]); }
     }
-
-    let actionHtml = "";
-    if (Array.isArray(n.actions) && n.actions.length) {
-      actionHtml = '<div class="flex gap-2 mt-3 relative z-20">';
-      n.actions.forEach(function (act) {
-        const btnClass = act.style === "primary"
-          ? "bg-dc-accent hover:bg-blue-500 text-white shadow-glow-accent border border-blue-400/30"
-          : "bg-dc-card hover:bg-dc-cardhover text-slate-200 border border-white/10 group-hover:border-white/20";
-        const padding = context === "main" ? "px-5 py-2" : "px-3 py-1.5";
-        const txtSize = context === "main" ? "text-sm" : "text-xs";
-        actionHtml += '<button data-action-id="' + act.id + '" data-notification-id="' + n.id + '" class="' + padding + ' flex items-center rounded-xl ' + txtSize + ' font-semibold transition-all ' + btnClass + '">' + (ACTION_ICONS[act.icon] || "") + act.label + '</button>';
-      });
-      actionHtml += '</div>';
-    }
-
-    const wrapperTag = "div";
-    const hrefAttr = n.actionLink ? 'data-action-link="' + n.actionLink + '"' : "";
-    const titleSize = context === "main" ? "text-base" : "text-sm";
-    const textSize = context === "main" ? "text-sm" : "text-[13px] leading-snug";
-    const titleHtml = n.titleHtml || n.title_html || n.title || "";
-    const htmlText = n.htmlText || n.title || "";
-
-    const desktopActions = context === "main"
-      ? '<div class="desktop-actions absolute top-4 right-8 flex items-center gap-2 z-30">' +
-        '<button class="btn-read-toggle p-2 rounded-lg bg-dc-dark/80 backdrop-blur-md border border-white/10 hover:border-dc-gold hover:text-dc-gold text-slate-300 shadow-lg transition" title="' + (isUnread ? "Mark as Read" : "Mark as Unread") + '" data-toggle-read-id="' + n.id + '">' +
-        (isUnread
-          ? '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>'
-          : '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>') +
-        '</button>' +
-        '<button class="p-2 rounded-lg bg-dc-dark/80 backdrop-blur-md border border-white/10 hover:border-red-500 hover:text-red-500 text-slate-300 shadow-lg transition" title="Clear Notification" data-delete-id="' + n.id + '">' +
-        '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>' +
-        '</button>' +
-      '</div>'
-      : "";
-
-    return '<div class="' + baseClasses + '" id="card-' + n.id + '" data-id="' + n.id + '" data-notification-id="' + n.id + '">' +
-      (context === "main"
-        ? '<div class="swipe-action-bg"><svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></div>'
-        : "") +
-      '<' + wrapperTag + ' ' + hrefAttr + ' class="' + innerClasses + ' flex gap-4 relative">' +
-      unreadDot +
-      desktopActions +
-      sideImage +
-      '<div class="flex-1 min-w-0 pr-16 flex flex-col justify-center">' +
-      '<div class="flex items-center gap-2 mb-1 pr-2">' +
-      '<h4 class="font-display font-bold ' + titleSize + ' ' + (isUnread ? "text-white" : "text-slate-200") + ' group-hover:text-dc-gold transition-colors">' +
-      titleHtml +
-      (isUnread && context !== "main" ? '<span class="w-1.5 h-1.5 rounded-full bg-dc-gold shadow-[0_0_5px_rgba(245,158,11,1)]"></span>' : "") +
-      '</h4>' +
-      '<span class="text-[11px] font-semibold text-dc-gold/80 whitespace-nowrap">' + timeAgo + '</span>' +
-      '</div>' +
-      '<p class="' + textSize + ' text-slate-400 leading-relaxed group-hover:text-slate-300 transition-colors">' + htmlText + '</p>' +
-      actionHtml +
-      '</div>' +
-      '</' + wrapperTag + '>' +
-      '</div>';
-  }
-
-  function setBellAnimation(isActive) {
-    ["dc-notif-btn", "dc-mobile-notif-btn"].forEach(function (id) {
-      const btn = document.getElementById(id);
-      if (!btn) return;
-      if (isActive) btn.classList.add("dc-bell-ringing");
-      else btn.classList.remove("dc-bell-ringing");
-    });
-  }
-
-  function dedupeById(items) {
-    const seen = new Set();
-    const out = [];
-    items.forEach(function (n) {
-      if (!seen.has(n.id)) {
-        seen.add(n.id);
-        out.push(n);
-      }
-    });
     return out;
   }
 
-  function filtered(items, filter) {
-    if (filter === "ALL") return items;
-    if (filter === "UNREAD") return items.filter(function (i) { return !i.read; });
-    return items.filter(function (i) { return i.type === filter; });
+  function filtered(items, f) {
+    if (f === "ALL") return items;
+    if (f === "UNREAD") return items.filter(function(n){return !n.read;});
+    return items.filter(function(n){return n.type === f;});
   }
 
-  function renderDropdownFeed() {
-    const desktop = document.getElementById("dc-notif-content");
-    const mobile = document.getElementById("dc-mobile-notif-content");
-    const set = filtered(state.previewItems, state.previewFilter).slice(0, 8);
-    const html = set.length ? set.map(function (n) { return createCardHTML(n, "dropdown"); }).join("") : '<div class="p-8 text-center text-slate-500 text-sm">Nothing to show.</div>';
-    if (desktop) desktop.innerHTML = html;
-    if (mobile) mobile.innerHTML = html;
+  function escHtml(s) {
+    var d = document.createElement("div");
+    d.textContent = s || "";
+    return d.innerHTML;
   }
 
-  function renderMainFeed() {
-    const feed = document.getElementById("dc-main-feed");
-    if (!feed) return;
-    const count = document.getElementById("dc-feed-count");
-    const set = filtered(state.mainItems, state.mainFilter);
-    if (count) count.innerHTML = "Showing <strong class=\"text-white\">" + set.length + "</strong> alerts";
+  function initials(name) {
+    if (!name) return "DC";
+    var parts = name.trim().split(/\s+/);
+    if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+    return parts[0].substring(0, 2).toUpperCase();
+  }
 
-    if (!set.length) {
-      feed.innerHTML = '<div class="py-20 text-center text-slate-500 border border-white/5 rounded-3xl bg-white/[0.01]"><p class="font-display font-bold text-xl text-slate-300">All Caught Up</p></div>';
+  /* ─── Notification row HTML ─── */
+  function categoryOf(n) {
+    return (n.type || n.notification_type || "SYSTEM").toUpperCase();
+  }
+
+  function buildMediaHtml(n) {
+    var cat = categoryOf(n);
+    var badgeClass = "notif-cat-badge notif-cat-badge--" + cat;
+    var badgeIcon = CAT_ICON[cat] || CAT_ICON.SYSTEM;
+    var badge = '<span class="' + badgeClass + '"><i class="' + badgeIcon + '"></i></span>';
+
+    if (n.image || n.image_url) {
+      return '<div class="notif-media"><img class="notif-art" src="' + escHtml(n.image || n.image_url) + '" alt="" onerror="this.style.display=\'none\'">' + badge + '</div>';
+    }
+    if (n.avatar || n.avatar_url) {
+      return '<div class="notif-media"><img class="notif-avatar" src="' + escHtml(n.avatar || n.avatar_url) + '" alt="" onerror="this.style.display=\'none\'">' + badge + '</div>';
+    }
+    var bg = CAT_GRADIENT[cat] || CAT_GRADIENT.SYSTEM;
+    var label = n.title || "Notification";
+    return '<div class="notif-media"><div class="notif-initials" style="background:' + bg + '">' + initials(label) + '</div>' + badge + '</div>';
+  }
+
+  function buildFlagHtml(n) {
+    if (n.priority === "CRITICAL") {
+      return '<div class="notif-flag"><i class="ph-fill ph-timer"></i> TIME-SENSITIVE</div>';
+    }
+    if (categoryOf(n) === "WARNING") {
+      return '<div class="notif-flag notif-flag--warning"><i class="ph-fill ph-shield-warning"></i> SECURITY ALERT</div>';
+    }
+    return "";
+  }
+
+  function ctaLabel(n) {
+    var t = (n.notification_type || n.type || "").toUpperCase();
+    if (t === "TOURNAMENT") return "View Tournament";
+    if (t === "TEAM") return "View Team";
+    if (t === "ECONOMY") return "View Details";
+    if (t === "SOCIAL") return "View Profile";
+    return "View Details";
+  }
+
+  function ctaClass(n) {
+    var t = (n.notification_type || n.type || "").toLowerCase();
+    if (GOLD_ACTION_TYPES.indexOf(t) !== -1) return "notif-btn--cta-gold";
+    return "notif-btn--cta-azure";
+  }
+
+  function buildActionsHtml(n, context) {
+    var actions = n.actions;
+    var hasActions = Array.isArray(actions) && actions.length > 0;
+
+    if (!hasActions && n.actionLink) {
+      return '<div class="notif-actions">' +
+        '<a href="' + escHtml(n.actionLink) + '" class="notif-btn ' + ctaClass(n) + '" data-inline-link="1" onclick="event.stopPropagation();">' +
+        ctaLabel(n) + ' <i class="ph ph-arrow-right" style="font-size:13px"></i></a></div>';
+    }
+
+    if (!hasActions) return "";
+
+    var html = '<div class="notif-actions">';
+    for (var i = 0; i < actions.length; i++) {
+      var a = actions[i];
+      var cls = "notif-btn ";
+      if (a.style === "primary") {
+        cls += "notif-btn--accept";
+      } else if (a.style === "secondary" && actions.length === 1) {
+        cls += ctaClass(n);
+      } else {
+        cls += "notif-btn--decline";
+      }
+      html += '<button class="' + cls + '" data-action-id="' + escHtml(a.id) + '" data-notification-id="' + n.id + '">' + escHtml(a.label) + '</button>';
+    }
+    html += '</div>';
+    return html;
+  }
+
+  function buildRowHtml(n) {
+    var isUnread = !n.read;
+    var rowCls = "notif-row" + (isUnread ? " unread" : "");
+    var dot = isUnread ? '<span class="notif-dot"></span>' : "";
+    var media = buildMediaHtml(n);
+    var titleHtml = n.titleHtml || n.title_html || escHtml(n.title || "Notification");
+    var bodyHtml = n.htmlText || n.html_text || "";
+    var t = timeAgo(n.timestamp || n.time);
+    var flag = buildFlagHtml(n);
+    var actions = buildActionsHtml(n, "popover");
+
+    return '<div class="' + rowCls + '" data-id="' + n.id + '" data-notification-id="' + n.id + '" data-cat="' + categoryOf(n) + '" data-action-link="' + escHtml(n.actionLink || "") + '">' +
+      dot + media +
+      '<div class="notif-body">' +
+        '<div class="notif-body__top">' +
+          '<span class="notif-body__text">' + titleHtml + '</span>' +
+          '<span class="notif-body__time">' + t + '</span>' +
+        '</div>' +
+        (bodyHtml ? '<div class="notif-body__sub">' + bodyHtml + '</div>' : '') +
+        flag + actions +
+      '</div>' +
+    '</div>';
+  }
+
+  function buildSwipeRowHtml(n) {
+    var rowInner = buildRowHtml(n);
+    return '<div class="notif-swipe" data-notification-id="' + n.id + '">' +
+      '<div class="notif-swipe__actions">' +
+        '<button class="notif-swipe__action notif-swipe__action--read" data-swipe-read="' + n.id + '"><i class="ph-bold ph-check" style="font-size:16px"></i><span>Read</span></button>' +
+        '<button class="notif-swipe__action notif-swipe__action--archive" data-swipe-archive="' + n.id + '"><i class="ph-bold ph-trash" style="font-size:16px"></i><span>Archive</span></button>' +
+      '</div>' +
+      '<div class="notif-swipe__fg">' + rowInner + '</div>' +
+    '</div>';
+  }
+
+  /* ─── Render: desktop popover ─── */
+  function renderPopover() {
+    var el = $("dc-notif-content");
+    if (!el) return;
+    var items = filtered(state.previewItems, state.previewFilter).slice(0, 10);
+
+    if (!items.length) {
+      el.innerHTML =
+        '<div class="notif-empty">' +
+          '<div class="notif-empty__icon"><i class="ph ph-check-circle"></i></div>' +
+          '<p class="notif-empty__title">You\'re all caught up</p>' +
+          '<p class="notif-empty__sub">No notifications in this filter.</p>' +
+        '</div>';
       return;
     }
 
-    let bucket = "";
-    let html = "";
-    set.forEach(function (n) {
-      const b = getTimeGroup(n.timestamp || n.time);
-      if (b !== bucket) {
-        html += '<div class="time-group-header text-xs font-bold tracking-widest text-slate-500 uppercase">' + b + '</div>';
-        bucket = b;
+    var html = "";
+    var lastGroup = "";
+    for (var i = 0; i < items.length; i++) {
+      var g = timeGroup(items[i].timestamp || items[i].time);
+      if (g !== lastGroup) {
+        html += '<div class="notif-group-hdr">' + g + '</div>';
+        lastGroup = g;
       }
-      html += createCardHTML(n, "main");
-    });
-    feed.innerHTML = html;
+      html += buildRowHtml(items[i]);
+    }
+    el.innerHTML = html;
+  }
+
+  /* ─── Render: mobile sheet ─── */
+  function renderMobileSheet() {
+    var el = $("dc-mobile-notif-content");
+    if (!el) return;
+    var items = filtered(state.previewItems, state.previewFilter).slice(0, 15);
+
+    if (!items.length) {
+      el.innerHTML =
+        '<div class="notif-empty">' +
+          '<div class="notif-empty__icon"><i class="ph ph-check-circle"></i></div>' +
+          '<p class="notif-empty__title">You\'re all caught up</p>' +
+          '<p class="notif-empty__sub">No notifications in this filter.</p>' +
+        '</div>';
+      return;
+    }
+
+    var html = "";
+    var lastGroup = "";
+    for (var i = 0; i < items.length; i++) {
+      var g = timeGroup(items[i].timestamp || items[i].time);
+      if (g !== lastGroup) {
+        html += '<div class="notif-group-hdr">' + g + '</div>';
+        lastGroup = g;
+      }
+      html += buildSwipeRowHtml(items[i]);
+    }
+    el.innerHTML = html;
     attachSwipeListeners();
   }
 
+  /* ─── Render: full-page feed (inbox.html) ─── */
+  function renderMainFeed() {
+    var feed = $("dc-main-feed");
+    if (!feed) return;
+    var count = $("dc-feed-count");
+    var items = filtered(state.mainItems, state.mainFilter);
+    if (count) count.innerHTML = "Showing <strong style='color:#F4F6FA'>" + items.length + "</strong> alerts";
+
+    if (!items.length) {
+      feed.innerHTML =
+        '<div class="notif-empty" style="padding:60px 24px;">' +
+          '<div class="notif-empty__icon"><i class="ph ph-check-circle"></i></div>' +
+          '<p class="notif-empty__title">All Caught Up</p>' +
+          '<p class="notif-empty__sub">No notifications to show.</p>' +
+        '</div>';
+      return;
+    }
+
+    var html = "";
+    var lastGroup = "";
+    for (var i = 0; i < items.length; i++) {
+      var g = timeGroup(items[i].timestamp || items[i].time);
+      if (g !== lastGroup) {
+        html += '<div class="notif-group-hdr" style="padding:16px 4px 6px;">' + g + '</div>';
+        lastGroup = g;
+      }
+      html += '<div class="notif-main-card' + (!items[i].read ? ' unread' : '') + '" data-notification-id="' + items[i].id + '" data-action-link="' + escHtml(items[i].actionLink || '') + '">' +
+        buildMediaHtml(items[i]) +
+        '<div class="notif-body" style="flex:1;min-width:0;">' +
+          '<div class="notif-body__top">' +
+            '<span class="notif-body__text">' + (items[i].titleHtml || items[i].title_html || escHtml(items[i].title)) + '</span>' +
+            '<span class="notif-body__time">' + timeAgo(items[i].timestamp || items[i].time) + '</span>' +
+          '</div>' +
+          (items[i].htmlText ? '<div class="notif-body__sub">' + items[i].htmlText + '</div>' : '') +
+          buildFlagHtml(items[i]) +
+          buildActionsHtml(items[i], "main") +
+        '</div>' +
+      '</div>';
+    }
+    feed.innerHTML = html;
+  }
+
+  function renderAll() {
+    renderPopover();
+    renderMobileSheet();
+    renderMainFeed();
+    updateCounters();
+  }
+
+  /* ─── Badge & counter updates ─── */
   function updateCounters() {
-    const unread = Math.max(0, Number(state.unreadCount || 0));
-    const map = {
-      ALL: state.mainItems.length,
-      TOURNAMENT: state.mainItems.filter(function (i) { return i.type === "TOURNAMENT"; }).length,
-      TEAM: state.mainItems.filter(function (i) { return i.type === "TEAM"; }).length,
-      ECONOMY: state.mainItems.filter(function (i) { return i.type === "ECONOMY"; }).length,
-      SOCIAL: state.mainItems.filter(function (i) { return i.type === "SOCIAL"; }).length,
-      SYSTEM: state.mainItems.filter(function (i) { return i.type === "SYSTEM"; }).length,
-      WARNING: state.mainItems.filter(function (i) { return i.type === "WARNING"; }).length,
-    };
+    var unread = Math.max(0, Number(state.unreadCount || 0));
 
-    document.querySelectorAll("[data-count]").forEach(function (el) {
-      const key = el.getAttribute("data-count");
-      el.textContent = map[key] || 0;
-    });
-
-    ["dc-notif-badge", "dc-mobile-notif-badge"].forEach(function (id) {
-      const el = document.getElementById(id);
+    ["dc-notif-badge", "dc-mobile-notif-badge"].forEach(function(id) {
+      var el = $(id);
       if (!el) return;
       if (unread > 0) {
         el.textContent = unread > 99 ? "99+" : String(unread);
+        el.setAttribute("data-count", String(unread));
         el.style.display = "flex";
       } else {
+        el.textContent = "";
+        el.setAttribute("data-count", "0");
         el.style.display = "none";
       }
     });
 
-    const header = document.getElementById("dc-notif-header-count");
-    if (header) {
-      if (unread > 0) {
-        header.style.display = "inline-flex";
-        header.textContent = (unread > 99 ? "99+" : unread) + " NEW";
-      } else {
-        header.style.display = "none";
-      }
+    var pill = $("dc-notif-header-pill");
+    if (pill) {
+      pill.textContent = unread > 0 ? (unread > 99 ? "99+" : unread) + " new" : "";
     }
 
-    setBellAnimation(unread > 0);
-  }
-
-  async function loadPreview() {
-    const data = await fetchJson("/notifications/api/preview/?limit=8", { headers: { "X-Requested-With": "XMLHttpRequest" } });
-    state.previewItems = Array.isArray(data && data.items) ? data.items : [];
-    state.unreadCount = Number((data && data.unread_count) || 0);
-    renderDropdownFeed();
-    updateCounters();
-  }
-
-  async function loadFeed(page, append) {
-    const data = await fetchJson("/notifications/api/feed/?page=" + page + "&page_size=20", { headers: { "X-Requested-With": "XMLHttpRequest" } });
-    const items = Array.isArray(data && data.items) ? data.items : [];
-    if (append) state.mainItems = dedupeById(state.mainItems.concat(items));
-    else state.mainItems = items;
-
-    state.hasNext = !!data.has_next;
-    state.page = data.page || 1;
-
-    if (!append) {
-      state.previewItems = dedupeById(items.concat(state.previewItems));
-      renderDropdownFeed();
+    var tabAll = $("dc-tab-count-all");
+    if (tabAll) {
+      var unreadPreview = state.previewItems.filter(function(n){return !n.read;}).length;
+      tabAll.textContent = unreadPreview > 0 ? unreadPreview : "";
     }
 
-    renderMainFeed();
-    updateCounters();
-
-    const loadMore = document.getElementById("dc-load-more-btn");
-    if (loadMore) loadMore.style.display = state.hasNext ? "flex" : "none";
-  }
-
-  function prependIncoming(items) {
-    if (!items || !items.length) return;
-    state.previewItems = dedupeById(items.concat(state.previewItems));
-    state.mainItems = dedupeById(items.concat(state.mainItems));
-    renderDropdownFeed();
-    renderMainFeed();
-    updateCounters();
-
-    const shouldPlayAudio = items.some(function (item) {
-      return item.priority === "HIGH" || item.priority === "CRITICAL";
+    // Inbox page counters
+    var map = {};
+    ["ALL","TOURNAMENT","TEAM","ECONOMY","SOCIAL","SYSTEM","WARNING"].forEach(function(k) {
+      map[k] = k === "ALL" ? state.mainItems.length : state.mainItems.filter(function(n){return n.type===k;}).length;
+    });
+    document.querySelectorAll("[data-count]").forEach(function(el) {
+      if (el.id) return;
+      var k = el.getAttribute("data-count");
+      if (map[k] !== undefined) el.textContent = map[k] || 0;
     });
 
-    if (shouldPlayAudio) {
-      playPriorityAlertSound().catch(function () {});
-    }
-
-    setBellAnimation(true);
-    setTimeout(function () { updateCounters(); }, 1200);
+    setBellAnim(unread > 0);
   }
 
+  function setBellAnim(active) {
+    ["dc-notif-btn","dc-mobile-notif-btn"].forEach(function(id) {
+      var b = $(id);
+      if (!b) return;
+      if (active) b.classList.add("dc-bell-ringing");
+      else b.classList.remove("dc-bell-ringing");
+    });
+  }
+
+  /* ─── API calls ─── */
+  function apiHeaders() {
+    return {
+      "Content-Type": "application/json",
+      "X-CSRFToken": getCsrfToken(),
+      "X-Requested-With": "XMLHttpRequest",
+    };
+  }
+
+  function loadPreview() {
+    return fetchJson("/notifications/api/preview/?limit=12", { headers: { "X-Requested-With": "XMLHttpRequest" } }).then(function(data) {
+      state.previewItems = Array.isArray(data && data.items) ? data.items : [];
+      state.unreadCount = Number((data && data.unread_count) || 0);
+      renderPopover();
+      renderMobileSheet();
+      updateCounters();
+    });
+  }
+
+  function loadFeed(page, append) {
+    return fetchJson("/notifications/api/feed/?page=" + page + "&page_size=20", { headers: { "X-Requested-With": "XMLHttpRequest" } }).then(function(data) {
+      var items = Array.isArray(data && data.items) ? data.items : [];
+      state.mainItems = append ? dedup(state.mainItems.concat(items)) : items;
+      state.hasNext = !!data.has_next;
+      state.page = data.page || 1;
+
+      if (!append) {
+        state.previewItems = dedup(items.concat(state.previewItems));
+        renderPopover();
+        renderMobileSheet();
+      }
+      renderMainFeed();
+      updateCounters();
+
+      var loadMore = $("dc-load-more-btn");
+      if (loadMore) loadMore.style.display = state.hasNext ? "flex" : "none";
+    });
+  }
+
+  function markRead(nid) {
+    var target = state.mainItems.find(function(n){return n.id===nid;}) || state.previewItems.find(function(n){return n.id===nid;});
+    var wasUnread = !!(target && !target.read);
+    return fetchJson("/notifications/api/mark-read/", {
+      method: "POST", headers: apiHeaders(),
+      body: JSON.stringify({ id: nid }),
+    }).then(function() {
+      [state.mainItems, state.previewItems].forEach(function(arr) {
+        arr.forEach(function(n) { if (n.id === nid) n.read = true; });
+      });
+      if (wasUnread) state.unreadCount = Math.max(0, state.unreadCount - 1);
+      renderAll();
+    });
+  }
+
+  function markAllRead() {
+    return fetchJson("/notifications/api/mark-read/", {
+      method: "POST", headers: apiHeaders(),
+      body: JSON.stringify({ mark_all: true }),
+    }).then(function() {
+      [state.mainItems, state.previewItems].forEach(function(arr) {
+        arr.forEach(function(n) { n.read = true; });
+      });
+      state.unreadCount = 0;
+      renderAll();
+    });
+  }
+
+  function deleteNotification(nid) {
+    var target = state.mainItems.find(function(n){return n.id===nid;}) || state.previewItems.find(function(n){return n.id===nid;});
+    var wasUnread = !!(target && !target.read);
+
+    var cards = document.querySelectorAll('[data-notification-id="' + nid + '"]');
+    cards.forEach(function(card) {
+      card.style.transition = "opacity 0.26s ease, max-height 0.26s ease";
+      card.style.overflow = "hidden";
+      card.style.maxHeight = card.offsetHeight + "px";
+      requestAnimationFrame(function() {
+        card.style.opacity = "0";
+        card.style.maxHeight = "0px";
+      });
+    });
+
+    return fetchJson("/notifications/" + nid + "/delete/", {
+      method: "POST", headers: apiHeaders(),
+    }).then(function() {
+      setTimeout(function() {
+        state.mainItems = state.mainItems.filter(function(n){return n.id !== nid;});
+        state.previewItems = state.previewItems.filter(function(n){return n.id !== nid;});
+        if (wasUnread) state.unreadCount = Math.max(0, state.unreadCount - 1);
+        renderAll();
+      }, 260);
+    }).catch(function() {
+      return markRead(nid);
+    });
+  }
+
+  function triggerAction(actionId, notificationId, button) {
+    if (!actionId) return;
+    var original = button.textContent;
+    button.disabled = true;
+    button.textContent = "...";
+    fetchJson("/notifications/api/action/" + encodeURIComponent(actionId) + "/", {
+      method: "POST", headers: apiHeaders(),
+    }).then(function(res) {
+      var parent = button.closest(".notif-actions");
+      if (parent) {
+        var resolvedLabel = actionId.indexOf("accept") !== -1 ? "✓ Accepted" :
+                            actionId.indexOf("reject") !== -1 || actionId.indexOf("decline") !== -1 ? "✗ Declined" :
+                            "✓ Done";
+        parent.innerHTML = '<span class="notif-btn notif-btn--resolved">' + resolvedLabel + '</span>';
+      }
+      var nid = Number(notificationId);
+      [state.mainItems, state.previewItems].forEach(function(arr) {
+        arr.forEach(function(n) { if (n.id === nid) { n.read = true; n.actions = []; } });
+      });
+      state.unreadCount = Math.max(0, state.unreadCount - 1);
+      updateCounters();
+    }).catch(function() {
+      button.disabled = false;
+      button.textContent = original;
+    });
+  }
+
+  /* ─── Mobile sheet open/close ─── */
+  function setupMobileSheet() {
+    var btn = $("dc-mobile-notif-btn");
+    var overlay = $("dc-mobile-notif-overlay");
+    var sheet = $("dc-mobile-notif-sheet");
+    if (!btn || !overlay || !sheet) return;
+    var isOpen = false;
+
+    function open() {
+      if (isOpen) return;
+      isOpen = true;
+      if (window.dcNav && typeof window.dcNav.closeMenu === "function") window.dcNav.closeMenu();
+      overlay.classList.add("is-open");
+      sheet.classList.add("is-open");
+      overlay.setAttribute("aria-hidden", "false");
+      sheet.setAttribute("aria-hidden", "false");
+      btn.setAttribute("aria-expanded", "true");
+      document.body.style.overflow = "hidden";
+    }
+
+    function close() {
+      if (!isOpen) return;
+      isOpen = false;
+      sheet.classList.remove("is-open");
+      overlay.classList.remove("is-open");
+      overlay.setAttribute("aria-hidden", "true");
+      sheet.setAttribute("aria-hidden", "true");
+      btn.setAttribute("aria-expanded", "false");
+      document.body.style.overflow = "";
+    }
+
+    btn.addEventListener("click", function(e) { e.preventDefault(); e.stopPropagation(); open(); });
+    overlay.addEventListener("click", close);
+
+    document.addEventListener("keydown", function(e) { if (e.key === "Escape") close(); });
+    window.addEventListener("resize", function() { if (window.innerWidth >= 768) close(); });
+
+    var handle = $("dc-mobile-notif-handle");
+    if (handle) {
+      var startY = 0;
+      handle.addEventListener("touchstart", function(e) { startY = e.touches[0].clientY; }, { passive: true });
+      handle.addEventListener("touchmove", function(e) {
+        var dy = e.touches[0].clientY - startY;
+        if (dy > 0) sheet.style.transform = "translateY(" + dy + "px)";
+      }, { passive: true });
+      handle.addEventListener("touchend", function(e) {
+        var dy = e.changedTouches[0].clientY - startY;
+        sheet.style.transform = "";
+        if (dy > 80) close();
+      });
+    }
+  }
+
+  /* ─── Swipe-to-action (mobile) ─── */
+  function attachSwipeListeners() {
+    var containers = document.querySelectorAll(".notif-swipe");
+    containers.forEach(function(wrap) {
+      var fg = wrap.querySelector(".notif-swipe__fg");
+      if (!fg) return;
+      var nid = Number(wrap.getAttribute("data-notification-id"));
+      var startX = 0, dx = 0, dragging = false;
+
+      fg.addEventListener("touchstart", function(e) {
+        startX = e.touches[0].clientX; dx = 0; dragging = true;
+        fg.style.transition = "none";
+      }, { passive: true });
+
+      fg.addEventListener("touchmove", function(e) {
+        if (!dragging) return;
+        dx = e.touches[0].clientX - startX;
+        if (dx < 0) {
+          fg.style.transform = "translateX(" + Math.max(dx, -132) + "px)";
+        }
+      }, { passive: true });
+
+      fg.addEventListener("touchend", function() {
+        dragging = false;
+        fg.style.transition = "transform 260ms cubic-bezier(0.22,1,0.36,1)";
+        if (dx < -60) {
+          fg.style.transform = "translateX(-132px)";
+        } else {
+          fg.style.transform = "translateX(0)";
+        }
+      });
+
+      var readBtn = wrap.querySelector("[data-swipe-read]");
+      var archiveBtn = wrap.querySelector("[data-swipe-archive]");
+      if (readBtn) readBtn.addEventListener("click", function(e) {
+        e.stopPropagation();
+        fg.style.transform = "translateX(0)";
+        markRead(nid);
+      });
+      if (archiveBtn) archiveBtn.addEventListener("click", function(e) {
+        e.stopPropagation();
+        deleteNotification(nid);
+      });
+    });
+  }
+
+  /* ─── Filter tabs ─── */
+  function setupFilterTabs(containerId, onChange) {
+    var container = $(containerId);
+    if (!container) return;
+    var tabs = container.querySelectorAll("[data-filter]");
+    tabs.forEach(function(tab) {
+      tab.addEventListener("click", function() {
+        tabs.forEach(function(t) { t.classList.remove("active"); });
+        tab.classList.add("active");
+        onChange(tab.getAttribute("data-filter"));
+      });
+    });
+  }
+
+  /* ─── SSE ─── */
   function connectSSE() {
     if (!window.EventSource || state.sseDisabled) return;
-    let source;
-    let receivedMessage = false;
-    const openedAt = Date.now();
+    var source;
+    var receivedMessage = false;
+    var openedAt = Date.now();
     try {
       source = new EventSource("/notifications/stream/");
-      source.onopen = function () {
+      source.onopen = function() {
         state.sseFastFailureCount = 0;
         state.sseReconnectDelayMs = 5000;
       };
-      source.onmessage = function (evt) {
+      source.onmessage = function(evt) {
         receivedMessage = true;
         state.sseFastFailureCount = 0;
         state.sseReconnectDelayMs = 5000;
         try {
-          const data = JSON.parse(evt.data);
-          if (Array.isArray(data.new_items) && data.new_items.length) prependIncoming(data.new_items);
-          if (typeof data.unread_notifications === "number") state.unreadCount = data.unread_notifications;
+          var data = JSON.parse(evt.data);
+          if (Array.isArray(data.new_items) && data.new_items.length) {
+            state.previewItems = dedup(data.new_items.concat(state.previewItems));
+            state.mainItems = dedup(data.new_items.concat(state.mainItems));
+            renderAll();
+            setBellAnim(true);
+            setTimeout(function() { updateCounters(); }, 1200);
+          }
+          if (typeof data.unread_notifications === "number") {
+            state.unreadCount = data.unread_notifications;
+          }
           updateCounters();
         } catch (e) {}
       };
-      source.onerror = function () {
+      source.onerror = function() {
         source.close();
-        const lifetimeMs = Date.now() - openedAt;
-        if (!receivedMessage && lifetimeMs < 1500) {
-          state.sseFastFailureCount += 1;
+        var lifetime = Date.now() - openedAt;
+        if (!receivedMessage && lifetime < 1500) {
+          state.sseFastFailureCount++;
         } else {
           state.sseFastFailureCount = 0;
         }
-
-        // Keep retrying on transient network/proxy failures, but back off
-        // when repeated fast failures indicate endpoint pressure.
         if (state.sseFastFailureCount >= 3) {
           state.sseReconnectDelayMs = Math.min(state.sseReconnectDelayMs * 2, 60000);
         } else {
@@ -451,439 +661,139 @@
     } catch (e) {}
   }
 
-  async function markRead(notificationId) {
-    const target = state.mainItems.find(function (n) { return n.id === notificationId; }) || state.previewItems.find(function (n) { return n.id === notificationId; });
-    const wasUnread = !!(target && !target.read);
-    await fetchJson("/notifications/api/mark-read/", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-CSRFToken": getCsrfToken(),
-        "X-Requested-With": "XMLHttpRequest",
-      },
-      body: JSON.stringify({ id: notificationId }),
-    });
-    state.mainItems = state.mainItems.map(function (n) {
-      if (n.id === notificationId) n.read = true;
-      return n;
-    });
-    state.previewItems = state.previewItems.map(function (n) {
-      if (n.id === notificationId) n.read = true;
-      return n;
-    });
-    if (wasUnread) state.unreadCount = Math.max(0, state.unreadCount - 1);
-    renderDropdownFeed();
-    renderMainFeed();
-    updateCounters();
-    AudioEngine.play("read");
-  }
-
-  async function toggleReadStatus(notificationId) {
-    const before = state.mainItems.find(function (n) { return n.id === notificationId; }) || state.previewItems.find(function (n) { return n.id === notificationId; });
-    const wasRead = !!(before && before.read);
-    const res = await fetchJson("/notifications/api/toggle-read/", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-CSRFToken": getCsrfToken(),
-        "X-Requested-With": "XMLHttpRequest",
-      },
-      body: JSON.stringify({ id: notificationId }),
-    });
-
-    const nextRead = !!(res && res.read);
-    state.mainItems = state.mainItems.map(function (n) {
-      if (n.id === notificationId) n.read = nextRead;
-      return n;
-    });
-    state.previewItems = state.previewItems.map(function (n) {
-      if (n.id === notificationId) n.read = nextRead;
-      return n;
-    });
-    if (wasRead && !nextRead) state.unreadCount += 1;
-    if (!wasRead && nextRead) state.unreadCount = Math.max(0, state.unreadCount - 1);
-    renderDropdownFeed();
-    renderMainFeed();
-    updateCounters();
-    AudioEngine.play("read");
-  }
-
-  async function deleteNotification(notificationId) {
-    AudioEngine.play("delete");
-    const target = state.mainItems.find(function (n) { return n.id === notificationId; }) || state.previewItems.find(function (n) { return n.id === notificationId; });
-    const wasUnread = !!(target && !target.read);
-
-    const cards = document.querySelectorAll('[data-notification-id="' + notificationId + '"]');
-    cards.forEach(function (card) {
-      const cardHeight = card.offsetHeight;
-      card.style.overflow = "hidden";
-      card.style.maxHeight = cardHeight + "px";
-      card.style.transition = "opacity 0.28s ease, transform 0.28s ease, max-height 0.28s ease, margin 0.28s ease";
-      requestAnimationFrame(function () {
-        card.style.opacity = "0";
-        card.style.transform = "translateX(-28px)";
-        card.style.maxHeight = "0px";
-        card.style.margin = "0px";
-      });
-    });
-
-    try {
-      await fetchJson("/notifications/" + notificationId + "/delete/", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-CSRFToken": getCsrfToken(),
-          "X-Requested-With": "XMLHttpRequest",
-        },
-      });
-    } catch (e) {
-      await markRead(notificationId);
-      return;
-    }
-    setTimeout(function () {
-      state.mainItems = state.mainItems.filter(function (n) { return n.id !== notificationId; });
-      state.previewItems = state.previewItems.filter(function (n) { return n.id !== notificationId; });
-      if (wasUnread) state.unreadCount = Math.max(0, state.unreadCount - 1);
-      renderDropdownFeed();
-      renderMainFeed();
-      updateCounters();
-    }, 280);
-  }
-
-  async function markAllRead() {
-    await fetchJson("/notifications/api/mark-read/", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-CSRFToken": getCsrfToken(),
-        "X-Requested-With": "XMLHttpRequest",
-      },
-      body: JSON.stringify({ mark_all: true }),
-    });
-    state.mainItems = state.mainItems.map(function (n) { n.read = true; return n; });
-    state.previewItems = state.previewItems.map(function (n) { n.read = true; return n; });
-    state.unreadCount = 0;
-    renderDropdownFeed();
-    renderMainFeed();
-    updateCounters();
-    AudioEngine.play("read");
-  }
-
-  async function triggerAction(actionId, notificationId, button) {
-    if (!actionId) return;
-    AudioEngine.play("action");
-    const original = button.textContent;
-    button.disabled = true;
-    button.textContent = "...";
-    try {
-      await fetchJson("/notifications/api/action/" + encodeURIComponent(actionId) + "/", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-CSRFToken": getCsrfToken(),
-          "X-Requested-With": "XMLHttpRequest",
-        },
-      });
-      await deleteNotification(notificationId);
-    } catch (e) {
-      button.disabled = false;
-      button.textContent = original;
-    }
-  }
-
-  function attachSwipeListeners() {
-    const cards = document.querySelectorAll(".swipe-container");
-
-    cards.forEach(function (cardContainer) {
-      const swipeContent = cardContainer.querySelector(".swipe-content");
-      const actionBg = cardContainer.querySelector(".swipe-action-bg");
-      const id = Number(cardContainer.getAttribute("data-id") || cardContainer.getAttribute("data-notification-id"));
-
-      let startX = 0;
-      let currentX = 0;
-      let isDragging = false;
-      const threshold = 100;
-
-      cardContainer.addEventListener("touchstart", function (e) {
-        startX = e.touches[0].clientX;
-        isDragging = true;
-        cardContainer.classList.add("swiping");
-      }, { passive: true });
-
-      cardContainer.addEventListener("touchmove", function (e) {
-        if (!isDragging) return;
-        currentX = e.touches[0].clientX;
-        const diff = startX - currentX;
-
-        if (diff > 0) {
-          e.preventDefault();
-          const move = diff > threshold ? threshold + (diff - threshold) * 0.2 : diff;
-          if (swipeContent) swipeContent.style.transform = "translateX(-" + move + "px)";
-          if (actionBg) actionBg.style.opacity = String(Math.min(diff / threshold, 1));
-        }
-      }, { passive: false });
-
-      cardContainer.addEventListener("touchend", function () {
-        isDragging = false;
-        cardContainer.classList.remove("swiping");
-        const diff = startX - currentX;
-
-        if (diff > threshold) {
-          if (swipeContent) swipeContent.style.transform = "translateX(-100%)";
-          if (actionBg) actionBg.style.opacity = "1";
-          setTimeout(function () { deleteNotification(id); }, 200);
-        } else {
-          if (swipeContent) swipeContent.style.transform = "translateX(0)";
-          if (actionBg) actionBg.style.opacity = "0";
-        }
-      });
-    });
-  }
-
-  function setupSegments(containerId, highlighterId, btnClass, onChange) {
-    const container = document.getElementById(containerId);
-    const highlighter = document.getElementById(highlighterId);
-    if (!container || !highlighter) return;
-    const buttons = container.querySelectorAll("." + btnClass);
-    buttons.forEach(function (btn) {
-      btn.addEventListener("click", function () {
-        const index = Number(btn.dataset.index || 0);
-        const filter = btn.dataset.filter || "ALL";
-        highlighter.style.transform = "translateX(" + (index * 100) + "%)";
-        buttons.forEach(function (b) {
-          b.classList.remove("text-white");
-          b.classList.add("text-slate-400");
-        });
-        btn.classList.remove("text-slate-400");
-        btn.classList.add("text-white");
-        onChange(filter);
-      });
-    });
-  }
-
-  function setupNavSheet() {
-    const openBtn = document.getElementById("dc-mobile-notif-btn");
-    const overlay = document.getElementById("dc-mobile-notif-overlay");
-    const sheet = document.getElementById("dc-mobile-notif-sheet");
-    const closeBtn = document.getElementById("dc-mobile-notif-close");
-    if (!openBtn || !overlay || !sheet) return;
-    let isOpen = false;
-    let closeTimer = null;
-
-    function openSheet() {
-      if (isOpen) return;
-      isOpen = true;
-      if (window.dcNav && typeof window.dcNav.closeMenu === "function") {
-        window.dcNav.closeMenu();
-      }
-      clearTimeout(closeTimer);
-      overlay.classList.remove("hidden");
-      overlay.setAttribute("aria-hidden", "false");
-      sheet.setAttribute("aria-hidden", "false");
-      openBtn.setAttribute("aria-expanded", "true");
-      document.documentElement.classList.add("dc-mobile-notif-open");
-      document.body.classList.add("dc-mobile-notif-open");
-      requestAnimationFrame(function () {
-        overlay.classList.add("opacity-100");
-        overlay.classList.remove("opacity-0");
-        sheet.classList.remove("translate-y-full");
-      });
-    }
-
-    function closeSheet() {
-      if (!isOpen) return;
-      isOpen = false;
-      sheet.classList.add("translate-y-full");
-      overlay.classList.remove("opacity-100");
-      overlay.classList.add("opacity-0");
-      overlay.setAttribute("aria-hidden", "true");
-      sheet.setAttribute("aria-hidden", "true");
-      openBtn.setAttribute("aria-expanded", "false");
-      document.documentElement.classList.remove("dc-mobile-notif-open");
-      document.body.classList.remove("dc-mobile-notif-open");
-      closeTimer = setTimeout(function () {
-        if (!isOpen) overlay.classList.add("hidden");
-      }, 220);
-    }
-
-    openBtn.addEventListener("click", function (e) {
-      e.preventDefault();
-      openSheet();
-    });
-    overlay.addEventListener("click", closeSheet);
-    if (closeBtn) closeBtn.addEventListener("click", closeSheet);
-    document.addEventListener("keydown", function (e) {
-      if (e.key === "Escape") closeSheet();
-    });
-    window.addEventListener("resize", function () {
-      if (window.innerWidth >= 768) closeSheet();
-    });
-
-    const handle = document.getElementById("dc-mobile-notif-handle");
-    if (handle) {
-      let startY = 0;
-      handle.addEventListener("touchstart", function (e) { startY = e.touches[0].clientY; }, { passive: true });
-      handle.addEventListener("touchmove", function (e) {
-        const delta = e.touches[0].clientY - startY;
-        if (delta > 0) sheet.style.transform = "translateY(" + delta + "px)";
-      }, { passive: true });
-      handle.addEventListener("touchend", function (e) {
-        const delta = e.changedTouches[0].clientY - startY;
-        sheet.style.transform = "";
-        if (delta > 50) closeSheet();
-      });
-    }
-  }
-
+  /* ─── Global event delegation ─── */
   function wireGlobalActions() {
-    document.addEventListener("click", function (e) {
-      const deleteBtn = e.target.closest("[data-delete-id]");
-      if (deleteBtn) {
-        e.preventDefault();
-        const idToDelete = Number(deleteBtn.getAttribute("data-delete-id"));
-        if (idToDelete) deleteNotification(idToDelete);
-        return;
-      }
-
-      const readToggleBtn = e.target.closest("[data-toggle-read-id]");
-      if (readToggleBtn) {
-        e.preventDefault();
-        const idToToggle = Number(readToggleBtn.getAttribute("data-toggle-read-id"));
-        if (idToToggle) toggleReadStatus(idToToggle);
-        return;
-      }
-
-      const actionBtn = e.target.closest("[data-action-id]");
+    document.addEventListener("click", function(e) {
+      var actionBtn = e.target.closest("[data-action-id]");
       if (actionBtn) {
-        e.preventDefault();
-        const actionId = actionBtn.getAttribute("data-action-id");
-        const notificationId = Number(actionBtn.getAttribute("data-notification-id"));
-        triggerAction(actionId, notificationId, actionBtn);
+        e.preventDefault(); e.stopPropagation();
+        triggerAction(
+          actionBtn.getAttribute("data-action-id"),
+          actionBtn.getAttribute("data-notification-id"),
+          actionBtn
+        );
         return;
       }
 
-      const inlineLink = e.target.closest('a[data-inline-link="1"]');
-      if (inlineLink) {
-        return;
-      }
+      var inlineLink = e.target.closest('a[data-inline-link="1"]');
+      if (inlineLink) return;
 
-      const card = e.target.closest("[data-notification-id]");
-      const clickableContainer = e.target.closest("[data-action-link]");
-      if (clickableContainer && !e.target.closest("button")) {
+      if (e.target.closest("button")) return;
+
+      var row = e.target.closest("[data-notification-id]");
+      if (row) {
         e.preventDefault();
-        const id = Number(clickableContainer.closest("[data-notification-id]").getAttribute("data-notification-id"));
-        const href = clickableContainer.getAttribute("data-action-link");
-        if (id) {
-          markRead(id)
-            .catch(function () { return null; })
-            .finally(function () {
-              if (href) window.location.href = href;
-            });
-        } else if (href) {
-          window.location.href = href;
-        }
-        return;
-      }
-
-      if (card && !e.target.closest("button") && !e.target.closest("a")) {
-        const id = Number(card.getAttribute("data-notification-id"));
-        if (id) markRead(id);
-      }
-    });
-
-    ["dc-mark-read-btn", "dc-page-mark-all"].forEach(function (id) {
-      const btn = document.getElementById(id);
-      if (btn) {
-        btn.addEventListener("click", function (e) {
-          e.preventDefault();
-          markAllRead();
-        });
-      }
-    });
-
-    const clearBtn = document.getElementById("dc-page-clear-all");
-    if (clearBtn) {
-      clearBtn.addEventListener("click", async function (e) {
-        e.preventDefault();
-        try {
-          await fetchJson("/notifications/clear-all/", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "X-CSRFToken": getCsrfToken(),
-              "X-Requested-With": "XMLHttpRequest"
-            }
+        var nid = Number(row.getAttribute("data-notification-id"));
+        var link = row.getAttribute("data-action-link") || row.querySelector("[data-action-link]")?.getAttribute("data-action-link");
+        if (nid) {
+          markRead(nid).catch(function(){}).then(function() {
+            if (link) window.location.href = link;
           });
+        } else if (link) {
+          window.location.href = link;
+        }
+      }
+    });
+
+    // Mark all read — desktop popover
+    var markBtn = $("dc-mark-read-btn");
+    if (markBtn) markBtn.addEventListener("click", function(e) { e.preventDefault(); e.stopPropagation(); markAllRead(); });
+
+    // Mark all read — mobile sheet
+    var mobileMarkBtn = $("dc-mobile-mark-read");
+    if (mobileMarkBtn) mobileMarkBtn.addEventListener("click", function(e) { e.preventDefault(); e.stopPropagation(); markAllRead(); });
+
+    // Inbox page: mark all
+    var pageMarkBtn = $("dc-page-mark-all");
+    if (pageMarkBtn) pageMarkBtn.addEventListener("click", function(e) { e.preventDefault(); markAllRead(); });
+
+    // Inbox page: clear all
+    var clearBtn = $("dc-page-clear-all");
+    if (clearBtn) {
+      clearBtn.addEventListener("click", function(e) {
+        e.preventDefault();
+        fetchJson("/notifications/clear-all/", {
+          method: "POST", headers: apiHeaders(),
+        }).then(function() {
           state.mainItems = [];
           state.previewItems = [];
-          renderDropdownFeed();
-          renderMainFeed();
-          updateCounters();
-        } catch (err) {
-          console.warn("Clear all failed", err);
-        }
+          state.unreadCount = 0;
+          renderAll();
+        }).catch(function(err) { console.warn("Clear all failed", err); });
       });
     }
 
-    const loadMore = document.getElementById("dc-load-more-btn");
+    // Inbox page: load more
+    var loadMore = $("dc-load-more-btn");
     if (loadMore) {
-      loadMore.addEventListener("click", function () {
+      loadMore.addEventListener("click", function() {
         if (!state.hasNext) return;
         loadFeed(state.page + 1, true);
       });
     }
 
-    document.querySelectorAll(".dc-filter-btn").forEach(function (btn) {
-      btn.addEventListener("click", function () {
-        document.querySelectorAll(".dc-filter-btn").forEach(function (b) { b.classList.remove("active"); });
+    // Inbox page: sidebar filters
+    document.querySelectorAll(".dc-filter-btn").forEach(function(btn) {
+      btn.addEventListener("click", function() {
+        document.querySelectorAll(".dc-filter-btn").forEach(function(b) { b.classList.remove("active"); });
         btn.classList.add("active");
         state.mainFilter = btn.dataset.filter || "ALL";
         renderMainFeed();
       });
     });
 
-    setupSegments("dc-dropdown-segments", "dc-segment-highlighter", "dc-segment-btn", function (filter) {
-      state.previewFilter = filter;
-      renderDropdownFeed();
+    // Popover filter tabs
+    setupFilterTabs("dc-notif-tabs", function(f) {
+      state.previewFilter = f;
+      renderPopover();
     });
 
-    setupSegments("dc-mobile-segments", "dc-mobile-segment-highlighter", "dc-mobile-segment-btn", function (filter) {
-      state.previewFilter = filter;
-      renderDropdownFeed();
+    // Mobile sheet filter tabs
+    setupFilterTabs("dc-mobile-tabs", function(f) {
+      state.previewFilter = f;
+      renderMobileSheet();
     });
+
+    // Prevent clicks inside the popover from closing it via primary_navigation.js document click handler
+    var popover = $("dc-notif-menu");
+    if (popover) popover.addEventListener("click", function(e) { e.stopPropagation(); });
   }
 
+  /* ─── Init ─── */
   function mountSkeleton() {
-    const feed = document.getElementById("dc-main-feed");
+    var feed = $("dc-main-feed");
     if (!feed) return;
-    let html = "";
-    for (let i = 0; i < 4; i += 1) {
-      html += '<div class="p-5 border border-white/5 rounded-2xl bg-[#0d1424] mb-3 flex gap-4"><div class="w-12 h-12 rounded-xl dc-skeleton shrink-0"></div><div class="flex-1 space-y-3 py-1"><div class="h-4 dc-skeleton rounded w-1/3"></div><div class="space-y-2"><div class="h-3 dc-skeleton rounded w-full"></div><div class="h-3 dc-skeleton rounded w-5/6"></div></div></div></div>';
+    var html = "";
+    for (var i = 0; i < 4; i++) {
+      html += '<div style="display:flex;gap:14px;padding:16px 18px;margin-bottom:2px;border-radius:14px;border:1px solid rgba(255,255,255,0.06)">' +
+        '<div style="width:44px;height:44px;border-radius:999px;background:rgba(255,255,255,0.06);animation:pulse 1.5s infinite"></div>' +
+        '<div style="flex:1;display:flex;flex-direction:column;gap:8px;padding:4px 0">' +
+          '<div style="height:14px;width:40%;border-radius:6px;background:rgba(255,255,255,0.06);animation:pulse 1.5s infinite"></div>' +
+          '<div style="height:12px;width:70%;border-radius:6px;background:rgba(255,255,255,0.04);animation:pulse 1.5s infinite"></div>' +
+        '</div></div>';
     }
     feed.innerHTML = html;
   }
 
-  async function init() {
+  function init() {
     if (state.initialized) return;
     state.initialized = true;
-    const hasNavSurface = !!(document.getElementById("dc-notif-btn") || document.getElementById("dc-mobile-notif-btn"));
-    const hasFeedSurface = !!document.getElementById("dc-main-feed");
+
+    var hasNavSurface = !!($("dc-notif-btn") || $("dc-mobile-notif-btn"));
+    var hasFeedSurface = !!$("dc-main-feed");
     if (!hasNavSurface && !hasFeedSurface) return;
 
     mountSkeleton();
-    setupNavSheet();
+    setupMobileSheet();
     wireGlobalActions();
 
-    try {
-      await Promise.all([
-        loadPreview(),
-        document.getElementById("dc-main-feed") ? loadFeed(1, false) : Promise.resolve(),
-      ]);
-    } catch (e) {
-      if (document.getElementById("dc-main-feed")) {
-        document.getElementById("dc-main-feed").innerHTML = '<div class="p-8 text-center text-red-300">Failed to load notifications.</div>';
-      }
-    }
+    Promise.all([
+      loadPreview(),
+      $("dc-main-feed") ? loadFeed(1, false) : Promise.resolve(),
+    ]).catch(function() {
+      var feed = $("dc-main-feed");
+      if (feed) feed.innerHTML = '<div style="padding:40px;text-align:center;color:#FF6076;">Failed to load notifications.</div>';
+    });
 
     connectSSE();
   }

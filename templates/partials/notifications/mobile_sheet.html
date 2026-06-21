@@ -1,22 +1,29 @@
-<div id="dc-mobile-notif-overlay" class="fixed inset-0 bg-black/72 backdrop-blur-md z-[260] hidden opacity-0 transition-opacity duration-200 md:hidden" aria-hidden="true"></div>
+<div id="dc-mobile-notif-overlay" class="notif-scrim md:hidden" aria-hidden="true"></div>
 <div id="dc-mobile-notif-sheet"
-     class="fixed inset-0 h-[100dvh] max-h-[100dvh] dc-mobile-sheet z-[261] transform translate-y-full transition-transform duration-200 flex flex-col md:hidden"
+     class="notif-sheet md:hidden"
      role="dialog"
      aria-modal="true"
      aria-labelledby="dc-mobile-notif-title"
      aria-hidden="true">
-  <div class="w-full pt-[max(0.75rem,env(safe-area-inset-top))] pb-2 flex justify-center cursor-pointer" id="dc-mobile-notif-handle"><div class="w-12 h-1.5 bg-white/20 rounded-full"></div></div>
-  <div class="px-5 pb-4 border-b border-white/10">
-    <div class="flex justify-between items-center mb-4">
-      <h3 id="dc-mobile-notif-title" class="font-display font-extrabold text-2xl text-white tracking-wide">Notifications</h3>
-      <button id="dc-mobile-notif-close" type="button" class="w-11 h-11 rounded-full bg-white/5 text-slate-300 hover:text-white hover:bg-white/10 flex items-center justify-center" aria-label="Close notifications"><i class="fa-solid fa-xmark"></i></button>
+
+  <div class="notif-sheet__grabber" id="dc-mobile-notif-handle">
+    <div class="notif-sheet__grabber-pill"></div>
+  </div>
+
+  <div class="notif-sheet__header">
+    <div class="notif-sheet__title-row">
+      <h3 id="dc-mobile-notif-title" class="notif-sheet__title">Notifications</h3>
+      <button class="notif-sheet__mark-btn" id="dc-mobile-mark-read" type="button">Mark all read</button>
     </div>
-    <div class="flex p-1 bg-black/40 rounded-xl border border-white/5 relative" id="dc-mobile-segments">
-      <div class="dc-segment-active-bg" id="dc-mobile-segment-highlighter" style="width: 33.33%; transform: translateX(0);"></div>
-      <button class="dc-mobile-segment-btn flex-1 min-h-[44px] text-sm font-semibold py-2 rounded-lg text-white transition relative z-10" data-index="0" data-filter="ALL">All</button>
-      <button class="dc-mobile-segment-btn flex-1 min-h-[44px] text-sm font-semibold py-2 rounded-lg text-slate-400 transition relative z-10" data-index="1" data-filter="UNREAD">Unread</button>
-      <button class="dc-mobile-segment-btn flex-1 min-h-[44px] text-sm font-semibold py-2 rounded-lg text-slate-400 transition relative z-10" data-index="2" data-filter="TEAM">Invites</button>
+    <div class="notif-sheet__tabs" id="dc-mobile-tabs">
+      <button class="notif-sheet__tab active" data-filter="ALL">All</button>
+      <button class="notif-sheet__tab" data-filter="TOURNAMENT">Tournament</button>
+      <button class="notif-sheet__tab" data-filter="TEAM">Team</button>
+      <button class="notif-sheet__tab" data-filter="ECONOMY">Economy</button>
+      <button class="notif-sheet__tab" data-filter="SOCIAL">Social</button>
+      <button class="notif-sheet__tab" data-filter="WARNING">Alerts</button>
     </div>
   </div>
-  <div id="dc-mobile-notif-content" class="flex-1 overflow-y-auto px-2 pt-2 pb-[calc(1.5rem+env(safe-area-inset-bottom))]"></div>
+
+  <div class="notif-sheet__list" id="dc-mobile-notif-content"></div>
 </div>

@@ -18,7 +18,8 @@
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     {# Canonical platform font stack — load once for every page. #}
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700;800&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700;800&family=Rajdhani:wght@500;600;700&family=Sora:wght@700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <meta name="theme-color" content="#0b1220">
 
     <meta charset="utf-8" />
@@ -100,6 +101,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     {% if request.user.is_authenticated %}
     <link rel="stylesheet" href="{% static 'siteui/css/notifications_v2050.css' %}?v=2.3-20260328a">
+    <link rel="stylesheet" href="{% static 'css/notifications.css' %}?v=3.0">
     {% endif %}
     <!-- Phase 9A-24: Toastify.js for modern toast notifications -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/toastify-js@1.12.0/src/toastify.min.css">
@@ -141,7 +143,7 @@
     <script src="{% static 'siteui/js/theme.js' %}"></script>
     <script src="{% static 'siteui/js/esports-theme-toggle.js' %}"></script>
     {% if request.user.is_authenticated %}
-    <script src="{% static 'js/notifications_client.js' %}?v=2.3-20260328c"></script>
+    <script src="{% static 'js/notifications_client.js' %}?v=3.0-20260622"></script>
     {% endif %}
     <script src="{% static 'siteui/js/components.js' %}"></script>
     <script src="{% static 'siteui/js/motion.js' %}"></script>
