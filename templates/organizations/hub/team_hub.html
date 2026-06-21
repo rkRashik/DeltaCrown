@@ -1182,13 +1182,14 @@ img[loading="lazy"] {
 .dcm-promo { margin:16px 16px 0; padding:20px; border-radius:22px; position:relative; overflow:hidden; background:linear-gradient(135deg,rgba(104,73,229,0.28),rgba(10,132,255,0.22) 60%,rgba(207,167,90,0.18)); box-shadow:0 0 0 1px rgba(132,112,238,0.25),0 18px 40px -18px rgba(104,73,229,0.5); }
 .dcm-promo-btn { height:46px; padding:0 18px; border-radius:14px; font-size:14px; font-weight:600; display:flex; align-items:center; gap:7px; }
 
-/* dynamic bottom tab bar (replaces global #dc-bottom-nav on this page) */
-.dcm-tabbar { position:fixed; bottom:0; left:0; right:0; z-index:95; display:flex; padding:8px 6px calc(8px + env(safe-area-inset-bottom)); background:rgba(10,13,20,0.82); backdrop-filter:blur(28px) saturate(180%); -webkit-backdrop-filter:blur(28px) saturate(180%); border-top:1px solid rgba(255,255,255,0.06); }
-.dcm-tab { flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; padding:4px 2px; color:var(--m-mut); background:none; border:none; font:inherit; cursor:pointer; -webkit-tap-highlight-color:transparent; position:relative; }
+/* iOS-style dynamic bottom tab bar (replaces global #dc-bottom-nav on this page) */
+.dcm-tabbar { position:fixed; bottom:0; left:0; right:0; z-index:95; display:flex; align-items:flex-end; padding:0 2px; background:linear-gradient(180deg,rgba(10,13,20,0),rgba(10,13,20,0.92)); backdrop-filter:blur(32px) saturate(200%); -webkit-backdrop-filter:blur(32px) saturate(200%); border-top:1px solid rgba(255,255,255,0.08); box-shadow:0 -20px 50px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1); }
+.dcm-tab { flex:1; display:flex; flex-direction:column; align-items:center; gap:2px; padding:6px 0 calc(6px + env(safe-area-inset-bottom)); color:rgba(107,115,133,1); background:none; border:none; font:inherit; cursor:pointer; -webkit-tap-highlight-color:transparent; position:relative; transition:color 0.2s ease; }
 .dcm-tab span { font-size:10px; font-weight:500; letter-spacing:-0.01em; }
-.dcm-tab.is-active { color:var(--m-blue); }
+.dcm-tab:active { opacity:0.6; }
+.dcm-tab.is-active { color:#0A84FF; }
 .dcm-tab.is-active span { font-weight:600; }
-.dcm-tab.is-active::before { content:''; position:absolute; top:-8px; left:50%; transform:translateX(-50%); width:34px; height:3px; border-radius:0 0 2px 2px; background:#0A84FF; box-shadow:0 0 10px rgba(10,132,255,0.6); }
+.dcm-tab.is-active::before { content:''; position:absolute; top:-6px; left:50%; transform:translateX(-50%); width:30px; height:3px; border-radius:1.5px; background:#0A84FF; opacity:0.9; }
 
 /* search bottom sheet */
 .dcm-sheet-wrap { position:fixed; inset:0; z-index:170; display:none; align-items:flex-end; }
@@ -1420,7 +1421,7 @@ img[loading="lazy"] {
         <a href="/accounts/login/?next={{ request.path }}" class="dcm-tab"><i data-lucide="log-in" class="w-6 h-6"></i><span>Sign In</span></a>
         {% elif user.is_staff %}
         <a href="{% if user_primary_team %}{{ user_primary_team.get_absolute_url }}{% else %}{% url 'organizations:team_find' %}{% endif %}" class="dcm-tab"><i data-lucide="shield-check" class="w-6 h-6"></i><span>Team HQ</span></a>
-        <a href="/admin/" class="dcm-tab"><i data-lucide="sliders-horizontal" class="w-6 h-6"></i><span>Admin</span></a>
+        <a href="{% url 'dashboard:competitive_hub' %}" class="dcm-tab"><i data-lucide="swords" class="w-6 h-6"></i><span>Comp</span></a>
         {% elif user_teams %}
         <a href="{{ user_primary_team.get_absolute_url|default:'#' }}" class="dcm-tab"><i data-lucide="shield-check" class="w-6 h-6"></i><span>Team HQ</span></a>
         <a href="{% url 'dashboard:competitive_hub' %}" class="dcm-tab"><i data-lucide="swords" class="w-6 h-6"></i><span>Compete</span></a>
