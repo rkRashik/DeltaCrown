@@ -652,7 +652,8 @@ document.addEventListener("DOMContentLoaded", () => {
       tab: new URLSearchParams(window.location.search).get('tab') || 'live',
       game: new URLSearchParams(window.location.search).get('game') || '',
       q: new URLSearchParams(window.location.search).get('q') || '',
-      date: new URLSearchParams(window.location.search).get('date') || new Date().toISOString().split('T')[0]
+      date: new URLSearchParams(window.location.search).get('date') || new Date().toISOString().split('T')[0],
+      matchDates: null
   };
 
   let calCurrentDate = new Date(state.date);
@@ -733,8 +734,9 @@ document.addEventListener("DOMContentLoaded", () => {
       for(let i = 1; i <= daysInMonth; i++) {
           let loopDateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
           let isActive = (loopDateStr === state.date) ? 'active' : '';
-          
-          html += `<div class="cal-day ${isActive}" data-cal-date="${loopDateStr}">${i}</div>`;
+          let hasMatch = (state.matchDates && state.matchDates.has(loopDateStr)) ? 'has-match' : '';
+
+          html += `<div class="cal-day ${isActive} ${hasMatch}" data-cal-date="${loopDateStr}">${i}</div>`;
       }
       
       calGrid.innerHTML = html;
@@ -816,9 +818,15 @@ document.addEventListener("DOMContentLoaded", () => {
           let completedGroups = [];
           if (data.completed_groups && Array.isArray(data.completed_groups)) completedGroups = data.completed_groups;
 
+          if (Array.isArray(data.match_dates)) {
+              state.matchDates = new Set(data.match_dates);
+              renderCalendar();
+          }
+
           renderMatches(safeGroups, state.tab, {
             hasResultsForDate: !!data.has_results_for_date,
             completedGroups,
+            resultsIsFallback: !!data.results_is_fallback,
           });
           
           // Update Browser URL seamlessly
@@ -889,6 +897,15 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       let html = '';
+      if (tab === 'results' && opts.resultsIsFallback) {
+          html += `<div class="flex items-center gap-3 mb-4 px-1 w-full">
+            <div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-cyan-500/10 border border-cyan-500/25">
+              <i data-lucide="info" class="w-3.5 h-3.5 text-cyan-400"></i>
+              <span class="text-[10px] font-black uppercase tracking-widest text-cyan-300">Showing Recent Results</span>
+            </div>
+            <div class="h-px flex-1 bg-white/5"></div>
+          </div>`;
+      }
       groups.forEach(group => {
           let groupIcon = group.game_icon_url || (group.list.length > 0 ? group.list[0].game_icon_url : '');
           let gameIconHtml = groupIcon

@@ -1,0 +1,292 @@
+/* Settings Mobile — Native App Redesign (< 1024px only) */
+
+@media (max-width: 1023px) {
+
+  /* ═══════════════════════════════════════════
+     KILL old pill nav — always hidden on mobile
+     when our system is active
+     ═══════════════════════════════════════════ */
+  body.smm-menu-active #smm-old-pills,
+  body.smm-detail #smm-old-pills {
+    display: none !important;
+    height: 0 !important;
+    overflow: hidden !important;
+    visibility: hidden !important;
+  }
+
+  /* ═══════════════════════════════════════════
+     ROOT LAYOUT — override the flex h-screen
+     ═══════════════════════════════════════════ */
+  body.smm-menu-active > .flex.flex-col,
+  body.smm-detail > .flex.flex-col {
+    height: 100dvh !important;
+    overflow: hidden !important;
+  }
+
+  /* ═══════════════════════════════════════════
+     HEADER — native app bar
+     ═══════════════════════════════════════════ */
+  body.smm-menu-active header,
+  body.smm-detail header {
+    height: 56px !important;
+    background: rgba(7,10,16,0.97) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    border-bottom: 1px solid rgba(255,255,255,0.06) !important;
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 100 !important;
+  }
+
+  /* Menu screen header: show "Settings" title, hide save/breadcrumbs */
+  body.smm-menu-active #header-tab-label {
+    font-size: 18px !important;
+    font-weight: 800 !important;
+    font-family: 'Inter', sans-serif !important;
+    letter-spacing: -0.01em;
+  }
+  body.smm-menu-active .fa-chevron-right { display: none !important; }
+  body.smm-menu-active .text-gray-500.font-medium { display: none !important; }
+  body.smm-menu-active #save-all-btn { display: none !important; }
+  body.smm-menu-active #unsaved-changes { display: none !important; }
+
+  /* Detail screen header: show section title */
+  body.smm-detail #header-tab-label {
+    font-size: 16px !important;
+    font-weight: 700 !important;
+  }
+  body.smm-detail .fa-chevron-right { display: none !important; }
+  body.smm-detail .text-gray-500.font-medium { display: none !important; }
+
+  /* Back button: only in detail mode */
+  #smm-back-btn { display: none !important; }
+  body.smm-detail #smm-back-btn {
+    display: inline-flex !important;
+    width: 36px !important; height: 36px !important;
+    border-radius: 10px !important;
+    background: rgba(255,255,255,0.06) !important;
+    border: 1px solid rgba(255,255,255,0.08) !important;
+  }
+  body.smm-detail #smm-profile-back { display: none !important; }
+
+  /* Menu screen: profile-back acts as normal back */
+  body.smm-menu-active #smm-back-btn { display: none !important; }
+
+  /* ═══════════════════════════════════════════
+     MENU SCREEN — iOS Settings style
+     ═══════════════════════════════════════════ */
+  #smm-menu { display: none; }
+
+  body.smm-menu-active #smm-menu {
+    display: block !important;
+    position: fixed !important;
+    top: 56px !important;
+    left: 0 !important; right: 0 !important; bottom: 0 !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+    background: #070a10 !important;
+    z-index: 50 !important;
+    padding: 12px 16px calc(32px + env(safe-area-inset-bottom)) !important;
+  }
+
+  /* Hide main content when menu is showing */
+  body.smm-menu-active main.flex-1,
+  body.smm-menu-active main {
+    display: none !important;
+  }
+
+  /* ─── Profile card ─── */
+  .smm-profile-card {
+    display: flex; align-items: center; gap: 14px;
+    padding: 14px 16px;
+    background: rgba(255,255,255,0.035);
+    border-radius: 14px;
+    margin-bottom: 20px;
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+  .smm-profile-card__avatar {
+    width: 50px; height: 50px; border-radius: 999px;
+    object-fit: cover; flex: 0 0 50px;
+    border: 2px solid rgba(0,240,255,0.25);
+  }
+  .smm-profile-card__name {
+    font-family: 'Inter', sans-serif;
+    font-size: 16px; font-weight: 700; color: #fff;
+    line-height: 1.3;
+  }
+  .smm-profile-card__tag {
+    font-family: 'Inter', sans-serif;
+    font-size: 13px; color: #6B7385; margin-top: 1px;
+  }
+
+  /* ─── Section groups ─── */
+  .smm-group {
+    background: rgba(255,255,255,0.035);
+    border-radius: 14px;
+    overflow: hidden;
+    margin-bottom: 20px;
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+  .smm-group-label {
+    font-family: 'Inter', sans-serif;
+    font-size: 11.5px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.07em;
+    color: #5c6370;
+    padding: 18px 16px 7px;
+  }
+
+  /* ─── Menu rows ─── */
+  .smm-row {
+    display: flex !important; align-items: center !important; gap: 14px !important;
+    padding: 13px 16px !important;
+    color: #e2e8f0 !important;
+    text-decoration: none !important;
+    position: relative;
+    transition: background 100ms ease !important;
+    min-height: 50px !important;
+    -webkit-tap-highlight-color: transparent;
+    background: transparent !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    font-size: 15px !important;
+    width: 100% !important;
+  }
+  .smm-row:active { background: rgba(255,255,255,0.07) !important; }
+  .smm-row + .smm-row { border-top: 1px solid rgba(255,255,255,0.04) !important; }
+
+  .smm-row__icon {
+    width: 30px; height: 30px; border-radius: 7px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; flex: 0 0 30px;
+  }
+  .smm-row__label {
+    flex: 1; min-width: 0;
+    font-family: 'Inter', sans-serif;
+    font-size: 15px; font-weight: 500;
+    color: #e2e8f0;
+    line-height: 1.3;
+  }
+  .smm-row__chevron {
+    color: rgba(255,255,255,0.15);
+    font-size: 12px; flex: 0 0 auto;
+  }
+  .smm-row__badge {
+    min-width: 20px; height: 20px; padding: 0 6px;
+    border-radius: 999px; font-size: 11px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    background: #FF3B5C; color: #fff;
+    font-family: 'JetBrains Mono', monospace;
+    line-height: 1;
+  }
+
+  /* Danger row */
+  .smm-row--danger .smm-row__label { color: #f87171 !important; }
+  .smm-row--danger .smm-row__icon { color: #f87171 !important; }
+
+  /* Icon color backgrounds */
+  .smm-icon-identity   { background: rgba(0,240,255,0.12); color: #00F0FF; }
+  .smm-icon-about      { background: rgba(99,102,241,0.12); color: #818cf8; }
+  .smm-icon-connect    { background: rgba(168,85,247,0.12); color: #a855f7; }
+  .smm-icon-security   { background: rgba(34,197,94,0.12);  color: #22c55e; }
+  .smm-icon-privacy    { background: rgba(59,130,246,0.12);  color: #3b82f6; }
+  .smm-icon-platform   { background: rgba(107,114,128,0.12); color: #9ca3af; }
+  .smm-icon-notif      { background: rgba(251,191,36,0.12);  color: #fbbf24; }
+  .smm-icon-career     { background: rgba(245,158,11,0.12);  color: #f59e0b; }
+  .smm-icon-passports  { background: rgba(236,72,153,0.12);  color: #ec4899; }
+  .smm-icon-hub        { background: rgba(207,167,90,0.12);  color: #CFA75A; }
+  .smm-icon-loadout    { background: rgba(14,165,233,0.12);  color: #0ea5e9; }
+  .smm-icon-wallet     { background: rgba(16,185,129,0.12);  color: #10b981; }
+  .smm-icon-inventory  { background: rgba(139,92,246,0.12);  color: #8b5cf6; }
+  .smm-icon-stream     { background: rgba(168,85,247,0.12);  color: #a855f7; }
+  .smm-icon-community  { background: rgba(6,182,212,0.12);   color: #06b6d4; }
+  .smm-icon-danger     { background: rgba(239,68,68,0.12);   color: #ef4444; }
+
+  /* ═══════════════════════════════════════════
+     DETAIL SCREEN — the tab content view
+     ═══════════════════════════════════════════ */
+  body.smm-detail #smm-menu { display: none !important; }
+
+  body.smm-detail main.flex-1,
+  body.smm-detail main {
+    display: block !important;
+    padding-top: 8px !important;
+    padding-bottom: calc(100px + env(safe-area-inset-bottom)) !important;
+    overflow-y: auto !important;
+  }
+
+  /* Tab sections: full-width on mobile */
+  body.smm-detail .tab-section.active {
+    max-width: 100% !important;
+    margin: 0 !important;
+  }
+
+  /* ═══════════════════════════════════════════
+     NATIVE FORM FEEL — inputs, toggles, panels
+     ═══════════════════════════════════════════ */
+  body.smm-detail .z-input,
+  body.smm-menu-active .z-input {
+    font-size: 16px !important;
+    padding: 14px 16px !important;
+    border-radius: 12px !important;
+    min-height: 48px;
+    background: rgba(255,255,255,0.04) !important;
+    border: 1px solid rgba(255,255,255,0.08) !important;
+  }
+  body.smm-detail .z-input:focus {
+    border-color: #00F0FF !important;
+    box-shadow: 0 0 0 3px rgba(0,240,255,0.1) !important;
+  }
+  body.smm-detail select.z-input { min-height: 48px; }
+  body.smm-detail textarea.z-input { min-height: 80px !important; }
+
+  /* Bigger toggle for touch */
+  body.smm-detail .z-toggle-wrapper { width: 52px !important; height: 30px !important; }
+  body.smm-detail .z-toggle-slider:before { height: 24px !important; width: 24px !important; }
+  body.smm-detail .z-toggle-input:checked + .z-toggle-slider:before { transform: translateX(22px) !important; }
+
+  /* Tab headings */
+  body.smm-detail .tab-section h2 {
+    font-size: 1.5rem !important;
+    margin-bottom: 4px !important;
+  }
+
+  /* Glass panels: softer rounding on mobile */
+  body.smm-detail .glass-panel {
+    border-radius: 14px !important;
+  }
+
+  /* Buttons: bigger touch targets */
+  body.smm-detail button[type="submit"],
+  body.smm-detail .bg-z-cyan {
+    min-height: 46px !important;
+    border-radius: 12px !important;
+    font-size: 13px !important;
+  }
+
+  /* Info cards: tighter on mobile */
+  body.smm-detail .bg-blue-500\/10,
+  body.smm-detail .bg-purple-500\/10 {
+    border-radius: 12px !important;
+    padding: 12px !important;
+    font-size: 13px !important;
+  }
+
+  /* Grid: single column */
+  body.smm-detail .grid.grid-cols-1.md\:grid-cols-2 {
+    grid-template-columns: 1fr !important;
+  }
+  body.smm-detail .md\:col-span-2 {
+    grid-column: span 1 !important;
+  }
+}
+
+/* ═══════════════════════════════════════════
+   DESKTOP — force-hide mobile-only elements
+   ═══════════════════════════════════════════ */
+@media (min-width: 1024px) {
+  #smm-menu { display: none !important; }
+  #smm-back-btn { display: none !important; }
+}

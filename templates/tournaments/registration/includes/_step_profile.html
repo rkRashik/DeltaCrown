@@ -125,7 +125,7 @@
             <div class="space-y-1.5">
                 <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Age <span class="text-red-400">*</span></label>
                 <input type="number" name="age" class="input-premium" placeholder="Your age" min="13" max="99" value="{{ fields.age.value|default:'' }}" required>
-                <p class="text-[10px] text-gray-600 ml-1">Must be 13+</p>
+                <p class="text-[10px] text-gray-500 ml-1">Must be 13+</p>
             </div>
             {% endif %}
             {% if form_config.enable_country_field %}

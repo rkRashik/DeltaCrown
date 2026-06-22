@@ -36,9 +36,15 @@
           continue;
         }
         var h = Math.floor(diff / 3600);
-        var m = Math.floor((diff % 3600) / 60);
-        var s = diff % 60;
-        el.textContent = pad(h) + ':' + pad(m) + ':' + pad(s);
+        if (h >= 24) {
+          var d = Math.floor(h / 24);
+          var rh = h % 24;
+          el.textContent = d + 'd ' + rh + 'h';
+        } else {
+          var m = Math.floor((diff % 3600) / 60);
+          var s = diff % 60;
+          el.textContent = pad(h) + ':' + pad(m) + ':' + pad(s);
+        }
       }
     }
 

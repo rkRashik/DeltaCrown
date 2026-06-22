@@ -2721,7 +2721,9 @@ def _build_detail_action_input_context(tournament, user, *, base_context=None, n
         'is_registered': registration is not None,
         'user_registration': registration,
         'can_register': bool(eligibility.get('can_register')),
-        'registration_status_reason': eligibility.get('reason') or 'Registration is currently closed.',
+        'registration_status_reason': eligibility.get('reason') or (
+            'Registration is currently open.' if eligibility.get('can_register') else 'Registration is currently closed.'
+        ),
         'registration_action_url': registration_action_url,
         'registration_action_label': registration_action_label,
         # action_type may come directly from the eligibility dict, or be

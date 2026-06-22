@@ -1388,10 +1388,50 @@ def _build_arena_async_payload(
         if result_matches:
             completed_groups = _group_matches_by_tournament(result_matches)
 
+    results_is_fallback = False
+    if selected_tab == "results" and not tab_matches and selected_date:
+        fallback_payload = _fetch_arena_matches(
+            request,
+            selected_game=selected_game,
+            search_query=search_query,
+            selected_date=None,
+            include_logos=True,
+            only_tab="results",
+        )
+        tab_matches = fallback_payload.get("result_matches", [])
+        results_is_fallback = bool(tab_matches)
+
+    # Calendar highlight: distinct dates that have matches in the current month window.
+    match_dates = []
+    try:
+        from django.db.models.functions import TruncDate
+        from apps.tournaments.models import Match, Tournament
+        cal_base = Match.objects.filter(
+            is_deleted=False,
+            tournament__is_deleted=False,
+            tournament__status__in=[
+                Tournament.REGISTRATION_OPEN, Tournament.REGISTRATION_CLOSED,
+                Tournament.LIVE, Tournament.COMPLETED,
+            ],
+            scheduled_time__isnull=False,
+        )
+        if selected_game:
+            cal_base = cal_base.filter(tournament__game__slug=selected_game)
+        match_dates = [
+            d.isoformat() for d in
+            cal_base.annotate(match_date=TruncDate('scheduled_time'))
+            .values_list('match_date', flat=True)
+            .distinct()[:90]
+        ]
+    except Exception:
+        pass
+
     return {
         "groups": _group_matches_by_tournament(tab_matches),
         "has_results_for_date": has_results_for_date,
         "completed_groups": completed_groups,
+        "results_is_fallback": results_is_fallback,
+        "match_dates": match_dates,
     }
 
 

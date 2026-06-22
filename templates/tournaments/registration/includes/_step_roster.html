@@ -12,24 +12,24 @@
         <div class="p-3 rounded-xl border border-white/5 bg-white/[0.02] text-center">
             <div class="text-lg font-black text-white" id="count-starters">0</div>
             <div class="text-[10px] font-bold uppercase tracking-widest mt-0.5" style="color: var(--accent);">Starters</div>
-            <div class="text-[10px] text-gray-600 mt-0.5">/ {{ roster_config.max_team_size|default:5 }} required</div>
+            <div class="text-[10px] text-gray-500 mt-0.5">/ {{ roster_config.max_team_size|default:5 }} required</div>
         </div>
         <div class="p-3 rounded-xl border border-white/5 bg-white/[0.02] text-center">
             <div class="text-lg font-black text-white" id="count-subs">0</div>
             <div class="text-[10px] font-bold uppercase tracking-widest text-blue-400 mt-0.5">Substitutes</div>
-            <div class="text-[10px] text-gray-600 mt-0.5">/ {{ roster_config.max_substitutes|default:2 }} max</div>
+            <div class="text-[10px] text-gray-500 mt-0.5">/ {{ roster_config.max_substitutes|default:2 }} max</div>
         </div>
         {% if roster_config.allow_coaches %}
         <div class="p-3 rounded-xl border border-white/5 bg-white/[0.02] text-center">
             <div class="text-lg font-black text-white" id="count-coaches">0</div>
             <div class="text-[10px] font-bold uppercase tracking-widest text-purple-400 mt-0.5">Coaches</div>
-            <div class="text-[10px] text-gray-600 mt-0.5">/ {{ roster_config.max_coaches|default:1 }} max</div>
+            <div class="text-[10px] text-gray-500 mt-0.5">/ {{ roster_config.max_coaches|default:1 }} max</div>
         </div>
         {% endif %}
         <div class="p-3 rounded-xl border text-center" style="border-color: rgba(var(--accent-rgb), 0.15); background: rgba(var(--accent-rgb), 0.04);">
             <div class="text-lg font-black" style="color: var(--accent);" id="roster-count-text">{{ roster_members|length }}</div>
             <div class="text-[10px] font-bold uppercase tracking-widest text-gray-400 mt-0.5">Total</div>
-            <div class="text-[10px] text-gray-600 mt-0.5">{{ roster_config.team_size_display|default:"5v5" }}</div>
+            <div class="text-[10px] text-gray-500 mt-0.5">{{ roster_config.team_size_display|default:"5v5" }}</div>
         </div>
     </div>
 
@@ -124,7 +124,7 @@
             {% endif %}
             {% endfor %}
         </div>
-        <div class="empty-section-hint text-center py-4 text-gray-600 text-xs hidden">
+        <div class="empty-section-hint text-center py-4 text-gray-500 text-xs hidden">
             <p>No substitutes assigned. Click a player above and change their position.</p>
         </div>
     </div>
@@ -146,7 +146,7 @@
             {% endif %}
             {% endfor %}
         </div>
-        <div class="empty-section-hint text-center py-4 text-gray-600 text-xs hidden">
+        <div class="empty-section-hint text-center py-4 text-gray-500 text-xs hidden">
             <p>No coaching staff assigned.</p>
         </div>
     </div>
@@ -157,7 +157,7 @@
     {% else %}
     {# Empty roster fallback #}
     <div class="text-center py-10 text-gray-500">
-        <i data-lucide="users" class="w-10 h-10 mx-auto mb-3 text-gray-600"></i>
+        <i data-lucide="users" class="w-10 h-10 mx-auto mb-3 text-gray-500"></i>
         <p class="text-sm font-medium mb-1">No active members found</p>
         <p class="text-xs">Invite players to your team before registering.</p>
     </div>

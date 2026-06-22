@@ -63,7 +63,7 @@
             <div class="flex-1">
                 <p class="text-sm font-bold text-white group-hover:text-[color:var(--accent)] transition-colors">{{ t.name }}</p>
                 {% if t.tag %}<p class="text-xs text-gray-500 font-mono">{{ t.tag }}</p>{% endif %}
-                <p class="text-xs text-gray-600 mt-1">{{ t.members_count }} member{{ t.members_count|pluralize }}</p>
+                <p class="text-xs text-gray-500 mt-1">{{ t.members_count }} member{{ t.members_count|pluralize }}</p>
             </div>
         </label>
         {% endfor %}

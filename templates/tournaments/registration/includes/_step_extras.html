@@ -89,9 +89,9 @@
                 <div class="space-y-2">
                     <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Team Logo</label>
                     <div class="drop-zone flex flex-col items-center justify-center gap-2 aspect-square max-h-40 relative overflow-hidden" id="logo-placeholder" data-drop-input="team_logo">
-                        <i data-lucide="image" class="w-6 h-6 text-gray-600"></i>
+                        <i data-lucide="image" class="w-6 h-6 text-gray-500"></i>
                         <span class="text-[10px] text-gray-500">Drop or click</span>
-                        <span class="text-[9px] text-gray-600">Max 5MB</span>
+                        <span class="text-[9px] text-gray-500">Max 5MB</span>
                         <input type="file" name="team_logo" accept="image/*" class="absolute inset-0 opacity-0 cursor-pointer" data-preview-type="logo">
                     </div>
                     <div id="logo-preview-container" class="hidden">
@@ -104,9 +104,9 @@
                 <div class="space-y-2 {% if not form_config.enable_team_logo_upload %}sm:col-span-2{% endif %}">
                     <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Team Banner</label>
                     <div class="drop-zone flex flex-col items-center justify-center gap-2 h-32 relative overflow-hidden" id="banner-placeholder" data-drop-input="team_banner">
-                        <i data-lucide="panorama" class="w-6 h-6 text-gray-600"></i>
+                        <i data-lucide="panorama" class="w-6 h-6 text-gray-500"></i>
                         <span class="text-[10px] text-gray-500">Drop or click</span>
-                        <span class="text-[9px] text-gray-600">Max 10MB · 16:9 recommended</span>
+                        <span class="text-[9px] text-gray-500">Max 10MB · 16:9 recommended</span>
                         <input type="file" name="team_banner" accept="image/*" class="absolute inset-0 opacity-0 cursor-pointer" data-preview-type="banner">
                     </div>
                     <div id="banner-preview-container" class="hidden">
@@ -126,7 +126,7 @@
                 <div class="space-y-1.5 sm:col-span-2">
                     <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1 flex items-center justify-between">
                         Team Bio
-                        <span class="text-gray-600 font-normal" id="bio-counter">0 / 500</span>
+                        <span class="text-gray-500 font-normal" id="bio-counter">0 / 500</span>
                     </label>
                     <textarea name="team_bio" id="team-bio" class="input-premium min-h-[80px] resize-y" placeholder="Tell the organizers about your team..." maxlength="500"></textarea>
                 </div>

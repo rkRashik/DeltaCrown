@@ -15,6 +15,7 @@ from collections import defaultdict
 from typing import Dict, Iterable, List, Optional, Tuple
 from django.contrib.auth.models import User
 from django.db.models import Count
+from django.utils import timezone
 from apps.tournaments.models import Tournament, Registration
 from apps.organizations.models import Team, TeamMembership
 from apps.user_profile.models import UserProfile
@@ -163,7 +164,25 @@ class RegistrationEligibilityService:
                 'action_label': 'View Details',
             })
             return result
-        
+
+        now = timezone.now()
+        if tournament.registration_start and now < tournament.registration_start:
+            result.update({
+                'reason': f'Registration opens on {timezone.localtime(tournament.registration_start).strftime("%b %d, %Y at %I:%M %p")}.',
+                'status': 'registration_not_started',
+                'action_url': f'/tournaments/{tournament.slug}/',
+                'action_label': 'View Details',
+            })
+            return result
+        if tournament.registration_end and now > tournament.registration_end:
+            result.update({
+                'reason': 'The registration period has ended.',
+                'status': 'registration_ended',
+                'action_url': f'/tournaments/{tournament.slug}/',
+                'action_label': 'View Details',
+            })
+            return result
+
         # Check capacity using live registrations so CTA state matches rendered slots.
         is_full_capacity = RegistrationEligibilityService._is_full_capacity(tournament)
         if is_full_capacity:
@@ -392,6 +411,7 @@ class RegistrationEligibilityService:
                     team_regs_by_tournament[r.tournament_id].setdefault(r.team_id, r)
 
         # Per-tournament resolution — pure in-memory work from here.
+        bulk_now = timezone.now()
         result_map: Dict[int, Dict] = {}
         for tournament in tournament_list:
             result = {
@@ -453,6 +473,25 @@ class RegistrationEligibilityService:
                 result.update({
                     'reason': 'Registration is not currently open.',
                     'status': 'registration_closed',
+                    'action_url': f'/tournaments/{tournament.slug}/',
+                    'action_label': 'View Details',
+                })
+                result_map[tournament.id] = result
+                continue
+
+            if tournament.registration_start and bulk_now < tournament.registration_start:
+                result.update({
+                    'reason': f'Registration opens on {timezone.localtime(tournament.registration_start).strftime("%b %d, %Y at %I:%M %p")}.',
+                    'status': 'registration_not_started',
+                    'action_url': f'/tournaments/{tournament.slug}/',
+                    'action_label': 'View Details',
+                })
+                result_map[tournament.id] = result
+                continue
+            if tournament.registration_end and bulk_now > tournament.registration_end:
+                result.update({
+                    'reason': 'The registration period has ended.',
+                    'status': 'registration_ended',
                     'action_url': f'/tournaments/{tournament.slug}/',
                     'action_label': 'View Details',
                 })

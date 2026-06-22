@@ -1541,10 +1541,10 @@
                         <label class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2 block">In-Game Role</label>
                         ${roles.length > 0 ? `
                         <select id="modal-player-role" class="input-premium text-sm w-full py-3">${roleOptions}</select>
-                        <p class="text-[10px] text-gray-600 mt-1">Select the player's tactical role for this tournament.</p>
+                        <p class="text-[10px] text-gray-500 mt-1">Select the player's tactical role for this tournament.</p>
                         ` : `
                         <input type="text" id="modal-player-role" class="input-premium text-sm w-full py-3" placeholder="e.g. Duelist, IGL, Support" value="${playerRole || ''}">
-                        <p class="text-[10px] text-gray-600 mt-1">Type the player's in-game role.</p>
+                        <p class="text-[10px] text-gray-500 mt-1">Type the player's in-game role.</p>
                         `}
                     </div>
                     <div>
@@ -1559,7 +1559,7 @@
                     <div>
                         <label class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2 block">${runtimeConfig.gameIdLabel}</label>
                         <input type="text" id="modal-game-id" class="input-premium text-sm w-full py-3" placeholder="${runtimeConfig.gameIdPlaceholder}" value="${passportDisplay !== '—' ? passportDisplay : ''}">
-                        <p class="text-xs text-gray-600 mt-1">Used for match lobbies. ${hasPassport ? 'Auto-filled from game passport.' : 'Player has no game passport.'}</p>
+                        <p class="text-xs text-gray-500 mt-1">Used for match lobbies. ${hasPassport ? 'Auto-filled from game passport.' : 'Player has no game passport.'}</p>
                     </div>
                     ` : ''}
                 </div>
@@ -1627,7 +1627,7 @@
                 <div class="space-y-3">
                     <div class="p-3 rounded-xl border border-white/5 bg-black/30">
                         <div class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Personal Details</div>
-                        <p class="text-[10px] text-gray-600 mb-2">Fields provided by the player are shown as read-only. Missing mandatory fields can be filled by the coordinator.</p>
+                        <p class="text-[10px] text-gray-500 mb-2">Fields provided by the player are shown as read-only. Missing mandatory fields can be filled by the coordinator.</p>
                         <div class="space-y-1">
                             ${detailRow('Full Name', profileFullName, !profileFullName ? 'full_name' : null, 'text')}
                             ${detailRow('Email', profileEmail, !profileEmail ? 'email' : null, 'email')}
@@ -1669,7 +1669,7 @@
                 ` : `
                 <div class="text-center py-8">
                     <div class="w-14 h-14 rounded-full bg-white/5 border border-white/10 mx-auto mb-3 flex items-center justify-center">
-                        <i data-lucide="bar-chart-3" class="w-7 h-7 text-gray-600"></i>
+                        <i data-lucide="bar-chart-3" class="w-7 h-7 text-gray-500"></i>
                     </div>
                     <p class="text-sm font-bold text-white mb-1">No Stats Available</p>
                     <p class="text-xs text-gray-500">Statistics will appear once the player has match data.</p>
@@ -1883,7 +1883,7 @@
             if (cards.length === 0 && !emptyMsg) {
                 emptyMsg = document.createElement('div');
                 emptyMsg.className = 'section-empty-hint text-center py-3';
-                emptyMsg.innerHTML = '<p class="text-xs text-gray-600 italic">No members in this section. Move players here using their modal.</p>';
+                emptyMsg.innerHTML = '<p class="text-xs text-gray-500 italic">No members in this section. Move players here using their modal.</p>';
                 container.appendChild(emptyMsg);
             } else if (cards.length > 0 && emptyMsg) {
                 emptyMsg.remove();
