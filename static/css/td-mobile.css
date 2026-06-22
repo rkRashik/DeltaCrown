@@ -1,0 +1,26 @@
+/* Tournament Detail — Mobile Native View (≤1023px) */
+.tdm{font-family:'Inter',system-ui,sans-serif;-webkit-font-smoothing:antialiased;}
+.tdm *,.tdm *::before,.tdm *::after{box-sizing:border-box;}
+
+.tdm-scroll::-webkit-scrollbar{display:none;}
+.tdm-scroll{scrollbar-width:none;-webkit-overflow-scrolling:touch;}
+
+@keyframes tdm-pulse{0%,100%{transform:scale(1);opacity:1;}50%{transform:scale(1.6);opacity:.4;}}
+@keyframes tdm-fade{from{opacity:0;}to{opacity:1;}}
+
+.tdm-tap{transition:transform 120ms cubic-bezier(0.34,1.56,0.64,1);-webkit-tap-highlight-color:transparent;}
+.tdm-tap:active{transform:scale(0.97);}
+
+.tdm-card{background:#11151E;box-shadow:0 0 0 1px rgba(255,255,255,0.06);}
+.tdm-divider{border-bottom:1px solid rgba(255,255,255,0.05);}
+
+.tdm-sora{font-family:'Sora','Inter',system-ui,sans-serif;}
+.tdm-mono{font-family:'JetBrains Mono','Courier New',monospace;font-variant-numeric:tabular-nums;}
+
+.tdm-live-dot{width:7px;height:7px;border-radius:999px;background:#FF3B5C;animation:tdm-pulse 1.4s ease-in-out infinite;display:inline-block;}
+
+.tdm-tab-panel{display:none;animation:tdm-fade 180ms ease;}
+.tdm-tab-panel.active{display:block;}
+
+.tdm-row{transition:background 140ms ease;}
+.tdm-row:active{background:rgba(255,255,255,0.04);}
