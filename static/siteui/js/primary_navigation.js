@@ -415,10 +415,6 @@
       wrap.addEventListener('mouseenter', open);
       wrap.addEventListener('mouseleave', () => { hideTimer = setTimeout(close, 160); });
     }
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      menu.classList.contains('dcv4-open') ? close() : open();
-    });
   });
 
   if (profileBtn && profileMenu) {

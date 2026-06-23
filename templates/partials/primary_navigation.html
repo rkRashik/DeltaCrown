@@ -123,7 +123,7 @@
 <!-- Desktop Navigation -->
 <nav id="dc-navbar"
   class="hidden md:flex fixed top-0 left-0 right-0 z-[100] items-center transition-all duration-500"
-  style="height:64px;background:rgba(8,9,13,0.75);backdrop-filter:blur(20px) saturate(140%);-webkit-backdrop-filter:blur(20px) saturate(140%);border-bottom:1px solid rgba(255,255,255,.07);box-shadow:0 1px 0 rgba(255,255,255,0.03),0 4px 24px -4px rgba(0,0,0,0.5);">
+  style="height:64px;background:rgba(8,9,13,0.55);backdrop-filter:blur(24px) saturate(160%);-webkit-backdrop-filter:blur(24px) saturate(160%);border-bottom:1px solid rgba(255,255,255,.08);box-shadow:inset 0 1px 0 rgba(255,255,255,0.04),0 4px 32px -4px rgba(0,0,0,0.5);">
 
   {% if dc_community_mode %}
   {# Community: three-column layout — logo | menus-CENTERED | actions #}
@@ -233,11 +233,11 @@
 
       <!-- Tournaments dropdown -->
       <div class="dcv4-menuwrap" style="position:relative;display:flex;align-items:center;">
-        <button id="dc-tournaments-btn" class="dcv4-navbtn{% if tournaments_active %} active{% endif %}" aria-haspopup="true" aria-expanded="false">
+        <a href="/tournaments/" id="dc-tournaments-btn" class="dcv4-navbtn{% if tournaments_active %} active{% endif %}" aria-haspopup="true" aria-expanded="false">
           Tournaments
           <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,3.5 5,6.5 8,3.5"></polyline></svg>
           {% if tournaments_active %}<span class="dcv4-activedot"></span>{% endif %}
-        </button>
+        </a>
         <div id="dc-tournaments-menu" class="dcv4-menu" style="left:0;">
           <a href="/tournaments/" class="dcv4-menu-item"><span class="dcv4-mi-title">Browse All</span><span class="dcv4-mi-sub">Find active competitions</span></a>
           {% if request.user.is_authenticated %}
@@ -253,11 +253,11 @@
 
       <!-- Teams dropdown -->
       <div class="dcv4-menuwrap" style="position:relative;display:flex;align-items:center;">
-        <button id="dc-teams-btn" class="dcv4-navbtn{% if teams_active %} active{% endif %}" aria-haspopup="true" aria-expanded="false">
+        <a href="/teams/" id="dc-teams-btn" class="dcv4-navbtn{% if teams_active %} active{% endif %}" aria-haspopup="true" aria-expanded="false">
           Teams
           <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,3.5 5,6.5 8,3.5"></polyline></svg>
           {% if teams_active %}<span class="dcv4-activedot"></span>{% endif %}
-        </button>
+        </a>
         <div id="dc-teams-menu" class="dcv4-menu" style="left:0;">
           <a href="/teams/" class="dcv4-menu-item"><span class="dcv4-mi-title">Browse Teams</span><span class="dcv4-mi-sub">Esports teams &amp; organizations</span></a>
           <a href="/competition/rankings/" class="dcv4-menu-item"><span class="dcv4-mi-title">Rankings</span><span class="dcv4-mi-sub">Competitive Power Rankings</span></a>
@@ -492,14 +492,14 @@
   --nav-height-mobile: 56px;
   --nav-height-bottom: 56px;
 }
-/* v4 scrolled state — slightly more opaque glass, subtle glow */
+/* v4 scrolled state — glass deepens slightly on scroll */
 #dc-navbar.scrolled {
   height: 64px !important;
-  background: rgba(8,9,13,0.88) !important;
-  backdrop-filter: blur(24px) saturate(150%) !important;
-  -webkit-backdrop-filter: blur(24px) saturate(150%) !important;
-  border-bottom: 1px solid rgba(255,255,255,0.08) !important;
-  box-shadow: 0 1px 0 rgba(255,255,255,0.04), 0 8px 32px -8px rgba(0,0,0,0.6) !important;
+  background: rgba(8,9,13,0.72) !important;
+  backdrop-filter: blur(28px) saturate(170%) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(170%) !important;
+  border-bottom: 1px solid rgba(255,255,255,0.09) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), 0 8px 32px -8px rgba(0,0,0,0.55) !important;
 }
 
 /* ── v4 desktop center links & dropdown triggers ── */
