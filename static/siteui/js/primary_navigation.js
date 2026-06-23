@@ -19,7 +19,6 @@
   const closeBtn    = $('#dc-drawer-close');
   const searchBtn   = $('#dc-search-btn');
   const searchOvr   = $('#dc-search-overlay');
-  const searchClose = $('#dc-search-close');
   const searchInput = $('#dc-cmd-input');
   const notifBtn    = $('#dc-notif-btn');
   const notifMenu   = $('#dc-notif-menu');
@@ -325,6 +324,8 @@
       if (menuOpen) { closeMenu(); return; }
       if (searchOpen) { closeSearch(); return; }
       document.querySelectorAll('.dc-dropdown.show').forEach(d => d.classList.remove('show'));
+      document.querySelectorAll('.dcv4-menu.dcv4-open').forEach(m => m.classList.remove('dcv4-open'));
+      const chevEsc = $('#dc-profile-chevron'); if (chevEsc) chevEsc.style.transform = '';
     }
     if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
       e.preventDefault();
@@ -353,15 +354,15 @@
   });
 
   /* ════════════════════════════════════
-     DESKTOP DROPDOWNS — Notifications & Profile
+     DESKTOP DROPDOWNS — Notifications (.dc-dropdown)
      ════════════════════════════════════ */
   function toggleDropdown(btn, menu, chevron) {
     if (!btn || !menu) return;
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
       const isOpen = menu.classList.contains('show');
-      /* Close all dropdowns first */
       document.querySelectorAll('.dc-dropdown.show').forEach(d => d.classList.remove('show'));
+      closeV4Menus();
       if (!isOpen) {
         menu.classList.add('show');
         btn.setAttribute('aria-expanded', 'true');
@@ -374,15 +375,75 @@
   }
 
   toggleDropdown(notifBtn, notifMenu, null);
-  toggleDropdown(profileBtn, profileMenu, $('#dc-profile-chevron'));
 
-  /* Close dropdowns on outside click */
+  /* ════════════════════════════════════
+     v4 NAV MENUS — Tournaments / Teams (hover+click) · Profile (click)
+     ════════════════════════════════════ */
+  const profileChevron = $('#dc-profile-chevron');
+
+  function closeV4Menus(except) {
+    document.querySelectorAll('.dcv4-menu.dcv4-open').forEach(m => {
+      if (m !== except) m.classList.remove('dcv4-open');
+    });
+    if (profileChevron && (!except || except.id !== 'dc-profile-menu')) {
+      profileChevron.style.transform = '';
+    }
+  }
+  function closeNotifMenu() {
+    document.querySelectorAll('.dc-dropdown.show').forEach(d => d.classList.remove('show'));
+    notifBtn?.setAttribute('aria-expanded', 'false');
+  }
+
+  ['dc-tournaments', 'dc-teams'].forEach((key) => {
+    const btn = $('#' + key + '-btn');
+    const menu = $('#' + key + '-menu');
+    if (!btn || !menu) return;
+    const wrap = btn.closest('.dcv4-menuwrap');
+    let hideTimer;
+    const open = () => {
+      clearTimeout(hideTimer);
+      closeV4Menus(menu);
+      closeNotifMenu();
+      menu.classList.add('dcv4-open');
+      btn.setAttribute('aria-expanded', 'true');
+    };
+    const close = () => {
+      menu.classList.remove('dcv4-open');
+      btn.setAttribute('aria-expanded', 'false');
+    };
+    if (wrap) {
+      wrap.addEventListener('mouseenter', open);
+      wrap.addEventListener('mouseleave', () => { hideTimer = setTimeout(close, 160); });
+    }
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      menu.classList.contains('dcv4-open') ? close() : open();
+    });
+  });
+
+  if (profileBtn && profileMenu) {
+    profileBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isOpen = profileMenu.classList.contains('dcv4-open');
+      closeV4Menus();
+      closeNotifMenu();
+      if (!isOpen) {
+        profileMenu.classList.add('dcv4-open');
+        profileBtn.setAttribute('aria-expanded', 'true');
+        if (profileChevron) profileChevron.style.transform = 'rotate(180deg)';
+      } else {
+        profileBtn.setAttribute('aria-expanded', 'false');
+        if (profileChevron) profileChevron.style.transform = '';
+      }
+    });
+  }
+
+  /* Close all dropdowns on outside click */
   document.addEventListener('click', () => {
     document.querySelectorAll('.dc-dropdown.show').forEach(d => d.classList.remove('show'));
+    closeV4Menus();
     profileBtn?.setAttribute('aria-expanded', 'false');
     notifBtn?.setAttribute('aria-expanded', 'false');
-    const chev = $('#dc-profile-chevron');
-    if (chev) chev.style.transform = '';
   });
 
   /* ════════════════════════════════════

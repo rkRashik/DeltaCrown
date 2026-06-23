@@ -19,9 +19,9 @@
 
   /* Navigation Heights */
   --nav-height-mobile: 64px;
-  --nav-height-desktop: 80px;
+  --nav-height-desktop: 64px;
   --nav-height-desktop-scrolled: 64px;
-  --nav-height-bottom: 60px;
+  --nav-height-bottom: 56px;
 }
 
 /* === DESKTOP NAVBAR — STICKY LIQUID GLASS === */
