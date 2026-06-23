@@ -5,6 +5,7 @@
 
 {% block extra_css %}
 {{ block.super }}
+<link rel="stylesheet" href="{% static 'css/td-mobile.css' %}?v=20260623a" media="(max-width:1023px)">
 <style>
     .match-center-shell {
         background: radial-gradient(circle at 12% 10%, rgba(0, 240, 255, 0.06), transparent 34%),
@@ -100,7 +101,10 @@
 {% endblock %}
 
 {% block tournament_content %}
-<div class="match-center-shell pb-16">
+<div class="lg:hidden">
+    {% include "tournaments/public/live/_match_detail_mobile.html" %}
+</div>
+<div class="match-center-shell pb-16 hidden lg:block">
     <main class="max-w-[1400px] mx-auto px-3 md:px-6 lg:px-8 pt-6 grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8">
         <section class="lg:col-span-8 space-y-6 md:space-y-8">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -405,6 +409,7 @@
             </a>
         </aside>
     </main>
+</div>
 </div>
 
 {{ match_poll|json_script:"mc-poll-payload" }}

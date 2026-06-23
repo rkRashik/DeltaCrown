@@ -1,0 +1,230 @@
+{% load static humanize %}
+<div id="arm-root">
+  <div class="arm-scroll" style="overflow-y:auto;padding-bottom:20px;">
+
+    <div style="padding:12px 16px 10px;display:flex;align-items:center;justify-content:space-between;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span class="arm-sora" style="font-weight:800;font-size:26px;letter-spacing:-0.025em;color:#F4F6FA;">Arena</span>
+        <span id="arm-live-badge" style="display:{% if arena_stats.live_matches %}inline-flex{% else %}none{% endif %};align-items:center;gap:4px;padding:3px 8px 3px 7px;border-radius:999px;font-size:10px;font-weight:700;letter-spacing:.04em;color:#FF453A;background:rgba(255,69,58,0.14);">
+          <span class="arm-live-dot"></span><span id="arm-live-ct">{{ arena_stats.live_matches }}</span> LIVE
+        </span>
+      </div>
+      <button id="arm-filter-btn" class="arm-tap" style="display:flex;align-items:center;gap:5px;height:34px;padding:0 12px;border-radius:999px;font-size:13px;font-weight:600;color:#8E8E93;background:rgba(255,255,255,0.06);box-shadow:inset 0 0 0 1px rgba(255,255,255,0.1);border:none;cursor:pointer;">
+        <i data-lucide="sliders-horizontal" style="width:16px;height:16px;"></i>Filter
+      </button>
+    </div>
+
+    <div style="padding:0 16px 12px;">
+      <div class="arm-seg">
+        <button class="arm-seg-btn {% if selected_tab == 'live' %}on{% endif %}" data-arena-tab="live">Live{% if arena_stats.live_matches %} <span style="font-size:11px;font-weight:700;opacity:.85;">{{ arena_stats.live_matches }}</span>{% endif %}</button>
+        <button class="arm-seg-btn {% if selected_tab == 'upcoming' %}on{% endif %}" data-arena-tab="upcoming">Upcoming</button>
+        <button class="arm-seg-btn {% if selected_tab == 'results' %}on{% endif %}" data-arena-tab="results">Results</button>
+      </div>
+    </div>
+
+
+    <div id="arm-dates" class="arm-scroll" style="display:none;gap:7px;overflow-x:auto;padding:0 16px 12px;"></div>
+
+    <div id="arm-broadcasts">
+      {% if top_live_streams and selected_tab == 'live' %}
+      <div style="padding:0 0 4px;">
+        <div style="font-size:13px;font-weight:600;letter-spacing:-.01em;color:#8E8E93;padding:0 16px 9px;">Featured Broadcasts</div>
+        <div class="arm-scroll" style="display:flex;gap:10px;overflow-x:auto;padding:0 16px 2px;scroll-snap-type:x mandatory;">
+          {% for s in top_live_streams %}
+          <a href="{{ s.source_url|default:s.embed_url|default:'#' }}" target="_blank" rel="noopener" class="arm-tap" style="flex:none;width:210px;scroll-snap-align:start;border-radius:16px;overflow:hidden;background:#1C1C1E;text-decoration:none;display:block;">
+            <div style="position:relative;height:118px;background:#111;">
+              {% if s.thumbnail_url %}<img src="{{ s.thumbnail_url }}" alt="" style="width:100%;height:100%;object-fit:cover;display:block;" onerror="this.style.display='none'">{% endif %}
+              <div style="position:absolute;inset:0;background:linear-gradient(180deg,transparent 35%,rgba(0,0,0,0.82) 100%);"></div>
+              <div style="position:absolute;top:8px;left:8px;display:flex;gap:5px;">
+                <span style="display:inline-flex;align-items:center;gap:4px;padding:2px 7px;border-radius:999px;font-size:9.5px;font-weight:700;color:#FF453A;background:rgba(0,0,0,0.55);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);">
+                  <span class="arm-live-dot" style="width:4px;height:4px;"></span>LIVE
+                </span>
+                {% if s.viewers_label %}
+                <span style="display:inline-flex;align-items:center;gap:3px;padding:2px 6px;border-radius:999px;font-size:9.5px;font-weight:600;color:rgba(255,255,255,0.9);background:rgba(0,0,0,0.55);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);">
+                  <i data-lucide="eye" style="width:10px;height:10px;"></i>{{ s.viewers_label }}
+                </span>
+                {% endif %}
+              </div>
+              <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:36px;height:36px;border-radius:999px;background:rgba(255,255,255,0.2);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;">
+                <i data-lucide="play" style="width:18px;height:18px;color:#fff;fill:#fff;margin-left:2px;"></i>
+              </div>
+              <div style="position:absolute;bottom:8px;left:9px;right:9px;font-weight:700;font-size:12.5px;color:#fff;line-height:1.2;">{{ s.teams_label|default:s.title|default:"Live Stream" }}</div>
+            </div>
+            <div style="padding:9px 10px 11px;">
+              <div style="font-size:11.5px;font-weight:500;color:#8E8E93;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ s.tournament_name|default:"" }}</div>
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px;">
+                <span style="font-size:11px;color:#48484A;">{{ s.game_name|default:"" }}</span>
+                {% if s.platform %}<span style="font-size:10px;font-weight:600;color:#48484A;background:#2C2C2E;padding:1px 6px;border-radius:5px;">{{ s.platform }}</span>{% endif %}
+              </div>
+            </div>
+          </a>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    <div id="arm-match-container" style="min-height:200px;"></div>
+
+    {% if arena_poll_widget %}
+    <div id="arm-poll" class="arm-card" style="margin:26px 16px 0;">
+      <div style="padding:14px 16px 12px;border-bottom:1px solid rgba(255,255,255,0.06);">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <span style="font-size:15px;font-weight:700;color:#F4F6FA;letter-spacing:-.01em;">{{ arena_poll_widget.badge_label|default:"Fan Pulse" }}</span>
+          <span style="font-size:12px;font-weight:600;color:#636366;">{{ arena_poll_widget.vote_count|intcomma }} votes</span>
+        </div>
+        <div style="font-size:12px;color:#636366;margin-top:2px;">{{ arena_poll_widget.prompt_text }}</div>
+      </div>
+      <form method="post" action="{{ arena_poll_widget.vote_url }}" style="padding:14px 16px;">
+        {% csrf_token %}
+        <div style="display:flex;gap:9px;align-items:center;">
+          <button type="submit" name="option" value="A" class="arm-tap" style="flex:1;padding:12px 0;border-radius:10px;border:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;{% if arena_poll_widget.selected_option == 'A' %}background:rgba(10,132,255,0.12);{% else %}background:rgba(255,255,255,0.04);{% endif %}">
+            <span style="font-size:13px;font-weight:600;color:#F4F6FA;">{{ arena_poll_widget.option_a_label }}</span>
+            <span class="arm-mono" style="font-weight:700;font-size:18px;{% if arena_poll_widget.selected_option == 'A' %}color:#0A84FF;{% else %}color:#8E8E93;{% endif %}">{{ arena_poll_widget.option_a_percent }}%</span>
+          </button>
+          <span style="font-size:11px;font-weight:700;color:#3A3A3C;">VS</span>
+          <button type="submit" name="option" value="B" class="arm-tap" style="flex:1;padding:12px 0;border-radius:10px;border:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;{% if arena_poll_widget.selected_option == 'B' %}background:rgba(207,167,90,0.12);{% else %}background:rgba(255,255,255,0.04);{% endif %}">
+            <span style="font-size:13px;font-weight:600;color:#F4F6FA;">{{ arena_poll_widget.option_b_label }}</span>
+            <span class="arm-mono" style="font-weight:700;font-size:18px;{% if arena_poll_widget.selected_option == 'B' %}color:#CFA75A;{% else %}color:#8E8E93;{% endif %}">{{ arena_poll_widget.option_b_percent }}%</span>
+          </button>
+        </div>
+        <div style="height:3px;border-radius:999px;background:#2C2C2E;margin-top:12px;overflow:hidden;display:flex;">
+          <div style="height:100%;width:{{ arena_poll_widget.option_a_percent }}%;background:#0A84FF;border-radius:999px 0 0 999px;transition:width 600ms ease;"></div>
+          <div style="flex:1;background:#CFA75A;border-radius:0 999px 999px 0;"></div>
+        </div>
+      </form>
+    </div>
+    {% endif %}
+
+    {% if arena_highlights %}
+    <div style="margin:22px 16px 0;">
+      <div style="font-size:13px;font-weight:600;color:#8E8E93;padding-bottom:9px;">Highlights</div>
+      <div class="arm-card">
+        {% for h in arena_highlights %}
+        <a href="{{ h.watch_url|default:h.video_url|default:'#' }}" target="_blank" rel="noopener" class="arm-tap" style="display:flex;gap:12px;align-items:center;padding:12px 14px;text-decoration:none;{% if not forloop.last %}border-bottom:1px solid rgba(255,255,255,0.05);{% endif %}">
+          <div style="position:relative;width:68px;height:46px;border-radius:9px;overflow:hidden;flex:none;background:#1C1C1E;">
+            {% if h.thumbnail_url %}
+            <img src="{{ h.thumbnail_url }}" alt="" style="width:100%;height:100%;object-fit:cover;display:block;" onerror="this.style.display='none'">
+            <div style="position:absolute;inset:0;background:rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;">
+              <i data-lucide="play-circle" style="width:20px;height:20px;color:rgba(255,255,255,0.9);"></i>
+            </div>
+            {% else %}
+            <div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;background:#2C2C2E;">
+              <i data-lucide="play-circle" style="width:20px;height:20px;color:#636366;"></i>
+            </div>
+            {% endif %}
+          </div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:14px;font-weight:600;color:#F4F6FA;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ h.title }}</div>
+            <div style="font-size:11.5px;color:#8E8E93;margin-top:2px;">{{ h.subtitle|default:"" }}</div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex:none;">
+            {% if h.platform %}<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:5px;background:rgba(10,132,255,0.14);color:#0A84FF;text-transform:uppercase;">{{ h.platform }}</span>{% endif %}
+            {% if h.duration_label %}<span style="font-size:11px;color:#636366;">{{ h.duration_label }}</span>{% endif %}
+          </div>
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <div style="text-align:center;padding:28px 16px 6px;display:flex;flex-direction:column;align-items:center;">
+      <img src="{% static 'img/deltaCrown_logos/logo_animated.svg' %}" alt="" style="height:15px;opacity:0.25;">
+    </div>
+
+  </div>
+
+  <div id="arm-filter-sheet" style="display:none;position:fixed;inset:0;z-index:100;">
+    <div id="arm-filter-backdrop" style="position:absolute;inset:0;background:rgba(0,0,0,0.5);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);"></div>
+    <div id="arm-filter-panel" style="position:absolute;bottom:0;left:0;right:0;background:#1C1C1E;border-radius:22px 22px 0 0;padding:12px 16px 32px;box-shadow:0 -8px 32px rgba(0,0,0,0.5);transform:translateY(100%);transition:transform 320ms cubic-bezier(0.22,1,0.36,1);">
+      <div style="width:36px;height:4px;border-radius:999px;background:#3A3A3C;margin:0 auto 16px;"></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
+        <button id="arm-filter-reset" class="arm-tap" style="font-size:14px;font-weight:600;color:#0A84FF;border:none;background:none;cursor:pointer;">Reset</button>
+        <span class="arm-sora" style="font-weight:700;font-size:17px;color:#F4F6FA;letter-spacing:-.01em;">Filter</span>
+        <button id="arm-filter-done" class="arm-tap" style="font-size:14px;font-weight:600;color:#0A84FF;border:none;background:none;cursor:pointer;">Done</button>
+      </div>
+      <div style="font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#636366;margin-bottom:8px;padding:0 2px;">Game</div>
+      <div id="arm-filter-games" style="background:#2C2C2E;border-radius:12px;overflow:hidden;margin-bottom:18px;">
+        <button class="arm-tap arm-filter-game-opt" data-filter-game="" style="width:100%;display:flex;align-items:center;gap:11px;padding:12px 14px;border-bottom:1px solid rgba(255,255,255,0.05);text-align:left;border:none;cursor:pointer;background:none;">
+          <span style="flex:1;font-size:15px;font-weight:500;color:#F4F6FA;">All Games</span>
+          <i data-lucide="check-circle-2" class="arm-filter-check" style="width:20px;height:20px;color:#0A84FF;display:none;"></i>
+          <i data-lucide="circle" class="arm-filter-uncheck" style="width:20px;height:20px;color:#3A3A3C;"></i>
+        </button>
+        {% for g in games %}
+        <button class="arm-tap arm-filter-game-opt" data-filter-game="{{ g.slug }}" style="width:100%;display:flex;align-items:center;gap:11px;padding:12px 14px;{% if not forloop.last %}border-bottom:1px solid rgba(255,255,255,0.05);{% endif %}text-align:left;border:none;cursor:pointer;background:none;">
+          {% if g.icon %}<img src="{{ g.icon.url }}" alt="" style="width:28px;height:28px;border-radius:7px;object-fit:cover;flex:none;" onerror="this.style.display='none'">{% endif %}
+          <span style="flex:1;font-size:15px;font-weight:500;color:#F4F6FA;">{{ g.name }}</span>
+          <i data-lucide="check-circle-2" class="arm-filter-check" style="width:20px;height:20px;color:#0A84FF;display:none;"></i>
+          <i data-lucide="circle" class="arm-filter-uncheck" style="width:20px;height:20px;color:#3A3A3C;"></i>
+        </button>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<script nonce="{{ request.csp_nonce }}">
+(function(){
+  var sheet = document.getElementById('arm-filter-sheet');
+  var panel = document.getElementById('arm-filter-panel');
+  var openBtn = document.getElementById('arm-filter-btn');
+  var doneBtn = document.getElementById('arm-filter-done');
+  var resetBtn = document.getElementById('arm-filter-reset');
+  var backdrop = document.getElementById('arm-filter-backdrop');
+  if (!sheet || !panel) return;
+
+  function openSheet() {
+    sheet.style.display = 'block';
+    syncFilterUI();
+    requestAnimationFrame(function() {
+      panel.style.transform = 'translateY(0)';
+    });
+  }
+  function closeSheet() {
+    panel.style.transform = 'translateY(100%)';
+    setTimeout(function() { sheet.style.display = 'none'; }, 340);
+  }
+  function syncFilterUI() {
+    var currentGame = '';
+    var activeChip = document.querySelector('#arm-chips .arm-chip.on[data-arena-game]');
+    if (activeChip) currentGame = activeChip.getAttribute('data-arena-game') || '';
+    document.querySelectorAll('.arm-filter-game-opt').forEach(function(btn) {
+      var g = btn.getAttribute('data-filter-game') || '';
+      var isOn = g === currentGame;
+      var check = btn.querySelector('.arm-filter-check');
+      var uncheck = btn.querySelector('.arm-filter-uncheck');
+      if (check) check.style.display = isOn ? 'block' : 'none';
+      if (uncheck) uncheck.style.display = isOn ? 'none' : 'block';
+    });
+    var filterBtn = document.getElementById('arm-filter-btn');
+    if (filterBtn) {
+      var hasFilter = currentGame !== '';
+      filterBtn.style.color = hasFilter ? '#0A84FF' : '#8E8E93';
+      filterBtn.style.background = hasFilter ? 'rgba(10,132,255,0.14)' : 'rgba(255,255,255,0.06)';
+      filterBtn.style.boxShadow = 'inset 0 0 0 1px ' + (hasFilter ? 'rgba(10,132,255,0.4)' : 'rgba(255,255,255,0.1)');
+    }
+  }
+
+  if (openBtn) openBtn.addEventListener('click', openSheet);
+  if (doneBtn) doneBtn.addEventListener('click', closeSheet);
+  if (backdrop) backdrop.addEventListener('click', closeSheet);
+  if (resetBtn) {
+    resetBtn.addEventListener('click', function() {
+      var allChip = document.querySelector('#arm-chips .arm-chip[data-arena-game=""]');
+      if (allChip) allChip.click();
+      syncFilterUI();
+    });
+  }
+  document.querySelectorAll('.arm-filter-game-opt').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var g = btn.getAttribute('data-filter-game') || '';
+      var chip = document.querySelector('#arm-chips .arm-chip[data-arena-game="' + g + '"]');
+      if (chip) chip.click();
+      syncFilterUI();
+    });
+  });
+
+  syncFilterUI();
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+})();
+</script>

@@ -10,6 +10,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Rajdhani:wght@500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/lucide@latest"></script>
+<link rel="stylesheet" href="{% static 'css/td-mobile.css' %}?v=20260623a" media="(max-width:1023px)">
 {% endblock %}
 
 {% block extra_css %}
@@ -279,7 +280,10 @@
 {% endblock %}
 
 {% block content %}
-<div class="arena-root">
+<div class="lg:hidden">
+  {% include "siteui/_arena_mobile.html" %}
+</div>
+<div class="arena-root hidden lg:block">
   
   {# ── 1. CINEMATIC HERO SECTION ── #}
   <section class="max-w-[1600px] mx-auto px-4 md:px-6 lg:px-8 pt-8 pb-6">
@@ -632,8 +636,9 @@ document.addEventListener("DOMContentLoaded", () => {
   // === DOM ELEMENTS ===
   const matchContainer = document.getElementById("arena-match-container");
   const searchInput = document.getElementById("arena-search-input");
-  const tabButtons = document.querySelectorAll("[data-arena-tab]");
-  const gameChips = document.querySelectorAll("[data-arena-game]");
+  // Scope desktop-only selectors so syncUI() never restyles the mobile partial.
+  const tabButtons = document.querySelectorAll("#arena-tabs [data-arena-tab]");
+  const gameChips = document.querySelectorAll("#game-chip-container [data-arena-game]");
   
   // Calendar Elements
   const dateWrapper = document.getElementById("arena-date-wrapper");
@@ -669,11 +674,34 @@ document.addEventListener("DOMContentLoaded", () => {
           }`;
       });
 
-      // Chips
+      // Chips (desktop)
       gameChips.forEach(chip => {
           if (chip.dataset.arenaGame === state.game) chip.classList.add("active");
           else chip.classList.remove("active");
       });
+
+      // Mobile: sync segmented control + chips + filter button
+      document.querySelectorAll('#arm-root .arm-seg-btn[data-arena-tab]').forEach(b => {
+          b.classList.toggle('on', b.dataset.arenaTab === state.tab);
+      });
+      document.querySelectorAll('#arm-root .arm-chip[data-arena-game]').forEach(c => {
+          c.classList.toggle('on', (c.dataset.arenaGame || '') === (state.game || ''));
+      });
+      const armFilterBtn = document.getElementById('arm-filter-btn');
+      if (armFilterBtn) {
+          const hasFilter = !!state.game;
+          armFilterBtn.style.color = hasFilter ? '#0A84FF' : '#8E8E93';
+          armFilterBtn.style.background = hasFilter ? 'rgba(10,132,255,0.14)' : 'rgba(255,255,255,0.06)';
+          armFilterBtn.style.boxShadow = 'inset 0 0 0 1px ' + (hasFilter ? 'rgba(10,132,255,0.4)' : 'rgba(255,255,255,0.1)');
+      }
+      // Featured Broadcasts only on Live; date strip only on Upcoming/Results.
+      const armBroadcasts = document.getElementById('arm-broadcasts');
+      if (armBroadcasts) armBroadcasts.style.display = (state.tab === 'live') ? '' : 'none';
+      const armDates = document.getElementById('arm-dates');
+      if (armDates) {
+          armDates.style.display = (state.tab === 'live') ? 'none' : 'flex';
+          if (state.tab !== 'live') renderArmDates();
+      }
 
       // Date Display
       if (state.tab === 'live') {
@@ -828,7 +856,9 @@ document.addEventListener("DOMContentLoaded", () => {
             completedGroups,
             resultsIsFallback: !!data.results_is_fallback,
           });
-          
+
+          renderMatchesMobile(safeGroups, state.tab);
+
           // Update Browser URL seamlessly
           const newUrl = new URL(window.location.href);
           newUrl.searchParams.set('tab', state.tab);
@@ -1155,6 +1185,55 @@ document.addEventListener("DOMContentLoaded", () => {
       });
   });
 
+  // Mobile date strip — 7 days (yesterday → +5), wired to state.date and the
+  // same AJAX pipeline the desktop calendar uses.
+  const armDatesEl = document.getElementById('arm-dates');
+  function renderArmDates() {
+      if (!armDatesEl) return;
+      const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+      // Use UTC throughout so the selected pill aligns with state.date, which
+      // defaults to new Date().toISOString() (UTC) just like the desktop view.
+      const todayStr = new Date().toISOString().split('T')[0];
+      let html = '';
+      for (let i = -1; i <= 5; i++) {
+          const d = new Date(todayStr + 'T00:00:00Z');
+          d.setUTCDate(d.getUTCDate() + i);
+          const iso = d.toISOString().split('T')[0];
+          const on = iso === state.date;
+          const label = iso === todayStr ? 'Today' : DAYS[d.getUTCDay()];
+          html += '<button class="arm-tap arm-date-btn" data-arm-date="' + iso + '" style="flex:none;display:flex;flex-direction:column;align-items:center;gap:1px;padding:8px 11px;border-radius:12px;border:none;cursor:pointer;min-width:52px;background:' + (on ? '#2C2C2E' : 'transparent') + ';">'
+              + '<span style="font-size:10.5px;font-weight:600;color:' + (on ? '#0A84FF' : '#8E8E93') + ';">' + label + '</span>'
+              + '<span class="arm-mono" style="font-weight:700;font-size:19px;color:' + (on ? '#FFFFFF' : '#AEAEB2') + ';">' + d.getUTCDate() + '</span>'
+              + '</button>';
+      }
+      armDatesEl.innerHTML = html;
+      armDatesEl.querySelectorAll('.arm-date-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+              state.date = btn.dataset.armDate;
+              calCurrentDate = new Date(state.date);
+              syncUI();
+              fetchArenaData();
+          });
+      });
+  }
+
+  // Mobile segmented tabs + game chips. Wired here via addEventListener (not
+  // inline onclick, which the site CSP blocks) and scoped to the mobile partial.
+  document.querySelectorAll('#arm-root .arm-seg-btn[data-arena-tab]').forEach(btn => {
+      btn.addEventListener("click", () => {
+          state.tab = btn.dataset.arenaTab;
+          syncUI();
+          fetchArenaData();
+      });
+  });
+  document.querySelectorAll('#arm-root .arm-chip[data-arena-game]').forEach(chip => {
+      chip.addEventListener("click", () => {
+          state.game = chip.dataset.arenaGame || '';
+          syncUI();
+          fetchArenaData();
+      });
+  });
+
   // Accordion Logic
   document.body.addEventListener('click', e => {
       const toggleBtn = e.target.closest('.group-toggle-btn');
@@ -1182,8 +1261,75 @@ document.addEventListener("DOMContentLoaded", () => {
       });
   }
 
+  // ── Mobile Arena Renderer ──
+  const armContainer = document.getElementById('arm-match-container');
+  function renderMatchesMobile(groups, tab) {
+      if (!armContainer) return;
+      if (!groups || !groups.length) {
+          const ic = tab === 'live' ? 'crosshair' : tab === 'upcoming' ? 'calendar-x' : 'history';
+          const tx = tab === 'live' ? 'No Live Matches' : tab === 'upcoming' ? 'No Upcoming Matches' : 'No Results';
+          armContainer.innerHTML = '<div style="padding:80px 24px;text-align:center;"><i data-lucide="' + ic + '" style="width:40px;height:40px;color:#3A3A3C;display:inline-block;"></i><div class="arm-sora" style="font-weight:700;font-size:17px;color:#8E8E93;margin-top:12px;">' + tx + '</div><div style="font-size:13.5px;color:#48484A;margin-top:4px;">Check another tab or wait for new events.</div></div>';
+          if (typeof lucide !== 'undefined') lucide.createIcons({ nodes: [armContainer] });
+          return;
+      }
+      let h = '';
+      groups.forEach(function(grp) {
+          const list = grp.list || [];
+          const gIcon = grp.game_icon_url || (list[0] && list[0].game_icon_url) || '';
+          const gName = (list[0] && list[0].game_name) || '';
+          h += '<div style="margin-top:18px;">';
+          h += '<div style="display:flex;align-items:center;gap:9px;padding:0 16px 8px;">';
+          if (gIcon) h += '<img src="' + escapeHtml(gIcon) + '" alt="" style="width:30px;height:30px;border-radius:8px;object-fit:cover;flex:none;">';
+          h += '<div style="flex:1;min-width:0;"><div style="font-size:15px;font-weight:700;color:#F4F6FA;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escapeHtml(grp.grouper) + '</div>';
+          h += '<div style="font-size:12px;color:#8E8E93;margin-top:1px;">' + escapeHtml(gName) + ' &middot; ' + list.length + ' match' + (list.length !== 1 ? 'es' : '') + '</div></div></div>';
+          h += '<div class="arm-card" style="margin:0 16px;">';
+          list.forEach(function(m, i) {
+              const live = !!m.is_live;
+              const done = !live && m.score_a !== null && m.score_b !== null;
+              const aW = done && m.score_a > m.score_b;
+              const bW = done && m.score_b > m.score_a;
+              const sep = i < list.length - 1 ? 'border-bottom:1px solid rgba(255,255,255,0.05);' : '';
+              h += '<div style="padding:13px 14px;' + sep + '">';
+              h += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">';
+              h += '<span style="font-size:12px;font-weight:500;color:#636366;">' + escapeHtml(m.details || 'Match') + '</span>';
+              h += '<span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;letter-spacing:.03em;color:' + (live ? '#FF453A' : done ? '#30D158' : '#0A84FF') + ';">';
+              if (live) h += '<span class="arm-live-dot"></span>';
+              h += (live ? 'LIVE' : done ? 'DONE' : 'UPCOMING') + '</span></div>';
+              h += '<div style="display:flex;align-items:center;gap:4px;">';
+              h += '<div style="flex:1;display:flex;align-items:center;gap:9px;min-width:0;">';
+              if (m.team_a_logo) h += '<img src="' + escapeHtml(m.team_a_logo) + '" alt="" style="width:36px;height:36px;border-radius:10px;object-fit:cover;flex:none;">';
+              else h += '<div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#0A84FF,#6849E5);display:flex;align-items:center;justify-content:center;flex:none;"><span class="arm-sora" style="font-weight:800;font-size:11px;color:#fff;">' + escapeHtml(m.team_a_tag || 'A') + '</span></div>';
+              h += '<span style="font-size:14px;font-weight:700;color:' + (done && !aW ? '#636366' : '#F4F6FA') + ';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escapeHtml(m.team_a) + '</span></div>';
+              if (m.score_a !== null || m.score_b !== null || live) {
+                  const sa = m.score_a !== null ? m.score_a : '—';
+                  const sb = m.score_b !== null ? m.score_b : '—';
+                  h += '<div style="display:flex;align-items:center;gap:6px;flex:none;padding:0 8px;">';
+                  h += '<span class="arm-mono" style="font-weight:700;font-size:22px;color:' + (aW ? '#30D158' : live ? '#FF453A' : '#F4F6FA') + ';line-height:1;">' + sa + '</span>';
+                  h += '<span style="font-size:12px;color:#3A3A3C;font-weight:700;">–</span>';
+                  h += '<span class="arm-mono" style="font-weight:700;font-size:22px;color:' + (bW ? '#30D158' : live ? '#FF453A' : '#F4F6FA') + ';line-height:1;">' + sb + '</span></div>';
+              }
+              h += '<div style="flex:1;display:flex;align-items:center;justify-content:flex-end;gap:9px;min-width:0;">';
+              h += '<span style="font-size:14px;font-weight:700;color:' + (done && !bW ? '#636366' : '#F4F6FA') + ';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:right;">' + escapeHtml(m.team_b) + '</span>';
+              if (m.team_b_logo) h += '<img src="' + escapeHtml(m.team_b_logo) + '" alt="" style="width:36px;height:36px;border-radius:10px;object-fit:cover;flex:none;">';
+              else h += '<div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#8470EE,#0A84FF);display:flex;align-items:center;justify-content:center;flex:none;"><span class="arm-sora" style="font-weight:800;font-size:11px;color:#fff;">' + escapeHtml(m.team_b_tag || 'B') + '</span></div>';
+              h += '</div></div>';
+              h += '<div style="display:flex;align-items:center;justify-content:space-between;margin-top:11px;">';
+              const tl = live ? 'In progress' : done ? 'Ended' : (m.scheduled_time ? formatTime(m.scheduled_time) : 'TBA');
+              const tIc = live ? 'clock' : done ? 'flag' : 'calendar';
+              h += '<span style="font-size:12px;color:#636366;display:flex;align-items:center;gap:5px;"><i data-lucide="' + tIc + '" style="width:13px;height:13px;"></i>' + escapeHtml(tl) + '</span>';
+              const cLabel = live ? 'Watch' : done ? 'Results' : 'Details';
+              const cBg = live ? 'color:#FF453A;background:rgba(255,69,58,0.14);' : 'color:#8E8E93;background:rgba(255,255,255,0.06);';
+              h += '<a href="' + escapeHtml(m.match_url || '#') + '" class="arm-tap" style="height:32px;padding:0 14px;border-radius:999px;font-size:12.5px;font-weight:600;display:inline-flex;align-items:center;text-decoration:none;' + cBg + '">' + cLabel + '</a>';
+              h += '</div></div>';
+          });
+          h += '</div></div>';
+      });
+      armContainer.innerHTML = h;
+      if (typeof lucide !== 'undefined') lucide.createIcons({ nodes: [armContainer] });
+  }
+
   // RAM-Friendly Polling
-  setInterval(() => { fetchArenaData(false); }, 30000); 
+  setInterval(() => { fetchArenaData(false); }, 30000);
 
   // Initialize
   syncUI();

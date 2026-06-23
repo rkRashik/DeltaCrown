@@ -24,3 +24,34 @@
 
 .tdm-row{transition:background 140ms ease;}
 .tdm-row:active{background:rgba(255,255,255,0.04);}
+
+/* ── Arena Mobile ── */
+#arm-root{font-family:'Inter',system-ui,sans-serif;-webkit-font-smoothing:antialiased;background:#0A0D14;min-height:100vh;}
+#arm-root *{box-sizing:border-box;}
+.arm-scroll::-webkit-scrollbar{display:none;}
+.arm-scroll{scrollbar-width:none;-webkit-overflow-scrolling:touch;}
+.arm-tap{-webkit-tap-highlight-color:transparent;}
+.arm-tap:active{opacity:.65;}
+.arm-sora{font-family:'Sora','Inter',system-ui,sans-serif;}
+.arm-mono{font-family:'JetBrains Mono','Courier New',monospace;font-variant-numeric:tabular-nums;}
+.arm-live-dot{width:5px;height:5px;border-radius:999px;background:#FF453A;animation:tdm-pulse 1.4s ease-in-out infinite;display:inline-block;}
+.arm-seg{display:flex;background:#1C1C1E;border-radius:11px;padding:3px;}
+.arm-seg-btn{flex:1;height:34px;border-radius:9px;font-size:13.5px;font-weight:600;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;white-space:nowrap;transition:all 180ms ease;background:transparent;color:#8E8E93;}
+.arm-seg-btn.on{background:#3A3A3C;color:#fff;box-shadow:0 1px 3px rgba(0,0,0,0.4);}
+.arm-chip{flex:none;display:flex;align-items:center;gap:5px;height:32px;padding:0 12px;border-radius:999px;font-size:12.5px;font-weight:600;border:none;cursor:pointer;background:#1C1C1E;color:#8E8E93;box-shadow:inset 0 0 0 1px rgba(255,255,255,0.07);transition:all 150ms ease;}
+.arm-chip.on{background:rgba(10,132,255,0.18);color:#fff;box-shadow:inset 0 0 0 1px rgba(10,132,255,0.9);}
+.arm-card{background:#1C1C1E;border-radius:14px;overflow:hidden;}
+.arm-loading{opacity:.5;pointer-events:none;transition:opacity 200ms ease;}
+.arm-filter-game-opt{font-family:'Inter',system-ui,sans-serif;-webkit-tap-highlight-color:transparent;}
+.arm-filter-game-opt:active{background:rgba(255,255,255,0.04);}
+
+/* ── Match Detail Mobile ── */
+.mdm-hero{border-radius:20px;overflow:hidden;position:relative;}
+.mdm-seg{display:flex;background:#1C1C1E;border-radius:11px;padding:3px;}
+.mdm-seg-btn{flex:1;height:34px;border-radius:9px;font-size:13.5px;font-weight:600;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;white-space:nowrap;transition:all 180ms ease;background:transparent;color:#8E8E93;}
+.mdm-seg-btn.on{background:#3A3A3C;color:#fff;box-shadow:0 1px 3px rgba(0,0,0,0.4);}
+.mdm-panel{display:none;animation:tdm-fade 180ms ease;}
+.mdm-panel.on{display:block;}
+.mdm-info-card{background:#1C1C1E;border-radius:14px;overflow:hidden;}
+.mdm-row{display:flex;align-items:center;padding:12px 14px;}
+.mdm-row+.mdm-row{border-top:1px solid rgba(255,255,255,0.05);}

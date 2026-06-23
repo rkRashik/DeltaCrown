@@ -1,0 +1,222 @@
+{% load static humanize %}
+<div id="mdm-root" style="min-height:100vh;background:#0A0D14;font-family:'Inter',system-ui,sans-serif;-webkit-font-smoothing:antialiased;">
+
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 14px;">
+    <a href="{% url 'siteui:arena' %}" style="width:34px;height:34px;border-radius:999px;background:rgba(10,13,20,0.7);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);display:flex;align-items:center;justify-content:center;color:#F4F6FA;box-shadow:0 0 0 1px rgba(255,255,255,0.1);text-decoration:none;">
+      <i data-lucide="arrow-left" style="width:18px;height:18px;"></i>
+    </a>
+    <a href="{% url 'tournaments:detail' tournament.slug %}" style="font-size:11px;font-weight:600;color:#8E8E93;text-decoration:none;max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ tournament.name }}</a>
+    <button id="mdm-share-btn" style="appearance:none;border:none;width:34px;height:34px;border-radius:999px;background:rgba(10,13,20,0.7);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);display:flex;align-items:center;justify-content:center;color:#F4F6FA;box-shadow:0 0 0 1px rgba(255,255,255,0.1);cursor:pointer;"
+      data-share-title="{{ match_core.participant1_name|escapejs }} vs {{ match_core.participant2_name|escapejs }}">
+      <i data-lucide="share-2" style="width:17px;height:17px;"></i>
+    </button>
+  </div>
+
+  <div class="mdm-hero" style="margin:0 14px;{% if match_core.state == 'live' %}background:linear-gradient(160deg,#1a0e0e,#141416);{% elif match_core.state == 'completed' %}background:linear-gradient(160deg,#0b1510,#141416);{% elif match_core.state == 'disputed' %}background:linear-gradient(160deg,#1a1208,#141416);{% else %}background:linear-gradient(160deg,#1C1C1E,#141416);{% endif %}">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:15px 16px 0;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        {% if tournament.game.icon %}<img src="{{ tournament.game.icon.url }}" alt="" style="width:30px;height:30px;border-radius:8px;object-fit:cover;" onerror="this.style.display='none'">{% endif %}
+        <div>
+          <div style="font-size:10px;font-weight:700;letter-spacing:.05em;color:rgba(255,255,255,0.55);">{{ tournament.name|truncatechars:28 }}</div>
+          <div style="font-size:12px;font-weight:600;color:rgba(255,255,255,0.85);margin-top:1px;">{{ match_core.round_label|default:"Match" }}{% if match_metadata.best_of > 1 %} · BO{{ match_metadata.best_of }}{% endif %}</div>
+        </div>
+      </div>
+      <span style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:999px;font-size:10.5px;font-weight:700;letter-spacing:.04em;{% if match_core.state == 'live' %}background:rgba(255,69,58,0.2);color:#FF453A;{% elif match_core.state == 'completed' %}background:rgba(48,209,88,0.18);color:#30D158;{% elif match_core.state == 'disputed' %}background:rgba(255,214,10,0.2);color:#FFD60A;{% else %}background:rgba(10,132,255,0.2);color:#0A84FF;{% endif %}">
+        {% if match_core.state == 'live' %}<span style="width:5px;height:5px;border-radius:999px;background:#FF453A;animation:tdm-pulse 1.4s ease-in-out infinite;display:inline-block;"></span>{% endif %}
+        {{ match_core.state_display|upper }}
+      </span>
+    </div>
+
+    <div style="display:flex;align-items:center;padding:20px 16px 22px;gap:4px;">
+      <div style="flex:1;display:flex;flex-direction:column;align-items:flex-start;gap:7px;">
+        <div style="width:52px;height:52px;border-radius:15px;overflow:hidden;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(0,0,0,0.4);{% if not match_assets.team1_logo_url %}background:linear-gradient(135deg,#0A84FF,#6849E5);{% endif %}">
+          {% if match_assets.team1_logo_url %}<img src="{{ match_assets.team1_logo_url }}" alt="" style="width:100%;height:100%;object-fit:cover;">
+          {% else %}<span class="arm-sora" style="font-weight:800;font-size:16px;color:#fff;">{{ match_core.participant1_name|truncatechars:2|upper }}</span>{% endif %}
+        </div>
+        <span class="arm-sora" style="font-weight:800;font-size:16px;color:#fff;letter-spacing:-.01em;line-height:1.1;">{{ match_core.participant1_name|truncatechars:14 }}</span>
+        {% if match_core.winner_id and match_core.winner_id == match_core.participant1_id %}<span style="font-size:9.5px;font-weight:700;letter-spacing:.05em;color:#30D158;background:rgba(48,209,88,0.2);padding:2px 8px;border-radius:999px;">WINNER</span>{% endif %}
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:5px;flex:none;min-width:88px;">
+        <div style="display:flex;align-items:center;gap:9px;">
+          <span class="arm-mono" style="font-weight:700;font-size:44px;line-height:1;{% if match_core.winner_id and match_core.winner_id == match_core.participant1_id %}color:#30D158;{% elif match_core.state == 'live' %}color:#FF453A;{% else %}color:#F4F6FA;{% endif %}">{{ match_core.participant1_score|default:"—" }}</span>
+          <span style="font-size:20px;color:rgba(255,255,255,0.2);font-weight:800;">:</span>
+          <span class="arm-mono" style="font-weight:700;font-size:44px;line-height:1;{% if match_core.winner_id and match_core.winner_id == match_core.participant2_id %}color:#30D158;{% elif match_core.state == 'live' %}color:#FF453A;{% else %}color:#F4F6FA;{% endif %}">{{ match_core.participant2_score|default:"—" }}</span>
+        </div>
+        {% if match_metadata.best_of > 1 %}<span style="font-size:10.5px;font-weight:600;color:rgba(255,255,255,0.45);">Best of {{ match_metadata.best_of }}</span>{% endif %}
+        <span style="font-size:11px;font-weight:600;color:rgba(255,255,255,0.6);">
+          {% if match_core.state == 'live' %}In progress{% elif match_core.state == 'completed' %}Completed{% elif match_core.scheduled_time %}{{ match_core.scheduled_time|date:"M d · g:i A" }}{% else %}TBD{% endif %}
+        </span>
+      </div>
+      <div style="flex:1;display:flex;flex-direction:column;align-items:flex-end;gap:7px;">
+        <div style="width:52px;height:52px;border-radius:15px;overflow:hidden;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(0,0,0,0.4);{% if not match_assets.team2_logo_url %}background:linear-gradient(135deg,#8470EE,#0A84FF);{% endif %}">
+          {% if match_assets.team2_logo_url %}<img src="{{ match_assets.team2_logo_url }}" alt="" style="width:100%;height:100%;object-fit:cover;">
+          {% else %}<span class="arm-sora" style="font-weight:800;font-size:16px;color:#fff;">{{ match_core.participant2_name|truncatechars:2|upper }}</span>{% endif %}
+        </div>
+        <span class="arm-sora" style="font-weight:800;font-size:16px;color:#fff;letter-spacing:-.01em;line-height:1.1;text-align:right;">{{ match_core.participant2_name|truncatechars:14 }}</span>
+        {% if match_core.winner_id and match_core.winner_id == match_core.participant2_id %}<span style="font-size:9.5px;font-weight:700;letter-spacing:.05em;color:#30D158;background:rgba(48,209,88,0.2);padding:2px 8px;border-radius:999px;">WINNER</span>{% endif %}
+      </div>
+    </div>
+  </div>
+
+  {% if match_core.state == 'live' and match_media.stream.has_stream %}
+  <div style="padding:12px 14px 0;">
+    <a href="{{ match_media.stream.source_url|default:match_media.stream.embed_url }}" target="_blank" rel="noopener" class="arm-tap" style="width:100%;height:50px;border-radius:14px;font-size:15.5px;font-weight:700;color:#fff;background:#0A84FF;box-shadow:0 10px 24px -12px rgba(10,132,255,0.6);display:flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;letter-spacing:-.01em;">
+      <i data-lucide="play-circle" style="width:19px;height:19px;"></i>Watch Stream
+    </a>
+  </div>
+  {% elif is_participant and match_core.state != 'completed' %}
+  <div style="padding:12px 14px 0;">
+    {% if match_core.state == 'live' %}
+    <a href="{% url 'tournaments:match_room' slug=tournament.slug match_id=match_core.id %}" class="arm-tap" style="width:100%;height:50px;border-radius:14px;font-size:15.5px;font-weight:700;color:#2A1F08;background:linear-gradient(180deg,#E2C588,#CFA75A);box-shadow:0 10px 24px -12px rgba(207,167,90,0.6);display:flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;letter-spacing:-.01em;">
+      <i data-lucide="door-open" style="width:19px;height:19px;"></i>Join Match Lobby
+    </a>
+    {% elif match_core.state == 'upcoming' or match_core.state == 'pending' %}
+    <a href="{% url 'tournaments:match_room' slug=tournament.slug match_id=match_core.id %}" class="arm-tap" style="width:100%;height:50px;border-radius:14px;font-size:15.5px;font-weight:700;color:#fff;background:linear-gradient(180deg,#7C5CFF,#6849E5);box-shadow:0 10px 24px -12px rgba(104,73,229,0.6);display:flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;letter-spacing:-.01em;">
+      <i data-lucide="door-open" style="width:19px;height:19px;"></i>Join Match Lobby
+    </a>
+    {% else %}
+    <a href="{% url 'tournaments:match_room' slug=tournament.slug match_id=match_core.id %}" class="arm-tap" style="width:100%;height:50px;border-radius:14px;font-size:15.5px;font-weight:700;color:#2A1F08;background:linear-gradient(180deg,#E2C588,#CFA75A);box-shadow:0 10px 24px -12px rgba(207,167,90,0.6);display:flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;letter-spacing:-.01em;">
+      <i data-lucide="door-open" style="width:19px;height:19px;"></i>Join Match Lobby
+    </a>
+    {% endif %}
+  </div>
+  {% elif match_core.state == 'completed' and not is_participant %}
+  <div style="padding:12px 14px 0;">
+    <div style="width:100%;height:50px;border-radius:14px;font-size:15.5px;font-weight:700;color:#AEAEB2;background:rgba(255,255,255,0.07);display:flex;align-items:center;justify-content:center;gap:8px;letter-spacing:-.01em;">
+      <i data-lucide="trophy" style="width:19px;height:19px;"></i>Final Result
+    </div>
+  </div>
+  {% elif match_core.state == 'disputed' %}
+  <div style="padding:12px 14px 0;">
+    <div style="width:100%;height:50px;border-radius:14px;font-size:15.5px;font-weight:700;color:#FFD60A;background:rgba(255,214,10,0.16);display:flex;align-items:center;justify-content:center;gap:8px;letter-spacing:-.01em;">
+      <i data-lucide="alert-circle" style="width:19px;height:19px;"></i>Under Dispute
+    </div>
+  </div>
+  {% elif match_core.state != 'live' and not is_participant %}
+  <div style="padding:12px 14px 0;">
+    <div style="width:100%;height:50px;border-radius:14px;font-size:15.5px;font-weight:700;color:#AEAEB2;background:rgba(255,255,255,0.07);display:flex;align-items:center;justify-content:center;gap:8px;letter-spacing:-.01em;">
+      <i data-lucide="bell" style="width:19px;height:19px;"></i>Upcoming Match
+    </div>
+  </div>
+  {% endif %}
+
+  <div style="padding:14px 14px 0;">
+    <div class="mdm-seg" id="mdm-seg">
+      <button class="mdm-seg-btn on" data-mdm-tab="overview">Overview</button>
+      {% if match_media.stream.has_stream and match_core.state == 'live' %}
+      <button class="mdm-seg-btn" data-mdm-tab="stream">Stream</button>
+      {% endif %}
+    </div>
+  </div>
+
+  <div id="mdm-panel-overview" class="mdm-panel on">
+    <div style="padding:14px 14px 0;">
+      <div class="mdm-info-card">
+        <div class="mdm-row">
+          <span style="flex:1;font-size:14px;font-weight:500;color:#8E8E93;display:flex;align-items:center;gap:8px;"><i data-lucide="trophy" style="width:16px;height:16px;color:#48484A;"></i>Tournament</span>
+          <span style="font-size:14px;font-weight:600;color:#F4F6FA;text-align:right;max-width:55%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ tournament.name }}</span>
+        </div>
+        <div class="mdm-row">
+          <span style="flex:1;font-size:14px;font-weight:500;color:#8E8E93;display:flex;align-items:center;gap:8px;"><i data-lucide="git-branch" style="width:16px;height:16px;color:#48484A;"></i>Round</span>
+          <span style="font-size:14px;font-weight:600;color:#F4F6FA;">{{ match_core.round_label|default:"Match" }}</span>
+        </div>
+        {% if match_metadata.best_of > 1 %}
+        <div class="mdm-row">
+          <span style="flex:1;font-size:14px;font-weight:500;color:#8E8E93;display:flex;align-items:center;gap:8px;"><i data-lucide="swords" style="width:16px;height:16px;color:#48484A;"></i>Format</span>
+          <span style="font-size:14px;font-weight:600;color:#F4F6FA;">Best of {{ match_metadata.best_of }}</span>
+        </div>
+        {% endif %}
+        {% if match_metadata.map %}
+        <div class="mdm-row">
+          <span style="flex:1;font-size:14px;font-weight:500;color:#8E8E93;display:flex;align-items:center;gap:8px;"><i data-lucide="map" style="width:16px;height:16px;color:#48484A;"></i>Map</span>
+          <span style="font-size:14px;font-weight:600;color:#F4F6FA;">{{ match_metadata.map }}</span>
+        </div>
+        {% endif %}
+        {% if match_metadata.server %}
+        <div class="mdm-row">
+          <span style="flex:1;font-size:14px;font-weight:500;color:#8E8E93;display:flex;align-items:center;gap:8px;"><i data-lucide="server" style="width:16px;height:16px;color:#48484A;"></i>Server</span>
+          <span style="font-size:14px;font-weight:600;color:#F4F6FA;">{{ match_metadata.server }}</span>
+        </div>
+        {% endif %}
+        {% if match_core.scheduled_time %}
+        <div class="mdm-row">
+          <span style="flex:1;font-size:14px;font-weight:500;color:#8E8E93;display:flex;align-items:center;gap:8px;"><i data-lucide="calendar" style="width:16px;height:16px;color:#48484A;"></i>Scheduled</span>
+          <span style="font-size:14px;font-weight:600;color:#F4F6FA;">{{ match_core.scheduled_time|date:"M d, g:i A" }}</span>
+        </div>
+        {% endif %}
+      </div>
+
+      {% if timeline %}
+      <div style="font-size:13px;font-weight:600;color:#8E8E93;padding:18px 2px 9px;">Timeline</div>
+      <div class="mdm-info-card">
+        {% for ev in timeline %}
+        <div class="mdm-row" style="gap:12px;">
+          <span class="arm-mono" style="font-size:11px;font-weight:600;color:#636366;flex:none;min-width:44px;">{{ ev.timestamp|date:"H:i"|default:ev.timestamp }}</span>
+          <i data-lucide="{{ ev.icon|default:'activity' }}" style="width:17px;height:17px;flex:none;color:{% if ev.icon == 'crown' %}#30D158{% elif ev.icon == 'trophy' %}#CFA75A{% else %}#636366{% endif %};"></i>
+          <span style="font-size:13.5px;font-weight:500;color:#E5E5EA;">{{ ev.description|default:ev.event }}</span>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      {% if maps %}
+      <div style="font-size:13px;font-weight:600;color:#8E8E93;padding:18px 2px 9px;">Series Maps</div>
+      <div class="mdm-info-card" style="padding:12px 14px;">
+        <div style="display:flex;flex-wrap:wrap;gap:8px;">
+          {% for map in maps %}
+          <div style="padding:8px 12px;border-radius:10px;background:#2C2C2E;">
+            <div style="font-size:12px;font-weight:600;color:#F4F6FA;">{{ map.map_name|default:"Map" }}</div>
+            <div style="font-size:11px;color:#8E8E93;margin-top:2px;">{{ map.team1_rounds }} – {{ map.team2_rounds }}</div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if match_media.stream.has_stream and match_core.state == 'live' %}
+  <div id="mdm-panel-stream" class="mdm-panel">
+    <div style="padding:14px 14px 0;">
+      <div style="aspect-ratio:16/9;border-radius:14px;overflow:hidden;background:#0d0f16;">
+        <iframe src="{{ match_media.stream.embed_url }}" style="width:100%;height:100%;border:0;" allowfullscreen referrerpolicy="{{ match_media.stream.iframe_referrer_policy|default:'strict-origin-when-cross-origin' }}"></iframe>
+      </div>
+      <div class="mdm-info-card" style="margin-top:12px;display:flex;align-items:center;gap:11px;padding:12px 14px;">
+        <div style="width:36px;height:36px;border-radius:10px;background:rgba(255,69,58,0.16);display:flex;align-items:center;justify-content:center;flex:none;">
+          <i data-lucide="radio" style="width:18px;height:18px;color:#FF453A;"></i>
+        </div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:14px;font-weight:600;color:#F4F6FA;">DeltaCrown Live</div>
+          <div style="font-size:11.5px;color:#8E8E93;margin-top:1px;">{{ tournament.name|truncatechars:28 }} · Official</div>
+        </div>
+        <span style="display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:700;color:#FF453A;"><span style="width:5px;height:5px;border-radius:999px;background:#FF453A;animation:tdm-pulse 1.4s ease-in-out infinite;display:inline-block;"></span>LIVE</span>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <div style="text-align:center;padding:28px 14px 20px;display:flex;flex-direction:column;align-items:center;">
+    <img src="{% static 'img/deltaCrown_logos/logo_animated.svg' %}" alt="" style="height:15px;opacity:0.25;">
+  </div>
+</div>
+
+<script nonce="{{ request.csp_nonce }}">
+(function(){
+  var segs=document.querySelectorAll('#mdm-seg .mdm-seg-btn');
+  var panels=document.querySelectorAll('.mdm-panel[id^="mdm-panel-"]');
+  segs.forEach(function(btn){
+    btn.addEventListener('click',function(){
+      var t=btn.getAttribute('data-mdm-tab');
+      segs.forEach(function(b){b.classList.toggle('on',b.getAttribute('data-mdm-tab')===t);});
+      panels.forEach(function(p){p.classList.toggle('on',p.id==='mdm-panel-'+t);});
+    });
+  });
+  var shareBtn=document.getElementById('mdm-share-btn');
+  if(shareBtn){
+    shareBtn.addEventListener('click',function(){
+      if(navigator.share){navigator.share({title:shareBtn.getAttribute('data-share-title')||document.title,url:location.href});}
+    });
+  }
+  if(typeof lucide!=='undefined')lucide.createIcons();
+})();
+</script>
