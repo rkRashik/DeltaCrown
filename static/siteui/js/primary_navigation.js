@@ -394,7 +394,7 @@
     notifBtn?.setAttribute('aria-expanded', 'false');
   }
 
-  ['dc-tournaments', 'dc-teams'].forEach((key) => {
+  ['dc-teams'].forEach((key) => {
     const btn = $('#' + key + '-btn');
     const menu = $('#' + key + '-menu');
     if (!btn || !menu) return;
