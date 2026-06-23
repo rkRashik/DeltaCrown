@@ -2427,3 +2427,136 @@ def newsletter_subscribe(request):
     
     # Redirect back to the referring page or home
     return redirect(request.META.get('HTTP_REFERER', '/'))
+
+
+def search_suggest(request):
+    """Global search autocomplete — returns JSON with tournaments, teams, players."""
+    q = (request.GET.get("q") or "").strip()
+    if len(q) < 2:
+        return JsonResponse({"results": []})
+
+    LIMIT = 5
+    results = []
+
+    try:
+        Tournament = django_apps.get_model("tournaments", "Tournament")
+        visible = {"published", "registration_open", "registration_closed", "live", "completed"}
+        t_qs = (
+            Tournament.objects.filter(
+                Q(name__icontains=q) | Q(slug__icontains=q),
+                status__in=visible,
+                is_deleted=False,
+            )
+            .select_related("game")
+            .only("name", "slug", "status", "game__name", "game__slug", "game__icon")
+            .order_by("-id")[:LIMIT]
+        )
+        for t in t_qs:
+            icon = ""
+            try:
+                if t.game and t.game.icon:
+                    icon = t.game.icon.url
+            except (ValueError, AttributeError):
+                pass
+            results.append({
+                "type": "tournament",
+                "name": t.name,
+                "url": f"/tournaments/{t.slug}/",
+                "meta": t.game.name if t.game else "",
+                "icon": icon,
+                "status": t.status,
+            })
+    except (ProgrammingError, OperationalError, LookupError):
+        pass
+
+    try:
+        Team = django_apps.get_model("organizations", "Team")
+        tm_qs = (
+            Team.objects.filter(
+                Q(name__icontains=q) | Q(tag__icontains=q) | Q(slug__icontains=q),
+                status__iexact="active",
+                visibility__iexact="public",
+            )
+            .only("name", "slug", "tag", "logo")
+            .order_by("-id")[:LIMIT]
+        )
+        for tm in tm_qs:
+            logo = ""
+            try:
+                if tm.logo:
+                    logo = tm.logo.url
+            except (ValueError, AttributeError):
+                pass
+            results.append({
+                "type": "team",
+                "name": tm.name,
+                "url": f"/teams/{tm.slug}/",
+                "meta": tm.tag or "",
+                "icon": logo,
+            })
+    except (ProgrammingError, OperationalError, LookupError):
+        pass
+
+    try:
+        Match = django_apps.get_model("tournaments", "Match")
+        m_qs = (
+            Match.objects.filter(
+                Q(participant1_name__icontains=q) | Q(participant2_name__icontains=q),
+                is_deleted=False,
+            )
+            .exclude(state__in=["draft", "cancelled"])
+            .select_related("tournament")
+            .only(
+                "id", "participant1_name", "participant2_name", "state",
+                "scheduled_time", "tournament__name", "tournament__slug",
+            )
+            .order_by("-id")[:LIMIT]
+        )
+        for m in m_qs:
+            t_slug = m.tournament.slug if m.tournament else ""
+            label = f"{m.participant1_name or 'TBD'} vs {m.participant2_name or 'TBD'}"
+            meta = m.tournament.name if m.tournament else ""
+            results.append({
+                "type": "match",
+                "name": label,
+                "url": f"/tournaments/{t_slug}/matches/{m.id}/",
+                "meta": meta,
+                "icon": "",
+                "status": m.state,
+            })
+    except (ProgrammingError, OperationalError, LookupError):
+        pass
+
+    try:
+        User = get_user_model()
+        u_qs = (
+            User.objects.filter(
+                Q(username__icontains=q),
+                is_active=True,
+            )
+            .select_related("profile")
+            .only("username", "profile__display_name", "profile__avatar")
+            .order_by("-id")[:LIMIT]
+        )
+        for u in u_qs:
+            avatar = "/static/img/user_avatar/default-avatar.png"
+            display = u.username
+            try:
+                if hasattr(u, "profile"):
+                    if u.profile.display_name:
+                        display = u.profile.display_name
+                    if u.profile.avatar:
+                        avatar = u.profile.avatar.url
+            except (ValueError, AttributeError):
+                pass
+            results.append({
+                "type": "player",
+                "name": display,
+                "url": f"/u/{u.username}/",
+                "meta": f"@{u.username}",
+                "icon": avatar,
+            })
+    except (ProgrammingError, OperationalError, LookupError):
+        pass
+
+    return JsonResponse({"results": results})

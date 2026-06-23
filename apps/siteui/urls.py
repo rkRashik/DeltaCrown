@@ -32,4 +32,5 @@ urlpatterns = [
     path("arena/widget/<int:widget_id>/vote/", views.arena_widget_vote, name="arena_widget_vote"),
     path("watch/", RedirectView.as_view(pattern_name="siteui:arena", permanent=True), name="watch"),
     path("newsletter/subscribe/", views.newsletter_subscribe, name="newsletter_subscribe"),
+    path("search/suggest/", views.search_suggest, name="search_suggest"),
 ]
