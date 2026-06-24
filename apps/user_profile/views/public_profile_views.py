@@ -1784,6 +1784,23 @@ def profile_settings_view(request: HttpRequest, section: str = None) -> HttpResp
     
     # Add UserProfile object for template access to FileFields (avatar, banner)
     context['user_profile'] = user_profile
+
+    # Settings profile completion card.
+    # Keep this context local to rendering; save behavior and endpoint contracts stay unchanged.
+    try:
+        completion_data = SettingsCompletionService.calculate(user_profile)
+        completion_percentage = int(completion_data.get('percentage', 0))
+    except Exception as exc:
+        logger.warning(
+            "[SETTINGS-GET] Completion calculation failed for user %s: %s",
+            request.user.username,
+            exc,
+            exc_info=True,
+        )
+        completion_data = None
+        completion_percentage = 0
+    context['completion_data'] = completion_data
+    context['completion_percentage'] = max(0, min(100, completion_percentage))
     
     # Add privacy settings (for Control Deck)
     privacy_settings, _ = PrivacySettings.objects.get_or_create(user_profile=user_profile)

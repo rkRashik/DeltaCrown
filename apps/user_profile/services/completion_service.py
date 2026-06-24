@@ -97,7 +97,7 @@ class SettingsCompletionService:
         try:
             from apps.user_profile.models import SocialLink
             has_social_links = SocialLink.objects.filter(user=user).exists()
-        except:
+        except Exception:
             has_social_links = False
         
         checklist_items.append({
@@ -111,9 +111,9 @@ class SettingsCompletionService:
         
         # 4. Game Passports (HIGH PRIORITY)
         try:
-            from apps.user_profile.models_main import GameProfile
+            from apps.user_profile.models import GameProfile
             has_game_passports = GameProfile.objects.filter(user=user).exists()
-        except:
+        except Exception:
             has_game_passports = False
         
         checklist_items.append({
@@ -127,9 +127,9 @@ class SettingsCompletionService:
         
         # 5. Hardware Gear (MEDIUM PRIORITY)
         try:
-            from apps.user_profile.models_main import HardwareGear
+            from apps.user_profile.models import HardwareGear
             has_hardware = HardwareGear.objects.filter(user=user).exists()
-        except:
+        except Exception:
             has_hardware = False
         
         checklist_items.append({
@@ -142,7 +142,17 @@ class SettingsCompletionService:
         })
         
         # 6. Email Verification (HIGH PRIORITY)
-        has_verified_email = user.email and getattr(user, 'is_email_verified', False)
+        has_verified_email = bool(user.email and getattr(user, 'is_email_verified', False))
+        if user.email and not has_verified_email:
+            try:
+                from allauth.account.models import EmailAddress
+                has_verified_email = EmailAddress.objects.filter(
+                    user=user,
+                    email__iexact=user.email,
+                    verified=True,
+                ).exists()
+            except Exception:
+                has_verified_email = False
         checklist_items.append({
             'key': 'email_verified',
             'label': 'Email Verification',
@@ -170,7 +180,7 @@ class SettingsCompletionService:
                 user=user,
                 platform__in=['twitch', 'youtube', 'kick', 'facebook_gaming']
             ).exists()
-        except:
+        except Exception:
             has_stream_settings = False
         
         checklist_items.append({

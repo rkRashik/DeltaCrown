@@ -2,6 +2,7 @@
 {% load static dc_avatar %}
 
 {% block title %}Control Deck | DeltaCrown{% endblock %}
+{% block body_class %}settings-page-body{% endblock %}
 
 {% block extra_head %}
 <!-- CSRF token for JS (works even with CSRF_COOKIE_HTTPONLY=True) -->
@@ -242,11 +243,1257 @@
         --tw-gradient-from: rgba(255, 215, 0, 0.1) !important;
         --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, transparent) !important;
     }
+
+    .dc-mobile-settings-index,
+    .dc-mobile-settings-detail-bar,
+    .dc-mobile-settings-savebar {
+        display: none;
+    }
+
+    @keyframes dcMobileFade {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    @keyframes dcMobileSlide {
+        from { opacity: 0; transform: translateX(20px); }
+        to { opacity: 1; transform: translateX(0); }
+    }
+
+    @media (max-width: 1023.98px) {
+        body.settings-page-body #dc-mobile-header,
+        body.settings-page-body #dc-bottom-nav,
+        body.settings-page-body #dc-mobile-notif-overlay,
+        body.settings-page-body #dc-mobile-notif-sheet {
+            display: none !important;
+        }
+
+        body.settings-page-body,
+        html:has(body.settings-page-body) {
+            overflow: hidden !important;
+            background: #06080D !important;
+        }
+
+        body {
+            background: #06080D !important;
+            background-image: none !important;
+        }
+
+        #settings-page-shell {
+            height: 100dvh;
+            min-height: 100dvh;
+            overflow: hidden;
+            background:
+                radial-gradient(120% 80% at 50% -10%, rgba(10, 132, 255, 0.08), transparent 48%),
+                #06080D;
+            color: #F4F6FA;
+            font-family: 'Inter', system-ui, sans-serif;
+        }
+
+        #settings-page-shell > header {
+            display: none !important;
+        }
+
+        #settings-page-shell .settings-workspace {
+            display: block;
+            height: 100dvh;
+            overflow: hidden;
+            background: transparent;
+            position: relative;
+        }
+
+        .dc-mobile-settings-index {
+            position: absolute;
+            inset: 0;
+            z-index: 20;
+            display: block;
+            overflow-y: auto;
+            padding: calc(env(safe-area-inset-top, 0px) + 24px) 16px calc(env(safe-area-inset-bottom, 0px) + 34px);
+            background: transparent;
+            scrollbar-width: none;
+            -webkit-overflow-scrolling: touch;
+            animation: dcMobileFade 180ms ease;
+        }
+
+        .dc-mobile-index-bar {
+            display: flex;
+            align-items: center;
+            min-height: 32px;
+            margin: -2px 0 8px;
+        }
+
+        .dc-mobile-index-back {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            min-height: 32px;
+            color: #0A84FF !important;
+            font-size: 16px;
+            font-weight: 750;
+            line-height: 1;
+            text-decoration: none !important;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .dc-mobile-index-back i {
+            font-size: 15px;
+        }
+
+        .dc-mobile-settings-index::-webkit-scrollbar,
+        .dc-settings-main::-webkit-scrollbar {
+            display: none;
+        }
+
+        .dc-mobile-settings-title {
+            display: block;
+            margin: 0 0 20px;
+            color: #F4F6FA;
+            font-family: 'Sora', 'Inter', system-ui, sans-serif;
+            font-size: 34px;
+            line-height: 1;
+            font-weight: 800;
+            letter-spacing: 0;
+        }
+
+        .dc-mobile-profile-card {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            width: 100%;
+            margin: 8px 0 28px;
+            padding: 18px;
+            border: 1px solid rgba(10, 132, 255, 0.12);
+            border-radius: 28px;
+            background:
+                linear-gradient(145deg, rgba(15, 33, 54, 0.98), rgba(10, 18, 30, 0.96)) !important;
+            color: inherit !important;
+            text-decoration: none;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 20px 50px rgba(0, 0, 0, 0.24) !important;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .dc-mobile-profile-avatar {
+            position: relative;
+            width: 64px;
+            height: 64px;
+            flex: 0 0 64px;
+            border-radius: 999px;
+            overflow: visible;
+            background: linear-gradient(135deg, #6849E5, #0A84FF);
+        }
+
+        .dc-mobile-profile-avatar img {
+            display: block;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: inherit;
+        }
+
+        .dc-mobile-profile-edit {
+            position: absolute;
+            right: -4px;
+            bottom: 2px;
+            display: grid;
+            width: 24px;
+            height: 24px;
+            place-items: center;
+            border: 2px solid #0A0D14;
+            border-radius: 999px;
+            background: #0A84FF;
+            color: #fff;
+            font-size: 11px;
+            z-index: 2;
+        }
+
+        .dc-mobile-profile-body {
+            min-width: 0;
+            flex: 1;
+        }
+
+        .dc-mobile-profile-mainline {
+            display: flex;
+            align-items: baseline;
+            gap: 7px;
+            min-width: 0;
+        }
+
+        .dc-mobile-profile-name {
+            overflow: hidden;
+            color: #F4F6FA;
+            font-family: 'Inter', system-ui, sans-serif;
+            font-size: 18px;
+            font-weight: 800;
+            line-height: 1.2;
+            letter-spacing: 0;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .dc-mobile-profile-meta,
+        .dc-mobile-row-meta {
+            overflow: hidden;
+            color: #8E8E93;
+            font-size: 12.5px;
+            line-height: 1.35;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .dc-mobile-completion {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            align-items: center;
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        .dc-mobile-completion-track {
+            height: 8px;
+            flex: 1;
+            overflow: hidden;
+            border-radius: 999px;
+            background: #2B3442;
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+        }
+
+        .dc-mobile-completion-fill {
+            height: 100%;
+            border-radius: inherit;
+            background: linear-gradient(90deg, #0A84FF, #5AC8FA);
+            box-shadow: 0 0 12px rgba(10, 132, 255, 0.38);
+        }
+
+        .dc-mobile-completion-label {
+            color: #D4D9E5;
+            font-size: 12px;
+            font-weight: 800;
+            white-space: nowrap;
+        }
+
+        .dc-mobile-completion-next {
+            grid-column: 1 / -1;
+            overflow: hidden;
+            color: #8992A5;
+            font-size: 12px;
+            font-weight: 600;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .dc-mobile-section-group {
+            margin-bottom: 30px;
+        }
+
+        .dc-mobile-group-label {
+            padding: 0 2px 10px;
+            color: #636366;
+            font-size: 12.5px;
+            font-weight: 800;
+            letter-spacing: 0.07em;
+            text-transform: uppercase;
+        }
+
+        .dc-mobile-row-group {
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.055);
+            border-radius: 24px;
+            background: rgba(28, 28, 30, 0.82);
+            box-shadow: 0 18px 50px rgba(0, 0, 0, 0.18);
+        }
+
+        .dc-mobile-settings-row,
+        .dc-mobile-settings-link {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            width: 100%;
+            min-height: 74px;
+            padding: 15px 18px;
+            border: 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 0 !important;
+            background: transparent !important;
+            box-shadow: none !important;
+            color: #F4F6FA !important;
+            font: inherit;
+            text-align: left;
+            text-decoration: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .dc-mobile-settings-row:last-child,
+        .dc-mobile-settings-link:last-child {
+            border-bottom: 0;
+        }
+
+        .dc-mobile-settings-row:active,
+        .dc-mobile-settings-link:active,
+        .dc-mobile-profile-card:active {
+            opacity: 0.62;
+        }
+
+        .dc-mobile-settings-row.active,
+        .dc-mobile-profile-card.active {
+            background: rgba(255, 255, 255, 0.035) !important;
+            color: #F4F6FA !important;
+        }
+
+        .dc-mobile-row-icon {
+            display: grid;
+            width: 46px;
+            height: 46px;
+            flex: 0 0 46px;
+            place-items: center;
+            border-radius: 14px;
+            background: #2C2C2E;
+            color: #F4F6FA;
+            font-size: 18px;
+        }
+
+        .dc-mobile-row-icon.is-blue { background: linear-gradient(135deg, #0A84FF, #006FE6); color: #fff; }
+        .dc-mobile-row-icon.is-violet { background: linear-gradient(135deg, #6849E5, #4F33C2); color: #fff; }
+        .dc-mobile-row-icon.is-gold { background: linear-gradient(135deg, #CFA75A, #A07F35); color: #fff; }
+        .dc-mobile-row-icon.is-green { background: linear-gradient(135deg, #2ECC71, #25A95C); color: #fff; }
+        .dc-mobile-row-icon.is-red { background: rgba(255, 77, 94, 0.18); color: #FF4D5E; }
+
+        .dc-mobile-row-copy {
+            min-width: 0;
+            flex: 1;
+        }
+
+        .dc-mobile-row-label {
+            display: block;
+            overflow: hidden;
+            color: #F4F6FA;
+            font-size: 18px;
+            font-weight: 800;
+            line-height: 1.2;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .dc-mobile-settings-row.is-danger .dc-mobile-row-label,
+        .dc-mobile-settings-row.is-danger .dc-mobile-caret {
+            color: #FF4D5E;
+        }
+
+        .dc-mobile-badge {
+            flex: 0 0 auto;
+            max-width: 96px;
+            overflow: hidden;
+            padding: 3px 9px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.06);
+            color: #A9B1C2;
+            font-size: 11px;
+            font-weight: 700;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .dc-mobile-caret {
+            flex: 0 0 auto;
+            color: #636366;
+            font-size: 14px;
+        }
+
+        .dc-mobile-settings-detail-bar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 35;
+            display: flex;
+            align-items: flex-end;
+            gap: 6px;
+            min-height: calc(env(safe-area-inset-top, 0px) + 64px);
+            padding: calc(env(safe-area-inset-top, 0px) + 12px) 14px 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            background: rgba(6, 8, 13, 0.86);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+        }
+
+        .dc-mobile-settings-back {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            min-width: 88px;
+            padding: 6px 4px;
+            border: 0;
+            background: transparent;
+            color: #0A84FF;
+            font: inherit;
+            font-size: 15px;
+            font-weight: 700;
+        }
+
+        .dc-mobile-settings-current-title {
+            min-width: 0;
+            flex: 1;
+            margin-right: 88px;
+            overflow: hidden;
+            color: #F4F6FA;
+            font-family: 'Sora', 'Inter', system-ui, sans-serif;
+            font-size: 18px;
+            font-weight: 800;
+            letter-spacing: 0;
+            text-align: center;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        #settings-page-shell.mobile-settings-index-mode .dc-mobile-settings-detail-bar,
+        #settings-page-shell.mobile-settings-index-mode .dc-settings-main,
+        #settings-page-shell.mobile-settings-index-mode .dc-mobile-settings-savebar {
+            display: none !important;
+        }
+
+        #settings-page-shell.mobile-settings-detail-mode .dc-mobile-settings-index {
+            display: none !important;
+        }
+
+        #settings-page-shell.mobile-settings-detail-mode .dc-settings-main {
+            position: absolute;
+            inset: 0;
+            display: block !important;
+            width: 100%;
+            height: 100%;
+            overflow-x: hidden;
+            overflow-y: auto;
+            padding: calc(env(safe-area-inset-top, 0px) + 86px) 16px calc(env(safe-area-inset-bottom, 0px) + 112px) !important;
+            background:
+                radial-gradient(120% 70% at 50% -8%, rgba(10, 132, 255, 0.07), transparent 44%),
+                #06080D;
+            scrollbar-width: none;
+            -webkit-overflow-scrolling: touch;
+            animation: dcMobileSlide 220ms cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        #settings-page-shell.mobile-settings-detail-mode .dc-mobile-settings-detail-bar {
+            display: flex;
+        }
+
+        #settings-page-shell.mobile-settings-detail-mode .dc-mobile-settings-savebar.is-visible {
+            display: block;
+        }
+
+        .dc-mobile-settings-savebar {
+            position: absolute;
+            right: 0;
+            bottom: 0;
+            left: 0;
+            z-index: 34;
+            padding: 12px 16px calc(env(safe-area-inset-bottom, 0px) + 18px);
+            border-top: 1px solid rgba(255, 255, 255, 0.055);
+            background: linear-gradient(180deg, rgba(6, 8, 13, 0), rgba(6, 8, 13, 0.92) 28%, rgba(6, 8, 13, 0.98));
+            backdrop-filter: blur(22px);
+            -webkit-backdrop-filter: blur(22px);
+        }
+
+        .dc-mobile-settings-savebar button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            height: 56px;
+            border: 0;
+            border-radius: 18px;
+            background: #0A84FF;
+            color: #fff;
+            font-size: 17px;
+            font-weight: 800;
+            box-shadow: 0 18px 36px -18px rgba(10, 132, 255, 0.9);
+        }
+
+        .dc-mobile-settings-savebar button:disabled {
+            opacity: 0.45;
+            box-shadow: none;
+        }
+
+        .dc-settings-content {
+            max-width: none !important;
+            margin: 0 !important;
+        }
+
+        .dc-settings-main .tab-section.active,
+        .dc-settings-main .tab-section.active:not(#tab-passports) {
+            max-width: none !important;
+            margin: 0 !important;
+        }
+
+        .dc-settings-main .tab-section > h2:first-child,
+        .dc-settings-main .tab-section > p:first-of-type,
+        #tab-passports > .w-full > header,
+        #tab-passports .pointer-events-none.fixed {
+            display: none !important;
+        }
+
+        .dc-settings-main .glass-panel,
+        .dc-settings-main .liquid-glass,
+        .dc-settings-main .gp-glass-panel,
+        .dc-settings-main .rounded-2xl,
+        .dc-settings-main .rounded-3xl {
+            border-color: rgba(255, 255, 255, 0.06) !important;
+            background: #1C1C1E !important;
+            box-shadow: none !important;
+            backdrop-filter: none !important;
+            -webkit-backdrop-filter: none !important;
+        }
+
+        .dc-settings-main .glass-panel,
+        .dc-settings-main .liquid-glass {
+            border-radius: 14px !important;
+        }
+
+        .dc-settings-main .holo-ring,
+        .dc-settings-main .absolute.-right-10,
+        .dc-settings-main .absolute.-top-10 {
+            display: none !important;
+        }
+
+        .dc-settings-main .z-input {
+            border-color: rgba(255, 255, 255, 0.09);
+            border-radius: 12px;
+            background: #11151E;
+            color: #F4F6FA;
+            font-size: 16px;
+        }
+
+        .dc-settings-main .z-input:focus {
+            border-color: #0A84FF;
+            box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.18);
+            background: #11151E;
+        }
+
+        .dc-settings-main .z-label {
+            color: #A9B1C2;
+            letter-spacing: 0;
+            text-transform: none;
+        }
+
+        .dc-settings-main .z-toggle-input:checked + .z-toggle-slider {
+            background-color: #0A84FF;
+            box-shadow: none;
+        }
+
+        .dc-settings-main .z-toggle-input:checked + .z-toggle-slider:before {
+            background-color: #fff;
+        }
+
+        .dc-settings-main .uppercase {
+            letter-spacing: 0 !important;
+            text-transform: none !important;
+        }
+
+        .dc-settings-main .font-display {
+            font-family: 'Space Grotesk', 'Inter', system-ui, sans-serif;
+            letter-spacing: 0;
+        }
+
+        .dc-settings-main .bg-z-cyan {
+            background-color: #0A84FF !important;
+            color: #fff !important;
+        }
+
+        .dc-settings-main .text-z-cyan {
+            color: #0A84FF !important;
+        }
+
+        .dc-settings-main [class*="shadow-neon"],
+        .dc-settings-main [class*="shadow-cyan"],
+        .dc-settings-main [class*="shadow-z-cyan"] {
+            box-shadow: none !important;
+        }
+
+        .dc-settings-main table,
+        .dc-settings-main .overflow-x-auto {
+            max-width: 100%;
+        }
+
+        .dc-settings-main img,
+        .dc-settings-main video,
+        .dc-settings-main canvas {
+            max-width: 100%;
+        }
+
+        #settings-page-shell.mobile-settings-detail-mode .dc-settings-main {
+            overscroll-behavior-x: contain;
+        }
+
+        #settings-page-shell.mobile-settings-detail-mode .tab-section.active {
+            animation: dcMobileSlide 220ms cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        #settings-page-shell.mobile-settings-detail-mode .tab-section > .bg-blue-500\/10,
+        #settings-page-shell.mobile-settings-detail-mode .tab-section > .bg-purple-500\/10,
+        #settings-page-shell.mobile-settings-detail-mode .tab-section > .bg-cyan-500\/10 {
+            display: none !important;
+        }
+
+        #settings-page-shell.mobile-settings-detail-mode .tab-section h3 {
+            margin: 0 2px 9px !important;
+            color: #636366 !important;
+            font-size: 12px !important;
+            font-weight: 700 !important;
+            letter-spacing: 0.06em !important;
+            line-height: 1.2 !important;
+            text-transform: uppercase !important;
+        }
+
+        #settings-page-shell.mobile-settings-detail-mode .tab-section h4 {
+            color: #F4F6FA !important;
+            font-size: 16px !important;
+            font-weight: 700 !important;
+            letter-spacing: 0 !important;
+            line-height: 1.2 !important;
+        }
+
+        #settings-page-shell.mobile-settings-detail-mode .tab-section p {
+            color: #636366 !important;
+            font-size: 13px !important;
+            line-height: 1.35 !important;
+        }
+
+        #settings-page-shell.mobile-settings-detail-mode .tab-section .text-gray-300,
+        #settings-page-shell.mobile-settings-detail-mode .tab-section .text-slate-300 {
+            color: #F4F6FA !important;
+        }
+
+        #settings-page-shell.mobile-settings-detail-mode .tab-section .text-gray-400,
+        #settings-page-shell.mobile-settings-detail-mode .tab-section .text-slate-400,
+        #settings-page-shell.mobile-settings-detail-mode .tab-section .text-gray-500,
+        #settings-page-shell.mobile-settings-detail-mode .tab-section .text-slate-500 {
+            color: #636366 !important;
+        }
+
+        #settings-page-shell.mobile-settings-detail-mode .tab-section .z-toggle-wrapper {
+            width: 51px !important;
+            height: 31px !important;
+            flex: 0 0 51px !important;
+        }
+
+        #settings-page-shell.mobile-settings-detail-mode .tab-section .z-toggle-slider {
+            border: 0 !important;
+            border-radius: 999px !important;
+            background: #3A3A3C !important;
+            box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08) !important;
+        }
+
+        #settings-page-shell.mobile-settings-detail-mode .tab-section .z-toggle-slider:before {
+            width: 27px !important;
+            height: 27px !important;
+            left: 2px !important;
+            bottom: 2px !important;
+            border-radius: 999px !important;
+            background: #fff !important;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.28) !important;
+        }
+
+        #settings-page-shell.mobile-settings-detail-mode .tab-section .z-toggle-input:checked + .z-toggle-slider {
+            background: #30D158 !important;
+        }
+
+        #settings-page-shell.mobile-settings-detail-mode .tab-section .z-toggle-input:checked + .z-toggle-slider:before {
+            transform: translateX(20px) !important;
+        }
+
+        #settings-page-shell.mobile-settings-detail-mode .tab-section button:not(.dc-mobile-settings-back),
+        #settings-page-shell.mobile-settings-detail-mode .tab-section a.bg-z-cyan,
+        #settings-page-shell.mobile-settings-detail-mode .tab-section a.bg-z-gold,
+        #settings-page-shell.mobile-settings-detail-mode .tab-section a.bg-white\/10 {
+            letter-spacing: 0 !important;
+            text-transform: none !important;
+        }
+
+        #tab-identity > .glass-panel.group {
+            display: flex !important;
+            justify-content: center !important;
+            overflow: visible !important;
+            margin: 0 !important;
+            padding: 16px 0 46px !important;
+            border: 0 !important;
+            background: transparent !important;
+        }
+
+        #tab-identity > .glass-panel.group > div:first-child {
+            display: none !important;
+        }
+
+        #tab-identity > .glass-panel.group > div:last-child {
+            padding: 0 !important;
+        }
+
+        #tab-identity [class*="group/avatar"] {
+            width: 92px !important;
+            height: 92px !important;
+            margin: 0 auto !important;
+            cursor: pointer;
+        }
+
+        #tab-identity [class*="group/avatar"] img[data-preview="avatar"] {
+            border: 0 !important;
+            background: linear-gradient(135deg, #6849E5, #0A84FF) !important;
+        }
+
+        #tab-identity [class*="group/avatar"] > .absolute.inset-0 {
+            display: none !important;
+        }
+
+        #tab-identity [class*="group/avatar"]::before {
+            content: "\f030";
+            position: absolute;
+            right: -1px;
+            bottom: -1px;
+            z-index: 30;
+            display: grid;
+            width: 26px;
+            height: 26px;
+            place-items: center;
+            border: 2px solid #0A0D14;
+            border-radius: 999px;
+            background: #0A84FF;
+            color: #fff;
+            font-family: "Font Awesome 6 Free";
+            font-size: 12px;
+            font-weight: 900;
+        }
+
+        #tab-identity [class*="group/avatar"]::after {
+            content: "Change photo";
+            position: absolute;
+            top: calc(100% + 10px);
+            left: 50%;
+            z-index: 30;
+            width: max-content;
+            transform: translateX(-50%);
+            color: #0A84FF;
+            font-size: 15px;
+            font-weight: 700;
+        }
+
+        #identity-form {
+            display: block !important;
+            margin-top: 4px !important;
+            padding: 0 !important;
+            overflow: hidden !important;
+            border: 1px solid rgba(255, 255, 255, 0.055) !important;
+            border-radius: 26px !important;
+            background: rgba(28, 28, 30, 0.82) !important;
+            box-shadow: 0 22px 55px rgba(0, 0, 0, 0.22) !important;
+        }
+
+        #identity-form > .dc-mobile-identity-kyc {
+            display: none !important;
+        }
+
+        #identity-form > div:not(.dc-mobile-identity-kyc):not(.dc-mobile-identity-submit) {
+            min-height: 76px;
+            margin: 0 !important;
+            padding: 15px 18px !important;
+            border: 0 !important;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+            border-radius: 0 !important;
+            background: transparent !important;
+        }
+
+        #identity-form > div:first-of-type {
+            border-top-left-radius: 26px !important;
+            border-top-right-radius: 26px !important;
+        }
+
+        #identity-form > div:nth-of-type(6) {
+            border-bottom: 0 !important;
+            border-bottom-right-radius: 26px !important;
+            border-bottom-left-radius: 26px !important;
+        }
+
+        #identity-form .z-label,
+        #identity-form .z-label span {
+            margin: 0 0 5px !important;
+            color: #737782 !important;
+            font-size: 12.5px !important;
+            font-weight: 800 !important;
+            letter-spacing: 0 !important;
+            text-transform: none !important;
+        }
+
+        #identity-form .z-input {
+            min-height: 24px !important;
+            padding: 0 !important;
+            border: 0 !important;
+            border-radius: 0 !important;
+            background: transparent !important;
+            color: #F4F6FA !important;
+            box-shadow: none !important;
+            font-size: 18px !important;
+            font-weight: 800 !important;
+            line-height: 1.3 !important;
+        }
+
+        #identity-form textarea.z-input {
+            min-height: 44px !important;
+        }
+
+        #identity-form p.text-xs {
+            display: none !important;
+        }
+
+        #identity-form .dc-mobile-identity-submit {
+            display: none !important;
+        }
+
+        #identity-form .dc-mobile-identity-submit button {
+            width: 100% !important;
+            height: 56px !important;
+            justify-content: center !important;
+            border-radius: 18px !important;
+            background: #0A84FF !important;
+            color: #fff !important;
+            font-size: 17px !important;
+            font-weight: 800 !important;
+            box-shadow: 0 10px 24px -12px rgba(10, 132, 255, 0.7) !important;
+        }
+
+        #tab-privacy form > .glass-panel,
+        #notifications-form > .glass-panel,
+        #tab-security > .glass-panel {
+            margin: 0 0 20px !important;
+            padding: 0 !important;
+            border: 0 !important;
+            border-radius: 0 !important;
+            background: transparent !important;
+        }
+
+        #tab-privacy form > .glass-panel > .space-y-3,
+        #notifications-form > .glass-panel > .space-y-4,
+        #notifications-form > .glass-panel > .grid,
+        #tab-security .space-y-4,
+        #tab-security #session-info {
+            overflow: hidden;
+            margin: 0 !important;
+            border: 1px solid rgba(255, 255, 255, 0.055) !important;
+            border-radius: 24px !important;
+            background: rgba(28, 28, 30, 0.82) !important;
+            box-shadow: 0 20px 52px rgba(0, 0, 0, 0.18);
+        }
+
+        #tab-privacy form > .glass-panel > .flex.items-center.justify-between,
+        #tab-privacy form > .glass-panel > .space-y-3 > .flex.items-center.justify-between,
+        #notifications-form > .glass-panel .flex.items-center.justify-between,
+        #tab-security .glass-panel .flex.items-center.gap-3,
+        #tab-security .glass-panel .flex.items-center.gap-4 {
+            min-height: 64px;
+            margin: 0 !important;
+            padding: 15px 18px !important;
+            border: 0 !important;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+            border-radius: 0 !important;
+            background: transparent !important;
+            box-shadow: none !important;
+        }
+
+        #tab-privacy form > .glass-panel > .flex.items-center.justify-between:last-child,
+        #tab-privacy form > .glass-panel > .space-y-3 > .flex.items-center.justify-between:last-child,
+        #notifications-form > .glass-panel .flex.items-center.justify-between:last-child,
+        #tab-security .glass-panel .flex.items-center.gap-3:last-child,
+        #tab-security .glass-panel .flex.items-center.gap-4:last-child {
+            border-bottom: 0 !important;
+        }
+
+        #tab-privacy form > .glass-panel .bg-cyan-500\/10,
+        #tab-security .glass-panel .bg-yellow-500\/10 {
+            display: none !important;
+        }
+
+        #tab-privacy form > .glass-panel > .flex.items-center.justify-between {
+            overflow: hidden;
+            border-bottom: 0 !important;
+            border: 1px solid rgba(255, 255, 255, 0.055) !important;
+            border-radius: 24px !important;
+            background: rgba(28, 28, 30, 0.82) !important;
+        }
+
+        #tab-security #change-password-form > div,
+        #tab-security #dob-form > div {
+            margin: 0 !important;
+            padding: 13px 16px !important;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+            background: #1C1C1E !important;
+        }
+
+        #tab-security #change-password-form > div:last-of-type,
+        #tab-security #dob-form > div:last-of-type {
+            border-bottom: 0 !important;
+        }
+
+        #tab-security #change-password-form .z-label,
+        #tab-security #dob-form .z-label {
+            margin-bottom: 5px !important;
+            color: #636366 !important;
+            font-size: 12px !important;
+            font-weight: 700 !important;
+        }
+
+        #tab-privacy form > .glass-panel select.z-input,
+        #notifications-form input[type="time"].z-input,
+        #tab-security .z-input {
+            min-height: 44px !important;
+            border-color: rgba(255, 255, 255, 0.08) !important;
+            background: #11151E !important;
+        }
+
+        #tab-privacy form > .glass-panel span.text-sm,
+        #notifications-form h4,
+        #tab-security .font-semibold,
+        #tab-security .font-bold {
+            color: #F4F6FA !important;
+            font-size: 16px !important;
+            font-weight: 700 !important;
+            line-height: 1.25 !important;
+        }
+
+        #tab-security form button[type="submit"],
+        #tab-security #logout-other-sessions-btn {
+            width: 100% !important;
+            min-height: 48px !important;
+            justify-content: center !important;
+            border-radius: 14px !important;
+            font-size: 15px !important;
+            font-weight: 800 !important;
+        }
+
+        #notifications-form > button[type="submit"] {
+            display: none !important;
+        }
+
+        #tab-billing > .glass-panel:first-of-type {
+            padding: 16px !important;
+            border: 1px solid rgba(207, 167, 90, 0.22) !important;
+            border-radius: 24px !important;
+            background: linear-gradient(145deg, rgba(24, 22, 18, 0.96), rgba(12, 16, 24, 0.94)) !important;
+            box-shadow: 0 24px 60px rgba(0, 0, 0, 0.22) !important;
+        }
+
+        #tab-billing > .glass-panel:first-of-type p {
+            color: #CFA75A !important;
+            font-size: 12px !important;
+            font-weight: 800 !important;
+            letter-spacing: 0.06em !important;
+            text-transform: uppercase !important;
+        }
+
+        #tab-billing > .glass-panel:first-of-type h1 {
+            margin: 0 0 18px !important;
+            color: #F4F6FA !important;
+            font-size: 34px !important;
+            line-height: 1.05 !important;
+            letter-spacing: 0 !important;
+        }
+
+        #tab-billing > .glass-panel:first-of-type a {
+            flex: 1;
+            min-height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px !important;
+            font-size: 14px !important;
+            font-weight: 800 !important;
+        }
+
+        #tab-billing > .glass-panel:nth-of-type(2) {
+            padding: 0 !important;
+            border: 0 !important;
+            border-radius: 0 !important;
+            background: transparent !important;
+        }
+
+        #tab-billing > .glass-panel:nth-of-type(2) > .flex.items-center {
+            margin: 0 0 9px !important;
+        }
+
+        #tab-billing #pin-setup-form,
+        #tab-billing > .glass-panel:nth-of-type(2) > .mb-6 {
+            overflow: hidden;
+            border-radius: 14px !important;
+            background: #1C1C1E !important;
+        }
+
+        #tab-billing #pin-setup-form > div,
+        #tab-billing > .glass-panel:nth-of-type(2) > .mb-6 {
+            margin: 0 !important;
+            padding: 13px 16px !important;
+            border: 0 !important;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+            border-radius: 0 !important;
+            background: #1C1C1E !important;
+        }
+
+        #tab-billing #pin-setup-form > div:last-of-type {
+            border-bottom: 0 !important;
+        }
+
+        #tab-billing #send-otp-btn,
+        #tab-billing #verify-pin-btn {
+            margin-top: 14px !important;
+            min-height: 48px !important;
+            border-radius: 14px !important;
+            background: #0A84FF !important;
+            color: #fff !important;
+            box-shadow: 0 10px 24px -12px rgba(10, 132, 255, 0.7) !important;
+        }
+
+        #tab-passports .dc-mobile-passports-lede {
+            display: block !important;
+            margin: 0 2px 16px !important;
+            color: #8E8E93 !important;
+            font-size: 14px !important;
+            font-weight: 600 !important;
+            line-height: 1.45 !important;
+        }
+
+        #tab-passports > .w-full {
+            max-width: none !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+
+        #tab-passports section {
+            margin: 0 0 20px !important;
+        }
+
+        #tab-passports section > .mb-6 {
+            margin: 0 2px 9px !important;
+        }
+
+        #tab-passports section > .mb-6 > div:first-child {
+            display: none !important;
+        }
+
+        #tab-passports section h2 {
+            color: #636366 !important;
+            font-size: 12px !important;
+            font-weight: 700 !important;
+            letter-spacing: 0.06em !important;
+            line-height: 1.2 !important;
+            text-transform: uppercase !important;
+        }
+
+        #activeRosterGrid,
+        #gp-add-grid {
+            display: block !important;
+            overflow: hidden;
+            margin: 0 !important;
+            padding: 0 !important;
+            border: 1px solid rgba(255, 255, 255, 0.06) !important;
+            border-radius: 24px !important;
+            background: rgba(28, 28, 30, 0.88) !important;
+            box-shadow: 0 18px 44px rgba(0, 0, 0, 0.2) !important;
+        }
+
+        #activeRosterGrid > div,
+        #gp-add-grid > .gp-add-card {
+            height: auto !important;
+            min-height: 86px !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            border: 0 !important;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+            border-radius: 0 !important;
+            background: transparent !important;
+            box-shadow: none !important;
+        }
+
+        #activeRosterGrid > div:last-child,
+        #gp-add-grid > .gp-add-card:last-child {
+            border-bottom: 0 !important;
+        }
+
+        #activeRosterGrid > div > div,
+        #gp-add-grid > .gp-add-card {
+            height: auto !important;
+            min-height: 86px !important;
+            padding: 14px 16px !important;
+            border-radius: 0 !important;
+            background: transparent !important;
+            box-shadow: none !important;
+        }
+
+        #activeRosterGrid > div > div {
+            display: block !important;
+            overflow: hidden !important;
+        }
+
+        #activeRosterGrid > div > div > img.absolute {
+            display: none !important;
+        }
+
+        #activeRosterGrid > div > div > .relative {
+            display: block !important;
+            min-height: 0 !important;
+        }
+
+        #activeRosterGrid > div > div > .relative > .flex {
+            align-items: center !important;
+            gap: 12px !important;
+            margin: 0 !important;
+        }
+
+        #activeRosterGrid .w-14.h-14,
+        #gp-add-grid .w-14.h-14 {
+            width: 52px !important;
+            height: 52px !important;
+            flex-basis: 52px !important;
+            border-radius: 14px !important;
+            border-color: rgba(255, 255, 255, 0.08) !important;
+            box-shadow: none !important;
+        }
+
+        #activeRosterGrid h3 {
+            max-width: 100% !important;
+            color: #F4F6FA !important;
+            font-size: 17px !important;
+            font-weight: 800 !important;
+            line-height: 1.18 !important;
+            letter-spacing: 0 !important;
+            text-transform: none !important;
+        }
+
+        #activeRosterGrid span.text-\[10px\] {
+            color: #8E8E93 !important;
+            font-size: 12px !important;
+            font-weight: 750 !important;
+            letter-spacing: 0 !important;
+            text-transform: none !important;
+        }
+
+        #activeRosterGrid .flex.flex-wrap {
+            gap: 5px !important;
+            margin-top: 5px !important;
+        }
+
+        #activeRosterGrid .flex.flex-wrap span {
+            min-height: 22px !important;
+            padding: 3px 8px !important;
+            border-radius: 999px !important;
+            font-size: 10px !important;
+            line-height: 1 !important;
+            letter-spacing: 0 !important;
+            text-transform: none !important;
+        }
+
+        #activeRosterGrid .grid,
+        #activeRosterGrid .gp-status-bar,
+        #activeRosterGrid .gp-data-chip-list,
+        #activeRosterGrid [class*="bgImage"] {
+            display: none !important;
+        }
+
+        #activeRosterGrid .mt-auto {
+            display: flex !important;
+            margin-top: 10px !important;
+            padding-top: 9px !important;
+            border-top: 1px solid rgba(255, 255, 255, 0.05) !important;
+        }
+
+        #activeRosterGrid .mt-auto button,
+        #activeRosterGrid .mt-auto span {
+            min-height: auto !important;
+            padding: 0 !important;
+            border: 0 !important;
+            background: transparent !important;
+            font-size: 11px !important;
+            line-height: 1.2 !important;
+            letter-spacing: 0 !important;
+            text-transform: none !important;
+        }
+
+        #activeRosterGrid button,
+        #gp-add-grid button {
+            min-height: 34px !important;
+            border-radius: 999px !important;
+            letter-spacing: 0 !important;
+            text-transform: none !important;
+        }
+
+        #activeRosterGrid [data-action="edit"],
+        #activeRosterGrid [data-action="disconnect"] {
+            justify-content: center !important;
+            padding: 8px 10px !important;
+            border-radius: 999px !important;
+            font-size: 0 !important;
+        }
+
+        #activeRosterGrid [data-action="edit"] i,
+        #activeRosterGrid [data-action="disconnect"] i {
+            margin: 0 !important;
+            font-size: 13px !important;
+        }
+
+        #activeRosterGrid [data-action="edit"]::after {
+            content: "Edit";
+            margin-left: 6px;
+            font-size: 11px;
+        }
+
+        #activeRosterGrid [data-action="disconnect"]::after {
+            content: "Unlink";
+            margin-left: 6px;
+            font-size: 11px;
+        }
+
+        #gp-add-grid > .gp-add-card {
+            display: flex !important;
+            flex-direction: row !important;
+            align-items: center !important;
+            gap: 14px !important;
+            cursor: default !important;
+        }
+
+        #gp-add-grid > .gp-add-card > div:first-child {
+            display: contents !important;
+        }
+
+        #gp-add-grid > .gp-add-card > div:last-child {
+            display: grid !important;
+            min-width: 0 !important;
+            flex: 1 !important;
+            grid-template-columns: minmax(0, 1fr) auto !important;
+            align-items: center !important;
+            gap: 10px !important;
+        }
+
+        #gp-add-grid h4 {
+            margin: 0 !important;
+            color: #F4F6FA !important;
+            font-size: 17px !important;
+            line-height: 1.15 !important;
+            letter-spacing: 0 !important;
+        }
+
+        #gp-add-grid p,
+        #gp-add-grid > .gp-add-card > span,
+        #gp-add-grid > .gp-add-card > div:first-child > span {
+            display: none !important;
+        }
+
+        #gp-add-grid [data-action="add-game"] {
+            width: auto !important;
+            min-width: 78px !important;
+            min-height: 36px !important;
+            padding: 8px 12px !important;
+            font-size: 11px !important;
+            line-height: 1 !important;
+        }
+    }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="flex flex-col h-screen overflow-hidden text-sm">
+<div id="settings-page-shell" class="flex flex-col h-screen overflow-hidden text-sm {% if settings_section_slug %}mobile-settings-detail-mode{% else %}mobile-settings-index-mode{% endif %}" data-settings-section-slug="{{ settings_section_slug|default:'' }}" data-settings-initial-tab="{{ settings_initial_tab|default:'identity' }}">
 
     <header class="h-14 z-50 bg-z-bg/80 backdrop-blur-2xl border-b border-white/5 flex items-center justify-between px-4 lg:px-6 shrink-0 relative">
         <!-- Left: back + breadcrumb -->
@@ -273,7 +1520,7 @@
         </div>
     </header>
 
-    <div class="flex flex-1 overflow-hidden relative">
+    <div class="settings-workspace flex flex-1 overflow-hidden relative">
         
         <aside class="hidden lg:flex w-72 bg-z-panel/30 border-r border-white/5 flex-col overflow-y-auto no-scrollbar shrink-0 pb-10">
             <div class="p-6 space-y-8">
@@ -321,27 +1568,175 @@
             </div>
         </aside>
 
-        <div class="lg:hidden absolute top-0 left-0 right-0 h-14 bg-z-bg/95 border-b border-white/5 z-40 overflow-x-auto no-scrollbar flex items-center px-4 gap-3">
-            <a href="{{ settings_tab_urls.identity }}" class="mobile-nav-btn{% if settings_initial_tab == 'identity' %} active{% endif %}" data-target="identity" data-nav="identity">Identity</a>
-            <a href="{{ settings_tab_urls.about }}" class="mobile-nav-btn{% if settings_initial_tab == 'about' %} active{% endif %}" data-target="about" data-nav="about">About</a>
-            <a href="{{ settings_tab_urls.connections }}" class="mobile-nav-btn{% if settings_initial_tab == 'connections' %} active{% endif %}" data-target="connections" data-nav="connections">Connections</a>
-            <a href="{{ settings_tab_urls.recruitment }}" class="mobile-nav-btn{% if settings_initial_tab == 'recruitment' %} active{% endif %}" data-target="recruitment" data-nav="recruitment">Career</a>
-            <a class="mobile-nav-btn" href="{% url 'dashboard:competitive_hub' %}" style="text-decoration: none;">Competitive Hub</a>
-            <a href="{{ settings_tab_urls.notifications }}" class="mobile-nav-btn{% if settings_initial_tab == 'notifications' %} active{% endif %}" data-target="notifications" data-nav="notifications">Notifications</a>
-            <a href="{{ settings_tab_urls.privacy }}" class="mobile-nav-btn{% if settings_initial_tab == 'privacy' %} active{% endif %}" data-target="privacy" data-nav="privacy">Privacy</a>
-            <a href="{{ settings_tab_urls.platform }}" class="mobile-nav-btn{% if settings_initial_tab == 'platform' %} active{% endif %}" data-target="platform" data-nav="platform">Platform</a>
-            <a href="{{ settings_tab_urls.passports }}" class="mobile-nav-btn{% if settings_initial_tab == 'passports' %} active{% endif %}" data-target="passports" data-nav="passports">Games</a>
-            <a href="{{ settings_tab_urls.loadout }}" class="mobile-nav-btn{% if settings_initial_tab == 'loadout' %} active{% endif %}" data-target="loadout" data-nav="loadout">Loadout</a>
-            <a href="{{ settings_tab_urls.stream }}" class="mobile-nav-btn{% if settings_initial_tab == 'stream' %} active{% endif %}" data-target="stream" data-nav="stream">Stream</a>
-            <a href="{{ settings_tab_urls.billing }}" class="mobile-nav-btn{% if settings_initial_tab == 'billing' %} active{% endif %}" data-target="billing" data-nav="billing">Wallet</a>
-            <a href="{{ settings_tab_urls.inventory }}" class="mobile-nav-btn{% if settings_initial_tab == 'inventory' %} active{% endif %}" data-target="inventory" data-nav="inventory">Inv.</a>
-            <a href="{{ settings_tab_urls.community }}" class="mobile-nav-btn{% if settings_initial_tab == 'community' %} active{% endif %}" data-target="community" data-nav="community">Community</a>
-            <a href="{{ settings_tab_urls.security }}" class="mobile-nav-btn{% if settings_initial_tab == 'security' %} active{% endif %}" data-target="security" data-nav="security">Security</a>
-            <a href="{{ settings_tab_urls.danger }}" class="mobile-nav-btn{% if settings_initial_tab == 'danger' %} active{% endif %}" data-target="danger" data-nav="danger">Danger</a>
+        <section id="mobile-settings-index" class="dc-mobile-settings-index lg:hidden" aria-label="Settings sections">
+            <div class="dc-mobile-index-bar">
+                <a href="{% url 'user_profile:public_profile' username=request.user.username %}" class="dc-mobile-index-back" aria-label="Back to profile">
+                    <i class="fa-solid fa-chevron-left" aria-hidden="true"></i>
+                    <span>Profile</span>
+                </a>
+            </div>
+            <span class="dc-mobile-settings-title">Settings</span>
+
+            <a href="{{ settings_tab_urls.identity }}" class="dc-mobile-profile-card mobile-nav-btn" data-target="identity" data-nav="identity">
+                {% user_avatar_url request.user as avatar_url %}
+                <span class="dc-mobile-profile-avatar">
+                    <img src="{{ avatar_url }}" alt="">
+                    <span class="dc-mobile-profile-edit" aria-hidden="true"><i class="fa-solid fa-pencil"></i></span>
+                </span>
+                <span class="dc-mobile-profile-body">
+                    <span class="dc-mobile-profile-mainline">
+                        <span class="dc-mobile-profile-name">{{ user_profile.display_name|default:request.user.username }}</span>
+                        <span class="dc-mobile-profile-meta">@{{ request.user.username }}</span>
+                    </span>
+                    <span class="dc-mobile-profile-meta">
+                        {% if user_profile.main_role %}{{ user_profile.main_role }}{% else %}Profile{% endif %}{% if user_profile.city %} &middot; {{ user_profile.city }}{% endif %}
+                    </span>
+                    <span class="dc-mobile-completion" aria-label="Profile completion {{ completion_percentage|default:0 }} percent">
+                        <span class="dc-mobile-completion-track"><span class="dc-mobile-completion-fill" style="width: {{ completion_percentage|default:0 }}%;"></span></span>
+                        <span class="dc-mobile-completion-label">
+                            {{ completion_percentage|default:0 }}%
+                            {% if completion_data %}({{ completion_data.completed_count }}/{{ completion_data.total_count }}){% endif %}
+                        </span>
+                        {% if completion_data and completion_data.next_action %}
+                        <span class="dc-mobile-completion-next">Next: {{ completion_data.next_action.label }}</span>
+                        {% endif %}
+                    </span>
+                </span>
+                <i class="fa-solid fa-chevron-right dc-mobile-caret" aria-hidden="true"></i>
+            </a>
+
+            <div class="dc-mobile-section-group">
+                <div class="dc-mobile-group-label">My Profile</div>
+                <div class="dc-mobile-row-group">
+                    <a href="{{ settings_tab_urls.identity }}" class="dc-mobile-settings-row mobile-nav-btn" data-target="identity" data-nav="identity">
+                        <span class="dc-mobile-row-icon"><i class="fa-regular fa-id-card"></i></span>
+                        <span class="dc-mobile-row-copy"><span class="dc-mobile-row-label">Identity</span><span class="dc-mobile-row-meta">Avatar, bio, and public basics</span></span>
+                        <i class="fa-solid fa-chevron-right dc-mobile-caret" aria-hidden="true"></i>
+                    </a>
+                    <a href="{{ settings_tab_urls.connections }}" class="dc-mobile-settings-row mobile-nav-btn" data-target="connections" data-nav="connections">
+                        <span class="dc-mobile-row-icon"><i class="fa-solid fa-link"></i></span>
+                        <span class="dc-mobile-row-copy"><span class="dc-mobile-row-label">Connections</span><span class="dc-mobile-row-meta">Email, phone, socials, and Discord</span></span>
+                        <i class="fa-solid fa-chevron-right dc-mobile-caret" aria-hidden="true"></i>
+                    </a>
+                    <a href="{{ settings_tab_urls.about }}" class="dc-mobile-settings-row mobile-nav-btn" data-target="about" data-nav="about">
+                        <span class="dc-mobile-row-icon"><i class="fa-regular fa-address-card"></i></span>
+                        <span class="dc-mobile-row-copy"><span class="dc-mobile-row-label">About</span><span class="dc-mobile-row-meta">Competitive story, role, platform, and goals</span></span>
+                        <i class="fa-solid fa-chevron-right dc-mobile-caret" aria-hidden="true"></i>
+                    </a>
+                </div>
+            </div>
+
+            <div class="dc-mobile-section-group">
+                <div class="dc-mobile-group-label">Competitive Profile</div>
+                <div class="dc-mobile-row-group">
+                    <a href="{{ settings_tab_urls.recruitment }}" class="dc-mobile-settings-row mobile-nav-btn" data-target="recruitment" data-nav="recruitment">
+                        <span class="dc-mobile-row-icon"><i class="fa-solid fa-briefcase"></i></span>
+                        <span class="dc-mobile-row-copy"><span class="dc-mobile-row-label">Career &amp; LFT</span><span class="dc-mobile-row-meta">Recruiter visibility and availability</span></span>
+                        {% if career_settings and career_settings.lft_enabled %}<span class="dc-mobile-badge">LFT on</span>{% endif %}
+                        <i class="fa-solid fa-chevron-right dc-mobile-caret" aria-hidden="true"></i>
+                    </a>
+                    <a href="{{ settings_tab_urls.passports }}" class="dc-mobile-settings-row mobile-nav-btn" data-target="passports" data-nav="passports">
+                        <span class="dc-mobile-row-icon is-violet"><i class="fa-solid fa-gamepad"></i></span>
+                        <span class="dc-mobile-row-copy"><span class="dc-mobile-row-label">Game Passports</span><span class="dc-mobile-row-meta">Linked game IDs and verified profiles</span></span>
+                        <span class="dc-mobile-badge">{{ game_profiles|length }} linked</span>
+                        <i class="fa-solid fa-chevron-right dc-mobile-caret" aria-hidden="true"></i>
+                    </a>
+                    <a class="dc-mobile-settings-link" href="{% url 'dashboard:competitive_hub' %}">
+                        <span class="dc-mobile-row-icon is-gold"><i class="fa-solid fa-crown"></i></span>
+                        <span class="dc-mobile-row-copy"><span class="dc-mobile-row-label">Competitive Hub</span><span class="dc-mobile-row-meta">Open your competition center</span></span>
+                        <i class="fa-solid fa-arrow-up-right-from-square dc-mobile-caret" aria-hidden="true"></i>
+                    </a>
+                    <a href="{{ settings_tab_urls.loadout }}" class="dc-mobile-settings-row mobile-nav-btn" data-target="loadout" data-nav="loadout">
+                        <span class="dc-mobile-row-icon"><i class="fa-solid fa-computer-mouse"></i></span>
+                        <span class="dc-mobile-row-copy"><span class="dc-mobile-row-label">Pro Loadout</span><span class="dc-mobile-row-meta">Hardware and in-game settings</span></span>
+                        <i class="fa-solid fa-chevron-right dc-mobile-caret" aria-hidden="true"></i>
+                    </a>
+                    <a href="{{ settings_tab_urls.stream }}" class="dc-mobile-settings-row mobile-nav-btn" data-target="stream" data-nav="stream">
+                        <span class="dc-mobile-row-icon is-red"><i class="fa-brands fa-twitch"></i></span>
+                        <span class="dc-mobile-row-copy"><span class="dc-mobile-row-label">Live Feed</span><span class="dc-mobile-row-meta">Streaming profile link</span></span>
+                        <i class="fa-solid fa-chevron-right dc-mobile-caret" aria-hidden="true"></i>
+                    </a>
+                </div>
+            </div>
+
+            <div class="dc-mobile-section-group">
+                <div class="dc-mobile-group-label">Account &amp; Privacy</div>
+                <div class="dc-mobile-row-group">
+                    <a href="{{ settings_tab_urls.privacy }}" class="dc-mobile-settings-row mobile-nav-btn" data-target="privacy" data-nav="privacy">
+                        <span class="dc-mobile-row-icon is-blue"><i class="fa-solid fa-user-shield"></i></span>
+                        <span class="dc-mobile-row-copy"><span class="dc-mobile-row-label">Privacy &amp; Visibility</span><span class="dc-mobile-row-meta">Profile visibility and contact controls</span></span>
+                        {% if privacy_settings.is_private_account %}<span class="dc-mobile-badge">Private</span>{% endif %}
+                        <i class="fa-solid fa-chevron-right dc-mobile-caret" aria-hidden="true"></i>
+                    </a>
+                    <a href="{{ settings_tab_urls.security }}" class="dc-mobile-settings-row mobile-nav-btn" data-target="security" data-nav="security">
+                        <span class="dc-mobile-row-icon is-green"><i class="fa-solid fa-shield-halved"></i></span>
+                        <span class="dc-mobile-row-copy"><span class="dc-mobile-row-label">Security</span><span class="dc-mobile-row-meta">Password, date of birth, KYC, and sessions</span></span>
+                        {% if user_profile.is_kyc_verified %}<span class="dc-mobile-badge">KYC</span>{% endif %}
+                        <i class="fa-solid fa-chevron-right dc-mobile-caret" aria-hidden="true"></i>
+                    </a>
+                    <a href="{{ settings_tab_urls.notifications }}" class="dc-mobile-settings-row mobile-nav-btn" data-target="notifications" data-nav="notifications">
+                        <span class="dc-mobile-row-icon is-violet"><i class="fa-regular fa-bell"></i></span>
+                        <span class="dc-mobile-row-copy"><span class="dc-mobile-row-label">Notifications</span><span class="dc-mobile-row-meta">Delivery channels, categories, and quiet hours</span></span>
+                        <i class="fa-solid fa-chevron-right dc-mobile-caret" aria-hidden="true"></i>
+                    </a>
+                </div>
+            </div>
+
+            <div class="dc-mobile-section-group">
+                <div class="dc-mobile-group-label">Platform</div>
+                <div class="dc-mobile-row-group">
+                    <a href="{{ settings_tab_urls.platform }}" class="dc-mobile-settings-row mobile-nav-btn" data-target="platform" data-nav="platform">
+                        <span class="dc-mobile-row-icon"><i class="fa-solid fa-sliders"></i></span>
+                        <span class="dc-mobile-row-copy"><span class="dc-mobile-row-label">Platform</span><span class="dc-mobile-row-meta">Timezone, language, format, and theme</span></span>
+                        <i class="fa-solid fa-chevron-right dc-mobile-caret" aria-hidden="true"></i>
+                    </a>
+                    <a href="{{ settings_tab_urls.community }}" class="dc-mobile-settings-row mobile-nav-btn" data-target="community" data-nav="community">
+                        <span class="dc-mobile-row-icon"><i class="fa-solid fa-users"></i></span>
+                        <span class="dc-mobile-row-copy"><span class="dc-mobile-row-label">Community</span><span class="dc-mobile-row-meta">Community display preferences</span></span>
+                        <i class="fa-solid fa-chevron-right dc-mobile-caret" aria-hidden="true"></i>
+                    </a>
+                </div>
+            </div>
+
+            <div class="dc-mobile-section-group">
+                <div class="dc-mobile-group-label">App</div>
+                <div class="dc-mobile-row-group">
+                    <a href="{{ settings_tab_urls.billing }}" class="dc-mobile-settings-row mobile-nav-btn" data-target="billing" data-nav="billing">
+                        <span class="dc-mobile-row-icon is-gold"><i class="fa-solid fa-wallet"></i></span>
+                        <span class="dc-mobile-row-copy"><span class="dc-mobile-row-label">Wallet</span><span class="dc-mobile-row-meta">Balance, withdrawals, and wallet PIN</span></span>
+                        <span class="dc-mobile-badge">{% if wallet %}{{ wallet.cached_balance|floatformat:0 }} DC{% else %}0 DC{% endif %}</span>
+                        <i class="fa-solid fa-chevron-right dc-mobile-caret" aria-hidden="true"></i>
+                    </a>
+                    <a href="{{ settings_tab_urls.inventory }}" class="dc-mobile-settings-row mobile-nav-btn" data-target="inventory" data-nav="inventory">
+                        <span class="dc-mobile-row-icon"><i class="fa-solid fa-box-open"></i></span>
+                        <span class="dc-mobile-row-copy"><span class="dc-mobile-row-label">Inventory</span><span class="dc-mobile-row-meta">Items, gifts, trades, and requests</span></span>
+                        <i class="fa-solid fa-chevron-right dc-mobile-caret" aria-hidden="true"></i>
+                    </a>
+                </div>
+            </div>
+
+            <div class="dc-mobile-section-group">
+                <div class="dc-mobile-group-label">Danger</div>
+                <div class="dc-mobile-row-group">
+                    <a href="{{ settings_tab_urls.danger }}" class="dc-mobile-settings-row mobile-nav-btn is-danger" data-target="danger" data-nav="danger">
+                        <span class="dc-mobile-row-icon is-red"><i class="fa-solid fa-triangle-exclamation"></i></span>
+                        <span class="dc-mobile-row-copy"><span class="dc-mobile-row-label">Danger Zone</span><span class="dc-mobile-row-meta">Account deletion only</span></span>
+                        <i class="fa-solid fa-chevron-right dc-mobile-caret" aria-hidden="true"></i>
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <div id="mobile-settings-detail-bar" class="dc-mobile-settings-detail-bar lg:hidden" aria-hidden="true">
+            <button type="button" id="mobile-settings-back" class="dc-mobile-settings-back">
+                <i class="fa-solid fa-chevron-left" aria-hidden="true"></i>
+                <span>Settings</span>
+            </button>
+            <span id="mobile-settings-title" class="dc-mobile-settings-current-title">{{ settings_initial_tab_label|default:"Identity" }}</span>
         </div>
 
-        <main class="flex-1 overflow-y-auto pt-16 lg:pt-8 p-4 lg:p-8 pb-32 scroll-smooth">
-            <div class="space-y-8">
+        <main id="settings-content-main" class="dc-settings-main flex-1 overflow-y-auto pt-16 lg:pt-8 p-4 lg:p-8 pb-32 scroll-smooth">
+            <div class="dc-settings-content space-y-8">
 
                 <!-- IDENTITY TAB (READY) -->
                 <div id="tab-identity" class="tab-section{% if settings_initial_tab == 'identity' %} active{% endif %}">
@@ -425,7 +1820,7 @@
                         </div>
 
                         <!-- KYC Verification Section -->
-                        <div class="md:col-span-2">
+                        <div class="md:col-span-2 dc-mobile-identity-kyc">
                             <div class="glass-panel p-6 border-l-4 border-l-z-cyan bg-gradient-to-br from-cyan-500/5 to-blue-500/5">
                                 <div class="flex justify-between items-start mb-4">
                                     <div>
@@ -445,7 +1840,7 @@
                             </div>
                         </div>
 
-                        <div class="md:col-span-2 pt-6">
+                        <div class="md:col-span-2 pt-6 dc-mobile-identity-submit">
                             <button type="submit" class="bg-z-cyan text-black px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-white transition flex items-center gap-2">
                                 <i class="fa-solid fa-floppy-disk"></i> Save Identity
                             </button>
@@ -2506,7 +3901,7 @@
                         <p class="text-xs text-z-gold uppercase font-bold mb-2">Available Balance</p>
                         <h1 class="text-5xl font-display font-black text-white mb-6">
                             {% if wallet %}{{ wallet.cached_balance|floatformat:0 }}{% else %}0{% endif %} 
-                            <span class="text-2xl text-z-gold font-display font-black">Đ</span>
+                            <span class="text-2xl text-z-gold font-display font-black">DC</span>
                         </h1>
                         <div class="flex gap-3">
                             <a href="{% url 'economy:withdrawal_request' %}" class="bg-z-gold text-black px-6 py-2 rounded-lg font-bold uppercase text-xs hover:bg-white transition">Withdraw</a>
@@ -2856,6 +4251,13 @@
 
             </div>
         </main>
+
+        <div id="mobile-settings-savebar" class="dc-mobile-settings-savebar lg:hidden" aria-hidden="true">
+            <button id="mobile-settings-save-btn" type="button">
+                <i class="fa-solid fa-check" aria-hidden="true"></i>
+                <span>Save changes</span>
+            </button>
+        </div>
     </div>
 </div>
 
@@ -3144,6 +4546,16 @@
         saveBtn.classList.toggle('opacity-50', !canSave);
         saveBtn.classList.toggle('cursor-not-allowed', !canSave);
         if (label) label.textContent = canSave ? 'Save' : 'No Save';
+
+        const mobileSaveBar = document.getElementById('mobile-settings-savebar');
+        const mobileSaveBtn = document.getElementById('mobile-settings-save-btn');
+        if (mobileSaveBar && mobileSaveBtn) {
+            mobileSaveBtn.disabled = !canSave;
+            mobileSaveBtn.setAttribute('aria-disabled', canSave ? 'false' : 'true');
+            mobileSaveBtn.title = canSave ? 'Save current section' : 'This section uses its own actions or has no single save action';
+            mobileSaveBar.classList.toggle('is-visible', canSave);
+            mobileSaveBar.setAttribute('aria-hidden', canSave ? 'false' : 'true');
+        }
     }
 
     // Save current section from the header button.
@@ -3182,7 +4594,9 @@
         document.querySelectorAll('.nav-btn, .mobile-nav-btn').forEach(el => {
             el.classList.remove('active', 'text-white', 'bg-z-cyan/10', 'border-l-z-cyan');
             if(el.classList.contains('mobile-nav-btn')) {
-                el.style.backgroundColor = ''; el.style.color = '#94a3b8'; el.style.boxShadow = 'none';
+                el.style.backgroundColor = '';
+                el.style.color = '';
+                el.style.boxShadow = '';
             }
         });
 
@@ -3192,7 +4606,10 @@
         // Highlight buttons
         document.querySelectorAll(`[data-target="${targetId}"]`).forEach(btn => {
             if(btn.classList.contains('mobile-nav-btn')) {
-                btn.style.backgroundColor = '#00F0FF'; btn.style.color = 'black'; btn.style.boxShadow = '0 0 15px rgba(0, 240, 255, 0.4)';
+                btn.classList.add('active');
+                btn.style.backgroundColor = '';
+                btn.style.color = '';
+                btn.style.boxShadow = '';
             } else {
                 btn.classList.add('active');
             }
@@ -6796,6 +8213,192 @@
         }
 
     }); // end DOMContentLoaded
+
+    (function initMobileSettingsShell() {
+        const MOBILE_QUERY = '(max-width: 1023.98px)';
+        const mobileMedia = window.matchMedia ? window.matchMedia(MOBILE_QUERY) : null;
+        const mobileTabLabelMap = {
+            identity: 'Identity',
+            connections: 'Connections',
+            about: 'About',
+            recruitment: 'Career & LFT',
+            passports: 'Game Passports',
+            loadout: 'Pro Loadout',
+            stream: 'Live Feed',
+            privacy: 'Privacy & Visibility',
+            security: 'Security',
+            notifications: 'Notifications',
+            platform: 'Platform',
+            community: 'Community',
+            billing: 'Wallet',
+            inventory: 'Inventory',
+            danger: 'Danger Zone'
+        };
+
+        function mobileShell() {
+            return document.getElementById('settings-page-shell');
+        }
+
+        function isMobileSettingsViewport() {
+            return mobileMedia ? mobileMedia.matches : window.innerWidth < 1024;
+        }
+
+        function closeGlobalMobileNotificationsForSettings() {
+            document.documentElement.classList.remove('dc-mobile-notif-open');
+            document.body.classList.remove('dc-mobile-notif-open');
+            document.getElementById('dc-mobile-notif-overlay')?.classList.remove('is-open');
+            document.getElementById('dc-mobile-notif-sheet')?.classList.remove('is-open');
+        }
+
+        function hasExplicitMobileSection() {
+            if (settingsTabFromPath(window.location.pathname)) return true;
+            if (window.location.hash && settingsTabFromUrl()) return true;
+            if (new URLSearchParams(window.location.search).get('tab')) return true;
+            return false;
+        }
+
+        function setMobileSettingsMode(mode) {
+            const shell = mobileShell();
+            if (!shell) return;
+            shell.classList.toggle('mobile-settings-detail-mode', mode === 'detail');
+            shell.classList.toggle('mobile-settings-index-mode', mode !== 'detail');
+        }
+
+        function updateMobileSettingsTitle(tab) {
+            const title = document.getElementById('mobile-settings-title');
+            if (title) title.textContent = mobileTabLabelMap[tab] || mobileTabLabelMap.identity;
+        }
+
+        function updateMobileSaveVisibility(tab) {
+            const bar = document.getElementById('mobile-settings-savebar');
+            const btn = document.getElementById('mobile-settings-save-btn');
+            if (!bar || !btn) return;
+            const tabId = tab ? `tab-${tab}` : document.querySelector('.tab-section.active')?.id;
+            const formId = tabId ? HEADER_SAVE_FORM_MAP[tabId] : null;
+            const canSave = Boolean(formId && document.getElementById(formId));
+            btn.disabled = !canSave;
+            btn.setAttribute('aria-disabled', canSave ? 'false' : 'true');
+            btn.title = canSave ? 'Save current section' : 'This section uses its own actions or has no single save action';
+            bar.classList.toggle('is-visible', canSave);
+            bar.setAttribute('aria-hidden', canSave ? 'false' : 'true');
+        }
+
+        function hideMobileSaveVisibility() {
+            const bar = document.getElementById('mobile-settings-savebar');
+            const btn = document.getElementById('mobile-settings-save-btn');
+            if (!bar || !btn) return;
+            btn.disabled = true;
+            btn.setAttribute('aria-disabled', 'true');
+            bar.classList.remove('is-visible');
+            bar.setAttribute('aria-hidden', 'true');
+        }
+
+        function showMobileSettingsDetail(tab) {
+            if (!isMobileSettingsViewport()) return;
+            const targetTab = tab || settingsTabFromUrl() || SETTINGS_INITIAL_TAB || 'identity';
+            updateMobileSettingsTitle(targetTab);
+            updateMobileSaveVisibility(targetTab);
+            setMobileSettingsMode('detail');
+            const main = document.getElementById('settings-content-main');
+            if (main) main.scrollTop = 0;
+        }
+
+        function showMobileSettingsIndex(options = {}) {
+            if (!isMobileSettingsViewport()) return;
+            setMobileSettingsMode('index');
+            hideMobileSaveVisibility();
+            if (options.pushState && window.history && window.history.pushState) {
+                window.history.pushState({ settingsIndex: true }, '', SETTINGS_BASE_URL);
+            }
+        }
+
+        function attachMobileSwipeBackGesture() {
+            const main = document.getElementById('settings-content-main');
+            if (!main || main.dataset.mobileSwipeBackBound === 'true') return;
+            main.dataset.mobileSwipeBackBound = 'true';
+
+            let startX = 0;
+            let startY = 0;
+            let tracking = false;
+
+            main.addEventListener('touchstart', function(e) {
+                if (!isMobileSettingsViewport()) return;
+                const shell = mobileShell();
+                if (!shell || !shell.classList.contains('mobile-settings-detail-mode')) return;
+                if (!e.touches || e.touches.length !== 1) return;
+
+                const touch = e.touches[0];
+                if (touch.clientX > 36) return;
+                startX = touch.clientX;
+                startY = touch.clientY;
+                tracking = true;
+            }, { passive: true });
+
+            main.addEventListener('touchend', function(e) {
+                if (!tracking) return;
+                tracking = false;
+                if (!e.changedTouches || e.changedTouches.length !== 1) return;
+
+                const touch = e.changedTouches[0];
+                const deltaX = touch.clientX - startX;
+                const deltaY = Math.abs(touch.clientY - startY);
+                if (deltaX > 84 && deltaY < 64 && deltaX > deltaY * 1.6) {
+                    showMobileSettingsIndex({ pushState: true });
+                }
+            }, { passive: true });
+        }
+
+        function syncMobileSettingsMode() {
+            if (!isMobileSettingsViewport()) {
+                const shell = mobileShell();
+                if (shell) {
+                    shell.classList.remove('mobile-settings-detail-mode', 'mobile-settings-index-mode');
+                }
+                return;
+            }
+            if (hasExplicitMobileSection()) {
+                showMobileSettingsDetail(settingsTabFromUrl() || SETTINGS_INITIAL_TAB || 'identity');
+            } else {
+                showMobileSettingsIndex();
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            closeGlobalMobileNotificationsForSettings();
+            syncMobileSettingsMode();
+
+            document.addEventListener('click', function(e) {
+                const row = e.target.closest('.dc-mobile-settings-row[data-target], .dc-mobile-profile-card[data-target]');
+                if (!row || !isMobileSettingsViewport()) return;
+                showMobileSettingsDetail(row.dataset.target);
+            });
+
+            const backBtn = document.getElementById('mobile-settings-back');
+            if (backBtn) {
+                backBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    showMobileSettingsIndex({ pushState: true });
+                });
+            }
+
+            const saveBtn = document.getElementById('mobile-settings-save-btn');
+            if (saveBtn) {
+                saveBtn.addEventListener('click', saveAll);
+            }
+
+            attachMobileSwipeBackGesture();
+        });
+
+        window.addEventListener('popstate', function() {
+            window.setTimeout(syncMobileSettingsMode, 0);
+        });
+
+        if (mobileMedia && typeof mobileMedia.addEventListener === 'function') {
+            mobileMedia.addEventListener('change', syncMobileSettingsMode);
+        } else {
+            window.addEventListener('resize', syncMobileSettingsMode);
+        }
+    })();
 
 </script>
 
