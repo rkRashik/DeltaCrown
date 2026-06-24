@@ -274,20 +274,86 @@
             background: #06080D !important;
         }
 
+        body.settings-page-body {
+            position: fixed;
+            inset: 0;
+            width: 100%;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+
+        body.settings-page-body #main {
+            width: 100%;
+            height: 100svh;
+            min-height: 100svh;
+            margin: 0 !important;
+            padding: 0 !important;
+            overflow: hidden !important;
+            background: #06080D !important;
+        }
+
+        body.settings-page-body .skip-link:not(:focus) {
+            position: fixed !important;
+            width: 1px !important;
+            height: 1px !important;
+            min-height: 0 !important;
+            padding: 0 !important;
+            border: 0 !important;
+            overflow: hidden !important;
+            clip: rect(0 0 0 0) !important;
+            clip-path: inset(50%) !important;
+            white-space: nowrap !important;
+            transform: none !important;
+        }
+
+        body.settings-page-body .skip-link:focus {
+            position: fixed !important;
+            top: calc(env(safe-area-inset-top, 0px) + 8px) !important;
+            left: 12px !important;
+            z-index: 1000 !important;
+        }
+
         body {
             background: #06080D !important;
             background-image: none !important;
         }
 
         #settings-page-shell {
-            height: 100dvh;
-            min-height: 100dvh;
+            position: fixed;
+            inset: 0;
+            width: 100%;
+            height: 100svh;
+            min-height: 100svh;
+            max-height: 100svh;
+            margin: 0 !important;
             overflow: hidden;
             background:
                 radial-gradient(120% 80% at 50% -10%, rgba(10, 132, 255, 0.08), transparent 48%),
                 #06080D;
             color: #F4F6FA;
             font-family: 'Inter', system-ui, sans-serif;
+            --dc-ios-bg: #06080D;
+            --dc-ios-surface: rgba(28, 28, 30, 0.86);
+            --dc-ios-surface-raised: rgba(35, 36, 42, 0.92);
+            --dc-ios-field: #1F242D;
+            --dc-ios-border: rgba(255, 255, 255, 0.06);
+            --dc-ios-separator: rgba(255, 255, 255, 0.05);
+            --dc-ios-text: #F4F6FA;
+            --dc-ios-secondary: #A9B1C2;
+            --dc-ios-muted: #737782;
+            --dc-ios-blue: #0A84FF;
+            --dc-ios-green: #30D158;
+            --dc-ios-red: #FF453A;
+            --dc-ios-gold: #CFA75A;
+        }
+
+        @supports (height: 100dvh) {
+            body.settings-page-body #main,
+            #settings-page-shell {
+                height: 100dvh;
+                min-height: 100dvh;
+                max-height: 100dvh;
+            }
         }
 
         #settings-page-shell > header {
@@ -296,10 +362,16 @@
 
         #settings-page-shell .settings-workspace {
             display: block;
-            height: 100dvh;
+            height: 100svh;
             overflow: hidden;
             background: transparent;
             position: relative;
+        }
+
+        @supports (height: 100dvh) {
+            #settings-page-shell .settings-workspace {
+                height: 100dvh;
+            }
         }
 
         .dc-mobile-settings-index {
@@ -308,7 +380,7 @@
             z-index: 20;
             display: block;
             overflow-y: auto;
-            padding: calc(env(safe-area-inset-top, 0px) + 24px) 16px calc(env(safe-area-inset-bottom, 0px) + 34px);
+            padding: calc(env(safe-area-inset-top, 0px) + 12px) 16px calc(env(safe-area-inset-bottom, 0px) + 34px);
             background: transparent;
             scrollbar-width: none;
             -webkit-overflow-scrolling: touch;
@@ -450,6 +522,7 @@
 
         .dc-mobile-completion-track {
             height: 8px;
+            min-width: 0;
             flex: 1;
             overflow: hidden;
             border-radius: 999px;
@@ -458,10 +531,13 @@
         }
 
         .dc-mobile-completion-fill {
+            display: block;
+            min-width: 0;
             height: 100%;
             border-radius: inherit;
             background: linear-gradient(90deg, #0A84FF, #5AC8FA);
             box-shadow: 0 0 12px rgba(10, 132, 255, 0.38);
+            transition: width 220ms ease;
         }
 
         .dc-mobile-completion-label {
@@ -607,10 +683,10 @@
             display: flex;
             align-items: flex-end;
             gap: 6px;
-            min-height: calc(env(safe-area-inset-top, 0px) + 64px);
-            padding: calc(env(safe-area-inset-top, 0px) + 12px) 14px 10px;
+            min-height: calc(env(safe-area-inset-top, 0px) + 56px);
+            padding: calc(env(safe-area-inset-top, 0px) + 8px) 14px 8px;
             border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-            background: rgba(6, 8, 13, 0.86);
+            background: rgba(6, 8, 13, 0.94);
             backdrop-filter: blur(24px);
             -webkit-backdrop-filter: blur(24px);
         }
@@ -662,7 +738,7 @@
             height: 100%;
             overflow-x: hidden;
             overflow-y: auto;
-            padding: calc(env(safe-area-inset-top, 0px) + 86px) 16px calc(env(safe-area-inset-bottom, 0px) + 112px) !important;
+            padding: calc(env(safe-area-inset-top, 0px) + 72px) 16px calc(env(safe-area-inset-bottom, 0px) + 112px) !important;
             background:
                 radial-gradient(120% 70% at 50% -8%, rgba(10, 132, 255, 0.07), transparent 44%),
                 #06080D;
@@ -1057,6 +1133,165 @@
             box-shadow: 0 10px 24px -12px rgba(10, 132, 255, 0.7) !important;
         }
 
+        #tab-connections > h2,
+        #tab-about > h2,
+        #tab-recruitment > .flex:first-child,
+        #tab-privacy > h2,
+        #tab-security > h2,
+        #tab-notifications > h2,
+        #tab-connections > p,
+        #tab-about > p,
+        #tab-recruitment > p,
+        #tab-security > p,
+        #tab-notifications > p,
+        #tab-connections > .bg-purple-500\/10,
+        #tab-about > .bg-cyan-500\/10 {
+            display: none !important;
+        }
+
+        #connections-form,
+        #about-form,
+        #career-form,
+        #privacy-form,
+        #notifications-form {
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+
+        #tab-connections .glass-panel,
+        #tab-about .glass-panel,
+        #career-form,
+        #tab-security > .glass-panel,
+        #notifications-form > .glass-panel {
+            margin: 0 0 22px !important;
+            padding: 16px !important;
+            border: 1px solid rgba(255, 255, 255, 0.06) !important;
+            border-radius: 24px !important;
+            background: rgba(28, 28, 30, 0.84) !important;
+            box-shadow: 0 18px 48px rgba(0, 0, 0, 0.18) !important;
+            backdrop-filter: none !important;
+            -webkit-backdrop-filter: none !important;
+        }
+
+        #tab-connections .glass-panel > .mb-6,
+        #tab-about .glass-panel > h3,
+        #tab-recruitment label.z-label.text-base,
+        #tab-security .glass-panel > h3,
+        #notifications-form > .glass-panel > h3 {
+            display: flex !important;
+            align-items: center !important;
+            gap: 7px !important;
+            margin: 0 0 13px !important;
+            color: #8E8E93 !important;
+            font-size: 12px !important;
+            font-weight: 800 !important;
+            letter-spacing: 0.06em !important;
+            line-height: 1.2 !important;
+            text-transform: uppercase !important;
+        }
+
+        #tab-connections .glass-panel > .mb-6 i,
+        #tab-about .glass-panel > h3 i,
+        #tab-recruitment label.z-label.text-base i,
+        #tab-security .glass-panel > h3 i,
+        #notifications-form > .glass-panel > h3 i {
+            color: #8E8E93 !important;
+            font-size: 13px !important;
+        }
+
+        #tab-connections .glass-panel > .mb-6 p,
+        #tab-about .glass-panel > p,
+        #tab-about .glass-panel p.text-xs,
+        #tab-recruitment p.text-xs,
+        #tab-security .glass-panel > h3 + p,
+        #notifications-form > .glass-panel > p {
+            color: #737782 !important;
+            font-size: 12px !important;
+            line-height: 1.35 !important;
+        }
+
+        #tab-connections .z-label,
+        #tab-about .z-label,
+        #tab-recruitment .z-label,
+        #tab-security .z-label,
+        #notifications-form .z-label {
+            margin: 0 0 6px !important;
+            color: #737782 !important;
+            font-size: 12.5px !important;
+            font-weight: 800 !important;
+            letter-spacing: 0 !important;
+            line-height: 1.2 !important;
+            text-transform: none !important;
+        }
+
+        #tab-connections .z-input,
+        #tab-about .z-input,
+        #tab-recruitment .z-input,
+        #tab-security .z-input,
+        #notifications-form .z-input {
+            width: 100% !important;
+            min-height: 46px !important;
+            padding: 11px 13px !important;
+            border: 1px solid rgba(255, 255, 255, 0.07) !important;
+            border-radius: 14px !important;
+            background: rgba(10, 12, 18, 0.78) !important;
+            color: #F4F6FA !important;
+            box-shadow: none !important;
+            font-size: 16px !important;
+            font-weight: 700 !important;
+            letter-spacing: 0 !important;
+        }
+
+        #tab-connections textarea.z-input,
+        #tab-about textarea.z-input,
+        #tab-recruitment textarea.z-input {
+            min-height: 86px !important;
+            line-height: 1.35 !important;
+        }
+
+        #tab-connections .grid,
+        #tab-about .grid,
+        #tab-recruitment .grid,
+        #notifications-form .grid {
+            gap: 13px !important;
+        }
+
+        #tab-connections .bg-gradient-to-br,
+        #tab-connections .bg-black\/40,
+        #tab-connections .bg-indigo-500\/5,
+        #tab-connections .bg-blue-500\/10,
+        #tab-about .bg-cyan-500\/10,
+        #tab-about .bg-blue-500\/10,
+        #tab-recruitment .bg-white\/5,
+        #notifications-form .bg-white\/5 {
+            border-color: rgba(255, 255, 255, 0.06) !important;
+            background: rgba(10, 12, 18, 0.5) !important;
+            box-shadow: none !important;
+        }
+
+        #tab-connections input.peer + div,
+        #tab-recruitment input.peer + div,
+        #tab-about input[type="checkbox"] + span,
+        #tab-about label.flex.items-center,
+        #notifications-form .flex.items-center.justify-between {
+            border-color: rgba(255, 255, 255, 0.06) !important;
+            background: rgba(255, 255, 255, 0.035) !important;
+            box-shadow: none !important;
+        }
+
+        #tab-connections input.peer:checked + div,
+        #tab-recruitment input.peer:checked + div {
+            border-color: rgba(10, 132, 255, 0.45) !important;
+            background: rgba(10, 132, 255, 0.13) !important;
+            color: #F4F6FA !important;
+        }
+
+        #tab-connections form > .flex.justify-end,
+        #tab-about form > .flex.justify-end,
+        #career-form > button[type="submit"] {
+            display: none !important;
+        }
+
         #tab-privacy form > .glass-panel,
         #notifications-form > .glass-panel,
         #tab-security > .glass-panel {
@@ -1167,6 +1402,274 @@
 
         #notifications-form > button[type="submit"] {
             display: none !important;
+        }
+
+        #career-form {
+            margin: 0 !important;
+            padding: 0 !important;
+            border: 0 !important;
+            border-radius: 0 !important;
+            background: transparent !important;
+            box-shadow: none !important;
+        }
+
+        #career-form > div,
+        #career-form > .grid {
+            margin: 0 0 22px !important;
+            padding: 16px !important;
+            border: 1px solid rgba(255, 255, 255, 0.06) !important;
+            border-radius: 24px !important;
+            background: rgba(28, 28, 30, 0.84) !important;
+            box-shadow: 0 18px 48px rgba(0, 0, 0, 0.18) !important;
+        }
+
+        #career-form > div.flex.items-center.justify-between {
+            min-height: 70px !important;
+            padding: 15px 18px !important;
+        }
+
+        #career-form > div > .grid,
+        #career-form > .grid {
+            display: grid !important;
+        }
+
+        #career-form input.peer + div {
+            min-height: 54px !important;
+            border-radius: 16px !important;
+        }
+
+        #career-form input.peer + div i {
+            margin-bottom: 6px !important;
+            font-size: 18px !important;
+        }
+
+        #career-form input.peer + div .font-bold,
+        #career-form input.peer + div span {
+            color: #F4F6FA !important;
+            font-size: 14px !important;
+            font-weight: 750 !important;
+            line-height: 1.15 !important;
+        }
+
+        #notifications-form > .glass-panel > h3,
+        #tab-security > .glass-panel > h3,
+        #tab-privacy form > .glass-panel > h3 {
+            margin: 0 2px 10px !important;
+            color: #636366 !important;
+            font-size: 12px !important;
+            font-weight: 800 !important;
+            letter-spacing: 0.06em !important;
+            text-transform: uppercase !important;
+        }
+
+        #tab-security #change-password-form,
+        #tab-security #dob-form {
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.055) !important;
+            border-radius: 24px !important;
+            background: rgba(28, 28, 30, 0.82) !important;
+            box-shadow: 0 20px 52px rgba(0, 0, 0, 0.18);
+        }
+
+        #tab-security #change-password-form > div,
+        #tab-security #dob-form > div {
+            background: transparent !important;
+        }
+
+        #tab-inventory {
+            max-width: 100% !important;
+            overflow-x: hidden !important;
+        }
+
+        #tab-inventory,
+        #tab-inventory * {
+            min-width: 0;
+        }
+
+        #tab-inventory > h2 {
+            display: none !important;
+        }
+
+        #tab-inventory > .glass-panel {
+            width: 100% !important;
+            max-width: 100% !important;
+            overflow: hidden !important;
+            margin: 0 0 22px !important;
+            padding: 18px !important;
+            border: 1px solid rgba(255, 255, 255, 0.065) !important;
+            border-radius: 28px !important;
+            background:
+                linear-gradient(180deg, rgba(32, 33, 37, 0.94), rgba(24, 25, 29, 0.94)) !important;
+            box-shadow: 0 18px 44px rgba(0, 0, 0, 0.22) !important;
+            backdrop-filter: none !important;
+            -webkit-backdrop-filter: none !important;
+        }
+
+        #tab-inventory > .glass-panel h3 {
+            margin: 0 0 16px !important;
+            color: #737782 !important;
+            font-size: 13px !important;
+            font-weight: 850 !important;
+            letter-spacing: 0.08em !important;
+            line-height: 1.15 !important;
+            text-transform: uppercase !important;
+        }
+
+        #tab-inventory > .glass-panel h3 i {
+            color: #737782 !important;
+            font-size: 14px !important;
+        }
+
+        #tab-inventory #toggle-incoming-requests,
+        #tab-inventory #toggle-outgoing-requests {
+            margin: 0 0 14px !important;
+            padding: 0 !important;
+        }
+
+        #tab-inventory #toggle-incoming-requests h3,
+        #tab-inventory #toggle-outgoing-requests h3 {
+            margin: 0 !important;
+        }
+
+        #tab-inventory #inventory-search,
+        #tab-inventory #inventory-rarity-filter,
+        #tab-inventory #inventory-sort {
+            width: 100% !important;
+            min-width: 0 !important;
+            min-height: 56px !important;
+            padding: 0 17px !important;
+            border: 1px solid rgba(255, 255, 255, 0.065) !important;
+            border-radius: 18px !important;
+            background: #20242D !important;
+            color: #F4F6FA !important;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035) !important;
+            font-size: 17px !important;
+            font-weight: 650 !important;
+            letter-spacing: 0 !important;
+        }
+
+        #tab-inventory #inventory-search::placeholder {
+            color: #8B909C !important;
+        }
+
+        #tab-inventory > .glass-panel:first-of-type > .flex.flex-wrap {
+            display: grid !important;
+            grid-template-columns: minmax(0, 1fr) !important;
+            gap: 12px !important;
+            margin: 0 0 18px !important;
+        }
+
+        #incoming-requests-content > .flex.gap-2,
+        #outgoing-requests-content > .flex.gap-2 {
+            display: grid !important;
+            width: 100% !important;
+            grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+            gap: 8px !important;
+            overflow: visible !important;
+            margin: 0 0 14px !important;
+        }
+
+        #incoming-requests-content > .flex.gap-2 > button,
+        #outgoing-requests-content > .flex.gap-2 > button {
+            width: 100% !important;
+            min-width: 0 !important;
+            min-height: 44px !important;
+            padding: 8px 9px !important;
+            border-radius: 15px !important;
+            border-color: rgba(255, 255, 255, 0.075) !important;
+            background: rgba(255, 255, 255, 0.045) !important;
+            color: #858A95 !important;
+            box-shadow: none !important;
+            font-size: 12px !important;
+            font-weight: 800 !important;
+            line-height: 1.15 !important;
+            text-align: center !important;
+            white-space: normal !important;
+            overflow-wrap: anywhere !important;
+            letter-spacing: 0 !important;
+            text-transform: none !important;
+        }
+
+        #incoming-requests-content > .flex.gap-2 > button.bg-white\/10,
+        #outgoing-requests-content > .flex.gap-2 > button.bg-white\/10 {
+            border-color: rgba(255, 255, 255, 0.2) !important;
+            background: rgba(255, 255, 255, 0.11) !important;
+            color: #F4F6FA !important;
+        }
+
+        #inventory-list > .flex,
+        #incoming-requests-list > .bg-black\/30,
+        #outgoing-requests-list > .bg-black\/30 {
+            width: 100% !important;
+            max-width: 100% !important;
+            overflow: hidden !important;
+            border: 1px solid rgba(255, 255, 255, 0.06) !important;
+            border-radius: 20px !important;
+            background: rgba(12, 14, 20, 0.54) !important;
+            box-shadow: none !important;
+        }
+
+        #inventory-list > .flex {
+            align-items: center !important;
+            gap: 12px !important;
+            padding: 14px !important;
+        }
+
+        #inventory-list .font-bold,
+        #incoming-requests-list .font-bold,
+        #outgoing-requests-list .font-bold {
+            color: #F4F6FA !important;
+            font-size: 15px !important;
+            font-weight: 800 !important;
+            line-height: 1.2 !important;
+            letter-spacing: 0 !important;
+        }
+
+        #inventory-list p,
+        #incoming-requests-list > p,
+        #outgoing-requests-list > p {
+            margin: 2px 0 0 !important;
+            color: #747985 !important;
+            font-size: 15px !important;
+            font-weight: 650 !important;
+            line-height: 1.35 !important;
+        }
+
+        #incoming-requests-list > .bg-black\/30 > .flex,
+        #outgoing-requests-list > .bg-black\/30 > .flex {
+            gap: 12px !important;
+        }
+
+        #incoming-requests-list img.w-12,
+        #outgoing-requests-list img.w-12 {
+            width: 44px !important;
+            height: 44px !important;
+            flex: 0 0 44px !important;
+            border-radius: 14px !important;
+        }
+
+        #incoming-requests-list .grid.grid-cols-2,
+        #outgoing-requests-list .grid.grid-cols-2 {
+            grid-template-columns: minmax(0, 1fr) !important;
+            gap: 8px !important;
+        }
+
+        #incoming-requests-list button[data-req-action],
+        #outgoing-requests-list button[data-req-action] {
+            min-height: 38px !important;
+            padding: 8px 13px !important;
+            border-radius: 999px !important;
+            font-size: 12px !important;
+            font-weight: 800 !important;
+            letter-spacing: 0 !important;
+            text-transform: none !important;
+        }
+
+        @media (max-width: 380px) {
+            #incoming-requests-content > .flex.gap-2,
+            #outgoing-requests-content > .flex.gap-2 {
+                grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+            }
         }
 
         #tab-billing > .glass-panel:first-of-type {
@@ -1487,6 +1990,294 @@
             padding: 8px 12px !important;
             font-size: 11px !important;
             line-height: 1 !important;
+        }
+
+        #settings-page-shell.mobile-settings-detail-mode :is(
+            #tab-platform,
+            #tab-community,
+            #tab-billing,
+            #tab-danger,
+            #tab-inventory
+        ) {
+            width: 100% !important;
+            max-width: 100% !important;
+            overflow-x: hidden !important;
+        }
+
+        #settings-page-shell.mobile-settings-detail-mode :is(
+            #tab-community > div:first-child,
+            #tab-danger > h2:first-child
+        ) {
+            display: none !important;
+        }
+
+        #settings-page-shell.mobile-settings-detail-mode :is(
+            #platform-form > .glass-panel,
+            #community-prefs-card,
+            #deletion-status-panel,
+            #deletion-form-panel
+        ) {
+            width: 100% !important;
+            max-width: 100% !important;
+            margin: 0 0 18px !important;
+            border: 1px solid var(--dc-ios-border) !important;
+            border-radius: 26px !important;
+            background: var(--dc-ios-surface) !important;
+            box-shadow: 0 20px 52px rgba(0, 0, 0, 0.2) !important;
+            backdrop-filter: none !important;
+            -webkit-backdrop-filter: none !important;
+        }
+
+        #platform-form > .glass-panel {
+            padding: 16px !important;
+        }
+
+        #platform-form > .glass-panel label,
+        #community-prefs-card .text-xs.font-bold,
+        #deletion-form-panel .z-label,
+        #deletion-status-panel h3 {
+            margin: 0 0 8px !important;
+            color: var(--dc-ios-muted) !important;
+            font-size: 12px !important;
+            font-weight: 800 !important;
+            letter-spacing: 0 !important;
+            line-height: 1.2 !important;
+            text-transform: none !important;
+        }
+
+        #platform-form > .glass-panel p,
+        #tab-community > p,
+        #deletion-form-panel p,
+        #deletion-status-panel p {
+            color: var(--dc-ios-muted) !important;
+            font-size: 13px !important;
+            line-height: 1.4 !important;
+        }
+
+        #platform-form > .mt-6 {
+            display: none !important;
+        }
+
+        #platform-form select.z-input,
+        #deletion-form .z-input,
+        #tab-billing #pin-setup-form .z-input {
+            min-height: 52px !important;
+            padding: 0 16px !important;
+            border: 1px solid rgba(255, 255, 255, 0.07) !important;
+            border-radius: 16px !important;
+            background: var(--dc-ios-field) !important;
+            color: var(--dc-ios-text) !important;
+            font-size: 16px !important;
+            font-weight: 700 !important;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03) !important;
+        }
+
+        #deletion-form textarea.z-input {
+            min-height: 92px !important;
+            padding-top: 13px !important;
+        }
+
+        #community-prefs-card {
+            padding: 0 !important;
+            overflow: hidden !important;
+        }
+
+        #community-prefs-card > div {
+            margin: 0 !important;
+            padding: 16px !important;
+            border-top: 1px solid var(--dc-ios-separator) !important;
+        }
+
+        #community-prefs-card > div:first-child {
+            border-top: 0 !important;
+        }
+
+        #community-prefs-card :is(
+            .community-bg-btn,
+            .community-col-btn,
+            .community-density-btn
+        ) {
+            min-height: 38px !important;
+            padding: 9px 13px !important;
+            border-color: rgba(255, 255, 255, 0.08) !important;
+            border-radius: 999px !important;
+            background: rgba(255, 255, 255, 0.045) !important;
+            color: var(--dc-ios-secondary) !important;
+            font-size: 12px !important;
+            font-weight: 800 !important;
+            letter-spacing: 0 !important;
+            text-transform: none !important;
+        }
+
+        #community-prefs-card :is(
+            .community-bg-btn.border-cyan-500,
+            .community-col-btn.border-cyan-500,
+            .community-density-btn.border-cyan-500
+        ) {
+            border-color: rgba(10, 132, 255, 0.5) !important;
+            background: rgba(10, 132, 255, 0.16) !important;
+            color: var(--dc-ios-text) !important;
+        }
+
+        #community-accent-swatches {
+            gap: 10px !important;
+        }
+
+        #community-accent-swatches .community-accent-btn {
+            width: 34px !important;
+            height: 34px !important;
+            border-color: rgba(255, 255, 255, 0.14) !important;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18) !important;
+        }
+
+        #community-prefs-card label.flex.items-center.justify-between {
+            min-height: 56px !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            gap: 14px !important;
+        }
+
+        #community-prefs-card label span.text-sm {
+            color: var(--dc-ios-text) !important;
+            font-size: 15px !important;
+            font-weight: 750 !important;
+        }
+
+        #tab-billing > .glass-panel:first-of-type {
+            border-radius: 28px !important;
+            background:
+                linear-gradient(145deg, rgba(31, 28, 22, 0.98), rgba(10, 15, 24, 0.96)) !important;
+        }
+
+        #tab-billing > .glass-panel:first-of-type .flex.gap-3 {
+            display: grid !important;
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+            gap: 10px !important;
+        }
+
+        #tab-billing > .glass-panel:nth-of-type(2) > .flex.items-center {
+            padding: 16px !important;
+            border: 1px solid var(--dc-ios-border) !important;
+            border-radius: 24px !important;
+            background: var(--dc-ios-surface) !important;
+        }
+
+        #tab-billing #pin-setup-form,
+        #tab-billing > .glass-panel:nth-of-type(2) > .mb-6 {
+            border: 1px solid var(--dc-ios-border) !important;
+            border-radius: 24px !important;
+            background: var(--dc-ios-surface) !important;
+        }
+
+        #tab-billing #pin-setup-form > div,
+        #tab-billing > .glass-panel:nth-of-type(2) > .mb-6 {
+            padding: 15px 16px !important;
+            background: transparent !important;
+        }
+
+        #tab-billing #pin-error-message,
+        #tab-billing #pin-success-message,
+        #tab-billing #pin-info-message {
+            border-radius: 18px !important;
+        }
+
+        #deletion-status-panel,
+        #deletion-form-panel {
+            border-color: rgba(255, 69, 58, 0.18) !important;
+        }
+
+        #deletion-form-panel .bg-red-500\/10,
+        #deletion-status-panel .bg-orange-500\/10 {
+            border-radius: 18px !important;
+            background: rgba(255, 69, 58, 0.08) !important;
+            border-color: rgba(255, 69, 58, 0.18) !important;
+        }
+
+        #deletion-form .mb-4 {
+            margin-bottom: 15px !important;
+        }
+
+        #deletion-form button[type="submit"],
+        #cancel-deletion-btn {
+            min-height: 52px !important;
+            border-radius: 17px !important;
+            background: var(--dc-ios-red) !important;
+            color: #fff !important;
+            font-size: 15px !important;
+            font-weight: 850 !important;
+            letter-spacing: 0 !important;
+            text-transform: none !important;
+            box-shadow: none !important;
+        }
+
+        #cancel-deletion-btn {
+            background: var(--dc-ios-green) !important;
+            color: #061006 !important;
+        }
+
+        #inventory-list:has(> .flex),
+        #incoming-requests-list:has(> .bg-black\/30),
+        #outgoing-requests-list:has(> .bg-black\/30) {
+            overflow: hidden !important;
+            border: 1px solid var(--dc-ios-border) !important;
+            border-radius: 22px !important;
+            background: var(--dc-ios-surface) !important;
+        }
+
+        #inventory-list > p,
+        #incoming-requests-list > p,
+        #outgoing-requests-list > p {
+            width: 100% !important;
+            margin: 0 !important;
+            padding: 16px !important;
+            border: 1px solid var(--dc-ios-border) !important;
+            border-radius: 18px !important;
+            background: rgba(255, 255, 255, 0.035) !important;
+            color: var(--dc-ios-muted) !important;
+            font-size: 14px !important;
+            font-weight: 650 !important;
+        }
+
+        #inventory-list:has(> .flex) > .flex,
+        #incoming-requests-list:has(> .bg-black\/30) > .bg-black\/30,
+        #outgoing-requests-list:has(> .bg-black\/30) > .bg-black\/30 {
+            margin: 0 !important;
+            border: 0 !important;
+            border-bottom: 1px solid var(--dc-ios-separator) !important;
+            border-radius: 0 !important;
+            background: transparent !important;
+            box-shadow: none !important;
+        }
+
+        #inventory-list:has(> .flex) > .flex:last-child,
+        #incoming-requests-list:has(> .bg-black\/30) > .bg-black\/30:last-child,
+        #outgoing-requests-list:has(> .bg-black\/30) > .bg-black\/30:last-child {
+            border-bottom: 0 !important;
+        }
+
+        #incoming-requests-list > .bg-black\/30 > .flex,
+        #outgoing-requests-list > .bg-black\/30 > .flex {
+            padding: 14px 16px !important;
+            align-items: flex-start !important;
+        }
+
+        #incoming-requests-list .flex.items-center.gap-2.mb-2,
+        #outgoing-requests-list .flex.items-center.gap-2.mb-2 {
+            flex-wrap: wrap !important;
+            gap: 6px !important;
+        }
+
+        #incoming-requests-list .grid.grid-cols-2,
+        #outgoing-requests-list .grid.grid-cols-2 {
+            padding: 10px !important;
+            border-radius: 16px !important;
+            background: rgba(255, 255, 255, 0.035) !important;
+        }
+
+        #incoming-requests-list button[data-req-action],
+        #outgoing-requests-list button[data-req-action] {
+            flex: 1 1 120px !important;
+            justify-content: center !important;
         }
     }
 </style>
@@ -2087,7 +2878,7 @@
                                             </div>
                                         </label>
                                     </div>
-                                    <p class="text-xs text-gray-500 mt-3">💡 Tip: This method will be prominently displayed on your profile with a "Contact Me" button</p>
+                                    <p class="text-xs text-gray-500 mt-3">Tip: This method will be prominently displayed on your profile with a "Contact Me" button</p>
                                 </div>
                                 
                                 <div>
@@ -2133,7 +2924,7 @@
                                     </label>
                                     <select name="country" id="country-select" class="z-input">
                                         <option value="">Select country</option>
-                                        <optgroup label="🌏 South Asia">
+                                        <optgroup label="South Asia">
                                             <option value="BD" {% if user_profile.country.code == 'BD' %}selected{% endif %}>Bangladesh</option>
                                             <option value="IN" {% if user_profile.country.code == 'IN' %}selected{% endif %}>India</option>
                                             <option value="PK" {% if user_profile.country.code == 'PK' %}selected{% endif %}>Pakistan</option>
@@ -2142,7 +2933,7 @@
                                             <option value="MV" {% if user_profile.country.code == 'MV' %}selected{% endif %}>Maldives</option>
                                             <option value="BT" {% if user_profile.country.code == 'BT' %}selected{% endif %}>Bhutan</option>
                                         </optgroup>
-                                        <optgroup label="🌍 Popular Abroad">
+                                        <optgroup label="Popular Abroad">
                                             <option value="US" {% if user_profile.country.code == 'US' %}selected{% endif %}>United States</option>
                                             <option value="CA" {% if user_profile.country.code == 'CA' %}selected{% endif %}>Canada</option>
                                             <option value="GB" {% if user_profile.country.code == 'GB' %}selected{% endif %}>United Kingdom</option>
@@ -2152,7 +2943,7 @@
                                             <option value="SA" {% if user_profile.country.code == 'SA' %}selected{% endif %}>Saudi Arabia</option>
                                             <option value="MY" {% if user_profile.country.code == 'MY' %}selected{% endif %}>Malaysia</option>
                                         </optgroup>
-                                        <optgroup label="🌎 All Countries">
+                                        <optgroup label="All Countries">
                                             <option value="AF" {% if user_profile.country.code == 'AF' %}selected{% endif %}>Afghanistan</option>
                                             <option value="AL" {% if user_profile.country.code == 'AL' %}selected{% endif %}>Albania</option>
                                             <option value="DZ" {% if user_profile.country.code == 'DZ' %}selected{% endif %}>Algeria</option>
@@ -2349,7 +3140,7 @@
                                     </label>
 
                                     {% if discord_link and discord_link.is_verified %}
-                                    <!-- ── LINKED STATE: readonly fields + Unlink button ── -->
+                                    <!-- Linked state: readonly fields + Unlink button -->
                                     <div class="flex items-center gap-3 mb-2">
                                         <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-green-500/15 border border-green-500/30 text-green-400 text-xs font-semibold">
                                             <i class="fa-solid fa-circle-check text-[10px]"></i> Linked
@@ -2357,7 +3148,7 @@
                                         <span class="text-sm text-gray-300 font-medium">{{ discord_link.handle }}</span>
                                     </div>
                                     <input type="text" name="discord_username" class="z-input opacity-60 cursor-not-allowed" value="{{ discord_link.handle|default:'' }}" readonly>
-                                    <p class="text-xs text-gray-500 mt-1">Connected via Discord OAuth — this field is read-only</p>
+                                    <p class="text-xs text-gray-500 mt-1">Connected via Discord OAuth - this field is read-only</p>
                                 </div>
                                 <div class="md:col-span-2">
                                     <label class="z-label">
@@ -2373,7 +3164,7 @@
                                 </div>
 
                                     {% else %}
-                                    <!-- ── NOT LINKED: Connect button ── -->
+                                    <!-- Not linked: Connect button -->
                                     <div class="flex flex-col items-center gap-4 py-6 px-4 rounded-xl bg-indigo-500/5 border border-indigo-500/20">
                                         <div class="text-center">
                                             <p class="text-gray-300 text-sm font-medium mb-1">Connect your Discord account for the full experience</p>
@@ -2434,7 +3225,7 @@
                                 <textarea name="profile_story" id="profile-story-input" class="z-input h-24 resize-none" maxlength="320" placeholder="Share your competitive journey, achievements, or what makes you unique as a player...">{{ user_profile.profile_story|default:'' }}</textarea>
                                 <p class="text-xs text-gray-500 mt-2">
                                     <i class="fa-solid fa-info-circle text-cyan-400"></i> 
-                                    <strong>Keep it short</strong> — this shows on your public profile.
+                                    <strong>Keep it short</strong> - this shows on your public profile.
                                 </p>
                             </div>
                         </div>
@@ -2456,7 +3247,7 @@
                                 <textarea name="competitive_goal" id="competitive-goal-input" class="z-input h-16 resize-none" maxlength="160" placeholder="e.g., \"Reach Diamond rank this season\" or \"Win a regional tournament\"">{{ user_profile.competitive_goal|default:'' }}</textarea>
                                 <p class="text-xs text-gray-500 mt-2">
                                     <i class="fa-solid fa-target text-orange-400"></i> 
-                                    <strong>Be specific</strong> — what's your next milestone?
+                                    <strong>Be specific</strong> - what's your next milestone?
                                 </p>
                             </div>
                         </div>
@@ -2852,19 +3643,19 @@
                       </p>
                       <div class="grid grid-cols-2 gap-3 mb-6">
                         <div class="px-3 py-2.5 rounded-lg bg-white/[0.04] border border-white/[0.08] text-[12px]">
-                          <div class="text-[9px] font-bold uppercase tracking-widest text-indigo-300/80 mb-0.5">📜 Missions</div>
+                          <div class="text-[9px] font-bold uppercase tracking-widest text-indigo-300/80 mb-0.5">Missions</div>
                           <div class="text-gray-300">Self-challenge missions</div>
                         </div>
                         <div class="px-3 py-2.5 rounded-lg bg-white/[0.04] border border-white/[0.08] text-[12px]">
-                          <div class="text-[9px] font-bold uppercase tracking-widest text-cyan-300/80 mb-0.5">⚔️ Showdown</div>
+                          <div class="text-[9px] font-bold uppercase tracking-widest text-cyan-300/80 mb-0.5">Showdown</div>
                           <div class="text-gray-300">Head-to-head escrow matches</div>
                         </div>
                         <div class="px-3 py-2.5 rounded-lg bg-white/[0.04] border border-white/[0.08] text-[12px]">
-                          <div class="text-[9px] font-bold uppercase tracking-widest text-rose-300/80 mb-0.5">🎯 Bounty</div>
+                          <div class="text-[9px] font-bold uppercase tracking-widest text-rose-300/80 mb-0.5">Bounty</div>
                           <div class="text-gray-300">Issuer bounty board</div>
                         </div>
                         <div class="px-3 py-2.5 rounded-lg bg-white/[0.04] border border-white/[0.08] text-[12px]">
-                          <div class="text-[9px] font-bold uppercase tracking-widest text-amber-300/80 mb-0.5">👑 Dropzone</div>
+                          <div class="text-[9px] font-bold uppercase tracking-widest text-amber-300/80 mb-0.5">Dropzone</div>
                           <div class="text-gray-300">Dropzone custom lobbies</div>
                         </div>
                       </div>
@@ -3162,7 +3953,7 @@
                                 <i class="fa-solid fa-bangladeshi-taka-sign"></i> Currency
                             </label>
                             <select id="currency" name="currency" class="z-input" disabled>
-                                <option value="BDT" selected>BDT (৳) - Bangladeshi Taka</option>
+                                <option value="BDT" selected>BDT - Bangladeshi Taka</option>
                                 <option value="USD">USD ($) - Coming Soon</option>
                             </select>
                             <p class="text-xs text-gray-500">Multi-currency support coming soon. Currently BDT only.</p>
@@ -3210,7 +4001,7 @@
                                 <option value="LEGENDARY">Legendary</option>
                             </select>
                             <select id="inventory-sort" class="z-input">
-                                <option value="name-asc">Name (A–Z)</option>
+                                <option value="name-asc">Name (A-Z)</option>
                                 <option value="quantity-desc">Quantity (High to Low)</option>
                                 <option value="acquired-desc">Recently Acquired</option>
                             </select>
@@ -3342,7 +4133,7 @@
                 <!-- LOADOUT TAB (MODERNIZED) -->
                 <div id="tab-loadout" class="tab-section space-y-6{% if settings_initial_tab == 'loadout' %} active{% endif %}">
 
-                    {# ── Header ── #}
+                    {# Header #}
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div>
                             <h2 class="text-3xl font-display font-bold text-white">Pro Loadout</h2>
@@ -3356,7 +4147,7 @@
                         </div>
                     </div>
 
-                    {# ── 1. Platform + Visibility ── #}
+                    {# 1. Platform + Visibility #}
                     <div class="glass-panel p-5 rounded-2xl" id="pl-profile-section">
                         <h3 class="font-bold text-white text-sm mb-4 flex items-center gap-2">
                             <i class="fa-solid fa-layer-group text-z-cyan text-xs"></i> Platform &amp; Visibility
@@ -3377,8 +4168,8 @@
                                 <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 block">Loadout Visibility</label>
                                 <select id="pl-visibility" class="z-input w-full text-sm">
                                     {% with vis=pro_loadout.visibility|default:"PUBLIC" %}
-                                    <option value="PUBLIC"  {% if vis == "PUBLIC"  %}selected{% endif %}>Public — shown on profile</option>
-                                    <option value="PRIVATE" {% if vis == "PRIVATE" %}selected{% endif %}>Private — only you</option>
+                                    <option value="PUBLIC"  {% if vis == "PUBLIC"  %}selected{% endif %}>Public - shown on profile</option>
+                                    <option value="PRIVATE" {% if vis == "PRIVATE" %}selected{% endif %}>Private - only you</option>
                                     {% endwith %}
                                 </select>
                             </div>
@@ -3388,7 +4179,7 @@
                         </button>
                     </div>
 
-                    {# ── 2. Devices ── #}
+                    {# 2. Devices #}
                     <div class="glass-panel rounded-2xl overflow-hidden">
                         <div class="px-5 py-4 border-b border-white/[.06] flex items-center justify-between">
                             <h3 class="font-bold text-white text-sm flex items-center gap-2">
@@ -3428,7 +4219,7 @@
                         </div>
                     </div>
 
-                    {# ── 3. Game-specific settings ── #}
+                    {# 3. Game-specific settings #}
                     <div class="glass-panel rounded-2xl overflow-hidden">
                         <div class="px-5 py-4 border-b border-white/[.06] flex items-center justify-between">
                             <h3 class="font-bold text-white text-sm flex items-center gap-2">
@@ -3473,7 +4264,7 @@
                                     <div><label class="pl-lbl">DPI</label><input id="pl-dpi" class="z-input w-full text-sm" type="number" min="100" max="25600" placeholder="800"></div>
                                     <div><label class="pl-lbl">Sensitivity</label><input id="pl-sens" class="z-input w-full text-sm" type="text" placeholder="0.45"></div>
                                     <div><label class="pl-lbl">Scoped Sens</label><input id="pl-scoped" class="z-input w-full text-sm" type="text" placeholder="1.0"></div>
-                                    <div><label class="pl-lbl">eDPI <span class="text-gray-600">(auto)</span></label><div id="pl-edpi-display" class="z-input text-sm text-z-cyan cursor-default">—</div></div>
+                                    <div><label class="pl-lbl">eDPI <span class="text-gray-600">(auto)</span></label><div id="pl-edpi-display" class="z-input text-sm text-z-cyan cursor-default">-</div></div>
                                     <div><label class="pl-lbl">Resolution</label><input id="pl-res" class="z-input w-full text-sm" type="text" placeholder="1920x1080"></div>
                                     <div><label class="pl-lbl">Refresh Rate (Hz)</label><input id="pl-hz" class="z-input w-full text-sm" type="number" placeholder="144"></div>
                                     <div><label class="pl-lbl">FPS Cap</label><input id="pl-fps" class="z-input w-full text-sm" type="number" placeholder="240"></div>
@@ -3528,10 +4319,10 @@
                         </div>
                     </div>
 
-                    {# ── Legacy: also save to HardwareLoadout for fallback ── #}
+                    {# Legacy: also save to HardwareLoadout for fallback #}
                     <div class="glass-panel p-5 rounded-2xl">
                         <h3 class="font-bold text-white text-sm mb-3 flex items-center gap-2">
-                            <i class="fa-solid fa-list text-gray-400 text-xs"></i> Quick Setup <span class="text-[10px] font-normal text-gray-500 ml-1">— also saves to public gear widget</span>
+                            <i class="fa-solid fa-list text-gray-400 text-xs"></i> Quick Setup <span class="text-[10px] font-normal text-gray-500 ml-1">- also saves to public gear widget</span>
                         </h3>
                         <form id="loadout-form" class="space-y-4">
                             {% csrf_token %}
@@ -3545,11 +4336,11 @@
                             <div class="grid grid-cols-3 gap-3">
                                 <div><label class="pl-lbl">DPI</label><input type="number" name="mouse_dpi" class="z-input w-full text-sm" placeholder="800" value="{{ hardware_loadout.mouse_dpi|default:'' }}" min="100" max="25600"></div>
                                 <div><label class="pl-lbl">Sensitivity</label><input type="text" name="sensitivity" class="z-input w-full text-sm" placeholder="0.45" value="{{ hardware_loadout.sensitivity|default:'' }}"></div>
-                                <div><label class="pl-lbl">eDPI (auto)</label><div id="edpiDisplay" class="z-input text-sm text-z-cyan cursor-default">—</div></div>
+                                <div><label class="pl-lbl">eDPI (auto)</label><div id="edpiDisplay" class="z-input text-sm text-z-cyan cursor-default">-</div></div>
                             </div>
                             <div class="flex items-center gap-3">
                                 <label class="z-toggle-wrapper"><input type="checkbox" name="loadout_public" class="z-toggle-input" {% if hardware_loadout.loadout_public %}checked{% endif %}><span class="z-toggle-slider"></span></label>
-                                <span class="text-xs text-gray-400">Public — show on Gear tab</span>
+                                <span class="text-xs text-gray-400">Public - show on Gear tab</span>
                             </div>
                             <button type="submit" class="bg-z-cyan text-black px-7 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-white transition">
                                 <i class="fa-solid fa-floppy-disk mr-1"></i> Save Quick Setup
@@ -3946,7 +4737,7 @@
                                 <label class="z-label">
                                     <i class="fa-solid fa-lock"></i> Current PIN
                                 </label>
-                                <input type="password" id="current-pin" maxlength="6" placeholder="••••••" class="z-input" required aria-label="Current PIN" aria-required="true">
+                                <input type="password" id="current-pin" maxlength="6" placeholder="000000" class="z-input" required aria-label="Current PIN" aria-required="true">
                                 <p class="text-gray-500 text-xs mt-1">Enter your current PIN to authorize changes</p>
                             </div>
                             {% endif %}
@@ -3955,7 +4746,7 @@
                                 <label class="z-label">
                                     <i class="fa-solid fa-key"></i> {% if wallet and wallet.pin_enabled %}New PIN{% else %}PIN{% endif %}
                                 </label>
-                                <input type="password" id="pin" maxlength="6" placeholder="••••••" class="z-input" required aria-label="New PIN" aria-required="true">
+                                <input type="password" id="pin" maxlength="6" placeholder="000000" class="z-input" required aria-label="New PIN" aria-required="true">
                                 <p class="text-gray-500 text-xs mt-1">Must be exactly 6 digits</p>
                             </div>
 
@@ -3963,7 +4754,7 @@
                                 <label class="z-label">
                                     <i class="fa-solid fa-check-double"></i> Confirm PIN
                                 </label>
-                                <input type="password" id="confirm-pin" maxlength="6" placeholder="••••••" class="z-input" required aria-label="Confirm PIN" aria-required="true">
+                                <input type="password" id="confirm-pin" maxlength="6" placeholder="000000" class="z-input" required aria-label="Confirm PIN" aria-required="true">
                             </div>
 
                             <!-- UP-PHASE7.7: OTP Field (appears after Send OTP clicked) -->
@@ -3994,7 +4785,7 @@
                                 <span></span>
                             </div>
 
-                            <!-- UP-PHASE7.7: Two-step buttons (Send OTP → Verify & Set PIN) -->
+                            <!-- UP-PHASE7.7: Two-step buttons (Send OTP -> Verify & Set PIN) -->
                             <button type="button" id="send-otp-btn" class="w-full py-3 px-6 rounded-xl bg-gradient-to-r from-cyan-700 via-cyan-600 to-cyan-700 hover:from-cyan-600 hover:via-cyan-500 hover:to-cyan-600 text-white font-bold shadow-lg shadow-cyan-500/20 hover:shadow-cyan-400/40 ring-2 ring-cyan-500/20 hover:ring-cyan-400/40 transition-all duration-300 uppercase text-sm backdrop-blur-sm">
                                 <i class="fa-solid fa-paper-plane mr-2"></i>
                                 Send Verification Code
@@ -4064,7 +4855,7 @@
                                 <input type="checkbox" id="cp-hideNavOnScroll" class="sr-only peer">
                                 <div class="w-10 h-5 rounded-full bg-white/10 peer-checked:bg-cyan-500 transition relative after:absolute after:w-4 after:h-4 after:bg-white after:rounded-full after:top-0.5 after:left-0.5 peer-checked:after:translate-x-5 after:transition-transform after:shadow flex-shrink-0 ml-4"></div>
                             </label>
-                            {# showFeedNav removed — 2nd nav bar is always hidden globally #}
+                            {# showFeedNav removed - 2nd nav bar is always hidden globally #}
                         </div>
 
                         <div class="border-t border-white/[.05] pt-5 space-y-3">
@@ -4089,7 +4880,7 @@
 
                     <p class="text-xs text-gray-500">
                         These preferences sync to your account and apply across all devices.
-                        <a href="/community/" class="text-cyan-400 hover:underline ml-1">Go to Community →</a>
+                        <a href="/community/" class="text-cyan-400 hover:underline ml-1">Go to Community -></a>
                     </p>
                 </div>
                 <script nonce="{{ request.csp_nonce }}">
@@ -4310,7 +5101,7 @@
         const method = replaceState ? 'replaceState' : 'pushState';
         window.history[method]({ settingsTab: tab }, '', nextUrl);
     }
-    // Get CSRF token — multiple fallbacks for CSRF_COOKIE_HTTPONLY=True
+    // Get CSRF token - multiple fallbacks for CSRF_COOKIE_HTTPONLY=True
     function getCookie(name) {
         if (name === 'csrftoken') {
             // 1. Best source: <meta name="csrf-token"> (server-rendered, always correct)
@@ -5296,7 +6087,7 @@
                     <div class="flex items-center justify-between gap-3 flex-wrap">
                         <div class="text-xs text-gray-400 flex items-center gap-1.5">
                             <i class="fa-solid fa-lightbulb text-cyan-400"></i>
-                            <span>${type === 'banner' ? '4:1 ratio • 1920×480' : 'Square • 400×400'}</span>
+                            <span>${type === 'banner' ? '4:1 ratio - 1920x480' : 'Square - 400x400'}</span>
                         </div>
                         <div class="flex gap-1.5">
                             <button data-crop-action="rotate-left" class="w-9 h-9 flex items-center justify-center bg-gray-700/60 hover:bg-gray-600 text-gray-300 hover:text-white rounded-lg transition text-sm" title="Rotate Left">
@@ -5471,7 +6262,7 @@
                 return;
             }
             
-            // Create form data — read CSRF token directly from meta tag (immune to getCookie overwrites)
+            // Create form data - read CSRF token directly from meta tag (immune to getCookie overwrites)
             const csrfMeta = document.querySelector('meta[name="csrf-token"]');
             const csrfToken = (csrfMeta && csrfMeta.content && csrfMeta.content.length >= 32) ? csrfMeta.content : getCookie('csrftoken');
             if (!csrfToken || csrfToken.length < 32) {
@@ -5719,19 +6510,19 @@
             const data = await response.json();
             
             if (data.success) {
-                showToast('✅ Platform preferences saved successfully!', 'success');
+                showToast('Platform preferences saved successfully', 'success');
                 showInlineFeedback('platform-form', 'Saved successfully. Page will reload to apply changes.', 'success');
                 markSaved();
                 // Reload page to apply timezone/language changes
                 setTimeout(() => window.location.reload(), 1500);
             } else {
                 const errorMsg = data.error || data.message || 'Failed to save platform preferences';
-                showToast(`❌ ${errorMsg}`, 'error');
+                showToast(errorMsg, 'error');
                 showInlineFeedback('platform-form', errorMsg, 'error');
             }
         } catch (error) {
             console.error('Error saving platform settings:', error);
-            showToast('❌ Network error. Please try again.', 'error');
+            showToast('Network error. Please try again.', 'error');
             showInlineFeedback('platform-form', 'Network error', 'error');
         } finally {
             // Restore button
@@ -6140,7 +6931,7 @@
             if (!isNaN(dpi) && !isNaN(sens) && dpi > 0 && sens > 0) {
                 display.textContent = Math.round(dpi * sens * 100) / 100;
             } else {
-                display.textContent = '—';
+                display.textContent = '-';
             }
         }
     }
@@ -6164,7 +6955,7 @@
         const url = formData.get('stream_url');
         
         if (!url || !url.trim()) {
-            showToast('❌ Please enter a stream URL', 'error');
+            showToast('Please enter a stream URL', 'error');
             button.disabled = false;
             button.innerHTML = originalHTML;
             return;
@@ -6278,13 +7069,13 @@
                 const result = await response.json();
                 
                 if (result.success) {
-                    showToast('✅ Privacy settings updated', 'success');
+                    showToast('Privacy settings updated', 'success');
                 } else {
-                    showToast(`❌ ${result.error || 'Failed to save privacy settings'}`, 'error');
+                    showToast(result.error || 'Failed to save privacy settings', 'error');
                 }
             } catch (error) {
                 console.error('Privacy save error:', error);
-                showToast('❌ Network error', 'error');
+                showToast('Network error', 'error');
             }
         }, 800);
     }
@@ -6404,16 +7195,16 @@
             const result = await response.json();
             
             if (result.success) {
-                showToast(`✅ ${result.message}`, 'success');
+                showToast(result.message || 'Request updated', 'success');
                 loadFollowRequests(currentFollowRequestFilter);
                 // UP PHASE 8: Update badge count after action
                 updateFollowRequestsBadge();
             } else {
-                showToast(`❌ ${result.error || 'Failed to respond'}`, 'error');
+                showToast(result.error || 'Failed to respond', 'error');
             }
         } catch (error) {
             console.error('Error responding to follow request:', error);
-            showToast('❌ Network error', 'error');
+            showToast('Network error', 'error');
         }
     }
     
@@ -6475,7 +7266,7 @@
             const result = await response.json();
             
             if (result.success) {
-                showToast('✅ Game passport created successfully', 'success');
+                showToast('Game passport created successfully', 'success');
                 // Close modal if exists
                 const modal = document.getElementById('add-passport-modal');
                 if (modal) modal.classList.add('hidden');
@@ -6483,11 +7274,11 @@
                 setTimeout(() => window.location.reload(), 800);
             } else {
                 const errorMsg = result.error || result.message || 'Failed to create passport';
-                showToast(`❌ ${errorMsg}`, 'error');
+                showToast(errorMsg, 'error');
             }
         } catch (error) {
             console.error('Create passport error:', error);
-            showToast('❌ Network error', 'error');
+            showToast('Network error', 'error');
         }
     }
     */
@@ -6546,12 +7337,12 @@
         
         // Validate confirmation phrase
         if (confirmPhrase !== 'DELETE MY ACCOUNT') {
-            showToast('❌ Please type DELETE MY ACCOUNT exactly to confirm', 'error');
+            showToast('Please type DELETE MY ACCOUNT exactly to confirm', 'error');
             return;
         }
         
         // Confirm action
-        if (!confirm('⚠️ WARNING: This will immediately log you out and schedule your account for deletion in 14 days. Continue?')) {
+        if (!confirm('WARNING: This will immediately log you out and schedule your account for deletion in 14 days. Continue?')) {
             return;
         }
         
@@ -6576,7 +7367,7 @@
             const result = await response.json();
             
             if (result.success) {
-                showToast('✓ Account deletion scheduled. You will be logged out.', 'success');
+                showToast('Account deletion scheduled. You will be logged out.', 'success');
                 // Redirect to login after brief delay
                 setTimeout(() => {
                     window.location.href = '/accounts/login/?deletion_scheduled=1';
@@ -6622,7 +7413,7 @@
             const result = await response.json();
             
             if (result.success) {
-                showToast('✓ Account deletion canceled successfully', 'success');
+                showToast('Account deletion canceled successfully', 'success');
                 // Reload status
                 await loadDeletionStatus();
             } else {
@@ -6945,9 +7736,9 @@
     function notifyNewIncomingRequest(request) {
         const isGift = request.type === 'gift';
         const sender = isGift ? request.sender_username : request.initiator_username;
-        const message = isGift 
-            ? `🎁 You received a gift from ${sender}` 
-            : `🔁 New trade request from ${sender}`;
+        const message = isGift
+            ? `You received a gift from ${sender}`
+            : `New trade request from ${sender}`;
         
         showToast(message, 'info');
         
@@ -6979,13 +7770,13 @@
         
         let message;
         if (isGift) {
-            message = accepted 
-                ? `✅ ${recipient} accepted your gift` 
-                : `❌ ${recipient} rejected your gift`;
+            message = accepted
+                ? `${recipient} accepted your gift`
+                : `${recipient} rejected your gift`;
         } else {
-            message = accepted 
-                ? `✅ Trade accepted by ${recipient}` 
-                : `❌ Trade rejected by ${recipient}`;
+            message = accepted
+                ? `Trade accepted by ${recipient}`
+                : `Trade rejected by ${recipient}`;
         }
         
         showToast(message, accepted ? 'success' : 'info');
@@ -7067,7 +7858,7 @@
             const isExpired = gift.expires_at && new Date(gift.expires_at) < new Date();
             
             html += `
-                <div class="bg-black/30 rounded-xl p-4 border border-white/10">
+                <div class="bg-black/30 rounded-xl p-4 border border-white/10" data-req-type="gift" data-status="${gift.status}">
                     <div class="flex items-start gap-4">
                         <img src="${gift.sender_avatar || ''}" alt="${gift.sender_username}" class="w-12 h-12 rounded-lg" data-fallback="hide">
                         <div class="flex-1">
@@ -7114,7 +7905,7 @@
             const isExpired = trade.expires_at && new Date(trade.expires_at) < new Date();
             
             html += `
-                <div class="bg-black/30 rounded-xl p-4 border border-white/10">
+                <div class="bg-black/30 rounded-xl p-4 border border-white/10" data-req-type="trade" data-status="${trade.status}">
                     <div class="flex items-start gap-4">
                         <img src="${trade.initiator_avatar || ''}" alt="${trade.initiator_username}" class="w-12 h-12 rounded-lg" data-fallback="hide">
                         <div class="flex-1">
@@ -7189,7 +7980,7 @@
             const isPending = gift.status === 'PENDING';
             
             html += `
-                <div class="bg-black/30 rounded-xl p-4 border border-white/10">
+                <div class="bg-black/30 rounded-xl p-4 border border-white/10" data-req-type="gift" data-status="${gift.status}">
                     <div class="flex items-start gap-4">
                         <img src="${gift.receiver_avatar || ''}" alt="${gift.receiver_username}" class="w-12 h-12 rounded-lg" data-fallback="hide">
                         <div class="flex-1">
@@ -7226,7 +8017,7 @@
             const isPending = trade.status === 'PENDING';
             
             html += `
-                <div class="bg-black/30 rounded-xl p-4 border border-white/10">
+                <div class="bg-black/30 rounded-xl p-4 border border-white/10" data-req-type="trade" data-status="${trade.status}">
                     <div class="flex items-start gap-4">
                         <img src="${trade.target_avatar || ''}" alt="${trade.target_username}" class="w-12 h-12 rounded-lg" data-fallback="hide">
                         <div class="flex-1">
@@ -7902,7 +8693,7 @@
     }
 
     // ============================================================
-    // CSP-SAFE EVENT DELEGATION — replaces inline handlers
+    // CSP-SAFE EVENT DELEGATION - replaces inline handlers
     // ============================================================
 
     // --- Missing function stubs (referenced in original HTML but never defined) ---
@@ -7929,13 +8720,15 @@
         // Filter visible items in incoming-requests-list based on filter type
         const list = document.getElementById('incoming-requests-list');
         if (!list) return;
-        list.querySelectorAll('[data-req-type]').forEach(el => {
-            const card = el.closest('.bg-black\\/30');
-            if (!card) return;
+        Array.from(list.children).forEach(card => {
+            if (!card.dataset.reqType) return;
+            const status = String(card.dataset.status || '').toUpperCase();
+            const type = card.dataset.reqType;
             if (filter === 'all') { card.style.display = ''; return; }
-            if (filter === 'pending') { card.style.display = el.closest('[data-status="PENDING"]') ? '' : 'none'; return; }
-            if (filter === 'gifts') { card.style.display = el.dataset.reqType === 'gift' ? '' : 'none'; return; }
-            if (filter === 'trades') { card.style.display = el.dataset.reqType === 'trade' ? '' : 'none'; return; }
+            if (filter === 'pending') { card.style.display = status === 'PENDING' ? '' : 'none'; return; }
+            if (filter === 'history') { card.style.display = status && status !== 'PENDING' ? '' : 'none'; return; }
+            if (filter === 'gifts') { card.style.display = type === 'gift' ? '' : 'none'; return; }
+            if (filter === 'trades') { card.style.display = type === 'trade' ? '' : 'none'; return; }
             card.style.display = '';
         });
     }
@@ -7952,13 +8745,15 @@
         }
         const list = document.getElementById('outgoing-requests-list');
         if (!list) return;
-        list.querySelectorAll('[data-req-type]').forEach(el => {
-            const card = el.closest('.bg-black\\/30');
-            if (!card) return;
+        Array.from(list.children).forEach(card => {
+            if (!card.dataset.reqType) return;
+            const status = String(card.dataset.status || '').toUpperCase();
+            const type = card.dataset.reqType;
             if (filter === 'all') { card.style.display = ''; return; }
-            if (filter === 'pending') { card.style.display = el.closest('[data-status="PENDING"]') ? '' : 'none'; return; }
-            if (filter === 'gifts') { card.style.display = el.dataset.reqType === 'gift' ? '' : 'none'; return; }
-            if (filter === 'trades') { card.style.display = el.dataset.reqType === 'trade' ? '' : 'none'; return; }
+            if (filter === 'pending') { card.style.display = status === 'PENDING' ? '' : 'none'; return; }
+            if (filter === 'history') { card.style.display = status && status !== 'PENDING' ? '' : 'none'; return; }
+            if (filter === 'gifts') { card.style.display = type === 'gift' ? '' : 'none'; return; }
+            if (filter === 'trades') { card.style.display = type === 'trade' ? '' : 'none'; return; }
             card.style.display = '';
         });
     }
@@ -7966,7 +8761,7 @@
     // --- Core event delegation (runs on DOMContentLoaded) ---
     document.addEventListener('DOMContentLoaded', function() {
 
-        // 1. Tab navigation — delegate on any [data-target] click
+        // 1. Tab navigation - delegate on any [data-target] click
         document.addEventListener('click', function(e) {
             const btn = e.target.closest('[data-target]');
             if (btn && (btn.classList.contains('nav-btn') || btn.classList.contains('mobile-nav-btn'))) {
@@ -8022,7 +8817,7 @@
             if (form) form.addEventListener('submit', handler);
         }
 
-        // 5. markUnsaved — delegate on all form inputs/selects/textareas
+        // 5. markUnsaved - delegate on all form inputs/selects/textareas
         document.querySelectorAll('form input, form select, form textarea').forEach(el => {
             if (el.type === 'hidden' || el.type === 'file' || el.closest('#otp-verification-panel')) return;
             el.addEventListener('input', markUnsaved);
@@ -8056,7 +8851,7 @@
         if (mouseDpi) mouseDpi.addEventListener('input', calcEdpi);
         if (sensitivity) sensitivity.addEventListener('input', calcEdpi);
 
-        // 7. Privacy auto-save — all checkboxes+selects in privacy form
+        // 7. Privacy auto-save - all checkboxes+selects in privacy form
         const privacyForm = document.getElementById('privacy-form');
         if (privacyForm) {
             privacyForm.querySelectorAll('input[type="checkbox"], select').forEach(el => {
@@ -8113,7 +8908,7 @@
             }
         });
 
-        // 12. Preferred contact — listen on radio change
+        // 12. Preferred contact - listen on radio change
         document.querySelectorAll('input[name="preferred_contact_radio"]').forEach(radio => {
             radio.addEventListener('change', function() { selectPreferredContact(this.value); });
         });
@@ -8201,7 +8996,7 @@
         const cancelDelBtn = document.getElementById('cancel-deletion-btn');
         if (cancelDelBtn) cancelDelBtn.addEventListener('click', cancelDeletion);
 
-        // 23. Item detail modal — close on backdrop / close button
+        // 23. Item detail modal - close on backdrop / close button
         const itemModal = document.getElementById('item-detail-modal');
         if (itemModal) {
             itemModal.addEventListener('click', function(e) {
@@ -8251,9 +9046,8 @@
         }
 
         function hasExplicitMobileSection() {
-            if (settingsTabFromPath(window.location.pathname)) return true;
-            if (window.location.hash && settingsTabFromUrl()) return true;
-            if (new URLSearchParams(window.location.search).get('tab')) return true;
+            if (settingsTabFromUrl()) return true;
+            if (SETTINGS_HAS_SECTION_SLUG && SETTINGS_INITIAL_TAB && document.getElementById('tab-' + SETTINGS_INITIAL_TAB)) return true;
             return false;
         }
 
@@ -8262,6 +9056,8 @@
             if (!shell) return;
             shell.classList.toggle('mobile-settings-detail-mode', mode === 'detail');
             shell.classList.toggle('mobile-settings-index-mode', mode !== 'detail');
+            const detailBar = document.getElementById('mobile-settings-detail-bar');
+            if (detailBar) detailBar.setAttribute('aria-hidden', mode === 'detail' ? 'false' : 'true');
         }
 
         function updateMobileSettingsTitle(tab) {
@@ -8296,6 +9092,10 @@
         function showMobileSettingsDetail(tab) {
             if (!isMobileSettingsViewport()) return;
             const targetTab = tab || settingsTabFromUrl() || SETTINGS_INITIAL_TAB || 'identity';
+            const targetSection = document.getElementById('tab-' + targetTab);
+            if (targetSection && !targetSection.classList.contains('active')) {
+                switchTab(targetTab);
+            }
             updateMobileSettingsTitle(targetTab);
             updateMobileSaveVisibility(targetTab);
             setMobileSettingsMode('detail');
@@ -8356,8 +9156,9 @@
                 }
                 return;
             }
-            if (hasExplicitMobileSection()) {
-                showMobileSettingsDetail(settingsTabFromUrl() || SETTINGS_INITIAL_TAB || 'identity');
+            const explicitTab = settingsTabFromUrl() || (SETTINGS_HAS_SECTION_SLUG ? SETTINGS_INITIAL_TAB : null);
+            if (hasExplicitMobileSection() && explicitTab) {
+                showMobileSettingsDetail(explicitTab);
             } else {
                 showMobileSettingsIndex();
             }
@@ -8402,7 +9203,7 @@
 
 </script>
 
-{# ── Pro Loadout JS (nonce-safe, delegated, no inline handlers) ── #}
+{# Pro Loadout JS (nonce-safe, delegated, no inline handlers) #}
 <script nonce="{{ request.csp_nonce }}">
 (function(){
   'use strict';
@@ -8416,7 +9217,7 @@
     }).then(function(r){ return r.json(); });
   }
 
-  /* ── Platform profile ─────────────────────────────────────────── */
+  /* Platform profile */
   var saveProfileBtn = document.getElementById('pl-save-profile');
   if (saveProfileBtn) {
     saveProfileBtn.addEventListener('click', function(){
@@ -8424,33 +9225,33 @@
         primary_platform: document.getElementById('pl-primary-platform').value,
         visibility: document.getElementById('pl-visibility').value,
       }).then(function(r){
-        if (r.success) saveProfileBtn.textContent = '✓ Saved';
+        if (r.success) saveProfileBtn.textContent = 'Saved';
         setTimeout(function(){ saveProfileBtn.innerHTML = '<i class="fa-solid fa-floppy-disk mr-1"></i> Save Platform Settings'; }, 2000);
       });
     });
   }
 
-  /* ── eDPI calc for quick-setup form ─────────────────────────── */
+  /* eDPI calc for quick-setup form */
   function updateEdpi() {
     var dpi = parseFloat(document.querySelector('[name=mouse_dpi]')?.value || 0);
     var sens = parseFloat(document.querySelector('[name=sensitivity]')?.value || 0);
     var disp = document.getElementById('edpiDisplay');
-    if (disp) disp.textContent = (dpi && sens) ? Math.round(dpi * sens) : '—';
+    if (disp) disp.textContent = (dpi && sens) ? Math.round(dpi * sens) : '-';
   }
   document.addEventListener('input', function(e) {
     if (e.target.name === 'mouse_dpi' || e.target.name === 'sensitivity') updateEdpi();
   });
   updateEdpi();
 
-  /* ── eDPI calc for in-game settings panel ────────────────────── */
+  /* eDPI calc for in-game settings panel */
   function updatePanelEdpi() {
     var dpi = parseFloat(document.getElementById('pl-dpi')?.value || 0);
     var sens = parseFloat(document.getElementById('pl-sens')?.value || 0);
     var d = document.getElementById('pl-edpi-display');
-    if (d) d.textContent = (dpi && sens) ? Math.round(dpi * sens) : '—';
+    if (d) d.textContent = (dpi && sens) ? Math.round(dpi * sens) : '-';
   }
 
-  /* ── Device add/edit modal ────────────────────────────────────── */
+  /* Device add/edit modal */
   var _editingDevice = null;
   var addBtn = document.getElementById('pl-add-device-btn');
   if (addBtn) {
@@ -8529,7 +9330,7 @@
     });
   }
 
-  /* ── Game setting panel ──────────────────────────────────────── */
+  /* Game setting panel */
   var _selectedGameId = null, _selectedPlatform = 'PC';
 
   document.addEventListener('click', function(e){
@@ -8561,8 +9362,8 @@
     if (conFields) conFields.classList.toggle('hidden', plat !== 'CONSOLE');
   }
 
-  /* ── AJAX-load saved GameLoadoutSetting fields ───────────────── */
-  var _gsCache = {}; // game_id:platform → setting dict
+  /* AJAX-load saved GameLoadoutSetting fields */
+  var _gsCache = {}; // game_id:platform -> setting dict
 
   function _setField(id, val) {
     var el = document.getElementById(id);
