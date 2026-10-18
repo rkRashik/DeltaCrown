@@ -442,7 +442,7 @@ class HomePageContent(models.Model):
             },
             {
                 "slug": "ea-sports-fc-26",
-                "name": "EA SPORTS FC™ 26",
+                "name": "EA SPORTS FC 27",
                 "tagline": "Football Simulation",
                 "platforms": ["PC", "Console"],
                 "color": "#00D9FF"
@@ -491,7 +491,7 @@ class HomePageContent(models.Model):
             },
             {
                 "slug": "efootball-2026",
-                "name": "eFootball™ 2026",
+                "name": "eFootball",
                 "tagline": "Football Simulation",
                 "platforms": ["PC", "Mobile", "Console"],
                 "color": "#0066CC"

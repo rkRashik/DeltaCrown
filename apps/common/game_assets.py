@@ -160,8 +160,8 @@ _LEGACY_GAMES_COMPAT = {
     },
     
     'FC26': {
-        'name': 'FC26',
-        'display_name': 'EA Sports FC 26',
+        'name': 'FC27',
+        'display_name': 'EA SPORTS FC 27',
         'slug': 'fc26',
         'logo': 'img/game_logos/fc26_logo.jpg',
         'card': 'img/game_cards/FC26.jpg',
@@ -171,7 +171,7 @@ _LEGACY_GAMES_COMPAT = {
         'color_secondary': '#003366',
         'category': 'Sports',
         'type': '1v1 (Solo)',
-        'platform': ['PC', 'Console', 'Mobile'],
+        'platform': ['PC', 'Console'],
         'team_size': '1v1',
         'roster_size': '1',
         'player_id_label': 'EA ID',

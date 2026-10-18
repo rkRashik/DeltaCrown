@@ -94,12 +94,12 @@ GAME_SELECTOR_CATALOG = [
     },
     {
         "slug": "fc-26",
-        "label": "FC 26",
-        "short_label": "FC26",
+        "label": "FC 27",
+        "short_label": "FC27",
         "initials": "FC",
         "color": "#14b8a6",
         "asset_key": "fc26",
-        "aliases": ("fc-26", "fc26", "ea-sports-fc-26", "fifa-26"),
+        "aliases": ("ea-fc", "fc27", "fc-27", "ea-sports-fc-27", "fc-26", "fc26", "ea-sports-fc-26", "fifa-26"),
     },
     {
         "slug": "rocket-league",

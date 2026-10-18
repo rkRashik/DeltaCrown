@@ -310,7 +310,7 @@ class Command(BaseCommand):
         {
             'slug': 'fc26',
             'name': 'EA SPORTS FC',
-            'display_name': 'EA SPORTS FC 26',
+            'display_name': 'EA SPORTS FC 27',
             'short_code': 'FC26',
             'category': 'SPORTS',
             'game_type': '1V1',

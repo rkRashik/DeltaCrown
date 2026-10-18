@@ -37,8 +37,8 @@ SUPPORTED_GAMES = {
         'id_help': 'Your 17-digit Steam ID64',
     },
     'ea-fc': {
-        'name': 'EA Sports FC 26',
-        'display_name': 'EA SPORTS FC™ 26',
+        'name': 'EA SPORTS FC 27',
+        'display_name': 'EA SPORTS FC 27',
         'short_code': 'FC26',
         'category': 'SPORTS',
         'id_field': 'ea_id',
@@ -48,7 +48,7 @@ SUPPORTED_GAMES = {
     },
     'efootball': {
         'name': 'eFootball',
-        'display_name': 'eFootball™ 2026',
+        'display_name': 'eFootball',
         'short_code': 'EFB',
         'category': 'SPORTS',
         'id_field': 'efootball_id',

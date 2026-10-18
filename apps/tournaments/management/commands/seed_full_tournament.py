@@ -383,6 +383,8 @@ class Command(BaseCommand):
 
     def _ensure_extra_games(self):
         """Create games not covered by init_default_games."""
+        from apps.games.catalog_metadata import CATALOG_METADATA
+
         extras = [
             {"name": "League of Legends", "display_name": "League of Legends", "slug": "lol",
              "short_code": "LOL", "category": "MOBA", "game_type": "TEAM_VS_TEAM",
@@ -392,7 +394,7 @@ class Command(BaseCommand):
              "short_code": "APEX", "category": "BR", "game_type": "BATTLE_ROYALE",
              "developer": "Respawn Entertainment", "publisher": "Electronic Arts",
              "primary_color": "#DA292A", "platforms": ["PC", "Console"]},
-            {"name": "Overwatch 2", "display_name": "Overwatch 2", "slug": "ow2",
+            {"name": "Overwatch", "display_name": "Overwatch", "slug": "ow2",
              "short_code": "OW2", "category": "FPS", "game_type": "TEAM_VS_TEAM",
              "developer": "Blizzard Entertainment", "publisher": "Blizzard Entertainment",
              "primary_color": "#FA9C1E", "platforms": ["PC", "Console"]},
@@ -402,6 +404,7 @@ class Command(BaseCommand):
              "primary_color": "#0C6EFC", "platforms": ["PC", "Console"]},
         ]
         for spec in extras:
+            spec.update(CATALOG_METADATA.get(spec['slug'], {}))
             slug = spec.pop("slug")
             platforms = spec.pop("platforms", ["pc"])
             # Check by slug OR name to avoid duplicates

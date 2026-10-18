@@ -20,6 +20,7 @@ from apps.games.models import (
 from apps.games.models.map_pool import GameMapPool
 from apps.games.models.pipeline_template import GamePipelineTemplate
 from apps.user_profile.models import GameChoiceConfig
+from apps.games.catalog_metadata import CATALOG_METADATA
 
 
 class Command(BaseCommand):
@@ -73,7 +74,7 @@ class Command(BaseCommand):
 
     def get_games_data(self):
         """Return the 11 games configuration data."""
-        return {
+        games = {
             'valorant': {
                 'name': 'Valorant',
                 'display_name': 'VALORANT',
@@ -84,7 +85,7 @@ class Command(BaseCommand):
                 'primary_color': '#ff4654',
                 'secondary_color': '#0f1923',
                 'accent_color': '#ece8e1',
-                'description': 'A 5v5 character-based tactical FPS where precise gunplay meets unique agent abilities. The premier VCT Champions 2025 showcased the highest level of competitive play with teams from around the globe.',
+                'description': CATALOG_METADATA['valorant']['description'],
                 'developer': 'Riot Games',
                 'publisher': 'Riot Games',
                 'official_website': 'https://playvalorant.com',
@@ -215,7 +216,7 @@ class Command(BaseCommand):
                 'primary_color': '#f5a623',
                 'secondary_color': '#1b2838',
                 'accent_color': '#ffd700',
-                'description': 'The legendary tactical FPS reimagined on Source 2 engine. IEM Katowice 2025 and BLAST Premier 2025 showcased the highest tier of competitive CS.',
+                'description': CATALOG_METADATA['cs2']['description'],
                 'developer': 'Valve Corporation',
                 'publisher': 'Valve Corporation',
                 'official_website': 'https://counter-strike.net',
@@ -329,7 +330,7 @@ class Command(BaseCommand):
                 'primary_color': '#af1f23',
                 'secondary_color': '#1b2838',
                 'accent_color': '#c23c2a',
-                'description': 'The premier 5v5 MOBA with deep strategic gameplay. The International 2025 featured a $40M+ prize pool, cementing its status as the pinnacle of competitive gaming.',
+                'description': CATALOG_METADATA['dota2']['description'],
                 'developer': 'Valve Corporation',
                 'publisher': 'Valve Corporation',
                 'official_website': 'https://dota2.com',
@@ -424,20 +425,20 @@ class Command(BaseCommand):
             },
 
             'ea-fc': {
-                'name': 'EA Sports FC 26',
-                'display_name': 'EA SPORTS FC™ 26',
+                'name': 'EA SPORTS FC 27',
+                'display_name': 'EA SPORTS FC 27',
                 'short_code': 'FC26',
                 'category': 'SPORTS',
                 'game_type': '1V1',
-                'platforms': ['PC', 'Console', 'Mobile'],
+                'platforms': ['PC', 'Console'],
                 'primary_color': '#00a850',
                 'secondary_color': '#001e3c',
                 'accent_color': '#ffd700',
-                'description': 'The next generation of football gaming. EA Sports FC Pro 2025 World Championship features the best 1v1 and 2v2 competitive players globally.',
+                'description': 'Football simulation for PC and consoles featuring Football Ultimate Team, Career, and The Grounds. Released worldwide on 25 September 2026. EA SPORTS FC Mobile is a separate game.',
                 'developer': 'EA Vancouver',
                 'publisher': 'Electronic Arts',
-                'official_website': 'https://ea.com/games/ea-sports-fc',
-                'release_date': date(2025, 9, 27),
+                'official_website': 'https://www.ea.com/games/ea-sports-fc/fc-27',
+                'release_date': date(2026, 9, 25),
                 'is_featured': True,
                 'roster': {
                     'min_team_size': 1,
@@ -469,8 +470,9 @@ class Command(BaseCommand):
                         {'value': 'PS4', 'label': 'PlayStation 4'},
                         {'value': 'XBOX_SERIES', 'label': 'Xbox Series X|S'},
                         {'value': 'XBOX_ONE', 'label': 'Xbox One'},
-                        {'value': 'PC', 'label': 'PC (EA App / Steam)'},
+                        {'value': 'PC', 'label': 'PC (EA App / Steam / Epic Games Store)'},
                         {'value': 'SWITCH', 'label': 'Nintendo Switch'},
+                        {'value': 'SWITCH_2', 'label': 'Nintendo Switch 2'},
                     ],
                     'division_choices': [
                         {'value': 'Division_10', 'label': 'Division 10', 'tier': 1},
@@ -525,7 +527,7 @@ class Command(BaseCommand):
 
             'efootball': {
                 'name': 'eFootball',
-                'display_name': 'eFootball™ 2026',
+                'display_name': 'eFootball',
                 'short_code': 'EFB',
                 'category': 'SPORTS',
                 'game_type': '1V1',
@@ -533,10 +535,10 @@ class Command(BaseCommand):
                 'primary_color': '#0051a5',
                 'secondary_color': '#ffffff',
                 'accent_color': '#00b0ff',
-                'description': 'Free-to-play cross-platform football simulation. eFootball Championship Pro 2025 showcased elite 1v1 competitive gameplay.',
+                'description': 'Free-to-play football simulation by KONAMI for PC, consoles, iOS and Android. Build a Dream Team and compete online. Cross-platform play is supported between compatible console and PC versions; mobile is a separate matchmaking environment.',
                 'developer': 'Konami',
                 'publisher': 'Konami',
-                'official_website': 'https://efootball.konami.net',
+                'official_website': 'https://www.konami.com/efootball/en/',
                 'release_date': date(2021, 9, 30),
                 'is_featured': False,
                 'roster': {
@@ -610,7 +612,7 @@ class Command(BaseCommand):
             # Marked is_active=False so it doesn't appear in game selection.
             'efootball-1773578027': {
                 'name': 'eFootball',
-                'display_name': 'eFootball™ 2026',
+                'display_name': 'eFootball',
                 'short_code': 'EFB2',
                 'category': 'SPORTS',
                 'game_type': '1V1',
@@ -684,7 +686,7 @@ class Command(BaseCommand):
                 'primary_color': '#f59f00',
                 'secondary_color': '#1a1919',
                 'accent_color': '#ffb703',
-                'description': 'The #1 mobile battle royale with 100-player matches. PMGC 2025 (PUBG Mobile Global Championship) featured the world\'s best squads competing for millions.',
+                'description': CATALOG_METADATA['pubgm']['description'],
                 'developer': 'Tencent Games',
                 'publisher': 'Krafton',
                 'official_website': 'https://pubgmobile.com',
@@ -789,7 +791,7 @@ class Command(BaseCommand):
                 'primary_color': '#3b5998',
                 'secondary_color': '#1c2d48',
                 'accent_color': '#5271ff',
-                'description': 'The #1 mobile MOBA with 5v5 fast-paced battles. M6 World Championship 2025 showcased elite teams from SEA, LATAM, and beyond.',
+                'description': CATALOG_METADATA['mlbb']['description'],
                 'developer': 'Moonton',
                 'publisher': 'Moonton',
                 'official_website': 'https://m.mobilelegends.com',
@@ -894,7 +896,7 @@ class Command(BaseCommand):
                 'primary_color': '#ff5722',
                 'secondary_color': '#212121',
                 'accent_color': '#ff7043',
-                'description': 'Fast-paced 50-player mobile battle royale. FFWS 2025 (Free Fire World Series) featured top squads competing globally.',
+                'description': CATALOG_METADATA['freefire']['description'],
                 'developer': 'Garena',
                 'publisher': 'Garena',
                 'official_website': 'https://ff.garena.com',
@@ -981,7 +983,7 @@ class Command(BaseCommand):
                 'primary_color': '#000000',
                 'secondary_color': '#ff6b00',
                 'accent_color': '#00d9ff',
-                'description': 'Premium mobile FPS with 5v5 competitive modes. CODM World Championship 2025 featured elite teams across multiple game modes.',
+                'description': CATALOG_METADATA['codm']['description'],
                 'developer': 'TiMi Studios',
                 'publisher': 'Activision',
                 'official_website': 'https://callofduty.com/mobile',
@@ -1080,7 +1082,7 @@ class Command(BaseCommand):
                 'primary_color': '#00b8fc',
                 'secondary_color': '#0a0e27',
                 'accent_color': '#ff8c00',
-                'description': 'High-octane vehicular soccer. RLCS 2025 World Championship showcased the pinnacle of 3v3 competitive car-football.',
+                'description': CATALOG_METADATA['rocketleague']['description'],
                 'developer': 'Psyonix',
                 'publisher': 'Epic Games',
                 'official_website': 'https://rocketleague.com',
@@ -1189,7 +1191,7 @@ class Command(BaseCommand):
                 'primary_color': '#1f8fff',
                 'secondary_color': '#0a0e27',
                 'accent_color': '#f59e0b',
-                'description': 'Tactical 5v5 FPS with destructible environments. Six Invitational 2025 featured the world\'s best tactical teams in high-stakes competition.',
+                'description': CATALOG_METADATA['r6siege']['description'],
                 'developer': 'Ubisoft Montreal',
                 'publisher': 'Ubisoft',
                 'official_website': 'https://rainbow6.com',
@@ -1317,6 +1319,11 @@ class Command(BaseCommand):
             },
         }
 
+        for slug, metadata in CATALOG_METADATA.items():
+            if slug in games:
+                games[slug].update(metadata)
+        return games
+
     def seed_game(self, game_slug, game_data, force=False):
         """Seed a single game with all related configurations."""
         self.stdout.write(f"\n{'='*70}")
@@ -1336,7 +1343,7 @@ class Command(BaseCommand):
                 'primary_color': game_data['primary_color'],
                 'secondary_color': game_data['secondary_color'],
                 'accent_color': game_data.get('accent_color'),
-                'description': game_data['description'],
+                'description': CATALOG_METADATA['r6siege']['description'],
                 'developer': game_data['developer'],
                 'publisher': game_data['publisher'],
                 'official_website': game_data.get('official_website', ''),

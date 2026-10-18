@@ -145,7 +145,7 @@ def homepage_context(request):
         },
         {
             'code': 'FC26',
-            'name': 'EA Sports FC 26',
+            'name': 'EA SPORTS FC 27',
             'tagline': 'Football Simulation',
             'logo': 'img/game_logos/fc26_logo.jpg',
             'banner': 'img/game_cards/FC26.jpg',

@@ -37,7 +37,7 @@ class CommunityPostForm(forms.ModelForm):
             ('valorant', 'Valorant'),
             ('efootball', 'eFootball'),
             ('cs2', 'Counter-Strike 2'),
-            ('fc26', 'FC 26'),
+            ('fc26', 'FC 27'),
             ('pubg', 'PUBG'),
             ('mobile_legends', 'Mobile Legends'),
         ]
@@ -192,7 +192,7 @@ class CommunityPostCreateForm(forms.ModelForm):
             ('valorant', 'Valorant'),
             ('efootball', 'eFootball'),
             ('cs2', 'Counter-Strike 2'),
-            ('fc26', 'FC 26'),
+            ('fc26', 'FC 27'),
             ('pubg', 'PUBG'),
             ('mobile_legends', 'Mobile Legends'),
         ]

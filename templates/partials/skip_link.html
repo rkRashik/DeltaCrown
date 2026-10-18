@@ -1,0 +1,29 @@
+<style>
+  body > .skip-link:not(:focus) {
+    position: fixed !important;
+    width: 1px !important;
+    height: 1px !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    clip-path: inset(50%) !important;
+    white-space: nowrap;
+  }
+
+  body > .skip-link:focus {
+    position: fixed;
+    top: 8px;
+    left: 8px;
+    z-index: 2147483647;
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 10px 16px;
+    background: #111827;
+    color: #fff;
+    border-radius: 6px;
+    outline: 2px solid #0A84FF;
+    outline-offset: 2px;
+  }
+</style>
+<a href="#main" class="skip-link">Skip to main content</a>

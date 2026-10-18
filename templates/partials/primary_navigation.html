@@ -220,16 +220,16 @@
   {% nav_active '/community/' '/community' as community_active %}
   {% nav_active '/arena/' '/watch/' as arena_active %}
   {% nav_active '/crownstore/' '/crownstore' as store_active %}
-  <div style="width:100%;height:100%;display:flex;align-items:center;padding:0 40px;">
+  <div class="dcv4-layout">
 
     <!-- Logo -->
-    <a href="/" aria-label="DeltaCrown Home" style="display:flex;align-items:center;gap:10px;margin-right:44px;flex-shrink:0;">
+    <a href="/" class="dcv4-brand" aria-label="DeltaCrown Home">
       <img src="{% static 'img/deltaCrown_logos/logo_animated.svg' %}" alt="" width="34" height="34" decoding="async" style="width:34px;height:34px;">
       <img src="{% static 'img/deltaCrown_logos/DeltaCrown_Teal-Purple-Gold.svg' %}" alt="DELTACROWN" width="140" height="22" decoding="async" class="hidden lg:block" style="height:22px;width:auto;">
     </a>
 
     <!-- Center links -->
-    <div style="display:flex;align-items:center;gap:1px;flex:1;justify-content:center;">
+    <div class="dcv4-center" role="group" aria-label="Main navigation and search">
 
       <!-- Tournaments (simple link, no dropdown) -->
       <a href="/tournaments/" class="dcv4-nlink{% if tournaments_active %} active{% endif %}" {% if tournaments_active %}aria-current="page"{% endif %}>Tournaments{% if tournaments_active %}<span class="dcv4-activedot"></span>{% endif %}</a>
@@ -261,7 +261,7 @@
       <a href="/arena/" class="dcv4-nlink{% if arena_active %} active{% endif %}" {% if arena_active %}aria-current="page"{% endif %} style="gap:6px;">
         Arena
         {% if nav_live_count %}
-        <span id="nav-live-badge" class="dcv4-live"><span class="dcv4-live-dot"></span>{{ nav_live_count }} LIVE</span>
+        <span id="nav-live-badge" class="dcv4-live" aria-label="{{ nav_live_count }} live matches"><span class="dcv4-live-dot"></span>{{ nav_live_count }} LIVE</span>
         {% else %}
         <span id="nav-live-badge" class="dcv4-live" style="display:none;"><span class="dcv4-live-dot"></span></span>
         {% endif %}
@@ -269,13 +269,13 @@
       </a>
 
       <a href="/crownstore/" class="dcv4-nlink{% if store_active %} active{% endif %}" {% if store_active %}aria-current="page"{% endif %}>Store{% if store_active %}<span class="dcv4-activedot"></span>{% endif %}</a>
-    </div>
-
-    <!-- Right actions -->
-    <div style="display:flex;align-items:center;gap:3px;flex-shrink:0;margin-left:44px;">
       <button id="dc-search-btn" class="dcv4-icon-btn" title="Search (Cmd+K)" aria-label="Open search">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="6.5" cy="6.5" r="4"></circle><path d="M10 10L13.5 13.5"></path></svg>
       </button>
+    </div>
+
+    <!-- Right actions -->
+    <div class="dcv4-actions">
       {% if request.user.is_authenticated %}
       <div class="relative">
         <button id="dc-notif-btn" class="dcv4-icon-btn" aria-label="Notifications" aria-haspopup="true" aria-expanded="false" style="position:relative;">
@@ -486,6 +486,26 @@
 }
 
 /* ── v4 desktop center links & dropdown triggers ── */
+.dcv4-layout {
+  width:100%; height:100%; display:grid; align-items:center;
+  grid-template-columns:minmax(0,1fr) max-content minmax(0,1fr);
+  column-gap:16px; padding:0 clamp(20px,2.1vw,40px);
+}
+.dcv4-brand { display:flex; align-items:center; gap:10px; justify-self:start; min-width:0; }
+.dcv4-center { display:flex; align-items:center; justify-content:center; gap:1px; white-space:nowrap; }
+.dcv4-center > #dc-search-btn { margin-left:12px; flex-shrink:0; }
+.dcv4-actions { display:flex; align-items:center; justify-self:end; gap:3px; white-space:nowrap; }
+@media (min-width:768px) and (max-width:1279px) {
+  .dcv4-brand > img:last-child { display:none; }
+}
+@media (min-width:768px) and (max-width:1100px) {
+  .dcv4-layout { column-gap:8px; padding-inline:16px; }
+  .dcv4-center .dcv4-nlink, .dcv4-center .dcv4-navbtn { padding-inline:7px; font-size:13px; }
+  .dcv4-center > #dc-search-btn { margin-left:4px; }
+  .dcv4-actions .dcv4-signin { padding-inline:10px; font-size:13px; }
+  .dcv4-actions .dcv4-signup { padding-inline:12px; font-size:13px; }
+  .dcv4-center .dcv4-live { padding:0; border:0; background:none; font-size:0; gap:0; }
+}
 .dcv4-navbtn, .dcv4-nlink {
   display:flex; align-items:center; gap:5px; padding:8px 14px; border-radius:8px;
   font:500 15px/1 'Inter',sans-serif; color:#8E8E93; background:transparent;

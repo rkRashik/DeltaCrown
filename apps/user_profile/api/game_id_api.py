@@ -54,7 +54,7 @@ def check_game_id_api(request, game_code: str):
         'apex': 'Apex Legends',
         'lol': 'League of Legends',
         'dota2': 'Dota 2',
-        'ow2': 'Overwatch 2',
+        'ow2': 'Overwatch',
         'r6': 'Rainbow Six Siege'
     }
     

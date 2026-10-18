@@ -1,5 +1,5 @@
 """
-1v1 Sports Screenshot Extraction Service — eFootball / EA SPORTS FC 26.
+1v1 Sports Screenshot Extraction Service — eFootball / EA SPORTS FC 27.
 
 Pipeline (admin uploads a final-whistle screen for a Match in any
 SE / DE / RR / Swiss / GP fixture):
@@ -83,7 +83,7 @@ def _build_prompt(
 ) -> str:
     p1_line = p1_name.strip() if p1_name else "(unknown)"
     p2_line = p2_name.strip() if p2_name else "(unknown)"
-    game_line = game_name.strip() if game_name else "eFootball or EA SPORTS FC 26"
+    game_line = game_name.strip() if game_name else "eFootball or EA SPORTS FC 27"
     return f"""You are reading a 1v1 sports videogame end-of-match result screen.
 
 Game: {game_line}

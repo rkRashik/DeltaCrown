@@ -332,7 +332,7 @@ class OverviewTab {
       'pubg': 'PUBG',
       'freefire': 'Free Fire',
       'efootball': 'eFootball',
-      'fc26': 'EA Sports FC 26',
+      'fc26': 'EA SPORTS FC 27',
       'codm': 'Call of Duty: Mobile'
     };
     return games[gameCode] || this.escapeHtml(gameCode);

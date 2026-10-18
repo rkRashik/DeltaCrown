@@ -126,7 +126,7 @@ class ThemeManager {
       'pubg': 'PUBG Mobile',
       'freefire': 'Free Fire',
       'efootball': 'eFootball',
-      'fc26': 'EA SPORTS FC 26',
+      'fc26': 'EA SPORTS FC 27',
       'codm': 'Call of Duty: Mobile'
     };
     return gameNames[gameCode] || 'Unknown Game';
