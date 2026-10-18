@@ -13,10 +13,11 @@ from decimal import Decimal
 from typing import Any, Dict, List, Optional
 
 from django.apps import apps
-from django.db.models import Count, Sum
+from django.db.models import Count, Q, Sum
 from django.utils import timezone
 
 from apps.siteui.cache_safe import safe_cache_get, safe_cache_set
+from apps.siteui.homepage_presentation import tournament_presentation
 
 
 # Handoff JPG fallbacks for the 11-game poster grid. Keys cover common
@@ -123,7 +124,7 @@ def _hero_stats() -> Dict[str, Any]:
         players = 0
 
     Tournament = _safe_model("tournaments", "Tournament")
-    tournaments_total = active = 0
+    tournaments_total = active = registration_open = tournaments_live = 0
     if Tournament is not None:
         try:
             tournaments_total = Tournament.objects.filter(
@@ -133,6 +134,11 @@ def _hero_stats() -> Dict[str, Any]:
             active = Tournament.objects.filter(
                 is_deleted=False, status__in=["live", "registration_open"],
             ).count()
+            registration_open = Tournament.objects.filter(
+                Q(registration_end__isnull=True) | Q(registration_end__gt=timezone.now()),
+                is_deleted=False, status='registration_open',
+            ).count()
+            tournaments_live = Tournament.objects.filter(is_deleted=False, status='live').count()
         except Exception:
             pass
 
@@ -205,11 +211,13 @@ def _hero_stats() -> Dict[str, Any]:
         "players": players,
         "tournaments_total": tournaments_total,
         "tournaments_active": active,
+        "registration_open": registration_open,
+        "tournaments_live": tournaments_live,
         "teams": teams,
         "prize_lakh": prize_lakh or "0",
         "active_prize_label": active_prize_label,
         "lifetime_prize_label": lifetime_prize_label,
-        "games_count": games_count or 11,
+        "games_count": games_count,
     }
 
 
@@ -379,7 +387,7 @@ def _recent_ribbon(limit: int = 4) -> List[Dict[str, Any]]:
     return out
 
 
-def _game_posters(limit: int = 12) -> List[Dict[str, Any]]:
+def _game_posters(limit: Optional[int] = None) -> List[Dict[str, Any]]:
     Game = _safe_model("games", "Game")
     if Game is None:
         return []
@@ -605,7 +613,12 @@ def _featured_tournament() -> Optional[Dict[str, Any]]:
         deadline = t.tournament_start
         deadline_label = "Starts"
 
+    presentation = tournament_presentation(
+        t.status, getattr(t, 'registration_end', None), timezone.now(),
+        full=bool(max_slots and reg_count >= max_slots),
+    )
     return {
+        **presentation,
         "name": t.name,
         "slug": t.slug,
         "game_name": ((game.display_name or game.name) if game else "").upper(),
@@ -621,7 +634,7 @@ def _featured_tournament() -> Optional[Dict[str, Any]]:
         "deadline_label": deadline_label,
         # Back-compat alias used by older template blocks.
         "reg_end_iso": deadline.isoformat() if deadline else "",
-        "register_url": f"/tournaments/{t.slug}/register/",
+        "register_url": f"/tournaments/{t.slug}/register/" if presentation['can_register'] else f"/tournaments/{t.slug}/",
         "view_url": f"/tournaments/{t.slug}/",
     }
 
@@ -672,6 +685,7 @@ def _upcoming_cards(limit: int = 4, exclude_id: Optional[int] = None) -> List[Di
             fmt_label = (getattr(t, "format", "") or "").replace("_", " ").title() or "Bracket"
 
         out.append({
+            **tournament_presentation(t.status, getattr(t, 'registration_end', None), timezone.now(), full=bool(max_slots and reg_count >= max_slots)),
             "name": t.name,
             "slug": t.slug,
             "game_name": ((game.display_name or game.name) if game else "").upper(),
@@ -680,9 +694,9 @@ def _upcoming_cards(limit: int = 4, exclude_id: Optional[int] = None) -> List[Di
             "poster_url": poster,
             "prize_label": (
                 f"৳{_format_compact(int(t.prize_pool))}"
-                if t.prize_pool else "Free"
+                if t.prize_pool else "No cash prize listed"
             ),
-            "is_free": (not t.prize_pool),
+            "is_free": not getattr(t, 'has_entry_fee', False),
             "is_live": t.status == "live",
             "format_label": fmt_label,
             "slot_count": reg_count,
@@ -1275,7 +1289,7 @@ def get_homepage_extras(request=None) -> Dict[str, Any]:
     # NOTE: bump this key whenever the cached card shape changes — a stale entry
     # built by older code (e.g. missing tournament `game_slug`) would otherwise be
     # served to the new template and break the client-side filter regroup.
-    cache_key = "homepage_extras_v2"
+    cache_key = "homepage_extras_v3"
     cached = safe_cache_get(cache_key)
     if cached is not None:
         return cached

@@ -62,6 +62,6 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS('Applied.' if options['apply'] else 'Preview only; use --apply to save.'))
         if options['apply']:
             try:
-                cache.delete_many(['context_active_games', 'homepage_context_v2', 'homepage_extras_v2'])
+                cache.delete_many(['context_active_games', 'homepage_context_v2', 'homepage_extras_v2', 'homepage_extras_v3'])
             except Exception as exc:
                 self.stderr.write(f'Metadata saved; cache refresh failed: {exc}')

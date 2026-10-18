@@ -7,10 +7,10 @@
 
 /* ── Design tokens (same triad as desktop, scoped to mobile namespace) ─── */
 .dc-home-m{
-  --az:#0A84FF;--az4:#3FA3FF;--vi:#6849E5;--vi4:#8470EE;--go:#CFA75A;--go4:#E2C588;
+  --az:#0A84FF;--az4:#3FA3FF;--vi:#6849E5;--vi4:#AB9BFF;--go:#CFA75A;--go4:#E2C588;
   --live:#FF3B5C;--suc:#2ECC71;
   --bg:#0A0D14;--s1:#11151E;--s2:#181D27;--s3:#222936;
-  --fg:#F4F6FA;--mut:#AEB6C7;--soft:#727B90;--dim:#474F61;
+  --fg:#F4F6FA;--mut:#AEB6C7;--soft:#A0AABC;--dim:#8E99AD;
   --hair:rgba(255,255,255,.07);--stroke:rgba(255,255,255,.11);--strong:rgba(255,255,255,.18);
   --tAz:rgba(10,132,255,.14);--tVi:rgba(104,73,229,.16);--tGo:rgba(207,167,90,.14);
   --tLi:rgba(255,59,92,.14);--tSu:rgba(46,204,113,.14);
@@ -28,8 +28,8 @@
 
 /* ── Type helpers ────────────────────────────────────────────────────────── */
 .dc-home-m .m{font-family:var(--mono);font-variant-numeric:tabular-nums;}
-.dc-home-m .grad{background:var(--crown);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
-.dc-home-m .gradv{background:var(--brand);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
+.dc-home-m .grad{color:var(--go4);}
+.dc-home-m .gradv{color:var(--vi4);}
 
 /* ── Press / tap feedback ────────────────────────────────────────────────── */
 .dc-home-m .tap{transition:transform .12s var(--spring),background .2s,border-color .2s,box-shadow .2s;}

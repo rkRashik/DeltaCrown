@@ -11,10 +11,10 @@
    ============================================================================ */
 
 .dc-home{
-  --az:#0A84FF;--az4:#3FA3FF;--az6:#006FE6;--vi:#6849E5;--vi4:#8470EE;--go:#CFA75A;--go4:#E2C588;
+  --az:#0A84FF;--az4:#3FA3FF;--az6:#006FE6;--vi:#6849E5;--vi4:#AB9BFF;--go:#CFA75A;--go4:#E2C588;
   --live:#FF3B5C;--suc:#2ECC71;
   --bg:#0A0D14;--s1:#11151E;--s2:#181D27;--s3:#222936;
-  --fg:#F4F6FA;--mut:#AEB6C7;--soft:#727B90;--dim:#474F61;
+  --fg:#F4F6FA;--mut:#AEB6C7;--soft:#A0AABC;--dim:#8E99AD;
   --hair:rgba(255,255,255,.07);--stroke:rgba(255,255,255,.11);--strong:rgba(255,255,255,.18);
   --tAz:rgba(10,132,255,.14);--tVi:rgba(104,73,229,.16);--tGo:rgba(207,167,90,.14);--tLi:rgba(255,59,92,.14);--tSu:rgba(46,204,113,.14);
   --brand:linear-gradient(135deg,#6849E5,#0A84FF);
@@ -30,7 +30,7 @@
 
 /* ── Type / utility helpers ──────────────────────────────────────────────── */
 .dc-home .m{font-family:var(--mono);font-variant-numeric:tabular-nums;}
-.dc-home .grad{background:var(--crown);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
+.dc-home .grad{color:var(--go4);}
 
 /* ── Press / button language ─────────────────────────────────────────────── */
 .dc-home .press{transition:transform .14s var(--eo),background .2s,border-color .2s,color .2s,box-shadow .2s;}

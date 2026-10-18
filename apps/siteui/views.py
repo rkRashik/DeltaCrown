@@ -57,6 +57,8 @@ def home(request):
     # Per-user hero CTA/copy — not cached, lightweight exists() queries only
     hero_ctx = get_home_hero_context(request.user)
     context["hero_ctx"] = hero_ctx
+    from .homepage_presentation import get_homepage_presentation
+    context['home_ui'] = get_homepage_presentation(context['v3']['hero_stats'], hero_ctx)
     context["home_state"] = _HOME_STATE_BY_MODE.get(
         (hero_ctx or {}).get("mode"), "guest"
     )

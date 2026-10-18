@@ -41,7 +41,7 @@ class Command(BaseCommand):
                     game.save(update_fields=[*changes, 'updated_at'])
         if options['apply']:
             try:
-                cache.delete_many(['context_active_games', 'homepage_context_v2', 'homepage_extras_v2'])
+                cache.delete_many(['context_active_games', 'homepage_context_v2', 'homepage_extras_v2', 'homepage_extras_v3'])
             except Exception as exc:
                 self.stderr.write(f'Metadata saved; cache refresh failed: {exc}')
         self.stdout.write(self.style.SUCCESS(

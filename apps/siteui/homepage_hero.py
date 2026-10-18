@@ -455,7 +455,7 @@ def _hero_guest() -> dict:
         mode="guest",
         # ── Main hero ──────────────────────────────────────────────────────
         eyebrow_primary="Free to compete · zero entry wall",
-        eyebrow_secondary="Season 3 · open registration",
+        eyebrow_secondary="Tournaments, teams and player profiles",
         subcopy=(
             "Build your esports identity, join verified tournaments, form real teams, "
             "and climb a ranking system where every result matters."

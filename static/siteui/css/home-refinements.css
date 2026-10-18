@@ -1,0 +1,105 @@
+/* Shared homepage refinements. Layout differences retain the same content/state. */
+:is(.dc-home, .dc-home-m) :is(a, button):focus-visible {
+  outline: 2px solid var(--az4);
+  outline-offset: 4px;
+}
+:is(.dc-home, .dc-home-m) :is(a, button) { scroll-margin-top: 88px; }
+:is(.dc-home, .dc-home-m) h2 .grad { color: inherit; }
+:is(.dc-home, .dc-home-m) .m { line-height: 1.5; }
+.dc-home h1 { white-space: normal !important; }
+.dc-home .hero-proof { font: 400 12px/1.6 var(--text); text-transform: none; letter-spacing: 0; }
+.dc-home .hero-bottom { flex-wrap: wrap; }
+.dc-home .hero-games { flex-wrap: wrap; align-items: center; }
+.dc-home .hero-dock { flex-wrap: wrap; }
+.dc-home .hero-dock-item { width: 44px; height: 44px; }
+.dc-home .hero-dock-tip { font-size: 12px; }
+.dc-home .cta::after { display: none; }
+.dc-home :is(.mode, .ecocard, .pathcard):hover { transform: none; box-shadow: none; }
+
+/* Mode choices use rows, while tournament cards retain their event artwork. */
+.dc-home [data-section="daily-ops"] .mode {
+  display: grid !important;
+  grid-template-columns: auto 1fr;
+  align-content: start;
+  column-gap: 16px !important;
+  padding: 22px 0 !important;
+  border: 0 !important;
+  border-top: 1px solid var(--stroke) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+}
+.dc-home [data-section="daily-ops"] .mode > :last-child { grid-column: 2; }
+.dc-home [data-section="trust"] .home-trust-item {
+  border: 0 !important;
+  border-top: 1px solid var(--stroke) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  padding-inline: 0 !important;
+}
+.dc-home [data-section="ecosystem"] .ecocard {
+  background: transparent !important;
+  border-color: var(--hair) !important;
+  border-radius: 8px !important;
+}
+.dc-home [data-section="pathways"] .pathcard {
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  border-top: 1px solid var(--stroke) !important;
+  box-shadow: none !important;
+}
+.home-status {
+  margin: 0 auto 22px;
+  padding: 0 20px;
+  max-width: 40ch;
+  text-align: center;
+  color: var(--mut);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.home-mode-list { padding: 0 16px; }
+.dc-home-m .home-mode-link {
+  width: 100% !important;
+  display: grid !important;
+  grid-template-columns: 44px 1fr;
+  gap: 6px 14px !important;
+  align-items: start;
+  padding: 18px 0 !important;
+  border: 0 !important;
+  border-top: 1px solid var(--stroke) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+}
+.home-mode-link > :first-child { grid-row: span 2; }
+.home-mode-link > :last-child { grid-column: 2; }
+.home-trust-list { margin: 22px 0 16px; }
+.home-trust-list > div { padding: 18px 0; border-top: 1px solid var(--stroke); }
+.home-trust-list dt { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 15px; }
+.home-trust-list dd { margin: 8px 0 0 30px; font-size: 14px; line-height: 1.6; color: var(--mut); }
+.home-text-link { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; font-size: 14px; color: var(--az4); text-decoration: underline; text-underline-offset: 4px; }
+.dc-home-m [data-section="teams"] > div { background: var(--s1) !important; border-color: var(--stroke) !important; }
+.home-hero-actions { flex-wrap: wrap; }
+.home-hero-actions a { min-height: 48px; flex: 1 1 180px !important; text-align: center; }
+.dc-home-m [data-section="crown"] .m { overflow-wrap: anywhere; }
+.dc-home-m [data-section="games"] .snap { min-width: 148px; }
+.dc-footer-mobile :is(.dc-fm-copy, .dc-fm-legal) { font-size: 12px; color: #A0AABC; }
+.dc-footer-mobile a { min-height: 44px; display: inline-flex; align-items: center; }
+.dc-footer-mobile a:focus-visible { outline: 2px solid #3FA3FF; outline-offset: 4px; }
+.dc-footer-mobile .dc-fm-social { width: 44px; height: 44px; }
+:is(.dc-home, .dc-home-m) { --az: #086BCB; }
+.dc-home-m .m-sheet-scrim { z-index: 200; }
+.dc-home-m .m-sheet { z-index: 201; }
+.dc-home-m .m-sheet-close { width: 44px; height: 44px; }
+.home-page footer:not(.dc-footer-mobile) > .absolute.inset-0 { display: none; }
+.home-page footer:not(.dc-footer-mobile) { background: #090C12; }
+.home-page .dc-newsletter-btn { background: #086BCB; letter-spacing: 0; min-height: 44px; }
+.home-page footer .gradient-text { background: none; color: #F4F6FA; -webkit-text-fill-color: currentColor; }
+.home-page footer .text-gray-600 { color: #A0AABC; }
+.home-page footer a:focus-visible { outline: 2px solid #3FA3FF; outline-offset: 4px; }
+@media (prefers-reduced-motion: reduce) {
+  :is(.dc-home, .dc-home-m) *, :is(.dc-home, .dc-home-m) *::before, :is(.dc-home, .dc-home-m) *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}

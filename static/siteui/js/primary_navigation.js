@@ -324,7 +324,9 @@
       if (menuOpen) { closeMenu(); return; }
       if (searchOpen) { closeSearch(); return; }
       document.querySelectorAll('.dc-dropdown.show').forEach(d => d.classList.remove('show'));
-      document.querySelectorAll('.dcv4-menu.dcv4-open').forEach(m => m.classList.remove('dcv4-open'));
+      const focusedMenu = document.activeElement?.closest('.dcv4-menu');
+      closeV4Menus();
+      if (focusedMenu?.id === 'dc-teams-menu') $('#dc-teams-toggle')?.focus();
       const chevEsc = $('#dc-profile-chevron'); if (chevEsc) chevEsc.style.transform = '';
     }
     if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
@@ -383,7 +385,11 @@
 
   function closeV4Menus(except) {
     document.querySelectorAll('.dcv4-menu.dcv4-open').forEach(m => {
-      if (m !== except) m.classList.remove('dcv4-open');
+      if (m !== except) {
+        m.classList.remove('dcv4-open');
+        const trigger = document.querySelector('[aria-controls="' + m.id + '"]');
+        trigger?.setAttribute('aria-expanded', 'false');
+      }
     });
     if (profileChevron && (!except || except.id !== 'dc-profile-menu')) {
       profileChevron.style.transform = '';
@@ -396,6 +402,7 @@
 
   ['dc-teams'].forEach((key) => {
     const btn = $('#' + key + '-btn');
+    const toggle = $('#' + key + '-toggle');
     const menu = $('#' + key + '-menu');
     if (!btn || !menu) return;
     const wrap = btn.closest('.dcv4-menuwrap');
@@ -405,16 +412,33 @@
       closeV4Menus(menu);
       closeNotifMenu();
       menu.classList.add('dcv4-open');
-      btn.setAttribute('aria-expanded', 'true');
+      toggle?.setAttribute('aria-expanded', 'true');
     };
     const close = () => {
       menu.classList.remove('dcv4-open');
-      btn.setAttribute('aria-expanded', 'false');
+      toggle?.setAttribute('aria-expanded', 'false');
     };
     if (wrap) {
       wrap.addEventListener('mouseenter', open);
-      wrap.addEventListener('mouseleave', () => { hideTimer = setTimeout(close, 160); });
+      wrap.addEventListener('mouseleave', () => {
+        if (!wrap.contains(document.activeElement)) hideTimer = setTimeout(close, 160);
+      });
+      wrap.addEventListener('focusin', () => clearTimeout(hideTimer));
+      wrap.addEventListener('focusout', (e) => {
+        if (!wrap.contains(e.relatedTarget)) close();
+      });
     }
+    toggle?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      menu.classList.contains('dcv4-open') ? close() : open();
+    });
+    [btn, toggle].forEach(trigger => trigger?.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        open();
+        menu.querySelector('a')?.focus();
+      }
+    }));
   });
 
   if (profileBtn && profileMenu) {

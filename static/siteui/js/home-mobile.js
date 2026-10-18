@@ -28,6 +28,9 @@
     var sPoster = document.getElementById('mSheetPoster');
     var sUrl    = document.getElementById('mSheetUrl');
     var sClock  = document.getElementById('mSheetClock');
+    var sStatus = document.getElementById('mSheetStatus');
+    var opener = null;
+    var previousOverflow = '';
 
     function populate(card) {
       var d = card.dataset;
@@ -39,6 +42,7 @@
       if (sSlots)  sSlots.textContent  = d.tSlots  || '';
       if (sPoster) sPoster.style.backgroundImage = d.tPoster ? "url('" + d.tPoster + "')" : '';
       if (sUrl)    sUrl.href = d.tUrl || '#';
+      if (sStatus) sStatus.textContent = d.tStatus || 'Tournament details';
       if (sClock) {
         sClock.textContent = '';
         if (d.tCountdown) { sClock.setAttribute('data-countdown', d.tCountdown); }
@@ -47,20 +51,41 @@
     }
 
     function open(card) {
+      opener = card;
+      previousOverflow = document.body.style.overflow;
       populate(card);
       root.classList.add('m-sheet-open');
       document.body.style.overflow = 'hidden';
       sheet.scrollTop = 0;
+      closeBtn?.focus();
     }
 
     function close() {
       root.classList.remove('m-sheet-open');
-      document.body.style.overflow = '';
+      document.body.style.overflow = previousOverflow;
+      opener?.focus();
     }
 
-    cards.forEach(function (c) { c.addEventListener('click', function () { open(c); }); });
+    cards.forEach(function (c) {
+      c.addEventListener('click', function () { open(c); });
+      c.addEventListener('keydown', function (event) {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          open(c);
+        }
+      });
+    });
     if (closeBtn) closeBtn.addEventListener('click', close);
     scrim.addEventListener('click', close);
+    sheet.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape') { event.preventDefault(); close(); return; }
+      if (event.key !== 'Tab') return;
+      var controls = Array.prototype.slice.call(sheet.querySelectorAll('a[href], button, [tabindex="0"]'));
+      if (!controls.length) return;
+      var first = controls[0], last = controls[controls.length - 1];
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    });
   }
 
   /* ── 2. Live countdown (isolated to mobile tree) ─────────────────────── */
@@ -77,7 +102,7 @@
         var target = iso ? Date.parse(iso) : NaN;
         if (isNaN(target)) continue;
         var diff = Math.floor((target - now) / 1000);
-        if (diff <= 0) { el.textContent = 'Closed'; el.removeAttribute('data-countdown'); continue; }
+        if (diff <= 0) { el.textContent = 'Started'; el.removeAttribute('data-countdown'); continue; }
         var h = Math.floor(diff / 3600);
         var m = Math.floor((diff % 3600) / 60);
         var s = diff % 60;
@@ -90,9 +115,9 @@
   }
 
   function init() {
-    /* Only run if the mobile tree is currently active (visible) */
+    /* Bind once even on desktop so resizing into the mobile layout keeps it usable. */
     var root = document.querySelector('.dc-home-m');
-    if (!root || root.offsetParent === null) return;
+    if (!root) return;
     initMobileSheet();
     initMobileCountdowns();
   }
