@@ -12,6 +12,8 @@ Key flows:
 """
 from __future__ import annotations
 
+from deltacrown.branding import brand_copy
+
 import logging
 from decimal import Decimal
 from typing import Iterable
@@ -53,7 +55,7 @@ def _wallet_for_user(user) -> DeltaCrownWallet:
         return DeltaCrownWallet.objects.get(profile=profile)
     except DeltaCrownWallet.DoesNotExist as exc:
         raise ValidationError(
-            f"User '{user.username}' has no DeltaCoin wallet."
+            f"User '{user.username}' has no {brand_copy('[[coins]]')} wallet."
         ) from exc
 
 

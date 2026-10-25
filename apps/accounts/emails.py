@@ -1,3 +1,5 @@
+
+from deltacrown.branding import brand_copy
 import re
 import logging
 from email.utils import formataddr
@@ -16,7 +18,7 @@ def normalize_from_email(value: str | None = None) -> str:
     ) or "noreply@deltacrown.xyz").strip()
     addresses = re.findall(r"[-A-Za-z0-9._%+]+@[-A-Za-z0-9.]+\.[A-Za-z]{2,}", raw)
     address = addresses[-1] if addresses else raw
-    return formataddr(("DeltaCrown", address))
+    return formataddr((brand_copy("[[brand]]"), address))
 
 
 def send_otp_email(user, code, *, expires_in_minutes: int = 10):
@@ -28,7 +30,7 @@ def send_otp_email(user, code, *, expires_in_minutes: int = 10):
     - Proper From name for trust signals
     - List-Unsubscribe header to satisfy spam filters
     """
-    subject = f"Your DeltaCrown Verification Code: {code}"
+    subject = f"Your {brand_copy('[[brand]]')} Verification Code: {code}"
     from_email = normalize_from_email()
 
     context = {
@@ -48,7 +50,7 @@ def send_otp_email(user, code, *, expires_in_minutes: int = 10):
         to=[user.email],
         headers={
             "X-Priority": "1",
-            "X-Mailer": "DeltaCrown Esports Platform",
+            "X-Mailer": brand_copy("[[brand]] Esports Platform"),
             "List-Unsubscribe": "<mailto:unsubscribe@deltacrown.com>",
         },
     )

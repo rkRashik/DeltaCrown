@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 {% load static humanize %}
 
-{% block title %}{% if selected_game_name %}{{ selected_game_name }} Rankings{% else %}Crown Point Rankings{% endif %} | DeltaCrown{% endblock %}
-{% block og_title %}{% if selected_game_name %}{{ selected_game_name }} Rankings{% else %}Crown Point Rankings{% endif %} | DeltaCrown{% endblock %}
+{% block title %}{% if selected_game_name %}{{ selected_game_name }} Rankings{% else %}{{ brand.features.ranking_points }} Rankings{% endif %} | {{ brand.name }}{% endblock %}
+{% block og_title %}{% if selected_game_name %}{{ selected_game_name }} Rankings{% else %}{{ brand.features.ranking_points }} Rankings{% endif %} | {{ brand.name }}{% endblock %}
 
 {% block extra_css %}
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -212,7 +212,7 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
           </div>
           <div>
             <div style="font-family:'Sora',sans-serif;font-weight:800;font-size:15px;letter-spacing:-.02em;color:#F4F6FA;line-height:1;">Rankings</div>
-            <div style="font-size:9px;color:#5A6273;margin-top:2px;letter-spacing:.06em;text-transform:uppercase;font-weight:600;">Crown Points</div>
+            <div style="font-size:9px;color:#5A6273;margin-top:2px;letter-spacing:.06em;text-transform:uppercase;font-weight:600;">{{ brand.features.ranking_points }}</div>
           </div>
         </div>
         <button type="button" id="rkCompareToggle" title="Compare teams" style="width:30px;height:30px;border-radius:8px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);display:flex;align-items:center;justify-content:center;cursor:pointer;color:#5A6273;transition:all .15s;">
@@ -364,7 +364,7 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
       <!-- Header -->
       <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 0 14px;gap:12px;" class="rk-fu">
         <div style="display:flex;align-items:center;gap:12px;min-width:0;">
-          <h1 id="rkTitle" style="font-family:'Sora',sans-serif;font-weight:800;font-size:19px;letter-spacing:-.02em;margin:0;color:#F4F6FA;white-space:nowrap;">{% if selected_game_name %}{{ selected_game_name }} Rankings{% else %}Crown Point Rankings{% endif %}</h1>
+          <h1 id="rkTitle" style="font-family:'Sora',sans-serif;font-weight:800;font-size:19px;letter-spacing:-.02em;margin:0;color:#F4F6FA;white-space:nowrap;">{% if selected_game_name %}{{ selected_game_name }} Rankings{% else %}Team Rankings{% endif %}</h1>
           <div style="display:flex;align-items:center;gap:6px;background:rgba(255,59,92,.08);border:1px solid rgba(255,59,92,.18);border-radius:999px;padding:3px 10px;flex-shrink:0;">
             <span style="width:5px;height:5px;border-radius:50%;background:#FF3B5C;display:inline-block;animation:rk-livedot 1.4s ease-in-out infinite;"></span>
             <span style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#FF3B5C;">Live</span>
@@ -391,7 +391,7 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
             </div>
           </div>
           <div style="font-size:11px;font-weight:600;color:#3D4558;text-align:right;">
-            Top CP: <span style="font-family:'JetBrains Mono',monospace;color:#CFA75A;font-size:13px;font-weight:700;">{{ max_score|intcomma }}</span>
+            Top {{ brand.features.ranking_points_short }}: <span style="font-family:'JetBrains Mono',monospace;color:#CFA75A;font-size:13px;font-weight:700;">{{ max_score|intcomma }}</span>
           </div>
         </div>
 
@@ -404,7 +404,7 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
                 <th style="width:48px;padding-left:8px;">#</th>
                 <th>Team</th>
                 <th style="width:130px;" class="col-tier">Tier</th>
-                <th style="width:170px;cursor:pointer;user-select:none;" class="rk-sortable" data-sort="score">Crown Points <i class="fa-solid fa-sort" style="font-size:8px;opacity:.4;margin-left:2px;"></i></th>
+                <th style="width:170px;cursor:pointer;user-select:none;" class="rk-sortable" data-sort="score">{{ brand.features.ranking_points }} <i class="fa-solid fa-sort" style="font-size:8px;opacity:.4;margin-left:2px;"></i></th>
                 <th style="width:80px;text-align:right;padding-right:18px;cursor:pointer;user-select:none;" class="col-act rk-sortable" data-sort="activity">Activity <i class="fa-solid fa-sort" style="font-size:8px;opacity:.4;margin-left:2px;"></i></th>
               </tr>
             </thead>
@@ -433,7 +433,7 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
                 </td>
                 <td class="col-tier"><span class="tier-badge" data-tier="{{ entry.tier }}">{% if entry.tier == 'THE_CROWN' %}THE CROWN{% else %}{{ entry.tier }}{% endif %}</span></td>
                 <td>
-                  <div style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;color:#E8ECF4;margin-bottom:5px;">{{ entry.score|intcomma }} <span style="font-size:10px;color:#4D5566;">CP</span></div>
+                  <div style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;color:#E8ECF4;margin-bottom:5px;">{{ entry.score|intcomma }} <span style="font-size:10px;color:#4D5566;">{{ brand.features.ranking_points_short }}</span></div>
                   <div style="height:3px;background:rgba(255,255,255,.07);border-radius:999px;overflow:hidden;width:110px;"><div class="tier-bar" data-tier="{{ entry.tier }}" style="height:100%;width:{% widthratio entry.score max_score 100 %}%;border-radius:999px;opacity:.80;"></div></div>
                 </td>
                 <td style="text-align:right;padding-right:18px;" class="col-act">
@@ -463,7 +463,7 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
               </div>
               <div style="text-align:right;flex-shrink:0;">
                 <div style="font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;color:#F4F6FA;">{{ entry.score|intcomma }}</div>
-                <div style="font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#3D4558;margin-top:2px;">CP</div>
+                <div style="font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#3D4558;margin-top:2px;">{{ brand.features.ranking_points_short }}</div>
               </div>
               <span style="width:7px;height:7px;border-radius:50%;background:{% if entry.activity_score >= 80 %}#2ECC71{% elif entry.activity_score >= 40 %}#FFB020{% else %}#5A6273{% endif %};flex-shrink:0;{% if entry.activity_score >= 80 %}animation:rk-actpulse 1.4s ease-in-out infinite;{% endif %}"></span>
               <i class="fa-solid fa-chevron-right" style="color:#232936;font-size:13px;flex-shrink:0;"></i>
@@ -530,7 +530,7 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
                   </td>
                   <td style="width:130px;" class="col-tier"><span class="tier-badge" data-tier="{{ entry.tier }}">{% if entry.tier == 'THE_CROWN' %}THE CROWN{% else %}{{ entry.tier }}{% endif %}</span></td>
                   <td style="width:170px;">
-                    <div style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:#F4F6FA;margin-bottom:5px;">{{ entry.score|intcomma }} <span style="font-size:10px;color:#3D4558;">CP</span></div>
+                    <div style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:#F4F6FA;margin-bottom:5px;">{{ entry.score|intcomma }} <span style="font-size:10px;color:#3D4558;">{{ brand.features.ranking_points_short }}</span></div>
                     <div style="height:2px;background:rgba(255,255,255,.06);border-radius:999px;overflow:hidden;width:90px;"><div style="height:100%;width:{% widthratio entry.score section.max_score 100 %}%;background:{{ section.color }};border-radius:999px;opacity:.65;"></div></div>
                   </td>
                   <td style="width:72px;text-align:right;padding-right:16px;" class="col-act">
@@ -667,7 +667,7 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
     var hdr=document.getElementById('rkSecHdr'), ic=document.getElementById('rkSecIcon');
     var st=document.getElementById('rkSecTitle'), sub=document.getElementById('rkSecSub'), t=document.getElementById('rkTitle');
     if(gf==='all'){
-      if(t) t.textContent='Crown Point Rankings';
+      if(t) t.textContent='Team Rankings';
       if(st) st.textContent='Global Power Rankings';
       if(hdr){ hdr.style.background='linear-gradient(135deg,rgba(104,73,229,.16) 0%,rgba(10,132,255,.12) 55%,rgba(207,167,90,.06) 100%)'; hdr.style.borderLeft=''; }
       if(ic){ ic.innerHTML='<i class="fa-solid fa-trophy" style="font-size:17px;color:#CFA75A;"></i>'; ic.style.background='linear-gradient(135deg,rgba(104,73,229,.30),rgba(10,132,255,.25))'; ic.style.border='1px solid rgba(104,73,229,.30)'; }
@@ -1002,7 +1002,7 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
       var body=document.getElementById('rkCmpBody');
       var rows=[
         {lbl:'Rank',k:'rank',fmt:function(v){return '#'+v;},better:'lower'},
-        {lbl:'Crown Points',k:'score',fmt:function(v){return v.toLocaleString();},better:'higher'},
+        {lbl:'Ranking Points',k:'score',fmt:function(v){return v.toLocaleString();},better:'higher'},
         {lbl:'Activity',k:'activity',fmt:function(v){return v+'%';},better:'higher'},
         {lbl:'Tier',k:'tier',fmt:function(v){return v==='THE_CROWN'?'Crown':v.charAt(0)+v.slice(1).toLowerCase();},better:null},
         {lbl:'Game',k:'game',fmt:function(v){return v||'—';},better:null},

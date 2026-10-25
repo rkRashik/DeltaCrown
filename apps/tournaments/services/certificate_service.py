@@ -50,6 +50,8 @@ Template Layout (Simple & Code-Driven):
 └─────────────────────────────────────────┘
 """
 
+from deltacrown.branding import brand_copy
+
 import hashlib
 import io
 import logging
@@ -372,7 +374,7 @@ class CertificateService:
         c = canvas.Canvas(buffer, pagesize=(self.PDF_WIDTH, self.PDF_HEIGHT))
         
         # Set metadata
-        c.setAuthor("DeltaCrown Tournament Platform")
+        c.setAuthor(brand_copy('[[brand]] Tournament Platform'))
         c.setTitle(f"{certificate_type.replace('_', ' ').title()} - {tournament.name}")
         participant_name = self._get_participant_display_name(registration)
         c.setSubject(f"Certificate for {participant_name}")
@@ -385,6 +387,12 @@ class CertificateService:
             body_font = 'Helvetica'
             header_font = 'Helvetica-Bold'
         
+        # Official primary artwork on the certificate's white surface.
+        from django.contrib.staticfiles import finders
+        logo_path = finders.find('ownlobby/logos/primary-horizontal-light.png')
+        c.drawImage(logo_path, (self.PDF_WIDTH - 160) / 2, self.PDF_HEIGHT - 44,
+                    width=160, height=35.2, preserveAspectRatio=True, mask='auto')
+
         # === HEADER ===
         c.setFont(header_font, 36)
         header_text = "CERTIFICATE" if language == 'en' else "সনদপত্র"
@@ -529,6 +537,12 @@ class CertificateService:
             width=3,
         )
         
+        from django.contrib.staticfiles import finders
+        with Image.open(finders.find('ownlobby/logos/primary-horizontal-light.png')) as master:
+            logo = master.convert('RGBA')
+            logo.thumbnail((250, 55), Image.Resampling.LANCZOS)
+            img.paste(logo, ((1920 - logo.width) // 2, 20), logo)
+
         # Header: "CERTIFICATE"
         header_text = "CERTIFICATE" if language == 'en' else "সনদপত্র"
         header_bbox = draw.textbbox((0, 0), header_text, font=font_large)

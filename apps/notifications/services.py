@@ -17,7 +17,7 @@ from django.db import transaction, connection, IntegrityError
 from django.utils import timezone
 
 User = get_user_model()
-FROM_EMAIL = os.getenv("DeltaCrownEmail", "no-reply@deltacrown.local")
+FROM_EMAIL = os.getenv("DeltaCrownEmail", settings.DEFAULT_FROM_EMAIL)
 logger = logging.getLogger(__name__)
 
 Notification = apps.get_model("notifications", "Notification")

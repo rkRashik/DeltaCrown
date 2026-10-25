@@ -8,6 +8,8 @@ Handles all tournament-related notifications:
 - Tournament updates
 """
 
+from deltacrown.branding import brand_copy
+
 from typing import Dict, List, Optional
 from django.core.mail import send_mass_mail
 from django.template.loader import render_to_string
@@ -585,11 +587,7 @@ class TournamentNotificationService:
             send_mail(
                 subject=f"Waitlisted - {tournament.name}",
                 message=(
-                    f"Hi {contact.username},\n\n"
-                    f"The tournament '{tournament.name}' is currently full. "
-                    f"You've been added to the waitlist at position #{position}.\n\n"
-                    "We'll notify you immediately if a spot becomes available!\n\n"
-                    "Best regards,\nThe DeltaCrown Team"
+                    f"Hi {contact.username},\n\nThe tournament '{tournament.name}' is currently full. You've been added to the waitlist at position #{position}.\n\nWe'll notify you immediately if a spot becomes available!\n\nBest regards,\nThe {brand_copy('[[brand]]')} Team"
                 ),
                 from_email=settings.DEFAULT_FROM_EMAIL,
                 recipient_list=[contact.email],

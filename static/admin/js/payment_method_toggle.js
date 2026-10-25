@@ -77,8 +77,8 @@
         ].join('\n'),
 
         deltacoin: [
-            'Your DeltaCoin balance will be automatically deducted upon registration.',
-            'Make sure you have sufficient DeltaCoin balance before proceeding.',
+            'Your Coins balance will be automatically deducted upon registration.',
+            'Make sure you have sufficient Coins balance before proceeding.',
             'No manual transaction is required.',
         ].join('\n'),
     };

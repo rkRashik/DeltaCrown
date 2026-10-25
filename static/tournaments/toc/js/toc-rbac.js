@@ -391,7 +391,7 @@
         if (!transactions || !transactions.length) return '<p class="text-xs text-dc-text italic">No transactions.</p>';
         return `
             <div class="glass-box rounded-lg p-4 mt-3">
-                <p class="text-[10px] font-bold uppercase tracking-widest text-dc-text mb-2">DeltaCoin Transactions</p>
+                <p class="text-[10px] font-bold uppercase tracking-widest text-dc-text mb-2">Coins Transactions</p>
                 <div class="space-y-2 max-h-40 overflow-y-auto">
                     ${transactions.map(t => `
                         <div class="flex items-center justify-between text-xs">
@@ -434,7 +434,7 @@
     }
 
     function distributePrize () {
-        showOverlay('Distribute DeltaCoin Prize', `
+        showOverlay('Distribute Coins Prize', `
             <div class="space-y-4">
                 <div>
                     <label class="block text-xs text-dc-text mb-1">User ID</label>

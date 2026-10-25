@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}How Rankings Work · DeltaCrown{% endblock %}
-{% block og_title %}How Rankings Work · DeltaCrown{% endblock %}
+{% block title %}How Rankings Work · {{ brand.name }}{% endblock %}
+{% block og_title %}How Rankings Work · {{ brand.name }}{% endblock %}
 
 {% block extra_css %}
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;800&display=swap" rel="stylesheet">
@@ -62,13 +62,13 @@ body {
   {# ═══════════════════ HEADER ═══════════════════ #}
   <header class="fade-in-up text-center mb-14">
     <div class="inline-flex items-center gap-2 bg-dc-cyan/10 text-dc-cyan border border-dc-cyan/20 px-3 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-widest mb-5 shadow-neon-cyan">
-      <span class="w-1.5 h-1.5 rounded-full bg-dc-cyan animate-pulse"></span> Crown Points Ranking System
+      <span class="w-1.5 h-1.5 rounded-full bg-dc-cyan animate-pulse"></span> {{ brand.features.ranking_points }} Ranking System
     </div>
     <h1 class="font-rajdhani text-4xl sm:text-5xl md:text-6xl font-extrabold uppercase tracking-wide leading-none text-white drop-shadow-lg">
       How <span class="text-transparent bg-clip-text bg-gradient-to-r from-dc-cyan via-blue-400 to-dc-purple">Rankings</span> Work
     </h1>
     <p class="text-sm sm:text-base text-dc-muted mt-4 max-w-2xl mx-auto leading-relaxed font-medium">
-      Transparent, performance-based team rankings powered by Crown Points (CP) and a hidden skill rating system.
+      Transparent, performance-based team rankings powered by {{ brand.features.ranking_points }} ({{ brand.features.ranking_points_short }}) and a hidden skill rating system.
     </p>
   </header>
 
@@ -84,8 +84,8 @@ body {
           <i class="fa-solid fa-coins text-dc-cyan text-xs"></i>
         </div>
         <div>
-          <div class="font-bold text-white mb-1">Crown Points (CP)</div>
-          <p class="text-dc-muted">Every match you play earns or costs Crown Points. Win matches to gain CP, lose matches to lose CP. Your total CP determines your rank and tier.</p>
+          <div class="font-bold text-white mb-1">{{ brand.features.ranking_points }} ({{ brand.features.ranking_points_short }})</div>
+          <p class="text-dc-muted">Every match you play earns or costs {{ brand.features.ranking_points }}. Win matches to gain {{ brand.features.ranking_points_short }}, lose matches to lose {{ brand.features.ranking_points_short }}. Your total {{ brand.features.ranking_points_short }} determines your rank and tier.</p>
         </div>
       </div>
       <div class="flex gap-4">
@@ -94,7 +94,7 @@ body {
         </div>
         <div>
           <div class="font-bold text-white mb-1">Skill-Based Scaling</div>
-          <p class="text-dc-muted">An invisible skill rating tracks your team's true strength. Beat a stronger team? You earn bonus CP. Lose to a weaker team? The penalty is higher.</p>
+          <p class="text-dc-muted">An invisible skill rating tracks your team's true strength. Beat a stronger team? You earn bonus {{ brand.features.ranking_points_short }}. Lose to a weaker team? The penalty is higher.</p>
         </div>
       </div>
       <div class="flex gap-4">
@@ -103,7 +103,7 @@ body {
         </div>
         <div>
           <div class="font-bold text-white mb-1">Tier Progression</div>
-          <p class="text-dc-muted">Your CP total places you into a tier. Tiers are cosmetic milestones that show your competitive level at a glance. As you earn more CP, you automatically move up.</p>
+          <p class="text-dc-muted">Your {{ brand.features.ranking_points_short }} total places you into a tier. Tiers are cosmetic milestones that show your competitive level at a glance. As you earn more {{ brand.features.ranking_points_short }}, you automatically move up.</p>
         </div>
       </div>
       <div class="flex gap-4">
@@ -129,42 +129,42 @@ body {
         <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest tier-badge-crown mb-2">
           <i class="fa-solid fa-crown mr-1.5"></i> The Crown
         </span>
-        <div class="font-rajdhani text-2xl font-bold text-[#ffd700]">30,000+ CP</div>
+        <div class="font-rajdhani text-2xl font-bold text-[#ffd700]">30,000+ {{ brand.features.ranking_points_short }}</div>
         <p class="text-xs text-dc-muted mt-1">The absolute elite. Undisputed champions.</p>
       </div>
       <div class="p-4 rounded-xl bg-gradient-to-br from-orange-500/8 to-transparent border border-orange-500/15 hover:border-orange-500/30 transition-colors">
         <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest tier-badge-legend mb-2">
           <i class="fa-solid fa-fire mr-1.5"></i> Legend
         </span>
-        <div class="font-rajdhani text-2xl font-bold text-orange-400">8,000+ CP</div>
+        <div class="font-rajdhani text-2xl font-bold text-orange-400">8,000+ {{ brand.features.ranking_points_short }}</div>
         <p class="text-xs text-dc-muted mt-1">Household names in competitive play.</p>
       </div>
       <div class="p-4 rounded-xl bg-gradient-to-br from-purple-500/8 to-transparent border border-purple-500/15 hover:border-purple-500/30 transition-colors">
         <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest tier-badge-master mb-2">
           <i class="fa-solid fa-gem mr-1.5"></i> Master
         </span>
-        <div class="font-rajdhani text-2xl font-bold text-purple-400">2,000+ CP</div>
+        <div class="font-rajdhani text-2xl font-bold text-purple-400">2,000+ {{ brand.features.ranking_points_short }}</div>
         <p class="text-xs text-dc-muted mt-1">Proven teams with tournament-level skill.</p>
       </div>
       <div class="p-4 rounded-xl bg-gradient-to-br from-blue-500/8 to-transparent border border-blue-500/15 hover:border-blue-500/30 transition-colors">
         <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest tier-badge-elite mb-2">
           <i class="fa-solid fa-medal mr-1.5"></i> Elite
         </span>
-        <div class="font-rajdhani text-2xl font-bold text-blue-400">500+ CP</div>
+        <div class="font-rajdhani text-2xl font-bold text-blue-400">500+ {{ brand.features.ranking_points_short }}</div>
         <p class="text-xs text-dc-muted mt-1">Skilled competitors on the rise.</p>
       </div>
       <div class="p-4 rounded-xl bg-gradient-to-br from-green-500/8 to-transparent border border-green-500/15 hover:border-green-500/30 transition-colors">
         <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest tier-badge-challenger mb-2">
           <i class="fa-solid fa-shield-halved mr-1.5"></i> Challenger
         </span>
-        <div class="font-rajdhani text-2xl font-bold text-green-400">100+ CP</div>
+        <div class="font-rajdhani text-2xl font-bold text-green-400">100+ {{ brand.features.ranking_points_short }}</div>
         <p class="text-xs text-dc-muted mt-1">Active teams building their record.</p>
       </div>
       <div class="p-4 rounded-xl bg-gradient-to-br from-slate-500/8 to-transparent border border-slate-500/15 hover:border-slate-500/30 transition-colors">
         <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest tier-badge-rookie mb-2">
           <i class="fa-solid fa-seedling mr-1.5"></i> Rookie
         </span>
-        <div class="font-rajdhani text-2xl font-bold text-slate-400">0 &ndash; 99 CP</div>
+        <div class="font-rajdhani text-2xl font-bold text-slate-400">0 &ndash; 99 {{ brand.features.ranking_points_short }}</div>
         <p class="text-xs text-dc-muted mt-1">New teams starting their journey.</p>
       </div>
     </div>
@@ -181,14 +181,14 @@ body {
         <div class="w-9 h-9 rounded-full bg-dc-success/10 border border-dc-success/20 flex items-center justify-center shrink-0 text-sm font-bold text-dc-success font-rajdhani">1</div>
         <div>
           <div class="font-bold text-white text-sm">Win Matches</div>
-          <p class="text-xs text-dc-muted mt-0.5">Every confirmed victory earns CP. More wins = higher rank.</p>
+          <p class="text-xs text-dc-muted mt-0.5">Every confirmed victory earns {{ brand.features.ranking_points_short }}. More wins = higher rank.</p>
         </div>
       </div>
       <div class="flex gap-4 items-start">
         <div class="w-9 h-9 rounded-full bg-dc-success/10 border border-dc-success/20 flex items-center justify-center shrink-0 text-sm font-bold text-dc-success font-rajdhani">2</div>
         <div>
           <div class="font-bold text-white text-sm">Beat Stronger Teams</div>
-          <p class="text-xs text-dc-muted mt-0.5">Defeating higher-rated opponents gives bonus CP. Underdogs are rewarded.</p>
+          <p class="text-xs text-dc-muted mt-0.5">Defeating higher-rated opponents gives bonus {{ brand.features.ranking_points_short }}. Underdogs are rewarded.</p>
         </div>
       </div>
       <div class="flex gap-4 items-start">
@@ -217,11 +217,11 @@ body {
     <div class="space-y-4 text-sm text-dc-muted">
       <div class="flex items-start gap-4 p-4 rounded-xl bg-white/[0.02] border border-white/5">
         <div class="w-6 h-6 rounded-full bg-dc-success/10 flex items-center justify-center shrink-0 mt-0.5"><i class="fa-solid fa-check text-dc-success text-[10px]"></i></div>
-        <p><strong class="text-white">Daily Match Cap:</strong> There is a limit on how many ranked matches count per day, preventing CP farming.</p>
+        <p><strong class="text-white">Daily Match Cap:</strong> There is a limit on how many ranked matches count per day, preventing {{ brand.features.ranking_points_short }} farming.</p>
       </div>
       <div class="flex items-start gap-4 p-4 rounded-xl bg-white/[0.02] border border-white/5">
         <div class="w-6 h-6 rounded-full bg-dc-success/10 flex items-center justify-center shrink-0 mt-0.5"><i class="fa-solid fa-check text-dc-success text-[10px]"></i></div>
-        <p><strong class="text-white">Opponent Diversity:</strong> Repeatedly playing the same team yields diminishing CP returns. Face new opponents for full rewards.</p>
+        <p><strong class="text-white">Opponent Diversity:</strong> Repeatedly playing the same team yields diminishing {{ brand.features.ranking_points_short }} returns. Face new opponents for full rewards.</p>
       </div>
       <div class="flex items-start gap-4 p-4 rounded-xl bg-white/[0.02] border border-white/5">
         <div class="w-6 h-6 rounded-full bg-dc-success/10 flex items-center justify-center shrink-0 mt-0.5"><i class="fa-solid fa-check text-dc-success text-[10px]"></i></div>
@@ -238,7 +238,7 @@ body {
         Ready to <span class="text-transparent bg-clip-text bg-gradient-to-r from-dc-cyan to-tier-crown">Compete</span>?
       </h2>
       <p class="text-sm text-dc-muted max-w-lg mx-auto mb-8 leading-relaxed">
-        Create a team, compete in matches, and watch your Crown Points grow. Every victory counts.
+        Create a team, compete in matches, and watch your {{ brand.features.ranking_points }} grow. Every victory counts.
       </p>
       <div class="flex flex-wrap justify-center gap-4">
         <a href="{% url 'competition:rankings_global' %}" class="px-8 py-3.5 bg-dc-cyan/10 text-dc-cyan border border-dc-cyan/25 text-xs font-bold uppercase tracking-widest rounded-xl hover:bg-dc-cyan/20 transition-all hover:-translate-y-0.5 no-underline shadow-neon-cyan">

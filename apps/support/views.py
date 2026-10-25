@@ -1,4 +1,6 @@
 from __future__ import annotations
+
+from deltacrown.branding import brand_copy
 from django import forms
 from django.db import models
 from django.shortcuts import render, redirect
@@ -90,8 +92,8 @@ def contact_view(request):
     context = {
         'form': form,
         'seo': build_seo(
-            title='Contact DeltaCrown | Support and Partnerships',
-            description='Contact DeltaCrown for tournament issues, wallet and DeltaCoin questions, proof reviews, moderation reports, team support, privacy, security, or partnerships.',
+            title=brand_copy('Contact [[brand]] | Support and Partnerships'),
+            description=brand_copy('Contact [[brand]] for tournament issues, wallet and [[coins]] questions, proof reviews, moderation reports, team support, privacy, security, or partnerships.'),
             path='/contact/',
             schema=breadcrumb_schema([('Home', '/'), ('Contact', '/contact/')]),
         ),
@@ -130,8 +132,8 @@ def faq_view(request):
         'featured_faqs': FAQ.objects.filter(is_active=True, is_featured=True).order_by('order')[:5],
         'search_query': search_query,
         'seo': build_seo(
-            title='FAQ | DeltaCrown Help Center',
-            description='Answers about DeltaCrown accounts, tournaments, teams, Crown Points, DeltaCoin, Missions, Showdown, Bounty, Dropzone, proofs, reviews, and support.',
+            title=brand_copy('FAQ | [[brand]] Help Center'),
+            description=brand_copy('Answers about [[brand]] accounts, tournaments, teams, [[ranking_points]], [[coins]], Missions, Showdown, Bounty, Dropzone, proofs, reviews, and support.'),
             path='/faq/',
             noindex=bool(search_query),
             schema=_faq_schema(faqs_by_category),
@@ -146,8 +148,8 @@ def moderation_view(request):
     context = {
         'page_title': 'Moderation & Fair Play',
         'seo': build_seo(
-            title='Moderation and Fair Play | DeltaCrown',
-            description='How DeltaCrown handles reports, proof review, disputes, moderation outcomes, and competitive integrity across the platform.',
+            title=brand_copy('Moderation and Fair Play | [[brand]]'),
+            description=brand_copy('How [[brand]] handles reports, proof review, disputes, moderation outcomes, and competitive integrity across the platform.'),
             path='/moderation/',
             schema=breadcrumb_schema([('Home', '/'), ('Moderation', '/moderation/')]),
         ),
@@ -159,8 +161,8 @@ def rules_view(request):
     """Rules and Fair Play page"""
     return render(request, 'support/rules.html', {
         'seo': build_seo(
-            title='Platform Rules | DeltaCrown',
-            description='DeltaCrown rules for fair play, account integrity, tournaments, Match Rooms, Showdown, Missions, Bounty, Dropzone, teams, wallet abuse, proofs, disputes, and operator review.',
+            title=brand_copy('Platform Rules | [[brand]]'),
+            description=brand_copy('[[brand]] rules for fair play, account integrity, tournaments, Match Rooms, Showdown, Missions, Bounty, Dropzone, teams, wallet abuse, proofs, disputes, and operator review.'),
             path='/rules/',
             schema=breadcrumb_schema([('Home', '/'), ('Rules', '/rules/')]),
         )

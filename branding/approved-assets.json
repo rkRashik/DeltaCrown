@@ -1,0 +1,353 @@
+{
+  "source_archive": "Documents/OwnLobby_Brand_Assets_FINAL_REBUILT.zip",
+  "archive_sha256": "f101f1694afa23cdef96e57ec0687e89a6c92b69cd74e039dc27ab6877974dd0",
+  "artwork_policy": "Approved masters copied byte for byte; no geometry, color or proportion changes. Integration CSS and the relative-path PWA manifest are separate files.",
+  "canonical_tokens": "static/ownlobby/brand-tokens.json is a semantic copy of 05_Website/brand-tokens.json.",
+  "files": [
+    {
+      "path": "static/ownlobby/logos/mono-horizontal-dark-fallback.svg",
+      "source": "01_Master_Logos_SVG/mono-horizontal-dark-fallback.svg",
+      "sha256": "621e4603928a76f975ee5e6ddd5dafde1e540f698f88560fd20a0b97a00aabd0"
+    },
+    {
+      "path": "static/ownlobby/logos/mono-horizontal-light-fallback.svg",
+      "source": "01_Master_Logos_SVG/mono-horizontal-light-fallback.svg",
+      "sha256": "de85fb154b3fe5e9ce96edea5352da6961a52d5909c9f76154c1715f668e1668"
+    },
+    {
+      "path": "static/ownlobby/logos/primary-horizontal-dark.svg",
+      "source": "01_Master_Logos_SVG/primary-horizontal-dark.svg",
+      "sha256": "dfdf0f3305f52d0560687b22f378f903d4730e4bdbed354ad0be9ddae75effb2"
+    },
+    {
+      "path": "static/ownlobby/logos/primary-horizontal-light.svg",
+      "source": "01_Master_Logos_SVG/primary-horizontal-light.svg",
+      "sha256": "305c0b99300d0a6a06d3c0b31fdbe7abe30229c4ec5462aeac2e464f89610c54"
+    },
+    {
+      "path": "static/ownlobby/logos/primary-stacked-dark.svg",
+      "source": "01_Master_Logos_SVG/primary-stacked-dark.svg",
+      "sha256": "164eaa08b2ab3e69cb23eaba25f28458c0ae28dfd6ef79b19eec94631d000461"
+    },
+    {
+      "path": "static/ownlobby/logos/primary-stacked-light.svg",
+      "source": "01_Master_Logos_SVG/primary-stacked-light.svg",
+      "sha256": "696485cdce790872513fcf64b594a46722fd581cb07d119b9fc7f76ed8b870f1"
+    },
+    {
+      "path": "static/ownlobby/logos/symbol-dark.svg",
+      "source": "01_Master_Logos_SVG/symbol-dark.svg",
+      "sha256": "7d85b276372fb6820d1b7183d0923f5a56a6747d6a9a37b076471ddd0d6d3329"
+    },
+    {
+      "path": "static/ownlobby/logos/symbol-light.svg",
+      "source": "01_Master_Logos_SVG/symbol-light.svg",
+      "sha256": "51cc7b0136a41224328a2ec2f8dabd67d9254049009a40969f3455d18eec99ba"
+    },
+    {
+      "path": "static/ownlobby/logos/wordmark-dual-dark.svg",
+      "source": "01_Master_Logos_SVG/wordmark-dual-dark.svg",
+      "sha256": "aebc3e92530f33a6c63123b81c5f741b10f54a23cc7cae9feb0b510751db1b1c"
+    },
+    {
+      "path": "static/ownlobby/logos/wordmark-dual-light.svg",
+      "source": "01_Master_Logos_SVG/wordmark-dual-light.svg",
+      "sha256": "0dbaa0355089fa98b61fb752fa7d2dda217a3c7b575671dadebbd93b0f80f006"
+    },
+    {
+      "path": "static/ownlobby/logos/mono-horizontal-dark-fallback.png",
+      "source": "02_Master_Logos_PNG/mono-horizontal-dark-fallback.png",
+      "sha256": "30ce0c7e3496f93dc21ea0a649e230dbc5728d03c7627ca4f1dd58b217662758"
+    },
+    {
+      "path": "static/ownlobby/logos/mono-horizontal-light-fallback.png",
+      "source": "02_Master_Logos_PNG/mono-horizontal-light-fallback.png",
+      "sha256": "0791defad5bedd91f54f3b5a0d71659404671e0542289900bae3337c6e074d6c"
+    },
+    {
+      "path": "static/ownlobby/logos/primary-horizontal-dark.png",
+      "source": "02_Master_Logos_PNG/primary-horizontal-dark.png",
+      "sha256": "136ccfa82de1f3a1f5f6793964a384b718caf28e4dfeca055413224811637273"
+    },
+    {
+      "path": "static/ownlobby/logos/primary-horizontal-light.png",
+      "source": "02_Master_Logos_PNG/primary-horizontal-light.png",
+      "sha256": "ac83caf763fe32e4a9b0bd27a141e2e7666446a7207a846f4ddcba9ce8bbd7cc"
+    },
+    {
+      "path": "static/ownlobby/logos/primary-stacked-dark.png",
+      "source": "02_Master_Logos_PNG/primary-stacked-dark.png",
+      "sha256": "e5a86b55d1405e5cd77171ef190af16b362610ab7646e0fcf1db358d92d6a61c"
+    },
+    {
+      "path": "static/ownlobby/logos/primary-stacked-light.png",
+      "source": "02_Master_Logos_PNG/primary-stacked-light.png",
+      "sha256": "156117e124fa2335056d17e6b11e53ae9f757962bbbc9dcd7dc9e203950fc619"
+    },
+    {
+      "path": "static/ownlobby/logos/symbol-dark.png",
+      "source": "02_Master_Logos_PNG/symbol-dark.png",
+      "sha256": "fcffd2833c19363b113347aaf0a6ff3eadf8dc5f5f37f596a6d2c50dd4f460c7"
+    },
+    {
+      "path": "static/ownlobby/logos/symbol-light.png",
+      "source": "02_Master_Logos_PNG/symbol-light.png",
+      "sha256": "a82d291331530da1fc6cce3da776b4fb246efe75ba154d2b3acd0c83169a7a82"
+    },
+    {
+      "path": "static/ownlobby/logos/wordmark-dual-dark.png",
+      "source": "02_Master_Logos_PNG/wordmark-dual-dark.png",
+      "sha256": "ba6ef9c07e3581ee5233dcbbe2f7045b1bb99856f32c880cfa510238972de0c0"
+    },
+    {
+      "path": "static/ownlobby/logos/wordmark-dual-light.png",
+      "source": "02_Master_Logos_PNG/wordmark-dual-light.png",
+      "sha256": "bc2801cd20469db58602718a9ba238627dba2c5a9ca038f404e84326f01f2a1b"
+    },
+    {
+      "path": "static/ownlobby/icons/favicon.ico",
+      "source": "03_Favicons_and_App_Icons/favicon.ico",
+      "sha256": "9fc1fddd728bbfa89b488c7beca7a1529df264bcc7dd91b417ed8a2184151456"
+    },
+    {
+      "path": "static/ownlobby/icons/favicon.svg",
+      "source": "03_Favicons_and_App_Icons/favicon.svg",
+      "sha256": "208fef4cde5ebe043c962bcc0f8de7f455fbfceae76ded9e34ff2e518e10bd0b"
+    },
+    {
+      "path": "static/ownlobby/icons/icon-1024.png",
+      "source": "03_Favicons_and_App_Icons/icon-1024.png",
+      "sha256": "f68000cf7c67411f4416cdf486a3ebca9c4a9e109c167e63d30288912e08a8c8"
+    },
+    {
+      "path": "static/ownlobby/icons/icon-1024.svg",
+      "source": "03_Favicons_and_App_Icons/icon-1024.svg",
+      "sha256": "848d0438e6374c3191c8b5546a9fb198ee21e4672017d8fe050d6ddf3c86ab5a"
+    },
+    {
+      "path": "static/ownlobby/icons/icon-16.png",
+      "source": "03_Favicons_and_App_Icons/icon-16.png",
+      "sha256": "2e2ab1fada2c092feb94ab19325e5ed424965713bd334d25b643fd4d729536af"
+    },
+    {
+      "path": "static/ownlobby/icons/icon-16.svg",
+      "source": "03_Favicons_and_App_Icons/icon-16.svg",
+      "sha256": "20d68192ea045dcd71c894d4f2b013b07875f765d90548ae498832d6765725b3"
+    },
+    {
+      "path": "static/ownlobby/icons/icon-180.png",
+      "source": "03_Favicons_and_App_Icons/icon-180.png",
+      "sha256": "88e71e25e9cf48dbaba720bad1b7884c97b7e96b1b3c4ca4b8436e87919e0e7d"
+    },
+    {
+      "path": "static/ownlobby/icons/icon-180.svg",
+      "source": "03_Favicons_and_App_Icons/icon-180.svg",
+      "sha256": "35f559718199a4d23b89a61bd85d315a8836bf93baf7849473278ca191cefb33"
+    },
+    {
+      "path": "static/ownlobby/icons/icon-192.png",
+      "source": "03_Favicons_and_App_Icons/icon-192.png",
+      "sha256": "cec318b84b6d0bf395d2bf49ac9660f125d0c4b748620b9d029781602d8f56f6"
+    },
+    {
+      "path": "static/ownlobby/icons/icon-192.svg",
+      "source": "03_Favicons_and_App_Icons/icon-192.svg",
+      "sha256": "6970ce62e693836eedf08c5be3809a74dded7865920806dda0498f674529476e"
+    },
+    {
+      "path": "static/ownlobby/icons/icon-256.png",
+      "source": "03_Favicons_and_App_Icons/icon-256.png",
+      "sha256": "ee09252d8a3d499fcf4c1c5a9c9814102a33f5992bf78eb649d0f71b879cfdbf"
+    },
+    {
+      "path": "static/ownlobby/icons/icon-256.svg",
+      "source": "03_Favicons_and_App_Icons/icon-256.svg",
+      "sha256": "7b6eb4bc9f45d23146c728ce5552d337e22c5c008a0e6af7ccfae9c6c1572be3"
+    },
+    {
+      "path": "static/ownlobby/icons/icon-32.png",
+      "source": "03_Favicons_and_App_Icons/icon-32.png",
+      "sha256": "aad96f8c6a17533696c1dc2414996094cf5d8006d4cc9c1ded3e627fcd8f07ce"
+    },
+    {
+      "path": "static/ownlobby/icons/icon-32.svg",
+      "source": "03_Favicons_and_App_Icons/icon-32.svg",
+      "sha256": "f57731c5c3cc3769ae7d55a2b9b8129995d779325da5a02bc6bd156218c62cfc"
+    },
+    {
+      "path": "static/ownlobby/icons/icon-48.png",
+      "source": "03_Favicons_and_App_Icons/icon-48.png",
+      "sha256": "2595f343895ddd55f2dec570df82b2a6b6fb9ed63c90ce9a6f659e3f1f30f2b4"
+    },
+    {
+      "path": "static/ownlobby/icons/icon-48.svg",
+      "source": "03_Favicons_and_App_Icons/icon-48.svg",
+      "sha256": "ab9c720f4c0c5fea818235f690cafb840abfce7ae098863cf6cb1f863e6cf5ba"
+    },
+    {
+      "path": "static/ownlobby/icons/icon-512.png",
+      "source": "03_Favicons_and_App_Icons/icon-512.png",
+      "sha256": "f81d3d9f04b56fb0d8cd7f3d80f4fc5f0b8d95f01739a51a5b1495c4eaf5be3c"
+    },
+    {
+      "path": "static/ownlobby/icons/icon-512.svg",
+      "source": "03_Favicons_and_App_Icons/icon-512.svg",
+      "sha256": "386592d29e6be8f55c2f09aab3ca21b7c03d41f1586be1d60357f1c60dbd622d"
+    },
+    {
+      "path": "static/ownlobby/icons/icon-64.png",
+      "source": "03_Favicons_and_App_Icons/icon-64.png",
+      "sha256": "0ac88a43ee7ce367142fdcc94cc82ace538df8819ca86a1933751b40ec945b70"
+    },
+    {
+      "path": "static/ownlobby/icons/icon-64.svg",
+      "source": "03_Favicons_and_App_Icons/icon-64.svg",
+      "sha256": "7a910f72f07a3856a907c8bd18db1e0e4a29b0a13b217847dcfe29bfcf376307"
+    },
+    {
+      "path": "static/ownlobby/icons/icon-96.png",
+      "source": "03_Favicons_and_App_Icons/icon-96.png",
+      "sha256": "c69de2fd7436db55b50b7b752acb5c66036e9999f51ee6a080fa0b79c22c7ecf"
+    },
+    {
+      "path": "static/ownlobby/icons/icon-96.svg",
+      "source": "03_Favicons_and_App_Icons/icon-96.svg",
+      "sha256": "3ab99f8b2a21669c7c3da9407d88932bfda1733cbf690122895a55238d1f6ade"
+    },
+    {
+      "path": "static/ownlobby/icons/icon-light-512.png",
+      "source": "03_Favicons_and_App_Icons/icon-light-512.png",
+      "sha256": "3344f95c05c3e5aed5a9469eae586d7b49714057f4018e0e04ac9d1299ce6e0c"
+    },
+    {
+      "path": "static/ownlobby/icons/icon-light-512.svg",
+      "source": "03_Favicons_and_App_Icons/icon-light-512.svg",
+      "sha256": "5d83024b6e4d2eac34297eda83399f911ce7801e58ed1d0a4c12957cbaaeb79c"
+    },
+    {
+      "path": "static/ownlobby/icons/icon-maskable-512.png",
+      "source": "03_Favicons_and_App_Icons/icon-maskable-512.png",
+      "sha256": "b29b3c09fb36bddd3df7a02f19aef9ddd8d13d9c6e93221ad373ce50bdf73d0e"
+    },
+    {
+      "path": "static/ownlobby/icons/icon-maskable-512.svg",
+      "source": "03_Favicons_and_App_Icons/icon-maskable-512.svg",
+      "sha256": "18529aa7b3df9f18c7cd2fbb8d922905a35292fde0a036c60c4ef36e8bd4d038"
+    },
+    {
+      "path": "static/ownlobby/icons/site.webmanifest",
+      "source": "03_Favicons_and_App_Icons/site.webmanifest",
+      "sha256": "3945f1655df0f24ffc177514849426ac3d90b806487d6832928a8670bc7804f2"
+    },
+    {
+      "path": "static/ownlobby/website/brand-html-snippet.html",
+      "source": "05_Website/brand-html-snippet.html",
+      "sha256": "4d457a2bfaf515777f0493e593bc98876ee77d8446c170b7483c51ccfbbd8e50"
+    },
+    {
+      "path": "static/ownlobby/website/brand-tokens.json",
+      "source": "05_Website/brand-tokens.json",
+      "sha256": "88cf23c28bccd78d3bbcaf2c244b1be38567efee616bc91449c95d849c881619"
+    },
+    {
+      "path": "static/ownlobby/website/brand.css",
+      "source": "05_Website/brand.css",
+      "sha256": "8a7c8e7eb01877d6300fa3ccc45650c83b151401baff9c11364d1d32c1bddeb4"
+    },
+    {
+      "path": "static/ownlobby/website/favicon.ico",
+      "source": "05_Website/favicon.ico",
+      "sha256": "9fc1fddd728bbfa89b488c7beca7a1529df264bcc7dd91b417ed8a2184151456"
+    },
+    {
+      "path": "static/ownlobby/website/favicon.svg",
+      "source": "05_Website/favicon.svg",
+      "sha256": "208fef4cde5ebe043c962bcc0f8de7f455fbfceae76ded9e34ff2e518e10bd0b"
+    },
+    {
+      "path": "static/ownlobby/website/icon-192.png",
+      "source": "05_Website/icon-192.png",
+      "sha256": "cec318b84b6d0bf395d2bf49ac9660f125d0c4b748620b9d029781602d8f56f6"
+    },
+    {
+      "path": "static/ownlobby/website/icon-512.png",
+      "source": "05_Website/icon-512.png",
+      "sha256": "f81d3d9f04b56fb0d8cd7f3d80f4fc5f0b8d95f01739a51a5b1495c4eaf5be3c"
+    },
+    {
+      "path": "static/ownlobby/website/icon-maskable-512.png",
+      "source": "05_Website/icon-maskable-512.png",
+      "sha256": "b29b3c09fb36bddd3df7a02f19aef9ddd8d13d9c6e93221ad373ce50bdf73d0e"
+    },
+    {
+      "path": "static/ownlobby/website/og-preview-1200x630.png",
+      "source": "05_Website/og-preview-1200x630.png",
+      "sha256": "c5448874f06f428dc2df825be581bd087f1bcd1a84c4f22393abb9db4748d9e3"
+    },
+    {
+      "path": "static/ownlobby/website/ownlobby-header-dark.png",
+      "source": "05_Website/ownlobby-header-dark.png",
+      "sha256": "136ccfa82de1f3a1f5f6793964a384b718caf28e4dfeca055413224811637273"
+    },
+    {
+      "path": "static/ownlobby/website/ownlobby-header-dark.svg",
+      "source": "05_Website/ownlobby-header-dark.svg",
+      "sha256": "dfdf0f3305f52d0560687b22f378f903d4730e4bdbed354ad0be9ddae75effb2"
+    },
+    {
+      "path": "static/ownlobby/website/ownlobby-header-light.png",
+      "source": "05_Website/ownlobby-header-light.png",
+      "sha256": "ac83caf763fe32e4a9b0bd27a141e2e7666446a7207a846f4ddcba9ce8bbd7cc"
+    },
+    {
+      "path": "static/ownlobby/website/ownlobby-header-light.svg",
+      "source": "05_Website/ownlobby-header-light.svg",
+      "sha256": "305c0b99300d0a6a06d3c0b31fdbe7abe30229c4ec5462aeac2e464f89610c54"
+    },
+    {
+      "path": "static/ownlobby/website/site.webmanifest",
+      "source": "05_Website/site.webmanifest",
+      "sha256": "3945f1655df0f24ffc177514849426ac3d90b806487d6832928a8670bc7804f2"
+    },
+    {
+      "path": "static/ownlobby/social/email-header-1200x300.png",
+      "source": "04_Social_Media/Shared/email-header-1200x300.png",
+      "sha256": "993cc14d9350d6417ed143747398f308e09693a73841685371c2802761d3127a"
+    },
+    {
+      "path": "static/ownlobby/social/email-header-1200x300.svg",
+      "source": "04_Social_Media/Shared/email-header-1200x300.svg",
+      "sha256": "47a40e8a6b2cd0c94e935d4de5bbdb55ac2be33f62a1bb37e5504d0bf3248b48"
+    },
+    {
+      "path": "static/ownlobby/social/og-preview-1200x630.png",
+      "source": "04_Social_Media/Shared/og-preview-1200x630.png",
+      "sha256": "c5448874f06f428dc2df825be581bd087f1bcd1a84c4f22393abb9db4748d9e3"
+    },
+    {
+      "path": "static/ownlobby/social/og-preview-1200x630.svg",
+      "source": "04_Social_Media/Shared/og-preview-1200x630.svg",
+      "sha256": "c99cb796399c07fb92771fefa85f5ca8d64246b9dff826d8c3c16f7af2a2fea2"
+    },
+    {
+      "path": "static/ownlobby/social/social-avatar-dark-1024.png",
+      "source": "04_Social_Media/Shared/social-avatar-dark-1024.png",
+      "sha256": "f68000cf7c67411f4416cdf486a3ebca9c4a9e109c167e63d30288912e08a8c8"
+    },
+    {
+      "path": "static/ownlobby/social/social-avatar-dark-1024.svg",
+      "source": "04_Social_Media/Shared/social-avatar-dark-1024.svg",
+      "sha256": "a49b109500acd8d433b067a81faec61b8841bdd0fcee3d9131b0f180577fbd2c"
+    },
+    {
+      "path": "static/ownlobby/social/social-avatar-light-1024.png",
+      "source": "04_Social_Media/Shared/social-avatar-light-1024.png",
+      "sha256": "9ce065034f3aee0ecdb2709c745c8d689e865d5aa3e3bb0df5c358d6524cfe84"
+    },
+    {
+      "path": "static/ownlobby/social/social-avatar-light-1024.svg",
+      "source": "04_Social_Media/Shared/social-avatar-light-1024.svg",
+      "sha256": "7cef38a2f7331ce532285a457f973da4f366c10b6cd775f450a57aa73a791735"
+    }
+  ]
+}

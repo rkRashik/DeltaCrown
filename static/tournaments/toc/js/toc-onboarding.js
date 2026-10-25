@@ -40,7 +40,7 @@
       id: "welcome",
       icon: "layout-dashboard",
       title: "Welcome to the Tournament Control Center",
-      body: "Your tournament has been created as a <strong>Draft</strong>. Before participants can join, you must complete setup and publish it. This guide walks you through every stage of the tournament lifecycle.",
+      body: "Review registrations, prepare your schedule and manage match operations from one place. This guide introduces each area of your tournament's control center.",
       tab: null,
     },
     {
@@ -138,7 +138,7 @@
     var dotsEl = byId("dc-ob-dots");
     if (dotsEl) {
       dotsEl.innerHTML = STEPS.map(function (s, i) {
-        var active = i === currentStep ? "background:var(--dc-accent,#06b6d4);" : "background:rgba(255,255,255,0.18);";
+        var active = i === currentStep ? "background:var(--dc-accent,var(--ol-saffron));" : "background:rgba(255,255,255,0.18);";
         return '<span style="display:inline-block;width:7px;height:7px;border-radius:50%;' + active + '"></span>';
       }).join("");
     }
@@ -219,8 +219,8 @@
         '<div style="padding:20px 24px 0;flex-shrink:0;">',
           '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;">',
             '<div style="display:flex;align-items:center;gap:10px;">',
-              '<div style="width:32px;height:32px;border-radius:10px;background:rgba(6,182,212,0.15);display:flex;align-items:center;justify-content:center;">',
-                '<i data-lucide="map" style="width:16px;height:16px;color:#06b6d4;"></i>',
+              '<div style="width:32px;height:32px;border-radius:10px;background:color-mix(in srgb,var(--ol-saffron) 15%,transparent);display:flex;align-items:center;justify-content:center;">',
+                '<i data-lucide="map" style="width:16px;height:16px;color:var(--ol-saffron);"></i>',
               '</div>',
               '<div>',
                 '<p style="font-size:10px;font-weight:800;letter-spacing:0.18em;text-transform:uppercase;color:rgba(255,255,255,0.35);margin:0;">Tournament Launch Guide</p>',
@@ -233,7 +233,7 @@
           '</div>',
           // Progress bar
           '<div style="height:3px;border-radius:99px;background:rgba(255,255,255,0.08);overflow:hidden;margin-bottom:4px;">',
-            '<div id="dc-ob-progress" style="height:100%;border-radius:99px;background:#06b6d4;transition:width 0.35s ease;width:9%;"></div>',
+            '<div id="dc-ob-progress" style="height:100%;border-radius:99px;background:var(--ol-saffron);transition:width 0.35s ease;width:9%;"></div>',
           '</div>',
           '<div id="dc-ob-dots" style="display:flex;gap:5px;justify-content:center;padding:6px 0 12px;"></div>',
         '</div>',
@@ -246,10 +246,10 @@
 
         // Footer
         '<div style="padding:16px 24px 20px;border-top:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;gap:10px;flex-shrink:0;">',
-          '<button id="dc-ob-jump" style="flex:1;padding:8px 12px;border-radius:10px;border:1px solid rgba(6,182,212,0.3);background:rgba(6,182,212,0.08);color:#06b6d4;font-size:11px;font-weight:700;cursor:pointer;letter-spacing:0.04em;display:none;"></button>',
+          '<button id="dc-ob-jump" style="flex:1;padding:8px 12px;border-radius:10px;border:1px solid color-mix(in srgb,var(--ol-saffron) 30%,transparent);background:color-mix(in srgb,var(--ol-saffron) 8%,transparent);color:var(--ol-saffron);font-size:11px;font-weight:700;cursor:pointer;letter-spacing:0.04em;display:none;"></button>',
           '<div style="display:flex;gap:8px;margin-left:auto;">',
             '<button id="dc-ob-back" style="padding:8px 16px;border-radius:10px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.6);font-size:12px;font-weight:600;cursor:pointer;">Back</button>',
-            '<button id="dc-ob-next" style="padding:8px 20px;border-radius:10px;background:#06b6d4;color:#020a0f;font-size:12px;font-weight:800;cursor:pointer;border:none;">Next →</button>',
+            '<button id="dc-ob-next" style="padding:8px 20px;border-radius:10px;background:var(--ol-saffron);color:#020a0f;font-size:12px;font-weight:800;cursor:pointer;border:none;">Next →</button>',
           '</div>',
         '</div>',
 

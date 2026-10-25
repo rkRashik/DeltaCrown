@@ -477,7 +477,7 @@ class PaymentRefundSerializer(serializers.Serializer):
     refund_method = serializers.ChoiceField(
         choices=[
             ('same', 'Same payment method'),
-            ('deltacoin', 'DeltaCoin credit'),
+        ('deltacoin', 'Coins credit'),
             ('manual', 'Manual refund'),
         ],
         required=True,

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
-{% block title %}Cookie Policy - DeltaCrown{% endblock %}
+{% block title %}Cookie Policy - {{ brand.name }}{% endblock %}
 
 {% block content %}
 <main class="min-h-screen bg-[#05070d] text-slate-100">
@@ -8,7 +8,7 @@
     <div class="mx-auto max-w-5xl px-4 py-14 sm:px-6 lg:px-8">
       <p class="text-xs font-black uppercase tracking-[0.24em] text-amber-300">Technical transparency</p>
       <h1 class="mt-3 font-display text-4xl font-black text-white md:text-5xl">Cookie Policy</h1>
-      <p class="mt-4 max-w-3xl leading-7 text-slate-300">This page explains the cookies and similar browser storage DeltaCrown uses to keep the platform logged in, secure, functional, and measurable.</p>
+      <p class="mt-4 max-w-3xl leading-7 text-slate-300">This page explains the cookies and similar browser storage {{ brand.name }} uses to keep the platform logged in, secure, functional, and measurable.</p>
       <p class="mt-4 text-sm text-slate-500">Effective date: May 18, 2026</p>
     </div>
   </section>
@@ -17,7 +17,7 @@
     <div class="space-y-7 text-slate-300">
       <section class="rounded-3xl border border-amber-300/20 bg-amber-300/5 p-6">
         <h2 class="text-xl font-black text-white">Short version</h2>
-        <p class="mt-3 leading-7">DeltaCrown uses essential cookies for authentication and security, may use preference storage for interface settings where implemented, and may load analytics in production configuration. You can control cookies from your browser settings.</p>
+        <p class="mt-3 leading-7">{{ brand.name }} uses essential cookies for authentication and security, may use preference storage for interface settings where implemented, and may load analytics in production configuration. You can control cookies from your browser settings.</p>
       </section>
 
       <section class="rounded-3xl border border-white/10 bg-white/[0.035] p-6">
@@ -26,7 +26,7 @@
       </section>
 
       <section class="rounded-3xl border border-white/10 bg-white/[0.035] p-6">
-        <h2 class="text-2xl font-black text-white">2. Cookies DeltaCrown uses</h2>
+        <h2 class="text-2xl font-black text-white">2. Cookies {{ brand.name }} uses</h2>
         <div class="mt-5 overflow-x-auto">
           <table class="w-full min-w-[680px] text-left text-sm">
             <thead class="border-b border-white/10 text-slate-400">
@@ -69,13 +69,13 @@
 
       <section class="rounded-3xl border border-white/10 bg-white/[0.035] p-6">
         <h2 class="text-2xl font-black text-white">4. Managing cookies</h2>
-        <p class="mt-3 leading-7">You can block, delete, or limit cookies through your browser settings. If you block essential cookies, DeltaCrown may not be able to keep you logged in or process secure requests.</p>
-        <p class="mt-3 leading-7">DeltaCrown does not currently claim a full in-app cookie preference center. If that changes, this policy should be updated with the active controls.</p>
+        <p class="mt-3 leading-7">You can block, delete, or limit cookies through your browser settings. If you block essential cookies, {{ brand.name }} may not be able to keep you logged in or process secure requests.</p>
+        <p class="mt-3 leading-7">{{ brand.name }} does not currently claim a full in-app cookie preference center. If that changes, this policy should be updated with the active controls.</p>
       </section>
 
       <section class="rounded-3xl border border-white/10 bg-white/[0.035] p-6">
         <h2 class="text-2xl font-black text-white">5. Contact</h2>
-        <p class="mt-3 leading-7">Questions about cookies can be sent through <a class="font-bold text-cyan-300 hover:text-cyan-200" href="{% url 'support:contact' %}">DeltaCrown Support</a> or by email at <a class="font-bold text-cyan-300 hover:text-cyan-200" href="mailto:deltacrownhq@gmail.com">deltacrownhq@gmail.com</a>.</p>
+        <p class="mt-3 leading-7">Questions about cookies can be sent through <a class="font-bold text-cyan-300 hover:text-cyan-200" href="{% url 'support:contact' %}">{{ brand.name }} Support</a> or by email at <a class="font-bold text-cyan-300 hover:text-cyan-200" href="mailto:deltacrownhq@gmail.com">deltacrownhq@gmail.com</a>.</p>
       </section>
     </div>
   </section>

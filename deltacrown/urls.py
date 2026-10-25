@@ -75,7 +75,7 @@ urlpatterns = [
     path("favicon-test/", TemplateView.as_view(template_name="favicon_test.html"), name="favicon_test"),
 
     # Favicon - Direct route for browser default lookup
-    path("favicon.ico", RedirectView.as_view(url=settings.STATIC_URL + "img/favicon/favicon.ico", permanent=False)),
+    path("favicon.ico", RedirectView.as_view(url=settings.STATIC_URL + settings.BRAND["favicon"], permanent=False)),
 
     # Crawlers / SEO
     path("riot.txt", lambda request: HttpResponse("5bb2f796-8590-4124-9f85-f070879a7cd0", content_type="text/plain")),

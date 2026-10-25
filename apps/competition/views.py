@@ -5,6 +5,8 @@ Phase 3A-C: Thin views that delegate to services layer.
 All business logic resides in MatchReportService and VerificationService.
 """
 
+from deltacrown.branding import brand_copy
+
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
@@ -246,8 +248,8 @@ def ranking_about(request):
         'game_configs': game_configs,
         'tier_thresholds': tier_thresholds,
         'seo': build_seo(
-            title='How Crown Points Rankings Work | DeltaCrown',
-            description='Learn how DeltaCrown Crown Points rankings, tiers, team confidence, and competitive progression work across supported games.',
+            title=brand_copy('How [[ranking_points]] Rankings Work | [[brand]]'),
+            description=brand_copy('Learn how [[brand]] [[ranking_points]] rankings, tiers, team confidence, and competitive progression work across supported games.'),
             path='/competition/ranking/about/',
             schema=breadcrumb_schema([('Home', '/'), ('Rankings', '/competition/leaderboards/'), ('How Rankings Work', '/competition/ranking/about/')]),
         ),

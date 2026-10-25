@@ -20,6 +20,8 @@ Original Implementation:
     Step 5: Review & confirm
 """
 
+from deltacrown.branding import brand_copy
+
 import re
 
 from django.shortcuts import render, redirect, get_object_or_404
@@ -402,10 +404,10 @@ class TournamentRegistrationView(LoginRequiredMixin, View):
             if not fee_waived:
                 payment_methods.append({
                     'value': 'deltacoin',
-                    'label': 'DeltaCoin',
+                    'label': brand_copy('[[coins]]'),
                     'logo': None,
                     'account': 'Your Wallet',
-                    'instructions': 'Instant verification - payment deducted from your DeltaCoin balance',
+                    'instructions': brand_copy('Instant verification - payment deducted from your [[coins]] balance'),
                     'is_instant': True,
                 })
             
@@ -580,10 +582,10 @@ class TournamentRegistrationView(LoginRequiredMixin, View):
                             wallet = DeltaCrownWallet.objects.get(profile=profile)
                             if wallet.cached_balance < tournament.entry_fee_amount:
                                 result['valid'] = False
-                                result['errors']['payment_method'] = f'Insufficient DeltaCoin balance. You have {wallet.cached_balance} DC but need {tournament.entry_fee_amount} DC.'
+                                result['errors']['payment_method'] = f"Insufficient {brand_copy('[[coins]]')} balance. You have {wallet.cached_balance} DC but need {tournament.entry_fee_amount} DC."
                         except DeltaCrownWallet.DoesNotExist:
                             result['valid'] = False
-                            result['errors']['payment_method'] = 'DeltaCoin wallet not found. Please choose another payment method.'
+                            result['errors']['payment_method'] = brand_copy('[[coins]] wallet not found. Please choose another payment method.')
                     
                     if result['valid']:  # Only set if no errors
                         result['data']['payment_method'] = payment_method
@@ -641,7 +643,7 @@ class TournamentRegistrationView(LoginRequiredMixin, View):
                         )
                         messages.success(request, "Payment successful! Your registration is confirmed.")
                     except ValidationError as e:
-                        messages.error(request, f"DeltaCoin payment failed: {str(e)}")
+                        messages.error(request, f"{brand_copy('[[coins]]')} payment failed: {str(e)}")
                         # Registration exists but payment failed - user needs to retry
                         return redirect('tournaments:payment_complete', registration_id=registration.id)
                 

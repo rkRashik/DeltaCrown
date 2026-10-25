@@ -192,7 +192,7 @@
                 <div class="form-group">
                   <label>Team Logo</label>
                   <div class="image-upload-preview">
-                    <img id="logo-preview" src="/static/img/deltaCrown_logos/logo.svg" alt="Logo Preview">
+                    <img id="logo-preview" src="/static/ownlobby/logos/symbol-dark.svg" alt="Logo Preview">
                     <input type="file" id="logo-upload" accept="image/*" hidden>
                     <button type="button" class="btn btn-secondary" data-click-trigger="logo-upload">
                       <i class="fa-solid fa-upload"></i>

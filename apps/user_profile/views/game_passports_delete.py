@@ -1,3 +1,5 @@
+
+from deltacrown.branding import brand_copy
 # Phase 9A-27: OTP-Based Delete Confirmation APIs
 
 import logging
@@ -134,20 +136,8 @@ def request_delete_otp(request):
     otp = GamePassportDeleteOTP.create_for_passport(request.user, passport, ip_address)
     
     # Send email
-    subject = 'DeltaCrown - Confirm Passport Deletion'
-    message = f"""
-Hello {request.user.username},
-
-You requested to delete your {passport.game} game passport.
-
-Your confirmation code is: {otp.code}
-
-This code will expire in 10 minutes.
-
-If you did not request this, please ignore this email and secure your account.
-
-- DeltaCrown Team
-    """
+    subject = brand_copy('[[brand]] - Confirm Passport Deletion')
+    message = f"\nHello {request.user.username},\n\nYou requested to delete your {passport.game} game passport.\n\nYour confirmation code is: {otp.code}\n\nThis code will expire in 10 minutes.\n\nIf you did not request this, please ignore this email and secure your account.\n\n- {brand_copy('[[brand]]')} Team\n    "
     
     # Attempt email sending with proper error handling.
     # If delivery fails, delete this OTP so retries don't immediately hit cooldown (429).

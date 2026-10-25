@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}Shopping Cart - CrownStore{% endblock %}
+{% block title %}Shopping Cart - {{ brand.features.store }}{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'ecommerce/css/store.css' %}">
@@ -19,7 +19,7 @@
             </h1>
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb">
-                    <li class="breadcrumb-item"><a href="{% url 'ecommerce:store_home' %}">CrownStore</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'ecommerce:store_home' %}">{{ brand.features.store }}</a></li>
                     <li class="breadcrumb-item active">Cart</li>
                 </ol>
             </nav>
@@ -213,7 +213,7 @@
                                 <i class="fab fa-bitcoin"></i>
                                 <div class="delta-coins">
                                     <i class="fas fa-coins"></i>
-                                    <span>DeltaCrown Coins</span>
+                                    <span>{{ brand.features.coins }}</span>
                                 </div>
                             </div>
                         </div>
@@ -240,12 +240,12 @@
                     <div class="user-balance">
                         <div class="balance-info">
                             <i class="fas fa-coins"></i>
-                            <span>Your DeltaCrown Coins: </span>
+                            <span>Your {{ brand.features.coins }}: </span>
                             <strong>{{ user.profile.delta_coins|default:0 }}</strong>
                         </div>
                         {% if user.profile.delta_coins < cart.total_price %}
                         <small class="balance-note">
-                            You need ${{ cart.total_price|sub:user.profile.delta_coins }} more DeltaCrown Coins for this purchase
+                            You need ${{ cart.total_price|sub:user.profile.delta_coins }} more {{ brand.features.coins }} for this purchase
                         </small>
                         {% endif %}
                     </div>

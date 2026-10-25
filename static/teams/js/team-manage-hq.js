@@ -663,7 +663,7 @@
     },
 
     async submitSchedule() {
-      toast("Practice scheduling is coming soon. Training tools do not use DeltaCoin, escrow, or reward settlement.");
+      toast("Practice scheduling is coming soon. Training tools do not use Coins, escrow, or reward settlement.");
       return;
       const btn = qs("#schedule-submit");
       const errEl = qs("#schedule-error");

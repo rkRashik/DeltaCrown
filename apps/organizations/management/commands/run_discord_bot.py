@@ -325,26 +325,26 @@ class Command(BaseCommand):
 
         # -- Slash Commands ---------------------------------------------------
 
-        @bot.tree.command(name="link", description="Link your DeltaCrown account to Discord")
+        @bot.tree.command(name="link", description=f"Link your {settings.BRAND['name']} account to Discord")
         async def cmd_link(interaction: discord.Interaction):
             auth_url = await asyncio.to_thread(
                 _build_link_url, site_url, str(interaction.user.id)
             )
             embed = discord.Embed(
-                title="Link Your DeltaCrown Account",
+                title=f"Link Your {settings.BRAND['name']} Account",
                 description=(
-                    "Click the link below to connect your DeltaCrown account.\n\n"
+                    f"Click the link below to connect your {settings.BRAND['name']} account.\n\n"
                     f"[**Tap here to link ->**]({auth_url})\n\n"
                     "_This link expires in 10 minutes._\n"
                     "_Scopes requested: identify (username only — no messages)._"
                 ),
                 color=discord.Color.from_rgb(255, 215, 0),
             )
-            embed.set_footer(text="DeltaCrown - From the Delta to the Crown")
+            embed.set_footer(text=f"{settings.BRAND['name']} - {settings.BRAND['tagline']}")
             await interaction.response.send_message(embed=embed, ephemeral=True)
 
-        @bot.tree.command(name="profile", description="View a DeltaCrown player profile")
-        @app_commands.describe(username="DeltaCrown username (leave blank for your own)")
+        @bot.tree.command(name="profile", description=f"View an {settings.BRAND['name']} player profile")
+        @app_commands.describe(username=f"{settings.BRAND['name']} username (leave blank for your own)")
         async def cmd_profile(interaction: discord.Interaction, username: str = ""):
             await interaction.response.defer(ephemeral=True)
 
@@ -381,7 +381,7 @@ class Command(BaseCommand):
                 hint = "\nUse **/link** to connect your account." if not username else ""
                 target = f"@{username}" if username else "your account"
                 await interaction.followup.send(
-                    f"No DeltaCrown profile found for {target}.{hint}", ephemeral=True
+                    f"No {settings.BRAND['name']} profile found for {target}.{hint}", ephemeral=True
                 )
                 return
 
@@ -426,7 +426,7 @@ class Command(BaseCommand):
             data = await asyncio.to_thread(_fetch)
             if data is None:
                 await interaction.followup.send(
-                    "Your Discord account is not linked to DeltaCrown.\nUse **/link** to connect.",
+                    f"Your Discord account is not linked to {settings.BRAND['name']}.\nUse **/link** to connect.",
                     ephemeral=True,
                 )
                 return
@@ -443,7 +443,7 @@ class Command(BaseCommand):
             embed.set_footer(text=f"View full wallet at {site_url}/dashboard")
             await interaction.followup.send(embed=embed, ephemeral=True)
 
-        @bot.tree.command(name="tournaments", description="Browse upcoming DeltaCrown tournaments")
+        @bot.tree.command(name="tournaments", description=f"Browse upcoming {settings.BRAND['name']} tournaments")
         @app_commands.describe(game='Filter by game (e.g. "Valorant"). Optional.')
         async def cmd_tournaments(interaction: discord.Interaction, game: str = ""):
             await interaction.response.defer()

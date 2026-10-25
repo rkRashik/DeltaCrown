@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}{% if is_recruiting_filter %}Find Team - Scouting Grounds{% else %}Team Directory{% endif %} | DeltaCrown{% endblock %}
-{% block og_title %}{% if is_recruiting_filter %}Find Team - Scouting Grounds{% else %}Team Directory{% endif %} | DeltaCrown{% endblock %}
+{% block title %}{% if is_recruiting_filter %}Find Team - Scouting Grounds{% else %}Team Directory{% endif %} | {{ brand.name }}{% endblock %}
+{% block og_title %}{% if is_recruiting_filter %}Find Team - Scouting Grounds{% else %}Team Directory{% endif %} | {{ brand.name }}{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -366,7 +366,7 @@
             </span>
           </h1>
           <p class="mt-3 max-w-3xl text-base leading-relaxed text-[#9ca3af] md:text-lg">
-            Public roster openings and public Looking For Team profiles, wired directly to DeltaCrown teams, recruitment posts, and game passports.
+            Public roster openings and public Looking For Team profiles, wired directly to {{ brand.name }} teams, recruitment posts, and game passports.
           </p>
 
           <div class="mt-5 inline-flex w-full flex-col gap-2 rounded-xl border border-white/10 bg-[#121218] p-1.5 shadow-xl sm:w-auto sm:flex-row">
@@ -791,7 +791,7 @@
       <div class="flex items-start justify-between border-b border-white/10 p-5">
         <div>
           <h2 id="scout-post-modal-title" class="text-xl font-bold text-white" style="font-family: Outfit, Space Grotesk, sans-serif;">What do you want to post?</h2>
-          <p class="mt-1 text-sm text-[#8f8f9d]">Publish from existing DeltaCrown team recruitment and career profile fields.</p>
+          <p class="mt-1 text-sm text-[#8f8f9d]">Publish from existing {{ brand.name }} team recruitment and career profile fields.</p>
         </div>
         <button type="button" class="rounded-lg border border-white/10 bg-[#050507] px-2.5 py-2 text-[#8f8f9d] hover:text-white" data-close-post-modal aria-label="Close post options">
           <i class="fa-solid fa-xmark"></i>
@@ -986,7 +986,7 @@
     <div class="text-center mb-10 sm:mb-14 fade-in-up" style="animation-delay: 0.1s">
       <div class="inline-flex items-center gap-2 text-[10px] sm:text-xs font-bold uppercase tracking-[0.25em] text-slate-500 mb-4">
         <i class="fas fa-users text-[#06b6d4]"></i>
-        DeltaCrown Teams
+        {{ brand.name }} Teams
         {% if is_recruiting_filter %}
         <span class="chip green"><i class="fas fa-bullhorn mr-1"></i> Recruiting</span>
         {% endif %}
@@ -1003,7 +1003,7 @@
         {% if is_recruiting_filter %}
         Find teams recruiting now. Filter by game, region, platform, or search, then apply from the team page when a roster opening fits your role.
         {% else %}
-        Browse all public teams on DeltaCrown. Filter by game, region, or find teams actively recruiting.
+        Browse all public teams on {{ brand.name }}. Filter by game, region, or find teams actively recruiting.
         {% endif %}
       </p>
       {% if is_recruiting_filter %}
@@ -1326,7 +1326,7 @@
         {% if is_recruiting_filter %}
         Create your own team and start recruiting players. Build your roster, compete in tournaments, and climb the rankings.
         {% else %}
-        Set up your team in seconds — pick your game, brand your squad, and start competing on DeltaCrown.
+        Set up your team in seconds — pick your game, brand your squad, and start competing on {{ brand.name }}.
         {% endif %}
       </p>
       <div class="flex flex-wrap justify-center gap-3">

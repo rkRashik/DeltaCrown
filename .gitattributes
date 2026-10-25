@@ -1,0 +1,5 @@
+# Preserve approved brand-kit bytes and SHA256 provenance on every platform.
+static/ownlobby/logos/** -text
+static/ownlobby/icons/** -text
+static/ownlobby/social/** -text
+static/ownlobby/website/** -text

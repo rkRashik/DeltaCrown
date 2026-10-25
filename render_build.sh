@@ -12,7 +12,7 @@ echo "🔧 Installing Node.js dev-dependencies (Tailwind build)…"
 npm install                   # generates lockfile on first run; npm ci on subsequent deploys
 
 echo "🎨 Building Tailwind CSS…"
-npm run build-css
+npm run build
 
 # Free every byte of Node overhead before Python starts
 echo "🧹 Cleaning up Node artefacts…"

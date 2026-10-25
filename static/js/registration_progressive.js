@@ -215,8 +215,8 @@
     document.querySelectorAll('.badge-auto[data-source]').forEach(function (badge) {
       var source = badge.dataset.source;
       var tooltipText = {
-        'profile': 'Auto-filled from your DeltaCrown profile',
-        'username': 'Your DeltaCrown username (cannot be changed here)',
+        'profile': 'Auto-filled from your OwnLobby profile',
+        'username': 'Your OwnLobby username (cannot be changed here)',
         'account': 'Verified account email (cannot be changed here)',
         'game_passport': 'Verified from your Game Passport',
         'default': 'Default value',

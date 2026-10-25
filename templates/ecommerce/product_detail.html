@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}{{ product.name }} - CrownStore{% endblock %}
+{% block title %}{{ product.name }} - {{ brand.features.store }}{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'ecommerce/css/store.css' %}">
@@ -15,7 +15,7 @@
     <div class="container">
         <nav aria-label="breadcrumb" class="product-breadcrumb">
             <ol class="breadcrumb">
-                <li class="breadcrumb-item"><a href="{% url 'ecommerce:store_home' %}">CrownStore</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'ecommerce:store_home' %}">{{ brand.features.store }}</a></li>
                 <li class="breadcrumb-item"><a href="{% url 'ecommerce:category_detail' product.category.slug %}">{{ product.category.name }}</a></li>
                 <li class="breadcrumb-item active">{{ product.name }}</li>
             </ol>

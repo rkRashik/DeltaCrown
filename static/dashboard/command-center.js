@@ -237,7 +237,7 @@
           const streakEl = q("#loginStreak"); if (streakEl) streakEl.textContent = data.streak;
           if (data.balance != null) { const walletEl = q("#walletBal"); if (walletEl) walletEl.textContent = Number(data.balance).toLocaleString(); }
           this.style.opacity = "0.6"; this.style.cursor = "default";
-          const dcPart = data.dc_earned > 0 ? " +" + data.dc_earned + " DC" : "";
+          const dcPart = data.dc_earned > 0 ? " +" + data.dc_earned + " Coins" : "";
           this.innerHTML = '<i class="ph-bold ph-check-circle"></i> Claimed · +' + data.xp_earned + " XP" + dcPart;
           const milestonePart = data.milestone ? " · " + data.milestone.label + "!" : "";
           toast("Daily reward claimed", "+" + data.xp_earned + " XP" + dcPart + milestonePart, "ok");
@@ -251,9 +251,9 @@
 
   /* ---- Wallet actions ---- */
   const addFundsBtn = q("#addFunds");
-  if (addFundsBtn) addFundsBtn.addEventListener("click", () => toast("Add DeltaCoin", "Top up via bKash, Nagad or card", "info"));
+  if (addFundsBtn) addFundsBtn.addEventListener("click", () => toast("Add Coins", "Top up via bKash, Nagad or card", "info"));
   const sendDcBtn = q("#sendDc");
-  if (sendDcBtn) sendDcBtn.addEventListener("click", () => toast("Send DeltaCoin", "Transfer to a teammate or team wallet", "info"));
+  if (sendDcBtn) sendDcBtn.addEventListener("click", () => toast("Send Coins", "Transfer to a teammate or team wallet", "info"));
 
   /* ---- Join-request withdraw ---- */
   const jrList = q("#jrList");
@@ -318,7 +318,7 @@
     var idx = 0;
     var TOTAL = slides.length;
     var autoTimer = null;
-    var titles = ['Crown Rank', 'XP & Level'];
+    var titles = ['Team Rank', 'XP & Level'];
     var icons  = ['<i class="ph-fill ph-medal"></i>', '<i class="ph-fill ph-lightning"></i>'];
 
     // Show slide 0 on init

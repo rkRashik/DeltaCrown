@@ -25,6 +25,7 @@ from django.http import HttpRequest, HttpResponse, Http404, JsonResponse
 from django.contrib import messages
 from django.urls import reverse
 from django.conf import settings
+from deltacrown.branding import BRAND
 from django.views.decorators.http import require_http_methods
 import json
 import logging
@@ -208,8 +209,8 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
             'viewer_role': permissions['viewer_role'],
             'has_pending_request': permissions.get('has_pending_request', False),
             'seo': build_seo(
-                title=f"@{profile_user.username} | Private DeltaCrown Profile",
-                description="This DeltaCrown profile is private.",
+                title=f"@{profile_user.username} | Private {BRAND['name']} Profile",
+                description=f"This {BRAND['name']} profile is private.",
                 path=f"/@{profile_user.username}/",
                 noindex=True,
             ),
@@ -257,7 +258,7 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
     display_name = user_profile.display_name or profile_user.username
     profile_has_meaningful_public_copy = bool(user_profile.bio or user_profile.about_bio)
     profile_description = user_profile.bio or user_profile.about_bio or (
-        f"View {display_name}'s public DeltaCrown Game Passport, teams, tournaments, Crown Points activity, and esports identity."
+        f"View {display_name}'s public {BRAND['name']} Game Passport, teams, tournaments, {BRAND['features']['ranking_points']} activity, and esports identity."
     )
     profile_image = user_profile.banner.url if user_profile.banner else (user_profile.avatar.url if user_profile.avatar else None)
     profile_schema = []
@@ -270,7 +271,7 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
         person_schema = {
             '@context': 'https://schema.org',
             '@type': 'ProfilePage',
-            'name': f"{display_name} on DeltaCrown",
+            'name': f"{display_name} on {BRAND['name']}",
             'url': absolute_url(f"/@{profile_user.username}/"),
             'description': truncate_meta(profile_description, 240),
             'mainEntity': {
@@ -288,7 +289,7 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
             person_schema,
         ]
     context['seo'] = build_seo(
-        title=f"{display_name} (@{profile_user.username}) | DeltaCrown Game Passport",
+        title=f"{display_name} (@{profile_user.username}) | {BRAND['name']} Game Passport",
         description=profile_description,
         path=f"/@{profile_user.username}/",
         noindex=bool(_spectator_mode or not profile_has_meaningful_public_copy),
@@ -296,7 +297,7 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
         schema=profile_schema,
     )
     context['profile_entity_links'] = [
-        {'label': 'Crown Points Rankings', 'url': '/competition/leaderboards/', 'detail': 'Compare team and roster progress'},
+        {'label': f"{BRAND['features']['ranking_points']} Rankings", 'url': '/competition/leaderboards/', 'detail': 'Compare team and roster progress'},
         {'label': 'Tournaments', 'url': '/tournaments/', 'detail': 'Browse public events and results'},
         {'label': 'Teams', 'url': '/teams/directory/', 'detail': 'Discover squads and recruiting teams'},
         {'label': 'Game Passport Rules', 'url': '/game-passport-rules/', 'detail': 'Identity and verification guidance'},
@@ -514,7 +515,7 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
     context['user_posts'] = _extended['user_posts']
     
     # Add page metadata
-    context['page_title'] = f"@{username} - DeltaCrown Esports"
+    context['page_title'] = f"@{username} - {BRAND['name']} Esports"
     context['current_page'] = 'profile'
     
     # GP-FE-MVP-01: Add game passports with pinned/unpinned separation
@@ -1576,7 +1577,7 @@ def profile_activity_view(request: HttpRequest, username: str) -> HttpResponse:
             return redirect('home')
     
     # Add page metadata
-    context['page_title'] = f"@{username} Activity - DeltaCrown Esports"
+    context['page_title'] = f"@{username} Activity - {BRAND['name']} Esports"
     context['current_page'] = 'activity'
     
     return render(request, 'user_profile/profile/activity.html', context)
@@ -1769,7 +1770,7 @@ def profile_settings_view(request: HttpRequest, section: str = None) -> HttpResp
         return redirect(reverse('user_profile:public_profile', kwargs={'username': username}))
     
     # Add page metadata
-    context['page_title'] = 'Profile Settings - DeltaCrown Esports'
+    context['page_title'] = f"Profile Settings - {BRAND['name']} Esports"
     context['current_page'] = 'settings'
     context['settings_section_slug'] = section or ''
     context['settings_initial_tab'] = selected_settings_tab
@@ -2148,7 +2149,7 @@ def profile_privacy_view(request: HttpRequest) -> HttpResponse:
         return redirect(reverse('user_profile:public_profile', kwargs={'username': username}))
     
     # Add page metadata
-    context['page_title'] = 'Privacy Settings - DeltaCrown Esports'
+    context['page_title'] = f"Privacy Settings - {BRAND['name']} Esports"
     context['current_page'] = 'privacy'
     
     # UP-SETTINGS-UI-01: Add privacy_settings object for enhanced privacy template
@@ -2324,8 +2325,8 @@ def update_basic_info(request: HttpRequest) -> HttpResponse:
                                 cache_key = f"email_otp_{request.user.id}_{secondary_email}"
                                 cache.set(cache_key, otp, timeout=600)
                                 send_mail(
-                                    'Verify Your Public Email - DeltaCrown',
-                                    f'Hi {request.user.username},\n\nYour verification code is: {otp}\n\nThis code will expire in 10 minutes.\n\nIf you didn\'t request this, please ignore this email.\n\nBest regards,\nDeltaCrown Team',
+                                    f"Verify Your Public Email - {BRAND['name']}",
+                                    f"Hi {request.user.username},\n\nYour verification code is: {otp}\n\nThis code will expire in 10 minutes.\n\nIf you didn't request this, please ignore this email.\n\nBest regards,\n{BRAND['name']} Team",
                                     django_settings.DEFAULT_FROM_EMAIL,
                                     [secondary_email],
                                     fail_silently=True,

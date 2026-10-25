@@ -1,7 +1,7 @@
 {% extends "admin/base_site.html" %}
 {% load i18n static %}
 
-{% block title %}{{ title }} | {{ site_title|default:"DeltaCrown Admin" }}{% endblock %}
+{% block title %}{{ title }} | {{ site_title|default:brand.name }}{% endblock %}
 
 {% block extrahead %}
 {{ block.super }}

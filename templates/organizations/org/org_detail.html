@@ -2,7 +2,7 @@
 {% load static %}
 {% load org_media %}
 
-{% block title %}{{ organization.name }} | Command Hub | DeltaCrown Enterprise{% endblock %}
+{% block title %}{{ organization.name }} | Command Hub | {{ brand.name }} Enterprise{% endblock %}
 
 {% block extra_css %}
 
@@ -498,7 +498,7 @@
                                     {% endif %}
                                     {% if squad.score %}
                                     <div class="bg-white/5 rounded-lg p-3 border border-white/5">
-                                        <div class="text-[9px] text-slate-500 uppercase font-bold mb-1">Crown Points</div>
+                                        <div class="text-[9px] text-slate-500 uppercase font-bold mb-1">{{ brand.features.ranking_points }}</div>
                                         <div class="text-sm font-bold text-delta-electric">{{ squad.score }}</div>
                                     </div>
                                     {% endif %}

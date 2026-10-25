@@ -1,6 +1,8 @@
 """
 Celery tasks for notification delivery and management
 """
+
+from deltacrown.branding import brand_copy
 from celery import shared_task
 from django.conf import settings
 from django.utils import timezone
@@ -103,7 +105,7 @@ def send_daily_digest(self):
                 digest.notifications.set(unread_notifications)
                 
                 # Send email
-                subject = f"DeltaCrown Daily Digest - {len(unread_notifications)} unread notifications"
+                subject = f"{brand_copy('[[brand]]')} Daily Digest - {len(unread_notifications)} unread notifications"
                 
                 # Group notifications by type
                 notifications_by_type = {}
@@ -236,7 +238,7 @@ def send_discord_notification(self, notification_data):
         
         # Build Discord embed
         embed = {
-            "title": notification_data.get('title', 'DeltaCrown Notification'),
+            "title": notification_data.get('title', brand_copy('[[brand]] Notification')),
             "description": notification_data.get('body', ''),
             "color": notification_data.get('color', 3447003),  # Blue by default
             "timestamp": timezone.now().isoformat(),

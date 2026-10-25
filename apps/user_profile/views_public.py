@@ -1,4 +1,6 @@
 from __future__ import annotations
+
+from deltacrown.branding import brand_copy
 from typing import Optional
 
 from django.contrib.auth import get_user_model
@@ -385,7 +387,7 @@ def public_profile(request: HttpRequest, username: str) -> HttpResponse:
                 activity.append({
                     'type': 'coin_transaction',
                     'description': f'{transaction.get_reason_display()}',
-                    'title': f'{"+" if transaction.amount > 0 else ""}{transaction.amount} DeltaCoins',
+                    'title': f"{('+' if transaction.amount > 0 else '')}{transaction.amount} {brand_copy('[[coins]]')}",
                     'date': transaction.created_at,
                     'amount': transaction.amount,
                     'tournament': transaction.tournament,

@@ -97,7 +97,7 @@
         <input type="text" :value="tData.bounty.title" @input="setBountyFieldFromEvent('title', $event)" class="edit-input" placeholder="Prime Impact Bounty">
         <label class="text-[9px] text-dc-cyan uppercase tracking-widest mb-1 block">Bounty Description</label>
         <textarea :value="tData.bounty.task" @input="setBountyFieldFromEvent('task', $event)" class="edit-input min-h-[74px]" placeholder="Describe the bounty objective"></textarea>
-        <label class="text-[9px] text-dc-cyan uppercase tracking-widest mb-1 block">Reward (DeltaCoin)</label>
+        <label class="text-[9px] text-dc-cyan uppercase tracking-widest mb-1 block">Reward ({{ brand.features.coins }})</label>
         <input type="number" min="0" step="1" :value="tData.bounty.reward" @input="setBountyFieldFromEvent('reward', $event)" class="edit-input" placeholder="1500">
         <div class="flex items-center gap-2 mt-2">
             <label class="text-xs text-gray-400 inline-flex items-center gap-1.5 mr-auto"><input type="checkbox" :checked="widgetUi.bounty.show" @change="setWidgetVisibilityFromEvent('bounty', $event)" class="rounded border-white/30 bg-black/60"> Visible</label>

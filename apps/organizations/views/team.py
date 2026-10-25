@@ -7,6 +7,8 @@ Handles:
 - Team invitations dashboard
 """
 
+from deltacrown.branding import brand_copy
+
 import logging
 from django.contrib.auth.decorators import login_required
 from django.db import models
@@ -654,7 +656,7 @@ def team_detail(request, team_slug, org_slug=None):
         if game_obj:
             game_name = getattr(game_obj, 'display_name', None) or getattr(game_obj, 'name', '')
         description = team.description or team.tagline or (
-            f"{team.name} is a DeltaCrown esports team"
+            f"{team.name} is a {brand_copy('[[brand]]')} esports team"
             + (f" competing in {game_name}" if game_name else "")
             + (f" from {team.region}." if team.region else ".")
         )
@@ -701,14 +703,14 @@ def team_detail(request, team_slug, org_slug=None):
         game_slug = game_context.get('slug') or team.game_id
         game_rankings_url = f"/competition/leaderboards/{game_slug}/" if game_slug else "/competition/leaderboards/"
         context['entity_links'] = [
-            {'label': 'Crown Points Rankings', 'url': '/competition/leaderboards/', 'detail': 'Compare teams across the platform'},
+            {'label': brand_copy('[[ranking_points]] Rankings'), 'url': '/competition/leaderboards/', 'detail': 'Compare teams across the platform'},
             {'label': f"{game_name} Rankings" if game_name else 'Game Rankings', 'url': game_rankings_url, 'detail': 'Game-specific leaderboard'},
             {'label': 'Tournaments', 'url': '/tournaments/', 'detail': 'Find events this roster can enter'},
         ]
         if team.organization:
             context['entity_links'].insert(0, {'label': team.organization.name, 'url': team.organization.get_absolute_url(), 'detail': 'Parent organization'})
         context['seo'] = build_seo(
-            title=f"{team.name} | DeltaCrown Team",
+            title=f"{team.name} | {brand_copy('[[brand]]')} Team",
             description=description,
             canonical=absolute_url(team.get_absolute_url()),
             noindex=team.visibility != 'PUBLIC' or team.is_temporary or (not team.description and not team.tagline and roster_count == 0),

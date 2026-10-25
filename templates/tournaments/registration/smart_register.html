@@ -4,12 +4,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ submit_title_label|default:'Register' }} — {{ tournament.name }} | DeltaCrown</title>
+    <title>{{ submit_title_label|default:'Register' }} — {{ tournament.name }} | {{ brand.name }}</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Rajdhani:wght@500;600;700;800&family=Space+Grotesk:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="icon" href="{% static 'img/deltaCrown_logos/logo_animated.svg' %}" type="image/svg+xml">
 
     <script nonce="{{ request.csp_nonce }}" src="https://unpkg.com/lucide@latest"></script>
     <script nonce="{{ request.csp_nonce }}" src="https://cdn.tailwindcss.com"></script>
@@ -169,6 +168,7 @@
         .desc-content h2, .desc-content h3, .desc-content h4 { color: #ffffff; font-weight: 700; margin: 0.75rem 0 0.375rem; }
         .desc-content blockquote { border-left: 3px solid var(--accent); padding-left: 0.75rem; color: #a0a0b8; font-style: italic; margin: 0.5rem 0; }
     </style>
+    {% include "partials/brand_head.html" %}
 </head>
 <body class="relative">
 
@@ -186,8 +186,7 @@
         </a>
 
         <div class="flex items-center gap-2">
-            <img src="{% static 'img/deltaCrown_logos/logo_animated.svg' %}" alt="DeltaCrown" class="w-7 h-7 drop-shadow-[0_0_8px_rgba(108,0,255,0.3)]">
-            <img src="{% static 'img/deltaCrown_logos/DeltaCrown_Teal-Purple-Gold.svg' %}" alt="DeltaCrown" class="h-4 w-auto hidden sm:block">
+            {% include "partials/brand_logo.html" %}
         </div>
 
         <div class="flex items-center gap-3">

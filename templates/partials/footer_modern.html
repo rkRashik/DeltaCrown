@@ -9,7 +9,7 @@
      Complete Redesign | Perfect Space Utilization
      ============================================ -->
 
-<footer class="relative bg-gradient-to-b from-dc-dark via-[#0f1419] to-black overflow-hidden">
+<footer class="ol-footer-legacy relative overflow-hidden">
     
     <!-- Sophisticated Background Layers -->
     <div class="absolute inset-0">
@@ -34,16 +34,11 @@
             <div class="lg:col-span-4 space-y-8">
                 <!-- Logo & Brand -->
                 <div class="space-y-6">
-                    <div class="flex items-center gap-4">
-                        <div class="relative">
-                            <div class="absolute inset-0 bg-gradient-to-br from-dc-cyan to-dc-purple rounded-2xl blur-xl opacity-50"></div>
-                            <img src="{% static 'img/deltaCrown_logos/logo_animated.svg' %}" alt="DeltaCrown" class="relative h-16 w-16 drop-shadow-2xl">
-                        </div>
-                        <img src="{% static 'siteui/svg/Logos/DeltaCrown_Teal-Purple-Gold.svg' %}" alt="DeltaCrown" class="h-11 w-auto">
-                    </div>
+                    <a href="/" aria-label="{{ brand.name }} home">{% include "partials/brand_logo.html" %}</a>
+                    <p class="text-sm text-gray-400">{{ brand.tagline }}</p>
                     
                     <p class="text-gray-300 text-lg leading-relaxed font-light">
-                        DeltaCrown connects tournaments, teams, rankings, player profiles, and competitive operations through
+                        {{ brand.name }} connects tournaments, teams, rankings, player profiles, and competitive operations through
                         <span class="text-dc-cyan font-medium">structured competition</span>,
                         <span class="text-dc-purple font-medium">clear records</span>, and
                         <span class="text-dc-gold font-medium">community tools</span>.
@@ -59,7 +54,7 @@
                     
                     <div class="flex flex-wrap gap-3">
                         <!-- Facebook -->
-                        <a href="https://www.facebook.com/DeltaCrownGG" target="_blank" 
+                        <a href="{{ brand.social.facebook }}" target="_blank"
                            class="group relative" title="Facebook">
                             <div class="absolute inset-0 bg-[#1877F2]/30 rounded-xl blur-lg opacity-0 group-hover:opacity-100 transition-all duration-300"></div>
                             <div class="relative w-12 h-12 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl flex items-center justify-center hover:bg-[#1877F2]/20 hover:border-[#1877F2]/50 transition-all duration-300 group-hover:scale-110">
@@ -70,7 +65,7 @@
                         </a>
                         
                         <!-- Discord -->
-                        <a href="https://discord.gg/UaHRC8Cd" target="_blank" 
+                        <a href="{{ brand.social.discord }}" target="_blank"
                            class="group relative" title="Discord">
                             <div class="absolute inset-0 bg-[#5865F2]/30 rounded-xl blur-lg opacity-0 group-hover:opacity-100 transition-all duration-300"></div>
                             <div class="relative w-12 h-12 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl flex items-center justify-center hover:bg-[#5865F2]/20 hover:border-[#5865F2]/50 transition-all duration-300 group-hover:scale-110">
@@ -80,7 +75,7 @@
                         </a>
                         
                         <!-- YouTube -->
-                        <a href="https://www.youtube.com/@DeltaCrownGG" target="_blank" 
+                        <a href="{{ brand.social.youtube }}" target="_blank"
                            class="group relative" title="YouTube">
                             <div class="absolute inset-0 bg-[#FF0000]/30 rounded-xl blur-lg opacity-0 group-hover:opacity-100 transition-all duration-300"></div>
                             <div class="relative w-12 h-12 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl flex items-center justify-center hover:bg-[#FF0000]/20 hover:border-[#FF0000]/50 transition-all duration-300 group-hover:scale-110">
@@ -171,7 +166,7 @@
                         </a>
                         <a href="/crownstore/" class="group flex items-center gap-2 text-gray-400 hover:text-dc-purple transition-colors text-sm">
                             <span class="w-1 h-1 rounded-full bg-gray-600 group-hover:bg-dc-purple group-hover:w-2 transition-all"></span>
-                            CrownStore
+                            {{ brand.features.store }}
                         </a>
                     </nav>
                 </div>
@@ -292,31 +287,31 @@
             <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
                 <div class="text-center sm:text-left">
                     <p class="text-gray-400 text-sm font-medium">
-                        © {% now "Y" %} <span class="gradient-text font-bold">DeltaCrown</span>. All rights reserved.
+                        Â© {% now "Y" %} <span class="gradient-text font-bold">{{ brand.name }}</span>. All rights reserved.
                     </p>
                     <p class="text-gray-600 text-xs mt-1">
-                        Crafted with <span class="text-red-400">♥</span> in Bangladesh
+                        Crafted with <span class="text-red-400">â™¥</span> in Bangladesh
                     </p>
                 </div>
                 
                 <div class="flex items-center gap-4">
-                    <a href="https://www.facebook.com/DeltaCrownGG" target="_blank" class="text-gray-500 hover:text-dc-cyan transition-colors text-xs font-medium">
+                    <a href="{{ brand.social.facebook }}" target="_blank" class="text-gray-500 hover:text-dc-cyan transition-colors text-xs font-medium">
                         Facebook
                     </a>
-                    <span class="text-gray-700">•</span>
-                    <a href="https://discord.gg/UaHRC8Cd" target="_blank" class="text-gray-500 hover:text-dc-purple transition-colors text-xs font-medium">
+                    <span class="text-gray-700">â€¢</span>
+                    <a href="{{ brand.social.discord }}" target="_blank" class="text-gray-500 hover:text-dc-purple transition-colors text-xs font-medium">
                         Discord
                     </a>
-                    <span class="text-gray-700">•</span>
+                    <span class="text-gray-700">â€¢</span>
                     <a href="https://instagram.com/deltacrowngg" target="_blank" class="text-gray-500 hover:text-pink-400 transition-colors text-xs font-medium">
                         Instagram
                     </a>
-                    <span class="text-gray-700">•</span>
+                    <span class="text-gray-700">â€¢</span>
                     <a href="https://wa.me/8801789560202" target="_blank" class="text-gray-500 hover:text-green-400 transition-colors text-xs font-medium">
                         WhatsApp
                     </a>
-                    <span class="text-gray-700">•</span>
-                    <a href="https://www.youtube.com/@DeltaCrownGG" target="_blank" class="text-gray-500 hover:text-red-400 transition-colors text-xs font-medium">
+                    <span class="text-gray-700">â€¢</span>
+                    <a href="{{ brand.social.youtube }}" target="_blank" class="text-gray-500 hover:text-red-400 transition-colors text-xs font-medium">
                         YouTube
                     </a>
                 </div>
@@ -352,7 +347,7 @@
             setTimeout(() => {
                 btn.textContent = originalText;
                 btn.disabled = false;
-                showMessage('✓ Subscribed successfully!', 'success');
+                showMessage('âœ“ Subscribed successfully!', 'success');
                 form.reset();
             }, 1500);
         });

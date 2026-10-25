@@ -67,7 +67,7 @@
           Command Center
         </span>
         {% if is_new_player %}
-        <h1>Welcome to DeltaCrown, {{ profile.display_name|default:request.user.username }}.</h1>
+        <h1>Welcome to {{ brand.name }}, {{ profile.display_name|default:request.user.username }}.</h1>
         <p>Finish your setup to unlock tournaments and teams.</p>
         {% else %}
         <h1>Welcome back, {{ profile.display_name|default:request.user.username }}</h1>
@@ -156,7 +156,7 @@
     {% with dl=primary_lens %}
     <div class="grid" style="margin-bottom:var(--gap);">
       <div class="card stat col-3 hov">
-        <div class="top"><div class="ic" style="background:var(--dc-tint-gold);color:var(--dc-gold-400);"><i class="ph-fill ph-crown-simple"></i></div><div class="lbl">Crown Points</div></div>
+        <div class="top"><div class="ic" style="background:var(--dc-tint-gold);color:var(--dc-gold-400);"><i class="ph-fill ph-crown-simple"></i></div><div class="lbl">{{ brand.features.ranking_points }}</div></div>
         <div class="val" id="statCP" data-count="{{ dl.rank.cp|default:0 }}">0</div>
         <div class="sub" id="statCPsub"><span style="color:{{ dl.rank.tier_color|default:'#94A3B8' }};font-weight:600;">{{ dl.rank.tier|default:"ROOKIE"|upper }}</span> · <span class="up">+{{ dl.rank.cp_delta|default:0 }} this week</span></div>
       </div>
@@ -171,7 +171,7 @@
         <div class="sub">{{ active_tournaments|length }} joined · <span style="color:var(--dc-fg-muted);">{{ platform_tournament_count|default:0 }} platform-wide</span></div>
       </div>
       <div class="card stat col-3 hov">
-        <div class="top"><div class="ic" style="background:var(--dc-tint-gold);color:var(--dc-gold-400);"><i class="ph-fill ph-coins"></i></div><div class="lbl">DeltaCoin</div></div>
+        <div class="top"><div class="ic" style="background:var(--dc-tint-gold);color:var(--dc-gold-400);"><i class="ph-fill ph-coins"></i></div><div class="lbl">{{ brand.features.coins }}</div></div>
         <div class="val" data-count="{{ wallet.balance|default:0|floatformat:0 }}">0</div>
         <div class="sub">{% if wallet.recent_txns %}{% with t=wallet.recent_txns.0 %}<span class="{% if t.amount > 0 %}up{% else %}down{% endif %}">{% if t.amount > 0 %}+{% endif %}{{ t.amount|floatformat:0 }}</span> {{ t.reason|lower }}{% endwith %}{% else %}wallet balance{% endif %}</div>
       </div>
@@ -233,11 +233,11 @@
         {# Today's reward summary #}
         <div style="font-size:12px;color:var(--dc-fg-muted);margin-bottom:10px;display:flex;gap:10px;justify-content:center;">
           <span><i class="ph-bold ph-lightning" style="color:var(--dc-violet-400);"></i> +{{ daily_reward.today_xp }} XP</span>
-          {% if daily_reward.today_dc %}<span><i class="ph-fill ph-coins" style="color:var(--dc-gold-400);"></i> +{{ daily_reward.today_dc }} DC</span>{% endif %}
+          {% if daily_reward.today_dc %}<span><i class="ph-fill ph-coins" style="color:var(--dc-gold-400);"></i> +{{ daily_reward.today_dc }} {{ brand.features.coins }}</span>{% endif %}
         </div>
         {% if daily_reward.today_claimable %}
         <button class="btn btn-gold btn-block" id="dailyClaim">
-          <i class="ph-fill ph-gift"></i> Claim today · +{{ daily_reward.today_xp }} XP{% if daily_reward.today_dc %} +{{ daily_reward.today_dc }} DC{% endif %}
+          <i class="ph-fill ph-gift"></i> Claim today · +{{ daily_reward.today_xp }} XP{% if daily_reward.today_dc %} +{{ daily_reward.today_dc }} {{ brand.features.coins }}{% endif %}
         </button>
         {% else %}
         <button class="btn btn-ghost btn-block" disabled style="opacity:0.6;cursor:default;">
@@ -248,7 +248,7 @@
         <div style="font-size:11px;color:var(--dc-fg-soft);margin-top:8px;text-align:center;">
           <i class="ph-bold ph-flag" style="font-size:12px;color:var(--dc-warning-500);"></i>
           Next milestone: {{ daily_reward.next_milestone.label }} at day {{ daily_reward.next_milestone.streak_days }}
-          (+{{ daily_reward.next_milestone.bonus_xp }} XP +{{ daily_reward.next_milestone.bonus_dc }} DC)
+          (+{{ daily_reward.next_milestone.bonus_xp }} XP +{{ daily_reward.next_milestone.bonus_dc }} {{ brand.features.coins }})
         </div>
         {% endif %}
         {% else %}
@@ -291,14 +291,14 @@
         {% endif %}
       </div>
 
-      {# Crown Rank + XP Level — 2-slide carousel #}
+      {# {{ brand.features.team_rank }} + XP Level — 2-slide carousel #}
       <div class="card col-4 rank-xp-card">
         {# Shared card header — label changes with slide #}
         <div class="card-head" style="margin-bottom:0;">
           <div class="ic gold" id="rankXpIc"><i class="ph-fill ph-medal"></i></div>
-          <h3 id="rankXpTitle">Crown Rank</h3>
+          <h3 id="rankXpTitle">{{ brand.features.team_rank }}</h3>
           <div class="rank-xp-nav" style="margin-left:auto;">
-            <button class="rank-xp-dot on" data-slide="0" title="Crown Rank"></button>
+            <button class="rank-xp-dot on" data-slide="0" title="{{ brand.features.team_rank }}"></button>
             <button class="rank-xp-dot" data-slide="1" title="XP &amp; Level"></button>
           </div>
         </div>
@@ -306,7 +306,7 @@
         <div class="rank-xp-outer" style="margin-top:14px;">
         <div class="rank-xp-track" id="rankXpTrack">
 
-          {# ── Slide 0: Crown Rank ── #}
+          {# ── Slide 0: {{ brand.features.team_rank }} ── #}
           <div class="rank-xp-slide">
             {% with dl=primary_lens %}
             {% if dl %}
@@ -319,14 +319,14 @@
               </div>
               <div class="pts">
                 <div class="n" id="rankPts" style="{% if dl.rank.cp_pending %}color:var(--dc-fg-soft);{% endif %}">{{ dl.rank.pts }}</div>
-                <div class="l">CP</div>
+                <div class="l">{{ brand.features.ranking_points_short }}</div>
                 {% if dl.rank.cp_pending and dl.rank.wins %}<div style="font-size:10px;color:var(--dc-success-500);margin-top:2px;">{{ dl.rank.wins }}W {{ dl.rank.losses }}L</div>{% endif %}
               </div>
             </div>
             {% if dl.rank.cp_pending %}
             <div style="font-size:11px;color:var(--dc-fg-soft);padding:8px 0 4px;display:flex;align-items:center;gap:6px;">
               <i class="ph-bold ph-clock" style="font-size:13px;color:var(--dc-warning-500);"></i>
-              Crown Points update daily · rankings compute overnight
+              {{ brand.features.ranking_points }} update daily · rankings compute overnight
             </div>
             {% endif %}
             <div class="xp">
@@ -335,7 +335,7 @@
               <div class="xt" style="margin-top:8px;margin-bottom:0;"><span class="b" id="rankPromo" style="color:{{ dl.rank.promo_color|default:'var(--dc-fg-soft)' }};">{{ dl.rank.promo_text }}</span></div>
             </div>
             {% else %}
-            <div class="rank-hero"><div class="rank-badge" id="rankBadge" style="background:#94A3B8;"><i class="ph-fill ph-medal"></i></div><div class="ri"><div class="tier" id="rankTier" style="color:#94A3B8;">Rookie</div><div class="pos" id="rankPos">Unranked</div></div><div class="pts"><div class="n" id="rankPts">0</div><div class="l">CP</div></div></div>
+            <div class="rank-hero"><div class="rank-badge" id="rankBadge" style="background:#94A3B8;"><i class="ph-fill ph-medal"></i></div><div class="ri"><div class="tier" id="rankTier" style="color:#94A3B8;">Rookie</div><div class="pos" id="rankPos">Unranked</div></div><div class="pts"><div class="n" id="rankPts">0</div><div class="l">{{ brand.features.ranking_points_short }}</div></div></div>
             <div class="xp"><div class="xt"><span class="a" id="rankLevel">Level 1</span><span class="b" id="rankXpText">0 / 500 XP</span></div><div class="bar"><i id="rankBar" data-fill="0" style="width:0%;"></i></div></div>
             {% endif %}
             {% endwith %}
@@ -415,7 +415,7 @@
           <div class="org-stat"><div class="n">{{ fo.team_count }}</div><div class="l">Teams</div></div>
           <div class="org-stat"><div class="n">{{ fo.member_count }}</div><div class="l">Members</div></div>
           <div class="org-stat"><div class="n{% if fo.pending_requests %} warn{% endif %}">{{ fo.pending_requests }}</div><div class="l">Pending requests</div></div>
-          <div class="org-stat"><div class="n gold">{{ fo.monthly_dc|default:0 }}</div><div class="l">DC this month</div></div>
+          <div class="org-stat"><div class="n gold">{{ fo.monthly_dc|default:0 }}</div><div class="l">{{ brand.features.coins }} this month</div></div>
         </div>
         {% if fo.is_owner %}
         <div class="org-actions">
@@ -509,13 +509,13 @@
             </div>
             <div class="tc-bot">
               <div class="nm">{{ t.name|truncatechars:24 }}</div>
-              <div class="mt">{% if t.prize_pool %}<span class="prize"><i class="ph-fill ph-coins"></i> {{ t.prize_pool|floatformat:0 }} DC</span>{% endif %}{% if t.max_participants %}<span><i class="ph-bold ph-users"></i> {{ t.max_participants }}</span>{% endif %}</div>
+              <div class="mt">{% if t.prize_pool %}<span class="prize"><i class="ph-fill ph-coins"></i> {{ t.prize_pool|floatformat:0 }} {{ brand.features.coins }}</span>{% endif %}{% if t.max_participants %}<span><i class="ph-bold ph-users"></i> {{ t.max_participants }}</span>{% endif %}</div>
             </div>
           </a>
           {% endfor %}
         </div>
         {% else %}
-        <div class="empty"><div class="ei"><i class="ph-bold ph-trophy"></i></div><b>No active tournaments</b><p>Register for a tournament to earn Crown Points.</p><a href="/tournaments/" class="btn btn-ghost btn-sm" style="margin-top:6px;"><i class="ph-bold ph-trophy"></i> Browse tournaments</a></div>
+        <div class="empty"><div class="ei"><i class="ph-bold ph-trophy"></i></div><b>No active tournaments</b><p>Register for a tournament to earn {{ brand.features.ranking_points }}.</p><a href="/tournaments/" class="btn btn-ghost btn-sm" style="margin-top:6px;"><i class="ph-bold ph-trophy"></i> Browse tournaments</a></div>
         {% endif %}
       </div>
 
@@ -613,7 +613,7 @@
           <div class="empty">
             <div class="ei"><i class="ph-bold ph-ranking"></i></div>
             <b>Not ranked yet</b>
-            <p>Play matches and tournaments to earn Crown Points and appear on the board.</p>
+            <p>Play matches and tournaments to earn {{ brand.features.ranking_points }} and appear on the board.</p>
             <a href="/tournaments/" class="btn btn-ghost btn-sm" style="margin-top:6px;"><i class="ph-bold ph-trophy"></i> Find a tournament</a>
           </div>
           {% endif %}
@@ -629,11 +629,11 @@
       <div class="card col-5">
         <div class="card-head">
           <div class="ic gold"><i class="ph-fill ph-wallet"></i></div>
-          <h3>DeltaCoin Wallet</h3>
+          <h3>{{ brand.features.coins }} Wallet</h3>
           <a href="{% url 'economy:wallet_hub' %}" class="act">History <i class="ph-bold ph-arrow-right" style="font-size:12px;"></i></a>
         </div>
         {% if wallet.has_wallet %}
-        <div class="wallet-hero"><span class="bal" id="walletBal">{{ wallet.balance|floatformat:0 }}</span><span class="cur">DC</span></div>
+        <div class="wallet-hero"><span class="bal" id="walletBal">{{ wallet.balance|floatformat:0 }}</span><span class="cur">{{ brand.features.coins }}</span></div>
         <div class="wallet-sub">≈ BDT ৳ {{ wallet.balance|floatformat:0 }} · updated just now</div>
         <div class="wallet-actions">
           <a href="{% url 'economy:wallet_hub' %}?tab=acquire" class="btn btn-gold"><i class="ph-fill ph-coins"></i> Claim / Add</a>
@@ -650,7 +650,7 @@
           {% empty %}<p style="color:var(--dc-fg-soft);font-size:13px;padding:12px 0;">No recent transactions.</p>{% endfor %}
         </div>
         {% else %}
-        <div class="empty"><div class="ei"><i class="ph-bold ph-wallet"></i></div><b>No wallet yet</b><p>Your DeltaCoin wallet will appear here once activated.</p></div>
+        <div class="empty"><div class="ei"><i class="ph-bold ph-wallet"></i></div><b>No wallet yet</b><p>Your {{ brand.features.coins }} wallet will appear here once activated.</p></div>
         {% endif %}
       </div>
 
@@ -685,7 +685,7 @@
           <a href="{% url 'tournaments:list' %}"><i class="ph-bold ph-trophy"></i> Find Tournament</a>
           <a href="{% url 'user_profile:settings' %}"><i class="ph-bold ph-identification-card"></i> Game Passport</a>
           <a href="{% url 'organizations:team_directory' %}"><i class="ph-bold ph-users-four"></i> Find Players</a>
-          <a href="{% url 'ecommerce:store_home' %}"><i class="ph-bold ph-storefront"></i> Crown Store</a>
+          <a href="{% url 'ecommerce:store_home' %}"><i class="ph-bold ph-storefront"></i> {{ brand.features.store }}</a>
           <a href="{% url 'siteui:arena' %}"><i class="ph-bold ph-television"></i> Arena</a>
           <a href="{% url 'dashboard:competitive_hub' %}"><i class="ph-bold ph-target"></i> Missions</a>
           <a href="{% url 'organizations:org_directory' %}"><i class="ph-bold ph-buildings"></i> Org HQ</a>
@@ -699,9 +699,9 @@
       <div class="welcome col-12">
         <div style="display:flex;align-items:center;gap:24px;flex-wrap:wrap;">
           <div style="flex:1;min-width:240px;">
-            <span class="chip chip-open" style="margin-bottom:12px;"><i class="ph-fill ph-crown-simple" style="font-size:13px;"></i> Welcome to DeltaCrown</span>
+            <span class="chip chip-open" style="margin-bottom:12px;"><i class="ph-fill ph-crown-simple" style="font-size:13px;"></i> Welcome to {{ brand.name }}</span>
             <h1>Let's get you to the Crown, {{ profile.display_name|default:request.user.username }}.</h1>
-            <p>Finish setting up your player identity. Complete these steps to unlock tournaments, teams, and your first Crown Points.</p>
+            <p>Finish setting up your player identity. Complete these steps to unlock tournaments, teams, and your first {{ brand.features.ranking_points }}.</p>
             <div style="display:flex;gap:10px;margin-top:18px;flex-wrap:wrap;">
               <a href="/me/settings/" class="btn btn-primary"><i class="ph-bold ph-rocket-launch"></i> Continue setup</a>
               <a href="/tournaments/" class="btn btn-ghost"><i class="ph-bold ph-compass"></i> Explore first</a>
@@ -733,14 +733,14 @@
       </div>
       <div class="card col-4">
         <div class="card-head"><div class="ic gold"><i class="ph-fill ph-crown-simple"></i></div><h3>The Climb</h3></div>
-        <p style="font-size:13.5px;color:var(--dc-fg-muted);margin:0 0 16px;">Earn Crown Points from matches and tournaments to rise through the ladder.</p>
+        <p style="font-size:13.5px;color:var(--dc-fg-muted);margin:0 0 16px;">Earn {{ brand.features.ranking_points }} from matches and tournaments to rise through the ladder.</p>
         <div class="rows">
           <div class="row"><div class="ricon" style="background:rgba(148,163,184,0.14);color:#94A3B8;"><i class="ph-fill ph-circle"></i></div><div class="grow"><div class="t">Rookie</div><div class="s">You start here</div></div></div>
-          <div class="row"><div class="ricon" style="background:var(--dc-tint-violet);color:var(--dc-violet-400);"><i class="ph-fill ph-circle"></i></div><div class="grow"><div class="t">Challenger</div></div><div class="tr">1,500 CP</div></div>
-          <div class="row"><div class="ricon" style="background:var(--acc-tint);color:var(--acc-400);"><i class="ph-fill ph-circle"></i></div><div class="grow"><div class="t">Elite</div></div><div class="tr">4,000 CP</div></div>
-          <div class="row"><div class="ricon" style="background:rgba(191,56,104,0.14);color:#BF3868;"><i class="ph-fill ph-circle"></i></div><div class="grow"><div class="t">Master</div></div><div class="tr">8,000 CP</div></div>
-          <div class="row"><div class="ricon" style="background:var(--dc-tint-gold);color:var(--dc-gold-400);"><i class="ph-fill ph-medal"></i></div><div class="grow"><div class="t">Legend</div></div><div class="tr">15,000 CP</div></div>
-          <div class="row"><div class="ricon" style="background:var(--dc-tint-gold);color:var(--dc-gold-400);"><i class="ph-fill ph-crown-simple"></i></div><div class="grow"><div class="t" style="background:var(--dc-crown-gradient);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;">The Crown</div></div><div class="tr">25,000 CP</div></div>
+          <div class="row"><div class="ricon" style="background:var(--dc-tint-violet);color:var(--dc-violet-400);"><i class="ph-fill ph-circle"></i></div><div class="grow"><div class="t">Challenger</div></div><div class="tr">1,500 {{ brand.features.ranking_points_short }}</div></div>
+          <div class="row"><div class="ricon" style="background:var(--acc-tint);color:var(--acc-400);"><i class="ph-fill ph-circle"></i></div><div class="grow"><div class="t">Elite</div></div><div class="tr">4,000 {{ brand.features.ranking_points_short }}</div></div>
+          <div class="row"><div class="ricon" style="background:rgba(191,56,104,0.14);color:#BF3868;"><i class="ph-fill ph-circle"></i></div><div class="grow"><div class="t">Master</div></div><div class="tr">8,000 {{ brand.features.ranking_points_short }}</div></div>
+          <div class="row"><div class="ricon" style="background:var(--dc-tint-gold);color:var(--dc-gold-400);"><i class="ph-fill ph-medal"></i></div><div class="grow"><div class="t">Legend</div></div><div class="tr">15,000 {{ brand.features.ranking_points_short }}</div></div>
+          <div class="row"><div class="ricon" style="background:var(--dc-tint-gold);color:var(--dc-gold-400);"><i class="ph-fill ph-crown-simple"></i></div><div class="grow"><div class="t" style="background:var(--dc-crown-gradient);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;">The Crown</div></div><div class="tr">25,000 {{ brand.features.ranking_points_short }}</div></div>
         </div>
       </div>
     </div>
@@ -762,7 +762,7 @@
             {% else %}<div style="position:absolute;inset:0;background:linear-gradient(135deg,#11151E,#181D27);"></div>{% endif %}
             <div class="scrim"></div>
             <div class="tc-top">{% if t.game_icon %}<img class="glogo" src="{{ t.game_icon }}" alt="" onerror="this.style.display='none'">{% endif %}<span class="chip chip-open" style="background:rgba(0,0,0,.45);backdrop-filter:blur(8px);">OPEN</span></div>
-            <div class="tc-bot"><div class="nm">{{ t.name|truncatechars:24 }}</div><div class="mt">{% if t.prize_pool %}<span class="prize"><i class="ph-fill ph-coins"></i> {{ t.prize_pool|floatformat:0 }} DC</span>{% else %}<span class="prize">Free entry</span>{% endif %}</div></div>
+            <div class="tc-bot"><div class="nm">{{ t.name|truncatechars:24 }}</div><div class="mt">{% if t.prize_pool %}<span class="prize"><i class="ph-fill ph-coins"></i> {{ t.prize_pool|floatformat:0 }} {{ brand.features.coins }}</span>{% else %}<span class="prize">Free entry</span>{% endif %}</div></div>
           </a>
           {% endfor %}
         </div>
@@ -779,7 +779,7 @@
     <section class="dc-m-greeting dc-m-fu">
       <span class="dc-m-greeting-ey"><i class="ph-fill ph-crown-simple"></i> Command Center</span>
       {% if is_new_player %}
-      <h1>Welcome to DeltaCrown, {{ profile.display_name|default:request.user.username }}.</h1>
+      <h1>Welcome to {{ brand.name }}, {{ profile.display_name|default:request.user.username }}.</h1>
       <p>Finish your setup to unlock tournaments and teams.</p>
       {% else %}
       <h1>Welcome back, {{ profile.display_name|default:request.user.username }}</h1>
@@ -920,7 +920,7 @@
             {% if dl.rank.game_rank %}{{ dl.game_name }} · {{ dl.rank.game_rank }}{% elif dl %}{{ dl.rank.tier|default:"ROOKIE" }} RANK{% else %}ROOKIE RANK{% endif %}
           </div>
           <div style="font-family:'Sora',sans-serif;font-weight:800;font-size:24px;color:#fff;letter-spacing:-0.03em;line-height:1;">
-            <span id="dcMHeroCp">{{ dl.rank.cp|default:0 }}</span> <span style="font-size:14px;color:rgba(255,255,255,.44);">CP</span>
+            <span id="dcMHeroCp">{{ dl.rank.cp|default:0 }}</span> <span style="font-size:14px;color:rgba(255,255,255,.44);">{{ brand.features.ranking_points_short }}</span>
           </div>
           <div id="dcMHeroPromo" style="font-family:'Inter',sans-serif;font-size:11px;color:rgba(255,255,255,.44);margin-top:4px;">
             {{ dl.rank.promo_text|default:"Keep competing to climb the ladder" }}
@@ -951,7 +951,7 @@
             </span>
           </div>
           <div style="font-family:'Inter',sans-serif;font-size:11px;color:rgba(255,255,255,.44);margin-top:2px;">
-            {% if daily_reward.today_claimable %}+{{ daily_reward.today_xp }} XP{% if daily_reward.today_dc %} · +{{ daily_reward.today_dc }} DC{% endif %}{% else %}Claimed · +{{ daily_reward.today_xp }} XP{% if daily_reward.today_dc %} · +{{ daily_reward.today_dc }} DC{% endif %}{% endif %}
+            {% if daily_reward.today_claimable %}+{{ daily_reward.today_xp }} XP{% if daily_reward.today_dc %} · +{{ daily_reward.today_dc }} {{ brand.features.coins }}{% endif %}{% else %}Claimed · +{{ daily_reward.today_xp }} XP{% if daily_reward.today_dc %} · +{{ daily_reward.today_dc }} {{ brand.features.coins }}{% endif %}{% endif %}
           </div>
         </div>
         {% if daily_reward.today_claimable %}
@@ -1006,7 +1006,7 @@
       <div class="dc-m-stats">
         <div class="dc-m-stat">
           <div class="dc-m-stat-ic" style="background:rgba(191,56,104,0.14);color:#BF3868;"><i class="ph-fill ph-medal" style="font-size:13px;"></i></div>
-          <div class="dc-m-stat-ey">Crown Points</div>
+          <div class="dc-m-stat-ey">{{ brand.features.ranking_points }}</div>
           <div class="dc-m-stat-val" id="dcMStatCP" style="color:#fff;" data-count="{{ dl.rank.cp|default:0 }}">{{ dl.rank.cp|default:0 }}</div>
           <div class="dc-m-stat-sub" id="dcMStatCPSub" style="color:{{ dl.rank.tier_color|default:'#94A3B8' }};">{{ dl.rank.tier|default:"ROOKIE" }}</div>
         </div>
@@ -1018,9 +1018,9 @@
         </div>
         <div class="dc-m-stat">
           <div class="dc-m-stat-ic" style="background:rgba(207,167,90,0.14);color:#CFA75A;"><i class="ph-fill ph-coin-vertical" style="font-size:13px;"></i></div>
-          <div class="dc-m-stat-ey">DeltaCoin</div>
+          <div class="dc-m-stat-ey">{{ brand.features.coins }}</div>
           <div class="dc-m-stat-val" style="color:#CFA75A;" data-count="{{ wallet.balance|default:0|floatformat:0 }}">{{ wallet.balance|default:0|floatformat:0 }}</div>
-          <div class="dc-m-stat-sub">{% if wallet.recent_txns %}{% with t=wallet.recent_txns.0 %}{% if t.amount > 0 %}+{% endif %}{{ t.amount|floatformat:0 }} {{ t.reason|lower }}{% endwith %}{% else %}DC balance{% endif %}</div>
+          <div class="dc-m-stat-sub">{% if wallet.recent_txns %}{% with t=wallet.recent_txns.0 %}{% if t.amount > 0 %}+{% endif %}{{ t.amount|floatformat:0 }} {{ t.reason|lower }}{% endwith %}{% else %}{{ brand.features.coins }} balance{% endif %}</div>
         </div>
         <div class="dc-m-stat">
           <div class="dc-m-stat-ic" style="background:rgba(10,132,255,0.12);color:#0A84FF;"><i class="ph-bold ph-trophy" style="font-size:13px;"></i></div>
@@ -1169,7 +1169,7 @@
           </div>
           <div class="dc-m-tcard-bot">
             <div style="font-family:'Inter',sans-serif;font-weight:700;font-size:12px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ t.name|truncatechars:22 }}</div>
-            {% if t.prize_pool %}<div style="font-family:'JetBrains Mono',monospace;font-weight:600;font-size:10px;color:#CFA75A;margin-top:2px;"><i class="ph-fill ph-coin-vertical" style="font-size:9px;"></i> {{ t.prize_pool|floatformat:0 }} DC</div>{% endif %}
+            {% if t.prize_pool %}<div style="font-family:'JetBrains Mono',monospace;font-weight:600;font-size:10px;color:#CFA75A;margin-top:2px;"><i class="ph-fill ph-coin-vertical" style="font-size:9px;"></i> {{ t.prize_pool|floatformat:0 }} {{ brand.features.coins }}</div>{% endif %}
           </div>
         </a>
         {% endfor %}

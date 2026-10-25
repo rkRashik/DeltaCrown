@@ -1,4 +1,5 @@
 from django import template
+from deltacrown.branding import BRAND
 from django.utils.html import conditional_escape, format_html
 from django.utils.safestring import mark_safe
 
@@ -31,7 +32,7 @@ def meta_tags(context, request, title=None, description=None, image=None, type="
         canonical = ""
 
     # Defaults
-    site_name = "DeltaCrown"
+    site_name = BRAND["name"]
     title = title or site_name
     description = description or "Esports tournaments, teams, and matches."
     og_type = type or "website"

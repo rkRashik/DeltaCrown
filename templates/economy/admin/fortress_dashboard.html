@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Financial Fortress — DeltaCrown SuperAdmin</title>
+    <title>Financial Fortress — {{ brand.name }} SuperAdmin</title>
     <script nonce="{{ request.csp_nonce }}" src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -65,6 +65,7 @@
         .badge-approved { background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); }
         .badge-rejected { background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); }
     </style>
+    {% include "partials/brand_head.html" %}
 </head>
 <body class="h-screen w-full flex font-sans selection:bg-dc-primary selection:text-black">
 
@@ -113,7 +114,7 @@
                         <i class="fa-solid fa-building-columns text-dc-primary"></i>
                     </div>
                     <div class="flex-1">
-                        <h2 class="font-bold text-white tracking-wide leading-tight text-sm">DeltaCrown</h2>
+                        <h2 class="font-bold text-white tracking-wide leading-tight text-sm">{{ brand.name }}</h2>
                         <span class="text-[9px] font-mono text-dc-primary uppercase tracking-widest font-bold">Economy Control</span>
                     </div>
                 </div>
@@ -575,14 +576,14 @@
                         <div class="glass-card p-6 rounded-3xl relative overflow-hidden group">
                             <div class="absolute -right-10 -top-10 text-9xl text-white opacity-[0.02] group-hover:opacity-[0.04] transition pointer-events-none"><i class="fa-solid fa-building-columns"></i></div>
                             <h3 class="text-lg font-bold text-dc-danger mb-2 flex items-center gap-2">Master Treasury <span class="badge badge-rejected border-none ml-2">Root Node</span></h3>
-                            <p class="text-sm text-gray-300 leading-relaxed mb-4">The ultimate source of all DeltaCoins. It starts at a `0` balance. When new DC is minted or given to users, the Master Treasury's balance decreases (goes negative). This ensures the Double-Entry Ledger remains balanced at exactly 0.</p>
+                            <p class="text-sm text-gray-300 leading-relaxed mb-4">The ultimate source of all {{ brand.features.coins }}. It starts at a `0` balance. When new DC is minted or given to users, the Master Treasury's balance decreases (goes negative). This ensures the Double-Entry Ledger remains balanced at exactly 0.</p>
                             <div class="bg-black/40 p-3 rounded-lg border border-white/5 text-xs text-gray-400 font-mono">Formula: Sum(All User Wallets) + Treasury Balance = 0</div>
                         </div>
 
                         <div class="glass-card p-6 rounded-3xl relative overflow-hidden group">
                             <div class="absolute -right-10 -top-10 text-9xl text-white opacity-[0.02] group-hover:opacity-[0.04] transition pointer-events-none"><i class="fa-solid fa-chart-pie"></i></div>
                             <h3 class="text-lg font-bold text-dc-primary mb-2 flex items-center gap-2">Market Circulation</h3>
-                            <p class="text-sm text-gray-300 leading-relaxed mb-4">The total absolute number of DeltaCoins currently held by all users, organizations, and escrows across the entire platform. This number should always be the exact positive inverse of the Master Treasury deficit.</p>
+                            <p class="text-sm text-gray-300 leading-relaxed mb-4">The total absolute number of {{ brand.features.coins }} currently held by all users, organizations, and escrows across the entire platform. This number should always be the exact positive inverse of the Master Treasury deficit.</p>
                             <div class="bg-black/40 p-3 rounded-lg border border-white/5 text-xs text-gray-400 font-mono">Condition: Circulation == |Master Treasury|</div>
                         </div>
 

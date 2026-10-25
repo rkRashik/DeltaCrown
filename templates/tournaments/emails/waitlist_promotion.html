@@ -1,3 +1,4 @@
+{% load branding %}{% brand_config as brand %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -47,6 +48,7 @@
     </style>
 </head>
 <body>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B0C0C;"><tr><td align="center" style="padding:20px;">{% include "partials/email_brand_logo.html" %}</td></tr></table>
     <div class="email-wrapper">
         <!-- Header -->
         <div class="header">
@@ -125,7 +127,7 @@
                     <div class="payment-method">🏦 Bank Transfer</div>
                     {% endif %}
                     {% if 'deltacoin' in tournament.payment_methods %}
-                    <div class="payment-method">🪙 DeltaCoin</div>
+                    <div class="payment-method">🪙 {{ brand.features.coins }}</div>
                     {% endif %}
                 </div>
             </div>
@@ -177,13 +179,13 @@
             
             <p style="margin-top: 24px; font-size: 16px;">
                 We're excited to see you compete!<br>
-                <strong>The DeltaCrown Team</strong>
+                <strong>The {{ brand.name }} Team</strong>
             </p>
         </div>
         
         <!-- Footer -->
         <div class="footer">
-            <p><strong>DeltaCrown Esports Platform</strong></p>
+            <p><strong>{{ brand.name }} Esports Platform</strong></p>
             <p>Your spot is waiting - act now!</p>
             <p style="margin-top: 16px; font-size: 12px;">
                 This is an automated email. Please do not reply to this message.<br>

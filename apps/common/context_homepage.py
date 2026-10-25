@@ -18,6 +18,8 @@ Modern, dynamic context processor for the cyberpunk-themed homepage.
 All configuration in one place for easy updates.
 """
 
+from deltacrown.branding import brand_copy
+
 from django.utils import timezone
 from django.apps import apps
 from django.core.cache import cache
@@ -52,7 +54,7 @@ def homepage_context(request):
     hero = {
         'title': 'Competitive Gaming Platform',
         'subtitle': 'Tournaments, Teams & Rankings',
-        'description': 'DeltaCrown connects tournaments, teams, player profiles, rankings, and competitive operations for gaming communities in Bangladesh and beyond.',
+        'description': brand_copy('[[brand]] connects tournaments, teams, player profiles, rankings, and competitive operations for gaming communities in Bangladesh and beyond.'),
         'cta_primary': {
             'text': 'Join Tournament',
             'url': featured_tournament['url'] if featured_tournament else '/tournaments/',

@@ -12,6 +12,8 @@ Canonical location: apps.match_engine.consumers (Phase 6 extraction).
 
 from __future__ import annotations
 
+from deltacrown.branding import brand_copy
+
 import asyncio
 import json
 import logging
@@ -1093,7 +1095,7 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
                     "title": f"\U0001f3ae Match #{self.match_id} — Voice Channel Linked",
                     "description": f"**{label}**\n[Join Voice]({voice_url})",
                     "color": 5793266,  # #5865F2 in decimal
-                    "footer": {"text": f"Set by {self.user.username} via DeltaCrown"},
+                    "footer": {"text": f"Set by {self.user.username} via {brand_copy('[[brand]]')}"},
                 }]
             }
             timeout = aiohttp.ClientTimeout(total=3)
@@ -1110,7 +1112,7 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
                         "title": f"\U0001f3ae Match #{self.match_id} — Voice Channel Linked",
                         "description": f"**{label}**\n[Join Voice]({voice_url})",
                         "color": 5793266,
-                        "footer": {"text": f"Set by {self.user.username} via DeltaCrown"},
+                        "footer": {"text": f"Set by {self.user.username} via {brand_copy('[[brand]]')}"},
                     }]
                 }
 

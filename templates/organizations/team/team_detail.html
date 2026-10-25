@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}{{ page.title|default:"Team Detail | DeltaCrown" }}{% endblock %}
+{% block title %}{% if page.title %}{{ page.title }}{% else %}Team Detail | {{ brand.name }}{% endif %}{% endblock %}
 
 {% block extra_css %}
   <link rel="stylesheet" href="{% static 'dashboard/competitive-design-system.css' %}?v=20260518-x1">

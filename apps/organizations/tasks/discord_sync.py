@@ -13,6 +13,8 @@ Tasks:
                                   can see the configured channels.
 """
 
+from deltacrown.branding import brand_copy
+
 import logging
 
 import requests
@@ -24,7 +26,7 @@ logger = logging.getLogger(__name__)
 # ── Webhook-based delivery (fastest, no bot needed) ────────────────
 
 
-def _post_webhook(webhook_url: str, content: str, username: str = 'DeltaCrown',
+def _post_webhook(webhook_url: str, content: str, username: str = brand_copy('[[brand]]'),
                   avatar_url: str | None = None) -> bool:
     """Fire-and-forget POST to a Discord webhook URL."""
     payload = {
@@ -88,14 +90,12 @@ def send_discord_announcement(self, team_id: int, announcement_id: int):
         return  # stale task
 
     # Build content with a link back to the DeltaCrown team page
-    team_url = f"https://deltacrown.com/teams/{team.slug}/"
+    team_url = f"{settings.SITE_URL.rstrip('/')}/teams/{team.slug}/"
     content = (
-        f"**📢 {announcement.get_announcement_type_display()}**\n"
-        f"{announcement.content}\n\n"
-        f"🔗 [View on DeltaCrown]({team_url})"
+        f"**📢 {announcement.get_announcement_type_display()}**\n{announcement.content}\n\n🔗 [View on {brand_copy('[[brand]]')}]({team_url})"
     )
     author_name = (
-        announcement.author.username if announcement.author else 'DeltaCrown'
+        announcement.author.username if announcement.author else brand_copy('[[brand]]')
     )
 
     # Prefer webhook delivery
@@ -103,7 +103,7 @@ def send_discord_announcement(self, team_id: int, announcement_id: int):
         ok = _post_webhook(
             team.discord_webhook_url,
             content,
-            username=f'{author_name} via DeltaCrown',
+            username=f"{author_name} via {brand_copy('[[brand]]')}",
         )
         if ok:
             return
@@ -134,7 +134,7 @@ def send_discord_chat_message(self, team_id: int, chat_message_id: int):
         return
 
     # Build identity from the DeltaCrown user
-    author_name = 'DeltaCrown User'
+    author_name = brand_copy('[[brand]] User')
     avatar_url = None
     if msg.author_user:
         author_name = msg.author_user.username
@@ -366,7 +366,7 @@ def sync_discord_linked_role(
         resp = requests.put(assign_url, headers=headers, timeout=8)
         if resp.status_code in (200, 204):
             logger.info(
-                'Granted @Linked role to Discord user %s (DeltaCrown user %s)',
+                brand_copy('Granted @Linked role to Discord user %s ([[brand]] user %s)'),
                 discord_id, user_id,
             )
         else:
@@ -387,9 +387,7 @@ def sync_discord_linked_role(
         display = username
 
     dm_content = (
-        f"✅ **DeltaCrown account linked!**\n"
-        f"Your DeltaCrown account **{display}** is now connected to Discord.\n"
-        f"You've been granted the @Linked role — enjoy full access to slash commands!"
+        f"✅ **{brand_copy('[[brand]]')} account linked!**\nYour {brand_copy('[[brand]]')} account **{display}** is now connected to Discord.\nYou've been granted the @Linked role — enjoy full access to slash commands!"
     )
     try:
         # Open DM channel
@@ -462,7 +460,7 @@ def send_tournament_announcement_to_discord(self, tournament_id: int):
             f'👥 Capacity: {capacity} teams\n\n'
             f'[**Register Now →**]({t_url})'
         ),
-        'footer': {'text': 'DeltaCrown — deltacrown.xyz'},
+        'footer': {'text': f"{settings.BRAND['name']} — {settings.BRAND['domain']}"},
     }
 
     url = f'https://discord.com/api/v10/channels/{channel_id}/messages'
@@ -532,7 +530,7 @@ def send_match_result_to_discord(self, match_id: int):
             f'🟦 {team_a}  **{score_a}  —  {score_b}**  🟥 {team_b}\n\n'
             f'[View full bracket →]({site_url}/tournaments/)'
         ),
-        'footer': {'text': 'DeltaCrown — deltacrown.xyz'},
+        'footer': {'text': f"{settings.BRAND['name']} — {settings.BRAND['domain']}"},
     }
 
     url = f'https://discord.com/api/v10/channels/{channel_id}/messages'

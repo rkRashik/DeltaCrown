@@ -1,3 +1,4 @@
+{% load branding %}{% brand_config as brand %}
 ===============================================================================
                     YOUR DAILY DIGEST - {{ digest_date|date:"F j, Y" }}
 ===============================================================================
@@ -34,4 +35,4 @@ To change your notification preferences, visit: {{ site_url }}/settings/notifica
 
 Need help? Contact support: {{ site_url }}/support/
 
-© {{ current_year }} DeltaCrown. All rights reserved.
+© {{ current_year }} {{ brand.name }}. All rights reserved.

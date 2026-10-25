@@ -13,6 +13,8 @@ This separation prevents duplicate registration conflicts.
 📚 Documentation: docs/ADMIN_ORGANIZATION.md
 """
 
+from deltacrown.branding import brand_copy
+
 import json
 import tempfile
 from datetime import datetime
@@ -545,7 +547,7 @@ if False:  # Disabled - use custom admin instead
                 'identity_key',
                 'region',
             ],
-            'description': 'Core identity information linking DeltaCrown account to game profile'
+            'description': brand_copy('Core identity information linking [[brand]] account to game profile')
         }),
         ('Visibility & Status', {
             'fields': [

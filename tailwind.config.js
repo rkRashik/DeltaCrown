@@ -1,9 +1,12 @@
+const ownLobbyTokens = require('./static/ownlobby/brand-tokens.json');
+const ownLobbyPalette = require('./static/ownlobby/tailwind-palette.js');
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: [
     './templates/**/*.html',
     './apps/**/templates/**/*.html',
     './static/**/*.js',
+    './static/**/*.jsx',
   ],
   darkMode: 'class',
   theme: {
@@ -126,3 +129,7 @@ module.exports = {
     require('@tailwindcss/typography'),
   ],
 }
+
+module.exports.theme.extend.colors = ownLobbyPalette(
+  ownLobbyTokens.colors, module.exports.theme.extend.colors
+);

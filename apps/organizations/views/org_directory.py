@@ -4,6 +4,8 @@ Organization Directory view.
 Displays global organization rankings and directory.
 """
 
+from deltacrown.branding import brand_copy
+
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 
@@ -52,8 +54,8 @@ def org_directory(request):
         'page_description': 'Browse and explore verified esports organizations worldwide',
         'countries': COUNTRIES,
         'seo': build_seo(
-            title='Esports Organizations | DeltaCrown',
-            description='Browse DeltaCrown esports organizations, verified org profiles, squads, and competitive team ecosystems.',
+            title=brand_copy('Esports Organizations | [[brand]]'),
+            description=brand_copy('Browse [[brand]] esports organizations, verified org profiles, squads, and competitive team ecosystems.'),
             path='/orgs/',
             noindex=bool(q or region),
             schema=breadcrumb_schema([('Home', '/'), ('Organizations', '/orgs/')]),

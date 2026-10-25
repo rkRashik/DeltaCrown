@@ -1,22 +1,22 @@
-# DeltaCrown
+# OwnLobby
 
-**From the Delta to the Crown - Where Champions Rise.**
+**Your Lobby. Your Next Level.**
 
-DeltaCrown is a Bangladesh-first, globally ambitious esports platform for tournaments, teams, rankings, player identity, community, and competitive rewards.
+OwnLobby is a Bangladesh-first, globally ambitious esports platform for tournaments, teams, rankings, player identity, community, and competitive rewards.
 
 It is built for the full competitive lifecycle: discovering games, forming teams, joining tournaments, proving results, climbing rankings, earning rewards, developing talent, and building a lasting esports identity.
 
-## What DeltaCrown Is
+## What OwnLobby Is
 
-DeltaCrown is not just a bracket tool or a profile site. It is a connected esports ecosystem.
+OwnLobby is not just a bracket tool or a profile site. It is a connected esports ecosystem.
 
 The platform brings together:
 
 - Tournaments and match operations
 - Teams and esports organizations
 - Player profiles and game passports
-- Crown Point rankings and seasons
-- DeltaCoin utility economy
+- Ranking Points rankings and seasons
+- Coins utility economy
 - Competitive reward operations
 - Team recruitment and training workflows
 - Community, content, commerce, and admin systems
@@ -25,7 +25,7 @@ The product direction is premium, competitive, community-driven, and skill-focus
 
 ## Competitive Ecosystem
 
-DeltaCrown's next-generation competitive hub is organized around four short product names:
+OwnLobby's next-generation competitive hub is organized around four short product names:
 
 | Feature | What It Does |
 | --- | --- |
@@ -51,14 +51,14 @@ The tournament engine supports professional event workflows:
 - Match rooms and scheduling
 - Check-in and result submission
 - Dispute handling
-- Prize and DeltaCoin configuration
+- Prize and Coins configuration
 - Certificates and historical records
 
 Tournaments are designed to create lasting competitive history, not one-time event pages.
 
 ## Teams and Organizations
 
-DeltaCrown treats teams as persistent esports entities.
+OwnLobby treats teams as persistent esports entities.
 
 Teams can manage:
 
@@ -75,7 +75,7 @@ Organizations can own multiple teams and build a professional brand across games
 
 ## Rankings
 
-DeltaCrown uses Crown Points as the public ranking language.
+OwnLobby uses Ranking Points as the public ranking language.
 
 Teams progress through:
 
@@ -106,11 +106,11 @@ Profiles support:
 
 The goal is to help players build a credible esports record, not just a username.
 
-## DeltaCoin
+## Coins
 
-DeltaCoin is DeltaCrown's closed-loop utility and reward currency.
+Coins is OwnLobby's closed-loop utility and reward currency.
 
-It is used inside the platform for participation, entries, rewards, platform services, progression, and future store or premium experiences. DeltaCoin is positioned as an internal platform utility, not a financial asset.
+It is used inside the platform for participation, entries, rewards, platform services, progression, and future store or premium experiences. Coins is positioned as an internal platform utility, not a financial asset.
 
 The economy layer includes wallet records, transaction history, escrow locking, refunds, payout helpers, treasury support, local payment method fields, and wallet security direction.
 
@@ -129,7 +129,7 @@ The current platform now includes a Team HQ Training foundation with Scrim reque
 
 ## Architecture
 
-DeltaCrown is built as a modular Django platform.
+OwnLobby is built as a modular Django platform.
 
 Core stack direction:
 
@@ -145,12 +145,12 @@ Sensitive flows are organized through service layers, especially for escrow, ran
 
 ## Current Project State
 
-DeltaCrown is an active product in development with substantial foundations already implemented:
+OwnLobby is an active product in development with substantial foundations already implemented:
 
 - Tournament engine and match lifecycle
 - Team and organization management
 - Player profiles and game passport direction
-- Crown Point ranking system
+- Ranking Points ranking system
 - Economy and escrow services
 - Competitive hub foundation and unified My Operations feed
 - Competitive detail pages for Showdown, Bounty, Missions, Dropzone entries, and Dropzone lobbies
@@ -169,7 +169,7 @@ Some systems are still evolving, especially full dispute resolution UI, Dropzone
 
 ## Supported Game Direction
 
-DeltaCrown is game-agnostic by design and currently targets major competitive categories:
+OwnLobby is game-agnostic by design and currently targets major competitive categories:
 
 - FPS: Valorant, CS2, CODM, Rainbow Six
 - MOBA: Dota 2, Mobile Legends
@@ -180,7 +180,7 @@ New games can be added through the platform's game configuration layer without r
 
 ## Product Vision
 
-DeltaCrown is building the infrastructure layer for competitive gaming communities.
+OwnLobby is building the infrastructure layer for competitive gaming communities.
 
 The long-term direction includes:
 
@@ -192,14 +192,14 @@ The long-term direction includes:
 - Local and regional tournament ecosystems
 - Global expansion from a Bangladesh-first foundation
 
-DeltaCrown exists to make esports more professional, more trusted, and more accessible.
+OwnLobby exists to make esports more professional, more trusted, and more accessible.
 
 ## Contact
 
 **Founder:** Redwanul Rashik  
 **Founded:** 2025  
 **Email:** deltacrownhq@gmail.com  
-**Tagline:** From the Delta to the Crown - Where Champions Rise.
+**Tagline:** Your Lobby. Your Next Level.
 
 ## License
 

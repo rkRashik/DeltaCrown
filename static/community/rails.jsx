@@ -291,11 +291,11 @@ function DiscordCard() {
             <i className="fa-brands fa-discord text-white text-lg"></i>
           </div>
           <div>
-            <div className="text-sm font-bold text-white">DeltaCrown Discord</div>
+            <div className="text-sm font-bold text-white">{window.OWNLOBBY_BRAND.name} Discord</div>
             <div className="text-[10.5px] text-white/55">Voice channels, scrims, announcements.</div>
           </div>
         </div>
-        <a href="https://discord.gg/deltacrown" target="_blank" rel="noopener"
+        <a href={window.OWNLOBBY_BRAND.social.discord} target="_blank" rel="noopener noreferrer"
            className="block w-full py-2 rounded-xl text-sm font-bold text-white text-center transition hover:brightness-110"
            style={{ background: '#5865F2' }}>
           <i className="fa-brands fa-discord mr-2"></i> Join Server
@@ -659,7 +659,7 @@ function RightRail() {
           <a className="hover:text-white" href="/about/">About</a>
           <a className="hover:text-white" href="/legal/community-guidelines/">Guidelines</a>
           <a className="hover:text-white" href="/support/">Help</a>
-          <span className="ml-auto">© DeltaCrown</span>
+          <span className="ml-auto">© {window.OWNLOBBY_BRAND.name}</span>
         </div>
       </div>
     </aside>

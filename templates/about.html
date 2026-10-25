@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}About DeltaCrown | Competitive Gaming Platform{% endblock %}
-{% block og_title %}About DeltaCrown | Competitive Gaming Platform{% endblock %}
+{% block title %}About {{ brand.name }} | Competitive Gaming Platform{% endblock %}
+{% block og_title %}About {{ brand.name }} | Competitive Gaming Platform{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/about_2025.css' %}">
@@ -67,17 +67,17 @@
     <div class="dc-wrap dc-hero-inner">
       <div>
         <span class="dc-kicker"><span class="dc-dot"></span> Competitive gaming platform</span>
-        <h1 class="dc-h1">From the Delta<br><span class="dc-grad">to the Crown</span></h1>
-        <p class="dc-lead">DeltaCrown connects tournaments, teams, player identity, rankings, rewards, proof review, and organizer tools in one competitive gaming platform.</p>
+        <h1 class="dc-h1">Your Lobby.<br><span class="dc-grad">Your Next Level.</span></h1>
+        <p class="dc-lead">{{ brand.name }} connects tournaments, teams, player identity, rankings, rewards, proof review, and organizer tools in one competitive gaming platform.</p>
         <div class="dc-actions">
           <a class="dc-btn dc-btn-primary" href="/account/signup/">Create account</a>
           <a class="dc-btn dc-btn-ghost" href="/tournaments/">Explore tournaments</a>
           <a class="dc-btn dc-btn-ghost" href="/teams/">Browse teams</a>
         </div>
       </div>
-      <aside class="dc-hero-card" aria-label="DeltaCrown platform signal">
+      <aside class="dc-hero-card" aria-label="{{ brand.name }} platform signal">
         <div class="dc-logo-mark">
-          <img src="{% static 'img/deltaCrown_logos/logo_animated.svg' %}" alt="DeltaCrown logo">
+          <img src="{% static brand.symbol_dark %}" alt="{{ brand.name }} logo">
         </div>
         <div class="dc-signal-grid">
           <div class="dc-signal"><b>Players</b><span>Profiles, Game Passports, history, rankings, and progression.</span></div>
@@ -92,11 +92,11 @@
   <section class="dc-section">
     <div class="dc-wrap">
       <div class="dc-section-head">
-        <div class="dc-eyebrow">What DeltaCrown is</div>
+        <div class="dc-eyebrow">What {{ brand.name }} is</div>
         <h2 class="dc-h2">A connected competitive gaming platform, not just an event page.</h2>
       </div>
       <div class="dc-wide-grid">
-        <p class="dc-copy">DeltaCrown starts from Bangladesh and South Asia, where serious players and teams often grow through scattered chats, manual brackets, informal payment handling, and fragile proof flows. The platform direction is to give those communities a more trusted path: structured competition, visible identity, team operations, Crown Points progression, and DeltaCoin utility inside the platform.</p>
+        <p class="dc-copy">{{ brand.name }} starts from Bangladesh and South Asia, where serious players and teams often grow through scattered chats, manual brackets, informal payment handling, and fragile proof flows. The platform direction is to give those communities a more trusted path: structured competition, visible identity, team operations, {{ brand.features.ranking_points }} progression, and {{ brand.features.coins }} utility inside the platform.</p>
         <p class="dc-copy">The product is active and still evolving. Several systems already exist in code, while deeper automation, richer dispute experiences, game API verification, and advanced training workflows are intentionally treated as next steps instead of being presented as finished promises.</p>
       </div>
     </div>
@@ -112,8 +112,8 @@
         <div class="dc-card"><h3>Tournaments</h3><p>Discovery, registration, Match Rooms, check-in, result submission, disputes, brackets, standings, and organizer tools.</p></div>
         <div class="dc-card"><h3>Teams & Organizations</h3><p>Persistent team identities, rosters, roles, public pages, recruitment, sponsors, media, and organization structures.</p></div>
         <div class="dc-card"><h3>Game Passport</h3><p>Player identity for game accounts, preferred titles, public profile context, and future verification direction.</p></div>
-        <div class="dc-card"><h3>Crown Points</h3><p>The public ranking language for competitive progression, team tiers, activity, history, and seasonal direction.</p></div>
-        <div class="dc-card"><h3>DeltaCoin</h3><p>A closed-loop platform utility and reward currency used inside DeltaCrown for entries, rewards, wallet records, and platform services.</p></div>
+        <div class="dc-card"><h3>{{ brand.features.ranking_points }}</h3><p>The public ranking language for competitive progression, team tiers, activity, history, and seasonal direction.</p></div>
+        <div class="dc-card"><h3>{{ brand.features.coins }}</h3><p>A closed-loop platform utility and reward currency used inside {{ brand.name }} for entries, rewards, wallet records, and platform services.</p></div>
         <div class="dc-card"><h3>Team HQ</h3><p>Team operations for scrims, tryouts, practice sessions, VOD reviews, applications, offers, and roster workflows.</p></div>
         <div class="dc-card"><h3>Proof & Review</h3><p>Result proof, Mission proof, uploaded evidence, dispute notes, protected media routes, and staff review queues.</p></div>
         <div class="dc-card"><h3>Operator Console</h3><p>Admin-only surfaces that guide Mission creation, review queues, Dropzone setup, and service-backed competitive actions.</p></div>
@@ -143,7 +143,7 @@
         <h2 class="dc-h2">Competition needs trust, not just hype.</h2>
       </div>
       <div>
-        <p class="dc-copy">DeltaCrown treats competitive integrity as a product layer: account standards, team authority, proof capture, review queues, protected evidence access, dispute records, moderation sanctions, and operator-controlled settlement paths. The goal is not to promise perfect automation. The goal is to keep sensitive decisions inside traceable review surfaces instead of scattered messages.</p>
+        <p class="dc-copy">{{ brand.name }} treats competitive integrity as a product layer: account standards, team authority, proof capture, review queues, protected evidence access, dispute records, moderation sanctions, and operator-controlled settlement paths. The goal is not to promise perfect automation. The goal is to keep sensitive decisions inside traceable review surfaces instead of scattered messages.</p>
         <div class="dc-pill-list">
           <span class="dc-pill">Match Room proof</span>
           <span class="dc-pill">Mission proof review</span>
@@ -168,7 +168,7 @@
           <ul>
             <li>Tournament engine, Match Rooms, registration, results, disputes, and operator APIs.</li>
             <li>Teams, organizations, public team ecosystem, Team HQ, scrims, tryouts, practice, and VOD records.</li>
-            <li>Profiles, Game Passport direction, Crown Points ranking systems, wallets, DeltaCoin ledger, escrow services.</li>
+            <li>Profiles, Game Passport direction, {{ brand.features.ranking_points }} ranking systems, wallets, {{ brand.features.coins }} ledger, escrow services.</li>
             <li>Showdown, Missions, Bounty, Dropzone MVP flows with proof/review/admin control surfaces.</li>
           </ul>
         </div>
@@ -190,7 +190,7 @@
       <div class="dc-final-box">
         <div class="dc-eyebrow">Where champions rise</div>
         <h2 class="dc-h2">Build your record where your competition lives.</h2>
-        <p class="dc-copy" style="max-width:720px;margin:18px auto 0;">DeltaCrown is for players, teams, organizers, and partners who want competitive gaming in Bangladesh and beyond to feel structured, trusted, and worth building around.</p>
+        <p class="dc-copy" style="max-width:720px;margin:18px auto 0;">{{ brand.name }} is for players, teams, organizers, and partners who want competitive gaming in Bangladesh and beyond to feel structured, trusted, and worth building around.</p>
         <div class="dc-actions" style="justify-content:center;">
           <a class="dc-btn dc-btn-primary" href="/tournaments/">Explore tournaments</a>
           <a class="dc-btn dc-btn-ghost" href="/dashboard/competitive/">Open competitive hub</a>

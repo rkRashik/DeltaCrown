@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
-{% block title %}Create account — DeltaCrown{% endblock %}
+{% block title %}Create account — {{ brand.name }}{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'siteui/css/auth.css' %}" />
@@ -19,8 +19,7 @@
     <div class="auth-card">
         <div class="auth-header">
             <a href="/" class="auth-logo">
-                <img src="{% static 'img/deltaCrown_logos/logo.svg' %}" alt="DeltaCrown logo">
-                DeltaCrown
+                {% include "partials/brand_logo.html" %}
             </a>
             <h1 class="auth-title">Join the Arena</h1>
             <p class="auth-subtitle">Create your account and start competing</p>
@@ -72,7 +71,7 @@
         </div>
 
         <div class="auth-footer">
-            <p>&copy; {% now "Y" %} DeltaCrown &mdash; Where Champions Rise</p>
+            <p>&copy; {% now "Y" %} {{ brand.name }} &mdash; {{ brand.tagline }}</p>
         </div>
     </div>
 </div>

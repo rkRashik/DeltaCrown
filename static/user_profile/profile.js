@@ -734,7 +734,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // ============================================================================
 
 function routeCompetitiveActionsToHub() {
-    if (window.Toast) window.Toast.info('Competitive actions now live in the DeltaCrown competitive hub.');
+    if (window.Toast) window.Toast.info('Competitive actions now live in the OwnLobby competitive hub.');
     window.location.href = '/dashboard/competitive/';
 }
 

@@ -3,14 +3,14 @@
 
 {% block content %}
 
-{# ─────────────────────────────────────────────────────── DELTACROWN COMMAND CENTER #}
+{# ─────────────────────────────────────────────────────── {{ brand.name }} COMMAND CENTER #}
 <div class="mb-8 space-y-6">
 
     {# ══════ GREETING ══════ #}
     <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-5 border-b border-base-200 dark:border-base-800">
         <div>
             <h1 class="text-2xl font-bold text-important">{{ dc_greeting }}</h1>
-            <p class="text-sm text-base-500 mt-0.5">{{ dc_current_time }} &middot; DeltaCrown Command Center</p>
+            <p class="text-sm text-base-500 mt-0.5">{{ dc_current_time }} &middot; {{ brand.name }} Command Center</p>
         </div>
         <div class="flex flex-wrap gap-2">
             {% for action in dc_quick_actions %}

@@ -34,7 +34,7 @@ def meta_tags(context, title=None, description=None, image_url=None, canonical_u
     request = context.get("request")
 
     # Resolve values from context with sensible fallbacks
-    site_name = getattr(settings, "SITE_NAME", "DeltaCrown")
+    site_name = settings.BRAND["name"]
 
     # Title
     title = (

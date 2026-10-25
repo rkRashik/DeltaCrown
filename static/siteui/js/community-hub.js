@@ -781,7 +781,7 @@
   function sharePost(postId, title) {
     var url = location.origin + "/community/#post-" + postId;
     if (navigator.share) {
-      navigator.share({ title: title || "DeltaCrown Community", url: url }).catch(function () {});
+      navigator.share({ title: title || "OwnLobby Community", url: url }).catch(function () {});
     } else {
       navigator.clipboard.writeText(url).then(
         function () { toast("info", "Link copied!"); },

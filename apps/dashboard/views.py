@@ -1,4 +1,6 @@
 from __future__ import annotations
+
+from deltacrown.branding import brand_copy
 from datetime import datetime, timedelta
 import mimetypes
 from pathlib import Path
@@ -2006,7 +2008,7 @@ def dashboard_index(request: HttpRequest) -> HttpResponse:
         {"key": "email",      "label": "Verify your email",          "desc": "Secure your account",                            "done": email_verified,  "url": "/account/email/"},
         {"key": "passport",   "label": "Build your Game Passport",   "desc": "Link your IGN & rank for Valorant, MLBB, CS2…",  "done": has_passport,    "url": "/me/game-passports/"},
         {"key": "team",       "label": "Create or join a team",      "desc": "Compete with a roster, or set LFT status",        "done": has_teams,       "url": "/teams/create/"},
-        {"key": "tournament", "label": "Enter your first tournament", "desc": "Win Crown Points & start your climb",             "done": has_matches,     "url": "/tournaments/"},
+        {"key": "tournament", "label": "Enter your first tournament", "desc": brand_copy("Win [[ranking_points]] & start your climb"),             "done": has_matches,     "url": "/tournaments/"},
     ]
     onboarding_pct = round(sum(1 for s in onboarding_steps if s["done"]) / len(onboarding_steps) * 100)
     onboarding_done_count = sum(1 for s in onboarding_steps if s["done"])

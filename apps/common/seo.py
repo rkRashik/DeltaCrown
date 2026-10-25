@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from deltacrown.branding import BRAND, brand_copy
+
 import json
 from datetime import date, datetime
 from typing import Any
@@ -10,12 +12,9 @@ from django.templatetags.static import static
 from django.urls import NoReverseMatch, reverse
 
 
-DEFAULT_TITLE = "DeltaCrown"
-DEFAULT_DESCRIPTION = (
-    "DeltaCrown is a connected competitive gaming platform for tournaments, teams, "
-    "player identity, rankings, and structured competitive operations."
-)
-DEFAULT_IMAGE = "siteui/og/default.png"
+DEFAULT_TITLE = BRAND["name"]
+DEFAULT_DESCRIPTION = BRAND["description"]
+DEFAULT_IMAGE = BRAND["social_image"]
 
 
 NOINDEX_PREFIXES = (
@@ -199,7 +198,7 @@ def website_schema() -> dict[str, Any]:
     return {
         "@context": "https://schema.org",
         "@type": "WebSite",
-        "name": "DeltaCrown",
+        "name": brand_copy("[[brand]]"),
         "url": absolute_url("/"),
         "potentialAction": {
             "@type": "SearchAction",
@@ -213,9 +212,9 @@ def organization_schema() -> dict[str, Any]:
     return {
         "@context": "https://schema.org",
         "@type": "Organization",
-        "name": "DeltaCrown",
+        "name": brand_copy("[[brand]]"),
         "url": absolute_url("/"),
-        "logo": absolute_static("img/favicon/favicon-180x180.png"),
+        "logo": absolute_static(BRAND["logo_dark"]),
         "description": DEFAULT_DESCRIPTION,
     }
 

@@ -146,7 +146,7 @@
         <div class="flex items-center justify-between">
           <div>
             <p class="text-[10px] uppercase tracking-[0.16em] text-cyan-300 font-black">Instant Payment</p>
-            <h3 class="text-xl font-black text-white mt-1">Pay With DeltaCoin</h3>
+            <h3 class="text-xl font-black text-white mt-1">Pay With {{ brand.features.coins }}</h3>
             <p class="text-xs text-gray-300 mt-1">Instant confirmation when wallet balance is sufficient.</p>
           </div>
           <span class="text-xl" aria-hidden="true">⚡</span>
@@ -155,7 +155,7 @@
         <div class="rounded-xl border border-cyan-400/20 bg-black/25 p-3">
           <div class="flex items-center justify-between text-sm">
             <span class="text-gray-300">Wallet Balance</span>
-            <span class="font-black text-white">{{ deltacoin_balance }} DC</span>
+            <span class="font-black text-white">{{ deltacoin_balance }} {{ brand.features.coins }}</span>
           </div>
           <div class="flex items-center justify-between text-sm mt-1">
             <span class="text-gray-300">Required</span>
@@ -164,13 +164,13 @@
           {% if deltacoin_can_afford %}
           <p class="mt-2 text-xs text-emerald-300">Sufficient balance found. Instant confirmation available.</p>
           {% else %}
-          <p class="mt-2 text-xs text-amber-300">Need {{ deltacoin_shortfall }} more DC to complete instant payment.</p>
+          <p class="mt-2 text-xs text-amber-300">Need {{ deltacoin_shortfall }} more {{ brand.features.coins }} to complete instant payment.</p>
           {% endif %}
         </div>
 
         <button type="submit" {% if not deltacoin_can_afford %}disabled{% endif %}
           class="w-full py-3 rounded-xl {% if deltacoin_can_afford %}bg-cyan-400 hover:bg-cyan-300 text-black{% else %}bg-slate-700 text-slate-300 cursor-not-allowed{% endif %} font-black uppercase tracking-[0.08em] transition-colors">
-          Confirm DeltaCoin Payment
+          Confirm {{ brand.features.coins }} Payment
         </button>
       </form>
     </div>

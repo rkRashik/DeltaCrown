@@ -2617,8 +2617,8 @@ def discord_test_webhook(request, slug):
     import requests as http_requests
     try:
         payload = {
-            'content': 'âœ… **DeltaCrown webhook test** â€” your Discord integration is working!',
-            'username': f'{team.name} via DeltaCrown',
+            'content': f'âœ… **{settings.BRAND["name"]} webhook test** â€” your Discord integration is working!',
+            'username': f"{team.name} via {settings.BRAND['name']}",
         }
         resp = http_requests.post(webhook_url, json=payload, timeout=5)
         resp.raise_for_status()

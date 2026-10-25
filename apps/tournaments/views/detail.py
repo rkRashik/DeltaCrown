@@ -6,6 +6,8 @@ FE-T-003: Registration CTA States
 Extracted from main.py during Phase 3 restructure.
 """
 
+from deltacrown.branding import brand_copy
+
 import json
 import re
 from collections import defaultdict
@@ -167,7 +169,7 @@ class TournamentDetailView(DetailView):
             tournament_image = tournament.thumbnail_image.url
         game_name = getattr(tournament.game, 'display_name', None) or getattr(tournament.game, 'name', '')
         tournament_description = tournament.meta_description or tournament.description or (
-            f"{tournament.name} is a {game_name} tournament on DeltaCrown with public brackets, results, and competitive operations."
+            f"{tournament.name} is a {game_name} tournament on {brand_copy('[[brand]]')} with public brackets, results, and competitive operations."
         )
         event_schema = {
             "@context": "https://schema.org",
@@ -181,7 +183,7 @@ class TournamentDetailView(DetailView):
             "eventAttendanceMode": "https://schema.org/OnlineEventAttendanceMode" if tournament.mode == Tournament.ONLINE else "https://schema.org/MixedEventAttendanceMode",
             "organizer": {
                 "@type": "Organization" if tournament.is_official else "Person",
-                "name": "DeltaCrown" if tournament.is_official else getattr(tournament.organizer, "username", "Tournament organizer"),
+                "name": brand_copy("[[brand]]") if tournament.is_official else getattr(tournament.organizer, "username", "Tournament organizer"),
             },
             "sport": game_name or "Esports",
         }
@@ -202,11 +204,11 @@ class TournamentDetailView(DetailView):
         context["entity_links"] = [
             {"label": "Bracket", "url": f"/tournaments/{tournament.slug}/bracket/", "icon": "git-fork"},
             {"label": "Results", "url": f"/tournaments/{tournament.slug}/results/", "icon": "trophy"},
-            {"label": "Crown Points Rankings", "url": "/competition/leaderboards/", "icon": "ranking"},
+            {"label": brand_copy("[[ranking_points]] Rankings"), "url": "/competition/leaderboards/", "icon": "ranking"},
             {"label": "Teams", "url": "/teams/", "icon": "users"},
         ]
         context["seo"] = build_seo(
-            title=f"{tournament.name} | DeltaCrown Tournament",
+            title=f"{tournament.name} | {brand_copy('[[brand]]')} Tournament",
             description=tournament_description,
             path=f"/tournaments/{tournament.slug}/",
             noindex=effective_status in {Tournament.DRAFT, Tournament.PENDING_APPROVAL, Tournament.CANCELLED},

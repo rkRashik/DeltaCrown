@@ -1,10 +1,10 @@
 {% extends "tournaments/base.html" %}
 {% load static humanize %}
 
-{% block title %}{{ tournament.name }} | DeltaCrown{% endblock %}
-{% block og_title %}{{ tournament.name }} | DeltaCrown{% endblock %}
-{% block og_image %}{% if tournament.banner_image %}{{ tournament.banner_image.url }}{% elif tournament.thumbnail_image %}{{ tournament.thumbnail_image.url }}{% else %}{% static 'siteui/og/default.png' %}{% endif %}{% endblock %}
-{% block og_description %}{% if tournament.meta_description %}{{ tournament.meta_description }}{% else %}{{ tournament.name }} - {{ game_spec.display_name }} {{ tournament_format_label }} tournament on DeltaCrown.{% endif %}{% endblock %}
+{% block title %}{{ tournament.name }} | {{ brand.name }}{% endblock %}
+{% block og_title %}{{ tournament.name }} | {{ brand.name }}{% endblock %}
+{% block og_image %}{% if tournament.banner_image %}{{ tournament.banner_image.url }}{% elif tournament.thumbnail_image %}{{ tournament.thumbnail_image.url }}{% else %}{% static brand.social_image %}{% endif %}{% endblock %}
+{% block og_description %}{% if tournament.meta_description %}{{ tournament.meta_description }}{% else %}{{ tournament.name }} - {{ game_spec.display_name }} {{ tournament_format_label }} tournament on {{ brand.name }}.{% endif %}{% endblock %}
 
 {% block tournament_css %}
 <link rel="stylesheet" href="{% static 'tournaments/css/bracket-demo.css' %}?v=20260427a">
@@ -793,7 +793,7 @@
             {% elif tournament.thumbnail_image %}
             <img src="{{ tournament.thumbnail_image.url }}" alt="{{ tournament.name }}" class="w-full h-full object-cover opacity-74 mix-blend-screen transform scale-105 hover:scale-100 transition-transform duration-[20s]">
             {% else %}
-            <img src="{% static 'siteui/og/default.png' %}" alt="{{ tournament.name }}" class="w-full h-full object-cover opacity-56 mix-blend-screen transform scale-105 hover:scale-100 transition-transform duration-[20s]">
+            <img src="{% static brand.social_image %}" alt="{{ tournament.name }}" class="w-full h-full object-cover opacity-56 mix-blend-screen transform scale-105 hover:scale-100 transition-transform duration-[20s]">
             {% endif %}
             {% endif %}
 
@@ -858,7 +858,7 @@
                     <div class="flex flex-wrap items-center gap-4 mb-8 bg-black/35 w-max pr-6 pl-2 py-2 rounded-full border border-white/10 backdrop-blur-md">
                         <div class="w-9 h-9 rounded-full border-2 border-white overflow-hidden bg-white">
                             {% if tournament.is_official %}
-                            <img src="{% static 'img/deltacrown-logo.svg' %}" alt="DeltaCrown" class="w-full h-full object-cover rounded-full">
+                            <img src="{% static brand.symbol_dark %}" alt="{{ brand.name }}" class="w-full h-full object-cover rounded-full">
                             {% elif tournament.organizer.profile.avatar %}
                             <img src="{{ tournament.organizer.profile.avatar.url }}" alt="Organizer" class="w-full h-full object-cover">
                             {% else %}
@@ -867,7 +867,7 @@
                         </div>
                         <div>
                             <p class="text-[9px] text-gray-400 uppercase tracking-widest leading-none mb-0.5">Organized By</p>
-                            <p class="text-sm font-bold text-white leading-none">{% if tournament.is_official %}DeltaCrown Official{% else %}{{ tournament.organizer.username }}{% endif %}</p>
+                            <p class="text-sm font-bold text-white leading-none">{% if tournament.is_official %}{{ brand.name }} Official{% else %}{{ tournament.organizer.username }}{% endif %}</p>
                         </div>
                         {% if tournament.contact_email %}
                         <div class="hidden sm:flex items-center gap-2 px-3 py-1 rounded-full bg-black/30 border border-white/10 text-xs text-gray-300">
@@ -885,7 +885,7 @@
                             <div class="flex items-baseline gap-2">
                                 <p class="font-display font-black text-4xl lg:text-[2.9rem] text-white tracking-tight">{% if tournament.prize_pool %}৳{{ tournament.prize_pool|floatformat:0|intcomma }}{% else %}TBA{% endif %}</p>
                                 {% if tournament.prize_deltacoin %}
-                                <p class="text-xs font-bold text-dc-cyan bg-dc-cyan/10 px-2 py-1 rounded">+ {{ tournament.prize_deltacoin|intcomma }} DC</p>
+                                <p class="text-xs font-bold text-dc-cyan bg-dc-cyan/10 px-2 py-1 rounded">+ {{ tournament.prize_deltacoin|intcomma }} {{ brand.features.coins }}</p>
                                 {% endif %}
                             </div>
                         </div>
@@ -1265,13 +1265,13 @@
                             <div class="flex items-center gap-4">
                                 <div class="w-16 h-16 rounded-full bg-gradient-to-br from-gray-800 to-black border border-white/10 flex items-center justify-center">
                                     {% if tournament.is_official %}
-                                    <img src="{% static 'img/deltacrown-logo.svg' %}" alt="DeltaCrown" class="w-10 h-10 object-contain rounded-full p-1.5 bg-gradient-to-br from-black/80 to-slate-900/80 border border-white/10">
+                                    <img src="{% static brand.symbol_dark %}" alt="{{ brand.name }}" class="w-10 h-10 object-contain rounded-full p-1.5 bg-gradient-to-br from-black/80 to-slate-900/80 border border-white/10">
                                     {% else %}
                                     <span class="font-display font-bold text-xl text-white">{{ tournament.organizer.username|slice:":2"|upper }}</span>
                                     {% endif %}
                                 </div>
                                 <div>
-                                    <h4 class="font-bold text-white text-lg">{% if tournament.is_official %}DeltaCrown Official{% else %}{{ tournament.organizer.username }}{% endif %}</h4>
+                                    <h4 class="font-bold text-white text-lg">{% if tournament.is_official %}{{ brand.name }} Official{% else %}{{ tournament.organizer.username }}{% endif %}</h4>
                                     <p class="text-xs text-gray-500">{{ tournament.contact_email|default:'No contact email published' }}</p>
                                 </div>
                             </div>
@@ -1510,7 +1510,7 @@
                         <i data-lucide="alert-triangle" class="w-6 h-6 text-val-red shrink-0"></i>
                         <div>
                             <h4 class="text-white font-bold text-base mb-1">Mandatory Acceptance</h4>
-                            <p class="text-xs text-gray-400 leading-relaxed">By registering for this tournament, you agree to DeltaCrown terms and organizer-defined rules. Violations can result in forfeits, disqualification, and prize withholding.</p>
+                            <p class="text-xs text-gray-400 leading-relaxed">By registering for this tournament, you agree to {{ brand.name }} terms and organizer-defined rules. Violations can result in forfeits, disqualification, and prize withholding.</p>
                         </div>
                     </div>
 
@@ -1592,7 +1592,7 @@
                                 <span class="text-xs font-bold text-gray-400 uppercase tracking-widest">Ecosystem Bonus</span>
                                 <div class="flex items-center gap-1.5">
                                     <div class="w-5 h-5 rounded-full bg-dc-cyan flex items-center justify-center text-black"><i data-lucide="coins" class="w-3 h-3"></i></div>
-                                    <span class="font-mono font-bold text-dc-cyan text-lg">{{ tournament.prize_deltacoin|intcomma }} DC</span>
+                                    <span class="font-mono font-bold text-dc-cyan text-lg">{{ tournament.prize_deltacoin|intcomma }} {{ brand.features.coins }}</span>
                                 </div>
                             </div>
                             {% endif %}
@@ -2436,7 +2436,7 @@
                                         <span class="text-xs font-bold text-gray-400 uppercase tracking-widest">Entry Fee</span>
                                         <div class="text-right">
                                             <span class="font-display font-bold text-2xl text-white">{% if tournament.has_entry_fee %}{{ tournament.entry_fee_currency }} {{ tournament.entry_fee_amount|floatformat:0|intcomma }}{% else %}Free{% endif %}</span>
-                                            {% if tournament.entry_fee_deltacoin %}<p class="text-[10px] text-dc-cyan font-bold">or {{ tournament.entry_fee_deltacoin|intcomma }} DC</p>{% endif %}
+                                            {% if tournament.entry_fee_deltacoin %}<p class="text-[10px] text-dc-cyan font-bold">or {{ tournament.entry_fee_deltacoin|intcomma }} {{ brand.features.coins }}</p>{% endif %}
                                         </div>
                                     </div>
                                     <div class="flex justify-between text-xs font-bold mb-2">

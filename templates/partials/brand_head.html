@@ -1,0 +1,14 @@
+{% load static branding %}{% brand_config as brand %}
+<meta name="theme-color" content="{{ brand.theme_color }}">
+<meta name="application-name" content="{{ brand.name }}">
+<meta name="apple-mobile-web-app-title" content="{{ brand.short_name }}">
+<link rel="icon" href="{% static brand.favicon %}" sizes="any">
+<link rel="icon" href="{% static brand.favicon_svg %}" type="image/svg+xml">
+<link rel="apple-touch-icon" href="{% static brand.apple_icon %}">
+<link rel="manifest" href="{% static brand.manifest %}">
+<link rel="stylesheet" href="{% static 'ownlobby/brand.css' %}?v={{ STATIC_VERSION|default:'ownlobby-1' }}">
+<style nonce="{{ request.csp_nonce }}">:root { --ol-font: {{ brand.fonts.body }}; --ol-font-display: {{ brand.fonts.display }}; --ol-font-mono: {{ brand.fonts.mono }}; }</style>
+{{ brand.colors|json_script:"ownlobby-palette" }}
+{{ brand|json_script:"ownlobby-brand" }}
+<script src="{% static 'ownlobby/brand-client.js' %}?v={{ STATIC_VERSION|default:'ownlobby-1' }}"></script>
+<script src="{% static 'ownlobby/tailwind-palette.js' %}?v={{ STATIC_VERSION|default:'ownlobby-1' }}"></script>

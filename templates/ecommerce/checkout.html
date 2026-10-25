@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}Checkout — DeltaCrown{% endblock %}
+{% block title %}Checkout — {{ brand.name }}{% endblock %}
 
 {% block content %}
 <main class="container mx-auto px-4 max-w-7xl py-8">
@@ -21,7 +21,7 @@
         {% for item in order.items.all %}
           <li class="flex items-center justify-between border border-line rounded-xl p-3">
             <span>{{ item.product.name }} × {{ item.quantity }}</span>
-            <span class="font-semibold">{{ item.price }} DCC</span>
+            <span class="font-semibold">{{ item.price }} {{ brand.features.coins }}</span>
           </li>
         {% empty %}
           <li class="text-muted">No items in cart.</li>
@@ -29,7 +29,7 @@
       </ul>
       <div class="flex items-center justify-between mt-4">
         <span class="text-muted">Total</span>
-        <span class="font-bold">{{ order.total_price|default:0 }} DCC</span>
+        <span class="font-bold">{{ order.total_price|default:0 }} {{ brand.features.coins }}</span>
       </div>
 
       <form method="post" class="mt-4">

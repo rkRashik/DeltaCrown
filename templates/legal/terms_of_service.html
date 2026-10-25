@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
-{% block title %}Terms of Service - DeltaCrown{% endblock %}
+{% block title %}Terms of Service - {{ brand.name }}{% endblock %}
 
 {% block content %}
 <main class="min-h-screen bg-[#05070d] text-slate-100">
@@ -8,7 +8,7 @@
     <div class="mx-auto max-w-6xl px-4 py-14 sm:px-6 lg:px-8">
       <p class="text-xs font-black uppercase tracking-[0.24em] text-cyan-300">Platform agreement</p>
       <h1 class="mt-3 font-display text-4xl font-black text-white md:text-5xl">Terms of Service</h1>
-      <p class="mt-4 max-w-3xl leading-7 text-slate-300">These terms explain the basic rules for using DeltaCrown, including accounts, profiles, teams, tournaments, competitive modes, DeltaCoin, proof uploads, disputes, moderation, and operator review.</p>
+      <p class="mt-4 max-w-3xl leading-7 text-slate-300">These terms explain the basic rules for using {{ brand.name }}, including accounts, profiles, teams, tournaments, competitive modes, {{ brand.features.coins }}, proof uploads, disputes, moderation, and operator review.</p>
       <p class="mt-4 text-sm text-slate-500">Effective date: May 18, 2026</p>
     </div>
   </section>
@@ -20,7 +20,7 @@
         <a class="block rounded-xl px-3 py-2 text-sm font-bold text-slate-300 hover:bg-white/5 hover:text-white" href="#accounts">Accounts</a>
         <a class="block rounded-xl px-3 py-2 text-sm font-bold text-slate-300 hover:bg-white/5 hover:text-white" href="#teams">Teams</a>
         <a class="block rounded-xl px-3 py-2 text-sm font-bold text-slate-300 hover:bg-white/5 hover:text-white" href="#competition">Competition</a>
-        <a class="block rounded-xl px-3 py-2 text-sm font-bold text-slate-300 hover:bg-white/5 hover:text-white" href="#deltacoin">DeltaCoin</a>
+        <a class="block rounded-xl px-3 py-2 text-sm font-bold text-slate-300 hover:bg-white/5 hover:text-white" href="#deltacoin">{{ brand.features.coins }}</a>
         <a class="block rounded-xl px-3 py-2 text-sm font-bold text-slate-300 hover:bg-white/5 hover:text-white" href="#ugc">Content & Proof</a>
         <a class="block rounded-xl px-3 py-2 text-sm font-bold text-slate-300 hover:bg-white/5 hover:text-white" href="#review">Disputes</a>
         <a class="block rounded-xl px-3 py-2 text-sm font-bold text-slate-300 hover:bg-white/5 hover:text-white" href="#conduct">Conduct</a>
@@ -31,12 +31,12 @@
     <article class="space-y-7 text-slate-300">
       <section class="rounded-3xl border border-cyan-300/20 bg-cyan-300/5 p-6">
         <h2 class="text-xl font-black text-white">Important notice</h2>
-        <p class="mt-3 leading-7">By using DeltaCrown, you agree to these Terms and the rules shown on specific product surfaces such as tournaments, Match Rooms, Missions, Bounty claims, Dropzone lobbies, Team HQ, wallet pages, and support/legal pages. If you do not agree, do not use the platform.</p>
+        <p class="mt-3 leading-7">By using {{ brand.name }}, you agree to these Terms and the rules shown on specific product surfaces such as tournaments, Match Rooms, Missions, Bounty claims, Dropzone lobbies, Team HQ, wallet pages, and support/legal pages. If you do not agree, do not use the platform.</p>
       </section>
 
       <section id="service" class="scroll-mt-24 rounded-3xl border border-white/10 bg-white/[0.035] p-6">
         <h2 class="text-2xl font-black text-white">1. Service overview</h2>
-        <p class="mt-3 leading-7">DeltaCrown is a connected competitive gaming platform for tournaments, teams and organizations, player profiles, Game Passport identity, Crown Points rankings, DeltaCoin wallet records, competitive modes, Team HQ workflows, proof review, disputes, moderation, and operator/admin tools.</p>
+        <p class="mt-3 leading-7">{{ brand.name }} is a connected competitive gaming platform for tournaments, teams and organizations, player profiles, Game Passport identity, {{ brand.features.ranking_points }} rankings, {{ brand.features.coins }} wallet records, competitive modes, Team HQ workflows, proof review, disputes, moderation, and operator/admin tools.</p>
         <p class="mt-3 leading-7">Some features are active foundations and some are still evolving. Availability may vary by game, event, team, user role, region, or operator configuration.</p>
       </section>
 
@@ -46,14 +46,14 @@
           <li>You are responsible for accurate account information and account security.</li>
           <li>You may not share, sell, transfer, impersonate, boost, or use accounts to evade restrictions.</li>
           <li>Profile, Game Passport, linked game identity, social, roster, and public activity information may be visible according to platform settings and privacy controls.</li>
-          <li>DeltaCrown may restrict accounts involved in cheating, abuse, fraud, repeated false reports, unsafe conduct, or platform misuse.</li>
+          <li>{{ brand.name }} may restrict accounts involved in cheating, abuse, fraud, repeated false reports, unsafe conduct, or platform misuse.</li>
         </ul>
       </section>
 
       <section id="teams" class="scroll-mt-24 rounded-3xl border border-white/10 bg-white/[0.035] p-6">
         <h2 class="text-2xl font-black text-white">3. Teams, organizations, and roles</h2>
         <p class="mt-3 leading-7">Teams and organizations are persistent platform entities. Owners, managers, captains, staff, players, and applicants may have different permissions for rosters, recruitment, Team HQ, tournament registration, competitive modes, public pages, media, and settings.</p>
-        <p class="mt-3 leading-7">Team owners and authorized managers are responsible for roster accuracy, invitation use, recruitment conduct, ownership transfers, public branding, and Team HQ activity. DeltaCrown may intervene in impersonation, abuse, fraud, unsafe conduct, or ownership disputes where platform integrity is affected.</p>
+        <p class="mt-3 leading-7">Team owners and authorized managers are responsible for roster accuracy, invitation use, recruitment conduct, ownership transfers, public branding, and Team HQ activity. {{ brand.name }} may intervene in impersonation, abuse, fraud, unsafe conduct, or ownership disputes where platform integrity is affected.</p>
       </section>
 
       <section id="competition" class="scroll-mt-24 rounded-3xl border border-white/10 bg-white/[0.035] p-6">
@@ -67,20 +67,20 @@
       </section>
 
       <section id="deltacoin" class="scroll-mt-24 rounded-3xl border border-white/10 bg-white/[0.035] p-6">
-        <h2 class="text-2xl font-black text-white">5. Wallet, DeltaCoin, rewards, refunds, and settlement</h2>
-        <p class="mt-3 leading-7">DeltaCoin is a closed-loop platform utility and reward currency used inside DeltaCrown for eligible entries, rewards, wallet records, platform services, and related features. DeltaCoin is not presented as an investment, crypto asset, security, bank deposit, or external financial product.</p>
+        <h2 class="text-2xl font-black text-white">5. Wallet, {{ brand.features.coins }}, rewards, refunds, and settlement</h2>
+        <p class="mt-3 leading-7">{{ brand.features.coins }} is a closed-loop platform utility and reward currency used inside {{ brand.name }} for eligible entries, rewards, wallet records, platform services, and related features. {{ brand.features.coins }} is not presented as an investment, crypto asset, security, bank deposit, or external financial product.</p>
         <p class="mt-3 leading-7">Wallet records, entry fees, refunds, rewards, platform holds, settlement, top-ups, withdrawals, and payout helpers may be reviewed by operators. Suspicious, duplicate, mistaken, or abusive activity may be delayed, reversed, restricted, or escalated.</p>
       </section>
 
       <section id="ugc" class="scroll-mt-24 rounded-3xl border border-white/10 bg-white/[0.035] p-6">
         <h2 class="text-2xl font-black text-white">6. User content, media, and proof uploads</h2>
-        <p class="mt-3 leading-7">You may submit profile content, team content, messages, proof files, screenshots, video links, dispute notes, support messages, and other content. You keep ownership of your content, but grant DeltaCrown permission to host, display, process, review, moderate, and use it as needed to operate the platform.</p>
+        <p class="mt-3 leading-7">You may submit profile content, team content, messages, proof files, screenshots, video links, dispute notes, support messages, and other content. You keep ownership of your content, but grant {{ brand.name }} permission to host, display, process, review, moderate, and use it as needed to operate the platform.</p>
         <p class="mt-3 leading-7">Do not upload illegal, abusive, misleading, private, infringing, harmful, or fabricated content. Proof uploads may be restricted, removed, rejected, or used in dispute/moderation review.</p>
       </section>
 
       <section id="review" class="scroll-mt-24 rounded-3xl border border-white/10 bg-white/[0.035] p-6">
         <h2 class="text-2xl font-black text-white">7. Disputes, moderation, and operator review</h2>
-        <p class="mt-3 leading-7">DeltaCrown may review evidence, Match Room records, Mission proof, Bounty claims, Dropzone scoring, wallet records, team roles, account history, abuse reports, and moderation records when deciding disputes or safety issues.</p>
+        <p class="mt-3 leading-7">{{ brand.name }} may review evidence, Match Room records, Mission proof, Bounty claims, Dropzone scoring, wallet records, team roles, account history, abuse reports, and moderation records when deciding disputes or safety issues.</p>
         <p class="mt-3 leading-7">Possible actions include warnings, content removal, proof rejection, match adjustment, reward adjustment, wallet review, account restriction, team restriction, or platform removal. Where a review or appeal path is available, provide new evidence and clear context.</p>
       </section>
 
@@ -89,19 +89,19 @@
         <ul class="mt-4 space-y-3">
           <li>Do not cheat, exploit, manipulate, harass, threaten, impersonate, scam, spam, dox, or abuse platform systems.</li>
           <li>Do not attempt unauthorized access, scraping, automated abuse, security testing without permission, payment manipulation, or wallet/reward exploitation.</li>
-          <li>Do not use DeltaCrown for illegal activity or activity that harms players, teams, organizers, partners, staff, or platform integrity.</li>
+          <li>Do not use {{ brand.name }} for illegal activity or activity that harms players, teams, organizers, partners, staff, or platform integrity.</li>
         </ul>
       </section>
 
       <section id="limits" class="scroll-mt-24 rounded-3xl border border-white/10 bg-white/[0.035] p-6">
         <h2 class="text-2xl font-black text-white">9. Availability, changes, and limitations</h2>
-        <p class="mt-3 leading-7">DeltaCrown is an active product and may change features, rules, rewards, access, designs, APIs, and workflows over time. We work to keep the platform reliable, but do not guarantee uninterrupted availability, error-free operation, specific competitive outcomes, specific response times, or guaranteed rewards except as expressly confirmed in the applicable event or operator decision.</p>
-        <p class="mt-3 leading-7">To the maximum extent allowed by applicable law, DeltaCrown is not liable for indirect, incidental, or consequential losses arising from use of the platform. Nothing in these Terms limits rights that cannot legally be limited.</p>
+        <p class="mt-3 leading-7">{{ brand.name }} is an active product and may change features, rules, rewards, access, designs, APIs, and workflows over time. We work to keep the platform reliable, but do not guarantee uninterrupted availability, error-free operation, specific competitive outcomes, specific response times, or guaranteed rewards except as expressly confirmed in the applicable event or operator decision.</p>
+        <p class="mt-3 leading-7">To the maximum extent allowed by applicable law, {{ brand.name }} is not liable for indirect, incidental, or consequential losses arising from use of the platform. Nothing in these Terms limits rights that cannot legally be limited.</p>
       </section>
 
       <section class="rounded-3xl border border-white/10 bg-white/[0.035] p-6">
         <h2 class="text-2xl font-black text-white">10. Contact</h2>
-        <p class="mt-3 leading-7">Questions about these Terms can be sent through <a class="font-bold text-cyan-300 hover:text-cyan-200" href="{% url 'support:contact' %}">DeltaCrown Support</a> or by email at <a class="font-bold text-cyan-300 hover:text-cyan-200" href="mailto:deltacrownhq@gmail.com">deltacrownhq@gmail.com</a>.</p>
+        <p class="mt-3 leading-7">Questions about these Terms can be sent through <a class="font-bold text-cyan-300 hover:text-cyan-200" href="{% url 'support:contact' %}">{{ brand.name }} Support</a> or by email at <a class="font-bold text-cyan-300 hover:text-cyan-200" href="mailto:deltacrownhq@gmail.com">deltacrownhq@gmail.com</a>.</p>
       </section>
     </article>
   </section>

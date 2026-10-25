@@ -9,6 +9,8 @@ Public-facing views for spectators and participants to view live tournaments,
 watch matches, and view final results.
 """
 
+from deltacrown.branding import brand_copy
+
 from collections import defaultdict
 from datetime import timedelta
 import json
@@ -1081,8 +1083,8 @@ class TournamentBracketView(DetailView):
         context['stage_display'] = stage_display
 
         context['seo'] = build_seo(
-            title=f"{tournament.name} Bracket | DeltaCrown",
-            description=f"View the public bracket for {tournament.name} on DeltaCrown, including rounds, match status, participants, and progression.",
+            title=f"{tournament.name} Bracket | {brand_copy('[[brand]]')}",
+            description=f"View the public bracket for {tournament.name} on {brand_copy('[[brand]]')}, including rounds, match status, participants, and progression.",
             path=f"/tournaments/{tournament.slug}/bracket/",
             schema=breadcrumb_schema([
                 ('Home', '/'),
@@ -1842,8 +1844,8 @@ class TournamentResultsView(DetailView):
         # Tournament stats
         context['stats'] = self._calculate_tournament_stats(tournament)
         context['seo'] = build_seo(
-            title=f"{tournament.name} Results | DeltaCrown",
-            description=f"View official public results, completed matches, placements, and tournament stats for {tournament.name} on DeltaCrown.",
+            title=f"{tournament.name} Results | {brand_copy('[[brand]]')}",
+            description=f"View official public results, completed matches, placements, and tournament stats for {tournament.name} on {brand_copy('[[brand]]')}.",
             path=f"/tournaments/{tournament.slug}/results/",
             schema=breadcrumb_schema([
                 ('Home', '/'),

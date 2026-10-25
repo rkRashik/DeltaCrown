@@ -22,6 +22,10 @@ load_dotenv(dotenv_path=BASE_DIR / ".env", override=False)
 # Ensure .webmanifest files are served with the correct MIME type.
 mimetypes.add_type('application/manifest+json', '.webmanifest', strict=True)
 
+# Public identity; all Django and database identifiers remain unchanged.
+from .branding import BRAND
+
+
 # Fail-fast: DATABASE_URL must be set to prevent localhost fallback
 if not os.getenv("DATABASE_URL"):
     raise ImproperlyConfigured(
@@ -275,6 +279,16 @@ CSRF_TRUSTED_ORIGINS = [
     "https://www.deltacrown.xyz",
 ]
 
+# Opt-in local preparation for a separately approved domain cutover. The old
+# domain remains accepted, and SITE_URL continues to control canonical links.
+OWNLOBBY_DOMAIN_ENABLED = os.getenv("OWNLOBBY_DOMAIN_ENABLED", "0") == "1"
+if OWNLOBBY_DOMAIN_ENABLED:
+    ALLOWED_HOSTS += [BRAND["domain"], "www." + BRAND["domain"]]
+    CSRF_TRUSTED_ORIGINS += ["https://" + BRAND["domain"], "https://www." + BRAND["domain"]]
+CSRF_TRUSTED_ORIGINS += [
+    origin.strip() for origin in os.getenv("CSRF_TRUSTED_ORIGINS", "").split(",") if origin.strip()
+]
+
 # -----------------------------------------------------------------------------
 # CORS Configuration (Frontend Integration - Phase 3 Prep)
 # -----------------------------------------------------------------------------
@@ -453,6 +467,7 @@ TEMPLATES = [
                 "apps.common.context.ui_settings",
                 "apps.common.context_processors.game_assets_context",
                 "apps.common.context_processors.seo_context",
+                "apps.common.brand_context.brand_context",
                 "apps.common.context_processors.static_version",  # P5.2 — {{ STATIC_VERSION }}
                 "apps.common.context_homepage.homepage_context",
                 "apps.siteui.context.site_settings",
@@ -755,9 +770,9 @@ REST_FRAMEWORK = {
 # Documentation: PHASE9_EPIC91_COMPLETION_SUMMARY.md
 
 SPECTACULAR_SETTINGS = {
-    "TITLE": "DeltaCrown Tournament Platform API",
+    "TITLE": BRAND["name"] + " Tournament Platform API",
     "DESCRIPTION": (
-        "Comprehensive REST API for the DeltaCrown esports tournament platform. "
+        f"Comprehensive REST API for the {BRAND['name']} esports tournament platform. "
         "Supports tournament management, team registration, match scheduling, "
         "results submission, dispute resolution, user/team statistics, analytics, "
         "and leaderboards across 11+ games."
@@ -767,7 +782,7 @@ SPECTACULAR_SETTINGS = {
     
     # API contact and license
     "CONTACT": {
-        "name": "DeltaCrown API Support",
+        "name": BRAND["name"] + " API Support",
         "email": "api@deltacrown.com",
     },
     "LICENSE": {
@@ -982,6 +997,8 @@ else:
 # Email (in-memory for tests)
 # -----------------------------------------------------------------------------
 EMAIL_BACKEND = os.getenv("EMAIL_BACKEND", EMAIL_BACKEND)
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", DEFAULT_FROM_EMAIL)
+EMAIL_SUBJECT_PREFIX = f"[{BRAND['name']}] "
 
 # Prevent SMTP connections from hanging indefinitely (seconds).
 # Without this, a stuck SMTP server can block a Gunicorn worker until the
@@ -1746,11 +1763,18 @@ from django.templatetags.static import static as static_url
 
 if _HAS_UNFOLD:
     UNFOLD = {
-    "SITE_TITLE": "DeltaCrown Admin",
-    "SITE_HEADER": "DeltaCrown",
+    "SITE_TITLE": BRAND["name"] + " Admin",
+    "SITE_HEADER": BRAND["name"],
     "SITE_SUBHEADER": "Tournament Platform Console",
     "SITE_URL": "/",
     "SITE_SYMBOL": "trophy",  # Material Symbols icon
+    "SITE_LOGO": {
+        "light": lambda request: static_url(BRAND["logo_light"]),
+        "dark": lambda request: static_url(BRAND["logo_dark"]),
+    },
+    "SITE_FAVICONS": [
+        {"rel": "icon", "sizes": "any", "type": "image/svg+xml", "href": lambda request: static_url(BRAND["favicon_svg"])},
+    ],
     "SHOW_HISTORY": True,
     "SHOW_VIEW_ON_SITE": True,
     "SHOW_BACK_BUTTON": True,
@@ -1762,8 +1786,8 @@ if _HAS_UNFOLD:
     "ENVIRONMENT_TITLE_PREFIX": "deltacrown.admin_callbacks.environment_title",
 
     # ---------------------------------------------------------------------------
-    # DeltaCrown color system — Cyan primary (dc-cyan #06b6d4)
-    # oklch values from Tailwind CSS v4 cyan palette
+    # OwnLobby saffron identity. Darker action tones preserve white-text contrast
+    # in the admin theme; supplied light/dark logo files remain unchanged.
     # ---------------------------------------------------------------------------
     "COLORS": {
         "base": {
@@ -1780,17 +1804,17 @@ if _HAS_UNFOLD:
             "950": "oklch(13% .028 261.692)",
         },
         "primary": {
-            "50": "oklch(98.4% .019 200.873)",
-            "100": "oklch(95.6% .045 203.388)",
-            "200": "oklch(90.1% .076 205.101)",
-            "300": "oklch(82.8% .111 205.395)",
-            "400": "oklch(74.6% .136 202.009)",
-            "500": "oklch(65.5% .163 195.768)",
-            "600": "oklch(55.3% .146 195.326)",
-            "700": "oklch(48.8% .118 196.839)",
-            "800": "oklch(42% .096 197.859)",
-            "900": "oklch(37.3% .076 200.386)",
-            "950": "oklch(28.2% .058 204.071)",
+            "50": BRAND["colors"]["offwhite"],
+            "100": BRAND["colors"]["ivory"],
+            "200": f"color-mix(in srgb, {BRAND['colors']['gold']} 45%, white)",
+            "300": f"color-mix(in srgb, {BRAND['colors']['gold']} 75%, white)",
+            "400": BRAND["colors"]["gold"],
+            "500": BRAND["colors"]["gold_light"],
+            "600": f"color-mix(in srgb, {BRAND['colors']['gold_light']} 78%, black)",
+            "700": f"color-mix(in srgb, {BRAND['colors']['gold_light']} 65%, black)",
+            "800": f"color-mix(in srgb, {BRAND['colors']['gold_light']} 50%, black)",
+            "900": BRAND["colors"]["hairline"],
+            "950": BRAND["colors"]["deep"],
         },
         "font": {
             "subtle-light": "var(--color-base-500)",

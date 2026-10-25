@@ -1,0 +1,31 @@
+{
+  "brand": "OwnLobby",
+  "domain": "ownlobby.com",
+  "selectedLogo": "Arena Arch",
+  "wordmark": {
+    "requiredMode": "dual-color",
+    "ownOnDark": "#F6F1E7",
+    "ownOnLight": "#141517",
+    "lobbyOnDark": "#E2B761",
+    "lobbyOnLight": "#B17D31"
+  },
+  "colors": {
+    "deep": "#0B0C0C",
+    "surface": "#17181A",
+    "raised": "#232427",
+    "hairline": "#38332C",
+    "ivory": "#F6F1E7",
+    "offwhite": "#F4EFE6",
+    "gold": "#E2B761",
+    "gold_light": "#B17D31",
+    "ember": "#D8804C",
+    "muted": "#A7A198",
+    "white": "#FFFFFF",
+    "ink": "#141517"
+  },
+  "logoAssets": {
+    "dark": "ownlobby-header-dark.svg",
+    "light": "ownlobby-header-light.svg"
+  },
+  "status": "asset candidate; legal similarity check pending"
+}

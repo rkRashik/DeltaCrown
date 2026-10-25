@@ -1289,7 +1289,7 @@
   function generateSmartRules() {
     var formatName = formatLabel(state.format);
     var lines = [
-      "DeltaCrown Tournament Rulebook",
+      "OwnLobby Tournament Rulebook",
       "",
       "1) Follow all organizer instructions and fair-play standards.",
       "2) Tournament format: " + formatName + ".",
@@ -1525,7 +1525,7 @@
   function submitTournament() {
     var submitButton = byId("btnSubmit");
     if (submitButton && submitButton.disabled) {
-      showError("Insufficient DeltaCoin balance to host a tournament. Please top up your wallet.");
+      showError("Insufficient Coins balance to host a tournament. Please top up your wallet.");
       return;
     }
 

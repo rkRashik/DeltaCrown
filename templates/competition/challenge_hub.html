@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}{{ page_title }} | DeltaCrown{% endblock %}
+{% block title %}{{ page_title }} | {{ brand.name }}{% endblock %}
 
 {% block content %}
 <div class="min-h-screen bg-gradient-to-br from-[#080612] via-[#0F0B1E] to-[#1A0F2E] py-8 px-4">
@@ -14,7 +14,7 @@
                     <i class="fa-solid fa-swords text-red-400"></i>
                     {{ page_title }}
                 </h1>
-                <p class="text-gray-400">Browse open Showdowns in the DeltaCrown competitive hub</p>
+                <p class="text-gray-400">Browse open Showdowns in the {{ brand.name }} competitive hub</p>
             </div>
             {% if user.is_authenticated %}
             <a href="{% url 'competition:match_report_form' %}"

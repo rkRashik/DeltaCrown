@@ -6,6 +6,8 @@ Supports ?filter=recruiting to show only recruiting teams.
 
 Phase 11: Premium dark theme team directory.
 """
+
+from deltacrown.branding import brand_copy
 from collections import defaultdict
 
 from django.db.models import Count, Q
@@ -795,11 +797,11 @@ def team_directory(request, force_recruiting=False):
         'lft_save_url': reverse('organizations_api:discovery_lft_profile_save'),
         'career_settings_save_url': reverse('user_profile:settings_career_save'),
         'seo': build_seo(
-            title='Find Team - Scouting Grounds | DeltaCrown' if is_recruiting_filter else 'Esports Team Directory | DeltaCrown',
+            title=brand_copy('Find Team - Scouting Grounds | [[brand]]') if is_recruiting_filter else brand_copy('Esports Team Directory | [[brand]]'),
             description=(
-                'Find DeltaCrown teams recruiting now. Filter by game, region, platform, and apply from each team page.'
+                brand_copy('Find [[brand]] teams recruiting now. Filter by game, region, platform, and apply from each team page.')
                 if is_recruiting_filter
-                else 'Browse public DeltaCrown esports teams by game, region, recruiting status, and organization across Bangladesh and South Asia.'
+                else brand_copy('Browse public [[brand]] esports teams by game, region, recruiting status, and organization across Bangladesh and South Asia.')
             ),
             path='/teams/find/' if is_recruiting_filter else '/teams/directory/',
             noindex=bool(search_query or game_filter or region_filter or sort_by != 'newest' or platform_filter),

@@ -1,5 +1,6 @@
 ﻿from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse, Http404
+from deltacrown.branding import BRAND
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db.models import Q, Avg, Count, F
@@ -56,7 +57,7 @@ def store_home(request):
         'limited_products': limited_products,
         'latest_products': latest_products,
         'member_exclusive': member_exclusive,
-        'page_title': 'CrownStore - Premium Esports Marketplace',
+        'page_title': f"{BRAND['features']['store']} - Premium Esports Marketplace",
     }
     return render(request, "ecommerce/store_home.html", context)
 
@@ -140,7 +141,7 @@ def product_list(request):
             'rarity': rarity,
             'sort': sort_by,
         },
-        'page_title': 'All Products - CrownStore',
+        'page_title': f"All Products - {BRAND['features']['store']}",
     }
     return render(request, "ecommerce/product_list.html", context)
 
@@ -181,7 +182,7 @@ def category_detail(request, slug):
         'page_obj': page_obj,
         'query': query,
         'sort_by': sort_by,
-        'page_title': f'{category.name} - CrownStore',
+        'page_title': f"{category.name} - {BRAND['features']['store']}",
     }
     return render(request, "ecommerce/category_detail.html", context)
 
@@ -224,7 +225,7 @@ def product_detail(request, slug):
         'rating_counts': rating_counts,
         'total_reviews': reviews.count(),
         'in_wishlist': in_wishlist,
-        'page_title': f'{product.name} - CrownStore',
+        'page_title': f"{product.name} - {BRAND['features']['store']}",
     }
     return render(request, "ecommerce/product_detail.html", context)
 
@@ -293,7 +294,7 @@ def cart_view(request):
     context = {
         'cart_items': cart_items,
         'cart': cart,
-        'page_title': 'Shopping Cart - CrownStore',
+        'page_title': f"Shopping Cart - {BRAND['features']['store']}",
     }
     return render(request, "ecommerce/cart.html", context)
 
@@ -362,7 +363,7 @@ def checkout(request):
         'tax_amount': tax_amount,
         'shipping_cost': shipping_cost,
         'total': total,
-        'page_title': 'Checkout - CrownStore',
+        'page_title': f"Checkout - {BRAND['features']['store']}",
     }
     return render(request, "ecommerce/checkout.html", context)
 
@@ -391,7 +392,7 @@ def process_checkout(request, cart):
         # Check payment method
         if payment_method == 'delta_coins':
             if request.user.profile.delta_coins < total:
-                messages.error(request, "Insufficient DeltaCrown Coins.")
+                messages.error(request, f"Insufficient {BRAND['features']['coins']}.")
                 return redirect('ecommerce:checkout')
         
         # Create order
@@ -468,7 +469,7 @@ def order_success(request, order_number):
     
     context = {
         'order': order,
-        'page_title': 'Order Confirmation - CrownStore',
+        'page_title': f"Order Confirmation - {BRAND['features']['store']}",
     }
     return render(request, "ecommerce/order_success.html", context)
 
@@ -484,7 +485,7 @@ def order_detail(request, order_number):
     
     context = {
         'order': order,
-        'page_title': f'Order #{order.order_number} - CrownStore',
+        'page_title': f"Order #{order.order_number} - {BRAND['features']['store']}",
     }
     return render(request, "ecommerce/order_detail.html", context)
 
@@ -497,7 +498,7 @@ def wishlist_view(request):
     
     context = {
         'wishlist_products': products,
-        'page_title': 'My Wishlist - CrownStore',
+        'page_title': f"My Wishlist - {BRAND['features']['store']}",
     }
     return render(request, "ecommerce/wishlist.html", context)
 

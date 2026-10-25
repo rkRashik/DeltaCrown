@@ -1,0 +1,23 @@
+# Non-secret preparation only. Do not replace the live environment wholesale.
+# Keep the new domain disabled until a separately approved migration.
+OWNLOBBY_DOMAIN_ENABLED=0
+SITE_URL=https://deltacrown.xyz
+# At approved cutover: OWNLOBBY_DOMAIN_ENABLED=1 and SITE_URL=https://ownlobby.com
+# Existing old-domain host and CSRF entries remain accepted in code.
+
+# Optional exact additional origins; never use wildcard credentialed CORS.
+# ALLOWED_HOSTS=ownlobby.com,www.ownlobby.com
+# CSRF_TRUSTED_ORIGINS=https://ownlobby.com,https://www.ownlobby.com
+# CORS_ALLOWED_ORIGINS=https://ownlobby.com,https://www.ownlobby.com
+# WS_ALLOWED_ORIGINS=https://ownlobby.com,https://www.ownlobby.com
+
+# Keep the existing verified mail sender until the new sender is verified.
+# DEFAULT_FROM_EMAIL=OwnLobby <noreply@ownlobby.com>
+# BRAND_SUPPORT_EMAIL=support@ownlobby.com
+# Update social URLs only to accounts you control; existing destinations remain defaults.
+# BRAND_FACEBOOK_URL=
+# BRAND_YOUTUBE_URL=
+# BRAND_DISCORD_URL=
+
+# Preserve existing secret names and values, including legacy OAuth/mail aliases.
+# Do not copy production credentials into test settings or QA artifacts.

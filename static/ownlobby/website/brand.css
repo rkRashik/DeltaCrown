@@ -1,0 +1,18 @@
+/* OwnLobby - official dual-color brand identity */
+:root {
+  --ol-canvas: #0B0C0C;
+  --ol-surface: #17181A;
+  --ol-surface-raised: #232427;
+  --ol-ivory: #F6F1E7;
+  --ol-saffron: #E2B761;
+  --ol-saffron-on-light: #B17D31;
+  --ol-ember: #D8804C;
+  --ol-hairline: #38332C;
+  --ol-text-muted: #A7A198;
+}
+/* Leave typography and existing pages intact until Codex migration is approved. */
+.ol-brand-name .own { color: var(--ol-ivory); }
+.ol-brand-name .lobby { color: var(--ol-saffron); }
+.ol-light .ol-brand-name .own { color: #141517; }
+.ol-light .ol-brand-name .lobby { color: var(--ol-saffron-on-light); }
+.ol-primary-button { background: var(--ol-saffron); color: var(--ol-canvas); }

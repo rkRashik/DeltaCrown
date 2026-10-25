@@ -5,6 +5,8 @@ COMPETITION_APP_ENABLED=1 but migrations not applied.
 
 CRITICAL: Do NOT access database during module import - that breaks migrations!
 """
+
+from deltacrown.branding import brand_copy
 from django.contrib import admin
 from unfold.admin import ModelAdmin, TabularInline
 from django.shortcuts import render
@@ -100,7 +102,7 @@ def competition_admin_status(request):
         'existing_tables': sorted(existing),
         'missing_tables': sorted(missing),
         'error': error,
-        'site_header': 'DeltaCrown Admin',
+        'site_header': brand_copy('[[brand]] Admin'),
         'site_title': 'Competition Status',
     }
     return render(request, 'admin/competition/status.html', context)

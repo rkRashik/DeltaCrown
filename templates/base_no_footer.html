@@ -4,12 +4,11 @@
   <head>
     <!-- Preconnect for Google auth fonts/icons -->
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <meta name="theme-color" content="#0b1220">
 
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     {% include "partials/seo_meta.html" %}
-    <title>{% block title %}DeltaCrown | Competitive Gaming Platform{% endblock %}</title>
+    <title>{% block title %}{{ brand.name }} | Competitive Gaming Platform{% endblock %}</title>
 
     <!-- Tailwind CSS: CDN Play + custom DeltaCrown config (works everywhere, no build step) -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -57,6 +56,7 @@
 
     {# 🔽 allow pages to inject extra CSS (e.g., tournaments-detail.css) #}
     {% block extra_head %}{% endblock %}
+    {% include "partials/brand_head.html" %}
   </head>
   <body class="min-h-full bg-body text-body antialiased">
     {% include "partials/skip_link.html" %}

@@ -2,7 +2,7 @@
 {% load static %}
 {% load platform_filters %}
 
-{% block title %}Wallet Dashboard - DeltaCrown{% endblock %}
+{% block title %}Wallet Dashboard - {{ brand.name }}{% endblock %}
 
 {% block content %}
 <div class="min-h-screen bg-z-bg py-12 px-4">
@@ -12,7 +12,7 @@
         <div class="flex items-center justify-between mb-8">
             <div>
                 <h1 class="text-4xl font-display font-bold text-white mb-2">Wallet Dashboard</h1>
-                <p class="text-gray-400">Manage your DeltaCoin balance, transactions, and tournament prize claims</p>
+                <p class="text-gray-400">Manage your {{ brand.features.coins }} balance, transactions, and tournament prize claims</p>
             </div>
             <a href="{% url 'user_profile:settings' %}" class="text-gray-400 hover:text-white transition">
                 <i class="fa-solid fa-arrow-left mr-2"></i> Back to Settings

@@ -1,4 +1,6 @@
 from __future__ import annotations
+
+from deltacrown.branding import brand_copy
 from datetime import datetime, time, timedelta
 import hashlib
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
@@ -18,6 +20,7 @@ from django.urls import reverse
 from django.utils.dateparse import parse_date
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.text import slugify
+from django.views.decorators.cache import never_cache
 from .utils.embeds import build_embed_url
 from apps.common.seo import (
     breadcrumb_schema,
@@ -41,9 +44,12 @@ _HOME_STATE_BY_MODE = {
     "team_manager":   "has-team",
     "team_ready":     "has-team",
     "default":        "registered",
+    "registered":     "registered",
+    "organizer":      "organizer",
 }
 
 
+@never_cache
 def home(request):
     """DeltaCrown homepage — "Front Row Hybrid" body on the Monument hero."""
     from .homepage_context import get_homepage_context
@@ -63,10 +69,10 @@ def home(request):
         (hero_ctx or {}).get("mode"), "guest"
     )
     context["seo"] = build_seo(
-        title="DeltaCrown | Competitive Gaming Platform",
+        title=brand_copy("[[brand]] | Competitive Gaming Platform"),
         description=(
-            "DeltaCrown connects tournaments, teams, player profiles, rankings, "
-            "and competitive operations for gaming communities in Bangladesh and beyond."
+            brand_copy("[[brand]] connects tournaments, teams, player profiles, rankings, "
+            "and competitive operations for gaming communities in Bangladesh and beyond.")
         ),
         og_description=(
             "Discover tournaments, team profiles, rankings, match history, and "
@@ -81,8 +87,8 @@ def home(request):
 def privacy(request):
     return render(request, "legal/privacy_policy.html", {
         "seo": build_seo(
-            title="Privacy Policy | DeltaCrown",
-            description="How DeltaCrown handles account, profile, team, tournament, wallet, proof, moderation, support, and technical data.",
+            title=brand_copy("Privacy Policy | [[brand]]"),
+            description=brand_copy("How [[brand]] handles account, profile, team, tournament, wallet, proof, moderation, support, and technical data."),
             path="/privacy/",
         )
     })
@@ -91,8 +97,8 @@ def privacy(request):
 def terms(request):
     return render(request, "legal/terms_of_service.html", {
         "seo": build_seo(
-            title="Terms of Service | DeltaCrown",
-            description="Terms for DeltaCrown accounts, profiles, teams, tournaments, competitive modes, DeltaCoin, proofs, disputes, and moderation.",
+            title=brand_copy("Terms of Service | [[brand]]"),
+            description=brand_copy("Terms for [[brand]] accounts, profiles, teams, tournaments, competitive modes, [[coins]], proofs, disputes, and moderation."),
             path="/terms/",
         )
     })
@@ -101,8 +107,8 @@ def terms(request):
 def cookies(request):
     return render(request, "legal/cookie_policy.html", {
         "seo": build_seo(
-            title="Cookie Policy | DeltaCrown",
-            description="A plain-language explanation of the session, security, preference, and analytics cookies used by DeltaCrown.",
+            title=brand_copy("Cookie Policy | [[brand]]"),
+            description=brand_copy("A plain-language explanation of the session, security, preference, and analytics cookies used by [[brand]]."),
             path="/cookies/",
         )
     })
@@ -131,10 +137,10 @@ def about(request):
     return render(request, "about.html", {
         "stats": stats,
         "seo": build_seo(
-            title="About DeltaCrown | Competitive Gaming Platform",
+            title=brand_copy("About [[brand]] | Competitive Gaming Platform"),
             description=(
-                "Learn how DeltaCrown connects tournaments, teams, player identity, rankings, rewards, "
-                "proof review, and organizer tools in one competitive gaming platform."
+                brand_copy("Learn how [[brand]] connects tournaments, teams, player identity, rankings, rewards, "
+                "proof review, and organizer tools in one competitive gaming platform.")
             ),
             path="/about/",
             schema=breadcrumb_schema([("Home", "/"), ("About", "/about/")]),
@@ -156,8 +162,8 @@ def _get_model(candidates):
 def community_guidelines(request):
     return render(request, 'pages/community_guidelines.html', {
         "seo": build_seo(
-            title="Community Guidelines | DeltaCrown",
-            description="The rules and standards that keep DeltaCrown's esports community fair, competitive, and respectful.",
+            title=brand_copy("Community Guidelines | [[brand]]"),
+            description=brand_copy("The rules and standards that keep [[brand]]'s esports community fair, competitive, and respectful."),
             path="/legal/community-guidelines/",
         ),
     })
@@ -201,8 +207,8 @@ def community(request):
         "dc_primary_team_id": primary_team_id,
         "dc_community_mode": True,
         "seo": build_seo(
-            title="Community | DeltaCrown",
-            description="Public DeltaCrown community updates, team activity, and esports ecosystem conversations.",
+            title=brand_copy("Community | [[brand]]"),
+            description=brand_copy("Public [[brand]] community updates, team activity, and esports ecosystem conversations."),
             path="/community/",
         ),
     })
@@ -2023,7 +2029,7 @@ def _fetch_top_live_streams(request, live_matches, selected_game: str, search_qu
                 or ""
             ),
             "platform": platform,
-            "channel_name": "DeltaCrown",
+            "channel_name": brand_copy("[[brand]]"),
             "viewers_label": "",
             "game_name": (game.display_name or game.name) if game else "",
             "game_slug": game.slug if game else "",
@@ -2420,7 +2426,7 @@ def newsletter_subscribe(request):
         else:
             # For now, just simulate success (you can integrate with email service later)
             # TODO: Integrate with MailChimp, ConvertKit, or other email service
-            messages.success(request, f"ðŸŽ‰ Welcome to the DeltaCrown Gaming Hub! We've added {email} to our newsletter. Get ready for exclusive tournaments, esports news, and gaming updates!")
+            messages.success(request, f"ðŸŽ‰ Welcome to the {brand_copy('[[brand]]')} Gaming Hub! We've added {email} to our newsletter. Get ready for exclusive tournaments, esports news, and gaming updates!")
             
             # Optional: Log the subscription for tracking
             import logging

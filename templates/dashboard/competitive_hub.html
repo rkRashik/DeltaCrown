@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}DeltaCrown Arena — Competitive{% endblock %}
+{% block title %}{{ brand.features.competitive_hub }} — Competitive{% endblock %}
 
 {% block extra_head %}
   <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
@@ -180,7 +180,7 @@
             <span class="text-[9px] font-bold uppercase tracking-[.18em]" style="color:var(--dc-azure)" id="marquee-eyebrow">COMPETITIVE HUB</span>
           </div>
           <h1 id="hero-title" class="font-display text-xl lg:text-2xl font-extrabold text-white mb-1.5 leading-tight">
-            DeltaCrown <span style="color:var(--dc-azure)">Arena</span>
+            {{ brand.name }} <span style="color:var(--dc-azure)">Arena</span>
           </h1>
           <p id="hero-desc" class="text-[13px] mb-3 max-w-lg leading-relaxed" style="color:var(--dc-ink-300)">Initializing competitive engine&hellip;</p>
           <div id="hero-actions" class="flex flex-wrap items-center gap-2"></div>
@@ -335,16 +335,16 @@
               <i class="fa-solid fa-wallet text-sm" style="color:var(--dc-gold)"></i>
               <span class="text-[10px] font-bold uppercase tracking-[.16em]" style="color:var(--dc-ink-400)" id="wallet-type-label">WALLET</span>
             </div>
-            <a href="{% url 'economy:wallet_hub' %}?tab=acquire" class="text-[10px] font-bold uppercase tracking-[.12em] dc-press px-2.5 py-1 rounded-lg" style="color:var(--dc-azure); border:1px solid rgba(10,132,255,.2)">Get DC</a>
+            <a href="{% url 'economy:wallet_hub' %}?tab=acquire" class="text-[10px] font-bold uppercase tracking-[.12em] dc-press px-2.5 py-1 rounded-lg" style="color:var(--dc-azure); border:1px solid rgba(10,132,255,.2)">Get {{ brand.features.coins }}</a>
           </div>
           <div class="flex items-baseline gap-1.5 mb-2">
             <i class="fa-solid fa-coins" style="color:var(--dc-gold)"></i>
             <span class="dc-coin text-xl font-bold" id="wallet-balance">--</span>
-            <span class="text-[10px] font-bold" style="color:var(--dc-ink-500)">DC</span>
+            <span class="text-[10px] font-bold" style="color:var(--dc-ink-500)">{{ brand.features.coins }}</span>
           </div>
           <div class="flex items-center gap-2 text-[10px]" style="color:var(--dc-ink-400)">
             <i class="fa-solid fa-lock text-[8px]"></i>
-            <span id="wallet-escrow">-- DC</span>
+            <span id="wallet-escrow">-- {{ brand.features.coins }}</span>
             <span>escrow</span>
           </div>
         </div>
@@ -645,13 +645,13 @@
       <div class="p-5 rounded-2xl border relative overflow-hidden mt-6" style="background:linear-gradient(135deg,rgba(207,167,90,.08),rgba(0,0,0,.4)); border-color:rgba(207,167,90,.3)">
         <div class="flex justify-between items-end mb-4 relative z-10">
           <label class="block text-[10px] uppercase font-bold tracking-widest" style="color:var(--dc-gold)">Entry Fee (Per Team)</label>
-          <span class="text-[10px] uppercase font-bold px-2 py-1 rounded" style="color:var(--dc-ink-500); background:rgba(0,0,0,.5); border:1px solid rgba(255,255,255,.1)" id="so-wallet-bal">Bal: -- DC</span>
+          <span class="text-[10px] uppercase font-bold px-2 py-1 rounded" style="color:var(--dc-ink-500); background:rgba(0,0,0,.5); border:1px solid rgba(255,255,255,.1)" id="so-wallet-bal">Bal: -- {{ brand.features.coins }}</span>
         </div>
         <div class="relative flex items-center mb-4 z-10">
           <i class="fa-solid fa-coins absolute left-4 text-xl z-10" style="color:var(--dc-gold)"></i>
           <input id="clash-fee" name="entry_fee_dc" type="number" min="1" max="1000" step="1" value="300" class="field-input pl-12 font-display font-extrabold text-3xl !text-white" style="border-color:rgba(207,167,90,.5)" required>
         </div>
-        <p class="text-[10px] mb-3 relative z-10" style="color:var(--dc-ink-500)">Anti-whale cap: <strong style="color:var(--dc-gold)">1,000 DC</strong> per side.</p>
+        <p class="text-[10px] mb-3 relative z-10" style="color:var(--dc-ink-500)">Anti-whale cap: <strong style="color:var(--dc-gold)">1,000 {{ brand.features.coins }}</strong> per side.</p>
         <div class="flex justify-between items-center p-3 rounded-lg relative z-10" style="background:rgba(0,0,0,.4); border:1px solid rgba(255,255,255,.05)">
           <div class="flex items-center gap-2">
             <div class="w-6 h-6 rounded-full flex items-center justify-center" style="background:rgba(207,167,90,.2); border:1px solid rgba(207,167,90,.4)">
@@ -667,7 +667,7 @@
     <div class="p-5 sm:p-6 border-t border-white/10 flex-shrink-0 sticky bottom-0" style="background:rgba(4,6,10,.95); backdrop-filter:blur(20px)">
       <button type="submit" id="clash-submit" class="btn-cyber w-full font-extrabold uppercase tracking-widest py-4 transition-all flex justify-center items-center gap-3 text-lg" style="background:var(--dc-azure); color:#000; box-shadow:0 0 20px rgba(10,132,255,.3)">
         <i class="fa-solid fa-lock"></i>
-        <span class="submit-label">Lock <span id="submit-btn-amt">300</span> DC &amp; Create</span>
+        <span class="submit-label">Lock <span id="submit-btn-amt">300</span> {{ brand.features.coins }} &amp; Create</span>
       </button>
       <p class="text-[9px] text-center mt-4 uppercase tracking-widest font-mono" style="color:var(--dc-ink-500)">Platform fee (5%) applies only during reward settlement.</p>
     </div>
@@ -708,14 +708,14 @@
       <div class="p-5 rounded-xl relative overflow-hidden mt-2" style="background:linear-gradient(135deg,rgba(191,56,104,.08),rgba(0,0,0,.4)); border:1px solid rgba(191,56,104,.3)">
         <div class="grid grid-cols-2 gap-4 relative z-10">
           <div>
-            <label class="block text-[10px] uppercase font-bold tracking-widest mb-2" style="color:var(--dc-rose-display)">Reward (DC)</label>
+            <label class="block text-[10px] uppercase font-bold tracking-widest mb-2" style="color:var(--dc-rose-display)">Reward ({{ brand.features.coins }})</label>
             <input id="hitlist-reward" name="reward_amount_dc" type="number" min="1" step="1" value="1000" class="field-input" required>
             <p class="text-[10px] mt-1.5" style="color:var(--dc-ink-500)">Locked from your wallet immediately.</p>
           </div>
           <div>
-            <label class="block text-[10px] uppercase font-bold tracking-widest mb-2" style="color:var(--dc-gold)">Challenger Entry (DC)</label>
+            <label class="block text-[10px] uppercase font-bold tracking-widest mb-2" style="color:var(--dc-gold)">Challenger Entry ({{ brand.features.coins }})</label>
             <input id="hitlist-entry" name="challenger_entry_fee_dc" type="number" min="1" max="1000" step="1" value="200" class="field-input" required>
-            <p class="text-[10px] mt-1.5" style="color:var(--dc-ink-500)">Cap: 1,000 DC.</p>
+            <p class="text-[10px] mt-1.5" style="color:var(--dc-ink-500)">Cap: 1,000 {{ brand.features.coins }}.</p>
           </div>
         </div>
       </div>

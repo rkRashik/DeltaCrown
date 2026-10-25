@@ -17,6 +17,8 @@ Fee resolution order (first match wins):
 Used by: apps.tournaments.views.create.TournamentCreatePageView
 """
 
+from deltacrown.branding import brand_copy
+
 import logging
 from typing import Dict, Any, Optional
 
@@ -133,7 +135,7 @@ def get_user_balance(user) -> int:
         result = adapter.get_balance(user_id=user.id)
         return int(result.get("balance", 0))
     except Exception as exc:
-        logger.warning("Failed to get DeltaCoin balance for user %s: %s", user.id, exc)
+        logger.warning(brand_copy('Failed to get [[coins]] balance for user %s: %s'), user.id, exc)
         return 0
 
 
@@ -311,7 +313,7 @@ def charge_hosting_fee(user, tournament) -> Optional[Dict[str, Any]]:
         )
         message = "Unable to charge tournament hosting fee."
         if "insufficient" in str(exc).lower():
-            message = "Insufficient DeltaCoin balance to pay the tournament hosting fee."
+            message = brand_copy('Insufficient [[coins]] balance to pay the tournament hosting fee.')
         raise PaymentFailedError(f"{message} Details: {exc}") from exc
 
     # Paid path: consume slot if a first-N promo would have applied but the

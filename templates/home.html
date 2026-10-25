@@ -1,13 +1,13 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}DeltaCrown | Competitive Gaming Platform{% endblock %}
-{% block og_title %}DeltaCrown | Competitive Gaming Platform{% endblock %}
+{% block title %}{{ brand.name }} | Competitive Gaming Platform{% endblock %}
+{% block og_title %}{{ brand.name }} | Competitive Gaming Platform{% endblock %}
 {% block og_description %}Discover tournaments, team profiles, rankings, match history, and competitive operations in one connected gaming platform.{% endblock %}
-{% block og_image %}{% static 'siteui/og/default.png' %}{% endblock %}
-{% block twitter_title %}DeltaCrown | Competitive Gaming Platform{% endblock %}
+{% block og_image %}{% static brand.social_image %}{% endblock %}
+{% block twitter_title %}{{ brand.name }} | Competitive Gaming Platform{% endblock %}
 {% block twitter_description %}Discover tournaments, team profiles, rankings, match history, and competitive operations in one connected gaming platform.{% endblock %}
-{% block twitter_image %}{% static 'siteui/og/default.png' %}{% endblock %}
+{% block twitter_image %}{% static brand.social_image %}{% endblock %}
 
 {% block extra_css %}
 {# Sora (display/numerals) + JetBrains Mono (eyebrows/scores) — Inter ships from base.html #}
@@ -22,8 +22,8 @@
 
 {% block content %}
 {% comment %}
-  DeltaCrown homepage BODY — "Front Row Hybrid" on the Monument hero.
-  Ported from the Claude Design handoff (DeltaCrown Homepage.dc.html). The live
+  {{ brand.name }} homepage BODY — "Front Row Hybrid" on the Monument hero.
+  Ported from the Claude Design handoff ({{ brand.name }} Homepage.dc.html). The live
   primary_navigation.html and footer_modern.html (included by base.html) are kept
   as-is; only the body between them is implemented here. `data-home-state` is the
   resolved hero state; sections carry `data-section` hooks per the handoff.
@@ -50,19 +50,14 @@
       <div style="flex:1 1 460px;min-width:0;">
         <div style="display:inline-flex;align-items:center;gap:10px;">
           <span style="width:22px;height:1px;background:linear-gradient(90deg,transparent,var(--go4));"></span>
-          <span class="m" style="font-size:12px;letter-spacing:.26em;color:var(--go4);">From the Delta to the Crown</span>
+          <span style="font-size:13px;color:var(--go4);">{{ brand.tagline }}</span>
         </div>
         <div style="margin-top:16px;display:inline-flex;align-items:center;gap:8px;padding:6px 13px 6px 10px;border:1px solid var(--stroke);border-radius:999px;background:var(--s1);">
           <span style="width:6px;height:6px;border-radius:50%;background:var(--suc);"></span>
           <span class="m" style="font-size:12px;letter-spacing:.1em;color:var(--mut);">{{ home_ui.status }}</span>
         </div>
-        <h1 style="margin:14px 0 0;font-family:var(--disp);font-weight:800;line-height:1.05;letter-spacing:-.028em;font-size:clamp(26px,4.6vw,58px);white-space:nowrap;color:var(--fg);">
-          <span style="display:block;">Play tournaments.</span>
-          <span style="display:block;">Build your <span style="color:var(--vi4);">squad</span>.</span>
-          <span style="display:block;padding-bottom:.08em;">Rise to the <span style="color:var(--go4);">Crown</span>.</span>
-        </h1>
+        {% include "partials/home_headline.html" %}
         <p id="heroSub" style="margin:18px 0 0;max-width:48ch;font-size:16px;line-height:1.6;color:var(--mut);">{{ home_ui.summary }}</p>
-        {% if hero_ctx.rotation_items %}{{ hero_ctx.rotation_items|json_script:"heroRotationItems" }}{% endif %}
         <div style="margin-top:26px;display:flex;flex-wrap:wrap;gap:11px;align-items:center;">
           {% if user.is_authenticated %}
           <a href="{{ home_ui.primary_url }}" id="heroPrimaryBtn" class="cta press" style="display:inline-flex;align-items:center;gap:8px;padding:14px 24px;border-radius:13px;background:var(--az);color:#fff;font-weight:700;font-size:15px;text-decoration:none;white-space:nowrap;"><span>{{ home_ui.primary_label }}</span><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
@@ -167,7 +162,7 @@
   </section>
 
   <!-- ============ 02 · WHY DELTACROWN — PROBLEM / SOLUTION ============ -->
-  <section data-screen-label="Why DeltaCrown" data-section="why-deltacrown" style="position:relative;overflow:hidden;border-bottom:1px solid var(--hair);">
+  <section data-screen-label="Why {{ brand.name }}" data-section="why-deltacrown" style="position:relative;overflow:hidden;border-bottom:1px solid var(--hair);">
     <div style="position:relative;z-index:1;max-width:1280px;margin:0 auto;padding:clamp(56px,8vh,96px) clamp(18px,4vw,48px);">
       <div data-reveal class="rv" style="text-align:center;max-width:680px;margin:0 auto 36px;">
 
@@ -197,7 +192,7 @@
         <div style="position:relative;border:1px solid rgba(10,132,255,.28);border-radius:20px;background:linear-gradient(180deg,rgba(16,22,34,.75),rgba(14,17,28,.66));padding:22px;overflow:hidden;">
           <div aria-hidden="true" style="position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(10,132,255,.5) 30%,rgba(132,112,238,.5) 60%,rgba(226,197,136,.4),transparent);"></div>
           <div style="display:flex;align-items:center;gap:9px;margin-bottom:18px;">
-            <span class="m" style="display:inline-flex;align-items:center;gap:7px;padding:5px 11px;border-radius:999px;background:var(--tAz);border:1px solid rgba(10,132,255,.35);font-size:12px;letter-spacing:.1em;color:var(--az4);"><span style="width:5px;height:5px;border-radius:50%;background:var(--suc);"></span>With DeltaCrown</span>
+            <span class="m" style="display:inline-flex;align-items:center;gap:7px;padding:5px 11px;border-radius:999px;background:var(--tAz);border:1px solid rgba(10,132,255,.35);font-size:12px;letter-spacing:.1em;color:var(--az4);"><span style="width:5px;height:5px;border-radius:50%;background:var(--suc);"></span>With {{ brand.name }}</span>
           </div>
           <div style="display:flex;flex-direction:column;gap:16px;">
             {% for w in why_new %}
@@ -279,7 +274,7 @@
       <div data-reveal class="rv" style="text-align:center;max-width:680px;margin:0 auto 14px;">
 
         <h2 style="margin:10px 0 0;font-family:var(--disp);font-weight:700;font-size:clamp(26px,3vw,38px);letter-spacing:-.02em;">Every match, <span class="grad">connected</span></h2>
-        <p style="margin:9px 0 0;font-size:15px;line-height:1.6;color:var(--mut);">DeltaCrown isn't just tournaments. Identity, teams, match operations, rewards and ranking stay connected — so every result becomes history, signal and recognition.</p>
+        <p style="margin:9px 0 0;font-size:15px;line-height:1.6;color:var(--mut);">{{ brand.name }} isn't just tournaments. Identity, teams, match operations, rewards and ranking stay connected — so every result becomes history, signal and recognition.</p>
       </div>
       <div data-reveal class="rv" style="display:flex;align-items:center;gap:12px;margin:0 auto 24px;max-width:420px;">
         <span style="flex:1;height:1px;background:linear-gradient(90deg,transparent,var(--hair));"></span>
@@ -306,7 +301,7 @@
       <div data-reveal class="rv" style="text-align:center;max-width:640px;margin:0 auto 30px;">
 
         <h2 style="margin:10px 0 0;font-family:var(--disp);font-weight:700;font-size:clamp(26px,3vw,38px);letter-spacing:-.02em;">Something to compete for, every day</h2>
-        <p style="margin:9px 0 0;font-size:15px;line-height:1.6;color:var(--mut);">Between tournaments, the arena never sleeps. Earn Crown Points and DeltaCoin through always-on competitive modes.</p>
+        <p style="margin:9px 0 0;font-size:15px;line-height:1.6;color:var(--mut);">Between tournaments, the arena never sleeps. Earn {{ brand.features.ranking_points }} and {{ brand.features.coins }} through always-on competitive modes.</p>
       </div>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(228px,1fr));gap:14px;">
         {% for o in daily_modes %}
@@ -324,13 +319,13 @@
   </section>
 
   <!-- ============ 06 · CROWN POINTS — ASCENT (GOLD) ============ -->
-  <section data-screen-label="Crown Points" data-section="crown-points" style="position:relative;overflow:hidden;border-bottom:1px solid var(--hair);">
+  <section data-screen-label="{{ brand.features.ranking_points }}" data-section="crown-points" style="position:relative;overflow:hidden;border-bottom:1px solid var(--hair);">
     <div style="position:relative;z-index:1;max-width:1280px;margin:0 auto;padding:clamp(56px,8vh,96px) clamp(18px,4vw,48px);">
       <div style="display:flex;flex-wrap:wrap;align-items:center;gap:clamp(32px,4vw,64px);">
         <div data-reveal class="rv" style="flex:1 1 380px;min-width:0;">
 
           <h2 style="margin:10px 0 0;font-family:var(--disp);font-weight:700;font-size:clamp(26px,3vw,38px);letter-spacing:-.02em;">Every result earns your climb to <span class="grad">The Crown</span></h2>
-          <p style="margin:12px 0 0;max-width:48ch;font-size:15px;line-height:1.6;color:var(--mut);">Win matches, place in tournaments, and complete ops to earn Crown Points. Your rank travels with you across every game — a single, verified record of how far you've risen.</p>
+          <p style="margin:12px 0 0;max-width:48ch;font-size:15px;line-height:1.6;color:var(--mut);">Win matches, place in tournaments, and complete ops to earn {{ brand.features.ranking_points }}. Your rank travels with you across every game — a single, verified record of how far you've risen.</p>
           <div style="margin-top:22px;display:flex;flex-wrap:wrap;gap:10px;">
             <a href="/dashboard/competitive/" class="cta press" style="display:inline-flex;align-items:center;gap:8px;padding:13px 22px;border-radius:13px;background:var(--az);color:#fff;font-weight:700;font-size:14px;text-decoration:none;">See how ranking works<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
           </div>
@@ -378,7 +373,7 @@
               {% endfor %}
             </div>
             <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 20px;border-top:1px solid var(--hair);background:rgba(104,73,229,.06);">
-              <span class="m" style="font-size:12px;letter-spacing:.04em;color:var(--mut);">Wins, rank &amp; CP follow the crest</span>
+              <span class="m" style="font-size:12px;letter-spacing:.04em;color:var(--mut);">Wins, rank &amp; {{ brand.features.ranking_points_short }} follow the crest</span>
               <a href="/teams/" class="m lnk" style="font-size:12px;letter-spacing:.06em;color:var(--vi4);text-decoration:none;transition:color .2s;">Open Team HQ →</a>
             </div>
           </div>
@@ -545,7 +540,7 @@
     </svg>
     <!-- content-safe scrim -->
     <div style="position:relative;z-index:1;max-width:760px;margin:0 auto;text-align:center;padding:clamp(64px,9vh,116px) clamp(18px,4vw,48px);">
-      <div data-reveal class="rv" style="display:inline-flex;align-items:center;gap:10px;margin-bottom:18px;"><span style="width:22px;height:1px;background:linear-gradient(90deg,transparent,var(--go4));"></span><span class="m" style="font-size:12px;letter-spacing:.26em;color:var(--go4);">From the Delta to the Crown</span><span style="width:22px;height:1px;background:linear-gradient(90deg,var(--go4),transparent);"></span></div>
+      <div data-reveal class="rv" style="display:inline-flex;align-items:center;gap:10px;margin-bottom:18px;"><span style="width:22px;height:1px;background:linear-gradient(90deg,transparent,var(--go4));"></span><span class="m" style="font-size:12px;letter-spacing:.26em;color:var(--go4);">{{ brand.tagline }}</span><span style="width:22px;height:1px;background:linear-gradient(90deg,var(--go4),transparent);"></span></div>
       <h2 data-reveal class="rv" style="margin:0;font-family:var(--disp);font-weight:800;font-size:clamp(32px,5vw,60px);line-height:1.04;letter-spacing:-.03em;">Your arena is <span class="grad">waiting.</span></h2>
       <p data-reveal class="rv" style="margin:18px auto 0;max-width:52ch;font-size:16px;line-height:1.6;color:var(--mut);">{% if user.is_authenticated and hero_ctx.outro_subcopy %}{{ hero_ctx.outro_subcopy }}{% else %}Create your account, choose your games and find your next event.{% endif %}</p>
       <div data-reveal class="rv" style="margin-top:28px;display:flex;flex-wrap:wrap;gap:12px;justify-content:center;">
@@ -588,8 +583,8 @@
     <p class="home-status">{{ home_ui.status }}</p>
 
     <div data-anim style="text-align:center;padding:0 22px;animation:dcm-settle .6s var(--eo) both;">
-      <span class="m" style="font-size:12px;letter-spacing:.24em;color:var(--go4);">From the Delta to the Crown</span>
-      <h1 style="margin:14px 0 0;font-family:var(--disp);font-weight:800;font-size:clamp(28px,8.5vw,38px);line-height:1.06;letter-spacing:-.032em;">Play tournaments.<br>Build your squad.<br><span class="grad">Rise to the Crown.</span></h1>
+      <span style="font-size:13px;color:var(--go4);">{{ brand.tagline }}</span>
+      {% include "partials/home_headline.html" %}
       <p style="margin:14px auto 0;max-width:32ch;font-size:13.5px;line-height:1.55;color:var(--mut);">{{ home_ui.summary }}</p>
     </div>
 
@@ -620,7 +615,7 @@
   </div>
 </section>
 
-{# ── 02 · WHY DELTACROWN ─────────────────────────────────────────────────── #}
+{# ── 02 · WHY {{ brand.name }} ─────────────────────────────────────────────────── #}
 <section id="why" data-section="why" style="position:relative;padding:40px 0 8px;">
   <div style="text-align:center;max-width:32ch;margin:0 auto 22px;padding:0 16px;">
 
@@ -638,11 +633,11 @@
     </div>
     <div class="snap" style="width:78%;flex-shrink:0;position:relative;border:1px solid rgba(10,132,255,.28);border-radius:18px;background:linear-gradient(180deg,rgba(16,22,34,.7),rgba(14,17,28,.62));padding:18px;overflow:hidden;">
       <div aria-hidden="true" style="position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(10,132,255,.5) 30%,rgba(132,112,238,.5) 60%,rgba(226,197,136,.4),transparent);"></div>
-      <span class="m" style="display:inline-flex;align-items:center;gap:7px;padding:5px 11px;border-radius:999px;background:var(--tAz);border:1px solid rgba(10,132,255,.35);font-size:12px;letter-spacing:.1em;color:var(--az4);"><span style="width:5px;height:5px;border-radius:50%;background:var(--suc);flex-shrink:0;"></span>With DeltaCrown</span>
+      <span class="m" style="display:inline-flex;align-items:center;gap:7px;padding:5px 11px;border-radius:999px;background:var(--tAz);border:1px solid rgba(10,132,255,.35);font-size:12px;letter-spacing:.1em;color:var(--az4);"><span style="width:5px;height:5px;border-radius:50%;background:var(--suc);flex-shrink:0;"></span>With {{ brand.name }}</span>
       <div style="margin-top:14px;display:flex;flex-direction:column;gap:13px;">
         <div style="display:flex;gap:10px;align-items:flex-start;"><span style="width:24px;height:24px;flex-shrink:0;border-radius:7px;display:grid;place-items:center;background:var(--s2);color:var(--az4);"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></span><div><div style="font-family:var(--disp);font-weight:600;font-size:13px;color:var(--fg);">Verified match rooms</div><div style="margin-top:2px;font-size:12px;line-height:1.45;color:var(--mut);">One operated page per match — score, evidence, dispute.</div></div></div>
         <div style="display:flex;gap:10px;align-items:flex-start;"><span style="width:24px;height:24px;flex-shrink:0;border-radius:7px;display:grid;place-items:center;background:var(--s2);color:var(--go4);"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><path d="M12 8v8M9.5 9.5h3.2a1.8 1.8 0 0 1 0 3.6H9.5"/></svg></span><div><div style="font-family:var(--disp);font-weight:600;font-size:13px;color:var(--fg);">Structured prizes</div><div style="margin-top:2px;font-size:12px;line-height:1.45;color:var(--mut);">Check entry fees, prize distribution and payout terms.</div></div></div>
-        <div style="display:flex;gap:10px;align-items:flex-start;"><span style="width:24px;height:24px;flex-shrink:0;border-radius:7px;display:grid;place-items:center;background:var(--s2);color:var(--suc);"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M8.5 12.5 11 15l5-5.5"/></svg></span><div><div style="font-family:var(--disp);font-weight:600;font-size:13px;color:var(--fg);">Results that count</div><div style="margin-top:2px;font-size:12px;line-height:1.45;color:var(--mut);">Every confirmed match feeds your Crown Points record.</div></div></div>
+        <div style="display:flex;gap:10px;align-items:flex-start;"><span style="width:24px;height:24px;flex-shrink:0;border-radius:7px;display:grid;place-items:center;background:var(--s2);color:var(--suc);"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M8.5 12.5 11 15l5-5.5"/></svg></span><div><div style="font-family:var(--disp);font-weight:600;font-size:13px;color:var(--fg);">Results that count</div><div style="margin-top:2px;font-size:12px;line-height:1.45;color:var(--mut);">Every confirmed match feeds your {{ brand.features.ranking_points }} record.</div></div></div>
       </div>
     </div>
   </div>
@@ -744,7 +739,7 @@
   <div class="home-mode-list">
     <a href="/dashboard/showdown/" class="home-mode-link tap" style="width:158px;display:flex;flex-direction:column;gap:11px;padding:16px;border:1px solid var(--stroke);border-radius:18px;background:var(--s1);text-decoration:none;flex-shrink:0;">
       <span style="width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:var(--tAz);border:1px solid rgba(10,132,255,.3);"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--az4)" stroke-width="1.7" stroke-linecap="round"><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z"/></svg></span>
-      <div><div style="font-family:var(--disp);font-weight:600;font-size:15px;color:var(--fg);">Showdown</div><div style="margin-top:4px;font-size:12px;line-height:1.4;color:var(--mut);">Reward matches for Crown Points.</div></div>
+      <div><div style="font-family:var(--disp);font-weight:600;font-size:15px;color:var(--fg);">Showdown</div><div style="margin-top:4px;font-size:12px;line-height:1.4;color:var(--mut);">Reward matches for {{ brand.features.ranking_points }}.</div></div>
       <span class="m" style="font-size:12px;letter-spacing:.04em;color:var(--soft);">See match terms</span>
     </a>
     <a href="/dashboard/missions/" class="home-mode-link tap" style="width:158px;display:flex;flex-direction:column;gap:11px;padding:16px;border:1px solid var(--stroke);border-radius:18px;background:var(--s1);text-decoration:none;flex-shrink:0;">
@@ -822,9 +817,9 @@
 {# ── 10 · FINAL CTA ──────────────────────────────────────────────────────── #}
 <section data-section="final" style="position:relative;padding:40px 16px 60px;overflow:hidden;">
   <div style="position:relative;z-index:1;text-align:center;">
-    <span class="m" style="font-size:12px;letter-spacing:.24em;color:var(--go4);">From the Delta to the Crown</span>
+    <span class="m" style="font-size:12px;letter-spacing:.24em;color:var(--go4);">{{ brand.tagline }}</span>
     <h2 style="margin:14px 0 0;font-family:var(--disp);font-weight:800;font-size:28px;line-height:1.06;letter-spacing:-.03em;">Your path to <span class="grad">The Crown</span> starts here.</h2>
-    <p style="margin:12px auto 0;max-width:30ch;font-size:13.5px;line-height:1.55;color:var(--mut);">{% if user.is_authenticated %}Continue your climb — tournaments, teams, and Crown Points are waiting.{% else %}Create your account, choose your games and find your next event.{% endif %}</p>
+    <p style="margin:12px auto 0;max-width:30ch;font-size:13.5px;line-height:1.55;color:var(--mut);">{% if user.is_authenticated %}Continue your climb — tournaments, teams, and {{ brand.features.ranking_points }} are waiting.{% else %}Create your account, choose your games and find your next event.{% endif %}</p>
     {% if user.is_authenticated %}
     <a href="{{ hero_ctx.primary_cta_url|default:'/dashboard/' }}" class="tap" style="margin-top:22px;display:flex;align-items:center;justify-content:center;gap:8px;padding:16px;border-radius:15px;background:var(--az);color:#fff;font-weight:700;font-size:15px;text-decoration:none;">{{ hero_ctx.primary_cta_label|default:"Go to dashboard" }}<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
     {% else %}
@@ -887,8 +882,7 @@
 
     {# Logo wordmark row #}
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
-      <img src="{% static 'img/deltaCrown_logos/logo.svg' %}" alt="" aria-hidden="true" width="26" height="26" loading="lazy" style="flex:0 0 auto;border-radius:7px;">
-      <img src="{% static 'siteui/svg/Logos/DeltaCrown_Teal-Purple-Gold.svg' %}" alt="DeltaCrown" loading="lazy" style="height:17px;width:auto;flex:0 0 auto;">
+      {% include "partials/brand_logo.html" %}
     </div>
 
     {# Brand sentence #}
@@ -928,7 +922,7 @@
         <a href="/privacy/" class="dc-fm-legal">Privacy</a>
         <a href="/cookies/" class="dc-fm-legal">Cookies</a>
       </div>
-      <span class="dc-fm-copy">© {% now "Y" %} DeltaCrown</span>
+      <span class="dc-fm-copy">© {% now "Y" %} {{ brand.name }}</span>
     </div>
 
   </div>

@@ -1,7 +1,7 @@
 {% extends "tournaments/base.html" %}
 {% load static %}
 
-{% block title %}VIP Access Secured — {{ tournament.name }} | DeltaCrown{% endblock %}
+{% block title %}VIP Access Secured — {{ tournament.name }} | {{ brand.name }}{% endblock %}
 
 {% block tournament_css %}
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -347,7 +347,7 @@
             {% if tournament.mode == 'online' %}Online Match Pass Ready{% elif tournament.mode == 'lan' or tournament.mode == 'offline' %}LAN Competitor Pass Ready{% else %}Hybrid Tournament Pass Ready{% endif %}
         </span>
         <span class="opacity-30">|</span>
-        <span class="opacity-90 font-black tracking-[0.2em] uppercase text-cyan-300">DeltaCrown Tournament Ops</span>
+        <span class="opacity-90 font-black tracking-[0.2em] uppercase text-cyan-300">{{ brand.name }} Tournament Ops</span>
     </div>
 </div>
 
@@ -412,8 +412,8 @@
             <div id="ticket-export" class="export-wrapper">
                 <div class="dc-ticket w-full flex flex-col">
                     <div class="ticket-ghost-watermark">
-                        <img src="{% static 'img/deltaCrown_logos/logo.png' %}" alt="" aria-hidden="true">
-                        <span class="ticket-watermark-text" aria-hidden="true">DeltaCrown</span>
+                        <img src="{% static 'ownlobby/logos/symbol-dark.png' %}" alt="" aria-hidden="true">
+                        <span class="ticket-watermark-text" aria-hidden="true">{{ brand.name }}</span>
                     </div>
                     <div class="ticket-top-band"></div>
                     <div class="lanyard-hole"></div>
@@ -437,7 +437,7 @@
                                         <rect x="48" y="200" width="160" height="20" rx="4" fill="url(#dcGrad)" />
                                     </svg>
                                 </div>
-                                <span class="dc-wordmark text-base">DeltaCrown</span>
+                                <span class="dc-wordmark text-base">{{ brand.name }}</span>
                             </div>
 
                             <h3 class="font-display text-2xl md:text-3xl font-black text-white uppercase tracking-wide drop-shadow-lg leading-tight">{{ tournament.name }}</h3>
@@ -486,7 +486,7 @@
                                     <p class="text-[10px] font-bold text-violet-400 uppercase tracking-[0.15em] mb-1.5 relative z-10">Match Venue</p>
                                     <div class="ticket-inline-row tracking-wide uppercase">
                                         <i data-lucide="globe-2" class="ticket-inline-icon text-violet-400"></i>
-                                        <span class="ticket-inline-label text-sm font-black text-white tracking-wide uppercase leading-none block export-drift-fix">DeltaCrown Servers</span>
+                                        <span class="ticket-inline-label text-sm font-black text-white tracking-wide uppercase leading-none block export-drift-fix">{{ brand.name }} Servers</span>
                                     </div>
                             </div>
                             {% elif tournament.mode == 'lan' or tournament.mode == 'offline' %}
@@ -740,8 +740,8 @@
 <script nonce="{{ request.csp_nonce }}">
 (function () {
     const shareData = {
-        title: 'DeltaCrown Registration Secured',
-        text: 'I just secured my VIP Spot in {{ tournament.name|escapejs }}! The arena awaits. Are you ready? #DeltaCrown',
+        title: 'OwnLobby Registration Secured',
+        text: 'I just secured my VIP Spot in {{ tournament.name|escapejs }}! The arena awaits. Are you ready? #OwnLobby',
         url: window.location.href,
     };
 

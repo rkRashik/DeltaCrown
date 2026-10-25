@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from deltacrown.branding import brand_copy
+
 import hashlib
 import logging
 import secrets
@@ -536,7 +538,7 @@ class GoogleCallback(View):
         identity.save(update_fields=["last_login_at", "email"])
 
         if created:
-            messages.success(request, f"Welcome to DeltaCrown, {user.username}! Your account has been created.")
+            messages.success(request, f"Welcome to {brand_copy('[[brand]]')}, {user.username}! Your account has been created.")
         else:
             messages.success(request, f"Welcome back, {user.username}!")
 
@@ -866,7 +868,7 @@ class DiscordCallback(View):
         messages.success(
             request,
             f"✅ Discord account @{discord_username} linked successfully! "
-            "You will receive the @Linked role in the DeltaCrown server shortly.",
+            f"You will receive the @Linked role in the {brand_copy('[[brand]]')} server shortly.",
         )
         return redirect(reverse("user_profile:settings"))
 

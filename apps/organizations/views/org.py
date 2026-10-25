@@ -7,6 +7,8 @@ Handles:
 - Organization creation
 """
 
+from deltacrown.branding import brand_copy
+
 import logging
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
@@ -58,7 +60,7 @@ def organization_detail(request, org_slug):
         )
         org = context.get('organization') or context.get('org')
         if org:
-            description = org.description or f"{org.name} is an esports organization on DeltaCrown with public squads and competitive operations."
+            description = org.description or f"{org.name} is an esports organization on {brand_copy('[[brand]]')} with public squads and competitive operations."
             image_url = org.banner.url if org.banner else (org.logo.url if org.logo else None)
             org_schema = {
                 '@context': 'https://schema.org',
@@ -73,11 +75,11 @@ def organization_detail(request, org_slug):
                 org_schema['sameAs'] = [org.website]
             context['entity_links'] = [
                 {'label': 'Active Squads', 'url': '#teams', 'detail': f"{context.get('active_teams_count', 0)} public teams"},
-                {'label': 'Crown Points Rankings', 'url': '/competition/leaderboards/', 'detail': 'Track competitive movement'},
+                {'label': brand_copy('[[ranking_points]] Rankings'), 'url': '/competition/leaderboards/', 'detail': 'Track competitive movement'},
                 {'label': 'Team Directory', 'url': '/teams/directory/', 'detail': 'Browse the wider team ecosystem'},
             ]
             context['seo'] = build_seo(
-                title=f"{org.name} | DeltaCrown Organization",
+                title=f"{org.name} | {brand_copy('[[brand]]')} Organization",
                 description=description,
                 canonical=absolute_url(org.get_absolute_url()),
                 noindex=not org.description and not context.get('active_teams_count'),

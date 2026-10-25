@@ -9,6 +9,8 @@ Architecture:
 - Specialized admins in separate files (admin_registration, admin_match, admin_bracket, etc.)
 """
 
+from deltacrown.branding import brand_copy
+
 from django.contrib import admin
 from django.db import models
 from django import forms
@@ -197,8 +199,8 @@ class TournamentFormConfigurationInline(StackedInline):
                 'custom_fair_play_text',
             ),
             'description': (
-                '📋 Shown on the Review & Submit step. Leave any field blank to use DeltaCrown\'s default text. '
-                'Tip: write your own tournament-specific rules, terms, or fair-play expectations here.'
+                brand_copy('📋 Shown on the Review & Submit step. Leave any field blank to use [[brand]]\'s default text. '
+                'Tip: write your own tournament-specific rules, terms, or fair-play expectations here.')
             ),
         }),
     )
@@ -278,10 +280,10 @@ class TournamentPaymentMethodInline(StackedInline):
             'classes': ('pm-section', 'pm-bank_transfer',),
             'description': 'Configure traditional bank transfer method'
         }),
-        ('DeltaCoin Configuration', {
+        (brand_copy('[[coins]] Configuration'), {
             'fields': ('deltacoin_instructions',),
             'classes': ('pm-section', 'pm-deltacoin',),
-            'description': 'Optional custom instructions for DeltaCoin payments (usually not needed)'
+            'description': brand_copy('Optional custom instructions for [[coins]] payments (usually not needed)')
         }),
     )
     
@@ -1831,8 +1833,8 @@ class TournamentHostingConfigAdmin(ModelAdmin):
             ),
             "classes": ("collapse",),
             "description": (
-                "Award DeltaCoin to new users when they create their first tournament. "
-                "This stacks on top of any active hosting promo."
+                brand_copy("Award [[coins]] to new users when they create their first tournament. "
+                "This stacks on top of any active hosting promo.")
             ),
         }),
         # ── Section 3: Regular User Restrictions ─────────────────────────
@@ -1921,7 +1923,7 @@ class TournamentHostingConfigAdmin(ModelAdmin):
             )
         return format_html(
             "<span style='color:#f59e0b;font-weight:bold;font-size:15px;'>"
-            "{} DeltaCoin charged per tournament (when no promo applies)</span>",
+                "{} Coins charged per tournament (when no promo applies)</span>",
             fee,
         )
 

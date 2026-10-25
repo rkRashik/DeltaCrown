@@ -7,6 +7,8 @@ Transforms the raw dashboard context dict into the Alpine.js-consumable
 Extracted from views.py to keep the God-class under control.
 """
 
+from deltacrown.branding import brand_copy
+
 from .helpers import _ts
 
 
@@ -294,7 +296,7 @@ def build_cc_data(context, user, now):
             'category': cat,
             'color': color,
             'icon': icon_map.get(ntype, 'fa-solid fa-bell'),
-            'sender': n.get('actor_name') or n.get('title', 'DeltaCrown'),
+            'sender': n.get('actor_name') or n.get('title', brand_copy('[[brand]]')),
             'avatar': n.get('actor_avatar', ''),
             'text': n.get('body', ''),
             'time': _ts(n.get('created_at'), now),

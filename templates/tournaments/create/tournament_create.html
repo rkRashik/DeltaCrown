@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}Host a Tournament - DeltaCrown{% endblock %}
-{% block og_title %}Host a Tournament - DeltaCrown{% endblock %}
+{% block title %}Host a Tournament - {{ brand.name }}{% endblock %}
+{% block og_title %}Host a Tournament - {{ brand.name }}{% endblock %}
 
 {% block extra_css %}
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700;800&display=swap" rel="stylesheet">
@@ -457,10 +457,10 @@
       <div class="flex items-center justify-between gap-3">
         <div class="flex min-w-0 items-center gap-3">
           <div class="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/15 bg-white/5 shadow-[0_0_22px_rgba(var(--accent-rgb),0.28)]">
-            <span class="font-space text-lg font-extrabold">DC</span>
+            <span class="font-space text-lg font-extrabold">{{ brand.features.coins }}</span>
           </div>
           <div class="min-w-0">
-            <h1 class="font-space text-base font-bold tracking-tight">DeltaCrown</h1>
+            <h1 class="font-space text-base font-bold tracking-tight">{{ brand.name }}</h1>
             <p class="text-[10px] font-bold uppercase tracking-[0.22em] text-white/40">Organizer</p>
           </div>
         </div>
@@ -518,7 +518,7 @@
             <div class="flex items-start gap-3">
               <span class="mt-0.5 text-amber-400 text-base shrink-0">⚠</span>
               <div class="flex-1 min-w-0">
-                <p class="text-xs font-bold text-amber-300">{{ hosting_fee }} DC required to host. Your current balance is {{ user_balance }} DC.</p>
+                <p class="text-xs font-bold text-amber-300">{{ hosting_fee }} {{ brand.features.coins }} required to host. Your current balance is {{ user_balance }} {{ brand.features.coins }}.</p>
                 <p class="mt-1 text-[11px] text-amber-200/65 leading-relaxed">Add funds from your wallet before launching a tournament. You can still configure every detail now.</p>
                 <a href="/wallet/hub/" target="_blank" rel="noopener" class="mt-3 inline-flex items-center gap-1.5 rounded-xl border border-amber-500/40 bg-amber-500/15 px-3 py-1.5 text-[11px] font-extrabold uppercase tracking-[0.14em] text-amber-200 transition hover:bg-amber-500/25">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-3.5 w-3.5"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4z"/></svg>
@@ -970,7 +970,7 @@
                           <span class="mb-2 block text-xs font-bold text-white/75">Entry Fee Currency</span>
                           <select id="entryFeeCurrency" class="dc-input w-full rounded-2xl px-4 py-4">
                             <option value="BDT">BDT</option>
-                            <option value="DC">DeltaCoin</option>
+                            <option value="DC">{{ brand.features.coins }}</option>
                             <option value="USD">USD</option>
                           </select>
                         </label>
@@ -983,7 +983,7 @@
                           <label class="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm font-semibold"><input class="payment-method-checkbox h-4 w-4 accent-[var(--accent)]" type="checkbox" value="nagad"> Nagad</label>
                           <label class="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm font-semibold"><input class="payment-method-checkbox h-4 w-4 accent-[var(--accent)]" type="checkbox" value="rocket"> Rocket</label>
                           <label class="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm font-semibold"><input class="payment-method-checkbox h-4 w-4 accent-[var(--accent)]" type="checkbox" value="bank_transfer"> Bank Transfer</label>
-                          <label class="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm font-semibold"><input class="payment-method-checkbox h-4 w-4 accent-[var(--accent)]" type="checkbox" value="deltacoin"> DeltaCoin</label>
+                          <label class="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm font-semibold"><input class="payment-method-checkbox h-4 w-4 accent-[var(--accent)]" type="checkbox" value="deltacoin"> {{ brand.features.coins }}</label>
                         </div>
                         <div class="mt-4 grid gap-3 md:grid-cols-2">
                           <input id="receiverNumber" type="text" class="dc-input w-full rounded-2xl px-4 py-3" placeholder="Receiver number / wallet ID">
@@ -1007,7 +1007,7 @@
                     <span class="mb-2 block text-xs font-bold text-white/75">Prize Currency</span>
                     <select id="prizeCurrency" class="dc-input w-full rounded-2xl px-4 py-4">
                       <option value="BDT">BDT</option>
-                      <option value="DC">DeltaCoin</option>
+                      <option value="DC">{{ brand.features.coins }}</option>
                       <option value="USD">USD</option>
                     </select>
                   </label>
@@ -1035,7 +1035,7 @@
 
                 <div class="mt-5 rounded-xl border border-[var(--accent)]/20 bg-[rgba(var(--accent-rgb),0.06)] p-4">
                   <p class="text-[10px] font-extrabold uppercase tracking-[0.2em] text-[var(--accent)] mb-2">Advanced Prize Setup</p>
-                  <p class="text-xs leading-relaxed text-white/55">Need custom split ratios, DeltaCoin prizes, or per-round payouts? The <strong class="text-white/80">Tournament Operations Center (TOC)</strong> offers full prize management after creation — including multi-tier distributions, conditional bonuses, and live payout tracking.</p>
+                  <p class="text-xs leading-relaxed text-white/55">Need custom split ratios, {{ brand.features.coins }} prizes, or per-round payouts? The <strong class="text-white/80">Tournament Operations Center (TOC)</strong> offers full prize management after creation — including multi-tier distributions, conditional bonuses, and live payout tracking.</p>
                 </div>
               </div>
             </div>
@@ -1183,7 +1183,7 @@
               <span class="text-[10px] font-extrabold uppercase tracking-[0.25em] text-white/60">Step 7 — Launch</span>
             </div>
             <h2 class="font-space text-4xl font-extrabold tracking-[-0.035em] sm:text-5xl">Ready to deploy.</h2>
-            <p class="mt-3 text-sm text-white/50">Review the hosting fee and launch your tournament to the DeltaCrown network.</p>
+            <p class="mt-3 text-sm text-white/50">Review the hosting fee and launch your tournament to the {{ brand.name }} network.</p>
           </div>
 
           <div class="grid gap-5 xl:grid-cols-[1fr_400px]">
@@ -1192,14 +1192,14 @@
               <div class="wizard-card rounded-[2rem] p-5 sm:p-7">
                 <h3 class="mb-5 text-[10px] font-extrabold uppercase tracking-[0.25em] text-white/40">Hosting Fee</h3>
                 <div class="space-y-0 divide-y divide-white/8 text-sm">
-                  <div class="flex items-center justify-between py-4"><span class="text-white/65">Tournament Hosting</span><strong class="font-space text-base text-cyan-300">{{ hosting_fee }} DC</strong></div>
-                  <div class="flex items-center justify-between py-4"><span class="text-white/65">Your DeltaCoin Balance</span><strong class="font-space text-base">{{ user_balance }} DC</strong></div>
-                  <div class="flex items-center justify-between py-4"><span class="text-white/65">Balance After Creation</span><strong class="font-space text-base {% if can_afford %}text-emerald-400{% else %}text-red-400{% endif %}">{% if can_afford %}{{ after_balance }} DC{% else %}Insufficient{% endif %}</strong></div>
+                  <div class="flex items-center justify-between py-4"><span class="text-white/65">Tournament Hosting</span><strong class="font-space text-base text-cyan-300">{{ hosting_fee }} {{ brand.features.coins }}</strong></div>
+                  <div class="flex items-center justify-between py-4"><span class="text-white/65">Your {{ brand.features.coins }} Balance</span><strong class="font-space text-base">{{ user_balance }} {{ brand.features.coins }}</strong></div>
+                  <div class="flex items-center justify-between py-4"><span class="text-white/65">Balance After Creation</span><strong class="font-space text-base {% if can_afford %}text-emerald-400{% else %}text-red-400{% endif %}">{% if can_afford %}{{ after_balance }} {{ brand.features.coins }}{% else %}Insufficient{% endif %}</strong></div>
                 </div>
                 {% if not can_afford %}
                 <div class="mt-4 rounded-xl border border-red-500/35 bg-red-500/10 p-4">
-                  <p class="text-sm font-bold text-red-300 mb-1">Insufficient DeltaCoins</p>
-                  <p class="text-xs text-red-200/70">You need at least {{ hosting_fee }} DC to host a tournament. Top up your wallet to continue.</p>
+                  <p class="text-sm font-bold text-red-300 mb-1">Insufficient {{ brand.features.coins }}</p>
+                  <p class="text-xs text-red-200/70">You need at least {{ hosting_fee }} {{ brand.features.coins }} to host a tournament. Top up your wallet to continue.</p>
                 </div>
                 <a href="/wallet/hub/" target="_blank" rel="noopener" class="mt-3 inline-flex items-center gap-2 rounded-xl border border-red-400/35 bg-red-500/15 px-4 py-2 text-xs font-bold uppercase tracking-[0.15em] text-red-100 transition hover:bg-red-500/25">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-3.5 w-3.5"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4z"/></svg>
@@ -1213,7 +1213,7 @@
                   <span class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400 text-lg">✓</span>
                   <div>
                     <p class="font-semibold text-emerald-400">Staff Account — Free Hosting</p>
-                    <p class="text-xs text-white/50 mt-0.5">No DeltaCoin charge applies to staff and superuser accounts.</p>
+                    <p class="text-xs text-white/50 mt-0.5">No {{ brand.features.coins }} charge applies to staff and superuser accounts.</p>
                   </div>
                 </div>
               </div>
@@ -1246,7 +1246,7 @@
                   <div class="flex items-start gap-3 rounded-xl border border-white/8 bg-black/20 px-4 py-3">
                     <span class="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white/10 text-[10px] font-bold text-white/60">{% if is_staff %}0{% else %}{{ hosting_fee }}{% endif %}</span>
                     <div>
-                      <p class="text-sm font-semibold text-white/85">{% if is_staff %}Free hosting (staff exempt){% else %}{{ hosting_fee }} DC hosting fee deducted{% endif %}</p>
+                      <p class="text-sm font-semibold text-white/85">{% if is_staff %}Free hosting (staff exempt){% else %}{{ hosting_fee }} {{ brand.features.coins }} hosting fee deducted{% endif %}</p>
                       <p class="mt-0.5 text-xs text-white/45">Charged on successful creation only. No partial charges on failure.</p>
                     </div>
                   </div>
@@ -1266,10 +1266,10 @@
                   <div class="rounded-2xl border border-white/10 bg-black/25 p-3"><span class="text-[10px] text-white/42">Entry</span><strong id="launchEntryFinal" class="mt-1 block font-space text-lg">Free</strong></div>
                 </div>
                 <button id="btnSubmit" type="button" class="mt-7 w-full rounded-2xl bg-white px-6 py-4 font-space text-base font-extrabold text-black transition hover:-translate-y-0.5 hover:shadow-[0_18px_60px_rgba(255,255,255,0.26)] {% if not can_afford and not is_staff %}opacity-50 cursor-not-allowed{% endif %}" {% if not can_afford and not is_staff %}disabled{% endif %}>
-                  {% if is_staff %}Launch Tournament{% else %}Pay {{ hosting_fee }} DC & Launch{% endif %}
+                  {% if is_staff %}Launch Tournament{% else %}Pay {{ hosting_fee }} {{ brand.features.coins }} & Launch{% endif %}
                 </button>
                 {% if not is_staff %}
-                <p class="mt-3 text-center text-[10px] text-white/35">{{ hosting_fee }} DeltaCoins will be deducted from your balance</p>
+                <p class="mt-3 text-center text-[10px] text-white/35">{{ hosting_fee }} {{ brand.features.coins }} will be deducted from your balance</p>
                 {% endif %}
               </div>
             </aside>
@@ -1354,7 +1354,7 @@
             <div class="space-y-2 text-white/60 leading-relaxed">
               <p><span class="text-white/85 font-semibold">Never promise what you can't deliver.</span> Set a prize pool you can 100% pay out before the event starts, not after.</p>
               <p><span class="text-white/85 font-semibold">Payout within 72 hours.</span> Winners expect fast rewards. Delays harm your reputation as an organizer.</p>
-              <p><span class="text-white/85 font-semibold">Use TOC for complex prizes.</span> Multi-tier distributions, DeltaCoin payouts, and conditional bonuses are all manageable from the Tournament Operations Center after creation.</p>
+              <p><span class="text-white/85 font-semibold">Use TOC for complex prizes.</span> Multi-tier distributions, {{ brand.features.coins }} payouts, and conditional bonuses are all manageable from the Tournament Operations Center after creation.</p>
             </div>
           </div>
 

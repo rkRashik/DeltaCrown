@@ -1,4 +1,6 @@
-﻿import logging
+
+from deltacrown.branding import brand_copy
+import logging
 import json
 from urllib.parse import quote
 from django.contrib.auth.decorators import login_required
@@ -37,7 +39,7 @@ def _safe_media_url(obj, field='avatar'):
 
 def _avatar_fallback(name: str, bg: str = '1f2937') -> str:
     """Stable fallback avatar URL for users/teams without uploaded images."""
-    label = quote((name or 'DeltaCrown')[:40])
+    label = quote((name or brand_copy('[[brand]]'))[:40])
     return f'https://ui-avatars.com/api/?name={label}&background={bg}&color=fff&size=96&bold=true'
 
 

@@ -4,12 +4,9 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#0a0a0f">
-  <title>{% block title %}DeltaCrown{% endblock %}</title>
+  <title>{% block title %}{{ brand.name }}{% endblock %}</title>
 
   <!-- Favicon -->
-  <link rel="icon" href="{% static 'img/favicon/favicon.ico' %}?v=new" sizes="any">
-  <link rel="apple-touch-icon" href="{% static 'img/favicon/favicon-180x180.png' %}?v=new">
 
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -55,6 +52,7 @@
   </style>
 
   {% block draw_head %}{% endblock %}
+  {% include "partials/brand_head.html" %}
 </head>
 <body>
   {% block draw_body %}{% endblock %}

@@ -140,7 +140,7 @@
     const code = err && err.body && err.body.code;
     const detail = (err && err.body && err.body.detail) || 'Something went wrong.';
     if (code === 'INSUFFICIENT_FUNDS') {
-      toast('Not enough DeltaCoins. Please visit the Treasury to top up.', 'error');
+      toast('Not enough Coins. Please visit the Treasury to top up.', 'error');
       return;
     }
     if (err && err.status === 403) { toast('Captain authority required.', 'error'); return; }
@@ -1574,7 +1574,7 @@
       await loadMyOperations();
     } catch (err) {
       const code = err && err.body && err.body.code;
-      if (code === 'INSUFFICIENT_FUNDS') showFormError('clash', err.body.detail || 'Not enough DeltaCoins.');
+      if (code === 'INSUFFICIENT_FUNDS') showFormError('clash', err.body.detail || 'Not enough Coins.');
       handleApiError(err);
     } finally {
       setSubmitting('clash-submit', false);
@@ -1650,7 +1650,7 @@
       await loadMyOperations();
     } catch (err) {
       const code = err && err.body && err.body.code;
-      if (code === 'INSUFFICIENT_FUNDS') showFormError('hitlist', err.body.detail || 'Not enough DeltaCoins.');
+      if (code === 'INSUFFICIENT_FUNDS') showFormError('hitlist', err.body.detail || 'Not enough Coins.');
       handleApiError(err);
     } finally {
       setSubmitting('hitlist-submit', false);

@@ -9,6 +9,7 @@ from apps.competition.models import GameRankingConfig
 from apps.competition.services.competition_service import CompetitionService
 from apps.games.models import Game
 from apps.common.seo import breadcrumb_schema, build_seo
+from deltacrown.branding import BRAND
 
 
 def _entries_modal_json(entries):
@@ -40,7 +41,7 @@ def _ranking_itemlist_schema(entries, page_url):
     return {
         '@context': 'https://schema.org',
         '@type': 'ItemList',
-        'name': 'DeltaCrown Crown Points Rankings',
+        'name': f"{BRAND['name']} {BRAND['features']['ranking_points']} Rankings",
         'url': page_url,
         'itemListElement': [
             {
@@ -351,8 +352,8 @@ def leaderboard_global(request):
         'has_prev_page': page > 1,
         'page_size': PAGE_SIZE,
         'seo': build_seo(
-            title='Crown Points Rankings | DeltaCrown',
-            description='Browse DeltaCrown Crown Points rankings, tiers, teams, and competitive leaderboard movement across Bangladesh, South Asia, and the wider platform.',
+            title=f"{BRAND['features']['ranking_points']} Rankings | {BRAND['name']}",
+            description=f"Browse {BRAND['name']} {BRAND['features']['ranking_points']} rankings, tiers, teams, and competitive leaderboard movement across Bangladesh, South Asia, and the wider platform.",
             path='/competition/leaderboards/',
             noindex=bool(tier_filter or verified_only or sort_filter or page > 1 or response.total_count == 0),
             schema=[
@@ -499,8 +500,8 @@ def leaderboard_game(request, game_id):
         'has_prev_page': page > 1,
         'page_size': PAGE_SIZE,
         'seo': build_seo(
-            title=f'{game_config.game_name} Crown Points Rankings | DeltaCrown',
-            description=f'Browse {game_config.game_name} Crown Points rankings, tiers, teams, and competitive leaderboard movement across Bangladesh, South Asia, and DeltaCrown.',
+            title=f"{game_config.game_name} {BRAND['features']['ranking_points']} Rankings | {BRAND['name']}",
+            description=f"Browse {game_config.game_name} {BRAND['features']['ranking_points']} rankings, tiers, teams, and competitive leaderboard movement across Bangladesh, South Asia, and {BRAND['name']}.",
             path=f'/competition/leaderboards/{game_id}/',
             noindex=bool(tier_filter or verified_only or sort_filter or page > 1 or response.total_count == 0),
             schema=[
