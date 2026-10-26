@@ -67,6 +67,6 @@ Release gates remain: actual Linux/Python 3.12/native Cairo execution; durable m
 - Starting reviewed HEAD: `8fc7c335f43709e91e64ea9dde8011c2a8ed26bd`.
 - Empty safety checkpoint: `97bd94d882e42edb9ab0dfab87b6d27a69231c2a`.
 - Cleanup branch: `feature/ownlobby-repository-cleanup`.
-- Implementation commit: recorded after final validation in the final local handoff update.
+- Implementation commit: `338182e439c891d0a6cf0b0c0326b4084bbc2599` (`chore: organize OwnLobby repository and documentation`). This handoff's commit-reference follow-up is documentation-only; final HEAD is reported to the owner separately.
 
 All Phase 1–4 implementation commits remain ancestors. For rollback, use a reviewed ordinary revert of the cleanup implementation, preserving later work and history. The one removed duplicate can be restored independently with the checkpoint command in the manifest. Git cannot restore ignored owner files, which is why none were removed. No force reset or history rewrite is needed.
