@@ -121,6 +121,8 @@ Infrastructure display-name changes, optional CDN derivatives, cosmetic work, br
 
 ## Git custody and exact next action
 
-All earlier commits remain ancestors. All 26 protected Documents files pass pre/post name/size/hash comparison. AST comparison confirms the 23 model sources differ only in governed upload classes/imports; financial and other model definitions are unchanged. Changed Python syntax and `git diff --check` pass. A focused credential-pattern review of changed/new files found no matches; this is not a full historical secret-scan certification. No private upload or protected document is added. Final implementation SHA and post-commit status are recorded by the local commit-reference update; no remote operation is authorized.
+Implementation commit: **`8075d266fefe2d24932ec2ea8b87403c852b99af`**, `feat: add governed durable media and private file delivery`. The commit-reference follow-up changes only this handoff. All earlier commits remain ancestors; final working-tree status is checked after the follow-up and reported to the owner.
+
+All 26 protected Documents files pass pre/post name/size/hash comparison. AST comparison confirms the 23 model sources differ only in governed upload classes/imports; financial and other model definitions are unchanged. Changed Python syntax and `git diff --check` pass. A focused credential-pattern review of changed/new files found no matches; this is not a full historical secret-scan certification. No private upload or protected document is added. No remote operation is authorized.
 
 **Next owner action:** approve the isolated Linux/staging validation and two-private-origin storage/backup budget and policy. Then perform one coordinated GitHub/infrastructure step after deployment-link safety is verified. Do not share credentials in chat or change DNS yet.
