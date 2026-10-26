@@ -8,7 +8,7 @@
 
 Started from clean `feature/ownlobby-rebrand` at `ece37c2fa5fc9f81305375684d2c8e606c9e2c88`. Readiness checkpoint: `c525ffb7be6ebca1c17d3bdd07e6650b6d738ffb`. Task branch: `feature/ownlobby-production-readiness`.
 
-Implementation commit: recorded after the validated implementation commit is created. Its exact SHA will be added by a documentation-only follow-up; no history rewrite is needed.
+Implementation commit: **`8dff4da78162a986ca5e1c8d93d8a4a15f6c774d`** — `fix: harden OwnLobby release readiness and technical SEO`. This SHA is recorded by a documentation-only follow-up; the implementation history is not rewritten.
 
 ## Changed and fixed
 
