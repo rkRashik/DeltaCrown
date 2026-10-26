@@ -27,7 +27,7 @@ def original(path):
     return result.stdout.decode("utf-8-sig") if result.returncode == 0 else None
 
 
-def run():
+def run(*, collect_static=False):
     import django
     django.setup()
     from django.conf import settings
@@ -87,7 +87,11 @@ def run():
                 syntax_errors.append({"path": name, "error": str(error)})
         if path.suffix == ".html":
             before = original(name)
-            if before is not None and re.findall(url_pattern, before, re.S) != re.findall(url_pattern, source, re.S):
+            # Capturing a reversed URL with "as name" preserves its route and
+            # arguments (reset mail now passes that path to the public-origin tag).
+            def routes(text):
+                return [re.sub(r"\s+as\s+\w+\s*%}", " %}", tag) for tag in re.findall(url_pattern, text, re.S)]
+            if before is not None and routes(before) != routes(source):
                 url_changes.append(name)
     report["python_syntax_errors"] = syntax_errors
     report["template_url_tag_changes"] = url_changes
@@ -121,6 +125,17 @@ def run():
     migrations = [name for name in changed if "migrations" in Path(name).parts]
     report["modified_migrations"] = migrations
     report["new_failures"] += [f"Unexpected migration: {name}" for name in migrations]
+    if collect_static:
+        from django.core.management import call_command
+        from django.test import override_settings
+        output = ROOT / "Artifacts/readiness/collected-static"
+        with override_settings(STATIC_ROOT=output, STORAGES={**settings.STORAGES, "staticfiles": {"BACKEND": "deltacrown.storage.RobustStaticFilesStorage"}}):
+            call_command("collectstatic", interactive=False, verbosity=0)
+            manifest = json.loads((output / "staticfiles.json").read_text(encoding="utf-8"))["paths"]
+            critical = [settings.BRAND["logo_dark"], settings.BRAND["logo_light"], "ownlobby/brand.css", "ownlobby/manifest.webmanifest", "community/build/app.js", "dist/tailwind.css", "css/design-tokens.css"]
+            unresolved = [name for name in critical if name not in manifest or not (output / manifest[name]).is_file()]
+            report["production_static_collection"] = {"critical_checked": len(critical), "unresolved": unresolved}
+            report["new_failures"] += [f"Unresolved hashed asset: {name}" for name in unresolved]
     target = ROOT / "Artifacts/ownlobby/final-verification.json"
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
@@ -131,4 +146,7 @@ def run():
 
 
 if __name__ == "__main__":
-    raise SystemExit(run())
+    import argparse
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--collect-static", action="store_true", help="Also run production static storage into ignored local QA output.")
+    raise SystemExit(run(collect_static=parser.parse_args().collect_static))

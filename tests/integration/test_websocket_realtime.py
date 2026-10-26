@@ -35,6 +35,58 @@ from apps.tournaments.realtime.utils import broadcast_tournament_event
 User = get_user_model()
 
 
+@pytest.mark.asyncio
+@pytest.mark.django_db(transaction=True)
+@pytest.mark.parametrize("origin,allowed", [
+    (b"https://deltacrown.xyz", True),
+    (b"https://ownlobby.com", True),
+    (b"https://untrusted.invalid", False),
+    (None, False),
+])
+async def test_origin_validation_with_valid_credentials(valid_jwt_token, origin, allowed):
+    headers = [(b"origin", origin)] if origin else []
+    communicator = WebsocketCommunicator(application, f"/ws/tournament/1/?token={valid_jwt_token}", headers=headers)
+    connected, _ = await communicator.connect()
+    assert connected is allowed
+    if connected:
+        assert (await communicator.receive_json_from(timeout=2))['type'] == 'connection_established'
+    await communicator.disconnect()
+
+
+@pytest.mark.asyncio
+@pytest.mark.django_db(transaction=True)
+async def test_private_events_and_connection_gauge(valid_jwt_token, test_user2):
+    from apps.tournaments.realtime.metrics import get_metrics_snapshot
+    spectator_token = str(AccessToken.for_user(test_user2))
+    before = sum(get_metrics_snapshot()['active_connections'].values())
+    owner = WebsocketCommunicator(application, f'/ws/tournament/1/?token={valid_jwt_token}', headers=[(b'origin', b'https://ownlobby.com')])
+    spectator = WebsocketCommunicator(application, f'/ws/tournament/1/?token={spectator_token}', headers=[(b'origin', b'https://ownlobby.com')])
+    for connection in [owner, spectator]:
+        assert (await connection.connect())[0]
+        assert (await connection.receive_json_from(timeout=2))['type'] == 'connection_established'
+    assert sum(get_metrics_snapshot()['active_connections'].values()) == before+2
+    await broadcast_tournament_event(1, 'dispute_created', {'tournament_id': 1, 'registration_id': 123, 'reason': 'Private QA evidence'})
+    assert (await owner.receive_json_from(timeout=2))['data']['reason'] == 'Private QA evidence'
+    assert await spectator.receive_nothing(timeout=0.2)
+    for connection in [owner, spectator]:
+        await connection.disconnect()
+    assert sum(get_metrics_snapshot()['active_connections'].values()) == before
+
+
+@pytest.mark.asyncio
+@pytest.mark.django_db(transaction=True)
+async def test_inactive_user_token_is_rejected(valid_jwt_token, test_user):
+    from channels.db import database_sync_to_async
+    test_user.is_active = False
+    await database_sync_to_async(test_user.save)(update_fields=['is_active'])
+    communicator = WebsocketCommunicator(application, f'/ws/tournament/1/?token={valid_jwt_token}', headers=[(b'origin', b'https://ownlobby.com')])
+    assert (await communicator.connect())[0]  # Diagnostic-only accept, then close.
+    error = await communicator.receive_json_from(timeout=2)
+    assert error['code'] == 'authentication_failed'
+    assert (await communicator.receive_output(timeout=2))['code'] == 4003
+    await communicator.disconnect()
+
+
 # =============================================================================
 # Fixtures
 # =============================================================================
@@ -47,6 +99,18 @@ def test_user(db):
         email='testuser@example.com',
         password='testpass123'
     )
+
+
+@pytest.fixture(autouse=True)
+def tournament_rooms(transactional_db, test_user):
+    from apps.games.models import Game
+    from apps.tournaments.models import Tournament
+    game = Game.objects.create(name='WebSocket QA Game', slug='websocket-qa-game', short_code='WSQA', category='OTHER')
+    now = timezone.now()
+    for identifier in [1, 2]:
+        Tournament.objects.create(id=identifier, name=f'WebSocket QA {identifier}', slug=f'websocket-qa-{identifier}', organizer=test_user,
+            game=game, participation_type='solo', status='published', max_participants=16,
+            registration_start=now, registration_end=now+timedelta(days=1), tournament_start=now+timedelta(days=2))
 
 
 @pytest.fixture
@@ -86,7 +150,7 @@ def invalid_jwt_token():
 # =============================================================================
 
 @pytest.mark.asyncio
-@pytest.mark.django_db
+@pytest.mark.django_db(transaction=True)
 async def test_websocket_connect_with_valid_token(valid_jwt_token):
     """
     Test WebSocket connection succeeds with valid JWT token.
@@ -99,7 +163,8 @@ async def test_websocket_connect_with_valid_token(valid_jwt_token):
     tournament_id = 1
     communicator = WebsocketCommunicator(
         application,
-        f"/ws/tournament/{tournament_id}/?token={valid_jwt_token}"
+        f"/ws/tournament/{tournament_id}/?token={valid_jwt_token}",
+        headers=[(b"origin", b"https://deltacrown.xyz")],
     )
     
     connected, subprotocol = await communicator.connect()
@@ -117,7 +182,7 @@ async def test_websocket_connect_with_valid_token(valid_jwt_token):
 
 
 @pytest.mark.asyncio
-@pytest.mark.django_db
+@pytest.mark.django_db(transaction=True)
 async def test_websocket_connect_without_token():
     """
     Test WebSocket connection rejected without JWT token.
@@ -129,22 +194,21 @@ async def test_websocket_connect_without_token():
     tournament_id = 1
     communicator = WebsocketCommunicator(
         application,
-        f"/ws/tournament/{tournament_id}/"  # No token parameter
+        f"/ws/tournament/{tournament_id}/",
+        headers=[(b"origin", b"https://deltacrown.xyz")],
     )
     
     connected, subprotocol = await communicator.connect()
     
-    if connected:
-        # If connection accepted, should immediately close
-        await communicator.receive_nothing(timeout=1)
-        await communicator.disconnect()
-    
-    # Connection should be rejected or immediately closed
-    assert not connected or communicator.scope.get('user').is_anonymous
+    assert connected  # Consumer accepts only to send an explicit auth-required close.
+    closed = await communicator.receive_output(timeout=2)
+    assert closed['type'] == 'websocket.close'
+    assert closed['code'] == 4001
+    await communicator.disconnect()
 
 
 @pytest.mark.asyncio
-@pytest.mark.django_db
+@pytest.mark.django_db(transaction=True)
 async def test_websocket_connect_with_invalid_token(invalid_jwt_token):
     """
     Test WebSocket connection rejected with malformed JWT token.
@@ -156,19 +220,24 @@ async def test_websocket_connect_with_invalid_token(invalid_jwt_token):
     tournament_id = 1
     communicator = WebsocketCommunicator(
         application,
-        f"/ws/tournament/{tournament_id}/?token={invalid_jwt_token}"
+        f"/ws/tournament/{tournament_id}/?token={invalid_jwt_token}",
+        headers=[(b"origin", b"https://deltacrown.xyz")],
     )
     
     connected, subprotocol = await communicator.connect()
     
-    if connected:
-        # Should be closed immediately due to auth failure
-        await communicator.disconnect()
-        pytest.fail("Connection should be rejected with invalid token")
+    assert connected  # Middleware accepts only to deliver a diagnostic close frame.
+    error = await communicator.receive_json_from(timeout=2)
+    assert error['type'] == 'error'
+    assert error['code'] == 'authentication_failed'
+    closed = await communicator.receive_output(timeout=2)
+    assert closed['type'] == 'websocket.close'
+    assert closed['code'] == 4003
+    await communicator.disconnect()
 
 
 @pytest.mark.asyncio
-@pytest.mark.django_db
+@pytest.mark.django_db(transaction=True)
 async def test_websocket_connect_with_expired_token(expired_jwt_token):
     """
     Test WebSocket connection rejected with expired JWT token.
@@ -180,15 +249,20 @@ async def test_websocket_connect_with_expired_token(expired_jwt_token):
     tournament_id = 1
     communicator = WebsocketCommunicator(
         application,
-        f"/ws/tournament/{tournament_id}/?token={expired_jwt_token}"
+        f"/ws/tournament/{tournament_id}/?token={expired_jwt_token}",
+        headers=[(b"origin", b"https://deltacrown.xyz")],
     )
     
     connected, subprotocol = await communicator.connect()
     
-    if connected:
-        # Should be closed immediately due to expired token
-        await communicator.disconnect()
-        pytest.fail("Connection should be rejected with expired token")
+    assert connected  # Middleware accepts only to deliver a diagnostic close frame.
+    error = await communicator.receive_json_from(timeout=2)
+    assert error['type'] == 'error'
+    assert error['code'] == 'authentication_failed'
+    closed = await communicator.receive_output(timeout=2)
+    assert closed['type'] == 'websocket.close'
+    assert closed['code'] == 4002
+    await communicator.disconnect()
 
 
 # =============================================================================
@@ -196,7 +270,7 @@ async def test_websocket_connect_with_expired_token(expired_jwt_token):
 # =============================================================================
 
 @pytest.mark.asyncio
-@pytest.mark.django_db
+@pytest.mark.django_db(transaction=True)
 async def test_match_started_broadcast(valid_jwt_token):
     """
     Test match_started event broadcasts to connected client.
@@ -209,7 +283,8 @@ async def test_match_started_broadcast(valid_jwt_token):
     tournament_id = 1
     communicator = WebsocketCommunicator(
         application,
-        f"/ws/tournament/{tournament_id}/?token={valid_jwt_token}"
+        f"/ws/tournament/{tournament_id}/?token={valid_jwt_token}",
+        headers=[(b"origin", b"https://deltacrown.xyz")],
     )
     
     connected, _ = await communicator.connect()
@@ -231,7 +306,7 @@ async def test_match_started_broadcast(valid_jwt_token):
         'bracket_position': 1,
     }
     
-    broadcast_tournament_event(tournament_id, 'match_started', event_data)
+    await broadcast_tournament_event(tournament_id, 'match_started', event_data)
     
     # Should receive broadcasted event
     response = await communicator.receive_json_from(timeout=2)
@@ -243,7 +318,7 @@ async def test_match_started_broadcast(valid_jwt_token):
 
 
 @pytest.mark.asyncio
-@pytest.mark.django_db
+@pytest.mark.django_db(transaction=True)
 async def test_score_updated_broadcast(valid_jwt_token):
     """
     Test score_updated event broadcasts to connected client.
@@ -256,7 +331,8 @@ async def test_score_updated_broadcast(valid_jwt_token):
     tournament_id = 1
     communicator = WebsocketCommunicator(
         application,
-        f"/ws/tournament/{tournament_id}/?token={valid_jwt_token}"
+        f"/ws/tournament/{tournament_id}/?token={valid_jwt_token}",
+        headers=[(b"origin", b"https://deltacrown.xyz")],
     )
     
     connected, _ = await communicator.connect()
@@ -275,7 +351,7 @@ async def test_score_updated_broadcast(valid_jwt_token):
         'updated_by': 1,
     }
     
-    broadcast_tournament_event(tournament_id, 'score_updated', event_data)
+    await broadcast_tournament_event(tournament_id, 'score_updated', event_data)
     
     # Should receive broadcasted event
     response = await communicator.receive_json_from(timeout=2)
@@ -288,7 +364,7 @@ async def test_score_updated_broadcast(valid_jwt_token):
 
 
 @pytest.mark.asyncio
-@pytest.mark.django_db
+@pytest.mark.django_db(transaction=True)
 async def test_match_completed_broadcast(valid_jwt_token):
     """
     Test match_completed event broadcasts to connected client.
@@ -301,7 +377,8 @@ async def test_match_completed_broadcast(valid_jwt_token):
     tournament_id = 1
     communicator = WebsocketCommunicator(
         application,
-        f"/ws/tournament/{tournament_id}/?token={valid_jwt_token}"
+        f"/ws/tournament/{tournament_id}/?token={valid_jwt_token}",
+        headers=[(b"origin", b"https://deltacrown.xyz")],
     )
     
     connected, _ = await communicator.connect()
@@ -324,7 +401,7 @@ async def test_match_completed_broadcast(valid_jwt_token):
         'confirmed_by': 1,
     }
     
-    broadcast_tournament_event(tournament_id, 'match_completed', event_data)
+    await broadcast_tournament_event(tournament_id, 'match_completed', event_data)
     
     # Should receive broadcasted event
     response = await communicator.receive_json_from(timeout=2)
@@ -337,7 +414,7 @@ async def test_match_completed_broadcast(valid_jwt_token):
 
 
 @pytest.mark.asyncio
-@pytest.mark.django_db
+@pytest.mark.django_db(transaction=True)
 async def test_bracket_updated_broadcast(valid_jwt_token):
     """
     Test bracket_updated event broadcasts to connected client.
@@ -350,7 +427,8 @@ async def test_bracket_updated_broadcast(valid_jwt_token):
     tournament_id = 1
     communicator = WebsocketCommunicator(
         application,
-        f"/ws/tournament/{tournament_id}/?token={valid_jwt_token}"
+        f"/ws/tournament/{tournament_id}/?token={valid_jwt_token}",
+        headers=[(b"origin", b"https://deltacrown.xyz")],
     )
     
     connected, _ = await communicator.connect()
@@ -371,7 +449,7 @@ async def test_bracket_updated_broadcast(valid_jwt_token):
         'updated_at': timezone.now().isoformat(),
     }
     
-    broadcast_tournament_event(tournament_id, 'bracket_updated', event_data)
+    await broadcast_tournament_event(tournament_id, 'bracket_updated', event_data)
     
     # Should receive broadcasted event
     response = await communicator.receive_json_from(timeout=2)
@@ -384,7 +462,7 @@ async def test_bracket_updated_broadcast(valid_jwt_token):
 
 
 @pytest.mark.asyncio
-@pytest.mark.django_db
+@pytest.mark.django_db(transaction=True)
 async def test_multiple_clients_receive_broadcast(valid_jwt_token, test_user2):
     """
     Test event broadcasts to all connected clients simultaneously.
@@ -403,11 +481,13 @@ async def test_multiple_clients_receive_broadcast(valid_jwt_token, test_user2):
     # Connect two clients to same tournament room
     communicator1 = WebsocketCommunicator(
         application,
-        f"/ws/tournament/{tournament_id}/?token={valid_jwt_token}"
+        f"/ws/tournament/{tournament_id}/?token={valid_jwt_token}",
+        headers=[(b"origin", b"https://deltacrown.xyz")],
     )
     communicator2 = WebsocketCommunicator(
         application,
-        f"/ws/tournament/{tournament_id}/?token={token2}"
+        f"/ws/tournament/{tournament_id}/?token={token2}",
+        headers=[(b"origin", b"https://deltacrown.xyz")],
     )
     
     connected1, _ = await communicator1.connect()
@@ -431,7 +511,7 @@ async def test_multiple_clients_receive_broadcast(valid_jwt_token, test_user2):
         'confirmed_at': timezone.now().isoformat(),
     }
     
-    broadcast_tournament_event(tournament_id, 'match_completed', event_data)
+    await broadcast_tournament_event(tournament_id, 'match_completed', event_data)
     
     # Both clients should receive event
     response1 = await communicator1.receive_json_from(timeout=2)
@@ -449,7 +529,7 @@ async def test_multiple_clients_receive_broadcast(valid_jwt_token, test_user2):
 
 
 @pytest.mark.asyncio
-@pytest.mark.django_db
+@pytest.mark.django_db(transaction=True)
 async def test_client_isolation_different_tournaments(valid_jwt_token, test_user2):
     """
     Test clients in different tournament rooms don't receive each other's events.
@@ -469,11 +549,13 @@ async def test_client_isolation_different_tournaments(valid_jwt_token, test_user
     # Connect clients to different tournament rooms
     communicator1 = WebsocketCommunicator(
         application,
-        f"/ws/tournament/{tournament_id_1}/?token={valid_jwt_token}"
+        f"/ws/tournament/{tournament_id_1}/?token={valid_jwt_token}",
+        headers=[(b"origin", b"https://deltacrown.xyz")],
     )
     communicator2 = WebsocketCommunicator(
         application,
-        f"/ws/tournament/{tournament_id_2}/?token={token2}"
+        f"/ws/tournament/{tournament_id_2}/?token={token2}",
+        headers=[(b"origin", b"https://deltacrown.xyz")],
     )
     
     connected1, _ = await communicator1.connect()
@@ -493,7 +575,7 @@ async def test_client_isolation_different_tournaments(valid_jwt_token, test_user
         'winner_id': 1,
     }
     
-    broadcast_tournament_event(tournament_id_1, 'match_completed', event_data)
+    await broadcast_tournament_event(tournament_id_1, 'match_completed', event_data)
     
     # Client 1 should receive event
     response1 = await communicator1.receive_json_from(timeout=2)
@@ -501,8 +583,7 @@ async def test_client_isolation_different_tournaments(valid_jwt_token, test_user
     assert response1['data']['match_id'] == 555
     
     # Client 2 should receive nothing
-    with pytest.raises(Exception):  # TimeoutError or similar
-        await communicator2.receive_json_from(timeout=1)
+    assert await communicator2.receive_nothing(timeout=1)
     
     await communicator1.disconnect()
     await communicator2.disconnect()
@@ -513,7 +594,7 @@ async def test_client_isolation_different_tournaments(valid_jwt_token, test_user
 # =============================================================================
 
 @pytest.mark.asyncio
-@pytest.mark.django_db
+@pytest.mark.django_db(transaction=True)
 async def test_clean_disconnect_removes_from_group(valid_jwt_token):
     """
     Test client disconnect properly removes from channel layer group.
@@ -526,7 +607,8 @@ async def test_clean_disconnect_removes_from_group(valid_jwt_token):
     tournament_id = 1
     communicator = WebsocketCommunicator(
         application,
-        f"/ws/tournament/{tournament_id}/?token={valid_jwt_token}"
+        f"/ws/tournament/{tournament_id}/?token={valid_jwt_token}",
+        headers=[(b"origin", b"https://deltacrown.xyz")],
     )
     
     connected, _ = await communicator.connect()
@@ -540,7 +622,7 @@ async def test_clean_disconnect_removes_from_group(valid_jwt_token):
     
     # Try broadcasting after disconnect
     event_data = {'match_id': 777, 'tournament_id': tournament_id}
-    broadcast_tournament_event(tournament_id, 'match_started', event_data)
+    await broadcast_tournament_event(tournament_id, 'match_started', event_data)
     
     # Should not receive anything (connection closed)
     # No assertion needed - disconnect completes successfully

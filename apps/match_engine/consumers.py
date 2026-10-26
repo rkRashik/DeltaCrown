@@ -196,7 +196,8 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
     def get_allowed_origins() -> Optional[list]:
         origins = getattr(settings, "WS_ALLOWED_ORIGINS", None)
         if origins:
-            return [o.strip() for o in origins.split(",") if o.strip()]
+            values = origins.split(",") if isinstance(origins, str) else origins
+            return [o.strip() for o in values if o.strip()]
         return None
 
     async def direct_broadcast(self, method_name: str, event_data: dict) -> None:

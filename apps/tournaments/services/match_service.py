@@ -747,7 +747,8 @@ class MatchService:
             'timestamp': dispute.opened_at.isoformat(),
         }
 
-        broadcast_tournament_event(
+        from asgiref.sync import async_to_sync
+        async_to_sync(broadcast_tournament_event)(
             tournament_id=match.tournament_id,
             event_type='dispute_created',
             data=dispute_data,

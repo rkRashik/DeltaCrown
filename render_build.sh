@@ -9,7 +9,7 @@ set -o errexit  # exit on error
 export NODE_OPTIONS="--max-old-space-size=256"
 
 echo "🔧 Installing Node.js dev-dependencies (Tailwind build)…"
-npm install                   # generates lockfile on first run; npm ci on subsequent deploys
+npm ci --include=dev          # locked dependencies, including build tools
 
 echo "🎨 Building Tailwind CSS…"
 npm run build
@@ -26,7 +26,7 @@ pip install --no-cache-dir -r requirements-prod.txt
 echo "📦 Collecting Django static files…"
 python manage.py collectstatic --noinput
 
-echo "🔄 Running Django migrations…"
-python manage.py migrate
+echo "Checking production configuration; migrations require a separate approved release step."
+python manage.py check --deploy --fail-level ERROR
 
 echo "✅ Build completed successfully!"

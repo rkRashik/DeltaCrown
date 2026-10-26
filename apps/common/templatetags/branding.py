@@ -7,6 +7,12 @@ register = template.Library()
 
 
 @register.simple_tag
+def public_url(path="/"):
+    from apps.common.seo import absolute_url
+    return absolute_url(path)
+
+
+@register.simple_tag
 def brand_config():
     return settings.BRAND
 

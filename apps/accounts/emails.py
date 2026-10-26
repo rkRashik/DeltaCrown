@@ -28,7 +28,7 @@ def send_otp_email(user, code, *, expires_in_minutes: int = 10):
     Uses EmailMultiAlternatives for better deliverability:
     - HTML + text/plain multipart (reduces spam score)
     - Proper From name for trust signals
-    - List-Unsubscribe header to satisfy spam filters
+    - Transactional verification mail has no marketing unsubscribe claim
     """
     subject = f"Your {brand_copy('[[brand]]')} Verification Code: {code}"
     from_email = normalize_from_email()
@@ -37,6 +37,7 @@ def send_otp_email(user, code, *, expires_in_minutes: int = 10):
         "code": code,
         "user": user,
         "expires_in_minutes": expires_in_minutes,
+        "site_url": settings.SITE_URL.rstrip("/"),
     }
 
     # Render both templates
@@ -51,7 +52,6 @@ def send_otp_email(user, code, *, expires_in_minutes: int = 10):
         headers={
             "X-Priority": "1",
             "X-Mailer": brand_copy("[[brand]] Esports Platform"),
-            "List-Unsubscribe": "<mailto:unsubscribe@deltacrown.com>",
         },
     )
     msg.attach_alternative(html_body, "text/html")

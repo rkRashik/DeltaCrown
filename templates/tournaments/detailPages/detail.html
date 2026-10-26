@@ -919,63 +919,63 @@
         <div class="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between gap-3">
                 <div class="flex-1 min-w-0">
-                    <div class="flex items-center gap-2 sm:gap-6 overflow-x-auto no-scrollbar" role="tablist" aria-label="Tournament tabs">
-                <button data-detail-tab="overview" class="relative py-5 px-4 text-sm font-gaming font-bold uppercase tracking-[0.15em] transition-colors whitespace-nowrap group" :class="activeTab === 'overview' ? 'text-white' : 'text-gray-500 hover:text-gray-300'" @click="setTab('overview')">
+                    <div class="flex items-center gap-2 sm:gap-6 overflow-x-auto no-scrollbar" role="group" aria-label="Tournament sections">
+                <button data-detail-tab="overview" type="button" aria-pressed="true" :aria-pressed="activeTab === 'overview' ? 'true' : 'false'" class="relative py-5 px-4 text-sm font-gaming font-bold uppercase tracking-[0.15em] transition-colors whitespace-nowrap group" :class="activeTab === 'overview' ? 'text-white' : 'text-gray-500 hover:text-gray-300'" @click="setTab('overview')">
                     Overview
                     <div class="absolute bottom-0 left-0 w-full h-1 theme-bg transform origin-left transition-transform duration-300" :class="activeTab === 'overview' ? 'scale-x-100 theme-glow' : 'scale-x-0 group-hover:scale-x-50 opacity-50'"></div>
                 </button>
 
                 {% if show_schedule %}
-                <button data-detail-tab="schedule" class="relative py-5 px-4 text-sm font-gaming font-bold uppercase tracking-[0.15em] transition-colors whitespace-nowrap group" :class="activeTab === 'schedule' ? 'text-white' : 'text-gray-500 hover:text-gray-300'" @click="setTab('schedule')">
+                <button data-detail-tab="schedule" type="button" aria-pressed="false" :aria-pressed="activeTab === 'schedule' ? 'true' : 'false'" class="relative py-5 px-4 text-sm font-gaming font-bold uppercase tracking-[0.15em] transition-colors whitespace-nowrap group" :class="activeTab === 'schedule' ? 'text-white' : 'text-gray-500 hover:text-gray-300'" @click="setTab('schedule')">
                     Schedule
                     <div class="absolute bottom-0 left-0 w-full h-1 theme-bg transform origin-left transition-transform duration-300" :class="activeTab === 'schedule' ? 'scale-x-100 theme-glow' : 'scale-x-0 group-hover:scale-x-50 opacity-50'"></div>
                 </button>
                 {% endif %}
 
                 {% if show_rules %}
-                <button data-detail-tab="rules" class="relative py-5 px-4 text-sm font-gaming font-bold uppercase tracking-[0.15em] transition-colors whitespace-nowrap group" :class="activeTab === 'rules' ? 'text-white' : 'text-gray-500 hover:text-gray-300'" @click="setTab('rules')">
+                <button data-detail-tab="rules" type="button" aria-pressed="false" :aria-pressed="activeTab === 'rules' ? 'true' : 'false'" class="relative py-5 px-4 text-sm font-gaming font-bold uppercase tracking-[0.15em] transition-colors whitespace-nowrap group" :class="activeTab === 'rules' ? 'text-white' : 'text-gray-500 hover:text-gray-300'" @click="setTab('rules')">
                     Rules &amp; Info
                     <div class="absolute bottom-0 left-0 w-full h-1 theme-bg transform origin-left transition-transform duration-300" :class="activeTab === 'rules' ? 'scale-x-100 theme-glow' : 'scale-x-0 group-hover:scale-x-50 opacity-50'"></div>
                 </button>
                 {% endif %}
 
                 {% if show_prizes %}
-                <button data-detail-tab="prizes" class="relative py-5 px-4 text-sm font-gaming font-bold uppercase tracking-[0.15em] transition-colors whitespace-nowrap group" :class="activeTab === 'prizes' ? 'text-white' : 'text-gray-500 hover:text-gray-300'" @click="setTab('prizes')">
+                <button data-detail-tab="prizes" type="button" aria-pressed="false" :aria-pressed="activeTab === 'prizes' ? 'true' : 'false'" class="relative py-5 px-4 text-sm font-gaming font-bold uppercase tracking-[0.15em] transition-colors whitespace-nowrap group" :class="activeTab === 'prizes' ? 'text-white' : 'text-gray-500 hover:text-gray-300'" @click="setTab('prizes')">
                     {% if is_live_phase or is_completed_phase %}Results &amp; Rewards{% else %}Rewards{% endif %}
                     <div class="absolute bottom-0 left-0 w-full h-1 theme-bg transform origin-left transition-transform duration-300" :class="activeTab === 'prizes' ? 'scale-x-100 theme-glow' : 'scale-x-0 group-hover:scale-x-50 opacity-50'"></div>
                 </button>
                 {% endif %}
 
                 {% if show_participants %}
-                <button data-detail-tab="participants" class="relative py-5 px-4 text-sm font-gaming font-bold uppercase tracking-[0.15em] transition-colors whitespace-nowrap group" :class="activeTab === 'participants' ? 'text-white' : 'text-gray-500 hover:text-gray-300'" @click="setTab('participants')">
+                <button data-detail-tab="participants" type="button" aria-pressed="false" :aria-pressed="activeTab === 'participants' ? 'true' : 'false'" class="relative py-5 px-4 text-sm font-gaming font-bold uppercase tracking-[0.15em] transition-colors whitespace-nowrap group" :class="activeTab === 'participants' ? 'text-white' : 'text-gray-500 hover:text-gray-300'" @click="setTab('participants')">
                     Participants <span class="ml-1.5 text-[9px] bg-white/10 px-2 py-0.5 rounded-full text-gray-300" data-slots-filled>{{ slots_filled }}</span>
                     <div class="absolute bottom-0 left-0 w-full h-1 theme-bg transform origin-left transition-transform duration-300" :class="activeTab === 'participants' ? 'scale-x-100 theme-glow' : 'scale-x-0 group-hover:scale-x-50 opacity-50'"></div>
                 </button>
                 {% endif %}
 
                 {% if show_standings and standings_primary %}
-                <button data-detail-tab="standings" class="relative py-5 px-4 text-sm font-gaming font-bold uppercase tracking-[0.15em] transition-colors whitespace-nowrap group" :class="activeTab === 'standings' ? 'text-white' : 'text-gray-500 hover:text-gray-300'" @click="setTab('standings')">
+                <button data-detail-tab="standings" type="button" aria-pressed="false" :aria-pressed="activeTab === 'standings' ? 'true' : 'false'" class="relative py-5 px-4 text-sm font-gaming font-bold uppercase tracking-[0.15em] transition-colors whitespace-nowrap group" :class="activeTab === 'standings' ? 'text-white' : 'text-gray-500 hover:text-gray-300'" @click="setTab('standings')">
                     {% if tournament.format == 'round_robin' %}League Table{% elif tournament.format == 'battle_royale' %}Leaderboard{% elif tournament.format == 'swiss' %}Standings{% else %}Standings{% endif %}
                     <div class="absolute bottom-0 left-0 w-full h-1 theme-bg transform origin-left transition-transform duration-300" :class="activeTab === 'standings' ? 'scale-x-100 theme-glow' : 'scale-x-0 group-hover:scale-x-50 opacity-50'"></div>
                 </button>
                 {% endif %}
 
                 {% if has_streams %}
-                <button data-detail-tab="media" class="relative py-5 px-4 text-sm font-gaming font-bold uppercase tracking-[0.15em] transition-colors whitespace-nowrap group" :class="activeTab === 'media' ? 'text-white' : 'text-gray-500 hover:text-gray-300'" @click="setTab('media')">
+                <button data-detail-tab="media" type="button" aria-pressed="false" :aria-pressed="activeTab === 'media' ? 'true' : 'false'" class="relative py-5 px-4 text-sm font-gaming font-bold uppercase tracking-[0.15em] transition-colors whitespace-nowrap group" :class="activeTab === 'media' ? 'text-white' : 'text-gray-500 hover:text-gray-300'" @click="setTab('media')">
                     Media
                     <div class="absolute bottom-0 left-0 w-full h-1 theme-bg transform origin-left transition-transform duration-300" :class="activeTab === 'media' ? 'scale-x-100 theme-glow' : 'scale-x-0 group-hover:scale-x-50 opacity-50'"></div>
                 </button>
                 {% endif %}
 
                 {% if show_bracket %}
-                <button data-detail-tab="bracket" class="relative py-5 px-4 text-sm font-gaming font-bold uppercase tracking-[0.15em] transition-colors whitespace-nowrap group" :class="activeTab === 'bracket' ? 'text-white' : 'text-gray-500 hover:text-gray-300'" @click="setTab('bracket')">
+                <button data-detail-tab="bracket" type="button" aria-pressed="false" :aria-pressed="activeTab === 'bracket' ? 'true' : 'false'" class="relative py-5 px-4 text-sm font-gaming font-bold uppercase tracking-[0.15em] transition-colors whitespace-nowrap group" :class="activeTab === 'bracket' ? 'text-white' : 'text-gray-500 hover:text-gray-300'" @click="setTab('bracket')">
                     {% if tournament.format == 'swiss' %}Swiss Rounds{% elif tournament.format == 'double_elimination' %}Bracket{% else %}Bracket{% endif %}
                     <div class="absolute bottom-0 left-0 w-full h-1 theme-bg transform origin-left transition-transform duration-300" :class="activeTab === 'bracket' ? 'scale-x-100 theme-glow' : 'scale-x-0 group-hover:scale-x-50 opacity-50'"></div>
                 </button>
                 {% endif %}
 
                 {% if show_matches %}
-                <button data-detail-tab="matches" class="relative py-5 px-4 text-sm font-gaming font-bold uppercase tracking-[0.15em] transition-colors whitespace-nowrap group flex items-center gap-2" :class="activeTab === 'matches' ? 'text-white' : 'text-gray-500 hover:text-gray-300'" @click="setTab('matches')">
+                <button data-detail-tab="matches" type="button" aria-pressed="false" :aria-pressed="activeTab === 'matches' ? 'true' : 'false'" class="relative py-5 px-4 text-sm font-gaming font-bold uppercase tracking-[0.15em] transition-colors whitespace-nowrap group flex items-center gap-2" :class="activeTab === 'matches' ? 'text-white' : 'text-gray-500 hover:text-gray-300'" @click="setTab('matches')">
                     Matches
                     {% if is_live_phase %}<span class="w-1.5 h-1.5 rounded-full theme-bg animate-pulse"></span>{% endif %}
                     <div class="absolute bottom-0 left-0 w-full h-1 theme-bg transform origin-left transition-transform duration-300" :class="activeTab === 'matches' ? 'scale-x-100 theme-glow' : 'scale-x-0 group-hover:scale-x-50 opacity-50'"></div>

@@ -2409,32 +2409,17 @@ def arena_widget_vote(request, widget_id: int):
 
 
 def newsletter_subscribe(request):
-    """Newsletter subscription handler."""
-    from django.contrib import messages
-    from django.shortcuts import redirect
-    import re
-    
-    if request.method == "POST":
-        email = request.POST.get("email", "").strip()
-        
-        # Basic email validation
-        email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
-        if not email:
-            messages.error(request, "Please enter your email address.")
-        elif not re.match(email_pattern, email):
-            messages.error(request, "Please enter a valid email address.")
-        else:
-            # For now, just simulate success (you can integrate with email service later)
-            # TODO: Integrate with MailChimp, ConvertKit, or other email service
-            messages.success(request, f"ðŸŽ‰ Welcome to the {brand_copy('[[brand]]')} Gaming Hub! We've added {email} to our newsletter. Get ready for exclusive tournaments, esports news, and gaming updates!")
-            
-            # Optional: Log the subscription for tracking
-            import logging
-            logger = logging.getLogger(__name__)
-            logger.info(f"Newsletter subscription: {email}")
-    
-    # Redirect back to the referring page or home
-    return redirect(request.META.get('HTTP_REFERER', '/'))
+    """Keep the endpoint honest until a consent-aware subscription backend exists."""
+    from django.http import JsonResponse, HttpResponseNotAllowed
+
+    if request.method != "POST":
+        return HttpResponseNotAllowed(["POST"])
+    response = JsonResponse({
+        "success": False,
+        "error": "Newsletter subscriptions are not available yet.",
+    }, status=503)
+    response["Cache-Control"] = "no-store"
+    return response
 
 
 def search_suggest(request):

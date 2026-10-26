@@ -5,7 +5,7 @@ from deltacrown.branding import BRAND, brand_copy
 import json
 from datetime import date, datetime
 from typing import Any
-from urllib.parse import urljoin
+from urllib.parse import parse_qs, urlencode, urljoin, urlsplit
 
 from django.conf import settings
 from django.templatetags.static import static
@@ -32,6 +32,9 @@ NOINDEX_PREFIXES = (
     "/search/",
     "/toc/",
     "/wallet/",
+    "/ws/",
+    "/media/",
+    "/metrics/",
 )
 
 NOINDEX_EXACT = (
@@ -56,6 +59,10 @@ NOINDEX_CONTAINS = (
     "/match-room/",
     "/submit-result/",
     "/report-dispute/",
+    "/hub/",
+    "/checkout/",
+    "/cart/",
+    "/orders/",
 )
 
 
@@ -105,6 +112,7 @@ def schema_json(schema: dict[str, Any] | list[dict[str, Any]] | None) -> list[st
     schemas = schema if isinstance(schema, list) else [schema]
     return [
         json.dumps(item, ensure_ascii=False, default=_json_default, separators=(",", ":"))
+        .translate(str.maketrans({"<": "\\u003C", ">": "\\u003E", "&": "\\u0026", "\u2028": "\\u2028", "\u2029": "\\u2029"}))
         for item in schemas
         if item
     ]
@@ -118,20 +126,27 @@ def should_noindex_path(path: str, query_string: str = "") -> bool:
         return True
     if any(part in normalized for part in NOINDEX_CONTAINS):
         return True
-    if query_string:
-        low_value_params = (
-            "q=",
-            "search=",
-            "filter=",
-            "sort=",
-            "format=json",
-            "tier=",
-            "verified_only=",
-            "season_id=",
-        )
-        if any(token in query_string for token in low_value_params):
-            return True
+    params = parse_qs(query_string, keep_blank_values=True)
+    if any(key in params for key in {"q", "search", "filter", "sort", "tier", "verified_only", "season_id", "view"}):
+        return True
+    if "json" in params.get("format", []):
+        return True
     return False
+
+
+def request_seo(request, metadata=None):
+    """Apply one canonical/query policy even when a view supplies entity metadata."""
+    data = dict(metadata or default_seo_for_request(request))
+    path = urlsplit(data.get("canonical") or request.path).path or "/"
+    canonical = absolute_url(path)
+    pages = request.GET.getlist("page")
+    valid_page = len(pages) == 1 and len(pages[0]) <= 9 and pages[0].isascii() and pages[0].isdigit() and int(pages[0]) >= 1
+    if valid_page and int(pages[0]) > 1:
+        canonical += "?" + urlencode({"page": int(pages[0])})
+    data["canonical"] = canonical
+    if (pages and not valid_page) or should_noindex_path(request.path, request.META.get("QUERY_STRING", "")):
+        data["robots"] = "noindex, follow"
+    return data
 
 
 def breadcrumb_schema(items: list[tuple[str, str]]) -> dict[str, Any]:

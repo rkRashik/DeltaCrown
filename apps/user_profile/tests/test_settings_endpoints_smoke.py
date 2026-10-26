@@ -31,7 +31,7 @@ class SettingsEndpointsSmokeTest(TestCase):
         response = self.client.post(url, {
             'display_name': 'Test User',
             'bio': 'Test bio',
-            'country': 'Bangladesh'
+            'country': 'BD'
         })
         
         # Should redirect or return 200, NOT 500

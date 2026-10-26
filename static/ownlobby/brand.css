@@ -92,6 +92,7 @@ h1, h2, h3 { text-wrap: balance; }
 .dcv4-signup, .dc-newsletter-btn { background: var(--ol-saffron) !important; color: var(--ol-canvas) !important; }
 .dcv4-activedot, .dcv4-tab-ind { background: var(--ol-saffron); }
 .dcv4-mi-sub { color: var(--ol-text-muted); }
+.dcv4-tab:not(.active) > span:not(.dcv4-tab-ind) { color: var(--ol-text-muted) !important; }
 .dc-nav-link { text-shadow: none !important; }
 
 /* Existing homepage namespaces retain their layout and functional hooks. */

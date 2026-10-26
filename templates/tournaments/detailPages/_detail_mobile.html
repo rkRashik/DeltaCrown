@@ -16,11 +16,11 @@
       <div style="position:absolute;top:0;left:0;right:0;z-index:50;pointer-events:none;">
         <div style="height:env(safe-area-inset-top, 0px);"></div>
         <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;pointer-events:all;">
-          <a href="{% url 'tournaments:list' %}" class="tdm-tap" style="width:36px;height:36px;border-radius:999px;background:rgba(10,13,20,0.72);backdrop-filter:blur(16px);display:flex;align-items:center;justify-content:center;color:#F4F6FA;box-shadow:0 0 0 1px rgba(255,255,255,0.1);text-decoration:none;">
+          <a href="{% url 'tournaments:list' %}" aria-label="Back to tournaments" class="tdm-tap" style="width:36px;height:36px;border-radius:999px;background:rgba(10,13,20,0.72);backdrop-filter:blur(16px);display:flex;align-items:center;justify-content:center;color:#F4F6FA;box-shadow:0 0 0 1px rgba(255,255,255,0.1);text-decoration:none;">
             <i data-lucide="arrow-left" style="width:19px;height:19px;"></i>
           </a>
           <div style="display:flex;gap:8px;">
-            <button class="tdm-tap" style="appearance:none;border:none;width:36px;height:36px;border-radius:999px;background:rgba(10,13,20,0.72);backdrop-filter:blur(16px);display:flex;align-items:center;justify-content:center;color:#F4F6FA;box-shadow:0 0 0 1px rgba(255,255,255,0.1);cursor:pointer;" onclick="if(navigator.share)navigator.share({title:'{{ tournament.name|escapejs }}',url:location.href})">
+            <button class="tdm-tap" style="appearance:none;border:none;width:36px;height:36px;border-radius:999px;background:rgba(10,13,20,0.72);backdrop-filter:blur(16px);display:flex;align-items:center;justify-content:center;color:#F4F6FA;box-shadow:0 0 0 1px rgba(255,255,255,0.1);cursor:pointer;" type="button" aria-label="Share tournament" data-tournament-share="{{ tournament.name }}">
               <i data-lucide="share-2" style="width:18px;height:18px;"></i>
             </button>
           </div>
@@ -91,7 +91,7 @@
         {% endif %}
 
         {% if detail_cta_note %}
-        <div style="text-align:center;font-size:12px;color:#6B7385;margin-top:8px;">{{ detail_cta_note }}</div>
+        <div style="text-align:center;font-size:12px;color:var(--ol-text-muted);margin-top:8px;">{{ detail_cta_note }}</div>
         {% endif %}
       </div>
     </div>
@@ -99,19 +99,19 @@
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;padding:16px 16px 0;">
       <div style="padding:11px 8px;border-radius:14px;background:#11151E;box-shadow:0 0 0 1px rgba(255,255,255,0.05);text-align:center;">
         <div class="tdm-mono" style="font-weight:700;font-size:17px;color:#CFA75A;letter-spacing:-0.02em;">{% if tournament.prize_pool %}৳{{ tournament.prize_pool|floatformat:0|intcomma }}{% else %}TBA{% endif %}</div>
-        <div style="font-size:9.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:#6B7385;margin-top:3px;">Prize</div>
+        <div style="font-size:9.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--ol-text-muted);margin-top:3px;">Prize</div>
       </div>
       <div style="padding:11px 8px;border-radius:14px;background:#11151E;box-shadow:0 0 0 1px rgba(255,255,255,0.05);text-align:center;">
         <div class="tdm-mono" style="font-weight:700;font-size:17px;color:#F4F6FA;letter-spacing:-0.02em;">{{ slots_total }}</div>
-        <div style="font-size:9.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:#6B7385;margin-top:3px;">Slots</div>
+        <div style="font-size:9.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--ol-text-muted);margin-top:3px;">Slots</div>
       </div>
       <div style="padding:11px 8px;border-radius:14px;background:#11151E;box-shadow:0 0 0 1px rgba(255,255,255,0.05);text-align:center;">
         <div class="tdm-mono" style="font-weight:700;font-size:17px;{% if tournament.has_entry_fee %}color:#A9B1C2{% else %}color:#2ECC71{% endif %};letter-spacing:-0.02em;">{% if tournament.has_entry_fee %}৳{{ tournament.entry_fee_amount|floatformat:0 }}{% else %}Free{% endif %}</div>
-        <div style="font-size:9.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:#6B7385;margin-top:3px;">Entry</div>
+        <div style="font-size:9.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--ol-text-muted);margin-top:3px;">Entry</div>
       </div>
       <div style="padding:11px 8px;border-radius:14px;background:#11151E;box-shadow:0 0 0 1px rgba(255,255,255,0.05);text-align:center;">
         <div class="tdm-mono" style="font-weight:700;font-size:17px;color:#B8A6F2;letter-spacing:-0.02em;">{% if tournament.participation_type == 'solo' %}Solo{% elif tournament.participation_type == 'team' %}Team{% else %}{{ tournament_participation_label|default:"Team" }}{% endif %}</div>
-        <div style="font-size:9.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:#6B7385;margin-top:3px;">Type</div>
+        <div style="font-size:9.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--ol-text-muted);margin-top:3px;">Type</div>
       </div>
     </div>
 
@@ -214,12 +214,12 @@
           <i data-lucide="trophy" style="width:18px;height:18px;color:#CFA75A;"></i>
           <div>
             <div class="tdm-sora" style="font-weight:700;font-size:15px;color:#F4F6FA;letter-spacing:-0.01em;">Prize Pool</div>
-            <div style="font-size:11px;color:#6B7385;margin-top:2px;">Tap to see full distribution</div>
+            <div style="font-size:11px;color:var(--ol-text-muted);margin-top:2px;">Tap to see full distribution</div>
           </div>
         </div>
         <div style="display:flex;align-items:center;gap:8px;">
           <span class="tdm-mono" style="font-weight:700;font-size:18px;color:#CFA75A;">৳{{ tournament.prize_pool|floatformat:0|intcomma }}</span>
-          <i data-lucide="chevron-right" style="width:16px;height:16px;color:#6B7385;"></i>
+          <i data-lucide="chevron-right" style="width:16px;height:16px;color:var(--ol-text-muted);"></i>
         </div>
       </div>
       {% endif %}
@@ -270,7 +270,7 @@
       <div style="padding:16px 16px 0;">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:13px;">
           <span class="tdm-sora" style="font-weight:700;font-size:18px;color:#F4F6FA;letter-spacing:-0.01em;">{% if tournament.participation_type == 'team' %}Teams{% else %}Players{% endif %}</span>
-          <span class="tdm-mono" style="font-size:13px;font-weight:600;color:#6B7385;">{{ slots_filled }} entered</span>
+          <span class="tdm-mono" style="font-size:13px;font-weight:600;color:var(--ol-text-muted);">{{ slots_filled }} entered</span>
         </div>
         <div style="display:flex;flex-direction:column;gap:9px;">
           {% for p in participants %}
@@ -297,10 +297,10 @@
               <i data-lucide="check" style="width:12px;height:12px;"></i>In
             </span>
             {% endif %}
-            {% if p.seed %}<span class="tdm-mono" style="font-size:12px;font-weight:600;color:#6B7385;flex:none;">#{{ p.seed }}</span>{% endif %}
+            {% if p.seed %}<span class="tdm-mono" style="font-size:12px;font-weight:600;color:var(--ol-text-muted);flex:none;">#{{ p.seed }}</span>{% endif %}
           </div>
           {% empty %}
-          <div style="text-align:center;padding:40px 20px;color:#6B7385;font-size:14px;">No participants registered yet.</div>
+          <div style="text-align:center;padding:40px 20px;color:var(--ol-text-muted);font-size:14px;">No participants registered yet.</div>
           {% endfor %}
         </div>
       </div>
@@ -315,7 +315,7 @@
           <div class="tdm-sora" style="font-weight:800;font-size:32px;color:#F4F6FA;letter-spacing:-0.02em;">৳{{ tournament.prize_pool|floatformat:0|intcomma }}</div>
           {% if tournament.prize_deltacoin %}
           <div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-top:8px;">
-            <span style="font-size:12px;color:#6B7385;">+ </span>
+            <span style="font-size:12px;color:var(--ol-text-muted);">+ </span>
             <span class="tdm-mono" style="font-weight:700;font-size:14px;color:#3FA3FF;">{{ tournament.prize_deltacoin|intcomma }} {{ brand.features.coins }}</span>
           </div>
           {% endif %}
@@ -342,7 +342,7 @@
 
         <div style="border-radius:16px;background:#11151E;box-shadow:0 0 0 1px rgba(255,255,255,0.06);overflow:hidden;">
           <div style="padding:12px 14px;border-bottom:1px solid rgba(255,255,255,0.06);">
-            <span style="font-size:11px;font-weight:700;letter-spacing:.08em;color:#6B7385;">PLACEMENT DISTRIBUTION</span>
+            <span style="font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--ol-text-muted);">PLACEMENT DISTRIBUTION</span>
           </div>
           {% if is_completed_phase and podium %}
           {% for winner in podium|slice:":3" %}
@@ -387,11 +387,11 @@
           {% for m in matches %}
           <div style="padding:13px 14px;border-radius:16px;background:#11151E;box-shadow:0 0 0 1px rgba(255,255,255,0.06);">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-              <span style="font-size:11px;font-weight:600;color:#6B7385;letter-spacing:.04em;">{{ m.stage_label|default:m.match_label }}</span>
+              <span style="font-size:11px;font-weight:600;color:var(--ol-text-muted);letter-spacing:.04em;">{{ m.stage_label|default:m.match_label }}</span>
               <span style="display:flex;align-items:center;gap:5px;padding:3px 8px;border-radius:999px;font-size:10.5px;font-weight:700;
                 {% if m.ui_status == 'live' %}background:rgba(255,59,92,0.14);color:#FF6076;
                 {% elif m.ui_status == 'completed' %}background:rgba(46,204,113,0.12);color:#2ECC71;
-                {% else %}background:rgba(255,255,255,0.06);color:#6B7385;{% endif %}">
+                {% else %}background:rgba(255,255,255,0.06);color:var(--ol-text-muted);{% endif %}">
                 {% if m.ui_status == 'live' %}<span class="tdm-live-dot" style="width:5px;height:5px;"></span>{% endif %}
                 {{ m.status_label|default:m.ui_status|upper }}
               </span>
@@ -404,7 +404,7 @@
                   {% else %}
                   <div style="width:30px;height:30px;border-radius:9px;background:rgba(var(--theme-rgb),0.3);display:flex;align-items:center;justify-content:center;flex:none;"><span class="tdm-sora" style="font-weight:800;font-size:10px;color:#fff;">{{ m.team1_name|truncatechars:3 }}</span></div>
                   {% endif %}
-                  <span style="font-size:14px;font-weight:700;{% if m.team1_is_winner %}color:#F4F6FA{% elif m.ui_status == 'completed' %}color:#6B7385{% else %}color:#F4F6FA{% endif %};">{{ m.team1_name|truncatechars:15 }}</span>
+                  <span style="font-size:14px;font-weight:700;{% if m.team1_is_winner %}color:#F4F6FA{% elif m.ui_status == 'completed' %}color:var(--ol-text-muted){% else %}color:#F4F6FA{% endif %};">{{ m.team1_name|truncatechars:15 }}</span>
                 </div>
                 <div style="display:flex;align-items:center;gap:8px;">
                   {% if m.team2_logo_url %}
@@ -412,25 +412,25 @@
                   {% else %}
                   <div style="width:30px;height:30px;border-radius:9px;background:rgba(var(--theme-rgb),0.3);display:flex;align-items:center;justify-content:center;flex:none;"><span class="tdm-sora" style="font-weight:800;font-size:10px;color:#fff;">{{ m.team2_name|truncatechars:3 }}</span></div>
                   {% endif %}
-                  <span style="font-size:14px;font-weight:700;{% if m.team2_is_winner %}color:#F4F6FA{% elif m.ui_status == 'completed' %}color:#6B7385{% else %}color:#F4F6FA{% endif %};">{{ m.team2_name|truncatechars:15 }}</span>
+                  <span style="font-size:14px;font-weight:700;{% if m.team2_is_winner %}color:#F4F6FA{% elif m.ui_status == 'completed' %}color:var(--ol-text-muted){% else %}color:#F4F6FA{% endif %};">{{ m.team2_name|truncatechars:15 }}</span>
                 </div>
               </div>
               {% if m.score1 is not None or m.score2 is not None %}
               <div style="display:flex;flex-direction:column;align-items:center;gap:5px;min-width:48px;">
-                <span class="tdm-mono" style="font-weight:700;font-size:20px;line-height:1;{% if m.team1_is_winner %}color:#F4F6FA{% elif m.ui_status == 'live' %}color:#FF6076{% elif m.ui_status == 'completed' %}color:#6B7385{% else %}color:#A9B1C2{% endif %};">{{ m.score1|default:"—" }}</span>
+                <span class="tdm-mono" style="font-weight:700;font-size:20px;line-height:1;{% if m.team1_is_winner %}color:#F4F6FA{% elif m.ui_status == 'live' %}color:#FF6076{% elif m.ui_status == 'completed' %}color:var(--ol-text-muted){% else %}color:#A9B1C2{% endif %};">{{ m.score1|default:"—" }}</span>
                 <div style="width:20px;height:1px;background:rgba(255,255,255,0.1);"></div>
-                <span class="tdm-mono" style="font-weight:700;font-size:20px;line-height:1;{% if m.team2_is_winner %}color:#F4F6FA{% elif m.ui_status == 'live' %}color:#FF6076{% elif m.ui_status == 'completed' %}color:#6B7385{% else %}color:#A9B1C2{% endif %};">{{ m.score2|default:"—" }}</span>
+                <span class="tdm-mono" style="font-weight:700;font-size:20px;line-height:1;{% if m.team2_is_winner %}color:#F4F6FA{% elif m.ui_status == 'live' %}color:#FF6076{% elif m.ui_status == 'completed' %}color:var(--ol-text-muted){% else %}color:#A9B1C2{% endif %};">{{ m.score2|default:"—" }}</span>
               </div>
               {% endif %}
             </div>
             {% if m.starts_at_display %}
-            <div style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.06);font-size:11.5px;color:#6B7385;display:flex;align-items:center;gap:6px;">
+            <div style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.06);font-size:11.5px;color:var(--ol-text-muted);display:flex;align-items:center;gap:6px;">
               <i data-lucide="clock" style="width:13px;height:13px;"></i>{{ m.starts_at_display }}
             </div>
             {% endif %}
           </div>
           {% empty %}
-          <div style="text-align:center;padding:40px 20px;color:#6B7385;font-size:14px;">No matches scheduled yet.</div>
+          <div style="text-align:center;padding:40px 20px;color:var(--ol-text-muted);font-size:14px;">No matches scheduled yet.</div>
           {% endfor %}
         </div>
       </div>
@@ -455,11 +455,11 @@
               <div style="border-radius:12px;background:#11151E;box-shadow:0 0 0 1px {% if bm.is_live %}rgba(255,59,92,0.4){% elif bm.is_completed %}rgba(255,255,255,0.08){% else %}rgba(255,255,255,0.06){% endif %};overflow:hidden;">
                 <div style="display:flex;align-items:center;gap:6px;padding:8px 10px;border-bottom:1px solid rgba(255,255,255,0.05);{% if bm.team1_is_winner %}background:rgba(46,204,113,0.07){% endif %};">
                   <span style="flex:1;font-size:11.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;{% if bm.team1_is_winner %}color:#F4F6FA{% elif bm.is_completed and not bm.team1_is_winner %}color:#5A6273{% else %}color:#F4F6FA{% endif %};">{{ bm.team1_name|default:"TBD" }}</span>
-                  <span class="tdm-mono" style="font-weight:700;font-size:13px;{% if bm.team1_is_winner %}color:#2ECC71{% elif bm.is_live %}color:#FF6076{% elif bm.is_completed %}color:#5A6273{% else %}color:#6B7385{% endif %};">{{ bm.score1|default:"—" }}</span>
+                  <span class="tdm-mono" style="font-weight:700;font-size:13px;{% if bm.team1_is_winner %}color:#2ECC71{% elif bm.is_live %}color:#FF6076{% elif bm.is_completed %}color:#5A6273{% else %}color:var(--ol-text-muted){% endif %};">{{ bm.score1|default:"—" }}</span>
                 </div>
                 <div style="display:flex;align-items:center;gap:6px;padding:8px 10px;{% if bm.team2_is_winner %}background:rgba(46,204,113,0.07){% endif %};">
                   <span style="flex:1;font-size:11.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;{% if bm.team2_is_winner %}color:#F4F6FA{% elif bm.is_completed and not bm.team2_is_winner %}color:#5A6273{% else %}color:#F4F6FA{% endif %};">{{ bm.team2_name|default:"TBD" }}</span>
-                  <span class="tdm-mono" style="font-weight:700;font-size:13px;{% if bm.team2_is_winner %}color:#2ECC71{% elif bm.is_live %}color:#FF6076{% elif bm.is_completed %}color:#5A6273{% else %}color:#6B7385{% endif %};">{{ bm.score2|default:"—" }}</span>
+                  <span class="tdm-mono" style="font-weight:700;font-size:13px;{% if bm.team2_is_winner %}color:#2ECC71{% elif bm.is_live %}color:#FF6076{% elif bm.is_completed %}color:#5A6273{% else %}color:var(--ol-text-muted){% endif %};">{{ bm.score2|default:"—" }}</span>
                 </div>
                 {% if bm.is_live %}
                 <div style="padding:4px 10px;background:rgba(255,59,92,0.12);display:flex;align-items:center;justify-content:center;gap:5px;font-size:10px;font-weight:700;color:#FF6076;">
@@ -503,7 +503,7 @@
           {% for runner in podium %}
           {% if not forloop.first %}
           <div style="padding:14px;border-radius:16px;background:#11151E;box-shadow:0 0 0 1px rgba(255,255,255,0.06);text-align:center;">
-            <div style="font-size:10px;font-weight:700;letter-spacing:.08em;color:#6B7385;margin-bottom:8px;">{% if forloop.counter == 2 %}2ND PLACE{% else %}3RD PLACE{% endif %}</div>
+            <div style="font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--ol-text-muted);margin-bottom:8px;">{% if forloop.counter == 2 %}2ND PLACE{% else %}3RD PLACE{% endif %}</div>
             <div style="width:44px;height:44px;border-radius:13px;overflow:hidden;background:rgba(var(--theme-rgb),0.3);display:flex;align-items:center;justify-content:center;margin:0 auto 9px;">
               {% if runner.team and runner.team.logo %}
               <img src="{{ runner.team.logo.url }}" alt="" style="width:100%;height:100%;object-fit:cover;">
@@ -524,16 +524,16 @@
 
         <div style="border-radius:16px;background:#11151E;box-shadow:0 0 0 1px rgba(255,255,255,0.06);overflow:hidden;">
           <div style="display:grid;grid-template-columns:28px 1fr 32px 32px 32px 44px;gap:4px;padding:9px 14px;border-bottom:1px solid rgba(255,255,255,0.06);">
-            <span style="font-size:10px;font-weight:700;color:#6B7385;">#</span>
-            <span style="font-size:10px;font-weight:700;color:#6B7385;">TEAM</span>
-            <span style="font-size:10px;font-weight:700;color:#6B7385;text-align:center;">W</span>
-            <span style="font-size:10px;font-weight:700;color:#6B7385;text-align:center;">L</span>
-            <span style="font-size:10px;font-weight:700;color:#6B7385;text-align:center;">D</span>
-            <span style="font-size:10px;font-weight:700;color:#6B7385;text-align:right;">PTS</span>
+            <span style="font-size:10px;font-weight:700;color:var(--ol-text-muted);">#</span>
+            <span style="font-size:10px;font-weight:700;color:var(--ol-text-muted);">TEAM</span>
+            <span style="font-size:10px;font-weight:700;color:var(--ol-text-muted);text-align:center;">W</span>
+            <span style="font-size:10px;font-weight:700;color:var(--ol-text-muted);text-align:center;">L</span>
+            <span style="font-size:10px;font-weight:700;color:var(--ol-text-muted);text-align:center;">D</span>
+            <span style="font-size:10px;font-weight:700;color:var(--ol-text-muted);text-align:right;">PTS</span>
           </div>
           {% for s in standings_primary %}
           <div style="display:grid;grid-template-columns:28px 1fr 32px 32px 32px 44px;gap:4px;align-items:center;padding:10px 14px;{% if not forloop.last %}border-bottom:1px solid rgba(255,255,255,0.05);{% endif %}">
-            <span class="tdm-mono" style="font-weight:700;font-size:13px;{% if s.rank <= 3 %}color:#CFA75A{% else %}color:#6B7385{% endif %};">{{ s.rank }}</span>
+            <span class="tdm-mono" style="font-weight:700;font-size:13px;{% if s.rank <= 3 %}color:#CFA75A{% else %}color:var(--ol-text-muted){% endif %};">{{ s.rank }}</span>
             <div style="display:flex;align-items:center;gap:8px;min-width:0;">
               {% if s.logo_url %}
               <img src="{{ s.logo_url }}" alt="" style="width:28px;height:28px;border-radius:8px;object-fit:cover;flex:none;">
@@ -544,7 +544,7 @@
             </div>
             <span class="tdm-mono" style="font-size:13px;font-weight:700;color:#2ECC71;text-align:center;">{{ s.wins }}</span>
             <span class="tdm-mono" style="font-size:13px;font-weight:700;color:#FF6076;text-align:center;">{{ s.losses }}</span>
-            <span class="tdm-mono" style="font-size:13px;font-weight:600;color:#6B7385;text-align:center;">{{ s.draws|default:"0" }}</span>
+            <span class="tdm-mono" style="font-size:13px;font-weight:600;color:var(--ol-text-muted);text-align:center;">{{ s.draws|default:"0" }}</span>
             <span class="tdm-mono" style="font-size:14px;font-weight:700;color:#CFA75A;text-align:right;">{{ s.points }}</span>
           </div>
           {% endfor %}
@@ -567,7 +567,7 @@
           <span style="font-size:11px;color:#A9B1C2;">{{ r.game }}</span>
           <span style="padding:2px 8px;border-radius:999px;font-size:10px;font-weight:700;background:rgba(var(--theme-rgb),0.14);color:var(--theme-primary);">{{ r.status }}</span>
         </div>
-        {% if r.date %}<div class="tdm-mono" style="font-size:11px;color:#6B7385;margin-top:5px;">{{ r.date|date:"M d, Y" }}</div>{% endif %}
+        {% if r.date %}<div class="tdm-mono" style="font-size:11px;color:var(--ol-text-muted);margin-top:5px;">{{ r.date|date:"M d, Y" }}</div>{% endif %}
       </a>
       {% endfor %}
     </div>
@@ -634,4 +634,21 @@ document.addEventListener('DOMContentLoaded',function(){
 
   if(window.lucide&&window.lucide.createIcons)lucide.createIcons();
 });
+</script>
+
+<script nonce="{{ request.csp_nonce }}">
+(function () {
+  var button = document.querySelector('[data-tournament-share]');
+  if (!button) return;
+  button.addEventListener('click', function () {
+    if (navigator.share) {
+      navigator.share({title: button.dataset.tournamentShare, url: location.href}).catch(function () {});
+    } else if (navigator.clipboard) {
+      navigator.clipboard.writeText(location.href).then(function () {
+        button.setAttribute('aria-label', 'Tournament link copied');
+        button.title = 'Tournament link copied';
+      }).catch(function () {});
+    }
+  });
+}());
 </script>

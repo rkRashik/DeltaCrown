@@ -1,9 +1,16 @@
 # Non-secret preparation only. Do not replace the live environment wholesale.
 # Keep the new domain disabled until a separately approved migration.
 OWNLOBBY_DOMAIN_ENABLED=0
+PUBLIC_DOMAIN_REDIRECTS_ENABLED=0
 SITE_URL=https://deltacrown.xyz
+# Actual production debug/key names are DJANGO_DEBUG and DJANGO_SECRET_KEY.
+# DJANGO_DEBUG=0
+# DJANGO_SECRET_KEY=<keep existing dashboard secret; do not rotate>
+# REQUIRE_PERSISTENT_MEDIA=1
+# A production deploy check rejects filesystem default media with this gate on.
 # At approved cutover: OWNLOBBY_DOMAIN_ENABLED=1 and SITE_URL=https://ownlobby.com
 # Existing old-domain host and CSRF entries remain accepted in code.
+# Redirects remain off until routing/TLS/provider/session tests and owner approval.
 
 # Optional exact additional origins; never use wildcard credentialed CORS.
 # ALLOWED_HOSTS=ownlobby.com,www.ownlobby.com

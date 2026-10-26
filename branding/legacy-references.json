@@ -1,183 +1,189 @@
 {
   "scope": "Tracked and non-ignored source; dependencies, secrets, runtime artifacts and duplicate generated community bundles excluded.",
   "counts": {
-    "intentionally_preserved": 2779,
-    "requires_later_migration": 88
+    "intentionally_preserved": 2829,
+    "requires_later_migration": 86
   },
   "references": [
     {
-      "path": "OWNLOBBY_DOMAIN_MIGRATION.md",
-      "line": 9,
+      "path": "OWNLOBBY_PRODUCTION_READINESS.md",
+      "line": 32,
       "classification": "intentionally_preserved",
       "reason": "Technical documentation, migration report or generated schema snapshot."
     },
     {
-      "path": "OWNLOBBY_REBRAND.md",
-      "line": 14,
+      "path": "OWNLOBBY_PRODUCTION_READINESS.md",
+      "line": 66,
       "classification": "intentionally_preserved",
       "reason": "Technical documentation, migration report or generated schema snapshot."
     },
     {
-      "path": "OWNLOBBY_REBRAND.md",
-      "line": 31,
+      "path": "OWNLOBBY_PRODUCTION_READINESS.md",
+      "line": 89,
       "classification": "intentionally_preserved",
       "reason": "Technical documentation, migration report or generated schema snapshot."
     },
     {
-      "path": "OWNLOBBY_VALIDATION.md",
+      "path": "OWNLOBBY_PRODUCTION_READINESS.md",
+      "line": 90,
+      "classification": "intentionally_preserved",
+      "reason": "Technical documentation, migration report or generated schema snapshot."
+    },
+    {
+      "path": "OWNLOBBY_RELEASE_HANDOFF.md",
+      "line": 56,
+      "classification": "intentionally_preserved",
+      "reason": "Technical documentation, migration report or generated schema snapshot."
+    },
+    {
+      "path": "OWNLOBBY_RELEASE_HANDOFF.md",
+      "line": 63,
+      "classification": "intentionally_preserved",
+      "reason": "Technical documentation, migration report or generated schema snapshot."
+    },
+    {
+      "path": "OWNLOBBY_TECHNICAL_SEO.md",
       "line": 7,
       "classification": "intentionally_preserved",
       "reason": "Technical documentation, migration report or generated schema snapshot."
     },
     {
-      "path": "OWNLOBBY_VALIDATION.md",
-      "line": 34,
-      "classification": "intentionally_preserved",
-      "reason": "Technical documentation, migration report or generated schema snapshot."
-    },
-    {
-      "path": "OWNLOBBY_VALIDATION.md",
-      "line": 39,
-      "classification": "intentionally_preserved",
-      "reason": "Technical documentation, migration report or generated schema snapshot."
-    },
-    {
-      "path": "OWNLOBBY_VALIDATION.md",
-      "line": 64,
-      "classification": "intentionally_preserved",
-      "reason": "Technical documentation, migration report or generated schema snapshot."
-    },
-    {
-      "path": "apps/siteui/tests/test_ownlobby_branding.py",
-      "line": 39,
-      "classification": "intentionally_preserved",
-      "reason": "Migration, test contract, archive or historical project record."
-    },
-    {
-      "path": "apps/siteui/tests/test_ownlobby_branding.py",
-      "line": 46,
-      "classification": "intentionally_preserved",
-      "reason": "Migration, test contract, archive or historical project record."
-    },
-    {
-      "path": "apps/siteui/tests/test_ownlobby_branding.py",
-      "line": 53,
-      "classification": "intentionally_preserved",
-      "reason": "Migration, test contract, archive or historical project record."
-    },
-    {
-      "path": "deltacrown/branding.py",
-      "line": 28,
-      "classification": "requires_later_migration",
-      "reason": "Legacy origin, mailbox, external handle, environment alias or provider identity; controlled owner cutover required."
-    },
-    {
-      "path": "deltacrown/branding.py",
+      "path": "OWNLOBBY_TECHNICAL_SEO.md",
       "line": 29,
-      "classification": "requires_later_migration",
-      "reason": "Legacy origin, mailbox, external handle, environment alias or provider identity; controlled owner cutover required."
-    },
-    {
-      "path": "deltacrown/settings_brand_qa.py",
-      "line": 26,
       "classification": "intentionally_preserved",
-      "reason": "Django package/app/model/API/DOM/storage identifier, import, code or compatibility asset path."
+      "reason": "Technical documentation, migration report or generated schema snapshot."
     },
     {
-      "path": "deltacrown/settings_brand_qa.py",
-      "line": 27,
+      "path": "OWNLOBBY_TECHNICAL_SEO.md",
+      "line": 39,
       "classification": "intentionally_preserved",
-      "reason": "Django package/app/model/API/DOM/storage identifier, import, code or compatibility asset path."
+      "reason": "Technical documentation, migration report or generated schema snapshot."
     },
     {
-      "path": "scripts/audit_ownlobby.py",
-      "line": 16,
+      "path": "apps/common/tests/test_release_readiness.py",
+      "line": 23,
       "classification": "intentionally_preserved",
-      "reason": "Engineering tool, detector pattern, setup utility or technical entrypoint."
+      "reason": "Migration, test contract, archive or historical project record."
     },
     {
-      "path": "scripts/audit_ownlobby.py",
-      "line": 17,
+      "path": "apps/common/tests/test_release_readiness.py",
+      "line": 24,
       "classification": "intentionally_preserved",
-      "reason": "Engineering tool, detector pattern, setup utility or technical entrypoint."
+      "reason": "Migration, test contract, archive or historical project record."
     },
     {
-      "path": "scripts/audit_ownlobby.py",
-      "line": 56,
+      "path": "apps/common/tests/test_release_readiness.py",
+      "line": 45,
       "classification": "intentionally_preserved",
-      "reason": "Engineering tool, detector pattern, setup utility or technical entrypoint."
+      "reason": "Migration, test contract, archive or historical project record."
     },
     {
-      "path": "scripts/audit_ownlobby.py",
-      "line": 58,
+      "path": "apps/common/tests/test_release_readiness.py",
+      "line": 65,
       "classification": "intentionally_preserved",
-      "reason": "Engineering tool, detector pattern, setup utility or technical entrypoint."
+      "reason": "Migration, test contract, archive or historical project record."
     },
     {
-      "path": "scripts/audit_ownlobby.py",
-      "line": 62,
+      "path": "apps/common/tests/test_release_readiness.py",
+      "line": 73,
       "classification": "intentionally_preserved",
-      "reason": "Engineering tool, detector pattern, setup utility or technical entrypoint."
+      "reason": "Migration, test contract, archive or historical project record."
     },
     {
-      "path": "scripts/audit_ownlobby.py",
-      "line": 66,
-      "classification": "intentionally_preserved",
-      "reason": "Engineering tool, detector pattern, setup utility or technical entrypoint."
-    },
-    {
-      "path": "scripts/audit_ownlobby.py",
-      "line": 70,
-      "classification": "intentionally_preserved",
-      "reason": "Engineering tool, detector pattern, setup utility or technical entrypoint."
-    },
-    {
-      "path": "scripts/audit_ownlobby.py",
+      "path": "apps/common/tests/test_release_readiness.py",
       "line": 76,
       "classification": "intentionally_preserved",
-      "reason": "Historical implementation comment or documentation string."
+      "reason": "Migration, test contract, archive or historical project record."
     },
     {
-      "path": "scripts/audit_ownlobby.py",
-      "line": 77,
+      "path": "apps/common/tests/test_release_readiness.py",
+      "line": 82,
       "classification": "intentionally_preserved",
-      "reason": "Engineering tool, detector pattern, setup utility or technical entrypoint."
+      "reason": "Migration, test contract, archive or historical project record."
     },
     {
-      "path": "scripts/verify_ownlobby.py",
-      "line": 18,
+      "path": "apps/common/tests/test_release_readiness.py",
+      "line": 84,
       "classification": "intentionally_preserved",
-      "reason": "Engineering tool, detector pattern, setup utility or technical entrypoint."
+      "reason": "Migration, test contract, archive or historical project record."
     },
     {
-      "path": "scripts/verify_ownlobby.py",
-      "line": 19,
+      "path": "apps/common/tests/test_release_readiness.py",
+      "line": 85,
       "classification": "intentionally_preserved",
-      "reason": "Engineering tool, detector pattern, setup utility or technical entrypoint."
+      "reason": "Migration, test contract, archive or historical project record."
     },
     {
-      "path": "scripts/verify_ownlobby.py",
-      "line": 20,
+      "path": "apps/common/tests/test_release_readiness.py",
+      "line": 113,
       "classification": "intentionally_preserved",
-      "reason": "Engineering tool, detector pattern, setup utility or technical entrypoint."
+      "reason": "Migration, test contract, archive or historical project record."
     },
     {
-      "path": "scripts/verify_ownlobby.py",
-      "line": 109,
+      "path": "apps/common/tests/test_release_readiness.py",
+      "line": 115,
       "classification": "intentionally_preserved",
-      "reason": "Engineering tool, detector pattern, setup utility or technical entrypoint."
+      "reason": "Migration, test contract, archive or historical project record."
     },
     {
-      "path": "scripts/verify_ownlobby.py",
-      "line": 110,
+      "path": "apps/common/tests/test_release_readiness.py",
+      "line": 116,
       "classification": "intentionally_preserved",
-      "reason": "Engineering tool, detector pattern, setup utility or technical entrypoint."
+      "reason": "Migration, test contract, archive or historical project record."
     },
     {
-      "path": "scripts/verify_ownlobby.py",
-      "line": 111,
+      "path": "apps/common/tests/test_release_readiness.py",
+      "line": 129,
       "classification": "intentionally_preserved",
-      "reason": "Engineering tool, detector pattern, setup utility or technical entrypoint."
+      "reason": "Migration, test contract, archive or historical project record."
+    },
+    {
+      "path": "apps/common/tests/test_release_readiness.py",
+      "line": 200,
+      "classification": "intentionally_preserved",
+      "reason": "Migration, test contract, archive or historical project record."
+    },
+    {
+      "path": "apps/common/tests/test_release_readiness.py",
+      "line": 208,
+      "classification": "intentionally_preserved",
+      "reason": "Migration, test contract, archive or historical project record."
+    },
+    {
+      "path": "apps/common/tests/test_release_readiness.py",
+      "line": 238,
+      "classification": "intentionally_preserved",
+      "reason": "Migration, test contract, archive or historical project record."
+    },
+    {
+      "path": "apps/common/tests/test_release_readiness.py",
+      "line": 240,
+      "classification": "intentionally_preserved",
+      "reason": "Migration, test contract, archive or historical project record."
+    },
+    {
+      "path": "apps/common/tests/test_release_readiness.py",
+      "line": 241,
+      "classification": "intentionally_preserved",
+      "reason": "Migration, test contract, archive or historical project record."
+    },
+    {
+      "path": "apps/common/tests/test_release_readiness.py",
+      "line": 242,
+      "classification": "intentionally_preserved",
+      "reason": "Migration, test contract, archive or historical project record."
+    },
+    {
+      "path": "apps/common/tests/test_release_readiness.py",
+      "line": 250,
+      "classification": "intentionally_preserved",
+      "reason": "Migration, test contract, archive or historical project record."
+    },
+    {
+      "path": "deltacrown/middleware/search_indexing.py",
+      "line": 28,
+      "classification": "intentionally_preserved",
+      "reason": "Django package/app/model/API/DOM/storage identifier, import, code or compatibility asset path."
     },
     {
       "path": ".github/MODULE_3.1_PR.md",
@@ -396,6 +402,72 @@
       "reason": "Migration, test contract, archive or historical project record."
     },
     {
+      "path": "OWNLOBBY_DOMAIN_MIGRATION.md",
+      "line": 9,
+      "classification": "intentionally_preserved",
+      "reason": "Technical documentation, migration report or generated schema snapshot."
+    },
+    {
+      "path": "OWNLOBBY_DOMAIN_MIGRATION.md",
+      "line": 53,
+      "classification": "intentionally_preserved",
+      "reason": "Technical documentation, migration report or generated schema snapshot."
+    },
+    {
+      "path": "OWNLOBBY_DOMAIN_MIGRATION.md",
+      "line": 65,
+      "classification": "intentionally_preserved",
+      "reason": "Technical documentation, migration report or generated schema snapshot."
+    },
+    {
+      "path": "OWNLOBBY_DOMAIN_MIGRATION.md",
+      "line": 66,
+      "classification": "intentionally_preserved",
+      "reason": "Technical documentation, migration report or generated schema snapshot."
+    },
+    {
+      "path": "OWNLOBBY_DOMAIN_MIGRATION.md",
+      "line": 89,
+      "classification": "intentionally_preserved",
+      "reason": "Technical documentation, migration report or generated schema snapshot."
+    },
+    {
+      "path": "OWNLOBBY_REBRAND.md",
+      "line": 14,
+      "classification": "intentionally_preserved",
+      "reason": "Technical documentation, migration report or generated schema snapshot."
+    },
+    {
+      "path": "OWNLOBBY_REBRAND.md",
+      "line": 31,
+      "classification": "intentionally_preserved",
+      "reason": "Technical documentation, migration report or generated schema snapshot."
+    },
+    {
+      "path": "OWNLOBBY_VALIDATION.md",
+      "line": 7,
+      "classification": "intentionally_preserved",
+      "reason": "Technical documentation, migration report or generated schema snapshot."
+    },
+    {
+      "path": "OWNLOBBY_VALIDATION.md",
+      "line": 34,
+      "classification": "intentionally_preserved",
+      "reason": "Technical documentation, migration report or generated schema snapshot."
+    },
+    {
+      "path": "OWNLOBBY_VALIDATION.md",
+      "line": 39,
+      "classification": "intentionally_preserved",
+      "reason": "Technical documentation, migration report or generated schema snapshot."
+    },
+    {
+      "path": "OWNLOBBY_VALIDATION.md",
+      "line": 64,
+      "classification": "intentionally_preserved",
+      "reason": "Technical documentation, migration report or generated schema snapshot."
+    },
+    {
       "path": "README.md",
       "line": 201,
       "classification": "intentionally_preserved",
@@ -576,12 +648,6 @@
       "reason": "Legacy origin, mailbox, external handle, environment alias or provider identity; controlled owner cutover required."
     },
     {
-      "path": "apps/accounts/emails.py",
-      "line": 54,
-      "classification": "requires_later_migration",
-      "reason": "Legacy origin, mailbox, external handle, environment alias or provider identity; controlled owner cutover required."
-    },
-    {
       "path": "apps/accounts/models.py",
       "line": 1,
       "classification": "intentionally_preserved",
@@ -625,13 +691,13 @@
     },
     {
       "path": "apps/accounts/views.py",
-      "line": 566,
+      "line": 568,
       "classification": "intentionally_preserved",
       "reason": "Historical implementation comment or documentation string."
     },
     {
       "path": "apps/accounts/views.py",
-      "line": 880,
+      "line": 882,
       "classification": "intentionally_preserved",
       "reason": "Historical implementation comment or documentation string."
     },
@@ -763,7 +829,7 @@
     },
     {
       "path": "apps/common/seo.py",
-      "line": 63,
+      "line": 70,
       "classification": "requires_later_migration",
       "reason": "Legacy origin, mailbox, external handle, environment alias or provider identity; controlled owner cutover required."
     },
@@ -5628,6 +5694,24 @@
       "reason": "Historical implementation comment or documentation string."
     },
     {
+      "path": "apps/siteui/tests/test_ownlobby_branding.py",
+      "line": 39,
+      "classification": "intentionally_preserved",
+      "reason": "Migration, test contract, archive or historical project record."
+    },
+    {
+      "path": "apps/siteui/tests/test_ownlobby_branding.py",
+      "line": 46,
+      "classification": "intentionally_preserved",
+      "reason": "Migration, test contract, archive or historical project record."
+    },
+    {
+      "path": "apps/siteui/tests/test_ownlobby_branding.py",
+      "line": 53,
+      "classification": "intentionally_preserved",
+      "reason": "Migration, test contract, archive or historical project record."
+    },
+    {
       "path": "apps/siteui/views.py",
       "line": 3,
       "classification": "intentionally_preserved",
@@ -8287,25 +8371,25 @@
     },
     {
       "path": "apps/tournaments/views/detail.py",
-      "line": 366,
+      "line": 379,
       "classification": "intentionally_preserved",
       "reason": "Historical implementation comment or documentation string."
     },
     {
       "path": "apps/tournaments/views/detail.py",
-      "line": 1790,
+      "line": 1803,
       "classification": "requires_later_migration",
       "reason": "Legacy origin, mailbox, external handle, environment alias or provider identity; controlled owner cutover required."
     },
     {
       "path": "apps/tournaments/views/detail.py",
-      "line": 1792,
+      "line": 1805,
       "classification": "requires_later_migration",
       "reason": "Legacy origin, mailbox, external handle, environment alias or provider identity; controlled owner cutover required."
     },
     {
       "path": "apps/tournaments/views/detail.py",
-      "line": 1793,
+      "line": 1806,
       "classification": "requires_later_migration",
       "reason": "Legacy origin, mailbox, external handle, environment alias or provider identity; controlled owner cutover required."
     },
@@ -9133,55 +9217,49 @@
     },
     {
       "path": "apps/user_profile/services/economy_sync.py",
-      "line": 51,
+      "line": 53,
       "classification": "intentionally_preserved",
       "reason": "Django package/app/model/API/DOM/storage identifier, import, code or compatibility asset path."
     },
     {
       "path": "apps/user_profile/services/economy_sync.py",
-      "line": 55,
+      "line": 57,
       "classification": "intentionally_preserved",
       "reason": "Django package/app/model/API/DOM/storage identifier, import, code or compatibility asset path."
     },
     {
       "path": "apps/user_profile/services/economy_sync.py",
-      "line": 60,
+      "line": 62,
       "classification": "intentionally_preserved",
       "reason": "Django package/app/model/API/DOM/storage identifier, import, code or compatibility asset path."
     },
     {
       "path": "apps/user_profile/services/economy_sync.py",
-      "line": 63,
+      "line": 65,
       "classification": "intentionally_preserved",
       "reason": "Django package/app/model/API/DOM/storage identifier, import, code or compatibility asset path."
     },
     {
       "path": "apps/user_profile/services/economy_sync.py",
-      "line": 73,
+      "line": 75,
       "classification": "intentionally_preserved",
       "reason": "Django package/app/model/API/DOM/storage identifier, import, code or compatibility asset path."
     },
     {
       "path": "apps/user_profile/services/economy_sync.py",
-      "line": 87,
+      "line": 89,
       "classification": "intentionally_preserved",
       "reason": "Django package/app/model/API/DOM/storage identifier, import, code or compatibility asset path."
     },
     {
       "path": "apps/user_profile/services/economy_sync.py",
-      "line": 98,
+      "line": 100,
       "classification": "intentionally_preserved",
       "reason": "Django package/app/model/API/DOM/storage identifier, import, code or compatibility asset path."
     },
     {
       "path": "apps/user_profile/services/economy_sync.py",
-      "line": 115,
-      "classification": "intentionally_preserved",
-      "reason": "Django package/app/model/API/DOM/storage identifier, import, code or compatibility asset path."
-    },
-    {
-      "path": "apps/user_profile/services/economy_sync.py",
-      "line": 120,
+      "line": 117,
       "classification": "intentionally_preserved",
       "reason": "Django package/app/model/API/DOM/storage identifier, import, code or compatibility asset path."
     },
@@ -9193,21 +9271,21 @@
     },
     {
       "path": "apps/user_profile/services/economy_sync.py",
-      "line": 128,
-      "classification": "intentionally_preserved",
-      "reason": "Historical implementation comment or documentation string."
-    },
-    {
-      "path": "apps/user_profile/services/economy_sync.py",
-      "line": 132,
-      "classification": "intentionally_preserved",
-      "reason": "Historical implementation comment or documentation string."
-    },
-    {
-      "path": "apps/user_profile/services/economy_sync.py",
-      "line": 137,
+      "line": 124,
       "classification": "intentionally_preserved",
       "reason": "Django package/app/model/API/DOM/storage identifier, import, code or compatibility asset path."
+    },
+    {
+      "path": "apps/user_profile/services/economy_sync.py",
+      "line": 130,
+      "classification": "intentionally_preserved",
+      "reason": "Historical implementation comment or documentation string."
+    },
+    {
+      "path": "apps/user_profile/services/economy_sync.py",
+      "line": 134,
+      "classification": "intentionally_preserved",
+      "reason": "Historical implementation comment or documentation string."
     },
     {
       "path": "apps/user_profile/services/economy_sync.py",
@@ -9217,37 +9295,43 @@
     },
     {
       "path": "apps/user_profile/services/economy_sync.py",
-      "line": 143,
+      "line": 141,
       "classification": "intentionally_preserved",
       "reason": "Django package/app/model/API/DOM/storage identifier, import, code or compatibility asset path."
     },
     {
       "path": "apps/user_profile/services/economy_sync.py",
-      "line": 161,
+      "line": 145,
+      "classification": "intentionally_preserved",
+      "reason": "Django package/app/model/API/DOM/storage identifier, import, code or compatibility asset path."
+    },
+    {
+      "path": "apps/user_profile/services/economy_sync.py",
+      "line": 163,
       "classification": "intentionally_preserved",
       "reason": "Historical implementation comment or documentation string."
     },
     {
       "path": "apps/user_profile/services/economy_sync.py",
-      "line": 166,
+      "line": 168,
       "classification": "intentionally_preserved",
       "reason": "Django package/app/model/API/DOM/storage identifier, import, code or compatibility asset path."
     },
     {
       "path": "apps/user_profile/services/economy_sync.py",
-      "line": 167,
+      "line": 169,
       "classification": "intentionally_preserved",
       "reason": "Django package/app/model/API/DOM/storage identifier, import, code or compatibility asset path."
     },
     {
       "path": "apps/user_profile/services/economy_sync.py",
-      "line": 171,
+      "line": 173,
       "classification": "intentionally_preserved",
       "reason": "Django package/app/model/API/DOM/storage identifier, import, code or compatibility asset path."
     },
     {
       "path": "apps/user_profile/services/economy_sync.py",
-      "line": 175,
+      "line": 177,
       "classification": "intentionally_preserved",
       "reason": "Django package/app/model/API/DOM/storage identifier, import, code or compatibility asset path."
     },
@@ -9859,7 +9943,7 @@
     },
     {
       "path": "apps/user_profile/tests/test_settings_control_deck_smoke.py",
-      "line": 244,
+      "line": 245,
       "classification": "intentionally_preserved",
       "reason": "Migration, test contract, archive or historical project record."
     },
@@ -10140,6 +10224,18 @@
       "reason": "Django package/app/model/API/DOM/storage identifier, import, code or compatibility asset path."
     },
     {
+      "path": "deltacrown/branding.py",
+      "line": 28,
+      "classification": "requires_later_migration",
+      "reason": "Legacy origin, mailbox, external handle, environment alias or provider identity; controlled owner cutover required."
+    },
+    {
+      "path": "deltacrown/branding.py",
+      "line": 29,
+      "classification": "requires_later_migration",
+      "reason": "Legacy origin, mailbox, external handle, environment alias or provider identity; controlled owner cutover required."
+    },
+    {
       "path": "deltacrown/celery.py",
       "line": 2,
       "classification": "intentionally_preserved",
@@ -10213,6 +10309,12 @@
     },
     {
       "path": "deltacrown/settings.py",
+      "line": 252,
+      "classification": "intentionally_preserved",
+      "reason": "Django package/app/model/API/DOM/storage identifier, import, code or compatibility asset path."
+    },
+    {
+      "path": "deltacrown/settings.py",
       "line": 278,
       "classification": "requires_later_migration",
       "reason": "Legacy origin, mailbox, external handle, environment alias or provider identity; controlled owner cutover required."
@@ -10237,19 +10339,19 @@
     },
     {
       "path": "deltacrown/settings.py",
-      "line": 432,
+      "line": 431,
+      "classification": "intentionally_preserved",
+      "reason": "Django package/app/model/API/DOM/storage identifier, import, code or compatibility asset path."
+    },
+    {
+      "path": "deltacrown/settings.py",
+      "line": 433,
       "classification": "intentionally_preserved",
       "reason": "Historical implementation comment or documentation string."
     },
     {
       "path": "deltacrown/settings.py",
-      "line": 434,
-      "classification": "intentionally_preserved",
-      "reason": "Historical implementation comment or documentation string."
-    },
-    {
-      "path": "deltacrown/settings.py",
-      "line": 439,
+      "line": 435,
       "classification": "intentionally_preserved",
       "reason": "Historical implementation comment or documentation string."
     },
@@ -10261,175 +10363,193 @@
     },
     {
       "path": "deltacrown/settings.py",
-      "line": 450,
-      "classification": "intentionally_preserved",
-      "reason": "Django package/app/model/API/DOM/storage identifier, import, code or compatibility asset path."
-    },
-    {
-      "path": "deltacrown/settings.py",
-      "line": 452,
-      "classification": "intentionally_preserved",
-      "reason": "Django package/app/model/API/DOM/storage identifier, import, code or compatibility asset path."
-    },
-    {
-      "path": "deltacrown/settings.py",
-      "line": 543,
-      "classification": "intentionally_preserved",
-      "reason": "Django package/app/model/API/DOM/storage identifier, import, code or compatibility asset path."
-    },
-    {
-      "path": "deltacrown/settings.py",
-      "line": 567,
-      "classification": "intentionally_preserved",
-      "reason": "Django package/app/model/API/DOM/storage identifier, import, code or compatibility asset path."
-    },
-    {
-      "path": "deltacrown/settings.py",
-      "line": 704,
-      "classification": "intentionally_preserved",
-      "reason": "Django package/app/model/API/DOM/storage identifier, import, code or compatibility asset path."
-    },
-    {
-      "path": "deltacrown/settings.py",
-      "line": 760,
-      "classification": "intentionally_preserved",
-      "reason": "Django package/app/model/API/DOM/storage identifier, import, code or compatibility asset path."
-    },
-    {
-      "path": "deltacrown/settings.py",
-      "line": 786,
-      "classification": "requires_later_migration",
-      "reason": "Legacy origin, mailbox, external handle, environment alias or provider identity; controlled owner cutover required."
-    },
-    {
-      "path": "deltacrown/settings.py",
-      "line": 919,
-      "classification": "requires_later_migration",
-      "reason": "Legacy origin, mailbox, external handle, environment alias or provider identity; controlled owner cutover required."
-    },
-    {
-      "path": "deltacrown/settings.py",
-      "line": 924,
-      "classification": "requires_later_migration",
-      "reason": "Legacy origin, mailbox, external handle, environment alias or provider identity; controlled owner cutover required."
-    },
-    {
-      "path": "deltacrown/settings.py",
-      "line": 929,
+      "line": 441,
       "classification": "intentionally_preserved",
       "reason": "Historical implementation comment or documentation string."
     },
     {
       "path": "deltacrown/settings.py",
-      "line": 932,
-      "classification": "requires_later_migration",
-      "reason": "Legacy origin, mailbox, external handle, environment alias or provider identity; controlled owner cutover required."
-    },
-    {
-      "path": "deltacrown/settings.py",
-      "line": 936,
-      "classification": "requires_later_migration",
-      "reason": "Legacy origin, mailbox, external handle, environment alias or provider identity; controlled owner cutover required."
-    },
-    {
-      "path": "deltacrown/settings.py",
-      "line": 975,
-      "classification": "requires_later_migration",
-      "reason": "Legacy origin, mailbox, external handle, environment alias or provider identity; controlled owner cutover required."
-    },
-    {
-      "path": "deltacrown/settings.py",
-      "line": 979,
-      "classification": "requires_later_migration",
-      "reason": "Legacy origin, mailbox, external handle, environment alias or provider identity; controlled owner cutover required."
-    },
-    {
-      "path": "deltacrown/settings.py",
-      "line": 980,
-      "classification": "requires_later_migration",
-      "reason": "Legacy origin, mailbox, external handle, environment alias or provider identity; controlled owner cutover required."
-    },
-    {
-      "path": "deltacrown/settings.py",
-      "line": 986,
+      "line": 451,
       "classification": "intentionally_preserved",
       "reason": "Django package/app/model/API/DOM/storage identifier, import, code or compatibility asset path."
     },
     {
       "path": "deltacrown/settings.py",
-      "line": 987,
-      "classification": "requires_later_migration",
-      "reason": "Legacy origin, mailbox, external handle, environment alias or provider identity; controlled owner cutover required."
-    },
-    {
-      "path": "deltacrown/settings.py",
-      "line": 988,
-      "classification": "requires_later_migration",
-      "reason": "Legacy origin, mailbox, external handle, environment alias or provider identity; controlled owner cutover required."
-    },
-    {
-      "path": "deltacrown/settings.py",
-      "line": 992,
-      "classification": "requires_later_migration",
-      "reason": "Legacy origin, mailbox, external handle, environment alias or provider identity; controlled owner cutover required."
-    },
-    {
-      "path": "deltacrown/settings.py",
-      "line": 1036,
+      "line": 453,
       "classification": "intentionally_preserved",
       "reason": "Django package/app/model/API/DOM/storage identifier, import, code or compatibility asset path."
     },
     {
       "path": "deltacrown/settings.py",
-      "line": 1114,
+      "line": 544,
       "classification": "intentionally_preserved",
       "reason": "Django package/app/model/API/DOM/storage identifier, import, code or compatibility asset path."
     },
     {
       "path": "deltacrown/settings.py",
-      "line": 1177,
+      "line": 568,
+      "classification": "intentionally_preserved",
+      "reason": "Django package/app/model/API/DOM/storage identifier, import, code or compatibility asset path."
+    },
+    {
+      "path": "deltacrown/settings.py",
+      "line": 706,
+      "classification": "intentionally_preserved",
+      "reason": "Django package/app/model/API/DOM/storage identifier, import, code or compatibility asset path."
+    },
+    {
+      "path": "deltacrown/settings.py",
+      "line": 762,
+      "classification": "intentionally_preserved",
+      "reason": "Django package/app/model/API/DOM/storage identifier, import, code or compatibility asset path."
+    },
+    {
+      "path": "deltacrown/settings.py",
+      "line": 788,
+      "classification": "requires_later_migration",
+      "reason": "Legacy origin, mailbox, external handle, environment alias or provider identity; controlled owner cutover required."
+    },
+    {
+      "path": "deltacrown/settings.py",
+      "line": 921,
+      "classification": "requires_later_migration",
+      "reason": "Legacy origin, mailbox, external handle, environment alias or provider identity; controlled owner cutover required."
+    },
+    {
+      "path": "deltacrown/settings.py",
+      "line": 926,
+      "classification": "requires_later_migration",
+      "reason": "Legacy origin, mailbox, external handle, environment alias or provider identity; controlled owner cutover required."
+    },
+    {
+      "path": "deltacrown/settings.py",
+      "line": 939,
       "classification": "intentionally_preserved",
       "reason": "Historical implementation comment or documentation string."
     },
     {
       "path": "deltacrown/settings.py",
-      "line": 1316,
+      "line": 942,
+      "classification": "requires_later_migration",
+      "reason": "Legacy origin, mailbox, external handle, environment alias or provider identity; controlled owner cutover required."
+    },
+    {
+      "path": "deltacrown/settings.py",
+      "line": 946,
+      "classification": "requires_later_migration",
+      "reason": "Legacy origin, mailbox, external handle, environment alias or provider identity; controlled owner cutover required."
+    },
+    {
+      "path": "deltacrown/settings.py",
+      "line": 985,
+      "classification": "requires_later_migration",
+      "reason": "Legacy origin, mailbox, external handle, environment alias or provider identity; controlled owner cutover required."
+    },
+    {
+      "path": "deltacrown/settings.py",
+      "line": 989,
+      "classification": "requires_later_migration",
+      "reason": "Legacy origin, mailbox, external handle, environment alias or provider identity; controlled owner cutover required."
+    },
+    {
+      "path": "deltacrown/settings.py",
+      "line": 990,
+      "classification": "requires_later_migration",
+      "reason": "Legacy origin, mailbox, external handle, environment alias or provider identity; controlled owner cutover required."
+    },
+    {
+      "path": "deltacrown/settings.py",
+      "line": 996,
+      "classification": "intentionally_preserved",
+      "reason": "Django package/app/model/API/DOM/storage identifier, import, code or compatibility asset path."
+    },
+    {
+      "path": "deltacrown/settings.py",
+      "line": 997,
+      "classification": "requires_later_migration",
+      "reason": "Legacy origin, mailbox, external handle, environment alias or provider identity; controlled owner cutover required."
+    },
+    {
+      "path": "deltacrown/settings.py",
+      "line": 998,
+      "classification": "requires_later_migration",
+      "reason": "Legacy origin, mailbox, external handle, environment alias or provider identity; controlled owner cutover required."
+    },
+    {
+      "path": "deltacrown/settings.py",
+      "line": 1002,
+      "classification": "requires_later_migration",
+      "reason": "Legacy origin, mailbox, external handle, environment alias or provider identity; controlled owner cutover required."
+    },
+    {
+      "path": "deltacrown/settings.py",
+      "line": 1046,
+      "classification": "intentionally_preserved",
+      "reason": "Django package/app/model/API/DOM/storage identifier, import, code or compatibility asset path."
+    },
+    {
+      "path": "deltacrown/settings.py",
+      "line": 1124,
+      "classification": "intentionally_preserved",
+      "reason": "Django package/app/model/API/DOM/storage identifier, import, code or compatibility asset path."
+    },
+    {
+      "path": "deltacrown/settings.py",
+      "line": 1187,
       "classification": "intentionally_preserved",
       "reason": "Historical implementation comment or documentation string."
     },
     {
       "path": "deltacrown/settings.py",
-      "line": 1432,
+      "line": 1327,
+      "classification": "intentionally_preserved",
+      "reason": "Historical implementation comment or documentation string."
+    },
+    {
+      "path": "deltacrown/settings.py",
+      "line": 1443,
       "classification": "intentionally_preserved",
       "reason": "Django package/app/model/API/DOM/storage identifier, import, code or compatibility asset path."
     },
     {
       "path": "deltacrown/settings.py",
-      "line": 1459,
+      "line": 1470,
       "classification": "intentionally_preserved",
       "reason": "Django package/app/model/API/DOM/storage identifier, import, code or compatibility asset path."
     },
     {
       "path": "deltacrown/settings.py",
-      "line": 1663,
+      "line": 1674,
       "classification": "intentionally_preserved",
       "reason": "Django package/app/model/API/DOM/storage identifier, import, code or compatibility asset path."
     },
     {
       "path": "deltacrown/settings.py",
-      "line": 1785,
+      "line": 1796,
       "classification": "intentionally_preserved",
       "reason": "Django package/app/model/API/DOM/storage identifier, import, code or compatibility asset path."
     },
     {
       "path": "deltacrown/settings.py",
-      "line": 1786,
+      "line": 1797,
       "classification": "intentionally_preserved",
       "reason": "Django package/app/model/API/DOM/storage identifier, import, code or compatibility asset path."
     },
     {
       "path": "deltacrown/settings.py",
-      "line": 2407,
+      "line": 2418,
+      "classification": "intentionally_preserved",
+      "reason": "Django package/app/model/API/DOM/storage identifier, import, code or compatibility asset path."
+    },
+    {
+      "path": "deltacrown/settings_brand_qa.py",
+      "line": 26,
+      "classification": "intentionally_preserved",
+      "reason": "Django package/app/model/API/DOM/storage identifier, import, code or compatibility asset path."
+    },
+    {
+      "path": "deltacrown/settings_brand_qa.py",
+      "line": 27,
       "classification": "intentionally_preserved",
       "reason": "Django package/app/model/API/DOM/storage identifier, import, code or compatibility asset path."
     },
@@ -10981,19 +11101,13 @@
     },
     {
       "path": "render.yaml",
-      "line": 21,
+      "line": 19,
       "classification": "intentionally_preserved",
       "reason": "Django package/app/model/API/DOM/storage identifier, import, code or compatibility asset path."
     },
     {
       "path": "render.yaml",
-      "line": 27,
-      "classification": "intentionally_preserved",
-      "reason": "Django package/app/model/API/DOM/storage identifier, import, code or compatibility asset path."
-    },
-    {
-      "path": "render.yaml",
-      "line": 48,
+      "line": 44,
       "classification": "intentionally_preserved",
       "reason": "Django package/app/model/API/DOM/storage identifier, import, code or compatibility asset path."
     },
@@ -11150,6 +11264,60 @@
     {
       "path": "scripts/Seed_Game/seed_2025_games.py",
       "line": 839,
+      "classification": "intentionally_preserved",
+      "reason": "Engineering tool, detector pattern, setup utility or technical entrypoint."
+    },
+    {
+      "path": "scripts/audit_ownlobby.py",
+      "line": 16,
+      "classification": "intentionally_preserved",
+      "reason": "Engineering tool, detector pattern, setup utility or technical entrypoint."
+    },
+    {
+      "path": "scripts/audit_ownlobby.py",
+      "line": 17,
+      "classification": "intentionally_preserved",
+      "reason": "Engineering tool, detector pattern, setup utility or technical entrypoint."
+    },
+    {
+      "path": "scripts/audit_ownlobby.py",
+      "line": 56,
+      "classification": "intentionally_preserved",
+      "reason": "Engineering tool, detector pattern, setup utility or technical entrypoint."
+    },
+    {
+      "path": "scripts/audit_ownlobby.py",
+      "line": 58,
+      "classification": "intentionally_preserved",
+      "reason": "Engineering tool, detector pattern, setup utility or technical entrypoint."
+    },
+    {
+      "path": "scripts/audit_ownlobby.py",
+      "line": 62,
+      "classification": "intentionally_preserved",
+      "reason": "Engineering tool, detector pattern, setup utility or technical entrypoint."
+    },
+    {
+      "path": "scripts/audit_ownlobby.py",
+      "line": 66,
+      "classification": "intentionally_preserved",
+      "reason": "Engineering tool, detector pattern, setup utility or technical entrypoint."
+    },
+    {
+      "path": "scripts/audit_ownlobby.py",
+      "line": 70,
+      "classification": "intentionally_preserved",
+      "reason": "Engineering tool, detector pattern, setup utility or technical entrypoint."
+    },
+    {
+      "path": "scripts/audit_ownlobby.py",
+      "line": 76,
+      "classification": "intentionally_preserved",
+      "reason": "Historical implementation comment or documentation string."
+    },
+    {
+      "path": "scripts/audit_ownlobby.py",
+      "line": 77,
       "classification": "intentionally_preserved",
       "reason": "Engineering tool, detector pattern, setup utility or technical entrypoint."
     },
@@ -11444,6 +11612,48 @@
     {
       "path": "scripts/smoke_local_run.sh",
       "line": 8,
+      "classification": "intentionally_preserved",
+      "reason": "Engineering tool, detector pattern, setup utility or technical entrypoint."
+    },
+    {
+      "path": "scripts/verify_ownlobby.py",
+      "line": 18,
+      "classification": "intentionally_preserved",
+      "reason": "Engineering tool, detector pattern, setup utility or technical entrypoint."
+    },
+    {
+      "path": "scripts/verify_ownlobby.py",
+      "line": 19,
+      "classification": "intentionally_preserved",
+      "reason": "Engineering tool, detector pattern, setup utility or technical entrypoint."
+    },
+    {
+      "path": "scripts/verify_ownlobby.py",
+      "line": 20,
+      "classification": "intentionally_preserved",
+      "reason": "Engineering tool, detector pattern, setup utility or technical entrypoint."
+    },
+    {
+      "path": "scripts/verify_ownlobby.py",
+      "line": 113,
+      "classification": "intentionally_preserved",
+      "reason": "Engineering tool, detector pattern, setup utility or technical entrypoint."
+    },
+    {
+      "path": "scripts/verify_ownlobby.py",
+      "line": 114,
+      "classification": "intentionally_preserved",
+      "reason": "Engineering tool, detector pattern, setup utility or technical entrypoint."
+    },
+    {
+      "path": "scripts/verify_ownlobby.py",
+      "line": 115,
+      "classification": "intentionally_preserved",
+      "reason": "Engineering tool, detector pattern, setup utility or technical entrypoint."
+    },
+    {
+      "path": "scripts/verify_ownlobby.py",
+      "line": 132,
       "classification": "intentionally_preserved",
       "reason": "Engineering tool, detector pattern, setup utility or technical entrypoint."
     },
@@ -13992,12 +14202,6 @@
       "reason": "Migration, test contract, archive or historical project record."
     },
     {
-      "path": "templates/account/otp_email.txt",
-      "line": 13,
-      "classification": "requires_later_migration",
-      "reason": "Legacy origin, mailbox, external handle, environment alias or provider identity; controlled owner cutover required."
-    },
-    {
       "path": "templates/admin/economy/economy_dashboard.html",
       "line": 224,
       "classification": "intentionally_preserved",
@@ -15992,6 +16196,90 @@
     {
       "path": "tests/integration/test_websocket_realtime.py",
       "line": 32,
+      "classification": "intentionally_preserved",
+      "reason": "Migration, test contract, archive or historical project record."
+    },
+    {
+      "path": "tests/integration/test_websocket_realtime.py",
+      "line": 41,
+      "classification": "intentionally_preserved",
+      "reason": "Migration, test contract, archive or historical project record."
+    },
+    {
+      "path": "tests/integration/test_websocket_realtime.py",
+      "line": 167,
+      "classification": "intentionally_preserved",
+      "reason": "Migration, test contract, archive or historical project record."
+    },
+    {
+      "path": "tests/integration/test_websocket_realtime.py",
+      "line": 198,
+      "classification": "intentionally_preserved",
+      "reason": "Migration, test contract, archive or historical project record."
+    },
+    {
+      "path": "tests/integration/test_websocket_realtime.py",
+      "line": 224,
+      "classification": "intentionally_preserved",
+      "reason": "Migration, test contract, archive or historical project record."
+    },
+    {
+      "path": "tests/integration/test_websocket_realtime.py",
+      "line": 253,
+      "classification": "intentionally_preserved",
+      "reason": "Migration, test contract, archive or historical project record."
+    },
+    {
+      "path": "tests/integration/test_websocket_realtime.py",
+      "line": 287,
+      "classification": "intentionally_preserved",
+      "reason": "Migration, test contract, archive or historical project record."
+    },
+    {
+      "path": "tests/integration/test_websocket_realtime.py",
+      "line": 335,
+      "classification": "intentionally_preserved",
+      "reason": "Migration, test contract, archive or historical project record."
+    },
+    {
+      "path": "tests/integration/test_websocket_realtime.py",
+      "line": 381,
+      "classification": "intentionally_preserved",
+      "reason": "Migration, test contract, archive or historical project record."
+    },
+    {
+      "path": "tests/integration/test_websocket_realtime.py",
+      "line": 431,
+      "classification": "intentionally_preserved",
+      "reason": "Migration, test contract, archive or historical project record."
+    },
+    {
+      "path": "tests/integration/test_websocket_realtime.py",
+      "line": 485,
+      "classification": "intentionally_preserved",
+      "reason": "Migration, test contract, archive or historical project record."
+    },
+    {
+      "path": "tests/integration/test_websocket_realtime.py",
+      "line": 490,
+      "classification": "intentionally_preserved",
+      "reason": "Migration, test contract, archive or historical project record."
+    },
+    {
+      "path": "tests/integration/test_websocket_realtime.py",
+      "line": 553,
+      "classification": "intentionally_preserved",
+      "reason": "Migration, test contract, archive or historical project record."
+    },
+    {
+      "path": "tests/integration/test_websocket_realtime.py",
+      "line": 558,
+      "classification": "intentionally_preserved",
+      "reason": "Migration, test contract, archive or historical project record."
+    },
+    {
+      "path": "tests/integration/test_websocket_realtime.py",
+      "line": 611,
       "classification": "intentionally_preserved",
       "reason": "Migration, test contract, archive or historical project record."
     },

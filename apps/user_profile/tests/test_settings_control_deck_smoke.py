@@ -39,10 +39,10 @@ class SettingsControlDeckSmokeTests(TestCase):
         )
         
         # Create privacy settings
-        self.privacy = PrivacySettings.objects.create(
+        self.privacy = PrivacySettings.objects.update_or_create(
             user_profile=self.profile,
-            show_following_list=True
-        )
+            defaults={"show_following_list": True},
+        )[0]
 
     def test_settings_page_requires_login(self):
         """Test /me/settings/ redirects to login for anonymous users"""
@@ -55,7 +55,7 @@ class SettingsControlDeckSmokeTests(TestCase):
         response = self.client.get(reverse('user_profile:profile_settings'))
         
         self.assertEqual(response.status_code, 200)
-        self.assertIn(b'Control Deck', response.content)
+        self.assertContains(response, 'Settings')
         self.assertIn(b'testuser', response.content)
 
     def test_settings_page_context_has_required_data(self):
@@ -238,6 +238,7 @@ class WalletConsistencyTests(TestCase):
         self.client = Client()
         self.user = User.objects.create_user(
             username='walletuser',
+            email='wallet@example.com',
             password='testpass123'
         )
         self.profile = UserProfile.objects.get(user=self.user)

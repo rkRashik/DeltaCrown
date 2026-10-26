@@ -249,7 +249,7 @@ ALLOWED_HOSTS = [
     # Production (Render + Cloudflare)
     "deltacrown.xyz",
     ".deltacrown.xyz",
-    ".onrender.com",
+    "deltacrown.onrender.com",
 ]
 
 # Merge extra hosts from env (Render sets ALLOWED_HOSTS or RENDER_EXTERNAL_HOSTNAME)
@@ -428,6 +428,7 @@ MIDDLEWARE = [
     "deltacrown.metrics.MetricsMiddleware",  # Module 9.5: Metrics collection
     "django.middleware.security.SecurityMiddleware",
     "deltacrown.middleware.security_headers.CSPMiddleware",  # Content Security Policy
+    "deltacrown.middleware.search_indexing.SearchIndexingMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",  # Serve static files on Render/production
     "deltacrown.middleware.media_proxy.MediaProxyMiddleware",  # Dev: proxy missing media to production
     "corsheaders.middleware.CorsMiddleware",  # CORS (must be before CommonMiddleware)
@@ -689,6 +690,7 @@ STATICFILES_DIRS = [BASE_DIR / "static"]
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
+REQUIRE_PERSISTENT_MEDIA = os.getenv("REQUIRE_PERSISTENT_MEDIA", "1" if os.getenv("RENDER") else "0") == "1"
 
 # Request body limit — keep low on 512 MB tier to prevent concurrent-upload RAM spikes.
 DATA_UPLOAD_MAX_MEMORY_SIZE = 2621440  # 2.5 MB (Django default)
@@ -923,6 +925,14 @@ DEFAULT_FROM_EMAIL = "noreply@deltacrown.xyz"
 # and sitemaps. Production must set SITE_URL to the final HTTPS domain.
 _default_site = "https://deltacrown.xyz" if not DEBUG else "http://192.168.68.100:8000"
 SITE_URL = os.getenv("SITE_URL", _default_site)
+_site_origin = urlparse(SITE_URL)
+if (not _site_origin.hostname or _site_origin.username or _site_origin.password
+        or _site_origin.path not in {"", "/"} or _site_origin.query or _site_origin.fragment
+        or _site_origin.scheme not in ({"http", "https"} if DEBUG else {"https"})):
+    raise ImproperlyConfigured("SITE_URL must be an absolute public origin (HTTPS in production), without credentials, path or query.")
+SITE_URL = SITE_URL.rstrip("/")
+# Off until the owner approves routing, TLS, callbacks and canonical cutover.
+PUBLIC_DOMAIN_REDIRECTS_ENABLED = os.getenv("PUBLIC_DOMAIN_REDIRECTS_ENABLED", "0") == "1"
 
 # Google OAuth Client
 # Env vars: GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET (standard names)
@@ -1175,7 +1185,8 @@ WS_MAX_PAYLOAD_BYTES = int(os.getenv('WS_MAX_PAYLOAD_BYTES', str(16 * 1024)))  #
 # Origin validation (comma-separated list of allowed origins)
 # Leave empty to disable origin checking (development mode)
 # Example: "https://deltacrown.com,https://www.deltacrown.com"
-WS_ALLOWED_ORIGINS = os.getenv('WS_ALLOWED_ORIGINS', '')  # Empty = allow all origins (dev only)
+# WS_ALLOWED_ORIGINS is parsed once near CORS configuration. The outer ASGI
+# AllowedHostsOriginValidator remains active even when this extra list is empty.
 
 # -----------------------------------------------------------------------------
 # Celery Configuration

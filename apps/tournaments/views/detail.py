@@ -133,6 +133,10 @@ class TournamentDetailView(DetailView):
         if hasattr(self, '_cached_object'):
             return self._cached_object
         self._cached_object = super().get_object(queryset)
+        from apps.tournaments.security.visibility import can_view_tournament
+        if not can_view_tournament(self.request.user, self._cached_object):
+            from django.http import Http404
+            raise Http404("Tournament not found")
         return self._cached_object
 
     def get_template_names(self):
@@ -180,13 +184,22 @@ class TournamentDetailView(DetailView):
             "startDate": tournament.tournament_start,
             "endDate": tournament.tournament_end,
             "eventStatus": "https://schema.org/EventScheduled",
-            "eventAttendanceMode": "https://schema.org/OnlineEventAttendanceMode" if tournament.mode == Tournament.ONLINE else "https://schema.org/MixedEventAttendanceMode",
+            "eventAttendanceMode": "https://schema.org/" + {
+                Tournament.ONLINE: "OnlineEventAttendanceMode",
+                Tournament.LAN: "OfflineEventAttendanceMode",
+                Tournament.HYBRID: "MixedEventAttendanceMode",
+            }[tournament.mode],
             "organizer": {
                 "@type": "Organization" if tournament.is_official else "Person",
                 "name": brand_copy("[[brand]]") if tournament.is_official else getattr(tournament.organizer, "username", "Tournament organizer"),
             },
             "sport": game_name or "Esports",
         }
+        if effective_status == Tournament.CANCELLED:
+            event_schema["eventStatus"] = "https://schema.org/EventCancelled"
+        elif effective_status in {Tournament.COMPLETED, Tournament.ARCHIVED}:
+            event_schema.pop("eventStatus", None)
+        event_schema = {key: value for key, value in event_schema.items() if value is not None}
         if tournament_image:
             event_schema["image"] = [absolute_url(tournament_image)]
         public_teams, related_tournaments = _public_tournament_relationships(tournament)

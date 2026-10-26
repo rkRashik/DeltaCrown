@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load static %}
+{% load static ecommerce_filters %}
 
 {% block title %}Shopping Cart - {{ brand.features.store }}{% endblock %}
 
@@ -161,7 +161,8 @@
                         <div class="summary-row">
                             <span>Shipping</span>
                             <span id="shipping-cost">
-                                {% if cart.items.all|first.product.is_digital %}
+                                {% with first_item=cart.items.all|first %}
+                                {% if first_item.product.is_digital %}
                                     FREE
                                 {% else %}
                                     {% if cart.total_price >= 50 %}
@@ -170,6 +171,7 @@
                                         $9.99
                                     {% endif %}
                                 {% endif %}
+                                {% endwith %}
                             </span>
                         </div>
                         

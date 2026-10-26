@@ -11,7 +11,7 @@ from __future__ import annotations
 import os
 
 from django.conf import settings
-from django.core.checks import Warning, register
+from django.core.checks import Error, Warning, register
 
 
 @register()
@@ -36,7 +36,7 @@ def media_storage_check(app_configs, **kwargs):
     except Exception:
         pass
 
-    if not os.getenv("CLOUDINARY_URL") and "FileSystem" in default_storage:
+    if "FileSystem" in default_storage:
         issues.append(
             Warning(
                 "Media storage is on local filesystem in production.",
@@ -52,3 +52,15 @@ def media_storage_check(app_configs, **kwargs):
         )
 
     return issues
+
+
+@register(deploy=True)
+def persistent_media_release_check(app_configs, **kwargs):
+    backend = settings.STORAGES.get("default", {}).get("BACKEND", "")
+    if not settings.DEBUG and getattr(settings, "REQUIRE_PERSISTENT_MEDIA", False) and "FileSystem" in backend:
+        return [Error(
+            "Production release requires durable media storage; default storage is ephemeral filesystem.",
+            hint="Verify and configure durable storage and private evidence delivery before deployment. Do not bypass this gate to silence it.",
+            id="siteui.E001",
+        )]
+    return []

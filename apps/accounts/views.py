@@ -78,6 +78,8 @@ class SafePasswordResetView(PasswordResetView):
         return super().post(request, *args, **kwargs)
 
     def form_valid(self, form):
+        from .emails import normalize_from_email
+        self.from_email = normalize_from_email(self.from_email)
         try:
             return super().form_valid(form)
         except Exception:

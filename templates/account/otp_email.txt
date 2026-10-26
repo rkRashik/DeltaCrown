@@ -10,4 +10,4 @@ This code expires in {{ expires_in_minutes }} minutes.
 If you didn't request this code, you can safely ignore this email. Never share this code with anyone.
 
 — {{ brand.name }} Esports
-https://deltacrown.com
+{{ site_url }}
