@@ -6,6 +6,8 @@
 
 ## Phase 3 dependency handoff (2026-10-26)
 
+Implementation commit: **`e7d648e2c3cd294fc3895ad0feb846fe7770e049`** (`fix: remediate OwnLobby production dependency advisories`), on `feature/ownlobby-dependency-security`. Recorded by a documentation-only follow-up; implementation history is unchanged. Working tree was clean after that commit; no push/deploy.
+
 - **Changed:** compatible security upgrades in both requirements files; Docker production now uses the same runtime source as Render. Maintained pypdf replaces unsupported PyPDF2; PDF preview's undefined reader references are fixed. No schema/business/financial/provider changes. All 69 approved asset hashes remain identical.
 - **Fixed:** 191 of 197 underlying baseline advisories. Raw entries decreased 308 to 6; affected packages 29 to 1. Clean runtime install and pip check pass. Full matrix/inventory are committed under branding/; see [dependency report](OWNLOBBY_DEPENDENCY_SECURITY.md).
 - **Remaining security blocker:** Twisted 26.4.0 HTTP bare CR/LF parser advisory GHSA-q7qq-6mhp-9rc4; only a prerelease fix is currently listed. A bounded local transport test confirms parser acceptance; actual Render proxy behavior is unverified. Five unused-protocol Twisted findings remain installed and documented. Dependency gate is **not resolved**.

@@ -2,6 +2,8 @@
 
 Executed locally 2026-10-26. Branch: `feature/ownlobby-dependency-security`. Baseline Phase 2: `00fa31d942386ca0e9d42fbd553d4ff7eb81cc83`. Empty pre-change checkpoint: `c797aeab7917cf258884954bdbad2ea3cea6078f`. No push, merge, deployment, DNS or live provider change.
 
+Implementation commit: `e7d648e2c3cd294fc3895ad0feb846fe7770e049`. The handoff SHA is recorded in a separate documentation follow-up. Scanner: pip-audit 2.10.1; pytest 8.4.2.
+
 ## Environments and isolation
 
 Host: Windows x64, CPython 3.13.15. Original `.venv` is untouched and retains Django 5.2.8/cryptography 46.0.3/PyJWT 2.10.1 for comparisons. The QA venv under ignored `Artifacts/dependencies/qa` installs upgraded packages locally and inherits unchanged packages/test tooling through a .pth pointing to original .venv. It is an overlay, not clean-production proof. Separate `Artifacts/dependencies/runtime` was created empty and clean-installed solely from requirements-prod.txt; its install report, pip check, import/system check and installed-package audit provide independent graph evidence.
