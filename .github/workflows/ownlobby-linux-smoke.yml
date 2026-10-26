@@ -1,0 +1,84 @@
+name: OwnLobby Linux release smoke
+
+on:
+  push:
+    branches: [feature/ownlobby-free-hosting]
+    paths: [.github/workflows/ownlobby-linux-smoke.yml]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: ownlobby_qa
+          POSTGRES_PASSWORD: synthetic-ci-only
+          POSTGRES_DB: ownlobby_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U ownlobby_qa -d ownlobby_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      # Disposable runner-only values; never inject repository/environment secrets.
+      DATABASE_URL: postgresql://ownlobby_qa:synthetic-ci-only@127.0.0.1:5432/ownlobby_unused
+      DATABASE_URL_TEST: postgresql://ownlobby_qa:synthetic-ci-only@127.0.0.1:5432/ownlobby_test
+      DJANGO_SECRET_KEY: synthetic-ci-only-not-a-production-key-0123456789-abcdefghijklmnopqrstuvwxyz
+      DJANGO_SETTINGS_MODULE: deltacrown.settings_media_qa
+      DISABLE_INPROCESS_MATCH_REMINDER: '1'
+      ENABLE_DISCORD_BOT: '0'
+      ENABLE_CELERY_BEAT: '0'
+      COMPETITION_APP_ENABLED: '1'
+      SENTRY_DSN: ''
+      REDIS_URL: ''
+      S3_TESTS: '0'
+      AWS_EC2_METADATA_DISABLED: 'true'
+      NODE_OPTIONS: --max-old-space-size=256
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Native libraries
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends build-essential pkg-config libcairo2-dev libffi-dev libfreetype6-dev libmagic1 fonts-dejavu-core
+          python --version
+          uname -a
+      - name: Clean production install and Twisted integrity
+        run: |
+          python scripts/build_twisted_backport.py
+          python -m pip install --no-cache-dir -r requirements-prod.txt
+          python -m pip check
+          python -c "from importlib.metadata import version; assert version('Twisted') == '26.4.0+ownlobby.1'; print('Installed Twisted backport verified')"
+      - name: Native Cairo and PDF rendering
+        run: python scripts/check_native_rendering.py
+      - name: Django startup and system checks
+        run: |
+          mkdir -p Artifacts/final-engineering
+          python manage.py check --settings=deltacrown.settings_media_qa
+          python -c "import deltacrown.asgi; print('Django ASGI startup passed')"
+      - name: Daphne HTTP and WebSocket transport
+        run: python scripts/check_http_transport.py
+      - name: Focused security and media regressions
+        run: |
+          python manage.py test apps.common.tests.test_governed_media apps.common.tests.test_http_transport_security apps.common.tests.test_upload_content_security apps.common.tests.test_dependency_compatibility apps.common.tests.test_free_hosting --settings=deltacrown.settings_media_qa --keepdb --noinput --verbosity 1
+      - name: Frontend production build
+        run: |
+          npm ci --include=dev
+          npm run build
+      - name: Hashed static collection, templates and approved assets
+        env:
+          DJANGO_SETTINGS_MODULE: deltacrown.settings_brand_qa
+        run: python scripts/verify_ownlobby.py --collect-static
