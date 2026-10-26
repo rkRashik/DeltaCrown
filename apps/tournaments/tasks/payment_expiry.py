@@ -53,7 +53,7 @@ def expire_overdue_payments(self):
         payment_deadline_hours__gt=0,
     ).values_list('id', 'payment_deadline_hours')
 
-    for tournament_id, deadline_hours in tournaments_with_deadline:
+    for tournament_id, deadline_hours in tournaments_with_deadline.iterator(chunk_size=50):
         cutoff = now - timedelta(hours=deadline_hours)
 
         overdue_payments = Payment.objects.filter(
@@ -62,7 +62,7 @@ def expire_overdue_payments(self):
             submitted_at__lt=cutoff,
         ).select_related('registration', 'registration__tournament')
 
-        for payment in overdue_payments:
+        for payment in overdue_payments.iterator(chunk_size=50):
             try:
                 with transaction.atomic():
                     # 1. Expire the payment

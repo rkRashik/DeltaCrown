@@ -497,22 +497,8 @@ TEMPLATES[0]["OPTIONS"]["context_processors"] += [
 # DB 0 = Cache, DB 1 = Celery Broker, DB 2 = Celery Results, DB 3 = Channels
 # Uses a single REDIS_URL and appends /N for each subsystem.
 # -----------------------------------------------------------------------------
-def _redis_url_with_db(base_url: str, db: int) -> str:
-    """Append or replace the DB number on a Redis URL.
-
-    Upstash only supports logical DB 0 — any other DB number raises
-    "Only 0th database is supported!".  Force db=0 when the host is on
-    upstash.io so Channels (/3), Celery broker (/1) and results (/2)
-    all resolve to the single supported database.
-    """
-    if not base_url:
-        return base_url
-    import re
-    if 'upstash.io' in base_url:
-        db = 0
-    return re.sub(r'/\d*$', '', base_url.rstrip('/')) + f'/{db}'
-
-_BASE_REDIS_URL = os.getenv("REDIS_URL", "")
+from .redis_config import redis_url_with_db as _redis_url_with_db, verified_redis_url
+_BASE_REDIS_URL = verified_redis_url(os.getenv("REDIS_URL", ""))
 
 # Cache: Redis in production (shared across workers), local memory for dev
 _CACHE_REDIS = _redis_url_with_db(_BASE_REDIS_URL, 0) if _BASE_REDIS_URL else None
@@ -1142,14 +1128,8 @@ _USE_REDIS_CHANNELS = (not DEBUG) or os.getenv('USE_REDIS_CHANNELS', '0') == '1'
 _REDIS_CHANNEL_URL = _redis_url_with_db(_BASE_REDIS_URL, 3) if _BASE_REDIS_URL else 'redis://localhost:6379/3'
 
 if _USE_REDIS_CHANNELS:
-    # Upstash rediss:// TLS: ssl_cert_reqs=None (CERT_NONE) is intentional —
-    # same reasoning as _celery_ssl_url above.  To upgrade to CERT_REQUIRED,
-    # supply a trusted CA bundle via ssl_ca_certs and test first.
-    _CHANNEL_HOST = (
-        {'address': _REDIS_CHANNEL_URL, 'ssl_cert_reqs': None}
-        if _REDIS_CHANNEL_URL.startswith('rediss://')
-        else _REDIS_CHANNEL_URL
-    )
+    # Certificate and hostname verification are enforced in the URL.
+    _CHANNEL_HOST = _REDIS_CHANNEL_URL
     CHANNEL_LAYERS = {
         'default': {
             'BACKEND': 'channels_redis.core.RedisChannelLayer',
@@ -1203,29 +1183,8 @@ WS_MAX_PAYLOAD_BYTES = int(os.getenv('WS_MAX_PAYLOAD_BYTES', str(16 * 1024)))  #
 # CELERY_BROKER_URL / CELERY_RESULT_BACKEND env vars override if set explicitly.
 
 def _celery_ssl_url(url: str) -> str:
-    """
-    Celery requires ssl_cert_reqs on rediss:// (TLS Redis) URLs or it raises:
-      ValueError: A rediss:// URL must have parameter ssl_cert_reqs
-
-    This helper appends '?ssl_cert_reqs=CERT_NONE' when the URL is a TLS Redis
-    URL that doesn't already carry the parameter.  Safe no-op for plain redis://
-    or any other scheme.
-
-    Why CERT_NONE (not CERT_REQUIRED):
-    Upstash issues certs via Let's Encrypt, which are technically verifiable.
-    However some Python/OpenSSL builds on Render fail hostname verification
-    against the Upstash SNI endpoint due to intermediate-CA bundle differences.
-    CERT_NONE avoids the TLS handshake failure without exposing the connection
-    to MITM risk in practice (traffic stays inside Render's private network and
-    the Upstash TLS endpoint is authenticated at the application layer via the
-    password in the URL).  To switch to CERT_REQUIRED, set:
-      CELERY_BROKER_URL=rediss://:password@host:port/0?ssl_cert_reqs=CERT_REQUIRED
-    and test the connection before deploying.
-    """
-    if not url or not url.startswith('rediss://') or 'ssl_cert_reqs' in url:
-        return url
-    sep = '&' if '?' in url else '?'
-    return url + sep + 'ssl_cert_reqs=CERT_NONE'
+    """Require trusted certificates and hostnames; keep credentials/CA options."""
+    return verified_redis_url(url)
 
 
 def _normalized_env_url(name: str) -> str:

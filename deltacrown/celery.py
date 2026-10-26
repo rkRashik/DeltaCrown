@@ -9,6 +9,7 @@ import os
 from datetime import timedelta
 from celery import Celery
 from celery.schedules import crontab
+from .redis_config import verified_redis_url
 
 # Set the default Django settings module
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'deltacrown.settings')
@@ -25,7 +26,7 @@ def _normalize_celery_env_url(name: str) -> None:
         normalized = normalized[1:-1].strip()
 
     if normalized:
-        os.environ[name] = normalized
+        os.environ[name] = verified_redis_url(normalized)
     else:
         os.environ.pop(name, None)
 

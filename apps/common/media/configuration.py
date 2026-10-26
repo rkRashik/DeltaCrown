@@ -31,6 +31,7 @@ def configure(storages, base_dir, media_root):
                 'transfer_config': TransferConfig(max_concurrency=2, use_threads=False),
                 'client_config': Config(
                     connect_timeout=5, read_timeout=30,
+                    s3={'addressing_style': 'path'},
                     retries={'mode': 'standard', 'total_max_attempts': 3},
                 ),
             }

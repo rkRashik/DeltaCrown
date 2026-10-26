@@ -7,6 +7,11 @@
 # ─────────────────────────────────────────────────────────────────────
 set -euo pipefail
 
+# Bound Daphne's default executor; this is not a global HTTP concurrency limit.
+export ASGI_THREADS="${ASGI_THREADS:-2}"
+# Bound glibc arena proliferation on small Linux instances.
+export MALLOC_ARENA_MAX="${MALLOC_ARENA_MAX:-2}"
+
 DAPHNE_WS_CONNECT_TIMEOUT="${DAPHNE_WEBSOCKET_CONNECT_TIMEOUT:-5}"
 DAPHNE_PING_INTERVAL="${DAPHNE_PING_INTERVAL:-20}"
 DAPHNE_PING_TIMEOUT="${DAPHNE_PING_TIMEOUT:-30}"

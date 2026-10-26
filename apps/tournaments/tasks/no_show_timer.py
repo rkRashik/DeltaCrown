@@ -63,7 +63,7 @@ def check_no_show_matches(self):
 
     processed_ids = set()
 
-    for match in candidates:
+    for match in candidates.iterator(chunk_size=50):
         if match.id in processed_ids:
             continue
 
@@ -211,7 +211,7 @@ def auto_close_expired_lobbies(self):
     ).select_related('tournament').order_by('scheduled_time')
 
     processed_ids = set()
-    for match in candidates:
+    for match in candidates.iterator(chunk_size=50):
         if match.id in processed_ids:
             continue
         processed_ids.add(match.id)

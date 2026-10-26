@@ -45,6 +45,7 @@ Memory diagnostics rollout (temporary — do not leave on permanently):
 from __future__ import annotations
 
 import logging
+import hmac
 import os
 import time
 
@@ -118,7 +119,7 @@ def lifecycle_cron(request):
         )
 
     auth = request.META.get('HTTP_AUTHORIZATION', '')
-    if auth != f'Bearer {_CRON_SECRET}':
+    if not hmac.compare_digest(auth.encode('utf-8'), f'Bearer {_CRON_SECRET}'.encode('utf-8')):
         return JsonResponse({'error': 'unauthorized'}, status=401)
 
     # ── Duplicate-execution lock ────────────────────────────────────
@@ -158,6 +159,8 @@ def lifecycle_cron(request):
             results[name] = runner()
             task_ms = round((time.monotonic() - task_t0) * 1000)
             results[name]['elapsed_ms'] = task_ms
+            if results[name].get('errors', 0):
+                results[name]['ok'] = False
 
             level = logging.WARNING if task_ms > _SLOW_THRESHOLD_MS else logging.DEBUG
             logger.log(level, '[lifecycle_cron] task=%s elapsed=%dms result=%s', name, task_ms, results[name])
@@ -172,11 +175,12 @@ def lifecycle_cron(request):
         else:
             logger.info('[lifecycle_cron] completed in %dms', elapsed_ms)
 
+        successful = all(result.get('ok', False) for result in results.values())
         return JsonResponse({
-            'status': 'ok',
+            'status': 'ok' if successful else 'error',
             'elapsed_ms': elapsed_ms,
             'results': results,
-        })
+        }, status=200 if successful else 500)
     except Exception:
         elapsed_ms = round((time.monotonic() - t0) * 1000)
         logger.exception('[lifecycle_cron] FATAL unhandled error after %dms', elapsed_ms)
@@ -190,7 +194,8 @@ def lifecycle_cron(request):
 
 # ── Task Runners ────────────────────────────────────────────────────
 # Each runner wraps the Celery task's inner logic (not .delay()) so it
-# runs synchronously in the request process.  Errors are caught per-task
+# runs synchronously in the request process.  Task retries propagate as failures and are retried on the next cron tick.
+# Errors are caught per-task
 # so one failure doesn't block the rest.
 
 
@@ -245,7 +250,7 @@ def _run_wrapup():
 def _run_no_show():
     try:
         from apps.tournaments.tasks.no_show_timer import check_no_show_matches
-        result = check_no_show_matches.apply().result
+        result = check_no_show_matches.run()
         return {'ok': True, **result} if isinstance(result, dict) else {'ok': True}
     except Exception as exc:
         logger.exception('[lifecycle_cron] no_show failed')
@@ -255,7 +260,7 @@ def _run_no_show():
 def _run_lobby_close():
     try:
         from apps.tournaments.tasks.no_show_timer import auto_close_expired_lobbies
-        result = auto_close_expired_lobbies.apply().result
+        result = auto_close_expired_lobbies.run()
         return {'ok': True, **result} if isinstance(result, dict) else {'ok': True}
     except Exception as exc:
         logger.exception('[lifecycle_cron] lobby_close failed')
@@ -265,7 +270,7 @@ def _run_lobby_close():
 def _run_payment_expiry():
     try:
         from apps.tournaments.tasks.payment_expiry import expire_overdue_payments
-        result = expire_overdue_payments.apply().result
+        result = expire_overdue_payments.run()
         return {'ok': True, **result} if isinstance(result, dict) else {'ok': True}
     except Exception as exc:
         logger.exception('[lifecycle_cron] payment_expiry failed')
@@ -275,7 +280,7 @@ def _run_payment_expiry():
 def _run_group_playoff_reconcile():
     try:
         from apps.tournaments.tasks.lifecycle import reconcile_group_playoff_transitions
-        result = reconcile_group_playoff_transitions.apply().result
+        result = reconcile_group_playoff_transitions.run()
         return {'ok': True, **result} if isinstance(result, dict) else {'ok': True}
     except Exception as exc:
         logger.exception('[lifecycle_cron] group_playoff_reconcile failed')
@@ -297,13 +302,18 @@ def _run_auto_confirm_submissions():
             ).values_list('id', flat=True)[:50]  # Cap per cycle
         )
         confirmed = 0
+        failed = 0
         for sid in stale_ids:
             try:
-                auto_confirm_submission_task.apply(args=[sid])
-                confirmed += 1
+                outcome = auto_confirm_submission_task.run(sid)
+                if not isinstance(outcome, dict) or outcome.get("status") not in {"success", "already_processed", "not_found"}:
+                    raise RuntimeError("Auto-confirm task did not succeed")
+                if outcome.get("status") == "success":
+                    confirmed += 1
             except Exception:
-                pass
-        return {'ok': True, 'confirmed': confirmed, 'scanned': len(stale_ids)}
+                failed += 1
+                logger.exception('[lifecycle_cron] auto_confirm failed for submission=%s', sid)
+        return {'ok': failed == 0, 'confirmed': confirmed, 'failed': failed, 'scanned': len(stale_ids)}
     except Exception as exc:
         logger.exception('[lifecycle_cron] auto_confirm failed')
         return {'ok': False, 'error': str(exc)}
@@ -312,7 +322,7 @@ def _run_auto_confirm_submissions():
 def _run_dispute_escalation():
     try:
         from apps.tournament_ops.tasks_dispute import dispute_escalation_task
-        result = dispute_escalation_task.apply().result
+        result = dispute_escalation_task.run()
         return {'ok': True, **result} if isinstance(result, dict) else {'ok': True}
     except Exception as exc:
         logger.exception('[lifecycle_cron] dispute_escalation failed')

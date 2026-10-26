@@ -9,7 +9,7 @@ services:
     name: deltacrown
     runtime: python
     region: singapore    # closest to SEA user base
-    plan: starter
+    plan: free
     buildCommand: bash render_build.sh
     startCommand: bash start.sh
     envVars:
@@ -58,7 +58,7 @@ services:
       #   CELERY_MAX_TASKS_PER_CHILD=50
       #   CELERY_MAX_MEMORY_PER_CHILD=150000
       - key: ENABLE_CELERY_WORKER
-        value: "1"
+        value: "0"
       - key: ENABLE_DISCORD_BOT
         value: "0"
       - key: ENABLE_MIGRATIONS_ON_START

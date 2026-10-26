@@ -49,7 +49,8 @@
     "start.sh",
     "start_dev.ps1",
     "tailwind.config.js",
-    "OWNLOBBY_FINAL_ENGINEERING_HANDOFF.md"
+    "OWNLOBBY_FINAL_ENGINEERING_HANDOFF.md",
+    "OWNLOBBY_FREE_HOSTING_HANDOFF.md"
   ],
   "active_documents": [
     "README.md",
@@ -66,7 +67,8 @@
     "OWNLOBBY_DOMAIN_MIGRATION.md",
     "OWNLOBBY_TECHNICAL_SEO.md",
     "OWNLOBBY_DEPENDENCY_SECURITY.md",
-    "OWNLOBBY_FINAL_ENGINEERING_HANDOFF.md"
+    "OWNLOBBY_FINAL_ENGINEERING_HANDOFF.md",
+    "OWNLOBBY_FREE_HOSTING_HANDOFF.md"
   ],
   "historical_documents": [
     "README_TECHNICAL.md",
