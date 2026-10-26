@@ -58,9 +58,9 @@ def import_rules_from_pdf(tournament, *, overwrite: bool = True) -> Optional[str
     
     try:
         # Open and read the PDF file
-        logger.info(f"Reading PDF from {tournament.rules_pdf.path}")
+        logger.info("Reading rules PDF for tournament %s", tournament.id)
         
-        with open(tournament.rules_pdf.path, 'rb') as pdf_file:
+        with tournament.rules_pdf.open('rb') as pdf_file:
             reader = PdfReader(pdf_file)
             num_pages = len(reader.pages)
             
@@ -100,7 +100,7 @@ def import_rules_from_pdf(tournament, *, overwrite: bool = True) -> Optional[str
             return html
             
     except FileNotFoundError:
-        logger.error(f"PDF file not found: {tournament.rules_pdf.path}")
+        logger.error("Rules PDF not found for tournament %s", tournament.id)
         raise
     except Exception as e:
         logger.error(f"Failed to import rules from PDF: {e}", exc_info=True)
@@ -297,7 +297,7 @@ def preview_pdf_text(tournament, max_chars: int = 1000) -> Optional[str]:
     
     try:
         PdfReader = _load_pdf_reader_class()
-        with open(tournament.rules_pdf.path, 'rb') as pdf_file:
+        with tournament.rules_pdf.open('rb') as pdf_file:
             reader = PdfReader(pdf_file)
             first_page = reader.pages[0]
             text = first_page.extract_text()

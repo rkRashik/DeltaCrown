@@ -12,6 +12,10 @@ from django.conf import settings
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 
+from apps.user_profile.services.provider_account_service import (
+    ProviderIdentityInUse,
+    claim_provider_account,
+)
 from apps.games.models import Game
 from apps.user_profile.models import GameOAuthConnection, GameProfile, ProviderAccount
 
@@ -172,14 +176,19 @@ def upsert_epic_connection(*, user, token_data: dict[str, Any]) -> tuple[GamePro
             )
 
         # Upsert the cross-game provider identity anchor
-        provider_account, _ = ProviderAccount.objects.update_or_create(
-            provider=GameOAuthConnection.Provider.EPIC,
-            provider_account_id=account_id,
-            defaults={
-                "user": user,
-                "provider_data": epic_provider_data,
-            },
-        )
+        try:
+            provider_account = claim_provider_account(
+                user=user,
+                provider=GameOAuthConnection.Provider.EPIC,
+                provider_account_id=account_id,
+                provider_data=epic_provider_data,
+            )
+        except ProviderIdentityInUse as exc:
+            raise EpicOAuthError(
+                "EPIC_ACCOUNT_ALREADY_LINKED",
+                "This Epic account is already linked to another profile",
+                409,
+            ) from exc
 
         try:
             passport, created = GameProfile.objects.get_or_create(

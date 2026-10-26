@@ -1,0 +1,21 @@
+{
+  "package": "Twisted",
+  "version": "26.4.0+ownlobby.1",
+  "base_version": "26.4.0",
+  "advisory": "GHSA-q7qq-6mhp-9rc4",
+  "upstream_url": "https://files.pythonhosted.org/packages/a6/57/bcf4e2370dd218c9aa68a9140a65d86729c73f1d529f7e94786c2766fc72/twisted-26.4.0-py3-none-any.whl",
+  "upstream_sha256": "dc25ea0ebf6511c24f03232ee9f4afa54b291c5d897990e3a39cc4d14a1ef4c0",
+  "patch_commit": "1616f702d36eda8990a5a5b22ad70fab140a7eb1",
+  "patch_url": "https://github.com/twisted/twisted/commit/1616f702d36eda8990a5a5b22ad70fab140a7eb1.patch",
+  "patch_sha256": "52ab24692920a10dbb09e34247f2bc41cad6d63ab677761044d04784865220bc",
+  "original_http_sha256": "35dcbd7305c9891ea15d388b1e999f241c55022ed3d360bcfa1f6403ea91f9b4",
+  "patched_http_sha256": "102fdeaf5a59bb9e59272fdc236478058dcaccb9063b594ebe7ae1b38fc63a09",
+  "filename": "twisted-26.4.0+ownlobby.1-py3-none-any.whl",
+  "scope": "Only upstream HTTP header value validation hunk; metadata local version and regenerated RECORD. Original license and all other runtime source retained. Base-version audit remains mandatory; five other advisories remain installed.",
+  "sha256": "439da47560b0fd5d3ecbe5b027c54bd44864870cdcc2b81b016dee8f705ea8e6",
+  "rebuild_environment": {
+    "python": "3.13.15",
+    "zlib": "1.3.1",
+    "note": "Byte-for-byte rebuild verified locally. Wheel is platform-independent; Linux execution/rebuild has not been performed."
+  }
+}

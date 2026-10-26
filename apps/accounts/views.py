@@ -21,6 +21,7 @@ from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 from django.utils.crypto import get_random_string
 from django.utils.text import slugify
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views import View
 from django.views.generic import FormView
 
@@ -463,7 +464,10 @@ class GoogleLoginStart(View):
         request.session["google_oauth_state"] = state
         # Preserve 'next' across the OAuth round-trip
         next_url = request.GET.get("next", "")
-        if next_url:
+        request.session.pop("google_oauth_next", None)
+        if next_url and url_has_allowed_host_and_scheme(
+            next_url, allowed_hosts={request.get_host()}, require_https=request.is_secure()
+        ):
             request.session["google_oauth_next"] = next_url
         url = oauth.build_auth_url(client_id, redirect_uri, state)
         return HttpResponseRedirect(url)
@@ -478,10 +482,12 @@ class GoogleCallback(View):
 
         state = request.GET.get("state")
         code = request.GET.get("code")
-        if not state or state != request.session.get("google_oauth_state"):
+        if not state or not code or state != request.session.get("google_oauth_state"):
             messages.error(request, "Invalid sign-in session. Please try again.")
             return redirect("account:login")
 
+        # Consume a matched state before contacting the provider, including failed exchanges.
+        request.session.pop("google_oauth_state", None)
         client_id = settings.GOOGLE_OAUTH_CLIENT_ID
         client_secret = settings.GOOGLE_OAUTH_CLIENT_SECRET
         redirect_uri = _build_google_redirect_uri(request)
@@ -500,7 +506,7 @@ class GoogleCallback(View):
 
         sub = (info.get("sub") or "").strip()
         email = (info.get("email") or "").strip().lower()
-        email_verified = bool(info.get("email_verified"))
+        email_verified = info.get("email_verified") is True
         name = info.get("name") or (email.split("@")[0] if email else "")
 
         if not sub:
@@ -548,6 +554,10 @@ class GoogleCallback(View):
         request.session.pop("google_oauth_state", None)
 
         next_url = request.session.pop("google_oauth_next", None) or reverse("siteui:homepage")
+        if not url_has_allowed_host_and_scheme(
+            next_url, allowed_hosts={request.get_host()}, require_https=request.is_secure()
+        ):
+            next_url = reverse("siteui:homepage")
         return redirect(next_url)
 
 

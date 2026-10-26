@@ -4,15 +4,22 @@ from __future__ import annotations
 
 import logging
 import re
+import hashlib
+from datetime import datetime, timezone as datetime_timezone
 from dataclasses import dataclass
 from typing import Any
 from urllib.parse import urlencode
 
 import requests
 from django.conf import settings
+from django.core.cache import cache
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 
+from apps.user_profile.services.provider_account_service import (
+    ProviderIdentityInUse,
+    claim_provider_account,
+)
 from apps.games.models import Game
 from apps.user_profile.models import GameOAuthConnection, GameProfile, ProviderAccount
 
@@ -74,7 +81,7 @@ def build_steam_openid_redirect_url(*, return_to: str, realm: str) -> str:
     return f"{STEAM_OPENID_URL}?{urlencode(params)}"
 
 
-def verify_steam_callback(query_params: dict[str, Any]) -> str:
+def verify_steam_callback(query_params: dict[str, Any], *, expected_return_to: str) -> str:
     if not query_params:
         raise SteamOpenIDError("INVALID_OPENID_CALLBACK", "Steam callback parameters are missing", 400)
 
@@ -88,6 +95,29 @@ def verify_steam_callback(query_params: dict[str, Any]) -> str:
     claimed_id = str(payload.get("openid.claimed_id", "")).strip()
     if not claimed_id:
         raise SteamOpenIDError("INVALID_OPENID_CALLBACK", "Steam claimed_id is missing", 400)
+
+    required_signed = {"op_endpoint", "claimed_id", "identity", "return_to", "response_nonce", "assoc_handle"}
+    signed = set(str(payload.get("openid.signed", "")).split(","))
+    if (
+        payload.get("openid.ns") != STEAM_OPENID_NS
+        or payload.get("openid.mode") != "id_res"
+        or payload.get("openid.op_endpoint") != STEAM_OPENID_URL
+        or payload.get("openid.identity") != claimed_id
+        or not expected_return_to
+        or payload.get("openid.return_to") != expected_return_to
+        or not required_signed.issubset(signed)
+        or not payload.get("openid.sig")
+        or not payload.get("openid.assoc_handle")
+    ):
+        raise SteamOpenIDError("INVALID_OPENID_CALLBACK", "Steam assertion is not bound to this callback", 400)
+    nonce = str(payload.get("openid.response_nonce", ""))
+    try:
+        nonce_time = datetime.strptime(nonce[:20], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=datetime_timezone.utc)
+    except ValueError as exc:
+        raise SteamOpenIDError("INVALID_OPENID_CALLBACK", "Steam response nonce is malformed", 400) from exc
+    age = (timezone.now() - nonce_time).total_seconds()
+    if not 20 <= len(nonce) <= 255 or age > 600 or age < -30:
+        raise SteamOpenIDError("INVALID_OPENID_CALLBACK", "Steam response nonce has expired", 400)
 
     verify_payload = payload.copy()
     verify_payload["openid.mode"] = "check_authentication"
@@ -115,7 +145,7 @@ def verify_steam_callback(query_params: dict[str, Any]) -> str:
             metadata={"status_code": response.status_code},
         )
 
-    if "is_valid:true" not in response.text:
+    if "is_valid:true" not in response.text.splitlines():
         raise SteamOpenIDError(
             "STEAM_INVALID_SIGNATURE",
             "Steam OpenID signature was not accepted",
@@ -129,6 +159,12 @@ def verify_steam_callback(query_params: dict[str, Any]) -> str:
             "Could not extract Steam ID from claimed_id",
             400,
         )
+
+    # Only verified assertions can occupy the replay cache. cache.add is atomic
+    # on the configured Redis backend as well as the isolated test backend.
+    nonce_key = "steam_openid_nonce:" + hashlib.sha256(nonce.encode()).hexdigest()
+    if not cache.add(nonce_key, True, timeout=660):
+        raise SteamOpenIDError("STEAM_REPLAYED_ASSERTION", "Steam response nonce was already used", 400)
 
     return match.group("steam_id")
 
@@ -267,14 +303,19 @@ def upsert_steam_passports(
             )
 
         # Upsert the single cross-game provider identity anchor
-        provider_account, _ = ProviderAccount.objects.update_or_create(
-            provider=GameOAuthConnection.Provider.STEAM,
-            provider_account_id=summary.steam_id,
-            defaults={
-                "user": user,
-                "provider_data": steam_provider_data,
-            },
-        )
+        try:
+            provider_account = claim_provider_account(
+                user=user,
+                provider=GameOAuthConnection.Provider.STEAM,
+                provider_account_id=summary.steam_id,
+                provider_data=steam_provider_data,
+            )
+        except ProviderIdentityInUse as exc:
+            raise SteamOpenIDError(
+                "STEAM_ACCOUNT_ALREADY_LINKED",
+                "This Steam account is already linked to another profile",
+                409,
+            ) from exc
 
         results: list[tuple[GameProfile, GameOAuthConnection, bool]] = []
 

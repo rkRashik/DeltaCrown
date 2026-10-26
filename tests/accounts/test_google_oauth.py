@@ -25,5 +25,7 @@ def test_google_oauth_creates_user_and_logs_in(client, settings, monkeypatch):
     # Call callback with state + code
     resp = client.get(reverse("account:google_callback"), {"state": "abc123", "code": "dummy"})
     assert resp.status_code in (302, 301)
-    assert resp.url.endswith("/account/profile/")
+    assert resp.url == reverse("siteui:homepage")
+    created = User.objects.get(email="guser@example.com")
+    assert client.session["_auth_user_id"] == str(created.pk)
     assert User.objects.filter(email="guser@example.com").exists()

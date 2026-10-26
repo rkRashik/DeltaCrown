@@ -153,7 +153,8 @@ typing_extensions==4.15.0
 greenlet==3.3.0
 
 # ── Twisted (Daphne dependency) ─────────────────────────────────────
-Twisted==26.4.0
+# Twisted 26.4.0+ownlobby.1: verified upstream HTTP backport; provenance.json records SHA256.
+./vendor/twisted/twisted-26.4.0+ownlobby.1-py3-none-any.whl
 autobahn==26.7.1
 Automat==25.4.16
 constantly==23.10.4

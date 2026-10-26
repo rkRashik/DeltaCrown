@@ -102,7 +102,8 @@ class MediaDocumentCompatibilityTests(SimpleTestCase):
         with tempfile.TemporaryDirectory() as folder:
             path = Path(folder) / "rules.pdf"
             path.write_bytes(output.getvalue())
-            tournament = SimpleNamespace(id=1, rules_pdf=SimpleNamespace(path=str(path), name="rules.pdf"), rules_text="", save=Mock())
+            # Remote FieldFile has open(), but may not implement filesystem path.
+            tournament = SimpleNamespace(id=1, rules_pdf=SimpleNamespace(open=lambda mode: path.open(mode), name="rules.pdf"), rules_text="", save=Mock())
             self.assertIn("OwnLobby", import_rules_from_pdf(tournament))
             tournament.save.assert_called_once_with(update_fields=["rules_text"])
             self.assertIn("OwnLobby", preview_pdf_text(tournament))

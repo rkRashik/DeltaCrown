@@ -1,0 +1,67 @@
+From 1616f702d36eda8990a5a5b22ad70fab140a7eb1 Mon Sep 17 00:00:00 2001
+From: arkmarta <arkadiuszmarta@proton.me>
+Date: Fri, 31 Jul 2026 14:04:59 +0200
+Subject: [PATCH] Reject a bare CR or LF in an HTTP header value (#12754)
+
+---
+ src/twisted/web/http.py                    |  4 +++-
+ src/twisted/web/newsfragments/12754.bugfix |  1 +
+ src/twisted/web/test/test_http.py          | 22 ++++++++++++++++++++++
+ 3 files changed, 26 insertions(+), 1 deletion(-)
+ create mode 100644 src/twisted/web/newsfragments/12754.bugfix
+
+diff --git a/src/twisted/web/http.py b/src/twisted/web/http.py
+index 7dab7f4576c..21971f20ad8 100644
+--- a/src/twisted/web/http.py
++++ b/src/twisted/web/http.py
+@@ -2499,7 +2499,9 @@ def headerReceived(self, line):
+             return False
+ 
+         data = data.strip(b" \t")
+-        if b"\x00" in data:
++        # Reject NUL, CR, and LF in a header value (RFC 9110 section 5.5); a
++        # bare CR or LF would let a lenient proxy smuggle a following header.
++        if b"\x00" in data or b"\r" in data or b"\n" in data:
+             self._respondToBadRequestAndDisconnect()
+             return False
+ 
+diff --git a/src/twisted/web/newsfragments/12754.bugfix b/src/twisted/web/newsfragments/12754.bugfix
+new file mode 100644
+index 00000000000..9d42c46820c
+--- /dev/null
++++ b/src/twisted/web/newsfragments/12754.bugfix
+@@ -0,0 +1 @@
++twisted.web.http.HTTPChannel.headerReceived now rejects a header value that contains a bare carriage return or line feed, closing a request-smuggling gap where such a value could hide a following header from the parser (RFC 9110 section 5.5).
+diff --git a/src/twisted/web/test/test_http.py b/src/twisted/web/test/test_http.py
+index 690a9118960..b9f7eb699b0 100644
+--- a/src/twisted/web/test/test_http.py
++++ b/src/twisted/web/test/test_http.py
+@@ -2211,6 +2211,28 @@ def test_invalidHeaderValueNUL(self):
+                 [b"GET / HTTP/1.1", b"Host: foo.example", header, b"", b""]
+             )
+ 
++    def test_invalidHeaderValueCRLF(self):
++        """
++        A header value containing a bare CR or LF is rejected with a 400, as
++        required by RFC 9110 section 5.5; accepting it would let a following
++        header be hidden from the parser and enable request smuggling. The bytes
++        are fed directly because L{runRequest} normalises a bare LF to CRLF.
++        """
++        for value in [
++            b"a\nContent-Length: 5",  # bare LF hiding a header
++            b"a\rContent-Length: 5",  # bare CR hiding a header
++            b"a\nb",  # bare LF
++            b"a\rb",  # bare CR
++        ]:
++            channel = http.HTTPChannel()
++            transport = StringTransport()
++            channel.makeConnection(transport)
++            channel.dataReceived(
++                b"GET / HTTP/1.1\r\nHost: foo.example\r\nx-foo: " + value + b"\r\n\r\n"
++            )
++            self.assertTrue(transport.disconnecting)
++            self.assertEqual(transport.value(), b"HTTP/1.1 400 Bad Request\r\n\r\n")
++
+     def test_headerLimitPerRequest(self):
+         """
+         C{HTTPChannel} enforces the limit of C{HTTPChannel.maxHeaders} per

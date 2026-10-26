@@ -21,6 +21,7 @@ rm -rf node_modules            # CSS is already compiled into static/dist/
 
 # ── 2. Python ───────────────────────────────────────────────────────
 echo "🐍 Installing Python dependencies (production only)…"
+python scripts/build_twisted_backport.py
 pip install --no-cache-dir -r requirements-prod.txt
 
 echo "📦 Collecting Django static files…"

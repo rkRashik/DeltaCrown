@@ -1,5 +1,12 @@
 # OwnLobby dependency security remediation
 
+## Phase 4 update (current; Phase 3 evidence below is historical)
+
+Twisted 26.4.0+ownlobby.1 now contains the exact verified upstream HTTP security hunk, packaged and tested without a prerelease/runtime monkeypatch. Installed audit explicitly skips the non-PyPI local version; mandatory upstream-base audit still reports six findings across all 133 distributions. The HTTP finding is addressed by the backport; five other protocol findings remain installed/unexposed by declared services. Do not interpret the installed scan's no-findings message as clearance. See [security closure/provenance/tests](OWNLOBBY_SECURITY_CLOSURE.md) and branding/security-runtime-dependency-audit.json. Historical Phase 3 inventory/matrix are retained; the Phase 4 inventory is branding/security-runtime-dependency-inventory.json.
+
+All seven OAuth failures are corrected with documented causes and 47 passing OAuth/ownership tests. Linux/Python 3.12/native Cairo is still unverified; media privacy/durability/recovery and staging/provider gates remain. Dependency/runtime release closure remains conditional, overall production No-Go. No push/deploy or live settings changes occurred.
+
+
 Assessment date: 2026-10-26. **Substantial remediation implemented; dependency release gate remains open. Overall production release: No-Go.** No remote changes, deployment, migrations, secret rotation or financial operations occurred.
 
 ## Before and after
