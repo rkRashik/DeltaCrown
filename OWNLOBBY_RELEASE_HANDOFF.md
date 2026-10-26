@@ -6,6 +6,8 @@
 
 ## Phase 4 owner handoff (current)
 
+Implementation commit: **`03bb5281d9dc269a1a9d78de78e1dbd576beae76`** (`fix: close OwnLobby HTTP and OAuth security gaps`), branch `feature/ownlobby-security-runtime`. Recorded by a documentation-only follow-up; prior commits remain intact. Working tree was clean after the implementation commit; no remote write occurred.
+
 - **Implemented:** official Twisted HTTP backport on stable 26.4.0, hash-pinned committed wheel/rebuild tooling, mandatory base-version audit; repaired seven OAuth cases and strengthened Google/Steam state/assertion/identity ownership; safe upload sniffing, remote PDF streams and Docker secret exclusions. Existing IDs, tables, API routes, wallet/ledger behavior, brand/SEO and all 69 approved assets remain intact.
 - **Validation:** 219 focused passes/one Cairo skip; 47 OAuth/ownership passes; 88 workflow/offline-storage passes/nine existing skips; 238 upstream HTTP passes/five skips. Clean requirements install/resolution/pip check, loopback HTTP/WS/TLS, frontend/static builds and asset/template verifier pass. No observed passing-test regression in selected suites. Native rendering fails on unavailable Windows Cairo; Linux not run. Deploy check still blocks filesystem media and discloses schema warnings.
 - **Remaining advisories:** base scan deliberately reports six; one fixed by the verified HTTP hunk, five unused protocol vulnerabilities still installed. Normal installed scan skips the local Twisted version; it is not zero-vulnerability certification. Update to an acceptable stable upstream fix when available, with full regression/Linux checks.
