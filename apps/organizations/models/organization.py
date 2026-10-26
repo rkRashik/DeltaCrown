@@ -5,6 +5,8 @@ An Organization represents a verified business entity that can own
 multiple teams across different games (e.g., SYNTAX, Cloud9 Bangladesh).
 """
 
+from apps.common.media.fields import MediaFileField, MediaImageField
+
 import uuid as uuid_module
 
 from django.db import models
@@ -102,21 +104,21 @@ class Organization(models.Model):
     )
     
     # Branding assets
-    logo = models.ImageField(
+    logo = MediaImageField(
         upload_to='organizations/logos/',
         null=True,
         blank=True,
         help_text="Organization logo (inherited by teams if enforce_brand=True)",
         validators=[validate_image_upload],
     )
-    badge = models.ImageField(
+    badge = MediaImageField(
         upload_to='organizations/badges/',
         null=True,
         blank=True,
         help_text="Verified badge overlay",
         validators=[validate_image_upload],
     )
-    banner = models.ImageField(
+    banner = MediaImageField(
         upload_to='organizations/banners/',
         null=True,
         blank=True,

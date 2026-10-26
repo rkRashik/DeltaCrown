@@ -1,4 +1,4 @@
-﻿"""
+"""
 Team Manage HQ API Views
 
 Endpoints for Team Manage (HQ) functionality:
@@ -23,6 +23,8 @@ All endpoints enforce permissions:
 - MANAGER role can manage roster (add/remove/change roles)
 - Organization admins can manage org-owned teams
 """
+
+from django.core.exceptions import ValidationError as MediaValidationError
 
 import json
 import re
@@ -2806,7 +2808,10 @@ def profile_upload_media(request, slug):
         team.logo = file
     else:
         team.banner = file
-    team.save(update_fields=[media_type])
+    try:
+        team.save(update_fields=[media_type])
+    except MediaValidationError:
+        return JsonResponse({'error': 'Invalid or oversized image.'}, status=400)
 
     url = getattr(team, media_type).url if getattr(team, media_type) else ''
     return JsonResponse({
@@ -2836,15 +2841,18 @@ def community_upload_media(request, slug):
         return JsonResponse({'error': 'File too large (max 10MB)'}, status=400)
 
     from apps.organizations.models import TeamMedia
-    media = TeamMedia.objects.create(
-        team=team,
-        uploaded_by=request.user,
-        title=title[:200],
-        category=category,
-        file=file,
-        file_size=file.size,
-        file_type='image' if file.content_type.startswith('image') else 'video',
-    )
+    try:
+        media = TeamMedia.objects.create(
+            team=team,
+            uploaded_by=request.user,
+            title=title[:200],
+            category=category,
+            file=file,
+            file_size=file.size,
+            file_type='image' if file.content_type.startswith('image') else 'video',
+        )
+    except MediaValidationError:
+        return JsonResponse({'error': 'Invalid or oversized media.'}, status=400)
 
     return JsonResponse({
         'success': True,

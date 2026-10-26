@@ -145,8 +145,8 @@ def create_post(request):
                 if media_type in ['image', 'gif']:
                     try:
                         from PIL import Image
-                        img = Image.open(media.file.path)
-                        media.width, media.height = img.size
+                        with media.file.open("rb") as stream, Image.open(stream) as img:
+                            media.width, media.height = img.size
                         media.save(update_fields=['width', 'height'])
                     except Exception as e:
                         logger.warning(f"Could not extract image dimensions: {e}")

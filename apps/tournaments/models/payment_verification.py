@@ -1,6 +1,8 @@
 # apps/tournaments/models/payment_verification.py
 from __future__ import annotations
 
+from apps.common.media.fields import MediaFileField, MediaImageField
+
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
@@ -66,7 +68,7 @@ class PaymentVerification(SoftDeleteModel):
     note = models.CharField(max_length=255, blank=True)
 
     # Optional proof image (screenshot / receipt)
-    proof_image = models.ImageField(
+    proof_image = MediaImageField(
         upload_to="payments/proofs/", null=True, blank=True,
         validators=[validate_payment_proof_upload],
     )

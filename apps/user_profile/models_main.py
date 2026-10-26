@@ -1,3 +1,5 @@
+
+from apps.common.media.fields import MediaFileField, MediaImageField
 from django.db import models
 from django.conf import settings
 from django.utils import timezone
@@ -100,8 +102,8 @@ class UserProfile(models.Model):
         default="",
         help_text="Custom URL slug (e.g., deltacrown.com/u/legend)"
     )
-    avatar = models.ImageField(upload_to=user_avatar_path, blank=True, null=True, validators=[validate_image_upload])
-    banner = models.ImageField(upload_to=user_banner_path, blank=True, null=True, help_text="Profile banner image", validators=[validate_image_upload])
+    avatar = MediaImageField(upload_to=user_avatar_path, blank=True, null=True, validators=[validate_image_upload])
+    banner = MediaImageField(upload_to=user_banner_path, blank=True, null=True, help_text="Profile banner image", validators=[validate_image_upload])
     bio = models.TextField(
         blank=True,
         default="",
@@ -1214,21 +1216,21 @@ class VerificationRecord(models.Model):
     )
     
     # ===== VERIFICATION DOCUMENTS =====
-    id_document_front = models.ImageField(
+    id_document_front = MediaImageField(
         upload_to=verification_kyc_document_path,
         null=True,
         blank=True,
         help_text="Front side of government-issued ID (NID, Passport, Driver's License)",
         validators=[validate_image_upload],
     )
-    id_document_back = models.ImageField(
+    id_document_back = MediaImageField(
         upload_to=verification_kyc_document_path,
         null=True,
         blank=True,
         help_text="Back side of government-issued ID",
         validators=[validate_image_upload],
     )
-    selfie_with_id = models.ImageField(
+    selfie_with_id = MediaImageField(
         upload_to=verification_kyc_document_path,
         null=True,
         blank=True,
@@ -1730,7 +1732,7 @@ class GameProfile(models.Model):
         default="",
         help_text="Current rank (e.g., Diamond 2, Global Elite)"
     )
-    rank_image = models.ImageField(
+    rank_image = MediaImageField(
         upload_to='rank_images/',
         blank=True,
         null=True,
@@ -2324,7 +2326,7 @@ class Certificate(models.Model):
     )
     
     # Images
-    image = models.ImageField(
+    image = MediaImageField(
         upload_to='certificates/',
         help_text="Full certificate image",
         validators=[validate_image_upload],
@@ -2461,19 +2463,19 @@ class KYCSubmission(models.Model):
         choices=DOCUMENT_TYPE_CHOICES,
         help_text="Type of identity document"
     )
-    document_front = models.ImageField(
+    document_front = MediaImageField(
         upload_to=kyc_document_path,
         help_text="Front side of the identity document",
         validators=[validate_image_upload],
     )
-    document_back = models.ImageField(
+    document_back = MediaImageField(
         upload_to=kyc_document_path,
         blank=True,
         null=True,
         help_text="Back side of the identity document (if applicable)",
         validators=[validate_image_upload],
     )
-    selfie_with_document = models.ImageField(
+    selfie_with_document = MediaImageField(
         upload_to=kyc_document_path,
         blank=True,
         null=True,

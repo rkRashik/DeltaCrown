@@ -1,6 +1,8 @@
 """
 Community and User Social Models
 """
+
+from apps.common.media.fields import MediaFileField, MediaImageField
 from django.db import models
 from django.db.models import Q
 from django.contrib.auth import get_user_model
@@ -701,7 +703,7 @@ class ArenaHighlight(models.Model):
         blank=True,
     )
     custom_title = models.CharField(max_length=200, blank=True, default="")
-    custom_thumbnail = models.ImageField(
+    custom_thumbnail = MediaImageField(
         upload_to="arena/highlights/%Y/%m/%d/",
         validators=[validate_image_upload],
         null=True,
@@ -823,7 +825,7 @@ class ArenaStream(models.Model):
     embed_url = models.URLField(blank=True, default="")
     provider = models.CharField(max_length=20, choices=PROVIDER_CHOICES, default=PROVIDER_OTHER, blank=True)
     custom_title = models.CharField(max_length=200, blank=True, default="")
-    custom_thumbnail = models.ImageField(
+    custom_thumbnail = MediaImageField(
         upload_to="arena/streams/%Y/%m/%d/",
         validators=[validate_image_upload],
         null=True,
@@ -1125,8 +1127,8 @@ class CommunityPostMedia(models.Model):
     
     post = models.ForeignKey(CommunityPost, on_delete=models.CASCADE, related_name='media')
     media_type = models.CharField(max_length=10, choices=MEDIA_TYPES, default='image')
-    file = models.FileField(upload_to='community/posts/%Y/%m/%d/')
-    thumbnail = models.ImageField(upload_to='community/thumbnails/%Y/%m/%d/', blank=True, validators=[validate_image_upload])
+    file = MediaFileField(upload_to='community/posts/%Y/%m/%d/')
+    thumbnail = MediaImageField(upload_to='community/thumbnails/%Y/%m/%d/', blank=True, validators=[validate_image_upload])
     alt_text = models.CharField(max_length=200, blank=True)
     
     # File info

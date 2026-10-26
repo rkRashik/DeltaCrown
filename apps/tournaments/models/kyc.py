@@ -8,6 +8,8 @@ Players submit identity documents to claim prizes above a threshold.
 Organizers/admins review and approve/reject in the TOC Prize tab.
 """
 
+from apps.common.media.fields import MediaFileField, MediaImageField
+
 import uuid
 
 from django.conf import settings
@@ -78,17 +80,17 @@ class KYCSubmission(models.Model):
         max_length=30,
         choices=DOCUMENT_TYPE_CHOICES,
     )
-    document_front = models.FileField(
+    document_front = MediaFileField(
         upload_to="kyc/documents/",
         help_text="Front of document (image/PDF).",
     )
-    document_back = models.FileField(
+    document_back = MediaFileField(
         upload_to="kyc/documents/",
         null=True,
         blank=True,
         help_text="Back of document (for NID).",
     )
-    selfie_image = models.ImageField(
+    selfie_image = MediaImageField(
         upload_to="kyc/selfies/",
         null=True,
         blank=True,

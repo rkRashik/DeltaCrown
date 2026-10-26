@@ -1,5 +1,8 @@
 # OwnLobby production readiness
 
+> Current media disposition: [final engineering handoff](OWNLOBBY_FINAL_ENGINEERING_HANDOFF.md). All 53 concrete upload fields now have opt-in governed routing, validation and authorized delivery. `siteui.E002`?`E006` additionally enforce governed configuration, distinct private origins, verification and field-policy coverage. Actual cloud ACLs/persistence, recovery and Linux/Cairo are still unverified; production remains No-Go.
+
+
 Audit date: 2026-10-26. Rebrand baseline: `ece37c2fa5fc9f81305375684d2c8e606c9e2c88`. Readiness checkpoint: `c525ffb7be6ebca1c17d3bdd07e6650b6d738ffb`. Branch: `feature/ownlobby-production-readiness`.
 
 ## Release decision

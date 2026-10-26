@@ -1,5 +1,8 @@
 # OwnLobby media architecture and Phase 5 implementation plan
 
+> Implementation update: [final engineering handoff](OWNLOBBY_FINAL_ENGINEERING_HANDOFF.md). The inventory and proposed plan below are historical audit evidence. Current opt-in code integrates all 53 concrete fields, separate public/private aliases and record-authorized streaming; both origins remain private. No provider has been selected or verified, and no production file/reference was migrated. Follow the new handoff for actual settings, backfill and rollback commands.
+
+
 Audit: 2026-10-26, local source/schema only. **No provider selected/configured, bucket purchased, production object read, media copied or database record changed.** The storage/privacy/recovery release gate remains open. Proposed classifications require product/privacy approval where conditional; they are not assertions that current raw URLs are protected.
 
 ## Complete model inventory

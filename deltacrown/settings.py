@@ -713,6 +713,14 @@ STORAGES = {
     },
 }
 
+# Opt-in cutover: separate private origins; legacy stays available for rollback only.
+from apps.common.media.configuration import configure as configure_media_storage
+OWNLOBBY_MEDIA_MODE = configure_media_storage(STORAGES, BASE_DIR, MEDIA_ROOT)
+MEDIA_STORAGE_VERIFIED = os.getenv("MEDIA_STORAGE_VERIFIED", "0") == "1"
+MEDIA_RESTORE_VERIFIED = os.getenv("MEDIA_RESTORE_VERIFIED", "0") == "1"
+if OWNLOBBY_MEDIA_MODE != "legacy":
+    CKEDITOR_5_FILE_STORAGE = "apps.common.media.editor.EditorStorage"
+
 # WhiteNoise: immutable cache headers for hashed static assets (1 year).
 # CompressedManifestStaticFilesStorage adds content hashes to filenames,
 # making aggressive caching safe.

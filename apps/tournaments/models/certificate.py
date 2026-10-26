@@ -14,6 +14,8 @@ This module defines:
 - Revocation support for audit trail
 """
 
+from apps.common.media.fields import MediaFileField, MediaImageField
+
 import uuid
 from django.db import models
 from django.conf import settings
@@ -79,7 +81,7 @@ class Certificate(TimestampedModel):
     )
     
     # File storage (PDF + image)
-    file_pdf = models.FileField(
+    file_pdf = MediaFileField(
         upload_to='certificates/pdf/%Y/%m/',
         null=True,
         blank=True,
@@ -87,7 +89,7 @@ class Certificate(TimestampedModel):
         validators=[validate_document_upload],
     )
     
-    file_image = models.ImageField(
+    file_image = MediaImageField(
         upload_to='certificates/images/%Y/%m/',
         null=True,
         blank=True,

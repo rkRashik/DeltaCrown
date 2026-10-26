@@ -13,6 +13,8 @@ Lifecycle:
 """
 from __future__ import annotations
 
+from apps.common.media.fields import MediaFileField, MediaImageField
+
 import uuid
 
 from django.conf import settings
@@ -294,7 +296,7 @@ class ContractProofSubmission(models.Model):
         related_name='mission_proof_submissions',
     )
     proof_url = models.URLField(max_length=500, blank=True, default='')
-    proof_file = models.FileField(
+    proof_file = MediaFileField(
         upload_to=_mission_proof_upload_to,
         validators=[validate_payment_proof_upload],
         blank=True,

@@ -1,5 +1,8 @@
 # OwnLobby production domain migration
 
+> Storage prerequisite update: use the [final engineering handoff](OWNLOBBY_FINAL_ENGINEERING_HANDOFF.md) for `OWNLOBBY_MEDIA_MODE` and the new two-bucket variables. A global Cloudinary setting alone no longer satisfies the release gate. Both object-store origins must remain private, including the public-artwork category. Preserve the migration sequence below after real staging/restore approval.
+
+
 Status (2026-10-26): **No-Go pending the operational gates in OWNLOBBY_PRODUCTION_READINESS.md.** Local preparation is implemented and tested. No DNS, deployment, provider, mailbox or payment configuration changed.
 
 ## Configuration delivered

@@ -1,5 +1,8 @@
 # OwnLobby release handoff
 
+> Current engineering update: [final engineering handoff](OWNLOBBY_FINAL_ENGINEERING_HANDOFF.md). Governed media code is now implemented locally, behind `OWNLOBBY_MEDIA_MODE`; live persistence/privacy, Linux/Cairo and restore gates remain open. The Phase 4 sections below preserve historical evidence. No push or deployment is authorized.
+
+
 ## Decision
 
 **No-Go for production deployment/cutover.** Phase 4 implements the reviewed HTTP backport and resolves all seven OAuth failures locally. Linux/Python 3.12/native Cairo, private/durable media, recovery, actual staging/provider/mail/worker checks and separate release approval remain required. This is a local review/Linux-validation candidate, not a certified staging release. Nothing was pushed, merged, deployed, purchased or changed in production/DNS/providers.

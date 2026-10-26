@@ -31,6 +31,14 @@ class MediaProxyMiddleware:
 
     def __call__(self, request):
         response = self.get_response(request)
+        # No implicit production reads or fallback for confidential/unclassified keys.
+        if not getattr(settings, "MEDIA_PROXY_PUBLIC_PREFIXES", ()):
+            return response
+        relative = request.path.removeprefix(settings.MEDIA_URL)
+        if not any(relative.startswith(prefix) for prefix in settings.MEDIA_PROXY_PUBLIC_PREFIXES):
+            return response
+        if getattr(settings, "OWNLOBBY_MEDIA_MODE", "legacy") != "legacy":
+            return response
 
         if response.status_code != 404:
             return response
@@ -82,5 +90,5 @@ class MediaProxyMiddleware:
         if not getattr(settings, "DEBUG", False):
             return None
         # Read from env – defaults to production site
-        url = os.getenv("MEDIA_PROXY_URL", "https://deltacrown.xyz")
+        url = os.getenv("MEDIA_PROXY_URL", "")
         return url.rstrip("/")

@@ -2,6 +2,8 @@
 Core Game model - single source of truth for game configuration.
 """
 
+from apps.common.media.fields import MediaFileField, MediaImageField
+
 from django.db import models
 from django.core.validators import RegexValidator
 from django.utils.text import slugify
@@ -86,25 +88,25 @@ class Game(models.Model):
     )
     
     # === MEDIA ===
-    icon = models.ImageField(
+    icon = MediaImageField(
         upload_to='games/icons/',
         null=True,
         blank=True,
         validators=[validate_image_upload],
     )
-    logo = models.ImageField(
+    logo = MediaImageField(
         upload_to='games/logos/',
         null=True,
         blank=True,
         validators=[validate_image_upload],
     )
-    banner = models.ImageField(
+    banner = MediaImageField(
         upload_to='games/banners/',
         null=True,
         blank=True,
         validators=[validate_image_upload],
     )
-    card_image = models.ImageField(
+    card_image = MediaImageField(
         upload_to='games/cards/',
         null=True,
         blank=True,

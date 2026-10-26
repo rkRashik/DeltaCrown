@@ -53,3 +53,6 @@ backups/
 .idea/
 .DS_Store
 Thumbs.db
+
+# Confidential local media is never build context.
+.private-media/

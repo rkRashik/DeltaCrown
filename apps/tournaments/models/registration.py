@@ -12,6 +12,8 @@ This module defines:
 - Payment: Payment proof submission and verification workflow
 """
 
+from apps.common.media.fields import MediaFileField, MediaImageField
+
 from decimal import Decimal
 from typing import Optional, Any
 from django.conf import settings
@@ -465,7 +467,7 @@ class Payment(SoftDeleteModel):
     )
     
     # Payment proof file upload (Module 3.2: Payment Processing)
-    payment_proof = models.FileField(
+    payment_proof = MediaFileField(
         upload_to='payment_proofs/%Y/%m/',
         blank=True,
         null=True,
@@ -559,7 +561,7 @@ class Payment(SoftDeleteModel):
         help_text="Registrant note for payment"
     )
     
-    proof_image = models.ImageField(
+    proof_image = MediaImageField(
         upload_to='payments/proofs/',
         null=True,
         blank=True,

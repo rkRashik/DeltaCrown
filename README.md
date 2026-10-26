@@ -131,6 +131,8 @@ python scripts/verify_ownlobby.py --collect-static
 
 `staticfiles/` is collected output; `static/` contains required source and deployment assets. `media/` contains local uploads/evidence and must not be treated as static output or deleted as cleanup. All 69 approved OwnLobby assets are hash-protected by [asset provenance](branding/approved-assets.json).
 
+[Final media implementation and release steps](OWNLOBBY_FINAL_ENGINEERING_HANDOFF.md) describe the opt-in `OWNLOBBY_MEDIA_MODE=local|s3` architecture. Default `legacy` preserves existing local data until a reviewed backfill; it is blocked for a persistent-media production release. Do not enable split storage before copying/verifying existing keys, or enable public access on either bucket. No provider credentials are needed for `deltacrown.settings_media_qa` synthetic tests.
+
 [Media architecture](OWNLOBBY_MEDIA_ARCHITECTURE.md) inventories 53 concrete upload fields plus rich-text uploads. Public and confidential files currently share the default backend. Cloudinary/S3 helper presence does not prove private ACLs, persistence or recovery. Provider selection, file migration and restore tests need a separate approved workstream. `siteui.E001` intentionally blocks an ephemeral-media production release; do not silence it.
 
 ## Development and production boundaries
