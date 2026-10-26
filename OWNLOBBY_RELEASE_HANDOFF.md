@@ -2,7 +2,20 @@
 
 ## Decision
 
-**No-Go for production deployment/cutover; local corrections are an isolated staging candidate.** Python dependency remediation and the infrastructure gates below remain required. Nothing was pushed, deployed, purchased or changed in DNS, production providers, mail or payment settings.
+**No-Go for production deployment/cutover; local corrections are an isolated staging candidate.** Phase 3 dependency updates are implemented, but the Twisted HTTP parser finding, Linux/runtime validation and the infrastructure gates below remain required. Nothing was pushed, deployed, purchased or changed in DNS, production providers, mail or payment settings.
+
+## Phase 3 dependency handoff (2026-10-26)
+
+- **Changed:** compatible security upgrades in both requirements files; Docker production now uses the same runtime source as Render. Maintained pypdf replaces unsupported PyPDF2; PDF preview's undefined reader references are fixed. No schema/business/financial/provider changes. All 69 approved asset hashes remain identical.
+- **Fixed:** 191 of 197 underlying baseline advisories. Raw entries decreased 308 to 6; affected packages 29 to 1. Clean runtime install and pip check pass. Full matrix/inventory are committed under branding/; see [dependency report](OWNLOBBY_DEPENDENCY_SECURITY.md).
+- **Remaining security blocker:** Twisted 26.4.0 HTTP bare CR/LF parser advisory GHSA-q7qq-6mhp-9rc4; only a prerelease fix is currently listed. A bounded local transport test confirms parser acceptance; actual Render proxy behavior is unverified. Five unused-protocol Twisted findings remain installed and documented. Dependency gate is **not resolved**.
+- **Compatibility evidence:** final focused 211 pass/one Cairo skip; workflow 60 pass/one existing skip. Expanded mocked OAuth/offline storage: 38 pass/seven failures/eight skips, with identical outcomes in the original environment. No observed passing-test regression. Linux/Python 3.12 execution and native Cairo remain unverified; wheel availability alone is not parity.
+- **Visual evidence:** 12 guest viewport checks pass; mobile homepage has two disclosed accessibility findings, mobile login none. Static collection/build succeeds; unchanged dormant optional template failure remains. See [commands and limits](OWNLOBBY_DEPENDENCY_VALIDATION.md).
+- **Owner next steps:** arrange review and completion of the stable Twisted fix/backport and isolated Linux 3.12/Cairo validation; investigate baseline OAuth failures. Then complete storage/recovery, staging, mail/providers and existing approval gates below. No dashboard action is needed merely to review these local dependency changes. No new variables or credentials are required.
+- **Do not change yet:** production dependencies, Render runtime/service names, DNS, secrets, callbacks, sender, canonical origin, redirects or remote branches. Do not deploy this intermediate security candidate.
+- **Rollback point:** Phase 2 `00fa31d942386ca0e9d42fbd553d4ff7eb81cc83`; empty safety checkpoint `c797aeab7917cf258884954bdbad2ea3cea6078f`; task branch `feature/ownlobby-dependency-security`. Restore dependency artifacts by rebuilding a separate clean environment at the reviewed commit; do not mutate production or rewrite history. Reverting this local change would also restore known vulnerabilities, so it is not a recommended production release.
+
+The Phase 2 validation table below remains historical except for its updated dependency row; current Phase 3 evidence is summarized above. The existing manual environment-variable table and domain migration sequence remain unchanged. No production-sensitive variable was introduced by Phase 3.
 
 ## Git and rollback point
 
@@ -29,7 +42,7 @@ Implementation commit: **`8dff4da78162a986ca5e1c8d93d8a4a15f6c774d`** — `fix: 
 | Assets/static/build | 69 approved copies verified; locked `npm ci --include=dev` and combined build pass; production-style collectstatic passes without error suppression; critical hashed entries resolve. |
 | Domain/security | Three production-mode old/additive/new-canonical configurations pass; three unsafe canonical origins rejected; secure cookies retained. Trusted old/new WS origins accepted, untrusted/missing origins and invalid/expired tokens denied. |
 | Frontend syntax | Ten relevant standalone/build entry points pass `node --check`; affected inline behavior is exercised in browser QA. Shell scripts pass `bash -n`; Render YAML parses. |
-| Dependency audit | Existing npm chain: four moderate findings. Separate pinned-production Python scan: **308 advisory entries / 29 packages**, requiring triage and compatible remediation. Requirements were not upgraded; full transitive/runtime exposure is not established. |
+| Dependency audit | **Phase 3: 308 raw entries / 197 underlying advisories reduced to six in Twisted; 191 fixed.** Clean production install/pip check and both requirement resolutions pass. Public HTTP advisory plus Linux/runtime validation keep gate open. Existing four moderate npm findings remain separate. |
 | Browser | 24 page/viewport checks at 360/768/1440 pixels return 200 without overflow or page JavaScript errors. Old/new Host requests use the selected canonical sitemap. Six sitemap XML endpoints return 200. |
 | Accessibility | Homepage/login/teams desktop and settings/wallet mobile scans pass. Tournament scans pass at 360/768/1440 after scoped semantic/name/contrast fixes. Desktop section and mobile share keyboard activation pass. Scope is not an accessibility certification. |
 | Not tested live | Render Linux/Python 3.12 execution, true staging, remote Supabase/Upstash/worker load, provider callbacks, SMTP deliverability/bounces, production upload ACLs/persistence, backup restoration, real financial transactions, full device/browser matrix, load/Core Web Vitals. |
@@ -38,7 +51,7 @@ Evidence is retained locally under ignored `Artifacts/readiness/`, including log
 
 ## Release blockers and owner actions, in order
 
-**Security prerequisite:** commission/complete a tested production dependency maintenance change using `branding/production-dependency-audit.json` and the readiness report. Resolve relevant Django/Daphne/image-parser and other auth/crypto/network/PDF advisories, align requirement pins, audit again and validate on Linux/Python 3.12. This is required engineering work before deployment, not merely a dashboard checkbox. No unvalidated mass upgrade or residual-risk acceptance is included here.
+**Security prerequisite (updated):** complete the remaining Twisted HTTP parser remediation and Linux/Python 3.12/native-runtime validation described in the Phase 3 handoff. Investigate the seven reproduced baseline OAuth failures. Most dependency advisories are now fixed; the combined release is still blocked. No residual-risk acceptance occurred.
 
 1. **Storage and recovery:** confirm the actual production storage backend. Prove public media durability and confidential evidence/KYC authorization with restore and restart tests. Do not simply add public Cloudinary storage for private documents. Choose/approve any storage costs and migration plan before moving uploads. Back up Supabase and media; demonstrate a restore in isolation.
 2. **Live configuration/staging:** compare actual Render dashboard commands, plan, auto-deploy, environment groups, secret/debug names, Supabase URL and existing worker/Upstash/cron setup with the reviewed files. Establish an isolated staging environment or approve its costs, then run the platform-parity and functional checks. Keep the existing secret values, service/database identities and working monitor targets.

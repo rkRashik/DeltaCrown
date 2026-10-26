@@ -19,21 +19,9 @@ logger = logging.getLogger(__name__)
 
 
 def _load_pdf_reader_class():
-    """Load a PDF reader class, preferring pypdf and falling back to PyPDF2."""
-    try:
-        from pypdf import PdfReader  # type: ignore
-        return PdfReader
-    except ImportError:
-        pass
-
-    try:
-        from PyPDF2 import PdfReader  # type: ignore
-        return PdfReader
-    except ImportError as exc:
-        raise ImportError(
-            "PDF import requires pypdf (preferred) or PyPDF2. "
-            "Install one with: pip install pypdf"
-        ) from exc
+    """Use the maintained, pinned parser; never silently fall back to PyPDF2."""
+    from pypdf import PdfReader
+    return PdfReader
 
 
 def import_rules_from_pdf(tournament, *, overwrite: bool = True) -> Optional[str]:
@@ -304,13 +292,11 @@ def preview_pdf_text(tournament, max_chars: int = 1000) -> Optional[str]:
         Preview of extracted text, or None if no PDF
     """
     
-    if not PYPDF2_AVAILABLE:
-        return "PyPDF2 not installed"
-    
     if not tournament.rules_pdf or not tournament.rules_pdf.name:
         return None
     
     try:
+        PdfReader = _load_pdf_reader_class()
         with open(tournament.rules_pdf.path, 'rb') as pdf_file:
             reader = PdfReader(pdf_file)
             first_page = reader.pages[0]
