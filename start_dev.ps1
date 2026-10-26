@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    DeltaCrown Development Launcher
+    OwnLobby Development Launcher
 .DESCRIPTION
     Launches Django (0.0.0.0:8000), Celery, and Discord bot.
 #>
@@ -26,7 +26,7 @@ else {
 }
 
 Write-Host "------------------------------------------------" -ForegroundColor Cyan
-Write-Host "   DeltaCrown - Dev Launcher" -ForegroundColor Cyan
+Write-Host "   OwnLobby - Dev Launcher" -ForegroundColor Cyan
 Write-Host "------------------------------------------------" -ForegroundColor Cyan
 Write-Host ""
 

@@ -1,156 +1,73 @@
 #!/usr/bin/env python3
-"""Repo Hygiene Guard - Enforce file placement rules.
+"""Check tracked/non-ignored root placement; never change owner files.
 
-Usage:
-    python scripts/ops/check_repo_hygiene.py
-
-Exits with code 1 if violations found.
+Ignored local media, documents and databases require separate inventory/review.
+This command never recommends deleting them or moving docs into ignored paths.
 """
-import sys
+import json
 from pathlib import Path
+import subprocess
+import sys
 
-# Navigate to project root (2 levels up from scripts/ops/)
-PROJECT_ROOT = Path(__file__).parent.parent.parent
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
-# Allowed root files (baseline + standard project files)
-ALLOWED_ROOT_FILES = {
-    # Python project standard
-    'manage.py',
-    'pyproject.toml',
-    'pytest.ini',
-    'Makefile',
-    'schema.yml',
-    
-    # Documentation standard
-    'README.md',
-    'README_TECHNICAL.md',
-    
-    # Configuration standard
-    '.env',
-    '.env.example',
-    '.env.test.template',
-    '.flake8',
-    '.gitignore',
-    '.gitleaks.toml',
-    '.pre-commit-config.yaml',
-    
-    # Docker
-    'Dockerfile',
-    'docker-compose.yml',
-    'docker-compose.staging.yml',
-    'docker-compose.test.yml',
-}
 
-# File patterns that should NOT be in root
-FORBIDDEN_ROOT_PATTERNS = [
-    ('*.md', 'Markdown docs (except README*.md)'),
-    ('test_*.py', 'Test files'),
-    ('*_test.py', 'Test files'),
-    ('scan_*.py', 'Scanning scripts'),
-    ('check_*.py', 'Check scripts'),
-    ('fix_*.py', 'Fix scripts'),
-    ('add_*.py', 'Addition scripts'),
-    ('delete_*.py', 'Deletion scripts'),
-    ('create_*.py', 'Creation scripts'),
-    ('drop_*.py', 'Drop scripts'),
-    ('list_*.py', 'List scripts'),
-    ('verify_*.py', 'Verification scripts'),
-    ('validate_*.py', 'Validation scripts'),
-    ('reset_*.py', 'Reset scripts'),
-    ('show_*.py', 'Show scripts'),
-    ('compare_*.py', 'Comparison scripts'),
-    ('*.sql', 'SQL files'),
-    ('*.sqlite3', 'SQLite databases'),
-    ('*.db', 'Database files'),
-]
+def repository_paths(root):
+    result = subprocess.run(
+        ["git", "-C", str(root), "ls-files", "--cached", "--others", "--exclude-standard", "-z"],
+        capture_output=True,
+        check=True,
+    )
+    return sorted(set(value for value in result.stdout.decode("utf-8").split("\0") if value))
 
-def check_root_hygiene():
-    """Check for unauthorized files in project root."""
-    violations = []
-    
-    # Get all files in root (not directories)
-    root_files = [f for f in PROJECT_ROOT.iterdir() if f.is_file() and not f.name.startswith('.')]
-    
-    for file_path in root_files:
-        filename = file_path.name
-        
-        # Check if allowed
-        if filename in ALLOWED_ROOT_FILES:
-            continue
-        
-        # Check forbidden patterns
-        for pattern, description in FORBIDDEN_ROOT_PATTERNS:
-            from fnmatch import fnmatch
-            if fnmatch(filename, pattern):
-                violations.append({
-                    'file': filename,
-                    'reason': description,
-                    'suggest': get_suggested_location(filename)
-                })
-                break
-        else:
-            # File doesn't match allowed or forbidden - flag for review
-            if not filename.startswith('.'):  # Ignore hidden files
-                violations.append({
-                    'file': filename,
-                    'reason': 'Not in allowed root files list',
-                    'suggest': 'Review and add to allowed list or move'
-                })
-    
-    return violations
 
 def get_suggested_location(filename):
-    """Suggest proper location for misplaced file."""
-    if filename.endswith('.md'):
-        if 'PHASE' in filename or 'TRACKER' in filename or 'VNEXT' in filename:
-            return 'docs/vnext/'
-        elif 'OPS' in filename or 'ERADICATION' in filename or 'FIX' in filename:
-            return 'docs/ops/'
-        else:
-            return 'docs/'
-    
-    if filename.startswith('test_') or filename.endswith('_test.py'):
-        return 'tests/'
-    
-    if any(prefix in filename.lower() for prefix in ['scan', 'check', 'fix', 'add', 'delete', 'create', 'drop', 'list', 'verify', 'validate', 'reset', 'show', 'compare']):
-        return 'scripts/ops/'
-    
-    if filename.endswith('.sql'):
-        return 'scripts/ops/ or docs/ops/'
-    
-    if filename.endswith(('.sqlite3', '.db')):
-        return 'DELETE (test artifacts)'
-    
-    return 'docs/ or scripts/ops/'
+    if filename.endswith((".sqlite3", ".db", ".dump", ".sql")):
+        return "Preserve and review provenance, ownership and recovery requirements; no automatic deletion"
+    if filename.endswith(".md"):
+        return "Review against OWNLOBBY_DOCUMENTATION_GUIDE.md; do not move owner documents automatically"
+    return "Review purpose and references before changing placement"
+
+
+def check_root_hygiene():
+    policy = json.loads(
+        (PROJECT_ROOT / "config/repository-policy.json").read_text(encoding="utf-8")
+    )
+    allowed = set(policy["allowed_root_files"])
+    violations = []
+    for name in repository_paths(PROJECT_ROOT):
+        if "/" in name:
+            continue
+        sensitive = (
+            name == ".env"
+            or name.startswith(".env.")
+            or name.endswith((".sqlite3", ".db", ".dump", ".log"))
+        )
+        if sensitive or name not in allowed:
+            violations.append(
+                {
+                    "file": name,
+                    "reason": (
+                        "Sensitive/generated root file requires review"
+                        if sensitive
+                        else "Not in reviewed root placement policy"
+                    ),
+                    "suggest": get_suggested_location(name),
+                }
+            )
+    return violations
+
 
 def main():
-    """Main entry point."""
-    print("🔍 Checking repo hygiene...\n")
-    
     violations = check_root_hygiene()
-    
+    for item in violations:
+        print(item["file"] + ": " + item["reason"] + "; " + item["suggest"])
     if not violations:
-        print("✅ Root folder clean - no hygiene violations found")
-        return 0
-    
-    print(f"❌ Found {len(violations)} hygiene violation(s):\n")
-    
-    for v in violations:
-        print(f"  File: {v['file']}")
-        print(f"  Reason: {v['reason']}")
-        print(f"  Suggested location: {v['suggest']}")
-        print()
-    
-    print("---")
-    print("Repo Hygiene Rules:")
-    print("  • Documentation: docs/vnext/, docs/ops/")
-    print("  • Tests: tests/")
-    print("  • Scripts: scripts/ops/")
-    print("  • Only standard project files allowed in root")
-    print()
-    print("Fix violations by moving files to proper locations.")
-    
-    return 1
+        print(
+            "Reviewed tracked/non-ignored root placement passes. Ignored owner files and release gates require separate review."
+        )
+    return bool(violations)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     sys.exit(main())

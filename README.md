@@ -2,205 +2,149 @@
 
 **Your Lobby. Your Next Level.**
 
-OwnLobby is a Bangladesh-first, globally ambitious esports platform for tournaments, teams, rankings, player identity, community, and competitive rewards.
+OwnLobby is a Bangladesh-first competitive gaming and esports platform built with Django. The codebase includes tournaments and match operations, teams and organizations, player profiles and Game Passport, rankings, Coins wallets and escrow, community features, organizer/admin tools, and real-time updates. Showdown, Missions, Bounty and Dropzone have evolving workflows; availability depends on configuration and permissions.
 
-It is built for the full competitive lifecycle: discovering games, forming teams, joining tournaments, proving results, climbing rankings, earning rewards, developing talent, and building a lasting esports identity.
+**Release status:** local engineering candidate, not certified for production or staging deployment. Linux/Python 3.12 and native Cairo validation, private durable media, backup restoration, and successful provider/mail/worker staging checks remain open. Start with the [release handoff](OWNLOBBY_RELEASE_HANDOFF.md) and [production readiness](OWNLOBBY_PRODUCTION_READINESS.md).
 
-## What OwnLobby Is
+Technical identifiers such as the `deltacrown` Python package, app/model/table names, internal currency fields, integration identities and infrastructure hostnames remain for compatibility. Public platform branding is OwnLobby. Do not rename these identifiers as cosmetic cleanup.
 
-OwnLobby is not just a bracket tool or a profile site. It is a connected esports ecosystem.
+## Architecture and layout
 
-The platform brings together:
+Django renders templates and exposes REST APIs. Domain services coordinate tournament, team, ranking and economy behavior. Daphne/Channels serve ASGI and WebSockets; Redis supports caching/channel layers and Celery background work. Django manages PostgreSQL connections; Supabase, Upstash and Render are existing production dependencies, not services that development setup should modify.
 
-- Tournaments and match operations
-- Teams and esports organizations
-- Player profiles and game passports
-- Ranking Points rankings and seasons
-- Coins utility economy
-- Competitive reward operations
-- Team recruitment and training workflows
-- Community, content, commerce, and admin systems
+| Path | Purpose |
+|---|---|
+| [apps/](apps/) | Domain applications, APIs, services, models, migrations, signals and app-level tests |
+| [deltacrown/](deltacrown/) | Django settings, URL routing, ASGI, Celery and middleware |
+| [templates/](templates/) | Server-rendered pages, includes and transactional messages |
+| [static/](static/) | Source assets plus required compiled Tailwind/community outputs |
+| [tests/](tests/) | Cross-application regression/integration tests |
+| [scripts/](scripts/) and [tools/](tools/) | Build, validation, audit and development utilities |
+| [branding/](branding/) | Approved asset provenance and public security/storage inventories |
+| [vendor/twisted/](vendor/twisted/README.md) | Verified temporary upstream HTTP security backport |
+| [config/](config/) | Feature/reference and repository documentation policy |
+| [reference/](reference/README.md) | Preserved product-history snapshot and cleanup inventory |
 
-The product direction is premium, competitive, community-driven, and skill-focused, while staying accessible for Bangladesh-first gamers.
+`Documents/DELTACROWN/` is owner-protected and must remain in place. `Documents/`, `docs/`, `Artifacts/`, `media/` and other ignored local collections are not disposable merely because Git ignores them. See the [documentation guide](OWNLOBBY_DOCUMENTATION_GUIDE.md) before reorganizing anything.
 
-## Competitive Ecosystem
+## Requirements
 
-OwnLobby's next-generation competitive hub is organized around four short product names:
+- Python: production target **Linux/Python 3.12**; Render currently declares 3.12.10. Recent local validation uses Windows/Python 3.13.15. That does not establish Linux parity.
+- PostgreSQL: required for the application's PostgreSQL-specific schema and tests. Use separate local development and disposable test databases. Do not use Supabase production for development/tests.
+- Node.js/npm: required for locked frontend builds. No Node engine/version file is currently pinned; cleanup validation uses Node 24.19.0/npm 11.17.0.
+- Native Cairo/font dependencies: needed for the complete CairoSVG/pycairo/cairocffi/ReportLab/svglib certificate pipeline. See [Linux parity](OWNLOBBY_LINUX_PARITY.md); a successful Python import alone is insufficient.
+- Redis: needed for realistic local Channels/Celery integration. Guarded unit tests use memory substitutes; they do not validate live Upstash.
 
-| Feature | What It Does |
-| --- | --- |
-| Showdown | Head-to-head competitive reward matches for teams or players |
-| Missions | Solo skill challenges, progression goals, and reward tasks |
-| Bounty | Open skill-based reward challenges and community rivalry boards |
-| Dropzone | Large battle royale custom lobbies with slots, room credentials, scoring, and settlement |
+## Local development
 
-These systems are built around structured rules, team authority, match rooms, proof, escrow, and admin review. The unified My Operations feed is active, competitive detail pages now exist, MVP admin controls now exist for Showdown result handling, Bounty claim verification, Missions proof/review, and Dropzone scoring/settlement, and staff have a lightweight review workspace for review-needed competitive items. A staff-only Django Unfold Competitive Operator Console at `/admin/competition/operations/` now gives operators a guided control surface for Mission creation, Dropzone setup handoff, priority queues, workflow guidance, and links into service-backed admin actions. Missions proof now supports URL, validated image upload, notes, and permission-checked proof file access through the dashboard. Active Match Room proof/evidence/media files also route through permission-checked dashboard links where surfaced in competitive/TOC workflows. A Dispute Center MVP gives staff and related participants a structured review surface with lightweight timeline notes, and early notification hooks cover key review, offer, and scheduling events. The public product layer is still being refined around full dispute resolution UI, Dropzone user reporting, richer reminders, and deeper game API verification.
+Use a fresh checkout or deliberately chosen isolated virtual environment. Preserve existing local environments and `.env` files. Commands below assume the repository root and PowerShell; on Linux activate the equivalent `.venv/bin/activate` environment.
 
-## Tournaments
+```powershell
+python -m venv .venv
+.venv/Scripts/Activate.ps1
+python scripts/build_twisted_backport.py
+python -m pip install -r requirements.txt
+npm ci --include=dev
+npm run build
+```
 
-The tournament engine supports professional event workflows:
+If activation is unavailable, invoke the environment's Python executable directly; changing machine-wide PowerShell policy is unnecessary. `requirements-prod.txt` is authoritative for Render/Docker runtime installation. `requirements.txt` includes runtime pins plus broader development tools. The local Twisted wheel is intentional; do not replace it with an unreviewed prerelease or install plain 26.4.0 to bypass a failure.
 
-- Single elimination
-- Double elimination
-- Round robin
-- Swiss
-- Group to playoff
-- Battle royale lobby formats
-- Solo and team participation
-- Registration and eligibility checks
-- Match rooms and scheduling
-- Check-in and result submission
-- Dispute handling
-- Prize and Coins configuration
-- Certificates and historical records
+Create a blank local environment file only if one does not exist:
 
-Tournaments are designed to create lasting competitive history, not one-time event pages.
+```powershell
+if (!(Test-Path -LiteralPath .env)) {
+    Copy-Item -LiteralPath config/development.env.example -Destination .env
+}
+```
 
-## Teams and Organizations
+Edit the new file for **local-only** PostgreSQL/Redis and a local signing key. The ignored root `.env.example` is an older owner-owned file and is not the supported setup template. Do not copy production credentials, SMTP senders, bot tokens or provider secrets. `manage.py` loads `.env` without overriding explicit environment variables; `DATABASE_URL_DEV` takes precedence for ordinary development settings.
 
-OwnLobby treats teams as persistent esports entities.
+Create dedicated local databases/roles using your local PostgreSQL administration workflow. The example's URI placeholders must be replaced with local credentials; they are not working accounts. Development DB and test DB must differ. Never point the test configuration at real users or financial records.
 
-Teams can manage:
+### Database migrations
 
-- Rosters
-- Owners, managers, coaches, analysts, players, and substitutes
-- Tournament captain permissions
-- Branding and public identity
-- Recruitment positions
-- Join requests and tryout scheduling
-- Social links, milestones, sponsors, and media
-- Rankings and match history
+With the connection confirmed local and dedicated to development:
 
-Organizations can own multiple teams and build a professional brand across games.
+```powershell
+python manage.py migrate --plan
+python manage.py migrate
+python manage.py check
+```
 
-## Rankings
+For intentional future model work, generate/review migrations and validate them on disposable data before any approved release step. Repository cleanup introduces no schema migration. Build scripts do not authorize production migrations; deployment/restore procedures remain separate reviewed operations.
 
-OwnLobby uses Ranking Points as the public ranking language.
+### Django, Daphne and background work
 
-Teams progress through:
+```powershell
+python manage.py runserver 127.0.0.1:8000
+# Alternative ASGI entry point, in a separate terminal:
+python -m daphne -b 127.0.0.1 -p 8001 deltacrown.asgi:application
+```
 
-- Rookie
-- Challenger
-- Elite
-- Master
-- Legend
-- The Crown
+Use the ASGI entry point for real WebSocket tests. Asset build/collection and media delivery remain separate concerns. Only start Celery against a dedicated local/sandbox broker and local data when needed:
 
-The ranking direction includes verified match results, tournament placement rewards, seasons, activity score, anti-farming controls, same-opponent diminishing returns, daily match caps, and internal ELO-style balancing.
+```powershell
+celery -A deltacrown worker --pool=solo --loglevel=info
+```
 
-The public experience stays easy to understand: points, tiers, ranks, activity, and history.
+The legacy `start_dev.ps1` starts LAN-facing Django, Celery and a Discord bot. It is not the default safe setup path; review all destinations first. Importing `riot_test.py` is now inert, but explicitly running that legacy manual probe performs provider requests and requires separate authorization/configuration.
 
-## Player Identity
+## Safe tests
 
-Players build competitive profiles that can grow over time.
+Configure a disposable local PostgreSQL database named **ownlobby_test**. Guarded `deltacrown.settings_brand_qa` rejects non-loopback hosts and other DB names. Replace the example role with your local test role; never substitute production URLs. Port 55432 is the local validation setup, not a required production port.
 
-Profiles support:
+```powershell
+$env:DATABASE_URL='postgresql://ownlobby_qa@127.0.0.1:55432/ownlobby_unused'
+$env:DATABASE_URL_DEV=$env:DATABASE_URL
+$env:DATABASE_URL_TEST='postgresql://ownlobby_qa@127.0.0.1:55432/ownlobby_test'
+$env:COMPETITION_APP_ENABLED='1'
+$env:S3_TESTS='0'
+$env:SENTRY_DSN=''
+$env:AWS_EC2_METADATA_DISABLED='true'
+python manage.py test apps.common.tests.test_release_readiness apps.common.tests.test_dependency_compatibility --settings=deltacrown.settings_brand_qa --keepdb --noinput
+python -m pytest tests/integration/test_websocket_realtime.py --ds=deltacrown.settings_brand_qa
+```
 
-- Public identity and display branding
-- Game passports and linked game identities
-- Preferred games and playstyle signals
-- Team affiliations
-- Achievements and certificates
-- Match history and reputation direction
-- Privacy and account safety controls
+The exact larger suites and baseline limits are recorded in [security closure](OWNLOBBY_SECURITY_CLOSURE.md), [OAuth reliability](OWNLOBBY_OAUTH_RELIABILITY.md) and [cleanup handoff](OWNLOBBY_CLEANUP_HANDOFF.md). Plain `pytest` has a broad legacy collection configuration; use explicit safe targets/settings rather than assuming every old helper is isolated.
 
-The goal is to help players build a credible esports record, not just a username.
+Checks that need no application database:
 
-## Coins
+```powershell
+python scripts/build_twisted_backport.py
+python -m unittest apps.common.tests.test_http_transport_security tests.test_repository_tools
+python scripts/ops/check_repo_hygiene.py
+python scripts/check_documentation.py --all --output Artifacts/repository-cleanup/documentation-links.json
+```
 
-Coins is OwnLobby's closed-loop utility and reward currency.
+The dependency auditor requires separate pip-audit tooling and audits the upstream base as well as the installed local version. Its nonzero exit for six base findings is deliberate; five unused-protocol findings remain and the HTTP item has the reviewed backport. A scanner skip is not clearance.
 
-It is used inside the platform for participation, entries, rewards, platform services, progression, and future store or premium experiences. Coins is positioned as an internal platform utility, not a financial asset.
+## Frontend, static and media
 
-The economy layer includes wallet records, transaction history, escrow locking, refunds, payout helpers, treasury support, local payment method fields, and wallet security direction.
+`npm run build` builds community JSX through esbuild and Tailwind CSS. `npm ci --include=dev` uses the committed lockfile. Keep `static/dist/` and `static/community/build/`: deployment requires their outputs. They are generated but not disposable deployment inputs.
 
-## Team HQ and Training
+```powershell
+npm run build
+# In the guarded local test environment:
+python scripts/verify_ownlobby.py --collect-static
+```
 
-Team HQ is the operating space for teams.
+`staticfiles/` is collected output; `static/` contains required source and deployment assets. `media/` contains local uploads/evidence and must not be treated as static output or deleted as cleanup. All 69 approved OwnLobby assets are hash-protected by [asset provenance](branding/approved-assets.json).
 
-Training workflows are separate from competitive reward operations by default:
+[Media architecture](OWNLOBBY_MEDIA_ARCHITECTURE.md) inventories 53 concrete upload fields plus rich-text uploads. Public and confidential files currently share the default backend. Cloudinary/S3 helper presence does not prove private ACLs, persistence or recovery. Provider selection, file migration and restore tests need a separate approved workstream. `siteui.E001` intentionally blocks an ephemeral-media production release; do not silence it.
 
-- Scrim: team vs team practice match
-- Tryout: evaluation session for applicants or invited players
-- Practice: internal team training
-- VOD Review: review notes, clips, and improvement tracking
+## Development and production boundaries
 
-The current platform now includes a Team HQ Training foundation with Scrim requests/bookings, Tryout applications/sessions, Practice sessions, VOD reviews, RBAC, API wiring, public tryout/scrim entry points, and admin visibility. The tryout path can move from application to join offer, applicant accept/decline, and safe membership creation. Players also have a dashboard inbox for team applications, tryouts, and offers. Practice and VOD payloads now expose lightweight status/assignment data for better Team HQ UX. Remaining work includes richer tryout scorecards, practice recurrence/reminders, VOD annotations, and advanced training admin tools.
+Production commands/settings are documented in the [domain migration runbook](OWNLOBBY_DOMAIN_MIGRATION.md), [technical SEO guide](OWNLOBBY_TECHNICAL_SEO.md) and [release handoff](OWNLOBBY_RELEASE_HANDOFF.md). Live Render branch/auto-deploy configuration is not established by checked-in YAML. No push, merge, deployment, DNS change, canonical switch, secret rotation or infrastructure rename is authorized by local setup or repository cleanup.
 
-## Architecture
+Keep old-domain compatibility and canonical migration flags at their reviewed defaults. Provider callbacks, email sender verification, durable private media and backup recovery must be proven before production cutover. Cleanup does not close these gates.
 
-OwnLobby is built as a modular Django platform.
+## Documentation, security and contribution
 
-Core stack direction:
+Use the [documentation guide](OWNLOBBY_DOCUMENTATION_GUIDE.md) for active sources, historical evidence, app ADRs and protected owner collections. The former product-oriented README is preserved verbatim in [product history](reference/README_PRODUCT_HISTORY.md); historical claims/contact/license text are not current engineering guarantees.
 
-- Django backend
-- Django REST Framework APIs
-- PostgreSQL/Supabase database direction
-- Redis/Upstash caching direction
-- Tailwind CSS frontend
-- Vanilla JavaScript for dashboard and interaction layers
-- Domain apps for tournaments, organizations, profiles, rankings, economy, competitive operations, missions/contracts, Dropzone, admin, moderation, notifications, commerce, and community
+Read [AGENTS.md](AGENTS.md) before editing. In particular, settings-page DOM/form/URL/CSRF contracts are protected. Preserve API/model/table identities, financial calculations, migrations, private file authorization and approved brand assets. Use a feature branch and local checkpoint, scoped changes, appropriate regression tests and reviewed diffs. Record blockers accurately; never remove a test or suppress security checks to improve counters.
 
-Sensitive flows are organized through service layers, especially for escrow, rankings, tournament operations, and competitive lifecycle actions.
+Do not commit `.env`, credentials, database/media exports, private evidence or QA runtime artifacts. Report potential secrets privately without reproducing their values; do not rotate or rewrite history during cleanup. `config/repository-policy.json` defines reviewed navigation/root placement and distinguishes Git hygiene from owner disk cleanup.
 
-## Current Project State
-
-OwnLobby is an active product in development with substantial foundations already implemented:
-
-- Tournament engine and match lifecycle
-- Team and organization management
-- Player profiles and game passport direction
-- Ranking Points ranking system
-- Economy and escrow services
-- Competitive hub foundation and unified My Operations feed
-- Competitive detail pages for Showdown, Bounty, Missions, Dropzone entries, and Dropzone lobbies
-- Showdown MVP result confirmation and admin control
-- Bounty admin claim verification/control MVP
-- Missions URL/image proof submission plus admin verification/control MVP
-- Dropzone entry/lobby details and admin scoring/settlement MVP
-- Team recruitment plus Team HQ Training foundation
-- Public tryout/scrim entry points on team pages
-- Tryout to join offer to applicant acceptance membership path
-- Player-facing My Team Applications inbox
-- Admin and moderation surfaces
-- Public-facing dashboards, community, and commerce direction
-
-Some systems are still evolving, especially full dispute resolution UI, Dropzone user proof/reporting, richer reminders, advanced Team HQ training workflows, deeper game API verification, and internal legacy naming cleanup.
-
-## Supported Game Direction
-
-OwnLobby is game-agnostic by design and currently targets major competitive categories:
-
-- FPS: Valorant, CS2, CODM, Rainbow Six
-- MOBA: Dota 2, Mobile Legends
-- Battle Royale: PUBG Mobile, Free Fire
-- Sports and arcade competition: eFootball, EA FC, Rocket League
-
-New games can be added through the platform's game configuration layer without rebuilding the whole ecosystem.
-
-## Product Vision
-
-OwnLobby is building the infrastructure layer for competitive gaming communities.
-
-The long-term direction includes:
-
-- Stronger mobile-first experiences
-- Deeper team operations
-- Better ranking and season systems
-- Richer training and scouting workflows
-- Sponsor and commerce opportunities
-- Local and regional tournament ecosystems
-- Global expansion from a Bangladesh-first foundation
-
-OwnLobby exists to make esports more professional, more trusted, and more accessible.
-
-## Contact
-
-**Founder:** Redwanul Rashik  
-**Founded:** 2025  
-**Email:** deltacrownhq@gmail.com  
-**Tagline:** Your Lobby. Your Next Level.
-
-## License
-
-MIT
+There is no standalone repository-wide LICENSE file in the tracked root. Existing package metadata and historical README licensing text disagree; confirm redistribution terms with the maintainer. Vendored components and assets retain their own licenses/provenance. This README does not grant a new license.

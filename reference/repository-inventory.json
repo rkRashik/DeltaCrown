@@ -1,0 +1,5173 @@
+{
+  "baseline_commit": "8fc7c335f43709e91e64ea9dde8011c2a8ed26bd",
+  "checkpoint": "97bd94d882e42edb9ab0dfab87b6d27a69231c2a",
+  "scope": "Git status and metadata only for ignored owner collections. Content hashes only for tracked public code/assets and a local-only protected-directory fingerprint. No media objects read.",
+  "initial_inventory": {
+    "tracked": {
+      "count": 3223,
+      "top_level": {
+        ".github": {
+          "files": 4,
+          "bytes": 16192
+        },
+        "Documents": {
+          "files": 1,
+          "bytes": 39391
+        },
+        "[root]": {
+          "files": 43,
+          "bytes": 654604
+        },
+        "apps": {
+          "files": 1688,
+          "bytes": 18051926
+        },
+        "bin": {
+          "files": 2,
+          "bytes": 3987
+        },
+        "branding": {
+          "files": 10,
+          "bytes": 1503022
+        },
+        "ci": {
+          "files": 1,
+          "bytes": 3528
+        },
+        "common": {
+          "files": 4,
+          "bytes": 12574
+        },
+        "config": {
+          "files": 1,
+          "bytes": 7678
+        },
+        "deltacrown": {
+          "files": 31,
+          "bytes": 248097
+        },
+        "frontend_sdk": {
+          "files": 10,
+          "bytes": 108654
+        },
+        "grafana": {
+          "files": 4,
+          "bytes": 47877
+        },
+        "migrations": {
+          "files": 2,
+          "bytes": 2821
+        },
+        "migrations_new": {
+          "files": 1,
+          "bytes": 738
+        },
+        "ops": {
+          "files": 3,
+          "bytes": 5964
+        },
+        "scripts": {
+          "files": 30,
+          "bytes": 197687
+        },
+        "static": {
+          "files": 629,
+          "bytes": 125740197
+        },
+        "synthetics": {
+          "files": 1,
+          "bytes": 4010
+        },
+        "templates": {
+          "files": 425,
+          "bytes": 10529438
+        },
+        "tests": {
+          "files": 327,
+          "bytes": 4158165
+        },
+        "tools": {
+          "files": 2,
+          "bytes": 9863
+        },
+        "vendor": {
+          "files": 4,
+          "bytes": 3218031
+        }
+      },
+      "extensions": {
+        ".py": 2053,
+        ".html": 408,
+        ".js": 215,
+        ".css": 139,
+        ".svg": 106,
+        ".png": 81,
+        ".jpg": 55,
+        ".md": 52,
+        ".json": 25,
+        ".txt": 11,
+        "[none]": 7,
+        ".sh": 7,
+        ".jpeg": 7,
+        ".yml": 6,
+        ".ts": 6,
+        ".jsx": 6,
+        ".sql": 5,
+        ".webp": 5,
+        ".webmanifest": 4,
+        ".ico": 3,
+        ".toml": 2,
+        ".yaml": 2,
+        ".deprecated": 2,
+        ".ps1": 2,
+        ".backup_20251119_050028": 2,
+        ".backup_broken": 1,
+        ".backup_phase9a30": 1,
+        ".example": 1,
+        ".ini": 1,
+        ".cjs": 1,
+        ".ttf": 1,
+        ".v2backup": 1,
+        ".backup2": 1,
+        ".v3backup": 1,
+        ".xml": 1,
+        ".whl": 1,
+        ".patch": 1
+      }
+    },
+    "untracked": {
+      "count": 0,
+      "top_level": {},
+      "extensions": {}
+    },
+    "ignored": {
+      "count": 152404,
+      "top_level": {
+        ".agents": {
+          "files": 171,
+          "bytes": 2905897
+        },
+        ".claude": {
+          "files": 29,
+          "bytes": 505995
+        },
+        ".codex": {
+          "files": 3,
+          "bytes": 13913
+        },
+        ".idea": {
+          "files": 5,
+          "bytes": 30511
+        },
+        ".pytest_cache": {
+          "files": 5,
+          "bytes": 16924
+        },
+        ".venv": {
+          "files": 38111,
+          "bytes": 707515438
+        },
+        ".vscode": {
+          "files": 1,
+          "bytes": 44
+        },
+        "Artifacts": {
+          "files": 81110,
+          "bytes": 2242872145
+        },
+        "Documents": {
+          "files": 434,
+          "bytes": 13817639
+        },
+        "[root]": {
+          "files": 6,
+          "bytes": 895019
+        },
+        "__pycache__": {
+          "files": 1,
+          "bytes": 513
+        },
+        "apps": {
+          "files": 1169,
+          "bytes": 12728479
+        },
+        "common": {
+          "files": 3,
+          "bytes": 9852
+        },
+        "deltacrown": {
+          "files": 24,
+          "bytes": 200067
+        },
+        "docs": {
+          "files": 85,
+          "bytes": 1206896
+        },
+        "logs": {
+          "files": 3,
+          "bytes": 478
+        },
+        "media": {
+          "files": 28745,
+          "bytes": 228531418
+        },
+        "node_modules": {
+          "files": 1494,
+          "bytes": 23784672
+        },
+        "reports": {
+          "files": 29,
+          "bytes": 23084168
+        },
+        "scripts": {
+          "files": 5,
+          "bytes": 29455
+        },
+        "staticfiles": {
+          "files": 955,
+          "bytes": 126345526
+        },
+        "templates": {
+          "files": 1,
+          "bytes": 72728
+        },
+        "tests": {
+          "files": 15,
+          "bytes": 271246
+        }
+      },
+      "extensions": {
+        ".pyc": 33816,
+        ".py": 33333,
+        ".pdf": 23850,
+        "[none]": 11623,
+        ".gz": 7219,
+        ".mo": 5943,
+        ".po": 5709,
+        ".png": 5406,
+        ".js": 4845,
+        ".json": 3710,
+        ".gif": 2620,
+        ".html": 2446,
+        ".pyi": 1768,
+        ".css": 1500,
+        ".txt": 1109,
+        ".dat": 1068,
+        ".svg": 1056,
+        ".md": 785,
+        ".jpg": 538,
+        ".h": 433,
+        ".pyd": 420,
+        ".typed": 417,
+        ".ts": 256,
+        ".exe": 240,
+        ".whl": 129,
+        ".log": 120,
+        ".pxi": 108,
+        ".map": 92,
+        ".pxd": 80,
+        ".woff2": 74,
+        ".jpeg": 69,
+        ".proto": 63,
+        ".mjs": 61,
+        ".rst": 59,
+        ".webp": 59,
+        ".ttf": 54,
+        ".pfb": 54,
+        ".py-tpl": 52,
+        ".csv": 48,
+        ".cpp": 45,
+        ".jsx": 42,
+        ".jinja": 40,
+        ".hpp": 39,
+        ".pem": 38,
+        ".woff": 35,
+        ".bfbs": 34,
+        ".sh": 33,
+        ".c": 33,
+        ".tsx": 32,
+        ".fbs": 31,
+        ".pyx": 30,
+        ".eot": 29,
+        ".xsl": 28,
+        ".ico": 26,
+        ".ps1": 24,
+        ".tab": 24,
+        ".xml": 23,
+        ".apache": 23,
+        ".bsd": 23,
+        ".webmanifest": 23,
+        ".yml": 22,
+        ".cts": 22,
+        ".dll": 21,
+        ".sty": 21,
+        ".mts": 21,
+        ".toml": 18,
+        ".misc": 16,
+        ".backup_20251119_050028": 16,
+        ".lib": 15,
+        ".cmd": 13,
+        ".obj": 12,
+        ".exp": 12,
+        ".yaml": 11,
+        ".tmpl": 11,
+        ".cjs": 11,
+        ".xsd": 10,
+        ".bat": 10,
+        ".cfg": 9,
+        ".hash": 8,
+        ".kml": 8,
+        ".no_trailing_newline": 8,
+        ".v2backup": 8,
+        ".backup2": 8,
+        ".v3backup": 8,
+        ".conf": 7,
+        ".pth": 7,
+        ".pot": 7,
+        ".asm": 6,
+        ".zi": 6,
+        ".afm": 6,
+        ".e03702c18e31": 6,
+        ".56d2a29209e8": 6,
+        ".zsh": 5,
+        ".fish": 5,
+        ".sql": 5,
+        ".sha256sum": 4,
+        ".python": 4,
+        ".tex": 4,
+        ".rng": 4,
+        ".markdown-it": 4,
+        ".xdy": 4,
+        ".message": 4,
+        ".doc": 4,
+        ".bugfix": 4,
+        ".glade": 4,
+        ".g": 4,
+        ".init": 4,
+        ".psf": 3,
+        ".zip": 3,
+        ".sfd": 3,
+        ".bin": 3,
+        ".2c54f4e1ca1c": 3,
+        ".082d8cc7db39": 3,
+        ".3b83ef96387f": 3,
+        ".c447e5a656a0": 3,
+        ".3b38dca74f02": 3,
+        ".c77e5d427813": 3,
+        ".license": 3,
+        ".tag": 2,
+        ".key": 2,
+        ".xslt": 2,
+        ".hhc": 2,
+        ".hhp": 2,
+        ".stp": 2,
+        ".cls": 2,
+        ".1": 2,
+        ".deprecated": 2,
+        ".nul": 2,
+        ".about": 2,
+        ".patch": 2,
+        ".markdown": 2,
+        ".coffee": 2,
+        ".example": 1,
+        ".iml": 1,
+        ".css_t": 1,
+        ".unicode": 1,
+        ".scss": 1,
+        ".odt": 1,
+        ".cc": 1,
+        ".bash": 1,
+        ".crt": 1,
+        ".egg": 1,
+        ".ist": 1,
+        ".js_t": 1,
+        ".html_t": 1,
+        ".qhcp": 1,
+        ".qhp": 1,
+        ".cache": 1,
+        ".tgz": 1,
+        ".backup_broken": 1,
+        ".backup_phase9a30": 1,
+        ".ini": 1,
+        ".stat": 1,
+        ".opts": 1,
+        ".sqlite3": 1
+      }
+    }
+  },
+  "protected_directory": {
+    "path": "Documents/DELTACROWN/",
+    "files": 26,
+    "fingerprint_location": "ignored local Artifacts/repository-cleanup/protected-documents-before.json",
+    "action": "preserve unchanged",
+    "verification": "All 26 file paths/bytes unchanged after validation"
+  },
+  "document_classifications": [
+    {
+      "path": ".github/ISSUE_TEMPLATE/module_task.md",
+      "classification": "KEEP",
+      "reason": "App/ADR/SDK/font attribution or engineering reference; verify against current code before relying on examples."
+    },
+    {
+      "path": ".github/MODULE_3.1_PR.md",
+      "classification": "ARCHIVE CANDIDATE",
+      "reason": "Historical engineering context; retained in place, current status must be verified."
+    },
+    {
+      "path": ".github/pull_request_template.md",
+      "classification": "KEEP",
+      "reason": "App/ADR/SDK/font attribution or engineering reference; verify against current code before relying on examples."
+    },
+    {
+      "path": "AGENTS.md",
+      "classification": "PROTECTED",
+      "reason": "Owner instructions, product direction or historical planning; preserve current location."
+    },
+    {
+      "path": "AuditReport.md",
+      "classification": "ARCHIVE CANDIDATE",
+      "reason": "Historical engineering context; retained in place, current status must be verified."
+    },
+    {
+      "path": "DELTACROWN_ROUTE_AND_PAGE_INVENTORY.md",
+      "classification": "ARCHIVE CANDIDATE",
+      "reason": "Historical engineering context; retained in place, current status must be verified."
+    },
+    {
+      "path": "DELTACROWN_SCREENSHOT_CAPTURE_PLAN.md",
+      "classification": "ARCHIVE CANDIDATE",
+      "reason": "Historical engineering context; retained in place, current status must be verified."
+    },
+    {
+      "path": "OWNLOBBY_DEPENDENCY_SECURITY.md",
+      "classification": "KEEP",
+      "reason": "Current engineering/release source; navigate through the documentation guide."
+    },
+    {
+      "path": "OWNLOBBY_DEPENDENCY_VALIDATION.md",
+      "classification": "ARCHIVE CANDIDATE",
+      "reason": "Historical engineering context; retained in place, current status must be verified."
+    },
+    {
+      "path": "OWNLOBBY_DOMAIN_MIGRATION.md",
+      "classification": "KEEP",
+      "reason": "Current engineering/release source; navigate through the documentation guide."
+    },
+    {
+      "path": "OWNLOBBY_LINUX_PARITY.md",
+      "classification": "KEEP",
+      "reason": "Current engineering/release source; navigate through the documentation guide."
+    },
+    {
+      "path": "OWNLOBBY_MEDIA_ARCHITECTURE.md",
+      "classification": "KEEP",
+      "reason": "Current engineering/release source; navigate through the documentation guide."
+    },
+    {
+      "path": "OWNLOBBY_OAUTH_RELIABILITY.md",
+      "classification": "KEEP",
+      "reason": "Current engineering/release source; navigate through the documentation guide."
+    },
+    {
+      "path": "OWNLOBBY_PRODUCTION_READINESS.md",
+      "classification": "KEEP",
+      "reason": "Current engineering/release source; navigate through the documentation guide."
+    },
+    {
+      "path": "OWNLOBBY_REBRAND.md",
+      "classification": "ARCHIVE CANDIDATE",
+      "reason": "Historical engineering context; retained in place, current status must be verified."
+    },
+    {
+      "path": "OWNLOBBY_RELEASE_HANDOFF.md",
+      "classification": "KEEP",
+      "reason": "Current engineering/release source; navigate through the documentation guide."
+    },
+    {
+      "path": "OWNLOBBY_SECURITY_CLOSURE.md",
+      "classification": "KEEP",
+      "reason": "Current engineering/release source; navigate through the documentation guide."
+    },
+    {
+      "path": "OWNLOBBY_TECHNICAL_SEO.md",
+      "classification": "KEEP",
+      "reason": "Current engineering/release source; navigate through the documentation guide."
+    },
+    {
+      "path": "OWNLOBBY_VALIDATION.md",
+      "classification": "ARCHIVE CANDIDATE",
+      "reason": "Historical engineering context; retained in place, current status must be verified."
+    },
+    {
+      "path": "README.md",
+      "classification": "KEEP",
+      "reason": "Current engineering/release source; navigate through the documentation guide."
+    },
+    {
+      "path": "README_TECHNICAL.md",
+      "classification": "ARCHIVE CANDIDATE",
+      "reason": "Historical engineering context; retained in place, current status must be verified."
+    },
+    {
+      "path": "apps/core/README.md",
+      "classification": "KEEP",
+      "reason": "App/ADR/SDK/font attribution or engineering reference; verify against current code before relying on examples."
+    },
+    {
+      "path": "apps/games/README.md",
+      "classification": "KEEP",
+      "reason": "App/ADR/SDK/font attribution or engineering reference; verify against current code before relying on examples."
+    },
+    {
+      "path": "apps/organizations/README.md",
+      "classification": "KEEP",
+      "reason": "App/ADR/SDK/font attribution or engineering reference; verify against current code before relying on examples."
+    },
+    {
+      "path": "apps/organizations/constants/README.md",
+      "classification": "KEEP",
+      "reason": "App/ADR/SDK/font attribution or engineering reference; verify against current code before relying on examples."
+    },
+    {
+      "path": "apps/organizations/docs/adr/001-team-ownership-constraint.md",
+      "classification": "KEEP",
+      "reason": "App/ADR/SDK/font attribution or engineering reference; verify against current code before relying on examples."
+    },
+    {
+      "path": "apps/organizations/docs/adr/002-game-passport-requirement.md",
+      "classification": "KEEP",
+      "reason": "App/ADR/SDK/font attribution or engineering reference; verify against current code before relying on examples."
+    },
+    {
+      "path": "apps/organizations/docs/adr/003-empire-score-calculation.md",
+      "classification": "KEEP",
+      "reason": "App/ADR/SDK/font attribution or engineering reference; verify against current code before relying on examples."
+    },
+    {
+      "path": "apps/organizations/docs/adr/004-integerfield-game-id-bridge.md",
+      "classification": "KEEP",
+      "reason": "App/ADR/SDK/font attribution or engineering reference; verify against current code before relying on examples."
+    },
+    {
+      "path": "apps/organizations/docs/adr/README.md",
+      "classification": "KEEP",
+      "reason": "App/ADR/SDK/font attribution or engineering reference; verify against current code before relying on examples."
+    },
+    {
+      "path": "apps/tournament_ops/adapters/README.md",
+      "classification": "KEEP",
+      "reason": "App/ADR/SDK/font attribution or engineering reference; verify against current code before relying on examples."
+    },
+    {
+      "path": "apps/tournament_ops/services/bracket_generators/README.md",
+      "classification": "KEEP",
+      "reason": "App/ADR/SDK/font attribution or engineering reference; verify against current code before relying on examples."
+    },
+    {
+      "path": "apps/tournaments/README.md",
+      "classification": "KEEP",
+      "reason": "App/ADR/SDK/font attribution or engineering reference; verify against current code before relying on examples."
+    },
+    {
+      "path": "apps/tournaments/api/README.md",
+      "classification": "KEEP",
+      "reason": "App/ADR/SDK/font attribution or engineering reference; verify against current code before relying on examples."
+    },
+    {
+      "path": "apps/tournaments/services/README.md",
+      "classification": "KEEP",
+      "reason": "App/ADR/SDK/font attribution or engineering reference; verify against current code before relying on examples."
+    },
+    {
+      "path": "config/flags.md",
+      "classification": "KEEP",
+      "reason": "App/ADR/SDK/font attribution or engineering reference; verify against current code before relying on examples."
+    },
+    {
+      "path": "frontend_sdk/README.md",
+      "classification": "KEEP",
+      "reason": "App/ADR/SDK/font attribution or engineering reference; verify against current code before relying on examples."
+    },
+    {
+      "path": "ops/README.md",
+      "classification": "ARCHIVE CANDIDATE",
+      "reason": "Historical engineering context; retained in place, current status must be verified."
+    },
+    {
+      "path": "requirements-prod.txt",
+      "classification": "KEEP",
+      "reason": "Runtime template/configuration, not a disposable document."
+    },
+    {
+      "path": "requirements.txt",
+      "classification": "KEEP",
+      "reason": "Runtime template/configuration, not a disposable document."
+    },
+    {
+      "path": "riot.txt",
+      "classification": "PROTECTED",
+      "reason": "Public provider ownership-verification file/route, not a private API key."
+    },
+    {
+      "path": "static/fonts/README.md",
+      "classification": "KEEP",
+      "reason": "App/ADR/SDK/font attribution or engineering reference; verify against current code before relying on examples."
+    },
+    {
+      "path": "static/img/games/fc27-key-art.source.md",
+      "classification": "KEEP",
+      "reason": "App/ADR/SDK/font attribution or engineering reference; verify against current code before relying on examples."
+    },
+    {
+      "path": "templates/My drafts/Career Page Design.md",
+      "classification": "PROTECTED",
+      "reason": "Owner instructions, product direction or historical planning; preserve current location."
+    },
+    {
+      "path": "templates/My drafts/Documentation_ Adaptive Career.md",
+      "classification": "PROTECTED",
+      "reason": "Owner instructions, product direction or historical planning; preserve current location."
+    },
+    {
+      "path": "templates/My drafts/Hub page/Hub page documentation.md",
+      "classification": "PROTECTED",
+      "reason": "Owner instructions, product direction or historical planning; preserve current location."
+    },
+    {
+      "path": "templates/My drafts/Org_create/Organization_Control_Plane.md",
+      "classification": "PROTECTED",
+      "reason": "Owner instructions, product direction or historical planning; preserve current location."
+    },
+    {
+      "path": "templates/My drafts/TMC/DeltaCrown Team HQ.md",
+      "classification": "PROTECTED",
+      "reason": "Owner instructions, product direction or historical planning; preserve current location."
+    },
+    {
+      "path": "templates/My drafts/Team Creation/TeamCreation doc.md",
+      "classification": "PROTECTED",
+      "reason": "Owner instructions, product direction or historical planning; preserve current location."
+    },
+    {
+      "path": "templates/My drafts/Team detail page/Team Detail Page Blueprint .md",
+      "classification": "PROTECTED",
+      "reason": "Owner instructions, product direction or historical planning; preserve current location."
+    },
+    {
+      "path": "templates/My drafts/Team detail page/TeamCreation doc.md",
+      "classification": "PROTECTED",
+      "reason": "Owner instructions, product direction or historical planning; preserve current location."
+    },
+    {
+      "path": "templates/My drafts/plan.md",
+      "classification": "PROTECTED",
+      "reason": "Owner instructions, product direction or historical planning; preserve current location."
+    },
+    {
+      "path": "templates/My drafts/user_profile_temp_draft/template documentation.md",
+      "classification": "PROTECTED",
+      "reason": "Owner instructions, product direction or historical planning; preserve current location."
+    },
+    {
+      "path": "templates/account/otp_email.txt",
+      "classification": "KEEP",
+      "reason": "Runtime template/configuration, not a disposable document."
+    },
+    {
+      "path": "templates/account/password_reset_email.txt",
+      "classification": "KEEP",
+      "reason": "Runtime template/configuration, not a disposable document."
+    },
+    {
+      "path": "templates/account/password_reset_subject.txt",
+      "classification": "KEEP",
+      "reason": "Runtime template/configuration, not a disposable document."
+    },
+    {
+      "path": "templates/notifications/email/daily_digest.txt",
+      "classification": "KEEP",
+      "reason": "Runtime template/configuration, not a disposable document."
+    },
+    {
+      "path": "templates/notifications/email/single_notification.txt",
+      "classification": "KEEP",
+      "reason": "Runtime template/configuration, not a disposable document."
+    },
+    {
+      "path": "templates/notifications/email/tournament_update.txt",
+      "classification": "KEEP",
+      "reason": "Runtime template/configuration, not a disposable document."
+    },
+    {
+      "path": "templates/partials/_sections_to_add.txt",
+      "classification": "KEEP",
+      "reason": "Runtime template/configuration, not a disposable document."
+    },
+    {
+      "path": "templates/robots.txt",
+      "classification": "KEEP",
+      "reason": "Runtime template/configuration, not a disposable document."
+    },
+    {
+      "path": "tests/README.md",
+      "classification": "ARCHIVE CANDIDATE",
+      "reason": "Historical engineering context; retained in place, current status must be verified."
+    },
+    {
+      "path": "vendor/twisted/README.md",
+      "classification": "KEEP",
+      "reason": "App/ADR/SDK/font attribution or engineering reference; verify against current code before relying on examples."
+    }
+  ],
+  "exact_nonempty_duplicate_groups": [
+    {
+      "paths": [
+        "apps/api/tests/__init__.py",
+        "apps/dashboard/tests/__init__.py",
+        "apps/games/tasks/__init__.py",
+        "apps/mobile_api/migrations/__init__.py",
+        "apps/mobile_api/profile/__init__.py",
+        "apps/mobile_api/tournaments/__init__.py",
+        "apps/siteui/tests/__init__.py"
+      ],
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "decision": "KEEP",
+      "reason": "Independent package/management/test namespaces require their own module markers.",
+      "id": "D001",
+      "tracking": "tracked",
+      "current_purpose": "Independent package/management/test namespaces require their own module markers.",
+      "risk": "high if removed without further review",
+      "performed": false,
+      "owner_approval_required": true,
+      "references": "Django static finder/admin Media verified for D004; other groups can have static/DB/dynamic/template/package/history dependencies and are retained.",
+      "rollback": "No mutation; retain original paths/bytes"
+    },
+    {
+      "paths": [
+        "apps/notifications/management/__init__.py",
+        "apps/notifications/management/commands/__init__.py"
+      ],
+      "sha256": "f01a374e9c81e3db89b3a42940c4d6a5447684986a1296e42bf13f196eed6295",
+      "decision": "KEEP",
+      "reason": "Independent package/management/test namespaces require their own module markers.",
+      "id": "D002",
+      "tracking": "tracked",
+      "current_purpose": "Independent package/management/test namespaces require their own module markers.",
+      "risk": "high if removed without further review",
+      "performed": false,
+      "owner_approval_required": true,
+      "references": "Django static finder/admin Media verified for D004; other groups can have static/DB/dynamic/template/package/history dependencies and are retained.",
+      "rollback": "No mutation; retain original paths/bytes"
+    },
+    {
+      "paths": [
+        "apps/tournaments/management/__init__.py",
+        "apps/tournaments/management/commands/__init__.py"
+      ],
+      "sha256": "8152fe01af89b9628829a87c4777231175d676586a0f1d53264186561bc8d364",
+      "decision": "KEEP",
+      "reason": "Independent package/management/test namespaces require their own module markers.",
+      "id": "D003",
+      "tracking": "tracked",
+      "current_purpose": "Independent package/management/test namespaces require their own module markers.",
+      "risk": "high if removed without further review",
+      "performed": false,
+      "owner_approval_required": true,
+      "references": "Django static finder/admin Media verified for D004; other groups can have static/DB/dynamic/template/package/history dependencies and are retained.",
+      "rollback": "No mutation; retain original paths/bytes"
+    },
+    {
+      "paths": [
+        "apps/user_profile/static/admin/admin_game_passport.js",
+        "apps/user_profile/static_backup_20251231/admin/admin_game_passport.js"
+      ],
+      "sha256": "de116cc0803efb1be66573bc7c102908e5d29d5d027fec762113dbe2ffec6a42",
+      "decision": "verified duplicate removed",
+      "reason": "Canonical Django static path resolves to byte-identical active script; backup directory is not discovered.",
+      "id": "D004",
+      "tracking": "tracked",
+      "current_purpose": "Canonical Django static path resolves to byte-identical active script; backup directory is not discovered.",
+      "risk": "medium",
+      "performed": true,
+      "owner_approval_required": false,
+      "references": "Django static finder/admin Media verified for D004; other groups can have static/DB/dynamic/template/package/history dependencies and are retained.",
+      "rollback": "git restore --source=97bd94d882e42edb9ab0dfab87b6d27a69231c2a -- apps/user_profile/static_backup_20251231/admin/admin_game_passport.js"
+    },
+    {
+      "paths": [
+        "static/img/Other/DeltaCoin/coin.svg",
+        "static/img/Other/DeltaCoin/coin3.svg",
+        "static/img/Other/DeltaCoin/coin_smp.svg"
+      ],
+      "sha256": "128ba429f5c6477c73bf2024da2c4aef8eeab032d8250fbf35732466ce6726d8",
+      "decision": "KEEP / review consolidation later",
+      "reason": "Distinct runtime paths/aliases, persisted media references or licensing may depend on both copies; no deletion proof.",
+      "id": "D005",
+      "tracking": "tracked",
+      "current_purpose": "Distinct runtime paths/aliases, persisted media references or licensing may depend on both copies; no deletion proof.",
+      "risk": "high if removed without further review",
+      "performed": false,
+      "owner_approval_required": true,
+      "references": "Django static finder/admin Media verified for D004; other groups can have static/DB/dynamic/template/package/history dependencies and are retained.",
+      "rollback": "No mutation; retain original paths/bytes"
+    },
+    {
+      "paths": [
+        "static/img/deltaCrown_logos/DeltaCrown_Teal-Purple-Gold.svg",
+        "static/siteui/svg/Logos/DeltaCrown_Teal-Purple-Gold.svg"
+      ],
+      "sha256": "143afd754544bd4ce5b4ad312bf7ec37adfd1e1722f869e0b53463d141b21ea8",
+      "decision": "KEEP / review consolidation later",
+      "reason": "Distinct runtime paths/aliases, persisted media references or licensing may depend on both copies; no deletion proof.",
+      "id": "D006",
+      "tracking": "tracked",
+      "current_purpose": "Distinct runtime paths/aliases, persisted media references or licensing may depend on both copies; no deletion proof.",
+      "risk": "high if removed without further review",
+      "performed": false,
+      "owner_approval_required": true,
+      "references": "Django static finder/admin Media verified for D004; other groups can have static/DB/dynamic/template/package/history dependencies and are retained.",
+      "rollback": "No mutation; retain original paths/bytes"
+    },
+    {
+      "paths": [
+        "static/img/deltaCrown_logos/logo_animated.svg",
+        "static/img/deltacrown-logo.svg"
+      ],
+      "sha256": "41ed69e9a303c406eae2dd3c802d93bb550a4305a3eb3ede7fa59a2ee691d3c8",
+      "decision": "KEEP / review consolidation later",
+      "reason": "Distinct runtime paths/aliases, persisted media references or licensing may depend on both copies; no deletion proof.",
+      "id": "D007",
+      "tracking": "tracked",
+      "current_purpose": "Distinct runtime paths/aliases, persisted media references or licensing may depend on both copies; no deletion proof.",
+      "risk": "high if removed without further review",
+      "performed": false,
+      "owner_approval_required": true,
+      "references": "Django static finder/admin Media verified for D004; other groups can have static/DB/dynamic/template/package/history dependencies and are retained.",
+      "rollback": "No mutation; retain original paths/bytes"
+    },
+    {
+      "paths": [
+        "static/img/favicon/favicon-512x512.png",
+        "static/siteui/og/default.png"
+      ],
+      "sha256": "74ecfedf2d7c15e34775e8dbef4b57ca40610b78cb59c42c90276256092c4d97",
+      "decision": "KEEP / review consolidation later",
+      "reason": "Distinct runtime paths/aliases, persisted media references or licensing may depend on both copies; no deletion proof.",
+      "id": "D008",
+      "tracking": "tracked",
+      "current_purpose": "Distinct runtime paths/aliases, persisted media references or licensing may depend on both copies; no deletion proof.",
+      "risk": "high if removed without further review",
+      "performed": false,
+      "owner_approval_required": true,
+      "references": "Django static finder/admin Media verified for D004; other groups can have static/DB/dynamic/template/package/history dependencies and are retained.",
+      "rollback": "No mutation; retain original paths/bytes"
+    },
+    {
+      "paths": [
+        "static/img/game_cards/CS2.jpg",
+        "static/img/games/posters/cs2.jpg",
+        "static/organizations/team_find/assets/games/cards/cs2.jpg"
+      ],
+      "sha256": "ec509b4b5b1d61a954429deb102fc153d3c1190683d980df7748f4791b2b228e",
+      "decision": "KEEP / review consolidation later",
+      "reason": "Distinct runtime paths/aliases, persisted media references or licensing may depend on both copies; no deletion proof.",
+      "id": "D009",
+      "tracking": "tracked",
+      "current_purpose": "Distinct runtime paths/aliases, persisted media references or licensing may depend on both copies; no deletion proof.",
+      "risk": "high if removed without further review",
+      "performed": false,
+      "owner_approval_required": true,
+      "references": "Django static finder/admin Media verified for D004; other groups can have static/DB/dynamic/template/package/history dependencies and are retained.",
+      "rollback": "No mutation; retain original paths/bytes"
+    },
+    {
+      "paths": [
+        "static/img/game_cards/CallOfDutyMobile.jpg",
+        "static/img/games/posters/codm.jpg"
+      ],
+      "sha256": "45d1c7ce119b662aa5857a17125990477b2c506cc426966573f1d5ada9fad4fd",
+      "decision": "KEEP / review consolidation later",
+      "reason": "Distinct runtime paths/aliases, persisted media references or licensing may depend on both copies; no deletion proof.",
+      "id": "D010",
+      "tracking": "tracked",
+      "current_purpose": "Distinct runtime paths/aliases, persisted media references or licensing may depend on both copies; no deletion proof.",
+      "risk": "high if removed without further review",
+      "performed": false,
+      "owner_approval_required": true,
+      "references": "Django static finder/admin Media verified for D004; other groups can have static/DB/dynamic/template/package/history dependencies and are retained.",
+      "rollback": "No mutation; retain original paths/bytes"
+    },
+    {
+      "paths": [
+        "static/img/game_cards/Dota2.jpg",
+        "static/img/games/posters/dota2.jpg"
+      ],
+      "sha256": "ffcf2d02a45d10a39206676c98715608cf1b1d9ac5bef3b2b43d0564bc9b101c",
+      "decision": "KEEP / review consolidation later",
+      "reason": "Distinct runtime paths/aliases, persisted media references or licensing may depend on both copies; no deletion proof.",
+      "id": "D011",
+      "tracking": "tracked",
+      "current_purpose": "Distinct runtime paths/aliases, persisted media references or licensing may depend on both copies; no deletion proof.",
+      "risk": "high if removed without further review",
+      "performed": false,
+      "owner_approval_required": true,
+      "references": "Django static finder/admin Media verified for D004; other groups can have static/DB/dynamic/template/package/history dependencies and are retained.",
+      "rollback": "No mutation; retain original paths/bytes"
+    },
+    {
+      "paths": [
+        "static/img/game_cards/FC26.jpg",
+        "static/img/games/posters/fc26.jpg"
+      ],
+      "sha256": "1a1e6248fa10eb90dc311d131fdc9ce4d24485aeb68177821051999e3565b8cc",
+      "decision": "KEEP / review consolidation later",
+      "reason": "Distinct runtime paths/aliases, persisted media references or licensing may depend on both copies; no deletion proof.",
+      "id": "D012",
+      "tracking": "tracked",
+      "current_purpose": "Distinct runtime paths/aliases, persisted media references or licensing may depend on both copies; no deletion proof.",
+      "risk": "high if removed without further review",
+      "performed": false,
+      "owner_approval_required": true,
+      "references": "Django static finder/admin Media verified for D004; other groups can have static/DB/dynamic/template/package/history dependencies and are retained.",
+      "rollback": "No mutation; retain original paths/bytes"
+    },
+    {
+      "paths": [
+        "static/img/game_cards/FreeFire.jpeg",
+        "static/img/games/posters/freefire.jpg"
+      ],
+      "sha256": "bc2b9151c86060d7d3c6ee55ddfccbaf7e93c5c0139259a701c8369109bee690",
+      "decision": "KEEP / review consolidation later",
+      "reason": "Distinct runtime paths/aliases, persisted media references or licensing may depend on both copies; no deletion proof.",
+      "id": "D013",
+      "tracking": "tracked",
+      "current_purpose": "Distinct runtime paths/aliases, persisted media references or licensing may depend on both copies; no deletion proof.",
+      "risk": "high if removed without further review",
+      "performed": false,
+      "owner_approval_required": true,
+      "references": "Django static finder/admin Media verified for D004; other groups can have static/DB/dynamic/template/package/history dependencies and are retained.",
+      "rollback": "No mutation; retain original paths/bytes"
+    },
+    {
+      "paths": [
+        "static/img/game_cards/LOGOS/PUBG MOBILE icon.png",
+        "static/img/game_logos/default_game_logo.jpg",
+        "static/img/game_logos/pubg_logo.png"
+      ],
+      "sha256": "c616b94c5a5500303f30cca89175935a3acbf1afab8057c4663291b4050b3a21",
+      "decision": "KEEP / review consolidation later",
+      "reason": "Distinct runtime paths/aliases, persisted media references or licensing may depend on both copies; no deletion proof.",
+      "id": "D014",
+      "tracking": "tracked",
+      "current_purpose": "Distinct runtime paths/aliases, persisted media references or licensing may depend on both copies; no deletion proof.",
+      "risk": "high if removed without further review",
+      "performed": false,
+      "owner_approval_required": true,
+      "references": "Django static finder/admin Media verified for D004; other groups can have static/DB/dynamic/template/package/history dependencies and are retained.",
+      "rollback": "No mutation; retain original paths/bytes"
+    },
+    {
+      "paths": [
+        "static/img/game_cards/MobileLegend.jpg",
+        "static/img/games/posters/mlbb.jpg"
+      ],
+      "sha256": "e5f529067d8ffadd5bda7d16356f5d72b9267fa9a1220893f03d020689c1ace9",
+      "decision": "KEEP / review consolidation later",
+      "reason": "Distinct runtime paths/aliases, persisted media references or licensing may depend on both copies; no deletion proof.",
+      "id": "D015",
+      "tracking": "tracked",
+      "current_purpose": "Distinct runtime paths/aliases, persisted media references or licensing may depend on both copies; no deletion proof.",
+      "risk": "high if removed without further review",
+      "performed": false,
+      "owner_approval_required": true,
+      "references": "Django static finder/admin Media verified for D004; other groups can have static/DB/dynamic/template/package/history dependencies and are retained.",
+      "rollback": "No mutation; retain original paths/bytes"
+    },
+    {
+      "paths": [
+        "static/img/game_cards/PUBG.jpeg",
+        "static/img/games/posters/pubg.jpg",
+        "static/organizations/team_find/assets/games/cards/pubg.jpg"
+      ],
+      "sha256": "6a2e006fbe2e88ca3a79189ce564295381e631b7f0e9819b90d2e46ece123012",
+      "decision": "KEEP / review consolidation later",
+      "reason": "Distinct runtime paths/aliases, persisted media references or licensing may depend on both copies; no deletion proof.",
+      "id": "D016",
+      "tracking": "tracked",
+      "current_purpose": "Distinct runtime paths/aliases, persisted media references or licensing may depend on both copies; no deletion proof.",
+      "risk": "high if removed without further review",
+      "performed": false,
+      "owner_approval_required": true,
+      "references": "Django static finder/admin Media verified for D004; other groups can have static/DB/dynamic/template/package/history dependencies and are retained.",
+      "rollback": "No mutation; retain original paths/bytes"
+    },
+    {
+      "paths": [
+        "static/img/game_cards/Rainbow_Six_Siege.jpg",
+        "static/img/games/posters/r6.jpg"
+      ],
+      "sha256": "8febf7b16968eeb3a48beb1e434684eb3d06508f47c54294ab7fb29f1a64491f",
+      "decision": "KEEP / review consolidation later",
+      "reason": "Distinct runtime paths/aliases, persisted media references or licensing may depend on both copies; no deletion proof.",
+      "id": "D017",
+      "tracking": "tracked",
+      "current_purpose": "Distinct runtime paths/aliases, persisted media references or licensing may depend on both copies; no deletion proof.",
+      "risk": "high if removed without further review",
+      "performed": false,
+      "owner_approval_required": true,
+      "references": "Django static finder/admin Media verified for D004; other groups can have static/DB/dynamic/template/package/history dependencies and are retained.",
+      "rollback": "No mutation; retain original paths/bytes"
+    },
+    {
+      "paths": [
+        "static/img/game_cards/Rocket_League.jpg",
+        "static/img/games/posters/rocketleague.jpg"
+      ],
+      "sha256": "ee433efbd962cbd89b570858a6c6f7f5f105cd0a4e734dff5d87d972bc5718ff",
+      "decision": "KEEP / review consolidation later",
+      "reason": "Distinct runtime paths/aliases, persisted media references or licensing may depend on both copies; no deletion proof.",
+      "id": "D018",
+      "tracking": "tracked",
+      "current_purpose": "Distinct runtime paths/aliases, persisted media references or licensing may depend on both copies; no deletion proof.",
+      "risk": "high if removed without further review",
+      "performed": false,
+      "owner_approval_required": true,
+      "references": "Django static finder/admin Media verified for D004; other groups can have static/DB/dynamic/template/package/history dependencies and are retained.",
+      "rollback": "No mutation; retain original paths/bytes"
+    },
+    {
+      "paths": [
+        "static/img/game_cards/Valorant.jpg",
+        "static/img/games/posters/valorant.jpg",
+        "static/organizations/team_find/assets/games/cards/valorant.jpg"
+      ],
+      "sha256": "39906f172f39f5d1330fed393b5cdfd8212db66c423c14b92a3a16e9571e0a12",
+      "decision": "KEEP / review consolidation later",
+      "reason": "Distinct runtime paths/aliases, persisted media references or licensing may depend on both copies; no deletion proof.",
+      "id": "D019",
+      "tracking": "tracked",
+      "current_purpose": "Distinct runtime paths/aliases, persisted media references or licensing may depend on both copies; no deletion proof.",
+      "risk": "high if removed without further review",
+      "performed": false,
+      "owner_approval_required": true,
+      "references": "Django static finder/admin Media verified for D004; other groups can have static/DB/dynamic/template/package/history dependencies and are retained.",
+      "rollback": "No mutation; retain original paths/bytes"
+    },
+    {
+      "paths": [
+        "static/img/game_cards/efootball.jpeg",
+        "static/img/games/posters/efootball.jpg"
+      ],
+      "sha256": "a3d3a7814e501bb917eecf3134f2123056af78828903387e090dfccf719b8964",
+      "decision": "KEEP / review consolidation later",
+      "reason": "Distinct runtime paths/aliases, persisted media references or licensing may depend on both copies; no deletion proof.",
+      "id": "D020",
+      "tracking": "tracked",
+      "current_purpose": "Distinct runtime paths/aliases, persisted media references or licensing may depend on both copies; no deletion proof.",
+      "risk": "high if removed without further review",
+      "performed": false,
+      "owner_approval_required": true,
+      "references": "Django static finder/admin Media verified for D004; other groups can have static/DB/dynamic/template/package/history dependencies and are retained.",
+      "rollback": "No mutation; retain original paths/bytes"
+    },
+    {
+      "paths": [
+        "static/img/game_logos/CS2_logo.jpeg",
+        "static/organizations/team_find/assets/games/logos/cs2.jpg"
+      ],
+      "sha256": "fa42467a63e798aaf746f33c9d53e4d7a3139ce068cc5fb4644cc71211aaefdf",
+      "decision": "KEEP / review consolidation later",
+      "reason": "Distinct runtime paths/aliases, persisted media references or licensing may depend on both copies; no deletion proof.",
+      "id": "D021",
+      "tracking": "tracked",
+      "current_purpose": "Distinct runtime paths/aliases, persisted media references or licensing may depend on both copies; no deletion proof.",
+      "risk": "high if removed without further review",
+      "performed": false,
+      "owner_approval_required": true,
+      "references": "Django static finder/admin Media verified for D004; other groups can have static/DB/dynamic/template/package/history dependencies and are retained.",
+      "rollback": "No mutation; retain original paths/bytes"
+    },
+    {
+      "paths": [
+        "static/img/game_logos/CallOfDutyMobile_logo.jpg",
+        "static/organizations/team_find/assets/games/logos/codm.jpg"
+      ],
+      "sha256": "23b2d586da41a69a3029a8ac70cba65dccd6638056ce66287dfaa8bbf1e555f8",
+      "decision": "KEEP / review consolidation later",
+      "reason": "Distinct runtime paths/aliases, persisted media references or licensing may depend on both copies; no deletion proof.",
+      "id": "D022",
+      "tracking": "tracked",
+      "current_purpose": "Distinct runtime paths/aliases, persisted media references or licensing may depend on both copies; no deletion proof.",
+      "risk": "high if removed without further review",
+      "performed": false,
+      "owner_approval_required": true,
+      "references": "Django static finder/admin Media verified for D004; other groups can have static/DB/dynamic/template/package/history dependencies and are retained.",
+      "rollback": "No mutation; retain original paths/bytes"
+    },
+    {
+      "paths": [
+        "static/img/game_logos/Dota2_logo.jpg",
+        "static/organizations/team_find/assets/games/logos/dota2.jpg"
+      ],
+      "sha256": "e5b4a9b0b00d31401e6ed0e16788d742ff9f6ef1194b38c755f119fa60715997",
+      "decision": "KEEP / review consolidation later",
+      "reason": "Distinct runtime paths/aliases, persisted media references or licensing may depend on both copies; no deletion proof.",
+      "id": "D023",
+      "tracking": "tracked",
+      "current_purpose": "Distinct runtime paths/aliases, persisted media references or licensing may depend on both copies; no deletion proof.",
+      "risk": "high if removed without further review",
+      "performed": false,
+      "owner_approval_required": true,
+      "references": "Django static finder/admin Media verified for D004; other groups can have static/DB/dynamic/template/package/history dependencies and are retained.",
+      "rollback": "No mutation; retain original paths/bytes"
+    },
+    {
+      "paths": [
+        "static/img/game_logos/FreeFire_logo.jpg",
+        "static/organizations/team_find/assets/games/logos/freefire.jpg"
+      ],
+      "sha256": "bba85049251986a675947d29615cd8730cdcccc4c09f81e7825795db4ab897af",
+      "decision": "KEEP / review consolidation later",
+      "reason": "Distinct runtime paths/aliases, persisted media references or licensing may depend on both copies; no deletion proof.",
+      "id": "D024",
+      "tracking": "tracked",
+      "current_purpose": "Distinct runtime paths/aliases, persisted media references or licensing may depend on both copies; no deletion proof.",
+      "risk": "high if removed without further review",
+      "performed": false,
+      "owner_approval_required": true,
+      "references": "Django static finder/admin Media verified for D004; other groups can have static/DB/dynamic/template/package/history dependencies and are retained.",
+      "rollback": "No mutation; retain original paths/bytes"
+    },
+    {
+      "paths": [
+        "static/img/game_logos/PUBG_logo.jpg",
+        "static/organizations/team_find/assets/games/logos/pubg.jpg"
+      ],
+      "sha256": "ea3f99f92178e7aec620582a8dafee99fbafa0e733ea54922fd44384fe6dfb38",
+      "decision": "KEEP / review consolidation later",
+      "reason": "Distinct runtime paths/aliases, persisted media references or licensing may depend on both copies; no deletion proof.",
+      "id": "D025",
+      "tracking": "tracked",
+      "current_purpose": "Distinct runtime paths/aliases, persisted media references or licensing may depend on both copies; no deletion proof.",
+      "risk": "high if removed without further review",
+      "performed": false,
+      "owner_approval_required": true,
+      "references": "Django static finder/admin Media verified for D004; other groups can have static/DB/dynamic/template/package/history dependencies and are retained.",
+      "rollback": "No mutation; retain original paths/bytes"
+    },
+    {
+      "paths": [
+        "static/img/game_logos/Rainbow_Six_Siege.jpg",
+        "static/organizations/team_find/assets/games/logos/r6s.jpg"
+      ],
+      "sha256": "0f69003281ec8fd1026b105c420ff59ee491fe022bce0beef5f2d28782089c8a",
+      "decision": "KEEP / review consolidation later",
+      "reason": "Distinct runtime paths/aliases, persisted media references or licensing may depend on both copies; no deletion proof.",
+      "id": "D026",
+      "tracking": "tracked",
+      "current_purpose": "Distinct runtime paths/aliases, persisted media references or licensing may depend on both copies; no deletion proof.",
+      "risk": "high if removed without further review",
+      "performed": false,
+      "owner_approval_required": true,
+      "references": "Django static finder/admin Media verified for D004; other groups can have static/DB/dynamic/template/package/history dependencies and are retained.",
+      "rollback": "No mutation; retain original paths/bytes"
+    },
+    {
+      "paths": [
+        "static/img/game_logos/Rocket_League.jpg",
+        "static/organizations/team_find/assets/games/logos/rocketleague.jpg"
+      ],
+      "sha256": "512e5ca8fff53119bf3cc0d50b94b19c2cad63dcbd741b6cacb16c62ad79acc0",
+      "decision": "KEEP / review consolidation later",
+      "reason": "Distinct runtime paths/aliases, persisted media references or licensing may depend on both copies; no deletion proof.",
+      "id": "D027",
+      "tracking": "tracked",
+      "current_purpose": "Distinct runtime paths/aliases, persisted media references or licensing may depend on both copies; no deletion proof.",
+      "risk": "high if removed without further review",
+      "performed": false,
+      "owner_approval_required": true,
+      "references": "Django static finder/admin Media verified for D004; other groups can have static/DB/dynamic/template/package/history dependencies and are retained.",
+      "rollback": "No mutation; retain original paths/bytes"
+    },
+    {
+      "paths": [
+        "static/img/game_logos/Valorant_logo.jpg",
+        "static/organizations/team_find/assets/games/logos/valorant.jpg"
+      ],
+      "sha256": "cace6ad6df2b5d5b80a57fafcc7bd2d2b8730c7620dcca25a7e147346c251998",
+      "decision": "KEEP / review consolidation later",
+      "reason": "Distinct runtime paths/aliases, persisted media references or licensing may depend on both copies; no deletion proof.",
+      "id": "D028",
+      "tracking": "tracked",
+      "current_purpose": "Distinct runtime paths/aliases, persisted media references or licensing may depend on both copies; no deletion proof.",
+      "risk": "high if removed without further review",
+      "performed": false,
+      "owner_approval_required": true,
+      "references": "Django static finder/admin Media verified for D004; other groups can have static/DB/dynamic/template/package/history dependencies and are retained.",
+      "rollback": "No mutation; retain original paths/bytes"
+    },
+    {
+      "paths": [
+        "static/img/game_logos/efootball_logo.jpeg",
+        "static/organizations/team_find/assets/games/logos/efootball.jpg"
+      ],
+      "sha256": "2a1a4f14a58a3d764e27b6fcc619701953570cc2dbe32a5d5b97273b8c639376",
+      "decision": "KEEP / review consolidation later",
+      "reason": "Distinct runtime paths/aliases, persisted media references or licensing may depend on both copies; no deletion proof.",
+      "id": "D029",
+      "tracking": "tracked",
+      "current_purpose": "Distinct runtime paths/aliases, persisted media references or licensing may depend on both copies; no deletion proof.",
+      "risk": "high if removed without further review",
+      "performed": false,
+      "owner_approval_required": true,
+      "references": "Django static finder/admin Media verified for D004; other groups can have static/DB/dynamic/template/package/history dependencies and are retained.",
+      "rollback": "No mutation; retain original paths/bytes"
+    },
+    {
+      "paths": [
+        "static/img/game_logos/fc26_logo.jpg",
+        "static/organizations/team_find/assets/games/logos/fc26.jpg"
+      ],
+      "sha256": "54ded680920e15f25544394a81cd9e4fb7bb7ebf9bc7a5e4992fcece5460b712",
+      "decision": "KEEP / review consolidation later",
+      "reason": "Distinct runtime paths/aliases, persisted media references or licensing may depend on both copies; no deletion proof.",
+      "id": "D030",
+      "tracking": "tracked",
+      "current_purpose": "Distinct runtime paths/aliases, persisted media references or licensing may depend on both copies; no deletion proof.",
+      "risk": "high if removed without further review",
+      "performed": false,
+      "owner_approval_required": true,
+      "references": "Django static finder/admin Media verified for D004; other groups can have static/DB/dynamic/template/package/history dependencies and are retained.",
+      "rollback": "No mutation; retain original paths/bytes"
+    },
+    {
+      "paths": [
+        "static/img/game_logos/logos/efootball.svg",
+        "static/img/game_logos/svg/Efootball.svg"
+      ],
+      "sha256": "8ca9ad8008a917c9fe99c51c2bc64b017d0ac3e812dac9d58ce66c9b325ed55d",
+      "decision": "KEEP / review consolidation later",
+      "reason": "Distinct runtime paths/aliases, persisted media references or licensing may depend on both copies; no deletion proof.",
+      "id": "D031",
+      "tracking": "tracked",
+      "current_purpose": "Distinct runtime paths/aliases, persisted media references or licensing may depend on both copies; no deletion proof.",
+      "risk": "high if removed without further review",
+      "performed": false,
+      "owner_approval_required": true,
+      "references": "Django static finder/admin Media verified for D004; other groups can have static/DB/dynamic/template/package/history dependencies and are retained.",
+      "rollback": "No mutation; retain original paths/bytes"
+    },
+    {
+      "paths": [
+        "static/img/game_logos/mobile_legend_logo.jpeg",
+        "static/organizations/team_find/assets/games/logos/mlbb.jpg"
+      ],
+      "sha256": "813798e044f3d52106a7a7700ba0de1b2aecf769bd32f4efcaa64f349a2c396e",
+      "decision": "KEEP / review consolidation later",
+      "reason": "Distinct runtime paths/aliases, persisted media references or licensing may depend on both copies; no deletion proof.",
+      "id": "D032",
+      "tracking": "tracked",
+      "current_purpose": "Distinct runtime paths/aliases, persisted media references or licensing may depend on both copies; no deletion proof.",
+      "risk": "high if removed without further review",
+      "performed": false,
+      "owner_approval_required": true,
+      "references": "Django static finder/admin Media verified for D004; other groups can have static/DB/dynamic/template/package/history dependencies and are retained.",
+      "rollback": "No mutation; retain original paths/bytes"
+    },
+    {
+      "paths": [
+        "static/img/payment/logos/BKash-Icon-Logo.svg",
+        "static/img/payment/logos/bKash_logo.svg"
+      ],
+      "sha256": "f7938384a80fbcc2434de3e27ea618a2951b99377ef0911261518bf17cb926a4",
+      "decision": "KEEP / review consolidation later",
+      "reason": "Distinct runtime paths/aliases, persisted media references or licensing may depend on both copies; no deletion proof.",
+      "id": "D033",
+      "tracking": "tracked",
+      "current_purpose": "Distinct runtime paths/aliases, persisted media references or licensing may depend on both copies; no deletion proof.",
+      "risk": "high if removed without further review",
+      "performed": false,
+      "owner_approval_required": true,
+      "references": "Django static finder/admin Media verified for D004; other groups can have static/DB/dynamic/template/package/history dependencies and are retained.",
+      "rollback": "No mutation; retain original paths/bytes"
+    },
+    {
+      "paths": [
+        "static/ownlobby/icons/favicon.ico",
+        "static/ownlobby/website/favicon.ico"
+      ],
+      "sha256": "9fc1fddd728bbfa89b488c7beca7a1529df264bcc7dd91b417ed8a2184151456",
+      "decision": "PROTECTED",
+      "reason": "Approved asset variants/copies have distinct required roles; all 69 bytes must remain unchanged.",
+      "id": "D034",
+      "tracking": "tracked",
+      "current_purpose": "Approved asset variants/copies have distinct required roles; all 69 bytes must remain unchanged.",
+      "risk": "high if removed without further review",
+      "performed": false,
+      "owner_approval_required": true,
+      "references": "Django static finder/admin Media verified for D004; other groups can have static/DB/dynamic/template/package/history dependencies and are retained.",
+      "rollback": "No mutation; retain original paths/bytes"
+    },
+    {
+      "paths": [
+        "static/ownlobby/icons/favicon.svg",
+        "static/ownlobby/website/favicon.svg"
+      ],
+      "sha256": "208fef4cde5ebe043c962bcc0f8de7f455fbfceae76ded9e34ff2e518e10bd0b",
+      "decision": "PROTECTED",
+      "reason": "Approved asset variants/copies have distinct required roles; all 69 bytes must remain unchanged.",
+      "id": "D035",
+      "tracking": "tracked",
+      "current_purpose": "Approved asset variants/copies have distinct required roles; all 69 bytes must remain unchanged.",
+      "risk": "high if removed without further review",
+      "performed": false,
+      "owner_approval_required": true,
+      "references": "Django static finder/admin Media verified for D004; other groups can have static/DB/dynamic/template/package/history dependencies and are retained.",
+      "rollback": "No mutation; retain original paths/bytes"
+    },
+    {
+      "paths": [
+        "static/ownlobby/icons/icon-1024.png",
+        "static/ownlobby/social/social-avatar-dark-1024.png"
+      ],
+      "sha256": "f68000cf7c67411f4416cdf486a3ebca9c4a9e109c167e63d30288912e08a8c8",
+      "decision": "PROTECTED",
+      "reason": "Approved asset variants/copies have distinct required roles; all 69 bytes must remain unchanged.",
+      "id": "D036",
+      "tracking": "tracked",
+      "current_purpose": "Approved asset variants/copies have distinct required roles; all 69 bytes must remain unchanged.",
+      "risk": "high if removed without further review",
+      "performed": false,
+      "owner_approval_required": true,
+      "references": "Django static finder/admin Media verified for D004; other groups can have static/DB/dynamic/template/package/history dependencies and are retained.",
+      "rollback": "No mutation; retain original paths/bytes"
+    },
+    {
+      "paths": [
+        "static/ownlobby/icons/icon-192.png",
+        "static/ownlobby/website/icon-192.png"
+      ],
+      "sha256": "cec318b84b6d0bf395d2bf49ac9660f125d0c4b748620b9d029781602d8f56f6",
+      "decision": "PROTECTED",
+      "reason": "Approved asset variants/copies have distinct required roles; all 69 bytes must remain unchanged.",
+      "id": "D037",
+      "tracking": "tracked",
+      "current_purpose": "Approved asset variants/copies have distinct required roles; all 69 bytes must remain unchanged.",
+      "risk": "high if removed without further review",
+      "performed": false,
+      "owner_approval_required": true,
+      "references": "Django static finder/admin Media verified for D004; other groups can have static/DB/dynamic/template/package/history dependencies and are retained.",
+      "rollback": "No mutation; retain original paths/bytes"
+    },
+    {
+      "paths": [
+        "static/ownlobby/icons/icon-512.png",
+        "static/ownlobby/website/icon-512.png"
+      ],
+      "sha256": "f81d3d9f04b56fb0d8cd7f3d80f4fc5f0b8d95f01739a51a5b1495c4eaf5be3c",
+      "decision": "PROTECTED",
+      "reason": "Approved asset variants/copies have distinct required roles; all 69 bytes must remain unchanged.",
+      "id": "D038",
+      "tracking": "tracked",
+      "current_purpose": "Approved asset variants/copies have distinct required roles; all 69 bytes must remain unchanged.",
+      "risk": "high if removed without further review",
+      "performed": false,
+      "owner_approval_required": true,
+      "references": "Django static finder/admin Media verified for D004; other groups can have static/DB/dynamic/template/package/history dependencies and are retained.",
+      "rollback": "No mutation; retain original paths/bytes"
+    },
+    {
+      "paths": [
+        "static/ownlobby/icons/icon-maskable-512.png",
+        "static/ownlobby/website/icon-maskable-512.png"
+      ],
+      "sha256": "b29b3c09fb36bddd3df7a02f19aef9ddd8d13d9c6e93221ad373ce50bdf73d0e",
+      "decision": "PROTECTED",
+      "reason": "Approved asset variants/copies have distinct required roles; all 69 bytes must remain unchanged.",
+      "id": "D039",
+      "tracking": "tracked",
+      "current_purpose": "Approved asset variants/copies have distinct required roles; all 69 bytes must remain unchanged.",
+      "risk": "high if removed without further review",
+      "performed": false,
+      "owner_approval_required": true,
+      "references": "Django static finder/admin Media verified for D004; other groups can have static/DB/dynamic/template/package/history dependencies and are retained.",
+      "rollback": "No mutation; retain original paths/bytes"
+    },
+    {
+      "paths": [
+        "static/ownlobby/icons/site.webmanifest",
+        "static/ownlobby/website/site.webmanifest"
+      ],
+      "sha256": "3945f1655df0f24ffc177514849426ac3d90b806487d6832928a8670bc7804f2",
+      "decision": "PROTECTED",
+      "reason": "Approved asset variants/copies have distinct required roles; all 69 bytes must remain unchanged.",
+      "id": "D040",
+      "tracking": "tracked",
+      "current_purpose": "Approved asset variants/copies have distinct required roles; all 69 bytes must remain unchanged.",
+      "risk": "high if removed without further review",
+      "performed": false,
+      "owner_approval_required": true,
+      "references": "Django static finder/admin Media verified for D004; other groups can have static/DB/dynamic/template/package/history dependencies and are retained.",
+      "rollback": "No mutation; retain original paths/bytes"
+    },
+    {
+      "paths": [
+        "static/ownlobby/logos/primary-horizontal-dark.png",
+        "static/ownlobby/website/ownlobby-header-dark.png"
+      ],
+      "sha256": "136ccfa82de1f3a1f5f6793964a384b718caf28e4dfeca055413224811637273",
+      "decision": "PROTECTED",
+      "reason": "Approved asset variants/copies have distinct required roles; all 69 bytes must remain unchanged.",
+      "id": "D041",
+      "tracking": "tracked",
+      "current_purpose": "Approved asset variants/copies have distinct required roles; all 69 bytes must remain unchanged.",
+      "risk": "high if removed without further review",
+      "performed": false,
+      "owner_approval_required": true,
+      "references": "Django static finder/admin Media verified for D004; other groups can have static/DB/dynamic/template/package/history dependencies and are retained.",
+      "rollback": "No mutation; retain original paths/bytes"
+    },
+    {
+      "paths": [
+        "static/ownlobby/logos/primary-horizontal-dark.svg",
+        "static/ownlobby/website/ownlobby-header-dark.svg"
+      ],
+      "sha256": "dfdf0f3305f52d0560687b22f378f903d4730e4bdbed354ad0be9ddae75effb2",
+      "decision": "PROTECTED",
+      "reason": "Approved asset variants/copies have distinct required roles; all 69 bytes must remain unchanged.",
+      "id": "D042",
+      "tracking": "tracked",
+      "current_purpose": "Approved asset variants/copies have distinct required roles; all 69 bytes must remain unchanged.",
+      "risk": "high if removed without further review",
+      "performed": false,
+      "owner_approval_required": true,
+      "references": "Django static finder/admin Media verified for D004; other groups can have static/DB/dynamic/template/package/history dependencies and are retained.",
+      "rollback": "No mutation; retain original paths/bytes"
+    },
+    {
+      "paths": [
+        "static/ownlobby/logos/primary-horizontal-light.png",
+        "static/ownlobby/website/ownlobby-header-light.png"
+      ],
+      "sha256": "ac83caf763fe32e4a9b0bd27a141e2e7666446a7207a846f4ddcba9ce8bbd7cc",
+      "decision": "PROTECTED",
+      "reason": "Approved asset variants/copies have distinct required roles; all 69 bytes must remain unchanged.",
+      "id": "D043",
+      "tracking": "tracked",
+      "current_purpose": "Approved asset variants/copies have distinct required roles; all 69 bytes must remain unchanged.",
+      "risk": "high if removed without further review",
+      "performed": false,
+      "owner_approval_required": true,
+      "references": "Django static finder/admin Media verified for D004; other groups can have static/DB/dynamic/template/package/history dependencies and are retained.",
+      "rollback": "No mutation; retain original paths/bytes"
+    },
+    {
+      "paths": [
+        "static/ownlobby/logos/primary-horizontal-light.svg",
+        "static/ownlobby/website/ownlobby-header-light.svg"
+      ],
+      "sha256": "305c0b99300d0a6a06d3c0b31fdbe7abe30229c4ec5462aeac2e464f89610c54",
+      "decision": "PROTECTED",
+      "reason": "Approved asset variants/copies have distinct required roles; all 69 bytes must remain unchanged.",
+      "id": "D044",
+      "tracking": "tracked",
+      "current_purpose": "Approved asset variants/copies have distinct required roles; all 69 bytes must remain unchanged.",
+      "risk": "high if removed without further review",
+      "performed": false,
+      "owner_approval_required": true,
+      "references": "Django static finder/admin Media verified for D004; other groups can have static/DB/dynamic/template/package/history dependencies and are retained.",
+      "rollback": "No mutation; retain original paths/bytes"
+    },
+    {
+      "paths": [
+        "static/ownlobby/social/og-preview-1200x630.png",
+        "static/ownlobby/website/og-preview-1200x630.png"
+      ],
+      "sha256": "c5448874f06f428dc2df825be581bd087f1bcd1a84c4f22393abb9db4748d9e3",
+      "decision": "PROTECTED",
+      "reason": "Approved asset variants/copies have distinct required roles; all 69 bytes must remain unchanged.",
+      "id": "D045",
+      "tracking": "tracked",
+      "current_purpose": "Approved asset variants/copies have distinct required roles; all 69 bytes must remain unchanged.",
+      "risk": "high if removed without further review",
+      "performed": false,
+      "owner_approval_required": true,
+      "references": "Django static finder/admin Media verified for D004; other groups can have static/DB/dynamic/template/package/history dependencies and are retained.",
+      "rollback": "No mutation; retain original paths/bytes"
+    },
+    {
+      "paths": [
+        "static/siteui/js/teams-invite-legacy.js",
+        "static/siteui/js/teams.js"
+      ],
+      "sha256": "527ac7d380367c44d37a28eca36af10c77bc1028e8e3f39e1f4849098a0eaf84",
+      "decision": "KEEP / review consolidation later",
+      "reason": "Distinct runtime paths/aliases, persisted media references or licensing may depend on both copies; no deletion proof.",
+      "id": "D046",
+      "tracking": "tracked",
+      "current_purpose": "Distinct runtime paths/aliases, persisted media references or licensing may depend on both copies; no deletion proof.",
+      "risk": "high if removed without further review",
+      "performed": false,
+      "owner_approval_required": true,
+      "references": "Django static finder/admin Media verified for D004; other groups can have static/DB/dynamic/template/package/history dependencies and are retained.",
+      "rollback": "No mutation; retain original paths/bytes"
+    },
+    {
+      "paths": [
+        "templates/My drafts/TMC/Team_management.html",
+        "templates/My drafts/TMC/team_HQ.html"
+      ],
+      "sha256": "2d97ca176b8addac958503f58f611a5552b59c89961e9157b32332a0371e4dd8",
+      "decision": "NEEDS OWNER REVIEW",
+      "reason": "Owner design/prototype history; duplicate bytes do not authorize deleting planning work.",
+      "id": "D047",
+      "tracking": "tracked",
+      "current_purpose": "Owner design/prototype history; duplicate bytes do not authorize deleting planning work.",
+      "risk": "high if removed without further review",
+      "performed": false,
+      "owner_approval_required": true,
+      "references": "Django static finder/admin Media verified for D004; other groups can have static/DB/dynamic/template/package/history dependencies and are retained.",
+      "rollback": "No mutation; retain original paths/bytes"
+    },
+    {
+      "paths": [
+        "templates/My drafts/Team Creation/Final_Detail_page.html",
+        "templates/My drafts/Team Creation/modify_final_detail_page.html",
+        "templates/My drafts/Team detail page/demo_ongoingEdit.html"
+      ],
+      "sha256": "de8323ba4afad5033b421404fe0c0e6c81cf1f0daa26e277b18721b0f0dfd5b1",
+      "decision": "NEEDS OWNER REVIEW",
+      "reason": "Owner design/prototype history; duplicate bytes do not authorize deleting planning work.",
+      "id": "D048",
+      "tracking": "tracked",
+      "current_purpose": "Owner design/prototype history; duplicate bytes do not authorize deleting planning work.",
+      "risk": "high if removed without further review",
+      "performed": false,
+      "owner_approval_required": true,
+      "references": "Django static finder/admin Media verified for D004; other groups can have static/DB/dynamic/template/package/history dependencies and are retained.",
+      "rollback": "No mutation; retain original paths/bytes"
+    },
+    {
+      "paths": [
+        "templates/My drafts/Team Creation/TeamCreation doc.md",
+        "templates/My drafts/Team detail page/TeamCreation doc.md"
+      ],
+      "sha256": "3bc9bed646f4df8367e30eb80728e7da4d9550f9436c40e8b050b1287635694b",
+      "decision": "NEEDS OWNER REVIEW",
+      "reason": "Owner design/prototype history; duplicate bytes do not authorize deleting planning work.",
+      "id": "D049",
+      "tracking": "tracked",
+      "current_purpose": "Owner design/prototype history; duplicate bytes do not authorize deleting planning work.",
+      "risk": "high if removed without further review",
+      "performed": false,
+      "owner_approval_required": true,
+      "references": "Django static finder/admin Media verified for D004; other groups can have static/DB/dynamic/template/package/history dependencies and are retained.",
+      "rollback": "No mutation; retain original paths/bytes"
+    },
+    {
+      "paths": [
+        "templates/My drafts/Team Creation/create_Team.html",
+        "templates/My drafts/Team detail page/create_Team.html"
+      ],
+      "sha256": "b96698b52e10786d74d9420ee94c25a58eaba31ccc204ba9ebc8b2e4d19533dc",
+      "decision": "NEEDS OWNER REVIEW",
+      "reason": "Owner design/prototype history; duplicate bytes do not authorize deleting planning work.",
+      "id": "D050",
+      "tracking": "tracked",
+      "current_purpose": "Owner design/prototype history; duplicate bytes do not authorize deleting planning work.",
+      "risk": "high if removed without further review",
+      "performed": false,
+      "owner_approval_required": true,
+      "references": "Django static finder/admin Media verified for D004; other groups can have static/DB/dynamic/template/package/history dependencies and are retained.",
+      "rollback": "No mutation; retain original paths/bytes"
+    },
+    {
+      "paths": [
+        "templates/account/verification_sent.html",
+        "templates/account/verify_email.html"
+      ],
+      "sha256": "d9b161040ab11d84f9e12467931ffec589e57eb46cbc8a9b152de8ad51710904",
+      "decision": "KEEP / review consolidation later",
+      "reason": "Distinct runtime paths/aliases, persisted media references or licensing may depend on both copies; no deletion proof.",
+      "id": "D051",
+      "tracking": "tracked",
+      "current_purpose": "Distinct runtime paths/aliases, persisted media references or licensing may depend on both copies; no deletion proof.",
+      "risk": "high if removed without further review",
+      "performed": false,
+      "owner_approval_required": true,
+      "references": "Django static finder/admin Media verified for D004; other groups can have static/DB/dynamic/template/package/history dependencies and are retained.",
+      "rollback": "No mutation; retain original paths/bytes"
+    },
+    {
+      "paths": [
+        "tests/accounts/__init__.py",
+        "tests/admin/__init__.py",
+        "tests/api/__init__.py",
+        "tests/certificates/__init__.py",
+        "tests/e2e/__init__.py",
+        "tests/economy/__init__.py",
+        "tests/leaderboards/__init__.py",
+        "tests/payment/__init__.py",
+        "tests/shop/__init__.py",
+        "tests/teams/__init__.py",
+        "tests/ui/__init__.py",
+        "tests/unit/__init__.py",
+        "tests/unit/common/__init__.py",
+        "tests/unit/leaderboards/__init__.py",
+        "tests/unit/tournament_ops/__init__.py",
+        "tests/user_profile/__init__.py"
+      ],
+      "sha256": "7eb70257593da06f682a3ddda54a9d260d4fc514f645237f5ca74b08f8da61a6",
+      "decision": "KEEP",
+      "reason": "Independent package/management/test namespaces require their own module markers.",
+      "id": "D052",
+      "tracking": "tracked",
+      "current_purpose": "Independent package/management/test namespaces require their own module markers.",
+      "risk": "high if removed without further review",
+      "performed": false,
+      "owner_approval_required": true,
+      "references": "Django static finder/admin Media verified for D004; other groups can have static/DB/dynamic/template/package/history dependencies and are retained.",
+      "rollback": "No mutation; retain original paths/bytes"
+    }
+  ],
+  "performed_duplicate_removal": {
+    "removed_path": "apps/user_profile/static_backup_20251231/admin/admin_game_passport.js",
+    "retained_path": "apps/user_profile/static/admin/admin_game_passport.js",
+    "bytes": 8406,
+    "sha256": "de116cc0803efb1be66573bc7c102908e5d29d5d027fec762113dbe2ffec6a42",
+    "static_resolution": "apps/user_profile/static/admin/admin_game_passport.js",
+    "reason": "Exact standalone backup copy outside Django static discovery; canonical file resolves and admin Media references it."
+  },
+  "legacy_reference_inventory": [
+    {
+      "path": ".github/CODEOWNERS",
+      "matches": 3,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": ".github/MODULE_3.1_PR.md",
+      "matches": 2,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": ".gitleaks.toml",
+      "matches": 3,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "AGENTS.md",
+      "matches": 4,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "AuditReport.md",
+      "matches": 4,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "DELTACROWN_ROUTE_AND_PAGE_INVENTORY.md",
+      "matches": 10,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "DELTACROWN_SCREENSHOT_CAPTURE_PLAN.md",
+      "matches": 11,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "Dockerfile",
+      "matches": 9,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "OWNLOBBY_DEPENDENCY_VALIDATION.md",
+      "matches": 5,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "OWNLOBBY_DOMAIN_MIGRATION.md",
+      "matches": 5,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "OWNLOBBY_LINUX_PARITY.md",
+      "matches": 1,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "OWNLOBBY_MEDIA_ARCHITECTURE.md",
+      "matches": 1,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "OWNLOBBY_OAUTH_RELIABILITY.md",
+      "matches": 1,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "OWNLOBBY_PRODUCTION_READINESS.md",
+      "matches": 4,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "OWNLOBBY_REBRAND.md",
+      "matches": 2,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "OWNLOBBY_RELEASE_HANDOFF.md",
+      "matches": 4,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "OWNLOBBY_SECURITY_CLOSURE.md",
+      "matches": 4,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "OWNLOBBY_TECHNICAL_SEO.md",
+      "matches": 3,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "OWNLOBBY_VALIDATION.md",
+      "matches": 4,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "README.md",
+      "matches": 9,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "README_TECHNICAL.md",
+      "matches": 27,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "apps/accounts/backends.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/accounts/emails.py",
+      "matches": 2,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/accounts/models.py",
+      "matches": 3,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/accounts/tests/test_email_sender.py",
+      "matches": 6,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/accounts/views.py",
+      "matches": 3,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/api/schema/spectacular_extensions.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/api/serializers/challenge_serializers.py",
+      "matches": 3,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/challenges/migrations/0001_initial.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/challenges/models.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/common/__init__.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/common/admin_mixins.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/common/api_responses.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/common/context_homepage.py",
+      "matches": 3,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/common/events/event_bus.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/common/game_assets.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/common/game_registry/__init__.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/common/game_registry/registry.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/common/managers.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/common/models.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/common/region_config.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/common/seo.py",
+      "matches": 2,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/common/serializers.py",
+      "matches": 2,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/common/templatetags/string_utils.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/common/tests/test_dependency_compatibility.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/common/tests/test_release_readiness.py",
+      "matches": 24,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/common/validators.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/competition/__init__.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/competition/admin.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/competition/apps.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/competition/leaderboards.py",
+      "matches": 2,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/competition/management/commands/seed_crown_arena.py",
+      "matches": 18,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/competition/migrations/0004_bounty_challenge_bountyclaim_and_more.py",
+      "matches": 2,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/competition/migrations/0007_phase4_escrow_reasons_and_model_fields.py",
+      "matches": 2,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/competition/migrations/0008_crown_clash_escrow_fields.py",
+      "matches": 4,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/competition/migrations/0009_hitlist_escrow_fields.py",
+      "matches": 3,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/competition/migrations/0013_alter_bounty_challenger_entry_fee_dc_and_more.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/competition/models/bounty.py",
+      "matches": 5,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/competition/models/challenge.py",
+      "matches": 5,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/competition/services/challenge_service.py",
+      "matches": 6,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/competition/services/competition_service.py",
+      "matches": 6,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/competition/tests/test_bounty_verify_claim_lifecycle.py",
+      "matches": 14,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/competition/views.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/contracts/migrations/0001_initial.py",
+      "matches": 4,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/contracts/models.py",
+      "matches": 4,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/contracts/services.py",
+      "matches": 6,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/core/README.md",
+      "matches": 3,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/core/__init__.py",
+      "matches": 2,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/core/apps.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/core/management/commands/db_migration_reconcile.py",
+      "matches": 2,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/corelib/templatetags/core_meta.py",
+      "matches": 2,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/dashboard/command_center.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/dashboard/lens_builder.py",
+      "matches": 3,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/dashboard/secondary_data.py",
+      "matches": 2,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/dashboard/views.py",
+      "matches": 9,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/ecommerce/migrations/0001_initial.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/ecommerce/models.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/ecommerce/views.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/economy/admin.py",
+      "matches": 34,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/economy/escrow_service.py",
+      "matches": 20,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/economy/forms.py",
+      "matches": 2,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/economy/fortress_services.py",
+      "matches": 27,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/economy/management/commands/economy_genesis_reset.py",
+      "matches": 12,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/economy/management/commands/recalc_all_wallets.py",
+      "matches": 4,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/economy/migrations/0001_initial.py",
+      "matches": 10,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/economy/migrations/0002_initial.py",
+      "matches": 14,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/economy/migrations/0003_coinpolicy_deleted_at_coinpolicy_deleted_by_and_more.py",
+      "matches": 3,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/economy/migrations/0004_add_cached_balance_after_and_reason_choices.py",
+      "matches": 2,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/economy/migrations/0005_phase2_economy_config_and_treasury.py",
+      "matches": 6,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/economy/migrations/0006_phase4_escrow_reasons_and_model_fields.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/economy/migrations/0007_phase35_economy_dashboard_proxy.py",
+      "matches": 2,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/economy/migrations/0008_phase5_p2p_and_withdrawal_revenue.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/economy/migrations/0009_prize_claim_playbook_compliance_fields.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/economy/migrations/0011_fortress_audit_log.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/economy/migrations/0015_remove_dailyrewardclaim_unique_daily_claim_per_user_per_day_and_more.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/economy/models/__init__.py",
+      "matches": 5,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/economy/models/audit.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/economy/models/config.py",
+      "matches": 3,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/economy/models/requests.py",
+      "matches": 21,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/economy/models/security.py",
+      "matches": 2,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/economy/models/transaction.py",
+      "matches": 7,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/economy/models/wallet.py",
+      "matches": 3,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/economy/reward_services.py",
+      "matches": 20,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/economy/services/__init__.py",
+      "matches": 71,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/economy/services/daily_reward_service.py",
+      "matches": 9,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/economy/signals.py",
+      "matches": 2,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/economy/tests/test_escrow_cached_balance.py",
+      "matches": 7,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/economy/tests/test_request_actions.py",
+      "matches": 11,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/economy/utils.py",
+      "matches": 6,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/economy/views/fortress.py",
+      "matches": 5,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/economy/views/fortress_api.py",
+      "matches": 13,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/economy/views/otp_views.py",
+      "matches": 5,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/economy/views/pin_views.py",
+      "matches": 4,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/economy/views/request_views.py",
+      "matches": 7,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/economy/views/wallet.py",
+      "matches": 4,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/economy/views/wallet_hub.py",
+      "matches": 4,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/economy/views/withdrawal.py",
+      "matches": 9,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/games/README.md",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/games/admin.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/games/constants.py",
+      "matches": 2,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/games/management/commands/flush_cache.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/games/management/commands/purge_test_data.py",
+      "matches": 4,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/games/management/commands/seed_games.py",
+      "matches": 2,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/games/migrations/0011_reorder_valorant_server_regions.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/games/services/riot_verification_service.py",
+      "matches": 6,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/games/views/admin_maintenance.py",
+      "matches": 6,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/match_engine/consumers.py",
+      "matches": 3,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/mobile_api/tests/test_chassis.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/mobile_api/tests/test_notifications.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/mobile_api/tournaments/serializers.py",
+      "matches": 4,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/mobile_api/views.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/notifications/context_processors.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/notifications/email.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/notifications/events/__init__.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/notifications/management/commands/send_checkin_reminders.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/notifications/selectors.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/notifications/services.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/notifications/services/webhook_service.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/notifications/subscribers.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/notifications/tasks.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/notifications/views.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/organizations/README.md",
+      "matches": 8,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/organizations/adapters/flags.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/organizations/admin.py",
+      "matches": 2,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/organizations/api/hub_endpoints.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/organizations/api/serializers.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/organizations/api/views/__init__.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/organizations/api/views/team_manage.py",
+      "matches": 3,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/organizations/api/views/training.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/organizations/docs/adr/002-game-passport-requirement.md",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/organizations/docs/adr/003-empire-score-calculation.md",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/organizations/management/commands/backfill_match_cp.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/organizations/management/commands/run_discord_bot.py",
+      "matches": 14,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/organizations/management/commands/simulate_matches.py",
+      "matches": 3,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/organizations/migrations/0001_initial.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/organizations/migrations/0016_normalize_owner_to_manager.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/organizations/migrations/0027_discord_integration.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/organizations/models/discord_sync.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/organizations/models/ranking.py",
+      "matches": 3,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/organizations/models/training.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/organizations/services/org_hub_service.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/organizations/services/ranking_service.py",
+      "matches": 4,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/organizations/services/team_detail_context.py",
+      "matches": 2,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/organizations/services/training_service.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/organizations/tasks/discord_sync.py",
+      "matches": 7,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/organizations/tests/conftest.py",
+      "matches": 2,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/organizations/tests/test_team_detail_contract.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/organizations/tests/test_team_detail_privacy_schema.py",
+      "matches": 2,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/organizations/tests/test_team_settings_security.py",
+      "matches": 9,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/organizations/tests/test_team_social_href_safety.py",
+      "matches": 4,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/organizations/urls.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/organizations/views/hub.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/organizations/views/org.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/organizations/views/org_directory.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/organizations/views/team.py",
+      "matches": 3,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/organizations/views/team_directory.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/royale/migrations/0001_initial.py",
+      "matches": 3,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/royale/models.py",
+      "matches": 4,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/royale/services.py",
+      "matches": 5,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/shop/__init__.py",
+      "matches": 2,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/shop/admin.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/shop/apps.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/shop/exceptions.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/shop/migrations/0001_initial.py",
+      "matches": 4,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/shop/models.py",
+      "matches": 7,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/shop/services.py",
+      "matches": 18,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/siteui/admin.py",
+      "matches": 6,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/siteui/checks.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/siteui/context.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/siteui/homepage_context.py",
+      "matches": 11,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/siteui/homepage_extras.py",
+      "matches": 6,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/siteui/homepage_hero.py",
+      "matches": 3,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/siteui/homepage_sections.py",
+      "matches": 4,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/siteui/migrations/0001_initial.py",
+      "matches": 12,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/siteui/migrations/0011_alter_homepagecontent_hero_badge_text_and_more.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/siteui/models.py",
+      "matches": 23,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/siteui/nav_context.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/siteui/site_content.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/siteui/tests/test_homepage_hero.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/siteui/tests/test_ownlobby_branding.py",
+      "matches": 4,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/siteui/views.py",
+      "matches": 3,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/support/management/commands/populate_featured_faqs.py",
+      "matches": 3,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/support/views.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournament_ops/__init__.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournament_ops/adapters/economy_adapter.py",
+      "matches": 17,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournament_ops/services/bracket_generators/README.md",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournament_ops/services/payment_service.py",
+      "matches": 6,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournament_ops/services/registration_service.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournament_ops/tasks/match_polling.py",
+      "matches": 2,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournament_ops/tests/test_adapters.py",
+      "matches": 4,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournaments/admin.py",
+      "matches": 11,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournaments/admin_prize.py",
+      "matches": 3,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournaments/api/certificate_views.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournaments/api/checkin/serializers.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournaments/api/checkin/urls.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournaments/api/checkin/views.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournaments/api/payout_serializers.py",
+      "matches": 4,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournaments/api/serializers.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournaments/api/toc/brackets.py",
+      "matches": 4,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournaments/api/toc/rbac.py",
+      "matches": 7,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournaments/api/toc/rbac_service.py",
+      "matches": 11,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournaments/api/toc/settings_service.py",
+      "matches": 20,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournaments/api/toc/urls.py",
+      "matches": 6,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournaments/api/tournament_serializers.py",
+      "matches": 6,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournaments/api/tournament_views.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournaments/api/views.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournaments/management/commands/init_default_games.py",
+      "matches": 3,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournaments/management/commands/seed_form_templates.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournaments/management/commands/seed_full_tournament.py",
+      "matches": 5,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournaments/management/commands/seed_spring_showdown.py",
+      "matches": 22,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournaments/management/commands/seed_uradhura_ucl.py",
+      "matches": 3,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournaments/migrations/0001_initial.py",
+      "matches": 19,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournaments/migrations/0002_initial.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournaments/migrations/0019_rules_agreements_fields.py",
+      "matches": 2,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournaments/migrations/0020_add_social_fields_sponsor_prizeclaim.py",
+      "matches": 3,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournaments/migrations/0021_hub_social_fields_sponsor_prize_claim.py",
+      "matches": 3,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournaments/migrations/0022_fix_tournament_field_defaults.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournaments/migrations/0056_prizeclaim_claim_details_and_other.py",
+      "matches": 3,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournaments/migrations/0057_hosting_config.py",
+      "matches": 2,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournaments/migrations/0058_hosting_config_advanced.py",
+      "matches": 6,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournaments/migrations/0065_hosting_fee_payment.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournaments/models/bounty.py",
+      "matches": 2,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournaments/models/certificate.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournaments/models/form_configuration.py",
+      "matches": 4,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournaments/models/form_template.py",
+      "matches": 2,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournaments/models/hosting_config.py",
+      "matches": 7,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournaments/models/hosting_fee_payment.py",
+      "matches": 3,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournaments/models/payment_config.py",
+      "matches": 13,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournaments/models/prize.py",
+      "matches": 5,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournaments/models/prize_claim.py",
+      "matches": 6,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournaments/models/registration.py",
+      "matches": 8,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournaments/models/template.py",
+      "matches": 4,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournaments/models/tournament.py",
+      "matches": 13,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournaments/models/webhooks.py",
+      "matches": 2,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournaments/realtime/error_events.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournaments/s3_lifecycle.py",
+      "matches": 3,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournaments/services/bulk_operations.py",
+      "matches": 4,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournaments/services/certificate_service.py",
+      "matches": 2,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournaments/services/checkin_service.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournaments/services/discord_webhook.py",
+      "matches": 3,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournaments/services/hosting_fee.py",
+      "matches": 13,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournaments/services/notification_service.py",
+      "matches": 3,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournaments/services/payment_service.py",
+      "matches": 39,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournaments/services/payout_service.py",
+      "matches": 22,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournaments/services/prize_config_service.py",
+      "matches": 6,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournaments/services/registration.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournaments/services/registration_service.py",
+      "matches": 27,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournaments/services/result_ingestion_service.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournaments/services/rewards_read_model.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournaments/services/swiss_service.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournaments/services/template_service.py",
+      "matches": 2,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournaments/services/tournament_cloning_service.py",
+      "matches": 2,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournaments/services/tournament_service.py",
+      "matches": 8,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournaments/storage.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournaments/tasks/__init__.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournaments/tasks/analytics_refresh.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournaments/tasks/evidence_cleanup.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournaments/tasks/lifecycle.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournaments/tasks/match_ready.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournaments/tasks/no_show_timer.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournaments/tasks/payment_expiry.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournaments/tasks/veto_timeout.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournaments/tests/test_adapters_unit.py",
+      "matches": 2,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournaments/tests/test_create_flow_production_polish.py",
+      "matches": 3,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournaments/tests/test_lifecycle_cron_diagnostics.py",
+      "matches": 10,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournaments/tests/test_payout_service.py",
+      "matches": 19,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournaments/tests/test_public_views.py",
+      "matches": 3,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournaments/tests/test_registration_dc_payment.py",
+      "matches": 21,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournaments/tests/test_rewards_read_model.py",
+      "matches": 3,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournaments/views/create.py",
+      "matches": 3,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournaments/views/detail.py",
+      "matches": 5,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournaments/views/discovery.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournaments/views/hub.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournaments/views/live.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournaments/views/match_room.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournaments/views/registration.py",
+      "matches": 49,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/tournaments/views/smart_registration.py",
+      "matches": 17,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/user_profile/admin.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/user_profile/admin.py.backup_phase9a30",
+      "matches": 3,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/user_profile/admin/__init__.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/user_profile/admin/users.py",
+      "matches": 11,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/user_profile/api/followers_list_api.py",
+      "matches": 2,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/user_profile/events.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/user_profile/forms.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/user_profile/management/commands/backfill_user_activities.py",
+      "matches": 3,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/user_profile/management/commands/create_achievement_types.py",
+      "matches": 6,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/user_profile/management/commands/create_starter_badges.py",
+      "matches": 2,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/user_profile/management/commands/reconcile_economy.py",
+      "matches": 10,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/user_profile/migrations/0001_initial.py",
+      "matches": 9,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/user_profile/models/activity.py",
+      "matches": 2,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/user_profile/models/audit.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/user_profile/models/bounties.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/user_profile/models/settings.py",
+      "matches": 2,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/user_profile/models/showcase.py",
+      "matches": 2,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/user_profile/models_main.py",
+      "matches": 7,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/user_profile/services/achievement_service.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/user_profile/services/activity_service.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/user_profile/services/bounty_service.py",
+      "matches": 8,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/user_profile/services/certificate_service.py",
+      "matches": 2,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/user_profile/services/economy_sync.py",
+      "matches": 32,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/user_profile/services/privacy_policy.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/user_profile/services/profile_context.py",
+      "matches": 6,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/user_profile/services/public_id.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/user_profile/services/url_validator.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/user_profile/signals/activity_signals.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/user_profile/signals/legacy_signals.py",
+      "matches": 2,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/user_profile/templatetags/profile_tags.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/user_profile/tests/test_admin.py",
+      "matches": 6,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/user_profile/tests/test_admin_phase11.py",
+      "matches": 6,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/user_profile/tests/test_audit.py",
+      "matches": 6,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/user_profile/tests/test_bounties.py",
+      "matches": 17,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/user_profile/tests/test_economy_sync.py",
+      "matches": 50,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/user_profile/tests/test_media_models.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/user_profile/tests/test_p0_safety.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/user_profile/tests/test_phase13_admin.py",
+      "matches": 8,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/user_profile/tests/test_phase13_profile_ui.py",
+      "matches": 4,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/user_profile/tests/test_profile_layout.py",
+      "matches": 2,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/user_profile/tests/test_settings_alpine.py",
+      "matches": 2,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/user_profile/tests/test_settings_control_deck_smoke.py",
+      "matches": 3,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/user_profile/views/email_verification_api.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/user_profile/views/game_passports_delete.py",
+      "matches": 4,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/user_profile/views/legacy_views.py",
+      "matches": 4,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/user_profile/views/public_profile_views.py",
+      "matches": 9,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/user_profile/views/security_views.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "apps/user_profile/views_public.py",
+      "matches": 9,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "bin/start_render.sh",
+      "matches": 1,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "bin/start_worker.sh",
+      "matches": 1,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "branding/dependency-remediation-matrix.json",
+      "matches": 22,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "branding/environment.example",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "branding/legacy-references.json",
+      "matches": 116,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "branding/production-dependency-inventory.json",
+      "matches": 22,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "branding/security-runtime-dependency-inventory.json",
+      "matches": 22,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "ci/policy/denylist.yml",
+      "matches": 1,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "common/__init__.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "common/events/__init__.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "common/events/event_bus.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "config/flags.md",
+      "matches": 7,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "deltacrown/admin_callbacks.py",
+      "matches": 8,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "deltacrown/asgi.py",
+      "matches": 2,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "deltacrown/branding.py",
+      "matches": 3,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "deltacrown/celery.py",
+      "matches": 3,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "deltacrown/health.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "deltacrown/middleware/__init__.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "deltacrown/middleware/logging.py",
+      "matches": 2,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "deltacrown/middleware/media_proxy.py",
+      "matches": 2,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "deltacrown/middleware/search_indexing.py",
+      "matches": 2,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "deltacrown/settings.py",
+      "matches": 44,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "deltacrown/settings_brand_qa.py",
+      "matches": 2,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "deltacrown/settings_smoke.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "deltacrown/settings_test.py",
+      "matches": 3,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "deltacrown/settings_test_pg.py",
+      "matches": 2,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "deltacrown/urls.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "deltacrown/wsgi.py",
+      "matches": 2,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "docker-compose.staging.yml",
+      "matches": 8,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "docker-compose.yml",
+      "matches": 11,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "frontend_sdk/README.md",
+      "matches": 23,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "frontend_sdk/package-lock.json",
+      "matches": 2,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "frontend_sdk/package.json",
+      "matches": 4,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "frontend_sdk/src/client.ts",
+      "matches": 11,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "frontend_sdk/src/endpoints.ts",
+      "matches": 1,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "frontend_sdk/src/index.ts",
+      "matches": 9,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "frontend_sdk/src/types.domain.ts",
+      "matches": 1,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "frontend_sdk/src/types.generated.ts",
+      "matches": 20,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "frontend_sdk/tests/type-check.test.ts",
+      "matches": 12,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "grafana/moderation_enforcement_dashboard.json",
+      "matches": 5,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "grafana/slo_burn_alerts.json",
+      "matches": 5,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "manage.py",
+      "matches": 2,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "ops/README.md",
+      "matches": 11,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "ops/docker-compose.test.yml",
+      "matches": 4,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "package-lock.json",
+      "matches": 2,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "package.json",
+      "matches": 2,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "pyproject.toml",
+      "matches": 2,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "pytest.ini",
+      "matches": 1,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "render.yaml",
+      "matches": 6,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "requirements-prod.txt",
+      "matches": 1,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "schema.yml",
+      "matches": 24,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "scripts/Seed_Game/seed_2025_games.py",
+      "matches": 2,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "scripts/audit_ownlobby.py",
+      "matches": 16,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "scripts/backfill_certificates_to_s3.py",
+      "matches": 1,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "scripts/canary_smoke_tests.py",
+      "matches": 6,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "scripts/create_test_roles.py",
+      "matches": 1,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "scripts/detailed_smoke_test.py",
+      "matches": 1,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "scripts/generate_favicons.py",
+      "matches": 3,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "scripts/generate_settings_template.py",
+      "matches": 5,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "scripts/inventory_media.py",
+      "matches": 2,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "scripts/list_api_routes.py",
+      "matches": 1,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "scripts/migrate_certificates_to_s3.py",
+      "matches": 2,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "scripts/monitoring_dashboard.sh",
+      "matches": 1,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "scripts/reset_test_db.py",
+      "matches": 4,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "scripts/run_tests.ps1",
+      "matches": 6,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "scripts/run_tests.py",
+      "matches": 1,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "scripts/run_tests.sh",
+      "matches": 3,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "scripts/seed_all.py",
+      "matches": 3,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "scripts/seed_realistic_data.py",
+      "matches": 5,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "scripts/setup_test_db.py",
+      "matches": 5,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "scripts/smoke_local_run.sh",
+      "matches": 1,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "scripts/supabase_enable_rls_all_tables.sql",
+      "matches": 1,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "scripts/verify_ownlobby.py",
+      "matches": 7,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "start.sh",
+      "matches": 1,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "start_dev.ps1",
+      "matches": 1,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "static/admin/css/game_media_admin.css",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/admin/css/maintenance_center.css",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/admin/js/game_media_admin.js",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/admin/js/payment_method_toggle.js",
+      "matches": 2,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/community/app.jsx",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/community/cards.jsx",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/community/composer.jsx",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/community/data.jsx",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/community/rails.jsx",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/community/styles.css",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/css/about_2025.css",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/css/design-tokens.css",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/css/home_2025.css",
+      "matches": 8,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/css/homepage-cyberpunk.css",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/css/homepage-modern.css",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/css/homepage-premium.css",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/css/notifications.css",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/css/team-detail/game-themes.css",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/css/team-detail/hero-templates-new.css",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/css/user_profile/core.css",
+      "matches": 2,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/dashboard/command-center.css",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/dashboard/command-center.js",
+      "matches": 2,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/dashboard/competitive-arena.css",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/dashboard/competitive-design-system.css",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/fonts/README.md",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/img/DeltaCrown_wordmark.svg",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/img/Other/DeltaCoin/coin.svg",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/img/Other/DeltaCoin/coin2.svg",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/img/Other/DeltaCoin/coin3.svg",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/img/Other/DeltaCoin/coin4.svg",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/img/Other/DeltaCoin/coin5.svg",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/img/Other/DeltaCoin/coin_smp.svg",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/img/deltaCrown_logos/DeltaCrown_Teal-Purple-Gold.svg",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/img/deltaCrown_logos/logo_animated_sharp.svg",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/img/favicon/site.webmanifest",
+      "matches": 3,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/img/teams/default-banner.svg",
+      "matches": 2,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/js/csp-delegator.js",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/js/homepage-cyberpunk.js",
+      "matches": 2,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/js/homepage-enhanced.js",
+      "matches": 8,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/js/homepage-modern.js",
+      "matches": 4,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/js/registration_progressive.js",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/js/settings.js",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/js/settings_controller.js",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/js/tournament_create.js",
+      "matches": 11,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/organizations/org/org_create.js",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/organizations/org/org_detail.js",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/organizations/team_find/assets/logos/delta-crown-wordmark-gradient.svg",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/organizations/team_find/assets/logos/delta-crown-wordmark.svg",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/organizations/team_find/find_team_v2.css",
+      "matches": 2,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/organizations/team_find/find_team_v2.js",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/siteui/css/auth.css",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/siteui/css/home-mobile.css",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/siteui/css/home.css",
+      "matches": 3,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/siteui/css/primary_navigation.css",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/siteui/css/tokens.css",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/siteui/css/tournaments.css",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/siteui/js/community-hub-v2-old.js",
+      "matches": 2,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/siteui/js/community-hub.js",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/siteui/js/community-social.js",
+      "matches": 3,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/siteui/js/debug.js",
+      "matches": 5,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/siteui/js/filter-orb.js",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/siteui/js/home-mobile.js",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/siteui/js/home.js",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/siteui/js/pdfjs-init.js",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/siteui/js/primary_navigation.js",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/siteui/js/tailwind-config.js",
+      "matches": 2,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/siteui/js/theme.js",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/siteui/js/toast-modern.js",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/siteui/js/tournament-detail-neo.js",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/siteui/svg/DeltaCrown_logo2.svg",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/siteui/svg/Logos/DeltaCrown_Teal-Purple-Gold.svg",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/siteui/svg/logo+word.svg",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/siteui/svg/logo+word2.svg",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/siteui/svg/logo-deltacrown-animated.svg",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/siteui/svg/logo-deltacrown-static.svg",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/siteui/svg/logo-deltacrown.svg",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/siteui/svg/logo-mark-animated.svg",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/siteui/svg/logo-mark-animated2.svg",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/siteui/svg/logo3.svg",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/siteui/svg/logo4.svg",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/siteui/svg/logo_trophy.svg",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/teams/css/team-create-modern.css.v2backup",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/teams/css/team-create.css",
+      "matches": 2,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/teams/css/team-create.css.backup2",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/teams/js/team-create-modern.js",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/teams/js/team-create-modern.js.v3backup",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/teams/js/team-create.js",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/teams/js/team-list-premium.js",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/tournaments/css/hub.css",
+      "matches": 2,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/tournaments/css/tournaments-hub.css",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/tournaments/css/tournaments.css",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/tournaments/detailPages/css/detail.css",
+      "matches": 9,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/tournaments/js/bracket-demo-engine.js",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/tournaments/js/hub-engine.js",
+      "matches": 5,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/tournaments/js/tournaments-hub.js",
+      "matches": 3,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/tournaments/js/tournaments.js",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/tournaments/toc/js/toc-rbac.js",
+      "matches": 3,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/tournaments/toc/js/toc-settings.js",
+      "matches": 15,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/user_profile/css/profile_v2.css",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/user_profile/js/api_client.js",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "static/user_profile/profile.js",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "synthetics/uptime_checks.yml",
+      "matches": 7,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "tailwind.config.js",
+      "matches": 1,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "templates/My drafts/4tabs.html",
+      "matches": 4,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "templates/My drafts/Career Page Design.md",
+      "matches": 3,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "templates/My drafts/Documentation_ Adaptive Career.md",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "templates/My drafts/HUB_overview_tab.html",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "templates/My drafts/Hub page/Hub page documentation.md",
+      "matches": 3,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "templates/My drafts/Hub page/Hub_page_demo.html",
+      "matches": 5,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "templates/My drafts/Hub page/demo_hub2.html",
+      "matches": 4,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "templates/My drafts/NEW templates/Achivement.html",
+      "matches": 4,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "templates/My drafts/NEW templates/Bracket_demo.html",
+      "matches": 2,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "templates/My drafts/NEW templates/competitive_hub.html",
+      "matches": 3,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "templates/My drafts/NEW templates/create_tournament.html",
+      "matches": 6,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "templates/My drafts/NEW templates/demo_Arena.html",
+      "matches": 2,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "templates/My drafts/NEW templates/fortress_demo.html",
+      "matches": 4,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "templates/My drafts/NEW templates/tab_bracket.html",
+      "matches": 2,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "templates/My drafts/NEW templates/test_prize_tab.html",
+      "matches": 2,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "templates/My drafts/NEW templates/wallet_demo.html",
+      "matches": 9,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "templates/My drafts/Org_create/Additional_Detail_Page_org.html",
+      "matches": 4,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "templates/My drafts/Org_create/Org_detail.html",
+      "matches": 4,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "templates/My drafts/Org_create/Organization Hub.html",
+      "matches": 4,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "templates/My drafts/Org_create/Organization_Control_Plane.html",
+      "matches": 5,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "templates/My drafts/Org_create/Organization_Control_Plane.md",
+      "matches": 4,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "templates/My drafts/Org_create/Organization_Create.html",
+      "matches": 11,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "templates/My drafts/Org_create/extra.html",
+      "matches": 4,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "templates/My drafts/Registration/registration_solo.html",
+      "matches": 3,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "templates/My drafts/Registration/registration_team.html",
+      "matches": 2,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "templates/My drafts/TMC/DeltaCrown Team HQ.md",
+      "matches": 3,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "templates/My drafts/TMC/Team_management.html",
+      "matches": 10,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "templates/My drafts/TMC/team_HQ.html",
+      "matches": 10,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "templates/My drafts/TOC/bracket/Draw_Setup_Wizard.html",
+      "matches": 2,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "templates/My drafts/TOC/demo_TOC.html",
+      "matches": 5,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "templates/My drafts/Team Creation/Final_Detail_page.html",
+      "matches": 5,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "templates/My drafts/Team Creation/TeamCreation doc.md",
+      "matches": 2,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "templates/My drafts/Team Creation/create_Team.html",
+      "matches": 3,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "templates/My drafts/Team Creation/extra.html",
+      "matches": 2,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "templates/My drafts/Team Creation/modify_final_detail_page.html",
+      "matches": 5,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "templates/My drafts/Team detail page/FixIT/Demo_Team_detail_templete.html",
+      "matches": 5,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "templates/My drafts/Team detail page/Team Detail Page Blueprint .md",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "templates/My drafts/Team detail page/TeamCreation doc.md",
+      "matches": 2,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "templates/My drafts/Team detail page/create_Team.html",
+      "matches": 3,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "templates/My drafts/Team detail page/demo_ongoingEdit.html",
+      "matches": 5,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "templates/My drafts/UP/gamePassportDemo.html",
+      "matches": 2,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "templates/My drafts/aboutSection.html",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "templates/My drafts/bounty.html",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "templates/My drafts/career.html",
+      "matches": 2,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "templates/My drafts/dashboard_demo.html",
+      "matches": 5,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "templates/My drafts/demo_notification.html",
+      "matches": 3,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "templates/My drafts/navBar_design.html",
+      "matches": 2,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "templates/My drafts/overview_message_hub.html",
+      "matches": 4,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "templates/My drafts/profile.html",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "templates/My drafts/ranking_demo.html",
+      "matches": 5,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "templates/My drafts/setting_temp/Game_Passport/gamePassport.html",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "templates/My drafts/setting_temp/settings_temp.html",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "templates/My drafts/tournament_demo/hub/demo_hub.html",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "templates/My drafts/tournament_demo/hub/demo_hub_2.html",
+      "matches": 2,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "templates/My drafts/tournament_demo/list_demo.html",
+      "matches": 1,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "templates/My drafts/tournament_demo/tournamnt_detail_demo.html",
+      "matches": 6,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "templates/My drafts/user_profile_temp_draft/template documentation.md",
+      "matches": 8,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "templates/My drafts/user_profile_temp_draft/user_profile.html",
+      "matches": 2,
+      "classification": "historical/provenance/artwork; retain"
+    },
+    {
+      "path": "templates/admin/economy/economy_dashboard.html",
+      "matches": 3,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "templates/admin/games/maintenance.html",
+      "matches": 2,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "templates/base.html",
+      "matches": 3,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "templates/base_no_footer.html",
+      "matches": 1,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "templates/competition/ranking_about.html",
+      "matches": 2,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "templates/dashboard/index.html",
+      "matches": 4,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "templates/emails/tournaments/payment_confirmed.html",
+      "matches": 1,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "templates/emails/tournaments/registration_confirmation.html",
+      "matches": 1,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "templates/home.html",
+      "matches": 8,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "templates/legal/cookie_policy.html",
+      "matches": 2,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "templates/legal/privacy_policy.html",
+      "matches": 2,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "templates/legal/terms_of_service.html",
+      "matches": 4,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "templates/organizations/hub/team_hub.html",
+      "matches": 5,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "templates/organizations/org/org_control_plane.html",
+      "matches": 2,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "templates/organizations/org/org_create.html",
+      "matches": 3,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "templates/organizations/org/org_hub.html",
+      "matches": 1,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "templates/organizations/team/manage_hq/partials/_section_discord.html",
+      "matches": 1,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "templates/organizations/team/manage_hq/partials/_section_settings.html",
+      "matches": 1,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "templates/organizations/team/manage_hq/partials/_section_treasury.html",
+      "matches": 1,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "templates/partials/backup_unused/jsonld_organization.html",
+      "matches": 2,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "templates/partials/backup_unused/jsonld_website.html",
+      "matches": 1,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "templates/partials/backup_unused/mobile_nav.html",
+      "matches": 3,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "templates/partials/footer_industry.html",
+      "matches": 3,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "templates/partials/footer_modern.html",
+      "matches": 2,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "templates/partials/primary_navigation.html",
+      "matches": 1,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "templates/support/contact.html",
+      "matches": 5,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "templates/tournaments/components/_info_bar.html",
+      "matches": 2,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "templates/tournaments/components/_tournament_card.html",
+      "matches": 2,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "templates/tournaments/create/tournament_create.html",
+      "matches": 1,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "templates/tournaments/detailPages/_detail_mobile.html",
+      "matches": 2,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "templates/tournaments/detailPages/detail.html",
+      "matches": 6,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "templates/tournaments/draw_director.html",
+      "matches": 1,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "templates/tournaments/emails/payment_pending.html",
+      "matches": 2,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "templates/tournaments/emails/registration_confirmed.html",
+      "matches": 1,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "templates/tournaments/emails/waitlist_promotion.html",
+      "matches": 3,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "templates/tournaments/hub/_tab_prizes.html",
+      "matches": 1,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "templates/tournaments/public/registration/payment_complete.html",
+      "matches": 6,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "templates/tournaments/registration/includes/_step_payment.html",
+      "matches": 10,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "templates/tournaments/registration/includes/_wizard_engine.js",
+      "matches": 7,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "templates/tournaments/registration/smart_register.html",
+      "matches": 4,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "templates/tournaments/registration/smart_success.html",
+      "matches": 2,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "templates/tournaments/toc/base.html",
+      "matches": 2,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "templates/user_profile/profile/public_profile_mobile.html",
+      "matches": 1,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "templates/user_profile/profile/settings/_kyc_status.html",
+      "matches": 2,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "templates/user_profile/profile/settings_control_deck.html",
+      "matches": 2,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "tests/README.md",
+      "matches": 6,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "tests/_model_shims.py",
+      "matches": 7,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "tests/accounts/test_email_otp.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "tests/api/test_api_documentation.py",
+      "matches": 2,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "tests/certificates/conftest.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "tests/certificates/test_backfill_integration.py",
+      "matches": 5,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "tests/certificates/test_consistency_integration.py",
+      "matches": 4,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "tests/certificates/test_s3_moto_integration.py",
+      "matches": 12,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "tests/certificates/test_s3_storage_core.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "tests/conftest.py",
+      "matches": 6,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "tests/e2e/conftest.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "tests/e2e/test_settings_page.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "tests/e2e/test_smoke_pages.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "tests/economy/conftest.py",
+      "matches": 7,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "tests/economy/test_admin_reconcile_module_7_1.py",
+      "matches": 22,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "tests/economy/test_coverage_uplift_module_7_1.py",
+      "matches": 7,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "tests/economy/test_history_reporting_module_7_3.py",
+      "matches": 6,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "tests/economy/test_idempotency_module_7_1.py",
+      "matches": 27,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "tests/economy/test_ledger_invariants_module_7_1.py",
+      "matches": 41,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "tests/economy/test_revenue_analytics_module_7_4.py",
+      "matches": 4,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "tests/economy/test_service_api_module_7_1.py",
+      "matches": 37,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "tests/economy/test_transfer_properties_module_7_1.py",
+      "matches": 21,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "tests/factories.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "tests/integration/test_bracket_service_realtime.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "tests/integration/test_match_service_realtime.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "tests/integration/test_registration_service.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "tests/integration/test_security_hardening.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "tests/integration/test_websocket_ratelimit.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "tests/integration/test_websocket_realtime.py",
+      "matches": 15,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "tests/perf/__init__.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "tests/perf/perf_harness.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "tests/shop/conftest.py",
+      "matches": 3,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "tests/shop/test_authorize_capture_release_module_7_2.py",
+      "matches": 7,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "tests/shop/test_available_balance_module_7_2.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "tests/shop/test_catalog_admin_module_7_2.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "tests/shop/test_concurrency_module_7_2.py",
+      "matches": 5,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "tests/shop/test_coverage_closure_module_7_2.py",
+      "matches": 15,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "tests/shop/test_edge_cases_coverage_module_7_2.py",
+      "matches": 4,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "tests/shop/test_refund_module_7_2.py",
+      "matches": 4,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "tests/siteui/test_homepage_content.py",
+      "matches": 2,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "tests/smoke/test_end_to_end_paths.py",
+      "matches": 2,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "tests/test_admin_dashboard.py",
+      "matches": 21,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "tests/test_asgi.py",
+      "matches": 2,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "tests/test_bounty_lifecycle.py",
+      "matches": 3,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "tests/test_certificate_service_module_5_3.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "tests/test_checkin_module_3_4.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "tests/test_dashboard_service.py",
+      "matches": 2,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "tests/test_ecommerce_models.py",
+      "matches": 7,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "tests/test_final_scoring.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "tests/test_game_scoring_validation.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "tests/test_interactive_owner_flows.py",
+      "matches": 3,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "tests/test_launch_blockers.py",
+      "matches": 21,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "tests/test_manage_hq.py",
+      "matches": 2,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "tests/test_match_center_persistence.py",
+      "matches": 2,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "tests/test_payout_service_module_5_2.py",
+      "matches": 2,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "tests/test_phase5a_platform_prefs.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "tests/test_phase6_phase7.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "tests/test_profile_v3_template.py",
+      "matches": 2,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "tests/test_security_and_performance.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "tests/test_security_config.py",
+      "matches": 6,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "tests/test_smoke.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "tests/test_team_bounty.py",
+      "matches": 7,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "tests/test_tournament_lifecycle_full.py",
+      "matches": 3,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "tests/test_urlconf_imports_smoke.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "tests/test_user_profile_public_views.py",
+      "matches": 3,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "tests/test_user_profile_team_display.py",
+      "matches": 4,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "tests/test_websocket_enhancement_module_4_5.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "tests/tournaments/test_hub_modules.py",
+      "matches": 2,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "tests/tournaments/test_phase4_part1.py",
+      "matches": 39,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "tests/tournaments/test_tournament_create_contracts.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "tests/unit/test_career_tab_service.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "tests/unit/test_match_models.py",
+      "matches": 2,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "tests/unit/test_registration_models.py",
+      "matches": 1,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "tests/unit/test_tournament_models.py",
+      "matches": 10,
+      "classification": "protected technical/test identifier"
+    },
+    {
+      "path": "tools/generate_frontend_types.py",
+      "matches": 2,
+      "classification": "documentation/tool/config reference; selective review"
+    },
+    {
+      "path": "tools/verify_schema.py",
+      "matches": 1,
+      "classification": "documentation/tool/config reference; selective review"
+    }
+  ],
+  "readme_archive_sha256": "456d7c38ec7c465671159667b76a3d03e80100f50f90016f670c1240fdfd4782",
+  "historical_link_findings_by_status": {
+    "workspace-only": 14,
+    "missing": 6,
+    "outside-workspace": 27
+  },
+  "historical_link_findings_by_document": {
+    ".github/MODULE_3.1_PR.md": 1,
+    "README_TECHNICAL.md": 3,
+    "apps/organizations/README.md": 7,
+    "apps/organizations/docs/adr/001-team-ownership-constraint.md": 3,
+    "apps/organizations/docs/adr/002-game-passport-requirement.md": 3,
+    "apps/organizations/docs/adr/003-empire-score-calculation.md": 3,
+    "apps/organizations/docs/adr/004-integerfield-game-id-bridge.md": 6,
+    "apps/organizations/docs/adr/README.md": 6,
+    "apps/tournaments/api/README.md": 5,
+    "apps/tournaments/services/README.md": 6,
+    "config/flags.md": 4
+  },
+  "manual_probe_body_ast_unchanged": true
+}

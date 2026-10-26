@@ -1,4 +1,6 @@
 # Competitive Ecosystem Audit Report
+
+> Historical competitive-ecosystem snapshot dated 2026-05-06. Retained for engineering decisions; its missing-feature findings may be superseded. Current status: [release handoff](OWNLOBBY_RELEASE_HANDOFF.md).
 Date: 2026-05-06
 
 ## Scope
