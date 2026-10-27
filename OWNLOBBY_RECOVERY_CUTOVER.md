@@ -32,3 +32,11 @@ Status: STAGED ONLY. No certified rollback yet. Never restore public access to s
 ## Live acceptance
 - Build and process startup, session/CSRF/password login, private file GET/HEAD and denial, public org art, avatar snapshots, payment/dispute evidence, WebSockets, actual SMTP email, OAuth, tournament bracket and Celery consumer probe, memory peak and Redis backlog.
 - Keep public promotion off until critical canary checks pass.
+## 2026-10-28 recovery source verification
+- Independently inspected the recovery branch source, not production behavior.
+- Hybrid mode routes deliberate public artwork to PublicArtworkStorage and default/private uploads to ProtectedS3Storage.
+- ProtectedS3Storage.url() refuses direct object-store URLs; governed private record route checks can_download before file I/O.
+- Release gate rejects missing MEDIA_STORAGE_VERIFIED, MEDIA_RESTORE_VERIFIED and MEDIA_LEGACY_PRIVACY_VERIFIED in hybrid production. Flags cannot be truthfully enabled yet: Cloudinary old URLs are still public.
+- Render uses manual deploy, release build runs manage.py check --deploy --fail-level ERROR, start defaults ENABLE_CELERY_WORKER=0.
+- Existing hybrid unit tests cover storage aliases, public artwork, private URL auth and refusal of false verification flags. They have not been rerun against this checkpoint in this session.
+- Current recovery branch is a **frozen source checkpoint**, not a tested production recovery. Recovery requires a true live compatible canary and a verified way to restrict access if deployment fails; do not treat this static review as satisfying that requirement.
