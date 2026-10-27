@@ -426,6 +426,7 @@ MIDDLEWARE = [
     # Prometheus timing wrappers — omitted when ENABLE_PROMETHEUS_METRICS=0
     *( ["django_prometheus.middleware.PrometheusBeforeMiddleware"] if ENABLE_PROMETHEUS_METRICS else []),
     "deltacrown.metrics.MetricsMiddleware",  # Module 9.5: Metrics collection
+    "deltacrown.middleware.request_memory_probe.RequestMemoryProbeMiddleware",  # opt-in RSS samples, off by default
     "django.middleware.security.SecurityMiddleware",
     "deltacrown.middleware.security_headers.CSPMiddleware",  # Content Security Policy
     "deltacrown.middleware.search_indexing.SearchIndexingMiddleware",
