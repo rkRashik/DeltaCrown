@@ -52,3 +52,8 @@ Status: STAGED ONLY. No certified rollback yet. Never restore public access to s
 - Render service event history CONFIRMS prior 512 MiB out-of-memory kills on 2026-10-20, 2026-10-22 and 2026-10-26; October 23/24 failures were health-check timeouts. This is measured production capacity risk, not merely speculative.
 - Live sampled memory reached 525,074,430 bytes against a 536,870,900-byte limit. Do not attempt a second process/worker until under-limit behavior has been proved with margin.
 - Do not change broker URL blindly: Redis host mismatch and queued work remain unresolved. No secrets/environment mutations performed.
+
+## 2026-10-28 targeted RSS log diagnosis
+- Render read-only logs show at 22:00 local cron process RSS ~360.2 MiB and 23:25 ~375.4 MiB, while individual cron request deltas were usually 0.0-0.6 MiB. Subsequent sampled RSS at 01:55 local ~500.1 MiB. This **does not prove** cron is the memory leak; growth likely happens between samples, so inspect request and process activity before blaming tasks.
+- Do NOT disable scheduled tournament lifecycle tasks on this evidence or enable a second worker. This is not a verified memory fix.
+- To advance safely, investigate non-cron request handling and imports, and obtain actual container headroom on a staged replacement before promotion.
