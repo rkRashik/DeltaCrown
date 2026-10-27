@@ -132,6 +132,8 @@ class TaskExecutionTests(SimpleTestCase):
             on_commit.call_args.args[0]()
             task.apply_async.assert_called_once_with(args=[42], ignore_result=True, retry=False)
 
+    @patch.dict('os.environ', {'CELERY_BROKER_URL': 'memory://',
+                               'CELERY_RESULT_BACKEND': 'cache+memory://'})
     def test_real_memory_broker_consumption_without_eager(self):
         # A running worker, not .apply() or eager execution. Windows uses solo
         # for this isolated transport test; Render's prefork must be live-tested.
@@ -148,6 +150,8 @@ class TaskExecutionTests(SimpleTestCase):
             result = probe.delay('synthetic-launch-canary')
             self.assertEqual(result.get(timeout=10), 'synthetic-launch-canary')
 
+    @patch.dict('os.environ', {'CELERY_BROKER_URL': 'memory://',
+                               'CELERY_RESULT_BACKEND': 'cache+memory://'})
     def test_real_memory_worker_retry_completion(self):
         from celery import Celery
         from celery.contrib.testing.worker import start_worker
