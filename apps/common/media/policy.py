@@ -86,13 +86,13 @@ def can_download(user, obj, field_name):
             return True
         privacy = getattr(obj, 'privacy_settings', None)
         return bool(privacy and (
-            (not privacy.is_private_account and privacy.visibility_preset != 'private')
+            (not privacy.is_private_account and str(privacy.visibility_preset).upper() != 'PRIVATE')
             or (authenticated and apps.get_model('user_profile.Follow').objects.filter(
                 follower_id=uid, following_id=obj.user_id
             ).exists())
         ))
     if label == 'user_profile.gameprofile':
-        return uid == obj.user_id or (obj.visibility == 'public' and can_download(user, obj.user.profile, 'avatar'))
+        return uid == obj.user_id or (str(obj.visibility).upper() == 'PUBLIC' and can_download(user, obj.user.profile, 'avatar'))
     if label in {'user_profile.verificationrecord', 'user_profile.kycsubmission'}:
         return authenticated and obj.user_profile.user_id == uid
     if label in {'user_profile.certificate', 'tournaments.certificaterecord', 'tournaments.kycsubmission'}:

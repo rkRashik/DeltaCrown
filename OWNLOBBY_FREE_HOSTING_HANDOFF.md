@@ -1,5 +1,50 @@
 # OwnLobby free-hosting handoff
 
+## 2026-10-27 focused media authorization update
+
+Profile-media authorization now normalizes stored visibility presets: `PRIVATE`
+cannot bypass the private avatar/banner rule, and `PUBLIC` GameProfile rank art
+remains readable only when the parent profile permits it. Owners and approved
+followers retain their existing access; nonpublic GameProfile visibility is not
+broadened. Eight focused, database-free view/policy regressions pass, covering
+GET/HEAD denial before origin I/O, owner/follower access, the private-account
+flag, public-game inheritance, nonpublic game media, and inactive viewers.
+Command: `python manage.py test apps.common.tests.test_media_profile_privacy
+--settings=deltacrown.settings_brand_qa --noinput` with loopback-only test DSNs
+and in-memory cache/broker. No production tests, storage writes or migration.
+
+**Linux/native/startup evidence is now confirmed**, superseding the older
+unverified statements below: [Linux release smoke run 40386647522](https://github.com/rkRashik/DeltaCrown/actions/runs/40386647522)
+passed on `4620933989cd7c226952b5ac960b608c7dc6a4c7`, including Python 3.12,
+native Cairo/PDF, dependency integrity, Django ASGI startup, Daphne HTTP/WS,
+frontend and static checks. Native/dependency/startup inputs are unchanged from
+that ancestor; reuse this result alongside the new focused security tests.
+This is not a claim that the new fix ran in that historical CI job or that the
+existing Render service's live configuration and peak memory were validated.
+
+The owner accepts the unavailable optional badge as cosmetic and directs the
+two archived evidence links to remain unavailable. No dispute/reference edits,
+fabricated evidence or claim of dispute resolution are made. Portable backup
+export remains owner-aware deferred work, not an added launch gate.
+
+The 125-object migration and restore evidence were reused. Scoped evidence found
+**zero currently restricted Cloudinary originals**, not 111 confidential leaks.
+The exact 111 visibility-controlled legacy sources still need an approved
+future-privacy/cache containment policy before hybrid activation; exclude the
+two approved public organization-art objects. Account for existing embedded
+avatar references before invalidation. Eleven recovered sensitive local-media
+paths must not bypass authorized delivery. Exact identifiers/URLs are only in
+the encrypted local containment manifest under ignored `Artifacts/media-audit/`.
+No revocation, deletion or ACL change was performed.
+
+**Remaining production No-Go:** verify/implement legacy containment and honest
+media-gate attestations; confirm essential queued notifications/tasks actually
+execute on the existing worker-disabled Free setup (HTTP lifecycle cron does
+not drain the broker). Confirm actual start command, secrets/origins and canary
+memory at the authorized release window. Do not enable eager execution or bypass
+release checks as a workaround. No deploy, DNS, Render, database, verification
+flag or domain changes accompany this security fix.
+
 2026-10-27. Started clean at `3bcdd3131dd050207e5af55ea7fee91b6bd91db7`; local branch `feature/ownlobby-free-hosting`. **Local stabilization complete; production promotion remains No-Go pending the checks below.** No push, deployment, live connection, DNS/provider change, purchase or data migration.
 
 ## Fixes and evidence
