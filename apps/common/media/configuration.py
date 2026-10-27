@@ -8,11 +8,16 @@ from django.core.exceptions import ImproperlyConfigured
 
 def configure(storages, base_dir, media_root):
     mode = os.getenv('OWNLOBBY_MEDIA_MODE', 'legacy')
-    if mode not in {'legacy', 'local', 's3'}:
-        raise ImproperlyConfigured('OWNLOBBY_MEDIA_MODE must be legacy, local or s3')
+    if mode not in {'legacy', 'local', 's3', 'hybrid'}:
+        raise ImproperlyConfigured('OWNLOBBY_MEDIA_MODE must be legacy, local, s3 or hybrid')
     if mode == 'legacy':
         return mode
     for category in ('public', 'private'):
+        if mode == 'hybrid' and category == 'public':
+            storages['public_media'] = {
+                'BACKEND': 'apps.common.media.cloudinary.PublicArtworkStorage'
+            }
+            continue
         if mode == 'local':
             options = {'location': str(media_root if category == 'public' else Path(base_dir) / '.private-media')}
             backend = 'apps.common.media.storage.ProtectedFileSystemStorage'

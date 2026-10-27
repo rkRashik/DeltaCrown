@@ -1,5 +1,6 @@
 """Deliberate field categories; unknown fields never become public by inference."""
 from django.apps import apps
+from django.conf import settings
 
 PUBLIC_MODELS = {
     'games.game', 'games.gamemappool', 'organizations.organization',
@@ -15,9 +16,22 @@ KNOWN_FIELDS = frozenset([('contracts.contractproofsubmission', 'proof_file'), (
 PUBLIC_FIELDS = frozenset([('ecommerce.brand', 'logo'), ('ecommerce.category', 'image'), ('ecommerce.product', 'featured_image'), ('ecommerce.product', 'hover_image'), ('ecommerce.productimage', 'image'), ('economy.inventoryitem', 'icon'), ('games.game', 'banner'), ('games.game', 'card_image'), ('games.game', 'icon'), ('games.game', 'logo'), ('games.gamemappool', 'image'), ('organizations.organization', 'badge'), ('organizations.organization', 'banner'), ('organizations.organization', 'logo'), ('organizations.team', 'banner'), ('organizations.team', 'logo'), ('siteui.arenahighlight', 'custom_thumbnail'), ('siteui.arenastream', 'custom_thumbnail'), ('tournaments.registrationformtemplate', 'thumbnail'), ('tournaments.tournament', 'banner_image'), ('tournaments.tournament', 'thumbnail_image'), ('tournaments.tournamentsponsor', 'banner_image'), ('tournaments.tournamentsponsor', 'logo'), ('user_profile.gameprofile', 'rank_image'), ('user_profile.userprofile', 'avatar'), ('user_profile.userprofile', 'banner')])
 
 
+# Only organization brand artwork has no draft, member-only or profile-privacy
+# policy. Visibility-controlled artwork stays private, even while published.
+# CDN publication is not revocable by changing a Django visibility flag.
+CLOUDINARY_PUBLIC_FIELDS = frozenset({
+    ('organizations.organization', 'logo'),
+    ('organizations.organization', 'banner'),
+    ('organizations.organization', 'badge'),
+})
+
+
 def storage_alias(field):
     label = field.model._meta.concrete_model._meta.label_lower
-    return 'public_media' if (label, field.name) in PUBLIC_FIELDS else 'private_media'
+    public_fields = (CLOUDINARY_PUBLIC_FIELDS
+                     if getattr(settings, 'OWNLOBBY_MEDIA_MODE', 'legacy') == 'hybrid'
+                     else PUBLIC_FIELDS)
+    return 'public_media' if (label, field.name) in public_fields else 'private_media'
 
 
 

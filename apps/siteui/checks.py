@@ -71,18 +71,30 @@ def governed_media_release_check(app_configs, **kwargs):
     if settings.DEBUG or not getattr(settings, 'REQUIRE_PERSISTENT_MEDIA', False):
         return []
     issues = []
-    if getattr(settings, 'OWNLOBBY_MEDIA_MODE', 'legacy') != 's3':
-        issues.append(Error('Production requires separate governed S3-compatible media origins.', id='siteui.E002'))
+    mode = getattr(settings, 'OWNLOBBY_MEDIA_MODE', 'legacy')
+    if mode not in {'s3', 'hybrid'}:
+        issues.append(Error('Production requires governed S3 or hybrid media storage.', id='siteui.E002'))
         return issues
     aliases = [settings.STORAGES.get(name, {}) for name in ('public_media', 'private_media')]
-    for alias in aliases:
+    if mode == 'hybrid':
+        from urllib.parse import urlsplit
+        cloud = urlsplit(os.getenv('CLOUDINARY_URL', ''))
+        if (aliases[0].get('BACKEND') != 'apps.common.media.cloudinary.PublicArtworkStorage'
+                or cloud.scheme != 'cloudinary' or not all((cloud.hostname, cloud.username, cloud.password))):
+            issues.append(Error('Hybrid media requires configured public Cloudinary artwork storage.', id='siteui.E003'))
+        aliases_to_check = aliases[1:]
+    else:
+        aliases_to_check = aliases
+    for alias in aliases_to_check:
         opts = alias.get('OPTIONS', {})
         if alias.get('BACKEND') != 'apps.common.media.storage.ProtectedS3Storage' or not all(
             opts.get(k) for k in ('bucket_name', 'endpoint_url', 'access_key', 'secret_key')
         ) or not str(opts.get('endpoint_url', '')).startswith('https://'):
             issues.append(Error('Incomplete or insecure governed media storage configuration.', id='siteui.E003'))
-    if aliases[0].get('OPTIONS', {}).get('bucket_name') == aliases[1].get('OPTIONS', {}).get('bucket_name'):
+    if mode == 's3' and aliases[0].get('OPTIONS', {}).get('bucket_name') == aliases[1].get('OPTIONS', {}).get('bucket_name'):
         issues.append(Error('Public and confidential media must use distinct buckets.', id='siteui.E004'))
+    if mode == 'hybrid' and not getattr(settings, 'MEDIA_LEGACY_PRIVACY_VERIFIED', False):
+        issues.append(Error('Legacy media reference coverage and public confidential URL containment must be verified.', id='siteui.E007'))
     if not getattr(settings, 'MEDIA_STORAGE_VERIFIED', False) or not getattr(settings, 'MEDIA_RESTORE_VERIFIED', False):
         issues.append(Error('Private-origin, restart persistence and independent restore proof required.',
                             hint='Leave verification flags false until approved real staging and restore drills pass.', id='siteui.E005'))

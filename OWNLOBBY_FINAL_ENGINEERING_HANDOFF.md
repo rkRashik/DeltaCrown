@@ -1,5 +1,51 @@
 # OwnLobby final engineering handoff
 
+## Hybrid storage update ? 2026-10-27 (supersedes the two-S3-origin recommendation)
+
+**Ready for isolated synthetic connection testing; not yet ready to switch existing production media.**
+The owner selected existing Cloudinary Free plus existing Supabase Free. No providers were accessed or changed.
+
+- Opt-in `OWNLOBBY_MEDIA_MODE=hybrid` reuses Cloudinary naming and secure CDN delivery for the explicitly public organization logo/banner/badge fields. New uploads explicitly use unique filenames and `overwrite=False`; existing Cloudinary IDs are unchanged.
+- All other fields use the existing private S3 adapter, including profile/team artwork, draft-capable tournament images, inactive catalog artwork, KYC, payments, disputes and certificates. Their current policies can restrict access; publishing them on an unrestricted CDN would defeat those policies. Record-authorized application delivery, no raw private URLs and no public fallback are retained. This conservative allowlist is intentional; hybrid does NOT mean every old `PUBLIC_FIELDS` entry is CDN-safe.
+- Default storage stays private. The existing public Supabase bucket is unused and must stay private. Both buckets' settings remain untouched.
+- Unbound rich-text image uploads are rejected in hybrid mode: the editor has no draft/record-publication contract. Existing editor URLs are not rewritten. Use record artwork fields; a reviewed explicit publication workflow is required before enabling new inline uploads. Legacy/local/S3 behavior is unchanged.
+- No file names, model schema, data records or existing objects were rewritten, migrated or deleted. Existing defaults remain unchanged until an approved environment switch.
+
+### Exact environment configuration (server only; never commit real values)
+
+| Variable | Value for approved hybrid connection testing |
+|---|---|
+| `OWNLOBBY_MEDIA_MODE` | `hybrid` |
+| `CLOUDINARY_URL` | Existing account's `cloudinary://<api-key>:<api-secret>@<cloud-name>`; keep existing prefix/configuration |
+| `MEDIA_PRIVATE_BUCKET` | Actual name of the existing confidential-media bucket; keep private |
+| `MEDIA_PRIVATE_ENDPOINT_URL` | Exact provider-issued HTTPS S3 endpoint, normally `https://<project-ref>.storage.supabase.co/storage/v1/s3` |
+| `MEDIA_PRIVATE_REGION` | Actual Supabase project region, NOT `auto` |
+| `MEDIA_PRIVATE_ACCESS_KEY_ID` | Server-only Supabase S3 access key |
+| `MEDIA_PRIVATE_SECRET_ACCESS_KEY` | Matching server-only S3 secret (not an anon/service-role API key) |
+| `REQUIRE_PERSISTENT_MEDIA` | `1`; preserve the release gate |
+| `MEDIA_STORAGE_VERIFIED` | `0` until real private-origin denial, authorized reads/writes and restart-persistence checks pass |
+| `MEDIA_RESTORE_VERIFIED` | `0` until independent database/object restore succeeds |
+| `MEDIA_LEGACY_PRIVACY_VERIFIED` | `0` until existing reference coverage and old public confidential URL containment are verified; new `siteui.E007` gate |
+
+`MEDIA_PUBLIC_*` is unused in hybrid mode; no bucket or credential changes are needed there. Apply an approved environment change to web/worker processes together with a restart. Verification flags are attestations, not automated cloud verification, and must never be set merely to silence a build check. A production deploy check deliberately remains blocked during synthetic connection testing.
+
+### Existing Cloudinary references and release blockers
+
+The former default Cloudinary backend could accept every upload field. **Potential exposure categories** include both KYC models and verification records, payment proofs, dispute/match/contract evidence, private-profile/team/community artwork, draft tournaments, certificates and editor drafts. No live database or account was inspected, so no particular existing object is claimed exposed or cleared.
+
+Before hybrid activation, reconcile the existing 53-field inventory and editor/JSON links with approved restored metadata. Organization artwork continues reading its exact Cloudinary IDs. Other field names are preserved but hybrid expects their bytes at those exact keys in private S3. Without that coverage, affected old files will be unavailable; there is intentionally no Cloudinary fallback for confidential fields. If any such references currently exist only in Cloudinary, a separately approved secure copy/remediation is required. **This task does not authorize or perform that copy, deletion or migration.** Keep current production mode unchanged until resolved. Already-public confidential URLs/CDN caches cannot be revoked by Django permissions; separately approve provider-side containment and verify anonymous denial.
+
+Supabase generated S3 keys bypass RLS across all buckets. Two buckets or keys are not credential-level isolation. Keep keys server-only and explicitly accept that project-wide scope. [Supabase authentication](https://supabase.com/docs/guides/storage/s3/authentication). Cloudinary uploads explicitly disable overwrite and preserve the upstream public-ID convention. [Upload parameters](https://cloudinary.com/documentation/image_upload_api_reference).
+
+Next: test only synthetic Cloudinary artwork and private S3 objects, including CDN HTTPS, non-overwrite, raw private GET/HEAD denial, owner/reviewer versus cross-user denial, storage outage and restart persistence. Then resolve legacy coverage/exposure and restore gates before authorizing deployment. Existing email/OAuth/worker/Render memory/domain gates remain unchanged. The earlier Linux/Python 3.12/Cairo smoke passed in [GitHub Actions](https://github.com/rkRashik/DeltaCrown/actions/runs/40386647522); it was not repeated here.
+
+Rollback: the existing modes remain available, but do not blindly return confidential uploads to legacy Cloudinary or change S3 origins. Preserve all bytes and reference inventories. If hybrid activation fails, keep private origins and use maintenance/read-only operation while reverting to a reviewed configuration with the same protected reference coverage. No deletion or database rollback is part of this change.
+
+### Targeted verification
+
+32 targeted media/routing/security tests passed in total on Windows/Python 3.13 with disposable loopback PostgreSQL and synthetic/mocked providers: the initial run had 31 passes and one new test-fixture failure; reloading a field object created before the hybrid override corrected that fixture, and the sole failing test passed on rerun. Coverage includes all 53 field classifications, Cloudinary URL/ID compatibility and no-overwrite parameters, private record owner/cross-user/reviewer authorization, private-profile followers, S3 failure handling and deployment gates. No cloud durability claim, full-suite rerun or production credential use. Logs remain ignored under `Artifacts/hybrid-media/`.
+
+
 Date: 2026-10-26. Branch: `feature/ownlobby-durable-media`. Starting HEAD: `9e5e453b9deb4c0baa983da78b946cd27f9f1a2c`. **Local storage code is a staging-validation candidate; production remains No-Go.** Nothing was pushed, merged, deployed, purchased, migrated in production or changed in provider dashboards/DNS. This is the primary current handoff; earlier reports retain historical evidence.
 
 ## A. Completed locally

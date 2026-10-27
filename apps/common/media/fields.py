@@ -12,7 +12,7 @@ from .policy import storage_alias
 
 
 def enabled():
-    return getattr(settings, 'OWNLOBBY_MEDIA_MODE', 'legacy') in {'local', 's3'}
+    return getattr(settings, 'OWNLOBBY_MEDIA_MODE', 'legacy') in {'local', 's3', 'hybrid'}
 
 
 class GovernedFileMixin:
@@ -26,6 +26,9 @@ class GovernedFileMixin:
         if not enabled():
             return super().url
         self._require_file()
+        if (getattr(settings, 'OWNLOBBY_MEDIA_MODE', 'legacy') == 'hybrid'
+                and storage_alias(self.field) == 'public_media'):
+            return self.storage.url(self.name)
         if not self.instance.pk:
             raise ValueError('Save the media record before requesting its URL')
         return reverse('governed_media', args=[

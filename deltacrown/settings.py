@@ -703,6 +703,7 @@ STORAGES = {
 from apps.common.media.configuration import configure as configure_media_storage
 OWNLOBBY_MEDIA_MODE = configure_media_storage(STORAGES, BASE_DIR, MEDIA_ROOT)
 MEDIA_STORAGE_VERIFIED = os.getenv("MEDIA_STORAGE_VERIFIED", "0") == "1"
+MEDIA_LEGACY_PRIVACY_VERIFIED = os.getenv("MEDIA_LEGACY_PRIVACY_VERIFIED", "0") == "1"
 MEDIA_RESTORE_VERIFIED = os.getenv("MEDIA_RESTORE_VERIFIED", "0") == "1"
 if OWNLOBBY_MEDIA_MODE != "legacy":
     CKEDITOR_5_FILE_STORAGE = "apps.common.media.editor.EditorStorage"

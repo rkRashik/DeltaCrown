@@ -3,6 +3,8 @@ import uuid
 from types import SimpleNamespace
 from pathlib import PurePosixPath
 from django.core import signing
+from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.core.files.storage import Storage, storages
 from django.db.models import ImageField
 from django.urls import reverse
@@ -14,6 +16,8 @@ class EditorStorage(Storage):
         return storages['public_media'].open(name, mode)
 
     def _save(self, name, content):
+        if getattr(settings, 'OWNLOBBY_MEDIA_MODE', 'legacy') == 'hybrid':
+            raise ValidationError('Inline uploads require an explicit publication workflow; use record artwork fields.')
         field = ImageField()
         field.model = SimpleNamespace(_meta=SimpleNamespace(label_lower='editor.image'))
         original_name = getattr(content, 'name', None)

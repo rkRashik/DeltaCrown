@@ -79,6 +79,20 @@ class MediaPrivacyTests(TransactionTestCase):
         self.client.force_login(self.other)
         self.assertEqual(self.client.get(url).status_code, 404)
 
+    def test_hybrid_preserves_private_record_authorization(self):
+        with override_settings(OWNLOBBY_MEDIA_MODE="hybrid"):
+            self.test_private_url_authorizes_each_request_not_bearer_possession()
+            self.test_no_raw_url_or_public_bucket_copy_for_evidence()
+            self.test_staff_without_model_permission_cannot_read_kyc()
+
+    def test_hybrid_profile_privacy_uses_private_origin(self):
+        with override_settings(OWNLOBBY_MEDIA_MODE="hybrid"):
+            # Reload fields created under the local-mode fixture, as at process startup.
+            self.owner = get_user_model().objects.get(pk=self.owner.pk)
+            self.test_private_profile_asset_requires_owner_or_approved_follower()
+            self.assertTrue(storages["private_media"].exists(self.owner.profile.avatar.name))
+            self.assertFalse(storages["public_media"].exists(self.owner.profile.avatar.name))
+
     def test_staff_without_model_permission_cannot_read_kyc(self):
         from apps.accounts.roles import STAFF_GROUP_NAMES
 
