@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ─────────────────────────────────────────────────────────────────────
-# Render.com startup script — Daphne only
+# Render.com startup — Daphne, with an opt-in supervised Celery worker
 #
 # Migrations and other startup jobs are intentionally disabled here.
 # Use release command/manual operations for schema or background workers.
@@ -17,7 +17,7 @@ DAPHNE_PING_INTERVAL="${DAPHNE_PING_INTERVAL:-20}"
 DAPHNE_PING_TIMEOUT="${DAPHNE_PING_TIMEOUT:-30}"
 DAPHNE_APP_CLOSE_TIMEOUT="${DAPHNE_APPLICATION_CLOSE_TIMEOUT:-5}"
 
-echo "[render] Startup profile: daphne_only=1 access_log=${DAPHNE_ACCESS_LOG:-0}"
+echo "[render] Startup profile: celery_worker=${ENABLE_CELERY_WORKER:-0} access_log=${DAPHNE_ACCESS_LOG:-0}"
 
 # ── Start web server (foreground) ───────────────────────────────────
 # HTTP timeout: 3600 s (1 h) default — sufficient for all normal requests.
@@ -45,4 +45,7 @@ if [ "${DAPHNE_ACCESS_LOG:-0}" = "1" ]; then
     DAPHNE_ARGS+=(--access-log -)
 fi
 
+if [ "${ENABLE_CELERY_WORKER:-0}" = "1" ]; then
+    exec python scripts/render_processes.py daphne "${DAPHNE_ARGS[@]}" deltacrown.asgi:application
+fi
 exec daphne "${DAPHNE_ARGS[@]}" deltacrown.asgi:application

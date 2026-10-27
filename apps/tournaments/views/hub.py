@@ -1766,7 +1766,8 @@ def _build_hub_context(request, tournament, registration, query_suffix='', is_st
             squad_missing_members.append(warning)
     if is_team and registration and registration.team_id:
         # Prefer lineup_snapshot from registration (frozen at registration time)
-        lineup_snapshot = getattr(registration, 'lineup_snapshot', None) or []
+        from apps.common.media.snapshots import lineup_with_current_avatars
+        lineup_snapshot = lineup_with_current_avatars(getattr(registration, 'lineup_snapshot', None) or [])
 
         # Build lookup of active team members for fresh avatar/passport data
         members = TeamMembership.objects.filter(

@@ -1016,7 +1016,8 @@ class TOCParticipantService:
         squad tab so both surfaces show identical IGN + discriminator values for
         each roster member.
         """
-        snapshot = reg.lineup_snapshot or []
+        from apps.common.media.snapshots import lineup_with_current_avatars
+        snapshot = lineup_with_current_avatars(reg.lineup_snapshot or [])
         if not snapshot:
             return snapshot
 

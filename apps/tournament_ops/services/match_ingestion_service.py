@@ -170,7 +170,7 @@ class MatchIngestionService:
         # --- 4. Advance bracket (deferred import to avoid circular deps) ---
         try:
             from apps.tournament_ops.tasks.match_polling import advance_bracket_after_match
-            advance_bracket_after_match.delay(match.pk)
+            transaction.on_commit(lambda match_pk=match.pk: advance_bracket_after_match.delay(match_pk), robust=True)
         except Exception:
             logger.exception(
                 "[MatchIngestion] Failed to queue bracket advancement for match_id=%s", match.pk

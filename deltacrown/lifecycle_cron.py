@@ -153,6 +153,10 @@ def lifecycle_cron(request):
             ('auto_confirm_submissions', _run_auto_confirm_submissions),
             ('dispute_escalation', _run_dispute_escalation),
         ]
+        # Optional owner canary on the existing authenticated endpoint. Render
+        # Free has no shell; this verifies a separate consumer, not eager mode.
+        if request.GET.get('worker_probe') == '1':
+            tasks.append(('worker_probe', _run_worker_probe))
 
         for name, runner in tasks:
             task_t0 = time.monotonic()
@@ -197,6 +201,22 @@ def lifecycle_cron(request):
 # runs synchronously in the request process.  Task retries propagate as failures and are retried on the next cron tick.
 # Errors are caught per-task
 # so one failure doesn't block the rest.
+
+
+def _run_worker_probe():
+    import uuid
+    from .celery import worker_probe
+    try:
+        if worker_probe.app.conf.task_always_eager:
+            return {'ok': False, 'error': 'Worker probe requires asynchronous execution'}
+        token = uuid.uuid4().hex
+        result = worker_probe.delay(token)
+        if result.get(timeout=10) != token:
+            return {'ok': False, 'error': 'Worker probe result mismatch'}
+        return {'ok': True, 'task_id': result.id}
+    except Exception as exc:
+        logger.error('[lifecycle_cron] worker probe failed: %s', type(exc).__name__)
+        return {'ok': False, 'error': 'Worker probe failed: ' + type(exc).__name__}
 
 
 def _run_auto_advance():

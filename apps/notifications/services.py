@@ -20,6 +20,17 @@ User = get_user_model()
 FROM_EMAIL = os.getenv("DeltaCrownEmail", settings.DEFAULT_FROM_EMAIL)
 logger = logging.getLogger(__name__)
 
+
+def _queue_after_commit(task, args):
+    """A real consumer must not observe a notification before its row commits."""
+    def publish():
+        try:
+            task.apply_async(args=args, ignore_result=True, retry=False)
+        except Exception:
+            # In-app delivery remains persisted; retain existing best-effort policy.
+            logger.exception('Notification task publication failed: %s', task.name)
+    transaction.on_commit(publish)
+
 Notification = apps.get_model("notifications", "Notification")
 _NOTIFICATION_MODEL_FIELDS = {
     f.name for f in Notification._meta.get_fields() if hasattr(f, "name")
@@ -930,11 +941,7 @@ class NotificationService:
                 # notification is already persisted, email is best-effort).
                 if 'email' in channels:
                     try:
-                        send_email_notification.apply_async(
-                            args=[notification.id],
-                            ignore_result=True,
-                            retry=False,
-                        )
+                        _queue_after_commit(send_email_notification, [notification.id])
                     except Exception:
                         logger.warning(
                             "Email notification queuing failed (broker down?) â€” "
@@ -944,16 +951,12 @@ class NotificationService:
             # Queue Discord notification if enabled (same graceful degradation)
             if 'discord' in channels and getattr(settings, 'DISCORD_NOTIFICATIONS_ENABLED', False):
                 try:
-                    send_discord_notification.apply_async(
-                        args=[{
+                    _queue_after_commit(send_discord_notification, [{
                             'title': title,
                             'body': body,
                             'url': url,
                             'color': 3447003,  # Blue
-                        }],
-                        ignore_result=True,
-                        retry=False,
-                    )
+                        }])
                 except Exception:
                     logger.warning("Discord notification queuing failed (broker down?)")
         

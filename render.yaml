@@ -51,12 +51,9 @@ services:
       - key: CRON_SECRET
         generateValue: true
       # Startup process controls (safe defaults for Starter/free-tier)
-      # NOTE: ENABLE_CELERY_WORKER is referenced here for documentation.
-      # The Celery worker runs as a SEPARATE Render worker service.
-      # Start command for that service: bash bin/start_worker.sh
-      # Worker env vars to set in Render dashboard:
-      #   CELERY_MAX_TASKS_PER_CHILD=50
-      #   CELERY_MAX_MEMORY_PER_CHILD=150000
+      # Opt-in worker inside THIS web container, supervised with Daphne.
+      # Keep off until approved cutover; validate total cgroup peak <512 MB
+      # with headroom. No separate worker service or Beat is created.
       - key: ENABLE_CELERY_WORKER
         value: "0"
       - key: ENABLE_DISCORD_BOT

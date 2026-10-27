@@ -392,15 +392,10 @@ def advance_bracket_after_match(self, match_pk: int):
         return {"status": "skipped", "reason": "not_completed"}
 
     try:
-        from apps.tournament_ops.services.match_service import MatchService
-        MatchService().advance_bracket(match_pk)
+        from apps.tournaments.services.bracket_service import BracketService
+        BracketService.update_bracket_after_match(match)
         logger.info("[Polling] Bracket advanced for match pk=%s.", match_pk)
         return {"status": "ok", "match_pk": match_pk}
-    except ImportError:
-        logger.warning(
-            "[Polling] MatchService not available — bracket advancement deferred.",
-        )
-        return {"status": "deferred", "match_pk": match_pk}
     except Exception as exc:
         logger.exception(
             "[Polling] Bracket advancement failed for match pk=%s: %s",

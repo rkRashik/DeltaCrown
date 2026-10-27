@@ -61,6 +61,11 @@ def normalize_media_url(raw_url: str, file_name: str = "") -> str:
     url = str(raw_url or "").strip()
     name = _clean_rel_path(file_name)
 
+    # Governed URLs already encode the record and its authorization policy.
+    # A leftover local file must never replace them with a raw /media/ URL.
+    if getattr(settings, "OWNLOBBY_MEDIA_MODE", "legacy") != "legacy":
+        return url
+
     # Prefer canonical local media URL when the backing file exists.
     if name and _media_file_exists(name):
         return _media_url_from_rel(name)
