@@ -46,3 +46,9 @@ Status: STAGED ONLY. No certified rollback yet. Never restore public access to s
 - Live application logs show existing Celery jobs executed successfully during lifecycle cron; do not assume Celery worker is absent just because new release defaults to ENABLE_CELERY_WORKER=0.
 - This is a hard operational blocker for enabling any additional same-container worker and for a blind immediate rollout. First determine how existing jobs are executed and measure replacement release in a controlled canary; avoid disrupting current queued work.
 - No Render settings, branch, Cloudinary asset or production database were changed by this check.
+
+## Corrected 2026-10-28 operational diagnosis
+- Render logs showing `celery.app.trace Task ... succeeded` do **not** establish a separate worker: `deltacrown/lifecycle_cron.py` calls the tasks' `.run()` methods synchronously inside the web request. Existing cron works with no Celery consumer; broker tasks outside these inline runners still need a real worker.
+- Render service event history CONFIRMS prior 512 MiB out-of-memory kills on 2026-10-20, 2026-10-22 and 2026-10-26; October 23/24 failures were health-check timeouts. This is measured production capacity risk, not merely speculative.
+- Live sampled memory reached 525,074,430 bytes against a 536,870,900-byte limit. Do not attempt a second process/worker until under-limit behavior has been proved with margin.
+- Do not change broker URL blindly: Redis host mismatch and queued work remain unresolved. No secrets/environment mutations performed.
