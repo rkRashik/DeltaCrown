@@ -40,3 +40,9 @@ Status: STAGED ONLY. No certified rollback yet. Never restore public access to s
 - Render uses manual deploy, release build runs manage.py check --deploy --fail-level ERROR, start defaults ENABLE_CELERY_WORKER=0.
 - Existing hybrid unit tests cover storage aliases, public artwork, private URL auth and refusal of false verification flags. They have not been rerun against this checkpoint in this session.
 - Current recovery branch is a **frozen source checkpoint**, not a tested production recovery. Recovery requires a true live compatible canary and a verified way to restrict access if deployment fails; do not treat this static review as satisfying that requirement.
+
+## Confirmed live Render data on 2026-10-28 (read-only)
+- Direct Render metrics for `srv-d6eubkngi27c738ieao0`: memory 509,988,860 to 525,074,430 bytes while memory limit 536,870,900 bytes (last 60 minutes inspected). Peak leaves approx 11.8 MB margin; the earlier <=448MB canary target is currently not satisfied.
+- Live application logs show existing Celery jobs executed successfully during lifecycle cron; do not assume Celery worker is absent just because new release defaults to ENABLE_CELERY_WORKER=0.
+- This is a hard operational blocker for enabling any additional same-container worker and for a blind immediate rollout. First determine how existing jobs are executed and measure replacement release in a controlled canary; avoid disrupting current queued work.
+- No Render settings, branch, Cloudinary asset or production database were changed by this check.
