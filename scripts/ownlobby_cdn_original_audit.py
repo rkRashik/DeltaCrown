@@ -15,6 +15,7 @@ from original URLs alone. Do not print URL paths or asset names.
 import argparse
 import json
 import os
+import re
 import sys
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -213,15 +214,78 @@ def verify():
     print("NOT COVERED: transformed, versionless, embedded and worldwide CDN variants")
 
 
+
+def verify_variants():
+    """Check likely old CDN variants without printing private URL paths.
+
+    Versionless alternatives and a minimal image transformation are tested
+    anonymously via both HEAD and a streamed one-byte GET. Unlike the 111
+    originals, these alternate URLs were not captured before containment.
+    A denial is strong current-path evidence but NOT historical reachability
+    evidence, exhaustive CDN cache invalidation or global edge proof.
+    """
+    account = configure_cloudinary()
+    private, public = approved_inventory()
+    folder, key = latest_media_backup()
+    baseline = folder / BASELINE_FILE
+    if not baseline.exists():
+        raise ValueError("Missing immutable original CDN pre-cutover evidence")
+    rows = json.loads(decrypt_from(baseline, key, AAD))
+    if (len(rows) != 113 or
+        {x["asset_id"] for x in rows} !=
+            {source["asset_id"] for source in private + public}):
+        raise ValueError("Encrypted CDN inventory changed")
+    variants = {}
+    for row in rows:
+        if row["classification"] != "private":
+            continue
+        original = allowed_cdn_url(row["url"], account)
+        parts = urlsplit(original)
+        # Safely derive an unversioned URL only when /vNNN/ occurs immediately
+        # after /upload/. Resource identifiers are never logged.
+        unversioned = re.sub(r"(/upload/)v[0-9]+/", r"\1", parts.path, count=1)
+        if unversioned != parts.path:
+            variants[parts._replace(path=unversioned).geturl()] = "versionless"
+        if "/image/upload/" in parts.path:
+            transformed = parts.path.replace(
+                "/image/upload/", "/image/upload/c_scale,w_1/", 1)
+            variants[parts._replace(path=transformed).geturl()] = "transformed"
+    if not variants or "transformed" not in variants.values():
+        raise ValueError("No representative CDN variants could be derived")
+    failed = 0
+    passed = {"versionless": 0, "transformed": 0}
+    with ThreadPoolExecutor(max_workers=6) as pool:
+        jobs = {pool.submit(sample_http, url): kind for url, kind in variants.items()}
+        for job in as_completed(jobs):
+            kind = jobs[job]
+            try:
+                statuses = job.result()
+                if all(code in DENIED for code in statuses):
+                    passed[kind] += 1
+                else:
+                    failed += 1
+            except Exception:
+                failed += 1
+    if failed:
+        raise ValueError("Anonymous CDN alternate URL HEAD/GET failures: " + str(failed))
+    print("CDN_VARIANT_DENIAL_PASS")
+    print("VERSIONLESS_VARIANTS_DENIED_GET_AND_HEAD:", passed["versionless"])
+    print("IMAGE_TRANSFORM_VARIANTS_DENIED_GET_AND_HEAD:", passed["transformed"])
+    print("NO_PROVIDER_OR_DATABASE_WRITES; NO PRIVATE URLS PRINTED")
+    print("NOT VERIFIED: prior variant reachability, all embedded/CDN cache/edge URLs")
+
 def main():
     p = argparse.ArgumentParser()
     group = p.add_mutually_exclusive_group(required=True)
     group.add_argument("--capture", action="store_true")
     group.add_argument("--verify", action="store_true")
+    group.add_argument("--verify-variants", action="store_true")
     args = p.parse_args()
     try:
         if args.capture:
             capture()
+        elif args.verify_variants:
+            verify_variants()
         else:
             verify()
     except Exception as error:
