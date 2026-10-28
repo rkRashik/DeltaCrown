@@ -3,7 +3,7 @@ from __future__ import annotations
 from deltacrown.branding import brand_copy
 from datetime import datetime, time, timedelta
 import logging
-import time
+import time as perf_time
 import hashlib
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
@@ -38,11 +38,11 @@ _homepage_perf_logger = logging.getLogger("deltacrown.homepage_performance")
 
 def _homepage_timed(phase, callback):
     """Time public homepage building stages; never log URLs, users or context."""
-    started = time.monotonic()
+    started = perf_time.monotonic()
     try:
         return callback()
     finally:
-        elapsed_ms = int((time.monotonic() - started) * 1000)
+        elapsed_ms = int((perf_time.monotonic() - started) * 1000)
         if elapsed_ms >= 500:
             _homepage_perf_logger.warning(
                 "homepage_phase phase=%s elapsed_ms=%d", phase, elapsed_ms
