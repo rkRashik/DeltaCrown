@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   smoke:
-    if: github.event_name == 'pull_request' && (github.head_ref == 'feature/ownlobby-free-hosting' || github.head_ref == 'feature/ownlobby-single-service-lockdown-cutover' || github.head_ref == 'feature/ownlobby-final-private-origin-probe' || github.head_ref == 'feature/ownlobby-final-record-canary-20261028' || github.head_ref == 'hotfix/ownlobby-media-throttle-redis-timeout-20261028' || github.head_ref == 'hotfix/ownlobby-s3-async-media-stream-20261028' || github.head_ref == 'hotfix/ownlobby-launch-public-cache-static-20261028' || github.head_ref == 'qa/ownlobby-account-and-launch-smoke-20261028' || github.head_ref == 'hotfix/ownlobby-password-reset-form-20261028')
+    if: github.event_name == 'pull_request' && (github.head_ref == 'feature/ownlobby-free-hosting' || github.head_ref == 'feature/ownlobby-single-service-lockdown-cutover' || github.head_ref == 'feature/ownlobby-final-private-origin-probe' || github.head_ref == 'feature/ownlobby-final-record-canary-20261028' || github.head_ref == 'hotfix/ownlobby-media-throttle-redis-timeout-20261028' || github.head_ref == 'hotfix/ownlobby-s3-async-media-stream-20261028' || github.head_ref == 'hotfix/ownlobby-launch-public-cache-static-20261028' || github.head_ref == 'qa/ownlobby-account-and-launch-smoke-20261028' || github.head_ref == 'hotfix/ownlobby-password-reset-form-20261028' || github.head_ref == 'hotfix/ownlobby-homepage-phase-telemetry-20261028')
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     services:
@@ -83,7 +83,35 @@ jobs:
           python manage.py test apps.common.tests.test_launch_execution apps.common.tests.test_hybrid_media apps.common.tests.test_media_profile_privacy apps.common.tests.test_request_memory_probe apps.common.tests.test_js_probe_shield --settings=deltacrown.settings_media_qa --noinput --verbosity 1
       - name: Account, public profile, and launch-readiness regressions (disposable QA)
         run: |
-          python manage.py test apps.common.tests.test_release_readiness apps.common.tests.test_password_reset_submission apps.siteui.tests.test_ownlobby_branding --settings=deltacrown.settings_media_qa --noinput --verbosity 1
+          python manage.py test apps.common.tests.test_release_readiness apps.common.tests.test_password_reset_submission apps.siteui.tests.test_ownlobby_branding apps.siteui.tests.test_homepage_phase_timing --settings=deltacrown.settings_media_qa --noinput --verbosity 1
+      - name: Read-only LIVE public route smoke
+        run: |
+          python - <<'PY'
+          import time
+          from urllib.error import HTTPError, URLError
+          from urllib.request import Request, urlopen
+          paths = ["/healthz/", "/", "/community/", "/tournaments/", "/teams/", "/account/signup/"]
+          failures = []
+          for path in paths:
+              started = time.monotonic()
+              try:
+                  req = Request("https://ownlobby.com" + path, headers={"User-Agent": "OwnLobby-Public-Smoke/1.0"}, method="GET")
+                  with urlopen(req, timeout=20) as response:
+                      status = response.status
+                      content_type = response.headers.get("Content-Type", "")
+                      response.read(128)
+              except HTTPError as ex:
+                  status, content_type = ex.code, ""
+              except (URLError, TimeoutError, OSError) as ex:
+                  status, content_type = 0, ""
+                  print("SMOKE_NETWORK_ERROR path=%s type=%s" % (path, type(ex).__name__))
+              print("SMOKE path=%s status=%d elapsed_ms=%d" % (path, status, int((time.monotonic()-started)*1000)))
+              if status != 200 or (path != "/healthz/" and "text/html" not in content_type):
+                  failures.append((path,status))
+          if failures:
+              raise SystemExit("Live public routes failed: "+str(failures))
+          print("OWNLOBBY_PUBLIC_ROUTES_PASS")
+          PY
       - name: Frontend production build
         run: |
           npm ci --include=dev
