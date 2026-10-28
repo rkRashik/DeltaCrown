@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   smoke:
-    if: github.event_name == 'pull_request' && github.head_ref == 'feature/ownlobby-free-hosting'
+    if: github.event_name == 'pull_request' && (github.head_ref == 'feature/ownlobby-free-hosting' || github.head_ref == 'feature/ownlobby-single-service-lockdown-cutover')
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     services:
@@ -79,7 +79,7 @@ jobs:
           python manage.py test apps.common.tests.test_governed_media apps.common.tests.test_http_transport_security apps.common.tests.test_upload_content_security apps.common.tests.test_dependency_compatibility apps.common.tests.test_free_hosting --settings=deltacrown.settings_media_qa --keepdb --noinput --verbosity 1
       - name: Recovery and containment regressions (disposable QA only)
         run: |
-          python -m unittest tests.test_cloudinary_containment_status tests.test_private_media_probe tests.test_chat_media_recovery tests.test_render_processes -v
+          python -m unittest tests.test_cloudinary_containment_status tests.test_private_media_probe tests.test_chat_media_recovery tests.test_render_processes tests.test_ownlobby_cutover_lockdown tests.test_cutover_deploy_guard -v
           python manage.py test apps.common.tests.test_launch_execution apps.common.tests.test_hybrid_media apps.common.tests.test_media_profile_privacy apps.common.tests.test_request_memory_probe apps.common.tests.test_js_probe_shield --settings=deltacrown.settings_media_qa --noinput --verbosity 1
       - name: Frontend production build
         run: |
