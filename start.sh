@@ -7,6 +7,17 @@
 # ─────────────────────────────────────────────────────────────────────
 set -euo pipefail
 
+# One-service privacy cutover: prove the PRIVATE S3 origin is readable from
+# Render itself before starting Daphne in fail-closed maintenance mode.
+# This is a bounded read-only probe; it cannot change media or the database.
+# A failure aborts this deployment rather than opening a broken media service.
+# The latest successful probe is evidence of origin availability only.
+if [ "${OWNLOBBY_CUTOVER_LOCKDOWN:-0}" = "1" ] && [ "${OWNLOBBY_MEDIA_MODE:-legacy}" = "hybrid" ]; then
+    echo "[cutover] Verifying private Supabase origin from Render runtime (read only)..."
+    python scripts/private_media_probe.py
+    echo "[cutover] Render private origin probe passed."
+fi
+
 # Bound Daphne's default executor; this is not a global HTTP concurrency limit.
 export ASGI_THREADS="${ASGI_THREADS:-2}"
 # Bound glibc arena proliferation on small Linux instances.
