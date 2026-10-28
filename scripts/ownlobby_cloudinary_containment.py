@@ -75,10 +75,24 @@ def main():
                 else:
                     counts["mismatch"] += 1
             time.sleep(0.15)
+        # The two deliberately public exclusions must still be intact.
+        for s in public:
+            try:
+                item = cloudinary.api.resource(
+                    s["public_id"], resource_type=s["resource_type"], type="upload")
+            except Exception as err:
+                print("STOP: public exclusion metadata read failed:", type(err).__name__)
+                raise SystemExit(2)
+            if asset_matches(item, s, "upload"):
+                counts["public_exclusions"] += 1
+            else:
+                counts["mismatch"] += 1
+        print("PUBLIC_EXCLUSIONS_VERIFIED:", counts["public_exclusions"])
         print("STILL_PUBLIC:", counts["upload"])
         print("AUTHENTICATED:", counts["authenticated"])
         print("MISMATCHES:", counts["mismatch"])
-        if counts["upload"] + counts["authenticated"] != 111 or counts["mismatch"]:
+        if (counts["upload"] + counts["authenticated"] != 111
+                or counts["public_exclusions"] != 2 or counts["mismatch"]):
             raise SystemExit("STOP: asset status inconsistent; manual reconciliation required")
         print("STATUS_PASS: no changes made")
         return
