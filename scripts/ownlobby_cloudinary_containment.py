@@ -34,8 +34,11 @@ def asset_matches(current, source, delivery="upload"):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--apply", action="store_true", help="CHANGES LIVE ASSETS; requires cutover confirmation")
+    parser.add_argument("--status", action="store_true", help="READ ONLY: count original versus authenticated source assets")
     parser.add_argument("--cutover-confirmation", default="")
     args = parser.parse_args()
+    if args.apply and args.status:
+        parser.error('--status and --apply cannot be combined')
 
     if not INVENTORY.is_file():
         raise SystemExit("STOP: confidential inventory missing")
@@ -54,6 +57,31 @@ def main():
     cloudinary.config(cloud_name=url.hostname, api_key=url.username,
                       api_secret=url.password, secure=True)
 
+    if args.status:
+        print("MODE: READ ONLY STATUS")
+        counts = Counter()
+        for s in private:
+            for delivery in ("upload", "authenticated"):
+                try:
+                    item = cloudinary.api.resource(s["public_id"],
+                        resource_type=s["resource_type"], type=delivery)
+                except cloudinary.api.NotFound:
+                    continue
+                except Exception as err:
+                    print("STOP: provider read error:", type(err).__name__)
+                    raise SystemExit(2)
+                if asset_matches(item, s, delivery):
+                    counts[delivery] += 1
+                else:
+                    counts["mismatch"] += 1
+            time.sleep(0.15)
+        print("STILL_PUBLIC:", counts["upload"])
+        print("AUTHENTICATED:", counts["authenticated"])
+        print("MISMATCHES:", counts["mismatch"])
+        if counts["upload"] + counts["authenticated"] != 111 or counts["mismatch"]:
+            raise SystemExit("STOP: asset status inconsistent; manual reconciliation required")
+        print("STATUS_PASS: no changes made")
+        return
     print("MODE:", "LIVE APPLY" if args.apply else "READ ONLY")
     print("Checking 111 private targets + 2 public exclusions...")
     verified = []
