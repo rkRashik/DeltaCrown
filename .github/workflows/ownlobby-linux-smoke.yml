@@ -112,6 +112,9 @@ jobs:
               raise SystemExit("Live public routes failed: "+str(failures))
           print("OWNLOBBY_PUBLIC_ROUTES_PASS")
           PY
+      - name: Tournament registration, bracket, results and notification QA (disposable DB)
+        run: |
+          python manage.py test apps.tournaments.tests.test_registration_dc_payment.RegistrationDeltaCoinPaymentTests apps.tournaments.tests.test_sprint3_live_tournament_views.TournamentBracketViewTests apps.tournaments.tests.test_sprint3_live_tournament_views.TournamentResultsViewTests apps.mobile_api.tests.test_notifications.MobileNotificationEndpointTests --settings=deltacrown.settings_media_qa --keepdb --noinput --verbosity 1
       - name: Frontend production build
         run: |
           npm ci --include=dev
