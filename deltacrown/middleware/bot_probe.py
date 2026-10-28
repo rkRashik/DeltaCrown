@@ -17,6 +17,7 @@ from django.utils.deprecation import MiddlewareMixin
 
 
 _PROBE_PATTERNS: tuple[Pattern[str], ...] = (
+    re.compile(r"(?:^|/)(?:bot-connect|licensor|antibot-client|qrcode_twint|twint_ch|lkk_ch|raif_ch)\.js(?:/|$)", re.IGNORECASE),
     re.compile(r"phpinfo", re.IGNORECASE),
     re.compile(r"(?:^|/)phpmyadmin(?:/|$)", re.IGNORECASE),
     re.compile(r"(?:^|/)wp-admin(?:/|$)", re.IGNORECASE),
