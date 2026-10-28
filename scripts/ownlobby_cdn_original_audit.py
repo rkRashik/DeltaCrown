@@ -243,7 +243,7 @@ def verify_variants():
         parts = urlsplit(original)
         # Safely derive an unversioned URL only when /vNNN/ occurs immediately
         # after /upload/. Resource identifiers are never logged.
-        unversioned = re.sub(r"(/upload/)v[0-9]+/", r"\\1", parts.path, count=1)
+        unversioned = re.sub(r"(/upload/)v[0-9]+/", r"\1", parts.path, count=1)
         if unversioned != parts.path:
             variants[parts._replace(path=unversioned).geturl()] = "versionless"
         if "/image/upload/" in parts.path:
