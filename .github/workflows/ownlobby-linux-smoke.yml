@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   smoke:
-    if: github.event_name == 'pull_request' && (github.head_ref == 'feature/ownlobby-free-hosting' || github.head_ref == 'feature/ownlobby-single-service-lockdown-cutover' || github.head_ref == 'feature/ownlobby-final-private-origin-probe' || github.head_ref == 'feature/ownlobby-final-record-canary-20261028' || github.head_ref == 'hotfix/ownlobby-media-throttle-redis-timeout-20261028' || github.head_ref == 'hotfix/ownlobby-s3-async-media-stream-20261028' || github.head_ref == 'hotfix/ownlobby-launch-public-cache-static-20261028' || github.head_ref == 'qa/ownlobby-account-and-launch-smoke-20261028')
+    if: github.event_name == 'pull_request' && (github.head_ref == 'feature/ownlobby-free-hosting' || github.head_ref == 'feature/ownlobby-single-service-lockdown-cutover' || github.head_ref == 'feature/ownlobby-final-private-origin-probe' || github.head_ref == 'feature/ownlobby-final-record-canary-20261028' || github.head_ref == 'hotfix/ownlobby-media-throttle-redis-timeout-20261028' || github.head_ref == 'hotfix/ownlobby-s3-async-media-stream-20261028' || github.head_ref == 'hotfix/ownlobby-launch-public-cache-static-20261028' || github.head_ref == 'qa/ownlobby-account-and-launch-smoke-20261028' || github.head_ref == 'qa/ownlobby-public-routes-smoke-20261028')
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     services:
@@ -84,6 +84,39 @@ jobs:
       - name: Account, public profile, and launch-readiness regressions (disposable QA)
         run: |
           python manage.py test apps.common.tests.test_release_readiness apps.siteui.tests.test_ownlobby_branding --settings=deltacrown.settings_media_qa --noinput --verbosity 1
+      - name: Read-only LIVE public route smoke (no production writes)
+        run: |
+          python - <<'PY'
+          import time
+          from urllib.error import HTTPError, URLError
+          from urllib.request import Request, urlopen
+          paths = ["/healthz/", "/", "/community/", "/tournaments/", "/account/signup/"]
+          failures = []
+          for path in paths:
+              start = time.monotonic()
+              try:
+                  request = Request(
+                      "https://ownlobby.com" + path,
+                      headers={"User-Agent": "OwnLobby-Public-Smoke/1.0"},
+                      method="GET",
+                  )
+                  with urlopen(request, timeout=20) as response:
+                      status = response.status
+                      kind = response.headers.get("Content-Type", "")
+                      first_bytes = response.read(256)
+              except HTTPError as error:
+                  status, kind, first_bytes = error.code, "", b""
+              except (URLError, TimeoutError, OSError) as error:
+                  status, kind, first_bytes = 0, "", b""
+                  print(f"SMOKE {path} request_error={type(error).__name__}")
+              elapsed_ms = int((time.monotonic() - start) * 1000)
+              print(f"SMOKE path={path} status={status} elapsed_ms={elapsed_ms} type={kind} body_bytes={len(first_bytes)}")
+              if status != 200 or (path != "/healthz/" and "text/html" not in kind):
+                  failures.append((path, status))
+          if failures:
+              raise SystemExit(f"Public smoke failures: {failures}")
+          print("OWNLOBBY_LIVE_PUBLIC_ROUTES_PASS")
+          PY
       - name: Frontend production build
         run: |
           npm ci --include=dev
