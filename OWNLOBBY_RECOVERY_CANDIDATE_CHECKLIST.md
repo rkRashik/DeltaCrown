@@ -64,6 +64,24 @@ Cloudinary URL invalidation and not record-level authorization. Do not set
 `MEDIA_STORAGE_VERIFIED`, `MEDIA_RESTORE_VERIFIED` or
 `MEDIA_LEGACY_PRIVACY_VERIFIED` solely from this output.
 
+## Operator-confirmed private-origin canary (2026-10-28)
+
+The operator refreshed the OwnLobby release branch and ran the read-only
+`python scripts/private_media_probe.py` against the configured Supabase origin.
+Observed sanitized result:
+
+```text
+PRIVATE_ORIGIN_READ_ONLY_PASS
+OBJECTS_HEAD_VERIFIED: 125
+SIGNED_READS: 5
+NOT VERIFIED: backup restoration, anonymous URL denial, record authorization
+```
+
+This verifies live authenticated S3 read ability, HEAD visibility for every
+audited object and exact size/count checks. It did not mutate any object.
+It is **not** an app authorization canary or an independent restore. The
+Cloudinary 111-asset containment and anonymous URL checks remain outstanding.
+
 ## Acceptance criteria — no shortcuts
 1. Local Django privacy, hybrid storage, launcher, worker and recovery tests pass on this exact branch with disposable QA configuration.
 2. Run read-only status preflight again immediately before cutover: 111 upload, 0 authenticated, two exclusions verified, zero mismatch.
