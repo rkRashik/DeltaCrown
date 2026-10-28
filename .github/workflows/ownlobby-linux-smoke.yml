@@ -3,7 +3,6 @@ name: OwnLobby Linux release smoke
 on:
   push:
     branches: [feature/ownlobby-free-hosting]
-    paths: [.github/workflows/ownlobby-linux-smoke.yml]
   pull_request:
     branches: [master]
   workflow_dispatch:
