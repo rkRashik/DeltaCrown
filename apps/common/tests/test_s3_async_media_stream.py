@@ -70,6 +70,19 @@ class S3MediaStreamTests(SimpleTestCase):
             response.close()
             self.assertTrue(body.closed)
 
+    def test_s3_object_is_fetched_with_normalized_key_no_download_spool(self):
+        object_mock = __import__('unittest.mock', fromlist=['Mock']).Mock()
+        object_mock.get.return_value = {'Body': FakeBody(b'data'), 'ContentLength': 4}
+        bucket = __import__('unittest.mock', fromlist=['Mock']).Mock()
+        bucket.Object.return_value = object_mock
+        with patch.object(type(self.storage), 'bucket', new_callable=__import__('unittest.mock', fromlist=['PropertyMock']).PropertyMock) as bucket_prop:
+            bucket_prop.return_value = bucket
+            data = self.storage.open_stream_object('cards/7.png')
+        bucket.Object.assert_called_once_with('cards/7.png')
+        object_mock.get.assert_called_once_with()
+        self.assertEqual(data['ContentLength'], 4)
+        data['Body'].close()
+
     def test_storage_unavailable_returns_retryable_503_never_public_fallback(self):
         with patch.object(self.storage, 'open_stream_object',
                           side_effect=OSError('synthetic origin failure')):
