@@ -12,7 +12,7 @@ from collections import defaultdict
 
 from django.db.models import Count, Q
 from django.shortcuts import render
-from django.core.cache import cache
+from apps.common.public_cache import public_cache_get_or_set
 from django.templatetags.static import static
 from django.urls import reverse
 from django.utils.text import slugify
@@ -670,7 +670,7 @@ def team_directory(request, force_recruiting=False):
             'regions': [r for r in regions_qs if r],
             'platforms': [p for p in platforms_qs if p],
         }
-    facets = cache.get_or_set('orgs:team_directory:facets:v2', _directory_facets, 300)
+    facets = public_cache_get_or_set('orgs:team_directory:facets:v2', _directory_facets, 300)
     total_teams = facets['total_teams']
     recruiting_count = facets['recruiting_count']
     regions = facets['regions']
