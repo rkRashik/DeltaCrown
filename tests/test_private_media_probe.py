@@ -2,8 +2,9 @@
 import io
 import unittest
 from unittest.mock import MagicMock
+from botocore.exceptions import ClientError
 
-from scripts.private_media_probe import BUCKET, inspect_private_origin, private_s3_settings
+from scripts.private_media_probe import BUCKET, inspect_private_origin, private_s3_settings, verify_unsigned_denial
 
 
 class PrivateMediaProbeTests(unittest.TestCase):
@@ -40,7 +41,7 @@ class PrivateMediaProbeTests(unittest.TestCase):
 
     def test_verifies_all_125_heads_and_five_signed_reads_without_mutation(self):
         client = self.client(125)
-        self.assertEqual(inspect_private_origin(client, BUCKET, expected_bytes=1250), (125, 5))
+        self.assertEqual(inspect_private_origin(client, BUCKET, expected_bytes=1250), (125, 5, 0))
         self.assertEqual(client.head_object.call_count, 125)
         self.assertEqual(client.get_object.call_count, 5)
         for operation in ("put_object", "copy_object", "delete_object"):
@@ -66,6 +67,50 @@ class PrivateMediaProbeTests(unittest.TestCase):
             inspect_private_origin(client, BUCKET)
         self.assertEqual(client.head_object.call_count, 125)
         client.get_object.assert_not_called()
+
+    def test_unsigned_head_get_denied_for_all_samples(self):
+        client = self.client(125)
+        denied = MagicMock()
+        def deny(**kwargs):
+            raise ClientError(
+                {"ResponseMetadata": {"HTTPStatusCode": 403},
+                 "Error": {"Code": "AccessDenied", "Message": "Denied"}},
+                "GetObject",
+            )
+        denied.head_object.side_effect = deny
+        denied.get_object.side_effect = deny
+        self.assertEqual(
+            inspect_private_origin(client, BUCKET, expected_bytes=1250,
+                                   unsigned_client=denied), (125, 5, 10),
+        )
+        self.assertEqual(denied.head_object.call_count, 5)
+        self.assertEqual(denied.get_object.call_count, 5)
+        for operation in ("put_object", "copy_object", "delete_object"):
+            getattr(denied, operation).assert_not_called()
+
+    def test_any_unsigned_success_aborts_and_closes_body(self):
+        denied = MagicMock()
+        body = io.BytesIO(b"private")
+        denied.head_object.side_effect = ClientError(
+            {"ResponseMetadata": {"HTTPStatusCode": 403},
+             "Error": {"Code": "AccessDenied", "Message": "Denied"}},
+            "HeadObject",
+        )
+        denied.get_object.return_value = {"Body": body}
+        with self.assertRaises(ValueError):
+            verify_unsigned_denial(denied, BUCKET, ["synthetic/file"])
+        self.assertTrue(body.closed)
+
+    def test_unsigned_404_does_not_falsely_prove_denial(self):
+        denied = MagicMock()
+        denied.head_object.side_effect = ClientError(
+            {"ResponseMetadata": {"HTTPStatusCode": 404},
+             "Error": {"Code": "NoSuchKey", "Message": "Missing"}},
+            "HeadObject",
+        )
+        with self.assertRaises(ValueError):
+            verify_unsigned_denial(denied, BUCKET, ["synthetic/file"])
+        denied.get_object.assert_not_called()
 
     def test_duplicate_listing_aborts_without_reads(self):
         client = self.client(125)
