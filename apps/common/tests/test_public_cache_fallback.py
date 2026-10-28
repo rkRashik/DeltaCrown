@@ -30,7 +30,7 @@ class PublicCacheFallbackTests(SimpleTestCase):
 
     def test_cache_write_failure_does_not_break_page(self):
         builder = Mock(return_value=["game"])
-        with patch.object(cache_safe.cache, "get", return_value=None), patch.object(cache_safe.cache, "set", side_effect=TimeoutError("synthetic Redis write timeout")):
+        with patch.object(cache_safe.cache, "get", side_effect=lambda key, default=None: default), patch.object(cache_safe.cache, "set", side_effect=TimeoutError("synthetic Redis write timeout")):
             self.assertEqual(public_cache_get_or_set("public:games", builder, 900), ["game"])
 
     def test_builder_exception_is_never_swallowed(self):
