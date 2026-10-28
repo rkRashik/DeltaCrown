@@ -40,7 +40,7 @@ class PrivateMediaProbeTests(unittest.TestCase):
 
     def test_verifies_all_125_heads_and_five_signed_reads_without_mutation(self):
         client = self.client(125)
-        self.assertEqual(inspect_private_origin(client, BUCKET), (125, 5))
+        self.assertEqual(inspect_private_origin(client, BUCKET, expected_bytes=1250), (125, 5))
         self.assertEqual(client.head_object.call_count, 125)
         self.assertEqual(client.get_object.call_count, 5)
         for operation in ("put_object", "copy_object", "delete_object"):
@@ -49,7 +49,7 @@ class PrivateMediaProbeTests(unittest.TestCase):
     def test_missing_origin_objects_aborts_without_reads(self):
         client = self.client(124)
         with self.assertRaises(ValueError):
-            inspect_private_origin(client, BUCKET)
+            inspect_private_origin(client, BUCKET, expected_bytes=1250)
         client.head_object.assert_not_called()
         client.get_object.assert_not_called()
 
@@ -58,6 +58,13 @@ class PrivateMediaProbeTests(unittest.TestCase):
         client.head_object.return_value = {"ContentLength": 0}
         with self.assertRaises(ValueError):
             inspect_private_origin(client, BUCKET)
+        client.get_object.assert_not_called()
+
+    def test_total_byte_mismatch_aborts_before_signed_reads(self):
+        client = self.client(125)
+        with self.assertRaises(ValueError):
+            inspect_private_origin(client, BUCKET)
+        self.assertEqual(client.head_object.call_count, 125)
         client.get_object.assert_not_called()
 
     def test_duplicate_listing_aborts_without_reads(self):
