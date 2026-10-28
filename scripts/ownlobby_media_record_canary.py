@@ -7,7 +7,15 @@ URLs, usernames, filenames, media contents or credentials are printed.
 This does NOT replace a deployed Render HTTP canary or independent restore.
 """
 import os
+import sys
+from pathlib import Path
 from unittest.mock import patch
+
+# Direct invocation (python scripts/...) starts with scripts/ on sys.path,
+# not the repository root. Match manage.py's import path on Windows and Linux.
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 os.environ["OWNLOBBY_MEDIA_MODE"] = "hybrid"
 os.environ["DJANGO_SETTINGS_MODULE"] = "deltacrown.settings"
