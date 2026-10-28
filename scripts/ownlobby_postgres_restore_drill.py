@@ -85,7 +85,12 @@ def main():
         print("NEEDS_DOCKER_DESKTOP_FOR_ISOLATED_DB_RESTORE")
         print("NO_PRODUCTION_ACTION_ATTEMPTED")
         return 3
-    task("Docker daemon", ["docker", "info", "--format", "{{.ServerVersion}}"], timeout=20)
+    try:
+        task("Docker daemon", ["docker", "info", "--format", "{{.ServerVersion}}"], timeout=20)
+    except RuntimeError:
+        print("NEEDS_DOCKER_DESKTOP_RUNNING_FOR_ISOLATED_DB_RESTORE")
+        print("NO_PRODUCTION_ACTION_ATTEMPTED")
+        return 3
     source = source_url()
     run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ") + "-" + uuid4().hex[:8]
     container = "ownlobby-restore-" + uuid4().hex[:12]
@@ -172,10 +177,22 @@ def main():
                 "docker", "exec", container, "createdb",
                 "-U", "postgres", "ownlobby_recovery",
             ], timeout=30)
-            # Restores into a NEW, ISOLATED local DB only; abort on any error.
+            # Supabase installs these supported PostgreSQL extensions in its
+            # extensions schema. Recreate them ONLY on the new local DB, not
+            # on the real source database.
+            task(step, [
+                "docker", "exec", container, "psql", "-U", "postgres",
+                "-d", "ownlobby_recovery", "-v", "ON_ERROR_STOP=1",
+                "-c", 'create schema if not exists extensions; '
+                      'create extension if not exists "uuid-ossp" with schema extensions; '
+                      'create extension if not exists pgcrypto with schema extensions;',
+            ], timeout=30)
+            # --clean may drop the scratch database's default public schema;
+            # target is ownlobby_recovery INSIDE the ephemeral container only.
             task(step, [
                 "docker", "exec", container, "pg_restore",
-                "--exit-on-error", "--no-owner", "--no-acl",
+                "--exit-on-error", "--clean", "--if-exists",
+                "--no-owner", "--no-acl",
                 "-U", "postgres", "--dbname=ownlobby_recovery",
                 "/tmp/source-public.dump",
             ], timeout=700)
