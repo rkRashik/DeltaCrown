@@ -1040,7 +1040,21 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
                 .order_by("-created_at")[:limit]
             )
             # Reverse so oldest first (natural chat order)
-            return [m.to_ws_dict() for m in reversed(list(qs))]
+            rows = list(reversed(list(qs)))
+            messages = [m.to_ws_dict() for m in rows]
+            from django.conf import settings
+            if getattr(settings, "OWNLOBBY_MEDIA_MODE", "legacy") == "hybrid":
+                # Saved lobby messages can retain public CDN URLs after
+                # containment. Resolve the governed field in ONE batch query
+                # without writing the historical chat data.
+                from apps.user_profile.models_main import UserProfile
+                from apps.match_engine.chat_media import hydrate_history_avatars
+                user_ids = {m.user_id for m in rows if m.user_id}
+                profiles = {
+                    p.user_id: p for p in UserProfile.objects.filter(user_id__in=user_ids)
+                } if user_ids else {}
+                hydrate_history_avatars(messages, profiles)
+            return messages
 
         return await _fetch()
 
