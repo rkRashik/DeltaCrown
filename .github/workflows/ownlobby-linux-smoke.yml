@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   smoke:
-    if: github.event_name == 'pull_request' && (github.head_ref == 'feature/ownlobby-free-hosting' || github.head_ref == 'feature/ownlobby-single-service-lockdown-cutover' || github.head_ref == 'feature/ownlobby-final-private-origin-probe' || github.head_ref == 'feature/ownlobby-final-record-canary-20261028' || github.head_ref == 'hotfix/ownlobby-media-throttle-redis-timeout-20261028')
+    if: github.event_name == 'pull_request' && (github.head_ref == 'feature/ownlobby-free-hosting' || github.head_ref == 'feature/ownlobby-single-service-lockdown-cutover' || github.head_ref == 'feature/ownlobby-final-private-origin-probe' || github.head_ref == 'feature/ownlobby-final-record-canary-20261028' || github.head_ref == 'hotfix/ownlobby-media-throttle-redis-timeout-20261028' || github.head_ref == 'hotfix/ownlobby-s3-async-media-stream-20261028')
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     services:
@@ -76,7 +76,7 @@ jobs:
         run: python scripts/check_http_transport.py
       - name: Focused security and media regressions
         run: |
-          python manage.py test apps.common.tests.test_governed_media apps.common.tests.test_media_throttle_cache apps.common.tests.test_http_transport_security apps.common.tests.test_upload_content_security apps.common.tests.test_dependency_compatibility apps.common.tests.test_free_hosting --settings=deltacrown.settings_media_qa --keepdb --noinput --verbosity 1
+          python manage.py test apps.common.tests.test_governed_media apps.common.tests.test_media_throttle_cache apps.common.tests.test_s3_async_media_stream apps.common.tests.test_http_transport_security apps.common.tests.test_upload_content_security apps.common.tests.test_dependency_compatibility apps.common.tests.test_free_hosting --settings=deltacrown.settings_media_qa --keepdb --noinput --verbosity 1
       - name: Recovery and containment regressions (disposable QA only)
         run: |
           python -m unittest tests.test_cloudinary_containment_status tests.test_private_media_probe tests.test_chat_media_recovery tests.test_render_processes tests.test_ownlobby_cutover_lockdown tests.test_cutover_deploy_guard tests.test_ownlobby_cdn_variant_audit -v
