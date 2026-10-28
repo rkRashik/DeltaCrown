@@ -9,7 +9,7 @@ from deltacrown.branding import brand_copy
 
 from django.views.generic import ListView
 from django.db.models import Q, Count
-from django.core.cache import cache
+from apps.common.public_cache import public_cache_get_or_set
 from apps.tournaments.models import Tournament
 from apps.games.services import game_service
 from apps.common.seo import breadcrumb_schema, build_seo
@@ -234,7 +234,7 @@ class TournamentListView(ListView):
                 }
                 for game in game_service.list_active_games()
             ]
-        context['games'] = cache.get_or_set('discovery:games:v1', _games_payload, 900)
+        context['games'] = public_cache_get_or_set('discovery:games:v1', _games_payload, 900)
 
         context['current_game'] = self.request.GET.get('game', '')
         context['current_status'] = self.request.GET.get('status', '')
@@ -282,7 +282,7 @@ class TournamentListView(ListView):
                 status__in=['live', 'registration_open', 'published'],
                 is_featured=True,
             ).order_by('-tournament_start')[:3])
-        context['featured_tournaments'] = cache.get_or_set(
+        context['featured_tournaments'] = public_cache_get_or_set(
             'discovery:featured_tournaments:v1', _featured_payload, 300,
         )
         # Bulk-resolve eligibility for the featured set in one batched fetch.
@@ -339,7 +339,7 @@ class TournamentListView(ListView):
                 })
             return payload
 
-        context['latest_winners'] = cache.get_or_set(
+        context['latest_winners'] = public_cache_get_or_set(
             'discovery:latest_winners:v1', _latest_winners_payload, 600,
         )
 

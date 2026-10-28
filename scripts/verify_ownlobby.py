@@ -132,7 +132,7 @@ def run(*, collect_static=False):
         with override_settings(STATIC_ROOT=output, STORAGES={**settings.STORAGES, "staticfiles": {"BACKEND": "deltacrown.storage.RobustStaticFilesStorage"}}):
             call_command("collectstatic", interactive=False, verbosity=0)
             manifest = json.loads((output / "staticfiles.json").read_text(encoding="utf-8"))["paths"]
-            critical = [settings.BRAND["logo_dark"], settings.BRAND["logo_light"], "ownlobby/brand.css", "ownlobby/manifest.webmanifest", "community/build/app.js", "dist/tailwind.css", "css/design-tokens.css"]
+            critical = [settings.BRAND["logo_dark"], settings.BRAND["logo_light"], "ownlobby/brand.css", "ownlobby/manifest.webmanifest", "community/build/data.js", "community/build/cards.js", "community/build/rails.js", "community/build/composer.js", "community/build/tweaks-panel.js", "community/build/app.js", "dist/tailwind.css", "css/design-tokens.css"]
             unresolved = [name for name in critical if name not in manifest or not (output / manifest[name]).is_file()]
             report["production_static_collection"] = {"critical_checked": len(critical), "unresolved": unresolved}
             report["new_failures"] += [f"Unresolved hashed asset: {name}" for name in unresolved]
