@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   smoke:
-    if: github.event_name == 'pull_request' && (github.head_ref == 'feature/ownlobby-free-hosting' || github.head_ref == 'feature/ownlobby-single-service-lockdown-cutover' || github.head_ref == 'feature/ownlobby-final-private-origin-probe')
+    if: github.event_name == 'pull_request' && (github.head_ref == 'feature/ownlobby-free-hosting' || github.head_ref == 'feature/ownlobby-single-service-lockdown-cutover' || github.head_ref == 'feature/ownlobby-final-private-origin-probe' || github.head_ref == 'feature/ownlobby-final-record-canary-20261028')
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     services:
