@@ -31,7 +31,7 @@ class CloudinaryStatusTests(unittest.TestCase):
             for i in range(111, 113)]}
         def lookup(public_id, resource_type, type):
             i = int(public_id.removeprefix("item"))
-            if i < 111 and type == ("authenticated" if i < 7 else "upload"):
+            if type == ("authenticated" if i < 7 else "upload"):
                 return dict(source(i), bytes=100, type=type)
             raise script.cloudinary.api.NotFound("missing")
         with tempfile.TemporaryDirectory() as temp:
@@ -49,6 +49,7 @@ class CloudinaryStatusTests(unittest.TestCase):
                 script.main()
                 rename.assert_not_called()
                 messages = [" ".join(map(str, call.args)) for call in output.call_args_list]
+                self.assertIn("PUBLIC_EXCLUSIONS_VERIFIED: 2", messages)
                 self.assertIn("STILL_PUBLIC: 104", messages)
                 self.assertIn("AUTHENTICATED: 7", messages)
                 self.assertIn("STATUS_PASS: no changes made", messages)
