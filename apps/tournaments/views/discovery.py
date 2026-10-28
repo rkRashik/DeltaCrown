@@ -282,7 +282,7 @@ class TournamentListView(ListView):
                 status__in=['live', 'registration_open', 'published'],
                 is_featured=True,
             ).order_by('-tournament_start')[:3])
-        context['featured_tournaments'] = cache.get_or_set(
+        context['featured_tournaments'] = public_cache_get_or_set(
             'discovery:featured_tournaments:v1', _featured_payload, 300,
         )
         # Bulk-resolve eligibility for the featured set in one batched fetch.
@@ -339,7 +339,7 @@ class TournamentListView(ListView):
                 })
             return payload
 
-        context['latest_winners'] = cache.get_or_set(
+        context['latest_winners'] = public_cache_get_or_set(
             'discovery:latest_winners:v1', _latest_winners_payload, 600,
         )
 
