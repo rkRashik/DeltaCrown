@@ -15,6 +15,7 @@ from original URLs alone. Do not print URL paths or asset names.
 import argparse
 import json
 import os
+import sys
 from pathlib import Path
 from urllib.parse import urlsplit
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -25,8 +26,13 @@ import requests
 from dotenv import dotenv_values
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
+# Direct execution from scripts/ has no implicit project-root import path.
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
 from scripts.ownlobby_cloudinary_containment import (
-    ROOT, INVENTORY, asset_matches,
+    INVENTORY, asset_matches,
 )
 from scripts.ownlobby_encrypted_media_recovery import (
     BACKUP_BASE, KEY_BASE, encrypt_to, decrypt_from,
