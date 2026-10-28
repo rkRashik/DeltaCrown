@@ -211,6 +211,31 @@ fixture no longer contains an `access_token` field, but the provider
 incident has not yet been confirmed resolved. Do not represent CI success
 as GitGuardian clearance or approval for production cutover.
 
+## Independent encrypted PostgreSQL application restore — verified 2026-10-28
+
+The operator has **successfully run** `scripts/ownlobby_postgres_restore_drill.py`
+against the configured production Supabase PostgreSQL 17 source, using an
+ephemeral **local Docker PostgreSQL 17 container** with no published host port.
+Source connection was read-only `pg_dump --schema=public`; restoration ran
+against a separate, new local database `ownlobby_recovery`. Sanitized output:
+
+```text
+POSTGRES_PUBLIC_SCHEMA_LOCAL_RESTORE_PASS
+RESTORED_APPLICATION_TABLES: 277
+SOURCE_DB_WRITES: 0
+NOT VERIFIED: full Supabase DB/platform, Render deployed recovery, Cloudinary CDN
+```
+
+The custom-format application backup was encrypted under the operator's
+`OwnLobby-Encrypted-Recovery` home directory. Its AES-GCM key is in the
+separate `.ownlobby-recovery-keys` home directory, **same Windows computer**.
+The directory paths and key contents must never be committed or shared.
+This proves isolated recovery of the **277 public application tables**, not
+completeness of all source data, cross-schema Supabase platform objects
+(`auth`, `storage`, `vault`), production Render startup, or post-restart
+persistency. The ephemeral local database was destroyed after this rehearsal.
+No production database writes were performed.
+
 ## Acceptance criteria — no shortcuts
 1. Local Django privacy, hybrid storage, launcher, worker and recovery tests pass on this exact branch with disposable QA configuration.
 2. Run read-only status preflight again immediately before cutover: 111 upload, 0 authenticated, two exclusions verified, zero mismatch.
