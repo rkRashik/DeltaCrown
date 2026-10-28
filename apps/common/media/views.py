@@ -37,7 +37,15 @@ def download(request, label, field_name, pk):
     blob = getattr(obj, field_name)
     if not blob:
         raise Http404
-    return serve_blob(blob)
+    response = serve_blob(blob)
+    # Games are permanently public-intended artwork. Let the *user's browser*
+    # reuse these files across pages; never cache evidence, user profiles,
+    # conditional-visibility media or error responses.
+    if (model._meta.label_lower == 'games.game'
+            and field_name in {'icon', 'logo', 'banner', 'card_image'}
+            and response.status_code == 200):
+        response['Cache-Control'] = 'private, max-age=900, must-revalidate'
+    return response
 
 
 class _S3Chunks:
