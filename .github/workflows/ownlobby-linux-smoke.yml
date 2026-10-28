@@ -3,9 +3,15 @@ name: OwnLobby Linux release smoke
 on:
   push:
     branches: [feature/ownlobby-free-hosting]
+    paths-ignore:
+      - '**/*.md'
   pull_request:
     branches: [master]
   workflow_dispatch:
+
+concurrency:
+  group: ownlobby-linux-smoke-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
