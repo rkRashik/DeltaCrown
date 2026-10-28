@@ -3,7 +3,6 @@ name: OwnLobby Linux release smoke
 on:
   pull_request:
     branches: [master]
-  workflow_dispatch:
 
 concurrency:
   group: ownlobby-linux-smoke-${{ github.ref }}
@@ -14,6 +13,7 @@ permissions:
 
 jobs:
   smoke:
+    if: github.event_name == 'pull_request' && github.head_ref == 'feature/ownlobby-free-hosting'
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     services:
