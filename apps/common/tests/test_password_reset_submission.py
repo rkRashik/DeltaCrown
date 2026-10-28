@@ -25,12 +25,13 @@ class PasswordResetSubmissionTests(TestCase):
     def _open_form(self):
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 302)
-        response = self.client.get(response.url)
+        form_url = response.url
+        response = self.client.get(form_url)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'name="new_password1"')
         self.assertContains(response, 'name="new_password2"')
         self.assertNotContains(response, 'name="password1"')
-        return response.url
+        return form_url
 
     def test_matching_valid_password_redirects_to_success_and_updates_account(self):
         post_url = self._open_form()
