@@ -20,6 +20,13 @@ from django.urls import reverse
 FIXTURE = json.loads((Path(__file__).parent / "fixtures/dependency_legacy.json").read_text(encoding="utf-8"))
 TEST_KEY = "local-dependency-compatibility-key-not-for-production"
 
+def synthetic_access_token():
+    """Generate a disposable JWT during the test; never commit token strings."""
+    return jwt.encode({
+        "user_id": "42", "iat": 1700000000, "nbf": 0,
+        "exp": 4102444800, "token_type": "access",
+    }, TEST_KEY, algorithm="HS256")
+
 
 @override_settings(SECRET_KEY=TEST_KEY, FIELD_ENCRYPTION_KEY=None)
 class LegacyAuthenticationCompatibilityTests(SimpleTestCase):
@@ -30,15 +37,15 @@ class LegacyAuthenticationCompatibilityTests(SimpleTestCase):
         self.assertEqual(field.from_db_value("legacy plaintext", None, None), "legacy plaintext")
 
     def test_existing_hs256_access_token_remains_valid(self):
-        payload = jwt.decode(FIXTURE["access_token"], TEST_KEY, algorithms=["HS256"])
+        payload = jwt.decode(synthetic_access_token(), TEST_KEY, algorithms=["HS256"])
         self.assertEqual(payload["user_id"], "42")
         self.assertEqual(payload["token_type"], "access")
 
     def test_wrong_signature_and_algorithm_remain_rejected(self):
         with self.assertRaises(jwt.InvalidSignatureError):
-            jwt.decode(FIXTURE["access_token"], "another-test-key-that-is-not-the-signing-key", algorithms=["HS256"])
+            jwt.decode(synthetic_access_token(), "another-test-key-that-is-not-the-signing-key", algorithms=["HS256"])
         with self.assertRaises(jwt.InvalidAlgorithmError):
-            jwt.decode(FIXTURE["access_token"], TEST_KEY, algorithms=["HS384"])
+            jwt.decode(synthetic_access_token(), TEST_KEY, algorithms=["HS384"])
 
     def test_malformed_claim_raises_a_token_error(self):
         token = jwt.encode({"exp": []}, TEST_KEY, algorithm="HS256")
