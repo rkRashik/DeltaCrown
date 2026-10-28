@@ -14,6 +14,31 @@ The `--status` command verifies **both** the 111 restricted Cloudinary assets an
 - any provider read errors.
 It does not call `rename` or `destroy`. Run it before and after coordinated cutover to reconcile partial state without publishing identifying URLs.
 
+## Live private-origin readiness canary (no production writes)
+The standalone `scripts/private_media_probe.py` checks the approved existing
+`ownlobby-private-media` bucket using the existing server-only S3 credentials.
+It lists the private origin, confirms at least 125 migrated object entries,
+HEAD-checks every listed object, and performs five one-byte authenticated
+Range reads. It writes nothing and never displays object keys, URLs or credentials.
+
+From the project root, with the approved private S3 `MEDIA_PRIVATE_*` values
+in local `.env` or environment, run:
+
+```powershell
+.\.venv\Scripts\python.exe scripts\private_media_probe.py
+```
+
+Successful output begins `PRIVATE_ORIGIN_READ_ONLY_PASS`. Failure prints
+only a generic exception type and exits nonzero. The offline regression suite
+is `python -m unittest tests.test_private_media_probe`.
+
+**Evidence boundary:** This verifies read-only S3 connectivity and object
+presence, not content checksums against the confidential migration manifest,
+not an independent restore, not a live Render deployment, not anonymous
+Cloudinary URL invalidation and not record-level authorization. Do not set
+`MEDIA_STORAGE_VERIFIED`, `MEDIA_RESTORE_VERIFIED` or
+`MEDIA_LEGACY_PRIVACY_VERIFIED` solely from this output.
+
 ## Acceptance criteria — no shortcuts
 1. Local Django privacy, hybrid storage, launcher, worker and recovery tests pass on this exact branch with disposable QA configuration.
 2. Run read-only status preflight again immediately before cutover: 111 upload, 0 authenticated, two exclusions verified, zero mismatch.
