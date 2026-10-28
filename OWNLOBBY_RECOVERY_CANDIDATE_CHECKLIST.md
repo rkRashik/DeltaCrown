@@ -105,6 +105,33 @@ retrieved):
 match-chat fix after the asset cutover. Re-run focused chat/roster regression
 tests and reconcile any new Cloudinary references before protecting sources.
 
+## Operator-verified independent encrypted media restoration — 2026-10-28
+
+Using the latest release script `scripts/ownlobby_encrypted_media_recovery.py`,
+the operator downloaded the private origin into a **new encrypted local backup**,
+then ran a separate Python process to decrypt and verify temporary recovered
+copies in a distinct directory. Sanitized operator evidence:
+
+```text
+ENCRYPTED_BACKUP_COMPLETE
+ENCRYPTED_BACKUP_OFFLINE_RESTORE_PASS
+RESTORED_PRIVATE_OBJECTS: 125
+RESTORED_BYTES: 109908333
+NO_PRODUCTION_WRITES_OR_DATABASE_CHANGES
+MEDIA_ONLY_INDEPENDENT_LOCAL_RECOVERY_PASS
+```
+
+Backup and separate encryption key remain in distinct folders under the
+operator's Windows user home. They are **on the same computer**, so this is
+not yet disaster-proof off-machine backup. No secrets or asset identifiers
+were committed. The independent local media-only restoration is **PASS**.
+
+**Still not certified:** PostgreSQL/database restore; recovery on a separate
+Render web service; post-restart durable production media operation; old CDN
+versioned/transformed cache denial. These require different evidence. Do not
+set `MEDIA_RESTORE_VERIFIED=1` merely because the media-only restore passed
+when the release gate also calls for independent DB and live runtime recovery.
+
 ## Verified owner/non-owner record media canary — 2026-10-28
 
 The operator ran `scripts/ownlobby_media_record_canary.py` using the current
