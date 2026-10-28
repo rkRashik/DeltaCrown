@@ -19,6 +19,7 @@ from django.db.models import Count, Q, Sum
 from django.utils import timezone
 
 from apps.siteui.cache_safe import safe_cache_get, safe_cache_set
+from apps.common.game_poster_preview import fast_game_card
 from apps.siteui.homepage_presentation import tournament_presentation
 
 
@@ -63,7 +64,7 @@ def _poster_for_game(game) -> str:
     """Prefer card_image → banner → handoff JPG → icon → empty."""
     if game is None:
         return ""
-    url = _img_url(getattr(game, "card_image", None))
+    url = fast_game_card(game)
     if url:
         return url
     url = _img_url(getattr(game, "banner", None))

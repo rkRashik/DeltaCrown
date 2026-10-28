@@ -440,6 +440,7 @@ def load_database_game(slug: str) -> Optional[dict]:
     """
     try:
         from apps.tournaments.models import Game
+        from apps.common.game_poster_preview import fast_game_card
         
         try:
             game = Game.objects.get(slug=slug, is_active=True)
@@ -457,7 +458,7 @@ def load_database_game(slug: str) -> Optional[dict]:
                 'icon_field': game.icon,  # Keep field object for later checks
                 'banner': game.banner.url if game.banner else None,
                 'banner_field': game.banner,
-                'card_image': game.card_image.url if game.card_image else None,
+                'card_image': fast_game_card(game) if game.card_image else None,
                 'card_image_field': game.card_image,
                 'logo': game.logo.url if game.logo else None,
                 'logo_field': game.logo,

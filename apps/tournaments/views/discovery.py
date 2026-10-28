@@ -222,6 +222,7 @@ class TournamentListView(ListView):
         # Active-games list rarely changes; serve from cache to remove a
         # per-request DB hit and trim row egress on every page paint.
         def _games_payload():
+            from apps.common.game_poster_preview import fast_game_card
             return [
                 {
                     'slug': game.slug,
@@ -229,7 +230,7 @@ class TournamentListView(ListView):
                     'icon': game.icon.url if game.icon else None,
                     'logo': game.logo.url if game.logo else None,
                     'banner': game.banner.url if game.banner else None,
-                    'card': game.card_image.url if game.card_image else None,
+                    'card': fast_game_card(game) if game.card_image else None,
                 }
                 for game in game_service.list_active_games()
             ]

@@ -818,6 +818,7 @@ def _get_recent_matches(limit=5):
 
 
 def _get_active_games():
+    from apps.common.game_poster_preview import fast_game_card
     """
     Get active games from the Game model with real images and data.
     
@@ -840,7 +841,7 @@ def _get_active_games():
                 'slug': game.slug if hasattr(game, 'slug') else game.name.lower().replace(' ', '-'),
                 'icon': game.icon.url if hasattr(game, 'icon') and game.icon else None,
                 'logo': game.logo.url if hasattr(game, 'logo') and game.logo else None,
-                'card_image': game.card_image.url if hasattr(game, 'card_image') and game.card_image else None,
+                'card_image': fast_game_card(game) if hasattr(game, 'card_image') and game.card_image else None,
                 'platforms': game.platforms if hasattr(game, 'platforms') else ['PC', 'Mobile'],
                 'category': game.category if hasattr(game, 'category') else 'Esports',
                 'primary_color': game.primary_color if hasattr(game, 'primary_color') else '#667eea',
