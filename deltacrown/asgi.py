@@ -65,3 +65,11 @@ application = ProtocolTypeRouter({
     "websocket": websocket_app,
 })
 
+
+# The public app stays fail-closed during the coordinated one-service release.
+# This is deliberately outside both Django HTTP and Channels WebSocket routing.
+# A missing verification flag keeps the guard on even if the switch is cleared.
+from deltacrown.cutover_lockdown import CutoverLockdown, lockdown_required
+
+if lockdown_required(settings):
+    application = CutoverLockdown(application)
