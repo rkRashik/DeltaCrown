@@ -14,6 +14,31 @@ The `--status` command verifies **both** the 111 restricted Cloudinary assets an
 - any provider read errors.
 It does not call `rename` or `destroy`. Run it before and after coordinated cutover to reconcile partial state without publishing identifying URLs.
 
+## Verified Supabase live metadata (2026-10-28, read-only)
+
+The connected production Supabase project `DeltaCrown` (region `ap-south-1`)
+was queried directly. This replaces the older *source-only* bucket assumptions:
+
+- `ownlobby-private-media`: `public=false`, exactly **125** object rows,
+  **125 unique object names**, **109,908,333 total metadata bytes**.
+- All 125 object metadata size fields are present and greater than zero.
+- `ownlobby-public-media`: private, zero objects; `screenshots`: private,
+  zero objects.
+- Storage `objects` and `buckets` have PostgreSQL RLS enabled, with zero
+  policies; direct anon/authenticated row access is default-denied by RLS,
+  although SQL table grants alone still exist. S3 access-key authorization is
+  separate and may bypass RLS. These are not equivalent to anonymous HTTP
+  denial tests on Cloudinary.
+- Latest storage record update in this inspection was 2026-10-27 UTC.
+- No writes, ACL changes, service settings changes or secret reads occurred.
+
+The read-only private-origin probe now **requires exactly 125 objects with
+exactly 109,908,333 summed HEAD ContentLength bytes**. Any new uploads or
+divergent sizes intentionally stop rehearsal for inventory reconciliation.
+This check still cannot prove per-object checksum, backup restoration or
+application authorization. Leave all three `MEDIA_*_VERIFIED` flags false
+until their separately specified acceptance tests really pass.
+
 ## Live private-origin readiness canary (no production writes)
 The standalone `scripts/private_media_probe.py` checks the approved existing
 `ownlobby-private-media` bucket using the existing server-only S3 credentials.
