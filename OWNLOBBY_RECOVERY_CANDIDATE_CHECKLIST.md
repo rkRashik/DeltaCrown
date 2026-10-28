@@ -105,6 +105,40 @@ retrieved):
 match-chat fix after the asset cutover. Re-run focused chat/roster regression
 tests and reconcile any new Cloudinary references before protecting sources.
 
+## Verified owner/non-owner record media canary — 2026-10-28
+
+The operator ran `scripts/ownlobby_media_record_canary.py` using the current
+release branch against real production Supabase data with read-only SQL.
+Observed, sanitized evidence:
+
+```text
+DJANGO_RECORD_MEDIA_PASS
+ANONYMOUS_DENIALS: 2
+NONOWNER_DENIALS: 2
+OWNER_STREAMED_READS: 1
+NO_DATABASE_OR_STORAGE_WRITES
+```
+
+This used a genuine payment-proof file whose exact S3 storage object exists.
+The application route blocked anonymous and unrelated GET+HEAD without calling
+origin delivery, and successfully streamed a byte sample to the record owner.
+The initial run failed due to Django request_finished closing the connection
+inside the read-only transaction; the script was corrected to defer response
+closures. The passing result is from the corrected version.
+
+The *previously confirmed* private-origin evidence is 125 HEADs, 5 signed GETs
+and 10 unsigned S3 GET/HEAD denials. No need to repeat these solely because
+the record canary passed.
+
+**Current recovery drill path:** `scripts/ownlobby_encrypted_media_recovery.py`
+creates a new encrypted local backup of current private-origin bytes and restores
+all objects to a disposable independent local tree in a separate Python process.
+It is NOT YET operator-run or verified. The encrypted archive and key are stored
+in different user-home directories, must be preserved separately, and are never
+uploaded or committed. It tests object-only recovery, not the production database
+or a separately running Render recovery deployment. Do not count the code
+existing as restore proof; do not set verification flags on this basis.
+
 ## Acceptance criteria — no shortcuts
 1. Local Django privacy, hybrid storage, launcher, worker and recovery tests pass on this exact branch with disposable QA configuration.
 2. Run read-only status preflight again immediately before cutover: 111 upload, 0 authenticated, two exclusions verified, zero mismatch.
