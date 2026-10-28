@@ -14,7 +14,8 @@ from dotenv import dotenv_values
 
 ROOT = Path(__file__).resolve().parents[1]
 BUCKET = "ownlobby-private-media"
-MIN_OBJECTS = 125
+EXPECTED_OBJECTS = 125
+EXPECTED_METADATA_BYTES = 109908333
 
 
 def private_s3_settings(env):
@@ -39,19 +40,25 @@ def private_s3_settings(env):
     return config
 
 
-def inspect_private_origin(client, bucket):
+def inspect_private_origin(client, bucket, expected_count=EXPECTED_OBJECTS,
+                           expected_bytes=EXPECTED_METADATA_BYTES):
     keys = []
     for page in client.get_paginator("list_objects_v2").paginate(Bucket=bucket):
         keys.extend(item["Key"] for item in page.get("Contents", []))
         if len(keys) > 10000:
             raise ValueError("Unexpected origin inventory size")
-    if len(keys) < MIN_OBJECTS or len(set(keys)) != len(keys):
+    if len(keys) != expected_count or len(set(keys)) != len(keys):
         raise ValueError("Origin object inventory count/uniqueness mismatch")
     keys.sort()
+    total_bytes = 0
     for key in keys:
         info = client.head_object(Bucket=bucket, Key=key)
-        if int(info.get("ContentLength", -1)) < 1:
+        content_length = int(info.get("ContentLength", -1))
+        if content_length < 1:
             raise ValueError("Empty or unavailable private object")
+        total_bytes += content_length
+    if total_bytes != expected_bytes:
+        raise ValueError("Private origin byte total differs from the audited migration")
     positions = sorted({round(i * (len(keys) - 1) / 4) for i in range(5)})
     for i in positions:
         item = client.get_object(Bucket=bucket, Key=keys[i], Range="bytes=0-0")
