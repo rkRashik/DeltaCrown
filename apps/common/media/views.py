@@ -73,6 +73,10 @@ def _serve_private_s3(blob):
         # Sniff actual bytes, not the untrusted S3 metadata Content-Type.
         prefix = body.read(8192)
         mime = _sniff_mime(BytesIO(prefix)) or 'application/octet-stream'
+        # Never reflect HTML/SVG/unknown MIME from private uploads into the browser.
+        if mime not in {'image/png', 'image/jpeg', 'image/webp', 'image/gif',
+                        'application/pdf', 'video/mp4', 'video/webm'}:
+            mime = 'application/octet-stream'
         inline = mime in {'image/png', 'image/jpeg', 'image/webp', 'image/gif'}
         response = StreamingHttpResponse(_S3Chunks(body, prefix), content_type=mime)
         disposition = content_disposition_header(
