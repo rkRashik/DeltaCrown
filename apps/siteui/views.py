@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from deltacrown.branding import brand_copy
 from datetime import datetime, time, timedelta
+import logging
+import time
 import hashlib
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
@@ -31,6 +33,22 @@ from apps.common.seo import (
 
 
 
+_homepage_perf_logger = logging.getLogger("deltacrown.homepage_performance")
+
+
+def _homepage_timed(phase, callback):
+    """Time public homepage building stages; never log URLs, users or context."""
+    started = time.monotonic()
+    try:
+        return callback()
+    finally:
+        elapsed_ms = int((time.monotonic() - started) * 1000)
+        if elapsed_ms >= 500:
+            _homepage_perf_logger.warning(
+                "homepage_phase phase=%s elapsed_ms=%d", phase, elapsed_ms
+            )
+
+
 # Maps homepage_hero resolver modes → the canonical design `data-home-state`
 # values from the DeltaCrown Homepage handoff (§4). Purely a semantic hook the
 # body uses to brand the active competitive item; it does not drive layout.
@@ -56,15 +74,15 @@ def home(request):
     from .homepage_extras import get_homepage_extras
     from .homepage_hero import get_home_hero_context
     from .homepage_sections import get_homepage_sections
-    context = get_homepage_context()
-    context.update(get_homepage_extras(request))
+    context = _homepage_timed("context", get_homepage_context)
+    context.update(_homepage_timed("extras", lambda: get_homepage_extras(request)))
     # Static body-section copy + icons (why / ecosystem / daily-ops / trust / …)
-    context.update(get_homepage_sections())
+    context.update(_homepage_timed("sections", get_homepage_sections))
     # Per-user hero CTA/copy — not cached, lightweight exists() queries only
-    hero_ctx = get_home_hero_context(request.user)
+    hero_ctx = _homepage_timed("hero", lambda: get_home_hero_context(request.user))
     context["hero_ctx"] = hero_ctx
     from .homepage_presentation import get_homepage_presentation
-    context['home_ui'] = get_homepage_presentation(context['v3']['hero_stats'], hero_ctx)
+    context['home_ui'] = _homepage_timed('presentation', lambda: get_homepage_presentation(context['v3']['hero_stats'], hero_ctx))
     context["home_state"] = _HOME_STATE_BY_MODE.get(
         (hero_ctx or {}).get("mode"), "guest"
     )
@@ -81,7 +99,7 @@ def home(request):
         path="/",
         schema=[organization_schema(), website_schema()],
     )
-    return render(request, "home.html", context)
+    return _homepage_timed("render", lambda: render(request, "home.html", context))
 
 
 def privacy(request):
