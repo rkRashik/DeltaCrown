@@ -16,6 +16,9 @@ if [ "${OWNLOBBY_CUTOVER_LOCKDOWN:-0}" = "1" ] && [ "${OWNLOBBY_MEDIA_MODE:-lega
     echo "[cutover] Verifying private Supabase origin from Render runtime (read only)..."
     python scripts/private_media_probe.py
     echo "[cutover] Render private origin probe passed."
+    echo "[cutover] Verifying private payment-proof authorization at record layer (read only)..."
+    python scripts/ownlobby_media_record_canary.py
+    echo "[cutover] Render private record authorization probe passed."
 fi
 
 # Bound Daphne's default executor; this is not a global HTTP concurrency limit.
