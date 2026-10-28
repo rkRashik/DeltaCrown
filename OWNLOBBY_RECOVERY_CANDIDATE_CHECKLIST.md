@@ -193,6 +193,24 @@ Versionless URLs, pre-existing transformed/derived assets, embedded links,
 other CDN edges and eleven raw legacy paths need additional verification.
 Keep the backup key and the original-URL baseline secure; never commit either.
 
+## Linux release CI — latest verified result, 2026-10-28
+
+Release branch `feature/ownlobby-free-hosting` commit
+`574461f26e5417304ddacdedcbad5c47d1670f36` was tested in
+[GitHub Actions run #21](https://github.com/rkRashik/DeltaCrown/actions/runs/40643336326).
+The `OwnLobby Linux release smoke` job **passed**: production dependencies
+and native rendering, Django startup, Daphne HTTP/WebSocket, governed
+security/media regressions, recovery/containment unit tests, frontend build
+and static collection. This was CI on disposable QA resources, not a live
+Render hybrid production canary or independent PostgreSQL restore.
+
+PR #21 conflicts are resolved and GitHub reports mergeable; it remains
+**draft** and has not been merged. GitGuardian separately reports a **failed**
+security check for a historical synthetic JWT test fixture. The current
+fixture no longer contains an `access_token` field, but the provider
+incident has not yet been confirmed resolved. Do not represent CI success
+as GitGuardian clearance or approval for production cutover.
+
 ## Acceptance criteria — no shortcuts
 1. Local Django privacy, hybrid storage, launcher, worker and recovery tests pass on this exact branch with disposable QA configuration.
 2. Run read-only status preflight again immediately before cutover: 111 upload, 0 authenticated, two exclusions verified, zero mismatch.
