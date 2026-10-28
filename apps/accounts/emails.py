@@ -1,3 +1,5 @@
+
+from deltacrown.branding import brand_copy
 import re
 import logging
 from email.utils import formataddr
@@ -16,7 +18,7 @@ def normalize_from_email(value: str | None = None) -> str:
     ) or "noreply@deltacrown.xyz").strip()
     addresses = re.findall(r"[-A-Za-z0-9._%+]+@[-A-Za-z0-9.]+\.[A-Za-z]{2,}", raw)
     address = addresses[-1] if addresses else raw
-    return formataddr(("DeltaCrown", address))
+    return formataddr((brand_copy("[[brand]]"), address))
 
 
 def send_otp_email(user, code, *, expires_in_minutes: int = 10):
@@ -26,15 +28,16 @@ def send_otp_email(user, code, *, expires_in_minutes: int = 10):
     Uses EmailMultiAlternatives for better deliverability:
     - HTML + text/plain multipart (reduces spam score)
     - Proper From name for trust signals
-    - List-Unsubscribe header to satisfy spam filters
+    - Transactional verification mail has no marketing unsubscribe claim
     """
-    subject = f"Your DeltaCrown Verification Code: {code}"
+    subject = f"Your {brand_copy('[[brand]]')} Verification Code: {code}"
     from_email = normalize_from_email()
 
     context = {
         "code": code,
         "user": user,
         "expires_in_minutes": expires_in_minutes,
+        "site_url": settings.SITE_URL.rstrip("/"),
     }
 
     # Render both templates
@@ -48,8 +51,7 @@ def send_otp_email(user, code, *, expires_in_minutes: int = 10):
         to=[user.email],
         headers={
             "X-Priority": "1",
-            "X-Mailer": "DeltaCrown Esports Platform",
-            "List-Unsubscribe": "<mailto:unsubscribe@deltacrown.com>",
+            "X-Mailer": brand_copy("[[brand]] Esports Platform"),
         },
     )
     msg.attach_alternative(html_body, "text/html")

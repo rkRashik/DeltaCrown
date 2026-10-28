@@ -6,6 +6,8 @@ Each game can have multiple maps with ordering, active/inactive state,
 and optional image assets.
 """
 
+from apps.common.media.fields import MediaFileField, MediaImageField
+
 from django.db import models
 
 
@@ -26,7 +28,7 @@ class GameMapPool(models.Model):
         max_length=100,
         help_text="Internal code/slug for the map",
     )
-    image = models.ImageField(
+    image = MediaImageField(
         upload_to="games/maps/",
         blank=True,
         null=True,

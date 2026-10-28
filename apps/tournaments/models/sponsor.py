@@ -8,6 +8,8 @@ real estate for brand visibility. Sponsors are displayed in tier order
 Created: February 2026
 """
 
+from apps.common.media.fields import MediaFileField, MediaImageField
+
 from django.db import models
 from apps.common.models import TimestampedModel
 
@@ -64,7 +66,7 @@ class TournamentSponsor(TimestampedModel):
         db_index=True,
         help_text='Sponsor tier — controls display size and prominence',
     )
-    logo = models.ImageField(
+    logo = MediaImageField(
         upload_to='tournaments/sponsors/',
         null=True,
         blank=True,
@@ -75,7 +77,7 @@ class TournamentSponsor(TimestampedModel):
         default='',
         help_text='Sponsor website URL (opens in new tab)',
     )
-    banner_image = models.ImageField(
+    banner_image = MediaImageField(
         upload_to='tournaments/sponsors/banners/',
         null=True,
         blank=True,

@@ -6,6 +6,8 @@ Listens to events from other apps and sends notifications accordingly.
 
 P4-T06: Extended to cover all registration/payment lifecycle events.
 """
+
+from deltacrown.branding import brand_copy
 import logging
 from django.apps import apps
 
@@ -67,7 +69,7 @@ def notify_registration_confirmed(event):
                 url=f"/t/{registration.tournament.slug}/",
                 tournament=registration.tournament,
                 dedupe=True,
-                email_subject=f"[DeltaCrown] Registration confirmed – {registration.tournament.name}",
+                email_subject=f"[{brand_copy('[[brand]]')}] Registration confirmed – {registration.tournament.name}",
                 email_template="reg_confirmed",
                 email_ctx={"t": registration.tournament, "r": registration},
             )
@@ -96,7 +98,7 @@ def notify_registration_submitted(event):
                 url=f"/tournaments/{registration.tournament.slug}/",
                 tournament=registration.tournament,
                 dedupe=True,
-                email_subject=f"[DeltaCrown] Registration received – {registration.tournament.name}",
+                email_subject=f"[{brand_copy('[[brand]]')}] Registration received – {registration.tournament.name}",
                 email_template="registration_confirmed",
                 email_ctx={"t": registration.tournament, "r": registration},
             )
@@ -125,7 +127,7 @@ def notify_registration_rejected(event):
                 url=f"/tournaments/{registration.tournament.slug}/",
                 tournament=registration.tournament,
                 dedupe=True,
-                email_subject=f"[DeltaCrown] Registration update – {registration.tournament.name}",
+                email_subject=f"[{brand_copy('[[brand]]')}] Registration update – {registration.tournament.name}",
                 email_template="registration_rejected",
                 email_ctx={"t": registration.tournament, "r": registration,
                            "reason": event.data.get('reason', '')},
@@ -149,7 +151,7 @@ def notify_payment_submitted(event):
                 url=f"/tournaments/{registration.tournament.slug}/",
                 tournament=registration.tournament,
                 dedupe=True,
-                email_subject=f"[DeltaCrown] Payment received – {registration.tournament.name}",
+                email_subject=f"[{brand_copy('[[brand]]')}] Payment received – {registration.tournament.name}",
                 email_template="payment_pending",
                 email_ctx={"t": registration.tournament, "r": registration},
             )
@@ -172,7 +174,7 @@ def notify_payment_verified(event):
                 url=f"/tournaments/{registration.tournament.slug}/",
                 tournament=registration.tournament,
                 dedupe=True,
-                email_subject=f"[DeltaCrown] Payment confirmed – {registration.tournament.name}",
+                email_subject=f"[{brand_copy('[[brand]]')}] Payment confirmed – {registration.tournament.name}",
                 email_template="payment_verified",
                 email_ctx={"t": registration.tournament, "r": registration},
             )
@@ -195,7 +197,7 @@ def notify_payment_rejected(event):
                 url=f"/tournaments/registration/{registration.id}/payment/complete/",
                 tournament=registration.tournament,
                 dedupe=True,
-                email_subject=f"[DeltaCrown] Payment update – {registration.tournament.name}",
+                email_subject=f"[{brand_copy('[[brand]]')}] Payment update – {registration.tournament.name}",
                 email_template="payment_verified",
                 email_ctx={"t": registration.tournament, "r": registration,
                            "reason": event.data.get('reason', '')},
@@ -219,7 +221,7 @@ def notify_waitlist_promoted(event):
                 url=f"/tournaments/registration/{registration.id}/payment/complete/",
                 tournament=registration.tournament,
                 dedupe=True,
-                email_subject=f"[DeltaCrown] Spot available – {registration.tournament.name}",
+                email_subject=f"[{brand_copy('[[brand]]')}] Spot available – {registration.tournament.name}",
                 email_template="waitlist_promotion",
                 email_ctx={"t": registration.tournament, "r": registration},
             )
@@ -258,7 +260,7 @@ def notify_checkin_open(event):
                 url=f"/tournaments/{tournament.slug}/",
                 tournament=tournament,
                 dedupe=True,
-                email_subject=f"[DeltaCrown] Check-in open – {tournament.name}",
+                email_subject=f"[{brand_copy('[[brand]]')}] Check-in open – {tournament.name}",
                 email_template="custom_notification",
                 email_ctx={"t": tournament, "message": "Check-in is now open."},
             )
@@ -298,7 +300,7 @@ def notify_tournament_cancelled(event):
                 url=f"/tournaments/{tournament.slug}/",
                 tournament=tournament,
                 dedupe=True,
-                email_subject=f"[DeltaCrown] Tournament cancelled – {tournament.name}",
+                email_subject=f"[{brand_copy('[[brand]]')}] Tournament cancelled – {tournament.name}",
                 email_template="custom_notification",
                 email_ctx={"t": tournament, "message": "This tournament has been cancelled."},
             )
@@ -379,7 +381,7 @@ def notify_match_scheduled(event):
                 tournament=tournament,
                 match=match,
                 dedupe=True,
-                email_subject=f"[DeltaCrown] Match scheduled – {tournament.name}",
+                email_subject=f"[{brand_copy('[[brand]]')}] Match scheduled – {tournament.name}",
                 email_template="match_scheduled",
                 email_ctx={"t": tournament, "m": match},
             )
@@ -423,7 +425,7 @@ def notify_result_verified(event):
                 tournament=tournament,
                 match=match,
                 dedupe=True,
-                email_subject=f"[DeltaCrown] Result verified – {tournament.name}",
+                email_subject=f"[{brand_copy('[[brand]]')}] Result verified – {tournament.name}",
                 email_template="result_verified",
                 email_ctx={"t": tournament, "m": match},
             )

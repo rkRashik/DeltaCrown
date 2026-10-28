@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load static dc_avatar %}
 
-{% block title %}Control Deck | DeltaCrown{% endblock %}
+{% block title %}Settings | {{ brand.name }}{% endblock %}
 {% block body_class %}settings-page-body{% endblock %}
 
 {% block extra_head %}
@@ -2293,7 +2293,7 @@
                 <i class="fa-solid fa-arrow-left text-xs group-hover:-translate-x-0.5 transition-transform"></i>
             </a>
             <div class="flex items-center gap-2 text-sm min-w-0">
-                <span class="text-gray-500 font-medium hidden sm:block whitespace-nowrap">Control Deck</span>
+                <span class="text-gray-500 font-medium hidden sm:block whitespace-nowrap">Settings</span>
                 <i class="fa-solid fa-chevron-right text-[8px] text-gray-600 hidden sm:block shrink-0"></i>
                 <span id="header-tab-label" class="text-white font-bold truncate">{{ settings_initial_tab_label|default:"Identity" }}</span>
             </div>
@@ -2495,7 +2495,7 @@
                     <a href="{{ settings_tab_urls.billing }}" class="dc-mobile-settings-row mobile-nav-btn" data-target="billing" data-nav="billing">
                         <span class="dc-mobile-row-icon is-gold"><i class="fa-solid fa-wallet"></i></span>
                         <span class="dc-mobile-row-copy"><span class="dc-mobile-row-label">Wallet</span><span class="dc-mobile-row-meta">Balance, withdrawals, and wallet PIN</span></span>
-                        <span class="dc-mobile-badge">{% if wallet %}{{ wallet.cached_balance|floatformat:0 }} DC{% else %}0 DC{% endif %}</span>
+                        <span class="dc-mobile-badge">{% if wallet %}{{ wallet.cached_balance|floatformat:0 }} {{ brand.features.coins }}{% else %}0 {{ brand.features.coins }}{% endif %}</span>
                         <i class="fa-solid fa-chevron-right dc-mobile-caret" aria-hidden="true"></i>
                     </a>
                     <a href="{{ settings_tab_urls.inventory }}" class="dc-mobile-settings-row mobile-nav-btn" data-target="inventory" data-nav="inventory">
@@ -3173,7 +3173,7 @@
                                         <a href="{% url 'account:discord_link' %}" class="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#5865F2] hover:bg-[#4752C4] text-white font-bold text-sm tracking-wide transition-all duration-200 shadow-lg shadow-[#5865F2]/25 hover:shadow-[#5865F2]/40 hover:scale-[1.02]">
                                             <i class="fa-brands fa-discord text-lg"></i> Connect Discord
                                         </a>
-                                        <p class="text-gray-600 text-[11px]">Or use <code class="text-indigo-400">/link</code> in the DeltaCrown Discord server</p>
+                                        <p class="text-gray-600 text-[11px]">Or use <code class="text-indigo-400">/link</code> in the {{ brand.name }} Discord server</p>
                                     </div>
                                     <!-- Hidden inputs so form submission doesn't clear existing data -->
                                     <input type="hidden" name="discord_username" value="{{ discord_link.handle|default:'' }}">
@@ -3611,7 +3611,7 @@
                         <div class="flex items-center justify-between p-6 rounded-xl border border-white/10 bg-white/5">
                             <div>
                                 <label class="font-bold text-white text-sm">Allow Direct Contract Offers</label>
-                                <p class="text-xs text-gray-400">Teams can send you contract offers via DeltaCrown</p>
+                                <p class="text-xs text-gray-400">Teams can send you contract offers via {{ brand.name }}</p>
                             </div>
                             <label class="z-toggle-wrapper">
                                 <input type="checkbox" name="allow_direct_contracts" class="z-toggle-input" {% if career_settings.allow_direct_contracts %}checked{% endif %}>
@@ -3634,12 +3634,12 @@
                     <div class="absolute -top-16 -right-16 w-56 h-56 bg-indigo-500/15 rounded-full blur-3xl pointer-events-none"></div>
                     <div class="absolute -bottom-16 -left-16 w-56 h-56 bg-amber-400/10 rounded-full blur-3xl pointer-events-none"></div>
                     <div class="relative z-10 max-w-2xl">
-                      <div class="text-[10px] font-bold uppercase tracking-[0.22em] text-indigo-300/90 mb-3">DeltaCrown / Skill-Based Reward System</div>
+                      <div class="text-[10px] font-bold uppercase tracking-[0.22em] text-indigo-300/90 mb-3">{{ brand.name }} / Skill-Based Reward System</div>
                       <h2 class="text-3xl md:text-4xl font-display font-black text-white leading-tight mb-3">
-                        Crown <span class="bg-clip-text text-transparent bg-gradient-to-r from-indigo-300 via-fuchsia-300 to-amber-300">Arena</span>
+                        {{ brand.features.competitive_hub }}
                       </h2>
                       <p class="text-sm text-gray-300 leading-relaxed mb-6">
-                        Competitive reward operations moved to the unified competitive hub. Missions, Showdown, Bounty, and Dropzone run on the DeltaCoin escrow engine with anti-whale caps and verified settlement.
+                        Competitive reward operations moved to the unified competitive hub. Missions, Showdown, Bounty, and Dropzone run on the {{ brand.features.coins }} escrow engine with anti-whale caps and verified settlement.
                       </p>
                       <div class="grid grid-cols-2 gap-3 mb-6">
                         <div class="px-3 py-2.5 rounded-lg bg-white/[0.04] border border-white/[0.08] text-[12px]">
@@ -4692,7 +4692,7 @@
                         <p class="text-xs text-z-gold uppercase font-bold mb-2">Available Balance</p>
                         <h1 class="text-5xl font-display font-black text-white mb-6">
                             {% if wallet %}{{ wallet.cached_balance|floatformat:0 }}{% else %}0{% endif %} 
-                            <span class="text-2xl text-z-gold font-display font-black">DC</span>
+                            <span class="text-2xl text-z-gold font-display font-black">{{ brand.features.coins }}</span>
                         </h1>
                         <div class="flex gap-3">
                             <a href="{% url 'economy:withdrawal_request' %}" class="bg-z-gold text-black px-6 py-2 rounded-lg font-bold uppercase text-xs hover:bg-white transition">Withdraw</a>
@@ -5575,7 +5575,7 @@
 
     // ========== DISCORD UNLINK ==========
     async function unlinkDiscord() {
-        if (!confirm('Unlink your Discord account? This will remove your @Linked role in the DeltaCrown server.')) return;
+        if (!confirm('Unlink your Discord account? This will remove your @Linked role in the OwnLobby server.')) return;
         try {
             const resp = await fetch('{% url "account:discord_unlink" %}', {
                 method: 'POST',
@@ -7744,9 +7744,9 @@
         
         // Browser notification if enabled
         if (browserNotificationsEnabled && Notification.permission === 'granted') {
-            const notification = new Notification('DeltaCrown - New Request', {
+            const notification = new Notification('OwnLobby - New Request', {
                 body: message,
-                icon: '/static/img/logo.png',
+                icon: '{% static brand.apple_icon %}',
                 tag: `request-${request.id}`
             });
             notification.onclick = () => {
@@ -7783,9 +7783,9 @@
         
         // Browser notification if enabled
         if (browserNotificationsEnabled && Notification.permission === 'granted') {
-            const notification = new Notification('DeltaCrown - Request Update', {
+            const notification = new Notification('OwnLobby - Request Update', {
                 body: message,
-                icon: '/static/img/logo.png',
+                icon: '{% static brand.apple_icon %}',
                 tag: `request-${request.id}-status`
             });
             notification.onclick = () => {

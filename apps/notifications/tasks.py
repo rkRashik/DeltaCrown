@@ -1,6 +1,8 @@
 """
 Celery tasks for notification delivery and management
 """
+
+from deltacrown.branding import brand_copy
 from celery import shared_task
 from django.conf import settings
 from django.utils import timezone
@@ -103,7 +105,7 @@ def send_daily_digest(self):
                 digest.notifications.set(unread_notifications)
                 
                 # Send email
-                subject = f"DeltaCrown Daily Digest - {len(unread_notifications)} unread notifications"
+                subject = f"{brand_copy('[[brand]]')} Daily Digest - {len(unread_notifications)} unread notifications"
                 
                 # Group notifications by type
                 notifications_by_type = {}
@@ -161,7 +163,7 @@ def send_daily_digest(self):
         raise self.retry(exc=exc)
 
 
-@shared_task(bind=True, name='notifications.send_email_notification')
+@shared_task(bind=True, name='notifications.send_email_notification', max_retries=3, default_retry_delay=60)
 def send_email_notification(self, notification_id):
     """
     Send individual email notification.
@@ -216,10 +218,10 @@ def send_email_notification(self, notification_id):
         return {'status': 'error', 'message': 'Notification not found'}
     except Exception as exc:
         logger.error(f"Error sending email notification: {str(exc)}", exc_info=True)
-        return {'status': 'error', 'message': str(exc)}
+        raise self.retry(exc=exc)
 
 
-@shared_task(bind=True, name='notifications.send_discord_notification')
+@shared_task(bind=True, name='notifications.send_discord_notification', max_retries=3, default_retry_delay=60)
 def send_discord_notification(self, notification_data):
     """
     Send notification to Discord webhook.
@@ -236,7 +238,7 @@ def send_discord_notification(self, notification_data):
         
         # Build Discord embed
         embed = {
-            "title": notification_data.get('title', 'DeltaCrown Notification'),
+            "title": notification_data.get('title', brand_copy('[[brand]] Notification')),
             "description": notification_data.get('body', ''),
             "color": notification_data.get('color', 3447003),  # Blue by default
             "timestamp": timezone.now().isoformat(),
@@ -260,8 +262,8 @@ def send_discord_notification(self, notification_data):
         return {'status': 'success'}
         
     except requests.RequestException as exc:
-        logger.error(f"Error sending Discord notification: {str(exc)}", exc_info=True)
-        return {'status': 'error', 'message': str(exc)}
+        logger.error('Discord notification delivery failed: %s', type(exc).__name__)
+        raise self.retry(exc=exc)
 
 
 @shared_task(bind=True, name='notifications.cleanup_old_notifications', max_retries=3, default_retry_delay=60)

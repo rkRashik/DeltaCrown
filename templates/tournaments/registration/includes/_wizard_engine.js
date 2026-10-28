@@ -2118,7 +2118,7 @@
                 const subMap = { bkash: 'bKash', nagad: 'Nagad', rocket: 'Rocket', bank_transfer: 'Bank Transfer' };
                 reviewGateway.textContent = subMap[subVal] || 'Mobile Payment';
             } else {
-                const map = { deltacoin: 'DeltaCoin' };
+                const map = { deltacoin: 'Coins' };
                 reviewGateway.textContent = map[paymentMethod.value] || paymentMethod.value;
             }
         }

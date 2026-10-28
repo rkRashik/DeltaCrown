@@ -3,7 +3,7 @@
  * UP-PHASE10: Unified design system for profile + settings
  * 
  * Usage:
- * @import url('design-tokens.css');
+ * Import this file from a different stylesheet; do not import it from itself.
  */
 
 :root {

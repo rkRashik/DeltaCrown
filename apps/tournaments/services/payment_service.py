@@ -14,6 +14,8 @@ Provides:
 """
 from __future__ import annotations
 
+from deltacrown.branding import brand_copy
+
 from decimal import Decimal
 from typing import Dict, Any, Optional
 
@@ -207,7 +209,7 @@ class PaymentService:
                     'message': 'Payment already processed',
                 }
             elif payment.payment_method == Payment.DELTACOIN:
-                raise ValidationError("DeltaCoin payment already submitted for this registration")
+                raise ValidationError(brand_copy('[[coins]] payment already submitted for this registration'))
         
         # Validate tournament has entry fee
         tournament = registration.tournament
@@ -220,7 +222,7 @@ class PaymentService:
         # Get user profile
         profile = user.profile if hasattr(user, 'profile') else None
         if not profile:
-            raise ValidationError("User profile not found. Cannot process DeltaCoin payment.")
+            raise ValidationError(brand_copy('User profile not found. Cannot process [[coins]] payment.'))
         
         # Build idempotency key if not provided
         if not idempotency_key:
@@ -244,8 +246,7 @@ class PaymentService:
             # Re-raise with user-friendly message
             balance = PaymentService.get_wallet_balance(user)
             raise ValidationError(
-                f"Insufficient DeltaCoin balance. You have {balance} DC, but need {entry_fee} DC. "
-                f"Please purchase more DeltaCoin or use a different payment method."
+                f"Insufficient {brand_copy('[[coins]]')} balance. You have {balance} DC, but need {entry_fee} DC. Please purchase more {brand_copy('[[coins]]')} or use a different payment method."
             ) from e
         except InvalidAmount as e:
             raise ValidationError(f"Invalid payment amount: {e}") from e
@@ -355,8 +356,7 @@ class PaymentService:
         # Validate payment method is DeltaCoin
         if payment.payment_method != Payment.DELTACOIN:
             raise ValidationError(
-                f"Cannot refund DeltaCoin for payment method '{payment.get_payment_method_display()}'. "
-                f"Only DeltaCoin payments can be auto-refunded."
+                f"Cannot refund {brand_copy('[[coins]]')} for payment method '{payment.get_payment_method_display()}'. Only {brand_copy('[[coins]]')} payments can be auto-refunded."
             )
         
         # Check payment status

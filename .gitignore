@@ -75,3 +75,10 @@ riot.txt
 .clinerules
 /Documents/TOC/
 /templates/My drafts/
+
+# Private local media; never add uploaded evidence to Git.
+/.private-media/
+
+# Source package named media is application code, not uploaded data.
+!apps/common/media/
+!apps/common/media/*.py

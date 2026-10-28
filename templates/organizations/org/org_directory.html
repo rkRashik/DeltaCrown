@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}Organization Directory | DeltaCrown{% endblock %}
+{% block title %}Organization Directory | {{ brand.name }}{% endblock %}
 
 {% block extra_head %}
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -47,7 +47,7 @@
                     <h1 class="text-5xl md:text-7xl font-tech font-black text-white uppercase tracking-tight mb-4">
                         Global <span class="text-transparent bg-clip-text bg-gradient-to-r from-delta-gold via-delta-violet to-delta-electric">Empires</span>
                     </h1>
-                    <p class="text-slate-400 max-w-2xl">The highest-grossing and most influential organizations in the DeltaCrown ecosystem.</p>
+                    <p class="text-slate-400 max-w-2xl">The highest-grossing and most influential organizations in the {{ brand.name }} ecosystem.</p>
                 </div>
                 <a href="{% url 'organizations:org_create' %}" class="px-6 py-3 bg-delta-gold/10 hover:bg-delta-gold/20 border-2 border-delta-gold rounded-lg text-sm font-bold uppercase tracking-widest text-delta-gold transition flex items-center gap-2">
                     <i class="fas fa-plus-circle"></i> Create Organization

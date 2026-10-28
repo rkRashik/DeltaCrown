@@ -1,5 +1,19 @@
 """Shared desktop/mobile homepage copy derived from public state, without I/O."""
 
+UNIVERSAL_HEADLINE = ("Find tournaments.", "Build your team.", "Compete your way.")
+CONTEXT_HEADLINES = {
+    "onboarding": ("Set up your profile.", "Choose your games.", "Make your next move."),
+    "pending_action": ("Your next action.", "Your competition.", "Keep it moving."),
+    "active_match": ("Your match awaits.", "Check your schedule.", "Compete your way."),
+    "registered": ("Your tournament.", "Your next update.", "Stay match ready."),
+    "organizer": ("Build the bracket.", "Guide the event.", "Run your tournament."),
+    "operations": ("Your next challenge.", "Your progress.", "Your next level."),
+    "no_team": ("Find your next event.", "Meet your teammates.", "Compete your way."),
+    "team_manager": ("Your team. Your call.", "Manage your roster.", "Plan the next match."),
+    "team_ready": ("Your team is here.", "Find your next event.", "Compete together."),
+    "default": ("Welcome to your lobby.", "Find your next event.", "Compete your way."),
+}
+
 
 def get_homepage_presentation(stats, hero):
     count = stats.get('games_count', 0)
@@ -13,10 +27,12 @@ def get_homepage_presentation(stats, hero):
         status = 'Explore teams and games · no open registrations'
     games_label = f'{count} supported game{"s" if count != 1 else ""}' if count else 'Explore supported games'
     summary = (
-        'Join tournaments, build your squad, and rise from Rookie to The Crown'
+        'Find your next tournament, build your team, and grow your competitive record'
         + (f' across {count} games, mobile to PC.' if count else ', mobile to PC.')
     )
     return {
+        'universal_headline': UNIVERSAL_HEADLINE,
+        'contextual_headline': CONTEXT_HEADLINES.get(hero.get('mode'), ()),
         'games_count': count,
         'games_label': games_label,
         'status': status,

@@ -1,4 +1,6 @@
 from __future__ import annotations
+
+from deltacrown.branding import brand_copy
 from datetime import datetime, timedelta
 import mimetypes
 from pathlib import Path
@@ -388,19 +390,10 @@ def _can_view_match_submission_file(user, submission) -> bool:
         return True
     if getattr(submission, "submitted_by_user_id", None) == user.id:
         return True
-    team_ids = _active_team_ids_for_user(user)
-    if getattr(submission, "submitted_by_team_id", None) in team_ids:
-        return True
+    from apps.common.media.policy import match_participant
     match = getattr(submission, "match", None)
-    return bool(
-        match
-        and (
-            getattr(match, "participant1_id", None) in team_ids
-            or getattr(match, "participant2_id", None) in team_ids
-            or getattr(match, "participant1_id", None) == user.id
-            or getattr(match, "participant2_id", None) == user.id
-        )
-    )
+    return bool(match and (match.tournament.organizer_id == user.pk or match_participant(user, match)))
+
 
 
 def _can_view_dispute_evidence_file(user, evidence) -> bool:
@@ -428,13 +421,9 @@ def _can_view_match_media_file(user, media) -> bool:
     match = getattr(media, "match", None)
     if not match:
         return False
-    team_ids = _active_team_ids_for_user(user)
-    return bool(
-        getattr(match, "participant1_id", None) in team_ids
-        or getattr(match, "participant2_id", None) in team_ids
-        or getattr(match, "participant1_id", None) == user.id
-        or getattr(match, "participant2_id", None) == user.id
-    )
+    from apps.common.media.policy import match_participant
+    return match.tournament.organizer_id == user.pk or match_participant(user, match)
+
 
 
 def _match_submission_file_url(submission) -> str:
@@ -465,17 +454,9 @@ def _match_media_file_url(media) -> str:
 
 
 def _file_response_for_field(file_field, *, prefix: str) -> FileResponse:
-    try:
-        file_field.open("rb")
-    except Exception as exc:
-        logger.warning("Unable to open protected competitive file %s: %s", getattr(file_field, "name", ""), exc)
-        raise Http404("File not found.") from exc
-    filename = Path(file_field.name).name or prefix
-    content_type = mimetypes.guess_type(filename)[0] or "application/octet-stream"
-    response = FileResponse(file_field, content_type=content_type)
-    response["Content-Disposition"] = f'inline; filename="{filename}"'
-    response["X-Content-Type-Options"] = "nosniff"
-    return response
+    from apps.common.media.views import serve_blob
+    return serve_blob(file_field)
+
 
 
 def _can_add_dispute_note(user, dispute) -> bool:
@@ -2006,7 +1987,7 @@ def dashboard_index(request: HttpRequest) -> HttpResponse:
         {"key": "email",      "label": "Verify your email",          "desc": "Secure your account",                            "done": email_verified,  "url": "/account/email/"},
         {"key": "passport",   "label": "Build your Game Passport",   "desc": "Link your IGN & rank for Valorant, MLBB, CS2…",  "done": has_passport,    "url": "/me/game-passports/"},
         {"key": "team",       "label": "Create or join a team",      "desc": "Compete with a roster, or set LFT status",        "done": has_teams,       "url": "/teams/create/"},
-        {"key": "tournament", "label": "Enter your first tournament", "desc": "Win Crown Points & start your climb",             "done": has_matches,     "url": "/tournaments/"},
+        {"key": "tournament", "label": "Enter your first tournament", "desc": brand_copy("Win [[ranking_points]] & start your climb"),             "done": has_matches,     "url": "/tournaments/"},
     ]
     onboarding_pct = round(sum(1 for s in onboarding_steps if s["done"]) / len(onboarding_steps) * 100)
     onboarding_done_count = sum(1 for s in onboarding_steps if s["done"])

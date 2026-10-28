@@ -2272,7 +2272,7 @@ const HubEngine = (() => {
         <div>
           <label for="claim-payout-method" class="block text-xs font-bold text-gray-400 mb-2">Payout Method</label>
           <select id="claim-payout-method" class="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-[#00F0FF]/50 focus:outline-none transition">
-            <option value="deltacoin">DeltaCoin Wallet</option>
+            <option value="deltacoin">Coins Wallet</option>
             <option value="bkash">bKash</option>
             <option value="nagad">Nagad</option>
             <option value="rocket">Rocket</option>

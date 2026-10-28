@@ -22,6 +22,10 @@ load_dotenv(dotenv_path=BASE_DIR / ".env", override=False)
 # Ensure .webmanifest files are served with the correct MIME type.
 mimetypes.add_type('application/manifest+json', '.webmanifest', strict=True)
 
+# Public identity; all Django and database identifiers remain unchanged.
+from .branding import BRAND
+
+
 # Fail-fast: DATABASE_URL must be set to prevent localhost fallback
 if not os.getenv("DATABASE_URL"):
     raise ImproperlyConfigured(
@@ -245,7 +249,7 @@ ALLOWED_HOSTS = [
     # Production (Render + Cloudflare)
     "deltacrown.xyz",
     ".deltacrown.xyz",
-    ".onrender.com",
+    "deltacrown.onrender.com",
 ]
 
 # Merge extra hosts from env (Render sets ALLOWED_HOSTS or RENDER_EXTERNAL_HOSTNAME)
@@ -273,6 +277,16 @@ CSRF_TRUSTED_ORIGINS = [
     # Production (Cloudflare)
     "https://deltacrown.xyz",
     "https://www.deltacrown.xyz",
+]
+
+# Opt-in local preparation for a separately approved domain cutover. The old
+# domain remains accepted, and SITE_URL continues to control canonical links.
+OWNLOBBY_DOMAIN_ENABLED = os.getenv("OWNLOBBY_DOMAIN_ENABLED", "0") == "1"
+if OWNLOBBY_DOMAIN_ENABLED:
+    ALLOWED_HOSTS += [BRAND["domain"], "www." + BRAND["domain"]]
+    CSRF_TRUSTED_ORIGINS += ["https://" + BRAND["domain"], "https://www." + BRAND["domain"]]
+CSRF_TRUSTED_ORIGINS += [
+    origin.strip() for origin in os.getenv("CSRF_TRUSTED_ORIGINS", "").split(",") if origin.strip()
 ]
 
 # -----------------------------------------------------------------------------
@@ -412,9 +426,10 @@ MIDDLEWARE = [
     # Prometheus timing wrappers — omitted when ENABLE_PROMETHEUS_METRICS=0
     *( ["django_prometheus.middleware.PrometheusBeforeMiddleware"] if ENABLE_PROMETHEUS_METRICS else []),
     "deltacrown.metrics.MetricsMiddleware",  # Module 9.5: Metrics collection
-    "deltacrown.middleware.request_memory_probe.RequestMemoryProbeMiddleware",  # opt-in; disabled by default
+    "deltacrown.middleware.request_memory_probe.RequestMemoryProbeMiddleware",  # opt-in RSS samples, off by default
     "django.middleware.security.SecurityMiddleware",
     "deltacrown.middleware.security_headers.CSPMiddleware",  # Content Security Policy
+    "deltacrown.middleware.search_indexing.SearchIndexingMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",  # Serve static files on Render/production
     "deltacrown.middleware.media_proxy.MediaProxyMiddleware",  # Dev: proxy missing media to production
     "corsheaders.middleware.CorsMiddleware",  # CORS (must be before CommonMiddleware)
@@ -454,6 +469,7 @@ TEMPLATES = [
                 "apps.common.context.ui_settings",
                 "apps.common.context_processors.game_assets_context",
                 "apps.common.context_processors.seo_context",
+                "apps.common.brand_context.brand_context",
                 "apps.common.context_processors.static_version",  # P5.2 — {{ STATIC_VERSION }}
                 "apps.common.context_homepage.homepage_context",
                 "apps.siteui.context.site_settings",
@@ -482,22 +498,8 @@ TEMPLATES[0]["OPTIONS"]["context_processors"] += [
 # DB 0 = Cache, DB 1 = Celery Broker, DB 2 = Celery Results, DB 3 = Channels
 # Uses a single REDIS_URL and appends /N for each subsystem.
 # -----------------------------------------------------------------------------
-def _redis_url_with_db(base_url: str, db: int) -> str:
-    """Append or replace the DB number on a Redis URL.
-
-    Upstash only supports logical DB 0 — any other DB number raises
-    "Only 0th database is supported!".  Force db=0 when the host is on
-    upstash.io so Channels (/3), Celery broker (/1) and results (/2)
-    all resolve to the single supported database.
-    """
-    if not base_url:
-        return base_url
-    import re
-    if 'upstash.io' in base_url:
-        db = 0
-    return re.sub(r'/\d*$', '', base_url.rstrip('/')) + f'/{db}'
-
-_BASE_REDIS_URL = os.getenv("REDIS_URL", "")
+from .redis_config import redis_url_with_db as _redis_url_with_db, verified_redis_url
+_BASE_REDIS_URL = verified_redis_url(os.getenv("REDIS_URL", ""))
 
 # Cache: Redis in production (shared across workers), local memory for dev
 _CACHE_REDIS = _redis_url_with_db(_BASE_REDIS_URL, 0) if _BASE_REDIS_URL else None
@@ -675,6 +677,7 @@ STATICFILES_DIRS = [BASE_DIR / "static"]
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
+REQUIRE_PERSISTENT_MEDIA = os.getenv("REQUIRE_PERSISTENT_MEDIA", "1" if os.getenv("RENDER") else "0") == "1"
 
 # Request body limit — keep low on 512 MB tier to prevent concurrent-upload RAM spikes.
 DATA_UPLOAD_MAX_MEMORY_SIZE = 2621440  # 2.5 MB (Django default)
@@ -696,6 +699,15 @@ STORAGES = {
         else "django.core.files.storage.FileSystemStorage",
     },
 }
+
+# Opt-in cutover: separate private origins; legacy stays available for rollback only.
+from apps.common.media.configuration import configure as configure_media_storage
+OWNLOBBY_MEDIA_MODE = configure_media_storage(STORAGES, BASE_DIR, MEDIA_ROOT)
+MEDIA_STORAGE_VERIFIED = os.getenv("MEDIA_STORAGE_VERIFIED", "0") == "1"
+MEDIA_LEGACY_PRIVACY_VERIFIED = os.getenv("MEDIA_LEGACY_PRIVACY_VERIFIED", "0") == "1"
+MEDIA_RESTORE_VERIFIED = os.getenv("MEDIA_RESTORE_VERIFIED", "0") == "1"
+if OWNLOBBY_MEDIA_MODE != "legacy":
+    CKEDITOR_5_FILE_STORAGE = "apps.common.media.editor.EditorStorage"
 
 # WhiteNoise: immutable cache headers for hashed static assets (1 year).
 # CompressedManifestStaticFilesStorage adds content hashes to filenames,
@@ -756,9 +768,9 @@ REST_FRAMEWORK = {
 # Documentation: PHASE9_EPIC91_COMPLETION_SUMMARY.md
 
 SPECTACULAR_SETTINGS = {
-    "TITLE": "DeltaCrown Tournament Platform API",
+    "TITLE": BRAND["name"] + " Tournament Platform API",
     "DESCRIPTION": (
-        "Comprehensive REST API for the DeltaCrown esports tournament platform. "
+        f"Comprehensive REST API for the {BRAND['name']} esports tournament platform. "
         "Supports tournament management, team registration, match scheduling, "
         "results submission, dispute resolution, user/team statistics, analytics, "
         "and leaderboards across 11+ games."
@@ -768,7 +780,7 @@ SPECTACULAR_SETTINGS = {
     
     # API contact and license
     "CONTACT": {
-        "name": "DeltaCrown API Support",
+        "name": BRAND["name"] + " API Support",
         "email": "api@deltacrown.com",
     },
     "LICENSE": {
@@ -909,6 +921,14 @@ DEFAULT_FROM_EMAIL = "noreply@deltacrown.xyz"
 # and sitemaps. Production must set SITE_URL to the final HTTPS domain.
 _default_site = "https://deltacrown.xyz" if not DEBUG else "http://192.168.68.100:8000"
 SITE_URL = os.getenv("SITE_URL", _default_site)
+_site_origin = urlparse(SITE_URL)
+if (not _site_origin.hostname or _site_origin.username or _site_origin.password
+        or _site_origin.path not in {"", "/"} or _site_origin.query or _site_origin.fragment
+        or _site_origin.scheme not in ({"http", "https"} if DEBUG else {"https"})):
+    raise ImproperlyConfigured("SITE_URL must be an absolute public origin (HTTPS in production), without credentials, path or query.")
+SITE_URL = SITE_URL.rstrip("/")
+# Off until the owner approves routing, TLS, callbacks and canonical cutover.
+PUBLIC_DOMAIN_REDIRECTS_ENABLED = os.getenv("PUBLIC_DOMAIN_REDIRECTS_ENABLED", "0") == "1"
 
 # Google OAuth Client
 # Env vars: GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET (standard names)
@@ -983,6 +1003,8 @@ else:
 # Email (in-memory for tests)
 # -----------------------------------------------------------------------------
 EMAIL_BACKEND = os.getenv("EMAIL_BACKEND", EMAIL_BACKEND)
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", DEFAULT_FROM_EMAIL)
+EMAIL_SUBJECT_PREFIX = f"[{BRAND['name']}] "
 
 # Prevent SMTP connections from hanging indefinitely (seconds).
 # Without this, a stuck SMTP server can block a Gunicorn worker until the
@@ -1108,14 +1130,8 @@ _USE_REDIS_CHANNELS = (not DEBUG) or os.getenv('USE_REDIS_CHANNELS', '0') == '1'
 _REDIS_CHANNEL_URL = _redis_url_with_db(_BASE_REDIS_URL, 3) if _BASE_REDIS_URL else 'redis://localhost:6379/3'
 
 if _USE_REDIS_CHANNELS:
-    # Upstash rediss:// TLS: ssl_cert_reqs=None (CERT_NONE) is intentional —
-    # same reasoning as _celery_ssl_url above.  To upgrade to CERT_REQUIRED,
-    # supply a trusted CA bundle via ssl_ca_certs and test first.
-    _CHANNEL_HOST = (
-        {'address': _REDIS_CHANNEL_URL, 'ssl_cert_reqs': None}
-        if _REDIS_CHANNEL_URL.startswith('rediss://')
-        else _REDIS_CHANNEL_URL
-    )
+    # Certificate and hostname verification are enforced in the URL.
+    _CHANNEL_HOST = _REDIS_CHANNEL_URL
     CHANNEL_LAYERS = {
         'default': {
             'BACKEND': 'channels_redis.core.RedisChannelLayer',
@@ -1159,7 +1175,8 @@ WS_MAX_PAYLOAD_BYTES = int(os.getenv('WS_MAX_PAYLOAD_BYTES', str(16 * 1024)))  #
 # Origin validation (comma-separated list of allowed origins)
 # Leave empty to disable origin checking (development mode)
 # Example: "https://deltacrown.com,https://www.deltacrown.com"
-WS_ALLOWED_ORIGINS = os.getenv('WS_ALLOWED_ORIGINS', '')  # Empty = allow all origins (dev only)
+# WS_ALLOWED_ORIGINS is parsed once near CORS configuration. The outer ASGI
+# AllowedHostsOriginValidator remains active even when this extra list is empty.
 
 # -----------------------------------------------------------------------------
 # Celery Configuration
@@ -1168,29 +1185,8 @@ WS_ALLOWED_ORIGINS = os.getenv('WS_ALLOWED_ORIGINS', '')  # Empty = allow all or
 # CELERY_BROKER_URL / CELERY_RESULT_BACKEND env vars override if set explicitly.
 
 def _celery_ssl_url(url: str) -> str:
-    """
-    Celery requires ssl_cert_reqs on rediss:// (TLS Redis) URLs or it raises:
-      ValueError: A rediss:// URL must have parameter ssl_cert_reqs
-
-    This helper appends '?ssl_cert_reqs=CERT_NONE' when the URL is a TLS Redis
-    URL that doesn't already carry the parameter.  Safe no-op for plain redis://
-    or any other scheme.
-
-    Why CERT_NONE (not CERT_REQUIRED):
-    Upstash issues certs via Let's Encrypt, which are technically verifiable.
-    However some Python/OpenSSL builds on Render fail hostname verification
-    against the Upstash SNI endpoint due to intermediate-CA bundle differences.
-    CERT_NONE avoids the TLS handshake failure without exposing the connection
-    to MITM risk in practice (traffic stays inside Render's private network and
-    the Upstash TLS endpoint is authenticated at the application layer via the
-    password in the URL).  To switch to CERT_REQUIRED, set:
-      CELERY_BROKER_URL=rediss://:password@host:port/0?ssl_cert_reqs=CERT_REQUIRED
-    and test the connection before deploying.
-    """
-    if not url or not url.startswith('rediss://') or 'ssl_cert_reqs' in url:
-        return url
-    sep = '&' if '?' in url else '?'
-    return url + sep + 'ssl_cert_reqs=CERT_NONE'
+    """Require trusted certificates and hostnames; keep credentials/CA options."""
+    return verified_redis_url(url)
 
 
 def _normalized_env_url(name: str) -> str:
@@ -1747,11 +1743,18 @@ from django.templatetags.static import static as static_url
 
 if _HAS_UNFOLD:
     UNFOLD = {
-    "SITE_TITLE": "DeltaCrown Admin",
-    "SITE_HEADER": "DeltaCrown",
+    "SITE_TITLE": BRAND["name"] + " Admin",
+    "SITE_HEADER": BRAND["name"],
     "SITE_SUBHEADER": "Tournament Platform Console",
     "SITE_URL": "/",
     "SITE_SYMBOL": "trophy",  # Material Symbols icon
+    "SITE_LOGO": {
+        "light": lambda request: static_url(BRAND["logo_light"]),
+        "dark": lambda request: static_url(BRAND["logo_dark"]),
+    },
+    "SITE_FAVICONS": [
+        {"rel": "icon", "sizes": "any", "type": "image/svg+xml", "href": lambda request: static_url(BRAND["favicon_svg"])},
+    ],
     "SHOW_HISTORY": True,
     "SHOW_VIEW_ON_SITE": True,
     "SHOW_BACK_BUTTON": True,
@@ -1763,8 +1766,8 @@ if _HAS_UNFOLD:
     "ENVIRONMENT_TITLE_PREFIX": "deltacrown.admin_callbacks.environment_title",
 
     # ---------------------------------------------------------------------------
-    # DeltaCrown color system — Cyan primary (dc-cyan #06b6d4)
-    # oklch values from Tailwind CSS v4 cyan palette
+    # OwnLobby saffron identity. Darker action tones preserve white-text contrast
+    # in the admin theme; supplied light/dark logo files remain unchanged.
     # ---------------------------------------------------------------------------
     "COLORS": {
         "base": {
@@ -1781,17 +1784,17 @@ if _HAS_UNFOLD:
             "950": "oklch(13% .028 261.692)",
         },
         "primary": {
-            "50": "oklch(98.4% .019 200.873)",
-            "100": "oklch(95.6% .045 203.388)",
-            "200": "oklch(90.1% .076 205.101)",
-            "300": "oklch(82.8% .111 205.395)",
-            "400": "oklch(74.6% .136 202.009)",
-            "500": "oklch(65.5% .163 195.768)",
-            "600": "oklch(55.3% .146 195.326)",
-            "700": "oklch(48.8% .118 196.839)",
-            "800": "oklch(42% .096 197.859)",
-            "900": "oklch(37.3% .076 200.386)",
-            "950": "oklch(28.2% .058 204.071)",
+            "50": BRAND["colors"]["offwhite"],
+            "100": BRAND["colors"]["ivory"],
+            "200": f"color-mix(in srgb, {BRAND['colors']['gold']} 45%, white)",
+            "300": f"color-mix(in srgb, {BRAND['colors']['gold']} 75%, white)",
+            "400": BRAND["colors"]["gold"],
+            "500": BRAND["colors"]["gold_light"],
+            "600": f"color-mix(in srgb, {BRAND['colors']['gold_light']} 78%, black)",
+            "700": f"color-mix(in srgb, {BRAND['colors']['gold_light']} 65%, black)",
+            "800": f"color-mix(in srgb, {BRAND['colors']['gold_light']} 50%, black)",
+            "900": BRAND["colors"]["hairline"],
+            "950": BRAND["colors"]["deep"],
         },
         "font": {
             "subtle-light": "var(--color-base-500)",

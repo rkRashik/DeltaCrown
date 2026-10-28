@@ -2,7 +2,7 @@
 {% load static %}
 {% load platform_filters %}
 
-{% block title %}Wallet Dashboard - DeltaCrown{% endblock %}
+{% block title %}Wallet Dashboard - {{ brand.name }}{% endblock %}
 
 {% block content %}
 <div class="min-h-screen bg-z-bg py-12 px-4">
@@ -12,7 +12,7 @@
         <div class="flex items-center justify-between mb-8">
             <div>
                 <h1 class="text-4xl font-display font-bold text-white mb-2">Wallet Dashboard</h1>
-                <p class="text-gray-400">Manage your DeltaCoin balance, transactions, and tournament prize claims</p>
+                <p class="text-gray-400">Manage your {{ brand.features.coins }} balance, transactions, and tournament prize claims</p>
             </div>
             <a href="{% url 'user_profile:settings' %}" class="text-gray-400 hover:text-white transition">
                 <i class="fa-solid fa-arrow-left mr-2"></i> Back to Settings
@@ -28,7 +28,7 @@
                     <i class="fa-solid fa-wallet text-z-cyan text-xl"></i>
                 </div>
                 <p class="text-4xl font-bold text-white">
-                    {{ wallet.balance|format_money_context:request }}
+                    {% format_money_context wallet.balance %}
                 </p>
                 <p class="text-xs text-gray-500 mt-2">Utility token — not redeemable for fiat</p>
             </div>
@@ -40,7 +40,7 @@
                     <i class="fa-solid fa-clock text-yellow-500 text-xl"></i>
                 </div>
                 <p class="text-4xl font-bold text-white">
-                    {{ wallet.pending_balance|default:0|format_money_context:request }}
+                    {% format_money_context wallet.pending_balance|default:0 %}
                 </p>
                 <p class="text-xs text-gray-500 mt-2">Processing transactions</p>
             </div>
@@ -52,7 +52,7 @@
                     <i class="fa-solid fa-chart-line text-green-500 text-xl"></i>
                 </div>
                 <p class="text-4xl font-bold text-white">
-                    {{ total_earned|format_money_context:request }}
+                    {% format_money_context total_earned %}
                 </p>
                 <p class="text-xs text-gray-500 mt-2">Total earned to date</p>
             </div>
@@ -93,9 +93,9 @@
                 {% for withdrawal in pending_withdrawals %}
                 <div class="flex items-center justify-between p-4 rounded-lg bg-black/30 border border-white/10">
                     <div>
-                        <p class="font-bold text-white">{{ withdrawal.amount|format_money_context:request }}</p>
+                        <p class="font-bold text-white">{% format_money_context withdrawal.amount %}</p>
                         <p class="text-sm text-gray-400">{{ withdrawal.method }} - {{ withdrawal.account_number|truncatechars:20 }}</p>
-                        <p class="text-xs text-gray-500">Requested {{ withdrawal.created_at|format_dt_context:request }}</p>
+                        <p class="text-xs text-gray-500">Requested {% format_dt_context withdrawal.created_at %}</p>
                     </div>
                     <span class="bg-yellow-500/20 text-yellow-500 px-3 py-1 rounded-lg text-xs font-bold">
                         PENDING
@@ -128,11 +128,11 @@
                         </div>
                         <div>
                             <p class="font-bold text-white">{{ transaction.description }}</p>
-                            <p class="text-xs text-gray-400">{{ transaction.created_at|format_dt_context:request }}</p>
+                            <p class="text-xs text-gray-400">{% format_dt_context transaction.created_at %}</p>
                         </div>
                     </div>
                     <p class="font-bold text-lg {% if transaction.amount >= 0 %}text-green-400{% else %}text-red-400{% endif %}">
-                        {% if transaction.amount >= 0 %}+{% endif %}{{ transaction.amount|format_money_context:request }}
+                        {% if transaction.amount >= 0 %}+{% endif %}{% format_money_context transaction.amount %}
                     </p>
                 </div>
                 {% endfor %}

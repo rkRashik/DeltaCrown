@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}CrownStore - Bangladesh Gaming Marketplace{% endblock %}</title>
+    <title>{% block title %}{{ brand.features.store }} - Bangladesh Gaming Marketplace{% endblock %}</title>
     
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -934,14 +934,14 @@
     </style>
     
     {% block extra_css %}{% endblock %}
+    {% include "partials/brand_head.html" %}
 </head>
 <body>
     <!-- Responsive Navigation -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top shadow">
         <div class="container">
             <a class="navbar-brand d-flex align-items-center" href="{% url 'siteui:home' %}">
-                <img src="{% static 'img/deltacrown-logo.svg' %}" alt="DeltaCrown" width="40" height="40" class="me-2" style="border-radius: 8px;">
-                <span class="fw-bold">DeltaCrown</span>
+                {% include "partials/brand_logo.html" %}
             </a>
             
             <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
@@ -952,7 +952,7 @@
                 <ul class="navbar-nav me-auto">
                     <li class="nav-item">
                         <a class="nav-link fw-500" href="{% url 'ecommerce:store_home' %}">
-                            <i class="fas fa-store me-1"></i>CrownStore
+                            <i class="fas fa-store me-1"></i>{{ brand.features.store }}
                         </a>
                     </li>
                     <li class="nav-item dropdown">
@@ -1034,7 +1034,7 @@
                 <div class="col-lg-4 col-md-6 mb-4">
                     <h5 class="d-flex align-items-center">
                         <span style="font-size: 1.5rem; margin-right: 8px;">👑</span>
-                        Crown<span style="color: var(--crown-primary);">Store</span>
+                        {% include "partials/brand_logo.html" %}
                     </h5>
                     <p class="mb-3">Gaming marketplace with authentic products and mobile banking support.</p>
                     <div class="d-flex gap-3">
@@ -1109,7 +1109,7 @@
             <hr class="my-4 border-secondary">
             <div class="row align-items-center">
                 <div class="col-md-6">
-                    <p class="mb-0">&copy; 2025 CrownStore. All rights reserved. Built for Bangladesh gamers with ❤️</p>
+                    <p class="mb-0">&copy; 2025 {{ brand.features.store }}. All rights reserved. Built for Bangladesh gamers with ❤️</p>
                 </div>
                 <div class="col-md-6 text-md-end">
                     <a href="#" class="me-3">Privacy Policy</a>

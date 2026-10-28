@@ -1,0 +1,11 @@
+{
+  "purpose": "Synthetic compatibility values generated with Phase 2 libraries; never production credentials.",
+  "versions": {
+    "Django": "5.2.8",
+    "cryptography": "46.0.3",
+    "PyJWT": "2.10.1"
+  },
+  "encrypted_provider_token": "gAAAAABlU_EA_yz0uj13XoD45ZMQeKCoSbPT0zjqDV6K65kMt5e_zVwV5wHqtAVZRxJZuDuysZzmUoFotno_9DB9iMEmgdU2W-kefLrtntzMSDUAErrOvds=",
+  "session": "eyJfYXV0aF91c2VyX2lkIjoiNDIiLCJmaXh0dXJlIjoicWEtb25seSJ9:1xLDBO:8a5ZM6yUVZZyAniX38RtYbxOJgjLlBtSfcqtvgBMm50",
+  "password_hash": "pbkdf2_sha256$1000000$test-compatibility-salt$0jnMX7rWqEXFLwkkacE1WWwZpZmmJe1QlX5lIOQInUg="
+}

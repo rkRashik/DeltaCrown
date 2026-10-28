@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Spectator View{% endblock %} | DeltaCrown</title>
+    <title>{% block title %}Spectator View{% endblock %} | {{ brand.name }}</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -62,6 +62,7 @@
     </style>
     
     {% block extra_head %}{% endblock %}
+    {% include "partials/brand_head.html" %}
 </head>
 <body class="bg-gradient-dark text-white min-h-screen">
     <!-- Top Navigation -->
@@ -76,7 +77,7 @@
                         </svg>
                     </a>
                     <h1 class="text-xl font-bold">
-                        <span class="text-dc-primary">Delta</span><span class="text-white">Crown</span>
+                        {% include "partials/brand_logo.html" %}
                     </h1>
                 </div>
                 
@@ -94,7 +95,7 @@
     <!-- Footer -->
     <footer class="mt-12 py-6 border-t border-gray-800">
         <div class="container mx-auto px-4 text-center text-gray-500 text-sm">
-            <p>DeltaCrown Spectator View • Phase G: Live Views • IDs-Only Discipline</p>
+            <p>{{ brand.name }} Spectator View • Phase G: Live Views • IDs-Only Discipline</p>
         </div>
     </footer>
     

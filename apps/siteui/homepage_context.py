@@ -4,6 +4,8 @@ Provides safe, structured context data for the homepage template.
 Combines editable content from HomePageContent model with live statistics.
 """
 
+from deltacrown.branding import brand_copy
+
 from typing import Dict, Any
 from django.contrib.auth import get_user_model
 from django.db.models import Count
@@ -338,8 +340,8 @@ def _get_fallback_context() -> Dict[str, Any]:
             "title": "From the Delta to the Crown",
             "subtitle": "Where Champions Rise",
             "description": (
-                "DeltaCrown connects tournaments, teams, player profiles, rankings, "
-                "and competitive operations for gaming communities in Bangladesh and beyond."
+                brand_copy("[[brand]] connects tournaments, teams, player profiles, rankings, "
+                "and competitive operations for gaming communities in Bangladesh and beyond.")
             ),
             "primary_cta": {
                 "text": "Join Tournament",
@@ -372,7 +374,7 @@ def _get_fallback_context() -> Dict[str, Any]:
         },
         "problem": {
             "title": "The Esports Gap",
-            "subtitle": "Most platforms solve one problem. DeltaCrown solves the entire esports lifecycle.",
+            "subtitle": brand_copy("Most platforms solve one problem. [[brand]] solves the entire esports lifecycle."),
             "comparison_table": [],
         },
         "pillars": {
@@ -402,7 +404,7 @@ def _get_fallback_context() -> Dict[str, Any]:
             "trust_message": "No credit cards required. Built for South Asian markets.",
         },
         "deltacoin": {
-            "title": "DeltaCoin Economy",
+            "title": brand_copy("[[coins]] Economy"),
             "description": "Earn by competing. Spend on upgrades. Build your legacy.",
             "earn_methods": [],
             "spend_options": [],
@@ -418,7 +420,7 @@ def _get_fallback_context() -> Dict[str, Any]:
         },
         "final_cta": {
             "title": "Ready to Compete?",
-            "description": "Join thousands of gamers building their esports careers on DeltaCrown",
+            "description": brand_copy("Join thousands of gamers building their esports careers on [[brand]]"),
             "primary_cta": {
                 "text": "Create Account",
                 "url": "/account/register/",
@@ -737,7 +739,7 @@ def _get_featured_tournament():
             'game_card_image': (getattr(tournament.game, 'card_image').url if getattr(tournament, 'game', None) and getattr(tournament.game, 'card_image', None) else None),
             'game_banner_image': (getattr(tournament.game, 'banner').url if getattr(tournament, 'game', None) and getattr(tournament.game, 'banner', None) else None),
             'url': f"/tournaments/{tournament.slug}/",
-            'organizer': tournament.organizer.username if tournament.organizer else 'DeltaCrown',
+            'organizer': tournament.organizer.username if tournament.organizer else brand_copy('[[brand]]'),
         }
         
     except Exception as e:

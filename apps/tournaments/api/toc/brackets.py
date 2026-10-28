@@ -773,6 +773,7 @@ class ScheduleExportICSView(TOCBaseView):
 
         # Build iCalendar
         now_stamp = tz.now().strftime('%Y%m%dT%H%M%SZ')
+        from deltacrown.branding import BRAND
         t_name = tournament.name or tournament.slug
         base_url = request.build_absolute_uri(f'/tournaments/{slug}/')
 
@@ -781,7 +782,7 @@ class ScheduleExportICSView(TOCBaseView):
             'VERSION:2.0',
             'PRODID:-//DeltaCrown//TOC Schedule//EN',
             f'X-WR-CALNAME:{_ics_escape(t_name)} Schedule',
-            'X-WR-CALDESC:Tournament match schedule exported from DeltaCrown',
+            f"X-WR-CALDESC:Tournament match schedule exported from {BRAND['name']}",
             'CALSCALE:GREGORIAN',
             'METHOD:PUBLISH',
         ]

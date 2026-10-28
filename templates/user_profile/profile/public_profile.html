@@ -2,7 +2,7 @@
 {% extends "base.html" %}
 {% load static dc_avatar %}
 
-{% block title %}DeltaCrown | Pro Profile - {{ profile_user.username|default:'Player' }}{% endblock %}
+{% block title %}{{ brand.name }} | Pro Profile - {{ profile_user.username|default:'Player' }}{% endblock %}
 
 {% block extra_css %}
 <!-- Google Fonts for profile design -->
@@ -623,7 +623,7 @@
                         <div class="text-[10px] text-gray-400 uppercase font-bold">Current Balance</div>
                         <div class="text-3xl font-display font-black text-white flex items-end gap-1">
                             {{ wallet_balance|floatformat:0 }}
-                            <span class="text-sm font-sans text-z-gold font-bold mb-1">DC</span>
+                            <span class="text-sm font-sans text-z-gold font-bold mb-1">{{ brand.features.coins }}</span>
                         </div>
                     </div>
 

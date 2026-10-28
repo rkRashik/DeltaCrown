@@ -822,12 +822,11 @@
             <!-- Brand Section -->
             <div class="footer-brand">
                 <div class="brand-header">
-                    <img src="{% static 'img/deltaCrown_logos/logo_animated.svg' %}" alt="DeltaCrown Logo" class="footer-logo-icon">
-                    <img src="{% static 'img/deltaCrown_logos/DeltaCrown_Teal-Purple-Gold.svg' %}" alt="DeltaCrown Wordmark" class="footer-logo-wordart">
+                    {% include "partials/brand_logo.html" %}
                 </div>
 
                 <p class="brand-description">
-                    DeltaCrown connects tournaments, teams, rankings, and competitive records in one platform.
+                    {{ brand.name }} connects tournaments, teams, rankings, and competitive records in one platform.
                 </p>
 
                 <div class="brand-stats">
@@ -925,7 +924,7 @@
             <!-- Copyright Section -->
             <div class="footer-copyright">
                 <div class="footer-copyright-main">
-                    &copy; {% now "Y" %} <a href="/">DeltaCrown</a>. All rights reserved.
+                    &copy; {% now "Y" %} <a href="/">{{ brand.name }}</a>. All rights reserved.
                 </div>
                 <div class="footer-copyright-location">
                     Made in Bangladesh
@@ -1019,7 +1018,7 @@
             // Simulate API call
             setTimeout(() => {
                 setLoading(false);
-                showMessage('🎉 Welcome to DeltaCrown! Check your email for confirmation.', 'success');
+                showMessage('🎉 Welcome to OwnLobby! Check your email for confirmation.', 'success');
 
                 // Success animation
                 const section = form.closest('.newsletter-section');

@@ -907,7 +907,7 @@ class EconomyConfigAdmin(ModelAdmin):
         ("Exchange Rate", {
             "fields": ["bdt_per_dc", "dc_per_bdt_display"],
             "description": (
-                "Set <strong>bdt_per_dc</strong> to control how many BDT a single DeltaCoin costs. "
+                "Set <strong>bdt_per_dc</strong> to control how many BDT a single coin costs. "
                 "Default: 0.1000 → 1 BDT = 10 DC."
             ),
         }),

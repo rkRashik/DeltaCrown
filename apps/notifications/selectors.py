@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from deltacrown.branding import brand_copy
+
 from dataclasses import dataclass
 import re
 from typing import Iterable
@@ -664,7 +666,7 @@ def _resolve_title(notification: Notification, notification_type: str, follow_me
     if invite_meta:
         return "Team Join Request"
     if notification_type == Notification.NotificationCategory.ECONOMY:
-        return "DeltaCoin Update"
+        return brand_copy("[[coins]] Update")
     if notification_type == Notification.NotificationCategory.SOCIAL:
         return "Community Update"
     if notification_type == Notification.NotificationCategory.TEAM:

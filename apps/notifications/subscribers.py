@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from deltacrown.branding import brand_copy
+
 from django.apps import apps
 from django.db.models.signals import post_save
 from django.dispatch import receiver
@@ -50,7 +52,7 @@ def registration_confirmed(sender, instance: "Registration", created, **kwargs):
             url=f"/t/{getattr(instance.tournament, 'slug', '')}/",
             tournament=getattr(instance, "tournament", None),
             dedupe=True,
-            email_subject=f"[DeltaCrown] Registration confirmed – {instance.tournament.name}",
+            email_subject=f"[{brand_copy('[[brand]]')}] Registration confirmed – {instance.tournament.name}",
             email_template="reg_confirmed",
             email_ctx={"t": instance.tournament, "r": instance},
         )
@@ -82,7 +84,7 @@ def match_events(sender, instance: "Match", created, **kwargs):
                 tournament=t,
                 match=instance,
                 dedupe=True,
-                email_subject=f"[DeltaCrown] Match scheduled – {getattr(t, 'name', '')}",
+                email_subject=f"[{brand_copy('[[brand]]')}] Match scheduled – {getattr(t, 'name', '')}",
                 email_template="match_scheduled",
                 email_ctx={"t": t, "m": instance},
             )
@@ -99,7 +101,7 @@ def match_events(sender, instance: "Match", created, **kwargs):
                 tournament=t,
                 match=instance,
                 dedupe=True,
-                email_subject=f"[DeltaCrown] Result verified – {getattr(t, 'name', '')}",
+                email_subject=f"[{brand_copy('[[brand]]')}] Result verified – {getattr(t, 'name', '')}",
                 email_template="result_verified",
                 email_ctx={"t": t, "m": instance},
             )

@@ -501,7 +501,7 @@ button{background:none;border:none;cursor:pointer;color:inherit;font-family:inhe
           </div>
           <button data-tab-target="wallet" style="font-family:'Inter',sans-serif;font-size:11px;color:rgba(207,167,90,.6)">View <i class="fa-solid fa-arrow-right" style="font-size:9px"></i></button>
         </div>
-        <div class="wallet-bal">{{ wallet.balance|default:0 }} <span style="font-size:16px;color:#CFA75A;font-weight:700">DC</span></div>
+        <div class="wallet-bal">{{ wallet.balance|default:0 }} <span style="font-size:16px;color:#CFA75A;font-weight:700">{{ brand.features.coins }}</span></div>
       </div>
     </div>
     {% endif %}
@@ -658,7 +658,7 @@ button{background:none;border:none;cursor:pointer;color:inherit;font-family:inhe
               <span style="font-family:'Inter',sans-serif;font-weight:700;font-size:8px;letter-spacing:.08em;text-transform:uppercase;padding:2px 7px;border-radius:999px;background:rgba(10,132,255,.10);color:#0A84FF">{{ m.status_display }}</span>
             </div>
             <div style="font-family:'Inter',sans-serif;font-weight:700;font-size:14px;color:rgba(255,255,255,.92);margin-bottom:3px">{{ m.title }}</div>
-            <div style="font-family:'Inter',sans-serif;font-size:11px;color:rgba(255,255,255,.44);margin-bottom:10px">{% if m.game %}{{ m.game }} · {% endif %}Stake: {{ m.stake_amount }} DC</div>
+            <div style="font-family:'Inter',sans-serif;font-size:11px;color:rgba(255,255,255,.44);margin-bottom:10px">{% if m.game %}{{ m.game }} · {% endif %}Stake: {{ m.stake_amount }} {{ brand.features.coins }}</div>
             <div style="font-family:'Inter',sans-serif;font-size:10px;color:rgba(255,255,255,.38)">{% if m.acceptor %}vs @{{ m.acceptor }}{% else %}Open challenge{% endif %}{% if m.expires_at %} · Expires {{ m.expires_at|timesince }} ago{% endif %}</div>
           </div>
         </div>
@@ -682,7 +682,7 @@ button{background:none;border:none;cursor:pointer;color:inherit;font-family:inhe
           </div>
           <span style="font-family:'Inter',sans-serif;font-weight:700;font-size:10px;letter-spacing:.10em;text-transform:uppercase;color:#CFA75A">DELTACOIN WALLET</span>
         </div>
-        <div style="font-family:'Sora',sans-serif;font-weight:800;font-size:36px;color:#fff;letter-spacing:-0.04em;line-height:1">{{ wallet.balance|default:0 }} <span style="font-size:18px;color:#CFA75A;font-weight:700">DC</span></div>
+        <div style="font-family:'Sora',sans-serif;font-weight:800;font-size:36px;color:#fff;letter-spacing:-0.04em;line-height:1">{{ wallet.balance|default:0 }} <span style="font-size:18px;color:#CFA75A;font-weight:700">{{ brand.features.coins }}</span></div>
         <div style="display:flex;gap:9px;margin-top:16px">
           <a href="{% url 'economy:wallet' %}" style="flex:1;height:40px;border-radius:12px;background:rgba(207,167,90,.14);border:1px solid rgba(207,167,90,.28);display:flex;align-items:center;justify-content:center;gap:6px;font-family:'Inter',sans-serif;font-weight:600;font-size:13px;color:#CFA75A;text-decoration:none"><i class="ph-bold ph-plus" style="font-size:14px"></i> Add</a>
           <a href="{% url 'economy:wallet' %}" style="flex:1;height:40px;border-radius:12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);display:flex;align-items:center;justify-content:center;gap:6px;font-family:'Inter',sans-serif;font-weight:600;font-size:13px;color:rgba(255,255,255,.75);text-decoration:none"><i class="ph-bold ph-arrow-up-right" style="font-size:14px"></i> Send</a>

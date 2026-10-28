@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}Withdrawal Status - DeltaCrown{% endblock %}
+{% block title %}Withdrawal Status - {{ brand.name }}{% endblock %}
 
 {% block content %}
 <div class="min-h-screen bg-gray-50 py-8">
@@ -76,16 +76,16 @@
             <div class="border-t border-b border-gray-200 py-6 mb-6">
                 <div class="flex justify-between items-center">
                     <span class="text-lg font-medium text-gray-700">Withdrawal Amount</span>
-                    <span class="text-3xl font-bold text-gray-900">{{ withdrawal.amount }} DC</span>
+                    <span class="text-3xl font-bold text-gray-900">{{ withdrawal.amount }} {{ brand.features.coins }}</span>
                 </div>
                 {% if withdrawal.processing_fee > 0 %}
                 <div class="flex justify-between items-center mt-2 text-sm">
                     <span class="text-gray-600">Processing Fee</span>
-                    <span class="text-gray-900">-{{ withdrawal.processing_fee }} DC</span>
+                    <span class="text-gray-900">-{{ withdrawal.processing_fee }} {{ brand.features.coins }}</span>
                 </div>
                 <div class="flex justify-between items-center mt-2 text-sm">
                     <span class="font-medium text-gray-700">Net Amount</span>
-                    <span class="font-semibold text-gray-900">{{ withdrawal.net_amount }} DC</span>
+                    <span class="font-semibold text-gray-900">{{ withdrawal.net_amount }} {{ brand.features.coins }}</span>
                 </div>
                 {% endif %}
                 <div class="flex justify-between items-center mt-3 pt-3 border-t border-gray-100">

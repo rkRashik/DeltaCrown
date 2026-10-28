@@ -376,7 +376,7 @@ class TournamentFeatures {
         };
 
         // Google Calendar URL
-        const googleUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${formatDate(date)}/${formatDate(endDate)}&details=${encodeURIComponent(`DeltaCrown Tournament Match`)}&location=${encodeURIComponent('Online')}`;
+        const googleUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${formatDate(date)}/${formatDate(endDate)}&details=${encodeURIComponent(`OwnLobby Tournament Match`)}&location=${encodeURIComponent('Online')}`;
 
         // Open in new tab
         window.open(googleUrl, '_blank');

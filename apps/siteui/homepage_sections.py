@@ -11,6 +11,8 @@ never user input.
 """
 from __future__ import annotations
 
+from deltacrown.branding import brand_copy
+
 from typing import Any, Dict, List
 
 # Triad tokens (match colors_and_type.css / home.css)
@@ -79,7 +81,7 @@ def get_homepage_sections() -> Dict[str, Any]:
             {"title": "Proof & dispute review", "color": _VI, "icon": _svg("shield", _VI, 15),
              "desc": "Contested results route to a review queue and are settled on the record."},
             {"title": "A record that counts", "color": _SUC, "icon": _svg("check", _SUC, 15),
-             "desc": "Every verified match feeds Crown Points and a history that travels with you."},
+             "desc": brand_copy("Every verified match feeds [[ranking_points]] and a history that travels with you.")},
         ],
         # §4 — Ecosystem (8 connected pillars)
         "ecosystem_pillars": [
@@ -98,13 +100,13 @@ def get_homepage_sections() -> Dict[str, Any]:
             {"name": "Competitive Hub", "color": _VI, "tint": "var(--tVi)", "bd": "rgba(104,73,229,.3)",
              "icon": _svg("bolt", _VI, 19),
              "blurb": "Showdown, Missions, Bounty and Dropzone — reward play every day."},
-            {"name": "Crown Points", "color": _GO, "tint": "var(--tGo)", "bd": "rgba(207,167,90,.3)",
+            {"name": brand_copy("[[ranking_points]]"), "color": _GO, "tint": "var(--tGo)", "bd": "rgba(207,167,90,.3)",
              "icon": _svg("crown", _GO, 19),
              "blurb": "A cross-game rank — opponent-scaled, anti-farm, seasonally reset."},
-            {"name": "DeltaCoin", "color": _GO, "tint": "var(--tGo)", "bd": "rgba(207,167,90,.3)",
+            {"name": brand_copy("[[coins]]"), "color": _GO, "tint": "var(--tGo)", "bd": "rgba(207,167,90,.3)",
              "icon": _svg("coin", _GO, 19),
              "blurb": "Reward utility earned through verified competition across the platform."},
-            {"name": "Crown Store", "color": _GO, "tint": "var(--tGo)", "bd": "rgba(207,167,90,.3)",
+            {"name": brand_copy("[[store]]"), "color": _GO, "tint": "var(--tGo)", "bd": "rgba(207,167,90,.3)",
              "icon": _svg("store", _GO, 19),
              "blurb": "Spend earned rewards on cosmetics, perks and event entries."},
         ],
@@ -112,7 +114,7 @@ def get_homepage_sections() -> Dict[str, Any]:
         "daily_modes": [
             {"name": "Showdown", "url": "/dashboard/showdown/", "meta": "Earns CP + DC",
              "color": _AZ, "tint": "var(--tAz)", "bd": "rgba(10,132,255,.3)", "icon": _svg("bolt", _AZ),
-             "desc": "Reward matches for Crown Points and DeltaCoin — queue, play, get verified."},
+             "desc": brand_copy("Reward matches for [[ranking_points]] and [[coins]] — queue, play, get verified.")},
             {"name": "Missions", "url": "/dashboard/missions/", "meta": "Resets daily",
              "color": _VI, "tint": "var(--tVi)", "bd": "rgba(104,73,229,.3)", "icon": _svg("flag", _VI),
              "desc": "Daily and weekly objectives that keep your progression moving between events."},
@@ -153,7 +155,7 @@ def get_homepage_sections() -> Dict[str, Any]:
             {"title": "Scrims & tryouts —", "icon": _svg("swords", _VI, 17),
              "desc": "schedule practice and recruit through open tryouts."},
             {"title": "Shared record —", "icon": _svg("trophy", _VI, 17),
-             "desc": "rank, wins and Crown Points travel with the crest."},
+             "desc": brand_copy("rank, wins and [[ranking_points]] travel with the crest.")},
         ],
         # §8 — Trust: 5-step proof flow + 4 trust cards
         "trust_flow": [

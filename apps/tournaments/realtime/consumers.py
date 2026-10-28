@@ -111,6 +111,15 @@ class TournamentConsumer(AsyncJsonWebsocketConsumer):
     # Module 4.5: Server-initiated heartbeat configuration
     HEARTBEAT_INTERVAL = 25  # seconds
     HEARTBEAT_TIMEOUT = 50  # seconds (2 intervals)
+
+    async def dispatch(self, message):
+        event_type = message.get('event_type') if message.get('type') == 'tournament_event' else message.get('type')
+        if event_type in {'dispute_created', 'payment_proof_submitted', 'payment_verified', 'payment_rejected', 'payment_refunded', 'registration_created', 'registration_cancelled', 'registration_checked_in', 'registration_checkin_reverted'}:
+            from channels.db import database_sync_to_async
+            from apps.tournaments.security.visibility import can_receive_private_event
+            if not await database_sync_to_async(can_receive_private_event)(getattr(self, 'user', None), self.tournament_id, message.get('data') or message):
+                return
+        await super().dispatch(message)
     
     @staticmethod
     def get_allowed_origins() -> Optional[List[str]]:
@@ -118,7 +127,8 @@ class TournamentConsumer(AsyncJsonWebsocketConsumer):
         origins = getattr(settings, 'WS_ALLOWED_ORIGINS', None)
         if origins:
             # Parse comma-separated string
-            return [o.strip() for o in origins.split(',') if o.strip()]
+            values = origins.split(',') if isinstance(origins, str) else origins
+            return [o.strip() for o in values if o.strip()]
         return None
     
     @staticmethod
@@ -176,6 +186,10 @@ class TournamentConsumer(AsyncJsonWebsocketConsumer):
         
         # Determine user's tournament role (wrap sync function for async context)
         from channels.db import database_sync_to_async
+        from apps.tournaments.security.visibility import can_join_tournament_room
+        if not await database_sync_to_async(can_join_tournament_room)(self.user, self.tournament_id):
+            await self.close(code=4003)
+            return
         self.user_role = await database_sync_to_async(get_user_tournament_role)(self.user)
         
         # All authenticated users can connect (minimum: SPECTATOR)
@@ -233,11 +247,7 @@ class TournamentConsumer(AsyncJsonWebsocketConsumer):
             status=metrics.ConnectionStatus.CONNECTED
         )
         
-        # Increment active connections gauge
-        metrics.increment_active_connections(
-            role=self.user_role.value,
-            scope_type=scope_type
-        )
+        # record_connection updates the active gauge once.
         
         # Log structured connection event
         ws_logging.log_connect(
@@ -336,11 +346,7 @@ class TournamentConsumer(AsyncJsonWebsocketConsumer):
                 status=metrics.ConnectionStatus.DISCONNECTED
             )
             
-            # Decrement active connections gauge
-            metrics.decrement_active_connections(
-                role=self.user_role.value,
-                scope_type=scope_type
-            )
+            # record_connection already decremented the active gauge.
             
             # Log structured disconnection event
             ws_logging.log_disconnect(

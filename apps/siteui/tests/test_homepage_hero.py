@@ -250,13 +250,13 @@ class HeroPriorityOrderTests(PureTestCase):
             ctx = hh.get_home_hero_context(u)
         self.assertEqual(ctx["mode"], "pending_action")
 
-    def test_onboarding_beats_pending(self):
+    def test_pending_deadline_beats_onboarding(self):
         u = _auth()
         pending = {"url": "/t/h/", "label": "check-in required"}
         with patch.object(hh, "_is_profile_incomplete", return_value=True), \
              patch.object(hh, "_get_pending_action", return_value=pending):
             ctx = hh.get_home_hero_context(u)
-        self.assertEqual(ctx["mode"], "onboarding")
+        self.assertEqual(ctx["mode"], "pending_action")
 
     def test_active_match_beats_ops(self):
         u = _auth()

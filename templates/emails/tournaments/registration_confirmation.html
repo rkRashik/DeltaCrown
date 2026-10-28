@@ -1,3 +1,4 @@
+{% load branding %}{% brand_config as brand %}
 
 <!DOCTYPE html>
 <html>
@@ -15,8 +16,9 @@
     </style>
 </head>
 <body>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B0C0C;"><tr><td align="center" style="padding:20px;">{% include "partials/email_brand_logo.html" %}</td></tr></table>
     <div class="header">
-        <h1>🏆 DeltaCrown Tournament Registration</h1>
+        <h1>🏆 {{ brand.name }} Tournament Registration</h1>
         <h2>{{ tournament.name }}</h2>
     </div>
     
@@ -58,7 +60,7 @@
     </div>
     
     <div class="footer">
-        <p><strong>DeltaCrown</strong> - Competitive Gaming Platform</p>
+        <p><strong>{{ brand.name }}</strong> - Competitive Gaming Platform</p>
         <p>For support, contact us at support@deltacrown.com</p>
     </div>
 </body>

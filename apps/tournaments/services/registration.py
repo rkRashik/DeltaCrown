@@ -9,6 +9,8 @@ directly.
 """
 from __future__ import annotations
 
+from deltacrown.branding import brand_copy
+
 from dataclasses import dataclass
 from typing import Optional, Iterable
 
@@ -204,7 +206,7 @@ def register_valorant_team(data: TeamRegistrationInput):
         captain_user = getattr(team.captain, "user", None) or team.captain
         captain_email = getattr(captain_user, "email", None)
     _send_email_safe(
-        subject=f"[DeltaCrown] Team registration received â€“ {getattr(tournament, 'name', '')}",
+        subject=f"[{brand_copy('[[brand]]')}] Team registration received â€“ {getattr(tournament, 'name', '')}",
         message="Your team registration has been received. Payment will be verified by admin.",
         to=[e for e in [captain_email] if e],
     )
@@ -245,7 +247,7 @@ def register_efootball_player(data: SoloRegistrationInput):
     # best-effort email to registrant
     captain_email = getattr(user, "email", None)
     _send_email_safe(
-        subject=f"[DeltaCrown] Registration received â€“ {getattr(tournament, 'name', '')}",
+        subject=f"[{brand_copy('[[brand]]')}] Registration received â€“ {getattr(tournament, 'name', '')}",
         message="Your registration has been received. Payment will be verified by admin.",
         to=[e for e in [captain_email] if e],
     )

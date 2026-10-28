@@ -890,7 +890,7 @@
               <span class="dc-stat-v">{% if leaderboard_stats.global_rank %}#{{ leaderboard_stats.global_rank }}{% else %}--{% endif %}</span>
             </div>
             <div class="dc-stat-cell">
-              <span class="dc-stat-k">Crown Points</span>
+              <span class="dc-stat-k">{{ brand.features.ranking_points }}</span>
               <span class="dc-stat-v dc-stat-v--cp">{{ leaderboard_stats.current_cp|default:"0" }}</span>
             </div>
             <div class="dc-stat-cell">
@@ -1631,7 +1631,7 @@
               <span class="cid-stat-num cid-num-l">{{ challenges.stats.losses|default:"0" }}</span>
             </div>
             <div class="cid-stat">
-              <span class="cid-stat-lbl">DC Earned</span>
+              <span class="cid-stat-lbl">{{ brand.features.coins }} Earned</span>
               <span class="cid-stat-num cid-num-dc">{{ challenges.stats.total_earned|floatformat:0|default:"0" }}</span>
             </div>
           </div>
@@ -1670,7 +1670,7 @@
                 {% if challenge.prize_amount and challenge.prize_amount > 0 %}
                 <div class="shrink-0 text-right">
                   <p class="cid-pot-lbl">Pot</p>
-                  <p class="cid-pot-val">{{ challenge.prize_amount|floatformat:0 }}<span>DC</span></p>
+                  <p class="cid-pot-val">{{ challenge.prize_amount|floatformat:0 }}<span>{{ brand.features.coins }}</span></p>
                 </div>
                 {% else %}
                 <svg class="w-3.5 h-3.5 cid-tile-arr shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
@@ -1746,7 +1746,7 @@
               </span>
               <div class="cid-action-body flex-1 min-w-0">
                 <p class="cid-row-title">Missions</p>
-                <p class="cid-row-sub">Earn DeltaCoins</p>
+                <p class="cid-row-sub">Earn {{ brand.features.coins }}</p>
               </div>
               <svg class="w-3.5 h-3.5 cid-badge-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
             </a>

@@ -1,13 +1,18 @@
+{% load seo_tags %}{% apply_seo_policy seo request as seo %}
 <meta name="description" content="{{ seo.description }}">
 <meta name="robots" content="{{ seo.robots }}">
 <link rel="canonical" href="{{ seo.canonical }}">
 
-<meta property="og:site_name" content="DeltaCrown">
+<meta property="og:site_name" content="{{ brand.name }}">
 <meta property="og:type" content="{{ seo.og_type }}">
 <meta property="og:title" content="{{ seo.og_title }}">
 <meta property="og:description" content="{{ seo.og_description }}">
 <meta property="og:url" content="{{ seo.canonical }}">
 <meta property="og:image" content="{{ seo.og_image }}">
+{% if 'ownlobby/social/og-preview-1200x630' in seo.og_image %}
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+{% endif %}
 
 <meta name="twitter:card" content="{{ seo.twitter_card }}">
 <meta name="twitter:title" content="{{ seo.twitter_title }}">

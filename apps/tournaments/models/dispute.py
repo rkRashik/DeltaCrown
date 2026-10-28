@@ -10,6 +10,8 @@ Reference:
 Created: December 12, 2025
 """
 
+from apps.common.media.fields import MediaFileField, MediaImageField
+
 import uuid
 from django.db import models
 from django.contrib.auth import get_user_model
@@ -282,7 +284,7 @@ class DisputeEvidence(SoftDeleteModel):
         help_text='URL to external resource (imgur, Discord CDN, S3, etc.)'
     )
 
-    evidence_file = models.FileField(
+    evidence_file = MediaFileField(
         upload_to=_dispute_evidence_upload_to,
         blank=True,
         null=True,

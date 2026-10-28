@@ -1,4 +1,6 @@
-﻿from typing import Optional, Union
+
+from deltacrown.branding import brand_copy
+from typing import Optional, Union
 
 from django.core.mail import send_mail
 
@@ -24,7 +26,7 @@ def send_dispute_opened(recipient: Recipient, dispute) -> bool:
     to = _to_email(recipient)
     if not to:
         return False
-    subject = f"[DeltaCrown] Dispute opened #{_fmt(dispute, 'id')}"
+    subject = f"[{brand_copy('[[brand]]')}] Dispute opened #{_fmt(dispute, 'id')}"
     body = (
         f"A dispute has been opened for match #{_fmt(dispute, 'match', 'id')}\n"
         f"Reason: {_fmt(dispute, 'reason', default='(no reason provided)')}\n"
@@ -37,7 +39,7 @@ def send_dispute_resolved(recipient: Recipient, dispute) -> bool:
     to = _to_email(recipient)
     if not to:
         return False
-    subject = f"[DeltaCrown] Dispute resolved #{_fmt(dispute, 'id')}"
+    subject = f"[{brand_copy('[[brand]]')}] Dispute resolved #{_fmt(dispute, 'id')}"
     body = (
         f"Your dispute for match #{_fmt(dispute, 'match', 'id')} has been resolved.\n"
         f"Outcome: {_fmt(dispute, 'status', default='resolved')}\n"

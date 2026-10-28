@@ -341,9 +341,10 @@
             .help-drawer, .lift, .stat-card, .premium-card { animation: none !important; transition: none !important; }
         }
     </style>
+    {% include "partials/brand_head.html" %}
 </head>
 
-<body class="min-h-screen">
+<body class="ownlobby-team-hq min-h-screen">
     <div id="scrim" class="fixed inset-0 bg-black/60 hidden z-40"></div>
 
     <div class="min-h-screen">
@@ -484,7 +485,7 @@
                 tips: ["Switch between <b>Feed / Media / Highlights / Comms</b> with the tabs.", "Pin important posts so they stay at the top of the feed.", "Discord is your primary comms channel — keep it linked."],
                 who: "Owners & managers can post and upload. Everyone can view." },
             discord: { icon: 'message-circle', what: "Connect your Discord server for two-way sync — chat, announcements, voice, and automatic role syncing.",
-                tips: ["Connect the DeltaCrown bot, then paste your server & channel IDs.", "Enable Developer Mode in Discord to copy IDs (right-click → Copy ID).", "Role Sync auto-assigns Discord roles when members are promoted."],
+                tips: ["Connect the OwnLobby bot, then paste your server & channel IDs.", "Enable Developer Mode in Discord to copy IDs (right-click → Copy ID).", "Role Sync auto-assigns Discord roles when members are promoted."],
                 who: "Setup is owner/manager only. The team chat is open to all members." },
             profile: { icon: 'palette', what: "Your team's public identity — logo, banner, colors, bio, and social links. This is what everyone sees on your public page.",
                 tips: ["A <b>logo</b> and <b>banner</b> are required for tournament visibility.", "Your colors theme this entire HQ.", "Use <b>Preview Public Page</b> to see exactly what fans see."],

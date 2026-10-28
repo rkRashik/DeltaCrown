@@ -24,6 +24,8 @@ Assumptions:
 - All monetary values use Decimal for precision
 """
 
+from apps.common.media.fields import MediaFileField, MediaImageField
+
 from decimal import Decimal
 from typing import Dict, List, Optional
 from django.db import models
@@ -372,21 +374,21 @@ class Tournament(SoftDeleteModel, TimestampedModel):
     )
     
     # Media
-    banner_image = models.ImageField(
+    banner_image = MediaImageField(
         upload_to='tournaments/banners/',
         null=True,
         blank=True,
         help_text='Tournament banner image',
         validators=[validate_image_upload],
     )
-    thumbnail_image = models.ImageField(
+    thumbnail_image = MediaImageField(
         upload_to='tournaments/thumbnails/',
         null=True,
         blank=True,
         help_text='Tournament thumbnail for listings',
         validators=[validate_image_upload],
     )
-    rules_pdf = models.FileField(
+    rules_pdf = MediaFileField(
         upload_to='tournaments/rules/',
         null=True,
         blank=True,
@@ -543,7 +545,7 @@ class Tournament(SoftDeleteModel, TimestampedModel):
         blank=True,
         help_text='Terms and conditions that all participants must agree to'
     )
-    terms_pdf = models.FileField(
+    terms_pdf = MediaFileField(
         upload_to='tournaments/terms/',
         null=True,
         blank=True,

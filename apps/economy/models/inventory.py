@@ -1,6 +1,8 @@
 # apps/economy/models/inventory.py
 from __future__ import annotations
 
+from apps.common.media.fields import MediaFileField, MediaImageField
+
 from django.db import models
 
 from apps.common.validators import validate_image_upload
@@ -66,7 +68,7 @@ class InventoryItem(SoftDeleteModel):
     )
     
     # Visuals
-    icon = models.ImageField(
+    icon = MediaImageField(
         upload_to='inventory/items/',
         blank=True,
         null=True,

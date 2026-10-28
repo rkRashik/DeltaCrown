@@ -133,7 +133,7 @@ class WeekScheduleWidget(forms.Widget):
     <span id="dc-total-dc" style="font-family:'JetBrains Mono',monospace;">0</span> DC
   </span>
   <span style="margin-left:auto; font-size:11px; color:#6B7385;">
-    Per day: XP = experience &nbsp;·&nbsp; DC = DeltaCoin (platform currency)
+    Per day: XP = experience &nbsp;·&nbsp; DC = Coins (platform currency)
   </span>
 </div>
 

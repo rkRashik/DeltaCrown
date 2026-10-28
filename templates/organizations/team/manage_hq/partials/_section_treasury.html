@@ -61,7 +61,7 @@ Role Gating:
                 <p class="eyebrow text-emerald-400/70">Available Balance</p>
                 <div class="flex items-end gap-1.5 mt-1.5">
                     <span class="text-4xl lg:text-5xl font-black font-mono text-emerald-300 leading-none" id="wallet-balance">{% if wallet_context %}{{ wallet_context.balance }}{% else %}—{% endif %}</span>
-                    <span class="text-sm font-bold text-emerald-400/60 mb-1">DC</span>
+                    <span class="text-sm font-bold text-emerald-400/60 mb-1">{{ brand.features.coins }}</span>
                 </div>
             </div>
 
@@ -293,14 +293,14 @@ Role Gating:
                 </div>
             </div>
 
-            {# ── DeltaCoin ── #}
+            {# ── {{ brand.features.coins }} ── #}
             <div class="flex items-center justify-between p-3.5 rounded-xl bg-card2 border border-line">
                 <div class="flex items-center gap-3">
                     <div class="h-10 w-10 rounded-xl grid place-items-center bg-amber-500/15">
                         <span class="text-lg">🪙</span>
                     </div>
                     <div>
-                        <p class="text-sm font-semibold">DeltaCoin</p>
+                        <p class="text-sm font-semibold">{{ brand.features.coins }}</p>
                         <p class="text-xs text-emerald-400">Always available</p>
                     </div>
                 </div>

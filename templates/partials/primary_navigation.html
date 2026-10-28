@@ -101,8 +101,7 @@
   class="md:hidden fixed top-0 left-0 right-0 flex items-center justify-between"
   style="height:56px;z-index:100;background:rgba(8,9,13,0.97);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:1px solid rgba(255,255,255,.06);transition:transform .3s ease;padding:0 16px;padding-top:env(safe-area-inset-top);">
   <a href="/" class="flex items-center" style="gap:7px;flex:1;min-width:0;">
-    <img src="{% static 'img/deltaCrown_logos/logo_animated.svg' %}" alt="DeltaCrown" width="24" height="24" decoding="async" style="width:24px;height:24px;flex-shrink:0;">
-    <img src="{% static 'img/deltaCrown_logos/DeltaCrown_Teal-Purple-Gold.svg' %}" alt="DELTACROWN" width="110" height="18" decoding="async" style="height:18px;width:auto;">
+    {% include "partials/brand_logo.html" %}
   </a>
   <div class="flex items-center" style="gap:2px;">
     <button id="dc-mobile-search-btn" class="dcv4-micon" aria-label="Search">
@@ -137,9 +136,8 @@
   <div class="w-full h-full" style="display:flex;align-items:center;position:relative;padding:0 1.5rem;">
 
     <!-- Column 1: Logo (left, fixed width) -->
-    <a href="/" class="flex items-center gap-3 focus:outline-none shrink-0" style="flex:0 0 auto;" aria-label="DeltaCrown Home">
-      <img src="{% static 'img/deltaCrown_logos/logo_animated.svg' %}" alt="DeltaCrown" width="40" height="40" decoding="async" class="w-10 h-10 drop-shadow-[0_0_12px_rgba(108,0,255,0.4)]">
-      <img src="{% static 'img/deltaCrown_logos/DeltaCrown_Teal-Purple-Gold.svg' %}" alt="DELTACROWN" width="156" height="32" decoding="async" class="hidden lg:block h-8 w-auto drop-shadow-[0_0_8px_rgba(0,229,255,0.3)]">
+    <a href="/" class="flex items-center gap-3 focus:outline-none shrink-0" style="flex:0 0 auto;" aria-label="{{ brand.name }} Home">
+      {% include "partials/brand_logo.html" %}
     </a>
 
     <!-- Column 2: Center — menus (default) / FeedTabs portal (on scroll) -->
@@ -223,9 +221,8 @@
   <div class="dcv4-layout">
 
     <!-- Logo -->
-    <a href="/" class="dcv4-brand" aria-label="DeltaCrown Home">
-      <img src="{% static 'img/deltaCrown_logos/logo_animated.svg' %}" alt="" width="34" height="34" decoding="async" style="width:34px;height:34px;">
-      <img src="{% static 'img/deltaCrown_logos/DeltaCrown_Teal-Purple-Gold.svg' %}" alt="DELTACROWN" width="140" height="22" decoding="async" class="hidden lg:block" style="height:22px;width:auto;">
+    <a href="/" class="dcv4-brand" aria-label="{{ brand.name }} Home">
+      {% include "partials/brand_logo.html" %}
     </a>
 
     <!-- Center links -->
@@ -580,7 +577,7 @@
 .dcv4-drawer-ico { width:34px; height:34px; border-radius:8px; background:rgba(255,255,255,0.06); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
 
 /* Logo link min tap target */
-#dc-mobile-header > a, #dc-navbar a[aria-label="DeltaCrown Home"] { min-height:44px; }
+#dc-mobile-header > a, #dc-navbar a[aria-label="{{ brand.name }} Home"] { min-height:44px; }
 
 /* Hamburger Icon */
 .dc-hamburger { display:flex;flex-direction:column;justify-content:center;align-items:center;width:18px;height:18px;gap:4px;cursor:pointer; }

@@ -1,9 +1,9 @@
 {% extends "base.html" %}
 {% load static humanize %}
 
-{% block title %}Arena | DeltaCrown{% endblock %}
-{% block og_title %}Arena | DeltaCrown Live Esports{% endblock %}
-{% block og_description %}Watch live DeltaCrown broadcasts, follow active matches, explore upcoming fixtures, and review final results in one Arena experience.{% endblock %}
+{% block title %}Arena | {{ brand.name }}{% endblock %}
+{% block og_title %}Arena | {{ brand.name }} Live Esports{% endblock %}
+{% block og_description %}Watch live {{ brand.name }} broadcasts, follow active matches, explore upcoming fixtures, and review final results in one Arena experience.{% endblock %}
 
 {% block extra_head %}
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -293,7 +293,7 @@
           <i data-lucide="radio" class="w-3.5 h-3.5"></i> Global Command Center
         </div>
         <h1 class="arena-font-tech text-5xl md:text-6xl font-black text-white leading-none tracking-tight uppercase">
-          DeltaCrown <span class="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">Arena</span>
+          {{ brand.name }} <span class="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">Arena</span>
         </h1>
         <p class="mt-4 text-sm md:text-base text-slate-400 max-w-xl leading-relaxed">
           The central hub for live esports broadcasts, real-time match tracking, verified results, and community predictions. Experience the ecosystem in motion.
@@ -1388,7 +1388,7 @@ document.addEventListener("DOMContentLoaded", () => {
       e.preventDefault();
       e.stopPropagation();
 
-      const title = btn.getAttribute("data-stream-title") || "DeltaCrown Media";
+      const title = btn.getAttribute("data-stream-title") || "OwnLobby Media";
       const providedEmbed = btn.getAttribute("data-stream-embed");
       const rawUrl = btn.getAttribute("data-raw-url") || btn.getAttribute("href") || btn.href || providedEmbed;
 

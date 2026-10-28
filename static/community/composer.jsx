@@ -269,7 +269,7 @@ function parseClipUrl(url) {
   const yt = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
   if (yt) return { platform: 'youtube', id: yt[1], embedUrl: `https://www.youtube.com/embed/${yt[1]}`, thumbUrl: `https://img.youtube.com/vi/${yt[1]}/hqdefault.jpg` };
   const tw = url.match(/twitch\.tv\/(?:videos\/)?([a-zA-Z0-9_]+)/);
-  if (tw) return { platform: 'twitch', id: tw[1], embedUrl: `https://player.twitch.tv/?video=${tw[1]}&parent=deltacrown.xyz`, thumbUrl: null };
+  if (tw) return { platform: 'twitch', id: tw[1], embedUrl: `https://player.twitch.tv/?video=${tw[1]}&parent=${encodeURIComponent(window.location.hostname)}`, thumbUrl: null };
   return null;
 }
 
@@ -685,7 +685,7 @@ function RecruitForm({ data, setData, game }) {
             <div>
               <label className="dc-input-label">Apply via</label>
               <select className="dc-select" value={data.applyVia || 'platform'} onChange={e => setData({ ...data, applyVia: e.target.value })}>
-                <option value="platform">DeltaCrown application form</option>
+                <option value="platform">{window.OWNLOBBY_BRAND.name} application form</option>
                 <option value="dm">Direct message me</option>
                 <option value="discord">Discord ticket</option>
               </select>

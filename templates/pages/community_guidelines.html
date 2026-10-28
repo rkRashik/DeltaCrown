@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Community Guidelines — DeltaCrown{% endblock %}
+{% block title %}Community Guidelines — {{ brand.name }}{% endblock %}
 
 {% block extra_head %}
 <style>
@@ -47,10 +47,10 @@
       <i class="fa-solid fa-shield-halved text-[10px]"></i> COMMUNITY GUIDELINES
     </div>
     <h1 class="text-4xl font-extrabold tracking-tight text-white" style="font-family:'Space Grotesk',sans-serif;">
-      The DeltaCrown<br class="sm:hidden"> Community Code
+      The {{ brand.name }}<br class="sm:hidden"> Community Code
     </h1>
     <p class="text-white/55 mt-3 text-lg max-w-2xl">
-      DeltaCrown is Bangladesh's competitive esports home. These guidelines protect the space where thousands of players, teams, and fans come to compete, share, and grow.
+      {{ brand.name }} is Bangladesh's competitive esports home. These guidelines protect the space where thousands of players, teams, and fans come to compete, share, and grow.
     </p>
     <div class="flex flex-wrap gap-2 mt-4">
       <span class="guide-tag ok"><i class="fa-solid fa-check"></i> Allowed</span>
@@ -176,7 +176,7 @@
         <div>
           <div class="font-bold text-white text-base mb-1">Respect staff decisions</div>
           <p class="text-white/60 text-sm leading-relaxed">
-            DeltaCrown staff moderate with fairness. If you believe a moderation action was incorrect, use the <a href="/support/" class="text-dc-cyan hover:underline">support channel</a> — do not post appeals publicly or harass staff members.
+            {{ brand.name }} staff moderate with fairness. If you believe a moderation action was incorrect, use the <a href="/support/" class="text-dc-cyan hover:underline">support channel</a> — do not post appeals publicly or harass staff members.
           </p>
         </div>
       </div>

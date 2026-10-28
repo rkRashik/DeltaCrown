@@ -6,6 +6,8 @@ and plays matches. Teams can be Independent (user-owned) or part of
 an Organization (professional entity).
 """
 
+from apps.common.media.fields import MediaFileField, MediaImageField
+
 from django.db import models
 from django.contrib.auth import get_user_model
 from django.core.validators import RegexValidator
@@ -119,14 +121,14 @@ class Team(models.Model):
     )
     
     # Branding assets
-    logo = models.ImageField(
+    logo = MediaImageField(
         upload_to='teams/logos/',
         null=True,
         blank=True,
         help_text="Team logo (or inherits from organization if enforce_brand=True)",
         validators=[validate_image_upload],
     )
-    banner = models.ImageField(
+    banner = MediaImageField(
         upload_to='teams/banners/',
         null=True,
         blank=True,

@@ -262,7 +262,7 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div class="space-y-2 md:col-span-2">
                 <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Meta Title</label>
-                <input type="text" class="corp-input track-change" placeholder="{{ organization.name }} | Official Org on DeltaCrown">
+                <input type="text" class="corp-input track-change" placeholder="{{ organization.name }} | Official Org on {{ brand.name }}">
               </div>
 
               <div class="space-y-2 md:col-span-2">
@@ -2003,7 +2003,7 @@
                 <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 p-6 bg-delta-danger/10 border border-delta-danger/30 rounded-xl">
                   <div class="max-w-md">
                     <h4 class="text-delta-danger font-bold mb-1 uppercase">Decommission Organization</h4>
-                    <p class="text-xs text-slate-500">Immediately disband all sub-teams, lock the treasury, and delete all competitive history. All assets will be purged from the DeltaCrown network.</p>
+                    <p class="text-xs text-slate-500">Immediately disband all sub-teams, lock the treasury, and delete all competitive history. All assets will be purged from the {{ brand.name }} network.</p>
                     <div class="mt-3 flex flex-wrap gap-2">
                       <span class="chip danger"><i class="fas fa-triangle-exclamation"></i> Irreversible</span>
                       <span class="chip"><i class="fas fa-scroll"></i> Logged</span>

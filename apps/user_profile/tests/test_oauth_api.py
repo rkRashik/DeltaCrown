@@ -3,6 +3,8 @@ from unittest.mock import Mock, patch
 from urllib.parse import parse_qs, urlparse
 
 import pytest
+from uuid import uuid4
+from django.utils import timezone
 from django.urls import reverse
 
 from apps.games.models import Game
@@ -26,8 +28,34 @@ def _mock_response(*, status_code=200, json_data=None, text="", headers=None):
     return response
 
 
+def _steam_callback_payload(state):
+    return {
+        "state": state,
+        "openid.ns": "http://specs.openid.net/auth/2.0",
+        "openid.mode": "id_res",
+        "openid.op_endpoint": "https://steamcommunity.com/openid/login",
+        "openid.claimed_id": "https://steamcommunity.com/openid/id/76561198012345678",
+        "openid.identity": "https://steamcommunity.com/openid/id/76561198012345678",
+        "openid.return_to": "http://testserver" + reverse("user_profile:steam_openid_callback") + "?state=" + state,
+        "openid.response_nonce": timezone.now().strftime("%Y-%m-%dT%H:%M:%SZ") + uuid4().hex,
+        "openid.assoc_handle": "synthetic-association",
+        "openid.signed": "op_endpoint,claimed_id,identity,return_to,response_nonce,assoc_handle",
+        "openid.sig": "synthetic-signature-verified-by-mocked-provider",
+    }
+
+
+def _steam_get_response(summary_response):
+    def respond(url, **kwargs):
+        if "GetPlayerSummaries" in url:
+            return summary_response
+        if "GetOwnedGames" in url:
+            return _mock_response(json_data={"response": {"games": [{"appid": 730}, {"appid": 570}]}})
+        raise AssertionError("Unexpected provider request: " + url)
+    return respond
+
+
 def _get_riot_state(client):
-    response = client.get(reverse("user_profile:riot_oauth_login"))
+    response = client.get(reverse("user_profile:riot_oauth_login"), {"response_mode": "json", "callback_mode": "json"})
     assert response.status_code == 200
     payload = response.json()
     assert payload["success"] is True
@@ -104,9 +132,9 @@ def test_riot_callback_success_creates_passport_and_oauth_connection(authenticat
     assert passport.discriminator == "#TAG"
     assert passport.identity_key == "PlayerOne#TAG"
 
-    oauth_connection = GameOAuthConnection.objects.get(passport=passport)
+    oauth_connection = GameOAuthConnection.objects.get(game_profile=passport)
     assert oauth_connection.provider == GameOAuthConnection.Provider.RIOT
-    assert oauth_connection.provider_account_id == "puuid-123"
+    assert oauth_connection.provider_account.provider_account_id == "puuid-123"
     assert oauth_connection.access_token == "access-123"
     assert oauth_connection.refresh_token == "refresh-123"
 
@@ -167,17 +195,10 @@ def test_steam_callback_success_creates_cs2_passport_and_oauth_connection(authen
     )
 
     with patch("apps.user_profile.services.oauth_steam_service.requests.post", return_value=verification_response) as mock_post:
-        with patch("apps.user_profile.services.oauth_steam_service.requests.get", return_value=summary_response) as mock_get:
+        with patch("apps.user_profile.services.oauth_steam_service.requests.get", side_effect=_steam_get_response(summary_response)) as mock_get:
             response = authenticated_client.get(
                 reverse("user_profile:steam_openid_callback"),
-                {
-                    "state": state,
-                    "game": "cs2",
-                    "openid.ns": "http://specs.openid.net/auth/2.0",
-                    "openid.mode": "id_res",
-                    "openid.claimed_id": "https://steamcommunity.com/openid/id/76561198012345678",
-                    "openid.identity": "https://steamcommunity.com/openid/id/76561198012345678",
-                },
+                _steam_callback_payload(state),
             )
 
     assert response.status_code == 200
@@ -188,13 +209,14 @@ def test_steam_callback_success_creates_cs2_passport_and_oauth_connection(authen
     assert passport.ign == "SteamUser"
     assert passport.identity_key == "76561198012345678"
 
-    oauth_connection = GameOAuthConnection.objects.get(passport=passport)
+    oauth_connection = GameOAuthConnection.objects.get(game_profile=passport)
     assert oauth_connection.provider == GameOAuthConnection.Provider.STEAM
-    assert oauth_connection.provider_account_id == "76561198012345678"
+    assert oauth_connection.provider_account.provider_account_id == "76561198012345678"
 
     post_payload = mock_post.call_args.kwargs["data"]
     assert post_payload["openid.mode"] == "check_authentication"
-    mock_get.assert_called_once()
+    assert mock_get.call_count == 2
+    assert {call.args[0].split("/")[-3] for call in mock_get.call_args_list} == {"GetPlayerSummaries", "GetOwnedGames"}
 
 
 @pytest.mark.django_db
@@ -225,27 +247,19 @@ def test_steam_same_id_can_link_cs2_and_dota2_for_same_user(authenticated_client
     ):
         with patch(
             "apps.user_profile.services.oauth_steam_service.requests.get",
-            side_effect=[summary_response, summary_response],
+            side_effect=_steam_get_response(summary_response),
         ):
             cs2_state = _get_steam_state(authenticated_client, "cs2")
             cs2_response = authenticated_client.get(
                 reverse("user_profile:steam_openid_callback"),
-                {
-                    "state": cs2_state,
-                    "game": "cs2",
-                    "openid.claimed_id": "https://steamcommunity.com/openid/id/76561198012345678",
-                },
+                _steam_callback_payload(cs2_state),
             )
             assert cs2_response.status_code == 200
 
             dota2_state = _get_steam_state(authenticated_client, "dota2")
             dota2_response = authenticated_client.get(
                 reverse("user_profile:steam_openid_callback"),
-                {
-                    "state": dota2_state,
-                    "game": "dota2",
-                    "openid.claimed_id": "https://steamcommunity.com/openid/id/76561198012345678",
-                },
+                _steam_callback_payload(dota2_state),
             )
             assert dota2_response.status_code == 200
 
@@ -254,9 +268,9 @@ def test_steam_same_id_can_link_cs2_and_dota2_for_same_user(authenticated_client
     assert {passport.game.slug for passport in passports} == {"cs2", "dota2"}
 
     steam_links = GameOAuthConnection.objects.filter(
-        passport__user=user,
+        game_profile__user=user,
         provider=GameOAuthConnection.Provider.STEAM,
-        provider_account_id="76561198012345678",
+        provider_account__provider_account_id="76561198012345678",
     )
     assert steam_links.count() == 2
 
@@ -302,14 +316,10 @@ def test_steam_callback_redirect_mode_returns_to_settings_passports_tab(authenti
     )
 
     with patch("apps.user_profile.services.oauth_steam_service.requests.post", return_value=verification_response):
-        with patch("apps.user_profile.services.oauth_steam_service.requests.get", return_value=summary_response):
+        with patch("apps.user_profile.services.oauth_steam_service.requests.get", side_effect=_steam_get_response(summary_response)):
             callback_response = authenticated_client.get(
                 reverse("user_profile:steam_openid_callback"),
-                {
-                    "state": state,
-                    "game": "cs2",
-                    "openid.claimed_id": "https://steamcommunity.com/openid/id/76561198012345678",
-                },
+                _steam_callback_payload(state),
             )
 
     assert callback_response.status_code == 302
@@ -319,7 +329,8 @@ def test_steam_callback_redirect_mode_returns_to_settings_passports_tab(authenti
     assert query.get("tab") == ["passports"]
     assert query.get("oauth_provider") == ["steam"]
     assert query.get("oauth_status") == ["connected"]
-    assert query.get("oauth_game") == ["cs2"]
+    # One verified Steam account now links all supported owned games, not a single-game callback.
+    assert GameOAuthConnection.objects.filter(provider="steam").count() == 2
 
 
 @pytest.mark.django_db
@@ -357,9 +368,9 @@ def test_epic_callback_success_creates_rocketleague_passport_and_oauth_connectio
     assert passport.ign == "EpicUser"
     assert passport.identity_key == "epic-account-123"
 
-    oauth_connection = GameOAuthConnection.objects.get(passport=passport)
+    oauth_connection = GameOAuthConnection.objects.get(game_profile=passport)
     assert oauth_connection.provider == GameOAuthConnection.Provider.EPIC
-    assert oauth_connection.provider_account_id == "epic-account-123"
+    assert oauth_connection.provider_account.provider_account_id == "epic-account-123"
     assert oauth_connection.access_token == "epic-access-123"
     assert oauth_connection.refresh_token == "epic-refresh-123"
 
@@ -393,3 +404,116 @@ def test_epic_callback_invalid_code_returns_structured_error(authenticated_clien
     assert payload["success"] is False
     assert payload["error_code"] == "EPIC_TOKEN_EXCHANGE_FAILED"
     assert GameOAuthConnection.objects.filter(provider=GameOAuthConnection.Provider.EPIC).count() == 0
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("provider", ["riot", "steam", "epic"])
+def test_callback_state_is_bound_to_the_initiating_user(authenticated_client, settings, provider):
+    from django.contrib.auth import get_user_model
+    settings.RIOT_CLIENT_ID = settings.EPIC_CLIENT_ID = "qa-client"
+    settings.RIOT_CLIENT_SECRET = settings.EPIC_CLIENT_SECRET = "qa-secret"
+    settings.RIOT_REDIRECT_URI = "http://testserver" + reverse("user_profile:riot_oauth_callback")
+    settings.STEAM_API_KEY = "qa-api-key"
+    get_state = {"riot": _get_riot_state, "epic": _get_epic_state, "steam": lambda client: _get_steam_state(client, "cs2")}
+    state = get_state[provider](authenticated_client)
+    other = get_user_model().objects.create_user("other-state-qa", "other-state@example.com", "qa-password")
+    authenticated_client.force_login(other)
+    callback = {"riot": "riot_oauth_callback", "steam": "steam_openid_callback", "epic": "epic_oauth_callback"}[provider]
+    with patch("requests.post") as post, patch("requests.get") as get:
+        response = authenticated_client.get(reverse("user_profile:" + callback), {"state": state, "code": "qa-code"})
+    assert response.status_code == 400
+    post.assert_not_called()
+    get.assert_not_called()
+    assert not GameOAuthConnection.objects.exists()
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("provider", ["riot", "steam", "epic"])
+def test_state_is_single_use_even_when_provider_verification_fails(authenticated_client, settings, provider):
+    settings.RIOT_CLIENT_ID = settings.EPIC_CLIENT_ID = "qa-client"
+    settings.RIOT_CLIENT_SECRET = settings.EPIC_CLIENT_SECRET = "qa-secret"
+    settings.RIOT_REDIRECT_URI = "http://testserver" + reverse("user_profile:riot_oauth_callback")
+    settings.STEAM_API_KEY = "qa-api-key"
+    get_state = {"riot": _get_riot_state, "epic": _get_epic_state, "steam": lambda client: _get_steam_state(client, "cs2")}
+    state = get_state[provider](authenticated_client)
+    payload = _steam_callback_payload(state) if provider == "steam" else {"state": state, "code": "qa-code"}
+    callback = {"riot": "riot_oauth_callback", "steam": "steam_openid_callback", "epic": "epic_oauth_callback"}[provider]
+    with patch("requests.post", return_value=_mock_response(status_code=400, json_data={"error": "invalid_grant"})) as post:
+        first = authenticated_client.get(reverse("user_profile:" + callback), payload)
+        second = authenticated_client.get(reverse("user_profile:" + callback), payload)
+    assert first.status_code in {400, 502}
+    assert second.status_code == 400
+    assert post.call_count == 1
+    assert not GameOAuthConnection.objects.exists()
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("mutation", ["return_to", "identity", "signature", "nonce", "signed_fields"])
+def test_steam_rejects_unbound_or_expired_assertions_before_provider_call(authenticated_client, settings, mutation):
+    settings.STEAM_API_KEY = "qa-api-key"
+    state = _get_steam_state(authenticated_client, "cs2")
+    payload = _steam_callback_payload(state)
+    if mutation == "return_to":
+        payload["openid.return_to"] = "https://foreign.example/callback/"
+    elif mutation == "identity":
+        payload["openid.identity"] = "https://steamcommunity.com/openid/id/76561198000000000"
+    elif mutation == "signature":
+        payload["openid.sig"] = ""
+    elif mutation == "nonce":
+        payload["openid.response_nonce"] = "2000-01-01T00:00:00Zexpired"
+    else:
+        payload["openid.signed"] = "op_endpoint,identity"
+    with patch("requests.post") as post:
+        response = authenticated_client.get(reverse("user_profile:steam_openid_callback"), payload)
+    assert response.status_code == 400
+    post.assert_not_called()
+    assert not GameOAuthConnection.objects.exists()
+
+
+@pytest.mark.django_db
+def test_steam_cannot_take_over_another_users_verified_identity(authenticated_client, settings):
+    from django.contrib.auth import get_user_model
+    from apps.user_profile.models import ProviderAccount
+    settings.STEAM_API_KEY = "qa-api-key"
+    owner = get_user_model().objects.create_user("provider-owner-qa", "owner-qa@example.com", "qa-password")
+    account = ProviderAccount.objects.create(user=owner, provider="steam", provider_account_id="76561198012345678")
+    state = _get_steam_state(authenticated_client, "cs2")
+    summary = _mock_response(json_data={"response": {"players": [{"personaname": "Owner"}]}})
+    with patch("requests.post", return_value=_mock_response(text="is_valid:true\n")), patch("requests.get", side_effect=_steam_get_response(summary)):
+        response = authenticated_client.get(reverse("user_profile:steam_openid_callback"), _steam_callback_payload(state))
+    assert response.status_code == 409
+    account.refresh_from_db()
+    assert account.user_id == owner.pk
+    assert not GameOAuthConnection.objects.exists()
+
+
+@pytest.mark.django_db
+def test_steam_accepts_a_fresh_unique_timestamp_nonce_without_optional_suffix():
+    from apps.user_profile.services.oauth_steam_service import verify_steam_callback
+    payload = _steam_callback_payload("local-nonce-boundary")
+    payload["openid.response_nonce"] = timezone.now().strftime("%Y-%m-%dT%H:%M:%SZ")
+    with patch("requests.post", return_value=_mock_response(text="is_valid:true\n")):
+        assert verify_steam_callback(payload, expected_return_to=payload["openid.return_to"]) == "76561198012345678"
+
+
+@pytest.mark.django_db
+def test_steam_verified_nonce_cannot_be_replayed_even_if_provider_accepts_it():
+    from apps.user_profile.services.oauth_steam_service import SteamOpenIDError, verify_steam_callback
+    payload = _steam_callback_payload("local-verified-nonce")
+    with patch("requests.post", return_value=_mock_response(text="is_valid:true\n")) as post:
+        verify_steam_callback(payload, expected_return_to=payload["openid.return_to"])
+        with pytest.raises(SteamOpenIDError) as failure:
+            verify_steam_callback(payload, expected_return_to=payload["openid.return_to"])
+    assert failure.value.error_code == "STEAM_REPLAYED_ASSERTION"
+    assert post.call_count == 2
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("verification_text", ["is_valid:truejunk\n", "is_valid:false\n"])
+def test_steam_does_not_accept_invalid_verification_response_lines(verification_text):
+    from apps.user_profile.services.oauth_steam_service import SteamOpenIDError, verify_steam_callback
+    payload = _steam_callback_payload("local-verification-lines")
+    with patch("requests.post", return_value=_mock_response(text=verification_text)):
+        with pytest.raises(SteamOpenIDError) as failure:
+            verify_steam_callback(payload, expected_return_to=payload["openid.return_to"])
+    assert failure.value.error_code == "STEAM_INVALID_SIGNATURE"

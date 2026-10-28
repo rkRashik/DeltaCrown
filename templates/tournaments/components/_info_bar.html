@@ -41,7 +41,7 @@ Displays: Format, Platform, Mode, Date, Slots — horizontal strip below hero
           {% if tournament.prize_pool > 0 %}
             {{ tournament.prize_currency }} {{ tournament.prize_pool|floatformat:0|intcomma }}
           {% elif tournament.prize_deltacoin > 0 %}
-            {{ tournament.prize_deltacoin|intcomma }} DC
+            {{ tournament.prize_deltacoin|intcomma }} {{ brand.features.coins }}
           {% else %}
             —
           {% endif %}

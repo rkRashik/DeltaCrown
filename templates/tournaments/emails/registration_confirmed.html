@@ -1,3 +1,4 @@
+{% load branding %}{% brand_config as brand %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -45,6 +46,7 @@
     </style>
 </head>
 <body>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B0C0C;"><tr><td align="center" style="padding:20px;">{% include "partials/email_brand_logo.html" %}</td></tr></table>
     <div class="email-wrapper">
         <!-- Header -->
         <div class="header">
@@ -61,7 +63,7 @@
             <p style="font-size: 16px; margin-bottom: 24px;">
                 Congratulations! Your registration for <strong>{{ tournament.name }}</strong> has been confirmed. 
                 {% if registration.payment.payment_method == 'deltacoin' %}
-                Your entry fee of <strong>{{ registration.payment.amount }} DC</strong> has been deducted from your wallet.
+                Your entry fee of <strong>{{ registration.payment.amount }} {{ brand.features.coins }}</strong> has been deducted from your wallet.
                 {% else %}
                 Your payment has been verified and you're all set!
                 {% endif %}
@@ -159,13 +161,13 @@
             
             <p style="margin-top: 24px; font-size: 16px;">
                 Good luck and have fun!<br>
-                <strong>The DeltaCrown Team</strong>
+                <strong>The {{ brand.name }} Team</strong>
             </p>
         </div>
         
         <!-- Footer -->
         <div class="footer">
-            <p><strong>DeltaCrown Esports Platform</strong></p>
+            <p><strong>{{ brand.name }} Esports Platform</strong></p>
             <p>Compete. Win. Earn.</p>
             
             <div class="social-links">

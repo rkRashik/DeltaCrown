@@ -186,7 +186,7 @@
           <i data-lucide="radio" style="width:18px;height:18px;color:#FF453A;"></i>
         </div>
         <div style="flex:1;min-width:0;">
-          <div style="font-size:14px;font-weight:600;color:#F4F6FA;">DeltaCrown Live</div>
+          <div style="font-size:14px;font-weight:600;color:#F4F6FA;">{{ brand.name }} Live</div>
           <div style="font-size:11.5px;color:#8E8E93;margin-top:1px;">{{ tournament.name|truncatechars:28 }} · Official</div>
         </div>
         <span style="display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:700;color:#FF453A;"><span style="width:5px;height:5px;border-radius:999px;background:#FF453A;animation:tdm-pulse 1.4s ease-in-out infinite;display:inline-block;"></span>LIVE</span>
@@ -196,7 +196,7 @@
   {% endif %}
 
   <div style="text-align:center;padding:28px 14px 20px;display:flex;flex-direction:column;align-items:center;">
-    <img src="{% static 'img/deltaCrown_logos/logo_animated.svg' %}" alt="" style="height:15px;opacity:0.25;">
+    <img src="{% static brand.symbol_dark %}" alt="" style="height:15px;opacity:0.25;">
   </div>
 </div>
 

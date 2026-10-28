@@ -2,9 +2,9 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Favicon Test - DeltaCrown</title>
-    <link rel="icon" href="{% static 'img/favicon/favicon.ico' %}?v=2" sizes="any">
-    <link rel="icon" href="{% static 'img/favicon/favicon-32x32.png' %}?v=2" sizes="32x32" type="image/png">
+    <title>Favicon Test - {{ brand.name }}</title>
+    <link rel="icon" href="{% static brand.favicon %}?v=2" sizes="any">
+    <link rel="icon" href="{% static 'ownlobby/icons/icon-32.png' %}?v=2" sizes="32x32" type="image/png">
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -49,6 +49,7 @@
             margin: 10px 0;
         }
     </style>
+{% include "partials/brand_head.html" %}
 </head>
 <body>
     <h1>🔍 Favicon Test Page</h1>
@@ -67,37 +68,37 @@
     <div class="grid">
         <div class="card">
             <h3>Source Logo (PNG)</h3>
-            <img src="{% static 'img/deltaCrown_logos/logo.png' %}" alt="Source Logo">
+            <img src="{% static 'ownlobby/logos/symbol-dark.png' %}" alt="Source Logo">
             <p>This is your source logo.png file</p>
         </div>
 
         <div class="card">
             <h3>Source Logo (SVG)</h3>
-            <img src="{% static 'img/deltaCrown_logos/logo.svg' %}" alt="Source Logo SVG" style="max-height: 200px;">
+            <img src="{% static brand.symbol_dark %}" alt="Source Logo SVG" style="max-height: 200px;">
             <p>This is your source logo.svg file</p>
         </div>
 
         <div class="card">
             <h3>Favicon 16x16</h3>
-            <img src="{% static 'img/favicon/favicon-16x16.png' %}?v=2" alt="Favicon 16x16" style="image-rendering: pixelated; width: 64px; height: 64px;">
+            <img src="{% static 'ownlobby/icons/icon-16.png' %}?v=2" alt="Favicon 16x16" style="image-rendering: pixelated; width: 64px; height: 64px;">
             <p>Generated 16x16 favicon</p>
         </div>
 
         <div class="card">
             <h3>Favicon 32x32</h3>
-            <img src="{% static 'img/favicon/favicon-32x32.png' %}?v=2" alt="Favicon 32x32" style="width: 64px; height: 64px;">
+            <img src="{% static 'ownlobby/icons/icon-32.png' %}?v=2" alt="Favicon 32x32" style="width: 64px; height: 64px;">
             <p>Generated 32x32 favicon</p>
         </div>
 
         <div class="card">
             <h3>Favicon 64x64</h3>
-            <img src="{% static 'img/favicon/favicon-64x64.png' %}?v=2" alt="Favicon 64x64" style="width: 128px; height: 128px;">
+            <img src="{% static 'ownlobby/icons/icon-64.png' %}?v=2" alt="Favicon 64x64" style="width: 128px; height: 128px;">
             <p>Generated 64x64 favicon</p>
         </div>
 
         <div class="card">
             <h3>Favicon ICO</h3>
-            <img src="{% static 'img/favicon/favicon.ico' %}?v=2" alt="Favicon ICO" style="width: 64px; height: 64px;">
+            <img src="{% static brand.favicon %}?v=2" alt="Favicon ICO" style="width: 64px; height: 64px;">
             <p>Generated .ico file</p>
         </div>
     </div>

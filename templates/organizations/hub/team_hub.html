@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 {% load static humanize dc_avatar %}
 
-{% block title %}Team Hub — DeltaCrown{% endblock %}
-{% block og_title %}Team Hub — DeltaCrown Esports{% endblock %}
+{% block title %}Team Hub — {{ brand.name }}{% endblock %}
+{% block og_title %}Team Hub — {{ brand.name }} Esports{% endblock %}
 
 {% block extra_head %}
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1205,6 +1205,7 @@ img[loading="lazy"] {
 </style>
 {% endblock %}
 
+{% block body_class %}ownlobby-team-hub{% endblock %}
 {% block content %}
 
 {# ===================== MOBILE NATIVE HUB (<=1023px) ===================== #}
@@ -1229,7 +1230,7 @@ img[loading="lazy"] {
     {# ----- My Teams / Sign-in / Empty (state-driven) ----- #}
     {% if not user.is_authenticated %}
     <div class="dcm-promo">
-        <div style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(244,246,250,0.7);">From the Delta to the Crown</div>
+        <div style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(244,246,250,0.7);">{{ brand.tagline }}</div>
         <div class="dcm-display" style="font-weight:800;font-size:25px;line-height:1.12;color:#fff;margin-top:8px;">Join the arena.<br>Build your team.</div>
         <div style="font-size:14px;line-height:1.45;color:rgba(244,246,250,0.82);margin-top:8px;max-width:250px;">Create a squad or get scouted by ranked teams competing across every title.</div>
         <div style="display:flex;gap:10px;margin-top:16px;">
@@ -1266,7 +1267,7 @@ img[loading="lazy"] {
             </div>
             <div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px;padding-top:13px;border-top:1px solid var(--m-line);">
                 <span style="padding:4px 10px;border-radius:999px;font-size:10.5px;font-weight:700;letter-spacing:.05em;background:rgba(207,167,90,0.15);color:#E2C588;">{{ m.role|default:"MEMBER" }}</span>
-                {% if m.team.ranking.current_cp %}<span class="dcm-cp" style="font-size:14px;color:var(--m-ink);">{{ m.team.ranking.current_cp|intcomma }} <span style="font-size:10px;color:var(--m-mut);">CP</span></span>{% endif %}
+                {% if m.team.ranking.current_cp %}<span class="dcm-cp" style="font-size:14px;color:var(--m-ink);">{{ m.team.ranking.current_cp|intcomma }} <span style="font-size:10px;color:var(--m-mut);">{{ brand.features.ranking_points_short }}</span></span>{% endif %}
             </div>
         </a>
         {% endfor %}
@@ -1321,7 +1322,7 @@ img[loading="lazy"] {
             </div>
             <div style="text-align:right;flex:none;">
                 <div class="dcm-cp" style="font-size:15px;color:var(--m-ink);letter-spacing:-0.02em;">{{ entry.score|intcomma }}</div>
-                <div style="font-size:9px;font-weight:600;letter-spacing:.06em;color:var(--m-mut);">CP</div>
+                <div style="font-size:9px;font-weight:600;letter-spacing:.06em;color:var(--m-mut);">{{ brand.features.ranking_points_short }}</div>
             </div>
         </a>
         {% empty %}
@@ -1348,7 +1349,7 @@ img[loading="lazy"] {
             <div class="dcm-trunc" style="font-size:12px;color:var(--m-ink2);margin-top:5px;">{{ team.get_game_display|default:"Esports" }}</div>
             <div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px;padding-top:12px;border-top:1px solid var(--m-line);">
                 <span style="display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--m-mut);"><i data-lucide="users" class="w-[15px] h-[15px]"></i>{{ team.vnext_memberships.count }}</span>
-                {% if team.ranking.current_cp %}<span class="dcm-cp" style="font-size:13.5px;color:var(--m-ink);">{{ team.ranking.current_cp|intcomma }} <span style="font-size:9px;color:var(--m-mut);">CP</span></span>{% endif %}
+                {% if team.ranking.current_cp %}<span class="dcm-cp" style="font-size:13.5px;color:var(--m-ink);">{{ team.ranking.current_cp|intcomma }} <span style="font-size:9px;color:var(--m-mut);">{{ brand.features.ranking_points_short }}</span></span>{% endif %}
             </div>
         </a>
         {% endfor %}
@@ -1510,7 +1511,7 @@ img[loading="lazy"] {
 
                 <!-- Subtitle -->
                 <p class="reveal reveal-delay-2 text-gray-400 text-sm sm:text-base max-w-lg mb-6 leading-relaxed {% if not spotlight_teams %}mx-auto lg:mx-0{% endif %}">
-                    Create a team in <span class="text-white font-semibold">30 seconds</span>. Climb Crown Points tiers. Earn revenue, get scouted, build a <span class="text-dc-cyan font-medium">legacy</span>.
+                    Create a team in <span class="text-white font-semibold">30 seconds</span>. Climb {{ brand.features.ranking_points }} tiers. Earn revenue, get scouted, build a <span class="text-dc-cyan font-medium">legacy</span>.
                 </p>
 
                 <!-- CTA Buttons -->
@@ -1828,12 +1829,12 @@ img[loading="lazy"] {
 
                             {# ── Stats & Roster Row ── #}
                             <div class="border-t border-white/5 pt-4 flex items-center justify-between gap-4">
-                                {# CP + Rank stats #}
+                                {# {{ brand.features.ranking_points_short }} + Rank stats #}
                                 <div class="flex items-center gap-4 text-xs min-w-0">
                                     {% with r=team.ranking %}
                                     {% if r %}
                                     <div class="flex flex-col">
-                                        <span class="text-[9px] text-gray-500 uppercase tracking-wider">CP</span>
+                                        <span class="text-[9px] text-gray-500 uppercase tracking-wider">{{ brand.features.ranking_points_short }}</span>
                                         <span class="font-bold text-white font-display text-sm">{{ r.current_cp|intcomma }}</span>
                                     </div>
                                     {% if r.global_rank %}
@@ -1899,7 +1900,7 @@ img[loading="lazy"] {
                                 <i data-lucide="crown" class="w-6 h-6 text-dc-gold fill-dc-gold/30"></i>
                                 {% if selected_game and selected_game_slug != 'all' %}{{ selected_game.display_name }} Rankings{% else %}Global Standings{% endif %}
                             </h2>
-                            <p class="text-sm text-gray-400 mt-1">Top teams {% if selected_game and selected_game_slug != 'all' %}in {{ selected_game.display_name }}{% else %}across all titles{% endif %} based on Crown Points (CP).</p>
+                            <p class="text-sm text-gray-400 mt-1">Top teams {% if selected_game and selected_game_slug != 'all' %}in {{ selected_game.display_name }}{% else %}across all titles{% endif %} based on {{ brand.features.ranking_points }} ({{ brand.features.ranking_points_short }}).</p>
                         </div>
                         <div class="flex gap-3">
                             <a href="{% url 'competition:ranking_about' %}" class="text-xs font-bold text-gray-400 hover:text-white px-3 py-1.5 rounded-lg border border-white/10 hover:border-white/30 transition-colors">Ranking Policy</a>
@@ -1912,7 +1913,7 @@ img[loading="lazy"] {
                         <div class="col-span-1 text-center">#</div>
                         <div class="col-span-5">Team</div>
                         <div class="col-span-2 text-center hidden sm:block">Tier</div>
-                        <div class="col-span-2 text-right">CP</div>
+                        <div class="col-span-2 text-right">{{ brand.features.ranking_points_short }}</div>
                         <div class="col-span-2 text-center">Activity</div>
                     </div>
 
@@ -1957,7 +1958,7 @@ img[loading="lazy"] {
                                 <span class="text-[10px] px-2 py-0.5 rounded-full font-bold {% if entry.tier == 'THE_CROWN' %}tier-the_crown{% elif entry.tier == 'LEGEND' %}tier-legend{% elif entry.tier == 'MASTER' %}tier-master{% elif entry.tier == 'ELITE' %}tier-elite{% elif entry.tier == 'CHALLENGER' %}tier-challenger{% else %}tier-rookie{% endif %}">{{ entry.tier|default:"ROOKIE" }}</span>
                             </div>
                             <!-- CP -->
-                            <div class="col-span-2 text-right font-bold relative z-10 {% if forloop.counter <= 3 %}text-white text-lg{% else %}text-gray-300{% endif %}">{{ entry.score|intcomma }} <span class="text-[10px] text-slate-500 font-normal">CP</span></div>
+                            <div class="col-span-2 text-right font-bold relative z-10 {% if forloop.counter <= 3 %}text-white text-lg{% else %}text-gray-300{% endif %}">{{ entry.score|intcomma }} <span class="text-[10px] text-slate-500 font-normal">{{ brand.features.ranking_points_short }}</span></div>
                             <!-- Activity -->
                             <div class="col-span-2 flex justify-center relative z-10">
                                 <div class="flex items-center gap-1.5">
@@ -2134,7 +2135,7 @@ img[loading="lazy"] {
                 {% endif %}
             </div>
 
-            <a href="{% url 'dashboard:competitive_hub' %}" class="block group mob-order-5 no-underline crown-arena-cta">
+            <a href="{% url 'dashboard:competitive_hub' %}" class="block group mob-order-5 no-underline crown-arena-cta" aria-label="Open Competitive Hub">
               <div class="relative overflow-hidden rounded-2xl p-6 transition-all duration-300 group-hover:scale-[1.02] group-hover:shadow-[0_0_60px_-8px_rgba(99,102,241,0.55)]"
                    style="background:
                             linear-gradient(135deg, rgba(99,102,241,.20) 0%, rgba(236,72,153,.12) 45%, rgba(255,215,0,.10) 100%),
@@ -2321,11 +2322,11 @@ img[loading="lazy"] {
                             ⚔️
                         </div>
                         <h3 class="font-display font-bold text-white text-lg mb-1">Compete</h3>
-                        <p class="text-xs text-dc-cyan font-semibold uppercase tracking-wider mb-3">Earn CP</p>
-                        <p class="text-sm text-gray-400 leading-relaxed mb-4">Enter tournaments, win matches, and climb through Crown Points ranking tiers.</p>
+                        <p class="text-xs text-dc-cyan font-semibold uppercase tracking-wider mb-3">Earn {{ brand.features.ranking_points_short }}</p>
+                        <p class="text-sm text-gray-400 leading-relaxed mb-4">Enter tournaments, win matches, and climb through {{ brand.features.ranking_points }} ranking tiers.</p>
                         <div class="flex flex-wrap gap-2">
                             <span class="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-dc-cyan/10 border border-dc-cyan/20 text-dc-cyan/80">Bronze → Gold</span>
-                            <span class="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-dc-cyan/10 border border-dc-cyan/20 text-dc-cyan/80">CP rewards</span>
+                            <span class="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-dc-cyan/10 border border-dc-cyan/20 text-dc-cyan/80">{{ brand.features.ranking_points_short }} rewards</span>
                         </div>
                     </div>
                 </div>
@@ -2371,7 +2372,7 @@ img[loading="lazy"] {
         <!-- CTA link -->
         <div class="text-center mt-10 reveal">
             <a href="/ranking-policy" class="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-sm text-dc-cyan hover:bg-dc-cyan/[0.08] hover:border-dc-cyan/25 transition-all group">
-                View Crown Points Ranking Rules <i data-lucide="arrow-right" class="w-4 h-4 group-hover:translate-x-1 transition-transform"></i>
+                View {{ brand.features.ranking_points }} Ranking Rules <i data-lucide="arrow-right" class="w-4 h-4 group-hover:translate-x-1 transition-transform"></i>
             </a>
         </div>
     </div>
@@ -2385,7 +2386,7 @@ img[loading="lazy"] {
     </div>
     <div class="relative z-10 w-full max-w-3xl mx-auto px-4 sm:px-6 lg:px-10 text-center">
         <h2 class="font-display text-2xl sm:text-3xl lg:text-4xl font-black text-white mb-4">Don't Just Watch.<br><span class="grad-text">Compete.</span></h2>
-        <p class="text-gray-200 text-sm sm:text-base mb-3 max-w-xl mx-auto leading-relaxed">Every champion started with a roster of one. Create your team, compete in tournaments, climb Crown Points Rankings, and build a legacy that lasts. Your stats, trophies, and match history are permanent — this isn't casual, this is your career.</p>
+        <p class="text-gray-200 text-sm sm:text-base mb-3 max-w-xl mx-auto leading-relaxed">Every champion started with a roster of one. Create your team, compete in tournaments, climb {{ brand.features.ranking_points }} Rankings, and build a legacy that lasts. Your stats, trophies, and match history are permanent — this isn't casual, this is your career.</p>
         <p class="text-gray-400 text-sm mb-6">Independent teams can be scouted and acquired by Organizations — turning your passion into a profession.</p>
         <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
             {% if user.is_authenticated %}
@@ -2459,10 +2460,9 @@ img[loading="lazy"] {
             <!-- Brand Column -->
             <div>
                 <div class="flex items-center gap-3 mb-4">
-                    <img src="{% static 'img/deltaCrown_logos/logo_animated.svg' %}" alt="DeltaCrown" class="h-10 w-10 drop-shadow-lg">
-                    <img src="{% static 'siteui/svg/Logos/DeltaCrown_Teal-Purple-Gold.svg' %}" alt="DeltaCrown" class="h-7 w-auto">
+                    {% include "partials/brand_logo.html" %}
                 </div>
-                <p class="text-sm text-gray-400 leading-relaxed mb-5 max-w-xs">DeltaCrown connects teams, tournaments, rankings, and competitive records in one platform.</p>
+                <p class="text-sm text-gray-400 leading-relaxed mb-5 max-w-xs">{{ brand.name }} connects teams, tournaments, rankings, and competitive records in one platform.</p>
                 <!-- Social Icons -->
                 <div class="flex items-center gap-3">
                     <a href="https://discord.gg/UaHRC8Cd" target="_blank" rel="noopener" class="w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 hover:text-[#5865F2] hover:bg-[#5865F2]/10 hover:border-[#5865F2]/30 transition-all" title="Discord">
@@ -2494,7 +2494,7 @@ img[loading="lazy"] {
                     <li><a href="/orgs/" class="hover:text-dc-cyan transition-colors flex items-center gap-1.5"><i data-lucide="building-2" class="w-3.5 h-3.5 text-gray-600"></i>Organizations</a></li>
                     <li><a href="/teams/" class="hover:text-dc-cyan transition-colors flex items-center gap-1.5"><i data-lucide="users" class="w-3.5 h-3.5 text-gray-600"></i>Team Directory</a></li>
                     <li><a href="/tournaments/" class="hover:text-dc-cyan transition-colors flex items-center gap-1.5"><i data-lucide="trophy" class="w-3.5 h-3.5 text-gray-600"></i>Tournaments</a></li>
-                    <li><a href="/about/" class="hover:text-dc-cyan transition-colors flex items-center gap-1.5"><i data-lucide="info" class="w-3.5 h-3.5 text-gray-600"></i>About DeltaCrown</a></li>
+                    <li><a href="/about/" class="hover:text-dc-cyan transition-colors flex items-center gap-1.5"><i data-lucide="info" class="w-3.5 h-3.5 text-gray-600"></i>About {{ brand.name }}</a></li>
                 </ul>
             </div>
 
@@ -2506,7 +2506,7 @@ img[loading="lazy"] {
                     <li><a href="/contact/" class="hover:text-dc-cyan transition-colors">Contact Us</a></li>
                     <li><a href="/rules/" class="hover:text-dc-cyan transition-colors">Platform Rules</a></li>
                     <li><a href="/moderation/" class="hover:text-dc-cyan transition-colors">Moderation Policy</a></li>
-                    <li><a href="/about/" class="hover:text-dc-cyan transition-colors">About DeltaCrown</a></li>
+                    <li><a href="/about/" class="hover:text-dc-cyan transition-colors">About {{ brand.name }}</a></li>
                 </ul>
             </div>
 
@@ -2524,10 +2524,10 @@ img[loading="lazy"] {
         <!-- Bottom bar -->
         <div class="border-t border-white/[0.06] pt-5">
             <div class="flex flex-col sm:flex-row justify-between items-center gap-3">
-                <p class="text-xs text-gray-600">&copy; {% now "Y" %} DeltaCrown. All rights reserved.</p>
+                <p class="text-xs text-gray-600">&copy; {% now "Y" %} {{ brand.name }}. All rights reserved.</p>
                 <div class="flex items-center gap-4">
                     <span class="text-xs text-gray-700 hidden sm:inline">Built with</span>
-                    <span class="text-xs text-gray-600 font-medium">From the Delta to the Crown 👑</span>
+                    <span class="text-xs text-gray-600 font-medium">{{ brand.tagline }} 👑</span>
                 </div>
             </div>
         </div>
@@ -2535,7 +2535,7 @@ img[loading="lazy"] {
 </footer>
 
 <!-- ========== BACK TO TOP ========== -->
-<button class="back-to-top" id="back-to-top">
+<button class="back-to-top" id="back-to-top" aria-label="Back to top">
     <i data-lucide="chevron-up" class="w-4 h-4 text-gray-400"></i>
 </button>
 
@@ -3007,8 +3007,8 @@ function selectGame(slug, el) {
             const standingsP = document.querySelector('#rankings-list')?.closest('.glass')?.querySelector('p.text-sm.text-gray-400');
             if (standingsP) {
                 standingsP.textContent = slug === 'all'
-                    ? 'Top teams across all titles based on Crown Points (CP).'
-                    : `Top teams in ${data.game_display} based on Crown Points (CP).`;
+                    ? 'Top teams across all titles based on Ranking Points (RP).'
+                    : `Top teams in ${data.game_display} based on Ranking Points (CP).`;
             }
 
             // Render rankings

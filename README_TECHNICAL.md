@@ -1,4 +1,8 @@
-# DeltaCrown Platform - Bootstrap & Technical Guide
+<a id="deltacrown-platform---bootstrap--technical-guide"></a>
+
+# OwnLobby architecture reference (historical DeltaCrown overview)
+
+> Historical architecture overview: examples and completion/scalability claims are not current verified behavior. Use [README](README.md), [documentation guide](OWNLOBBY_DOCUMENTATION_GUIDE.md) and current release reports for supported setup/status.
 
 **Status**: Production-ready configuration  
 **Last Updated**: 2026-02-02  

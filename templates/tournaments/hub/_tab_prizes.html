@@ -79,7 +79,7 @@
                 </div>
                 <h2 class="text-3xl md:text-4xl font-black text-[#00F0FF] tracking-tight"
                     style="font-family:Outfit,sans-serif; text-shadow:0 0 30px rgba(0,229,255,0.35);">
-                  <span id="prize-engine-coins">0</span> DC
+                  <span id="prize-engine-coins">0</span> {{ brand.features.coins }}
                 </h2>
               </div>
             </div>
@@ -190,7 +190,7 @@
         <label for="claim-payout-method" class="block text-xs font-bold text-gray-400 mb-2">Payout Method</label>
         <select id="claim-payout-method"
                 class="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-[#00F0FF]/50 focus:outline-none transition">
-          <option value="deltacoin">DeltaCoin Wallet</option>
+          <option value="deltacoin">{{ brand.features.coins }} Wallet</option>
           <option value="bkash">bKash</option>
           <option value="nagad">Nagad</option>
           <option value="rocket">Rocket</option>

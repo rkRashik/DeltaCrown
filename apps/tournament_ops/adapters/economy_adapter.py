@@ -7,6 +7,8 @@ refunds, balance queries) without direct imports from apps.economy.models.
 Wired to apps.economy.services (credit/debit/get_balance) in Phase 1.
 """
 
+from deltacrown.branding import brand_copy
+
 from typing import Protocol, runtime_checkable, Dict, Any, Optional
 import logging
 
@@ -179,7 +181,7 @@ class EconomyAdapter(BaseAdapter):
         except Exception as e:
             err_str = str(e).lower()
             if 'insufficient' in err_str:
-                raise PaymentFailedError(f"Insufficient DeltaCoin balance for {amount} DC fee")
+                raise PaymentFailedError(f"Insufficient {brand_copy('[[coins]]')} balance for {amount} DC fee")
             if 'idempotency' in err_str:
                 raise PaymentFailedError(f"Duplicate charge attempt for tournament #{tournament_id}")
             logger.error("EconomyAdapter.charge_registration_fee failed: %s", e)

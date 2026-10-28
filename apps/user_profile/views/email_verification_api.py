@@ -3,6 +3,8 @@ Simplified Email Verification API
 - Primary email: Already verified, just copy it (no OTP needed)
 - Custom email: Send OTP and verify
 """
+
+from deltacrown.branding import brand_copy
 import secrets
 import string
 import json
@@ -87,18 +89,8 @@ def send_verification_otp(request):
         cache.set(attempt_key, attempts + 1, timeout=3600)
         
         # Send email
-        subject = 'Verify Your Public Email - DeltaCrown'
-        message = f"""Hi {request.user.username},
-
-Your verification code is: {otp}
-
-This code will expire in 10 minutes.
-
-If you didn't request this verification, please ignore this email.
-
-Best regards,
-DeltaCrown Team
-        """
+        subject = brand_copy('Verify Your Public Email - [[brand]]')
+        message = f"Hi {request.user.username},\n\nYour verification code is: {otp}\n\nThis code will expire in 10 minutes.\n\nIf you didn't request this verification, please ignore this email.\n\nBest regards,\n{brand_copy('[[brand]]')} Team\n        "
         
         try:
             send_mail(

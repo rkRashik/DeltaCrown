@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
-{% block title %}Verify Email — DeltaCrown{% endblock %}
+{% block title %}Verify Email — {{ brand.name }}{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'siteui/css/auth.css' %}" />
@@ -14,8 +14,7 @@
     <div class="auth-card">
         <div class="auth-header">
             <a href="/" class="auth-logo">
-                <img src="{% static 'img/deltaCrown_logos/logo.svg' %}" alt="DeltaCrown logo">
-                DeltaCrown
+                {% include "partials/brand_logo.html" %}
             </a>
             <h1 class="auth-form-title">Verify Your Email</h1>
             <p class="auth-form-subtitle">Enter the 6-digit code sent to your email</p>

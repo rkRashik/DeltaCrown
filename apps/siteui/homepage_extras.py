@@ -8,6 +8,8 @@ Cached for 10 minutes via apps.siteui.cache_safe.
 
 from __future__ import annotations
 
+from deltacrown.branding import brand_copy
+
 from datetime import timedelta
 from decimal import Decimal
 from typing import Any, Dict, List, Optional
@@ -530,7 +532,7 @@ def _ticker_items(limit: int = 14) -> List[Dict[str, str]]:
     # Pad with platform-truth fallbacks so the marquee never looks sparse.
     if len(items) < 8:
         fallbacks = [
-            {"kind": "info", "text": "Crown Points · 6 tiers · ELO-scaled"},
+            {"kind": "info", "text": brand_copy("[[ranking_points]] · 6 tiers · ELO-scaled")},
             {"kind": "info", "text": "Escrow-backed reward operations"},
             {"kind": "info", "text": "Verified results · audit trail"},
             {"kind": "info", "text": "Showdown · Missions · Bounty · Dropzone"},
@@ -1067,12 +1069,12 @@ def _ecosystem_modules() -> List[Dict[str, str]]:
         {"icon": "fa-crosshairs",      "name": "Competitive Hub",   "color": "violet",
          "blurb": "Showdown, Missions, Bounty, and Dropzone — escrow-backed reward matches that live alongside tournaments."},
         # Position 6 — bento-coin (span-2 DeltaCoin animation cell)
-        {"icon": "fa-coins",           "name": "DeltaCoin",         "color": "gold",
-         "blurb": "Closed-loop utility currency. Earn by competing and progressing; spend on entries, services, and Crown Store items."},
+        {"icon": "fa-coins",           "name": brand_copy("[[coins]]"),         "color": "gold",
+         "blurb": brand_copy("Closed-loop utility currency. Earn by competing and progressing; spend on entries, services, and [[store]] items.")},
         # Positions 7–8 — regular cells
         {"icon": "fa-chart-line",      "name": "Rankings & Seasons","color": "teal",
-         "blurb": "Crown Points across 6 tiers. ELO-scaled, anti-farming protected, seasonal soft-resets, and verified-only results."},
-        {"icon": "fa-bag-shopping",    "name": "Crown Store",       "color": "violet",
+         "blurb": brand_copy("[[ranking_points]] across 6 tiers. ELO-scaled, anti-farming protected, seasonal soft-resets, and verified-only results.")},
+        {"icon": "fa-bag-shopping",    "name": brand_copy("[[store]]"),       "color": "violet",
          "blurb": "Team merch, gear, digital products, and competitive entries. Orgs monetize directly; brands plug into a verified audience."},
     ]
 
@@ -1119,7 +1121,7 @@ def _personas() -> List[Dict[str, Any]]:
             "bullets": [
                 "Public profile with verified match history",
                 "Game Passports across 11 titles",
-                "Crown Points · Rookie → The Crown",
+                brand_copy("[[ranking_points]] · Rookie → The Crown"),
                 "Free agency and team discovery",
                 "Showdown, Missions, Bounty, Dropzone",
                 "Reputation signals and achievements",
@@ -1138,7 +1140,7 @@ def _personas() -> List[Dict[str, Any]]:
                 "Recruitment positions and join requests",
                 "Team HQ — scrims, tryouts, VOD review",
                 "Persistent identity across games",
-                "Branding, kits, and Crown Store presence",
+                brand_copy("Branding, kits, and [[store]] presence"),
                 "Tournament participation and rankings",
             ],
             "primary_cta": {"text": "Build a team", "url": "/teams/"},
@@ -1172,11 +1174,11 @@ def _personas() -> List[Dict[str, Any]]:
                 "Event activation across 11 titles",
                 "Verified competitive output metrics",
                 "Co-branded prize pools",
-                "Crown Store placement",
+                brand_copy("[[store]] placement"),
                 "Long-term brand presence",
             ],
             "primary_cta": {"text": "Get in touch", "url": "/about/"},
-            "secondary_cta": {"text": "About DeltaCrown", "url": "/about/"},
+            "secondary_cta": {"text": brand_copy("About [[brand]]"), "url": "/about/"},
         },
     ]
 
@@ -1207,8 +1209,8 @@ def _comparison_rows() -> List[Dict[str, str]]:
         {
             "old_icon": "fa-eye-slash",      "old_title": "Results that don't count",
             "old_blurb": "Wins evaporate. There's no shared history, no rank, no proof when scouts come asking.",
-            "new_icon": "fa-chart-line",     "new_title": "Crown Points & history",
-            "new_blurb": "Verified results move your Crown Points and stack into a competitive résumé that travels.",
+            "new_icon": "fa-chart-line",     "new_title": brand_copy("[[ranking_points]] & history"),
+            "new_blurb": brand_copy("Verified results move your [[ranking_points]] and stack into a competitive résumé that travels."),
         },
     ]
 
@@ -1223,7 +1225,7 @@ def _testimonials() -> List[Dict[str, str]]:
             "color": "teal",
         },
         {
-            "quote": "Verified wins can move from screenshots into Crown Points, team history, and a profile record players can show.",
+            "quote": brand_copy("Verified wins can move from screenshots into [[ranking_points]], team history, and a profile record players can show."),
             "name": "Team captain flow",
             "context": "Ranking history · Valorant",
             "color": "violet",
@@ -1240,7 +1242,7 @@ def _testimonials() -> List[Dict[str, str]]:
 def _roadmap_items() -> List[Dict[str, str]]:
     return [
         {"phase": "Live now", "tone": "live",
-         "items": "Tournaments, Teams, Crown Points seasons, Showdown, Bounty, Missions, Dropzone, Crown Store, Game Passports."},
+         "items": brand_copy("Tournaments, Teams, [[ranking_points]] seasons, Showdown, Bounty, Missions, Dropzone, [[store]], Game Passports.")},
         {"phase": "Shipping next", "tone": "next",
          "items": "Public Dropzone detail pages, richer proof upload, dispute review UI, Team HQ training calendar, ranking momentum surfaces."},
         {"phase": "On the horizon", "tone": "soon",
@@ -1265,12 +1267,12 @@ def _path_stages() -> List[Dict[str, str]]:
     return [
         {"num": "01", "color": "teal",   "icon": "fa-user-plus",
          "title": "Sign up & link your games",
-         "blurb": "Create your DeltaCrown account, link game IDs through Game Passports, and set up your public profile.",
+         "blurb": brand_copy("Create your [[brand]] account, link game IDs through Game Passports, and set up your public profile."),
          "tag": "Free · ~2 minutes"},
         {"num": "02", "color": "violet", "icon": "fa-bolt",
          "title": "Compete to climb",
-         "blurb": "Enter free or paid tournaments, accept Showdowns, take on Missions and Bounties. Every verified result moves your Crown Points.",
-         "tag": "Crown Points · 6 tiers"},
+         "blurb": brand_copy("Enter free or paid tournaments, accept Showdowns, take on Missions and Bounties. Every verified result moves your [[ranking_points]]."),
+         "tag": brand_copy("[[ranking_points]] · 6 tiers")},
         {"num": "03", "color": "gold",   "icon": "fa-users",
          "title": "Find a team",
          "blurb": "Join an active roster, scout free agents, or start your own organization. Recruitment, tryouts, and scrims happen in Team HQ.",

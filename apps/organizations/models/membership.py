@@ -5,6 +5,8 @@ TeamMembership represents a user's role on a team roster, including
 their organizational role, roster slot, and tournament captain status.
 """
 
+from apps.common.media.fields import MediaFileField, MediaImageField
+
 from django.db import models
 from django.contrib.auth import get_user_model
 from django.db.models import Q
@@ -124,7 +126,7 @@ class TeamMembership(models.Model):
         blank=True,
         help_text="Custom display name for this team (overrides global display_name)"
     )
-    roster_image = models.ImageField(
+    roster_image = MediaImageField(
         upload_to='roster_photos/',
         blank=True,
         null=True,

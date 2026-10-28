@@ -169,7 +169,7 @@ class TeamCreateModern {
                 this.formData.name = name;
                 return true;
             } else {
-                this.setValidationState(feedback, 'invalid', 'This team name is already in use on DeltaCrown. Try a variation or add your region (e.g., "Dhaka Dragons BD").');
+                this.setValidationState(feedback, 'invalid', 'This team name is already in use on OwnLobby. Try a variation or add your region (e.g., "Dhaka Dragons BD").');
                 return false;
             }
         } catch (error) {
@@ -374,7 +374,7 @@ class TeamCreateModern {
                 const goToTeamBtn = document.getElementById('go-to-existing-team');
                 
                 if (message && goToTeamBtn) {
-                    message.innerHTML = `You're already a member of <strong>${data.team.name}</strong> (${data.team.tag}) for <strong>${this.formData.gameName}</strong> on DeltaCrown. You can only belong to one active team per game. To create a new ${this.formData.gameName} team, you must leave your current team first.`;
+                    message.innerHTML = `You're already a member of <strong>${data.team.name}</strong> (${data.team.tag}) for <strong>${this.formData.gameName}</strong> on OwnLobby. You can only belong to one active team per game. To create a new ${this.formData.gameName} team, you must leave your current team first.`;
                     goToTeamBtn.href = `/teams/${data.team.slug}/`;
                     goToTeamBtn.style.display = 'inline-flex';
                 }
@@ -707,7 +707,7 @@ class TeamCreateModern {
                 termsError.style.display = 'flex';
                 termsError.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }
-            this.showToast('You must agree to the DeltaCrown Team Terms & Guidelines', 'error');
+            this.showToast('You must agree to the OwnLobby Team Terms & Guidelines', 'error');
             return false;
         }
 

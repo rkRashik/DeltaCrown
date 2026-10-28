@@ -235,7 +235,8 @@ class TOCRostersService:
                     }
 
                     # Build players from lineup_snapshot (authoritative player list)
-                    snapshot = reg.lineup_snapshot or []
+                    from apps.common.media.snapshots import lineup_with_current_avatars
+                    snapshot = lineup_with_current_avatars(reg.lineup_snapshot or [])
                     for entry in snapshot:
                         uid = entry.get("user_id")
                         slot = entry.get("roster_slot", "STARTER")

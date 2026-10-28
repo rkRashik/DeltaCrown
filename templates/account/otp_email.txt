@@ -1,6 +1,7 @@
+{% load branding %}{% brand_config as brand %}
 Hi {{ user.username }},
 
-Your DeltaCrown verification code is:
+Your {{ brand.name }} verification code is:
 
     {{ code }}
 
@@ -8,5 +9,5 @@ This code expires in {{ expires_in_minutes }} minutes.
 
 If you didn't request this code, you can safely ignore this email. Never share this code with anyone.
 
-— DeltaCrown Esports
-https://deltacrown.com
+— {{ brand.name }} Esports
+{{ site_url }}

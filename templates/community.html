@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
-{% block title %}Community — DeltaCrown{% endblock %}
+{% block title %}Community — {{ brand.name }}{% endblock %}
 
 {% block content %}
 <main id="community" class="min-h-screen">
@@ -17,7 +17,7 @@
     <div class="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10 sm:py-16">
       <div class="grid gap-8 lg:grid-cols-[1.2fr,0.8fr] items-start">
         <header class="space-y-4">
-          <p class="text-xs tracking-widest uppercase text-[color:var(--muted)]">From the Delta to the Crown</p>
+          <p class="text-xs tracking-widest uppercase text-[color:var(--muted)]">{{ brand.tagline }}</p>
           <h1 class="font-extrabold leading-tight tracking-tight" style="font-size: var(--h1);">
             Your Esports Command Center
           </h1>
@@ -76,7 +76,7 @@
                style="background: linear-gradient(135deg, color-mix(in oklab, var(--brand-delta) 14%, transparent), transparent 55%, color-mix(in oklab, var(--brand-crown) 12%, transparent));"></div>
           <div class="p-6">
             <div class="flex items-center gap-3">
-              <img src="{% static 'siteui/svg/logo-deltacrown.svg' %}" alt="" class="h-10 w-10">
+              <img src="{% static brand.symbol_dark %}" alt="" class="h-10 w-10">
               <div>
                 <div class="text-sm text-[color:var(--muted)]">Weekly Spotlight</div>
                 <h3 class="font-semibold">Top Guides & Clips</h3>
@@ -390,7 +390,7 @@
       <!-- Share -->
       <div class="card">
         <div class="p-5">
-          <h3 class="font-semibold">Share DeltaCrown</h3>
+          <h3 class="font-semibold">Share {{ brand.name }}</h3>
           <p class="text-sm text-[color:var(--muted)]">Invite your friends to join the community.</p>
           <div class="mt-3 flex flex-wrap gap-2">
             <button class="btn btn-soft" id="btn-share">Copy link</button>
@@ -435,7 +435,7 @@
               <article class="card overflow-hidden">
                 <div class="p-5">
                   <div class="flex items-center gap-3">
-                    <img src="{{ c.avatar_url|default:'/static/siteui/svg/logo-deltacrown.svg' }}" alt="" class="h-10 w-10 rounded-xl border border-[color:var(--border)] object-cover">
+                    <img src="{{ c.avatar_url|default:'/static/ownlobby/logos/symbol-dark.svg' }}" alt="" class="h-10 w-10 rounded-xl border border-[color:var(--border)] object-cover">
                     <div><div class="font-medium">{{ c.name }}</div><div class="text-sm text-[color:var(--muted)]">{{ c.followers|default:"—" }} followers</div></div>
                   </div>
                   <div class="mt-4 flex gap-2">

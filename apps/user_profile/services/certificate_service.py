@@ -14,6 +14,8 @@ Usage:
     certificate = generate_tournament_certificate(user, tournament, placement=1)
 """
 
+from deltacrown.branding import brand_copy
+
 import logging
 import secrets
 from datetime import datetime
@@ -23,6 +25,7 @@ from django.core.files.base import ContentFile
 from django.core.mail import send_mail
 from django.conf import settings
 from django.template.loader import render_to_string
+from django.contrib.staticfiles import finders
 from apps.user_profile.models import Certificate
 
 logger = logging.getLogger(__name__)
@@ -116,7 +119,7 @@ def create_certificate_image(user, tournament, placement, prize_amount=None):
     
     # Prize amount (if applicable)
     if prize_amount and prize_amount > 0:
-        prize_text = f"Prize: {prize_amount:,} DeltaCoins"
+        prize_text = f"Prize: {prize_amount:,} {brand_copy('[[coins]]')}"
         bbox = draw.textbbox((0, 0), prize_text, font=details_font)
         prize_width = bbox[2] - bbox[0]
         draw.text(((width - prize_width) / 2, y_offset), prize_text, fill='#10B981', font=details_font)
@@ -128,11 +131,11 @@ def create_certificate_image(user, tournament, placement, prize_amount=None):
     date_width = bbox[2] - bbox[0]
     draw.text(((width - date_width) / 2, y_offset), date_text, fill='#64748B', font=small_font)
     
-    # DeltaCrown branding
-    brand_text = "DeltaCrown Esports Platform"
-    bbox = draw.textbbox((0, 0), brand_text, font=small_font)
-    brand_width = bbox[2] - bbox[0]
-    draw.text(((width - brand_width) / 2, height - 80), brand_text, fill='#475569', font=small_font)
+    # Supplied dual-color artwork; existing stored certificates stay untouched.
+    with Image.open(finders.find('ownlobby/logos/primary-horizontal-dark.png')) as master:
+        logo = master.convert('RGBA')
+        logo.thumbnail((400, 88), Image.Resampling.LANCZOS)
+        img.paste(logo, ((width - logo.width) // 2, height - 110), logo)
     
     # Save to BytesIO
     output = BytesIO()
@@ -259,20 +262,7 @@ def send_certificate_email(user, certificate, tournament, placement):
     }
     
     html_message = render_to_string('emails/certificate_issued.html', context)
-    plain_message = f"""
-Congratulations {user.profile.display_name or user.username}!
-
-You've earned {placement_text} in {tournament.name}!
-
-Your tournament certificate is ready. View it in your profile:
-{settings.SITE_URL}/me/certificates/
-
-Verification Code: {certificate.verification_code}
-
-Keep competing and climbing the ranks!
-
-- DeltaCrown Team
-    """
+    plain_message = f"\nCongratulations {user.profile.display_name or user.username}!\n\nYou've earned {placement_text} in {tournament.name}!\n\nYour tournament certificate is ready. View it in your profile:\n{settings.SITE_URL}/me/certificates/\n\nVerification Code: {certificate.verification_code}\n\nKeep competing and climbing the ranks!\n\n- {brand_copy('[[brand]]')} Team\n    "
     
     send_mail(
         subject=subject,

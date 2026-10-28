@@ -1349,9 +1349,9 @@ def create_team(request: Request) -> Response:
                         if invite_email:
                             already_invited_emails.add(invite_email)
                             try:
-                                subject = f"[DeltaCrown] Team invite: {team.name}"
+                                subject = f"[{settings.BRAND['name']}] Team invite: {team.name}"
                                 body = (
-                                    f"{request.user.username} invited you to join {team.name} on DeltaCrown as a PLAYER.\n\n"
+                                    f"{request.user.username} invited you to join {team.name} on {settings.BRAND['name']} as a PLAYER.\n\n"
                                     + (f"Open your invites: {invites_url}\n\n" if invites_url else "")
                                     + "If you don't have an account yet, sign up using this email to see and accept the invite."
                                 )

@@ -1560,7 +1560,7 @@
                     nagad: 'Nagad',
                     rocket: 'Rocket',
                     bank_transfer: 'Bank Transfer',
-                    deltacoin: 'DeltaCoin',
+                    deltacoin: 'Coins',
                 };
                 return labels[method] || (method ? method.charAt(0).toUpperCase() + method.slice(1) : 'Method');
             }
@@ -1598,7 +1598,7 @@
             + '<div><label class="block text-xs text-dc-text mb-1">Provider</label>'
             + '<select id="pm-method" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50" data-change="TOC.settings.syncPaymentMethodFields">'
             + '<option value="bkash">bKash</option><option value="nagad">Nagad</option><option value="rocket">Rocket</option>'
-            + '<option value="bank_transfer">Bank Transfer</option><option value="deltacoin">DeltaCoin</option></select></div>'
+            + '<option value="bank_transfer">Bank Transfer</option><option value="deltacoin">Coins</option></select></div>'
             + '<div id="pm-fields"></div>'
             + '<div class="flex items-center gap-2">'
             + '<button id="pm-submit-add" data-click="TOC.settings.confirmAddPaymentMethod" class="flex-1 py-2 rounded-lg bg-theme text-black text-sm font-bold hover:opacity-90">Add Method</button>'
@@ -1762,7 +1762,7 @@
         if (!m) { toast('Payment method not found', 'error'); return; }
 
         var method = m.method || 'deltacoin';
-        var labels = { bkash: 'bKash', nagad: 'Nagad', rocket: 'Rocket', bank_transfer: 'Bank Transfer', deltacoin: 'DeltaCoin' };
+        var labels = { bkash: 'bKash', nagad: 'Nagad', rocket: 'Rocket', bank_transfer: 'Bank Transfer', deltacoin: 'Coins' };
         var label = labels[method] || (method.charAt(0).toUpperCase() + method.slice(1));
         showOverlay('Edit Payment Method: ' + label, '<div class="space-y-4">'
             + '<div><label class="block text-xs text-dc-text mb-1">Provider</label>'

@@ -5,6 +5,8 @@ FE-T-001: Tournament List/Discovery Page
 Extracted from main.py during Phase 3 restructure.
 """
 
+from deltacrown.branding import brand_copy
+
 from django.views.generic import ListView
 from django.db.models import Q, Count
 from django.core.cache import cache
@@ -244,10 +246,10 @@ class TournamentListView(ListView):
             self.request.GET.get('free_only'),
         ])
         context['seo'] = build_seo(
-            title="Esports Tournaments | DeltaCrown",
+            title=brand_copy("Esports Tournaments | [[brand]]"),
             description=(
-                "Discover DeltaCrown esports tournaments across Bangladesh and South Asia, "
-                "with registration, Match Rooms, brackets, results, teams, and Crown Points progression."
+                brand_copy("Discover [[brand]] esports tournaments across Bangladesh and South Asia, "
+                "with registration, Match Rooms, brackets, results, teams, and [[ranking_points]] progression.")
             ),
             path="/tournaments/",
             noindex=bool(has_low_value_filter),

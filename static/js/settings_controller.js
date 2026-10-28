@@ -469,7 +469,7 @@ class SettingsController {
     
     deleteAccount() {
         if (confirm('⚠️ This action cannot be undone! Are you absolutely sure you want to delete your account?')) {
-            if (confirm('Final confirmation: Delete your DeltaCrown account permanently?')) {
+            if (confirm('Final confirmation: Delete your OwnLobby account permanently?')) {
                 this.showAlert('info', 'Account deletion requires admin approval. Please contact support@deltacrown.com');
             }
         }

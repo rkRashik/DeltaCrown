@@ -8,6 +8,8 @@ TOC Sprint 9 — Stats, Certificates & Trust Index Models
 §9.5 TrustEvent           — trust index events (+/- delta)
 """
 
+from apps.common.media.fields import MediaFileField, MediaImageField
+
 import uuid
 
 from django.conf import settings
@@ -97,7 +99,7 @@ class CertificateRecord(models.Model):
         default="",
         verbose_name=_("Rendered HTML"),
     )
-    generated_pdf = models.FileField(
+    generated_pdf = MediaFileField(
         upload_to="certificates/",
         blank=True,
         null=True,

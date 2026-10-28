@@ -48,7 +48,9 @@ def sync_wallet_to_profile(wallet_id: int) -> dict:
     
     with transaction.atomic():
         # Lock wallet and profile rows
-        wallet = DeltaCrownWallet.objects.select_for_update().select_related('profile').get(pk=wallet_id)
+        # Lock each base row separately. Joining nullable profile here makes
+        # PostgreSQL reject FOR UPDATE; the profile is explicitly locked below.
+        wallet = DeltaCrownWallet.objects.select_for_update().get(pk=wallet_id)
         profile = UserProfile.objects.select_for_update().get(pk=wallet.profile_id)
         
         # Store before state

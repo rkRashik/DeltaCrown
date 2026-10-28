@@ -8,6 +8,8 @@ Replaces the multi-step wizard with a single intelligent page:
 - One-click submission when ready
 """
 
+from deltacrown.branding import brand_copy
+
 import logging
 import math
 import json
@@ -1378,7 +1380,7 @@ class SmartRegistrationView(LoginRequiredMixin, View):
         card_url = request.build_absolute_uri(card_path)
         hub_url = request.build_absolute_uri(hub_path)
 
-        subject = f"[DeltaCrown] Registration Confirmed - {tournament.name}"
+        subject = f"[{brand_copy('[[brand]]')}] Registration Confirmed - {tournament.name}"
         message = (
             f"Your registration for {tournament.name} is complete.\n\n"
             f"Registration ID: {reg_code}\n"
@@ -1413,8 +1415,7 @@ class SmartRegistrationView(LoginRequiredMixin, View):
             dc_check = PaymentService.can_use_deltacoin(request.user, int(amount))
             if not dc_check['can_afford']:
                 raise ValidationError(
-                    f"Insufficient DeltaCoin balance. "
-                    f"You have {dc_check['balance']} DC but need {int(amount)} DC."
+                    f"Insufficient {brand_copy('[[coins]]')} balance. You have {dc_check['balance']} DC but need {int(amount)} DC."
                 )
 
             try:
@@ -1424,8 +1425,8 @@ class SmartRegistrationView(LoginRequiredMixin, View):
                     idempotency_key=f"reg-{registration.id}-deltacoin"
                 )
             except Exception as e:
-                logger.warning(f"DeltaCoin auto-processing failed: {e}")
-                raise ValidationError(f"DeltaCoin payment failed: {e}")
+                logger.warning(f"{brand_copy('[[coins]]')} auto-processing failed: {e}")
+                raise ValidationError(f"{brand_copy('[[coins]]')} payment failed: {e}")
 
         else:
             # Cash methods (bKash, Nagad, Rocket)

@@ -1,3 +1,5 @@
+
+from apps.common.media.fields import MediaFileField, MediaImageField
 from django.db import models
 from django.urls import reverse
 from django.utils import timezone
@@ -20,7 +22,7 @@ class Category(models.Model):
     slug = models.SlugField(unique=True)
     category_type = models.CharField(max_length=20, choices=CATEGORY_TYPES, default='merchandise')
     description = models.TextField(blank=True)
-    image = models.ImageField(upload_to="categories/", blank=True, null=True, validators=[validate_image_upload])
+    image = MediaImageField(upload_to="categories/", blank=True, null=True, validators=[validate_image_upload])
     icon = models.CharField(max_length=50, blank=True, help_text="Font Awesome icon class")
     is_active = models.BooleanField(default=True)
     sort_order = models.PositiveIntegerField(default=0)
@@ -39,7 +41,7 @@ class Category(models.Model):
 class Brand(models.Model):
     name = models.CharField(max_length=100)
     slug = models.SlugField(unique=True)
-    logo = models.ImageField(upload_to="brands/", blank=True, null=True, validators=[validate_image_upload])
+    logo = MediaImageField(upload_to="brands/", blank=True, null=True, validators=[validate_image_upload])
     description = models.TextField(blank=True)
     is_featured = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
@@ -84,8 +86,8 @@ class Product(SoftDeleteModel):
     rarity = models.CharField(max_length=20, choices=RARITY_LEVELS, default='common')
     
     # Images
-    featured_image = models.ImageField(upload_to="products/", blank=True, null=True, validators=[validate_image_upload])
-    hover_image = models.ImageField(upload_to="products/", blank=True, null=True, validators=[validate_image_upload])
+    featured_image = MediaImageField(upload_to="products/", blank=True, null=True, validators=[validate_image_upload])
+    hover_image = MediaImageField(upload_to="products/", blank=True, null=True, validators=[validate_image_upload])
     
     # Inventory
     stock = models.PositiveIntegerField(default=0)
@@ -151,7 +153,7 @@ class Product(SoftDeleteModel):
 
 class ProductImage(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='images')
-    image = models.ImageField(upload_to="products/", validators=[validate_image_upload])
+    image = MediaImageField(upload_to="products/", validators=[validate_image_upload])
     alt_text = models.CharField(max_length=255, blank=True)
     is_main = models.BooleanField(default=False)
     sort_order = models.PositiveIntegerField(default=0)

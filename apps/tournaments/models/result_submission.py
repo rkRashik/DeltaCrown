@@ -10,6 +10,8 @@ Architecture:
 - No business logic here (pure Django models)
 """
 
+from apps.common.media.fields import MediaFileField, MediaImageField
+
 import uuid
 from django.db import models
 from django.core.validators import FileExtensionValidator
@@ -105,7 +107,7 @@ class MatchResultSubmission(models.Model):
         help_text='URL to proof screenshot (Discord, Imgur, S3, etc.)'
     )
 
-    proof_screenshot = models.ImageField(
+    proof_screenshot = MediaImageField(
         upload_to=_proof_screenshot_upload_to,
         blank=True,
         null=True,

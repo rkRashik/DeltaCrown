@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
-{% block title %}FAQ - DeltaCrown Support{% endblock %}
+{% block title %}FAQ - {{ brand.name }} Support{% endblock %}
 
 {% block content %}
 <main class="min-h-screen bg-[#03050a] text-slate-100">
@@ -11,7 +11,7 @@
         <div>
           <p class="text-xs font-black uppercase tracking-[0.24em] text-cyan-300">Support Center</p>
           <h1 class="mt-3 font-display text-4xl font-black tracking-tight text-white md:text-6xl">Find the right answer fast.</h1>
-          <p class="mt-4 max-w-2xl text-base leading-7 text-slate-300">Practical help for accounts, tournaments, teams, Crown Points, DeltaCoin, competitive modes, proof review, Team HQ, and platform safety.</p>
+          <p class="mt-4 max-w-2xl text-base leading-7 text-slate-300">Practical help for accounts, tournaments, teams, {{ brand.features.ranking_points }}, {{ brand.features.coins }}, competitive modes, proof review, Team HQ, and platform safety.</p>
         </div>
         <form action="{% url 'support:faq' %}" method="get" class="rounded-3xl border border-white/10 bg-white/[0.04] p-3 shadow-2xl shadow-black/30 backdrop-blur">
           <label class="sr-only" for="faq-search">Search support</label>
@@ -83,8 +83,8 @@
             <a class="block rounded-xl px-3 py-2 text-sm font-bold text-slate-300 hover:bg-white/5 hover:text-white" href="#getting-started">Getting Started</a>
             <a class="block rounded-xl px-3 py-2 text-sm font-bold text-slate-300 hover:bg-white/5 hover:text-white" href="#tournaments">Tournaments</a>
             <a class="block rounded-xl px-3 py-2 text-sm font-bold text-slate-300 hover:bg-white/5 hover:text-white" href="#teams">Teams & Organizations</a>
-            <a class="block rounded-xl px-3 py-2 text-sm font-bold text-slate-300 hover:bg-white/5 hover:text-white" href="#wallet">Wallet & DeltaCoin</a>
-            <a class="block rounded-xl px-3 py-2 text-sm font-bold text-slate-300 hover:bg-white/5 hover:text-white" href="#rankings">Crown Points</a>
+            <a class="block rounded-xl px-3 py-2 text-sm font-bold text-slate-300 hover:bg-white/5 hover:text-white" href="#wallet">Wallet & {{ brand.features.coins }}</a>
+            <a class="block rounded-xl px-3 py-2 text-sm font-bold text-slate-300 hover:bg-white/5 hover:text-white" href="#rankings">{{ brand.features.ranking_points }}</a>
             <a class="block rounded-xl px-3 py-2 text-sm font-bold text-slate-300 hover:bg-white/5 hover:text-white" href="#competitive">Competitive Modes</a>
             <a class="block rounded-xl px-3 py-2 text-sm font-bold text-slate-300 hover:bg-white/5 hover:text-white" href="#proofs">Proofs & Disputes</a>
             <a class="block rounded-xl px-3 py-2 text-sm font-bold text-slate-300 hover:bg-white/5 hover:text-white" href="#team-hq">Team HQ</a>
@@ -95,8 +95,8 @@
           <section id="getting-started" class="scroll-mt-24">
             <h2 class="mb-3 text-2xl font-black text-white">Getting Started</h2>
             <div class="space-y-3">
-              <details class="rounded-2xl border border-white/10 bg-white/[0.035] p-5" open><summary class="cursor-pointer font-black">What is DeltaCrown?</summary><p class="mt-3 text-sm leading-7 text-slate-300">DeltaCrown is a connected competitive gaming platform for tournaments, teams, player identity, rankings, wallet records, competitive modes, Team HQ workflows, proof review, and structured operations.</p></details>
-              <details class="rounded-2xl border border-white/10 bg-white/[0.035] p-5"><summary class="cursor-pointer font-black">Do I need an account?</summary><p class="mt-3 text-sm leading-7 text-slate-300">You can browse some public pages without an account. Joining tournaments, managing teams, using the wallet, submitting proofs, and entering competitive modes require a DeltaCrown account.</p></details>
+              <details class="rounded-2xl border border-white/10 bg-white/[0.035] p-5" open><summary class="cursor-pointer font-black">What is {{ brand.name }}?</summary><p class="mt-3 text-sm leading-7 text-slate-300">{{ brand.name }} is a connected competitive gaming platform for tournaments, teams, player identity, rankings, wallet records, competitive modes, Team HQ workflows, proof review, and structured operations.</p></details>
+              <details class="rounded-2xl border border-white/10 bg-white/[0.035] p-5"><summary class="cursor-pointer font-black">Do I need an account?</summary><p class="mt-3 text-sm leading-7 text-slate-300">You can browse some public pages without an account. Joining tournaments, managing teams, using the wallet, submitting proofs, and entering competitive modes require a {{ brand.name }} account.</p></details>
             </div>
           </section>
           <section id="tournaments" class="scroll-mt-24">
@@ -111,12 +111,12 @@
             <details class="rounded-2xl border border-white/10 bg-white/[0.035] p-5"><summary class="cursor-pointer font-black">What can teams manage?</summary><p class="mt-3 text-sm leading-7 text-slate-300">Teams can manage public identity, rosters, roles, recruitment, join requests, tryouts, scrims, practice, VOD review, social links, milestones, sponsors, media, and competitive settings where available.</p></details>
           </section>
           <section id="wallet" class="scroll-mt-24">
-            <h2 class="mb-3 text-2xl font-black text-white">Wallet & DeltaCoin</h2>
-            <details class="rounded-2xl border border-white/10 bg-white/[0.035] p-5"><summary class="cursor-pointer font-black">What is DeltaCoin?</summary><p class="mt-3 text-sm leading-7 text-slate-300">DeltaCoin is a closed-loop platform utility and reward currency used inside DeltaCrown for eligible entries, rewards, wallet records, and platform services. It is not described as an investment or external financial asset.</p></details>
+            <h2 class="mb-3 text-2xl font-black text-white">Wallet & {{ brand.features.coins }}</h2>
+            <details class="rounded-2xl border border-white/10 bg-white/[0.035] p-5"><summary class="cursor-pointer font-black">What is {{ brand.features.coins }}?</summary><p class="mt-3 text-sm leading-7 text-slate-300">{{ brand.features.coins }} is a closed-loop platform utility and reward currency used inside {{ brand.name }} for eligible entries, rewards, wallet records, and platform services. It is not described as an investment or external financial asset.</p></details>
           </section>
           <section id="rankings" class="scroll-mt-24">
-            <h2 class="mb-3 text-2xl font-black text-white">Crown Points & Rankings</h2>
-            <details class="rounded-2xl border border-white/10 bg-white/[0.035] p-5"><summary class="cursor-pointer font-black">What are Crown Points?</summary><p class="mt-3 text-sm leading-7 text-slate-300">Crown Points are DeltaCrown's public progression language for teams and competitive history. Ranking systems are tied to verified competitive activity and continue to evolve across games and seasons.</p></details>
+            <h2 class="mb-3 text-2xl font-black text-white">{{ brand.features.ranking_points }} & Rankings</h2>
+            <details class="rounded-2xl border border-white/10 bg-white/[0.035] p-5"><summary class="cursor-pointer font-black">What are {{ brand.features.ranking_points }}?</summary><p class="mt-3 text-sm leading-7 text-slate-300">{{ brand.features.ranking_points }} are {{ brand.name }}'s public progression language for teams and competitive history. Ranking systems are tied to verified competitive activity and continue to evolve across games and seasons.</p></details>
           </section>
           <section id="competitive" class="scroll-mt-24">
             <h2 class="mb-3 text-2xl font-black text-white">Competitive Modes and Missions</h2>

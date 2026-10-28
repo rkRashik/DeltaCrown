@@ -8,6 +8,8 @@ DC credited to DeltaCrownWallet via DeltaCrownTransaction.
 """
 from __future__ import annotations
 
+from deltacrown.branding import brand_copy
+
 import logging
 from django.db import transaction, IntegrityError
 from django.utils import timezone
@@ -171,7 +173,7 @@ class DailyRewardService:
         if total_dc > 0:
             wallet = DeltaCrownWallet.objects.filter(profile=profile).first()
             if not wallet:
-                raise NoWallet("User has no DeltaCoin wallet.")
+                raise NoWallet(brand_copy('User has no [[coins]] wallet.'))
             from django.db.models import F
             DeltaCrownWallet.objects.filter(pk=wallet.pk).update(
                 cached_balance=F("cached_balance") + total_dc

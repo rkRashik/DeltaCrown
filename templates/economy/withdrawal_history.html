@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}Withdrawal History - DeltaCrown{% endblock %}
+{% block title %}Withdrawal History - {{ brand.name }}{% endblock %}
 
 {% block content %}
 <div class="min-h-screen bg-gray-50 py-8">
@@ -23,19 +23,19 @@
         <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
             <div class="bg-white rounded-lg shadow p-6">
                 <p class="text-sm font-medium text-gray-600 mb-1">Available Balance</p>
-                <p class="text-2xl font-bold text-blue-600">{{ wallet.available_balance }} DC</p>
+                <p class="text-2xl font-bold text-blue-600">{{ wallet.available_balance }} {{ brand.features.coins }}</p>
             </div>
             <div class="bg-white rounded-lg shadow p-6">
                 <p class="text-sm font-medium text-gray-600 mb-1">Total Requested</p>
-                <p class="text-2xl font-bold text-gray-900">{{ total_requested }} DC</p>
+                <p class="text-2xl font-bold text-gray-900">{{ total_requested }} {{ brand.features.coins }}</p>
             </div>
             <div class="bg-white rounded-lg shadow p-6">
                 <p class="text-sm font-medium text-gray-600 mb-1">Completed</p>
-                <p class="text-2xl font-bold text-green-600">{{ total_completed }} DC</p>
+                <p class="text-2xl font-bold text-green-600">{{ total_completed }} {{ brand.features.coins }}</p>
             </div>
             <div class="bg-white rounded-lg shadow p-6">
                 <p class="text-sm font-medium text-gray-600 mb-1">Pending</p>
-                <p class="text-2xl font-bold text-yellow-600">{{ total_pending }} DC</p>
+                <p class="text-2xl font-bold text-yellow-600">{{ total_pending }} {{ brand.features.coins }}</p>
             </div>
         </div>
 
@@ -85,7 +85,7 @@
                             #{{ withdrawal.id }}
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="text-sm font-semibold text-gray-900">{{ withdrawal.amount }} DC</div>
+                            <div class="text-sm font-semibold text-gray-900">{{ withdrawal.amount }} {{ brand.features.coins }}</div>
                             <div class="text-xs text-gray-500">৳{{ withdrawal.bdt_amount }}</div>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">

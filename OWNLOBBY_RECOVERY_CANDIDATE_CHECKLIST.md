@@ -1,0 +1,259 @@
+# OwnLobby media-compatible recovery candidate — staged, not certified
+
+## Baseline and scope
+- This branch was forked from the latest `feature/ownlobby-free-hosting` release and retains the same governed hybrid media implementation.
+- It is a **candidate**, not a proven live rollback. Do not deploy old DeltaCrown SHA after source containment.
+- The release and recovery code have not been exercised together against live Render.
+- Cloudinary: latest operator read-only evidence shows 111 sensitive sources of type `upload`, 0 authenticated, 0 mismatched. Two deliberately public artwork exclusions exist in the inventory.
+- Supabase private media objects were copied and content verified, but an actual full production canary and live restoration proof are still required.
+
+## Read-only checks added on this candidate
+The `--status` command verifies **both** the 111 restricted Cloudinary assets and the two excluded public artworks. It aborts on:
+- any changed asset identity/version/bytes or missing/duplicated delivery state;
+- absent or altered approved public exclusions;
+- any provider read errors.
+It does not call `rename` or `destroy`. Run it before and after coordinated cutover to reconcile partial state without publishing identifying URLs.
+
+## Verified Supabase live metadata (2026-10-28, read-only)
+
+The connected production Supabase project `DeltaCrown` (region `ap-south-1`)
+was queried directly. This replaces the older *source-only* bucket assumptions:
+
+- `ownlobby-private-media`: `public=false`, exactly **125** object rows,
+  **125 unique object names**, **109,908,333 total metadata bytes**.
+- All 125 object metadata size fields are present and greater than zero.
+- `ownlobby-public-media`: private, zero objects; `screenshots`: private,
+  zero objects.
+- Storage `objects` and `buckets` have PostgreSQL RLS enabled, with zero
+  policies; direct anon/authenticated row access is default-denied by RLS,
+  although SQL table grants alone still exist. S3 access-key authorization is
+  separate and may bypass RLS. These are not equivalent to anonymous HTTP
+  denial tests on Cloudinary.
+- Latest storage record update in this inspection was 2026-10-27 UTC.
+- No writes, ACL changes, service settings changes or secret reads occurred.
+
+The read-only private-origin probe now **requires exactly 125 objects with
+exactly 109,908,333 summed HEAD ContentLength bytes**. Any new uploads or
+divergent sizes intentionally stop rehearsal for inventory reconciliation.
+This check still cannot prove per-object checksum, backup restoration or
+application authorization. Leave all three `MEDIA_*_VERIFIED` flags false
+until their separately specified acceptance tests really pass.
+
+## Live private-origin readiness canary (no production writes)
+The standalone `scripts/private_media_probe.py` checks the approved existing
+`ownlobby-private-media` bucket using the existing server-only S3 credentials.
+It lists the private origin, confirms at least 125 migrated object entries,
+HEAD-checks every listed object, and performs five one-byte authenticated
+Range reads. It also requires anonymous/unsigned S3 HEAD and GET rejection for the same five samples (10 denials), without displaying object keys or URLs. It writes nothing and never displays credentials.
+
+From the project root, with the approved private S3 `MEDIA_PRIVATE_*` values
+in local `.env` or environment, run:
+
+```powershell
+.\.venv\Scripts\python.exe scripts\private_media_probe.py
+```
+
+Successful output begins `PRIVATE_ORIGIN_READ_ONLY_PASS` and includes `UNSIGNED_GET_HEAD_DENIALS: 10` when both anonymous methods are rejected. Failure prints
+only a generic exception type and exits nonzero. The offline regression suite
+is `python -m unittest tests.test_private_media_probe`.
+
+**Evidence boundary:** This verifies signed S3 connectivity and unsigned S3 origin denial for five sample objects. It does not certify HTTP delivery paths through Django or public Cloudinary CDN access. This is read-only S3 connectivity and object
+presence, not content checksums against the confidential migration manifest,
+not an independent restore, not a live Render deployment, not anonymous
+Cloudinary URL invalidation and not record-level authorization. Do not set
+`MEDIA_STORAGE_VERIFIED`, `MEDIA_RESTORE_VERIFIED` or
+`MEDIA_LEGACY_PRIVACY_VERIFIED` solely from this output.
+
+## Operator-confirmed private-origin canary (2026-10-28)
+
+The operator refreshed the OwnLobby release branch and ran the read-only
+`python scripts/private_media_probe.py` against the configured Supabase origin.
+Observed sanitized result:
+
+```text
+PRIVATE_ORIGIN_READ_ONLY_PASS
+OBJECTS_HEAD_VERIFIED: 125
+SIGNED_READS: 5
+NOT VERIFIED: backup restoration, anonymous URL denial, record authorization
+```
+
+This verifies live authenticated S3 read ability, HEAD visibility for every
+audited object and exact size/count checks. It did not mutate any object.
+It is **not** an app authorization canary or an independent restore. The
+Cloudinary 111-asset containment and anonymous URL checks remain outstanding.
+
+## Production reference reconciliation — read-only, 2026-10-28
+
+Supabase SQL counts only (no private URL, username, chat content or asset ID
+retrieved):
+
+- 34 registration records; **one** `lineup_snapshot` record currently embeds
+  six `res.cloudinary.com` references. Earlier inventory cited 60 total avatar
+  entries; this is not the same as six actual Cloudinary URLs. The existing
+  `lineup_with_current_avatars` read-time resolver handles roster snapshots.
+- Six `match_engine_chat_message.avatar_url` records directly retain the old
+  Cloudinary host. Before this audit, persisted chat history replayed those
+  frozen URLs. The OwnLobby release now replaces *all* historical chat avatars
+  at read time using one profile batch query and governed route URLs; missing
+  profiles become blank. No chat rows were rewritten.
+- No Cloudinary host references were found in the specifically inspected
+  notification image/avatar URLs, result screenshot URL, team media file URL,
+  contract proof URL or bounty proof URL fields. This is not a full dynamic
+  scan of every JSON, HTML and text field.
+
+**Release impact:** Do not deploy the earlier recovery candidate lacking the
+match-chat fix after the asset cutover. Re-run focused chat/roster regression
+tests and reconcile any new Cloudinary references before protecting sources.
+
+## Operator-verified independent encrypted media restoration — 2026-10-28
+
+Using the latest release script `scripts/ownlobby_encrypted_media_recovery.py`,
+the operator downloaded the private origin into a **new encrypted local backup**,
+then ran a separate Python process to decrypt and verify temporary recovered
+copies in a distinct directory. Sanitized operator evidence:
+
+```text
+ENCRYPTED_BACKUP_COMPLETE
+ENCRYPTED_BACKUP_OFFLINE_RESTORE_PASS
+RESTORED_PRIVATE_OBJECTS: 125
+RESTORED_BYTES: 109908333
+NO_PRODUCTION_WRITES_OR_DATABASE_CHANGES
+MEDIA_ONLY_INDEPENDENT_LOCAL_RECOVERY_PASS
+```
+
+Backup and separate encryption key remain in distinct folders under the
+operator's Windows user home. They are **on the same computer**, so this is
+not yet disaster-proof off-machine backup. No secrets or asset identifiers
+were committed. The independent local media-only restoration is **PASS**.
+
+**Still not certified:** PostgreSQL/database restore; recovery on a separate
+Render web service; post-restart durable production media operation; old CDN
+versioned/transformed cache denial. These require different evidence. Do not
+set `MEDIA_RESTORE_VERIFIED=1` merely because the media-only restore passed
+when the release gate also calls for independent DB and live runtime recovery.
+
+## Verified owner/non-owner record media canary — 2026-10-28
+
+The operator ran `scripts/ownlobby_media_record_canary.py` using the current
+release branch against real production Supabase data with read-only SQL.
+Observed, sanitized evidence:
+
+```text
+DJANGO_RECORD_MEDIA_PASS
+ANONYMOUS_DENIALS: 2
+NONOWNER_DENIALS: 2
+OWNER_STREAMED_READS: 1
+NO_DATABASE_OR_STORAGE_WRITES
+```
+
+This used a genuine payment-proof file whose exact S3 storage object exists.
+The application route blocked anonymous and unrelated GET+HEAD without calling
+origin delivery, and successfully streamed a byte sample to the record owner.
+The initial run failed due to Django request_finished closing the connection
+inside the read-only transaction; the script was corrected to defer response
+closures. The passing result is from the corrected version.
+
+The *previously confirmed* private-origin evidence is 125 HEADs, 5 signed GETs
+and 10 unsigned S3 GET/HEAD denials. No need to repeat these solely because
+the record canary passed.
+
+**Current recovery drill path:** `scripts/ownlobby_encrypted_media_recovery.py`
+creates a new encrypted local backup of current private-origin bytes and restores
+all objects to a disposable independent local tree in a separate Python process.
+It is NOT YET operator-run or verified. The encrypted archive and key are stored
+in different user-home directories, must be preserved separately, and are never
+uploaded or committed. It tests object-only recovery, not the production database
+or a separately running Render recovery deployment. Do not count the code
+existing as restore proof; do not set verification flags on this basis.
+
+## Operator-verified encrypted old CDN baseline — 2026-10-28
+
+The operator ran `scripts/ownlobby_cdn_original_audit.py --capture` on the
+latest release branch. Read-only Cloudinary metadata and anonymous HEAD+GET
+checks confirmed **111 sensitive original delivery URLs reachable** and
+**two approved public exclusions reachable**. These 113 concrete URLs were
+captured in an AES-GCM-encrypted file under the *existing independent local
+media-backup directory*, using its separate local key.
+
+Observed sanitized result:
+
+```text
+CDN_ORIGINAL_BASELINE_CAPTURE_PASS
+PROVEN_REACHABLE_PRIVATE_ORIGINALS: 111
+PROVEN_REACHABLE_PUBLIC_EXCLUSIONS: 2
+BASELINE_ENCRYPTED_WITH_LOCAL_BACKUP_KEY; NO URLS PRINTED
+NO_PROVIDER_OR_DATABASE_WRITES
+```
+
+This is a pre-containment baseline, **not protection**. The original URLs are
+still anonymously readable. After approved provider mutation, run
+`scripts/ownlobby_cdn_original_audit.py --verify` to check denial of the
+*exact same* originals, plus the continued accessibility of public artwork.
+Versionless URLs, pre-existing transformed/derived assets, embedded links,
+other CDN edges and eleven raw legacy paths need additional verification.
+Keep the backup key and the original-URL baseline secure; never commit either.
+
+## Linux release CI — latest verified result, 2026-10-28
+
+Release branch `feature/ownlobby-free-hosting` commit
+`574461f26e5417304ddacdedcbad5c47d1670f36` was tested in
+[GitHub Actions run #21](https://github.com/rkRashik/DeltaCrown/actions/runs/40643336326).
+The `OwnLobby Linux release smoke` job **passed**: production dependencies
+and native rendering, Django startup, Daphne HTTP/WebSocket, governed
+security/media regressions, recovery/containment unit tests, frontend build
+and static collection. This was CI on disposable QA resources, not a live
+Render hybrid production canary or independent PostgreSQL restore.
+
+PR #21 conflicts are resolved and GitHub reports mergeable; it remains
+**draft** and has not been merged. GitGuardian separately reports a **failed**
+security check for a historical synthetic JWT test fixture. The current
+fixture no longer contains an `access_token` field, but the provider
+incident has not yet been confirmed resolved. Do not represent CI success
+as GitGuardian clearance or approval for production cutover.
+
+## Independent encrypted PostgreSQL application restore — verified 2026-10-28
+
+The operator has **successfully run** `scripts/ownlobby_postgres_restore_drill.py`
+against the configured production Supabase PostgreSQL 17 source, using an
+ephemeral **local Docker PostgreSQL 17 container** with no published host port.
+Source connection was read-only `pg_dump --schema=public`; restoration ran
+against a separate, new local database `ownlobby_recovery`. Sanitized output:
+
+```text
+POSTGRES_PUBLIC_SCHEMA_LOCAL_RESTORE_PASS
+RESTORED_APPLICATION_TABLES: 277
+SOURCE_DB_WRITES: 0
+NOT VERIFIED: full Supabase DB/platform, Render deployed recovery, Cloudinary CDN
+```
+
+The custom-format application backup was encrypted under the operator's
+`OwnLobby-Encrypted-Recovery` home directory. Its AES-GCM key is in the
+separate `.ownlobby-recovery-keys` home directory, **same Windows computer**.
+The directory paths and key contents must never be committed or shared.
+This proves isolated recovery of the **277 public application tables**, not
+completeness of all source data, cross-schema Supabase platform objects
+(`auth`, `storage`, `vault`), production Render startup, or post-restart
+persistency. The ephemeral local database was destroyed after this rehearsal.
+No production database writes were performed.
+
+## Acceptance criteria — no shortcuts
+1. Local Django privacy, hybrid storage, launcher, worker and recovery tests pass on this exact branch with disposable QA configuration.
+2. Run read-only status preflight again immediately before cutover: 111 upload, 0 authenticated, two exclusions verified, zero mismatch.
+3. Confirm all **11 legacy /media paths** and representative original/versioned/transformed/embedded sensitive CDN URLs are denied to anonymous GET and HEAD **after** invalidation propagates. Metadata status alone is not proof of denial.
+4. Positive canary: authorized owner/organizer accesses representative S3 private media; anonymous/non-owner denied before storage I/O; public organization artwork remains accessible.
+5. Validate a real independent backup restore and post-restart persistence. The three `MEDIA_*_VERIFIED` flags require evidence; never set merely to bypass `check --deploy`.
+6. Verify login/CSRF, tournament registration, brackets, notifications and WebSockets; broker/worker must be measured against the 512 MiB container limit and audited for queue backlog.
+7. Prove a separate recovery deployment can come up with sources remaining private. If that cannot be demonstrated, do not mutate the 111 sources.
+8. No production database rollback, Cloudinary return to public, deletion, or queue purge as recovery strategy.
+
+## Safe local regression command
+```powershell
+git fetch origin release/ownlobby-hybrid-recovery-candidate-20261028
+git switch release/ownlobby-hybrid-recovery-candidate-20261028
+git pull --ff-only origin release/ownlobby-hybrid-recovery-candidate-20261028
+.\.venv\Scripts\python.exe -m unittest tests.test_cloudinary_containment_status -v
+.\.venv\Scripts\python.exe manage.py test apps.common.tests.test_hybrid_media apps.common.tests.test_media_profile_privacy --settings=deltacrown.settings_media_qa --noinput
+```
+
+### Staged-only decision
+**NO-GO for live provider mutation today based only on this checklist.** Need actual restoration/canary evidence and CDN access denial checks. These cannot be inferred from unit tests.

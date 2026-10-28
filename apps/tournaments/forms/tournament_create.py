@@ -78,7 +78,7 @@ class TournamentCreateForm(forms.ModelForm):
             'registration_end': forms.DateTimeInput(attrs={'type': 'datetime-local', 'class': 'form-input'}),
             'description': forms.Textarea(attrs={'rows': 4, 'class': 'form-textarea'}),
             'rules_text': forms.Textarea(attrs={'rows': 6, 'class': 'form-textarea'}),
-            'name': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'DeltaCrown Valorant Championship 2025'}),
+            'name': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Enter your tournament name'}),
             'slug': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'valorant-championship-2025'}),
             'max_participants': forms.NumberInput(attrs={'class': 'form-input', 'min': 2, 'max': 256}),
             'min_participants': forms.NumberInput(attrs={'class': 'form-input', 'min': 2, 'max': 256}),

@@ -14,23 +14,28 @@ Returns a dict that drives two homepage CTA areas:
     outro_secondary_cta_label / outro_secondary_cta_url
     outro_subcopy
 
-Called per-request from apps.siteui.views.home().  Never cached —
-all DB checks use exists() / values_list() so they stay fast (~2–5 ms).
+Called once per request from apps.siteui.views.home(). Personal context is never
+placed in the public homepage caches. Match probes require participant identity.
 
 Priority ladder (highest → lowest):
   1. Guest                → Create account / Explore tournaments
-  2. Incomplete profile   → Complete profile / Choose games
-  3. Pending action       → Resolve action  / View operations
-  4. Active match room    → View match room / My tournaments
-  5. Active operations    → My operations  / Competitive hub
-  6. No team              → Create a team  / Join tournaments
-  7. Team manager         → Manage roster  / Find events
-  8. Team, no active reg  → Find events    / Manage team
-  9. Logged-in fallback   → My dashboard   / Enter arena
+  2. Pending action       → Resolve action / View operations
+  3. Active match room    → View match room / My tournaments
+  4. Registered player    → Tournament status / My matches
+  5. Organizer            → Manage tournament / Browse tournaments
+  6. Incomplete profile   → Complete profile / Choose games
+  7. Active operations    → My operations / Competitive hub
+  8. No team              → Create a team / Join tournaments
+  9. Team manager         → Manage roster / Find events
+ 10. Team, no active reg  → Find events / Manage team
+ 11. Logged-in fallback  → My dashboard / Competitive Hub
 """
 from __future__ import annotations
 
+from deltacrown.branding import brand_copy
+
 from django.apps import apps as _apps
+from django.db.models import Q
 
 
 # ── Lazy model accessor ─────────────────────────────────────────────────────
@@ -90,11 +95,6 @@ def get_home_hero_context(user) -> dict:
     if not getattr(user, "is_authenticated", False):
         return _hero_guest()
 
-    profile = getattr(user, "profile", None)
-
-    if _is_profile_incomplete(user, profile):
-        return _hero_onboarding(user)
-
     pending = _get_pending_action(user)
     if pending:
         return _hero_pending(user, pending)
@@ -102,6 +102,20 @@ def get_home_hero_context(user) -> dict:
     match_ctx = _get_active_match(user)
     if match_ctx:
         return _hero_active_match(user, match_ctx)
+
+    # Check solo as well as team registrations before falling back to team discovery.
+    registration = _get_registered_tournament(user)
+    if registration:
+        return _hero_registered(registration)
+
+    organized = _get_organized_tournament(user)
+    if organized:
+        return _hero_organizer(organized)
+
+    # Registration and deadlines take precedence over profile setup prompts.
+    profile = getattr(user, "profile", None)
+    if _is_profile_incomplete(user, profile):
+        return _hero_onboarding(user)
 
     if _has_ops(user):
         return _hero_ops(user)
@@ -170,6 +184,21 @@ def _get_team_ids_for_user(user) -> list[int]:
     return ids
 
 
+def _match_identity_q(user, solo_t, team_t, team_ids):
+    """A registered tournament alone does not identify the user's match.
+
+    Team IDs and user IDs share an integer namespace, so the participation
+    type must also agree. This query never reads lobby codes or passwords.
+    """
+    solo = Q(tournament_id__in=solo_t, tournament__participation_type="solo") & (
+        Q(participant1_id=user.pk) | Q(participant2_id=user.pk)
+    )
+    team = Q(tournament_id__in=team_t, tournament__participation_type="team") & (
+        Q(participant1_id__in=team_ids) | Q(participant2_id__in=team_ids)
+    )
+    return solo | team
+
+
 def _get_pending_action(user) -> dict | None:
     """Return {url, label} for the most urgent pending action, or None.
 
@@ -203,7 +232,7 @@ def _get_pending_action(user) -> dict | None:
             if all_t:
                 m = (
                     Match.objects.filter(
-                        tournament_id__in=all_t,
+                        _match_identity_q(user, solo_t, team_t, team_ids),
                         is_deleted=False,
                         state__in=_PENDING_MATCH_STATES,
                     )
@@ -269,7 +298,7 @@ def _get_active_match(user) -> dict | None:
 
         m = (
             Match.objects.filter(
-                tournament_id__in=all_t,
+                _match_identity_q(user, solo_t, team_t, team_ids),
                 is_deleted=False,
                 state__in=_ACTIVE_MATCH_STATES,
             )
@@ -283,6 +312,82 @@ def _get_active_match(user) -> dict | None:
     except Exception:
         pass
     return None
+
+
+def _get_registered_tournament(user):
+    if not isinstance(getattr(user, "pk", None), int):
+        return None
+    try:
+        Registration = _m("tournaments", "Registration")
+        if Registration is None:
+            return None
+        team_ids = _get_team_ids_for_user(user)
+        return (
+            Registration.objects.filter(
+                Q(user=user) | Q(team_id__in=team_ids),
+                is_deleted=False,
+                status__in=_ACTIVE_REG_STATUSES,
+                tournament__is_deleted=False,
+                tournament__status__in=("published", "registration_open", "registration_closed", "live"),
+            )
+            .select_related("tournament")
+            .only("status", "tournament__slug", "tournament__name")
+            .order_by("tournament__tournament_start", "id")
+            .first()
+        )
+    except Exception:
+        return None
+
+
+def _get_organized_tournament(user):
+    if not isinstance(getattr(user, "pk", None), int):
+        return None
+    try:
+        Tournament = _m("tournaments", "Tournament")
+        if Tournament is None:
+            return None
+        return (
+            Tournament.objects.filter(organizer=user, is_deleted=False)
+            .exclude(status__in=("completed", "cancelled", "archived"))
+            .only("slug", "name")
+            .order_by("tournament_start", "id")
+            .first()
+        )
+    except Exception:
+        return None
+
+
+def _hero_registered(registration):
+    ctx = _hero_guest()
+    url = f"/tournaments/{registration.tournament.slug}/hub/"
+    ctx.update(
+        mode="registered", eyebrow_primary="Tournament registration",
+        eyebrow_secondary=registration.get_status_display(),
+        subcopy="Review your registration status, schedule and available next actions in your tournament hub.",
+        primary_cta_label="View tournament status", primary_cta_url=url,
+        secondary_cta_label="My matches", secondary_cta_url=_U["my_matches"],
+        outro_primary_cta_label="View tournament status", outro_primary_cta_url=url,
+        outro_secondary_cta_label="My matches", outro_secondary_cta_url=_U["my_matches"],
+        outro_subcopy="Check your tournament hub for registration and match updates.",
+        hero_chips=None,
+    )
+    return ctx
+
+
+def _hero_organizer(tournament):
+    ctx = _hero_guest()
+    url = f"/toc/{tournament.slug}/"
+    ctx.update(
+        mode="organizer", eyebrow_primary="Organizer", eyebrow_secondary="Your tournament",
+        subcopy="Review registrations, prepare your schedule and manage your tournament from the organizer console.",
+        primary_cta_label="Manage tournament", primary_cta_url=url,
+        secondary_cta_label="Browse tournaments", secondary_cta_url=_U["tournaments"],
+        outro_primary_cta_label="Manage tournament", outro_primary_cta_url=url,
+        outro_secondary_cta_label="Browse tournaments", outro_secondary_cta_url=_U["tournaments"],
+        outro_subcopy="Keep your event organized with registrations, scheduling and match management.",
+        hero_chips=None,
+    )
+    return ctx
 
 
 def _has_ops(user) -> bool:
@@ -482,8 +587,8 @@ def _hero_onboarding(user) -> dict:
         eyebrow_primary=f"Welcome, {username}",
         eyebrow_secondary="Set up your player identity",
         subcopy=(
-            "Welcome to DeltaCrown. Set up your player identity, choose your games, "
-            "and take your first step toward verified competition."
+            brand_copy("Welcome to [[brand]]. Set up your player identity, choose your games, "
+            "and take your first step toward verified competition.")
         ),
         primary_cta_label="Complete profile",
         primary_cta_url=_U["settings"],
@@ -539,8 +644,8 @@ def _hero_active_match(user, match_ctx: dict) -> dict:
         eyebrow_primary="Action ready",
         eyebrow_secondary="Match room waiting",
         subcopy=(
-            "Your next competitive action is live. Check your match room, "
-            "confirm readiness, submit results, or continue your tournament run."
+            "Review your next match, its schedule and the available actions "
+            "in your tournament hub."
         ),
         primary_cta_label="View match room",
         primary_cta_url=match_ctx["url"],

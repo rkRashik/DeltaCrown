@@ -1,0 +1,728 @@
+{
+  "date": "2026-10-26",
+  "scope": "clean Windows production runtime installation plus pip; full installed dependency scan",
+  "ignore_policy": "none",
+  "result": {
+    "dependencies": [
+      {
+        "name": "aiohappyeyeballs",
+        "version": "2.6.1",
+        "vulns": []
+      },
+      {
+        "name": "aiohttp",
+        "version": "3.14.5",
+        "vulns": []
+      },
+      {
+        "name": "aiosignal",
+        "version": "1.4.0",
+        "vulns": []
+      },
+      {
+        "name": "amqp",
+        "version": "5.3.1",
+        "vulns": []
+      },
+      {
+        "name": "annotated-types",
+        "version": "0.7.0",
+        "vulns": []
+      },
+      {
+        "name": "asgiref",
+        "version": "3.10.0",
+        "vulns": []
+      },
+      {
+        "name": "attrs",
+        "version": "25.4.0",
+        "vulns": []
+      },
+      {
+        "name": "audioop-lts",
+        "version": "0.2.2",
+        "vulns": []
+      },
+      {
+        "name": "autobahn",
+        "version": "26.7.1",
+        "vulns": []
+      },
+      {
+        "name": "automat",
+        "version": "25.4.16",
+        "vulns": []
+      },
+      {
+        "name": "beautifulsoup4",
+        "version": "4.14.3",
+        "vulns": []
+      },
+      {
+        "name": "billiard",
+        "version": "4.2.2",
+        "vulns": []
+      },
+      {
+        "name": "bleach",
+        "version": "6.4.0",
+        "vulns": []
+      },
+      {
+        "name": "boto3",
+        "version": "1.40.71",
+        "vulns": []
+      },
+      {
+        "name": "botocore",
+        "version": "1.40.71",
+        "vulns": []
+      },
+      {
+        "name": "cairocffi",
+        "version": "1.7.1",
+        "vulns": []
+      },
+      {
+        "name": "cairosvg",
+        "version": "2.9.1",
+        "vulns": []
+      },
+      {
+        "name": "cbor2",
+        "version": "6.1.5",
+        "vulns": []
+      },
+      {
+        "name": "celery",
+        "version": "5.5.3",
+        "vulns": []
+      },
+      {
+        "name": "certifi",
+        "version": "2026.10.23",
+        "vulns": []
+      },
+      {
+        "name": "cffi",
+        "version": "2.0.0",
+        "vulns": []
+      },
+      {
+        "name": "channels",
+        "version": "4.3.1",
+        "vulns": []
+      },
+      {
+        "name": "channels-redis",
+        "version": "4.3.0",
+        "vulns": []
+      },
+      {
+        "name": "charset-normalizer",
+        "version": "3.4.4",
+        "vulns": []
+      },
+      {
+        "name": "click",
+        "version": "8.3.0",
+        "vulns": []
+      },
+      {
+        "name": "click-didyoumean",
+        "version": "0.3.1",
+        "vulns": []
+      },
+      {
+        "name": "click-plugins",
+        "version": "1.1.1.2",
+        "vulns": []
+      },
+      {
+        "name": "click-repl",
+        "version": "0.3.0",
+        "vulns": []
+      },
+      {
+        "name": "cloudinary",
+        "version": "1.40.0",
+        "vulns": []
+      },
+      {
+        "name": "colorama",
+        "version": "0.4.6",
+        "vulns": []
+      },
+      {
+        "name": "constantly",
+        "version": "23.10.4",
+        "vulns": []
+      },
+      {
+        "name": "cryptography",
+        "version": "50.0.2",
+        "vulns": []
+      },
+      {
+        "name": "cssselect2",
+        "version": "0.8.0",
+        "vulns": []
+      },
+      {
+        "name": "daphne",
+        "version": "4.2.3",
+        "vulns": []
+      },
+      {
+        "name": "defusedxml",
+        "version": "0.7.1",
+        "vulns": []
+      },
+      {
+        "name": "discord-py",
+        "version": "2.6.4",
+        "vulns": []
+      },
+      {
+        "name": "dj-database-url",
+        "version": "3.0.1",
+        "vulns": []
+      },
+      {
+        "name": "django",
+        "version": "5.2.18",
+        "vulns": []
+      },
+      {
+        "name": "django-allauth",
+        "version": "65.14.1",
+        "vulns": []
+      },
+      {
+        "name": "django-ckeditor-5",
+        "version": "0.2.18",
+        "vulns": []
+      },
+      {
+        "name": "django-cloudinary-storage",
+        "version": "0.3.0",
+        "vulns": []
+      },
+      {
+        "name": "django-cors-headers",
+        "version": "4.9.0",
+        "vulns": []
+      },
+      {
+        "name": "django-countries",
+        "version": "7.6.1",
+        "vulns": []
+      },
+      {
+        "name": "django-environ",
+        "version": "0.12.0",
+        "vulns": []
+      },
+      {
+        "name": "django-filter",
+        "version": "25.2",
+        "vulns": []
+      },
+      {
+        "name": "django-prometheus",
+        "version": "2.4.1",
+        "vulns": []
+      },
+      {
+        "name": "django-storages",
+        "version": "1.14.6",
+        "vulns": []
+      },
+      {
+        "name": "django-unfold",
+        "version": "0.80.0",
+        "vulns": []
+      },
+      {
+        "name": "djangorestframework",
+        "version": "3.18.3",
+        "vulns": []
+      },
+      {
+        "name": "djangorestframework-simplejwt",
+        "version": "5.5.1",
+        "vulns": []
+      },
+      {
+        "name": "drf-nested-routers",
+        "version": "0.95.0",
+        "vulns": []
+      },
+      {
+        "name": "drf-spectacular",
+        "version": "0.27.2",
+        "vulns": []
+      },
+      {
+        "name": "freetype-py",
+        "version": "2.5.1",
+        "vulns": []
+      },
+      {
+        "name": "frozenlist",
+        "version": "1.8.0",
+        "vulns": []
+      },
+      {
+        "name": "greenlet",
+        "version": "3.3.0",
+        "vulns": []
+      },
+      {
+        "name": "hyperlink",
+        "version": "21.0.0",
+        "vulns": []
+      },
+      {
+        "name": "idna",
+        "version": "3.15",
+        "vulns": []
+      },
+      {
+        "name": "incremental",
+        "version": "24.7.2",
+        "vulns": []
+      },
+      {
+        "name": "inflection",
+        "version": "0.5.1",
+        "vulns": []
+      },
+      {
+        "name": "jinja2",
+        "version": "3.1.6",
+        "vulns": []
+      },
+      {
+        "name": "jmespath",
+        "version": "1.0.1",
+        "vulns": []
+      },
+      {
+        "name": "jsonschema",
+        "version": "4.25.1",
+        "vulns": []
+      },
+      {
+        "name": "jsonschema-specifications",
+        "version": "2025.9.1",
+        "vulns": []
+      },
+      {
+        "name": "kombu",
+        "version": "5.5.4",
+        "vulns": []
+      },
+      {
+        "name": "lxml",
+        "version": "6.1.3",
+        "vulns": []
+      },
+      {
+        "name": "markdown-it-py",
+        "version": "4.0.0",
+        "vulns": []
+      },
+      {
+        "name": "markupsafe",
+        "version": "3.0.3",
+        "vulns": []
+      },
+      {
+        "name": "marshmallow",
+        "version": "4.1.2",
+        "vulns": []
+      },
+      {
+        "name": "mdurl",
+        "version": "0.1.2",
+        "vulns": []
+      },
+      {
+        "name": "more-itertools",
+        "version": "10.8.0",
+        "vulns": []
+      },
+      {
+        "name": "msgpack",
+        "version": "1.2.1",
+        "vulns": []
+      },
+      {
+        "name": "multidict",
+        "version": "6.9.1",
+        "vulns": []
+      },
+      {
+        "name": "nh3",
+        "version": "0.3.2",
+        "vulns": []
+      },
+      {
+        "name": "packaging",
+        "version": "25.0",
+        "vulns": []
+      },
+      {
+        "name": "pillow",
+        "version": "13.0.0",
+        "vulns": []
+      },
+      {
+        "name": "pip",
+        "version": "26.2.1",
+        "vulns": []
+      },
+      {
+        "name": "platformdirs",
+        "version": "4.5.0",
+        "vulns": []
+      },
+      {
+        "name": "prometheus-client",
+        "version": "0.23.1",
+        "vulns": []
+      },
+      {
+        "name": "prompt-toolkit",
+        "version": "3.0.52",
+        "vulns": []
+      },
+      {
+        "name": "propcache",
+        "version": "0.4.1",
+        "vulns": []
+      },
+      {
+        "name": "psycopg2-binary",
+        "version": "2.9.11",
+        "vulns": []
+      },
+      {
+        "name": "pyasn1",
+        "version": "0.6.4",
+        "vulns": []
+      },
+      {
+        "name": "pyasn1-modules",
+        "version": "0.4.2",
+        "vulns": []
+      },
+      {
+        "name": "pycairo",
+        "version": "1.28.0",
+        "vulns": []
+      },
+      {
+        "name": "pycparser",
+        "version": "2.23",
+        "vulns": []
+      },
+      {
+        "name": "pydantic",
+        "version": "2.12.4",
+        "vulns": []
+      },
+      {
+        "name": "pydantic-core",
+        "version": "2.41.5",
+        "vulns": []
+      },
+      {
+        "name": "pygments",
+        "version": "2.20.0",
+        "vulns": []
+      },
+      {
+        "name": "pyjwt",
+        "version": "2.15.1",
+        "vulns": []
+      },
+      {
+        "name": "pynacl",
+        "version": "1.6.2",
+        "vulns": []
+      },
+      {
+        "name": "pyopenssl",
+        "version": "26.4.0",
+        "vulns": []
+      },
+      {
+        "name": "pypdf",
+        "version": "6.21.2",
+        "vulns": []
+      },
+      {
+        "name": "python-dateutil",
+        "version": "2.9.0.post0",
+        "vulns": []
+      },
+      {
+        "name": "python-decouple",
+        "version": "3.8",
+        "vulns": []
+      },
+      {
+        "name": "python-dotenv",
+        "version": "1.2.4",
+        "vulns": []
+      },
+      {
+        "name": "python-json-logger",
+        "version": "4.0.0",
+        "vulns": []
+      },
+      {
+        "name": "python-magic",
+        "version": "0.4.27",
+        "vulns": []
+      },
+      {
+        "name": "python-slugify",
+        "version": "8.0.4",
+        "vulns": []
+      },
+      {
+        "name": "pytz",
+        "version": "2025.2",
+        "vulns": []
+      },
+      {
+        "name": "pyyaml",
+        "version": "6.0.3",
+        "vulns": []
+      },
+      {
+        "name": "qrcode",
+        "version": "8.2",
+        "vulns": []
+      },
+      {
+        "name": "redis",
+        "version": "7.0.1",
+        "vulns": []
+      },
+      {
+        "name": "referencing",
+        "version": "0.37.0",
+        "vulns": []
+      },
+      {
+        "name": "reportlab",
+        "version": "4.4.4",
+        "vulns": []
+      },
+      {
+        "name": "requests",
+        "version": "2.34.2",
+        "vulns": []
+      },
+      {
+        "name": "resend",
+        "version": "2.23.0",
+        "vulns": []
+      },
+      {
+        "name": "rich",
+        "version": "14.2.0",
+        "vulns": []
+      },
+      {
+        "name": "rlpycairo",
+        "version": "0.4.0",
+        "vulns": []
+      },
+      {
+        "name": "rpds-py",
+        "version": "0.30.0",
+        "vulns": []
+      },
+      {
+        "name": "s3transfer",
+        "version": "0.14.0",
+        "vulns": []
+      },
+      {
+        "name": "sentry-sdk",
+        "version": "2.43.0",
+        "vulns": []
+      },
+      {
+        "name": "service-identity",
+        "version": "26.1.0",
+        "vulns": []
+      },
+      {
+        "name": "setuptools",
+        "version": "84.1.0",
+        "vulns": []
+      },
+      {
+        "name": "six",
+        "version": "1.17.0",
+        "vulns": []
+      },
+      {
+        "name": "soupsieve",
+        "version": "2.9",
+        "vulns": []
+      },
+      {
+        "name": "sqlparse",
+        "version": "0.6.0",
+        "vulns": []
+      },
+      {
+        "name": "svglib",
+        "version": "1.6.0",
+        "vulns": []
+      },
+      {
+        "name": "text-unidecode",
+        "version": "1.3",
+        "vulns": []
+      },
+      {
+        "name": "tinycss2",
+        "version": "1.4.0",
+        "vulns": []
+      },
+      {
+        "name": "twisted",
+        "version": "26.4.0",
+        "vulns": [
+          {
+            "id": "CVE-2026-106454",
+            "aliases": [
+              "GHSA-8pqf-f4m5-798g"
+            ],
+            "fix_versions": []
+          },
+          {
+            "id": "CVE-2026-115778",
+            "aliases": [
+              "GHSA-cwm5-jh59-mwxr"
+            ],
+            "fix_versions": [
+              "26.10.0rc1"
+            ]
+          },
+          {
+            "id": "CVE-2026-115774",
+            "aliases": [
+              "GHSA-2qrf-pqgx-qh9v"
+            ],
+            "fix_versions": [
+              "26.10.0rc1"
+            ]
+          },
+          {
+            "id": "CVE-2026-115775",
+            "aliases": [
+              "GHSA-3476-c5c2-fr73"
+            ],
+            "fix_versions": [
+              "26.10.0rc1"
+            ]
+          },
+          {
+            "id": "CVE-2026-115776",
+            "aliases": [
+              "GHSA-53xc-49m8-p798"
+            ],
+            "fix_versions": [
+              "26.10.0rc1"
+            ]
+          },
+          {
+            "id": "CVE-2026-115877",
+            "aliases": [
+              "GHSA-q7qq-6mhp-9rc4"
+            ],
+            "fix_versions": [
+              "26.10.0rc1"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "txaio",
+        "version": "25.12.2",
+        "vulns": []
+      },
+      {
+        "name": "typing-extensions",
+        "version": "4.15.0",
+        "vulns": []
+      },
+      {
+        "name": "typing-inspection",
+        "version": "0.4.4",
+        "vulns": []
+      },
+      {
+        "name": "tzdata",
+        "version": "2025.2",
+        "vulns": []
+      },
+      {
+        "name": "ujson",
+        "version": "6.0.0",
+        "vulns": []
+      },
+      {
+        "name": "uritemplate",
+        "version": "4.2.0",
+        "vulns": []
+      },
+      {
+        "name": "urllib3",
+        "version": "2.8.0",
+        "vulns": []
+      },
+      {
+        "name": "vine",
+        "version": "5.1.0",
+        "vulns": []
+      },
+      {
+        "name": "wcwidth",
+        "version": "0.2.14",
+        "vulns": []
+      },
+      {
+        "name": "webencodings",
+        "version": "0.5.1",
+        "vulns": []
+      },
+      {
+        "name": "whitenoise",
+        "version": "6.6.0",
+        "vulns": []
+      },
+      {
+        "name": "yarl",
+        "version": "1.25.1",
+        "vulns": []
+      },
+      {
+        "name": "zope-interface",
+        "version": "8.0.1",
+        "vulns": []
+      }
+    ],
+    "fixes": []
+  }
+}

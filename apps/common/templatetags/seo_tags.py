@@ -9,6 +9,12 @@ from django.utils.html import conditional_escape, format_html
 register = template.Library()
 
 
+@register.simple_tag
+def apply_seo_policy(metadata, request):
+    from apps.common.seo import request_seo
+    return request_seo(request, metadata) if hasattr(request, "GET") else metadata
+
+
 def _abs_url(request, url: str | None) -> str | None:
     """
     Ensure URL is absolute for share/OG. If `url` is None, fall back to current request URL.
@@ -34,7 +40,7 @@ def meta_tags(context, title=None, description=None, image_url=None, canonical_u
     request = context.get("request")
 
     # Resolve values from context with sensible fallbacks
-    site_name = getattr(settings, "SITE_NAME", "DeltaCrown")
+    site_name = settings.BRAND["name"]
 
     # Title
     title = (

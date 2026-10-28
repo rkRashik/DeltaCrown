@@ -6,7 +6,7 @@
 <link rel="stylesheet" href="https://unpkg.com/aos@2.3.1/dist/aos.css">
 {% endblock %}
 
-{% block title %}{{ category.name }} - CrownStore{% endblock %}
+{% block title %}{{ category.name }} - {{ brand.features.store }}{% endblock %}
 
 {% block content %}
 <div class="store-category-detail">
@@ -15,7 +15,7 @@
         <div class="container">
             <div class="category-hero-content">
                 <div class="category-breadcrumb">
-                    <a href="{% url 'ecommerce:store_home' %}" class="breadcrumb-link">CrownStore</a>
+                    <a href="{% url 'ecommerce:store_home' %}" class="breadcrumb-link">{{ brand.features.store }}</a>
                     <span class="breadcrumb-separator">•</span>
                     <span class="breadcrumb-current">{{ category.name }}</span>
                 </div>

@@ -1,3 +1,4 @@
+{% load branding %}{% brand_config as brand %}
 ===============================================================================
                         NEW NOTIFICATION
 ===============================================================================
@@ -24,4 +25,4 @@ Manage Notification Preferences: {{ site_url }}/settings/notifications/
 
 This notification was sent to {{ user.email }}
 
-© {{ current_year }} DeltaCrown. All rights reserved.
+© {{ current_year }} {{ brand.name }}. All rights reserved.

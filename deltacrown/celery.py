@@ -9,6 +9,7 @@ import os
 from datetime import timedelta
 from celery import Celery
 from celery.schedules import crontab
+from .redis_config import verified_redis_url
 
 # Set the default Django settings module
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'deltacrown.settings')
@@ -25,7 +26,7 @@ def _normalize_celery_env_url(name: str) -> None:
         normalized = normalized[1:-1].strip()
 
     if normalized:
-        os.environ[name] = normalized
+        os.environ[name] = verified_redis_url(normalized)
     else:
         os.environ.pop(name, None)
 
@@ -40,6 +41,15 @@ app.config_from_object('django.conf:settings', namespace='CELERY')
 
 # Auto-discover tasks in all installed apps
 app.autodiscover_tasks()
+
+# These modules live outside Django's conventional <app>.tasks discovery.
+# A producer importing them does not register them in a separate worker.
+app.conf.imports = tuple(app.conf.imports or ()) + (
+    'apps.tournament_ops.tasks.match_polling',
+    'apps.tournament_ops.tasks_result_submission',
+    'apps.tournament_ops.tasks_dispute',
+    'apps.games.tasks.riot_verification_tasks',
+)
 
 # ---------------------------------------------------------------------------
 # Feature flag: set ENABLE_CELERY_BEAT=1 in Render env vars to activate the
@@ -391,3 +401,9 @@ app.conf.update(
 def debug_task(self):
     """Debug task to verify Celery is working"""
     print(f'Request: {self.request!r}')
+
+
+@app.task(name='ownlobby.worker_probe', ignore_result=False)
+def worker_probe(token):
+    """Non-mutating broker/consumer/result-path canary; no user data or mail."""
+    return token

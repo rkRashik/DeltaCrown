@@ -36,10 +36,13 @@ WORKDIR /app
 FROM base as dependencies
 
 # Copy requirements
-COPY requirements.txt .
+COPY requirements-prod.txt .
+COPY vendor/twisted vendor/twisted
+COPY scripts/build_twisted_backport.py scripts/build_twisted_backport.py
+RUN python scripts/build_twisted_backport.py
 
 # Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements-prod.txt
 
 # =============================================================================
 # Stage 3: Development
@@ -47,6 +50,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 FROM dependencies as development
 
 # Install development dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 RUN pip install --no-cache-dir \
     ipython \
     django-debug-toolbar \

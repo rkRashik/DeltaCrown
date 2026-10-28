@@ -10,6 +10,8 @@ Game-awareness:
   - BR   (PUBGM, FF)           → Kill race / placement scoring
   - SPORTS (FC26, EFB, RL)     → Direct match, 1v1 support
 """
+
+from deltacrown.branding import brand_copy
 import hashlib
 import logging
 from datetime import timedelta
@@ -91,7 +93,7 @@ def _wallet_for_user(user) -> DeltaCrownWallet:
         return DeltaCrownWallet.objects.get(profile=profile)
     except DeltaCrownWallet.DoesNotExist as exc:
         raise ValidationError(
-            f"User '{user.username}' has no DeltaCoin wallet."
+            f"User '{user.username}' has no {brand_copy('[[coins]]')} wallet."
         ) from exc
 
 

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
-{% block title %}{% firstof player.display_name user.username "Player" %} — DeltaCrown{% endblock %}
+{% block title %}{% firstof player.display_name user.username "Player" %} — {{ brand.name }}{% endblock %}
 {% block content %}
 <section class="t-hero">
   <div class="t-hero__media">

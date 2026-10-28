@@ -1,6 +1,8 @@
 """Views for /api/mobile/v1/ chassis endpoints."""
 from __future__ import annotations
 
+from deltacrown.branding import brand_copy
+
 from rest_framework.permissions import AllowAny, IsAuthenticated
 
 from .base import MobileApiView
@@ -8,7 +10,7 @@ from .responses import success_response
 from .serializers import HealthSerializer, MobileMeSerializer
 
 
-SERVICE_NAME = "DeltaCrown Mobile API"
+SERVICE_NAME = brand_copy("[[brand]] Mobile API")
 API_VERSION = "v1"
 
 

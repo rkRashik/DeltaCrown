@@ -8,6 +8,8 @@ This module contains models for the dynamic form builder system that allows
 tournament organizers to create custom registration forms.
 """
 
+from apps.common.media.fields import MediaFileField, MediaImageField
+
 from django.db import models
 from django.contrib.auth import get_user_model
 from django.utils.text import slugify
@@ -80,7 +82,7 @@ class RegistrationFormTemplate(models.Model):
         blank=True,
         help_text="Emoji or icon class (e.g., '🎮' or 'fa-gamepad')"
     )
-    thumbnail = models.ImageField(
+    thumbnail = MediaImageField(
         upload_to='form_templates/thumbnails/',
         null=True,
         blank=True,
@@ -463,7 +465,7 @@ class FormResponse(models.Model):
     )
     payment_method = models.CharField(max_length=50, blank=True)
     payment_transaction_id = models.CharField(max_length=200, blank=True)
-    payment_proof = models.FileField(
+    payment_proof = MediaFileField(
         upload_to='registration_payments/',
         null=True,
         blank=True,

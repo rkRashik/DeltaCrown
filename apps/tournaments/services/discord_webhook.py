@@ -5,17 +5,21 @@ Phase 1 of the Discord Integration Plan.
 Posts rich embeds for tournament lifecycle events to a configured webhook URL.
 """
 
+from deltacrown.branding import brand_copy
+
 import logging
 from datetime import datetime, timezone as dt_timezone
 from typing import Optional
 
 import requests
+from django.conf import settings
+from apps.common.seo import absolute_static
 
 logger = logging.getLogger(__name__)
 
 # Discord embed color palette (matching DeltaCrown brand)
 COLORS = {
-    'brand': 0x7C3AED,        # dc-purple
+    'brand': int(settings.BRAND['colors']['gold'].lstrip('#'), 16),
     'success': 0x22C55E,      # green-500
     'warning': 0xF59E0B,      # amber-500
     'danger': 0xEF4444,       # red-500
@@ -130,8 +134,8 @@ class DiscordWebhookService:
             "color": color,
             "timestamp": datetime.now(dt_timezone.utc).isoformat(),
             "footer": {
-                "text": footer or "DeltaCrown — Tournament Platform",
-                "icon_url": "https://deltacrown.com/static/img/favicon-32x32.png",
+                "text": footer or brand_copy('[[brand]] — Tournament Platform'),
+                "icon_url": absolute_static(settings.BRAND['apple_icon']),
             },
         }
         if fields:
@@ -160,7 +164,7 @@ class DiscordWebhookService:
             return False
 
         ctx = context or {}
-        base_url = ctx.get('base_url', 'https://deltacrown.com')
+        base_url = ctx.get('base_url', settings.SITE_URL).rstrip('/')
         tournament_url = f"{base_url}/tournaments/{tournament.slug}/"
         hub_url = f"{base_url}/tournaments/{tournament.slug}/hub/"
 
@@ -208,7 +212,7 @@ class DiscordWebhookService:
             return
 
         ctx = context or {}
-        base_url = ctx.get('base_url', 'https://deltacrown.com')
+        base_url = ctx.get('base_url', settings.SITE_URL).rstrip('/')
         tournament_url = f"{base_url}/tournaments/{tournament.slug}/"
         hub_url = f"{base_url}/tournaments/{tournament.slug}/hub/"
 
@@ -478,12 +482,7 @@ class DiscordWebhookService:
         embed = cls.build_embed(
             title="✅ Webhook Connected!",
             description=(
-                f"This Discord channel is now linked to **{tournament_name}** on DeltaCrown.\n\n"
-                "You'll receive automated updates for:\n"
-                "• Registration opens/closes\n"
-                "• Check-in reminders\n"
-                "• Bracket & match updates\n"
-                "• Tournament results"
+                f"This Discord channel is now linked to **{tournament_name}** on {brand_copy('[[brand]]')}.\n\nYou'll receive automated updates for:\n• Registration opens/closes\n• Check-in reminders\n• Bracket & match updates\n• Tournament results"
             ),
             color=COLORS['success'],
         )

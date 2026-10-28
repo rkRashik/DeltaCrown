@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}Create Organization | DeltaCrown{% endblock %}
+{% block title %}Create Organization | {{ brand.name }}{% endblock %}
 
 {% block extra_css %}
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -462,7 +462,7 @@
                             DC
                         </div>
                         <div class="relative z-10">
-                            <h4 class="text-white font-bold font-tech text-lg uppercase">DeltaCrown Vault</h4>
+                            <h4 class="text-white font-bold font-tech text-lg uppercase">{{ brand.name }} Vault</h4>
                             <p class="text-xs text-slate-400 max-w-md">Your default digital wallet for platform rewards, micro-transactions, and coin earnings. Always active.</p>
                         </div>
                         <div class="ml-auto relative z-10">
@@ -604,8 +604,8 @@
                         <h4 class="font-bold text-white uppercase tracking-wider mb-4 border-b border-white/5 pb-2 text-sm">Organization Commercial Terms</h4>
                         <div class="h-48 overflow-y-auto pr-2 custom-scrollbar text-xs text-slate-400 font-mono leading-relaxed space-y-3">
                             <p><strong class="text-white">1. ENTITY RESPONSIBILITY:</strong> The Organization Owner ("CEO") assumes full liability for the conduct, financial disputes, and contractual obligations of all sub-teams and rostered players under this entity.</p>
-                            <p><strong class="text-white">2. FINANCIAL CUSTODY:</strong> DeltaCrown acts as a payment processor. Prize pools are disbursed to the designated Master Wallet. Internal distribution to players is the sole responsibility of the Organization.</p>
-                            <p><strong class="text-white">3. ASSET OWNERSHIP:</strong> You certify that you hold the trademark/copyright for all uploaded logos and names. DeltaCrown reserves the right to suspend Organizations for trademark infringement.</p>
+                            <p><strong class="text-white">2. FINANCIAL CUSTODY:</strong> {{ brand.name }} acts as a payment processor. Prize pools are disbursed to the designated Master Wallet. Internal distribution to players is the sole responsibility of the Organization.</p>
+                            <p><strong class="text-white">3. ASSET OWNERSHIP:</strong> You certify that you hold the trademark/copyright for all uploaded logos and names. {{ brand.name }} reserves the right to suspend Organizations for trademark infringement.</p>
                             <p><strong class="text-white">4. ACQUISITIONS & TRANSFERS:</strong> Acquiring an Independent Team transfers their historical data to your Organization. This action is irreversible without Admin intervention.</p>
                             <p><strong class="text-white">5. VERIFICATION:</strong> Verified Status (Checkmark) is granted only after manual review of business documents (Trade License/NID) submitted via the Settings panel post-creation.</p>
                         </div>
@@ -614,7 +614,7 @@
                     <div class="flex items-start gap-3 p-4 bg-white/5 rounded-lg border border-white/5 mb-8">
                         <input type="checkbox" id="termsCheck" name="terms_accepted" class="mt-1 w-5 h-5 rounded bg-black border-white/30 text-yellow-500 focus:ring-0 cursor-pointer">
                         <label for="termsCheck" class="text-xs text-slate-300 cursor-pointer select-none">
-                            I, the undersigned, hereby ratify the establishment of this Organization and agree to the DeltaCrown Commercial Terms & Conditions. I confirm I am the authorized representative.
+                            I, the undersigned, hereby ratify the establishment of this Organization and agree to the {{ brand.name }} Commercial Terms & Conditions. I confirm I am the authorized representative.
                         </label>
                     </div>
 
@@ -696,7 +696,7 @@
                             <span class="block text-[8px] text-slate-500 uppercase">Authorized Signature</span>
                         </div>
                         <div class="text-right">
-                            <span class="block text-[8px] text-slate-500 uppercase">DeltaCrown Authority</span>
+                            <span class="block text-[8px] text-slate-500 uppercase">{{ brand.name }} Authority</span>
                             <span class="text-xs text-yellow-500 font-bold">VERIFIED ISSUER</span>
                         </div>
                     </div>

@@ -14,14 +14,10 @@ Drawer on mobile, fixed on desktop.
         <i data-lucide="x" class="w-4 h-4"></i>
     </button>
 
-    {# ── DeltaCrown brand mark ── #}
+    {# ── {{ brand.name }} brand mark ── #}
     <div class="px-4 pt-4 pb-3.5">
-        <a href="/" class="inline-flex items-center gap-2.5 group" title="DeltaCrown Home">
-            <span class="h-9 w-9 rounded-xl grid place-items-center bg-white/[0.06] border border-white/10 group-hover:border-white/20 group-hover:bg-white/[0.09] transition shrink-0">
-                <img src="{% static 'img/deltaCrown_logos/logo_animated.svg' %}" alt="" class="w-6 h-6">
-            </span>
-            <img src="{% static 'img/deltaCrown_logos/DeltaCrown_Teal-Purple-Gold.svg' %}" alt="DeltaCrown"
-                 class="h-5 opacity-90 group-hover:opacity-100 transition">
+        <a href="/" class="inline-flex items-center gap-2.5 group" title="{{ brand.name }} Home">
+            {% include "partials/brand_logo.html" %}
         </a>
     </div>
     <div class="mx-4 h-px bg-line/60"></div>
@@ -281,7 +277,7 @@ Drawer on mobile, fixed on desktop.
         </div>
         {% endif %}
         <p class="text-[10px] text-white/40 leading-relaxed">
-            <span class="font-semibold text-white/50">Team HQ</span> &middot; DeltaCrown Platform
+            <span class="font-semibold text-white/50">Team HQ</span> &middot; {{ brand.name }} Platform
         </p>
     </div>
 </aside>

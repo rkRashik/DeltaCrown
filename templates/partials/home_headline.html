@@ -1,0 +1,4 @@
+<h1 class="ol-hero-heading" style="margin:14px 0 0;font-family:var(--disp);font-weight:800;line-height:1.12;letter-spacing:-.025em;font-size:clamp(28px,4.2vw,56px);color:var(--fg);">
+  <span class="ol-hero-universal">{% for line in home_ui.universal_headline %}<span data-line>{{ line }}</span>{% endfor %}</span>
+  {% if user.is_authenticated and home_ui.contextual_headline %}<span class="ol-hero-context" aria-hidden="true">{% for line in home_ui.contextual_headline %}<span data-line>{{ line }}</span>{% endfor %}</span>{% endif %}
+</h1>

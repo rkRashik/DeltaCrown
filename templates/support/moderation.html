@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
-{% block title %}Moderation & Fair Play - DeltaCrown{% endblock %}
+{% block title %}Moderation & Fair Play - {{ brand.name }}{% endblock %}
 
 {% block content %}
 <main class="min-h-screen bg-[#03050a] text-slate-100">
@@ -9,7 +9,7 @@
     <div class="relative mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-8">
       <p class="text-xs font-black uppercase tracking-[0.24em] text-cyan-300">Safety and enforcement</p>
       <h1 class="mt-3 font-display text-4xl font-black tracking-tight text-white md:text-6xl">Moderation & Fair Play</h1>
-      <p class="mt-4 max-w-3xl text-lg leading-8 text-slate-300">How DeltaCrown handles reports, abuse reviews, sanctions, disputes, proof evidence, and operator escalation across the competitive ecosystem.</p>
+      <p class="mt-4 max-w-3xl text-lg leading-8 text-slate-300">How {{ brand.name }} handles reports, abuse reviews, sanctions, disputes, proof evidence, and operator escalation across the competitive ecosystem.</p>
     </div>
   </section>
 
@@ -50,7 +50,7 @@
         <section id="evidence" class="scroll-mt-24 rounded-3xl border border-white/10 bg-white/[0.035] p-6 md:p-8">
           <h2 class="text-2xl font-black text-white">What operators may review</h2>
           <div class="mt-5 grid gap-3 md:grid-cols-2">
-            <div class="rounded-2xl border border-white/10 bg-black/20 p-4"><strong class="text-white">Platform records</strong><p class="mt-2 text-sm text-slate-400">Account, team, tournament, Match Room, Crown Points, wallet, and competitive operation records.</p></div>
+            <div class="rounded-2xl border border-white/10 bg-black/20 p-4"><strong class="text-white">Platform records</strong><p class="mt-2 text-sm text-slate-400">Account, team, tournament, Match Room, {{ brand.features.ranking_points }}, wallet, and competitive operation records.</p></div>
             <div class="rounded-2xl border border-white/10 bg-black/20 p-4"><strong class="text-white">Submitted proof</strong><p class="mt-2 text-sm text-slate-400">Screenshots, videos, URLs, Mission proof files, dispute evidence, match media, and notes.</p></div>
             <div class="rounded-2xl border border-white/10 bg-black/20 p-4"><strong class="text-white">Behavior history</strong><p class="mt-2 text-sm text-slate-400">Prior abuse reports, moderation sanctions, repeated false claims, or pattern-based manipulation.</p></div>
             <div class="rounded-2xl border border-white/10 bg-black/20 p-4"><strong class="text-white">Operator context</strong><p class="mt-2 text-sm text-slate-400">Game rules, tournament rules, lobby state, scoring records, team authority, and dispute notes.</p></div>
@@ -59,7 +59,7 @@
 
         <section id="outcomes" class="scroll-mt-24 rounded-3xl border border-white/10 bg-white/[0.035] p-6 md:p-8">
           <h2 class="text-2xl font-black text-white">Possible outcomes</h2>
-          <p class="mt-3 leading-7 text-slate-300">Outcomes depend on evidence, severity, history, and platform impact. DeltaCrown avoids promising a rigid penalty ladder because reviews need context.</p>
+          <p class="mt-3 leading-7 text-slate-300">Outcomes depend on evidence, severity, history, and platform impact. {{ brand.name }} avoids promising a rigid penalty ladder because reviews need context.</p>
           <ul class="mt-4 space-y-3 text-slate-300">
             <li>Warning, education, or no action when evidence is insufficient.</li>
             <li>Content removal, proof rejection, claim rejection, match adjustment, or result reversal.</li>
@@ -75,7 +75,7 @@
 
         <section id="expectations" class="scroll-mt-24 rounded-3xl border border-white/10 bg-white/[0.035] p-6 md:p-8">
           <h2 class="text-2xl font-black text-white">Community expectations</h2>
-          <p class="mt-3 leading-7 text-slate-300">DeltaCrown is built for serious competitive growth. Players, teams, organizers, and partners should compete honestly, document issues clearly, respect others, protect account security, and use proof/dispute systems in good faith.</p>
+          <p class="mt-3 leading-7 text-slate-300">{{ brand.name }} is built for serious competitive growth. Players, teams, organizers, and partners should compete honestly, document issues clearly, respect others, protect account security, and use proof/dispute systems in good faith.</p>
         </section>
       </div>
     </div>

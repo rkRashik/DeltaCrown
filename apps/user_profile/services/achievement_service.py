@@ -321,7 +321,7 @@ def check_economic_achievements(user):
         if total_earnings >= 1:
             ach = award_achievement(
                 user, 'First Earnings',
-                'Earned your first DeltaCoin',
+                'Earned your first coin',
                 'ðŸ’µ', 'common',
                 {'earnings': total_earnings}
             )
@@ -332,7 +332,7 @@ def check_economic_achievements(user):
         if wallet.balance >= 10000:
             ach = award_achievement(
                 user, 'Whale',
-                'Accumulated 10,000 DeltaCoins',
+                'Accumulated 10,000 Coins',
                 'ðŸ‹', 'epic',
                 {'balance': wallet.balance}
             )
@@ -343,7 +343,7 @@ def check_economic_achievements(user):
         if total_earnings >= 50000:
             ach = award_achievement(
                 user, 'Mogul',
-                'Total lifetime earnings exceeded 50,000 DC',
+                'Total lifetime earnings exceeded 50,000 Coins',
                 'ðŸ’Ž', 'legendary',
                 {'earnings': total_earnings}
             )
@@ -359,7 +359,7 @@ def check_economic_achievements(user):
         if total_spent >= 1000:
             ach = award_achievement(
                 user, 'Big Spender',
-                'Spent 1,000 DeltaCoins',
+                'Spent 1,000 Coins',
                 'ðŸ’¸', 'rare',
                 {'spent': total_spent}
             )

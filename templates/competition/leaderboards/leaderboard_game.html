@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}{{ game_config.game_name }} Leaderboard | DeltaCrown{% endblock %}
+{% block title %}{{ game_config.game_name }} Leaderboard | {{ brand.name }}{% endblock %}
 
 {% block extra_head %}
 <script src="https://cdn.tailwindcss.com"></script>
@@ -64,7 +64,7 @@
                             <th class="px-6 py-4 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">Rank</th>
                             <th class="px-6 py-4 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">Team</th>
                             <th class="px-6 py-4 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">Tier</th>
-                            <th class="px-6 py-4 text-right text-xs font-semibold text-gray-300 uppercase tracking-wider">CP</th>
+                            <th class="px-6 py-4 text-right text-xs font-semibold text-gray-300 uppercase tracking-wider">{{ brand.features.ranking_points_short }}</th>
                             <th class="px-6 py-4 text-right text-xs font-semibold text-gray-300 uppercase tracking-wider">Matches</th>
                             <th class="px-6 py-4 text-center text-xs font-semibold text-gray-300 uppercase tracking-wider">Activity</th>
                         </tr>
@@ -110,7 +110,7 @@
                                 </span>
                             </td>
                             <td class="px-6 py-4 text-right">
-                                <span class="text-lg font-bold text-white">{{ entry.score }} <span class="text-xs text-gray-400 font-normal">CP</span></span>
+                                <span class="text-lg font-bold text-white">{{ entry.score }} <span class="text-xs text-gray-400 font-normal">{{ brand.features.ranking_points_short }}</span></span>
                             </td>
                             <td class="px-6 py-4 text-right">
                                 <span class="text-gray-300">—</span>

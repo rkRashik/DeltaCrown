@@ -147,7 +147,7 @@ def get_user_from_token(token_key: str):
         from apps.accounts.models import User
         
         try:
-            user = User.objects.get(id=user_id)
+            user = User.objects.get(id=user_id, is_active=True)
             logger.debug(f"WebSocket authenticated user: {user.username} (ID: {user_id})")
             return (user, None, None)
         except User.DoesNotExist:

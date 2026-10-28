@@ -1,0 +1,6 @@
+{% load static branding %}{% brand_config as identity %}
+<span class="ol-logo ol-logo--{{ surface|default:'dark' }}" role="img" aria-label="{{ identity.name }}">
+  {% if surface == "light" %}<img src="{% static identity.logo_light %}" alt="" width="1000" height="220" decoding="async" class="ol-logo__image">
+  {% elif surface == "auto" %}<img src="{% static identity.logo_dark %}" alt="" width="1000" height="220" decoding="async" class="ol-logo__image ol-logo__dark"><img src="{% static identity.logo_light %}" alt="" width="1000" height="220" decoding="async" class="ol-logo__image ol-logo__light">
+  {% else %}<img src="{% static identity.logo_dark %}" alt="" width="1000" height="220" decoding="async" class="ol-logo__image">{% endif %}
+</span>

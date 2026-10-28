@@ -4,6 +4,8 @@ SiteUI Django Admin Configuration
 Provides admin interface for managing homepage content and other site-wide content.
 """
 
+from deltacrown.branding import brand_copy
+
 from django.contrib import admin
 from django.utils.html import format_html
 from django.core.exceptions import ValidationError
@@ -58,7 +60,7 @@ class HomePageContentAdmin(BaseModelAdmin):
                 'comparison_table',
             ),
             'classes': ('collapse',),
-            'description': 'Section explaining why DeltaCrown exists and how it differs from other platforms.'
+            'description': brand_copy('Section explaining why [[brand]] exists and how it differs from other platforms.')
         }),
         
         ('Ecosystem Pillars', {
@@ -69,7 +71,7 @@ class HomePageContentAdmin(BaseModelAdmin):
                 'ecosystem_pillars',
             ),
             'classes': ('collapse',),
-            'description': 'The 8 interconnected domains of the DeltaCrown ecosystem.'
+            'description': brand_copy('The 8 interconnected domains of the [[brand]] ecosystem.')
         }),
         
         ('Games Section', {
@@ -118,7 +120,7 @@ class HomePageContentAdmin(BaseModelAdmin):
             'description': 'Local payment methods (bKash, Nagad, Rocket, Bank Transfer) section.'
         }),
         
-        ('DeltaCoin Economy', {
+        (brand_copy('[[coins]] Economy'), {
             'fields': (
                 'deltacoin_section_enabled',
                 'deltacoin_section_title',
@@ -127,7 +129,7 @@ class HomePageContentAdmin(BaseModelAdmin):
                 'deltacoin_spend_options',
             ),
             'classes': ('collapse',),
-            'description': 'DeltaCoin reward system and economy section.'
+            'description': brand_copy('[[coins]] reward system and economy section.')
         }),
         
         ('Community Section', {
@@ -222,8 +224,8 @@ class HomePageContentAdmin(BaseModelAdmin):
         extra_context = extra_context or {}
         extra_context['title'] = 'Homepage Content Management'
         extra_context['subtitle'] = (
-            'Edit the content displayed on the DeltaCrown homepage. '
-            'Changes take effect immediately after saving.'
+            brand_copy('Edit the content displayed on the [[brand]] homepage. '
+            'Changes take effect immediately after saving.')
         )
         return super().changelist_view(request, extra_context)
     

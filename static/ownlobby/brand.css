@@ -1,0 +1,212 @@
+/* OwnLobby product integration. Artwork remains unchanged; never filter logos.
+   Official identity values live in brand-tokens.json and website/brand.css. */
+@import url('./website/brand.css');
+
+:root {
+  --ol-font: Inter, ui-sans-serif, system-ui, sans-serif;
+  --ol-font-display: var(--ol-font);
+  --ol-font-mono: JetBrains Mono, ui-monospace, monospace;
+  --ol-page: var(--ol-canvas);
+  --ol-copy: var(--ol-ivory);
+  --ol-accent: var(--ol-saffron);
+  --brand-delta: var(--ol-saffron);
+  --brand-crown: var(--ol-saffron);
+  --brand-sky: var(--ol-saffron);
+  --brand-fuchsia: var(--ol-ember);
+  --glow-cyan: var(--ol-saffron);
+  --glow-violet: var(--ol-saffron);
+  --glow-gold: var(--ol-saffron);
+  --brand-primary: var(--ol-saffron);
+  --z-gold: var(--ol-saffron);
+  --z-cyan: var(--ol-saffron);
+  --z-purple: var(--ol-ember);
+  --z-bg: var(--ol-canvas);
+  --z-panel: var(--ol-surface);
+  --bg: var(--ol-canvas);
+  --bg-2: var(--ol-surface);
+  --surface: var(--ol-surface);
+  --border: var(--ol-hairline);
+  --text: var(--ol-ivory);
+  --text-muted: var(--ol-text-muted);
+  --dc-bg: var(--ol-canvas);
+  --dc-surface-1: var(--ol-surface);
+  --dc-surface-2: var(--ol-surface-raised);
+  --dc-surface-3: var(--ol-surface-raised);
+  --dc-azure-500: var(--ol-saffron);
+  --dc-azure: var(--ol-saffron);
+  --dc-violet: var(--ol-ember);
+  --dc-gold: var(--ol-saffron);
+  --dc-azure-600: var(--ol-saffron-on-light);
+  --dc-azure-400: var(--ol-saffron);
+  --dc-violet-500: var(--ol-ember);
+  --dc-violet-600: var(--ol-saffron-on-light);
+  --dc-violet-400: var(--ol-saffron);
+  --dc-gold-500: var(--ol-saffron);
+  --dc-gold-400: var(--ol-saffron);
+  --dc-ink-900: var(--ol-canvas);
+  --dc-ink-850: var(--ol-surface);
+  --dc-ink-800: var(--ol-surface-raised);
+  --dc-ink-700: var(--ol-surface-raised);
+  --dc-fg: var(--ol-ivory);
+  --dc-fg-muted: var(--ol-text-muted);
+  --dc-fg-soft: var(--ol-text-muted);
+  --dc-tint-azure: rgb(226 183 97 / 0.1);
+  --dc-tint-violet: rgb(226 183 97 / 0.08);
+  --dc-brand-gradient: var(--ol-saffron);
+  --dc-font-display: var(--ol-font);
+  --dc-font-text: var(--ol-font);
+  --acc: var(--ol-saffron);
+  --acc-600: var(--ol-saffron-on-light);
+  --acc-400: var(--ol-saffron);
+  --acc-tint: rgb(226 183 97 / 0.1);
+  --acc-line: rgb(226 183 97 / 0.3);
+}
+
+:root[data-theme='light'] {
+  --ol-page: #fff;
+  --ol-copy: #141517;
+  --ol-accent: var(--ol-saffron-on-light);
+  --bg: #fff;
+  --bg-2: #f5f5f5;
+  --surface: #f5f5f5;
+  --border: #d6d4d0;
+  --text: #141517;
+  --text-muted: #635d54;
+}
+
+body { background-color: var(--ol-page); color: var(--ol-copy); font-family: var(--ol-font); }
+h1, h2, h3 { text-wrap: balance; }
+:where(a, button, input, select, textarea):focus-visible { outline: 2px solid var(--ol-accent); outline-offset: 3px; }
+.ol-logo { display: inline-flex; align-items: center; width: 172px; max-width: 100%; flex-shrink: 0; vertical-align: middle; }
+.ol-logo .ol-logo__image { display: block; width: 100%; height: auto; max-width: 100%; object-fit: contain; filter: none; }
+.ol-logo__light { display: none !important; }
+:root[data-theme='light'] .ol-logo--auto .ol-logo__dark { display: none; }
+:root[data-theme='light'] .ol-logo--auto .ol-logo__light { display: block !important; }
+#dc-mobile-header .ol-logo { width: 142px; }
+#dc-navbar, #dc-navbar.scrolled, #dc-mobile-header {
+  background: rgb(11 12 12 / 0.97) !important;
+  border-bottom-color: var(--ol-hairline) !important;
+  box-shadow: none;
+  backdrop-filter: blur(8px) !important;
+}
+.dcv4-signup, .dc-newsletter-btn { background: var(--ol-saffron) !important; color: var(--ol-canvas) !important; }
+.dcv4-activedot, .dcv4-tab-ind { background: var(--ol-saffron); }
+.dcv4-mi-sub { color: var(--ol-text-muted); }
+.dcv4-tab:not(.active) > span:not(.dcv4-tab-ind) { color: var(--ol-text-muted) !important; }
+.dc-nav-link { text-shadow: none !important; }
+
+/* Existing homepage namespaces retain their layout and functional hooks. */
+.dc-home, .dc-home-m {
+  --live: #FF5A76;
+  --bg: var(--ol-canvas);
+  --s1: var(--ol-surface);
+  --s2: var(--ol-surface-raised);
+  --s3: #2c2c2e;
+  --fg: var(--ol-ivory);
+  --mut: var(--ol-text-muted);
+  --soft: var(--ol-text-muted);
+  --dim: var(--ol-text-muted);
+  --az: var(--ol-saffron);
+  --az4: var(--ol-saffron);
+  --vi: var(--ol-ember);
+  --vi4: var(--ol-saffron);
+  --go: var(--ol-saffron);
+  --go4: var(--ol-saffron);
+  --hair: var(--ol-hairline);
+  --stroke: var(--ol-hairline);
+  --strong: #635747;
+  --tAz: rgb(226 183 97 / 0.1);
+  --tVi: rgb(226 183 97 / 0.08);
+  --tGo: rgb(226 183 97 / 0.1);
+  --brand: var(--ol-saffron);
+  --crown: var(--ol-saffron);
+  --disp: var(--ol-font-display);
+  --mono: var(--ol-font-mono);
+  --text: var(--ol-font);
+}
+.dc-home :is(.grad, .brand-text), .dc-home-m .grad {
+  background: none !important; color: var(--ol-saffron); -webkit-text-fill-color: currentColor;
+}
+.dc-home :is(.cta, .btn-primary), .dc-home-m :is(.cta, .btn-primary) { background: var(--ol-saffron) !important; color: var(--ol-canvas) !important; box-shadow: none !important; }
+.dc-home a[style*='background:var(--az)'], .dc-home-m a[style*='background:var(--az)'] { color: var(--ol-canvas) !important; }
+.dc-home-m [data-section='hero'] { min-height: 0 !important; padding-bottom: 36px; }
+.dc-home [data-section='hero'] > [aria-hidden='true'],
+.dc-home-m [data-section='hero'] > [aria-hidden='true'] { display: none; }
+.dc-home [data-reveal], .dc-home .rv { opacity: 1; transform: none; }
+.dc-home-m [data-anim] { animation: none !important; }
+.dc-home :is(.glass, .tile), .dc-home-m :is(.glass, .tile) { box-shadow: none; backdrop-filter: none; }
+
+/* Both messages occupy the same grid cell; the taller one reserves its space. */
+.ol-hero-heading { display: grid; white-space: normal !important; }
+.ol-hero-heading > span { grid-area: 1 / 1; display: block; transition: opacity 200ms ease-out; }
+.ol-hero-heading .ol-hero-context { opacity: 0; visibility: hidden; }
+.ol-hero-heading.is-personalized .ol-hero-universal { opacity: 0; visibility: hidden; }
+.ol-hero-heading.is-personalized .ol-hero-context { opacity: 1; visibility: visible; }
+.ol-hero-heading [data-line] { display: block; }
+@media (max-width: 1023px) { .dc-home-m .ol-hero-heading { font-size: clamp(27px, 7.6vw, 38px) !important; } }
+
+.auth-container { background: var(--ol-canvas); color: var(--ol-ivory); }
+.auth-bg, .auth-bg-pattern, .auth-orb, .auth-card::before { display: none; }
+.auth-card { background: var(--ol-surface); border-color: var(--ol-hairline); border-radius: 16px; box-shadow: none; backdrop-filter: none; animation: none; }
+.auth-logo { background: none; -webkit-text-fill-color: initial; }
+.auth-logo .ol-logo { width: 210px; }
+.auth-logo .ol-logo__image { width: 100%; height: auto; }
+.auth-btn-primary { background: var(--ol-saffron); color: var(--ol-canvas); box-shadow: none; }
+.auth-card input { color: var(--ol-ivory); background-color: var(--ol-canvas); border-color: var(--ol-hairline); }
+.auth-card input::placeholder { color: var(--ol-text-muted); }
+.auth-footer { color: var(--ol-text-muted); }
+.auth-divider > span { color: var(--ol-text-muted); }
+.auth-card::after { display: none; }
+.ownlobby-store { background: var(--ol-canvas); }
+.ownlobby-store .animate-blob { display: none; }
+.ownlobby-store .bg-clip-text { background: none; color: var(--ol-ivory); -webkit-text-fill-color: currentColor; }
+.ownlobby-store .glass-panel { background: var(--ol-surface); border-color: var(--ol-hairline); backdrop-filter: none; box-shadow: none; }
+.ownlobby-store :is(.text-cyan-400, .text-indigo-400, .text-purple-400) { color: var(--ol-saffron); }
+.ownlobby-team-hq { background: var(--ol-canvas); }
+.ownlobby-team-hq :is(.bg-card, .glass-modal) { background: var(--ol-surface); backdrop-filter: none; border-color: var(--ol-hairline); box-shadow: none; }
+.dc-arena { background: var(--ol-canvas); }
+.dc-arena .dc-btn-primary { background: var(--ol-saffron); color: var(--ol-canvas); box-shadow: none; }
+.dc-arena :is(.field-input, .field-select):focus { border-color: var(--ol-saffron); box-shadow: 0 0 0 3px rgb(226 183 97 / 0.12); }
+.dc-tourn-mobile { background: var(--ol-canvas); }
+.dc-tourn-mobile .tm-header { background: rgb(11 12 12 / 0.96); backdrop-filter: blur(8px); }
+.toc-ambient-glow, .toc-ambient-glow-2 { display: none; }
+#dc-ob-panel { background: var(--ol-surface) !important; border-color: var(--ol-hairline) !important; border-radius: 16px !important; box-shadow: none !important; }
+#dc-ob-close { width: 44px !important; height: 44px !important; }
+#dc-ob-next, #hqWelcomeStart { background: var(--ol-saffron) !important; color: var(--ol-canvas) !important; box-shadow: none !important; }
+.ownlobby-team-hq #hqWelcome .glow-ring { background: var(--ol-surface-raised) !important; box-shadow: none; }
+.ownlobby-team-hq #hqWelcome .glow-ring svg { color: var(--ol-saffron); }
+.ownlobby-team-hq #hqWelcome [style*='radial-gradient'] { display: none; }
+.ownlobby-team-hub::after, .ownlobby-team-hub .section-glow::before, .ownlobby-team-hub .crown-arena-flow { display: none; }
+.ownlobby-team-hub .dc-hub-mobile {
+  --m-surf: var(--ol-surface); --m-surf2: var(--ol-surface-raised);
+  --m-bg: var(--ol-canvas); --m-ink: var(--ol-ivory); --m-muted: var(--ol-text-muted);
+  --m-blue: var(--ol-saffron); --m-blue2: var(--ol-saffron); --m-blue3: var(--ol-saffron);
+  --m-line: var(--ol-hairline); background: var(--ol-canvas);
+}
+.ownlobby-team-hub :is(.dcm-promo, .dcm-arena, .glass) { background: var(--ol-surface); border: 1px solid var(--ol-hairline); box-shadow: none; border-radius: 16px; }
+.ownlobby-team-hub :is(.dcm-qa-create, .dcm-arena-cta) { background: var(--ol-saffron); color: var(--ol-canvas); box-shadow: none; }
+.ownlobby-team-hub .dcm-tabbar { background: rgb(11 12 12 / 0.97); box-shadow: none; backdrop-filter: blur(8px); }
+.ownlobby-team-hub .dcm-tab.is-active { color: var(--ol-saffron); }
+.ownlobby-team-hub .dcm-tab.is-active::before { background: var(--ol-saffron); }
+.ownlobby-team-hub .dc-hub-desktop .bg-clip-text { background: none; color: var(--ol-saffron); -webkit-text-fill-color: currentColor; }
+.ownlobby-team-hub :is(.text-gray-500, .text-gray-600, .text-gray-700) { color: var(--ol-text-muted); }
+.settings-page-body #tab-billing #send-otp-btn,
+.settings-page-body #tab-billing #verify-pin-btn { background: var(--ol-saffron) !important; color: var(--ol-canvas) !important; box-shadow: none !important; }
+.settings-page-body { background-image: none !important; }
+.settings-page-body .glass-panel { background: var(--ol-surface); border-color: var(--ol-hairline); box-shadow: none; backdrop-filter: none; }
+.settings-page-body :is(.text-z-cyan, .text-z-purple) { color: var(--ol-saffron); }
+.dcv4-activedot, .dcv4-tab-ind { background: var(--ol-saffron) !important; }
+.dc-cc .btn-primary { color: var(--ol-canvas); }
+
+.ol-footer-legacy { background: var(--ol-canvas); color: var(--ol-text-muted); border-top: 1px solid var(--ol-hairline); }
+.ol-footer-legacy > .absolute, .ol-footer-legacy [class*='blur-'] { display: none; }
+.ol-footer-legacy [class*='bg-gradient'] { background-image: none; }
+.ol-footer-legacy [class*='backdrop-blur'] { backdrop-filter: none; }
+.ol-footer-legacy .gradient-text { background: none; color: var(--ol-ivory); -webkit-text-fill-color: currentColor; }
+.ol-footer-legacy .ol-logo { width: 230px; }
+.ol-footer-legacy :is(.text-gray-500, .text-gray-600, .text-gray-700) { color: var(--ol-text-muted); }
+@media (prefers-reduced-motion: reduce) {
+  .ol-hero-heading > span { transition: none; }
+  .dc-home [data-anim], .dc-home-m [data-anim] { animation: none !important; }
+  #dc-navbar, #dc-mobile-header, .auth-card { transition: none; }
+}

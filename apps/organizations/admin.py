@@ -5,6 +5,8 @@ COMPATIBILITY: vNext-only. Uses canonical vNext Team model (organizations_team).
 QUERY OPTIMIZATION: Uses select_related and raw_id_fields to prevent N+1 queries.
 """
 
+from deltacrown.branding import brand_copy
+
 from django import forms
 from django.contrib import admin
 from unfold.admin import ModelAdmin, TabularInline, StackedInline
@@ -696,7 +698,7 @@ class TeamRankingAdmin(ModelAdmin):
         ('Team', {
             'fields': ('team',)
         }),
-        ('Crown Points', {
+        (brand_copy('[[ranking_points]]'), {
             'fields': ('current_cp', 'season_cp', 'all_time_cp', 'tier')
         }),
         ('Streaks', {
@@ -740,7 +742,7 @@ class TeamRankingAdmin(ModelAdmin):
             color,
             obj.current_cp
         )
-    current_cp_display.short_description = 'Crown Points'
+    current_cp_display.short_description = brand_copy('[[ranking_points]]')
     current_cp_display.admin_order_field = 'current_cp'
     
     def hot_streak_display(self, obj):

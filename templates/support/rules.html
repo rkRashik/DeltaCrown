@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
-{% block title %}Platform Rules - DeltaCrown{% endblock %}
+{% block title %}Platform Rules - {{ brand.name }}{% endblock %}
 
 {% block content %}
 <main class="min-h-screen bg-[#04060b] text-slate-100">
@@ -8,7 +8,7 @@
     <div class="absolute inset-0 bg-[radial-gradient(circle_at_12%_10%,rgba(248,113,113,.16),transparent_32%),radial-gradient(circle_at_84%_18%,rgba(6,182,212,.16),transparent_34%)]"></div>
     <div class="relative mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-8">
       <p class="text-xs font-black uppercase tracking-[0.24em] text-red-300">Competitive integrity</p>
-      <h1 class="mt-3 font-display text-4xl font-black tracking-tight text-white md:text-6xl">DeltaCrown Platform Rules</h1>
+      <h1 class="mt-3 font-display text-4xl font-black tracking-tight text-white md:text-6xl">{{ brand.name }} Platform Rules</h1>
       <p class="mt-4 max-w-3xl text-lg leading-8 text-slate-300">Rules for tournaments, Match Rooms, teams, Showdown, Missions, Bounty, Dropzone, wallet/economy activity, proof review, and community conduct.</p>
       <p class="mt-5 text-sm text-slate-500">Last updated: May 18, 2026</p>
     </div>
@@ -32,7 +32,7 @@
     <div class="space-y-8">
       <section id="principles" class="scroll-mt-24 rounded-3xl border border-white/10 bg-white/[0.035] p-6 md:p-8">
         <h2 class="text-2xl font-black text-white">1. Core Principles</h2>
-        <p class="mt-3 leading-7 text-slate-300">DeltaCrown is built for structured, skill-based competitive gaming. Every player, team, organizer, and operator is expected to protect fair competition, accurate records, respectful conduct, and honest proof submission.</p>
+        <p class="mt-3 leading-7 text-slate-300">{{ brand.name }} is built for structured, skill-based competitive gaming. Every player, team, organizer, and operator is expected to protect fair competition, accurate records, respectful conduct, and honest proof submission.</p>
         <div class="mt-5 grid gap-3 md:grid-cols-3">
           <div class="rounded-2xl border border-cyan-300/20 bg-cyan-300/5 p-4"><strong class="text-cyan-200">Compete honestly</strong><p class="mt-2 text-sm text-slate-400">No cheating, exploit abuse, manipulation, or false proof.</p></div>
           <div class="rounded-2xl border border-violet-300/20 bg-violet-300/5 p-4"><strong class="text-violet-200">Respect people</strong><p class="mt-2 text-sm text-slate-400">No harassment, hate speech, threats, doxxing, or targeted abuse.</p></div>
@@ -58,7 +58,7 @@
 
       <section id="conduct" class="scroll-mt-24 rounded-3xl border border-white/10 bg-white/[0.035] p-6 md:p-8">
         <h2 class="text-2xl font-black text-white">4. Conduct and Community Safety</h2>
-        <p class="mt-3 leading-7 text-slate-300">Players and teams must communicate respectfully across DeltaCrown pages, Match Rooms, Team HQ, support forms, proof notes, and connected community spaces.</p>
+        <p class="mt-3 leading-7 text-slate-300">Players and teams must communicate respectfully across {{ brand.name }} pages, Match Rooms, Team HQ, support forms, proof notes, and connected community spaces.</p>
         <div class="mt-5 grid gap-4 md:grid-cols-2">
           <div class="rounded-2xl border border-emerald-300/20 bg-emerald-300/5 p-5"><h3 class="font-black text-emerald-200">Expected</h3><ul class="mt-3 space-y-2 text-sm text-slate-300"><li>Respond to officials clearly.</li><li>Respect opponents and teammates.</li><li>Raise issues with evidence.</li><li>Accept operator decisions unless an appeal path is available.</li></ul></div>
           <div class="rounded-2xl border border-red-300/20 bg-red-500/5 p-5"><h3 class="font-black text-red-200">Prohibited</h3><ul class="mt-3 space-y-2 text-sm text-slate-300"><li>Harassment, threats, hate speech, or discriminatory abuse.</li><li>Doxxing or sharing private information.</li><li>Spam, scams, impersonation, or external promotion abuse.</li><li>Retaliation against reporters, opponents, staff, or reviewers.</li></ul></div>
@@ -87,8 +87,8 @@
       </section>
 
       <section id="economy" class="scroll-mt-24 rounded-3xl border border-white/10 bg-white/[0.035] p-6 md:p-8">
-        <h2 class="text-2xl font-black text-white">7. Wallet, DeltaCoin, and Reward Integrity</h2>
-        <p class="mt-3 leading-7 text-slate-300">DeltaCoin is a closed-loop platform utility and reward currency. Users must not exploit wallet flows, payment proofs, refunds, entry fees, reward claims, settlement flows, or operator review paths.</p>
+        <h2 class="text-2xl font-black text-white">7. Wallet, {{ brand.features.coins }}, and Reward Integrity</h2>
+        <p class="mt-3 leading-7 text-slate-300">{{ brand.features.coins }} is a closed-loop platform utility and reward currency. Users must not exploit wallet flows, payment proofs, refunds, entry fees, reward claims, settlement flows, or operator review paths.</p>
         <ul class="mt-4 space-y-3 text-slate-300">
           <li>Submit accurate payment or wallet information where required.</li>
           <li>Do not attempt charge abuse, duplicate claims, fake proof, unauthorized transfers, or reward reversal abuse.</li>
@@ -107,7 +107,7 @@
 
       <section id="authority" class="scroll-mt-24 rounded-3xl border border-white/10 bg-white/[0.035] p-6 md:p-8">
         <h2 class="text-2xl font-black text-white">9. Moderation and Operator Authority</h2>
-        <p class="mt-3 leading-7 text-slate-300">DeltaCrown operators and moderators may take action to protect players, teams, event integrity, and wallet/reward systems. Actions may include warnings, content removal, proof rejection, match or reward adjustment, dispute resolution, roster/team restrictions, wallet review, account restrictions, or platform removal.</p>
+        <p class="mt-3 leading-7 text-slate-300">{{ brand.name }} operators and moderators may take action to protect players, teams, event integrity, and wallet/reward systems. Actions may include warnings, content removal, proof rejection, match or reward adjustment, dispute resolution, roster/team restrictions, wallet review, account restrictions, or platform removal.</p>
         <p class="mt-4 leading-7 text-slate-300">Where an appeal or review path is available, provide new evidence or explain the error clearly. Repeated abusive appeals, threats, or false reports can result in further action.</p>
       </section>
     </div>

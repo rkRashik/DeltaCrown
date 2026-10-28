@@ -4,6 +4,8 @@ UP PHASE 7.7: OTP verification for PIN setup/change.
 
 Security-first implementation with email verification before PIN changes.
 """
+
+from deltacrown.branding import brand_copy
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
@@ -166,20 +168,8 @@ def otp_request(request):
         
         try:
             # Email subject and message
-            subject = f'DeltaCrown Wallet PIN Verification - {otp_code}'
-            message = f"""
-Hello {request.user.username},
-
-Your OTP for wallet PIN {'setup' if purpose == 'pin_setup' else 'change'} is:
-
-{otp_code}
-
-This code will expire in 10 minutes.
-
-If you did not request this, please ignore this email and secure your account.
-
-- DeltaCrown Esports Team
-"""
+            subject = f"{brand_copy('[[brand]]')} Wallet PIN Verification - {otp_code}"
+            message = f"\nHello {request.user.username},\n\nYour OTP for wallet PIN {('setup' if purpose == 'pin_setup' else 'change')} is:\n\n{otp_code}\n\nThis code will expire in 10 minutes.\n\nIf you did not request this, please ignore this email and secure your account.\n\n- {brand_copy('[[brand]]')} Esports Team\n"
             
             # Send email (in development, log OTP to console)
             if settings.DEBUG:

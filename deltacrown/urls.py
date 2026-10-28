@@ -75,7 +75,7 @@ urlpatterns = [
     path("favicon-test/", TemplateView.as_view(template_name="favicon_test.html"), name="favicon_test"),
 
     # Favicon - Direct route for browser default lookup
-    path("favicon.ico", RedirectView.as_view(url=settings.STATIC_URL + "img/favicon/favicon.ico", permanent=False)),
+    path("favicon.ico", RedirectView.as_view(url=settings.STATIC_URL + settings.BRAND["favicon"], permanent=False)),
 
     # Crawlers / SEO
     path("riot.txt", lambda request: HttpResponse("5bb2f796-8590-4124-9f85-f070879a7cd0", content_type="text/plain")),
@@ -209,6 +209,12 @@ except Exception:
         path("accounts/logout/", RedirectView.as_view(url="/account/logout/", permanent=False)),
     ]
 
+# Stable per-record routes: serializers/templates keep their existing field.url contract.
+from apps.common.media.views import download as governed_media_download, editor_image
+urlpatterns.insert(0, path("files/<str:label>/<str:field_name>/<str:pk>/", governed_media_download, name="governed_media"))
+
+urlpatterns.insert(0, path("files/editor/<str:token>/", editor_image, name="published_editor_media"))
+
 # Drop any Nones inserted by the conditional line above
 urlpatterns = [u for u in urlpatterns if u is not None]
 
@@ -219,4 +225,5 @@ if settings.DEBUG:
     # Also serve collected static files for network access
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
     # Serve media files
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    if getattr(settings, "OWNLOBBY_MEDIA_MODE", "legacy") == "legacy":
+        urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

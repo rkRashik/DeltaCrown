@@ -13,6 +13,7 @@ import logging
 import hashlib
 from urllib.parse import quote
 from django.http import JsonResponse
+from deltacrown.branding import BRAND
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import get_user_model
 from django.core.paginator import Paginator, EmptyPage
@@ -48,7 +49,7 @@ def _avatar_bg_color(seed: str) -> str:
 
 
 def _fallback_avatar_data_uri(display_name: str, username: str = '') -> str:
-    label = display_name or username or 'DeltaCrown'
+    label = display_name or username or BRAND['name']
     initials = _build_initials(label, fallback='DC')
     bg = _avatar_bg_color(username or label)
     svg = (

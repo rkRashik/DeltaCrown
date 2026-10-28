@@ -1,0 +1,10 @@
+# Preserve approved brand-kit bytes and SHA256 provenance on every platform.
+static/ownlobby/logos/** -text
+static/ownlobby/icons/** -text
+static/ownlobby/social/** -text
+static/ownlobby/website/** -text
+
+# Preserve verified dependency artifacts byte-for-byte across Windows/Linux.
+# Unified-diff blank context lines intentionally contain one trailing space.
+vendor/twisted/*.whl -text
+vendor/twisted/*.patch -text whitespace=-blank-at-eol

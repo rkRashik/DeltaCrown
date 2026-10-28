@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="color-scheme" content="dark">
-    <title>Form Configuration - {{ tournament.name }} | DeltaCrown TOC</title>
+    <title>Form Configuration - {{ tournament.name }} | {{ brand.name }} TOC</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -88,6 +88,7 @@
             pointer-events: none;
         }
     </style>
+    {% include "partials/brand_head.html" %}
 </head>
 <body class="bg-dc-bg text-dc-textBright min-h-screen relative font-sans selection:bg-theme selection:text-white">
     <div class="bg-ambient"></div>

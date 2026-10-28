@@ -31,10 +31,8 @@ def user_avatar_url(user):
     """
     try:
         if hasattr(user, 'profile') and user.profile and hasattr(user.profile, 'avatar') and user.profile.avatar:
-            # Verify the file actually exists on disk to prevent 404s
-            avatar_path = os.path.join(settings.MEDIA_ROOT, str(user.profile.avatar))
-            if os.path.isfile(avatar_path):
-                return user.profile.avatar.url
+            # Remote storage does not expose a local filesystem path.
+            return user.profile.avatar.url
     except Exception:
         pass
     

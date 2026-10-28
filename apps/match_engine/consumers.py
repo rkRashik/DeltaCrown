@@ -12,6 +12,8 @@ Canonical location: apps.match_engine.consumers (Phase 6 extraction).
 
 from __future__ import annotations
 
+from deltacrown.branding import brand_copy
+
 import asyncio
 import json
 import logging
@@ -194,7 +196,8 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
     def get_allowed_origins() -> Optional[list]:
         origins = getattr(settings, "WS_ALLOWED_ORIGINS", None)
         if origins:
-            return [o.strip() for o in origins.split(",") if o.strip()]
+            values = origins.split(",") if isinstance(origins, str) else origins
+            return [o.strip() for o in values if o.strip()]
         return None
 
     async def direct_broadcast(self, method_name: str, event_data: dict) -> None:
@@ -1037,7 +1040,21 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
                 .order_by("-created_at")[:limit]
             )
             # Reverse so oldest first (natural chat order)
-            return [m.to_ws_dict() for m in reversed(list(qs))]
+            rows = list(reversed(list(qs)))
+            messages = [m.to_ws_dict() for m in rows]
+            from django.conf import settings
+            if getattr(settings, "OWNLOBBY_MEDIA_MODE", "legacy") == "hybrid":
+                # Saved lobby messages can retain public CDN URLs after
+                # containment. Resolve the governed field in ONE batch query
+                # without writing the historical chat data.
+                from apps.user_profile.models_main import UserProfile
+                from apps.match_engine.chat_media import hydrate_history_avatars
+                user_ids = {m.user_id for m in rows if m.user_id}
+                profiles = {
+                    p.user_id: p for p in UserProfile.objects.filter(user_id__in=user_ids)
+                } if user_ids else {}
+                hydrate_history_avatars(messages, profiles)
+            return messages
 
         return await _fetch()
 
@@ -1093,7 +1110,7 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
                     "title": f"\U0001f3ae Match #{self.match_id} — Voice Channel Linked",
                     "description": f"**{label}**\n[Join Voice]({voice_url})",
                     "color": 5793266,  # #5865F2 in decimal
-                    "footer": {"text": f"Set by {self.user.username} via DeltaCrown"},
+                    "footer": {"text": f"Set by {self.user.username} via {brand_copy('[[brand]]')}"},
                 }]
             }
             timeout = aiohttp.ClientTimeout(total=3)
@@ -1110,7 +1127,7 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
                         "title": f"\U0001f3ae Match #{self.match_id} — Voice Channel Linked",
                         "description": f"**{label}**\n[Join Voice]({voice_url})",
                         "color": 5793266,
-                        "footer": {"text": f"Set by {self.user.username} via DeltaCrown"},
+                        "footer": {"text": f"Set by {self.user.username} via {brand_copy('[[brand]]')}"},
                     }]
                 }
 

@@ -12,6 +12,8 @@ Schema Safety:
 - Uses schema introspection to avoid ProgrammingError on missing columns
 """
 
+from deltacrown.branding import brand_copy
+
 import json
 import logging
 from django.shortcuts import render
@@ -680,8 +682,8 @@ def vnext_hub(request):
         'game_configs_json': game_configs_json,
         'spotlight_teams': spotlight_teams,
         'seo': build_seo(
-            title='Team Hub | DeltaCrown',
-            description='Explore DeltaCrown teams, organizations, recruiting squads, rankings, Team HQ workflows, scrims, tryouts, and competitive team operations.',
+            title=brand_copy('Team Hub | [[brand]]'),
+            description=brand_copy('Explore [[brand]] teams, organizations, recruiting squads, rankings, Team HQ workflows, scrims, tryouts, and competitive team operations.'),
             path='/teams/',
             noindex=bool(selected_game_slug and selected_game_slug != 'all'),
             schema=breadcrumb_schema([('Home', '/'), ('Teams', '/teams/')]),

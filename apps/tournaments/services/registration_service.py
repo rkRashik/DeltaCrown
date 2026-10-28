@@ -56,6 +56,8 @@ Usage:
     )
 """
 
+from deltacrown.branding import brand_copy
+
 from typing import Dict, Optional, Any
 import logging
 from decimal import Decimal
@@ -1176,7 +1178,7 @@ class RegistrationService:
         # Validate DeltaCoin is accepted payment method
         if 'deltacoin' not in registration.tournament.payment_methods:
             raise ValidationError(
-                "DeltaCoin payments are not accepted for this tournament"
+                brand_copy('[[coins]] payments are not accepted for this tournament')
             )
         
         # Get entry fee amount
@@ -1197,8 +1199,7 @@ class RegistrationService:
         # Check sufficient balance
         if wallet.cached_balance < entry_fee_dc:
             raise InsufficientFunds(
-                f"Insufficient DeltaCoin balance. Required: {entry_fee_dc} DC, "
-                f"Available: {wallet.cached_balance} DC"
+                f"Insufficient {brand_copy('[[coins]]')} balance. Required: {entry_fee_dc} DC, Available: {wallet.cached_balance} DC"
             )
         
         # Create debit transaction
@@ -1234,7 +1235,7 @@ class RegistrationService:
             payment.status = Payment.VERIFIED
             payment.verified_by = user
             payment.verified_at = timezone.now()
-            payment.admin_notes = "Auto-verified DeltaCoin payment"
+            payment.admin_notes = brand_copy('Auto-verified [[coins]] payment')
             payment.save()
         else:
             payment = Payment.objects.create(
@@ -1245,7 +1246,7 @@ class RegistrationService:
                 status=Payment.VERIFIED,
                 verified_by=user,
                 verified_at=timezone.now(),
-                admin_notes="Auto-verified DeltaCoin payment"
+                admin_notes=brand_copy('Auto-verified [[coins]] payment')
             )
         
         # Auto-confirm registration

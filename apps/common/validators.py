@@ -33,7 +33,6 @@ _DEFAULT_ALLOWED_DOCUMENT_TYPES = (
 _MAGIC_SIGNATURES: dict[bytes, str] = {
     b'\xff\xd8\xff': 'image/jpeg',
     b'\x89PNG\r\n\x1a\n': 'image/png',
-    b'RIFF': 'image/webp',         # WebP starts with RIFF…WEBP
     b'GIF87a': 'image/gif',
     b'GIF89a': 'image/gif',
     b'%PDF-': 'application/pdf',
@@ -45,8 +44,8 @@ def _sniff_mime(file_obj) -> str | None:
     Read the first bytes of *file_obj* and return a MIME type based on
     magic-number signatures.  Resets the read pointer after inspection.
 
-    Falls back to ``python-magic`` if installed, otherwise returns the
-    Content-Type reported by the upload handler.
+    Falls back to ``python-magic`` if installed. Unknown content is rejected;
+    the browser's Content-Type is not evidence of the file's actual format.
     """
     pos = file_obj.tell()
     header = file_obj.read(16)
@@ -73,8 +72,7 @@ def _sniff_mime(file_obj) -> str | None:
     except (ImportError, Exception):
         pass
 
-    # Last resort: trust the content_type from the upload handler
-    return getattr(file_obj, 'content_type', None)
+    return None
 
 
 # ---------------------------------------------------------------------------
@@ -106,7 +104,7 @@ def validate_image_upload(value):
 
     # MIME-type check
     detected = _sniff_mime(value)
-    if detected and detected not in allowed:
+    if detected not in allowed:
         raise ValidationError(
             f'Unsupported file type: {detected}.  Allowed types: {", ".join(allowed)}.',
             code='invalid_file_type',
@@ -129,7 +127,7 @@ def validate_payment_proof_upload(value):
         )
 
     detected = _sniff_mime(value)
-    if detected and detected not in allowed:
+    if detected not in allowed:
         raise ValidationError(
             f'Unsupported proof file type: {detected}.  Allowed: {", ".join(allowed)}.',
             code='invalid_file_type',
@@ -152,7 +150,7 @@ def validate_document_upload(value):
         )
 
     detected = _sniff_mime(value)
-    if detected and detected not in allowed:
+    if detected not in allowed:
         raise ValidationError(
             f'Unsupported document type: {detected}.  Allowed: {", ".join(allowed)}.',
             code='invalid_file_type',

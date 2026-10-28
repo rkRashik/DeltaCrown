@@ -1,3 +1,4 @@
+{% load branding %}{% brand_config as brand %}
 <!DOCTYPE html>
 <html>
 <head>
@@ -108,10 +109,11 @@
     </style>
 </head>
 <body>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B0C0C;"><tr><td align="center" style="padding:20px;">{% include "partials/email_brand_logo.html" %}</td></tr></table>
     <div class="wrap">
         <div class="card">
             <div class="header">
-                <span class="badge">DeltaCrown</span>
+                <span class="badge">{{ brand.name }}</span>
                 <p class="brand">Tournament Ops Update</p>
             </div>
             <div class="content">
@@ -125,13 +127,13 @@
                 {% endif %}
 
                 <div class="meta">
-                    <p class="meta-row"><strong>Tournament:</strong> {{ tournament_name|default:"DeltaCrown Event" }}</p>
+                    <p class="meta-row"><strong>Tournament:</strong> {{ tournament_name|default:"Tournament update" }}</p>
                     <p class="meta-row"><strong>Event:</strong> {{ event_name|default:"Lifecycle Notification" }}</p>
                     <p class="meta-row"><strong>Sent:</strong> {{ generated_at|date:"F j, Y g:i A" }}</p>
                 </div>
             </div>
             <div class="footer">
-                You are receiving this because you are registered in this tournament on DeltaCrown.
+                You are receiving this because you are registered in this tournament on {{ brand.name }}.
             </div>
         </div>
     </div>

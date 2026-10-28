@@ -1,7 +1,7 @@
 {% extends "tournaments/base.html" %}
 {% load static humanize %}
 
-{% block title %}{{ match_core.participant1_name }} vs {{ match_core.participant2_name }} - {{ tournament.name }} | DeltaCrown{% endblock %}
+{% block title %}{{ match_core.participant1_name }} vs {{ match_core.participant2_name }} - {{ tournament.name }} | {{ brand.name }}{% endblock %}
 
 {% block extra_css %}
 {{ block.super }}

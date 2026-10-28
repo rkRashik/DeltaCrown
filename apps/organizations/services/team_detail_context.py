@@ -4,6 +4,8 @@ Team Detail Context Builder
 Provides schema-resilient context generation for team_detail.html template.
 Implements the Team Detail Page Contract (docs/contracts/TEAM_DETAIL_PAGE_CONTRACT.md).
 """
+
+from deltacrown.branding import brand_copy
 import hashlib
 import logging
 from typing import Optional, Dict, Any, List
@@ -531,7 +533,7 @@ def _build_page_context(team: Team, request) -> Dict[str, Any]:
         canonical_url = request.build_absolute_uri()
     
     return {
-        'title': f'{team_name} | Team HQ | DeltaCrown',
+        'title': f"{team_name} | Team HQ | {brand_copy('[[brand]]')}",
         'description': getattr(team, 'tagline', f'Official page for {team_name}'),
         'og_image': banner_url,
         'canonical_url': canonical_url,
@@ -1434,7 +1436,7 @@ def _build_journey_context(team: Team, is_restricted: bool) -> List[Dict[str, An
                 'type': 'auto',
                 'milestone_type': 'FOUNDED',
                 'title': f'{team.name} founded',
-                'description': 'The team was established on DeltaCrown.',
+                'description': brand_copy('The team was established on [[brand]].'),
                 'timestamp': team.created_at,
             })
     except Exception:

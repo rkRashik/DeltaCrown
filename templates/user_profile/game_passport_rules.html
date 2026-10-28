@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}Game Passport Fair Play Protocol | DeltaCrown Esports{% endblock %}
+{% block title %}Game Passport Fair Play Protocol | {{ brand.name }} Esports{% endblock %}
 
 {% block content %}
 <div class="min-h-screen bg-gradient-to-br from-[#080612] via-[#0F0B1E] to-[#1A0F2E] py-16 px-4">
@@ -13,7 +13,7 @@
             </div>
             <h1 class="text-5xl font-bold text-white mb-4 tracking-tight">Game Passport Fair Play Protocol</h1>
             <p class="text-gray-300 text-xl max-w-3xl mx-auto leading-relaxed">
-                Official identity verification and anti-fraud policy governing competitive integrity on DeltaCrown
+                Official identity verification and anti-fraud policy governing competitive integrity on {{ brand.name }}
             </p>
             <div class="flex items-center justify-center gap-4 mt-6 text-sm text-gray-400">
                 <span class="flex items-center gap-2">
@@ -106,7 +106,7 @@
             <div class="space-y-4 text-gray-300">
                 <div class="bg-black/30 rounded-xl p-5 border border-white/5">
                     <p class="text-white font-semibold mb-3 text-lg">Core Principle</p>
-                    <p class="text-gray-300">When you create a Game Passport, you declare under DeltaCrown's Terms of Service that you are the legitimate owner of the game account. This declaration is binding and any violation constitutes fraud.</p>
+                    <p class="text-gray-300">When you create a Game Passport, you declare under {{ brand.name }}'s Terms of Service that you are the legitimate owner of the game account. This declaration is binding and any violation constitutes fraud.</p>
                 </div>
 
                 <div class="bg-red-500/10 rounded-xl p-5 border border-red-500/30">
@@ -129,7 +129,7 @@
                         </li>
                         <li class="flex items-start gap-2">
                             <i class="fa-solid fa-xmark text-red-400 mt-1"></i>
-                            <span><strong class="text-red-400">Account Trading:</strong> Buying, selling, or gifting game accounts for use on DeltaCrown</span>
+                            <span><strong class="text-red-400">Account Trading:</strong> Buying, selling, or gifting game accounts for use on {{ brand.name }}</span>
                         </li>
                     </ul>
                 </div>
@@ -151,7 +151,7 @@
                 <h2 class="text-2xl font-bold text-white">2. Global Uniqueness Enforcement</h2>
             </div>
             <div class="space-y-3 text-gray-300">
-                <p><strong class="text-white">Platform Rule:</strong> One game identity can only be linked to ONE DeltaCrown account — forever.</p>
+                <p><strong class="text-white">Platform Rule:</strong> One game identity can only be linked to ONE {{ brand.name }} account — forever.</p>
                 <div class="bg-black/30 rounded p-4 mt-3">
                     <p class="text-sm text-gray-400 mb-2">Technical Implementation:</p>
                     <ul class="list-disc pl-5 text-sm text-gray-400 space-y-1">
@@ -356,7 +356,7 @@
                 <h2 class="text-2xl font-bold text-white">7. Official Game Ban Policy <span class="ml-2 text-xs bg-orange-500/20 text-orange-400 px-2 py-1 rounded">⏳ PLANNED</span></h2>
             </div>
             <div class="space-y-3 text-gray-300">
-                <p><strong class="text-white">Zero Tolerance:</strong> Active bans from official anti-cheat systems will result in immediate DeltaCrown suspension.</p>
+                <p><strong class="text-white">Zero Tolerance:</strong> Active bans from official anti-cheat systems will result in immediate {{ brand.name }} suspension.</p>
                 <div class="bg-yellow-500/10 border border-yellow-500/30 rounded p-4 mb-4">
                     <p class="text-sm text-yellow-400"><i class="fa-solid fa-info-circle"></i> <strong>Current Status:</strong> Automated ban detection is in development. For now, admins manually review flagged accounts.</p>
                 </div>
@@ -462,7 +462,7 @@
         <!-- Legal Disclaimer -->
         <div class="mt-8 p-4 bg-black/30 rounded-lg border border-white/5">
             <p class="text-xs text-gray-500 text-center">
-                DeltaCrown reserves the right to modify these rules at any time. Continued use of Game Passports constitutes acceptance of updates. 
+                {{ brand.name }} reserves the right to modify these rules at any time. Continued use of Game Passports constitutes acceptance of updates.
                 These rules supplement our <a href="/terms" class="text-[#00F0FF] hover:underline">Terms of Service</a> and 
                 <a href="/privacy" class="text-[#00F0FF] hover:underline">Privacy Policy</a>.
             </p>

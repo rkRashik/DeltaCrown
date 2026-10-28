@@ -172,7 +172,7 @@ def dispute_escalation_task(self):
     
     escalated_count = 0
     
-    for dispute_id in old_disputes:
+    for dispute_id in old_disputes.iterator(chunk_size=50):
         try:
             # Escalate via service (publishes event, logs step)
             dispute_service.escalate_dispute(

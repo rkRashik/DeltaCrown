@@ -18,6 +18,13 @@ __pycache__/
 htmlcov/
 
 # Local runtime artifacts
+.env
+.env.*
+.aws/
+.ssh/
+.codex/
+.agents/
+.claude/
 *.log
 db.sqlite3
 db.sqlite3-journal
@@ -46,3 +53,6 @@ backups/
 .idea/
 .DS_Store
 Thumbs.db
+
+# Confidential local media is never build context.
+.private-media/

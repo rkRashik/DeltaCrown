@@ -14,6 +14,8 @@ ADR-001: Economy app decoupling (IntegerField references)
 """
 from __future__ import annotations
 
+from deltacrown.branding import brand_copy
+
 import logging
 from decimal import Decimal, ROUND_DOWN
 from typing import Dict, List, Optional, Tuple
@@ -428,7 +430,7 @@ class PayoutService:
 
         if not payments.exists():
             logger.info(
-                f"Tournament {tournament_id}: No verified DeltaCoin payments, no refunds to process"
+                f"Tournament {tournament_id}: No verified {brand_copy('[[coins]]')} payments, no refunds to process"
             )
             return []
         
@@ -444,8 +446,7 @@ class PayoutService:
             ).first()
             if original_tx is None:
                 logger.warning(
-                    f"Tournament {tournament_id}: Missing original DeltaCoin debit for "
-                    f"Registration {registration.id}, skipping refund"
+                    f"Tournament {tournament_id}: Missing original {brand_copy('[[coins]]')} debit for Registration {registration.id}, skipping refund"
                 )
                 continue
 

@@ -9,6 +9,8 @@ S6-M4: MatchServerSelection
 PRD: §6.4, §6.8–§6.10
 """
 
+from apps.common.media.fields import MediaFileField, MediaImageField
+
 import uuid
 
 from django.core.validators import MaxValueValidator, MinValueValidator
@@ -95,7 +97,7 @@ class MatchMedia(models.Model):
     )
     uploaded_by_id = models.PositiveIntegerField()
     media_type = models.CharField(max_length=20, choices=TYPE_CHOICES, default=SCREENSHOT)
-    file = models.FileField(upload_to='match_media/', blank=True, null=True)
+    file = MediaFileField(upload_to='match_media/', blank=True, null=True)
     url = models.URLField(max_length=500, blank=True)
     description = models.CharField(max_length=500, blank=True)
     is_evidence = models.BooleanField(default=False, help_text=_('Flagged as dispute evidence'))

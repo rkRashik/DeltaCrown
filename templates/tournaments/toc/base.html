@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="color-scheme" content="dark">
-    <title>{{ tournament.name }} — TOC | DeltaCrown</title>
+    <title>{{ tournament.name }} — TOC | {{ brand.name }}</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -186,6 +186,7 @@
             color: #b6b6c4;
         }
     </style>
+    {% include "partials/brand_head.html" %}
 </head>
 <body data-game="{{ game_slug }}">
 
@@ -207,9 +208,9 @@
         {# Brand header #}
         <div class="h-[64px] flex items-center px-5 border-b border-dc-border bg-dc-bg/50">
             <a href="/" class="flex items-center gap-3 group">
-                <img src="{% static 'img/deltaCrown_logos/logo_animated.svg' %}" alt="DeltaCrown" class="w-8 h-8 drop-shadow-[0_0_12px_var(--color-primary-muted)]">
+                <img src="{% static brand.symbol_dark %}" alt="" class="w-8 h-8">
                 <div class="sidebar-label">
-                    <img src="{% static 'img/deltaCrown_logos/DeltaCrown_Teal-Purple-Gold.svg' %}" alt="DELTACROWN" class="h-5 w-auto">
+                    <img src="{% static 'ownlobby/logos/wordmark-dual-dark.svg' %}" alt="{{ brand.name }}" width="220" height="45" class="h-5 w-auto">
                     <p class="text-[10px] text-theme font-mono uppercase tracking-[0.2em] mt-0.5">Ops Center</p>
                 </div>
             </a>
@@ -324,7 +325,7 @@
                     <div class="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-dc-bg rounded-full flex items-center justify-center"><div class="w-2 h-2 bg-dc-success rounded-full"></div></div>
                 </div>
                 <div class="overflow-hidden sidebar-label">
-                    <p class="text-sm font-bold text-white truncate">{% if is_official %}<span class="inline-flex items-center gap-1 text-dc-gold"><i data-lucide="badge-check" class="w-3.5 h-3.5"></i> DeltaCrown Official</span>{% else %}{{ request.user.username }}{% endif %}</p>
+                    <p class="text-sm font-bold text-white truncate">{% if is_official %}<span class="inline-flex items-center gap-1 text-dc-gold"><i data-lucide="badge-check" class="w-3.5 h-3.5"></i> {{ brand.name }} Official</span>{% else %}{{ request.user.username }}{% endif %}</p>
                     <p class="text-[10px] text-dc-text font-mono truncate">{% if is_organizer %}Organizer{% else %}Staff{% endif %}{% if is_official %} &middot; Official Event{% endif %}</p>
                 </div>
             </div>
@@ -1122,14 +1123,14 @@
                     <div class="glass-box rounded-xl p-5 animate-pulse"><div class="h-20 bg-dc-bg rounded"></div></div>
                 </div>
 
-                {# ── S10-F3: DeltaCoin Economy Card ── #}
+                {# ── S10-F3: {{ brand.features.coins }} Economy Card ── #}
                 <div class="glass-box rounded-xl p-5 flex items-center justify-between">
                     <div class="flex items-center gap-4">
                         <div class="w-10 h-10 rounded-full bg-dc-warning/10 border border-dc-warning/30 flex items-center justify-center">
                             <i data-lucide="coins" class="w-5 h-5 text-dc-warning"></i>
                         </div>
                         <div>
-                            <p class="text-[10px] uppercase tracking-widest text-dc-text">DeltaCoin Economy</p>
+                            <p class="text-[10px] uppercase tracking-widest text-dc-text">{{ brand.features.coins }} Economy</p>
                             <p class="text-sm text-white font-bold mt-0.5">Pool Balance: <span id="economy-pool-balance" class="text-dc-warning">—</span></p>
                         </div>
                     </div>
@@ -1198,7 +1199,7 @@
                                 <option value="nagad">Nagad</option>
                                 <option value="rocket">Rocket</option>
                                 <option value="bank_transfer">Bank</option>
-                                <option value="deltacoin">DeltaCoin</option>
+                                <option value="deltacoin">{{ brand.features.coins }}</option>
                             </select>
                             <i data-lucide="chevron-down" class="w-3 h-3 text-dc-text absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none"></i>
                         </div>
@@ -2849,7 +2850,7 @@
                     <div class="px-5 pb-5 grid grid-cols-1 md:grid-cols-2 gap-4" id="settings-venue">
                         <div>
                             <label class="block text-xs text-dc-text mb-1">Venue Name</label>
-                            <input data-field="venue_name" type="text" placeholder="e.g. DeltaCrown Arena" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50">
+                            <input data-field="venue_name" type="text" placeholder="e.g. {{ brand.features.competitive_hub }}" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50">
                         </div>
                         <div>
                             <label class="block text-xs text-dc-text mb-1">Venue City</label>
@@ -2895,7 +2896,7 @@
                         </div>
                         <div id="fee-details" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                             <div>
-                                <label class="block text-xs text-dc-text mb-1">DeltaCoin Fee</label>
+                                <label class="block text-xs text-dc-text mb-1">{{ brand.features.coins }} Fee</label>
                                 <input data-field="entry_fee_deltacoin" type="number" min="0" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50">
                             </div>
                             <div>
@@ -2956,7 +2957,7 @@
                         <div class="rounded-xl border border-theme/20 bg-theme/5 p-4 flex items-center justify-between gap-4">
                             <div>
                                 <p class="text-sm font-bold text-white">Prizes &amp; Awards are managed in the dedicated Prizes tab</p>
-                                <p class="text-xs text-dc-text mt-1">Configure placement tiers, DC rewards, special accolades, and publish standings from the Prizes &amp; Awards tab.</p>
+                                <p class="text-xs text-dc-text mt-1">Configure placement tiers, {{ brand.features.coins }} rewards, special accolades, and publish standings from the Prizes &amp; Awards tab.</p>
                             </div>
                             <button data-click="TOC.navigate" data-click-args='["prizes"]'
                                     class="flex-shrink-0 px-4 py-2 rounded-lg bg-theme text-black text-xs font-black uppercase tracking-wider hover:opacity-90 transition-opacity flex items-center gap-1.5">
@@ -3964,7 +3965,7 @@
                     <div class="xl:col-span-7 glass-box rounded-xl p-5 space-y-4">
                         <h3 class="font-display font-bold text-white text-sm flex items-center gap-2">
                             <i data-lucide="sparkles" class="w-4 h-4 text-theme"></i>
-                            The DeltaCrown Fan Predictions Engine
+                            The {{ brand.name }} Fan Predictions Engine
                         </h3>
                         <p class="text-sm text-dc-textBright leading-relaxed">To elevate audience interaction and streamline organizer workflows, the Fan Predictions module runs as a dedicated control surface in Ops Center under ENGAGEMENT.</p>
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
@@ -4469,7 +4470,7 @@
                                     <input id="prizes-fiat-pool" type="number" min="0" step="1" class="w-full bg-dc-panel border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50" placeholder="0">
                                 </label>
                                 <label class="space-y-1">
-                                    <span class="text-[10px] uppercase tracking-wider text-dc-text">DeltaCoin Pool</span>
+                                    <span class="text-[10px] uppercase tracking-wider text-dc-text">{{ brand.features.coins }} Pool</span>
                                     <input id="prizes-coin-pool" type="number" min="0" step="1" class="w-full bg-dc-panel border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50" placeholder="0">
                                 </label>
                             </div>

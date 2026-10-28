@@ -3,6 +3,7 @@ Settings API Endpoints
 Handles avatar/banner uploads, social links, and profile updates.
 """
 from django.http import JsonResponse, HttpResponse
+from django.core.exceptions import ValidationError
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_http_methods
 from django.core.files.storage import default_storage
@@ -80,23 +81,10 @@ def upload_media(request):
     
     # Save to profile
     try:
-        if media_type == 'avatar':
-            # Delete old avatar if exists
-            if profile.avatar:
-                try:
-                    default_storage.delete(profile.avatar.name)
-                except Exception:
-                    pass
-            profile.avatar = file
-        else:
-            # Delete old banner if exists
-            if profile.banner:
-                try:
-                    default_storage.delete(profile.banner.name)
-                except Exception:
-                    pass
-            profile.banner = file
-        
+        # Preserve old bytes for recovery/retention. Never delete before DB success.
+        # Governed delivery resolves the current field, so replaced files lose their route.
+        setattr(profile, media_type, file)
+
         profile.save()
         
         # Get URL
@@ -116,6 +104,9 @@ def upload_media(request):
 
         return JsonResponse(resp)
     
+    except ValidationError:
+        return JsonResponse({'success': False, 'error': 'Invalid or oversized media file'}, status=400)
+
     except Exception as e:
         logger.error(f"Error saving {media_type}: {e}", exc_info=True)
         return JsonResponse({'success': False, 'error': 'Failed to save file'}, status=500)
@@ -145,20 +136,9 @@ def remove_media_api(request):
         return JsonResponse({'success': False, 'error': 'Invalid media type'}, status=400)
     
     try:
-        # Delete file from storage
-        if media_type == 'avatar' and profile.avatar:
-            try:
-                default_storage.delete(profile.avatar.name)
-            except Exception:
-                pass
-            profile.avatar = None
-        elif media_type == 'banner' and profile.banner:
-            try:
-                default_storage.delete(profile.banner.name)
-            except Exception:
-                pass
-            profile.banner = None
-        
+        # Clear only the reference. Retention-aware object retirement is separate.
+        setattr(profile, media_type, None)
+
         profile.save()
         
         return JsonResponse({

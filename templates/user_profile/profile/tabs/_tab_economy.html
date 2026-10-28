@@ -24,7 +24,7 @@
                     </div>
                 </div>
                 <div>
-                    <h3 class="text-white font-display font-bold leading-none tracking-wider">DELTACROWN</h3>
+                    <h3 class="text-white font-display font-bold leading-none tracking-wider">{{ brand.name }}</h3>
                     <p class="text-[9px] text-z-gold font-bold uppercase tracking-[0.2em]">Official Wallet</p>
                 </div>
             </div>
@@ -32,7 +32,7 @@
             <div class="relative z-10 my-auto">
                 <div class="flex items-center gap-2 text-[10px] text-gray-400 uppercase font-bold mb-1">
                     <span>Available Balance</span>
-                    {# DC closed-loop info tooltip #}
+                    {# {{ brand.features.coins }} closed-loop info tooltip #}
                     <span class="relative group/tooltip">
                         <svg class="w-3 h-3 text-gray-600 hover:text-gray-400 transition-colors cursor-help" viewBox="0 0 20 20" fill="currentColor">
                             <circle cx="10" cy="10" r="9" fill="none" stroke="currentColor" stroke-width="1.5"/>
@@ -44,7 +44,7 @@
                                      bg-black/85 backdrop-blur-md
                                      border border-white/10 shadow-2xl">
                             <span class="text-[10px] text-gray-200 leading-relaxed">
-                                DeltaCoin (DC) is a non-withdrawable utility token for entry fees and platform assets.
+                                {{ brand.features.coins }} is a non-withdrawable utility token for entry fees and platform assets.
                                 Fiat tournament prizes are claimed directly from the Tournament Hub.
                             </span>
                             <span class="absolute left-1/2 -translate-x-1/2 top-full -mt-px
@@ -53,9 +53,9 @@
                     </span>
                 </div>
                 <div class="text-5xl font-display font-black text-white tracking-tighter drop-shadow-lg flex items-center gap-2">
-                    {{ wallet_balance|floatformat:0|default:"0" }} <span class="text-2xl text-z-gold mb-1">DC</span>
+                    {{ wallet_balance|floatformat:0|default:"0" }} <span class="text-2xl text-z-gold mb-1">{{ brand.features.coins }}</span>
                 </div>
-                {# BDT fiat equivalent removed — DC is a closed-loop utility token (compliance) #}
+                {# BDT fiat equivalent removed — {{ brand.features.coins }} is a closed-loop utility token (compliance) #}
             </div>
 
             <div class="flex justify-between items-end relative z-10">
@@ -109,7 +109,7 @@
                 </div>
                 <h3 class="text-sm font-bold text-white uppercase tracking-widest">Recent Activity</h3>
             </div>
-            <div class="text-xs text-gray-600 font-mono">{# DC rate display removed — closed-loop economy #}</div>
+            <div class="text-xs text-gray-600 font-mono">{# {{ brand.features.coins }} rate display removed — closed-loop economy #}</div>
         </div>
         <table class="w-full text-left text-sm">
             <thead class="bg-black/20 text-[10px] uppercase text-gray-500 font-bold">
@@ -132,7 +132,7 @@
                         <td class="px-6 py-4 text-white font-medium">{{ txn.note|default:txn.get_reason_display }}</td>
                         <td class="px-6 py-4 text-gray-500 text-xs">{{ txn.created_at|date:"M d, Y" }}</td>
                         <td class="px-6 py-4 text-right {% if txn.amount > 0 %}text-z-green{% else %}text-white{% endif %} font-bold">
-                            {% if txn.amount > 0 %}+{% endif %}{{ txn.amount|floatformat:0 }} DC
+                            {% if txn.amount > 0 %}+{% endif %}{{ txn.amount|floatformat:0 }} {{ brand.features.coins }}
                         </td>
                     </tr>
                     {% endfor %}
@@ -342,7 +342,7 @@
             return `
                 <tr class="hover:bg-white/5 transition">
                     <td class="px-4 py-4 text-gray-400 font-mono text-xs">#${t.id}</td>
-                    <td class="px-4 py-4 text-white font-bold">${t.amount} DC</td>
+                    <td class="px-4 py-4 text-white font-bold">${t.amount} Coins</td>
                     <td class="px-4 py-4 text-gray-300 text-xs uppercase">${t.payment_method_display}</td>
                     <td class="px-4 py-4">
                         <span class="text-${statusColor} font-bold text-xs bg-${statusColor}/10 px-2 py-1 rounded border border-${statusColor}/20">
@@ -377,9 +377,9 @@
             return `
                 <tr class="hover:bg-white/5 transition">
                     <td class="px-4 py-4 text-gray-400 font-mono text-xs">#${w.id}</td>
-                    <td class="px-4 py-4 text-white font-bold">${w.amount} DC</td>
-                    <td class="px-4 py-4 text-red-400 text-xs">${w.processing_fee} DC</td>
-                    <td class="px-4 py-4 text-z-cyan font-bold">${w.net_amount} DC</td>
+                    <td class="px-4 py-4 text-white font-bold">${w.amount} Coins</td>
+                    <td class="px-4 py-4 text-red-400 text-xs">${w.processing_fee} Coins</td>
+                    <td class="px-4 py-4 text-z-cyan font-bold">${w.net_amount} Coins</td>
                     <td class="px-4 py-4 text-gray-300 text-xs uppercase">${w.payment_method_display}</td>
                     <td class="px-4 py-4">
                         <span class="text-${statusColor} font-bold text-xs bg-${statusColor}/10 px-2 py-1 rounded border border-${statusColor}/20">
