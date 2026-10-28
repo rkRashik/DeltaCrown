@@ -3,7 +3,6 @@ name: OwnLobby Linux release smoke
 on:
   pull_request:
     branches: [master]
-  workflow_dispatch:
 
 concurrency:
   group: ownlobby-linux-smoke-${{ github.ref }}
