@@ -14,7 +14,14 @@ from apps.common.media.policy import CLOUDINARY_PUBLIC_FIELDS, KNOWN_FIELDS, sto
 from apps.siteui.checks import governed_media_release_check
 
 
-@override_settings(OWNLOBBY_MEDIA_MODE='hybrid')
+@override_settings(
+    OWNLOBBY_MEDIA_MODE='hybrid',
+    CLOUDINARY_STORAGE={
+        'CLOUD_NAME': 'synthetic-ci-cloud',
+        'API_KEY': 'synthetic-ci-key',
+        'API_SECRET': 'synthetic-ci-secret',
+    },
+)
 class HybridMediaTests(SimpleTestCase):
     def test_only_unconditional_public_artwork_uses_cdn(self):
         for label, name in KNOWN_FIELDS:
