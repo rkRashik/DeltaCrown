@@ -7,12 +7,10 @@ URLs, usernames, filenames, media contents or credentials are printed.
 This does NOT replace a deployed Render HTTP canary or independent restore.
 """
 import os
-import sys
 from unittest.mock import patch
-from urllib.parse import urlparse
 
 os.environ["OWNLOBBY_MEDIA_MODE"] = "hybrid"
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "deltacrown.settings")
+os.environ["DJANGO_SETTINGS_MODULE"] = "deltacrown.settings"
 
 import django
 django.setup()
@@ -43,7 +41,8 @@ def read_only_canary():
     with transaction.atomic():
         with connection.cursor() as cursor:
             cursor.execute("SET TRANSACTION READ ONLY")
-        qs = (Payment.objects.filter(is_deleted=False, registration__is_deleted=False)
+        qs = (Payment.objects.filter(is_deleted=False, registration__is_deleted=False,
+                                      registration__user__is_active=True)
               .select_related("registration__user")
               .order_by("pk"))
         candidate = None
