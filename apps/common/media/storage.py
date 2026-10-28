@@ -1,5 +1,6 @@
 """Private origins. Application routes, not object-store URLs, grant delivery."""
 from django.core.files.storage import FileSystemStorage
+from storages.utils import clean_name
 from storages.backends.s3 import S3Storage
 
 
@@ -19,7 +20,7 @@ class ProtectedS3Storage(NoRawURL, S3Storage):
         Called only after record-level authorization in the media view. Never
         returns a provider URL or publishes an object.
         """
-        key = self._encode_name(self._normalize_name(name))
+        key = self._normalize_name(clean_name(name))
         return self.bucket.Object(key).get()
 
     default_acl = None
