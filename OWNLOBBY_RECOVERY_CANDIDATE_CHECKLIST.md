@@ -166,6 +166,33 @@ uploaded or committed. It tests object-only recovery, not the production databas
 or a separately running Render recovery deployment. Do not count the code
 existing as restore proof; do not set verification flags on this basis.
 
+## Operator-verified encrypted old CDN baseline — 2026-10-28
+
+The operator ran `scripts/ownlobby_cdn_original_audit.py --capture` on the
+latest release branch. Read-only Cloudinary metadata and anonymous HEAD+GET
+checks confirmed **111 sensitive original delivery URLs reachable** and
+**two approved public exclusions reachable**. These 113 concrete URLs were
+captured in an AES-GCM-encrypted file under the *existing independent local
+media-backup directory*, using its separate local key.
+
+Observed sanitized result:
+
+```text
+CDN_ORIGINAL_BASELINE_CAPTURE_PASS
+PROVEN_REACHABLE_PRIVATE_ORIGINALS: 111
+PROVEN_REACHABLE_PUBLIC_EXCLUSIONS: 2
+BASELINE_ENCRYPTED_WITH_LOCAL_BACKUP_KEY; NO URLS PRINTED
+NO_PROVIDER_OR_DATABASE_WRITES
+```
+
+This is a pre-containment baseline, **not protection**. The original URLs are
+still anonymously readable. After approved provider mutation, run
+`scripts/ownlobby_cdn_original_audit.py --verify` to check denial of the
+*exact same* originals, plus the continued accessibility of public artwork.
+Versionless URLs, pre-existing transformed/derived assets, embedded links,
+other CDN edges and eleven raw legacy paths need additional verification.
+Keep the backup key and the original-URL baseline secure; never commit either.
+
 ## Acceptance criteria — no shortcuts
 1. Local Django privacy, hybrid storage, launcher, worker and recovery tests pass on this exact branch with disposable QA configuration.
 2. Run read-only status preflight again immediately before cutover: 111 upload, 0 authenticated, two exclusions verified, zero mismatch.
