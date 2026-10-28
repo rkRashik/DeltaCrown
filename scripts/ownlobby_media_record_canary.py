@@ -51,7 +51,7 @@ def read_only_canary():
             cursor.execute("SET TRANSACTION READ ONLY")
         qs = (Payment.objects.filter(is_deleted=False, registration__is_deleted=False,
                                       registration__user__is_active=True)
-              .select_related("registration__user")
+              .select_related("registration__user", "registration__tournament")
               .order_by("pk"))
         candidate = None
         for payment in qs[:12]:
@@ -68,8 +68,13 @@ def read_only_canary():
 
         payment, field_name = candidate
         owner = payment.registration.user
+        # Tournament organizers are authorized reviewers; do not mistake
+        # an organizer for an unrelated non-owner account.
         other = (get_user_model().objects.filter(is_active=True, is_staff=False,
-                 is_superuser=False).exclude(pk=owner.pk).first())
+                 is_superuser=False)
+                 .exclude(pk=owner.pk)
+                 .exclude(pk=payment.registration.tournament.organizer_id)
+                 .first())
         if other is None:
             raise RuntimeError("No independent non-owner account available")
 
