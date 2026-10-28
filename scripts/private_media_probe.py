@@ -1,15 +1,18 @@
 """Read-only Supabase S3 canary for OwnLobby's migrated confidential media.
 
 Lists objects, HEADs their metadata, and reads one byte from five samples.
-Never writes, logs object keys or credentials. This does not prove app-level
-authorization, anonymous CDN denial or independent backup restoration.
+Also checks that unsigned S3 GET/HEAD is denied for the same five samples.
+Never writes or logs object keys or credentials. This does not prove Django
+record-level authorization, Cloudinary CDN denial or independent restoration.
 """
 import os
 from pathlib import Path
 from urllib.parse import urlsplit
 
 import boto3
+from botocore import UNSIGNED
 from botocore.config import Config
+from botocore.exceptions import ClientError
 from dotenv import dotenv_values
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -40,8 +43,31 @@ def private_s3_settings(env):
     return config
 
 
+def verify_unsigned_denial(client, bucket, keys):
+    """Unsigned HEAD and one-byte GET must both be denied at private S3 origin."""
+    verified = 0
+    for key in keys:
+        for operation in ("head_object", "get_object"):
+            try:
+                response = getattr(client, operation)(
+                    Bucket=bucket, Key=key,
+                    **({"Range": "bytes=0-0"} if operation == "get_object" else {}),
+                )
+            except ClientError as err:
+                status = err.response.get("ResponseMetadata", {}).get("HTTPStatusCode")
+                if status not in (401, 403):
+                    raise ValueError("Unsigned S3 denial was not proven") from None
+                verified += 1
+            else:
+                body = response.get("Body") if isinstance(response, dict) else None
+                if body:
+                    body.close()
+                raise ValueError("Unsigned private file was accessible")
+    return verified
+
+
 def inspect_private_origin(client, bucket, expected_count=EXPECTED_OBJECTS,
-                           expected_bytes=EXPECTED_METADATA_BYTES):
+                           expected_bytes=EXPECTED_METADATA_BYTES, unsigned_client=None):
     keys = []
     for page in client.get_paginator("list_objects_v2").paginate(Bucket=bucket):
         keys.extend(item["Key"] for item in page.get("Contents", []))
@@ -68,7 +94,9 @@ def inspect_private_origin(client, bucket, expected_count=EXPECTED_OBJECTS,
                 raise ValueError("Signed private origin read failed")
         finally:
             body.close()
-    return len(keys), len(positions)
+    denial_count = (verify_unsigned_denial(unsigned_client, bucket, [keys[i] for i in positions])
+                    if unsigned_client is not None else 0)
+    return len(keys), len(positions), denial_count
 
 
 def main():
@@ -81,14 +109,21 @@ def main():
             config=Config(signature_version="s3v4", s3={"addressing_style": "path"},
                           connect_timeout=5, read_timeout=15, retries={"max_attempts": 2}),
         )
-        count, reads = inspect_private_origin(client, config["bucket"])
+        unsigned_client = boto3.client(
+            "s3", endpoint_url=config["endpoint"], region_name=config["region"],
+            config=Config(signature_version=UNSIGNED, s3={"addressing_style": "path"},
+                          connect_timeout=5, read_timeout=15, retries={"max_attempts": 2}),
+        )
+        count, reads, denials = inspect_private_origin(
+            client, config["bucket"], unsigned_client=unsigned_client)
     except Exception as err:
         print("PRIVATE_ORIGIN_FAIL:", type(err).__name__)
         raise SystemExit(2) from None
     print("PRIVATE_ORIGIN_READ_ONLY_PASS")
     print("OBJECTS_HEAD_VERIFIED:", count)
     print("SIGNED_READS:", reads)
-    print("NOT VERIFIED: backup restoration, anonymous URL denial, record authorization")
+    print("UNSIGNED_GET_HEAD_DENIALS:", denials)
+    print("NOT VERIFIED: backup restoration, Cloudinary CDN denial, record authorization")
 
 
 if __name__ == "__main__":
