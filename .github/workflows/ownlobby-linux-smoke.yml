@@ -4,6 +4,8 @@ on:
   push:
     branches: [feature/ownlobby-free-hosting]
     paths: [.github/workflows/ownlobby-linux-smoke.yml]
+  pull_request:
+    branches: [master]
   workflow_dispatch:
 
 permissions:
@@ -74,6 +76,10 @@ jobs:
       - name: Focused security and media regressions
         run: |
           python manage.py test apps.common.tests.test_governed_media apps.common.tests.test_http_transport_security apps.common.tests.test_upload_content_security apps.common.tests.test_dependency_compatibility apps.common.tests.test_free_hosting --settings=deltacrown.settings_media_qa --keepdb --noinput --verbosity 1
+      - name: Recovery and containment regressions (disposable QA only)
+        run: |
+          python -m unittest tests.test_cloudinary_containment_status tests.test_render_processes -v
+          python manage.py test apps.common.tests.test_launch_execution apps.common.tests.test_hybrid_media apps.common.tests.test_media_profile_privacy apps.common.tests.test_request_memory_probe apps.common.tests.test_js_probe_shield --settings=deltacrown.settings_media_qa --noinput --verbosity 1
       - name: Frontend production build
         run: |
           npm ci --include=dev
