@@ -44,7 +44,7 @@ The standalone `scripts/private_media_probe.py` checks the approved existing
 `ownlobby-private-media` bucket using the existing server-only S3 credentials.
 It lists the private origin, confirms at least 125 migrated object entries,
 HEAD-checks every listed object, and performs five one-byte authenticated
-Range reads. It writes nothing and never displays object keys, URLs or credentials.
+Range reads. It also requires anonymous/unsigned S3 HEAD and GET rejection for the same five samples (10 denials), without displaying object keys or URLs. It writes nothing and never displays credentials.
 
 From the project root, with the approved private S3 `MEDIA_PRIVATE_*` values
 in local `.env` or environment, run:
@@ -53,11 +53,11 @@ in local `.env` or environment, run:
 .\.venv\Scripts\python.exe scripts\private_media_probe.py
 ```
 
-Successful output begins `PRIVATE_ORIGIN_READ_ONLY_PASS`. Failure prints
+Successful output begins `PRIVATE_ORIGIN_READ_ONLY_PASS` and includes `UNSIGNED_GET_HEAD_DENIALS: 10` when both anonymous methods are rejected. Failure prints
 only a generic exception type and exits nonzero. The offline regression suite
 is `python -m unittest tests.test_private_media_probe`.
 
-**Evidence boundary:** This verifies read-only S3 connectivity and object
+**Evidence boundary:** This verifies signed S3 connectivity and unsigned S3 origin denial for five sample objects. It does not certify HTTP delivery paths through Django or public Cloudinary CDN access. This is read-only S3 connectivity and object
 presence, not content checksums against the confidential migration manifest,
 not an independent restore, not a live Render deployment, not anonymous
 Cloudinary URL invalidation and not record-level authorization. Do not set
