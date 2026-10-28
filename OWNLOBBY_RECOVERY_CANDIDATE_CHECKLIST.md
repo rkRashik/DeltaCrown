@@ -82,6 +82,29 @@ audited object and exact size/count checks. It did not mutate any object.
 It is **not** an app authorization canary or an independent restore. The
 Cloudinary 111-asset containment and anonymous URL checks remain outstanding.
 
+## Production reference reconciliation — read-only, 2026-10-28
+
+Supabase SQL counts only (no private URL, username, chat content or asset ID
+retrieved):
+
+- 34 registration records; **one** `lineup_snapshot` record currently embeds
+  six `res.cloudinary.com` references. Earlier inventory cited 60 total avatar
+  entries; this is not the same as six actual Cloudinary URLs. The existing
+  `lineup_with_current_avatars` read-time resolver handles roster snapshots.
+- Six `match_engine_chat_message.avatar_url` records directly retain the old
+  Cloudinary host. Before this audit, persisted chat history replayed those
+  frozen URLs. The OwnLobby release now replaces *all* historical chat avatars
+  at read time using one profile batch query and governed route URLs; missing
+  profiles become blank. No chat rows were rewritten.
+- No Cloudinary host references were found in the specifically inspected
+  notification image/avatar URLs, result screenshot URL, team media file URL,
+  contract proof URL or bounty proof URL fields. This is not a full dynamic
+  scan of every JSON, HTML and text field.
+
+**Release impact:** Do not deploy the earlier recovery candidate lacking the
+match-chat fix after the asset cutover. Re-run focused chat/roster regression
+tests and reconcile any new Cloudinary references before protecting sources.
+
 ## Acceptance criteria — no shortcuts
 1. Local Django privacy, hybrid storage, launcher, worker and recovery tests pass on this exact branch with disposable QA configuration.
 2. Run read-only status preflight again immediately before cutover: 111 upload, 0 authenticated, two exclusions verified, zero mismatch.
