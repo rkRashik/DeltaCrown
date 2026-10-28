@@ -32,20 +32,22 @@ def main():
     if not (ROOT / "manage.py").is_file():
         raise SystemExit("STOP: invalid OwnLobby repository root")
     print("OWNLOBBY_BULK_PREFLIGHT_START", flush=True)
-    passed = 0
-    for name, args in STEPS:
-        print("\nSTEP", passed + 1, "OF", len(STEPS), "-", name, flush=True)
+    results = []
+    for number, (name, args) in enumerate(STEPS, start=1):
+        print("\nSTEP", number, "OF", len(STEPS), "-", name, flush=True)
         proc = subprocess.run([sys.executable, *args], cwd=ROOT, check=False)
-        if proc.returncode != 0:
-            print("OWNLOBBY_BULK_PREFLIGHT_FAIL: step", passed + 1, "exit", proc.returncode, flush=True)
-            print("NO_CUTOVER_OR_PRODUCTION_WRITES_ATTEMPTED", flush=True)
-            return 2
-        passed += 1
-        print("STEP_PASS:", passed, flush=True)
-    print("\nOWNLOBBY_BULK_PREFLIGHT_PASS", flush=True)
-    print("OFFLINE_AND_READ_ONLY_STEPS_PASSED:", passed, flush=True)
+        results.append((number, name, proc.returncode))
+        print("STEP_PASS:" if proc.returncode == 0 else "STEP_FAIL:", number, flush=True)
+    print("\nOWNLOBBY_BULK_PREFLIGHT_SUMMARY", flush=True)
+    for number, name, status in results:
+        print("PASS" if status == 0 else "FAIL", "STEP", number, "-", name, flush=True)
+    print("OFFLINE_AND_READ_ONLY_STEPS_PASSED:", sum(code == 0 for _, _, code in results), flush=True)
     print("NO_CUTOVER_OR_PRODUCTION_WRITES_ATTEMPTED", flush=True)
     print("NOT VERIFIED: independent restore, live Render delivery, Cloudinary CDN denial", flush=True)
+    if any(code != 0 for _, _, code in results):
+        print("OWNLOBBY_BULK_PREFLIGHT_FAIL", flush=True)
+        return 2
+    print("OWNLOBBY_BULK_PREFLIGHT_PASS", flush=True)
     return 0
 
 
