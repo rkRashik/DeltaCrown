@@ -85,6 +85,9 @@ jobs:
       - name: Account, public profile, and launch-readiness regressions (disposable QA)
         run: |
           python manage.py test apps.common.tests.test_release_readiness apps.common.tests.test_password_reset_submission apps.siteui.tests.test_ownlobby_branding apps.siteui.tests.test_homepage_phase_timing --settings=deltacrown.settings_media_qa --noinput --verbosity 1
+      - name: Homepage behavior and before-after SQL measurements (disposable PostgreSQL)
+        run: |
+          python manage.py test apps.siteui.tests.test_homepage_context_removal apps.siteui.tests.test_homepage_hero apps.siteui.tests.test_homepage_presentation --settings=deltacrown.settings_media_qa --keepdb --noinput --verbosity 1
       - name: Read-only LIVE public route smoke
         run: |
           python - <<'PY'
