@@ -1,17 +1,17 @@
 # OwnLobby current status
 
-Last documentation baseline review: **2026-10-29 18:16 +06:00 (Asia/Dhaka)**. An independent read-only Render deployment/log check was also performed later on 2026-10-29. Neither check constitutes full production functional acceptance; recheck before acting.
+Last OL-01 verification review: **2026-10-29 23:16 +06:00 (Asia/Dhaka)**. Bounded live checks ran at 23:12-23:15 +06:00. Earlier documentation/Render evidence retains its dates below. These observations do not constitute full production acceptance; recheck before acting.
 
 ## Repository and deployment
 
 | Item | State / provenance |
 |---|---|
 | Product / repository | OwnLobby / [rkRashik/DeltaCrown](https://github.com/rkRashik/DeltaCrown), default branch `master` |
-| Verified master baseline | [`f1f8d18566723aa4e62875c20f7f6bc8dc4794e1`](https://github.com/rkRashik/DeltaCrown/commit/f1f8d18566723aa4e62875c20f7f6bc8dc4794e1), local and GitHub master checked on 2026-10-29 |
-| Latest source change | Tournament lifecycle completion evidence, mobile rich text and OwnLobby pass logo; not a Render failure fix |
+| Verified master baseline | [`e1ef7372fcbd3552ff3b5df8caa852b96cfcf362`](https://github.com/rkRashik/DeltaCrown/commit/e1ef7372fcbd3552ff3b5df8caa852b96cfcf362), remote verified and clean local master safely fast-forwarded during this task |
+| Latest application source change | `f1f8d185`: tournament lifecycle/mobile rich text/pass logo; not a Render failure fix. Newer master work is documentation-only |
 | Latest independently verified Render live deployment | [`f1f8d18566723aa4e62875c20f7f6bc8dc4794e1`](https://github.com/rkRashik/DeltaCrown/commit/f1f8d18566723aa4e62875c20f7f6bc8dc4794e1), Render deploy `dep-dbhelq67bikc73eeefsg` succeeded **2026-10-29 12:46:51 +06:00**; verified with read-only [Render service](https://dashboard.render.com/web/srv-d6eubkngi27c738ieao0) deploy listing later that day. The `b7eb47f0` commit in Issue #37 was the preceding deployment, not the current live SHA. A live deploy status does not prove application journey acceptance. |
-| Production | [ownlobby.com](https://ownlobby.com) is the owner-designated live site; current deployed SHA/health and full launch acceptance remain unverified here |
-| Documentation delivery | OL-DOC-01 prepares a review branch/PR only. See Git/PR history for its revision; no merge or deployment is authorized |
+| Production | [ownlobby.com](https://ownlobby.com): six public routes and two approved public images passed bounded HTTP checks at 23:13-23:15 +06:00. Current live SHA was not re-read in this verification; authenticated/private-media acceptance remains open |
+| Documentation delivery | [PR #38](https://github.com/rkRashik/DeltaCrown/pull/38) merged 2026-10-29 at 19:05:48 +06:00, final head `418ec5d2`, four commits. OL-01 prepares a separate documentation-only evidence PR; no deployment |
 
 Read-only Render observation on 2026-10-29: the service remained on the Free plan with auto-deploy OFF. In a sampled 2026-10-29 08:30–12:55 UTC log window, no application-level errors or HTTP 5xx request entries were returned; this is not a comprehensive availability test or a post-containment login/storage smoke. No production settings were changed.
 
@@ -21,7 +21,7 @@ Read-only Render observation on 2026-10-29: the service remained on the Free pla
 - PR [#33](https://github.com/rkRashik/DeltaCrown/pull/33): merged synthetic account/profile/launch QA coverage.
 - PR [#35](https://github.com/rkRashik/DeltaCrown/pull/35): password-reset form/error fix merged. Issue #37 records owner-verified Google sign-in/password reset following the canonical-origin configuration update.
 - PR [#36](https://github.com/rkRashik/DeltaCrown/pull/36): sanitized homepage phase telemetry and selected acceptance checks merged. Issue #37 reports Linux CI and public-route smoke passing at that time. These tests were not rerun in OL-DOC-01.
-- Latest master source includes lifecycle/mobile corrections and regression tests; this task inspected the code, not a fresh test execution or deployed acceptance result.
+- The initial documentation task inspected lifecycle/mobile source and regression tests without a fresh test execution or deployed journey acceptance. The newer master merge adds documentation only; current OL-01 checks are recorded separately below.
 
 ## Active work and immediate next task
 
@@ -29,15 +29,37 @@ Read-only Render observation on 2026-10-29: the service remained on the Free pla
 
 | OL-01 sub-gate | State |
 |---|---|
-| Containment configuration | Applied, owner-reported 2026-10-29; not independently re-read in this documentation task |
-| External endpoint denial | Pending verification |
-| Application compatibility smoke | Pending verification |
+| Containment configuration | Applied, owner-reported 2026-10-29; current provider toggle not independently re-read through available tools |
+| External endpoint denial | Observed for both enabled credential types at 23:12 +06:00; HTTP 503 / API connection-schema-cache failure. Disabled-specific cause remains unconfirmed |
+| Application compatibility smoke | Six public routes and two public images pass; existing-account and confidential-media browser checks pending |
 | Permanent database privilege hardening | Pending separate reviewed approval, implementation and verification |
 | Sensitive-data extraction / exploitation | Not established; no breach claim |
 
-Code inspection found no required database Data API consumer. Django uses PostgreSQL connections; Supabase Storage APIs are separate. This supports a containment compatibility assessment, not a passed smoke test. Do not re-enable the Data API or change RLS/grants as part of documentation.
+Prior source inspection found no required database Data API consumer. Django uses PostgreSQL connections; Supabase Storage APIs are separate. The constant-only direct DB check below adds scoped connectivity evidence, not proof of every authenticated feature or private Storage operation. Do not re-enable Data API or change RLS/grants.
 
-**Next safe task:** obtain a bounded read-only OL-01 verification scope, verify owner-applied containment and application compatibility without sensitive-row extraction, then prepare permanent-hardening scope/rollback for separate approval. Documentation review must not delay that work.
+**Next safe task:** close remaining provider-state/log/private-browser evidence gaps, then obtain separate owner approval for the [minimal permanent-hardening proposal](BACKLOG.md#ol-01-permanent-hardening-proposal-not-executed). Documentation review must not delay urgent approved work.
+
+## OL-01 verification 2026-10-29
+
+Environment: local Windows read-only clients against owner-approved production targets; existing enabled public credential types and securely stored application database configuration. No real-user login, application-row SQL, modification probes, production writes, deployments or configuration changes. HTTP checks were sequential with spacing; no load/performance test.
+
+| Acceptance item | Result | Evidence and limitation |
+|---|---|---|
+| A. Provider configuration disabled | BLOCKED for independent reinspection | Owner dashboard attestation remains OFF/disabled. Available project metadata does not expose the toggle; no fresh dashboard/management configuration read was possible. No missing-key response is used as proof |
+| B. Previously reachable request denied | PASS, bounded observation | Both existing enabled legacy-anonymous and publishable credentials received HTTP 503 for the approved zero-row request; no request accepted. Category: API connection/schema-cache failure, not a disabled-specific message. Does not independently prove A or durable denial of every API surface |
+| C. Public routes operational | PASS | Health returned 200 JSON with expected status; home, tournaments, teams, community and signup returned 200 HTML with expected document shape on the production host |
+| D. No new attributable application errors | BLOCKED for current log review | No HTTP errors on the six route checks. Render connector had no selected workspace; confirmation was requested. Earlier log evidence is historical and does not close this check |
+| E. Django direct PostgreSQL connectivity | PASS, scoped | Existing application DB connection completed constant-only SELECT in an explicit read-only transaction at 23:15 +06:00; zero application rows. Local client, not Render process. Successful DB-backed public artwork delivery corroborates the source path; health alone does not check DB |
+| F. Private Storage compatibility | BLOCKED / pending owner browser smoke | Public artwork succeeded; confidential-file reads, private-user authorization and Storage write paths were not tested. Previous private-media evidence remains historical |
+| G. Permanent hardening separately gated | PASS, proposal only | BACKLOG covers table/sequence/default ACL scope, creator/application/provider roles, isolated migration tests and exact rollback. No permissions changed; implementation remains pending approval |
+
+Public image evidence: a homepage-referenced brand SVG returned 206 and a valid signature; a previously approved public game artwork sample returned 200 PNG and a valid signature. Only 256 bytes per successful sample were inspected. The first game-image request used a restrictive Accept header and returned 406; a corrected supported header succeeded. No private image or signed URL was requested.
+
+The first constant-only DB check connected but the pooler did not retain the startup read-only option. It made no writes or application-row queries. A corrected explicit read-only transaction was verified before the final SELECT and passed. No Django startup/test suite was run against production.
+
+The API error denotes a PostgREST connection/schema-cache failure ([official error reference](https://docs.postgrest.org/en/stable/references/errors.html)); refusal is therefore recorded separately from provider configuration. Raw responses, endpoint/object inventory, credentials and reproduction steps are absent. Detailed evidence remains owner-controlled; no approved private URL supplied.
+
+Owner browser smoke still needed: manually use an existing account to confirm login and current profile/tournament/team views, read one existing authorized confidential file, and confirm an unrelated/guest session cannot read it. Do not create users, upload/delete files, submit forms or financial actions. Record only sanitized private results; keep Data API disabled.
 
 ## Other blockers and limitations
 
@@ -64,4 +86,4 @@ Code inspection found no required database Data API consumer. Django uses Postgr
 
 Before OL-DOC-01 edits: documentation checker passed for 63 documents / 177 local links, with zero active failures and 47 historical findings. Hygiene already failed on three tracked root files absent from its allowlist: `OWNLOBBY_LAUNCH_CUTOVER.md`, `OWNLOBBY_RECOVERY_CANDIDATE_CHECKLIST.md`, `OWNLOBBY_RECOVERY_CUTOVER.md`. Preserve them; do not quietly broaden the root allowlist or move them to make this task green.
 
-OL-DOC-01 post-change local checks: 73 documents / 343 local links, zero active failures, unchanged 47 historical findings; the same three baseline hygiene findings remain with no new violation. Development heading anchors and narrow ignore boundaries pass. All 435 pre-existing owner Documents files have unchanged aggregate content/path fingerprints. Final staged-file/commit/PR evidence belongs in the delivery report and Git history. No application tests or production checks were run in this documentation task.
+Initial OL-DOC-01 implementation checks: 73 documents / 343 local links, zero active failures, unchanged 47 historical findings; the same three baseline hygiene findings remained with no new violation. Development heading anchors and narrow ignore boundaries passed. All 435 pre-existing owner Documents files had unchanged aggregate content/path fingerprints. These are the original documentation-delivery checks, not the later Render observation or current OL-01 verification. No application test suite was run during OL-01; its bounded live checks are recorded above.
