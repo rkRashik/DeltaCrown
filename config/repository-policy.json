@@ -68,7 +68,17 @@
     "OWNLOBBY_TECHNICAL_SEO.md",
     "OWNLOBBY_DEPENDENCY_SECURITY.md",
     "OWNLOBBY_FINAL_ENGINEERING_HANDOFF.md",
-    "OWNLOBBY_FREE_HOSTING_HANDOFF.md"
+    "OWNLOBBY_FREE_HOSTING_HANDOFF.md",
+    "Documents/Development/README.md",
+    "Documents/Development/PRD.md",
+    "Documents/Development/ROADMAP.md",
+    "Documents/Development/BACKLOG.md",
+    "Documents/Development/STATUS.md",
+    "Documents/Development/DECISIONS.md",
+    "Documents/Development/CHANGELOG.md",
+    "Documents/Development/HANDOFF.md",
+    "Documents/Development/tasks/TASK_TEMPLATE.md",
+    "Documents/Development/runbooks/README.md"
   ],
   "historical_documents": [
     "README_TECHNICAL.md",
@@ -92,6 +102,7 @@
     "reports/"
   ],
   "rules": [
+    "Owner-approved public exception: only explicitly reviewed Documents/Development Markdown paths listed in active_documents and .gitignore may be newly tracked; all other protected workspace material remains protected.",
     "Ignored owner files are outside placement enforcement; inventory/review them separately.",
     "Never auto-delete documents, databases, media or artifacts.",
     "Do not add runtime templates, manifests or required bundles to a document archive."

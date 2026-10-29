@@ -1,5 +1,20 @@
 # DeltaCrown Agent Instructions
 
+## Development management and handoff
+
+Before new development work, read `Documents/Development/README.md`, `STATUS.md`,
+`HANDOFF.md` and the selected task in `BACKLOG.md` (all under that directory).
+Recheck actual Git/source state; distinguish dated evidence, owner reports and
+unverified production status. Follow current owner instructions over historical
+handoffs. Keep task IDs stable and update backlog, status, changelog, relevant
+decisions and handoff together when completing work.
+
+This is a public repository. Keep detailed security evidence, reproduction steps,
+secrets and private user/media information out of Git and public PRs. Only the
+explicitly reviewed Development documents are exempt from the Documents ignore
+policy. Preserve all other owner-protected collections. Documentation does not
+authorize production changes; urgent approved security work takes priority.
+
 ## Settings Redesign Guardrail
 
 The DeltaCrown settings page at `/me/settings/` is functionally fragile. Before any future visual redesign or refactor of this page, read:

@@ -63,6 +63,25 @@ build/
 # Local-only planning, docs, and artifacts (keep on disk, not in git)
 docs/
 Documents/
+# Public development management: only explicitly reviewed documents.
+!/Documents/
+/Documents/*
+!/Documents/Development/
+/Documents/Development/*
+!/Documents/Development/README.md
+!/Documents/Development/PRD.md
+!/Documents/Development/ROADMAP.md
+!/Documents/Development/BACKLOG.md
+!/Documents/Development/STATUS.md
+!/Documents/Development/DECISIONS.md
+!/Documents/Development/CHANGELOG.md
+!/Documents/Development/HANDOFF.md
+!/Documents/Development/tasks/
+/Documents/Development/tasks/*
+!/Documents/Development/tasks/TASK_TEMPLATE.md
+!/Documents/Development/runbooks/
+/Documents/Development/runbooks/*
+!/Documents/Development/runbooks/README.md
 evidence/
 Artifacts/
 reports/
