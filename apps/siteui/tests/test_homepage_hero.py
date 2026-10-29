@@ -489,21 +489,15 @@ class HeroViewTests(TestCase):
         resp = self.client.get("/")
         self.assertNotIn(b"Create your account", resp.content)
 
-    def test_coming_up_empty_state_copy_in_template(self):
-        """Template must contain the improved COMING UP empty state copy."""
-        from django.template.loader import render_to_string
-        from django.test import RequestFactory
-        # Just verify the template can be loaded and contains the new copy
+    def test_empty_tournament_catalog_has_directory_ctas(self):
+        """Current desktop/mobile empty states link to the unfiltered directory."""
+        from django.core.cache import cache
+        cache.clear()
+        self.addCleanup(cache.clear)
         resp = self.client.get("/")
-        # The improved copy should appear in HTML (when no upcoming events)
-        # We check the template contains the key phrase either statically or dynamically
-        html = resp.content.decode("utf-8", errors="replace")
-        # The "Browse open tournaments" link or "No events scheduled yet" should appear
-        self.assertTrue(
-            "Browse open tournaments" in html or "No events scheduled yet" in html
-            or "status=registration_open" in html,
-            "Improved empty-state copy or registration_open link not found in homepage HTML",
-        )
+        self.assertContains(resp, "No featured tournaments right now")
+        self.assertContains(resp, "No open tournaments right now.")
+        self.assertContains(resp, 'href="/tournaments/"')
 
     def test_footer_single_youtube_icon_link(self):
         """Footer social section must contain exactly one YouTube icon-button link."""

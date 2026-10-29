@@ -82,8 +82,10 @@ class HomepageContextRemovalTests(TestCase):
         cache.clear()
         self.addCleanup(cache.clear)
         self.before = baseline_home()
+        self.fixture = "empty"
 
     def populate(self):
+        self.fixture = "populated"
         # Remove seeded catalog data only within the disposable test transaction.
         Game.objects.all().delete()
         game = Game.objects.create(
@@ -166,7 +168,8 @@ class HomepageContextRemovalTests(TestCase):
             html, context, metrics = self.measure(view, role)
             rows.append((html, context, metrics))
             print("OL04B_QA " + json.dumps({"role": role, "cache": cache_state,
-                  "revision": label, "baseline": BASELINE_SHA, **metrics}, sort_keys=True))
+                  "fixture": self.fixture, "revision": label,
+                  "baseline": BASELINE_SHA, **metrics}, sort_keys=True))
         self.assertEqual(rows[0][0], rows[1][0], "Homepage HTML changed")
         for key in ("hero_ctx", "home_state", "seo", "v3", "home_ui"):
             self.assertEqual(rows[0][1][key], rows[1][1][key], key)
@@ -221,6 +224,7 @@ class HomepageContextRemovalTests(TestCase):
 
     def test_safe_cache_get_timeout_preserves_baseline_output(self):
         self.populate()
+        self.fixture = "populated-read-timeout"
         # Fail only the guarded homepage cache access. The separate common
         # processor has unguarded cache calls; a global outage is a separate risk.
         real_get = cache.get
@@ -233,6 +237,7 @@ class HomepageContextRemovalTests(TestCase):
 
     def test_safe_cache_set_timeout_preserves_baseline_output(self):
         self.populate()
+        self.fixture = "populated-write-timeout"
         real_set = cache.set
         def timeout(key, value, *args, **kwargs):
             if key in {"homepage_context_v2", "homepage_extras_v3"}:
