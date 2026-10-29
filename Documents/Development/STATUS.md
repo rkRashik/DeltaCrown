@@ -1,6 +1,6 @@
 # OwnLobby current status
 
-Last OL-01 verification review: **2026-10-29 23:16 +06:00 (Asia/Dhaka)**. Bounded live checks ran at 23:12-23:15 +06:00. Earlier documentation/Render evidence retains its dates below. These observations do not constitute full production acceptance; recheck before acting.
+Last OL-01 verification review: **2026-10-29 23:49 +06:00 (Asia/Dhaka)**. Bounded live HTTP/DB checks ran at 23:12-23:15 +06:00; a read-only Render follow-up used the owner-confirmed workspace at 23:47-23:49. Earlier evidence retains its dates below. These observations do not constitute full production acceptance; recheck before acting.
 
 ## Repository and deployment
 
@@ -10,7 +10,7 @@ Last OL-01 verification review: **2026-10-29 23:16 +06:00 (Asia/Dhaka)**. Bounde
 | Verified master baseline | [`e1ef7372fcbd3552ff3b5df8caa852b96cfcf362`](https://github.com/rkRashik/DeltaCrown/commit/e1ef7372fcbd3552ff3b5df8caa852b96cfcf362), remote verified and clean local master safely fast-forwarded during this task |
 | Latest application source change | `f1f8d185`: tournament lifecycle/mobile rich text/pass logo; not a Render failure fix. Newer master work is documentation-only |
 | Latest independently verified Render live deployment | [`f1f8d18566723aa4e62875c20f7f6bc8dc4794e1`](https://github.com/rkRashik/DeltaCrown/commit/f1f8d18566723aa4e62875c20f7f6bc8dc4794e1), Render deploy `dep-dbhelq67bikc73eeefsg` succeeded **2026-10-29 12:46:51 +06:00**; verified with read-only [Render service](https://dashboard.render.com/web/srv-d6eubkngi27c738ieao0) deploy listing later that day. The `b7eb47f0` commit in Issue #37 was the preceding deployment, not the current live SHA. A live deploy status does not prove application journey acceptance. |
-| Production | [ownlobby.com](https://ownlobby.com): six public routes and two approved public images passed bounded HTTP checks at 23:13-23:15 +06:00. Current live SHA was not re-read in this verification; authenticated/private-media acceptance remains open |
+| Production | [ownlobby.com](https://ownlobby.com): six public routes and two approved public images passed bounded HTTP checks at 23:13-23:15 +06:00. Read-only Render follow-up reconfirmed live `f1f8d185`, Free plan and auto-deploy OFF; authenticated/private-media acceptance remains open |
 | Documentation delivery | [PR #38](https://github.com/rkRashik/DeltaCrown/pull/38) merged 2026-10-29 at 19:05:48 +06:00, final head `418ec5d2`, four commits. OL-01 prepares a separate documentation-only evidence PR; no deployment |
 
 Read-only Render observation on 2026-10-29: the service remained on the Free plan with auto-deploy OFF. In a sampled 2026-10-29 08:30–12:55 UTC log window, no application-level errors or HTTP 5xx request entries were returned; this is not a comprehensive availability test or a post-containment login/storage smoke. No production settings were changed.
@@ -37,7 +37,7 @@ Read-only Render observation on 2026-10-29: the service remained on the Free pla
 
 Prior source inspection found no required database Data API consumer. Django uses PostgreSQL connections; Supabase Storage APIs are separate. The constant-only direct DB check below adds scoped connectivity evidence, not proof of every authenticated feature or private Storage operation. Do not re-enable Data API or change RLS/grants.
 
-**Next safe task:** close remaining provider-state/log/private-browser evidence gaps, then obtain separate owner approval for the [minimal permanent-hardening proposal](BACKLOG.md#ol-01-permanent-hardening-proposal-not-executed). Documentation review must not delay urgent approved work.
+**Next safe task:** close remaining provider-state/private-browser evidence gaps, then obtain separate owner approval for the [minimal permanent-hardening proposal](BACKLOG.md#ol-01-permanent-hardening-proposal-not-executed). The bounded Render log review is complete; documentation review must not delay urgent approved work.
 
 ## OL-01 verification 2026-10-29
 
@@ -48,12 +48,14 @@ Environment: local Windows read-only clients against owner-approved production t
 | A. Provider configuration disabled | BLOCKED for independent reinspection | Owner dashboard attestation remains OFF/disabled. Available project metadata does not expose the toggle; no fresh dashboard/management configuration read was possible. No missing-key response is used as proof |
 | B. Previously reachable request denied | PASS, bounded observation | Both existing enabled legacy-anonymous and publishable credentials received HTTP 503 for the approved zero-row request; no request accepted. Category: API connection/schema-cache failure, not a disabled-specific message. Does not independently prove A or durable denial of every API surface |
 | C. Public routes operational | PASS | Health returned 200 JSON with expected status; home, tournaments, teams, community and signup returned 200 HTML with expected document shape on the production host |
-| D. No new attributable application errors | BLOCKED for current log review | No HTTP errors on the six route checks. Render connector had no selected workspace; confirmation was requested. Earlier log evidence is historical and does not close this check |
+| D. No new attributable application errors | PASS, bounded observation | After workspace confirmation, read-only Render queries for 08:35-17:47:25 UTC returned no error-level app entries, targeted DB/PostgREST failure entries or HTTP 500/502/503/504 request entries. Recent app activity confirms logs are available. No disablement-attributable error observed; this is not comprehensive availability/causality proof |
 | E. Django direct PostgreSQL connectivity | PASS, scoped | Existing application DB connection completed constant-only SELECT in an explicit read-only transaction at 23:15 +06:00; zero application rows. Local client, not Render process. Successful DB-backed public artwork delivery corroborates the source path; health alone does not check DB |
 | F. Private Storage compatibility | BLOCKED / pending owner browser smoke | Public artwork succeeded; confidential-file reads, private-user authorization and Storage write paths were not tested. Previous private-media evidence remains historical |
 | G. Permanent hardening separately gated | PASS, proposal only | BACKLOG covers table/sequence/default ACL scope, creator/application/provider roles, isolated migration tests and exact rollback. No permissions changed; implementation remains pending approval |
 
 Public image evidence: a homepage-referenced brand SVG returned 206 and a valid signature; a previously approved public game artwork sample returned 200 PNG and a valid signature. Only 256 bytes per successful sample were inspected. The first game-image request used a restrictive Accept header and returned 406; a corrected supported header succeeded. No private image or signed URL was requested.
+
+Render follow-up window: **2026-10-29 14:35-23:47:25 +06:00** (08:35-17:47:25 UTC), after the owner containment report; the exact disable timestamp was not independently recorded. Error-level, targeted failure-text and explicit request-status queries returned no matches and no further pages. A separate bounded 30-entry plain-text error sample included zero-error lifecycle summaries and client-request/probe warnings; that broad sample had more pages and is not an exhaustive warning audit. The sample did not establish a database/API failure. Raw logs, request details and identifiers are not published. Latest live deploy remains `dep-dbhelq67bikc73eeefsg` / `f1f8d185`; no deploy or setting change was performed.
 
 The first constant-only DB check connected but the pooler did not retain the startup read-only option. It made no writes or application-row queries. A corrected explicit read-only transaction was verified before the final SELECT and passed. No Django startup/test suite was run against production.
 
