@@ -13,7 +13,8 @@ permissions:
 
 jobs:
   smoke:
-    if: github.event_name == 'pull_request' && (github.head_ref == 'feature/ownlobby-free-hosting' || github.head_ref == 'feature/ownlobby-single-service-lockdown-cutover' || github.head_ref == 'feature/ownlobby-final-private-origin-probe' || github.head_ref == 'feature/ownlobby-final-record-canary-20261028' || github.head_ref == 'hotfix/ownlobby-media-throttle-redis-timeout-20261028' || github.head_ref == 'hotfix/ownlobby-s3-async-media-stream-20261028' || github.head_ref == 'hotfix/ownlobby-launch-public-cache-static-20261028' || github.head_ref == 'qa/ownlobby-account-and-launch-smoke-20261028' || github.head_ref == 'hotfix/ownlobby-password-reset-form-20261028' || github.head_ref == 'hotfix/ownlobby-homepage-phase-telemetry-20261028')
+    # The workflow already limits pull requests to master. Named-branch
+    # allowlists silently skipped required checks on later task branches.
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     services:
