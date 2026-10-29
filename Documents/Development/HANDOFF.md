@@ -1,19 +1,19 @@
 # OwnLobby conversation handoff
 
-Snapshot: 2026-10-29. Start with [STATUS](STATUS.md) for evidence dates and [BACKLOG](BACKLOG.md) for canonical task state. This brief is not authorization to modify production.
+Snapshot: 2026-10-29 23:49 +06:00 (Asia/Dhaka). Start with [STATUS](STATUS.md) for evidence dates and [BACKLOG](BACKLOG.md) for canonical task state. This brief is not authorization to modify production.
 
 ## Current state
 
-- Repository `rkRashik/DeltaCrown`, default `master`; last verified master `f1f8d18566723aa4e62875c20f7f6bc8dc4794e1`. Latest change is tournament lifecycle/mobile rich text/pass logo, not a Render repair.
+- Repository `rkRashik/DeltaCrown`, default `master`; verified/synchronized master `e1ef7372fcbd3552ff3b5df8caa852b96cfcf362`. PR #38 merged with four documentation commits, final head `418ec5d2`; original `330a9f63` is stale. Application source remains `f1f8d185` (tournament lifecycle/mobile rich text/pass logo).
 - Owner-designated production is [ownlobby.com](https://ownlobby.com). An independent read-only [Render service](https://dashboard.render.com/web/srv-d6eubkngi27c738ieao0) deployment check on 2026-10-29 verified the current `live` deployment at **`f1f8d18566723aa4e62875c20f7f6bc8dc4794e1`**, completed 2026-10-29 12:46:51 +06:00. Issue #37's `b7eb47f0` deployment was older. This does NOT certify current functional acceptance, Data API external denial, storage behavior, or website latency.
 - Django/PostgreSQL, Daphne/Channels, Redis/Upstash, Cloudinary and private Supabase Storage. Database access is through Django PostgreSQL connections; Storage APIs are separate from the database Data API. No required database Data API consumer was found in inspected application code.
-- **OL-01: containment configuration applied by owner, verification pending.** Owner reports Data API OFF in Overview and disabled in Settings. External denial, compatibility smoke and permanent privilege hardening remain pending. No confirmed sensitive-data extraction/exploitation. Do not re-enable Data API or modify RLS/grants without separate authorization.
+- **OL-01 remains VERIFYING.** Owner reports Data API OFF/disabled. At 23:12 +06:00 both valid public credential types received HTTP 503 / API connection-schema-cache failure: refusal observed, disabled-specific cause not independently proven. Six public routes, two public images and a local-client constant-only read-only DB check passed. Owner-confirmed Render follow-up reconfirmed live `f1f8d185`, Free/auto-deploy OFF and no matching errors in the bounded log queries. Provider-state reinspection, authenticated/private-media checks and permanent hardening remain open. No confirmed sensitive-data extraction/exploitation. Keep Data API disabled; no RLS/grant changes.
 - Celery remains OFF; earlier lifecycle cron success is not evidence that every background job executes. R2 is an unapproved candidate; free/low cost, private media and safe rollback remain mandatory.
 - Older engineering/release reports contain pre-launch state. Preserve their evidence but use dated STATUS and newer issue/commit evidence for current planning.
 
 ## Next safe task and blockers
 
-**Next: OL-01 bounded read-only containment and compatibility verification**, under an explicitly agreed verification scope, with owner-held private evidence. Do not read sensitive application rows or publish reproduction details. Then prepare permanent-hardening scope, acceptance tests and rollback for separate approval. Do not delay urgent approved work for documentation polish.
+**Next: close OL-01 evidence gaps and review permanent hardening.** Obtain current disabled-state confirmation and have the owner manually check existing-account/authorized confidential-file behavior without creating or modifying records. Scoped Render log review is complete. [STATUS](STATUS.md#ol-01-verification-2026-10-29) records A-G results and limits; [BACKLOG](BACKLOG.md#ol-01-permanent-hardening-proposal-not-executed) contains minimal hardening, migration tests and rollback for separate approval. Keep detailed evidence private; do not repeat the original audit.
 
 Other open work: signing-key warning/CI coverage, Render resource and homepage/image measurements, supported async jobs, complete eFootball QA, mobile/accessibility, rebrand review, Search Console/public Google actions and full launch acceptance. Exact dependencies and criteria are in BACKLOG; roadmap milestones are gates rather than delivery-date promises.
 
@@ -32,10 +32,11 @@ Continue OwnLobby from Documents/Development/README.md, STATUS.md, HANDOFF.md
 and BACKLOG.md. Read AGENTS.md and repository policy first. Inspect actual
 branch/HEAD, working tree, current master and relevant Issue #37/PR evidence.
 Preserve the stable OL task IDs and all owner-protected documents.
-Immediate priority is OL-01: owner disabled the Data API on 2026-10-29;
-external denial and compatibility verification plus permanent hardening remain
-pending. Keep it disabled. Agree a bounded read-only verification scope and
-keep detailed security evidence private. No sensitive-row extraction, grant/RLS
+Immediate priority is OL-01: owner disabled Data API on 2026-10-29. Valid-key
+requests were refused; public smoke/direct DB checks and bounded Render log
+review passed. Provider-state/private-browser evidence and hardening remain open.
+Read the STATUS A-G matrix before selecting further checks. Keep Data API
+disabled and evidence private. No sensitive-row extraction, grant/RLS
 changes, deployments, migrations or provider/media changes without separate
 authorization. Do not infer production success from source or historical CI.
 For completed work update BACKLOG, STATUS, CHANGELOG, relevant DECISIONS and
@@ -49,8 +50,9 @@ Use the latest OwnLobby Development workspace from rkRashik/DeltaCrown as the
 planning record. Read README, STATUS, BACKLOG and HANDOFF before proposing work.
 If repository/private evidence is unavailable, request the latest sanitized
 documents and state that you cannot verify live status. Do not ask for secrets.
-OL-01 has owner-applied Data API containment, with denial/compatibility checks
-and permanent privilege hardening still pending. Do not mark it DONE or suggest
+OL-01 has owner-applied containment, observed refusal and public smoke evidence;
+provider-state/private-browser checks and permanent hardening remain open.
+Do not mark it DONE or suggest
 re-enabling it. Plan the next scoped verification task, distinguish proposals
 from approved decisions, and preserve the existing task IDs and safety gates.
 ```

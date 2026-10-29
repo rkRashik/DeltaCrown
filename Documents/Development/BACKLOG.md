@@ -6,7 +6,7 @@ Owner for product/production decisions: repository owner. Implementers/reviewers
 
 | ID | Task | Priority | Status | Main dependency / next action |
 |---|---|---|---|---|
-| [OL-01](#ol-01) | Supabase Data API security containment | P0 | VERIFYING | Owner disabled API; verify denial and compatibility, then separately approve permanent hardening |
+| [OL-01](#ol-01) | Supabase Data API security containment | P0 | VERIFYING | Bounded refusal/public smoke/direct DB/log review complete; provider-state and private-browser checks remain open before approved hardening |
 | [OL-02](#ol-02) | Django secret-key warning and CI coverage | P0 | TODO | Safe warning diagnosis and current branch-coverage review |
 | [OL-03](#ol-03) | Render stability, CPU and memory investigation | P1 | TODO | Establish current deployment/resource baseline |
 | [OL-04](#ol-04) | Homepage, database and Redis performance | P1 | TODO | OL-03 baseline; isolate measured bottlenecks |
@@ -25,12 +25,22 @@ Owner for product/production decisions: repository owner. Implementers/reviewers
 **Supabase Data API security containment — P0 / VERIFYING**
 
 - Objective: close the sanitized authorization risk without breaking Django or private Storage access.
-- Current state: owner reports containment configuration applied on 2026-10-29: Overview shows Enable Data API OFF; Settings shows Data API disabled. External endpoint denial, application compatibility smoke and permanent database privilege hardening remain pending. Sensitive-data extraction/exploitation has not been established.
-- Dependencies: owner-controlled private evidence and an agreed bounded verification scope; separate approval for hardening. No dependency on documentation polish or R2.
+- Current state: owner reports containment configuration applied on 2026-10-29: Overview shows Enable Data API OFF; Settings shows Data API disabled. At 23:12 +06:00 that day, the approved zero-row request was denied with HTTP 503 for both existing enabled legacy-anonymous and publishable credentials. The category is PostgREST connection/schema-cache failure, not missing/invalid credentials or an explicit disabled-state response. This proves refusal at the observation time, not its cause or permanent containment. Six public routes, two approved public images and a constant-only direct DB check passed. Owner-confirmed Render workspace enabled bounded log review at 23:47-23:49: no error-level, targeted DB/API failure or selected 5xx request entries returned for the recorded window. Provider-state reinspection, authenticated/private-media checks and permanent hardening remain open. Sensitive-data extraction/exploitation has not been established.
+- Dependencies: owner-controlled private evidence, owner browser checks and separate hardening approval. Render workspace confirmation and scoped log review are complete. No dependency on documentation polish or R2.
 - Relevant code: [Django settings](../../deltacrown/settings.py), [media configuration](../../apps/common/media/configuration.py), [governed media tests](../../apps/common/tests/test_governed_media.py). No sensitive endpoint/table inventory belongs in this public document.
-- References/evidence: Issue #37 for overall handoff; owner-held OL-01 audit and owner dashboard attestation dated 2026-10-29. Private evidence URL not supplied. Source inspection found no required database Data API consumer; this is not a compatibility PASS.
+- References/evidence: Issue #37; owner-held OL-01 audit/dashboard attestation dated 2026-10-29; [verification matrix](STATUS.md#ol-01-verification-2026-10-29). Private evidence URL not supplied. Application source baseline is `f1f8d185`; synchronized master is `e1ef7372`. Prior source inspection found no required database Data API consumer.
 - Acceptance: independently record API denial and approved compatibility checks without sensitive-row extraction; keep Data API disabled; review and separately authorize permanent least-privilege/future-object hardening and rollback; verify the approved change and non-regression before DONE.
-- Next action: prepare/execute only the agreed read-only verification scope, then produce a concrete hardening proposal. No re-enablement, RLS/grant changes or production writes are authorized by OL-DOC-01.
+- Next action: obtain current provider-state confirmation and owner-driven existing-account/private-file browser checks. Then review the proposal below for separate approval. Keep Data API disabled; no RLS/grant changes or production writes are authorized by this verification task.
+
+### OL-01 permanent hardening proposal (not executed)
+
+1. Privately capture exact object/default ACLs, ownership, memberships, actual application/migration roles and legitimate consumers. Keep sensitive object inventories and rollback SQL outside public Git. Reuse the earlier audit; recheck only metadata needed for the approved change.
+2. Remove only unnecessary `anon`/`authenticated` privileges on explicitly reviewed application tables, including unused non-DML privileges where applicable. Do not blanket-revoke schema access, service-role privileges or provider-managed permissions.
+3. Review associated sequence `USAGE`, `SELECT` and `UPDATE` independently; remove unused API-role access while preserving application inserts and migrations. Table revocation alone does not address sequences.
+4. Correct future-object default privileges for each actual application object-creator/migration role. Review inherited/`PUBLIC` access and future function execution as relevant; schema-local defaults do not override every global default. Defaults do not fix existing objects; changing one creator does not cover other creators.
+5. Preserve Django application/migrator access and required Storage/Auth service roles. Provider-managed roles, including `supabase_admin`, require a separate review boundary; do not alter their memberships/defaults indiscriminately. No identity migration, blanket RLS script, FORCE RLS or provider-schema change is proposed.
+6. Prepare a scoped versioned change only after approval. In disposable staging, verify application reads/writes, sequence-backed inserts, migration-created objects/default ACLs, legitimate service access and API-role denial with synthetic fixtures. Keep production Data API disabled; never re-enable it for tests. Production acceptance uses approved metadata and bounded non-sensitive checks, not modification probes.
+7. Prepare exact forward/rollback statements and transaction boundaries from the private ACL snapshot. Restore only changed ACL/default entries on rollback, never broad GRANT ALL, real data or unsafe API exposure. Keep containment disabled and reverify compatibility. No production SQL or configuration change was made by this task.
 
 ## OL-02
 
@@ -166,10 +176,10 @@ Owner for product/production decisions: repository owner. Implementers/reviewers
 
 ## OL-DOC-01
 
-**Development management workspace — documentation / VERIFYING (owner review pending)**
+**Development management workspace — documentation / DONE (PR #38 merged)**
 
 - Objective/scope: the ten Development documents, narrow tracking exception, active-document policy and entry-point links; application/infrastructure changes excluded.
 - Dependencies: owner review and Git delivery; does not block urgent approved OL-01 work.
-- Evidence: [STATUS](STATUS.md) and [CHANGELOG](CHANGELOG.md) record local documentation checks and unchanged baseline failures; this branch/PR contains the reviewed source diff. No production changes or application tests.
+- Evidence: [PR #38](https://github.com/rkRashik/DeltaCrown/pull/38) merged at 2026-10-29 19:05:48 +06:00 with four documentation commits, final head `418ec5d2`, merge `e1ef7372`. Original `330a9f63` was not the final head. STATUS/CHANGELOG retain documentation checks and baseline failures; that PR made no application implementation or deployment.
 - Acceptance: all ten documents tracked, only reviewed paths committed, private collections preserved, local links/anchors validated, public-safe evidence, dedicated branch/PR delivered and owner review recorded.
-- Next action: review the documentation PR, resolve requested documentation corrections, and update this state after owner acceptance. Keep OL-01 unresolved independently.
+- Next action: maintain this workspace through future task PRs. OL-01 remains unresolved independently.
