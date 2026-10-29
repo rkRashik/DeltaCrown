@@ -1,23 +1,26 @@
 # OwnLobby documentation guide
 
-Start with [README](README.md) for setup and [release handoff](OWNLOBBY_RELEASE_HANDOFF.md) for release status. This guide classifies documentation; it does not approve production operations. The current cleanup task uses the Phase 5 label; the media implementation previously proposed as Phase 5 is still a separate, unexecuted workstream.
+Start with [README](README.md) for setup and the [Development workspace](Documents/Development/README.md) for current task management and dated status. The [release handoff](OWNLOBBY_RELEASE_HANDOFF.md) and other engineering reports preserve historical evidence; consult [STATUS](Documents/Development/STATUS.md) before treating their operational claims as current. This guide classifies documentation; it does not approve production operations. Earlier Phase 5 cleanup/media labels describe separate historical workstreams, not today's implementation state.
 
 ## Active entry points
 
 | Question | Source |
 |---|---|
 | How do I run/build/test safely? | [README](README.md) |
-| What is the current release decision and rollback context? | [Release handoff](OWNLOBBY_RELEASE_HANDOFF.md), [readiness](OWNLOBBY_PRODUCTION_READINESS.md) |
+| What should the next agent do, and what is actually verified? | [Development entry point](Documents/Development/README.md), [current status](Documents/Development/STATUS.md), [backlog](Documents/Development/BACKLOG.md) |
+| What is the current release status and historical rollback context? | [Current status](Documents/Development/STATUS.md), [release handoff](OWNLOBBY_RELEASE_HANDOFF.md), [readiness history](OWNLOBBY_PRODUCTION_READINESS.md) |
 | Why is Twisted vendored and how is it verified? | [Security closure](OWNLOBBY_SECURITY_CLOSURE.md), [package provenance](vendor/twisted/README.md) |
 | Was Linux/native Cairo tested? | [Linux parity](OWNLOBBY_LINUX_PARITY.md) |
 | Which OAuth contracts/tests are current? | [OAuth reliability](OWNLOBBY_OAUTH_RELIABILITY.md) |
-| What remains before storage implementation? | [Media architecture](OWNLOBBY_MEDIA_ARCHITECTURE.md), [field inventory](branding/media-storage-inventory.json) |
+| What media design and inventory history applies? | [Media architecture](OWNLOBBY_MEDIA_ARCHITECTURE.md), [field inventory](branding/media-storage-inventory.json); use Development status/backlog for current work |
 | How are domains/SEO migrated later? | [Domain migration](OWNLOBBY_DOMAIN_MIGRATION.md), [technical SEO](OWNLOBBY_TECHNICAL_SEO.md) |
 | What do dependency scans actually mean? | [Dependency security](OWNLOBBY_DEPENDENCY_SECURITY.md), [current dual scan](branding/security-runtime-dependency-audit.json) |
 | What changed in cleanup? | [Repository audit](OWNLOBBY_REPOSITORY_AUDIT.md), [manifest](OWNLOBBY_CLEANUP_MANIFEST.md), [cleanup handoff](OWNLOBBY_CLEANUP_HANDOFF.md) |
 | Which agent/settings contracts are protected? | [AGENTS.md](AGENTS.md) |
 
 The small existing root report set remains at stable paths because tools, prior reports and operational guidance reference it. Existing phase evidence is not replaced by a duplicate new hierarchy. New topical documents should extend existing entry points or app-level references; add root entry points only after updating the reviewed placement policy.
+
+Owner-approved addition, 2026-10-29: `Documents/Development/` provides ongoing product/task/status/decision/handoff management. It links historical technical reports rather than copying them. BACKLOG owns task state; STATUS is a dated summary. Only explicitly reviewed documents listed in repository policy and narrow Git ignore exceptions are public; this is not permission to publish other `Documents/` contents or private audit evidence.
 
 ## App and integration references
 

@@ -4,7 +4,7 @@
 
 OwnLobby is a Bangladesh-first competitive gaming and esports platform built with Django. The codebase includes tournaments and match operations, teams and organizations, player profiles and Game Passport, rankings, Coins wallets and escrow, community features, organizer/admin tools, and real-time updates. Showdown, Missions, Bounty and Dropzone have evolving workflows; availability depends on configuration and permissions.
 
-**Release status:** local engineering candidate, not certified for production or staging deployment. Linux/Python 3.12 and native Cairo validation, private durable media, backup restoration, and successful provider/mail/worker staging checks remain open. Start with the [release handoff](OWNLOBBY_RELEASE_HANDOFF.md) and [production readiness](OWNLOBBY_PRODUCTION_READINESS.md).
+**Current development and release status:** start with the [Development workspace](Documents/Development/README.md), [dated status](Documents/Development/STATUS.md) and [backlog](Documents/Development/BACKLOG.md). The [release handoff](OWNLOBBY_RELEASE_HANDOFF.md) and [production readiness](OWNLOBBY_PRODUCTION_READINESS.md) retain historical technical evidence; their earlier local-only release decisions are not a current deployment assessment. Live availability does not establish full launch acceptance.
 
 Technical identifiers such as the `deltacrown` Python package, app/model/table names, internal currency fields, integration identities and infrastructure hostnames remain for compatibility. Public platform branding is OwnLobby. Do not rename these identifiers as cosmetic cleanup.
 
@@ -24,6 +24,7 @@ Django renders templates and exposes REST APIs. Domain services coordinate tourn
 | [vendor/twisted/](vendor/twisted/README.md) | Verified temporary upstream HTTP security backport |
 | [config/](config/) | Feature/reference and repository documentation policy |
 | [reference/](reference/README.md) | Preserved product-history snapshot and cleanup inventory |
+| [Documents/Development/](Documents/Development/README.md) | Public development management, task backlog and conversation handoff |
 
 `Documents/DELTACROWN/` is owner-protected and must remain in place. `Documents/`, `docs/`, `Artifacts/`, `media/` and other ignored local collections are not disposable merely because Git ignores them. See the [documentation guide](OWNLOBBY_DOCUMENTATION_GUIDE.md) before reorganizing anything.
 
