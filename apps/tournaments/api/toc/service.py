@@ -591,17 +591,14 @@ class TOCService:
         group_stage_complete = False
         knockout_bracket_generated = False
         if group_progress:
-            gp_state = str(group_progress.get('state') or '').lower()
-            groups_drawn = gp_state in ('active', 'completed') or any(
+            groups_drawn = any(
                 int(g.get('teams') or 0) > 0 for g in (group_progress.get('groups') or [])
             )
             group_matches_generated = int(group_progress.get('total_matches') or 0) > 0
             group_stage_complete = (
-                gp_state == 'completed'
-                or (
-                    group_matches_generated
-                    and int(group_progress.get('completion_pct') or 0) == 100
-                )
+                group_matches_generated
+                and int(group_progress.get('completed_matches') or 0)
+                >= int(group_progress.get('total_matches') or 0)
             )
 
         # Check if knockout bracket exists (for GROUP_PLAYOFF tournaments)
@@ -645,7 +642,9 @@ class TOCService:
                 steps.append({'key': 'live', 'label': 'Live', 'icon': 'radio'})
             steps.append({'key': 'completed', 'label': 'Completed', 'icon': 'flag'})
 
-            group_stage_done = group_stage_complete or (inner_stage == 'knockout_stage')
+            # A stale stage pointer can survive a schedule change or reset.
+            # Only actual completed group fixtures prove that this phase is done.
+            group_stage_done = group_stage_complete
             knockout_live_or_done = inner_stage == 'knockout_stage' and live_done
 
             done_map = {
