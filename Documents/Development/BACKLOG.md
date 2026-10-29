@@ -8,8 +8,8 @@ Owner for product/production decisions: repository owner. Implementers/reviewers
 |---|---|---|---|---|
 | [OL-01](#ol-01) | Supabase Data API security containment | P0 | VERIFYING | Bounded refusal/public smoke/direct DB/log review complete; provider-state and private-browser checks remain open before approved hardening |
 | [OL-02](#ol-02) | Django secret-key warning and CI coverage | P0 | TODO | Safe warning diagnosis and current branch-coverage review |
-| [OL-03](#ol-03) | Render stability, CPU and memory investigation | P1 | TODO | Establish current deployment/resource baseline |
-| [OL-04](#ol-04) | Homepage, database and Redis performance | P1 | TODO | OL-03 baseline; isolate measured bottlenecks |
+| [OL-03](#ol-03) | Render stability, CPU and memory investigation | P1 | IN_PROGRESS | OL-03/04-A diagnostic baseline recorded; transient concurrency/cold-start attribution still open |
+| [OL-04](#ol-04) | Homepage, database and Redis performance | P1 | IN_PROGRESS | Diagnosis identifies unused builders; approve scoped OL-04-B before implementation |
 | [OL-05](#ol-05) | Public image and private media delivery audit | P1 | TODO | OL-01 verification priority; permission-safe delivery measurements |
 | [OL-06](#ol-06) | Cloudflare R2 feasibility, cost and quota safeguards | P2 | DEFERRED | OL-05 measurements; compare retaining current providers |
 | [OL-07](#ol-07) | Approved media delivery optimization | P1 | BLOCKED | OL-05 and owner-selected design; OL-06 only if migration considered |
@@ -55,25 +55,25 @@ Owner for product/production decisions: repository owner. Implementers/reviewers
 
 ## OL-03
 
-**Render stability, CPU and memory investigation — P1 / TODO**
+**Render stability, CPU and memory investigation — P1 / IN_PROGRESS**
 
 - Objective: determine current errors, cold-start behavior, CPU/RSS peaks and request/concurrency limits before claiming a hosting failure or buying capacity.
 - Dependencies: authorized read-only Render metrics/config scope; OL-01 takes priority.
 - Relevant code: [start script](../../bin/start_render.sh), [process supervision](../../scripts/render_processes.py), [ASGI](../../deltacrown/asgi.py), [Render blueprint](../../render.yaml).
-- References/evidence: Issue #37 records Free Singapore, 512 MiB / 0.15 CPU and no new observed 500s in its sampled logs; this is historical, not current stability certification. [PR #31](https://github.com/rkRashik/DeltaCrown/pull/31) addressed media buffering, not all resource problems.
+- References/evidence: [OL-03/04-A report](tasks/OL-03-04-A.md), reviewed 2026-10-30: live application `f1f8d185`, Free Singapore, one instance, Celery OFF. The 29 October 12:00-18:00 UTC series shows 312.4 MiB sampled memory peak / 512 MiB, and no returned CPU sample near the 0.15-core limit. No matching error/timeout entries or events within that window; two earlier health failures remain historical. Short spikes and request concurrency are not measured. PR #31 addressed media buffering, not all resource problems.
 - Acceptance: record actual deployed SHA/plan, observation window, load profile, restart/error/latency/CPU/RSS findings and bottleneck hypothesis; define safe budgets and a reversible proposal. No load test on production without scope approval; no paid upgrade assumed.
-- Next action: collect sanitized current deployment/metric evidence and distinguish memory, CPU, database, network and cold-start behavior.
+- Next action: retain the measured resource baseline; revisit earlier health failures if they recur and obtain bounded request/connection/CPU attribution if needed. Do not raise worker/thread counts or buy capacity based only on sampled headroom.
 
 ## OL-04
 
-**Homepage, database and Redis performance — P1 / TODO**
+**Homepage, database and Redis performance — P1 / IN_PROGRESS**
 
 - Objective: reduce measured page-generation latency while preserving personalized/private responses.
 - Dependencies: OL-03 baseline and an approved measurement/optimization scope.
 - Relevant code: [homepage views](../../apps/siteui/views.py), [hero](../../apps/siteui/homepage_hero.py), [phase timing tests](../../apps/siteui/tests/test_homepage_phase_timing.py), [settings/cache configuration](../../deltacrown/settings.py).
-- References/evidence: [PR #36](https://github.com/rkRashik/DeltaCrown/pull/36) and Issue #37 establish slow context/extras/render observations; [PR #32](https://github.com/rkRashik/DeltaCrown/pull/32) adds public Redis fallback. No complete root cause or percentile baseline exists here.
+- References/evidence: [OL-03/04-A](tasks/OL-03-04-A.md) confirms redundant view/render builders and navbar false-cache behavior. Recomputed slow-only medians: context 1938 ms (23), extras 2383 ms (18), render 1787 ms (39), hero 919 ms (1). Synthetic fake-cursor guest cold/warm dispatch counts were 71/1; authenticated warm 24. These are not production query counts or SQL execution times. Seven mocked tests passed; production Redis RTT/hit rates, SQL plans/time and request percentiles remain unknown. No improvement was implemented.
 - Acceptance: isolate query counts/DB time, eager/N+1 reads, cache misses and template work; agree numerical budgets; compare cold/warm p50/p95 against baseline under the same profile; prove guest/user isolation and fallback behavior. No shared caching of personalized HTML.
-- Next action: produce a sanitized phase/query/cache measurement plan, then optimize the demonstrated cause in a scoped change.
+- Next action: owner review/approval of **OL-04-B**, removing only the unused legacy `get_homepage_context()` call from `home()`; retain extras, per-request hero, SEO, media/permission boundaries and `never_cache`. Implementation acceptance/rollback are in the diagnostic report. Legacy processor retirement and extras query consolidation are separate later opportunities.
 
 ## OL-05
 

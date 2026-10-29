@@ -1,17 +1,17 @@
 # OwnLobby current status
 
-Last OL-01 verification review: **2026-10-29 23:49 +06:00 (Asia/Dhaka)**. Bounded live HTTP/DB checks ran at 23:12-23:15 +06:00; a read-only Render follow-up used the owner-confirmed workspace at 23:47-23:49. Earlier evidence retains its dates below. These observations do not constitute full production acceptance; recheck before acting.
+Last development review: **2026-10-30 00:21 +06:00 (Asia/Dhaka)**, OL-03/04-A diagnosis. OL-01 checks retain their 2026-10-29 23:12-23:49 dates below; they were not repeated. No optimization or production change occurred. These observations do not constitute full production acceptance.
 
 ## Repository and deployment
 
 | Item | State / provenance |
 |---|---|
 | Product / repository | OwnLobby / [rkRashik/DeltaCrown](https://github.com/rkRashik/DeltaCrown), default branch `master` |
-| Verified master baseline | [`e1ef7372fcbd3552ff3b5df8caa852b96cfcf362`](https://github.com/rkRashik/DeltaCrown/commit/e1ef7372fcbd3552ff3b5df8caa852b96cfcf362), remote verified and clean local master safely fast-forwarded during this task |
+| Verified master baseline | [`57b9e332cbf6a91bfe0ec8d751e9698eab6a3997`](https://github.com/rkRashik/DeltaCrown/commit/57b9e332cbf6a91bfe0ec8d751e9698eab6a3997), merged PR #39; remote verified and clean local master safely fast-forwarded for OL-03/04-A |
 | Latest application source change | `f1f8d185`: tournament lifecycle/mobile rich text/pass logo; not a Render failure fix. Newer master work is documentation-only |
 | Latest independently verified Render live deployment | [`f1f8d18566723aa4e62875c20f7f6bc8dc4794e1`](https://github.com/rkRashik/DeltaCrown/commit/f1f8d18566723aa4e62875c20f7f6bc8dc4794e1), Render deploy `dep-dbhelq67bikc73eeefsg` succeeded **2026-10-29 12:46:51 +06:00**; verified with read-only [Render service](https://dashboard.render.com/web/srv-d6eubkngi27c738ieao0) deploy listing later that day. The `b7eb47f0` commit in Issue #37 was the preceding deployment, not the current live SHA. A live deploy status does not prove application journey acceptance. |
 | Production | [ownlobby.com](https://ownlobby.com): six public routes and two approved public images passed bounded HTTP checks at 23:13-23:15 +06:00. Read-only Render follow-up reconfirmed live `f1f8d185`, Free plan and auto-deploy OFF; authenticated/private-media acceptance remains open |
-| Documentation delivery | [PR #38](https://github.com/rkRashik/DeltaCrown/pull/38) merged 2026-10-29 at 19:05:48 +06:00, final head `418ec5d2`, four commits. OL-01 prepares a separate documentation-only evidence PR; no deployment |
+| Documentation delivery | PR #38 and [PR #39](https://github.com/rkRashik/DeltaCrown/pull/39) are merged. OL-03/04-A prepares a separate diagnosis-only documentation PR; application remains `f1f8d185` |
 
 Read-only Render observation on 2026-10-29: the service remained on the Free plan with auto-deploy OFF. In a sampled 2026-10-29 08:30–12:55 UTC log window, no application-level errors or HTTP 5xx request entries were returned; this is not a comprehensive availability test or a post-containment login/storage smoke. No production settings were changed.
 
@@ -37,7 +37,16 @@ Read-only Render observation on 2026-10-29: the service remained on the Free pla
 
 Prior source inspection found no required database Data API consumer. Django uses PostgreSQL connections; Supabase Storage APIs are separate. The constant-only direct DB check below adds scoped connectivity evidence, not proof of every authenticated feature or private Storage operation. Do not re-enable Data API or change RLS/grants.
 
-**Next safe task:** close remaining provider-state/private-browser evidence gaps, then obtain separate owner approval for the [minimal permanent-hardening proposal](BACKLOG.md#ol-01-permanent-hardening-proposal-not-executed). The bounded Render log review is complete; documentation review must not delay urgent approved work.
+**Security follow-up:** close remaining OL-01 provider-state/private-browser gaps and obtain separate approval for the [hardening proposal](BACKLOG.md#ol-01-permanent-hardening-proposal-not-executed). These gates remain open independently of the owner-requested performance investigation below.
+
+## OL-03/04-A diagnosis 2026-10-30
+
+[Evidence report and implementation proposal](tasks/OL-03-04-A.md): no source optimization, production DB/Redis command, HTTP load or service change. Render reads reconfirmed live `f1f8d185`, Free Singapore, one instance and Celery OFF.
+
+- For 29 October 12:00-18:00 UTC, slow-only phase observations have medians context **1938 ms** (23), extras **2383 ms** (18), render **1787 ms** (39), hero **919 ms** (1). Counts/medians are thresholded above 500 ms, not full requests or percentiles.
+- Returned memory samples peak at **312.4 MiB / 512 MiB**; CPU samples do not establish saturation of the **0.15-core** allocation. Short spikes remain unmeasured. Earlier health failures predate the current deploy; no returned event lies inside this window. No matching error/timeout entries were returned.
+- Source plus isolated template/SQL-dispatch simulation confirms unused legacy view context, unused common homepage processor work and a navbar cached-False query. A synthetic 11-game/otherwise-empty scenario recorded **71 cold guest / 1 warm guest / 24 warm authenticated dispatches**. No SQL was executed; no local PostgreSQL service was available. Actual production query counts/time and Redis hit rate/RTT are unknown.
+- **Proposed first implementation: OL-04-B**, remove only the unused legacy view-builder invocation. All three synthetic output comparisons matched after fixed CSRF; seven existing mocked cache/telemetry tests passed. No performance improvement has occurred. Parent OL-03/04 remain IN_PROGRESS; owner approval precedes implementation.
 
 ## OL-01 verification 2026-10-29
 
