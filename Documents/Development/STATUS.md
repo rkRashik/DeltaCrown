@@ -1,17 +1,17 @@
 # OwnLobby current status
 
-Last development review: **2026-10-30 00:21 +06:00 (Asia/Dhaka)**, OL-03/04-A diagnosis. OL-01 checks retain their 2026-10-29 23:12-23:49 dates below; they were not repeated. No optimization or production change occurred. These observations do not constitute full production acceptance.
+Last development review: **2026-10-30 04:35 +06:00 (Asia/Dhaka)**, OL-04-B local/Linux implementation verification. OL-01 checks retain their 2026-10-29 dates below; they were not repeated. No deployment or production configuration/data change occurred. Isolated optimization evidence does not establish production improvement or full acceptance.
 
 ## Repository and deployment
 
 | Item | State / provenance |
 |---|---|
 | Product / repository | OwnLobby / [rkRashik/DeltaCrown](https://github.com/rkRashik/DeltaCrown), default branch `master` |
-| Verified master baseline | [`57b9e332cbf6a91bfe0ec8d751e9698eab6a3997`](https://github.com/rkRashik/DeltaCrown/commit/57b9e332cbf6a91bfe0ec8d751e9698eab6a3997), merged PR #39; remote verified and clean local master safely fast-forwarded for OL-03/04-A |
-| Latest application source change | `f1f8d185`: tournament lifecycle/mobile rich text/pass logo; not a Render failure fix. Newer master work is documentation-only |
+| Verified master baseline | [`f6a27d7cb3dc6f12938d30868f36bb187723d368`](https://github.com/rkRashik/DeltaCrown/commit/f6a27d7cb3dc6f12938d30868f36bb187723d368), merged PR #40; clean local master safely fast-forwarded before creating `perf/ol04-b-remove-legacy-home-context-20261030` |
+| Application source | Master application remains `f1f8d185` (lifecycle/mobile changes, not a Render fix). Unmerged [PR #41](https://github.com/rkRashik/DeltaCrown/pull/41) removes the unused homepage builder; implementation `cb2a3185`, test follow-up `c1c6325d`. No deployment performed |
 | Latest independently verified Render live deployment | [`f1f8d18566723aa4e62875c20f7f6bc8dc4794e1`](https://github.com/rkRashik/DeltaCrown/commit/f1f8d18566723aa4e62875c20f7f6bc8dc4794e1), Render deploy `dep-dbhelq67bikc73eeefsg` succeeded **2026-10-29 12:46:51 +06:00**; verified with read-only [Render service](https://dashboard.render.com/web/srv-d6eubkngi27c738ieao0) deploy listing later that day. The `b7eb47f0` commit in Issue #37 was the preceding deployment, not the current live SHA. A live deploy status does not prove application journey acceptance. |
 | Production | [ownlobby.com](https://ownlobby.com): six public routes and two approved public images passed bounded HTTP checks at 23:13-23:15 +06:00. Read-only Render follow-up reconfirmed live `f1f8d185`, Free plan and auto-deploy OFF; authenticated/private-media acceptance remains open |
-| Documentation delivery | PR #38 and [PR #39](https://github.com/rkRashik/DeltaCrown/pull/39) are merged. OL-03/04-A prepares a separate diagnosis-only documentation PR; application remains `f1f8d185` |
+| Documentation delivery | PRs #38, #39 and [#40](https://github.com/rkRashik/DeltaCrown/pull/40) merged. Historical diagnosis is retained; PR #41 updates the four canonical tracking documents with actual implementation evidence |
 
 Read-only Render observation on 2026-10-29: the service remained on the Free plan with auto-deploy OFF. In a sampled 2026-10-29 08:30–12:55 UTC log window, no application-level errors or HTTP 5xx request entries were returned; this is not a comprehensive availability test or a post-containment login/storage smoke. No production settings were changed.
 
@@ -46,7 +46,36 @@ Prior source inspection found no required database Data API consumer. Django use
 - For 29 October 12:00-18:00 UTC, slow-only phase observations have medians context **1938 ms** (23), extras **2383 ms** (18), render **1787 ms** (39), hero **919 ms** (1). Counts/medians are thresholded above 500 ms, not full requests or percentiles.
 - Returned memory samples peak at **312.4 MiB / 512 MiB**; CPU samples do not establish saturation of the **0.15-core** allocation. Short spikes remain unmeasured. Earlier health failures predate the current deploy; no returned event lies inside this window. No matching error/timeout entries were returned.
 - Source plus isolated template/SQL-dispatch simulation confirms unused legacy view context, unused common homepage processor work and a navbar cached-False query. A synthetic 11-game/otherwise-empty scenario recorded **71 cold guest / 1 warm guest / 24 warm authenticated dispatches**. No SQL was executed; no local PostgreSQL service was available. Actual production query counts/time and Redis hit rate/RTT are unknown.
-- **Proposed first implementation: OL-04-B**, remove only the unused legacy view-builder invocation. All three synthetic output comparisons matched after fixed CSRF; seven existing mocked cache/telemetry tests passed. No performance improvement has occurred. Parent OL-03/04 remain IN_PROGRESS; owner approval precedes implementation.
+- **Historical first proposal: OL-04-B**, remove only the unused legacy view-builder invocation. All three synthetic output comparisons matched after fixed CSRF; seven existing mocked cache/telemetry tests passed. No optimization occurred during that diagnostic task. The later owner-authorized implementation/isolated verification follows; production benefit remains unmeasured.
+
+## OL-04-B isolated verification 2026-10-30
+
+**VERIFYING / PR review, no deployment.** Minimal view change: remove the legacy import/call, use a new `context = {}`, then retain all active builders. Legacy `context` telemetry disappears because that work no longer runs; extras/hero/sections/presentation/render timing remains. No replacement measurement is manufactured. No template, authentication or media policy changed.
+
+Local environment: Windows, Python 3.13.15, Django 5.2.8, PostgreSQL 18.6, loopback-only disposable `ownlobby_test`, memory cache and synthetic fixtures. Owner `.env` loading disabled; QA settings reject remote databases. Combined rerun measurements at approximately **04:21 +06:00** compare the actual baseline `home()` extracted from immutable Git `f6a27d7c`, with the same fixture set and real ORM/templates/processors. Cold/warm mean data-cache state, not process wake-up or a new database connection. SQL time measures driver execution including loopback waits; no production data, remote Redis latency or SQL text is recorded.
+
+| Fixture / role | Cold queries before → after | Cold SQL ms before → after | Warm queries before → after | Warm SQL ms before → after |
+|---|---:|---:|---:|---:|
+| Empty guest | 68 → 54 | 42.650 → 34.020 | 1 → 1 | 0.760 → 0.541 |
+| Populated guest | 80 → 64 | 46.185 → 36.657 | 1 → 1 | 0.430 → 0.547 |
+| Populated player | 105 → 89 | 60.400 → 50.087 | 21 → 21 | 8.027 → 7.434 |
+| Populated organizer | 97 → 81 | 57.169 → 44.988 | 13 → 13 | 5.209 → 5.216 |
+| Populated registered player | 98 → 82 | 56.242 → 44.577 | 14 → 14 | 5.460 → 5.584 |
+| Populated team manager | 107 → 91 | 53.170 → 49.153 | 23 → 23 | 7.655 → 8.226 |
+
+Six new regression tests PASS: full HTML byte equality after fixing only synthetic time/CSRF randomness; desktop/mobile sections, directory links, SEO/artwork and role-specific hero retained; zero legacy/singleton calls from the new view; no personalization of a shared extras object. Guarded cache read/write timeouts also preserve baseline output (15 cold queries removed in those populated fallback cases). This is simulated timeout handling, not a real Redis outage. The separate common processor has unguarded cache access; a whole-backend outage remains outside this change.
+
+Cold populated extras remains 33 queries; render remains 31 guest / 36 player-manager / 37 organizer-registered. Warm extras is zero queries in both versions. The removed legacy phase contributed 16 queries / 8.878-10.574 ms driver time (25.268-28.124 ms wall time) in the populated normal-cache samples. Extras/render wall samples fluctuate in both directions, not a measured improvement in those phases; timings are single noisy observations. This does not prove production p50/p95 or predict a 16-query saving on every production request. Shared waits may shift phases. Expect reduced redundant work/allocation without additional services/cost; actual production benefit remains unmeasured.
+
+**Combined local rerun: 161 tests PASS in 51.003 s** (new regressions, existing hero/presentation/phase/cache/governed-media/hybrid/private-profile suites). Existing-suite initial result was 154/155 PASS; one stale empty-state copy assertion failed identically using the original baseline view. Only its expectation was corrected to current approved desktop/mobile copy. An earlier parallel local setup caused a disposable migration collision; runners were stopped and migration setup resumed serially. No application schema/migration file or production DB was changed. QA-only local-filesystem warning `siteui.W001` is expected and does not describe production storage.
+
+**Linux run [#61 PASS](https://github.com/rkRashik/DeltaCrown/actions/runs/40965238972)**, code head `c1c6325dbf5384d4baf51e021cd1960c33a1da39`, Ubuntu 24.04 / Python 3.12 / disposable PostgreSQL 16, completed approximately 04:34 +06:00. All job steps executed successfully, including 114 homepage tests (4.950 s), existing security/media/recovery/account/tournament suites, startup/native/HTTP-WebSocket checks, frontend build and static verification. Query counts match the local table; Linux populated guest SQL was 36.663→28.832 ms cold, 0.325→0.356 ms warm. These remain synthetic single observations. The unchanged six-route read-only live smoke also passed; it exercised the existing production version, not this unmerged optimization.
+
+Separate CI correction `a9a87bc6` removes the obsolete named-branch allowlist; master-target PRs retain synthetic PostgreSQL, no production database secrets and existing security suites. The initial run #60 was superseded, not accepted as success. This documentation revision adds no application changes; inspect the latest PR #41 head check before merging. No skipped/pending run is PASS.
+
+Rollback commits/order and next approval gate: [OL-04 backlog](BACKLOG.md#ol-04). Do not deploy automatically. OL-03 remains open; OL-04 remains VERIFYING; OL-01 is unchanged.
+
+Documentation links/Development anchors pass (74 documents / 361 links, no active failures); 47 historical findings and the same three root-placement hygiene failures remain. Only the eight intended source/test/workflow/canonical-document paths are changed; ignore/publication policy and historical investigation remain untouched. Task-created temporary QA cluster/logs were removed after recording measurements; earlier investigation artifacts and the 435 protected owner Documents files remain. No real-device visual QA, production Redis failure, authenticated production journey or private Storage smoke was performed in this task.
 
 ## OL-01 verification 2026-10-29
 
@@ -74,7 +103,7 @@ Owner browser smoke still needed: manually use an existing account to confirm lo
 
 ## Other blockers and limitations
 
-- OL-02: Issue #37 reports a Django signing-key warning; strength/disposition remains unverified. Never print/rotate the key merely to clear a warning. The [Linux workflow](../../.github/workflows/ownlobby-linux-smoke.yml) is limited to named PR branches; new branches must not assume full smoke coverage.
+- OL-02: Issue #37 reports a Django signing-key warning; strength/disposition remains unverified. Never print/rotate the key merely to clear a warning. PR #41 fixes the [Linux workflow](../../.github/workflows/ownlobby-linux-smoke.yml) named-branch coverage gap; verify the actual head run, not historical/skipped results.
 - OL-03/04: historical Render Free constraints are 512 MiB and 0.15 CPU in Issue #37. Homepage observations include context 2975 ms, extras 3147 ms and render 1945/3200/1900 ms from separate requests. They are not averages, a fresh baseline or proof of root cause.
 - OL-05/07: slow image delivery is reported; complete root cause remains unverified. Existing bounded streaming is not an image-size/CDN solution. Private media must remain private.
 - OL-06: R2 is not approved. Owner requires minimal costs, warnings near 8/9 GB and evaluation of upload blocking below the free allowance, including operations, backups and ongoing billing; no hard-cap guarantee.
