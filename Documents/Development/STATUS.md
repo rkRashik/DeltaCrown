@@ -1,6 +1,6 @@
 # OwnLobby current status
 
-Last source/status review: **2026-10-29 18:16 +06:00 (Asia/Dhaka)**. This is a documentation review timestamp, not a fresh production health check. Recheck before acting.
+Last documentation baseline review: **2026-10-29 18:16 +06:00 (Asia/Dhaka)**. An independent read-only Render deployment/log check was also performed later on 2026-10-29. Neither check constitutes full production functional acceptance; recheck before acting.
 
 ## Repository and deployment
 
@@ -9,9 +9,11 @@ Last source/status review: **2026-10-29 18:16 +06:00 (Asia/Dhaka)**. This is a d
 | Product / repository | OwnLobby / [rkRashik/DeltaCrown](https://github.com/rkRashik/DeltaCrown), default branch `master` |
 | Verified master baseline | [`f1f8d18566723aa4e62875c20f7f6bc8dc4794e1`](https://github.com/rkRashik/DeltaCrown/commit/f1f8d18566723aa4e62875c20f7f6bc8dc4794e1), local and GitHub master checked on 2026-10-29 |
 | Latest source change | Tournament lifecycle completion evidence, mobile rich text and OwnLobby pass logo; not a Render failure fix |
-| Latest known deployed SHA | `b7eb47f0d41e7baef447e65b1b0e15e91fe39981`, reported in [Issue #37](https://github.com/rkRashik/DeltaCrown/issues/37) on 2026-10-28; not reverified against Render during OL-DOC-01 |
+| Latest independently verified Render live deployment | [`f1f8d18566723aa4e62875c20f7f6bc8dc4794e1`](https://github.com/rkRashik/DeltaCrown/commit/f1f8d18566723aa4e62875c20f7f6bc8dc4794e1), Render deploy `dep-dbhelq67bikc73eeefsg` succeeded **2026-10-29 12:46:51 +06:00**; verified with read-only [Render service](https://dashboard.render.com/web/srv-d6eubkngi27c738ieao0) deploy listing later that day. The `b7eb47f0` commit in Issue #37 was the preceding deployment, not the current live SHA. A live deploy status does not prove application journey acceptance. |
 | Production | [ownlobby.com](https://ownlobby.com) is the owner-designated live site; current deployed SHA/health and full launch acceptance remain unverified here |
 | Documentation delivery | OL-DOC-01 prepares a review branch/PR only. See Git/PR history for its revision; no merge or deployment is authorized |
+
+Read-only Render observation on 2026-10-29: the service remained on the Free plan with auto-deploy OFF. In a sampled 2026-10-29 08:30–12:55 UTC log window, no application-level errors or HTTP 5xx request entries were returned; this is not a comprehensive availability test or a post-containment login/storage smoke. No production settings were changed.
 
 ## Completed work with bounded evidence
 
