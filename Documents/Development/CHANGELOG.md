@@ -2,6 +2,12 @@
 
 Append dated milestones; retain original event dates. Source changes, historical test reports, owner actions and fresh verification are distinct. Task status is maintained in [BACKLOG](BACKLOG.md). This is a selected evidence index, not a replacement for Git history.
 
+## 2026-10-30
+
+- **OL-03/04-A diagnosis:** [report](tasks/OL-03-04-A.md) records read-only Render/source review and local fake-cursor/unsaved-fixture diagnostics at master `57b9e332`, production application `f1f8d185`. No production SQL/Redis commands or traffic tests. For 29 October 12:00-18:00 UTC, slow-only medians were context 1938 ms, extras 2383 ms, render 1787 ms and hero 919 ms; sampled memory peak 312.4 MiB / 512 MiB. No sampled CPU saturation or matching error/timeout signal established a resource limit as root cause.
+- **Confirmed avoidable work:** unused legacy view context, unused render-time legacy processor and cached-False navbar query. Synthetic SQL-dispatch counts were 71 cold guest / 1 warm guest / 24 warm authenticated; these are not production query counts or SQL time. Fixed-CSRF render comparisons matched without legacy view keys; seven existing mocked tests passed. Harness startup/logging issues were corrected without application edits.
+- **Proposal only:** OL-04-B should first remove the unused view-builder call, under separate owner approval and isolated regression/measurement gates. No optimization, deployment, worker, database, cache, media or secret change occurred. OL-03/04 remain open; OL-01 security gates retain their prior state.
+
 ## 2026-10-29
 
 - **OL-01 Render follow-up, 23:47-23:49 +06:00:** after owner workspace confirmation, read-only service/deploy queries reconfirmed live `f1f8d185`, Free plan and auto-deploy OFF. For 14:35-23:47:25 +06:00, no error-level app entries, targeted DB/PostgREST failures or HTTP 500/502/503/504 request entries were returned. Recent app activity exists; a bounded broad error-text sample also contains client-request/probe warnings and zero-error summaries, so no claim of an entirely warning-free service. Acceptance D is now PASS within this scope. Provider-state/private-browser checks and permanent hardening remain open; no production change or raw log publication.
