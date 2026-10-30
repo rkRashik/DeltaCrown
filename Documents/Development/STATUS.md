@@ -1,16 +1,16 @@
 # OwnLobby current status
 
-Last development review: **2026-10-30 04:35 +06:00 (Asia/Dhaka)**, OL-04-B local/Linux implementation verification. OL-01 checks retain their 2026-10-29 dates below; they were not repeated. No deployment or production configuration/data change occurred. Isolated optimization evidence does not establish production improvement or full acceptance.
+Last development review: **2026-10-30 16:15 +06:00 (Asia/Dhaka)**, OL-INC-01 read-only incident investigation and isolated diagnostics. **Do not deploy master.** Production was rolled back by the owner; this investigation made no production changes. OL-01 and OL-04-B evidence below retains its original dates and limitations.
 
 ## Repository and deployment
 
 | Item | State / provenance |
 |---|---|
 | Product / repository | OwnLobby / [rkRashik/DeltaCrown](https://github.com/rkRashik/DeltaCrown), default branch `master` |
-| Verified master baseline | [`f6a27d7cb3dc6f12938d30868f36bb187723d368`](https://github.com/rkRashik/DeltaCrown/commit/f6a27d7cb3dc6f12938d30868f36bb187723d368), merged PR #40; clean local master safely fast-forwarded before creating `perf/ol04-b-remove-legacy-home-context-20261030` |
-| Application source | Master application remains `f1f8d185` (lifecycle/mobile changes, not a Render fix). Unmerged [PR #41](https://github.com/rkRashik/DeltaCrown/pull/41) removes the unused homepage builder; implementation `cb2a3185`, test follow-up `c1c6325d`. No deployment performed |
-| Latest independently verified Render live deployment | [`f1f8d18566723aa4e62875c20f7f6bc8dc4794e1`](https://github.com/rkRashik/DeltaCrown/commit/f1f8d18566723aa4e62875c20f7f6bc8dc4794e1), Render deploy `dep-dbhelq67bikc73eeefsg` succeeded **2026-10-29 12:46:51 +06:00**; verified with read-only [Render service](https://dashboard.render.com/web/srv-d6eubkngi27c738ieao0) deploy listing later that day. The `b7eb47f0` commit in Issue #37 was the preceding deployment, not the current live SHA. A live deploy status does not prove application journey acceptance. |
-| Production | [ownlobby.com](https://ownlobby.com): six public routes and two approved public images passed bounded HTTP checks at 23:13-23:15 +06:00. Read-only Render follow-up reconfirmed live `f1f8d185`, Free plan and auto-deploy OFF; authenticated/private-media acceptance remains open |
+| Verified master baseline | [`7e07d6835f92a39a7cc4fb9ef3666f008a241b12`](https://github.com/rkRashik/DeltaCrown/commit/7e07d6835f92a39a7cc4fb9ef3666f008a241b12), PR #41 merged 2026-10-30 06:19:08 +06:00; clean local master fast-forwarded before `docs/ol-inc-01-navigation-hang-20261030` |
+| Application source | Merged [PR #41](https://github.com/rkRashik/DeltaCrown/pull/41) removes only the legacy homepage import/call from runtime code. Startup, dependencies, ASGI, database/cache configuration and teams view are unchanged from `f1f8d185`. Master is held from deployment pending incident review |
+| Latest independently verified Render live deployment | [`f1f8d18566723aa4e62875c20f7f6bc8dc4794e1`](https://github.com/rkRashik/DeltaCrown/commit/f1f8d18566723aa4e62875c20f7f6bc8dc4794e1), rollback deploy `dep-dbhufde7bikc738137sg`, completed **2026-10-30 06:42:19 +06:00**. Read-only [Render service](https://dashboard.render.com/web/srv-d6eubkngi27c738ieao0) deployment/event evidence confirms the rollback; owner reports navigation recovered. This is not full journey acceptance |
+| Production | [ownlobby.com](https://ownlobby.com): historical six-route/two-image smoke passed **2026-10-29** 23:13-23:15 +06:00. OL-INC-01 independently reconfirmed the rollback artifact, Free plan and auto-deploy OFF through provider reads; no fresh production HTTP smoke was run by this investigation. Authenticated/private-media acceptance remains open |
 | Documentation delivery | PRs #38, #39 and [#40](https://github.com/rkRashik/DeltaCrown/pull/40) merged. Historical diagnosis is retained; PR #41 updates the four canonical tracking documents with actual implementation evidence |
 
 Read-only Render observation on 2026-10-29: the service remained on the Free plan with auto-deploy OFF. In a sampled 2026-10-29 08:30–12:55 UTC log window, no application-level errors or HTTP 5xx request entries were returned; this is not a comprehensive availability test or a post-containment login/storage smoke. No production settings were changed.
@@ -21,9 +21,11 @@ Read-only Render observation on 2026-10-29: the service remained on the Free pla
 - PR [#33](https://github.com/rkRashik/DeltaCrown/pull/33): merged synthetic account/profile/launch QA coverage.
 - PR [#35](https://github.com/rkRashik/DeltaCrown/pull/35): password-reset form/error fix merged. Issue #37 records owner-verified Google sign-in/password reset following the canonical-origin configuration update.
 - PR [#36](https://github.com/rkRashik/DeltaCrown/pull/36): sanitized homepage phase telemetry and selected acceptance checks merged. Issue #37 reports Linux CI and public-route smoke passing at that time. These tests were not rerun in OL-DOC-01.
-- The initial documentation task inspected lifecycle/mobile source and regression tests without a fresh test execution or deployed journey acceptance. The newer master merge adds documentation only; current OL-01 checks are recorded separately below.
+- The initial documentation task inspected lifecycle/mobile source and regression tests without a fresh test execution or deployed journey acceptance. Its then-current master merge added documentation only; subsequent PR #41 and OL-INC-01 release history are recorded separately.
 
 ## Active work and immediate next task
+
+**OL-INC-01 is P0 / VERIFYING:** investigation complete, production attribution and remediation acceptance remain open. Review the evidence below, then authorize OL-INC-01-A: a narrowly scoped ASGI dependency correction and cancellation regression tests. No homepage revert or production change is justified automatically. OL-03 remains IN_PROGRESS and OL-04 VERIFYING; preserve independent OL-01 gates.
 
 **[OL-01](BACKLOG.md#ol-01) remains P0, VERIFYING.** A 2026-10-29 audit established an externally reachable Data API authorization risk before containment. The owner subsequently reports manual containment applied: Dashboard Overview shows **Enable Data API = OFF**, and Settings shows **Data API is disabled**.
 
@@ -39,6 +41,70 @@ Prior source inspection found no required database Data API consumer. Django use
 
 **Security follow-up:** close remaining OL-01 provider-state/private-browser gaps and obtain separate approval for the [hardening proposal](BACKLOG.md#ol-01-permanent-hardening-proposal-not-executed). These gates remain open independently of the owner-requested performance investigation below.
 
+## OL-INC-01 incident investigation 2026-10-30
+
+**Most likely mechanism: cancellation-triggered ASGI event-loop blockage while synchronous work remains outstanding; moderate confidence for this production incident.** The mechanism is reproduced locally in both releases. Production has no captured thread stack or correlated database wait evidence, so neither the exact blocking operation nor a permanent deadlock is proven. Owner clarification: page HTML did not arrive; cross-browser/device scope remains unclear. An image-only explanation is insufficient.
+
+### Verified timeline and evidence
+
+All event times below are **2026-10-30 Asia/Dhaka (+06:00)**. Read-only Render queries covered events 00:15-01:00 UTC, app logs 00:20-00:50 UTC and resource samples 00:15-00:55 UTC. Relevant embedded log timestamps were checked; buffered historical access lines were not treated as current requests.
+
+| Time | Confirmed evidence / interpretation |
+|---|---|
+| 06:19:08 | GitHub PR #41 merged as `7e07d683`; final PR head was `c781e88a`, not the earlier code-only head |
+| 06:24:27 / 06:27:20 | Deploy `dep-dbhu7euk1f9s73e8fmgg` started / succeeded. This was a runtime incident after a successful build/deploy |
+| 06:27:34-36 | New process logged extras 5477 ms and render 1939 ms; later render phases also completed. These are slow-only phases, not request averages |
+| 06:34:49.578 | Daphne warned that a disconnected `/teams/` application task took too long to shut down and cancelled it. This warning does not itself mean the OS process was killed |
+| 06:35:30-06:39:00 | Returned 30-second CPU observations were near idle, at most 0.001382 cores. No sustained CPU saturation is established for the silent interval |
+| 06:38:50.400 / .936 | Platform log reports instance restarted; provider event reports `server_failed`, internal port 10000 TCP timeout. Sub-second ingestion ordering is not a causal ordering guarantee |
+| 06:39:02 / 06:39:35 / 06:39:39 | Same-release startup / listening / `server_available`, all before rollback began |
+| 06:40:43-45 | Same `7e07d683` release logged extras 4507 ms and render 1992 ms after restart. Demonstrates application execution, not full navigation acceptance |
+| 06:41:25 / 06:42:19 | Owner-triggered rollback started / became live at `f1f8d185`; owner subsequently reports working navigation |
+
+Render remains Free/Singapore, one configured instance, auto-deploy OFF, Celery worker OFF. Actual start command is `bash start.sh`; live `healthCheckPath` is empty (TCP), not an independently verified HTTP `/healthz/` check. Startup logs confirm HTTP timeout 3600 s; source defaults application-close timeout to 5 s. Build logs confirm Django 5.2.18, asgiref 3.10.0 and Daphne 4.2.3. Same pins exist in both releases.
+
+Returned memory series peak at **264.6 MiB for the incident instance**, 335.0 MiB for the preceding instance and 318.3 MiB for the rollback instance, versus 512 MiB. No OOM crossing is evidenced. CPU reaches the 0.15-core limit at one startup sample (06:27:30); sampled headroom later cannot rule out brief spikes. Samples are not instantaneous peaks or whole-request percentiles. HTTP latency/count series and request-log query returned no data; no traffic rate or p95 claim follows.
+
+### Evening recurrence on the rolled-back release (read-only follow-up, 2026-10-30)
+
+**Separate incident, after the original diagnostic report.** Render still showed the owner-restored `f1f8d185` artifact as live, service Free with auto-deploy OFF. At approximately **19:51 +06:00**, multiple Django/Daphne HTTP application tasks across homepage, account, tournaments, and authorized media-delivery routes emitted `took too long to shut down` / cancellation warnings; several `asyncio Task exception was never retrieved` entries were also returned. At **19:56:15 +06:00**, Render recorded `server_failed` with internal port 10000 TCP timeout and then `server_available` at **19:56:58 +06:00**. This is independently verified **recurrence on the old release**, not just the newly merged homepage code. It increases confidence that a release-independent ASGI cancellation/stall mechanism warrants remediation; it still does **not** prove the exact production event-loop stack, the initiating slow dependency, a permanent deadlock, or a specific failure caused by asgiref alone.
+
+Bounded Render metrics during the recurrence showed approximately **369 MB peak sampled memory against 537 MB allocated**, and low sampled CPU during the silent interval, without sampled OOM or sustained CPU saturation. These are aggregate samples, not a peak-thread or per-request memory test. No production writes, restart, deployment, or configuration changes were performed during the investigation. Retain the master deployment hold and require Linux/Python 3.11 disconnect/cancellation, thread/RSS and auth/media checks for OL-INC-01-A before a separate release approval.
+
+### Source findings and unresolved alternatives
+
+- **Application regression:** only runtime diff is the three-line homepage removal. `/teams/`, middleware, scheduler, dependencies and startup are unchanged. No direct PR #41 regression was demonstrated; changed timing/cache state could still influence a trigger. Rollback also replaces the process, so recovery does not isolate code causality.
+- **ASGI/sync boundaries:** Django runs sync views/ORM in request-scoped thread-sensitive executors. Ordinary synchronous SQL is not automatically event-loop blocking. However, pinned asgiref's async context exit performs a blocking executor shutdown. The upstream [fix](https://github.com/django/asgiref/pull/563) and [release history](https://github.com/django/asgiref/blob/main/CHANGELOG.txt) identify the corresponding cancellation/deadlock class. `ASGI_THREADS=2` in startup is not proof of a global two-request concurrency cap; inspected request executors are allocated per context.
+- **PostgreSQL:** pooled defaults use `CONN_MAX_AGE=0`, health checks and 5 s connect timeout. No application-configured SQL statement deadline was found. Connect timeout does not bound an already-running query/lock/pooler wait. Historical production SQL, locks and pooler wait attribution were unavailable; no production queries were issued in this task.
+- **Redis:** individual source defaults are 2 s connect/read timeouts with timeout retry; safe-cache cooldown is 60 s. Teams/global processors also use direct cache calls. No matching Redis exception was observed, but that does not rule out latency. No keys, flushes or live cache probes were used.
+- **Scheduler:** reminder sweeps run in a daemon thread (60 s interval, 8 s initial delay), not directly on the ASGI loop; source and startup are identical. A sweep can query/update/send notifications normally. No incident sweep-duration/lock evidence identifies it as the culprit; it was disabled in isolated QA. The separate lifecycle cron must not be conflated with this thread.
+- **Render/browser:** a confirmed restart explains recovery without changing application code. Startup delays are visible, but do not explain the later shutdown warning by themselves. Browser/network cancellation could be a trigger; a browser-only fault does not explain the provider's TCP failure. No HAR, production thread dump or browser/device comparison was available.
+
+### Isolated verification and limits
+
+Windows / Python 3.13.15 / **Django 5.2.18, asgiref 3.10.0, Daphne 4.2.3**, PostgreSQL 18.6 on loopback, memory cache, synthetic players/game/tournaments/team. Owner dotenv was disabled and non-loopback sockets rejected. Disposable QA migrations/fixtures are local only. Exact old/new `home()` functions were loaded from Git; all other runtime source is identical. This is not Linux/Render resource parity, real Redis/Supabase latency, private-media QA or a production performance measurement.
+
+| Diagnostic | Observed result |
+|---|---|
+| Each release: six sequential requests and a four-request concurrent batch through Django ASGI/full middleware | All **20 responses HTTP 200** across home, teams, tournaments, community and health; no navigation hang. First/warm homepage observations: old 456.6/52.5 ms, new 347.2/44.3 ms; single synthetic samples, not an improvement estimate |
+| Short synthetic query cancellation control, each release | Both completed; an initial short wait did not reproduce a hang |
+| Real localhost Daphne, deliberately delayed synthetic query plus disconnected client | Both releases produced two unrelated health-request timeouts at a 2 s client bound, followed by recovery when finite work completed. New-release repeat reproduced the same result |
+| Captured local stack during the stall | Event-loop thread in `ThreadSensitiveContext.__aexit__` -> executor `shutdown` -> thread `join`; synchronous work still outstanding. This proves local loop blockage, not the missing production stack or an infinite deadlock |
+| Same delayed query with client remaining connected, new release | All five health probes HTTP 200, 4.8-19.0 ms; ordinary SQL waiting alone did not reproduce the stall |
+| Separate ignored asgiref **3.12.1** diagnostic install, new release and same disconnect case | All five health probes HTTP 200 in each of two runs (3.4-22.4 ms / 3.8-16.6 ms); event-loop snapshot remained in normal polling. Tracked pins/application were not changed; this is not full candidate release acceptance |
+
+Task-local synthetic harness/results are ignored under `Artifacts/ol-inc-01-20261030/` and unavailable in a fresh clone; no production logs or credentials are committed. The disposable database was stopped and its cluster/dependency copies removed after measurement; small synthetic evidence remains locally. Initial harness setup omitted CI's competition flag and was corrected before measurements. No production request load, database write, configuration change, deployment or rollback was performed by this investigation.
+
+### Proposed next implementation and release gates
+
+**OL-INC-01-A (proposal, not executed):** review a consistent asgiref pin containing the upstream fix (3.12.1 is the isolated tested candidate) in both requirements files, with bounded subprocess regression tests for slow sync work, disconnect/cancellation and unrelated request responsiveness. Do not rewrite the homepage, async-convert the ORM, lower timeouts blindly or increase workers as part of this fix. It should reduce the demonstrated cross-request blocking risk; it does not make slow SQL/Redis work fast or prove production causality.
+
+- Require Linux/Python 3.11 parity, production-pinned Django/Daphne, isolated PostgreSQL, old/new and connected/disconnected controls; repeat bounded concurrent cancellation cases. Proposed local gate: no unrelated probe timeout at 2 s, no sustained event-loop lag above 250 ms, no stuck threads/connections after work completes. Calibrate on an idle runner; these are proposed gates, not newly measured production SLAs.
+- Run existing homepage/hero/cache/auth/private-media/security/native/HTTP-WebSocket suites and ensure CI executes on the reviewed SHA. Verify bounded thread/RSS growth and cleanup; asynchronous shutdown can add executor/thread overhead, material on 512 MiB. No paid capacity assumed.
+- Add only approved bounded observability if production attribution is required: loop lag, in-flight/cancelled request counts, route-name request IDs, aggregate DB execution/connection/cache wait time and scheduler duration. No SQL/params, raw URLs, user IDs, cache keys, signed URLs or stack locals. Existing slow-only homepage logs and warning-level request logs cannot locate the original wait.
+- Keep master deployment on hold. After owner approval, test an immutable candidate artifact, prepare known-good `f1f8d185` rollback, and deploy only the reviewed SHA with low-frequency route/health and owner browser checks. A restart-only control requires separate approval; none was performed here. Provider [rollback semantics](https://render.com/docs/rollbacks) include process/configuration considerations, so privately compare non-secret settings rather than assuming a code-only rollback.
+- Roll back the exact future dependency/test commit (record its SHA when created) and, only if approved, the release artifact. No migrations, cache deletion, Redis reset, media/secret changes or worker configuration changes are needed. `f1f8d185` also contains the reproduced risk; rollback is containment, not permanent correction.
+
 ## OL-03/04-A diagnosis 2026-10-30
 
 [Evidence report and implementation proposal](tasks/OL-03-04-A.md): no source optimization, production DB/Redis command, HTTP load or service change. Render reads reconfirmed live `f1f8d185`, Free Singapore, one instance and Celery OFF.
@@ -50,7 +116,7 @@ Prior source inspection found no required database Data API consumer. Django use
 
 ## OL-04-B isolated verification 2026-10-30
 
-**VERIFYING / PR review, no deployment.** Minimal view change: remove the legacy import/call, use a new `context = {}`, then retain all active builders. Legacy `context` telemetry disappears because that work no longer runs; extras/hero/sections/presentation/render timing remains. No replacement measurement is manufactured. No template, authentication or media policy changed.
+**Historical pre-deployment verification; OL-04 remains VERIFYING.** PR #41 was subsequently merged/deployed and owner-rolled-back; OL-INC-01 above supersedes its release disposition, not these test results. Minimal view change: remove the legacy import/call, use a new `context = {}`, then retain all active builders. Legacy `context` telemetry disappears because that work no longer runs; extras/hero/sections/presentation/render timing remains. No replacement measurement is manufactured. No template, authentication or media policy changed.
 
 Local environment: Windows, Python 3.13.15, Django 5.2.8, PostgreSQL 18.6, loopback-only disposable `ownlobby_test`, memory cache and synthetic fixtures. Owner `.env` loading disabled; QA settings reject remote databases. Combined rerun measurements at approximately **04:21 +06:00** compare the actual baseline `home()` extracted from immutable Git `f6a27d7c`, with the same fixture set and real ORM/templates/processors. Cold/warm mean data-cache state, not process wake-up or a new database connection. SQL time measures driver execution including loopback waits; no production data, remote Redis latency or SQL text is recorded.
 
@@ -71,7 +137,7 @@ Cold populated extras remains 33 queries; render remains 31 guest / 36 player-ma
 
 **Linux run [#61 PASS](https://github.com/rkRashik/DeltaCrown/actions/runs/40965238972)**, code head `c1c6325dbf5384d4baf51e021cd1960c33a1da39`, Ubuntu 24.04 / Python 3.12 / disposable PostgreSQL 16, completed approximately 04:34 +06:00. All job steps executed successfully, including 114 homepage tests (4.950 s), existing security/media/recovery/account/tournament suites, startup/native/HTTP-WebSocket checks, frontend build and static verification. Query counts match the local table; Linux populated guest SQL was 36.663→28.832 ms cold, 0.325→0.356 ms warm. These remain synthetic single observations. The unchanged six-route read-only live smoke also passed; it exercised the existing production version, not this unmerged optimization.
 
-Separate CI correction `a9a87bc6` removes the obsolete named-branch allowlist; master-target PRs retain synthetic PostgreSQL, no production database secrets and existing security suites. The initial run #60 was superseded, not accepted as success. This documentation revision adds no application changes; inspect the latest PR #41 head check before merging. No skipped/pending run is PASS.
+Separate CI correction `a9a87bc6` removes the obsolete named-branch allowlist; master-target PRs retain synthetic PostgreSQL, no production database secrets and existing security suites. The initial run #60 was superseded, not accepted as success. Final pre-merge [run #62 passed](https://github.com/rkRashik/DeltaCrown/actions/runs/40967041787) at `c781e88a`; these checks did not include the newly investigated slow-work cancellation case. No skipped/pending run is PASS.
 
 Rollback commits/order and next approval gate: [OL-04 backlog](BACKLOG.md#ol-04). Do not deploy automatically. OL-03 remains open; OL-04 remains VERIFYING; OL-01 is unchanged.
 
@@ -123,6 +189,8 @@ Owner browser smoke still needed: manually use an existing account to confirm lo
 | Older root engineering/release/media documents | Dated source/design/test history; superseded status claims must not be treated as present operations |
 
 ## Documentation verification baseline
+
+OL-INC-01: **74 documents / 373 local links, zero active failures**, 29 Development anchor references checked, and `git diff --check` passed. The 47 historical findings and three root-placement hygiene failures below are unchanged. Only BACKLOG, STATUS, CHANGELOG and HANDOFF are modified; no ignore/policy/application changes or protected-document publication. New dependency/regression CI is a future implementation gate, not a claimed result of this documentation PR.
 
 Before OL-DOC-01 edits: documentation checker passed for 63 documents / 177 local links, with zero active failures and 47 historical findings. Hygiene already failed on three tracked root files absent from its allowlist: `OWNLOBBY_LAUNCH_CUTOVER.md`, `OWNLOBBY_RECOVERY_CANDIDATE_CHECKLIST.md`, `OWNLOBBY_RECOVERY_CUTOVER.md`. Preserve them; do not quietly broaden the root allowlist or move them to make this task green.
 
