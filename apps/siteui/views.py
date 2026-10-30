@@ -70,11 +70,10 @@ _HOME_STATE_BY_MODE = {
 @never_cache
 def home(request):
     """DeltaCrown homepage — "Front Row Hybrid" body on the Monument hero."""
-    from .homepage_context import get_homepage_context
     from .homepage_extras import get_homepage_extras
     from .homepage_hero import get_home_hero_context
     from .homepage_sections import get_homepage_sections
-    context = _homepage_timed("context", get_homepage_context)
+    context = {}
     context.update(_homepage_timed("extras", lambda: get_homepage_extras(request)))
     # Static body-section copy + icons (why / ecosystem / daily-ops / trust / …)
     context.update(_homepage_timed("sections", get_homepage_sections))

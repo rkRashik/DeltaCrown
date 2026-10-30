@@ -1,6 +1,6 @@
 # OwnLobby master backlog
 
-Updated: 2026-10-29. This is the canonical task-state record. [STATUS](STATUS.md) supplies dated evidence provenance; [ROADMAP](ROADMAP.md) supplies milestone gates. All OL-01 through OL-13 IDs are permanent. None is DONE at initialization.
+Updated: 2026-10-30. This is the canonical task-state record. [STATUS](STATUS.md) supplies dated evidence provenance; [ROADMAP](ROADMAP.md) supplies milestone gates. All OL-01 through OL-13 IDs are permanent. None is DONE at initialization.
 
 Owner for product/production decisions: repository owner. Implementers/reviewers are assigned when a task starts; none is implied by this list. OL-01 through OL-13 initially reference [Issue #37](https://github.com/rkRashik/DeltaCrown/issues/37); create narrower issues only when useful and authorized. Status vocabulary and completion workflow are in [README](README.md).
 
@@ -9,7 +9,7 @@ Owner for product/production decisions: repository owner. Implementers/reviewers
 | [OL-01](#ol-01) | Supabase Data API security containment | P0 | VERIFYING | Bounded refusal/public smoke/direct DB/log review complete; provider-state and private-browser checks remain open before approved hardening |
 | [OL-02](#ol-02) | Django secret-key warning and CI coverage | P0 | TODO | Safe warning diagnosis and current branch-coverage review |
 | [OL-03](#ol-03) | Render stability, CPU and memory investigation | P1 | IN_PROGRESS | OL-03/04-A diagnostic baseline recorded; transient concurrency/cold-start attribution still open |
-| [OL-04](#ol-04) | Homepage, database and Redis performance | P1 | IN_PROGRESS | Diagnosis identifies unused builders; approve scoped OL-04-B before implementation |
+| [OL-04](#ol-04) | Homepage, database and Redis performance | P1 | VERIFYING | OL-04-B implemented in PR #41; local/Linux checks pass; owner review and approved production measurement remain gates |
 | [OL-05](#ol-05) | Public image and private media delivery audit | P1 | TODO | OL-01 verification priority; permission-safe delivery measurements |
 | [OL-06](#ol-06) | Cloudflare R2 feasibility, cost and quota safeguards | P2 | DEFERRED | OL-05 measurements; compare retaining current providers |
 | [OL-07](#ol-07) | Approved media delivery optimization | P1 | BLOCKED | OL-05 and owner-selected design; OL-06 only if migration considered |
@@ -66,14 +66,18 @@ Owner for product/production decisions: repository owner. Implementers/reviewers
 
 ## OL-04
 
-**Homepage, database and Redis performance — P1 / IN_PROGRESS**
+**Homepage, database and Redis performance — P1 / VERIFYING**
 
 - Objective: reduce measured page-generation latency while preserving personalized/private responses.
 - Dependencies: OL-03 baseline and an approved measurement/optimization scope.
 - Relevant code: [homepage views](../../apps/siteui/views.py), [hero](../../apps/siteui/homepage_hero.py), [phase timing tests](../../apps/siteui/tests/test_homepage_phase_timing.py), [settings/cache configuration](../../deltacrown/settings.py).
-- References/evidence: [OL-03/04-A](tasks/OL-03-04-A.md) confirms redundant view/render builders and navbar false-cache behavior. Recomputed slow-only medians: context 1938 ms (23), extras 2383 ms (18), render 1787 ms (39), hero 919 ms (1). Synthetic fake-cursor guest cold/warm dispatch counts were 71/1; authenticated warm 24. These are not production query counts or SQL execution times. Seven mocked tests passed; production Redis RTT/hit rates, SQL plans/time and request percentiles remain unknown. No improvement was implemented.
+- References/evidence: historical [OL-03/04-A](tasks/OL-03-04-A.md) confirms redundant view/render builders and navbar false-cache behavior. Recomputed slow-only medians: context 1938 ms (23), extras 2383 ms (18), render 1787 ms (39), hero 919 ms (1). Synthetic fake-cursor guest cold/warm dispatch counts were 71/1; authenticated warm 24. These are not production query counts or SQL execution times. Seven mocked tests passed; production Redis RTT/hit rates, SQL plans/time and request percentiles remain unknown. That diagnostic task implemented no improvement.
 - Acceptance: isolate query counts/DB time, eager/N+1 reads, cache misses and template work; agree numerical budgets; compare cold/warm p50/p95 against baseline under the same profile; prove guest/user isolation and fallback behavior. No shared caching of personalized HTML.
-- Next action: owner review/approval of **OL-04-B**, removing only the unused legacy `get_homepage_context()` call from `home()`; retain extras, per-request hero, SEO, media/permission boundaries and `never_cache`. Implementation acceptance/rollback are in the diagnostic report. Legacy processor retirement and extras query consolidation are separate later opportunities.
+- **OL-04-B, owner-authorized implementation:** [PR #41](https://github.com/rkRashik/DeltaCrown/pull/41), baseline master `f6a27d7c` (PR #40 confirmed merged). The view now starts a fresh request-local dictionary and skips the legacy import/builder; extras, sections, hero, presentation, SEO and `never_cache` remain. Legacy CMS/helper/admin and common context processor remain. Its first-read singleton initialization is obsolete CMS setup, with no required active-template or permission dependency found.
+- Verification: **161 local tests PASS**, including six new PostgreSQL tests and existing hero/presentation/telemetry/cache/governed-media/hybrid/private-profile suites. Populated cold requests save 16 queries for each of five roles; empty guest saves 14. Warm counts match, full synthetic HTML matches, and shared extras objects remain unmodified. SQL/phase observations and limits are in [STATUS](STATUS.md#ol-04-b-isolated-verification-2026-10-30). A stale pre-existing empty-copy assertion also failed with the original view; its expectation now matches current desktop/mobile templates. **Linux run #61 PASS** at code head `c1c6325d`, including 114 homepage tests; final PR-head check remains visible on PR #41.
+- CI correction is separate commit `a9a87bc6`: remove the named-branch job allowlist while retaining the master-target PR trigger, isolated PostgreSQL/service guards and existing security suites. Skipped runs are not PASS; signing-key disposition under OL-02 remains unverified.
+- Next action: owner review of PR #41 and its current head checks; then obtain explicit deployment approval and perform bounded production verification. No production improvement is claimed. Legacy processor retirement and extras query consolidation remain separate later opportunities. OL-01 gates remain independent.
+- Rollback: before merging, inspect PR history; revert test follow-up `c1c6325dbf5384d4baf51e021cd1960c33a1da39`, then application/test commit `cb2a3185007185f1f9c6987fa105d75f05156660`. The CI trigger correction can remain. No DB migration, cache deletion/Redis reset, media/secret change or worker configuration rollback. After merge, reverting the actual merge commit is an alternative; its SHA is not known yet. Production rollback requires approval.
 
 ## OL-05
 
