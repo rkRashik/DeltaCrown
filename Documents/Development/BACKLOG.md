@@ -6,10 +6,11 @@ Owner for product/production decisions: repository owner. Implementers/reviewers
 
 | ID | Task | Priority | Status | Main dependency / next action |
 |---|---|---|---|---|
+| [OL-INC-01](#ol-inc-01) | Navigation hang after release / incident verification | P0 | VERIFYING | Diagnosis complete; hold master deployment; review proposed OL-INC-01-A ASGI dependency correction and cancellation tests |
 | [OL-01](#ol-01) | Supabase Data API security containment | P0 | VERIFYING | Bounded refusal/public smoke/direct DB/log review complete; provider-state and private-browser checks remain open before approved hardening |
 | [OL-02](#ol-02) | Django secret-key warning and CI coverage | P0 | TODO | Safe warning diagnosis and current branch-coverage review |
-| [OL-03](#ol-03) | Render stability, CPU and memory investigation | P1 | IN_PROGRESS | OL-03/04-A diagnostic baseline recorded; transient concurrency/cold-start attribution still open |
-| [OL-04](#ol-04) | Homepage, database and Redis performance | P1 | VERIFYING | OL-04-B implemented in PR #41; local/Linux checks pass; owner review and approved production measurement remain gates |
+| [OL-03](#ol-03) | Render stability, CPU and memory investigation | P1 | IN_PROGRESS | OL-INC-01 now records a confirmed restart and locally reproduced shared ASGI stall; production wait attribution remains open |
+| [OL-04](#ol-04) | Homepage, database and Redis performance | P1 | VERIFYING | PR #41 merged/deployed, then owner rolled back; no direct homepage regression proven; incident gate blocks redeployment |
 | [OL-05](#ol-05) | Public image and private media delivery audit | P1 | TODO | OL-01 verification priority; permission-safe delivery measurements |
 | [OL-06](#ol-06) | Cloudflare R2 feasibility, cost and quota safeguards | P2 | DEFERRED | OL-05 measurements; compare retaining current providers |
 | [OL-07](#ol-07) | Approved media delivery optimization | P1 | BLOCKED | OL-05 and owner-selected design; OL-06 only if migration considered |
@@ -19,6 +20,18 @@ Owner for product/production decisions: repository owner. Implementers/reviewers
 | [OL-11](#ol-11) | OwnLobby rebranding completion | P1 | TODO | Approved assets, preserved identifiers and source/browser audit |
 | [OL-12](#ol-12) | Technical SEO and Google indexing | P1 | TODO | OL-11/public-page readiness and owner Search Console access |
 | [OL-13](#ol-13) | Production/public launch acceptance | P1 | BLOCKED | Required OL-01 through OL-12 gates; optional R2 is not mandatory |
+
+## OL-INC-01
+
+**Production navigation hang and failed release acceptance — P0 / VERIFYING**
+
+- Scope: diagnostic work completed; production causal proof/remediation acceptance remains open. [Dated evidence, timeline, alternatives and isolated results](STATUS.md#ol-inc-01-incident-investigation-2026-10-30) are canonical. Existing OL-01 through OL-13 IDs remain unchanged.
+- Confirmed: PR #41 merged as `7e07d683`; deployment succeeded at 06:27:20 +06:00 on 2026-10-30. A `/teams/` task shutdown warning preceded a port timeout/restart. Same release resumed listening and rendered the homepage before owner rollback to `f1f8d185` completed at 06:42:19. Owner reports HTML had hung and navigation recovered after rollback.
+- Diagnosis: moderate-confidence production hypothesis of cancellation-triggered ASGI loop blockage; source and isolated Daphne/SQL tests reproduce the shared mechanism in both releases. Ordinary navigation controls passed. No production thread stack, DB/pooler wait, Redis latency or browser trace identifies the original wait. No PR #41-specific correction is established.
+- Relevant paths: [startup](../../start.sh), [ASGI](../../deltacrown/asgi.py), [teams view](../../apps/organizations/views/hub.py), [settings](../../deltacrown/settings.py), [requirements](../../requirements-prod.txt), [reminder thread](../../apps/tournaments/scheduling/inprocess_match_reminders.py). No application/dependency change was made by this incident investigation.
+- **Next: OL-INC-01-A, proposed and approval-gated.** Review matching asgiref pins containing the upstream shutdown fix (isolated candidate 3.12.1) and add bounded cancellation/concurrency regressions. Existing pins are 3.10.0 in both releases. Keep master undeployed; do not combine homepage rewrites, timeout/worker tuning or infrastructure changes.
+- Acceptance: Linux/Python 3.11 and production-pinned framework parity; synthetic PostgreSQL connected/disconnected controls; unrelated requests remain responsive during slow work; bounded loop lag, thread/connection cleanup and RSS; existing auth/homepage/private-media/WebSocket/security suites and actual CI run on the reviewed SHA. Then separately approve candidate deployment and bounded owner/browser/health verification. Exact proposed budgets and instrumentation are in STATUS. No production data or raw diagnostic evidence in public Git.
+- Rollback: future change must record its exact commit/artifact and restore the reviewed dependency pins if needed. No DB migration/cache flush/media/secret change. Known-good live artifact `f1f8d185` remains available but also contains the reproduced shared risk. No deployment/rollback is authorized here.
 
 ## OL-01
 
@@ -59,10 +72,10 @@ Owner for product/production decisions: repository owner. Implementers/reviewers
 
 - Objective: determine current errors, cold-start behavior, CPU/RSS peaks and request/concurrency limits before claiming a hosting failure or buying capacity.
 - Dependencies: authorized read-only Render metrics/config scope; OL-01 takes priority.
-- Relevant code: [start script](../../bin/start_render.sh), [process supervision](../../scripts/render_processes.py), [ASGI](../../deltacrown/asgi.py), [Render blueprint](../../render.yaml).
+- Relevant code: [actual configured start script](../../start.sh), [process supervision](../../scripts/render_processes.py), [ASGI](../../deltacrown/asgi.py), [Render blueprint](../../render.yaml).
 - References/evidence: [OL-03/04-A report](tasks/OL-03-04-A.md), reviewed 2026-10-30: live application `f1f8d185`, Free Singapore, one instance, Celery OFF. The 29 October 12:00-18:00 UTC series shows 312.4 MiB sampled memory peak / 512 MiB, and no returned CPU sample near the 0.15-core limit. No matching error/timeout entries or events within that window; two earlier health failures remain historical. Short spikes and request concurrency are not measured. PR #31 addressed media buffering, not all resource problems.
 - Acceptance: record actual deployed SHA/plan, observation window, load profile, restart/error/latency/CPU/RSS findings and bottleneck hypothesis; define safe budgets and a reversible proposal. No load test on production without scope approval; no paid upgrade assumed.
-- Next action: retain the measured resource baseline; revisit earlier health failures if they recur and obtain bounded request/connection/CPU attribution if needed. Do not raise worker/thread counts or buy capacity based only on sampled headroom.
+- Next action: prioritize [OL-INC-01](#ol-inc-01) and its proposed cancellation correction. Its new incident window has a confirmed restart, near-idle CPU during the stall and no sampled OOM; it does not invalidate the earlier window's measurements. Do not raise worker/thread counts or buy capacity based only on sampled headroom.
 
 ## OL-04
 
@@ -76,8 +89,9 @@ Owner for product/production decisions: repository owner. Implementers/reviewers
 - **OL-04-B, owner-authorized implementation:** [PR #41](https://github.com/rkRashik/DeltaCrown/pull/41), baseline master `f6a27d7c` (PR #40 confirmed merged). The view now starts a fresh request-local dictionary and skips the legacy import/builder; extras, sections, hero, presentation, SEO and `never_cache` remain. Legacy CMS/helper/admin and common context processor remain. Its first-read singleton initialization is obsolete CMS setup, with no required active-template or permission dependency found.
 - Verification: **161 local tests PASS**, including six new PostgreSQL tests and existing hero/presentation/telemetry/cache/governed-media/hybrid/private-profile suites. Populated cold requests save 16 queries for each of five roles; empty guest saves 14. Warm counts match, full synthetic HTML matches, and shared extras objects remain unmodified. SQL/phase observations and limits are in [STATUS](STATUS.md#ol-04-b-isolated-verification-2026-10-30). A stale pre-existing empty-copy assertion also failed with the original view; its expectation now matches current desktop/mobile templates. **Linux run #61 PASS** at code head `c1c6325d`, including 114 homepage tests; final PR-head check remains visible on PR #41.
 - CI correction is separate commit `a9a87bc6`: remove the named-branch job allowlist while retaining the master-target PR trigger, isolated PostgreSQL/service guards and existing security suites. Skipped runs are not PASS; signing-key disposition under OL-02 remains unverified.
-- Next action: owner review of PR #41 and its current head checks; then obtain explicit deployment approval and perform bounded production verification. No production improvement is claimed. Legacy processor retirement and extras query consolidation remain separate later opportunities. OL-01 gates remain independent.
-- Rollback: before merging, inspect PR history; revert test follow-up `c1c6325dbf5384d4baf51e021cd1960c33a1da39`, then application/test commit `cb2a3185007185f1f9c6987fa105d75f05156660`. The CI trigger correction can remain. No DB migration, cache deletion/Redis reset, media/secret change or worker configuration rollback. After merge, reverting the actual merge commit is an alternative; its SHA is not known yet. Production rollback requires approval.
+- Release disposition: PR #41 merged as `7e07d6835f92a39a7cc4fb9ef3666f008a241b12`, deployed, then owner rolled back production to `f1f8d185` after navigation hangs. Final pre-merge run #62 passed at `c781e88a`; it did not cover the newly identified cancellation scenario. Master still contains the optimization. No production benefit or direct homepage regression is established.
+- Next action: resolve [OL-INC-01](#ol-inc-01) review/release gates before any redeployment. Legacy processor retirement and extras consolidation remain separate later opportunities; OL-01 gates remain independent.
+- Rollback options require explicit review/approval: revert test follow-up `c1c6325dbf5384d4baf51e021cd1960c33a1da39`, then application/test commit `cb2a3185007185f1f9c6987fa105d75f05156660`; alternatively review a mainline revert of merge `7e07d6835f92a39a7cc4fb9ef3666f008a241b12`. Keep the independently useful CI trigger correction where possible. No DB migration, cache deletion/Redis reset, media/secret or worker configuration change is required. No revert was performed by OL-INC-01.
 
 ## OL-05
 
