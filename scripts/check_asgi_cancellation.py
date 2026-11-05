@@ -234,6 +234,9 @@ def server(port, folder):
         "http": http_application,
         "websocket": AllowedHostsOriginValidator(AuthMiddlewareStack(URLRouter([path("qa/ws/", Echo.as_asgi())]))),
     })
+    if os.environ.get("QA_REAL_ASGI") == "1":
+        from scripts.asgi_real_qa import arrange
+        router, wrapper = arrange(folder, slow, ordinary, os.environ.get("QA_REAL_LOCKDOWN") == "1")
     heartbeat_task = None
 
     async def heartbeat():
@@ -326,6 +329,9 @@ def main(args):
                COMPETITION_APP_ENABLED="1", SENTRY_DSN="", REDIS_URL="", AWS_EC2_METADATA_DISABLED="true",
                PYTHONUNBUFFERED="1", PYTHONPATH=str(ROOT))
     env["QA_HTTP_LIFECYCLE_WRAP"] = "1" if args.wrapped else "0"
+    if args.real_asgi:
+        env.update(QA_REAL_ASGI="1", QA_REAL_LOCKDOWN="1" if args.real_lockdown else "0",
+                   DJANGO_DEBUG="0")
     if args.admission_prototype or args.sql_bounds:
         env["QA_HTTP_ADMISSION_CAPACITY"] = "2"  # Test fixture only; no production default.
     if args.sql_bounds:
@@ -348,7 +354,7 @@ def main(args):
         finally:
             client.close()
 
-    def websocket():
+    def websocket(real=False, denied=False, invalid_token=False):
         def exact(sock, count):
             data = b""
             while len(data) < count:
@@ -364,14 +370,40 @@ def main(args):
 
         with socket.create_connection(("127.0.0.1", port), timeout=2) as sock:
             key = base64.b64encode(b"0123456789abcdef").decode()
-            sock.sendall(("GET /qa/ws/ HTTP/1.1\r\nHost: localhost\r\nUpgrade: websocket\r\n"
-                          "Connection: Upgrade\r\nOrigin: http://localhost\r\nSec-WebSocket-Version: 13\r\n"
+            target = "/ws/homepage/live/" if real else "/qa/ws/"
+            if invalid_token:
+                target += "?token=synthetic-invalid-token"
+            origin = "http://untrusted.invalid" if denied and not args.real_lockdown else "http://localhost"
+            sock.sendall((f"GET {target} HTTP/1.1\r\nHost: localhost\r\nUpgrade: websocket\r\n"
+                          f"Connection: Upgrade\r\nOrigin: {origin}\r\nSec-WebSocket-Version: 13\r\n"
                           f"Sec-WebSocket-Key: {key}\r\n\r\n").encode())
             header = b""
             while not header.endswith(b"\r\n\r\n"):
                 assert len(header) < 4096
                 header += exact(sock, 1)
+            if denied:
+                assert header.startswith(b"HTTP/1.1 403"), "Real WebSocket denial failed"
+                return
             assert header.startswith(b"HTTP/1.1 101")
+            if real:
+                head = exact(sock, 2)
+                length = head[1] & 127
+                if length == 126:
+                    length = int.from_bytes(exact(sock, 2), "big")
+                elif length == 127:
+                    length = int.from_bytes(exact(sock, 8), "big")
+                assert length < 65536 and head[0] & 15 == 1
+                data = json.loads(exact(sock, length))
+                assert data["type"] == ("error" if invalid_token else "live_update")
+                if invalid_token:
+                    assert data["close_code"] == 4003
+                    close = exact(sock, 2)
+                    assert close[0] & 15 == 8
+                    assert int.from_bytes(exact(sock, close[1] & 127)[:2], "big") == 4003
+                    return
+                frame(sock, 8, b"\x03\xe8")
+                assert exact(sock, 2)[0] & 15 == 8
+                return
             frame(sock, 1, b"qa-echo")
             head = exact(sock, 2)
             assert head[0] & 15 == 1 and exact(sock, head[1] & 127) == b"qa-echo"
@@ -407,6 +439,9 @@ def main(args):
             def wait_for(predicate, seconds=8):
                 deadline = time.monotonic() + seconds
                 while time.monotonic() < deadline:
+                    if args.real_asgi and proc.poll() is not None:
+                        lines = (folder / "child.log").read_text(encoding="utf-8").splitlines()
+                        raise AssertionError("Real QA child exited: " + (lines[-1] if lines else "no diagnostic"))
                     assert proc.poll() is None, "QA child exited unexpectedly"
                     try:
                         if predicate():
@@ -425,11 +460,60 @@ def main(args):
                 raise AssertionError("Bounded QA condition did not complete: " + json.dumps(measured))
 
             try:
-                wait_for(lambda: get("/healthz/", .3).get("status") == 200, 30)
+                wait_for(lambda: get("/healthz/", .3).get("status") == 200, 90 if args.real_asgi else 30)
                 versions = json.loads((folder / "versions.json").read_text(encoding="utf-8"))
                 assert versions["asgiref"] == ("3.10.0" if args.expect_blocked else "3.12.1")
                 assert {k: versions[k] for k in ("Django", "daphne", "channels")} == {
                     "Django": "5.2.18", "daphne": "4.2.3", "channels": "4.3.1"}
+                if args.real_asgi:
+                    if args.real_lockdown:
+                        assert get("/qa/protected/")["status"] == 503
+                        assert get("/files/user_profile.kycsubmission/document_front/1/")["status"] == 503
+                        assert get("/qa/")["cache_control"] == "no-store"
+                        websocket(real=True, denied=True)
+                        wait_for(lambda: sample()["wrapper_children"] == 0
+                                 and sample()["request_executors"] == 0 and connections() == 0)
+                        print("REAL_ASGI_LOCKDOWN health=200 HTTP=503/no-store WS=denied cleanup=zero PASS", flush=True)
+                        return
+                    sys.path.insert(0, str(ROOT))
+                    from scripts.asgi_real_qa import check_http
+                    check_http(port, folder)
+                    websocket(real=True)
+                    websocket(real=True, denied=True)
+                    websocket(real=True, invalid_token=True)
+                    wait_for(lambda: sample()["request_executors"] == 0 and connections() == 0
+                             and sample()["wrapper_children"] == 0 and sample()["wrapper_receives"] == 0)
+                    time.sleep(.2)
+                    baseline = sample()
+                    baseline_ids = set(baseline["thread_ids"])
+                    with socket.create_connection(("127.0.0.1", port), timeout=2) as sock:
+                        sock.sendall(b"GET /qa/slow/ HTTP/1.1\r\nHost: localhost\r\nX-QA-Kind: real-disconnected\r\n\r\n")
+                        wait_for(lambda: sample()["started"] == 1)
+                    probes = []
+                    until = time.monotonic() + SLOW_SECONDS + .5
+                    while time.monotonic() < until:
+                        probes.append(get("/healthz/"))
+                        time.sleep(.2)
+                    wait_for(lambda: sample()["finished"] == 1 and connections() == 0
+                             and sample()["request_executors"] == 0 and sample()["wrapper_children"] == 0
+                             and sample()["wrapper_receives"] == 0 and sample()["occupied_slots"] == 0
+                             and set(sample()["thread_ids"]) <= baseline_ids
+                             and sample()["loop_tasks"] <= baseline["loop_tasks"])
+                    last = sample()
+                    assert last["outer_cancellations"] > 0
+                    assert all(p.get("status") == 200 for p in probes)
+                    assert last["loop_lag_ms"] < 250 and last["peak_rss_mib"] < 384
+                    assert last["rss_mib"] - baseline["rss_mib"] < 32
+                    assert any(e["event"] == "finished_dispatch_done" for e in last["lifecycle"])
+                    print("REAL_ASGI_QA " + json.dumps(dict(versions=versions, probes=len(probes),
+                          health_errors=0, max_health_ms=max(p["ms"] for p in probes),
+                          max_loop_lag_ms=round(last["loop_lag_ms"], 2), connections_after=connections(),
+                          children_after=last["wrapper_children"], executors_after=last["request_executors"],
+                          extra_threads_after=0, extra_loop_tasks_after=0, slots_after=last["occupied_slots"],
+                          outer_cancellations=last["outer_cancellations"], baseline_threads=len(baseline_ids),
+                          peak_threads=last["peak_threads"], baseline_rss_mib=baseline["rss_mib"],
+                          peak_rss_mib=last["peak_rss_mib"])), flush=True)
+                    return
                 if args.sql_bounds:
                     wait_for(lambda: sample()["request_executors"] == 0 and sample()["occupied_slots"] == 0)
                     time.sleep(.2)
@@ -849,8 +933,17 @@ if __name__ == "__main__":
         parser.add_argument("--compare-wrapper", action="store_true")
         parser.add_argument("--admission-prototype", action="store_true")
         parser.add_argument("--sql-bounds", action="store_true")
+        parser.add_argument("--real-asgi", action="store_true")
         args = parser.parse_args()
-        if args.expect_blocked:
+        args.real_lockdown = False
+        if args.real_asgi:
+            assert not any((args.expect_blocked, args.baseline_path, args.compare_wrapper,
+                            args.admission_prototype, args.sql_bounds))
+            args.wrapped = True
+            main(args)
+            args.real_lockdown = True
+            main(args)
+        elif args.expect_blocked:
             baseline_control(args)
         elif args.sql_bounds:
             assert not args.compare_wrapper and not args.expect_blocked and not args.baseline_path and not args.admission_prototype
