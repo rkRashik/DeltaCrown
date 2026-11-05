@@ -13,7 +13,6 @@ permissions:
 
 jobs:
   smoke:
-    if: github.head_ref != 'fix/ol-inc-01-a-asgi-cancellation'
     # The workflow already limits pull requests to master. Named-branch
     # allowlists silently skipped required checks on later task branches.
     runs-on: ubuntu-24.04
