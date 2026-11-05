@@ -139,6 +139,10 @@ def server(port, folder):
 
     def monitor():
         while not stop.wait(.05):
+            if (folder / "stop").exists():
+                from twisted.internet import reactor
+                reactor.callFromThread(reactor.stop)
+                return
             rss = _rss_bytes()
             threads = threading.enumerate()
             with lock:
@@ -331,11 +335,16 @@ def main(args):
                           "peak_rss_mib": last["peak_rss_mib"] if last["rss_mib"] is not None else None}
                 print("ASGI_CANCELLATION_QA " + json.dumps(result, sort_keys=True), flush=True)
             finally:
-                proc.terminate()
+                # Let the real interpreter exit, including Windows venv launchers.
+                (folder / "stop").touch()
                 try:
                     proc.wait(timeout=5)
                 except subprocess.TimeoutExpired:
-                    proc.kill()
+                    if os.name == "nt":
+                        subprocess.run(["taskkill", "/PID", str(proc.pid), "/T", "/F"],
+                                       capture_output=True, timeout=5, check=True)
+                    else:
+                        proc.kill()
                     proc.wait(timeout=5)
                 observer.close()
 
