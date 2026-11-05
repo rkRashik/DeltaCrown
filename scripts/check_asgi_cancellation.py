@@ -85,7 +85,7 @@ def server(port, folder):
     }
     settings.ROOT_URLCONF = __name__
     settings.CHANNEL_LAYERS = {"default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}}
-    state = {"started": 0, "finished": 0, "ws_open": 0, "loop_lag_ms": 0.0,
+    state = {"started": 0, "finished": 0, "django_started": 0, "ws_open": 0, "loop_lag_ms": 0.0,
              "peak_rss_mib": 0.0, "peak_threads": 0}
     lock = threading.Lock()
     stop = threading.Event()
@@ -168,10 +168,19 @@ def server(port, folder):
             state["ws_open"] -= 1
 
     http_application = get_asgi_application()
+    django_application = http_application
+
+    async def counted_http(scope, receive, send):
+        with lock:
+            state["django_started"] += 1
+        await django_application(scope, receive, send)
+
+    http_application = counted_http
     wrapper = None
     if os.environ.get("QA_HTTP_LIFECYCLE_WRAP") == "1":
         from apps.common.asgi_lifecycle import HTTPDisconnectDrain
-        wrapper = HTTPDisconnectDrain(http_application)
+        capacity = os.environ.get("QA_HTTP_ADMISSION_CAPACITY")
+        wrapper = HTTPDisconnectDrain(http_application, capacity=int(capacity) if capacity else None)
         http_application = wrapper
     router = ProtocolTypeRouter({
         "http": http_application,
@@ -220,6 +229,9 @@ def server(port, folder):
                 data = dict(state, thread_ids=[t.ident for t in threads],
                             thread_names={str(t.ident): t.name for t in threads},
                             wrapper_children=wrapper.active_count if wrapper else 0,
+                            occupied_slots=wrapper.occupied_count if wrapper else 0,
+                            peak_slots=wrapper.peak_occupied if wrapper else 0,
+                            rejections=wrapper.rejections if wrapper else 0,
                             wrapper_receives=wrapper.pending_receives if wrapper else 0,
                             outer_cancellations=wrapper.cancellations if wrapper else 0,
                             request_executors=len(SyncToAsync.context_to_thread_executor))
@@ -248,7 +260,8 @@ def server(port, folder):
 
 def main(args):
     database = require_local_database()
-    repeats = 1 if args.compare_wrapper else REPEATS
+    repeats = 1 if args.compare_wrapper or args.admission_prototype else REPEATS
+    width = 2 if args.admission_prototype else CONCURRENCY
     import psycopg2
     # Explicitly inspect only this child application's connections in local QA.
     observer = psycopg2.connect(database, connect_timeout=3, options="-c statement_timeout=3000")
@@ -265,6 +278,8 @@ def main(args):
                COMPETITION_APP_ENABLED="1", SENTRY_DSN="", REDIS_URL="", AWS_EC2_METADATA_DISABLED="true",
                PYTHONUNBUFFERED="1", PYTHONPATH=str(ROOT))
     env["QA_HTTP_LIFECYCLE_WRAP"] = "1" if args.wrapped else "0"
+    if args.admission_prototype:
+        env["QA_HTTP_ADMISSION_CAPACITY"] = "2"  # Test fixture only; no production default.
     if args.baseline_path:
         assert args.expect_blocked, "A baseline override requires explicit baseline mode"
         env["PYTHONPATH"] = str(Path(args.baseline_path).resolve()) + os.pathsep + str(ROOT)
@@ -276,7 +291,8 @@ def main(args):
             client.request("GET", path)
             response = client.getresponse()
             response.read()
-            return {"status": response.status, "ms": round((time.monotonic() - started) * 1000, 2)}
+            return {"status": response.status, "cache_control": response.getheader("Cache-Control"),
+                    "ms": round((time.monotonic() - started) * 1000, 2)}
         except (TimeoutError, OSError, http.client.HTTPException) as exc:
             return {"error": type(exc).__name__, "ms": round((time.monotonic() - started) * 1000, 2)}
         finally:
@@ -363,8 +379,8 @@ def main(args):
                 assert {k: versions[k] for k in ("Django", "daphne", "channels")} == {
                     "Django": "5.2.18", "daphne": "4.2.3", "channels": "4.3.1"}
                 sequential = [get("/qa/") for _ in range(6)]
-                with ThreadPoolExecutor(max_workers=CONCURRENCY) as pool:
-                    concurrent = list(pool.map(get, ["/qa/"] * CONCURRENCY))
+                with ThreadPoolExecutor(max_workers=width) as pool:
+                    concurrent = list(pool.map(get, ["/qa/"] * width))
                 assert all(r.get("status") == 200 for r in sequential + concurrent)
                 websocket()
                 wait_for(lambda: sample()["ws_open"] == 0 and sample()["request_executors"] == 0)
@@ -376,14 +392,28 @@ def main(args):
                     disconnect = number > 0
                     before = sample()["started"]
                     sockets = []
+                    held_during_cancellation = False
                     try:
-                        for _ in range(CONCURRENCY):
+                        for _ in range(width):
                             sock = socket.create_connection(("127.0.0.1", port), timeout=2)
                             sockets.append(sock)
                             kind = "disconnected" if disconnect else "connected"
                             sock.sendall(("GET /qa/slow/ HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n"
                                           f"X-QA-Kind: {kind}\r\n\r\n").encode())
-                        wait_for(lambda: sample()["started"] == before + CONCURRENCY)
+                        wait_for(lambda: sample()["started"] == before + width)
+
+                        def reject_without_django():
+                            prior = sample()["django_started"]
+                            response = get("/qa/slow/")
+                            assert response["status"] == 503 and response["cache_control"] == "no-store"
+                            time.sleep(.1)  # Allow the independent snapshot monitor to observe any bad admission.
+                            assert sample()["django_started"] == prior
+                            assert sample()["occupied_slots"] == width
+                            return response
+
+                        if args.admission_prototype:
+                            reject_without_django()
+                        cancellations_before = sample()["outer_cancellations"]
                         if disconnect:
                             for sock in sockets:
                                 sock.close()
@@ -391,17 +421,29 @@ def main(args):
                         probes = []
                         while time.monotonic() - began < SLOW_SECONDS + .5:
                             probes.append(get("/healthz/"))
+                            if (args.admission_prototype and disconnect and not held_during_cancellation
+                                    and sample()["outer_cancellations"] >= cancellations_before + 2 * width
+                                    and sample()["finished"] == before):
+                                reject_without_django()
+                                held_during_cancellation = True
                             time.sleep(.2)
                     finally:
                         for sock in sockets:
                             sock.close()
-                    wait_for(lambda: sample()["finished"] == before + CONCURRENCY)
+                    wait_for(lambda: sample()["finished"] == before + width)
                     wait_for(lambda: sample()["request_executors"] == 0
                              and set(sample()["thread_ids"]) <= baseline_ids and connections() == 0
                              and sample()["wrapper_children"] == 0 and sample()["wrapper_receives"] == 0
+                             and sample()["occupied_slots"] == 0
                              and sample().get("loop_tasks", 0) <= baseline.get("loop_tasks", 0))
                     after = sample()
-                    failures = sum(p.get("status") != 200 for p in probes)
+                    if args.admission_prototype:
+                        assert not disconnect or held_during_cancellation
+                        assert all(p.get("cache_control") == "no-store" for p in probes if p.get("status") == 503)
+                        failures = sum(p.get("status") not in {200, 503} for p in probes)
+                        assert any(p.get("status") == 503 for p in probes)
+                    else:
+                        failures = sum(p.get("status") != 200 for p in probes)
                     if not disconnect or not args.expect_blocked:
                         assert failures == 0, "Unrelated health request lost responsiveness"
                     else:
@@ -410,6 +452,9 @@ def main(args):
                                    "max_health_ms": max(p["ms"] for p in probes), "rss_after_mib": after["rss_mib"],
                                    "extra_threads_after": len(set(after["thread_ids"]) - baseline_ids),
                                    "executors_after": after["request_executors"], "connections_after": connections(),
+                                   "slots_after": after["occupied_slots"],
+                                   "busy_health_responses": sum(p.get("status") == 503 for p in probes),
+                                   "held_during_cancellation": held_during_cancellation,
                                    "children_after": after["wrapper_children"], "receives_after": after["wrapper_receives"],
                                    "extra_loop_tasks_after": max(0, after.get("loop_tasks", 0) - baseline.get("loop_tasks", 0))})
                 websocket()
@@ -418,15 +463,19 @@ def main(args):
                 assert last["loop_lag_ms"] > 250 if args.expect_blocked else last["loop_lag_ms"] < 250
                 assert last["peak_threads"] <= len(baseline_ids) + 4 * CONCURRENCY + 8
                 if args.wrapped:
-                    assert last["outer_cancellations"] >= 2 * CONCURRENCY * repeats
+                    assert last["outer_cancellations"] >= 2 * width * repeats
+                if args.admission_prototype:
+                    assert last["peak_slots"] == 2 and get("/healthz/")["status"] == 200
                 if sys.platform.startswith("linux"):
                     assert last["rss_mib"] is not None
                     assert last["peak_rss_mib"] < 384
                     assert max(r["rss_after_mib"] for r in rounds) - baseline["rss_mib"] < 32
                 result = {"versions": versions, "wrapped": args.wrapped,
                           "outer_cancellations": last["outer_cancellations"], "expected_baseline_stall": args.expect_blocked,
+                          "capacity": 2 if args.admission_prototype else None, "peak_slots": last["peak_slots"],
+                          "rejections": last["rejections"],
                           "sequential_requests": len(sequential), "concurrent_requests": len(concurrent),
-                          "slow_concurrency": CONCURRENCY, "rounds": rounds, "websocket_cycles": 2,
+                          "slow_concurrency": width, "rounds": rounds, "websocket_cycles": 2,
                           "max_loop_lag_ms": round(last["loop_lag_ms"], 2), "baseline_threads": len(baseline_ids),
                           "peak_threads": last["peak_threads"], "baseline_rss_mib": baseline["rss_mib"],
                           "peak_rss_mib": last["peak_rss_mib"] if last["rss_mib"] is not None else None}
@@ -445,6 +494,84 @@ def main(args):
                         proc.kill()
                     proc.wait(timeout=5)
                 observer.close()
+
+
+async def check_admission_contract():
+    """C=2 is a deterministic fixture, never a production sizing recommendation."""
+    sys.path.insert(0, str(ROOT))
+    from apps.common.asgi_lifecycle import HTTPDisconnectDrain
+    initial_tasks = set(asyncio.all_tasks())
+    streaming = asyncio.Event()
+    stream_release = asyncio.Event()
+    cleaning = asyncio.Event()
+    cleanup_release = asyncio.Event()
+    starts = streams = cleanups = 0
+    reads = [0] * 6
+    responses = [[] for _ in range(6)]
+
+    async def app(scope, receive, send):
+        nonlocal starts, streams, cleanups
+        starts += 1
+        assert (await receive())["type"] == "http.request"
+        await send({"type": "http.response.start", "status": 200, "headers": []})
+        await send({"type": "http.response.body", "body": b"chunk", "more_body": True})
+        streams += 1
+        if streams == 2:
+            streaming.set()
+        await stream_release.wait()
+        assert (await receive())["type"] == "http.disconnect"
+        cleanups += 1
+        if cleanups == 2:
+            cleaning.set()
+        await cleanup_release.wait()
+
+    wrapper = HTTPDisconnectDrain(app, capacity=2)
+
+    async def call(index):
+        async def receive():
+            assert index not in {2, 3}, "Rejected request body was read"
+            reads[index] += 1
+            return {"type": "http.request" if reads[index] == 1 else "http.disconnect"}
+
+        async def send(message):
+            responses[index].append(message)
+
+        await wrapper({"type": "http"}, receive, send)
+
+    def rejected(index):
+        assert responses[index][0]["status"] == 503
+        assert (b"cache-control", b"no-store") in responses[index][0]["headers"]
+        assert reads[index] == 0 and starts == 2
+
+    admissions = [asyncio.create_task(call(i)) for i in range(3)]
+    try:
+        await asyncio.wait_for(streaming.wait(), timeout=1)
+        await asyncio.wait_for(asyncio.shield(admissions[2]), timeout=.5)
+        rejected(2)
+        assert wrapper.occupied_count == wrapper.active_count == 2
+        for _ in range(3):
+            admissions[0].cancel()
+            admissions[1].cancel()
+            await asyncio.sleep(0)
+        assert wrapper.occupied_count == 2  # Still streaming, despite outer cancellation.
+        stream_release.set()
+        await asyncio.wait_for(cleaning.wait(), timeout=1)
+        await asyncio.wait_for(call(3), timeout=.5)
+        rejected(3)
+        assert wrapper.occupied_count == wrapper.active_count == 2
+    finally:
+        stream_release.set()
+        cleanup_release.set()
+        for task in admissions:
+            if not task.done():
+                task.cancel()
+        await asyncio.wait_for(asyncio.gather(*admissions, return_exceptions=True), timeout=1)
+    assert wrapper.occupied_count == wrapper.active_count == wrapper.pending_receives == 0
+    await asyncio.wait_for(asyncio.gather(call(4), call(5)), timeout=1)
+    assert starts == 4 and wrapper.rejections == 2 and wrapper.peak_occupied == 2
+    assert wrapper.occupied_count == wrapper.active_count == wrapper.pending_receives == 0
+    assert set(asyncio.all_tasks()) <= initial_tasks
+    print("ADMISSION_CONTRACT C=2 simultaneous/503-before-body/streaming/cancel-cleanup/reuse PASS", flush=True)
 
 
 async def check_wrapper_contract():
@@ -555,5 +682,12 @@ if __name__ == "__main__":
         parser.add_argument("--baseline-path")
         parser.add_argument("--wrapped", action="store_true")
         parser.add_argument("--compare-wrapper", action="store_true")
+        parser.add_argument("--admission-prototype", action="store_true")
         args = parser.parse_args()
-        compare_wrapper(args) if args.compare_wrapper else main(args)
+        if args.admission_prototype:
+            assert not args.compare_wrapper and not args.expect_blocked and not args.baseline_path
+            asyncio.run(check_admission_contract())
+            args.wrapped = True
+            main(args)
+        else:
+            compare_wrapper(args) if args.compare_wrapper else main(args)
