@@ -20,8 +20,9 @@ def arrange(folder, slow, ordinary, lockdown):
     # Its network proxy is inactive in local media mode; sockets remain guarded.
     settings.MIDDLEWARE = list(base_settings.MIDDLEWARE)
     original_urlconf = base_settings.ROOT_URLCONF
-    assert settings.DEBUG is False and settings.OWNLOBBY_MEDIA_MODE == "local"
-    assert settings.SESSION_ENGINE == "django.contrib.sessions.backends.db"
+    assert settings.DEBUG is False and settings.OWNLOBBY_MEDIA_MODE == "local", "Requires guarded local media QA"
+    assert settings.SESSION_ENGINE == "django.contrib.sessions.backends.cached_db", "Preserve the project's cached_db session backend"
+    assert settings.CACHES["default"]["BACKEND"] == "django.core.cache.backends.locmem.LocMemCache", "QA cache must remain local"
     middleware = list(settings.MIDDLEWARE)
     if lockdown:
         # Exercise the entry point's actual automatic fail-closed installation.
