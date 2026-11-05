@@ -154,6 +154,54 @@ def server(port, folder):
             event("view_finished")
 
     globals()["urlpatterns"] = [path("healthz/", healthz), path("qa/", ordinary), path("qa/slow/", slow)]
+    if os.environ.get("QA_SQL_BOUNDS") == "1":
+        from django.db import DatabaseError, transaction
+        state["sql_results"] = {}
+
+        def sql_bound(request, operation):
+            assert operation in {"statement", "lock"}
+            tag = request.META["HTTP_X_QA_KIND"]
+            with connection.cursor() as cursor:
+                cursor.execute("SHOW statement_timeout")
+                original_statement = cursor.fetchone()[0]
+                cursor.execute("SHOW lock_timeout")
+                original_lock = cursor.fetchone()[0]
+            began = None
+            try:
+                # Explicit synthetic work unit only, not a request-wide policy.
+                with transaction.atomic():
+                    with connection.cursor() as cursor:
+                        cursor.execute("SET LOCAL statement_timeout = '3000ms'")
+                        cursor.execute("SET LOCAL lock_timeout = '1500ms'")
+                        began = time.monotonic()
+                        if operation == "statement":
+                            cursor.execute("SELECT pg_sleep(8)")
+                        else:
+                            cursor.execute("SELECT pg_advisory_xact_lock(84643, 312)")
+            except DatabaseError as error:
+                assert began is not None
+                elapsed = (time.monotonic() - began) * 1000
+                code = getattr(error.__cause__, "pgcode", None)
+                assert code == ("57014" if operation == "statement" else "55P03")
+            else:
+                raise AssertionError("Synthetic operation did not time out")
+            # The atomic block has rolled back before checking recovery/reset.
+            assert connection.get_autocommit() and not connection.needs_rollback
+            with connection.cursor() as cursor:
+                cursor.execute("SHOW statement_timeout")
+                assert cursor.fetchone()[0] == original_statement
+                cursor.execute("SHOW lock_timeout")
+                assert cursor.fetchone()[0] == original_lock
+                cursor.execute("SELECT 1")
+                assert cursor.fetchone()[0] == 1
+            event("sql_timeout", code=code)
+            with lock:
+                state["sql_results"] = {**state["sql_results"], tag: {
+                    "operation": operation, "sqlstate": code, "elapsed_ms": round(elapsed, 2),
+                    "limits_restored": True, "connection_reusable": True}}
+            return HttpResponse("Synthetic SQL timeout verified")
+
+        urlpatterns.append(path("qa/sql/<str:operation>/", sql_bound))
 
     class Echo(AsyncWebsocketConsumer):
         async def connect(self):
@@ -202,7 +250,7 @@ def server(port, folder):
         if heartbeat_task is None:
             heartbeat_task = asyncio.create_task(heartbeat())
         kind = "other"
-        if scope.get("path") == "/qa/slow/":
+        if scope.get("path") == "/qa/slow/" or scope.get("path", "").startswith("/qa/sql/"):
             kind = dict(scope.get("headers", [])).get(b"x-qa-kind", b"unknown").decode("ascii")
         token = request_kind.set(kind)
         try:
@@ -278,17 +326,19 @@ def main(args):
                COMPETITION_APP_ENABLED="1", SENTRY_DSN="", REDIS_URL="", AWS_EC2_METADATA_DISABLED="true",
                PYTHONUNBUFFERED="1", PYTHONPATH=str(ROOT))
     env["QA_HTTP_LIFECYCLE_WRAP"] = "1" if args.wrapped else "0"
-    if args.admission_prototype:
+    if args.admission_prototype or args.sql_bounds:
         env["QA_HTTP_ADMISSION_CAPACITY"] = "2"  # Test fixture only; no production default.
+    if args.sql_bounds:
+        env["QA_SQL_BOUNDS"] = "1"
     if args.baseline_path:
         assert args.expect_blocked, "A baseline override requires explicit baseline mode"
         env["PYTHONPATH"] = str(Path(args.baseline_path).resolve()) + os.pathsep + str(ROOT)
 
-    def get(path, timeout=2):
+    def get(path, timeout=2, headers=None):
         started = time.monotonic()
         client = http.client.HTTPConnection("127.0.0.1", port, timeout=timeout)
         try:
-            client.request("GET", path)
+            client.request("GET", path, headers=headers or {})
             response = client.getresponse()
             response.read()
             return {"status": response.status, "cache_control": response.getheader("Cache-Control"),
@@ -378,6 +428,91 @@ def main(args):
                 assert versions["asgiref"] == ("3.10.0" if args.expect_blocked else "3.12.1")
                 assert {k: versions[k] for k in ("Django", "daphne", "channels")} == {
                     "Django": "5.2.18", "daphne": "4.2.3", "channels": "4.3.1"}
+                if args.sql_bounds:
+                    wait_for(lambda: sample()["request_executors"] == 0 and sample()["occupied_slots"] == 0)
+                    time.sleep(.2)
+                    baseline = sample()
+                    baseline_ids = set(baseline["thread_ids"])
+                    rows = []
+                    probes = []
+                    with ThreadPoolExecutor(max_workers=1) as pool:
+                        for operation in ("statement", "lock"):
+                            for disconnected in (False, True):
+                                tag = "sql-" + operation + ("-disconnected" if disconnected else "-connected")
+                                path = "/qa/sql/" + operation + "/"
+                                blocker = sock = None
+                                try:
+                                    if operation == "lock":
+                                        blocker = psycopg2.connect(database, connect_timeout=3,
+                                            application_name="ownlobby_sql_lock_fixture",
+                                            options="-c statement_timeout=5000")
+                                        blocker.autocommit = True
+                                        with blocker.cursor() as cursor:
+                                            cursor.execute("SELECT pg_advisory_lock(84643, 312)")
+                                    if disconnected:
+                                        sock = socket.create_connection(("127.0.0.1", port), timeout=2)
+                                        sock.sendall((f"GET {path} HTTP/1.1\r\nHost: localhost\r\n"
+                                                      f"X-QA-Kind: {tag}\r\nConnection: close\r\n\r\n").encode())
+                                    else:
+                                        response = pool.submit(get, path, 6, {"X-QA-Kind": tag})
+
+                                    observed_wait = []
+
+                                    def executing():
+                                        with observer.cursor() as cursor:
+                                            cursor.execute("SELECT wait_event_type, wait_event FROM pg_stat_activity "
+                                                           "WHERE application_name = %s AND state = 'active'",
+                                                           ["ownlobby_asgi_qa_" + str(proc.pid)])
+                                            values = cursor.fetchall()
+                                        wanted = [(t, w) for t, w in values if
+                                                  (w == "PgSleep" if operation == "statement" else t == "Lock")]
+                                        if wanted:
+                                            observed_wait[:] = wanted[:1]
+                                        return bool(wanted)
+
+                                    wait_for(executing)
+                                    if sock is not None:
+                                        sock.close()  # SQL has demonstrably started before disconnect.
+                                    began = time.monotonic()
+                                    while tag not in sample()["sql_results"]:
+                                        assert time.monotonic() - began < 7
+                                        probe = get("/healthz/")
+                                        assert probe.get("status") == 200
+                                        probes.append(probe)
+                                        time.sleep(.1)
+                                    if not disconnected:
+                                        assert response.result(timeout=6).get("status") == 200
+                                    wait_for(lambda: connections() == 0 and sample()["request_executors"] == 0
+                                             and sample()["wrapper_children"] == 0 and sample()["wrapper_receives"] == 0
+                                             and sample()["occupied_slots"] == 0
+                                             and set(sample()["thread_ids"]) <= baseline_ids
+                                             and sample().get("loop_tasks", 0) <= baseline.get("loop_tasks", 0))
+                                    after = sample()
+                                    row = dict(after["sql_results"][tag], disconnected=disconnected)
+                                    limit = 3000 if operation == "statement" else 1500
+                                    assert limit * .8 <= row["elapsed_ms"] <= limit + 1500
+                                    events = [e for e in after["lifecycle"] if e["kind"] == tag]
+                                    owners = {e["thread"] for e in events if e["event"] == "connection_created"}
+                                    closes = [e for e in events if e["event"] == "close" and e["open"]]
+                                    assert len(closes) == 1 and closes[0]["thread"] in owners
+                                    assert sum(e["event"] == "finished_receiver" for e in events) == 1
+                                    rows.append(dict(row, configured_limit_ms=limit, observed_wait=observed_wait[0],
+                                                     owning_thread_closed=True, connections_after=0, executors_after=0,
+                                                     children_after=0, slots_after=0, extra_threads_after=0, extra_tasks_after=0))
+                                finally:
+                                    if sock is not None:
+                                        sock.close()
+                                    if blocker is not None:
+                                        blocker.close()  # Test-only lock holder, never a Django request connection.
+                    last = sample()
+                    assert last["loop_lag_ms"] < 250 and last["peak_rss_mib"] < 384
+                    assert last["rss_mib"] - baseline["rss_mib"] < 32
+                    assert last["peak_threads"] <= len(baseline_ids) + 4 * CONCURRENCY + 8
+                    print("SQL_BOUNDS_QA " + json.dumps(dict(versions=versions, cases=rows, health_probes=len(probes),
+                          max_health_ms=max(p["ms"] for p in probes), max_loop_lag_ms=round(last["loop_lag_ms"], 2),
+                          baseline_threads=len(baseline_ids), peak_threads=last["peak_threads"],
+                          baseline_rss_mib=baseline["rss_mib"], peak_rss_mib=last["peak_rss_mib"])), flush=True)
+                    return
                 sequential = [get("/qa/") for _ in range(6)]
                 with ThreadPoolExecutor(max_workers=width) as pool:
                     concurrent = list(pool.map(get, ["/qa/"] * width))
@@ -683,8 +818,13 @@ if __name__ == "__main__":
         parser.add_argument("--wrapped", action="store_true")
         parser.add_argument("--compare-wrapper", action="store_true")
         parser.add_argument("--admission-prototype", action="store_true")
+        parser.add_argument("--sql-bounds", action="store_true")
         args = parser.parse_args()
-        if args.admission_prototype:
+        if args.sql_bounds:
+            assert not args.compare_wrapper and not args.expect_blocked and not args.baseline_path and not args.admission_prototype
+            args.wrapped = True
+            main(args)
+        elif args.admission_prototype:
             assert not args.compare_wrapper and not args.expect_blocked and not args.baseline_path
             asyncio.run(check_admission_contract())
             args.wrapped = True
