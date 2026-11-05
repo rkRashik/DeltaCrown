@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import base64
+from contextvars import ContextVar
 from concurrent.futures import ThreadPoolExecutor
 import http.client
 import importlib.metadata
@@ -64,6 +65,9 @@ def server(port, folder):
     from django.http import HttpResponse
     from django.urls import path
     from django.core.asgi import get_asgi_application
+    from django.core.signals import request_finished
+    from django.db.backends.base.base import BaseDatabaseWrapper
+    from django.db.backends.signals import connection_created
     from asgiref.sync import SyncToAsync
     from channels.auth import AuthMiddlewareStack
     from channels.generic.websocket import AsyncWebsocketConsumer
@@ -85,6 +89,51 @@ def server(port, folder):
              "peak_rss_mib": 0.0, "peak_threads": 0}
     lock = threading.Lock()
     stop = threading.Event()
+    request_kind = ContextVar("qa_request_kind", default="other")
+    thread_labels = {}
+    state["lifecycle"] = []
+
+    def event(name, **details):
+        kind = request_kind.get()
+        if kind == "other":
+            return
+        with lock:
+            ident = threading.get_ident()
+            label = thread_labels.setdefault(ident, "T" + str(len(thread_labels) + 1))
+            if len(state["lifecycle"]) < 100:
+                state["lifecycle"].append(dict(kind=kind, event=name, thread=label, **details))
+
+    # Observe the original lifecycle; never add a close, GC or signal dispatch.
+    original_check = BaseDatabaseWrapper.close_if_unusable_or_obsolete
+    original_close = BaseDatabaseWrapper.close
+
+    def observed_check(db):
+        event("close_check", open=db.connection is not None, max_age=db.settings_dict["CONN_MAX_AGE"])
+        result = original_check(db)
+        event("close_check_done", open=db.connection is not None)
+        return result
+
+    def observed_close(db):
+        event("close", open=db.connection is not None)
+        return original_close(db)
+
+    BaseDatabaseWrapper.close_if_unusable_or_obsolete = observed_check
+    BaseDatabaseWrapper.close = observed_close
+    connection_created.connect(lambda **kw: event("connection_created"), weak=False)
+    request_finished.connect(lambda **kw: event("finished_receiver"), weak=False)
+    original_finished_asend = request_finished.asend
+
+    async def observed_finished_asend(*a, **kw):
+        event("finished_dispatch_enter")
+        try:
+            result = await original_finished_asend(*a, **kw)
+        except asyncio.CancelledError:
+            event("finished_dispatch_cancelled")
+            raise
+        event("finished_dispatch_done")
+        return result
+
+    request_finished.asend = observed_finished_asend
 
     def ordinary(request):
         assert not request.user.is_authenticated
@@ -102,6 +151,7 @@ def server(port, folder):
             # Deliberately do not close the connection here: verify Django cleanup.
             with lock:
                 state["finished"] += 1
+            event("view_finished")
 
     globals()["urlpatterns"] = [path("healthz/", healthz), path("qa/", ordinary), path("qa/slow/", slow)]
 
@@ -135,7 +185,18 @@ def server(port, folder):
         nonlocal heartbeat_task
         if heartbeat_task is None:
             heartbeat_task = asyncio.create_task(heartbeat())
-        await router(scope, receive, send)
+        kind = "other"
+        if scope.get("path") == "/qa/slow/":
+            kind = dict(scope.get("headers", [])).get(b"x-qa-kind", b"unknown").decode("ascii")
+        token = request_kind.set(kind)
+        try:
+            await router(scope, receive, send)
+        except asyncio.CancelledError:
+            event("application_cancelled")
+            raise
+        finally:
+            event("application_exit")
+            request_kind.reset(token)
 
     def monitor():
         while not stop.wait(.05):
@@ -255,6 +316,13 @@ def main(args):
                                    ["ownlobby_asgi_qa_" + str(proc.pid)])
                     return cursor.fetchone()[0]
 
+            def session_states():
+                with observer.cursor() as cursor:
+                    cursor.execute("SELECT state, wait_event_type, wait_event, count(*) FROM pg_stat_activity "
+                                   "WHERE application_name = %s GROUP BY state, wait_event_type, wait_event",
+                                   ["ownlobby_asgi_qa_" + str(proc.pid)])
+                    return [dict(state=s, wait_type=t, wait=w, count=n) for s, t, w, n in cursor.fetchall()]
+
             baseline_ids = set()
 
             def wait_for(predicate, seconds=8):
@@ -271,6 +339,7 @@ def main(args):
                 ids = measured.pop("thread_ids", [])
                 names = measured.pop("thread_names", {})
                 measured["connections"] = connections()
+                measured["sessions"] = session_states()
                 measured["remaining_thread_names"] = [names.get(str(i), "unknown") for i in ids
                                                        if i not in baseline_ids]
                 raise AssertionError("Bounded QA condition did not complete: " + json.dumps(measured))
@@ -299,7 +368,9 @@ def main(args):
                         for _ in range(CONCURRENCY):
                             sock = socket.create_connection(("127.0.0.1", port), timeout=2)
                             sockets.append(sock)
-                            sock.sendall(b"GET /qa/slow/ HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n")
+                            kind = "disconnected" if disconnect else "connected"
+                            sock.sendall(("GET /qa/slow/ HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n"
+                                          f"X-QA-Kind: {kind}\r\n\r\n").encode())
                         wait_for(lambda: sample()["started"] == before + CONCURRENCY)
                         if disconnect:
                             for sock in sockets:
