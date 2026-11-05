@@ -150,6 +150,7 @@ def server(port, folder):
                 state["peak_rss_mib"] = max(state["peak_rss_mib"], state["rss_mib"] or 0)
                 state["peak_threads"] = max(state["peak_threads"], len(threads))
                 data = dict(state, thread_ids=[t.ident for t in threads],
+                            thread_names={str(t.ident): t.name for t in threads},
                             request_executors=len(SyncToAsync.context_to_thread_executor))
             temporary = folder / "sample.tmp"
             temporary.write_text(json.dumps(data), encoding="utf-8")
@@ -254,6 +255,8 @@ def main(args):
                                    ["ownlobby_asgi_qa_" + str(proc.pid)])
                     return cursor.fetchone()[0]
 
+            baseline_ids = set()
+
             def wait_for(predicate, seconds=8):
                 deadline = time.monotonic() + seconds
                 while time.monotonic() < deadline:
@@ -265,7 +268,11 @@ def main(args):
                         pass
                     time.sleep(.05)
                 measured = sample()
-                measured.pop("thread_ids", None)
+                ids = measured.pop("thread_ids", [])
+                names = measured.pop("thread_names", {})
+                measured["connections"] = connections()
+                measured["remaining_thread_names"] = [names.get(str(i), "unknown") for i in ids
+                                                       if i not in baseline_ids]
                 raise AssertionError("Bounded QA condition did not complete: " + json.dumps(measured))
 
             try:
