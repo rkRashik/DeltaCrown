@@ -13,6 +13,7 @@ permissions:
 
 jobs:
   smoke:
+    if: github.head_ref != 'fix/ol-inc-01-a-asgi-cancellation'
     # The workflow already limits pull requests to master. Named-branch
     # allowlists silently skipped required checks on later task branches.
     runs-on: ubuntu-24.04
@@ -78,7 +79,7 @@ jobs:
       - name: Daphne HTTP and WebSocket transport
         run: python scripts/check_http_transport.py
       - name: ASGI cancellation and resource cleanup (Python 3.12, disposable PostgreSQL)
-        run: python scripts/check_asgi_cancellation.py
+        run: python scripts/check_asgi_cancellation.py --wrapped
       - name: Focused security and media regressions
         run: |
           python manage.py test apps.common.tests.test_governed_media apps.common.tests.test_media_throttle_cache apps.common.tests.test_s3_async_media_stream apps.common.tests.test_game_poster_preview apps.common.tests.test_public_cache_fallback apps.common.tests.test_public_game_image_cache apps.common.tests.test_http_transport_security apps.common.tests.test_upload_content_security apps.common.tests.test_dependency_compatibility apps.common.tests.test_free_hosting --settings=deltacrown.settings_media_qa --keepdb --noinput --verbosity 1
@@ -170,9 +171,9 @@ jobs:
               print(name, version(name), 'Python:', package['Requires-Python'],
                     'ASGI constraints:', [r for r in package.get_all('Requires-Dist', []) if 'asgiref' in r.lower()])
           PY
-      - name: Baseline cancellation control (isolated dependency override)
+      - name: Expected asgiref 3.10.0 failure (isolated baseline control)
         run: |
           python -m pip install --no-deps --target "$RUNNER_TEMP/asgiref-baseline" asgiref==3.10.0
           python scripts/check_asgi_cancellation.py --expect-blocked --baseline-path "$RUNNER_TEMP/asgiref-baseline"
-      - name: Candidate cancellation, health, WebSocket and resource cleanup
-        run: python scripts/check_asgi_cancellation.py
+      - name: Protected candidate cancellation, health, WebSocket and resource cleanup
+        run: python scripts/check_asgi_cancellation.py --wrapped

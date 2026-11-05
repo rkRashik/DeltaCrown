@@ -402,6 +402,7 @@ def main(args):
                     return [dict(state=s, wait_type=t, wait=w, count=n) for s, t, w, n in cursor.fetchall()]
 
             baseline_ids = set()
+            round_evidence = {}
 
             def wait_for(predicate, seconds=8):
                 deadline = time.monotonic() + seconds
@@ -418,6 +419,7 @@ def main(args):
                 names = measured.pop("thread_names", {})
                 measured["connections"] = connections()
                 measured["sessions"] = session_states()
+                measured["round"] = round_evidence
                 measured["remaining_thread_names"] = [names.get(str(i), "unknown") for i in ids
                                                        if i not in baseline_ids]
                 raise AssertionError("Bounded QA condition did not complete: " + json.dumps(measured))
@@ -565,6 +567,10 @@ def main(args):
                     finally:
                         for sock in sockets:
                             sock.close()
+                    round_evidence = {"disconnected": disconnect,
+                                      "health_timeouts": sum(p.get("error") == "TimeoutError" for p in probes),
+                                      "unexpected_health_results": sum(p.get("status") != 200
+                                          and p.get("error") != "TimeoutError" for p in probes)}
                     wait_for(lambda: sample()["finished"] == before + width)
                     wait_for(lambda: sample()["request_executors"] == 0
                              and set(sample()["thread_ids"]) <= baseline_ids and connections() == 0
@@ -780,6 +786,30 @@ async def check_wrapper_contract():
     print("WRAPPER_CONTRACT real-disconnect/repeated-cancel/exception/task-cleanup PASS", flush=True)
 
 
+def baseline_control(args):
+    """Accept only the independently reproduced old-dependency failure profile."""
+    assert args.expect_blocked and args.baseline_path
+    assert not args.wrapped and not args.compare_wrapper and not args.admission_prototype and not args.sql_bounds
+    try:
+        main(args)
+    except AssertionError as error:
+        prefix = "Bounded QA condition did not complete: "
+        assert str(error).startswith(prefix), str(error)
+        evidence = json.loads(str(error)[len(prefix):])
+        assert evidence["started"] == evidence["finished"] == 2 * CONCURRENCY
+        assert evidence["connections"] == CONCURRENCY and evidence["request_executors"] == 0
+        assert evidence["sessions"] == [{"state": "idle", "wait_type": "Client",
+                                         "wait": "ClientRead", "count": CONCURRENCY}]
+        assert not evidence["remaining_thread_names"]
+        assert evidence["loop_lag_ms"] > 250
+        assert evidence["round"]["disconnected"] and evidence["round"]["health_timeouts"] > 0
+        assert evidence["round"]["unexpected_health_results"] == 0
+        print("BASELINE_EXPECTED_FAILURE " + json.dumps({key: evidence[key] for key in
+              ("connections", "sessions", "finished", "request_executors", "loop_lag_ms", "round")}), flush=True)
+    else:
+        raise AssertionError("Expected asgiref 3.10.0 failure was not reproduced")
+
+
 def compare_wrapper(args):
     asyncio.run(check_wrapper_contract())
     assert not args.expect_blocked and not args.baseline_path
@@ -820,7 +850,9 @@ if __name__ == "__main__":
         parser.add_argument("--admission-prototype", action="store_true")
         parser.add_argument("--sql-bounds", action="store_true")
         args = parser.parse_args()
-        if args.sql_bounds:
+        if args.expect_blocked:
+            baseline_control(args)
+        elif args.sql_bounds:
             assert not args.compare_wrapper and not args.expect_blocked and not args.baseline_path and not args.admission_prototype
             args.wrapped = True
             main(args)
