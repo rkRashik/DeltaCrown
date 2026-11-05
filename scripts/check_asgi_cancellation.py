@@ -167,8 +167,14 @@ def server(port, folder):
         async def disconnect(self, code):
             state["ws_open"] -= 1
 
+    http_application = get_asgi_application()
+    wrapper = None
+    if os.environ.get("QA_HTTP_LIFECYCLE_WRAP") == "1":
+        from apps.common.asgi_lifecycle import HTTPDisconnectDrain
+        wrapper = HTTPDisconnectDrain(http_application)
+        http_application = wrapper
     router = ProtocolTypeRouter({
-        "http": get_asgi_application(),
+        "http": http_application,
         "websocket": AllowedHostsOriginValidator(AuthMiddlewareStack(URLRouter([path("qa/ws/", Echo.as_asgi())]))),
     })
     heartbeat_task = None
@@ -179,6 +185,7 @@ def server(port, folder):
             await asyncio.sleep(.02)
             now = time.monotonic()
             state["loop_lag_ms"] = max(state["loop_lag_ms"], (now - previous - .02) * 1000)
+            state["loop_tasks"] = len(asyncio.all_tasks()) - 1  # Exclude this heartbeat.
             previous = now
 
     async def application(scope, receive, send):
@@ -212,6 +219,9 @@ def server(port, folder):
                 state["peak_threads"] = max(state["peak_threads"], len(threads))
                 data = dict(state, thread_ids=[t.ident for t in threads],
                             thread_names={str(t.ident): t.name for t in threads},
+                            wrapper_children=wrapper.active_count if wrapper else 0,
+                            wrapper_receives=wrapper.pending_receives if wrapper else 0,
+                            outer_cancellations=wrapper.cancellations if wrapper else 0,
                             request_executors=len(SyncToAsync.context_to_thread_executor))
             temporary = folder / "sample.tmp"
             temporary.write_text(json.dumps(data), encoding="utf-8")
@@ -238,6 +248,7 @@ def server(port, folder):
 
 def main(args):
     database = require_local_database()
+    repeats = 1 if args.compare_wrapper else REPEATS
     import psycopg2
     # Explicitly inspect only this child application's connections in local QA.
     observer = psycopg2.connect(database, connect_timeout=3, options="-c statement_timeout=3000")
@@ -253,6 +264,7 @@ def main(args):
                DISABLE_INPROCESS_MATCH_REMINDER="1", ENABLE_DISCORD_BOT="0", ENABLE_CELERY_BEAT="0",
                COMPETITION_APP_ENABLED="1", SENTRY_DSN="", REDIS_URL="", AWS_EC2_METADATA_DISABLED="true",
                PYTHONUNBUFFERED="1", PYTHONPATH=str(ROOT))
+    env["QA_HTTP_LIFECYCLE_WRAP"] = "1" if args.wrapped else "0"
     if args.baseline_path:
         assert args.expect_blocked, "A baseline override requires explicit baseline mode"
         env["PYTHONPATH"] = str(Path(args.baseline_path).resolve()) + os.pathsep + str(ROOT)
@@ -360,7 +372,7 @@ def main(args):
                 baseline = sample()
                 baseline_ids = set(baseline["thread_ids"])
                 rounds = []
-                for number in range(REPEATS + 1):
+                for number in range(repeats + 1):
                     disconnect = number > 0
                     before = sample()["started"]
                     sockets = []
@@ -385,7 +397,9 @@ def main(args):
                             sock.close()
                     wait_for(lambda: sample()["finished"] == before + CONCURRENCY)
                     wait_for(lambda: sample()["request_executors"] == 0
-                             and set(sample()["thread_ids"]) <= baseline_ids and connections() == 0)
+                             and set(sample()["thread_ids"]) <= baseline_ids and connections() == 0
+                             and sample()["wrapper_children"] == 0 and sample()["wrapper_receives"] == 0
+                             and sample().get("loop_tasks", 0) <= baseline.get("loop_tasks", 0))
                     after = sample()
                     failures = sum(p.get("status") != 200 for p in probes)
                     if not disconnect or not args.expect_blocked:
@@ -395,23 +409,29 @@ def main(args):
                     rounds.append({"disconnect": disconnect, "probes": len(probes), "timeouts_or_errors": failures,
                                    "max_health_ms": max(p["ms"] for p in probes), "rss_after_mib": after["rss_mib"],
                                    "extra_threads_after": len(set(after["thread_ids"]) - baseline_ids),
-                                   "executors_after": after["request_executors"], "connections_after": connections()})
+                                   "executors_after": after["request_executors"], "connections_after": connections(),
+                                   "children_after": after["wrapper_children"], "receives_after": after["wrapper_receives"],
+                                   "extra_loop_tasks_after": max(0, after.get("loop_tasks", 0) - baseline.get("loop_tasks", 0))})
                 websocket()
                 wait_for(lambda: sample()["ws_open"] == 0 and sample()["request_executors"] == 0)
                 last = sample()
                 assert last["loop_lag_ms"] > 250 if args.expect_blocked else last["loop_lag_ms"] < 250
                 assert last["peak_threads"] <= len(baseline_ids) + 4 * CONCURRENCY + 8
+                if args.wrapped:
+                    assert last["outer_cancellations"] >= 2 * CONCURRENCY * repeats
                 if sys.platform.startswith("linux"):
                     assert last["rss_mib"] is not None
                     assert last["peak_rss_mib"] < 384
                     assert max(r["rss_after_mib"] for r in rounds) - baseline["rss_mib"] < 32
-                result = {"versions": versions, "expected_baseline_stall": args.expect_blocked,
+                result = {"versions": versions, "wrapped": args.wrapped,
+                          "outer_cancellations": last["outer_cancellations"], "expected_baseline_stall": args.expect_blocked,
                           "sequential_requests": len(sequential), "concurrent_requests": len(concurrent),
                           "slow_concurrency": CONCURRENCY, "rounds": rounds, "websocket_cycles": 2,
                           "max_loop_lag_ms": round(last["loop_lag_ms"], 2), "baseline_threads": len(baseline_ids),
                           "peak_threads": last["peak_threads"], "baseline_rss_mib": baseline["rss_mib"],
                           "peak_rss_mib": last["peak_rss_mib"] if last["rss_mib"] is not None else None}
                 print("ASGI_CANCELLATION_QA " + json.dumps(result, sort_keys=True), flush=True)
+                return result
             finally:
                 # Let the real interpreter exit, including Windows venv launchers.
                 (folder / "stop").touch()
@@ -425,6 +445,98 @@ def main(args):
                         proc.kill()
                     proc.wait(timeout=5)
                 observer.close()
+
+
+async def check_wrapper_contract():
+    """Finite synthetic checks, including evidence of indefinite-retention risk."""
+    sys.path.insert(0, str(ROOT))
+    from apps.common.asgi_lifecycle import HTTPDisconnectDrain
+    initial = set(asyncio.all_tasks())
+    release = asyncio.Event()
+    seen_disconnect = asyncio.Event()
+    calls = 0
+
+    async def receive():
+        nonlocal calls
+        calls += 1
+        await asyncio.Event().wait()  # Cancelled/retrieved by the receive adapter.
+
+    async def send(message):
+        pass
+
+    async def application(scope, receive, send):
+        assert (await receive())["type"] == "http.disconnect"
+        seen_disconnect.set()
+        await release.wait()
+
+    wrapper = HTTPDisconnectDrain(application)
+    outer = asyncio.create_task(wrapper({"type": "http"}, receive, send))
+    try:
+        await asyncio.sleep(0)
+        for _ in range(3):
+            outer.cancel()
+            await asyncio.sleep(0)
+        await asyncio.wait_for(seen_disconnect.wait(), timeout=1)
+        done, _ = await asyncio.wait({outer}, timeout=.05)
+        assert not done and wrapper.active_count == 1
+        print("WRAPPER_RETENTION_RISK pending work retains its lifecycle after cancellation", flush=True)
+    finally:
+        release.set()
+        try:
+            await asyncio.wait_for(asyncio.shield(outer), timeout=1)
+        except asyncio.CancelledError:
+            pass
+    assert outer.cancelled() and wrapper.active_count == 0 and wrapper.pending_receives == 0
+    assert calls <= 1
+
+    marker = {"type": "http.disconnect"}
+
+    async def real_disconnect():
+        return marker
+
+    async def real_application(scope, receive, send):
+        assert await receive() is marker
+
+    await HTTPDisconnectDrain(real_application)({"type": "http"}, real_disconnect, send)
+
+    async def failure(scope, receive, send):
+        await receive()
+        raise ValueError("synthetic child failure")
+
+    failed = asyncio.create_task(HTTPDisconnectDrain(failure)({"type": "http"}, receive, send))
+    await asyncio.sleep(0)
+    failed.cancel()
+    done, _ = await asyncio.wait({failed}, timeout=1)
+    assert failed in done
+    try:
+        failed.result()
+    except asyncio.CancelledError as error:
+        assert isinstance(error.__cause__, ValueError)
+    else:
+        raise AssertionError("Outer cancellation was not propagated")
+    assert set(asyncio.all_tasks()) <= initial
+    print("WRAPPER_CONTRACT real-disconnect/repeated-cancel/exception/task-cleanup PASS", flush=True)
+
+
+def compare_wrapper(args):
+    asyncio.run(check_wrapper_contract())
+    assert not args.expect_blocked and not args.baseline_path
+    args.wrapped = False
+    try:
+        main(args)
+    except AssertionError as error:
+        prefix = "Bounded QA condition did not complete: "
+        assert str(error).startswith(prefix), str(error)
+        evidence = json.loads(str(error)[len(prefix):])
+        assert evidence["started"] == evidence["finished"] == 2 * CONCURRENCY
+        assert evidence["connections"] == CONCURRENCY and evidence["request_executors"] == 0
+        assert not evidence["remaining_thread_names"]
+        print("UNWRAPPED_CLEANUP_CONTROL " + json.dumps({key: evidence[key] for key in
+              ("connections", "sessions", "finished", "request_executors", "peak_threads", "peak_rss_mib", "loop_lag_ms")}), flush=True)
+    else:
+        raise AssertionError("Unwrapped cleanup failure was not reproduced")
+    args.wrapped = True
+    main(args)
 
 
 if __name__ == "__main__":
@@ -441,4 +553,7 @@ if __name__ == "__main__":
         parser = argparse.ArgumentParser(description=__doc__)
         parser.add_argument("--expect-blocked", action="store_true")
         parser.add_argument("--baseline-path")
-        main(parser.parse_args())
+        parser.add_argument("--wrapped", action="store_true")
+        parser.add_argument("--compare-wrapper", action="store_true")
+        args = parser.parse_args()
+        compare_wrapper(args) if args.compare_wrapper else main(args)
