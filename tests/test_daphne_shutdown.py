@@ -333,9 +333,13 @@ class ProcessTests(unittest.TestCase):
                                 proc.wait(timeout=8)
                                 self.assertEqual(proc.returncode,0)
                                 final=state()
+                                print("A10_PROCESS_TERMINAL "+json.dumps(dict(
+                                      case=case,snapshot=final,db_sessions=sessions())),flush=True)
                                 self.assertEqual((final["phase"],final["children"],final["executors"]),("DRAINED",0,0))
                                 names={e["event"] for e in final["events"]}
-                                self.assertTrue({"work_finished","stream_finalized","stream_closed","ws_closed_1012"}<=names)
+                                expected={"work_finished","stream_finalized","stream_closed","ws_closed_1012"}
+                                self.assertTrue(expected<=names,"Missing terminal markers: "+
+                                                json.dumps(sorted(expected-names)))
                                 self.assertTrue(any(e==dict(event="django_closed",kind="/work/") for e in final["events"]))
                                 self.assertEqual(sessions(),0)
                                 print("A10_PROCESS finite graceful=True retained=0 health=503 ws=1012 stream=closed",flush=True)
