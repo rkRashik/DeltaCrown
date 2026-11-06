@@ -284,7 +284,7 @@ class ProcessTests(unittest.TestCase):
         observer = psycopg2.connect(database, connect_timeout=2, options="-c statement_timeout=2000")
         observer.autocommit = True
         try:
-            cases=("finite",) if os.environ.get("A10_FINITE_EVIDENCE_ONLY")=="1" else ("finite", "blocked")
+            cases=("finite",) if os.environ.get("A10_FINITE_EVIDENCE_ONLY")=="1" else ("finite", "blocked", "saturation")
             for case in cases:
                 with self.subTest(case=case), tempfile.TemporaryDirectory() as folder:
                     state_file = Path(folder)/"state.json"
@@ -298,8 +298,9 @@ class ProcessTests(unittest.TestCase):
                                REDIS_URL="", SENTRY_DSN="", DISABLE_INPROCESS_MATCH_REMINDER="1",
                                ENABLE_CELERY_WORKER="0", ENABLE_CELERY_BEAT="0", ENABLE_DISCORD_BOT="0",
                                COMPETITION_APP_ENABLED="1", AWS_EC2_METADATA_DISABLED="true",
-                               OWNLOBBY_ASGI_LIFECYCLE_ENABLED="1", OWNLOBBY_HTTP_CAPACITY="4",
-                               OWNLOBBY_DRAIN_SECONDS=".2", OWNLOBBY_CLEANUP_SECONDS="5" if case=="finite" else ".3",
+                               OWNLOBBY_ASGI_LIFECYCLE_ENABLED="1", OWNLOBBY_HTTP_CAPACITY="2" if case=="saturation" else "4",
+                               A11_QA_WS_CAPACITY="2",A11_QA_STALL_SECONDS=".2",A11_QA_LAG_SECONDS=".08",
+                               OWNLOBBY_DRAIN_SECONDS=".2", OWNLOBBY_CLEANUP_SECONDS=".3" if case=="blocked" else "5",
                                OWNLOBBY_DECLARED_HOST_SHUTDOWN_SECONDS="10", A10_QA_CASE=case, A10_QA_STATE=str(state_file))
                     with (Path(folder)/"child.log").open("w") as log:
                         proc = subprocess.Popen([sys.executable,"-m","apps.common.daphne_server","-b","127.0.0.1",
@@ -360,8 +361,38 @@ class ProcessTests(unittest.TestCase):
                             wait(ready,10)
                             opened("/work/")
                             wait(lambda:any(e["event"]=="work_started" for e in state().get("events",[])))
-                            if case=="finite":
-                                opened("/stream/")
+                            peak_db_sessions=sessions()
+                            if case=="saturation":
+                                opened("/work/")
+                                wait(lambda:sum(e["event"]=="work_started" for e in state().get("events",[]))==2)
+                                peak_db_sessions=max(peak_db_sessions,sessions())
+                                # Raw TCP accepts while real Django work is at capacity; no HTTP bypass.
+                                with socket.create_connection(("127.0.0.1",port),timeout=1):
+                                    tcp_responsive=True
+                                before_ticks=state()["loop_ticks"]
+                                keep.request("GET","/healthz/")
+                                rejected=keep.getresponse();rejected.read()
+                                self.assertEqual((rejected.status,rejected.getheader("Cache-Control")),(503,"no-store"))
+                                wait(lambda:"SATURATED_NO_OBSERVED_PROGRESS" in state().get("signals_seen",[]))
+                                stalled=state()
+                                self.assertGreater(stalled["loop_ticks"],before_ticks)
+                                self.assertLess(stalled["occupancy"]["loop_lag_seconds"],.08)
+                                self.assertEqual(stalled["occupancy"]["http_active"],2)
+                                wait(lambda:state().get("occupancy",{}).get("http_active")==0)
+                                keep.request("GET","/healthz/")
+                                recovered=keep.getresponse();recovered.read()
+                                self.assertEqual(recovered.status,200)
+                                recovered_state=state()
+                                self.assertTrue({"CAPACITY_EXHAUSTED","SATURATED_NO_OBSERVED_PROGRESS",
+                                                 "LOOP_LAG_OBSERVED"}<=set(recovered_state["signals_seen"]))
+                                self.assertEqual(recovered_state["phase"],"RUNNING")
+                                self.assertEqual(sessions(),0)
+                                print("A11_SATURATION "+json.dumps(dict(tcp_responsive=tcp_responsive,
+                                      rejected_health=503,recovered_health=200,peak_db_sessions=peak_db_sessions,
+                                      stalled=stalled["occupancy"],recovered=recovered_state["occupancy"],
+                                      peak_loop_lag_seconds=recovered_state["peak_loop_lag_seconds"])),flush=True)
+                            if case!="blocked":
+                                if case=="finite":opened("/stream/")
                                 ws=opened("/ws/",True)
                                 def close_peer():
                                     try:
@@ -388,26 +419,27 @@ class ProcessTests(unittest.TestCase):
                                 closer=threading.Thread(target=close_peer,daemon=True);closer.start()
                             proc.send_signal(signal.SIGTERM)
                             wait(lambda:state().get("phase")!="RUNNING" and bool(state()))
-                            keep.request("GET","/healthz/")
-                            rejected=keep.getresponse(); rejected.read()
-                            self.assertEqual(rejected.status,503)
-                            self.assertEqual(rejected.getheader("Cache-Control"),"no-store")
-                            proc.send_signal(signal.SIGTERM)
-                            if case=="finite":
+                            if case!="saturation":
+                                keep.request("GET","/healthz/")
+                                rejected=keep.getresponse(); rejected.read()
+                                self.assertEqual(rejected.status,503)
+                                self.assertEqual(rejected.getheader("Cache-Control"),"no-store")
+                                proc.send_signal(signal.SIGTERM)
+                            if case!="blocked":
                                 proc.wait(timeout=8)
                                 self.assertEqual(proc.returncode,0)
                                 if closer:closer.join(timeout=1)
                                 final=state()
                                 print("A10_PROCESS_TERMINAL "+json.dumps(dict(
-                                      case=case,snapshot=final,db_sessions=sessions(),
+                                      case=case,snapshot=final,db_sessions=sessions(),peak_db_sessions=peak_db_sessions,
                                       websocket_client=wire,
                                       slow_django_closed=any(e==dict(event="django_closed",kind="/work/")
                                                             for e in final["events"]))),flush=True)
                                 self.assertEqual((final["phase"],final["children"],final["executors"],
                                                   final["slots"],final["application_tasks"]),("DRAINED",0,0,0,0))
                                 names={e["event"] for e in final["events"]}
-                                expected={"work_finished","stream_finalized","stream_closed",
-                                          "ws_disconnect_observed","ws_application_returned"}
+                                expected={"work_finished","ws_disconnect_observed","ws_application_returned"}
+                                if case=="finite":expected.update({"stream_finalized","stream_closed"})
                                 self.assertTrue(expected<=names,"Missing terminal markers: "+
                                                 json.dumps(sorted(expected-names)))
                                 self.assertEqual(wire,dict(close_received=True,close_code=1012,
@@ -427,19 +459,27 @@ class ProcessTests(unittest.TestCase):
                                              if p["phase"]=="DRAINED")
                                 required=[e for e in final["terminal_observations"]
                                           if e["event"] in expected or e["event"]=="django_closed"]
-                                self.assertTrue(all(e["phase"]=="QUIESCING" and e["elapsed_ms"]<=drained
+                                self.assertTrue(all(e["elapsed_ms"]<=drained and
+                                                    (case=="saturation" or e["phase"]=="QUIESCING")
                                                     for e in required if e["kind"]!="/healthz/"))
                                 self.assertTrue(any(e==dict(event="django_closed",kind="/work/") for e in final["events"]))
                                 self.assertTrue(any(e["event"]=="django_closed" and e["kind"]=="/work/"
                                                     and e["db_closed"] and e["owning_thread"]
                                                     for e in final["terminal_observations"]))
                                 self.assertEqual(sessions(),0)
-                                print("A10_PROCESS finite graceful=True retained=0 health=503 ws=1012 stream=closed",flush=True)
+                                self.assertEqual((final["occupancy"]["ws_slots"],
+                                                  final["occupancy"]["retained_http_cleanup"]),(0,0))
+                                self.assertEqual((final["owned_tasks"],final["ws_protocol_records"],
+                                                  final["ws_protocol_bindings"]),(0,0,0))
+                                print("A10_PROCESS "+case+" graceful=True retained=0 ws=1012",flush=True)
                             else:
                                 wait(lambda:state().get("phase")=="SHUTDOWN_INCOMPLETE")
                                 final=state()
                                 self.assertIsNone(proc.poll())
                                 self.assertEqual((final["children"],final["executors"],sessions()),(1,1,1))
+                                self.assertEqual(final["occupancy"]["retained_http_cleanup"],1)
+                                print("A11_BLOCKED_RESOURCE "+json.dumps(dict(snapshot=final,
+                                      db_sessions=sessions(),graceful=False)),flush=True)
                                 proc.kill();proc.wait(timeout=2)
                                 wait(lambda:sessions()==0,alive=False)
                                 print("A10_PROCESS blocked graceful=False supervisor_kill=True retained_before=1 db_after=0",flush=True)

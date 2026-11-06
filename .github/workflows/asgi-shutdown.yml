@@ -2,7 +2,7 @@ name: Gated ASGI shutdown contracts
 
 on:
   pull_request:
-    branches: [candidate/ol-inc-01-a9-inactive, master]
+    branches: [candidate/ol-inc-01-a9-inactive, candidate/ol-inc-01-a10-shutdown, master]
 
 permissions:
   contents: read
@@ -49,4 +49,5 @@ jobs:
       - name: Focused contracts (no migrations or provider access)
         run: |
           timeout 120s python -m unittest discover -s tests -p test_http_lifecycle.py -v
+          timeout 120s python -m unittest discover -s tests -p test_lifecycle_admission.py -v
           timeout 120s python -m unittest discover -s tests -p test_daphne_shutdown.py -v

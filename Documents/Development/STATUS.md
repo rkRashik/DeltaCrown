@@ -1,5 +1,7 @@
 # OwnLobby current status
 
+Current review **2026-11-06 20:51 +06:00**, A11B-1: default-OFF QA admission/observation candidate, stacked on unchanged Draft #45 `49a8a49f`. Six new admission contracts pass locally; one Linux Python 3.11.9/3.12 matrix is pending. A10 finite mixed/blocked contracts previously passed on both versions. No production activation or new capacity/deadline values. A11A's read-only provider assessment found TCP health checks; effective host window, I/O bounds, measured Render capacity and isolated staging remain release gates. This update supersedes the A9 next-action snapshot below; historical evidence retains its dates.
+
 Last development review: **2026-11-06 15:11 +06:00 (Asia/Dhaka)**, OL-INC-01-A / A9 inactive candidate extraction. **Do not deploy master.** No production check/change was made; dated operational evidence below is historical.
 
 ## A9 inactive candidate

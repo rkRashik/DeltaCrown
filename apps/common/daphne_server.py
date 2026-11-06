@@ -73,6 +73,7 @@ class OwnLobbyServer(Server):
                     closed.set_result(None)
                 record = _WebSocketOutcome(task, closed)
                 self.websocket_protocols[protocol] = record
+                self.lifecycle._websocket_closures[task] = closed
                 if self.lifecycle.quiescing:
                     self._shutdown_protocols.append(record)
                 task.add_done_callback(lambda _: self._forget_websocket(protocol))
@@ -108,6 +109,7 @@ class OwnLobbyServer(Server):
         record = self.websocket_protocols.get(protocol)
         if record is not None and record.application.done() and record.closed.done():
             del self.websocket_protocols[protocol]
+            self.lifecycle._websocket_closures.pop(record.application, None)
 
     def _application_done(self, task):
         self.application_tasks.discard(task)
@@ -174,6 +176,7 @@ class OwnLobbyServer(Server):
             logger.error("shutdown_incomplete error_type=%s", type(error).__name__)
             complete = False
         if (complete and not self._pending()
+                and not self.lifecycle._websocket_owners
                 and all(session.cleaned for session in self._shutdown_websockets)
                 and all(record.complete for record in self._shutdown_protocols)):
             self.lifecycle.phase = "DRAINED"

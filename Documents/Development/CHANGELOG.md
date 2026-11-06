@@ -4,6 +4,8 @@ Append dated milestones; retain original event dates. Source changes, historical
 
 ## 2026-11-06
 
+- **OL-INC-01-A / A11B-1 QA candidate:** independent WebSocket admission, child/cleanup counters and observational saturation signals added on a separate stack above Draft #45. Six local admission tests and existing HTTP/adapter checks pass; focused Linux matrix pending. No production capacity, I/O deadline, recovery action, health configuration or activation selected. Historical [A10 acceptance](https://github.com/rkRashik/DeltaCrown/actions/runs/42231856054) passed on Python 3.11.9/3.12; A11A provider/I/O/resource gates remain open.
+
 - **OL-INC-01-A / A9 inactive extraction:** separate branch from remote master `bec5a17b`; research [Draft PR #43](https://github.com/rkRashik/DeltaCrown/pull/43) preserved at `90b5a985`. Matching asgiref 3.12.1 pins, unwired HTTP module and six finite stdlib tests only; Daphne stays 4.2.3. Focused Windows Python 3.13.15 tests PASS; dependency resolution/existing `pip check` and disposable asgiref import PASS. Default ASGI graph is unchanged; no migrations, external DB, full Linux suite, shutdown coordinator or production activation. [STATUS](STATUS.md#a9-inactive-candidate) records limits; A10–A12 gates remain open.
 
 ## 2026-10-30

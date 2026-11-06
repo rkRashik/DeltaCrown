@@ -1,5 +1,7 @@
 # OwnLobby conversation handoff
 
+**Current continuation, 2026-11-06 20:51 +06:00:** A11B-1 QA-only admission/observations starts at Draft #45 `49a8a49f`, branch `candidate/ol-inc-01-a11b1-observation`. A10 acceptance passed; do not repeat A6–A10 diagnostics. Local capacity contracts pass; focused Linux evidence is pending. Next safe work after verification is separately approved A11B-2 effective I/O bounds. Keep activation OFF; production limits, host recovery/readiness and staging are unresolved. No automatic recovery or health bypass is introduced. The A9 snapshot below is historical, not the current next action.
+
 Snapshot: 2026-11-06 15:11 +06:00 (Asia/Dhaka), OL-INC-01-A / A9 inactive extraction. Start with [STATUS](STATUS.md) and [BACKLOG](BACKLOG.md). **Do not deploy master.** This brief authorizes no production operation.
 
 ## Current state
