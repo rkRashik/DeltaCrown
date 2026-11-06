@@ -8,6 +8,7 @@ from pathlib import Path
 import socket
 import threading
 import time
+import resource
 
 import dotenv
 dotenv.load_dotenv = lambda *a, **k: False
@@ -46,12 +47,19 @@ assert connection.settings_dict["NAME"] == "ownlobby_test" and connection.settin
 connection.settings_dict["OPTIONS"] = dict(application_name="ownlobby_a10_" + str(os.getpid()), connect_timeout=2)
 settings.ROOT_URLCONF = __name__
 runtime = require_runtime(settings.OWNLOBBY_ASGI_LIFECYCLE)
+runtime.configure_websocket_capacity(int(os.environ["A11_QA_WS_CAPACITY"]))
+stall_after = float(os.environ["A11_QA_STALL_SECONDS"])
+lag_threshold = float(os.environ["A11_QA_LAG_SECONDS"])
 events = []
 observations = []
 phases = []
 began = time.monotonic()
-work_thread = None
+work_threads = set()
 observed_server = None
+loop_lag = peak_loop_lag = 0.0
+ticks = peak_threads = peak_os_threads = 0
+signals_seen = set()
+qa_loop = None
 tag = ContextVar("a10_request", default="process")
 mutex = threading.RLock()
 destination = Path(os.environ["A10_QA_STATE"])
@@ -66,13 +74,27 @@ def emit(name, **facts):
 
 
 def snapshot():
+    global peak_threads, peak_os_threads
     with mutex:
+        peak_threads = max(peak_threads, threading.active_count())
+        os_threads = next(int(line.split()[1]) for line in Path('/proc/self/status').read_text().splitlines()
+                          if line.startswith('Threads:'))
+        peak_os_threads = max(peak_os_threads, os_threads)
+        occupancy = runtime.observe(stall_after=stall_after, lag_threshold=lag_threshold, loop_lag=loop_lag)
+        signals_seen.add(occupancy['signal'])
         if not phases or phases[-1]["phase"] != runtime.phase:
             phases.append(dict(phase=runtime.phase, elapsed_ms=round((time.monotonic()-began)*1000,2)))
         value = dict(phase=runtime.phase, events=list(events), children=runtime.http.active_count if runtime.http else 0,
                      slots=runtime.http.occupied_count if runtime.http else 0,
                      executors=len(SyncToAsync.context_to_thread_executor),
                      terminal_observations=list(observations), phase_observations=list(phases),
+                     occupancy=occupancy, signals_seen=sorted(signals_seen), loop_ticks=ticks,
+                     peak_loop_lag_seconds=peak_loop_lag, rss_peak_kib=resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,
+                     peak_python_threads=peak_threads, peak_os_threads=peak_os_threads,
+                     owned_tasks=sum(not task.done() and task.get_name().startswith('ownlobby-')
+                                     for task in asyncio.all_tasks(qa_loop)) if qa_loop else 0,
+                     ws_protocol_records=len(observed_server.websocket_protocols) if observed_server else 0,
+                     ws_protocol_bindings=len(runtime._websocket_closures),
                      application_tasks=sum(not task.done() for task in observed_server.application_tasks)
                          if observed_server else 0,
                      websocket_protocols=[dict(close_requested=record.close_requested,
@@ -93,7 +115,7 @@ def snapshot():
 def finished(**kwargs):
     emit("django_closed" if connection.connection is None else "django_open",
          db_closed=connection.connection is None,
-         owning_thread=threading.get_ident()==work_thread if tag.get()=="/work/" else None)
+         owning_thread=threading.get_ident() in work_threads if tag.get()=="/work/" else None)
 
 
 request_finished.connect(finished, weak=False)
@@ -104,8 +126,7 @@ def health(request):
 
 
 def work(request):
-    global work_thread
-    work_thread = threading.get_ident()
+    work_threads.add(threading.get_ident())
     with connection.cursor() as cursor:
         cursor.execute("SELECT 1")
         emit("work_started")
@@ -147,16 +168,27 @@ heartbeat = None
 
 
 async def monitor():
+    global loop_lag, peak_loop_lag, ticks
+    previous = asyncio.get_running_loop().time()
     while True:
+        now = asyncio.get_running_loop().time()
+        loop_lag = max(0, now-previous-.02)
+        peak_loop_lag = max(peak_loop_lag, loop_lag)
+        previous = now
+        ticks += 1
         snapshot()
         await asyncio.sleep(.02)
 
 
 async def application(scope, receive, send):
-    global heartbeat, observed_server
+    global heartbeat, observed_server, qa_loop
     observed_server = send.func.__self__  # QA-only reference to the real adapter.
+    qa_loop = asyncio.get_running_loop()
     if heartbeat is None:
         heartbeat = asyncio.create_task(monitor())
+        if os.environ["A10_QA_CASE"] == "saturation":
+            # Finite QA-only loop pause; observer records lag on resumption.
+            asyncio.get_running_loop().call_later(.7, time.sleep, .15)
     token = tag.set(scope["path"])
     try:
         await router(scope, receive, send)

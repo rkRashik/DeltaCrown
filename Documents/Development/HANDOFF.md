@@ -1,5 +1,7 @@
 # OwnLobby conversation handoff
 
+**Current continuation, 2026-11-06 20:58 +06:00:** [Draft #46](https://github.com/rkRashik/DeltaCrown/pull/46), branch `candidate/ol-inc-01-a11b1-observation`, stacks on unchanged #45 `49a8a49f`. A11B-1's [single Linux matrix](https://github.com/rkRashik/DeltaCrown/actions/runs/42237893242) passes 23 focused tests on Python 3.11.9/3.12. HTTP/WS admission ownership, saturation observations and finite/blocked controls pass; resource/scheduling limitations are in STATUS. Do not repeat completed A6–A10 investigations. Next: owner review, then separately approved A11B-2 effective I/O bounds. Keep activation OFF: measured Render limits, host recovery/readiness and staging are unresolved. No automatic recovery, health bypass or production change. The A9 snapshot below is historical, not the current next action.
+
 Snapshot: 2026-11-06 15:11 +06:00 (Asia/Dhaka), OL-INC-01-A / A9 inactive extraction. Start with [STATUS](STATUS.md) and [BACKLOG](BACKLOG.md). **Do not deploy master.** This brief authorizes no production operation.
 
 ## Current state
