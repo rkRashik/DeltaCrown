@@ -45,6 +45,35 @@ def require_local_database():
 
 def server(port, folder):
     """Child process: production middleware, synthetic URLs and bounded SQL only."""
+    began = time.monotonic()
+    startup_lock = threading.Lock()
+    startup = {"events": [], "last_completed_stage": None, "child_error": None}
+
+    def stage(name, status="started"):
+        if os.environ.get("QA_REAL_ASGI") != "1":
+            return
+        with startup_lock:
+            item = dict(stage=name, status=status, elapsed_ms=round((time.monotonic() - began) * 1000, 2))
+            startup["events"].append(item)
+            if status == "completed":
+                startup["last_completed_stage"] = item
+            temporary = folder / "startup.tmp"
+            temporary.write_text(json.dumps(startup), encoding="utf-8")
+            temporary.replace(folder / "startup.json")
+
+    def child_error(error):
+        # Exception text/locals/SQL/URLs are deliberately excluded.
+        import traceback
+        with startup_lock:
+            startup["child_error"] = {"type": type(error).__name__, "frames": [
+                dict(file=Path(f.filename).name, function=f.name, line=f.lineno)
+                for f in traceback.extract_tb(error.__traceback__)[-4:]]}
+        stage("child_error", "failed")
+
+    if os.environ.get("QA_REAL_ASGI") == "1":
+        sys.excepthook = lambda kind, error, tb: child_error(error)
+        threading.excepthook = lambda args: child_error(args.exc_value)
+    stage("child_bootstrap")
     sys.path.insert(0, str(ROOT))
     import dotenv
     dotenv.load_dotenv = lambda *a, **k: False
@@ -58,8 +87,11 @@ def server(port, folder):
         return original_connect(sock, address)
 
     socket.socket.connect = local_connect
+    stage("child_bootstrap", "completed")
     import django
+    stage("django_setup")
     django.setup()
+    stage("django_setup", "completed")
     from django.conf import settings
     from django.db import connection
     from django.http import HttpResponse
@@ -235,8 +267,10 @@ def server(port, folder):
         "websocket": AllowedHostsOriginValidator(AuthMiddlewareStack(URLRouter([path("qa/ws/", Echo.as_asgi())]))),
     })
     if os.environ.get("QA_REAL_ASGI") == "1":
+        stage("fixture_arrangement")
         from scripts.asgi_real_qa import arrange
-        router, wrapper = arrange(folder, slow, ordinary, os.environ.get("QA_REAL_LOCKDOWN") == "1")
+        router, wrapper = arrange(folder, slow, ordinary, os.environ.get("QA_REAL_LOCKDOWN") == "1", stage)
+        stage("fixture_arrangement", "completed")
     heartbeat_task = None
 
     async def heartbeat():
@@ -251,6 +285,7 @@ def server(port, folder):
     async def application(scope, receive, send):
         nonlocal heartbeat_task
         if heartbeat_task is None:
+            stage("first_asgi_scope", "completed")
             heartbeat_task = asyncio.create_task(heartbeat())
         kind = "other"
         if scope.get("path") == "/qa/slow/" or scope.get("path", "").startswith("/qa/sql/"):
@@ -266,6 +301,7 @@ def server(port, folder):
             request_kind.reset(token)
 
     def monitor():
+        first = True
         while not stop.wait(.05):
             if (folder / "stop").exists():
                 from twisted.internet import reactor
@@ -290,18 +326,24 @@ def server(port, folder):
             temporary.write_text(json.dumps(data), encoding="utf-8")
             try:
                 temporary.replace(folder / "sample.json")
+                if first:
+                    stage("monitor_first_snapshot", "completed")
+                    first = False
             except PermissionError:
                 # Windows readers briefly hold a non-delete-sharing handle.
                 # Retry the next sample instead of killing the monitor thread.
                 continue
 
     observer = threading.Thread(target=monitor, name="qa-resource-monitor", daemon=True)
+    stage("monitor_start")
     observer.start()
+    stage("monitor_start", "completed")
     (folder / "versions.json").write_text(json.dumps({
         "python": sys.version.split()[0],
         **{name: importlib.metadata.version(name) for name in ("Django", "asgiref", "daphne", "channels", "Twisted")},
     }), encoding="utf-8")
     try:
+        stage("daphne_run")
         Server(application=application, endpoints=[f"tcp:port={port}:interface=127.0.0.1"],
                http_timeout=3600, application_close_timeout=5, verbosity=0).run()
     finally:
@@ -416,6 +458,20 @@ def main(args):
             proc = subprocess.Popen([sys.executable, str(Path(__file__).resolve()), "--serve", str(port), str(folder)],
                                     env=env, stdout=log, stderr=log,
                                     creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+            child_started = time.monotonic()
+            printed_stages = 0
+
+            def startup_report():
+                nonlocal printed_stages
+                try:
+                    report = json.loads((folder / "startup.json").read_text(encoding="utf-8"))
+                except (FileNotFoundError, json.JSONDecodeError):
+                    report = {"events": [], "last_completed_stage": None, "child_error": None}
+                for item in report["events"][printed_stages:]:
+                    print("REAL_ASGI_STARTUP " + json.dumps(item), flush=True)
+                printed_stages = len(report["events"])
+                return dict(report, elapsed_ms=round((time.monotonic() - child_started) * 1000, 2),
+                            child_exit_status=proc.poll(), snapshot_exists=(folder / "sample.json").exists())
 
             def sample():
                 return json.loads((folder / "sample.json").read_text(encoding="utf-8"))
@@ -439,9 +495,10 @@ def main(args):
             def wait_for(predicate, seconds=8):
                 deadline = time.monotonic() + seconds
                 while time.monotonic() < deadline:
-                    if args.real_asgi and proc.poll() is not None:
-                        lines = (folder / "child.log").read_text(encoding="utf-8").splitlines()
-                        raise AssertionError("Real QA child exited: " + (lines[-1] if lines else "no diagnostic"))
+                    if args.real_asgi:
+                        report = startup_report()
+                        if proc.poll() is not None or report["child_error"]:
+                            raise AssertionError("Real QA startup/monitor failure: " + json.dumps(report))
                     assert proc.poll() is None, "QA child exited unexpectedly"
                     try:
                         if predicate():
@@ -449,7 +506,15 @@ def main(args):
                     except (FileNotFoundError, json.JSONDecodeError):
                         pass
                     time.sleep(.05)
-                measured = sample()
+                try:
+                    measured = sample()
+                except (FileNotFoundError, json.JSONDecodeError):
+                    if not args.real_asgi:
+                        raise
+                    raise AssertionError("Real QA snapshot unavailable at bounded deadline: "
+                                         + json.dumps(startup_report())) from None
+                if args.real_asgi:
+                    measured["startup"] = startup_report()
                 ids = measured.pop("thread_ids", [])
                 names = measured.pop("thread_names", {})
                 measured["connections"] = connections()

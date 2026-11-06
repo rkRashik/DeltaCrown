@@ -4,7 +4,7 @@ import io
 import json
 
 
-def arrange(folder, slow, ordinary, lockdown):
+def arrange(folder, slow, ordinary, lockdown, stage):
     """Called only after the cancellation harness's local DB/socket guards."""
     from django.conf import settings
     from django.contrib.auth import get_user_model, login
@@ -36,12 +36,17 @@ def arrange(folder, slow, ordinary, lockdown):
                                    "private_media": storage, "public_media": storage,
                                    "default": storage}).enable()
         # Only the guarded, disposable DB. No production migration command.
+        stage("migrations")
         call_command("migrate", interactive=False, verbosity=0, stdout=io.StringIO())
+        stage("migrations", "completed")
+        stage("synthetic_users")
         User = get_user_model()
         owner = User.objects.create_user(username="asgi-qa-owner", email="owner@example.invalid",
                                          password="synthetic-only", is_verified=True)
         other = User.objects.create_user(username="asgi-qa-other", email="other@example.invalid",
                                          password="synthetic-only", is_verified=True)
+        stage("synthetic_users", "completed")
+        stage("synthetic_media")
         from django.apps import apps
         from django.core.files.base import ContentFile
         from PIL import Image
@@ -57,6 +62,7 @@ def arrange(folder, slow, ordinary, lockdown):
         assert field.model == KYC
         (folder / "fixture.json").write_text(json.dumps({
             "media": f"/files/user_profile.kycsubmission/document_front/{record.pk}/"}), encoding="utf-8")
+        stage("synthetic_media", "completed")
 
         def session_login(request, who):
             # Test-only endpoint: CSRF middleware still governs every POST.
@@ -80,7 +86,9 @@ def arrange(folder, slow, ordinary, lockdown):
         settings.ROOT_URLCONF = __name__
         connection.close()  # Fixture-setup connection, before any ASGI requests.
 
+    stage("real_asgi_import")
     entry = importlib.import_module("deltacrown.asgi")
+    stage("real_asgi_import", "completed")
     from deltacrown.cutover_lockdown import CutoverLockdown
     root = entry.application
     router = root.application if isinstance(root, CutoverLockdown) else root
