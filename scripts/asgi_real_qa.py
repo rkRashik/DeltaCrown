@@ -4,12 +4,22 @@ import io
 import json
 
 
+def migrate_fixture(stage, folder=None):
+    stage("migrations")
+    if folder is None:
+        from django.core.management import call_command
+        call_command("migrate", interactive=False, verbosity=0, stdout=io.StringIO())
+    else:
+        from scripts.asgi_migration_qa import migrate
+        migrate(folder, stage)
+    stage("migrations", "completed")
+
+
 def arrange(folder, slow, ordinary, lockdown, stage):
     """Called only after the cancellation harness's local DB/socket guards."""
     from django.conf import settings
     from django.contrib.auth import get_user_model, login
     from django.contrib.auth.decorators import login_required
-    from django.core.management import call_command
     from django.db import connection
     from django.http import HttpResponse
     from django.urls import include, path
@@ -36,9 +46,7 @@ def arrange(folder, slow, ordinary, lockdown, stage):
                                    "private_media": storage, "public_media": storage,
                                    "default": storage}).enable()
         # Only the guarded, disposable DB. No production migration command.
-        stage("migrations")
-        call_command("migrate", interactive=False, verbosity=0, stdout=io.StringIO())
-        stage("migrations", "completed")
+        migrate_fixture(stage)
         stage("synthetic_users")
         User = get_user_model()
         owner = User.objects.create_user(username="asgi-qa-owner", email="owner@example.invalid",

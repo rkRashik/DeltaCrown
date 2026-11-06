@@ -115,6 +115,11 @@ def server(port, folder):
         "application_name": "ownlobby_asgi_qa_" + str(os.getpid()),
         "connect_timeout": 3, "options": "-c statement_timeout=15000",
     }
+    if os.environ.get("QA_MIGRATION_ONLY") == "1":
+        from scripts.asgi_real_qa import migrate_fixture
+        migrate_fixture(stage, folder)
+        connection.close()  # Disposable setup connection; no HTTP request exists.
+        return
     settings.ROOT_URLCONF = __name__
     settings.CHANNEL_LAYERS = {"default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}}
     state = {"started": 0, "finished": 0, "django_started": 0, "ws_open": 0, "loop_lag_ms": 0.0,
@@ -374,6 +379,8 @@ def main(args):
     if args.real_asgi:
         env.update(QA_REAL_ASGI="1", QA_REAL_LOCKDOWN="1" if args.real_lockdown else "0",
                    DJANGO_DEBUG="0")
+    if args.migration_only:
+        env["QA_MIGRATION_ONLY"] = "1"
     if args.admission_prototype or args.sql_bounds:
         env["QA_HTTP_ADMISSION_CAPACITY"] = "2"  # Test fixture only; no production default.
     if args.sql_bounds:
@@ -525,6 +532,10 @@ def main(args):
                 raise AssertionError("Bounded QA condition did not complete: " + json.dumps(measured))
 
             try:
+                if args.migration_only:
+                    sys.path.insert(0, str(ROOT))
+                    from scripts.asgi_migration_qa import poll
+                    return poll(proc, folder, observer, startup_report)
                 wait_for(lambda: get("/healthz/", .3).get("status") == 200, 90 if args.real_asgi else 30)
                 versions = json.loads((folder / "versions.json").read_text(encoding="utf-8"))
                 assert versions["asgiref"] == ("3.10.0" if args.expect_blocked else "3.12.1")
@@ -999,9 +1010,15 @@ if __name__ == "__main__":
         parser.add_argument("--admission-prototype", action="store_true")
         parser.add_argument("--sql-bounds", action="store_true")
         parser.add_argument("--real-asgi", action="store_true")
+        parser.add_argument("--migration-only", action="store_true")
         args = parser.parse_args()
         args.real_lockdown = False
-        if args.real_asgi:
+        if args.migration_only:
+            assert not any((args.expect_blocked, args.baseline_path, args.compare_wrapper,
+                            args.admission_prototype, args.sql_bounds, args.real_asgi))
+            args.real_asgi = True  # Reuse sanitized startup metadata and local QA environment.
+            main(args)
+        elif args.real_asgi:
             assert not any((args.expect_blocked, args.baseline_path, args.compare_wrapper,
                             args.admission_prototype, args.sql_bounds))
             args.wrapped = True
