@@ -1,0 +1,63 @@
+name: QA I/O deadline contracts
+
+on:
+  pull_request:
+    branches: [candidate/ol-inc-01-a11b1-observation]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: io-bounds-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  focused:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11.9', '3.12']
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: ownlobby_qa
+          POSTGRES_PASSWORD: synthetic-ci-only
+          POSTGRES_DB: ownlobby_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U ownlobby_qa -d ownlobby_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ['16379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL_TEST: postgresql://ownlobby_qa:synthetic-ci-only@127.0.0.1:5432/ownlobby_test
+      REDIS_URL_TEST: redis://127.0.0.1:16379/15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Pinned production dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends build-essential pkg-config libcairo2-dev libffi-dev libfreetype6-dev libmagic1
+          python scripts/build_twisted_backport.py
+          python -m pip install --no-cache-dir -r requirements-prod.txt
+          python -m pip check
+      - name: I/O, admission and default-OFF contracts (no migrations)
+        env:
+          PYTHONPATH: .:tests
+        run: |
+          timeout 90s python -m unittest discover -s tests -p test_io_bounds.py -v
+          timeout 30s python -m unittest discover -s tests -p test_http_lifecycle.py -v
+          timeout 30s python -m unittest discover -s tests -p test_lifecycle_admission.py -v
+          timeout 60s python -m unittest test_daphne_shutdown.AdapterTests test_daphne_shutdown.ConfigTests -v
