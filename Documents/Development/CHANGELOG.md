@@ -2,6 +2,18 @@
 
 Append dated milestones; retain original event dates. Source changes, historical test reports, owner actions and fresh verification are distinct. Task status is maintained in [BACKLOG](BACKLOG.md). This is a selected evidence index, not a replacement for Git history.
 
+## 2026-11-05
+
+- **OL-INC-01-A / draft [PR #43](https://github.com/rkRashik/DeltaCrown/pull/43), BLOCKED:** synchronized clean master `bec5a17b` and verified production remains rollback `f1f8d185`. Pins change only asgiref 3.10.0 to 3.12.1. Added bounded synthetic PostgreSQL/Daphne/Channels cancellation/resource checks and focused Linux Python 3.11.9 parity alongside existing Python 3.12 coverage. Local candidate final run passes with 3.85 ms maximum loop lag and complete cleanup; old control reproduced the stall. Linux runs #66/#67 fail the 8 s connection-cleanup gate with three retained child-tagged connections, despite zero extra request threads/executors. Candidate Python 3.11 and later functional/security suites did not execute. [STATUS](STATUS.md#ol-inc-01-a-implementation-2026-11-05) records evidence and exact limits. No production change/deployment/merge, broad dependency upgrade or speculative lifecycle workaround.
+
+## 2026-11-04
+
+- **Production recurrence on rolled-back `f1f8d185`:** 42 shutdown warnings in the bounded 14:32-14:33 +06:00 window; Render port timeout 14:37:16 and availability 14:38:08. Independently reviewed read-only on November 5; original wait/thread attribution remains unproven.
+
+## 2026-11-03
+
+- **Production recurrence on rolled-back `f1f8d185`:** 22 shutdown warnings around 21:30 +06:00; Render port timeout 21:35:10 and availability 21:35:58. Independently reviewed read-only on November 5; original wait/thread attribution remains unproven.
+
 ## 2026-10-30
 
 - **OL-INC-01 evening production recurrence (read-only follow-up):** while rolled-back `f1f8d185` remained live, 19:51 +06:00 logs contained multiple cross-route Daphne request-shutdown timeout warnings and asyncio exception entries; Render reported a 19:56:15 internal port timeout and 19:56:58 recovery. This confirms the old release also experiences the incident class. [STATUS addendum](STATUS.md#evening-recurrence-on-the-rolled-back-release-read-only-follow-up-2026-10-30) records limits and metrics. No code/production change was made; existing deployment hold and OL-INC-01-A acceptance gates remain.

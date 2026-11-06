@@ -1,13 +1,13 @@
 # OwnLobby current status
 
-Last development review: **2026-10-30 16:15 +06:00 (Asia/Dhaka)**, OL-INC-01 read-only incident investigation and isolated diagnostics. **Do not deploy master.** Production was rolled back by the owner; this investigation made no production changes. OL-01 and OL-04-B evidence below retains its original dates and limitations.
+Last development review: **2026-11-05 21:05 +06:00 (Asia/Dhaka)**, OL-INC-01-A **BLOCKED** by Linux connection cleanup. **Do not deploy master.** Production remains owner-rolled-back; this task changed only dependency pins, synthetic tests, CI and tracking documents. Historical evidence below retains its original dates and limitations.
 
 ## Repository and deployment
 
 | Item | State / provenance |
 |---|---|
 | Product / repository | OwnLobby / [rkRashik/DeltaCrown](https://github.com/rkRashik/DeltaCrown), default branch `master` |
-| Verified master baseline | [`7e07d6835f92a39a7cc4fb9ef3666f008a241b12`](https://github.com/rkRashik/DeltaCrown/commit/7e07d6835f92a39a7cc4fb9ef3666f008a241b12), PR #41 merged 2026-10-30 06:19:08 +06:00; clean local master fast-forwarded before `docs/ol-inc-01-navigation-hang-20261030` |
+| Verified master baseline | [`bec5a17b572c25e2d6e30d348c755332ea9e5ae2`](https://github.com/rkRashik/DeltaCrown/commit/bec5a17b572c25e2d6e30d348c755332ea9e5ae2), merged PR #42 including its follow-ups. Clean master fast-forwarded before creating `fix/ol-inc-01-a-asgi-cancellation` |
 | Application source | Merged [PR #41](https://github.com/rkRashik/DeltaCrown/pull/41) removes only the legacy homepage import/call from runtime code. Startup, dependencies, ASGI, database/cache configuration and teams view are unchanged from `f1f8d185`. Master is held from deployment pending incident review |
 | Latest independently verified Render live deployment | [`f1f8d18566723aa4e62875c20f7f6bc8dc4794e1`](https://github.com/rkRashik/DeltaCrown/commit/f1f8d18566723aa4e62875c20f7f6bc8dc4794e1), rollback deploy `dep-dbhufde7bikc738137sg`, completed **2026-10-30 06:42:19 +06:00**. Read-only [Render service](https://dashboard.render.com/web/srv-d6eubkngi27c738ieao0) deployment/event evidence confirms the rollback; owner reports navigation recovered. This is not full journey acceptance |
 | Production | [ownlobby.com](https://ownlobby.com): historical six-route/two-image smoke passed **2026-10-29** 23:13-23:15 +06:00. OL-INC-01 independently reconfirmed the rollback artifact, Free plan and auto-deploy OFF through provider reads; no fresh production HTTP smoke was run by this investigation. Authenticated/private-media acceptance remains open |
@@ -25,7 +25,7 @@ Read-only Render observation on 2026-10-29: the service remained on the Free pla
 
 ## Active work and immediate next task
 
-**OL-INC-01 is P0 / VERIFYING:** investigation complete, production attribution and remediation acceptance remain open. Review the evidence below, then authorize OL-INC-01-A: a narrowly scoped ASGI dependency correction and cancellation regression tests. No homepage revert or production change is justified automatically. OL-03 remains IN_PROGRESS and OL-04 VERIFYING; preserve independent OL-01 gates.
+**OL-INC-01 is P0 / VERIFYING; OL-INC-01-A is BLOCKED.** Draft PR #43 fixes the measured loop stall locally, but Linux leaves three PostgreSQL connections after the bounded cancellation cleanup window. No release recommendation or speculative runtime workaround follows. Next: owner review of the exact blocker and a separately scoped connection-lifetime investigation. OL-03 remains IN_PROGRESS and OL-04 VERIFYING; preserve independent OL-01 gates.
 
 **[OL-01](BACKLOG.md#ol-01) remains P0, VERIFYING.** A 2026-10-29 audit established an externally reachable Data API authorization risk before containment. The owner subsequently reports manual containment applied: Dashboard Overview shows **Enable Data API = OFF**, and Settings shows **Data API is disabled**.
 
@@ -40,6 +40,48 @@ Read-only Render observation on 2026-10-29: the service remained on the Free pla
 Prior source inspection found no required database Data API consumer. Django uses PostgreSQL connections; Supabase Storage APIs are separate. The constant-only direct DB check below adds scoped connectivity evidence, not proof of every authenticated feature or private Storage operation. Do not re-enable Data API or change RLS/grants.
 
 **Security follow-up:** close remaining OL-01 provider-state/private-browser gaps and obtain separate approval for the [hardening proposal](BACKLOG.md#ol-01-permanent-hardening-proposal-not-executed). These gates remain open independently of the owner-requested performance investigation below.
+
+## OL-INC-01-A implementation 2026-11-05
+
+Branch `fix/ol-inc-01-a-asgi-cancellation`, [PR #43](https://github.com/rkRashik/DeltaCrown/pull/43), baseline `bec5a17b`. Only runtime change: **asgiref 3.10.0 -> 3.12.1** in both requirements files. Django 5.2.18, Daphne 4.2.3, Channels 4.3.1 and the verified Twisted backport remain pinned. Installed package metadata accepts the candidate (Django >=3.8.1; Daphne >=3.5.2,<4; Channels >=3.9.0,<4); candidate requires Python >=3.10 and supports production Python 3.11.9. Local `pip check` passed. Version 3.13.0 was not selected; the smaller candidate contains the [upstream shutdown fix](https://github.com/django/asgiref/pull/563) already reproduced in the investigation.
+
+### Regression scope and bounded measurements
+
+[Focused harness](../../scripts/check_asgi_cancellation.py): real Django middleware, Daphne HTTP, Channels session/auth middleware and a synthetic PostgreSQL VALUES query with a finite wait. No application rows or migrations are needed by this focused check. Ordinary requests, connected slow clients, three rounds of three concurrent disconnected clients, unrelated `/healthz/`, loop heartbeat, two WebSocket echo/close cycles and cleanup are asserted. No explicit connection close is added to the synthetic view; Django cleanup must release it.
+
+Database URL must name loopback-only `ownlobby_test`; owner dotenv is disabled, child environment is restricted and external sockets are rejected. SQL has a 15 s test-only statement limit; requests have 2 s bounds, cleanup 8 s and child lifetime 120 s. The real 5 s application-close setting is preserved in the synthetic server. Temporary child logs are deleted; only aggregate results are printed.
+
+| Environment / dependency | Cancellation result | Cleanup / resource result |
+|---|---|---|
+| Windows Python 3.13.15, PostgreSQL 18.6, old 3.10.0 control | All three cancellation rounds reproduce one 2 s unrelated health timeout each; maximum loop lag 3791.11 ms. Connected control passes | Request executors, extra threads and child-tagged DB connections return to zero each round. Sampled threads baseline/peak 4/8; RSS unavailable on Windows. Initial exit had a temporary-log handle error after assertions; the harness now requests graceful child shutdown |
+| Same local fixture, candidate 3.12.1, final harness | Three cancellation rounds: 150 health probes, zero failures; connected control: 50 probes, zero failures. Maximum loop lag 3.85 ms; maximum health observation 23.93 ms | Zero extra threads, executors and DB connections after every round; sampled threads baseline/peak 4/12; final process/temp cleanup passed. RSS is explicitly unmeasured locally |
+| Linux Python 3.11.9 / PostgreSQL 16.15, old 3.10.0 | **FAIL cleanup** after the first disconnected batch (6 total slow requests finished). Maximum observed loop lag 3013.14 ms | Zero extra threads/request executors, but **3 child-tagged connections remain after 8 s**. Sampled peak RSS 152.04 MiB. Candidate step was skipped because the baseline step failed; candidate Python 3.11 is **NOT TESTED** |
+| Linux Python 3.12 / PostgreSQL 16.15, candidate 3.12.1 | **FAIL cleanup** after the first disconnected batch (6 slow requests finished). Maximum observed loop lag 2.09 ms | Zero extra threads/request executors, but **3 connections remain after 8 s**. Sampled peak RSS 146.66 MiB. Remaining cancellation rounds, final resource assertions and later security/functionality steps did not complete |
+
+These are synthetic samples, not Render performance or capacity guarantees. Candidate health/loop responsiveness gates are 2 s / 250 ms; thread budget is warm baseline + 20 at concurrency 3, with no extra threads or live request executors after bounded cleanup. Linux RSS gates: sampled peak <384 MiB, post-cleanup growth <32 MiB. Three finite cancellation rounds do not establish behavior under unlimited concurrent or permanently hung I/O.
+
+The interrupted candidate run had already passed and was retained as evidence. A confirmed Windows reader/atomic-replace race could kill the snapshot monitor; it now retries only `PermissionError`. The synthetic WebSocket nonce length and Windows child-process cleanup were corrected during harness setup. These were test-only corrections, not production workarounds.
+
+### CI, release limits and rollback
+
+[Linux run #66 failed](https://github.com/rkRashik/DeltaCrown/actions/runs/42049696576) at `77be5d48`. Only sanitized failure diagnostics were then added; [run #67 failed](https://github.com/rkRashik/DeltaCrown/actions/runs/42050650422) at **`bc7c5c63e7b2c5bd7e47243f0815eadc3bf4407a`**, identifying the same three retained connections in both jobs. Assertions were not relaxed. Production installations and `pip check` passed on both Python versions; Python 3.12 development graph resolution, native/startup and existing HTTP/WebSocket transport steps passed. Subsequent functional/security suites were skipped, not PASS. The final documentation-only commit intentionally skips another CI installation; reviewed code's failed runs remain authoritative. Draft PR must not merge or deploy.
+
+**Exact blocker:** heartbeat responsiveness improves, but the mandatory connection-lifetime acceptance criterion fails on Linux. The source of retained connections has not been investigated in this dependency-only scope. The harness does not explicitly close connections in its synthetic view or force garbage collection to manufacture cleanup. No Django/ORM/database configuration workaround was applied. A narrowly scoped follow-up must determine and correct that lifecycle before candidate Linux 3.11 and the full security/functionality/resource gates can pass. Live Google OAuth/account/private-file browser acceptance remains separate.
+
+Documentation validation: 74 documents / 379 local links, zero active failures; historical findings remain 47. The same three baseline root-placement hygiene findings remain OL-14 review candidates, with no cleanup performed. Only the two requirement files, focused harness, CI workflow and four canonical tracking documents changed. Task-created disposable database/dependency copies/logs are removed after recording aggregate evidence; older artifacts and protected owner documents are preserved.
+
+Implementation commit `c4b5c48dd6ddaf65b9ae4e9261d6ca7e642043aa`; harness shutdown `77be5d48c9b0e24ef67d4c1a6c9da7b684b0f880`; diagnostic follow-up `bc7c5c63e7b2c5bd7e47243f0815eadc3bf4407a`. For a complete approved code rollback, revert these in reverse order; documentation may remain. No DB migration, Redis flush, media migration, secret rotation or infrastructure upgrade. Restoring 3.10.0 restores the reproduced risk. Production remains `f1f8d185`; no deployment/configuration/data change occurred. Keep Data API disabled, Celery OFF and all media policies intact.
+
+### Additional production recurrences, independently verified 2026-11-05
+
+Read-only Render events/logs confirm the following on the still-rolled-back `f1f8d185` artifact. Counts are bounded matching log observations, not request totals or affected-user counts. No raw URLs, user data or exception bodies are published.
+
+| Original date / Asia-Dhaka time | Sanitized evidence |
+|---|---|
+| 2026-11-03 around 21:30 | 22 returned Daphne shutdown warnings; port 10000 timeout **21:35:10**, available **21:35:58** |
+| 2026-11-04 around 14:32-14:33 | 42 returned shutdown warnings; port timeout **14:37:16**, available **14:38:08** |
+
+These recurrences support fixing the shared mechanism while exact production thread/wait causality remains moderate-confidence. No new security/storage audit or production diagnostic load was performed.
 
 ## OL-INC-01 incident investigation 2026-10-30
 
