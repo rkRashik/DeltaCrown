@@ -2,16 +2,17 @@
 import importlib
 import io
 import json
+import os
 
 
-def migrate_fixture(stage, folder=None):
+def migrate_fixture(stage, folder=None, require_prepared=False):
     stage("migrations")
     if folder is None:
         from django.core.management import call_command
         call_command("migrate", interactive=False, verbosity=0, stdout=io.StringIO())
     else:
         from scripts.asgi_migration_qa import migrate
-        migrate(folder, stage)
+        migrate(folder, stage, require_prepared=require_prepared)
     stage("migrations", "completed")
 
 
@@ -46,7 +47,8 @@ def arrange(folder, slow, ordinary, lockdown, stage):
                                    "private_media": storage, "public_media": storage,
                                    "default": storage}).enable()
         # Only the guarded, disposable DB. No production migration command.
-        migrate_fixture(stage)
+        prepared = os.environ.get("QA_REQUIRE_PREPARED") == "1"
+        migrate_fixture(stage, folder if prepared else None, require_prepared=prepared)
         stage("synthetic_users")
         User = get_user_model()
         owner = User.objects.create_user(username="asgi-qa-owner", email="owner@example.invalid",

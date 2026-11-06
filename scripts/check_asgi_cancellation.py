@@ -31,6 +31,8 @@ ROOT = Path(__file__).resolve().parents[1]
 SLOW_SECONDS = 10
 CONCURRENCY = 3
 REPEATS = 3
+# Finite diagnostic ceiling for disposable CI provisioning, never production.
+QA_PROVISION_SECONDS = 600
 
 
 def require_local_database():
@@ -381,6 +383,10 @@ def main(args):
                    DJANGO_DEBUG="0")
     if args.migration_only:
         env["QA_MIGRATION_ONLY"] = "1"
+        if args.provision_real_asgi:
+            env["QA_PROVISION_FIXTURE"] = "1"
+    elif args.provision_real_asgi:
+        env["QA_REQUIRE_PREPARED"] = "1"
     if args.admission_prototype or args.sql_bounds:
         env["QA_HTTP_ADMISSION_CAPACITY"] = "2"  # Test fixture only; no production default.
     if args.sql_bounds:
@@ -462,10 +468,10 @@ def main(args):
     with tempfile.TemporaryDirectory(prefix="ownlobby-asgi-qa-") as directory:
         folder = Path(directory)
         with (folder / "child.log").open("w", encoding="utf-8") as log:
+            child_started = time.monotonic()
             proc = subprocess.Popen([sys.executable, str(Path(__file__).resolve()), "--serve", str(port), str(folder)],
                                     env=env, stdout=log, stderr=log,
                                     creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
-            child_started = time.monotonic()
             printed_stages = 0
 
             def startup_report():
@@ -535,8 +541,20 @@ def main(args):
                 if args.migration_only:
                     sys.path.insert(0, str(ROOT))
                     from scripts.asgi_migration_qa import poll
-                    return poll(proc, folder, observer, startup_report)
-                wait_for(lambda: get("/healthz/", .3).get("status") == 200, 90 if args.real_asgi else 30)
+                    return poll(proc, folder, observer, startup_report,
+                                seconds=QA_PROVISION_SECONDS if args.provision_real_asgi else 90)
+                startup_budget = max(0, 90 - (time.monotonic() - child_started)) if args.real_asgi else 30
+                wait_for(lambda: get("/healthz/", .3).get("status") == 200, startup_budget)
+                if args.real_asgi:
+                    print("REAL_ASGI_READY " + json.dumps(dict(lockdown=args.real_lockdown,
+                          startup_ms=round((time.monotonic() - child_started) * 1000, 2))), flush=True)
+                    if args.provision_real_asgi and not args.real_lockdown:
+                        prepared = json.loads((folder / "migration_progress.json").read_text(encoding="utf-8"))
+                        assert prepared["done"] and prepared["config"]["planned"] == 0
+                        assert prepared["completed_count"] == 0 and prepared["verified"]["pending"] == 0
+                        print("REAL_ASGI_PREPARED_DB " + json.dumps(dict(
+                              applied_during_startup=prepared["completed_count"],
+                              verified=prepared["verified"])), flush=True)
                 versions = json.loads((folder / "versions.json").read_text(encoding="utf-8"))
                 assert versions["asgiref"] == ("3.10.0" if args.expect_blocked else "3.12.1")
                 assert {k: versions[k] for k in ("Django", "daphne", "channels")} == {
@@ -994,7 +1012,8 @@ def compare_wrapper(args):
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] == "--serve":
         # Hard process lifetime also bounds unexpected event-loop/worker failures.
-        watchdog = threading.Timer(120, lambda: os._exit(124))
+        lifetime = QA_PROVISION_SECONDS + 10 if os.environ.get("QA_PROVISION_FIXTURE") == "1" else 120
+        watchdog = threading.Timer(lifetime, lambda: os._exit(124))
         watchdog.daemon = True
         watchdog.start()
         try:
@@ -1011,9 +1030,20 @@ if __name__ == "__main__":
         parser.add_argument("--sql-bounds", action="store_true")
         parser.add_argument("--real-asgi", action="store_true")
         parser.add_argument("--migration-only", action="store_true")
+        parser.add_argument("--provision-real-asgi", action="store_true")
         args = parser.parse_args()
         args.real_lockdown = False
-        if args.migration_only:
+        if args.provision_real_asgi:
+            assert not any((args.expect_blocked, args.baseline_path, args.compare_wrapper,
+                            args.admission_prototype, args.sql_bounds, args.real_asgi, args.migration_only))
+            args.real_asgi = args.migration_only = True
+            main(args)  # Separate provisioning child must succeed before ASGI launch.
+            args.migration_only = False
+            args.wrapped = True
+            main(args)
+            args.real_lockdown = True
+            main(args)
+        elif args.migration_only:
             assert not any((args.expect_blocked, args.baseline_path, args.compare_wrapper,
                             args.admission_prototype, args.sql_bounds, args.real_asgi))
             args.real_asgi = True  # Reuse sanitized startup metadata and local QA environment.

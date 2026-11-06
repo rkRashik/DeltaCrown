@@ -7,7 +7,7 @@ import threading
 import time
 
 
-def migrate(folder, stage):
+def migrate(folder, stage, require_prepared=False):
     from django.conf import settings
     from django.core.management import call_command
     from django.core.management.commands.migrate import Command
@@ -48,6 +48,8 @@ def migrate(folder, stage):
                                   conn_max_age=connection.settings_dict["CONN_MAX_AGE"])
         save("migration_progress", progress)
         stage("migration_plan", "completed")
+        if require_prepared:
+            assert not plan, "Prepared ASGI QA must not apply pending migrations"
         del executor
 
         class ObservedCommand(Command):
@@ -72,6 +74,15 @@ def migrate(folder, stage):
         stage("migration_command")
         call_command(ObservedCommand(), interactive=False, verbosity=0, stdout=io.StringIO())
         stage("migration_command", "completed")
+        stage("migration_state_verification")
+        connection.close()  # Fixture preparation only; no ASGI requests exist yet.
+        verified = MigrationExecutor(connection)
+        pending = verified.migration_plan(verified.loader.graph.leaf_nodes())
+        progress["verified"] = dict(pending=len(pending), applied=len(verified.loader.applied_migrations),
+                                    duration_ms=round((time.monotonic() - began) * 1000, 2))
+        save("migration_progress", progress)
+        assert not pending and progress["completed_count"] == len(plan)
+        stage("migration_state_verification", "completed")
         progress["done"] = True
         save("migration_progress", progress)
     finally:
@@ -84,7 +95,7 @@ def poll(proc, folder, observer, startup_report, seconds=90):
     began = time.monotonic()
     deadline = began + seconds
     printed = 0
-    observations = []
+    observations = 0
     progress = {}
     python = {}
 
@@ -118,8 +129,7 @@ def poll(proc, folder, observer, startup_report, seconds=90):
         item = dict(elapsed_ms=round((time.monotonic() - began) * 1000, 2), sessions=sessions,
                     completed=progress.get("completed_count", 0), current=progress.get("current"),
                     python=python)
-        if len(observations) < 200:
-            observations.append(item)
+        observations += 1
         # Bounded metadata only; no SQL, database URLs, parameters or locals.
         print("MIGRATION_OBSERVER " + json.dumps(item), flush=True)
         status = proc.poll()
@@ -128,8 +138,9 @@ def poll(proc, folder, observer, startup_report, seconds=90):
                            plan_first=progress.get("plan", [])[:3], plan_last=progress.get("plan", [])[-3:],
                            last_completed=progress.get("last_completed"), current=progress.get("current"),
                            completed_count=progress.get("completed_count", 0), observation=item,
-                           observations=len(observations), child_exit_status=status)
+                           verified=progress.get("verified"), observations=observations,
+                           ceiling_seconds=seconds, child_exit_status=status)
             print("MIGRATION_QA_SUMMARY " + json.dumps(summary), flush=True)
-            assert status == 0 and progress.get("done"), "Migration-only QA did not finish within 90 seconds"
+            assert status == 0 and progress.get("done"), f"Migration-only QA did not finish within {seconds} seconds"
             return summary
         time.sleep(min(1, max(0, deadline - time.monotonic())))
