@@ -2,6 +2,10 @@
 
 Append dated milestones; retain original event dates. Source changes, historical test reports, owner actions and fresh verification are distinct. Task status is maintained in [BACKLOG](BACKLOG.md). This is a selected evidence index, not a replacement for Git history.
 
+## 2026-11-06
+
+- **OL-INC-01-A / A9 inactive extraction:** separate branch from remote master `bec5a17b`; research [Draft PR #43](https://github.com/rkRashik/DeltaCrown/pull/43) preserved at `90b5a985`. Matching asgiref 3.12.1 pins, unwired HTTP module and six finite stdlib tests only; Daphne stays 4.2.3. Focused Windows Python 3.13.15 tests PASS; dependency resolution/existing `pip check` and disposable asgiref import PASS. Default ASGI graph is unchanged; no migrations, external DB, full Linux suite, shutdown coordinator or production activation. [STATUS](STATUS.md#a9-inactive-candidate) records limits; A10–A12 gates remain open.
+
 ## 2026-10-30
 
 - **OL-INC-01 evening production recurrence (read-only follow-up):** while rolled-back `f1f8d185` remained live, 19:51 +06:00 logs contained multiple cross-route Daphne request-shutdown timeout warnings and asyncio exception entries; Render reported a 19:56:15 internal port timeout and 19:56:58 recovery. This confirms the old release also experiences the incident class. [STATUS addendum](STATUS.md#evening-recurrence-on-the-rolled-back-release-read-only-follow-up-2026-10-30) records limits and metrics. No code/production change was made; existing deployment hold and OL-INC-01-A acceptance gates remain.

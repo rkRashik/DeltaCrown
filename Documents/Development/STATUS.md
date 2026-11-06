@@ -1,13 +1,22 @@
 # OwnLobby current status
 
-Last development review: **2026-10-30 16:15 +06:00 (Asia/Dhaka)**, OL-INC-01 read-only incident investigation and isolated diagnostics. **Do not deploy master.** Production was rolled back by the owner; this investigation made no production changes. OL-01 and OL-04-B evidence below retains its original dates and limitations.
+Last development review: **2026-11-06 15:11 +06:00 (Asia/Dhaka)**, OL-INC-01-A / A9 inactive candidate extraction. **Do not deploy master.** No production check/change was made; dated operational evidence below is historical.
+
+## A9 inactive candidate
+
+- Baseline: remote master `bec5a17b572c25e2d6e30d348c755332ea9e5ae2`; separate branch `candidate/ol-inc-01-a9-inactive`. Research [PR #43](https://github.com/rkRashik/DeltaCrown/pull/43) stays Draft at `90b5a985` with A6/A8 evidence; no diagnostic framework is copied.
+- Both requirements pin asgiref 3.12.1; Daphne remains 4.2.3. [Lifecycle module](../../apps/common/asgi_lifecycle.py) is importable but absent from the unchanged production ASGI graph. Removing research counters does not change its cancellation/admission control flow. No request data is shared between contexts.
+- Six [finite stdlib contracts](../../tests/test_http_lifecycle.py) PASS on Windows Python 3.13.15 (final run 0.067 s): receive/disconnect forwarding, repeated cancellation drain, streaming/admission accounting, exception retrieval, receive failure/concurrency cleanup and self-cancellation. Initial sandboxed asyncio execution stalled; the bounded approved run passed without changing the wrapper. No database, migrations or provider was used.
+- Production requirements resolve in a pip dry run; existing-environment `pip check` passes. A disposable asgiref 3.12.1 install and wrapper import leave Django unloaded. No clean full production installation or new Linux/application suite is claimed. ASGI/startup/settings diffs against master are empty, preserving WebSocket/auth/media and outer CutoverLockdown wiring.
+- The dependency upgrade affects installed runtime behavior; the wrapper remains inactive. Finite research cleanup is verified; indefinitely blocked work and mixed-protocol shutdown are unresolved. [BACKLOG](BACKLOG.md#ol-inc-01) owns A10–A12 gates. Activation, staging/release and production bounds require separate review.
+- A9 documentation validation: 74 documents / 381 links, zero active failures; 47 historical findings and three root-placement hygiene failures match the baseline. No protected owner documents are copied or staged.
 
 ## Repository and deployment
 
 | Item | State / provenance |
 |---|---|
 | Product / repository | OwnLobby / [rkRashik/DeltaCrown](https://github.com/rkRashik/DeltaCrown), default branch `master` |
-| Verified master baseline | [`7e07d6835f92a39a7cc4fb9ef3666f008a241b12`](https://github.com/rkRashik/DeltaCrown/commit/7e07d6835f92a39a7cc4fb9ef3666f008a241b12), PR #41 merged 2026-10-30 06:19:08 +06:00; clean local master fast-forwarded before `docs/ol-inc-01-navigation-hang-20261030` |
+| Verified master baseline | [`bec5a17b572c25e2d6e30d348c755332ea9e5ae2`](https://github.com/rkRashik/DeltaCrown/commit/bec5a17b572c25e2d6e30d348c755332ea9e5ae2), remote verified for A9; local master and research branch were not modified |
 | Application source | Merged [PR #41](https://github.com/rkRashik/DeltaCrown/pull/41) removes only the legacy homepage import/call from runtime code. Startup, dependencies, ASGI, database/cache configuration and teams view are unchanged from `f1f8d185`. Master is held from deployment pending incident review |
 | Latest independently verified Render live deployment | [`f1f8d18566723aa4e62875c20f7f6bc8dc4794e1`](https://github.com/rkRashik/DeltaCrown/commit/f1f8d18566723aa4e62875c20f7f6bc8dc4794e1), rollback deploy `dep-dbhufde7bikc738137sg`, completed **2026-10-30 06:42:19 +06:00**. Read-only [Render service](https://dashboard.render.com/web/srv-d6eubkngi27c738ieao0) deployment/event evidence confirms the rollback; owner reports navigation recovered. This is not full journey acceptance |
 | Production | [ownlobby.com](https://ownlobby.com): historical six-route/two-image smoke passed **2026-10-29** 23:13-23:15 +06:00. OL-INC-01 independently reconfirmed the rollback artifact, Free plan and auto-deploy OFF through provider reads; no fresh production HTTP smoke was run by this investigation. Authenticated/private-media acceptance remains open |
@@ -25,7 +34,7 @@ Read-only Render observation on 2026-10-29: the service remained on the Free pla
 
 ## Active work and immediate next task
 
-**OL-INC-01 is P0 / VERIFYING:** investigation complete, production attribution and remediation acceptance remain open. Review the evidence below, then authorize OL-INC-01-A: a narrowly scoped ASGI dependency correction and cancellation regression tests. No homepage revert or production change is justified automatically. OL-03 remains IN_PROGRESS and OL-04 VERIFYING; preserve independent OL-01 gates.
+**OL-INC-01 is P0 / VERIFYING:** A9 inactive extraction is ready for separate Draft review; production attribution, activation and release acceptance remain open. Next: design review of the A10–A12 blockers in BACKLOG. OL-03 remains IN_PROGRESS and OL-04 VERIFYING; preserve independent OL-01 gates.
 
 **[OL-01](BACKLOG.md#ol-01) remains P0, VERIFYING.** A 2026-10-29 audit established an externally reachable Data API authorization risk before containment. The owner subsequently reports manual containment applied: Dashboard Overview shows **Enable Data API = OFF**, and Settings shows **Data API is disabled**.
 
