@@ -51,9 +51,15 @@ websocket_app = AllowedHostsOriginValidator(
 if getattr(settings, "WS_RATE_ENABLED", False):
     websocket_app = RateLimitMiddleware(websocket_app)
 
+http_app = django_asgi_app
+if settings.OWNLOBBY_ASGI_LIFECYCLE is not None:
+    from apps.common.asgi_lifecycle import require_runtime
+    runtime = require_runtime(settings.OWNLOBBY_ASGI_LIFECYCLE)
+    http_app, websocket_app = runtime.attach(http_app, websocket_app)
+
 application = ProtocolTypeRouter({
     # Django's ASGI application to handle traditional HTTP requests
-    "http": django_asgi_app,
+    "http": http_app,
     
     # WebSocket handler for real-time tournament and team updates
     # Middleware chain (innermost to outermost):

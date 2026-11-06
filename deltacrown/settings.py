@@ -1,6 +1,8 @@
 ﻿from pathlib import Path
 import mimetypes
 import os
+from apps.common.asgi_lifecycle import LifecycleConfig
+
 import sys
 import socket
 import dj_database_url
@@ -18,6 +20,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Deterministic .env loading - explicit path, no override
 load_dotenv(dotenv_path=BASE_DIR / ".env", override=False)
+
+# Coordinated adapter/wrappers are opt-in; enabled budgets have no production defaults.
+OWNLOBBY_ASGI_LIFECYCLE = LifecycleConfig.from_environ(os.environ)
 
 # Ensure .webmanifest files are served with the correct MIME type.
 mimetypes.add_type('application/manifest+json', '.webmanifest', strict=True)
