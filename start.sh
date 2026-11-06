@@ -60,6 +60,15 @@ if [ "${DAPHNE_ACCESS_LOG:-0}" = "1" ]; then
 fi
 
 if [ "${ENABLE_CELERY_WORKER:-0}" = "1" ]; then
-    exec python scripts/render_processes.py daphne "${DAPHNE_ARGS[@]}" deltacrown.asgi:application
+    case "${OWNLOBBY_ASGI_LIFECYCLE_ENABLED:-0}" in
+        0) exec python scripts/render_processes.py daphne "${DAPHNE_ARGS[@]}" deltacrown.asgi:application ;;
+        1) exec python scripts/render_processes.py python -m apps.common.daphne_server "${DAPHNE_ARGS[@]}" deltacrown.asgi:application ;;
+        *) echo "[render] Invalid lifecycle activation gate" >&2; exit 1 ;;
+    esac
 fi
+case "${OWNLOBBY_ASGI_LIFECYCLE_ENABLED:-0}" in
+    0) ;;
+    1) exec python -m apps.common.daphne_server "${DAPHNE_ARGS[@]}" deltacrown.asgi:application ;;
+    *) echo "[render] Invalid lifecycle activation gate" >&2; exit 1 ;;
+esac
 exec daphne "${DAPHNE_ARGS[@]}" deltacrown.asgi:application
