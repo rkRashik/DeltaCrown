@@ -171,13 +171,60 @@ def serve(port, folder):
             kind.reset(token)
 
     class ObservedServer(Server):
+        def connection_summary(self):
+            from daphne.http_protocol import WebRequest
+            from daphne.ws_protocol import WebSocketProtocol
+            groups = {name: dict(total=0, with_application_instance=0, without_application_instance=0,
+                                 application_none=0, pending=0, completed=0, cancellation_requested=0)
+                      for name in ("http", "websocket", "other")}
+            for protocol, details in self.connections.items():
+                category = "http" if isinstance(protocol, WebRequest) else \
+                           "websocket" if isinstance(protocol, WebSocketProtocol) else "other"
+                group = groups[category]
+                group["total"] += 1
+                if "application_instance" not in details:
+                    group["without_application_instance"] += 1
+                    continue
+                group["with_application_instance"] += 1
+                task = details["application_instance"]
+                if task is None:
+                    group["application_none"] += 1
+                else:
+                    group["completed" if task.done() else "pending"] += 1
+                    group["cancellation_requested"] += bool(getattr(task, "cancelling", lambda: 0)())
+            return dict(total=sum(g["total"] for g in groups.values()), categories=groups)
+
         def kill_all_applications(self):
             state["shutdown_entered"] = True
             event("shutdown_entered")
-            result = super().kill_all_applications()  # Original cancellation and gather semantics.
+            boundary = dict(before=self.connection_summary(), original_returned=False,
+                            original_raised=False, exception_type=None, returned_deferred=False,
+                            deferred_fired=False)
+            state["shutdown_boundary"] = boundary
+            event("shutdown_original_call", summary=boundary["before"])
+            try:
+                result = super().kill_all_applications()  # Original cancellation and gather semantics.
+            except BaseException as error:
+                origin = error.__traceback__
+                while origin.tb_next is not None:
+                    origin = origin.tb_next
+                boundary.update(original_raised=True, exception_type=type(error).__name__,
+                                raise_site_is_original=origin.tb_frame.f_code is Server.kill_all_applications.__code__,
+                                raise_details_missing_application=isinstance(origin.tb_frame.f_locals.get("details"), dict)
+                                    and "application_instance" not in origin.tb_frame.f_locals["details"],
+                                after=self.connection_summary())
+                del origin
+                # Booleans only: no exception args, raw traceback or frame locals.
+                event("shutdown_original_raised", exception_type=boundary["exception_type"])
+                raise
+            from twisted.internet.defer import Deferred
+            boundary.update(original_returned=True, returned_deferred=isinstance(result, Deferred),
+                            after=self.connection_summary())
+            event("shutdown_original_returned", returned_deferred=boundary["returned_deferred"])
 
             def observed(value):
                 state["shutdown_wait_returned"] = True
+                boundary["deferred_fired"] = True
                 event("shutdown_wait_returned")
                 return value
 
@@ -206,6 +253,9 @@ def serve(port, folder):
 
     server = ObservedServer(application=application, endpoints=[f"tcp:port={port}:interface=127.0.0.1"],
                             http_timeout=3600, application_close_timeout=APP_CLOSE_SECONDS, verbosity=0)
+    from twisted.internet import reactor
+    reactor.addSystemEventTrigger("during", "shutdown", lambda: event("reactor_shutdown_during"))
+    reactor.addSystemEventTrigger("after", "shutdown", lambda: event("reactor_shutdown_after"))
     threading.Thread(target=monitor, name="qa-shutdown-monitor", daemon=True).start()
     try:
         server.run()
@@ -215,7 +265,7 @@ def serve(port, folder):
         # Daemon observer stays alive during Python executor atexit joins.
 
 
-def main():
+def main(mixed_only=False):
     assert sys.platform == "linux", "Signal/process contract requires disposable Linux QA"
     sys.path.insert(0, str(ROOT))
     from scripts.check_asgi_cancellation import require_local_database
@@ -225,7 +275,7 @@ def main():
     observer.autocommit = True
     results = []
     try:
-        for case in ("finite", "blocked", "mixed"):
+        for case in (("mixed",) if mixed_only else ("finite", "blocked", "mixed")):
             with tempfile.TemporaryDirectory(prefix="ownlobby-shutdown-") as directory:
                 folder = Path(directory)
                 with socket.socket() as reserved:
@@ -358,6 +408,11 @@ def main():
                                       before_termination=pre_force, final_snapshot=last,
                                       db_after_exit=db(), peer_outcomes=peer,
                                       samples=len(samples), parent_elapsed_ms=round((time.monotonic()-parent_started)*1000,2))
+                        boundary = last.get("shutdown_boundary", {})
+                        result["hypothesis"] = ("PASS" if boundary.get("exception_type") == "KeyError"
+                            and boundary.get("raise_site_is_original")
+                            and boundary.get("raise_details_missing_application") else
+                            "REJECTED" if boundary.get("original_returned") else "UNRESOLVED")
                         print("SHUTDOWN_QA " + json.dumps(result), flush=True)
                         assert case != "blocked" or not cleanup, "Never-returning work must not be called graceful"
                         results.append(result)
@@ -381,4 +436,5 @@ if __name__ == "__main__":
         # not wait for a daemon timer. The independent parent normally ends first.
         serve(int(sys.argv[2]), Path(sys.argv[3]))
     else:
-        main()
+        assert sys.argv[1:] in ([], ["--mixed-only"]), "Unknown shutdown QA mode"
+        main(mixed_only=sys.argv[1:] == ["--mixed-only"])
