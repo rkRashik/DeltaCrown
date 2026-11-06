@@ -32,6 +32,8 @@ def homepage_context(request):
     """
     Comprehensive homepage context with live data and static content.
     """
+    if getattr(request, "_ownlobby_home_v3", False):
+        return {}  # Proven unused by the active v3 view/includes; preserve legacy callers.
     # This context is homepage-only. Returning early for all other paths
     # avoids repeated heavy queries in global context processing.
     if request.path != '/':

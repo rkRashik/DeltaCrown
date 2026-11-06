@@ -41,7 +41,7 @@ class _WebSocketOutcome:
 class OwnLobbyServer(Server):
     def __init__(self, *args, **kwargs):
         self.lifecycle = lifecycle._runtime
-        if (version("daphne") != "4.2.3" or self.lifecycle is None
+        if (version("daphne") != "4.2.3" or version("autobahn") != "26.7.1" or self.lifecycle is None
                 or not self.lifecycle.attached):
             raise RuntimeError("OwnLobby adapter requires pinned Daphne and coordinated ASGI wrappers")
         self.application_tasks = set()

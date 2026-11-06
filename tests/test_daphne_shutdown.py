@@ -75,6 +75,7 @@ print('A10_ASGI_WIRING '+mode+' PASS')
                        COMPETITION_APP_ENABLED="1",A10_MODE=mode,
                        OWNLOBBY_ASGI_LIFECYCLE_ENABLED="0" if mode=="off" else "1",
                        OWNLOBBY_HTTP_CAPACITY="2",OWNLOBBY_DRAIN_SECONDS=".1",OWNLOBBY_CLEANUP_SECONDS=".3",
+                       OWNLOBBY_WEBSOCKET_CAPACITY="2",OWNLOBBY_SATURATION_SECONDS=".2",
                        OWNLOBBY_DECLARED_HOST_SHUTDOWN_SECONDS="1")
             result=subprocess.run([sys.executable,"-c",code],cwd=ROOT,env=env,capture_output=True,text=True,timeout=10)
             self.assertEqual(result.returncode,0,result.stderr[-1600:])
@@ -85,6 +86,7 @@ print('A10_ASGI_WIRING '+mode+' PASS')
         with self.assertRaises(ValueError):
             lifecycle.LifecycleConfig.from_environ({"OWNLOBBY_ASGI_LIFECYCLE_ENABLED":"invalid"})
         env = dict(OWNLOBBY_ASGI_LIFECYCLE_ENABLED="1", OWNLOBBY_HTTP_CAPACITY="2",
+                   OWNLOBBY_WEBSOCKET_CAPACITY="2",OWNLOBBY_SATURATION_SECONDS=".2",
                    OWNLOBBY_DRAIN_SECONDS=".1", OWNLOBBY_CLEANUP_SECONDS=".3",
                    OWNLOBBY_DECLARED_HOST_SHUTDOWN_SECONDS="1")
         for key in tuple(env):
@@ -94,6 +96,7 @@ print('A10_ASGI_WIRING '+mode+' PASS')
                 with self.assertRaises(ValueError):
                     lifecycle.LifecycleConfig.from_environ(invalid)
         for key, value in (("OWNLOBBY_HTTP_CAPACITY", "0"), ("OWNLOBBY_DRAIN_SECONDS", "nan"),
+                           ("OWNLOBBY_WEBSOCKET_CAPACITY","0"),("OWNLOBBY_SATURATION_SECONDS","nan"),
                            ("OWNLOBBY_CLEANUP_SECONDS", "inf"),
                            ("OWNLOBBY_DECLARED_HOST_SHUTDOWN_SECONDS", ".1")):
             with self.assertRaises(ValueError):
@@ -300,6 +303,7 @@ class ProcessTests(unittest.TestCase):
                                COMPETITION_APP_ENABLED="1", AWS_EC2_METADATA_DISABLED="true",
                                OWNLOBBY_ASGI_LIFECYCLE_ENABLED="1", OWNLOBBY_HTTP_CAPACITY="2" if case=="saturation" else "4",
                                A11_QA_WS_CAPACITY="2",A11_QA_STALL_SECONDS=".2",A11_QA_LAG_SECONDS=".08",
+                               OWNLOBBY_WEBSOCKET_CAPACITY="2",OWNLOBBY_SATURATION_SECONDS=".2",
                                OWNLOBBY_DRAIN_SECONDS=".2", OWNLOBBY_CLEANUP_SECONDS=".3" if case=="blocked" else "5",
                                OWNLOBBY_DECLARED_HOST_SHUTDOWN_SECONDS="10", A10_QA_CASE=case, A10_QA_STATE=str(state_file))
                     with (Path(folder)/"child.log").open("w") as log:
@@ -370,11 +374,17 @@ class ProcessTests(unittest.TestCase):
                                 with socket.create_connection(("127.0.0.1",port),timeout=1):
                                     tcp_responsive=True
                                 before_ticks=state()["loop_ticks"]
-                                keep.request("GET","/healthz/")
+                                keep.request("GET","/work/")
                                 rejected=keep.getresponse();rejected.read()
                                 self.assertEqual((rejected.status,rejected.getheader("Cache-Control")),(503,"no-store"))
+                                keep.request("GET","/healthz/")
+                                live=keep.getresponse();live.read()
+                                self.assertEqual(live.status,200)  # No restart for ordinary short saturation.
                                 wait(lambda:"SATURATED_NO_OBSERVED_PROGRESS" in state().get("signals_seen",[]))
                                 stalled=state()
+                                keep.request("GET","/healthz/")
+                                unhealthy=keep.getresponse();unhealthy.read()
+                                self.assertEqual(unhealthy.status,503)
                                 self.assertGreater(stalled["loop_ticks"],before_ticks)
                                 self.assertLess(stalled["occupancy"]["loop_lag_seconds"],.08)
                                 self.assertEqual(stalled["occupancy"]["http_active"],2)

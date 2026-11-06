@@ -1,7 +1,7 @@
 """Gated HTTP lifecycle protection; activation is coordinated with our adapter.
 
-Finite cancellation cleanup is verified in research PR #43 (CI #78).
-Blocked work and mixed-protocol shutdown remain unresolved (CI #79/#80).
+Finite cancellation and mixed-protocol cleanup are verified in PRs #43/#45.
+Blocked synchronous work still requires externally enforced process termination.
 Cancellation cannot stop synchronous work. This wrapper retains the Django task
 until it finishes, including its original cleanup. Optional admission bounds the
 number of children, not execution time or memory per request. Permanently blocked
@@ -19,6 +19,8 @@ class LifecycleConfig:
     drain_seconds: float
     cleanup_seconds: float
     host_seconds: float  # Operator declaration, not verification of Render settings.
+    websocket_capacity: int | None = None
+    saturation_seconds: float | None = None
 
     @classmethod
     def from_environ(cls, environ):
@@ -31,11 +33,14 @@ class LifecycleConfig:
             config = cls(int(environ["OWNLOBBY_HTTP_CAPACITY"]),
                          float(environ["OWNLOBBY_DRAIN_SECONDS"]),
                          float(environ["OWNLOBBY_CLEANUP_SECONDS"]),
-                         float(environ["OWNLOBBY_DECLARED_HOST_SHUTDOWN_SECONDS"]))
+                         float(environ["OWNLOBBY_DECLARED_HOST_SHUTDOWN_SECONDS"]),
+                         int(environ["OWNLOBBY_WEBSOCKET_CAPACITY"]),
+                         float(environ["OWNLOBBY_SATURATION_SECONDS"]))
         except (KeyError, ValueError):
             raise ValueError("Enabled lifecycle requires explicit capacity and shutdown budgets") from None
-        if (config.capacity <= 0 or any(not math.isfinite(v) or v <= 0 for v in
-                (config.drain_seconds, config.cleanup_seconds, config.host_seconds))
+        if (config.capacity <= 0 or config.websocket_capacity <= 0
+                or any(not math.isfinite(v) or v <= 0 for v in
+                (config.drain_seconds, config.cleanup_seconds, config.host_seconds, config.saturation_seconds))
                 or config.drain_seconds + config.cleanup_seconds >= config.host_seconds):
             raise ValueError("Lifecycle budgets must be positive, finite, and fit inside the declared host window")
         return config
@@ -50,15 +55,16 @@ class LifecycleState:
         self._websocket_owners = set()
         self._websocket_closures = {}  # Actual Daphne task -> protocol-closed future.
         self.websocket_capacity = None
-        if websocket_capacity is not None:
-            self.configure_websocket_capacity(websocket_capacity)
+        selected_ws_capacity = config.websocket_capacity if websocket_capacity is None else websocket_capacity
+        if selected_ws_capacity is not None:
+            self.configure_websocket_capacity(selected_ws_capacity)
         self.ws_peak = self.ws_pending_peak = self.ws_accepted_peak = 0
         self.ws_rejections = self.ws_quiescing_rejections = 0
         self.ws_completed = self.ws_failed = 0
         self.attached = False
 
     def configure_websocket_capacity(self, capacity):
-        """QA supplies this explicitly before attach; no env/default activation."""
+        """Configure before attach; production selection has no capacity default."""
         if getattr(self, "attached", False):
             raise RuntimeError("Configure admission before attaching applications")
         if type(capacity) is not int or capacity <= 0:
@@ -265,6 +271,23 @@ class HTTPDisconnectDrain:
     async def __call__(self, scope, receive, send):
         if scope["type"] != "http":
             raise ValueError("HTTPDisconnectDrain accepts HTTP only")
+        if (self.lifecycle is not None and self.lifecycle.config.saturation_seconds is not None
+                and scope.get("path") == "/healthz/" and scope.get("method") in {"GET", "HEAD"}):
+            # A reviewed management probe only: no Django/auth/DB/body work.
+            # Brief legitimate saturation remains healthy. Prolonged full HTTP
+            # ownership without observed body/completion progress fails readiness,
+            # allowing Render's HTTP health policy to own recovery. It is not a
+            # diagnosis of permanently blocked work or an application-route bypass.
+            full = self.capacity is not None and self._occupied >= self.capacity
+            stalled = (full and time.monotonic() - max(self.full_since, self.last_progress)
+                       >= self.lifecycle.config.saturation_seconds)
+            unavailable = self.lifecycle.quiescing or stalled
+            body = b'{"status":"unavailable"}' if unavailable else b'{"status":"ok"}'
+            await send({"type":"http.response.start", "status":503 if unavailable else 200,
+                        "headers":[(b"content-type",b"application/json"),(b"cache-control",b"no-store"),
+                                   (b"x-ownlobby-lifecycle", b"enabled")]})
+            await send({"type":"http.response.body", "body":b"" if scope["method"]=="HEAD" else body})
+            return
         if (self.lifecycle is not None and self.lifecycle.quiescing
                 or self.capacity is not None and self._occupied >= self.capacity):
             if self.lifecycle is not None and self.lifecycle.quiescing:

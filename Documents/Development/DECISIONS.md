@@ -15,4 +15,6 @@ Decision state is independent of implementation status. Accepted constraints are
 
 ## Adding a decision
 
+**ADR-009 / 2026-11-07 / selected release-candidate design, not activation approval.** Reuse #46 on one release branch; exclude inactive #47 hooks and blanket provider-unverified deadlines. Require explicit HTTP/WS/shutdown/saturation bounds; reserve only GET/HEAD health readiness outside admitted Django work, still inside CutoverLockdown. Prefer existing DB session backend over custom cache-fallback code: same persistent table/encoding/cookie, with an additional normal session DB read and no cache dependency. Skip only the proven unused v3 global context processor. Alternative broad cache/timeout/scheduler rewrites increase release risk and are deferred. Activation requires the [STATUS gates](STATUS.md#release-preparation-2026-11-07-0600); no provider settings or production budgets were approved by writing this decision.
+
 Record a stable ADR ID, actual decision date, decision owner, accepted/proposed/superseded state, problem, evidence, alternatives, rationale, consequences, affected tasks and conditions for review. Link the approving record if safe; otherwise state that evidence is owner-held and private. A proposal becomes accepted only after the applicable owner decision, not when an agent writes implementation code.

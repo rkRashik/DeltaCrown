@@ -2,6 +2,10 @@
 
 Append dated milestones; retain original event dates. Source changes, historical test reports, owner actions and fresh verification are distinct. Task status is maintained in [BACKLOG](BACKLOG.md). This is a selected evidence index, not a replacement for Git history.
 
+## 2026-11-07
+
+- **OL-INC-01 release preparation:** existing release branch consolidates tested #46 stack, excludes inactive #47 I/O helpers. Release deltas: explicit WS/admission-readiness configuration, DB-backed sessions with existing table/cookie compatibility, and unused v3 global homepage processor bypass. Local readiness/processor/session-default checks pass; PostgreSQL session test awaits Linux. [STATUS](STATUS.md#release-preparation-2026-11-07-0600) records fresh pre-release public 200s, provider constraints and unresolved gates. No production change, activation, merge, deployment or measured performance improvement. Owner chose Dashboard operations instead of providing API credentials.
+
 ## 2026-11-06
 
 - **OL-INC-01-A / A11B-1 QA acceptance:** [Draft #46](https://github.com/rkRashik/DeltaCrown/pull/46) above unchanged #45 adds independent WS admission, aggregate counters and pull-only saturation signals. [One Linux matrix](https://github.com/rkRashik/DeltaCrown/actions/runs/42237893242), code `837941b2`: 23 tests and pinned dependency/pip checks PASS on Python 3.11.9/3.12. Synthetic saturation retained responsive TCP/loop with capacity 503, then finite-work HTTP 200 recovery; existing 1012/disconnect cleanup and blocked-incomplete controls pass. Recorded RSS peaks 146.98/144.98 MiB and observed DB peak 2 do not establish Render capacity; 3.11 scheduling lag is documented in STATUS. No production limit, I/O deadline, recovery action, health configuration or activation selected. Provider/I/O/staging gates remain open; prior [A10 evidence](https://github.com/rkRashik/DeltaCrown/actions/runs/42231856054) is preserved.

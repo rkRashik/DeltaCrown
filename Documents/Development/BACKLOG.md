@@ -1,12 +1,12 @@
 # OwnLobby master backlog
 
-Updated: 2026-10-30. This is the canonical task-state record. [STATUS](STATUS.md) supplies dated evidence provenance; [ROADMAP](ROADMAP.md) supplies milestone gates. All OL-01 through OL-13 IDs are permanent. None is DONE at initialization.
+Updated: 2026-11-07 (+06:00). This is the canonical task-state record. [STATUS](STATUS.md) supplies dated evidence provenance; [ROADMAP](ROADMAP.md) supplies milestone gates. All OL-01 through OL-13 IDs are permanent. None is DONE at initialization.
 
 Owner for product/production decisions: repository owner. Implementers/reviewers are assigned when a task starts; none is implied by this list. OL-01 through OL-13 initially reference [Issue #37](https://github.com/rkRashik/DeltaCrown/issues/37); create narrower issues only when useful and authorized. Status vocabulary and completion workflow are in [README](README.md).
 
 | ID | Task | Priority | Status | Main dependency / next action |
 |---|---|---|---|---|
-| [OL-INC-01](#ol-inc-01) | Navigation hang after release / incident verification | P0 | VERIFYING | A9 inactive candidate prepared separately; PR #43 retains research; activation/release blocked |
+| [OL-INC-01](#ol-inc-01) | Navigation hang after release / incident verification | P0 | VERIFYING | One release branch; CI plus owner health/host/rollback and measured admission gates; no activation/deploy |
 | [OL-01](#ol-01) | Supabase Data API security containment | P0 | VERIFYING | Bounded refusal/public smoke/direct DB/log review complete; provider-state and private-browser checks remain open before approved hardening |
 | [OL-02](#ol-02) | Django secret-key warning and CI coverage | P0 | TODO | Safe warning diagnosis and current branch-coverage review |
 | [OL-03](#ol-03) | Render stability, CPU and memory investigation | P1 | IN_PROGRESS | OL-INC-01 now records a confirmed restart and locally reproduced shared ASGI stall; production wait attribution remains open |
@@ -22,6 +22,8 @@ Owner for product/production decisions: repository owner. Implementers/reviewers
 | [OL-13](#ol-13) | Production/public launch acceptance | P1 | BLOCKED | Required OL-01 through OL-12 gates; optional R2 is not mandatory |
 
 ## OL-INC-01
+
+- **Release preparation, 2026-11-07 +06:00 / VERIFYING:** one branch `release/ownlobby-stability-20261106` reuses #46, excludes inactive #47 helpers, and adds explicit WS configuration, saturation readiness, cache-independent DB sessions and a v3 legacy-processor bypass. No production values/activation selected. [Current STATUS and consolidated owner actions](STATUS.md#release-preparation-2026-11-07-0600) supersede older next actions below. Acceptance requires candidate CI, actual HTTP health configuration, confirmed host window/retained rollback, evidence-backed admission/budgets and authorized synthetic private-media/browser verification. No production improvement is claimed; original incident attribution remains unproven.
 
 **Production navigation hang and failed release acceptance — P0 / VERIFYING**
 
