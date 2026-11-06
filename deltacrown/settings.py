@@ -1,6 +1,8 @@
 ﻿from pathlib import Path
 import mimetypes
 import os
+from apps.common.asgi_lifecycle import LifecycleConfig
+
 import sys
 import socket
 import dj_database_url
@@ -18,6 +20,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Deterministic .env loading - explicit path, no override
 load_dotenv(dotenv_path=BASE_DIR / ".env", override=False)
+
+# Coordinated adapter/wrappers are opt-in; enabled budgets have no production defaults.
+OWNLOBBY_ASGI_LIFECYCLE = LifecycleConfig.from_environ(os.environ)
 
 # Ensure .webmanifest files are served with the correct MIME type.
 mimetypes.add_type('application/manifest+json', '.webmanifest', strict=True)
@@ -542,11 +547,10 @@ else:
 _SESSION_ENGINE_OVERRIDE = os.getenv("SESSION_ENGINE", "").strip()
 if _SESSION_ENGINE_OVERRIDE:
     SESSION_ENGINE = _SESSION_ENGINE_OVERRIDE
-elif not DEBUG:
-    # cached_db keeps DB as source-of-truth while dramatically reducing read load.
-    # It works with Redis (preferred) and degrades to configured cache backend.
-    SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"
 else:
+    # DB sessions share cached_db's existing table/encoding/cookie contract.
+    # Persistent cache read+write failure must not break session loading or
+    # leave revoked sessions trusted from a stale cached copy. No migration.
     SESSION_ENGINE = "django.contrib.sessions.backends.db"
 
 SESSION_CACHE_ALIAS = os.getenv("SESSION_CACHE_ALIAS", "default")

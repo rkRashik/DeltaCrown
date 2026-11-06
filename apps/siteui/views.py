@@ -98,6 +98,7 @@ def home(request):
         path="/",
         schema=[organization_schema(), website_schema()],
     )
+    request._ownlobby_home_v3 = True  # The active template does not consume legacy `homepage`.
     return _homepage_timed("render", lambda: render(request, "home.html", context))
 
 
