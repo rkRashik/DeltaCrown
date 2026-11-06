@@ -51,6 +51,7 @@ observations = []
 phases = []
 began = time.monotonic()
 work_thread = None
+observed_server = None
 tag = ContextVar("a10_request", default="process")
 mutex = threading.RLock()
 destination = Path(os.environ["A10_QA_STATE"])
@@ -71,7 +72,19 @@ def snapshot():
         value = dict(phase=runtime.phase, events=list(events), children=runtime.http.active_count if runtime.http else 0,
                      slots=runtime.http.occupied_count if runtime.http else 0,
                      executors=len(SyncToAsync.context_to_thread_executor),
-                     terminal_observations=list(observations), phase_observations=list(phases))
+                     terminal_observations=list(observations), phase_observations=list(phases),
+                     application_tasks=sum(not task.done() for task in observed_server.application_tasks)
+                         if observed_server else 0,
+                     websocket_protocols=[dict(close_requested=record.close_requested,
+                         protocol_closed=record.closed.done(),
+                         protocol_outcome=record.closed.result() if record.closed.done() else None,
+                         application_finished=record.application.done(),
+                         application_cancelled=record.application.cancelled())
+                         for record in observed_server._shutdown_protocols] if observed_server else [],
+                     websocket_sessions=[dict(close_requested=session.close_requested,
+                         disconnect_received=session.disconnect_received,
+                         application_finished=session.application_finished, failed=session.failed)
+                         for session in observed_server._shutdown_websockets] if observed_server else [])
         temporary = destination.with_suffix(".tmp")
         temporary.write_text(json.dumps(value), encoding="utf-8")
         temporary.replace(destination)
@@ -140,12 +153,15 @@ async def monitor():
 
 
 async def application(scope, receive, send):
-    global heartbeat
+    global heartbeat, observed_server
+    observed_server = send.func.__self__  # QA-only reference to the real adapter.
     if heartbeat is None:
         heartbeat = asyncio.create_task(monitor())
     token = tag.set(scope["path"])
     try:
         await router(scope, receive, send)
+        if scope["type"] == "websocket":
+            emit("ws_application_returned")
     finally:
         tag.reset(token)
 

@@ -77,33 +77,64 @@ class WebSocketShutdownGate:
         if self.lifecycle.quiescing:
             await send({"type": "websocket.close", "code": 1012})
             return
-        accepted = False
-        closing = False
+        session = WebSocketSession()
 
         async def close():
-            nonlocal closing
-            if accepted and not closing:
-                closing = True
-                await send({"type": "websocket.close", "code": 1012})
+            if session.accepted and not session.closing:
+                session.closing = True
+                session.close_requested = True
+                try:
+                    await send({"type": "websocket.close", "code": 1012})
+                except BaseException:
+                    session.failed = True
+                    raise
+
+        session.close = close
+
+        async def incoming():
+            message = await receive()
+            if message["type"] == "websocket.disconnect":
+                session.disconnect_received = True
+            return message  # Only the original protocol may supply disconnect.
 
         async def forward(message):
-            nonlocal accepted, closing
             if message["type"] == "websocket.accept":
                 if self.lifecycle.quiescing:
                     await send({"type": "websocket.close", "code": 1012})
                     return
-                accepted = True
+                session.accepted = True
             if message["type"] == "websocket.close":
-                closing = True
-            if closing and message["type"] == "websocket.send":
+                session.closing = True
+            if session.closing and message["type"] == "websocket.send":
                 return
             await send(message)
 
-        self.lifecycle.websockets.add(close)
+        self.lifecycle.websockets.add(session)
         try:
-            await self.application(scope, receive, forward)
+            await self.application(scope, incoming, forward)
+        except BaseException:
+            session.failed = True
+            raise
+        else:
+            session.application_finished = True
         finally:
-            self.lifecycle.websockets.remove(close)
+            self.lifecycle.websockets.remove(session)
+
+
+@dataclass(eq=False)
+class WebSocketSession:
+    accepted: bool = False
+    closing: bool = False
+    close_requested: bool = False
+    disconnect_received: bool = False
+    application_finished: bool = False
+    failed: bool = False
+    close: object = None
+
+    @property
+    def cleaned(self):
+        return (self.application_finished and not self.failed
+                and (not self.accepted or self.disconnect_received))
 
 
 class HTTPDisconnectDrain:

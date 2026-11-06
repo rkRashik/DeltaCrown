@@ -151,6 +151,60 @@ class AdapterTests(unittest.IsolatedAsyncioTestCase):
         await asyncio.sleep(0)
         self.assertNotIn(task,self.server.application_tasks)
 
+    async def test_pinned_restart_close_and_protocol_completion_are_distinct(self):
+        from daphne.ws_protocol import WebSocketProtocol
+        protocol = WebSocketProtocol()
+        # Exact R1 failure: Daphne's original API rejects before writing a frame.
+        with self.assertRaisesRegex(Exception, "invalid close code 1012"):
+            protocol.serverClose(code=1012)
+        protocol.state = protocol.STATE_OPEN
+        self.server.protocol_connected(protocol)
+        self.server.create_application(protocol, {"type": "websocket"})
+        record = self.server.websocket_protocols[protocol]
+        await record.application
+        await asyncio.sleep(0)
+        first = self.server.kill_all_applications()
+        with patch.object(protocol, "sendCloseFrame") as frame:
+            await self.server.handle_reply(protocol, {"type":"websocket.close", "code":1012})
+            frame.assert_called_once_with(code=1012)
+        self.assertTrue(record.close_requested)
+        self.assertFalse(record.closed.done())
+        await asyncio.sleep(.05)  # Past the soft budget; no false task-only drain.
+        self.assertFalse(first.called)
+        protocol.wasClean, protocol.remoteCloseCode = True, 1012
+        self.server.protocol_disconnected(protocol)
+        await asyncio.wait_for(asyncio.shield(self.server._shutdown_task), 1)
+        self.assertTrue(first.called)
+        self.assertTrue(record.complete)
+        self.assertEqual(self.state.phase, "DRAINED")
+
+    async def test_websocket_without_protocol_close_remains_incomplete(self):
+        from daphne.ws_protocol import WebSocketProtocol
+        protocol = WebSocketProtocol()
+        self.server.protocol_connected(protocol)
+        self.server.create_application(protocol, {"type":"websocket"})
+        record = self.server.websocket_protocols[protocol]
+        await record.application
+        first = self.server.kill_all_applications()
+        await asyncio.wait_for(asyncio.shield(self.server._shutdown_task), 1)
+        self.assertFalse(first.called)
+        self.assertEqual(self.state.phase, "SHUTDOWN_INCOMPLETE")
+        self.assertFalse(record.complete)
+        # Unit fixture teardown only; never masquerades as runtime cleanup.
+        record.closed.set_result(dict(clean=False, code=1006))
+
+    async def test_failed_websocket_cleanup_cannot_acknowledge_shutdown(self):
+        session = lifecycle.WebSocketSession(accepted=True, disconnect_received=True,
+                                             application_finished=True, failed=True)
+        async def close():
+            pass
+        session.close = close
+        self.state.websockets.add(session)
+        first = self.server.kill_all_applications()
+        await asyncio.wait_for(asyncio.shield(self.server._shutdown_task), 1)
+        self.assertFalse(first.called)
+        self.assertEqual(self.state.phase, "SHUTDOWN_INCOMPLETE")
+
     async def asyncTearDown(self):
         for release in self.releases:
             release.set()
@@ -292,7 +346,8 @@ class ProcessTests(unittest.TestCase):
 
                         keep=http.client.HTTPConnection("127.0.0.1",port,timeout=2)
                         closer=None
-                        wire=dict(close_received=False,close_code=None,close_reply_sent=False,error_type=None)
+                        wire=dict(close_received=False,close_code=None,close_reply_sent=False,
+                                  frame_valid=False,error_type=None)
                         try:
                             def ready():
                                 try:
@@ -317,11 +372,14 @@ class ProcessTests(unittest.TestCase):
                                                 if not part:raise EOFError
                                                 value+=part
                                             return value
-                                        head=exact(2); payload=exact(head[1]&127)
+                                        head=exact(2)
+                                        if head[0]!=0x88 or not 2<=head[1]<=125:
+                                            return  # Close must be FIN, unmasked and a valid control-frame length.
+                                        payload=exact(head[1])
                                         if head[0]&15==8:
-                                            wire.update(close_received=True,
+                                            wire.update(close_received=True,frame_valid=True,
                                                         close_code=int.from_bytes(payload[:2],"big") if len(payload)>=2 else None)
-                                            mask=b"test"
+                                            mask=os.urandom(4)
                                             ws.sendall(bytes([0x88,0x80|len(payload)])+mask+
                                                        bytes(v^mask[i%4] for i,v in enumerate(payload)))
                                             wire["close_reply_sent"]=True
@@ -345,12 +403,36 @@ class ProcessTests(unittest.TestCase):
                                       websocket_client=wire,
                                       slow_django_closed=any(e==dict(event="django_closed",kind="/work/")
                                                             for e in final["events"]))),flush=True)
-                                self.assertEqual((final["phase"],final["children"],final["executors"]),("DRAINED",0,0))
+                                self.assertEqual((final["phase"],final["children"],final["executors"],
+                                                  final["slots"],final["application_tasks"]),("DRAINED",0,0,0,0))
                                 names={e["event"] for e in final["events"]}
-                                expected={"work_finished","stream_finalized","stream_closed","ws_closed_1012"}
+                                expected={"work_finished","stream_finalized","stream_closed",
+                                          "ws_disconnect_observed","ws_application_returned"}
                                 self.assertTrue(expected<=names,"Missing terminal markers: "+
                                                 json.dumps(sorted(expected-names)))
+                                self.assertEqual(wire,dict(close_received=True,close_code=1012,
+                                                           close_reply_sent=True,frame_valid=True,error_type=None))
+                                self.assertEqual(len(final["websocket_protocols"]),1)
+                                protocol=final["websocket_protocols"][0]
+                                self.assertEqual(protocol,dict(close_requested=True,protocol_closed=True,
+                                     protocol_outcome=dict(clean=True,code=1012),
+                                     application_finished=True,application_cancelled=False))
+                                self.assertEqual(final["websocket_sessions"],[dict(close_requested=True,
+                                     disconnect_received=True,application_finished=True,failed=False)])
+                                disconnects=[e for e in final["terminal_observations"]
+                                             if e["event"]=="ws_disconnect_observed"]
+                                self.assertEqual([e["code"] for e in disconnects],
+                                                 [protocol["protocol_outcome"]["code"]])
+                                drained=next(p["elapsed_ms"] for p in final["phase_observations"]
+                                             if p["phase"]=="DRAINED")
+                                required=[e for e in final["terminal_observations"]
+                                          if e["event"] in expected or e["event"]=="django_closed"]
+                                self.assertTrue(all(e["phase"]=="QUIESCING" and e["elapsed_ms"]<=drained
+                                                    for e in required if e["kind"]!="/healthz/"))
                                 self.assertTrue(any(e==dict(event="django_closed",kind="/work/") for e in final["events"]))
+                                self.assertTrue(any(e["event"]=="django_closed" and e["kind"]=="/work/"
+                                                    and e["db_closed"] and e["owning_thread"]
+                                                    for e in final["terminal_observations"]))
                                 self.assertEqual(sessions(),0)
                                 print("A10_PROCESS finite graceful=True retained=0 health=503 ws=1012 stream=closed",flush=True)
                             else:
