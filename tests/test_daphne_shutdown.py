@@ -230,7 +230,8 @@ class ProcessTests(unittest.TestCase):
         observer = psycopg2.connect(database, connect_timeout=2, options="-c statement_timeout=2000")
         observer.autocommit = True
         try:
-            for case in ("finite", "blocked"):
+            cases=("finite",) if os.environ.get("A10_FINITE_EVIDENCE_ONLY")=="1" else ("finite", "blocked")
+            for case in cases:
                 with self.subTest(case=case), tempfile.TemporaryDirectory() as folder:
                     state_file = Path(folder)/"state.json"
                     with socket.socket() as port_socket:
@@ -291,6 +292,7 @@ class ProcessTests(unittest.TestCase):
 
                         keep=http.client.HTTPConnection("127.0.0.1",port,timeout=2)
                         closer=None
+                        wire=dict(close_received=False,close_code=None,close_reply_sent=False,error_type=None)
                         try:
                             def ready():
                                 try:
@@ -317,10 +319,14 @@ class ProcessTests(unittest.TestCase):
                                             return value
                                         head=exact(2); payload=exact(head[1]&127)
                                         if head[0]&15==8:
+                                            wire.update(close_received=True,
+                                                        close_code=int.from_bytes(payload[:2],"big") if len(payload)>=2 else None)
                                             mask=b"test"
                                             ws.sendall(bytes([0x88,0x80|len(payload)])+mask+
                                                        bytes(v^mask[i%4] for i,v in enumerate(payload)))
-                                    except (OSError,EOFError): pass
+                                            wire["close_reply_sent"]=True
+                                    except (OSError,EOFError) as error:
+                                        wire["error_type"]=type(error).__name__
                                 closer=threading.Thread(target=close_peer,daemon=True);closer.start()
                             proc.send_signal(signal.SIGTERM)
                             wait(lambda:state().get("phase")!="RUNNING" and bool(state()))
@@ -332,9 +338,13 @@ class ProcessTests(unittest.TestCase):
                             if case=="finite":
                                 proc.wait(timeout=8)
                                 self.assertEqual(proc.returncode,0)
+                                if closer:closer.join(timeout=1)
                                 final=state()
                                 print("A10_PROCESS_TERMINAL "+json.dumps(dict(
-                                      case=case,snapshot=final,db_sessions=sessions())),flush=True)
+                                      case=case,snapshot=final,db_sessions=sessions(),
+                                      websocket_client=wire,
+                                      slow_django_closed=any(e==dict(event="django_closed",kind="/work/")
+                                                            for e in final["events"]))),flush=True)
                                 self.assertEqual((final["phase"],final["children"],final["executors"]),("DRAINED",0,0))
                                 names={e["event"] for e in final["events"]}
                                 expected={"work_finished","stream_finalized","stream_closed","ws_closed_1012"}

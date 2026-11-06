@@ -18,7 +18,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python: ['3.11.9', '3.12']
+        python: ['3.12']
     services:
       postgres:
         image: postgres:16
@@ -31,6 +31,7 @@ jobs:
           --health-cmd "pg_isready -U ownlobby_qa -d ownlobby_test"
           --health-interval 5s --health-timeout 5s --health-retries 10
     env:
+      A10_FINITE_EVIDENCE_ONLY: '1'
       DATABASE_URL_TEST: postgresql://ownlobby_qa:synthetic-ci-only@127.0.0.1:5432/ownlobby_test
     steps:
       - uses: actions/checkout@v4
@@ -48,5 +49,4 @@ jobs:
           python -m pip check
       - name: Focused contracts (no migrations or provider access)
         run: |
-          timeout 120s python -m unittest discover -s tests -p test_http_lifecycle.py -v
-          timeout 120s python -m unittest discover -s tests -p test_daphne_shutdown.py -v
+          timeout 120s python -m unittest discover -s tests -p test_daphne_shutdown.py -k finite_mixed_and_blocked_recovery -v

@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 import socket
 import threading
+import time
 
 import dotenv
 dotenv.load_dotenv = lambda *a, **k: False
@@ -46,29 +47,40 @@ connection.settings_dict["OPTIONS"] = dict(application_name="ownlobby_a10_" + st
 settings.ROOT_URLCONF = __name__
 runtime = require_runtime(settings.OWNLOBBY_ASGI_LIFECYCLE)
 events = []
+observations = []
+phases = []
+began = time.monotonic()
+work_thread = None
 tag = ContextVar("a10_request", default="process")
 mutex = threading.RLock()
 destination = Path(os.environ["A10_QA_STATE"])
 
 
-def emit(name):
+def emit(name, **facts):
     with mutex:
         events.append(dict(event=name, kind=tag.get()))
+        observations.append(dict(event=name, kind=tag.get(), phase=runtime.phase,
+                                 elapsed_ms=round((time.monotonic()-began)*1000,2), **facts))
         snapshot()
 
 
 def snapshot():
     with mutex:
+        if not phases or phases[-1]["phase"] != runtime.phase:
+            phases.append(dict(phase=runtime.phase, elapsed_ms=round((time.monotonic()-began)*1000,2)))
         value = dict(phase=runtime.phase, events=list(events), children=runtime.http.active_count if runtime.http else 0,
                      slots=runtime.http.occupied_count if runtime.http else 0,
-                     executors=len(SyncToAsync.context_to_thread_executor))
+                     executors=len(SyncToAsync.context_to_thread_executor),
+                     terminal_observations=list(observations), phase_observations=list(phases))
         temporary = destination.with_suffix(".tmp")
         temporary.write_text(json.dumps(value), encoding="utf-8")
         temporary.replace(destination)
 
 
 def finished(**kwargs):
-    emit("django_closed" if connection.connection is None else "django_open")
+    emit("django_closed" if connection.connection is None else "django_open",
+         db_closed=connection.connection is None,
+         owning_thread=threading.get_ident()==work_thread if tag.get()=="/work/" else None)
 
 
 request_finished.connect(finished, weak=False)
@@ -79,6 +91,8 @@ def health(request):
 
 
 def work(request):
+    global work_thread
+    work_thread = threading.get_ident()
     with connection.cursor() as cursor:
         cursor.execute("SELECT 1")
         emit("work_started")
@@ -109,6 +123,7 @@ class Socket(AsyncWebsocketConsumer):
         emit("ws_connected")
 
     async def disconnect(self, code):
+        emit("ws_disconnect_observed", code=code)
         emit("ws_closed_1012" if code == 1012 else "ws_other_close")
 
 
