@@ -1,7 +1,12 @@
-"""eFootball pilot journey (solo, single elimination, DeltaCoin entry fee), service level.
+"""eFootball pilot journeys (solo, single elimination), service level.
 
-Synthetic users/wallets on a disposable database; no providers are contacted. Notifications
-and WebSocket broadcasts run through their normal (test) backends; nothing external is called.
+The planned pilot is FREE ENTRY, so the free flow is the primary acceptance journey; the
+DeltaCoin entry-fee flow is kept as paid-flow coverage. Everything runs on a disposable
+database with synthetic users. Lifecycle transitions are the ordinary guarded ones (no
+``force``): the only fixture shortcut is moving ``tournament_start`` into the past, which
+simulates the clock reaching the scheduled start. In-app notifications and WebSocket
+broadcasts run through their normal test backends; email goes to the locmem outbox and any
+outbound HTTP raises (see ``isolation``).
 """
 from datetime import timedelta
 from decimal import Decimal
@@ -9,13 +14,14 @@ from unittest.mock import patch
 
 import pytest
 from django.contrib.auth import get_user_model
+from django.core import mail
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 
 from apps.economy.models import DeltaCrownTransaction, DeltaCrownWallet
 from apps.games.models.game import Game
 from apps.tournaments.api.toc.brackets_service import TOCBracketsService
-from apps.tournaments.models import Match, Registration, Tournament
+from apps.tournaments.models import Match, Payment, Registration, Tournament
 from apps.tournaments.services.bracket_service import BracketService
 from apps.tournaments.services.lifecycle_service import TournamentLifecycleService
 from apps.tournaments.services.match_service import MatchService
@@ -25,17 +31,25 @@ from apps.user_profile.models import UserProfile
 pytestmark = pytest.mark.django_db
 User = get_user_model()
 FEE = 100
+START_BALANCE = 500
+
+
+@pytest.fixture(autouse=True)
+def isolation(settings):
+    """No real email or outbound HTTP (payment providers, webhooks) can leave the test."""
+    assert settings.EMAIL_BACKEND == 'django.core.mail.backends.locmem.EmailBackend'
+    with patch('requests.sessions.Session.request', side_effect=AssertionError('outbound HTTP attempted')):
+        yield
 
 
 def _user(name):
     user = User.objects.create_user(username=name, email=f'{name}@example.test')
     profile, _ = UserProfile.objects.get_or_create(user=user)
-    DeltaCrownWallet.objects.create(profile=profile, cached_balance=500)
+    DeltaCrownWallet.objects.create(profile=profile, cached_balance=START_BALANCE)
     return user
 
 
-@pytest.fixture
-def world(db):
+def _make_world(paid):
     organizer = _user('ef-organizer')
     players = [_user(f'ef-player-{n}') for n in range(1, 5)]
     outsider = _user('ef-outsider')
@@ -44,20 +58,33 @@ def world(db):
         profile_id_field='ingame_id', default_result_type='map_score', is_active=True,
     )
     now = timezone.now()
+    fee = {'has_entry_fee': True, 'entry_fee_amount': Decimal(FEE), 'payment_methods': [Tournament.DELTACOIN]} if paid else {}
     tournament = Tournament.objects.create(
         name='eFootball Pilot Cup', slug='efootball-pilot-cup', organizer=organizer, game=game,
         format=Tournament.SINGLE_ELIM, participation_type=Tournament.SOLO,
         max_participants=4, min_participants=2,
-        has_entry_fee=True, entry_fee_amount=Decimal(FEE), payment_methods=[Tournament.DELTACOIN],
         registration_start=now - timedelta(days=2), registration_end=now + timedelta(days=1),
         tournament_start=now + timedelta(days=2), tournament_end=now + timedelta(days=3),
-        status=Tournament.DRAFT,
+        status=Tournament.DRAFT, **fee,
     )
     return organizer, players, outsider, tournament
 
 
+@pytest.fixture
+def world():
+    """Free-entry pilot tournament (the primary journey)."""
+    return _make_world(paid=False)
+
+
+@pytest.fixture
+def paid_world():
+    """Same tournament with a 100 DeltaCoin entry fee (paid-flow coverage)."""
+    return _make_world(paid=True)
+
+
 def _to(tournament, status, actor):
-    return TournamentLifecycleService.transition(tournament.id, status, actor=actor, force=True)
+    """Ordinary, guarded lifecycle transition (guards are NOT bypassed)."""
+    return TournamentLifecycleService.transition(tournament.id, status, actor=actor)
 
 
 def _register(tournament, user):
@@ -68,6 +95,18 @@ def _register(tournament, user):
 
 def _get(match):
     return Match.objects.get(pk=match.pk)
+
+
+def _confirm_entry(reg, user, organizer, paid):
+    """Paid: the player pays with DeltaCoin. Free: registration is pending until the organizer approves."""
+    if paid:
+        RegistrationService.pay_with_deltacoin(reg.id, user)
+    else:
+        assert reg.status == Registration.PENDING
+        RegistrationService.approve_registration(reg, organizer)
+    reg.refresh_from_db()
+    assert reg.status == Registration.CONFIRMED
+    return reg
 
 
 def _play(match, organizer, *, p1_wins):
@@ -83,19 +122,19 @@ def _play(match, organizer, *, p1_wins):
     return confirmed.winner_id
 
 
-def _reach_published_bracket(world):
-    """Publish, open registration, register + pay 4 players, close, go live, publish bracket."""
+def _start_time_reached(tournament):
+    """Fixture shortcut (not a transition bypass): the scheduled start time has now passed."""
+    Tournament.objects.filter(pk=tournament.pk).update(tournament_start=timezone.now() - timedelta(minutes=1))
+
+
+def _reach_published_bracket(world, paid=False):
+    """Publish, open registration, register + confirm 4 players, close, go live, publish bracket."""
     organizer, players, _outsider, tournament = world
     _to(tournament, Tournament.PUBLISHED, organizer)
     _to(tournament, Tournament.REGISTRATION_OPEN, organizer)
-    registrations = []
-    for player in players:
-        reg = _register(tournament, player)
-        RegistrationService.pay_with_deltacoin(reg.id, player)
-        reg.refresh_from_db()
-        assert reg.status == Registration.CONFIRMED
-        registrations.append(reg)
+    registrations = [_confirm_entry(_register(tournament, p), p, organizer, paid) for p in players]
     _to(tournament, Tournament.REGISTRATION_CLOSED, organizer)
+    _start_time_reached(tournament)
     _to(tournament, Tournament.LIVE, organizer)
     TOCBracketsService.generate_bracket(tournament, organizer, {})
     TOCBracketsService.publish_bracket(tournament, organizer)
@@ -103,55 +142,143 @@ def _reach_published_bracket(world):
     return registrations, round_one
 
 
-def test_organizer_to_champion_journey(world):
-    organizer, players, _outsider, tournament = world
-    registrations, round_one = _reach_published_bracket(world)
+def _play_whole_tournament(organizer, tournament, round_one):
+    winners = [_play(m, organizer, p1_wins=True) for m in round_one]
+    final = Match.objects.get(tournament=tournament, round_number=2)
+    assert {final.participant1_id, final.participant2_id} == set(winners)  # correct next opponents
+    assert Match.objects.filter(tournament=tournament, round_number=2).count() == 1
+    champion = _play(final, organizer, p1_wins=True)
+    assert champion in winners
+    tournament.refresh_from_db()
+    assert tournament.status == Tournament.COMPLETED  # completes through the normal pipeline
+    return champion
 
-    assert DeltaCrownTransaction.objects.count() == 4
-    assert all(DeltaCrownWallet.objects.get(profile__user=p).cached_balance == 500 - FEE for p in players)
+
+# -- primary pilot journey: FREE entry -----------------------------------------
+
+def test_free_entry_pilot_journey(world):
+    organizer, players, outsider, tournament = world
+    assert not tournament.has_entry_fee
+
+    registrations, round_one = _reach_published_bracket(world, paid=False)
+
+    # No financial effects at all in a free tournament
+    assert DeltaCrownTransaction.objects.count() == 0
+    assert Payment.objects.count() == 0
+    assert all(DeltaCrownWallet.objects.get(profile__user=p).cached_balance == START_BALANCE for p in players)
 
     # Duplicate registration is rejected and creates nothing
     with pytest.raises(ValidationError):
         _register(tournament, players[0])
     assert Registration.objects.filter(tournament=tournament, user=players[0]).count() == 1
 
+    # Every confirmed player is seeded exactly once
     assert len(round_one) == 2
     seeded = [pid for m in round_one for pid in (m.participant1_id, m.participant2_id)]
-    assert sorted(seeded) == sorted(r.user_id for r in registrations)  # each player exactly once
+    assert sorted(seeded) == sorted(r.user_id for r in registrations)
 
-    # Round one: the first-listed participant wins both matches
-    winners = [_play(m, organizer, p1_wins=True) for m in round_one]
-    final = Match.objects.get(tournament=tournament, round_number=2)
-    assert {final.participant1_id, final.participant2_id} == set(winners)  # correct next opponents
-    assert Match.objects.filter(tournament=tournament, round_number=2).count() == 1
+    _play_whole_tournament(organizer, tournament, round_one)
 
-    champion = _play(final, organizer, p1_wins=True)
-    assert champion in winners
-
-    tournament.refresh_from_db()
-    assert tournament.status == Tournament.COMPLETED
-    assert DeltaCrownTransaction.objects.count() == 4  # no extra financial effects after play
+    # Still nothing financial after the whole tournament; the outsider never took part
+    assert DeltaCrownTransaction.objects.count() == 0 and Payment.objects.count() == 0
+    assert outsider.id not in seeded
+    assert DeltaCrownWallet.objects.get(profile__user=outsider).cached_balance == START_BALANCE
+    assert isinstance(mail.outbox, list)  # locmem only; nothing external
 
 
-# -- negative scenarios -------------------------------------------------------
-
-def test_registration_rejected_outside_open_state_and_after_cancellation(world):
-    organizer, _players, outsider, tournament = world
+def test_free_entry_registration_rules(world):
+    organizer, players, outsider, tournament = world
     with pytest.raises(ValidationError):  # still a draft
         _register(tournament, outsider)
     _to(tournament, Tournament.PUBLISHED, organizer)
     _to(tournament, Tournament.REGISTRATION_OPEN, organizer)
+
+    first = _register(tournament, players[0])
+    assert first.status == Registration.PENDING  # free entry still needs organizer approval
+    with pytest.raises(ValidationError):  # same in-game ID used by a different player
+        RegistrationService.register_participant(
+            tournament.id, players[1], registration_data={'game_id': first.registration_data['game_id']},
+        )
+    with pytest.raises(ValidationError):  # same player twice
+        _register(tournament, players[0])
+
+    # Unapproved registrations do not count: the guard keeps registration open
+    _register(tournament, players[1])
+    with pytest.raises(ValidationError):
+        _to(tournament, Tournament.REGISTRATION_CLOSED, organizer)
+    assert Tournament.objects.get(pk=tournament.pk).status == Tournament.REGISTRATION_OPEN
+
+    # A full tournament waitlists the next player instead of confirming them
+    for extra in players[2:]:
+        _register(tournament, extra)
+    waitlisted = _register(tournament, outsider)
+    assert waitlisted.status == Registration.WAITLISTED
+    assert DeltaCrownTransaction.objects.count() == 0
+
+
+def test_lifecycle_guards_apply_without_force(world):
+    organizer, players, _outsider, tournament = world
+    with pytest.raises(ValidationError):  # cannot skip states
+        _to(tournament, Tournament.LIVE, organizer)
+    _to(tournament, Tournament.PUBLISHED, organizer)
+    _to(tournament, Tournament.REGISTRATION_OPEN, organizer)
+    for player in players:
+        _confirm_entry(_register(tournament, player), player, organizer, paid=False)
     _to(tournament, Tournament.REGISTRATION_CLOSED, organizer)
-    with pytest.raises(ValidationError):  # closed
-        _register(tournament, outsider)
-    _to(tournament, Tournament.CANCELLED, organizer)
-    with pytest.raises(ValidationError):  # cancelled
-        _register(tournament, outsider)
-    assert not Registration.objects.filter(tournament=tournament, user=outsider).exists()
+
+    with pytest.raises(ValidationError):  # scheduled start is still in the future
+        _to(tournament, Tournament.LIVE, organizer)
+    _start_time_reached(tournament)
+    _to(tournament, Tournament.LIVE, organizer)
+
+    TOCBracketsService.generate_bracket(tournament, organizer, {})
+    with pytest.raises(ValidationError):  # matches are still incomplete
+        _to(tournament, Tournament.COMPLETED, organizer)
 
 
-def test_payment_cannot_be_made_by_someone_else_or_charged_twice(world):
+def test_waitlisted_player_cannot_be_approved_past_capacity(world):
+    """Regression: approve_registration confirmed waitlisted registrations beyond max_participants."""
     organizer, players, outsider, tournament = world
+    _to(tournament, Tournament.PUBLISHED, organizer)
+    _to(tournament, Tournament.REGISTRATION_OPEN, organizer)
+    for player in players:
+        _confirm_entry(_register(tournament, player), player, organizer, paid=False)
+    waitlisted = _register(tournament, outsider)
+    assert waitlisted.status == Registration.WAITLISTED
+
+    with pytest.raises(ValidationError):
+        RegistrationService.approve_registration(waitlisted, organizer)
+    waitlisted.refresh_from_db()
+    assert waitlisted.status == Registration.WAITLISTED
+    confirmed = Registration.objects.filter(tournament=tournament, status=Registration.CONFIRMED).count()
+    assert confirmed == tournament.max_participants
+
+    # Freeing a slot makes the same approval valid
+    Registration.objects.filter(tournament=tournament, user=players[0]).update(status=Registration.CANCELLED)
+    RegistrationService.approve_registration(Registration.objects.get(pk=waitlisted.pk), organizer)
+    assert Registration.objects.get(pk=waitlisted.pk).status == Registration.CONFIRMED
+
+
+# -- paid-entry flow (DeltaCoin) is preserved -----------------------------------
+
+def test_paid_entry_journey_to_champion(paid_world):
+    organizer, players, _outsider, tournament = paid_world
+    registrations, round_one = _reach_published_bracket(paid_world, paid=True)
+
+    assert DeltaCrownTransaction.objects.count() == 4
+    assert all(DeltaCrownWallet.objects.get(profile__user=p).cached_balance == START_BALANCE - FEE for p in players)
+
+    with pytest.raises(ValidationError):  # duplicate registration
+        _register(tournament, players[0])
+    seeded = [pid for m in round_one for pid in (m.participant1_id, m.participant2_id)]
+    assert sorted(seeded) == sorted(r.user_id for r in registrations)
+
+    _play_whole_tournament(organizer, tournament, round_one)
+    assert DeltaCrownTransaction.objects.count() == 4  # no extra financial effects after play
+
+
+def test_payment_cannot_be_made_by_someone_else_or_charged_twice(paid_world):
+    organizer, players, outsider, tournament = paid_world
     _to(tournament, Tournament.PUBLISHED, organizer)
     _to(tournament, Tournament.REGISTRATION_OPEN, organizer)
     reg = _register(tournament, players[0])
@@ -164,11 +291,11 @@ def test_payment_cannot_be_made_by_someone_else_or_charged_twice(world):
     second = RegistrationService.pay_with_deltacoin(reg.id, players[0])  # repeated callback
     assert first[1].id == second[1].id
     assert DeltaCrownTransaction.objects.count() == 1
-    assert DeltaCrownWallet.objects.get(profile__user=players[0]).cached_balance == 500 - FEE
+    assert DeltaCrownWallet.objects.get(profile__user=players[0]).cached_balance == START_BALANCE - FEE
 
 
-def test_failed_payment_write_rolls_back_the_debit(world):
-    organizer, players, _outsider, tournament = world
+def test_failed_payment_write_rolls_back_the_debit(paid_world):
+    organizer, players, _outsider, tournament = paid_world
     _to(tournament, Tournament.PUBLISHED, organizer)
     _to(tournament, Tournament.REGISTRATION_OPEN, organizer)
     reg = _register(tournament, players[0])
@@ -181,8 +308,25 @@ def test_failed_payment_write_rolls_back_the_debit(world):
     reg.refresh_from_db()
     assert reg.status != Registration.CONFIRMED
     assert DeltaCrownTransaction.objects.count() == 0
-    assert DeltaCrownWallet.objects.get(profile__user=players[0]).cached_balance == 500
+    assert DeltaCrownWallet.objects.get(profile__user=players[0]).cached_balance == START_BALANCE
 
+
+def test_registration_rejected_after_close_and_cancellation(paid_world):
+    organizer, players, outsider, tournament = paid_world
+    _to(tournament, Tournament.PUBLISHED, organizer)
+    _to(tournament, Tournament.REGISTRATION_OPEN, organizer)
+    for player in players[:2]:
+        RegistrationService.pay_with_deltacoin(_register(tournament, player).id, player)
+    _to(tournament, Tournament.REGISTRATION_CLOSED, organizer)
+    with pytest.raises(ValidationError):  # closed
+        _register(tournament, outsider)
+    _to(tournament, Tournament.CANCELLED, organizer)
+    with pytest.raises(ValidationError):  # cancelled
+        _register(tournament, outsider)
+    assert not Registration.objects.filter(tournament=tournament, user=outsider).exists()
+
+
+# -- match integrity (identical for free and paid; free used) --------------------
 
 def test_result_submission_and_confirmation_guards(world):
     organizer, _players, outsider, _tournament = world
@@ -242,7 +386,7 @@ def test_no_play_after_cancellation(world):
     assert _get(match).state == Match.CANCELLED
 
 
-# -- organizer API authorization and reset guards ------------------------------
+# -- organizer API authorization and reset guards --------------------------------
 
 def _api(user=None):
     from rest_framework.test import APIClient
@@ -262,8 +406,9 @@ def test_bracket_generation_api_is_organizer_only(world):
     _to(tournament, Tournament.PUBLISHED, organizer)
     _to(tournament, Tournament.REGISTRATION_OPEN, organizer)
     for player in players:
-        RegistrationService.pay_with_deltacoin(_register(tournament, player).id, player)
+        _confirm_entry(_register(tournament, player), player, organizer, paid=False)
     _to(tournament, Tournament.REGISTRATION_CLOSED, organizer)
+    _start_time_reached(tournament)
     _to(tournament, Tournament.LIVE, organizer)
 
     for caller in (None, players[0], outsider):  # anonymous, a registered player, a stranger
