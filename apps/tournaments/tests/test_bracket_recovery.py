@@ -21,8 +21,8 @@ pytestmark = pytest.mark.django_db
 @pytest.fixture
 def tree(db):
     cache.clear()
-    organizer = get_user_model().objects.create_user(
-        username='rec-org', email='rec-org@test.com', password='pass123'
+    organizer = get_user_model().objects.create_user(  # no password: unusable, login not needed
+        username='rec-org', email='rec-org@test.com'
     )
     game = Game.objects.create(
         name='Recovery Game', slug='recovery-game', default_team_size=1,
@@ -121,7 +121,7 @@ def test_ignores_recent_invalid_and_non_live(tree):
     assert advance_pending_matches()['advanced'] == 0
 
 
-def test_double_elimination_still_drops_loser_when_parent_slot_prefilled(tree):
+def test_recovery_runs_even_when_parent_slot_prefilled_and_drops_loser(tree):
     tournament, final, semis = tree
     Bracket.objects.filter(pk=final.bracket_id).update(
         format=Bracket.DOUBLE_ELIMINATION,
@@ -177,3 +177,85 @@ def test_concurrent_sibling_advancement_keeps_both_slots(tree):
 
     final.refresh_from_db()
     assert (final.participant1_id, final.participant2_id) == (1, 4)
+
+
+def _de_tree(tree):
+    tournament, final, semis = tree
+    Bracket.objects.filter(pk=final.bracket_id).update(
+        format=Bracket.DOUBLE_ELIMINATION,
+        bracket_structure={'loser_drops': {'main_R1_M1': {'lb_round': 1, 'lb_match': 1, 'lb_slot': 1}}},
+    )
+    lb = BracketNode.objects.create(
+        bracket_id=final.bracket_id, position=4, round_number=1, match_number_in_round=1,
+        bracket_type=BracketNode.LOSERS,
+    )
+    return tournament, final, semis, lb
+
+
+@pytest.mark.django_db(transaction=True)
+def test_concurrent_loser_drops_into_same_lb_node_create_match(tree):
+    """The runner must wait for the sibling's LB slot, then see both ready and create the match."""
+    tournament, final, semis, lb = _de_tree(tree)
+    _finish(semis[0][0], winner_id=1)
+    match = Match.objects.get(pk=semis[0][0].pk)
+    held, release = threading.Event(), threading.Event()
+
+    def sibling():  # the other WB match dropping its loser into slot 2, mid-transaction
+        try:
+            with transaction.atomic():
+                list(BracketNode.objects.select_for_update().filter(pk=lb.pk))
+                BracketNode.objects.filter(pk=lb.pk).update(participant2_id=4, participant2_name='P4')
+                held.set()
+                release.wait(10)
+        finally:
+            connection.close()
+
+    def runner():
+        try:
+            BracketService.update_bracket_after_match(match)
+        finally:
+            connection.close()
+
+    t1 = threading.Thread(target=sibling)
+    t1.start()
+    assert held.wait(10)
+    t2 = threading.Thread(target=runner)
+    t2.start()
+    t2.join(1)
+    release.set()
+    t1.join()
+    t2.join()
+
+    lb.refresh_from_db()
+    assert (lb.participant1_id, lb.participant2_id) == (2, 4)
+    assert lb.match_id is not None
+    assert Match.objects.filter(tournament=tournament, round_number=1, match_number=1).count() == 2
+
+
+@pytest.mark.parametrize('winner_id, reset_expected', [(2, True), (1, False)])
+def test_grand_final_reset_is_recovered_once(tree, winner_id, reset_expected):
+    tournament, final, semis, _ = _de_tree(tree)
+    gfr = BracketNode.objects.create(
+        bracket_id=final.bracket_id, position=6, round_number=4, match_number_in_round=1, is_bye=True,
+    )
+    gf_match = Match.objects.create(
+        tournament=tournament, round_number=3, match_number=1,
+        participant1_id=1, participant2_id=2, state=Match.SCHEDULED,
+    )
+    BracketNode.objects.create(  # participant1 = WB finalist, participant2 = LB finalist
+        bracket_id=final.bracket_id, position=5, round_number=3, match_number_in_round=1,
+        participant1_id=1, participant1_name='P1', participant2_id=2, participant2_name='P2',
+        parent_node=gfr, parent_slot=1, match=gf_match,
+    )
+    _finish(gf_match, winner_id=winner_id)
+
+    assert advance_pending_matches()['advanced'] == 1
+    assert advance_pending_matches()['advanced'] == 0
+    gfr.refresh_from_db()
+    resets = Match.objects.filter(tournament=tournament, round_number=4).count()
+    if reset_expected:
+        assert (gfr.participant1_id, gfr.participant2_id, gfr.is_bye) == (2, 1, False)
+        assert resets == 1
+    else:
+        assert (gfr.participant1_id, gfr.participant2_id, gfr.is_bye) == (None, None, True)
+        assert resets == 0

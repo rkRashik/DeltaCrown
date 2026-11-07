@@ -1998,7 +1998,9 @@ class BracketService:
                      else node.participant1_name) or ""
                 )
                 try:
-                    lb_node = BracketNode.objects.select_related('bracket').get(
+                    # Two WB matches can drop into the same LB node: lock it (after child/parent) so the
+                    # "both ready -> create match" check sees the sibling's committed slot.
+                    lb_node = BracketNode.objects.select_for_update(of=('self',)).select_related('bracket').get(
                         bracket=node.bracket,
                         bracket_type=BracketNode.LOSERS,
                         round_number=drop_info["lb_round"],

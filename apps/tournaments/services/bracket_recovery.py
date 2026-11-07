@@ -23,7 +23,7 @@ FAILURE_BACKOFF_SECONDS = 900
 
 
 def advance_pending_matches(limit: int = 25) -> dict:
-    from apps.brackets.models import Bracket, BracketNode
+    from apps.brackets.models import BracketNode
     from apps.tournaments.models.match import Match
     from apps.tournaments.models.tournament import Tournament
     from apps.tournaments.services.bracket_service import BracketService
@@ -43,14 +43,6 @@ def advance_pending_matches(limit: int = 25) -> dict:
         ).filter(
             Q(match__winner_id=F('match__participant1_id'))
             | Q(match__winner_id=F('match__participant2_id'))
-        ).exclude(
-            # Parent slot already holds the winner (legacy/repair): not stuck, don't re-run history.
-            # Not for double elimination: the WB loser drop must still run.
-            ~Q(bracket__format=Bracket.DOUBLE_ELIMINATION)
-            & (
-                Q(parent_slot=1, parent_node__participant1_id=F('match__winner_id'))
-                | Q(parent_slot=2, parent_node__participant2_id=F('match__winner_id'))
-            )
         ).order_by('match__updated_at').values_list('pk', flat=True)[: limit * 3]
     )
     backoff_keys = {pk: f'bracket_advance_failed:{pk}' for pk in candidates}
