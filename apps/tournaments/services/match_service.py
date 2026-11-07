@@ -474,7 +474,11 @@ class MatchService:
         else:
             match.winner_id = match.participant2_id
             match.loser_id = match.participant1_id
-        
+
+        # Remember who submitted: report_dispute attaches a submission record on demand.
+        lobby = dict(match.lobby_info) if isinstance(match.lobby_info, dict) else {}
+        lobby['result_submitted_by_id'] = submitted_by_id
+        match.lobby_info = lobby
         match.save()
         
         # User Profile Integration Hook - Match Result Submitted
@@ -694,7 +698,24 @@ class MatchService:
             .first()
         )
         if not submission:
-            raise ValidationError("No result submission found to dispute")
+            # Results submitted through submit_result() above have no MatchResultSubmission row,
+            # so the REST flow submit -> report-dispute could never compose. Snapshot the
+            # current result as a DISPUTED submission (auto-confirm sweeps only see pending ones).
+            submitter_id = (match.lobby_info or {}).get('result_submitted_by_id') if isinstance(match.lobby_info, dict) else None
+            if not submitter_id:
+                raise ValidationError("No result submission found to dispute")
+            submission = MatchResultSubmission.objects.create(
+                match=match,
+                submitted_by_user_id=submitter_id,
+                raw_result_payload={
+                    'participant1_score': match.participant1_score,
+                    'participant2_score': match.participant2_score,
+                    'game_scores': match.game_scores,
+                    'winner_id': match.winner_id,
+                    'origin': 'match_service.submit_result',
+                },
+                status=MatchResultSubmission.STATUS_DISPUTED,
+            )
 
         # Check if active dispute already exists
         existing_dispute = DisputeRecord.objects.filter(

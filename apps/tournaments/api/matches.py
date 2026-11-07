@@ -412,11 +412,19 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
             return Response(data, status=status.HTTP_200_OK)
         
         # Update dispute records
-        DisputeRecord.objects.filter(match=match, status='open').update(
-            status='resolved',
-            resolved_by_id=request.user.id,
+        # Disputes hang off the result submission; a staff decision closes every active one.
+        resolved_status = (
+            DisputeRecord.RESOLVED_FOR_SUBMITTER if decision == 'ACCEPT_REPORTED'
+            else DisputeRecord.RESOLVED_CUSTOM
+        )
+        DisputeRecord.objects.filter(
+            submission__match=match,
+            status__in=[DisputeRecord.OPEN, DisputeRecord.UNDER_REVIEW, DisputeRecord.ESCALATED],
+        ).update(
+            status=resolved_status,
+            resolved_by_user_id=request.user.id,
             resolved_at=timezone.now(),
-            resolution_notes=str(ser.validated_data.get('notes', {}))
+            resolution_notes=str(ser.validated_data.get('notes', ''))
         )
         
         # Transition to COMPLETED
