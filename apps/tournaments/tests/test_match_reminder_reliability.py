@@ -6,6 +6,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.db import connection
 from django.utils import timezone
 
@@ -28,6 +29,7 @@ OK = {'created': 1, 'skipped': 0, 'email_sent': 1, 'email_failed': 0}
 
 @pytest.fixture
 def setup(db):
+    cache.clear()  # the sweep keeps a fairness cursor in the cache
     user = get_user_model().objects.create_user(username='rem-user', email='rem-user@test.com')
     game = Game.objects.create(
         name='Reminder Game', slug='reminder-game', default_team_size=1,
@@ -309,3 +311,53 @@ def test_concurrent_sweeps_send_once(setup):
         for t in threads:
             t.join()
     assert len(calls) == 1
+
+
+def _blocked_matches(tournament, now, count, *, start_second=1, state='abandoned'):
+    """Due matches whose 60-minute reminder is persistently claimed (abandoned or in flight)."""
+    rows = []
+    for n in range(count):
+        scheduled = now + timedelta(minutes=60, seconds=start_second + n)
+        claim = {
+            'sig': match_ready._marker_signature('m60', scheduled), 'token': 'x',
+            'at': now.isoformat(), 'attempts': 1, 'state': state,
+        }
+        rows.append(Match(
+            tournament=tournament, round_number=3, match_number=start_second + n,
+            participant1_id=1, participant2_id=2, state=Match.SCHEDULED, scheduled_time=scheduled,
+            lobby_info={REMINDER_CLAIMS_KEY: {'m60': claim}},
+        ))
+    Match.objects.bulk_create(rows)
+
+
+def test_persistently_claimed_due_matches_do_not_consume_the_action_limit(setup):
+    _, tournament, pending, now = setup
+    # More due-but-blocked matches than SWEEP_ACTION_LIMIT, ordered before the pending one.
+    _blocked_matches(tournament, now, match_ready.SWEEP_ACTION_LIMIT // 2 + 1, state='abandoned')
+    _blocked_matches(
+        tournament, now, match_ready.SWEEP_ACTION_LIMIT // 2 + 1,
+        start_second=200, state='sending',
+    )
+    with patch(FIRE, return_value=OK) as fire:
+        result = _sweep(now)
+    assert fire.call_count == 1 and result['notified'] == 1  # the pending match is reached
+    assert result['attempted'] == 1  # dispatches started, not candidates examined
+    assert result['skipped'] >= match_ready.SWEEP_ACTION_LIMIT + 2
+    assert result['abandoned'] > 0 and result['in_progress'] > 0
+    pending.refresh_from_db()
+    assert 'm60' in pending.lobby_info[REMINDER_MARKERS_KEY]
+
+
+def test_scan_cursor_makes_progress_across_sweeps_behind_persistent_claims(setup):
+    _, tournament, pending, now = setup
+    _blocked_matches(tournament, now, 12, state='abandoned')  # all sort before the pending match
+    results = []
+    with patch.object(match_ready, 'SWEEP_SCAN_LIMIT', 5), patch(FIRE, return_value=OK) as fire:
+        for _ in range(4):
+            results.append(_sweep(now))
+            if fire.call_count:
+                break
+    assert fire.call_count == 1 and 1 <= len(results) <= 3  # reached within a bounded number of sweeps
+    assert results[0]['truncated'] is True and results[0]['scanned'] == 5
+    pending.refresh_from_db()
+    assert 'm60' in pending.lobby_info[REMINDER_MARKERS_KEY]

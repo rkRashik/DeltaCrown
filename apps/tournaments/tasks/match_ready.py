@@ -49,8 +49,8 @@ MAX_ATTEMPTS = 3
 # at the front cannot starve later ones. Limits bound work per sweep; a single
 # notification call may still run longer than the soft time budget.
 SWEEP_PAGE_SIZE = 100
-SWEEP_ACTION_LIMIT = 100      # matches with due reminders attempted per sweep
-SWEEP_SCAN_LIMIT = 2000       # matches examined per sweep
+SWEEP_ACTION_LIMIT = 100      # dispatches started per sweep (non-actionable candidates do not count)
+SWEEP_SCAN_LIMIT = 2000       # matches examined per sweep; a cursor resumes after it next time
 SWEEP_TIME_BUDGET_SECONDS = 40
 
 
@@ -195,8 +195,54 @@ def _record_failure(match_id, marker_key, signature, token, error, now) -> None:
             match.save(update_fields=['lobby_info', 'updated_at'])
 
 
-def _candidate_pages(window_start, window_end):
-    """Yield pages of candidate matches in stable (scheduled_time, id) order."""
+def _claim_blocked(claim, signature, now):
+    """Advisory, lock-free check on already-loaded data: why this reminder is not actionable now.
+
+    Lets the sweep skip persistently claimed/abandoned reminders without a participant lookup
+    or a row lock. The authoritative decision is still made in _claim_reminder under the lock.
+    """
+    if not (isinstance(claim, dict) and claim.get('sig') == signature):
+        return None
+    state = claim.get('state')
+    if state == 'abandoned':
+        return 'abandoned'
+    wait = FAILURE_RETRY_SECONDS if state == 'failed' else CLAIM_TTL_SECONDS
+    return 'in_progress' if _claim_age_seconds(claim, now) < wait else None
+
+
+# Fairness hint: where the previous sweep stopped. Losing it (cache restart/outage) only
+# restarts scanning from the front; it never affects correctness or claims.
+CURSOR_CACHE_KEY = 'match_reminder_sweep_cursor'
+CURSOR_TTL_SECONDS = 3600
+
+
+def _load_cursor():
+    from django.core.cache import cache
+
+    try:
+        value = cache.get(CURSOR_CACHE_KEY)
+        return (datetime.fromisoformat(value[0]), int(value[1])) if value else None
+    except Exception:
+        return None
+
+
+def _store_cursor(position):
+    from django.core.cache import cache
+
+    try:
+        if position is None:
+            cache.delete(CURSOR_CACHE_KEY)
+        else:
+            cache.set(CURSOR_CACHE_KEY, (position[0].isoformat(), position[1]), CURSOR_TTL_SECONDS)
+    except Exception:
+        logger.warning("[match_reminder] Could not persist sweep cursor", exc_info=True)
+
+
+def _candidate_pages(window_start, window_end, after=None, until=None):
+    """Yield pages of candidate matches in stable (scheduled_time, id) order.
+
+    `after`/`until` are (scheduled_time, id) positions: exclusive start / inclusive end.
+    """
     from apps.tournaments.models.match import Match
 
     base = Match.objects.filter(
@@ -204,8 +250,10 @@ def _candidate_pages(window_start, window_end):
         scheduled_time__lte=window_end,
         is_deleted=False,
     ).exclude(state__in=list(SKIP_STATES)).select_related('tournament').order_by('scheduled_time', 'id')
+    if until is not None:
+        base = base.filter(Q(scheduled_time__lt=until[0]) | Q(scheduled_time=until[0], id__lte=until[1]))
 
-    last = None
+    last = after
     while True:
         qs = base
         if last is not None:
@@ -243,129 +291,158 @@ def run_match_ready_reminder_sweep(now=None):
     window_end = now + timedelta(minutes=SUPPORT_WINDOW_MAX_MINUTES)
 
     counters: Dict[str, int] = {event_name: 0 for event_name, *_ in REMINDER_WINDOWS}
+    # scanned  = candidates examined; skipped = due reminders that were not actionable (claimed,
+    # abandoned, stale, done); attempted = dispatches actually started (claims acquired).
+    # Only dispatches count against SWEEP_ACTION_LIMIT, so non-actionable candidates cannot
+    # starve actionable ones; they only consume the scan budget (see the cursor below).
     stats = {
-        'scanned': 0, 'attempted': 0, 'failed': 0, 'in_progress': 0, 'reclaimed': 0,
+        'scanned': 0, 'attempted': 0, 'skipped': 0, 'failed': 0, 'in_progress': 0, 'reclaimed': 0,
         'gave_up': 0, 'abandoned': 0, 'stale_completions': 0, 'suppressed': 0,
         'email_failed': 0, 'deferred': False,
     }
     truncated = False
+    last_examined = None
 
-    def _limits_hit() -> bool:
+    def _scan_budget_hit() -> bool:
         return (
-            stats['attempted'] >= SWEEP_ACTION_LIMIT
-            or stats['scanned'] >= SWEEP_SCAN_LIMIT
+            stats['scanned'] >= SWEEP_SCAN_LIMIT
             or time.monotonic() - started > SWEEP_TIME_BUDGET_SECONDS
         )
 
-    for page in _candidate_pages(window_start, window_end):
-        for match in page:
-            if _limits_hit():
-                truncated = True
-                break
-            stats['scanned'] += 1
-
-            tournament = match.tournament
-            if not tournament or tournament.status not in ('live', 'registration_closed'):
-                continue
-
+    def _dispatch_due(match, tournament, due, target_user_ids, minutes_until):
+        for event_name, _lower, _upper, marker_key in due:
+            if stats['attempted'] >= SWEEP_ACTION_LIMIT:
+                return
+            signature = _marker_signature(marker_key, match.scheduled_time)
+            token = None
             try:
-                minutes_until = max(0, int((match.scheduled_time - now).total_seconds() // 60))
-                markers = _lobby_parts(match.lobby_info)[REMINDER_MARKERS_KEY]
-                due = [
-                    w for w in REMINDER_WINDOWS
-                    if _in_window(minutes_until, w[1], w[2])
-                    and markers.get(w[3]) != _marker_signature(w[3], match.scheduled_time)
-                ]
-                if not due:
+                token, reason = _claim_reminder(match.id, marker_key, signature, now)
+                if token is None:
+                    stats['skipped'] += 1
+                    if reason in ('in_progress', 'abandoned', 'gave_up'):
+                        stats[reason] += 1
+                    if reason == 'gave_up':
+                        logger.error(
+                            "[match_reminder] Abandoned after %d attempts: match=%s window=%s",
+                            MAX_ATTEMPTS, match.id, marker_key,
+                        )
                     continue
-                target_user_ids = TOCBracketsService._match_participant_user_ids(tournament, match)
-                if not target_user_ids:
-                    continue
-            except Exception:
-                stats['failed'] += 1
-                logger.exception("[match_reminder] Failed to prepare match %s", match.id)
-                continue
-
-            stats['attempted'] += 1
-            for event_name, _lower, _upper, marker_key in due:
-                signature = _marker_signature(marker_key, match.scheduled_time)
-                token = None
-                try:
-                    token, reason = _claim_reminder(match.id, marker_key, signature, now)
-                    if token is None:
-                        if reason in ('in_progress', 'abandoned', 'gave_up'):
-                            stats[reason] += 1
-                        if reason == 'gave_up':
-                            logger.error(
-                                "[match_reminder] Abandoned after %d attempts: match=%s window=%s",
-                                MAX_ATTEMPTS, match.id, marker_key,
-                            )
-                        continue
-                    if reason in ('reclaimed', 'retry'):
-                        stats['reclaimed'] += 1
-                        logger.warning(
-                            "[match_reminder] Re-sending (%s): match=%s window=%s", reason, match.id, marker_key,
-                        )
-
-                    # Sent outside any transaction; strict makes dispatch failures raise.
-                    delivery = TOCNotificationsService.fire_auto_event(
-                        tournament,
-                        event_name,
-                        {
-                            'target_user_ids': target_user_ids,
-                            'match_id': match.id,
-                            'round': match.round_number,
-                            'match_number': match.match_number,
-                            'participant1': match.participant1_name or str(match.participant1_id),
-                            'participant2': match.participant2_name or str(match.participant2_id),
-                            'scheduled_time': str(match.scheduled_time),
-                            'minutes_until': minutes_until,
-                            'force_email': True,
-                            'dedupe': False,
-                            'strict': True,
-                            'url': f'/tournaments/{tournament.slug}/hub/',
-                        },
+                stats['attempted'] += 1
+                if reason in ('reclaimed', 'retry'):
+                    stats['reclaimed'] += 1
+                    logger.warning(
+                        "[match_reminder] Re-sending (%s): match=%s window=%s", reason, match.id, marker_key,
                     )
-                    if _finalize_reminder(match.id, marker_key, signature, token) != 'sent':
-                        stats['stale_completions'] += 1
-                        logger.warning(
-                            "[match_reminder] Stale completion ignored (rescheduled, replaced claim or no "
-                            "longer relevant); the send may already have happened: match=%s window=%s",
-                            match.id, marker_key,
-                        )
-                        continue
-                    delivery = delivery or {}
-                    if not (delivery.get('created') or delivery.get('email_sent')):
-                        stats['suppressed'] += 1  # disabled by organizer / no rule / nobody to notify
-                        continue
-                    counters[event_name] += 1
-                    if delivery.get('email_failed'):
-                        # In-app rows are persisted; retrying would duplicate them, so this is
-                        # recorded as sent with a visible email failure count.
-                        stats['email_failed'] += delivery['email_failed']
-                        logger.warning(
-                            "[match_reminder] %d email(s) rejected by the backend: match=%s window=%s",
-                            delivery['email_failed'], match.id, marker_key,
-                        )
-                    logger.info(
-                        "[match_reminder] event=%s tournament=%s match=%s (R%d M%d) @ %s",
-                        event_name, tournament.slug, match.id,
-                        match.round_number, match.match_number, match.scheduled_time,
-                    )
-                except Exception as exc:
-                    stats['failed'] += 1
-                    logger.exception(
-                        "[match_reminder] Dispatch failed (will retry): match=%s window=%s",
+
+                # Sent outside any transaction; strict makes dispatch failures raise.
+                delivery = TOCNotificationsService.fire_auto_event(
+                    tournament,
+                    event_name,
+                    {
+                        'target_user_ids': target_user_ids,
+                        'match_id': match.id,
+                        'round': match.round_number,
+                        'match_number': match.match_number,
+                        'participant1': match.participant1_name or str(match.participant1_id),
+                        'participant2': match.participant2_name or str(match.participant2_id),
+                        'scheduled_time': str(match.scheduled_time),
+                        'minutes_until': minutes_until,
+                        'force_email': True,
+                        'dedupe': False,
+                        'strict': True,
+                        'url': f'/tournaments/{tournament.slug}/hub/',
+                    },
+                )
+                if _finalize_reminder(match.id, marker_key, signature, token) != 'sent':
+                    stats['stale_completions'] += 1
+                    logger.warning(
+                        "[match_reminder] Stale completion ignored (rescheduled, replaced claim or no "
+                        "longer relevant); the send may already have happened: match=%s window=%s",
                         match.id, marker_key,
                     )
-                    if token:
-                        try:
-                            _record_failure(match.id, marker_key, signature, token, exc, now)
-                        except Exception:
-                            logger.exception("[match_reminder] Could not record failure for match %s", match.id)
+                    continue
+                delivery = delivery or {}
+                if not (delivery.get('created') or delivery.get('email_sent')):
+                    stats['suppressed'] += 1  # disabled by organizer / no rule / nobody to notify
+                    continue
+                counters[event_name] += 1
+                if delivery.get('email_failed'):
+                    # In-app rows are persisted; retrying would duplicate them, so this is
+                    # recorded as sent with a visible email failure count.
+                    stats['email_failed'] += delivery['email_failed']
+                    logger.warning(
+                        "[match_reminder] %d email(s) rejected by the backend: match=%s window=%s",
+                        delivery['email_failed'], match.id, marker_key,
+                    )
+                logger.info(
+                    "[match_reminder] event=%s tournament=%s match=%s (R%d M%d) @ %s",
+                    event_name, tournament.slug, match.id,
+                    match.round_number, match.match_number, match.scheduled_time,
+                )
+            except Exception as exc:
+                stats['failed'] += 1
+                logger.exception(
+                    "[match_reminder] Dispatch failed (will retry): match=%s window=%s",
+                    match.id, marker_key,
+                )
+                if token:
+                    try:
+                        _record_failure(match.id, marker_key, signature, token, exc, now)
+                    except Exception:
+                        logger.exception("[match_reminder] Could not record failure for match %s", match.id)
+
+    # Resume after the position where a previous truncated sweep stopped, then wrap around to
+    # the front, so repeated sweeps eventually cover every candidate in the window.
+    cursor = _load_cursor()
+    passes = [(cursor, None), (None, cursor)] if cursor else [(None, None)]
+
+    for after, until in passes:
+        for page in _candidate_pages(window_start, window_end, after=after, until=until):
+            for match in page:
+                if _scan_budget_hit():
+                    truncated = True
+                    break
+                stats['scanned'] += 1
+                last_examined = (match.scheduled_time, match.id)
+                tournament = match.tournament
+                if not tournament or tournament.status not in ('live', 'registration_closed'):
+                    continue
+
+                try:
+                    minutes_until = max(0, int((match.scheduled_time - now).total_seconds() // 60))
+                    lobby = _lobby_parts(match.lobby_info)
+                    due = []
+                    for window in REMINDER_WINDOWS:
+                        _event, lower, upper, key = window
+                        signature = _marker_signature(key, match.scheduled_time)
+                        if not _in_window(minutes_until, lower, upper) or lobby[REMINDER_MARKERS_KEY].get(key) == signature:
+                            continue
+                        blocked = _claim_blocked(lobby[REMINDER_CLAIMS_KEY].get(key), signature, now)
+                        if blocked:
+                            stats['skipped'] += 1
+                            stats[blocked] += 1
+                            continue
+                        due.append(window)
+                    if not due:
+                        continue
+                    target_user_ids = TOCBracketsService._match_participant_user_ids(tournament, match)
+                    if not target_user_ids:
+                        continue
+                except Exception:
+                    stats['failed'] += 1
+                    logger.exception("[match_reminder] Failed to prepare match %s", match.id)
+                    continue
+
+                _dispatch_due(match, tournament, due, target_user_ids, minutes_until)
+                if stats['attempted'] >= SWEEP_ACTION_LIMIT:
+                    truncated = True
+                    break
+            if truncated:
+                break
         if truncated:
             break
 
+    _store_cursor(last_examined if truncated else None)
     stats['deferred'] = truncated
     total_sent = sum(counters.values())
     if total_sent or stats['failed'] or stats['gave_up'] or stats['stale_completions'] or truncated:
