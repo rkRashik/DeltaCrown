@@ -392,6 +392,7 @@ class TOCNotificationsService:
 
         # ── Dispatch to real notification system ──
         channels = notif_config.get("channels", {})
+        strict = bool(data.get("strict", False))
         try:
             from apps.notifications.services import emit as notify_emit
 
@@ -422,6 +423,8 @@ class TOCNotificationsService:
                 logger.info("Dispatched notification '%s' to %d users via emit()", subject, len(recipient_users))
         except Exception as e:
             logger.warning("Failed to dispatch via emit(): %s", e)
+            if strict:  # callers that retry (reminder sweep) must see the failure
+                raise
 
         # ── Also dispatch to Discord webhook (announcements) ──
         try:
@@ -580,6 +583,7 @@ class TOCNotificationsService:
                 return  # No rule for this event, skip silently
 
             ctx = dict(context or {})
+            strict = bool(ctx.pop("strict", False))
             target_user_ids = ctx.pop("target_user_ids", None)
             target_override = ctx.pop("target", None)
             target = target_user_ids if isinstance(target_user_ids, list) else target_override
@@ -630,6 +634,7 @@ class TOCNotificationsService:
                     "url": notification_url,
                     "force_email": force_email,
                     "dedupe": dedupe,
+                    "strict": strict,
                     "email_template": email_template,
                     "email_cta_label": email_cta_label,
                     "context": ctx,
@@ -654,3 +659,5 @@ class TOCNotificationsService:
                 logger.warning("Discord webhook dispatch failed for %s/%s: %s", tournament.slug, event, discord_err)
         except Exception as e:
             logger.warning("Auto-notification fire_auto_event error for %s/%s: %s", tournament.slug, event, e)
+            if (context or {}).get("strict"):
+                raise
