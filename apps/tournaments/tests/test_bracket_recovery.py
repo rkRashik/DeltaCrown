@@ -1,16 +1,19 @@
 """Worker-independent bracket advancement recovery (advance_pending_matches)."""
+import threading
 from datetime import timedelta
 from unittest.mock import patch
 
 import pytest
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
+from django.db import OperationalError, connection, transaction
 from django.utils import timezone
 
 from apps.brackets.models import Bracket, BracketNode
 from apps.games.models.game import Game
 from apps.tournaments.models import Match, Tournament
 from apps.tournaments.services.bracket_recovery import advance_pending_matches
+from apps.tournaments.services.bracket_service import BracketService
 
 pytestmark = pytest.mark.django_db
 
@@ -116,3 +119,61 @@ def test_ignores_recent_invalid_and_non_live(tree):
     _finish(semis[0][0], winner_id=1)
     Tournament.objects.filter(pk=tournament.pk).update(status=Tournament.COMPLETED)
     assert advance_pending_matches()['advanced'] == 0
+
+
+def test_double_elimination_still_drops_loser_when_parent_slot_prefilled(tree):
+    tournament, final, semis = tree
+    Bracket.objects.filter(pk=final.bracket_id).update(
+        format=Bracket.DOUBLE_ELIMINATION,
+        bracket_structure={'loser_drops': {'main_R1_M1': {'lb_round': 1, 'lb_match': 1, 'lb_slot': 1}}},
+    )
+    lb = BracketNode.objects.create(
+        bracket_id=final.bracket_id, position=4, round_number=1, match_number_in_round=1,
+        bracket_type=BracketNode.LOSERS,
+    )
+    BracketNode.objects.filter(pk=final.pk).update(participant1_id=1)  # winner already in parent slot
+    _finish(semis[0][0], winner_id=1)
+
+    assert advance_pending_matches()['advanced'] == 1
+    lb.refresh_from_db()
+    assert lb.participant1_id == 2
+
+
+@pytest.mark.django_db(transaction=True)
+def test_concurrent_sibling_advancement_keeps_both_slots(tree):
+    """A runner that waits on the parent must re-read it, not overwrite the sibling's slot."""
+    _, final, semis = tree
+    _finish(semis[0][0], winner_id=1)
+    match = Match.objects.get(pk=semis[0][0].pk)
+    held, release = threading.Event(), threading.Event()
+
+    def sibling():  # the other semifinal's advancement, mid-transaction
+        try:
+            with transaction.atomic():
+                list(BracketNode.objects.select_for_update().filter(pk=final.pk))
+                BracketNode.objects.filter(pk=final.pk).update(
+                    participant2_id=4, participant2_name='P4'
+                )
+                held.set()
+                release.wait(10)
+        finally:
+            connection.close()
+
+    def runner():
+        try:
+            BracketService.update_bracket_after_match(match)
+        finally:
+            connection.close()
+
+    t1 = threading.Thread(target=sibling)
+    t1.start()
+    assert held.wait(10)
+    t2 = threading.Thread(target=runner)
+    t2.start()
+    t2.join(1)  # let it reach the parent row while the sibling still holds it
+    release.set()
+    t1.join()
+    t2.join()
+
+    final.refresh_from_db()
+    assert (final.participant1_id, final.participant2_id) == (1, 4)
