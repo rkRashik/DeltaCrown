@@ -90,6 +90,7 @@ class RedisTLSChecks(SimpleTestCase):
 class CronChecks(SimpleTestCase):
     runners = (
         "_run_auto_advance",
+        "_run_bracket_advance",
         "_run_wrapup",
         "_run_no_show",
         "_run_lobby_close",
@@ -121,7 +122,7 @@ class CronChecks(SimpleTestCase):
             release.assert_called_once()
         return response
 
-    def test_all_eight_essential_tasks_run_and_success_remains_200(self):
+    def test_all_nine_essential_tasks_run_and_success_remains_200(self):
         self.assertEqual(self.invoke().status_code, 200)
 
     def test_partial_failure_is_500_without_skipping_other_tasks(self):
