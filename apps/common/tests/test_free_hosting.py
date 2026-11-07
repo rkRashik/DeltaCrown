@@ -100,7 +100,7 @@ class CronChecks(SimpleTestCase):
         "_run_dispute_escalation",
     )
 
-    def invoke(self, fail=False):
+    def invoke(self, fail=False, bracket_result=None):
         from deltacrown import lifecycle_cron as cron
 
         request = RequestFactory().post(
@@ -115,7 +115,13 @@ class CronChecks(SimpleTestCase):
                     patch.object(cron, name, return_value={"ok": not fail if i == 0 else True})
                 )
                 for i, name in enumerate(self.runners)
+                if not (bracket_result and name == "_run_bracket_advance")
             ]
+            if bracket_result:  # exercise the real runner against a mocked recovery result
+                stack.enter_context(patch(
+                    "apps.tournaments.services.bracket_recovery.advance_pending_matches",
+                    return_value=bracket_result,
+                ))
             response = cron.lifecycle_cron(request)
             for mock in mocks:
                 mock.assert_called_once()
@@ -124,6 +130,12 @@ class CronChecks(SimpleTestCase):
 
     def test_all_nine_essential_tasks_run_and_success_remains_200(self):
         self.assertEqual(self.invoke().status_code, 200)
+
+    def test_failed_bracket_advancement_is_500_without_skipping_other_tasks(self):
+        failed = {"advanced": 0, "skipped": 0, "failed": 1}
+        self.assertEqual(self.invoke(bracket_result=failed).status_code, 500)
+        clean = {"advanced": 1, "skipped": 0, "failed": 0}
+        self.assertEqual(self.invoke(bracket_result=clean).status_code, 200)
 
     def test_partial_failure_is_500_without_skipping_other_tasks(self):
         self.assertEqual(self.invoke(fail=True).status_code, 500)
