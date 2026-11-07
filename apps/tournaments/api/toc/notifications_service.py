@@ -419,7 +419,13 @@ class TOCNotificationsService:
                         "generated_at": timezone.now(),
                         **extra_email_ctx,
                     }
-                notify_emit(recipient_users, **emit_kwargs)
+                emit_result = notify_emit(recipient_users, **emit_kwargs)
+                entry["delivery"] = {
+                    "created": getattr(emit_result, "created", 0),
+                    "skipped": getattr(emit_result, "skipped", 0),
+                    "email_sent": getattr(emit_result, "email_sent", 0),
+                    "email_failed": getattr(emit_result, "email_failed", 0),
+                }
                 logger.info("Dispatched notification '%s' to %d users via emit()", subject, len(recipient_users))
         except Exception as e:
             logger.warning("Failed to dispatch via emit(): %s", e)
@@ -605,6 +611,7 @@ class TOCNotificationsService:
 
             sent_subject = ""
             sent_body = ""
+            delivery = {"created": 0, "skipped": 0, "email_sent": 0, "email_failed": 0}
             for rule in matching_rules:
                 template_id = rule.get("template_id")
                 tmpl = next((t for t in templates if t.get("id") == template_id and t.get("enabled", True)), None)
@@ -626,7 +633,7 @@ class TOCNotificationsService:
                     body = body.replace("{" + key + "}", str(val))
                     subject = subject.replace("{" + key + "}", str(val))
 
-                cls.send_notification(tournament, {
+                entry = cls.send_notification(tournament, {
                     "event": event,
                     "subject": subject,
                     "body": body,
@@ -643,6 +650,8 @@ class TOCNotificationsService:
                         "notification_rule": rule.get("id", ""),
                     },
                 })
+                for key, value in (entry.get("delivery") or {}).items():
+                    delivery[key] = delivery.get(key, 0) + (value or 0)
                 sent_subject = subject
                 sent_body = body
                 logger.info("Auto-notification fired: event=%s, template=%s for %s", event, template_id, tournament.slug)
@@ -657,6 +666,9 @@ class TOCNotificationsService:
                 DiscordWebhookService.send_event_async(tournament, event, discord_ctx)
             except Exception as discord_err:
                 logger.warning("Discord webhook dispatch failed for %s/%s: %s", tournament.slug, event, discord_err)
+
+            # Strict callers get what was persisted/attempted (None = disabled or nothing to send).
+            return delivery if strict else None
         except Exception as e:
             logger.warning("Auto-notification fire_auto_event error for %s/%s: %s", tournament.slug, event, e)
             if (context or {}).get("strict"):

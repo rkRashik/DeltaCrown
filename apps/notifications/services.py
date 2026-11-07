@@ -596,11 +596,12 @@ class EmitResult(dict):
     Hybrid result that supports BOTH attribute access (r.created)
     and dict-style access (r["created"]). This satisfies mixed tests.
     """
-    def __init__(self, created: int, skipped: int, email_sent: int = 0):
+    def __init__(self, created: int, skipped: int, email_sent: int = 0, email_failed: int = 0):
         super().__init__(created=created, skipped=skipped, email_sent=email_sent)
         self.created = created
         self.skipped = skipped
         self.email_sent = email_sent
+        self.email_failed = email_failed  # attribute only: the dict shape is unchanged
 
 
 def _resolve_email(target: Any) -> Optional[str]:
@@ -645,8 +646,10 @@ def _normalize_email_template_slug(template_slug: str) -> str:
     return slug.strip("/")
 
 
-def _send_templated_email(to_email: Optional[str], subject: str, template_slug: str, ctx: Dict[str, Any]) -> bool:
+def _send_templated_email_status(to_email: Optional[str], subject: str, template_slug: str, ctx: Dict[str, Any]) -> str:
     """
+    Returns "sent" (backend accepted it), "failed" (backend rejected it) or "skipped"
+    (no address/template). Acceptance is not proof of inbox delivery.
     Render & send multipart email:
       notifications/email/{slug}.txt (required)
       notifications/email/{slug}.html (optional)
@@ -655,15 +658,15 @@ def _send_templated_email(to_email: Optional[str], subject: str, template_slug: 
     PHASE 5B: This function should only be called after enforcement checks pass.
     """
     if not to_email or not template_slug:
-        return False
+        return "skipped"
     normalized_slug = _normalize_email_template_slug(template_slug)
     if not normalized_slug:
-        return False
+        return "skipped"
 
     try:
         txt = render_to_string(f"notifications/email/{normalized_slug}.txt", ctx)
     except TemplateDoesNotExist:
-        return False
+        return "skipped"
     try:
         html = render_to_string(f"notifications/email/{normalized_slug}.html", ctx)
     except TemplateDoesNotExist:
@@ -672,8 +675,14 @@ def _send_templated_email(to_email: Optional[str], subject: str, template_slug: 
     msg = EmailMultiAlternatives(subject, txt, FROM_EMAIL, [to_email])
     if html:
         msg.attach_alternative(html, "text/html")
-    msg.send(fail_silently=True)
-    return True
+    # send() returns the number of messages the backend accepted; fail_silently turns
+    # a provider error into 0, which must not be reported as sent.
+    return "sent" if msg.send(fail_silently=True) else "failed"
+
+
+def _send_templated_email(to_email: Optional[str], subject: str, template_slug: str, ctx: Dict[str, Any]) -> bool:
+    """Bool-compatible wrapper: True only if the backend accepted the message."""
+    return _send_templated_email_status(to_email, subject, template_slug, ctx) == "sent"
 
 
 def notify(
@@ -723,7 +732,7 @@ def notify(
     enum_values = set(getattr(Notification, "Type").values) if hasattr(Notification, "Type") else set()
     type_str = event_str if event_str in enum_values else "generic"
 
-    created = skipped = sent = 0
+    created = skipped = sent = email_failed = 0
 
     # Detect presence of an optional fingerprint column on your Notification model
     has_fp = any(getattr(f, "name", None) == "fingerprint" for f in Notification._meta.get_fields())
@@ -792,15 +801,17 @@ def notify(
             if user_model:
                 # Check if email delivery is allowed
                 if can_deliver_notification(user_model, 'email', category, bypass_user_prefs=bypass_user_prefs):
-                    if _send_templated_email(_resolve_email(target), email_subject, email_template, email_ctx or {}):
-                        sent += 1
+                    status = _send_templated_email_status(_resolve_email(target), email_subject, email_template, email_ctx or {})
+                    sent += status == "sent"
+                    email_failed += status == "failed"
                 else:
                     # Log suppressed email
                     log_suppressed_notification(user_model, 'email', category, 'enforcement_blocked', title)
             else:
                 # No user model, send anyway (for non-user recipients)
-                if _send_templated_email(_resolve_email(target), email_subject, email_template, email_ctx or {}):
-                    sent += 1
+                status = _send_templated_email_status(_resolve_email(target), email_subject, email_template, email_ctx or {})
+                sent += status == "sent"
+                email_failed += status == "failed"
     
     # MILESTONE F: Optional webhook delivery
     webhook_sent = 0
@@ -842,7 +853,7 @@ def notify(
             logger = logging.getLogger(__name__)
             logger.error(f"Webhook delivery failed: {e}")
 
-    return {"created": created, "skipped": skipped, "email_sent": sent, "webhook_sent": webhook_sent}
+    return {"created": created, "skipped": skipped, "email_sent": sent, "email_failed": email_failed, "webhook_sent": webhook_sent}
 
 
 def emit(
@@ -888,7 +899,10 @@ def emit(
         email_template=email_template,
         email_ctx=email_ctx,
     )
-    return EmitResult(created=result["created"], skipped=result["skipped"], email_sent=result["email_sent"])
+    return EmitResult(
+        created=result["created"], skipped=result["skipped"], email_sent=result["email_sent"],
+        email_failed=result.get("email_failed", 0),
+    )
 
 
 __all__ = ["notify", "emit", "EmitResult", "NotificationService"]

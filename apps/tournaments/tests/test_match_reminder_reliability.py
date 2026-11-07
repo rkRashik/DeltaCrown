@@ -1,8 +1,8 @@
-"""Match reminder sweep: idempotence, concurrency, failure/retry, stale matches."""
+"""Match reminder sweep: idempotence, concurrency, claim ownership, failure/retry, fairness."""
 import threading
 import time
 from datetime import timedelta
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from django.contrib.auth import get_user_model
@@ -23,6 +23,7 @@ pytestmark = pytest.mark.django_db
 
 FIRE = 'apps.tournaments.api.toc.notifications_service.TOCNotificationsService.fire_auto_event'
 TARGETS = 'apps.tournaments.api.toc.brackets_service.TOCBracketsService._match_participant_user_ids'
+OK = {'created': 1, 'skipped': 0, 'email_sent': 1, 'email_failed': 0}
 
 
 @pytest.fixture
@@ -54,9 +55,13 @@ def _sweep(now):
         return run_match_ready_reminder_sweep(now=now)
 
 
+def _sig(match, key='m60'):
+    return match_ready._marker_signature(key, match.scheduled_time)
+
+
 def test_fires_once_under_repeated_sweeps_and_keeps_recipients(setup):
     user, _, match, now = setup
-    with patch(FIRE) as fire:
+    with patch(FIRE, return_value=OK) as fire:
         with patch(TARGETS, return_value=[user.id]):
             first = run_match_ready_reminder_sweep(now=now)
             second = run_match_ready_reminder_sweep(now=now)
@@ -69,60 +74,116 @@ def test_fires_once_under_repeated_sweeps_and_keeps_recipients(setup):
     assert match.lobby_info[REMINDER_CLAIMS_KEY] == {}
 
 
-def test_failed_dispatch_is_not_marked_and_retries_after_ttl(setup):
+def test_failed_dispatch_is_not_marked_and_retries_after_backoff(setup):
     _, _, match, now = setup
     with patch(FIRE, side_effect=RuntimeError('smtp down')):
         result = _sweep(now)
     assert result['failed'] == 1 and result['notified'] == 0
     match.refresh_from_db()
-    assert REMINDER_MARKERS_KEY not in match.lobby_info or not match.lobby_info[REMINDER_MARKERS_KEY]
-    assert match.lobby_info[REMINDER_CLAIMS_KEY]['m60']['attempts'] == 1
+    assert not match.lobby_info.get(REMINDER_MARKERS_KEY)
+    claim = match.lobby_info[REMINDER_CLAIMS_KEY]['m60']
+    assert claim['attempts'] == 1 and claim['state'] == 'failed' and 'smtp down' in claim['error']
 
-    with patch(FIRE) as fire:
-        assert _sweep(now + timedelta(seconds=5))['in_progress'] == 1  # still claimed
+    with patch(FIRE, return_value=OK) as fire:
+        assert _sweep(now + timedelta(seconds=5))['in_progress'] == 1  # still backing off
         assert fire.call_count == 0
-        retry = _sweep(now + timedelta(seconds=match_ready.CLAIM_TTL_SECONDS + 1))
-    assert retry['notified'] == 1 and fire.call_count == 1
+        retry = _sweep(now + timedelta(seconds=match_ready.FAILURE_RETRY_SECONDS + 1))
+    assert retry['notified'] == 1 and retry['reclaimed'] == 1 and fire.call_count == 1
     match.refresh_from_db()
     assert 'm60' in match.lobby_info[REMINDER_MARKERS_KEY]
     assert match.lobby_info[REMINDER_CLAIMS_KEY] == {}
 
 
-def test_gives_up_after_max_attempts(setup):
-    _, _, _, now = setup
-    with patch.object(match_ready, 'CLAIM_TTL_SECONDS', 10), patch(FIRE, side_effect=RuntimeError('x')) as fire:
+def test_abandons_after_max_attempts_and_stays_quiet(setup):
+    _, _, match, now = setup
+    with patch.object(match_ready, 'FAILURE_RETRY_SECONDS', 10), \
+            patch(FIRE, side_effect=RuntimeError('x')) as fire:
         for step in range(match_ready.MAX_ATTEMPTS):
             assert _sweep(now + timedelta(seconds=11 * step))['failed'] == 1
-        final = _sweep(now + timedelta(seconds=11 * match_ready.MAX_ATTEMPTS))
-    assert final['gave_up'] == 1 and final['failed'] == 0
+        later = now + timedelta(seconds=11 * match_ready.MAX_ATTEMPTS)
+        assert _sweep(later)['gave_up'] == 1
+        assert _sweep(later + timedelta(seconds=30))['abandoned'] == 1
     assert fire.call_count == match_ready.MAX_ATTEMPTS
+    match.refresh_from_db()
+    assert match.lobby_info[REMINDER_CLAIMS_KEY]['m60']['state'] == 'abandoned'
 
 
-def test_reschedule_makes_a_new_reminder_eligible(setup):
+def test_active_lease_blocks_retry_and_expired_lease_is_reclaimed(setup):
     _, _, match, now = setup
-    with patch(FIRE) as fire:
-        _sweep(now)
+    token, _ = match_ready._claim_reminder(match.id, 'm60', _sig(match), now)
+    assert token
+    soon = now + timedelta(seconds=match_ready.CLAIM_TTL_SECONDS - 1)
+    assert match_ready._claim_reminder(match.id, 'm60', _sig(match), soon) == (None, 'in_progress')
+    later = now + timedelta(seconds=match_ready.CLAIM_TTL_SECONDS + 1)
+    new_token, reason = match_ready._claim_reminder(match.id, 'm60', _sig(match), later)
+    assert new_token and new_token != token and reason == 'reclaimed'
+
+
+def test_malformed_persisted_claim_data_is_handled(setup):
+    _, _, match, now = setup
+    for bad in ('garbage', 7, {'sig': _sig(match), 'at': 'not-a-date', 'attempts': 'x'}, None):
+        Match.objects.filter(pk=match.pk).update(
+            lobby_info={REMINDER_CLAIMS_KEY: {'m60': bad}, REMINDER_MARKERS_KEY: 'also bad'}
+        )
+        token, _ = match_ready._claim_reminder(match.id, 'm60', _sig(match), now)
+        assert token, bad
+    Match.objects.filter(pk=match.pk).update(lobby_info=['not', 'a', 'dict'])
+    assert match_ready._claim_reminder(match.id, 'm60', _sig(match), now)[0]
+
+
+def test_stale_worker_cannot_finalize_over_a_newer_claim(setup):
+    _, _, match, now = setup
+    old, _ = match_ready._claim_reminder(match.id, 'm60', _sig(match), now)
+    later = now + timedelta(seconds=match_ready.CLAIM_TTL_SECONDS + 1)
+    new, _ = match_ready._claim_reminder(match.id, 'm60', _sig(match), later)
+
+    assert match_ready._finalize_reminder(match.id, 'm60', _sig(match), old) == 'stale'
+    match.refresh_from_db()
+    assert not match.lobby_info[REMINDER_MARKERS_KEY]
+    assert match.lobby_info[REMINDER_CLAIMS_KEY]['m60']['token'] == new  # newer claim untouched
+
+    assert match_ready._finalize_reminder(match.id, 'm60', _sig(match), new) == 'sent'
+
+
+def test_rescheduling_during_dispatch_rejects_completion_and_resends_for_new_time(setup):
+    _, _, match, now = setup
+
+    def reschedule_midflight(*args, **kwargs):
         Match.objects.filter(pk=match.pk).update(scheduled_time=now + timedelta(minutes=62))
-        assert _sweep(now)['notified'] == 1
-    assert fire.call_count == 2
+        return OK
+
+    with patch(FIRE, side_effect=reschedule_midflight) as fire:
+        first = _sweep(now)
+        assert first['stale_completions'] == 1 and first['notified'] == 0
+        match.refresh_from_db()
+        assert not match.lobby_info[REMINDER_MARKERS_KEY]  # old schedule did not leak a marker
+        second = _sweep(now)  # new schedule gets its own reminder
+    assert second['notified'] == 1 and fire.call_count == 2
+    match.refresh_from_db()
+    assert match.lobby_info[REMINDER_MARKERS_KEY]['m60'] == _sig(match)
 
 
 @pytest.mark.parametrize('state', ['cancelled', 'completed', 'live'])
 def test_inactive_matches_are_skipped(setup, state):
     _, _, match, now = setup
     Match.objects.filter(pk=match.pk).update(state=state)
-    with patch(FIRE) as fire:
+    with patch(FIRE, return_value=OK) as fire:
         assert _sweep(now)['notified'] == 0
     assert fire.call_count == 0
 
 
-def test_claim_rechecks_state_and_schedule_under_lock(setup):
+def test_claim_and_finalize_recheck_state_and_schedule_under_lock(setup):
     _, _, match, now = setup
-    signature = match_ready._marker_signature('m60', match.scheduled_time)
+    signature = _sig(match)
     Match.objects.filter(pk=match.pk).update(state='cancelled')
-    assert match_ready._claim_reminder(match.id, 'm60', signature, now) == (False, 'stale')
+    assert match_ready._claim_reminder(match.id, 'm60', signature, now) == (None, 'stale')
     Match.objects.filter(pk=match.pk).update(state=Match.SCHEDULED, scheduled_time=now + timedelta(minutes=70))
-    assert match_ready._claim_reminder(match.id, 'm60', signature, now) == (False, 'stale')
+    assert match_ready._claim_reminder(match.id, 'm60', signature, now) == (None, 'stale')
+
+    Match.objects.filter(pk=match.pk).update(scheduled_time=now + timedelta(minutes=64))
+    token, _ = match_ready._claim_reminder(match.id, 'm60', signature, now)
+    Match.objects.filter(pk=match.pk).update(state='cancelled')  # cancelled mid-send
+    assert match_ready._finalize_reminder(match.id, 'm60', signature, token) == 'stale'
 
 
 def test_marker_write_preserves_concurrent_lobby_changes(setup):
@@ -132,6 +193,7 @@ def test_marker_write_preserves_concurrent_lobby_changes(setup):
         Match.objects.filter(pk=match.pk).update(
             lobby_info={**Match.objects.get(pk=match.pk).lobby_info, 'room_code': 'ABC123'}
         )
+        return OK
 
     with patch(FIRE, side_effect=organizer_sets_code):
         _sweep(now)
@@ -140,7 +202,33 @@ def test_marker_write_preserves_concurrent_lobby_changes(setup):
     assert 'm60' in match.lobby_info[REMINDER_MARKERS_KEY]
 
 
-def test_sweep_is_bounded(setup):
+def test_handled_matches_cannot_starve_later_pending_ones(setup):
+    _, tournament, first, now = setup
+    handled = [first]
+    for n in range(2, 6):
+        handled.append(Match.objects.create(
+            tournament=tournament, round_number=1, match_number=n,
+            participant1_id=1, participant2_id=2, state=Match.SCHEDULED,
+            scheduled_time=now + timedelta(minutes=60, seconds=n),
+        ))
+    for m in handled:
+        Match.objects.filter(pk=m.pk).update(
+            lobby_info={REMINDER_MARKERS_KEY: {'m60': match_ready._marker_signature('m60', m.scheduled_time)}}
+        )
+    pending = Match.objects.create(
+        tournament=tournament, round_number=2, match_number=1,
+        participant1_id=1, participant2_id=2, state=Match.SCHEDULED,
+        scheduled_time=now + timedelta(minutes=64),
+    )
+    with patch.object(match_ready, 'SWEEP_PAGE_SIZE', 2), patch.object(match_ready, 'SWEEP_ACTION_LIMIT', 1), \
+            patch(FIRE, return_value=OK) as fire:
+        result = _sweep(now)
+    assert fire.call_count == 1 and result['scanned'] == 6 and result['notified'] == 1
+    pending.refresh_from_db()
+    assert 'm60' in pending.lobby_info[REMINDER_MARKERS_KEY]
+
+
+def test_limits_report_truncation_honestly(setup):
     _, tournament, _, now = setup
     for n in (2, 3):
         Match.objects.create(
@@ -148,20 +236,53 @@ def test_sweep_is_bounded(setup):
             participant1_id=1, participant2_id=2, state=Match.SCHEDULED,
             scheduled_time=now + timedelta(minutes=64),
         )
-    with patch.object(match_ready, 'SWEEP_MATCH_LIMIT', 2), patch(FIRE) as fire:
+    with patch.object(match_ready, 'SWEEP_ACTION_LIMIT', 2), patch(FIRE, return_value=OK) as fire:
         result = _sweep(now)
-    assert result['truncated'] is True and result['scanned'] == 2 and fire.call_count == 2
+    assert result['truncated'] is True and result['attempted'] == 2 and fire.call_count == 2
+    with patch(FIRE, return_value=OK) as fire:  # next sweep picks up the remainder
+        assert _sweep(now)['notified'] == 1
 
 
-def test_strict_mode_surfaces_dispatch_failure_default_stays_silent(setup):
+def test_delivery_outcomes_are_reported_honestly(setup):
+    _, _, match, now = setup
+    with patch(FIRE, return_value=None):  # disabled by organizer / no rule
+        result = _sweep(now)
+    assert result['suppressed'] == 1 and result['notified'] == 0
+    Match.objects.filter(pk=match.pk).update(lobby_info={})
+    with patch(FIRE, return_value={**OK, 'email_failed': 2}):
+        result = _sweep(now)
+    assert result['notified'] == 1 and result['email_failed'] == 2  # persisted; email failure visible
+
+
+def test_strict_mode_surfaces_failures_and_delivery_summary(setup):
     user, tournament, _, _ = setup
     context = {'target_user_ids': [user.id], 'match_id': 1, 'dedupe': False}
     with patch('apps.notifications.services.emit', side_effect=RuntimeError('boom')):
-        TOCNotificationsService.fire_auto_event(tournament, 'match_reminder_1h', dict(context))
+        assert TOCNotificationsService.fire_auto_event(tournament, 'match_reminder_1h', dict(context)) is None
         with pytest.raises(RuntimeError):
-            TOCNotificationsService.fire_auto_event(
-                tournament, 'match_reminder_1h', {**context, 'strict': True}
-            )
+            TOCNotificationsService.fire_auto_event(tournament, 'match_reminder_1h', {**context, 'strict': True})
+
+    summary = MagicMock(created=1, skipped=0, email_sent=0, email_failed=1)
+    with patch('apps.notifications.services.emit', return_value=summary):
+        delivery = TOCNotificationsService.fire_auto_event(
+            tournament, 'match_reminder_1h', {**context, 'strict': True}
+        )
+    assert delivery == {'created': 1, 'skipped': 0, 'email_sent': 0, 'email_failed': 1}
+
+
+def test_email_backend_rejection_is_not_reported_as_sent():
+    from apps.notifications import services
+
+    # The package re-exports a separately loaded services.py; patch that module's globals.
+    ns = services.emit.__globals__
+    status, plain = ns['_send_templated_email_status'], ns['_send_templated_email']
+    with patch.dict(ns, {'render_to_string': MagicMock(return_value='body')}),             patch.object(ns['EmailMultiAlternatives'], 'send') as send:
+        send.return_value = 0
+        assert status('a@b.test', 's', 'tournament_update', {}) == 'failed'
+        assert plain('a@b.test', 's', 'tournament_update', {}) is False
+        send.return_value = 1
+        assert status('a@b.test', 's', 'tournament_update', {}) == 'sent'
+    assert status('', 's', 'tournament_update', {}) == 'skipped'
 
 
 @pytest.mark.django_db(transaction=True)
@@ -172,6 +293,7 @@ def test_concurrent_sweeps_send_once(setup):
     def slow_send(*args, **kwargs):
         calls.append(1)
         time.sleep(0.6)  # keep the first sweep mid-send while the second one scans
+        return OK
 
     def run():
         try:
