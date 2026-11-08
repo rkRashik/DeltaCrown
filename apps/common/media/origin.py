@@ -1,33 +1,53 @@
-"""Bounded access to the private object store (OL-10).
+"""Bounded access to the private object store (OL-10, hardened in OL-12).
 
 Incident evidence (Render, 8 Nov): unbounded concurrent S3 reads against Supabase Storage filled the
 10-connection pool ("Connection pool is full"), media requests took 2.5-24 s, and the health probe timed
-out behind them. Every origin read now needs a lease from one process-wide budget; a request that cannot
-get one within a few seconds is shed with a fast 503 + Retry-After instead of piling up threads and memory.
-Chunk reads use their own small executor, never the 2-thread default one that the rest of Daphne shares.
-Nothing here weakens authorization: leases are taken only after the caller has authorized the record.
+out behind them. Every origin read needs a lease from one process-wide budget; a request that cannot get one
+within a few seconds is shed with a fast 503 + Retry-After instead of piling up threads and memory.
+
+OL-12 production finding: a burst of cancelled requests left every lease unreleased (a response dropped by a
+disconnected client is only finalised by the garbage collector, which an idle service does not run), so all
+media returned the "busy" 503 until restart. Therefore:
+  * a lease can never be held longer than MAX_HOLD_SECONDS: expired leases are reclaimed by the next acquirer,
+    independent of garbage collection (a late release of a reclaimed lease is a no-op);
+  * small immutable derivatives are read completely under the lease and released at once (no streaming
+    lifecycle at all), and recently served ones come from a small bounded in-memory cache without any origin
+    read.
+Nothing here weakens authorization: leases and the cache are used only after the caller has authorized the record.
 """
+import logging
 import os
 import threading
+import time
 import weakref
+from collections import OrderedDict
 from concurrent.futures import ThreadPoolExecutor
 
-SLOTS = max(1, int(os.getenv("MEDIA_ORIGIN_CONCURRENCY", "3")))
-WAIT_SECONDS = float(os.getenv("MEDIA_ORIGIN_WAIT_SECONDS", "8"))
+log = logging.getLogger(__name__)
+
+SLOTS = max(1, int(os.getenv("MEDIA_ORIGIN_CONCURRENCY", "3")))  # originals, streamed to the client
+SMALL_SLOTS = max(1, int(os.getenv("MEDIA_ORIGIN_SMALL_CONCURRENCY", "5")))  # derivatives: read whole in ~0.2 s
+WAIT_SECONDS = float(os.getenv("MEDIA_ORIGIN_WAIT_SECONDS", "5"))
+MAX_HOLD_SECONDS = float(os.getenv("MEDIA_ORIGIN_MAX_HOLD_SECONDS", "45"))
 MAX_WAITERS = 24  # beyond this, shed immediately: waiting requests each hold a thread
 CHUNK = 256 * 1024  # fewer thread hops per image than 64 KiB
+SMALL_OBJECT_BYTES = 768 * 1024  # derivatives are read whole up to this size (they are ~10-300 KiB)
 
 pool = ThreadPoolExecutor(max_workers=SLOTS, thread_name_prefix="media-origin")
 _slots = threading.BoundedSemaphore(SLOTS)
+_small_slots = threading.BoundedSemaphore(SMALL_SLOTS)  # SLOTS + SMALL_SLOTS stays below boto's pool of 10
 _lock = threading.Lock()
 _waiting = 0
+_active = {}  # id(cell) -> cell, for the leases currently holding a slot
 
 
 class Lease:
-    """One origin slot; releasing twice is harmless and a garbage-collected lease can never leak its slot."""
+    """One origin slot; releasing twice is harmless and a garbage-collected lease frees its slot too."""
 
-    def __init__(self):
-        self._cell = [False]
+    def __init__(self, sem=None):
+        self._cell = [False, time.monotonic(), sem or _slots]  # [released, taken_at, semaphore]
+        with _lock:
+            _active[id(self._cell)] = self._cell
         weakref.finalize(self, _release_once, self._cell)
 
     def release(self):
@@ -39,19 +59,74 @@ def _release_once(cell):
         if cell[0]:
             return
         cell[0] = True
-    _slots.release()
+        _active.pop(id(cell), None)
+    cell[2].release()
 
 
-def acquire():
-    """Blocking (call from a sync request thread). A Lease, or None when the origin budget is exhausted."""
+def _reap():
+    """Reclaim slots whose holder is gone (cancelled request, dropped response): bounded hold, no GC needed."""
+    now, expired = time.monotonic(), []
+    with _lock:
+        for key, cell in list(_active.items()):
+            if now - cell[1] > MAX_HOLD_SECONDS and not cell[0]:
+                expired.append(cell)
+    for cell in expired:
+        log.warning("media origin lease reclaimed after %ss", int(MAX_HOLD_SECONDS))
+        _release_once(cell)
+
+
+def acquire(small=False):
+    """Blocking (call from a sync request thread). A Lease, or None when the origin budget is exhausted.
+
+    `small=True` is for objects read completely and released at once (derivatives): a separate, larger budget.
+    """
+    sem = _small_slots if small else _slots
     global _waiting
     with _lock:
         if _waiting >= MAX_WAITERS:
             return None
         _waiting += 1
     try:
-        got = _slots.acquire(timeout=WAIT_SECONDS)
+        deadline = time.monotonic() + WAIT_SECONDS
+        while True:
+            _reap()
+            left = deadline - time.monotonic()
+            if sem.acquire(timeout=max(0.0, min(1.0, left))):
+                return Lease(sem)
+            if left <= 1.0:
+                return None
     finally:
         with _lock:
             _waiting -= 1
-    return Lease() if got else None
+
+
+# --- tiny bounded cache for immutable derivative bytes -------------------------------------------------------
+CACHE_BYTES = int(os.getenv("MEDIA_DERIVATIVE_CACHE_BYTES", str(6 * 1024 * 1024)))  # well under the 512 MiB budget
+CACHE_ENTRY_MAX = 256 * 1024
+_cache = OrderedDict()
+_cache_size = 0
+_cache_lock = threading.Lock()
+
+
+def cache_get(key):
+    with _cache_lock:
+        data = _cache.get(key)
+        if data is not None:
+            _cache.move_to_end(key)
+        return data
+
+
+def cache_put(key, data):
+    """Keys embed the record id and the content version, so an entry can never become wrong, only unused."""
+    global _cache_size
+    if len(data) > CACHE_ENTRY_MAX or CACHE_BYTES <= 0:
+        return
+    with _cache_lock:
+        old = _cache.pop(key, None)
+        if old is not None:
+            _cache_size -= len(old)
+        _cache[key] = data
+        _cache_size += len(data)
+        while _cache_size > CACHE_BYTES and _cache:
+            _, dropped = _cache.popitem(last=False)
+            _cache_size -= len(dropped)

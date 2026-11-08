@@ -1,5 +1,6 @@
 """Record lookup and authorization precede all private-origin I/O."""
 import asyncio
+import threading
 import weakref
 from io import BytesIO
 from pathlib import PurePosixPath
@@ -58,21 +59,34 @@ def download(request, label, field_name, pk):
 
 
 def serve_derivative(storage, key):
-    """Stream a stored WebP derivative, or None when it cannot be read (caller falls back to the original).
+    """Serve a stored WebP derivative, or None when it cannot be read (caller falls back to the original).
 
-    S3 objects use the same non-spooling, async-chunked, always-closed stream as private originals. The type is
-    fixed by us, never taken from provider metadata.
+    Derivatives are small and immutable (the key embeds the record and content version), so a recently served one
+    comes from a small bounded in-memory cache and a miss is read completely under a short origin lease: no
+    streaming lifecycle, no slot held while the client downloads. Anything unexpectedly large still streams like a
+    private original. The type is fixed by us, never taken from provider metadata. Authorization has already run.
     """
     if isinstance(storage, ProtectedS3Storage):
+        data = origin.cache_get(key)
+        if data is not None:
+            return HttpResponse(data, content_type='image/webp')
         body = None
-        lease = origin.acquire()
+        lease = origin.acquire(small=True)
         if lease is None:
             return _busy()
         try:
             remote = storage.open_stream_object(key)
             body = remote['Body']
-            response = StreamingHttpResponse(_S3Chunks(body, b'', lease), content_type='image/webp')
             size = remote.get('ContentLength')
+            if isinstance(size, int) and 0 <= size <= origin.SMALL_OBJECT_BYTES:
+                data = body.read(origin.SMALL_OBJECT_BYTES + 1)
+                body.close()
+                lease.release()
+                if len(data) > origin.SMALL_OBJECT_BYTES:  # lied about its length: do not trust or cache it
+                    return None
+                origin.cache_put(key, data)
+                return HttpResponse(data, content_type='image/webp')
+            response = StreamingHttpResponse(_S3Chunks(body, b'', lease), content_type='image/webp')
             if isinstance(size, int) and size >= 0:
                 response['Content-Length'] = str(size)
             return response
@@ -158,17 +172,16 @@ class _S3Chunks:
                     break
                 yield chunk
         finally:
-            self.close()
+            # Never block the event loop: closing a body another thread is still reading waits for that read.
+            threading.Thread(target=self._cleanup, name="media-origin-close", daemon=True).start()
 
     def close(self):
         self._cleanup()
 
 
 def _release_origin(body, lease):
-    try:
-        body.close()
-    finally:
-        lease.release()
+    lease.release()  # free the slot first: closing a half-read body can wait for a stalled socket read
+    body.close()
 
 
 def _busy():
