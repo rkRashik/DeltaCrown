@@ -12,7 +12,7 @@ import sys
 
 from playwright.sync_api import sync_playwright
 
-PUBLIC = ["/", "/tournaments/", "/teams/", "/community/", "/shop/", "/arena/", "/accounts/login/"]
+PUBLIC = ["/", "/tournaments/", "/teams/", "/community/", "/crownstore/", "/competition/rankings/", "/arena/", "/accounts/login/"]
 PROTECTED = ["/me/settings/", "/notifications/", "/teams/create/", "/tournaments/create/"]
 DEVICES = {
     "desktop": dict(viewport={"width": 1366, "height": 800}),
@@ -38,6 +38,10 @@ def main():
                 try:
                     resp = page.goto(base + path, wait_until="load", timeout=60000)
                     page.wait_for_timeout(1200)
+                    try:  # SPA-style pages (community) draw their headings after the first script run
+                        page.wait_for_selector("h1, h2", timeout=8000)
+                    except Exception:
+                        pass
                     status = resp.status if resp else 0
                     heading = page.locator("h1, h2").count()
                     overflow = page.evaluate("() => document.documentElement.scrollWidth - window.innerWidth")
