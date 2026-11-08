@@ -44,7 +44,11 @@ class Command(BaseCommand):
 
     def _run(self, model, options):
         label = model._meta.label_lower
-        names = sorted(name for lab, name in derivatives.ALLOWED if lab == label)
+        names = sorted(name for lab, name in derivatives.ALLOWED
+                       if lab == label and derivatives.allowed(model._meta.get_field(name)))
+        if not names:
+            self.stdout.write(f"{model._meta.label}: not supported in the current media mode (published on the CDN)")
+            return
         deadline = time.monotonic() + options["max_seconds"]
         rows = model._base_manager.filter(pk__gt=options["after_pk"]).order_by("pk")
         if not options["apply"]:

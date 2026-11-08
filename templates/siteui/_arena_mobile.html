@@ -1,3 +1,4 @@
+{% load media_derivatives %}
 {% load static humanize %}
 <div id="arm-root">
   <div class="arm-scroll" style="overflow-y:auto;padding-bottom:20px;">
@@ -152,7 +153,7 @@
         </button>
         {% for g in games %}
         <button class="arm-tap arm-filter-game-opt" data-filter-game="{{ g.slug }}" style="width:100%;display:flex;align-items:center;gap:11px;padding:12px 14px;{% if not forloop.last %}border-bottom:1px solid rgba(255,255,255,0.05);{% endif %}text-align:left;border:none;cursor:pointer;background:none;">
-          {% if g.icon %}<img src="{{ g.icon.url }}" alt="" style="width:28px;height:28px;border-radius:7px;object-fit:cover;flex:none;" onerror="this.style.display='none'">{% endif %}
+          {% if g.icon %}<img {% image_attrs g.icon "icon" %} alt="" style="width:28px;height:28px;border-radius:7px;object-fit:cover;flex:none;" onerror="this.style.display='none'">{% endif %}
           <span style="flex:1;font-size:15px;font-weight:500;color:#F4F6FA;">{{ g.name }}</span>
           <i data-lucide="check-circle-2" class="arm-filter-check" style="width:20px;height:20px;color:#0A84FF;display:none;"></i>
           <i data-lucide="circle" class="arm-filter-uncheck" style="width:20px;height:20px;color:#3A3A3C;"></i>

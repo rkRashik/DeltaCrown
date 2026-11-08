@@ -1,5 +1,6 @@
 <!-- ACTIVE_TEMPLATE: user_profile/profile/public_profile.html v=PHASE4_STEP4_2 -->
 {% extends "base.html" %}
+{% load media_derivatives %}
 {% load static dc_avatar %}
 
 {% block title %}{{ brand.name }} | Pro Profile - {{ profile_user.username|default:'Player' }}{% endblock %}
@@ -1035,7 +1036,7 @@
                          data-profile-game-target="{{ passport.game.slug }}"
                          role="button" tabindex="0" aria-label="View {{ passport.game.name }} career">
                         {% if passport.game.icon %}
-                        <img src="{{ passport.game.icon.url }}" alt="{{ passport.game.name }}" class="w-7 h-7 rounded-lg object-contain bg-black/30 p-0.5 border border-white/10 shrink-0"
+                        <img {% image_attrs passport.game.icon "icon" %} alt="{{ passport.game.name }}" class="w-7 h-7 rounded-lg object-contain bg-black/30 p-0.5 border border-white/10 shrink-0"
                              onerror="this.onerror=null;this.style.display='none'">
                         {% else %}
                         <div class="w-7 h-7 rounded-lg bg-white/10 flex items-center justify-center text-[9px] font-black text-white shrink-0">{{ passport.game.short_code|default:passport.game.name|slice:":2"|upper }}</div>

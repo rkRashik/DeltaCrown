@@ -1,4 +1,5 @@
 {% extends "tournaments/base.html" %}
+{% load media_derivatives %}
 {% load static %}
 {% comment %}
   THE HUB — Unified Participant Mission Control (Sprint 12)
@@ -399,7 +400,7 @@
           </div>
           <div class="w-10 h-10 rounded-lg bg-gradient-to-tr from-[var(--game-primary)]/20 to-[#7000FF]/20 border border-white/10 overflow-hidden relative group-hover:border-[var(--game-primary)] transition-colors">
             {% if request.user.profile.avatar %}
-              <img src="{{ request.user.profile.avatar.url }}" class="w-full h-full object-cover" alt="{{ request.user.username }}">
+              <img {% image_attrs request.user.profile.avatar "icon" %} class="w-full h-full object-cover" alt="{{ request.user.username }}">
             {% else %}
               <div class="w-full h-full flex items-center justify-center text-[11px] font-bold text-white">{{ request.user.username|truncatechars:2 }}</div>
             {% endif %}

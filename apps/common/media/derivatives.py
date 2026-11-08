@@ -19,18 +19,37 @@ from django.core.files.base import ContentFile
 from django.urls import reverse
 from PIL import Image
 
-from .policy import PUBLIC_FIELDS, storage_alias
+from .policy import CLOUDINARY_PUBLIC_FIELDS, PUBLIC_FIELDS, storage_alias
 
 log = logging.getLogger(__name__)
 
-# Longest side in px; never upscaled, aspect ratio preserved.
-VARIANTS = {"icon": 128, "thumb": 320, "card": 640, "hero": 1280}
-# Exact reviewed list. Everything else (private, unclassified, brand artwork on the CDN) is refused.
-ALLOWED = frozenset({
-    ("games.game", "icon"), ("games.game", "logo"), ("games.game", "banner"), ("games.game", "card_image"),
-    ("tournaments.tournament", "banner_image"), ("tournaments.tournament", "thumbnail_image"),
-})
-assert ALLOWED <= PUBLIC_FIELDS
+# Longest side in px; never upscaled, aspect ratio preserved. `large` exists because phones (390 css px at 2x)
+# otherwise fall through to `hero`: on real game artwork 960 px is ~40% smaller than 1280 px (measured).
+VARIANTS = {"icon": 128, "thumb": 320, "card": 640, "large": 960, "hero": 1280}
+
+# Three separate questions, never conflated:
+#   eligible   - this field may have derivatives at all (membership in POLICY, a subset of PUBLIC_FIELDS)
+#   authorized - a given viewer may fetch it: the derivative route re-runs policy.can_download on the record,
+#                exactly as the original route does
+#   cacheable  - what the browser may keep. Nothing here is ever `public`.
+# STABLE:     public-intended artwork whose record is rarely revoked: private 15-minute cache + ETag.
+# REVALIDATE: visibility/privacy dependent (drafts, teams, profiles): private, no-cache + ETag, so the
+#             authorization check runs on every request and a 304 costs no bytes.
+STABLE, REVALIDATE = "stable", "revalidate"
+POLICY = {
+    **{("games.game", f): STABLE for f in ("icon", "logo", "banner", "card_image")},
+    **{("ecommerce.brand", "logo"): STABLE, ("ecommerce.category", "image"): STABLE,
+       ("ecommerce.product", "featured_image"): STABLE, ("ecommerce.product", "hover_image"): STABLE,
+       ("ecommerce.productimage", "image"): STABLE},
+    **{("organizations.organization", f): STABLE for f in ("logo", "banner", "badge")},
+    **{("organizations.team", f): REVALIDATE for f in ("logo", "banner")},
+    **{("tournaments.tournament", f): REVALIDATE for f in ("banner_image", "thumbnail_image")},
+    **{("tournaments.tournamentsponsor", f): REVALIDATE for f in ("logo", "banner_image")},
+    **{("user_profile.userprofile", f): REVALIDATE for f in ("avatar", "banner")},
+}
+ALLOWED = frozenset(POLICY)
+assert ALLOWED <= PUBLIC_FIELDS  # fail closed: private/unclassified fields can never be added by accident
+CACHE_CONTROL = {STABLE: "private, max-age=900, must-revalidate", REVALIDATE: "private, no-cache"}
 
 # Explicit backfill command limits (one image at a time, run deliberately).
 MAX_SOURCE_BYTES = 12 * 1024 * 1024
@@ -56,6 +75,10 @@ def allowed(field):
     return not (getattr(settings, "OWNLOBBY_MEDIA_MODE", "legacy") == "hybrid" and storage_alias(field) == "public_media")
 
 
+def cache_control(field):
+    return CACHE_CONTROL[POLICY[(field.model._meta.concrete_model._meta.label_lower, field.name)]]
+
+
 def version(name):
     return hashlib.sha256(("v1:" + name).encode()).hexdigest()[:12]
 
@@ -73,11 +96,38 @@ def url(blob, variant):
     return reverse("governed_media_derivative", args=[label, field_name, str(pk), variant, version(blob.name)])
 
 
-def icon_url(blob):
-    """URL for a small fixed-size logo/icon (<= 128 px wide): the icon derivative when enabled, else the original."""
-    if active() and blob.instance.pk and allowed(blob.field):
-        return url(blob, "icon")
+def variant_url(blob, variant):
+    """URL of one variant when derivatives are on and the field is eligible; otherwise the plain original."""
+    try:
+        if active() and blob.instance.pk and allowed(blob.field):
+            return url(blob, variant)
+    except AttributeError:  # not a governed FieldFile: leave it exactly as it was
+        pass
     return blob.url
+
+
+def icon_url(blob):
+    """Small fixed-size logo/icon (<= 128 px wide)."""
+    return variant_url(blob, "icon")
+
+
+def cdn_allowed(blob):
+    """Hybrid-mode brand artwork published directly on the CDN (no Django route, so no derivative files)."""
+    try:
+        return (getattr(settings, "OWNLOBBY_CLOUDINARY_TRANSFORMS", False)
+                and getattr(settings, "OWNLOBBY_MEDIA_MODE", "legacy") == "hybrid"
+                and (blob.instance._meta.concrete_model._meta.label_lower, blob.field.name) in CLOUDINARY_PUBLIC_FIELDS)
+    except AttributeError:
+        return False
+
+
+def cdn_url(blob, variant):
+    """Cloudinary on-the-fly resize (no upscale, auto format/quality) of the already-public original."""
+    original = blob.url
+    marker = "/image/upload/"
+    if marker not in original or "res.cloudinary.com" not in original:
+        return original
+    return original.replace(marker, f"{marker}c_limit,w_{VARIANTS[variant]},f_auto,q_auto/", 1)
 
 
 def generate(blob, max_pixels=None, max_bytes=None):

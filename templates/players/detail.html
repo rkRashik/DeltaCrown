@@ -1,10 +1,11 @@
 {% extends "base.html" %}
+{% load media_derivatives %}
 {% load static %}
 {% block title %}{% firstof player.display_name user.username "Player" %} — {{ brand.name }}{% endblock %}
 {% block content %}
 <section class="t-hero">
   <div class="t-hero__media">
-    {% if player.avatar %}<img src="{{ player.avatar.url }}" class="t-hero__img" alt="" loading="eager">{% else %}<div class="t-hero__placeholder" aria-hidden="true"></div>{% endif %}
+    {% if player.avatar %}<img {% image_attrs player.avatar "card,large,hero" "100vw" %} class="t-hero__img" alt="" loading="eager">{% else %}<div class="t-hero__placeholder" aria-hidden="true"></div>{% endif %}
     <div class="t-hero__scrim" aria-hidden="true"></div>
   </div>
   <div class="container t-hero__body">

@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load media_derivatives %}
 {% load static ecommerce_filters %}
 
 {% block title %}{{ product.name }} - {{ brand.features.store }}{% endblock %}
@@ -30,7 +31,7 @@
                     <div class="main-image-container">
                         <div class="main-image">
                             {% if product.featured_image %}
-                                <img src="{{ product.featured_image.url }}" alt="{{ product.name }}" id="mainProductImage">
+                                <img src="{% image_url product.featured_image "large" %}" alt="{{ product.name }}" id="mainProductImage">
                             {% endif %}
                             
                             <!-- Product Badges -->
@@ -68,14 +69,14 @@
                             <div class="glide__track" data-glide-el="track">
                                 <ul class="glide__slides">
                                     <li class="glide__slide">
-                                        <div class="thumbnail active" data-image="{{ product.featured_image.url }}">
-                                            <img src="{{ product.featured_image.url }}" alt="{{ product.name }}">
+                                        <div class="thumbnail active" data-image="{% image_url product.featured_image "large" %}">
+                                            <img {% image_attrs product.featured_image "icon" %} alt="{{ product.name }}">
                                         </div>
                                     </li>
                                     {% for image in product.images.all %}
                                     <li class="glide__slide">
-                                        <div class="thumbnail" data-image="{{ image.image.url }}">
-                                            <img src="{{ image.image.url }}" alt="{{ image.alt_text|default:product.name }}">
+                                        <div class="thumbnail" data-image="{% image_url image.image "large" %}">
+                                            <img {% image_attrs image.image "icon" %} alt="{{ image.alt_text|default:product.name }}">
                                         </div>
                                     </li>
                                     {% endfor %}
@@ -359,7 +360,7 @@
                                     <div class="reviewer-info">
                                         <div class="reviewer-avatar">
                                             {% if review.user.avatar %}
-                                                <img src="{{ review.user.avatar.url }}" alt="{{ review.user.display_name }}">
+                                                <img {% image_attrs review.user.avatar "icon" %} alt="{{ review.user.display_name }}">
                                             {% else %}
                                                 <div class="avatar-placeholder">
                                                     {{ review.user.display_name|first }}
@@ -450,7 +451,7 @@
                         <div class="product-image">
                             <a href="{% url 'ecommerce:product_detail' related.slug %}">
                                 {% if related.featured_image %}
-                                    <img src="{{ related.featured_image.url }}" alt="{{ related.name }}">
+                                    <img {% image_attrs related.featured_image "thumb,card" "(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw" %} alt="{{ related.name }}">
                                 {% endif %}
                             </a>
                         </div>
