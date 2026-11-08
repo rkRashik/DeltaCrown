@@ -343,7 +343,7 @@ class RemoteAndMigrationTests(SimpleTestCase):
             options = config[alias]["OPTIONS"]
             retries = options["client_config"].retries
             self.assertEqual(retries, {"mode": "standard", "total_max_attempts": 2})
-            self.assertEqual(options["client_config"].max_pool_connections, 8)  # > origin lease budget (OL-10)
+            self.assertEqual(options["client_config"].max_pool_connections, 12)  # >= origin budgets 3 + 8 (OL-12)
             self.assertTrue(options["querystring_auth"])
             self.assertIsNone(options["custom_domain"])
 

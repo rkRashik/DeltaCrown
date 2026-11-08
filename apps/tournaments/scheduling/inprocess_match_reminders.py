@@ -102,6 +102,8 @@ def _scheduler_loop(interval_seconds: int, initial_delay_seconds: int) -> None:
             close_old_connections()
 
         try:  # keep the homepage cache warm so no visitor waits on a cold build (OL-11)
+            from apps.common.media.origin import warm_storage
+            warm_storage()
             from apps.siteui.homepage_extras import warm_homepage_extras
             warm_homepage_extras()
         except Exception:

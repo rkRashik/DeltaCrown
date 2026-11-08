@@ -26,7 +26,7 @@ from concurrent.futures import ThreadPoolExecutor
 log = logging.getLogger(__name__)
 
 SLOTS = max(1, int(os.getenv("MEDIA_ORIGIN_CONCURRENCY", "3")))  # originals, streamed to the client
-SMALL_SLOTS = max(1, int(os.getenv("MEDIA_ORIGIN_SMALL_CONCURRENCY", "5")))  # derivatives: read whole in ~0.2 s
+SMALL_SLOTS = max(1, int(os.getenv("MEDIA_ORIGIN_SMALL_CONCURRENCY", "8")))  # derivative requests (auth + small read)
 WAIT_SECONDS = float(os.getenv("MEDIA_ORIGIN_WAIT_SECONDS", "5"))
 MAX_HOLD_SECONDS = float(os.getenv("MEDIA_ORIGIN_MAX_HOLD_SECONDS", "45"))
 SMALL_WAIT_SECONDS = float(os.getenv("MEDIA_ORIGIN_SMALL_WAIT_SECONDS", "10"))  # a cold page fetches ~50 at once
@@ -37,7 +37,7 @@ SMALL_OBJECT_BYTES = 768 * 1024  # derivatives are read whole up to this size (t
 
 pool = ThreadPoolExecutor(max_workers=SLOTS, thread_name_prefix="media-origin")
 _slots = threading.BoundedSemaphore(SLOTS)
-_small_slots = threading.BoundedSemaphore(SMALL_SLOTS)  # SLOTS + SMALL_SLOTS stays below boto's pool of 10
+_small_slots = threading.BoundedSemaphore(SMALL_SLOTS)  # SLOTS + SMALL_SLOTS (11) fits the S3 pool of 12
 _lock = threading.Lock()
 _waiting = {False: 0, True: 0}  # requests currently waiting for a slot, per budget
 _active = {}  # id(cell) -> cell, for the leases currently holding a slot
@@ -131,3 +131,21 @@ def cache_put(key, data):
         while _cache_size > CACHE_BYTES and _cache:
             _, dropped = _cache.popitem(last=False)
             _cache_size -= len(dropped)
+
+
+_storage_warmed = False
+
+
+def warm_storage():
+    """Build the private S3 client once at boot (local work, no network call). Otherwise the first burst after a
+    deploy makes every concurrent request thread construct its own boto3 session on a 0.15 vCPU instance."""
+    global _storage_warmed
+    if _storage_warmed:
+        return
+    _storage_warmed = True
+    try:
+        from django.core.files.storage import storages
+        storage = storages["private_media"]
+        getattr(storage, "bucket", None)
+    except Exception:  # not configured (legacy/local mode): nothing to warm
+        log.debug("media storage warm-up skipped", exc_info=True)

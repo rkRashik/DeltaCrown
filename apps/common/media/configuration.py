@@ -36,8 +36,8 @@ def configure(storages, base_dir, media_root):
                 'transfer_config': TransferConfig(max_concurrency=2, use_threads=False),
                 'client_config': Config(
                     connect_timeout=5, read_timeout=15,
-                    # pool > origin lease budget (media/origin.py): a leased read never waits for a socket
-                    max_pool_connections=8,
+                    # pool >= the origin budgets (media/origin.py: 3 + 8): a leased read never waits for a socket
+                    max_pool_connections=12,
                     s3={'addressing_style': 'path'},
                     retries={'mode': 'standard', 'total_max_attempts': 2},
                 ),
