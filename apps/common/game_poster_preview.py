@@ -30,4 +30,5 @@ def fast_game_card(game):
     item = _CARD_PREVIEWS.get((getattr(game, "slug", "") or "").lower())
     if item and getattr(field, "name", None) == item[0]:
         return static(item[1])
-    return field.url
+    from apps.common.media.derivatives import variant_url
+    return variant_url(field, "card")

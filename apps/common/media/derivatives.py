@@ -97,8 +97,12 @@ def url(blob, variant):
 
 
 def variant_url(blob, variant):
-    """URL of one variant when derivatives are on and the field is eligible; otherwise the plain original."""
+    """Best URL for one variant, decided centrally: verified public CDN copy, else authorized derivative, else the original."""
     try:
+        from . import cdn
+        hit = cdn.url(blob, variant)
+        if hit:
+            return hit
         if active() and blob.instance.pk and allowed(blob.field):
             return url(blob, variant)
     except AttributeError:  # not a governed FieldFile: leave it exactly as it was
@@ -130,6 +134,31 @@ def cdn_url(blob, variant):
     return original.replace(marker, f"{marker}c_limit,w_{VARIANTS[variant]},f_auto,q_auto/", 1)
 
 
+def load(blob, max_pixels, max_bytes):
+    """Decode a source image within the size/pixel caps: (None, PIL image) or (status, None). Never raises for bad input."""
+    storage, name = blob.storage, blob.name
+    if storage.size(name) > max_bytes:
+        return "too_large", None
+    with storage.open(name, "rb") as source:
+        data = source.read(max_bytes + 1)
+    if len(data) > max_bytes:
+        return "too_large", None
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", Image.DecompressionBombWarning)
+        try:
+            image = Image.open(BytesIO(data))
+            if image.format not in SOURCE_FORMATS or getattr(image, "n_frames", 1) > 1:
+                return "unsupported", None  # unknown format or animated: keep the original only
+            if image.width * image.height > max_pixels:
+                return "too_large", None
+            if image.format == "JPEG":
+                image.draft("RGB", (VARIANTS["hero"], VARIANTS["hero"]))  # decode at reduced scale
+            image.load()
+        except (Image.DecompressionBombWarning, Image.DecompressionBombError, OSError, SyntaxError, ValueError):
+            return "unsupported", None
+    return None, image
+
+
 def generate(blob, max_pixels=None, max_bytes=None):
     """Create any missing derivatives for one FieldFile. Returns a status string, never raises for bad input.
 
@@ -149,27 +178,9 @@ def generate(blob, max_pixels=None, max_bytes=None):
         todo = [v for v in VARIANTS if not storage.exists(keys[v])]
         if not todo:
             return "exists"
-        size = storage.size(name)
-        if size > max_bytes:
-            return "too_large"
-        with storage.open(name, "rb") as source:
-            data = source.read(max_bytes + 1)
-        if len(data) > max_bytes:
-            return "too_large"
-        with warnings.catch_warnings():
-            warnings.simplefilter("error", Image.DecompressionBombWarning)
-            try:
-                image = Image.open(BytesIO(data))
-                if image.format not in SOURCE_FORMATS or getattr(image, "n_frames", 1) > 1:
-                    return "unsupported"  # unknown format or animated: keep the original only
-                if image.width * image.height > max_pixels:
-                    return "too_large"
-                if image.format == "JPEG":
-                    image.draft("RGB", (VARIANTS["hero"], VARIANTS["hero"]))  # decode at reduced scale
-                image.load()
-            except (Image.DecompressionBombWarning, Image.DecompressionBombError, OSError, SyntaxError, ValueError):
-                return "unsupported"
-        del data
+        status, image = load(blob, max_pixels, max_bytes)
+        if status:
+            return status
         alpha = "A" in image.getbands() or "transparency" in image.info
         image = image.convert("RGBA" if alpha else "RGB")
         for variant in sorted(VARIANTS, key=VARIANTS.get, reverse=True):  # each step shrinks the previous one
