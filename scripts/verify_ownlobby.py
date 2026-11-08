@@ -124,8 +124,7 @@ def run(*, collect_static=False):
     report["new_failures"] += [f"Settings contract changed: {key}" for key, ok in contracts.items() if not ok]
     migrations = [name for name in changed if "migrations" in Path(name).parts]
     report["modified_migrations"] = migrations
-    approved = {"apps/common/migrations/0002_publishedmedia.py"}  # OL-08: additive PublishedMedia table, reviewed
-    report["new_failures"] += [f"Unexpected migration: {name}" for name in migrations if name not in approved]
+    report["new_failures"] += [f"Unexpected migration: {name}" for name in migrations]
     if collect_static:
         from django.core.management import call_command
         from django.test import override_settings

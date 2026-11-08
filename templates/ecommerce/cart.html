@@ -1,5 +1,4 @@
 {% extends "base.html" %}
-{% load media_derivatives %}
 {% load static ecommerce_filters %}
 
 {% block title %}Shopping Cart - {{ brand.features.store }}{% endblock %}
@@ -45,7 +44,7 @@
                             <div class="item-image">
                                 <a href="{% url 'ecommerce:product_detail' item.product.slug %}">
                                     {% if item.product.featured_image %}
-                                        <img {% image_attrs item.product.featured_image "icon" %} alt="{{ item.product.name }}">
+                                        <img src="{{ item.product.featured_image.url }}" alt="{{ item.product.name }}">
                                     {% endif %}
                                 </a>
                             </div>

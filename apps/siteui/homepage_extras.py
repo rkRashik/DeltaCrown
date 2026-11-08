@@ -51,14 +51,10 @@ def _safe_model(app: str, name: str):
         return None
 
 
-def _img_url(field, variant: str = "") -> str:
-    """Original URL, or the centrally chosen responsive variant (CDN copy / derivative / original) for a size."""
+def _img_url(field) -> str:
     if not field:
         return ""
     try:
-        if variant:
-            from apps.common.media.derivatives import variant_url
-            return variant_url(field, variant)
         return field.url
     except Exception:
         return ""
@@ -71,7 +67,7 @@ def _poster_for_game(game) -> str:
     url = fast_game_card(game)
     if url:
         return url
-    url = _img_url(getattr(game, "banner", None), "card")
+    url = _img_url(getattr(game, "banner", None))
     if url:
         return url
     slug = (getattr(game, "slug", "") or "").lower()
@@ -79,7 +75,7 @@ def _poster_for_game(game) -> str:
     if fname:
         return f"/static/img/games/posters/{fname}"
     # Last resort: use the game icon as the poster (will be styled differently)
-    url = _img_url(getattr(game, "icon", None), "card")
+    url = _img_url(getattr(game, "icon", None))
     return url
 
 
@@ -87,7 +83,7 @@ def _icon_for_game(game) -> str:
     """Return the game icon URL (small logo for schedule/schedule strips)."""
     if game is None:
         return ""
-    return _img_url(getattr(game, "icon", None), "icon")
+    return _img_url(getattr(game, "icon", None))
 
 
 def _color_for_game(game) -> str:
@@ -240,14 +236,14 @@ def _get_participant_logo(match, slot: str) -> str:
             if Team is not None:
                 team = Team.objects.filter(pk=pid).only("logo").first()
                 if team:
-                    return _img_url(getattr(team, "logo", None), "thumb")
+                    return _img_url(getattr(team, "logo", None))
         else:
             from django.contrib.auth import get_user_model
             User = get_user_model()
             user = User.objects.filter(pk=pid).select_related("profile").first()
             if user:
                 profile = getattr(user, "profile", None)
-                return _img_url(getattr(profile, "avatar", None), "thumb") if profile else ""
+                return _img_url(getattr(profile, "avatar", None)) if profile else ""
     except Exception:
         pass
     return ""
@@ -262,7 +258,7 @@ def _batch_team_logos(team_ids: list) -> dict:
         Team = _safe_model("organizations", "Team")
         if Team is not None:
             for team in Team.objects.filter(pk__in=team_ids).only("id", "logo"):
-                logos[team.id] = _img_url(getattr(team, "logo", None), "thumb")
+                logos[team.id] = _img_url(getattr(team, "logo", None))
     except Exception:
         pass
     return logos
@@ -599,7 +595,7 @@ def _featured_tournament() -> Optional[Dict[str, Any]]:
     fill_pct = max(0, min(100, fill_pct))
 
     game = getattr(t, "game", None)
-    poster = _img_url(getattr(t, "banner_image", None), "card") or _poster_for_game(game)
+    poster = _img_url(getattr(t, "banner_image", None)) or _poster_for_game(game)
 
     fmt_label = ""
     if hasattr(t, "get_format_display"):
@@ -681,7 +677,7 @@ def _upcoming_cards(limit: int = 4, exclude_id: Optional[int] = None) -> List[Di
         fill_pct = int((reg_count / max_slots) * 100) if max_slots else 0
         fill_pct = max(0, min(100, fill_pct))
         game = t.game
-        poster = _img_url(getattr(t, "banner_image", None), "card") or _poster_for_game(game)
+        poster = _img_url(getattr(t, "banner_image", None)) or _poster_for_game(game)
         fmt_label = ""
         if hasattr(t, "get_format_display"):
             try:
@@ -816,7 +812,7 @@ def _top_teams(limit: int = 7) -> List[Dict[str, Any]]:
             "rank_label": f"#{idx:02d}",
             "rank_color": rank_color,
             "team_name": team.name,
-            "team_logo": _img_url(getattr(team, "logo", None), "thumb"),
+            "team_logo": _img_url(getattr(team, "logo", None)),
             "team_url": f"/teams/{team.slug}/",
             "meta": " · ".join(meta_parts),
             "tier_label": style["label"],
@@ -879,7 +875,7 @@ def _player_spotlight() -> Optional[Dict[str, Any]]:
     username = getattr(captain, "username", "") or ""
     if profile is not None:
         display = (getattr(profile, "display_name", "") or "").strip()
-        avatar_url = _img_url(getattr(profile, "avatar", None), "thumb")
+        avatar_url = _img_url(getattr(profile, "avatar", None))
     if not display:
         display = username or "Featured player"
 

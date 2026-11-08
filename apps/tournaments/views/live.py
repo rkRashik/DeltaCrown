@@ -41,7 +41,6 @@ from apps.tournaments.models import (
 from apps.tournaments.models.bracket import BracketNode
 from apps.tournaments.models.result import TournamentResult
 from apps.user_profile.services.url_validator import validate_highlight_url, validate_stream_url
-from apps.common.display_time import format_local
 
 
 logger = logging.getLogger(__name__)
@@ -656,7 +655,7 @@ def _build_match_timeline_rows(match, participant_resolver=None):
             'timestamp': match.scheduled_time,
             'event': 'Match Scheduled',
             'icon': 'calendar',
-            'description': f'Match scheduled for {format_local(match.scheduled_time, "%B %d, %Y at %I:%M %p")}',
+            'description': f'Match scheduled for {match.scheduled_time.strftime("%B %d, %Y at %I:%M %p")}',
         })
 
     if match.state in [Match.LIVE, Match.COMPLETED, Match.PENDING_RESULT]:

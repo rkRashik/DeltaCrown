@@ -20,8 +20,6 @@
     scrollbar-color: rgba(255,255,255,0.1) transparent;
 }
 .bracket-wrap:active { cursor: grabbing; }
-.bracket-wrap:focus-visible, .match-card:focus-visible { outline: 2px solid #60a5fa; outline-offset: 2px; }
-.bracket-nav { display: none; }
 .bracket-wrap::-webkit-scrollbar { height: 6px; width: 6px; }
 .bracket-wrap::-webkit-scrollbar-track { background: transparent; }
 .bracket-wrap::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
@@ -171,12 +169,7 @@
 .match-modal-close:hover { background: rgba(255,255,255,0.2); }
 .match-modal-close svg { width: 1rem; height: 1rem; color: #fff; }
 @media (max-width: 640px) {
-    .bracket-round-col { min-width: 200px; scroll-snap-align: start; }
-    .bracket-wrap { scroll-snap-type: x proximity; scroll-padding-left: 0.5rem; }
-    .bracket-action { min-height: 36px; display: inline-flex; align-items: center; }
-    .bracket-nav { display: flex; gap: 0.5rem; overflow-x: auto; padding: 0 1rem 0.5rem; }
-    .bracket-nav button { flex: 0 0 auto; min-height: 36px; padding: 0 0.875rem; border-radius: 9999px; border: 1px solid var(--bracket-border); background: rgba(255,255,255,0.05); color: #d1d5db; font-size: 0.6875rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; }
-    .bracket-nav button[aria-current="true"] { background: rgba(96,165,250,0.18); border-color: rgba(96,165,250,0.6); color: #fff; }
+    .bracket-round-col { min-width: 200px; }
     .team-row { padding: 0.375rem 0.5rem; }
     .match-modal { margin: 0.5rem; border-radius: 0.75rem; max-width: calc(100vw - 1rem); }
     .match-modal .p-5 { padding: 1rem !important; }
@@ -192,7 +185,7 @@
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
                 <a href="{% url 'tournaments:detail' tournament.slug %}"
-                   class="bracket-action text-[11px] text-gray-500 hover:text-white transition inline-flex items-center gap-1 mb-1.5">
+                   class="text-[11px] text-gray-500 hover:text-white transition inline-flex items-center gap-1 mb-1.5">
                     <i data-lucide="arrow-left" class="w-3 h-3"></i> {{ tournament.name }}
                 </a>
                 <h1 class="text-xl sm:text-2xl font-display font-black text-white tracking-tight">Tournament Bracket</h1>
@@ -215,11 +208,11 @@
                 </span>
                 {% endif %}
                 <a href="{% url 'tournaments:leaderboard' tournament.slug %}"
-                   class="bracket-action px-3 py-1.5 text-[10px] font-bold text-gray-400 bg-white/5 rounded-lg border border-white/[0.06] hover:bg-white/10 hover:text-white transition uppercase tracking-wider">
+                   class="px-3 py-1.5 text-[10px] font-bold text-gray-400 bg-white/5 rounded-lg border border-white/[0.06] hover:bg-white/10 hover:text-white transition uppercase tracking-wider">
                     <i data-lucide="bar-chart-3" class="w-3 h-3 inline mr-0.5"></i> Leaderboard
                 </a>
                 <a href="{% url 'tournaments:detail' tournament.slug %}"
-                   class="bracket-action px-3 py-1.5 text-[10px] font-bold text-gray-400 bg-white/5 rounded-lg border border-white/[0.06] hover:bg-white/10 hover:text-white transition uppercase tracking-wider">
+                   class="px-3 py-1.5 text-[10px] font-bold text-gray-400 bg-white/5 rounded-lg border border-white/[0.06] hover:bg-white/10 hover:text-white transition uppercase tracking-wider">
                     <i data-lucide="layout-dashboard" class="w-3 h-3 inline mr-0.5"></i> Overview
                 </a>
             </div>
@@ -239,7 +232,7 @@
             <div class="line bg-emerald-500/20"></div>
         </div>
     </div>
-    <div class="bracket-wrap" id="wb-scroll" role="region" tabindex="0" aria-label="Winners bracket, scrolls horizontally" @mousedown="startDrag($event)" @mousemove="onDrag($event)" @mouseup="stopDrag()" @mouseleave="stopDrag()">
+    <div class="bracket-wrap" id="wb-scroll" @mousedown="startDrag($event)" @mousemove="onDrag($event)" @mouseup="stopDrag()" @mouseleave="stopDrag()">
         <div class="bracket-inner" id="bracket-wb">
             {% for round in matches_by_round %}
             {% with first_match=round.matches.0 %}
@@ -249,7 +242,7 @@
                     <span class="text-[9px] font-bold text-emerald-400/70 uppercase tracking-[0.15em]">{{ round.round_name }}</span>
                 </div>
                 {% for m in round.matches %}
-                <div class="match-card {% if m.is_live %}is-live{% endif %}" {% if m.id %}@click="showMatch({{ m.id }})" @keydown.enter.prevent="showMatch({{ m.id }})" @keydown.space.prevent="showMatch({{ m.id }})" role="button" tabindex="0"{% endif %} data-match-id="{{ m.id|default:'' }}">
+                <div class="match-card {% if m.is_live %}is-live{% endif %}" {% if m.id %}@click="showMatch({{ m.id }})"{% endif %} data-match-id="{{ m.id|default:'' }}">
                     {% if m.match_number %}<div class="match-num">M{{ m.match_number }}</div>{% endif %}
                     <div class="team-row {% if m.team1_is_winner %}winner-row{% endif %}{% if m.team1_name == 'TBD' %} is-tbd{% endif %}">
                         <div class="flex items-center gap-1.5 min-w-0 flex-1">
@@ -293,7 +286,7 @@
             <div class="line bg-red-500/20"></div>
         </div>
     </div>
-    <div class="bracket-wrap" id="lb-scroll" role="region" tabindex="0" aria-label="Losers bracket, scrolls horizontally" @mousedown="startDrag($event)" @mousemove="onDrag($event)" @mouseup="stopDrag()" @mouseleave="stopDrag()">
+    <div class="bracket-wrap" id="lb-scroll" @mousedown="startDrag($event)" @mousemove="onDrag($event)" @mouseup="stopDrag()" @mouseleave="stopDrag()">
         <div class="bracket-inner" id="bracket-lb">
             {% for round in matches_by_round %}
             {% with first_match=round.matches.0 %}
@@ -303,7 +296,7 @@
                     <span class="text-[9px] font-bold text-red-400/70 uppercase tracking-[0.15em]">{{ round.round_name }}</span>
                 </div>
                 {% for m in round.matches %}
-                <div class="match-card {% if m.is_live %}is-live{% endif %}" {% if m.id %}@click="showMatch({{ m.id }})" @keydown.enter.prevent="showMatch({{ m.id }})" @keydown.space.prevent="showMatch({{ m.id }})" role="button" tabindex="0"{% endif %} data-match-id="{{ m.id|default:'' }}" style="border-color: rgba(239,68,68,0.08);">
+                <div class="match-card {% if m.is_live %}is-live{% endif %}" {% if m.id %}@click="showMatch({{ m.id }})"{% endif %} data-match-id="{{ m.id|default:'' }}" style="border-color: rgba(239,68,68,0.08);">
                     {% if m.match_number %}<div class="match-num">M{{ m.match_number }}</div>{% endif %}
                     <div class="team-row {% if m.team1_is_winner %}winner-row{% endif %}{% if m.team1_name == 'TBD' %} is-tbd{% endif %}">
                         <div class="flex items-center gap-1.5 min-w-0 flex-1">
@@ -341,7 +334,7 @@
         </div>
         <div class="max-w-md mx-auto">
             {% for m in round.matches %}
-            <div class="match-card is-gf" {% if m.id %}@click="showMatch({{ m.id }})" @keydown.enter.prevent="showMatch({{ m.id }})" @keydown.space.prevent="showMatch({{ m.id }})" role="button" tabindex="0"{% endif %} data-match-id="{{ m.id|default:'' }}">
+            <div class="match-card is-gf" {% if m.id %}@click="showMatch({{ m.id }})"{% endif %} data-match-id="{{ m.id|default:'' }}">
                 <div class="text-center py-1.5 bg-amber-500/5 border-b border-amber-500/15">
                     <span class="text-[8px] font-black text-amber-400 uppercase tracking-[0.2em]">&#x1F451; Grand Finals{% if m.best_of_label %} · {{ m.best_of_label }}{% endif %}</span>
                 </div>
@@ -371,7 +364,7 @@
 
     {% else %}
 
-    <div class="bracket-wrap mx-4 sm:mx-6" id="se-scroll" role="region" tabindex="0" aria-label="Bracket, scrolls horizontally" @mousedown="startDrag($event)" @mousemove="onDrag($event)" @mouseup="stopDrag()" @mouseleave="stopDrag()">
+    <div class="bracket-wrap mx-4 sm:mx-6" id="se-scroll" @mousedown="startDrag($event)" @mousemove="onDrag($event)" @mouseup="stopDrag()" @mouseleave="stopDrag()">
         <div class="bracket-inner" id="bracket-se">
             {% for round in matches_by_round %}
             <div class="bracket-round-col" data-round="{{ round.round_number }}">
@@ -381,7 +374,7 @@
                     </span>
                 </div>
                 {% for m in round.matches %}
-                <div class="match-card {% if m.is_live %}is-live{% endif %} {% if round.round_name == 'Grand Final' %}is-gf{% endif %}" {% if m.id %}@click="showMatch({{ m.id }})" @keydown.enter.prevent="showMatch({{ m.id }})" @keydown.space.prevent="showMatch({{ m.id }})" role="button" tabindex="0"{% endif %} data-match-id="{{ m.id|default:'' }}">
+                <div class="match-card {% if m.is_live %}is-live{% endif %} {% if round.round_name == 'Grand Final' %}is-gf{% endif %}" {% if m.id %}@click="showMatch({{ m.id }})"{% endif %} data-match-id="{{ m.id|default:'' }}">
                     {% if round.round_name == 'Grand Final' %}
                     <div class="text-center py-1.5 bg-amber-500/5 border-b border-amber-500/15">
                         <span class="text-[8px] font-black text-amber-400 uppercase tracking-[0.2em]">&#x1F451; Grand Finals{% if m.best_of_label %} · {{ m.best_of_label }}{% endif %}</span>
@@ -432,9 +425,9 @@
     {% endif %}
 
     <template x-if="activeMatch">
-        <div class="match-modal-overlay" @click.self="closeMatch" x-transition.opacity>
-            <div class="match-modal" role="dialog" aria-modal="true" aria-label="Match details" @click.stop @keydown.escape.window="closeMatch" x-transition.scale.90>
-                <button @click="closeMatch" class="match-modal-close" aria-label="Close">
+        <div class="match-modal-overlay" @click.self="activeMatch = null" x-transition.opacity>
+            <div class="match-modal" @click.stop x-transition.scale.90>
+                <button @click="activeMatch = null" class="match-modal-close" aria-label="Close">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                 </button>
                 <div class="p-5 border-b border-white/[0.06]">
@@ -448,7 +441,7 @@
                     <p class="text-sm font-bold text-white" x-text="activeMatch.round_label"></p>
                     <p class="text-[10px] text-gray-500 mt-0.5" x-text="activeMatch.best_of_label || ''"></p>
                     <template x-if="activeMatch.scheduled_time">
-                        <p class="text-[10px] text-gray-600 mt-1" x-text="formatScheduled(activeMatch.scheduled_time)"></p>
+                        <p class="text-[10px] text-gray-600 mt-1" x-text="new Date(activeMatch.scheduled_time).toLocaleString('en-US', {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'})"></p>
                     </template>
                 </div>
                 <div class="p-5">
@@ -475,7 +468,7 @@
                         </div>
                         <span class="text-2xl font-display font-black tabular-nums w-10 text-center"
                               :class="activeMatch.team1_is_winner ? 'text-emerald-400' : 'text-gray-500'"
-                              x-text="scoreText(activeMatch.score1)"></span>
+                              x-text="activeMatch.score1 ?? '–'"></span>
                     </div>
                     <div class="text-center my-1">
                         <span class="text-[9px] font-bold text-gray-700 uppercase tracking-widest">vs</span>
@@ -503,7 +496,7 @@
                         </div>
                         <span class="text-2xl font-display font-black tabular-nums w-10 text-center"
                               :class="activeMatch.team2_is_winner ? 'text-emerald-400' : 'text-gray-500'"
-                              x-text="scoreText(activeMatch.score2)"></span>
+                              x-text="activeMatch.score2 ?? '–'"></span>
                     </div>
                     <template x-if="activeMatch.map_scores && activeMatch.map_scores.length > 0">
                         <div class="mt-4 pt-4 border-t border-white/[0.06]">
@@ -566,23 +559,7 @@ document.addEventListener('alpine:init', function() {
 
         showMatch(id) {
             if (this.wasDragging) { this.wasDragging = false; return; }
-            this.lastFocus = document.activeElement;
             this.activeMatch = matchData[id] || null;
-            // Alpine's CSP build cannot evaluate arrow functions inline, so focus is handled here.
-            setTimeout(function() { var c = document.querySelector('.match-modal-close'); if (c) c.focus(); }, 60);
-        },
-        closeMatch() {
-            if (!this.activeMatch) return;
-            this.activeMatch = null;
-            if (this.lastFocus && this.lastFocus.focus) this.lastFocus.focus();
-        },
-        scoreText(v) {
-            // `??` is not supported by Alpine's CSP expression parser, so scores never rendered.
-            return v === null || v === undefined ? '–' : v;
-        },
-        formatScheduled(iso) {
-            // Replaces an inline `new Date(...)` expression the CSP build rejected (time never showed).
-            return new Date(iso).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
         },
 
         startDrag(e) {
@@ -656,38 +633,7 @@ function drawBracketConnectors(wrapperId) {
     wrap.appendChild(svg);
 }
 
-function buildRoundNav(wrap) {
-    var cols = wrap.querySelectorAll('.bracket-round-col');
-    if (cols.length < 2) return;
-    var nav = document.createElement('div');
-    nav.className = 'bracket-nav';
-    nav.setAttribute('role', 'group');
-    nav.setAttribute('aria-label', 'Jump to round');
-    var buttons = [];
-    cols.forEach(function(col, i) {
-        var label = col.querySelector('.bracket-round-header span');
-        var b = document.createElement('button');
-        b.type = 'button';
-        b.textContent = (label && label.textContent.trim()) || ('Round ' + (i + 1));
-        b.addEventListener('click', function() {
-            wrap.scrollTo({ left: Math.max(col.offsetLeft - 8, 0), behavior: 'smooth' });
-        });
-        nav.appendChild(b);
-        buttons.push(b);
-    });
-    function sync() {
-        var at = wrap.scrollLeft + wrap.clientWidth / 3, active = 0;
-        cols.forEach(function(col, i) { if (col.offsetLeft <= at) active = i; });
-        if (wrap.scrollLeft + wrap.clientWidth >= wrap.scrollWidth - 4) active = cols.length - 1;
-        buttons.forEach(function(b, i) { if (i === active) b.setAttribute('aria-current', 'true'); else b.removeAttribute('aria-current'); });
-    }
-    wrap.addEventListener('scroll', function() { window.requestAnimationFrame(sync); }, { passive: true });
-    wrap.parentNode.insertBefore(nav, wrap);
-    sync();
-}
-
 document.addEventListener('DOMContentLoaded', function() {
-    document.querySelectorAll('.bracket-wrap').forEach(buildRoundNav);
     setTimeout(function() {
         ['bracket-wb', 'bracket-lb', 'bracket-se'].forEach(drawBracketConnectors);
     }, 100);

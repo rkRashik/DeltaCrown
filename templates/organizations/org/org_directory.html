@@ -1,5 +1,4 @@
 {% extends "base.html" %}
-{% load media_derivatives %}
 {% load static %}
 
 {% block title %}Organization Directory | {{ brand.name }}{% endblock %}
@@ -68,7 +67,7 @@
                                 
                                 <div class="mt-8 mb-4 mx-auto w-24 h-24 rounded-full p-1 bg-gradient-to-b from-gray-400 to-transparent">
                                     {% if org.logo %}
-                                        <img {% image_attrs org.logo "icon" %} class="w-full h-full rounded-full bg-black object-cover" alt="">
+                                        <img src="{{ org.logo.url }}" class="w-full h-full rounded-full bg-black object-cover" alt="">
                                     {% else %}
                                         <img src="https://api.dicebear.com/7.x/identicon/svg?seed={{ org.slug }}" class="w-full h-full rounded-full bg-black object-cover" alt="">
                                     {% endif %}
@@ -109,7 +108,7 @@
                                 
                                 <div class="mt-8 mb-4 mx-auto w-32 h-32 rounded-full p-1 bg-gradient-to-b from-delta-gold to-transparent">
                                     {% if org.logo %}
-                                        <img {% image_attrs org.logo "icon" %} class="w-full h-full rounded-full bg-black object-cover" alt="">
+                                        <img src="{{ org.logo.url }}" class="w-full h-full rounded-full bg-black object-cover" alt="">
                                     {% else %}
                                         <img src="https://api.dicebear.com/7.x/identicon/svg?seed={{ org.slug }}" class="w-full h-full rounded-full bg-black object-cover" alt="">
                                     {% endif %}
@@ -154,7 +153,7 @@
                                 
                                 <div class="mt-8 mb-4 mx-auto w-24 h-24 rounded-full p-1 bg-gradient-to-b from-orange-700 to-transparent">
                                     {% if org.logo %}
-                                        <img {% image_attrs org.logo "icon" %} class="w-full h-full rounded-full bg-black object-cover" alt="">
+                                        <img src="{{ org.logo.url }}" class="w-full h-full rounded-full bg-black object-cover" alt="">
                                     {% else %}
                                         <img src="https://api.dicebear.com/7.x/identicon/svg?seed={{ org.slug }}" class="w-full h-full rounded-full bg-black object-cover" alt="">
                                     {% endif %}
@@ -244,7 +243,7 @@
                                     <div class="flex items-center gap-4">
                                         <div class="w-10 h-10 rounded bg-black border border-white/10 p-1">
                                             {% if org.logo %}
-                                                <img {% image_attrs org.logo "icon" %} class="w-full h-full object-cover rounded-sm" alt="">
+                                                <img src="{{ org.logo.url }}" class="w-full h-full object-cover rounded-sm" alt="">
                                             {% else %}
                                                 <img src="https://api.dicebear.com/7.x/identicon/svg?seed={{ org.slug }}" class="w-full h-full object-cover rounded-sm" alt="">
                                             {% endif %}

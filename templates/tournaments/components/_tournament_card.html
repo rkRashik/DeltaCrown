@@ -1,4 +1,3 @@
-{% load media_derivatives %}
 {% comment %}
 ─── Tournament Card Partial ───
 Usage: include "tournaments/components/_tournament_card.html" with tournament=t
@@ -16,9 +15,9 @@ Context (from parent template):
   {# ── Card Image ── #}
   <div class="card-img-wrap">
     {% if tournament.banner_image %}
-      <img {% image_attrs tournament.banner_image "thumb,card,large,hero" "(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw" %} alt="{{ tournament.name }}" class="w-full h-full object-cover" loading="lazy">
+      <img src="{{ tournament.banner_image.url }}" alt="{{ tournament.name }}" class="w-full h-full object-cover" loading="lazy">
     {% elif tournament.thumbnail_image %}
-      <img {% image_attrs tournament.thumbnail_image "thumb,card,large,hero" "(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw" %} alt="{{ tournament.name }}" class="w-full h-full object-cover" loading="lazy">
+      <img src="{{ tournament.thumbnail_image.url }}" alt="{{ tournament.name }}" class="w-full h-full object-cover" loading="lazy">
     {% else %}
       <div class="w-full h-full bg-gradient-to-br from-dc-dark to-dc-surface flex items-center justify-center">
         <i data-lucide="trophy" class="w-12 h-12 text-white/10"></i>

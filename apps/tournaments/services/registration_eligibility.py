@@ -8,7 +8,6 @@ user-friendly messages and action items.
 from django.contrib.auth.models import User
 from apps.tournaments.models import Tournament
 from apps.organizations.models import Organization, Team, TeamMembership
-from apps.common.display_time import format_local
 
 
 class EligibilityResult:
@@ -71,7 +70,7 @@ class RegistrationEligibilityService:
             if tournament.has_registration_started():
                 reason = "Registration for this tournament has closed."
             else:
-                reason = f"Registration opens on {format_local(tournament.registration_start, '%B %d, %Y at %I:%M %p')}."
+                reason = f"Registration opens on {tournament.registration_start.strftime('%B %d, %Y at %I:%M %p')}."
             
             return EligibilityResult(
                 is_eligible=False,

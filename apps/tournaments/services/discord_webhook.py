@@ -14,7 +14,6 @@ from typing import Optional
 import requests
 from django.conf import settings
 from apps.common.seo import absolute_static
-from apps.common.display_time import format_local
 
 logger = logging.getLogger(__name__)
 
@@ -261,7 +260,7 @@ class DiscordWebhookService:
         else:
             fields.append({"name": "🎟️ Entry", "value": "FREE", "inline": True})
         if tournament.tournament_start:
-            fields.append({"name": "📅 Starts", "value": format_local(tournament.tournament_start, "%b %d, %Y at %I:%M %p"), "inline": True})
+            fields.append({"name": "📅 Starts", "value": tournament.tournament_start.strftime("%b %d, %Y at %I:%M %p"), "inline": True})
 
         return self.build_embed(
             title="🎮 Registration is NOW OPEN!",

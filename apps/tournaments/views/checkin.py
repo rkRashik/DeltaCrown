@@ -18,7 +18,6 @@ from django.core.exceptions import ValidationError
 
 from apps.tournaments.models import Tournament, Registration
 from apps.tournaments.services.check_in_service import CheckInService
-from apps.common.display_time import format_local
 
 
 class TournamentLobbyView(LoginRequiredMixin, View):
@@ -74,7 +73,7 @@ class CheckInActionView(LoginRequiredMixin, View):
             registration = CheckInService.check_in(tournament, request.user)
 
             if tournament.tournament_start:
-                success_message = f"You're checked in! See you at {format_local(tournament.tournament_start, '%b %d, %H:%M')}."
+                success_message = f"You're checked in! See you at {tournament.tournament_start.strftime('%b %d, %H:%M')}."
             else:
                 success_message = "You're checked in!"
 
@@ -120,7 +119,7 @@ class CheckInActionView(LoginRequiredMixin, View):
             now = timezone.now()
 
             if now < opens_at:
-                return f"Check-in opens at {format_local(opens_at, '%b %d, %H:%M')}."
+                return f"Check-in opens at {opens_at.strftime('%b %d, %H:%M')}."
             elif now >= closes_at:
                 return "Check-in window has closed."
 

@@ -1,4 +1,4 @@
-{% load static humanize media_derivatives %}
+{% load static humanize %}
 {% comment %}
   Tournaments Mobile Native App Feed
   Shown only on ≤1023px via .dc-tourn-mobile wrapper.
@@ -32,7 +32,7 @@
   {% for t in featured_tournaments %}
   <a href="{% url 'tournaments:detail' t.slug %}" class="tm-featured-card tm-tap">
     <div class="tm-fc-img">
-      <img {% if t.banner_image %}{% image_attrs t.banner_image "thumb,card,large,hero" "100vw" %}{% elif t.game.card_image %}{% image_attrs t.game.card_image "thumb,card,large,hero" "100vw" %}{% elif t.game.banner %}{% image_attrs t.game.banner "thumb,card,large,hero" "100vw" %}{% else %}src="https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=800&auto=format&fit=crop"{% endif %} alt="{{ t.name }}"
+      <img src="{% if t.banner_image %}{{ t.banner_image.url }}{% elif t.game.card_image %}{{ t.game.card_image.url }}{% elif t.game.banner %}{{ t.game.banner.url }}{% else %}https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=800&auto=format&fit=crop{% endif %}" alt="{{ t.name }}"
            onerror="this.src='https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=800&auto=format&fit=crop'">
       <div class="tm-fc-overlay"></div>
       <div style="position:absolute;top:13px;left:13px;display:flex;gap:7px;align-items:center;">
@@ -44,7 +44,7 @@
       <div style="position:absolute;left:14px;right:14px;bottom:13px;">
         <div style="display:flex;align-items:center;gap:7px;">
           {% if t.game.logo %}
-          <img {% image_attrs t.game.logo "icon" %} style="width:18px;height:18px;border-radius:5px;object-fit:cover;" alt=""
+          <img src="{{ t.game.logo.url }}" style="width:18px;height:18px;border-radius:5px;object-fit:cover;" alt=""
                onerror="this.style.display='none'">
           {% endif %}
           <span style="font-size:11px;font-weight:600;color:rgba(255,255,255,0.85);">{{ t.game.display_name }}</span>
@@ -185,11 +185,11 @@
   <a href="{% url 'tournaments:detail' t.slug %}" class="tm-card tm-tap" style="text-decoration:none;">
     <div class="tm-card-body">
       <div class="tm-card-thumb">
-        <img {% if t.banner_image %}{% image_attrs t.banner_image "thumb,card,large,hero" "100vw" %}{% elif t.game.card_image %}{% image_attrs t.game.card_image "thumb,card,large,hero" "100vw" %}{% elif t.game.banner %}{% image_attrs t.game.banner "thumb,card,large,hero" "100vw" %}{% else %}src="https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=400&auto=format&fit=crop"{% endif %} alt=""
+        <img src="{% if t.banner_image %}{{ t.banner_image.url }}{% elif t.game.card_image %}{{ t.game.card_image.url }}{% elif t.game.banner %}{{ t.game.banner.url }}{% else %}https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=400&auto=format&fit=crop{% endif %}" alt=""
              onerror="this.src='https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=400&auto=format&fit=crop'">
         <div class="tm-thumb-overlay"></div>
         {% if t.game.logo %}
-        <img {% image_attrs t.game.logo "icon" %} class="tm-game-badge" alt="" onerror="this.style.display='none'">
+        <img src="{{ t.game.logo.url }}" class="tm-game-badge" alt="" onerror="this.style.display='none'">
         {% endif %}
       </div>
       <div style="flex:1;min-width:0;">

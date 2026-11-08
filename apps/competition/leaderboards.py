@@ -10,7 +10,6 @@ from apps.competition.services.competition_service import CompetitionService
 from apps.games.models import Game
 from apps.common.seo import breadcrumb_schema, build_seo
 from deltacrown.branding import BRAND
-from apps.common.media.derivatives import icon_url as _icon  # CDN/derivative icon, else the original URL
 
 
 def _entries_modal_json(entries):
@@ -83,8 +82,8 @@ def _get_game_configs_with_colors(user=None):
     game_meta = {}
     try:
         for game in Game.objects.filter(is_active=True):
-            icon_url = _icon(game.icon) if game.icon else None
-            logo_url = _icon(game.logo) if game.logo else None
+            icon_url = game.icon.url if game.icon else None
+            logo_url = game.logo.url if game.logo else None
             meta = {
                 'color': game.primary_color or '#64748b',
                 'icon_url': icon_url or logo_url,   # fallback icon→logo
@@ -264,7 +263,7 @@ def leaderboard_global(request):
                 'display_name': _g.display_name or _g.name,
                 'slug': _g.slug or '',
                 'color': _g.primary_color or '#64748b',
-                'icon_url': _icon(_g.icon) if _g.icon else (_icon(_g.logo) if _g.logo else None),
+                'icon_url': _g.icon.url if _g.icon else (_g.logo.url if _g.logo else None),
             })
     except Exception:
         pass
@@ -443,7 +442,7 @@ def leaderboard_game(request, game_id):
                 'display_name': _g.display_name or _g.name,
                 'slug': _g.slug or '',
                 'color': _g.primary_color or '#64748b',
-                'icon_url': _icon(_g.icon) if _g.icon else (_icon(_g.logo) if _g.logo else None),
+                'icon_url': _g.icon.url if _g.icon else (_g.logo.url if _g.logo else None),
             })
     except Exception:
         pass

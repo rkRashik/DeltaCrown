@@ -1,5 +1,4 @@
 {% extends "base.html" %}
-{% load media_derivatives %}
 {% load static %}
 
 {% block extra_css %}
@@ -70,7 +69,7 @@
                             <div class="product-image-container">
                                 <a href="{% url 'ecommerce:product_detail' product.slug %}" class="product-link">
                                     {% if product.featured_image %}
-                                        <img {% image_attrs product.featured_image "thumb,card,large" "(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw" %} 
+                                        <img src="{{ product.featured_image.url }}" 
                                              alt="{{ product.name }}" 
                                              class="product-image main-image"
                                              loading="lazy">
@@ -82,7 +81,7 @@
                                     {% endif %}
                                     
                                     {% if product.hover_image %}
-                                        <img {% image_attrs product.hover_image "thumb,card,large" "(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw" %} 
+                                        <img src="{{ product.hover_image.url }}" 
                                              alt="{{ product.name }}" 
                                              class="product-image hover-image"
                                              loading="lazy">

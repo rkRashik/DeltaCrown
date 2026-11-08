@@ -10,8 +10,6 @@ class UserProfileConfig(AppConfig):
     name = "apps.user_profile"
 
     def ready(self):
-        from . import checks  # noqa: F401  (registers system checks)
-
         if os.environ.get("DELTA_MINIMAL_TEST_APPS") == "1":
             return
 

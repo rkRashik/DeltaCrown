@@ -1,4 +1,3 @@
-{% load media_derivatives %}
 {% load static humanize tournament_filters %}
 <style nonce="{{ request.csp_nonce }}">
   .tdm-about-content > * + * { margin-top: .75em; }
@@ -16,9 +15,9 @@
 
     <div style="position:relative;height:270px;">
       {% if tournament.banner_image %}
-      <img {% image_attrs tournament.banner_image "card,large,hero" "100vw" %} alt="" style="width:100%;height:100%;object-fit:cover;display:block;">
+      <img src="{{ tournament.banner_image.url }}" alt="" style="width:100%;height:100%;object-fit:cover;display:block;">
       {% elif tournament.thumbnail_image %}
-      <img {% image_attrs tournament.thumbnail_image "card,large,hero" "100vw" %} alt="" style="width:100%;height:100%;object-fit:cover;display:block;">
+      <img src="{{ tournament.thumbnail_image.url }}" alt="" style="width:100%;height:100%;object-fit:cover;display:block;">
       {% else %}
       <div style="width:100%;height:100%;background:linear-gradient(135deg,#15171e,#0c0d11);"></div>
       {% endif %}
@@ -50,7 +49,7 @@
 
       {% if tournament.game.icon %}
       <div style="position:absolute;top:66px;right:16px;z-index:10;">
-        <img {% image_attrs tournament.game.icon "icon" %} alt="{{ game_spec.display_name }}" style="width:38px;height:38px;border-radius:11px;object-fit:cover;box-shadow:0 2px 12px rgba(0,0,0,0.5);">
+        <img src="{{ tournament.game.icon.url }}" alt="{{ game_spec.display_name }}" style="width:38px;height:38px;border-radius:11px;object-fit:cover;box-shadow:0 2px 12px rgba(0,0,0,0.5);">
       </div>
       {% endif %}
 
@@ -58,7 +57,7 @@
         <div class="tdm-sora" style="font-weight:800;font-size:24px;line-height:1.1;letter-spacing:-0.02em;color:#fff;text-shadow:0 2px 16px rgba(0,0,0,0.5);">{{ tournament.name }}</div>
         <div style="display:flex;align-items:center;gap:8px;margin-top:6px;">
           {% if tournament.game.icon %}
-          <img {% image_attrs tournament.game.icon "icon" %} alt="" style="width:16px;height:16px;border-radius:4px;object-fit:cover;">
+          <img src="{{ tournament.game.icon.url }}" alt="" style="width:16px;height:16px;border-radius:4px;object-fit:cover;">
           {% endif %}
           <span style="font-size:13px;font-weight:600;color:rgba(255,255,255,0.82);">{{ game_spec.display_name }}</span>
           <span style="width:3px;height:3px;border-radius:999px;background:rgba(255,255,255,0.4);"></span>
@@ -338,7 +337,7 @@
           {% with champion=podium.0 %}
           <div style="width:64px;height:64px;border-radius:18px;overflow:hidden;background:linear-gradient(135deg,#E2C588,#A07F35);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;">
             {% if champion.team and champion.team.logo %}
-            <img {% image_attrs champion.team.logo "icon" %} alt="" style="width:100%;height:100%;object-fit:cover;">
+            <img src="{{ champion.team.logo.url }}" alt="" style="width:100%;height:100%;object-fit:cover;">
             {% else %}
             <span class="tdm-sora" style="font-weight:800;font-size:20px;color:#fff;">{% if champion.team %}{{ champion.team.tag|default:champion.team.name|truncatechars:3 }}{% elif champion.player %}{{ champion.player.username|truncatechars:3 }}{% endif %}</span>
             {% endif %}
@@ -497,7 +496,7 @@
           {% with champion=podium.0 %}
           <div style="width:64px;height:64px;border-radius:18px;overflow:hidden;background:linear-gradient(135deg,#E2C588,#A07F35);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;{% if champion.team.logo %}{% endif %}">
             {% if champion.team and champion.team.logo %}
-            <img {% image_attrs champion.team.logo "icon" %} alt="" style="width:100%;height:100%;object-fit:cover;">
+            <img src="{{ champion.team.logo.url }}" alt="" style="width:100%;height:100%;object-fit:cover;">
             {% else %}
             <span class="tdm-sora" style="font-weight:800;font-size:20px;color:#fff;">{% if champion.team %}{{ champion.team.tag|default:champion.team.name|truncatechars:3 }}{% elif champion.player %}{{ champion.player.username|truncatechars:3 }}{% endif %}</span>
             {% endif %}
@@ -517,7 +516,7 @@
             <div style="font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--ol-text-muted);margin-bottom:8px;">{% if forloop.counter == 2 %}2ND PLACE{% else %}3RD PLACE{% endif %}</div>
             <div style="width:44px;height:44px;border-radius:13px;overflow:hidden;background:rgba(var(--theme-rgb),0.3);display:flex;align-items:center;justify-content:center;margin:0 auto 9px;">
               {% if runner.team and runner.team.logo %}
-              <img {% image_attrs runner.team.logo "icon" %} alt="" style="width:100%;height:100%;object-fit:cover;">
+              <img src="{{ runner.team.logo.url }}" alt="" style="width:100%;height:100%;object-fit:cover;">
               {% else %}
               <span class="tdm-sora" style="font-weight:800;font-size:14px;color:#fff;">{% if runner.team %}{{ runner.team.tag|default:runner.team.name|truncatechars:3 }}{% elif runner.player %}{{ runner.player.username|truncatechars:3 }}{% endif %}</span>
               {% endif %}
@@ -592,7 +591,7 @@
   </div>
 </div>
 
-<script nonce="{{ request.csp_nonce }}">
+<script>
 document.addEventListener('DOMContentLoaded',function(){
   var tabs=document.querySelectorAll('.tdm-tab-btn');
   var panels=document.querySelectorAll('.tdm-tab-panel');
