@@ -1715,6 +1715,22 @@ class RegistrationService:
             >>> registration = get_object_or_404(Registration, id=reg_id)
             >>> RegistrationService.approve_registration(registration, request.user)
         """
+        # A waitlisted/cancelled/rejected/no-show registration holds no slot, so confirming it
+        # must respect capacity exactly like promote_from_waitlist (lock the tournament first).
+        if registration.status in (
+            Registration.WAITLISTED, Registration.CANCELLED, Registration.REJECTED, Registration.NO_SHOW,
+        ):
+            tournament = Tournament.objects.select_for_update().get(id=registration.tournament_id)
+            active_count = Registration.objects.filter(
+                tournament=tournament,
+                status__in=[Registration.PENDING, Registration.PAYMENT_SUBMITTED, Registration.CONFIRMED],
+                is_deleted=False,
+            ).exclude(pk=registration.pk).count()
+            if active_count >= tournament.max_participants:
+                raise ValidationError(
+                    "Cannot approve: the tournament is at capacity. Free a slot first, then approve again."
+                )
+
         # Move exact logic from organizer.py::approve_registration view
         registration.status = 'confirmed'
         registration.save()
