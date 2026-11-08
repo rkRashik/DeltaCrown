@@ -49,6 +49,7 @@ from apps.tournaments.models.match import Match
 from apps.tournaments.models.prize import PrizeTransaction
 from apps.tournaments.services.lobby_service import LobbyService
 from apps.tournaments.services.match_lobby_service import ensure_match_lobby_info, hydrate_match_lobby_info
+from apps.common.display_time import format_local
 
 logger = logging.getLogger(__name__)
 
@@ -2417,7 +2418,7 @@ def _build_status_detail(registration, check_in, tournament, now):
         'raw_status': status,
         'label': _registration_status_label(registration, check_in),
         'registered_at': registration.created_at.isoformat() if registration.created_at else '',
-        'registered_at_display': registration.created_at.strftime('%b %d, %Y at %I:%M %p') if registration.created_at else '',
+        'registered_at_display': format_local(registration.created_at, '%b %d, %Y at %I:%M %p', label=False) if registration.created_at else '',
         'tournament_name': tournament.name,
         'steps': [],
     }
