@@ -17,7 +17,7 @@ Reason: a CDN copy cannot be revoked by a database flag, so only artwork whose d
 ## Sequence (approval gate before steps 3, 5, 6)
 1. Deploy with `OWNLOBBY_PUBLIC_CDN` unset (no behavior change) and run migrations (one new empty table).
 2. Dry run (no provider contact): `python manage.py publish_public_media` → counts and ready mappings per model.
-3. **Approval:** one small batch: `python manage.py publish_public_media --apply --model games.game --limit 5 --max-seconds 120`. Output is counts only: `uploaded / already_present / unsupported / skipped / failed`. Repeat with `--after-pk <cursor>` until `complete`; then `ecommerce.category`, `ecommerce.brand`.
+3. **Approval:** one small batch: `python manage.py publish_public_media --apply --model games.game --max-images 5 --max-pixels 8000000 --max-seconds 120` (`--max-images` is a hard cap on images; a game can hold up to four eligible fields, so `--limit` alone is not an image count; the lower `--max-pixels` keeps memory small next to the running web process on a 512 MB instance; larger sources are `skipped`). Output is counts only: `uploaded / already_present / unsupported / skipped / failed`. Repeat with `--after-pk <cursor>` until `complete`; then `ecommerce.category`, `ecommerce.brand`.
 4. Verify: every `uploaded` is checked before the row is written (public id, `type=upload`, public access, version/size present). Spot-check one URL from the Django shell: `from apps.common.media import cdn; cdn.url(game.icon, "card")` once the flag is on, or open it in a browser.
 5. **Approval:** set `OWNLOBBY_PUBLIC_CDN=1`, restart. Pages emit CDN URLs only for published, currently active, unchanged originals; all others keep their route. Images carry an `onerror` fallback to the original URL.
 6. Measure for several days against the same pages: total image bytes, LCP (RUM or Lighthouse), 4xx/5xx for `res.cloudinary.com` image requests, Cloudinary bandwidth/transformation graphs.
@@ -34,3 +34,12 @@ Unset `OWNLOBBY_PUBLIC_CDN` and restart: templates return to derivative/authoriz
 
 ## Not covered
 Static CSS/JS (belong in the static pipeline), unreferenced oversized originals under `static/img/game_cards/LOGOS/` (~100 MB, not used by any template), Cloudinary authenticated/signed delivery for dynamic-visibility media (not enabled: needs plan support, expiry and revocation design), `legacy` mode.
+
+## First production release (code-only) and rollback
+Production ran `e15a8999`; the release carries exactly one new migration (`common.0002`: one new empty table, no change to existing tables, about 4 s; rehearsed forward, backward and forward again on a scratch database that had been migrated at `e15a8999`). Render builds do **not** migrate and boot does not migrate, and with the flags off nothing queries the new table, so the order below is safe.
+1. **Approval A:** manual deploy of the merge commit (auto-deploy stays off). Existing media-mode, signing-key and storage settings unchanged; the three flags unset.
+2. Smoke (read-only): `/healthz/`, `/`, `/tournaments/`, a game icon via `/files/...` (200, `private, max-age=900`), a protected file as its owner and as a stranger (stranger refused), login/logout.
+3. **Approval A2:** `python manage.py migrate common` on production (additive; rollback `migrate common 0001`).
+4. Read-only inventory: `python manage.py generate_image_derivatives` and `python manage.py publish_public_media` (both dry runs). Check Cloudinary plan/usage: `python manage.py shell -c "import cloudinary.api as a; u=a.usage(); print({k: u.get(k) for k in ('plan','transformations','bandwidth','storage')})"` (usage metadata only, no secret).
+5. **Approval B:** the five-image batch above; verify (step 4 of the sequence); **Approval C:** `OWNLOBBY_PUBLIC_CDN=1`; measure before/after on `/`, `/tournaments/`, one game page on desktop and mobile (image bytes, LCP, TTFB, 4xx/5xx). `OWNLOBBY_PUBLIC_DERIVATIVES` (backfill first) and `OWNLOBBY_CLOUDINARY_TRANSFORMS` are separate later approvals.
+**Rollback:** flags: unset and restart (instant, files inert). Code: redeploy `e15a8999` from the Render dashboard (the extra table is ignored by old code; no data change). Schema (only if wanted): `migrate common 0001` drops only `common_publishedmedia`. Databases, originals, secret keys and protected media are never touched by any step.
