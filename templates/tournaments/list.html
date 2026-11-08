@@ -1,5 +1,5 @@
 {% extends "tournaments/base.html" %}
-{% load static humanize %}
+{% load static humanize media_derivatives %}
 
 {% comment %}
    FE-T-001: Tournament List / Discovery Page
@@ -570,7 +570,7 @@
               <a href="?game={{ game.slug }}{% if current_status %}&status={{ current_status }}{% endif %}{% if current_search %}&search={{ current_search }}{% endif %}"
                  class="nav-pill group{% if current_game == game.slug %} active{% endif %}">
                 {% if game.icon %}
-                <img src="{{ game.icon }}" class="w-6 h-6 rounded object-cover border border-white/10" alt="{{ game.name }}">
+                <img src="{{ game.icon }}" class="w-6 h-6 rounded object-cover border border-white/10" alt="{{ game.name }}" width="24" height="24" loading="lazy" decoding="async">
                 {% else %}
                 <div class="w-6 h-6 rounded bg-dc-cyan/20 text-dc-cyan flex items-center justify-center text-[10px] font-bold">{{ game.name|truncatechars:2 }}</div>
                 {% endif %}
@@ -634,7 +634,7 @@
             <a href="{% url 'tournaments:detail' t.slug %}" class="cyber-card group cursor-pointer flex flex-col {% if t.effective_status == 'live' %}card-live{% elif t.effective_status == 'completed' %}card-ended{% endif %}">
               
               <div class="cyber-card-img">
-                <img src="{% if t.banner_image %}{{ t.banner_image.url }}{% elif t.game.banner %}{{ t.game.banner.url }}{% elif t.game.card_image %}{{ t.game.card_image.url }}{% else %}https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=1000&auto=format&fit=crop{% endif %}" alt="{{ t.name }}">
+                <img {% if t.banner_image %}{% image_attrs t.banner_image "thumb,card,large,hero" "(min-width: 768px) 50vw, 100vw" %}{% elif t.game.banner %}{% image_attrs t.game.banner "thumb,card,large,hero" "(min-width: 768px) 50vw, 100vw" %}{% elif t.game.card_image %}{% image_attrs t.game.card_image "thumb,card,large,hero" "(min-width: 768px) 50vw, 100vw" %}{% else %}src="https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=1000&auto=format&fit=crop"{% endif %} alt="{{ t.name }}" loading="{% if forloop.counter <= 2 %}eager{% else %}lazy{% endif %}" decoding="async">
                 
                 <div class="absolute top-3 left-3 flex flex-col gap-2 z-10">
                   <span class="bg-black/70 backdrop-blur-md border border-white/10 text-white text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded shadow-lg flex items-center gap-1.5 w-max">
@@ -663,7 +663,7 @@
                 <div class="flex items-end justify-between mb-2">
                   <div class="w-10 h-10 rounded-lg bg-[#111318] border border-white/10 flex items-center justify-center overflow-hidden shadow-lg p-1 group-hover:border-dc-cyan/40 transition-colors">
                     {% if t.game.icon %}
-                    <img src="{{ t.game.icon.url }}" alt="" class="w-full h-full object-contain"
+                    <img {% image_attrs t.game.icon "icon" %} alt="" class="w-full h-full object-contain" loading="lazy" decoding="async"
                          onerror="this.onerror=null;this.style.display='none';this.nextElementSibling.style.display='block'">
                     <i data-lucide="gamepad-2" class="w-5 h-5 text-gray-400" style="display:none"></i>
                     {% else %}
@@ -847,7 +847,7 @@
               <a href="{% url 'tournaments:detail' w.tournament_slug %}" class="flex items-center gap-3 group cursor-pointer">
                 <div class="relative">
                   {% if w.game_icon %}
-                  <img src="{{ w.game_icon }}" alt="" class="w-9 h-9 rounded object-cover border border-white/10">
+                  <img src="{{ w.game_icon }}" alt="" class="w-9 h-9 rounded object-cover border border-white/10" width="36" height="36" loading="lazy" decoding="async">
                   {% else %}
                   <div class="w-9 h-9 rounded bg-black flex items-center justify-center border border-white/10">
                     <i data-lucide="trophy" class="w-4 h-4 text-dc-gold"></i>

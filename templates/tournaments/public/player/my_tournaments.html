@@ -1,4 +1,5 @@
 {% extends "tournaments/base.html" %}
+{% load media_derivatives %}
 {% load static humanize tournament_tags %}
 
 {% block title %}My Tournaments | {{ brand.name }}{% endblock %}
@@ -150,8 +151,8 @@
 
           {# Banner / Image #}
           <div class="my-t-banner h-36 sm:h-40"
-               {% if reg.tournament.banner_image %}style="background-image: url('{{ reg.tournament.banner_image.url }}')"
-               {% elif reg.tournament.thumbnail_image %}style="background-image: url('{{ reg.tournament.thumbnail_image.url }}')"
+               {% if reg.tournament.banner_image %}style="background-image: url('{% image_url reg.tournament.banner_image "card" %}')"
+               {% elif reg.tournament.thumbnail_image %}style="background-image: url('{% image_url reg.tournament.thumbnail_image "card" %}')"
                {% else %}style="background: linear-gradient(135deg, rgba(99,102,241,0.15), rgba(244,63,94,0.1))"{% endif %}>
             <div class="relative z-10 p-4 h-full flex flex-col justify-between">
               {# Top badges #}
@@ -168,7 +169,7 @@
               {# Game badge at bottom of banner #}
               <div class="flex items-center gap-2">
                 {% if reg.tournament.game.icon %}
-                  <img src="{{ reg.tournament.game.icon.url }}" class="w-5 h-5 rounded object-cover border border-white/20" alt="">
+                  <img {% image_attrs reg.tournament.game.icon "icon" %} class="w-5 h-5 rounded object-cover border border-white/20" alt="">
                 {% endif %}
                 <span class="text-[11px] font-bold text-white/80">{{ reg.tournament.game.display_name|default:"—" }}</span>
               </div>

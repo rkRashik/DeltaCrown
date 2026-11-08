@@ -1,3 +1,4 @@
+{% load media_derivatives %}
 {% load static %}
 <script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
 {{ scout_games|json_script:"dc-scout-games" }}
@@ -167,14 +168,14 @@
               {% if item.match is not None %}<div class="match-pill {% if item.match >= 90 %}high{% elif item.match >= 75 %}good{% endif %}" title="Smart match score"><span class="pct">{{ item.match }}</span><span class="cap">Match</span></div>{% endif %}
               <div class="scard-top">
                 <div class="crest" style="background: {% if item.game_obj %}{{ item.game_obj.primary_color|default:'#0A84FF' }}{% else %}#0A84FF{% endif %}22">
-                  {% if item.team.logo %}<img src="{{ item.team.logo.url }}" alt="" loading="lazy" decoding="async">
-                  {% elif item.game_obj and item.game_obj.logo %}<img src="{{ item.game_obj.logo.url }}" alt="" loading="lazy" decoding="async">
+                  {% if item.team.logo %}<img {% image_attrs item.team.logo "icon" %} alt="" loading="lazy" decoding="async">
+                  {% elif item.game_obj and item.game_obj.logo %}<img {% image_attrs item.game_obj.logo "icon" %} alt="" loading="lazy" decoding="async">
                   {% else %}{{ item.team.tag|default:item.team.name|slice:":3" }}{% endif %}
                 </div>
                 <div class="scard-id">
                   <div class="scard-name"><span class="nm">{{ item.team.name }}</span>{% if item.team.organization %}<i class="ph-fill ph-seal-check verified org" title="Organization verified"></i>{% endif %}</div>
                   <div class="scard-meta">
-                    <span class="gtag">{% if item.game_obj and item.game_obj.logo %}<span class="gd"><img src="{{ item.game_obj.logo.url }}" alt=""></span>{% endif %}{% if item.game_obj %}{{ item.game_obj.display_name }}{% else %}Team{% endif %}</span>
+                    <span class="gtag">{% if item.game_obj and item.game_obj.logo %}<span class="gd"><img {% image_attrs item.game_obj.logo "icon" %} alt=""></span>{% endif %}{% if item.game_obj %}{{ item.game_obj.display_name }}{% else %}Team{% endif %}</span>
                     {% if item.team.platform %}<span class="mi"><i class="ph ph-devices"></i>{{ item.team.platform }}</span>{% endif %}
                     {% if item.team.region %}<span class="mi"><i class="ph-fill ph-map-pin"></i>{{ item.team.region }}</span>{% endif %}
                   </div>
@@ -207,7 +208,7 @@
             </article>
 
             <template id="team-drawer-{{ item.team.id }}">
-              <div class="dhero"><div class="crest" style="background: {% if item.game_obj %}{{ item.game_obj.primary_color|default:'#0A84FF' }}{% else %}#0A84FF{% endif %}22">{% if item.team.logo %}<img src="{{ item.team.logo.url }}" alt="">{% elif item.game_obj and item.game_obj.logo %}<img src="{{ item.game_obj.logo.url }}" alt="">{% else %}{{ item.team.tag|default:item.team.name|slice:":3" }}{% endif %}</div>
+              <div class="dhero"><div class="crest" style="background: {% if item.game_obj %}{{ item.game_obj.primary_color|default:'#0A84FF' }}{% else %}#0A84FF{% endif %}22">{% if item.team.logo %}<img {% image_attrs item.team.logo "icon" %} alt="">{% elif item.game_obj and item.game_obj.logo %}<img {% image_attrs item.game_obj.logo "icon" %} alt="">{% else %}{{ item.team.tag|default:item.team.name|slice:":3" }}{% endif %}</div>
                 <div><div class="dn">{{ item.team.name }}{% if item.team.organization %} <i class="ph-fill ph-seal-check verified org"></i>{% endif %}</div>
                 <div class="scard-meta">{% if item.game_obj %}<span class="gtag">{{ item.game_obj.display_name }}</span>{% endif %}{% if item.team.region %}<span class="mi"><i class="ph-fill ph-map-pin"></i>{{ item.team.region }}</span>{% endif %}</div></div></div>
               <div style="display:flex;gap:6px;flex-wrap:wrap"><span class="chip chip-recruit"><i class="ph-fill ph-megaphone"></i>RECRUITING</span>{% if item.team.organization %}<span class="chip chip-muted"><i class="ph-fill ph-buildings"></i>{{ item.team.organization.name }}</span>{% endif %}</div>
@@ -339,7 +340,7 @@
           <div id="dc-rec-list">
             {% for item in teams|slice:":4" %}
             <button type="button" class="rec" data-open-drawer="team-drawer-{{ item.team.id }}">
-              <span class="rcrest" style="background: {% if item.game_obj %}{{ item.game_obj.primary_color|default:'#0A84FF' }}{% else %}#0A84FF{% endif %}22">{% if item.team.logo %}<img src="{{ item.team.logo.url }}" alt="">{% else %}{{ item.team.tag|default:item.team.name|slice:":2" }}{% endif %}</span>
+              <span class="rcrest" style="background: {% if item.game_obj %}{{ item.game_obj.primary_color|default:'#0A84FF' }}{% else %}#0A84FF{% endif %}22">{% if item.team.logo %}<img {% image_attrs item.team.logo "icon" %} alt="">{% else %}{{ item.team.tag|default:item.team.name|slice:":2" }}{% endif %}</span>
               <span class="rinfo"><span class="rname">{{ item.team.name }}</span><span class="rmeta">{% if item.recruitment_summary.title %}{{ item.recruitment_summary.title }}{% else %}Open roster slot{% endif %}{% if item.team.region %} · {{ item.team.region }}{% endif %}</span></span>
               <i class="ph-bold ph-arrow-right rec-go"></i>
             </button>

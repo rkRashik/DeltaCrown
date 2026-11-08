@@ -24,6 +24,7 @@ class PublicGameCacheTests(SimpleTestCase):
                 model._meta.label_lower = 'games.game'
                 obj = SimpleNamespace(pk=7)
                 blob = Mock()
+                blob.name = f'games/{field_name}.png'
                 response = HttpResponse(b'public artwork', content_type='image/png')
                 response['Cache-Control'] = 'private, no-store'
                 with patch.object(views.apps, 'get_model', return_value=model), patch.object(
@@ -62,6 +63,7 @@ class PublicGameCacheTests(SimpleTestCase):
         ), patch.object(views, 'enabled', return_value=True):
             model._meta.label_lower = 'games.game'
             obj.card_image = Mock()
+            obj.card_image.name = 'games/card.png'
             result = views.download.cls.as_view()(self.factory.get('/files/'), 'games.game', 'card_image', 1)
             self.assertEqual(result.status_code, 503)
             self.assertEqual(result['Cache-Control'], 'private, no-store')

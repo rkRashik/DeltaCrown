@@ -1,18 +1,21 @@
 """Record lookup and authorization precede all private-origin I/O."""
+import asyncio
+import weakref
 from io import BytesIO
 from pathlib import PurePosixPath
 
-from asgiref.sync import sync_to_async
 from botocore.exceptions import ClientError
-from django.utils.http import content_disposition_header
+from django.utils.http import content_disposition_header, parse_etags
 from django.apps import apps
 from django.core.exceptions import ValidationError, FieldDoesNotExist
-from django.http import FileResponse, Http404, HttpResponse, StreamingHttpResponse
+from django.http import FileResponse, Http404, HttpResponse, HttpResponseNotModified, HttpResponseRedirect, StreamingHttpResponse
+from django.urls import reverse
 from django.shortcuts import get_object_or_404
 from rest_framework.decorators import api_view, permission_classes, throttle_classes
 from rest_framework.permissions import AllowAny
 from .throttles import MediaReadThrottle
 from .fields import MediaFileField, MediaImageField, enabled
+from . import derivatives, origin
 from .storage import ProtectedS3Storage
 from .policy import can_download
 from apps.common.validators import _sniff_mime
@@ -37,31 +40,120 @@ def download(request, label, field_name, pk):
     blob = getattr(obj, field_name)
     if not blob:
         raise Http404
-    response = serve_blob(blob)
-    # Games are permanently public-intended artwork. Let the *user's browser*
-    # reuse these files across pages; never cache evidence, user profiles,
-    # conditional-visibility media or error responses.
-    if (model._meta.label_lower == 'games.game'
-            and field_name in {'icon', 'logo', 'banner', 'card_image'}
-            and response.status_code == 200):
-        response['Cache-Control'] = 'private, max-age=900, must-revalidate'
+    # Public-intended artwork only. Personal profile media keeps `no-store` (a private account's picture must not
+    # sit in a browser cache after sign-out), though its derivatives revalidate (OL-07B).
+    art = (model._meta.label_lower, field_name) in derivatives.POLICY and model._meta.label_lower != 'user_profile.userprofile'
+    etag = f'"o-{derivatives.version(blob.name)}"' if art else None
+    if etag and etag in parse_etags(request.headers.get('If-None-Match', '')):
+        response = _apply_media_headers(HttpResponseNotModified())  # authorized above: no origin read, no bytes
+    else:
+        response = serve_blob(blob)
+    # Artwork meant for the public may be reused by the user's own browser (never a shared cache): stable art
+    # for 15 minutes, visibility-dependent art only after revalidation (the 304 above). Evidence, KYC, other
+    # media and every error response stay `private, no-store`.
+    if art and response.status_code in (200, 304):
+        response['Cache-Control'] = derivatives.cache_control_for(model._meta.label_lower, field_name)
+        response['ETag'] = etag
+    return response
+
+
+def serve_derivative(storage, key):
+    """Stream a stored WebP derivative, or None when it cannot be read (caller falls back to the original).
+
+    S3 objects use the same non-spooling, async-chunked, always-closed stream as private originals. The type is
+    fixed by us, never taken from provider metadata.
+    """
+    if isinstance(storage, ProtectedS3Storage):
+        body = None
+        lease = origin.acquire()
+        if lease is None:
+            return _busy()
+        try:
+            remote = storage.open_stream_object(key)
+            body = remote['Body']
+            response = StreamingHttpResponse(_S3Chunks(body, b'', lease), content_type='image/webp')
+            size = remote.get('ContentLength')
+            if isinstance(size, int) and size >= 0:
+                response['Content-Length'] = str(size)
+            return response
+        except Exception:  # missing key, provider error or timeout: the original route still works
+            if body is not None:
+                body.close()
+            lease.release()
+            return None
+    try:
+        return FileResponse(storage.open(key, 'rb'), content_type='image/webp')
+    except (FileNotFoundError, OSError):
+        return None
+
+
+@api_view(['GET', 'HEAD'])
+@permission_classes([AllowAny])
+@throttle_classes([MediaReadThrottle])
+def derivative(request, label, field_name, pk, variant, ver):
+    """Serve a pre-generated WebP derivative under the original record's authorization.
+
+    Anything that is not exactly an existing, current, allowlisted derivative falls back to the original
+    route (which authorizes again), so a stale or not-yet-generated URL never shows a broken image.
+    """
+    if not enabled():
+        raise Http404
+    try:
+        model = apps.get_model(label)
+        field = model._meta.get_field(field_name)
+        if not isinstance(field, MediaImageField):
+            raise Http404
+        obj = get_object_or_404(model._default_manager, pk=pk)
+    except (LookupError, ValueError, ValidationError, FieldDoesNotExist):
+        raise Http404 from None
+    if not can_download(request.user, obj, field_name):
+        raise Http404
+    blob = getattr(obj, field_name)
+    if not blob:
+        raise Http404
+    original = reverse('governed_media', args=[model._meta.label_lower, field_name, str(obj.pk)])
+    response = None
+    current = variant in derivatives.VARIANTS and derivatives.allowed(field) and ver == derivatives.version(blob.name)
+    # Never `public` (no purgeable shared cache exists). Public-intended artwork may be reused by the browser for
+    # 15 minutes; visibility/privacy-dependent artwork must revalidate every time. Either way the validator is the
+    # content version, so an unchanged image costs a 304, not bytes, and authorization always runs first.
+    etag = f'"{ver}-{variant}"'
+    cache = derivatives.cache_control(field) if derivatives.allowed(field) else 'private, no-cache'
+    if current and request.headers.get('If-None-Match') == etag:
+        response = HttpResponseNotModified()
+    elif current:
+        response = serve_derivative(blob.storage, derivatives.storage_key(
+            model._meta.label_lower, field_name, obj.pk, ver, variant))
+    if response is None:
+        response = HttpResponseRedirect(original)
+        response['Cache-Control'] = 'private, max-age=60'
+        return response
+    if response.status_code == 503:
+        return _apply_media_headers(response)  # shed: never cacheable, never carries the ETag
+    if response.status_code == 200:
+        _apply_media_headers(response)
+    response['Cache-Control'] = cache
+    response['ETag'] = etag
     return response
 
 
 class _S3Chunks:
-    """ASGI-native private-object streaming with bounded memory and cleanup."""
+    """ASGI-native private-object streaming with bounded memory, a held origin lease and guaranteed cleanup."""
 
-    def __init__(self, body, prefix):
+    def __init__(self, body, prefix, lease):
         self.body = body
         self.prefix = prefix
+        # Runs once: on close(), or when a response abandoned by a disconnected client is garbage collected.
+        self._cleanup = weakref.finalize(self, _release_origin, body, lease)
 
     async def __aiter__(self):
         try:
             if self.prefix:
                 yield self.prefix
+            loop = asyncio.get_running_loop()
             while True:
-                # Do not block Daphne's event loop on a remote S3 socket read.
-                chunk = await sync_to_async(self.body.read, thread_sensitive=False)(64 * 1024)
+                # Never block Daphne's event loop on a remote S3 socket read; use the dedicated bounded pool.
+                chunk = await loop.run_in_executor(origin.pool, self.body.read, origin.CHUNK)
                 if not chunk:
                     break
                 yield chunk
@@ -69,12 +161,28 @@ class _S3Chunks:
             self.close()
 
     def close(self):
-        self.body.close()
+        self._cleanup()
+
+
+def _release_origin(body, lease):
+    try:
+        body.close()
+    finally:
+        lease.release()
+
+
+def _busy():
+    response = HttpResponse('Media is busy, retry shortly.', status=503)
+    response['Retry-After'] = '2'
+    return response
 
 
 def _serve_private_s3(blob):
     """Preserve record authorization, sniffed types and no-store policy."""
     body = None
+    lease = origin.acquire()
+    if lease is None:
+        return _busy()
     try:
         remote = blob.storage.open_stream_object(blob.name)
         body = remote["Body"]
@@ -86,7 +194,7 @@ def _serve_private_s3(blob):
                         'application/pdf', 'video/mp4', 'video/webm'}:
             mime = 'application/octet-stream'
         inline = mime in {'image/png', 'image/jpeg', 'image/webp', 'image/gif'}
-        response = StreamingHttpResponse(_S3Chunks(body, prefix), content_type=mime)
+        response = StreamingHttpResponse(_S3Chunks(body, prefix, lease), content_type=mime)
         disposition = content_disposition_header(
             not inline, PurePosixPath(blob.name).name
         )
@@ -98,6 +206,7 @@ def _serve_private_s3(blob):
     except ClientError as exc:
         if body is not None:
             body.close()
+        lease.release()
         code = exc.response.get('Error', {}).get('Code')
         if str(code) in {'404', 'NoSuchKey', 'NotFound'}:
             raise Http404 from None
@@ -106,6 +215,7 @@ def _serve_private_s3(blob):
     except Exception:
         if body is not None:
             body.close()
+        lease.release()
         response = HttpResponse('Media temporarily unavailable.', status=503)
         response['Retry-After'] = '30'
     return response

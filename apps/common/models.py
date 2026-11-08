@@ -145,3 +145,35 @@ class TimestampedModel(models.Model):
 
     class Meta:
         abstract = True
+
+
+class PublishedMedia(models.Model):
+    """Verified public-CDN mirror of one source image version (OL-08).
+
+    One row per (record, field, source version): the original database reference is never replaced. A row is
+    only written after the upload response was verified; delivery additionally requires the live record to
+    still be publicly visible and to still hold exactly this source version.
+    """
+
+    READY, REVOKED = "ready", "revoked"
+
+    label = models.CharField(max_length=64)
+    field_name = models.CharField(max_length=64)
+    object_pk = models.CharField(max_length=64)
+    source_version = models.CharField(max_length=12, help_text="derivatives.version() of the original's storage name")
+    public_id = models.CharField(max_length=255, unique=True)
+    cdn_version = models.PositiveBigIntegerField(help_text="Cloudinary asset version stamp")
+    width = models.PositiveIntegerField()
+    height = models.PositiveIntegerField()
+    size_bytes = models.PositiveIntegerField()
+    status = models.CharField(max_length=10, default=READY, choices=[(READY, "ready"), (REVOKED, "revoked")])
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(
+            fields=["label", "field_name", "object_pk", "source_version"], name="uniq_published_media_source")]
+        indexes = [models.Index(fields=["label", "field_name", "object_pk"], name="pubmedia_lookup_idx")]
+
+    def __str__(self):
+        return f"{self.label}.{self.field_name}#{self.object_pk} ({self.status})"

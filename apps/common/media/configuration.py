@@ -35,9 +35,11 @@ def configure(storages, base_dir, media_root):
                 'max_memory_size': 2_621_440,
                 'transfer_config': TransferConfig(max_concurrency=2, use_threads=False),
                 'client_config': Config(
-                    connect_timeout=5, read_timeout=30,
+                    connect_timeout=5, read_timeout=15,
+                    # pool > origin lease budget (media/origin.py): a leased read never waits for a socket
+                    max_pool_connections=8,
                     s3={'addressing_style': 'path'},
-                    retries={'mode': 'standard', 'total_max_attempts': 3},
+                    retries={'mode': 'standard', 'total_max_attempts': 2},
                 ),
             }
             backend = 'apps.common.media.storage.ProtectedS3Storage'

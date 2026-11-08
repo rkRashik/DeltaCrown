@@ -9,6 +9,7 @@ from deltacrown.branding import brand_copy
 
 from django.views.generic import ListView
 from django.db.models import Q, Count
+from apps.common.media.derivatives import icon_url
 from apps.common.public_cache import public_cache_get_or_set
 from apps.tournaments.models import Tournament
 from apps.games.services import game_service
@@ -205,7 +206,7 @@ class TournamentListView(ListView):
                         'slug': t.slug,
                         'status': getattr(t, 'effective_status', None) or t.status,
                         'game_name': t.game.display_name if t.game else '',
-                        'game_logo': t.game.logo.url if t.game and t.game.logo else None,
+                        'game_logo': icon_url(t.game.logo) if t.game and t.game.logo else None,
                         'tournament_start': t.tournament_start,
                         'reg_status': reg.status,
                         'participation_type': t.participation_type,
@@ -227,14 +228,14 @@ class TournamentListView(ListView):
                 {
                     'slug': game.slug,
                     'name': game.display_name,
-                    'icon': game.icon.url if game.icon else None,
-                    'logo': game.logo.url if game.logo else None,
+                    'icon': icon_url(game.icon) if game.icon else None,
+                    'logo': icon_url(game.logo) if game.logo else None,
                     'banner': game.banner.url if game.banner else None,
                     'card': fast_game_card(game) if game.card_image else None,
                 }
                 for game in game_service.list_active_games()
             ]
-        context['games'] = public_cache_get_or_set('discovery:games:v1', _games_payload, 900)
+        context['games'] = public_cache_get_or_set('discovery:games:v2', _games_payload, 900)
 
         context['current_game'] = self.request.GET.get('game', '')
         context['current_status'] = self.request.GET.get('status', '')
@@ -332,7 +333,7 @@ class TournamentListView(ListView):
                     'tournament_name': result.tournament.name,
                     'tournament_slug': result.tournament.slug,
                     'game_name': result.tournament.game.display_name if result.tournament.game else '',
-                    'game_icon': result.tournament.game.icon.url if result.tournament.game and result.tournament.game.icon else None,
+                    'game_icon': icon_url(result.tournament.game.icon) if result.tournament.game and result.tournament.game.icon else None,
                     'winner_name': winner_name,
                     'prize_pool': result.tournament.prize_pool,
                     'completed_at': result.created_at,
@@ -340,7 +341,7 @@ class TournamentListView(ListView):
             return payload
 
         context['latest_winners'] = public_cache_get_or_set(
-            'discovery:latest_winners:v1', _latest_winners_payload, 600,
+            'discovery:latest_winners:v2', _latest_winners_payload, 600,
         )
 
         return context

@@ -4,6 +4,8 @@ Deconstruction deliberately remains the original Django field. All behavior is
 runtime Python: migrations must not depend on environment-specific storage.
 """
 from django.conf import settings
+from django.db import transaction
+from django.db.models.signals import post_save
 from django.core.files.storage import storages
 from django.db.models import FileField, ImageField
 from django.db.models.fields.files import FieldFile, ImageFieldFile
@@ -38,7 +40,9 @@ class GovernedFileMixin:
 
     def save(self, name, content, save=True):
         if enabled():
+            from .derivatives import note_upload
             from .validation import validate_upload
+            note_upload(self.instance, self.field)  # before the record is saved, so post_save sees it
             original_name = getattr(content, 'name', None)
             content.name = name
             try:
@@ -46,6 +50,16 @@ class GovernedFileMixin:
             finally:
                 content.name = original_name
         return super().save(name, content, save=save)
+
+
+def _derive_after_upload(sender, instance, **kwargs):
+    names = instance.__dict__.pop('_media_derivative_fields', None)
+    if names:
+        from .derivatives import generate_for_instance
+        transaction.on_commit(lambda: generate_for_instance(instance, names))
+
+
+post_save.connect(_derive_after_upload, dispatch_uid='ownlobby-media-derivatives')
 
 
 class GovernedFile(GovernedFileMixin, FieldFile):
