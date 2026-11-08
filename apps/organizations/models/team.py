@@ -26,6 +26,28 @@ validate_team_hex_color = RegexValidator(
 )
 
 
+
+_GAMES_TTL = 60
+_games = {"at": -_GAMES_TTL, "by_pk": {}}
+
+
+def _game_by_pk(pk):
+    """Game for a team card without one query per team (game_id is a plain integer, so no select_related).
+
+    The whole games table (a few rows) is read at most once per minute per process; a copy is returned so no
+    caller can mutate the shared instance. An unknown pk (a game created within the minute) falls back to a
+    direct lookup, preserving the previous behaviour.
+    """
+    import copy
+    import time
+    from apps.games.models import Game
+    if time.monotonic() - _games["at"] > _GAMES_TTL:
+        _games["by_pk"] = {g.pk: g for g in Game.objects.all()}
+        _games["at"] = time.monotonic()
+    game = _games["by_pk"].get(pk)
+    return copy.copy(game) if game is not None else Game.objects.get(pk=pk)
+
+
 class Team(models.Model):
     """
     Competitive unit that registers for tournaments and plays matches.
@@ -566,8 +588,7 @@ class Team(models.Model):
         """Convenience: full Game model instance for this team."""
         if not hasattr(self, '_game_obj_cache'):
             try:
-                from apps.games.models import Game
-                self._game_obj_cache = Game.objects.get(pk=self.game_id)
+                self._game_obj_cache = _game_by_pk(self.game_id)
             except Exception:
                 self._game_obj_cache = None
         return self._game_obj_cache

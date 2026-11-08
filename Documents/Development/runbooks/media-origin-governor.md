@@ -17,3 +17,18 @@ Originals of 2-8 MB are still what a first view downloads. The real fix is activ
 `/healthz/` stays ~1 ms under media load; Render logs show no "Connection pool is full"; `/files/games.game/icon/<pk>/` with `If-None-Match` returns 304; `request_mem route=governed_media` elapsed stays in the low seconds; RSS stays well under 400 MiB.
 
 Rollback: redeploy the previous commit. No schema or data change is involved.
+
+## How to run the production management commands (no new infrastructure)
+Render Free has no shell, but the owner's machine already has a gitignored `.env` (read automatically by `deltacrown/settings.py`) holding the production database and storage credentials. Nothing is copied, committed or pasted anywhere. From the repo root, per command, set only non-secret process variables:
+
+```
+set OWNLOBBY_MEDIA_MODE=hybrid          (the .env says legacy; production runs hybrid)
+set DISABLE_INPROCESS_MATCH_REMINDER=1  (REQUIRED: otherwise the settings start the match-reminder scheduler in this local process, against the production database)
+.venv\Scripts\python.exe manage.py generate_image_derivatives            (dry run: counts only)
+.venv\Scripts\python.exe manage.py publish_public_media                  (dry run: counts only)
+```
+Memory is not a Render concern: the work runs on the owner's machine; Render only serves the finished small files.
+
+Dry run on 8 Nov 2026 (production): games 14 records / 44 images (11 games have files, none above 12 MiB, largest 8.7 MiB), tournaments 13, teams 4, profiles 56, organizations are CDN-published (not applicable), 0 Cloudinary mappings yet.
+
+Suggested first batch (needs approval): `generate_image_derivatives --apply --model games.game --limit 20 --max-seconds 120` (11 games x 4 fields, ~220 small WebP files into the existing private storage, originals untouched), then tournaments, teams, profiles. Only afterwards: `OWNLOBBY_PUBLIC_DERIVATIVES=1` on Render.
