@@ -214,6 +214,56 @@ class OriginResilienceTests(SimpleTestCase):
         origin._cache_size = 0
 
 
+class DerivativeGateTests(SimpleTestCase):
+    """The derivative view takes its slot before any database work, so a cold burst cannot open 50 connections."""
+
+    def request(self, **kwargs):
+        model = Mock()
+        model._meta.get_field.return_value = Mock(spec=views.MediaImageField)
+        model._meta.label_lower = "games.game"
+        blob = Mock()
+        blob.name = "a.png"
+        obj = SimpleNamespace(pk=3, icon=blob)
+        db = Mock(return_value=obj)
+        patches = [patch.object(views.apps, "get_model", return_value=model), patch.object(views, "get_object_or_404", db),
+                   patch.object(views, "can_download", return_value=True), patch.object(views, "enabled", return_value=True),
+                   patch.object(views.derivatives, "allowed", return_value=True),
+                   patch.object(views.derivatives, "cache_control", return_value="private, max-age=900"),
+                   patch.object(views, "reverse", return_value="/files/games.game/icon/3/")]
+        for p in patches:
+            p.start()
+            self.addCleanup(p.stop)
+        request = APIRequestFactory().get("/files/derived/", **kwargs)
+        return request, db
+
+    def test_a_saturated_gate_sheds_before_touching_the_database_and_the_slot_is_always_returned(self):
+        request, db = self.request()
+        held = [origin.acquire(small=True) for _ in range(origin.SMALL_SLOTS)]
+        with patch.object(origin, "SMALL_WAIT_SECONDS", 0.05):
+            response = views.derivative.cls.as_view()(request, "games.game", "icon", 3, "icon", "v")
+        self.assertEqual(response.status_code, 503)
+        db.assert_not_called()  # no connection is opened for a request that is shed
+        for lease in held:
+            lease.release()
+        response = views.derivative.cls.as_view()(request, "games.game", "icon", 3, "icon", "stale-version")
+        self.assertEqual(response.status_code, 302)  # served (redirect to the original) and the slot freed again
+        with patch.object(origin, "SMALL_WAIT_SECONDS", 0.05):
+            again = [origin.acquire(small=True) for _ in range(origin.SMALL_SLOTS)]
+        self.assertTrue(all(again))
+        for lease in again:
+            lease.release()
+
+    def test_storage_warm_up_runs_once_and_never_raises(self):
+        origin._storage_warmed = False
+        with patch("django.core.files.storage.storages") as storages:
+            origin.warm_storage()
+            origin.warm_storage()
+        self.assertEqual(storages.__getitem__.call_count, 1)
+        origin._storage_warmed = False
+        with patch("django.core.files.storage.storages", side_effect=RuntimeError("x")):
+            origin.warm_storage()  # a legacy/local setup simply has nothing to warm
+
+
 class ConditionalArtworkTests(SimpleTestCase):
     def call(self, label, field_name, name="a.png", **headers):
         model = Mock()

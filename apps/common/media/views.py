@@ -58,7 +58,7 @@ def download(request, label, field_name, pk):
     return response
 
 
-def serve_derivative(storage, key):
+def serve_derivative(storage, key, lease=None):
     """Serve a stored WebP derivative, or None when it cannot be read (caller falls back to the original).
 
     Derivatives are small and immutable (the key embeds the record and content version), so a recently served one
@@ -71,7 +71,7 @@ def serve_derivative(storage, key):
         if data is not None:
             return HttpResponse(data, content_type='image/webp')
         body = None
-        lease = origin.acquire(small=True)
+        lease = lease or origin.acquire(small=True)  # the derivative view already holds the request's slot
         if lease is None:
             return _busy()
         try:
@@ -111,13 +111,27 @@ def serve_derivative(storage, key):
 @permission_classes([AllowAny])
 @throttle_classes([DerivativeReadThrottle])
 def derivative(request, label, field_name, pk, variant, ver):
+    """Gate, then serve. A cold page asks for ~50 derivatives at once over HTTP/2 and every request thread would
+    otherwise open its own database connection (TLS handshake on a 0.15 vCPU instance) before touching storage:
+    that starved the process and shed half of them. The gate bounds how many do database + storage work at once;
+    the others wait briefly for a slot (no connection held while waiting)."""
+    if not enabled():
+        raise Http404
+    gate = origin.acquire(small=True)
+    if gate is None:
+        return _apply_media_headers(_busy())
+    try:
+        return _derivative(request, label, field_name, pk, variant, ver, gate)
+    finally:
+        gate.release()
+
+
+def _derivative(request, label, field_name, pk, variant, ver, gate):
     """Serve a pre-generated WebP derivative under the original record's authorization.
 
     Anything that is not exactly an existing, current, allowlisted derivative falls back to the original
     route (which authorizes again), so a stale or not-yet-generated URL never shows a broken image.
     """
-    if not enabled():
-        raise Http404
     try:
         model = apps.get_model(label)
         field = model._meta.get_field(field_name)
@@ -143,7 +157,7 @@ def derivative(request, label, field_name, pk, variant, ver):
         response = HttpResponseNotModified()
     elif current:
         response = serve_derivative(blob.storage, derivatives.storage_key(
-            model._meta.label_lower, field_name, obj.pk, ver, variant))
+            model._meta.label_lower, field_name, obj.pk, ver, variant), gate)
     if response is None:
         response = HttpResponseRedirect(original)
         response['Cache-Control'] = 'private, max-age=60'
