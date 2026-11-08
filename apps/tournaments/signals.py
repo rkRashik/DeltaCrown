@@ -236,9 +236,11 @@ def handle_match_state_change(sender, instance, created, **kwargs):
         body = f'A dispute has been raised for your match in {tournament.name}. An organizer will review it soon.'
         email_template = 'match_disputed'
         
+        # Disputes hang off the result submission, not the match itself.
+        from apps.tournaments.models.dispute import DisputeRecord as _DisputeRecord
         logger.info(
             f"Match disputed: match_id={instance.id}, tournament_id={tournament.id}, "
-            f"disputes_count={instance.disputes.count()}"
+            f"disputes_count={_DisputeRecord.objects.filter(submission__match=instance).count()}"
         )
     
     # Send notification if event was triggered

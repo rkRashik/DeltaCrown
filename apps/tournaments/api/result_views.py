@@ -423,11 +423,11 @@ class ResultViewSet(viewsets.GenericViewSet):
                 'dispute_id': dispute.id,
                 'match_id': match.id,
                 'tournament_id': match.tournament_id,
-                'reason': dispute.reason,
+                'reason': dispute.reason_code,
                 'description': dispute.description,
-                'initiated_by': dispute.initiated_by_id,
+                'initiated_by': dispute.opened_by_user_id,
                 'status': dispute.status,
-                'created_at': dispute.created_at.isoformat() if hasattr(dispute, 'created_at') else None,
+                'created_at': dispute.opened_at.isoformat() if dispute.opened_at else None,
                 'message': 'Dispute created successfully. Tournament organizers will review and resolve.'
             }, status=status.HTTP_201_CREATED)
             
