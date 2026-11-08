@@ -21,4 +21,18 @@ class FastHealth:
             await send({"type": "http.response.start", "status": 200, "headers": _HEADERS})
             await send({"type": "http.response.body", "body": b"" if scope["method"] == "HEAD" else _BODY})
             return
-        await self.application(scope, receive, send)
+        if scope["type"] != "http":
+            await self.application(scope, receive, send)
+            return
+        from apps.common.media.origin import run_cleanups
+
+        async def watching_receive():
+            message = await receive()
+            if message.get("type") == "http.disconnect":
+                run_cleanups(scope)  # client gone: free any media slot this request holds right now
+            return message
+
+        try:
+            await self.application(scope, watching_receive, send)
+        finally:
+            run_cleanups(scope)  # finished, failed or cancelled by Daphne: never leave a slot behind
