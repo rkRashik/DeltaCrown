@@ -13,6 +13,9 @@ class FastHealth:
     def __init__(self, application):
         self.application = application
 
+    def __getattr__(self, name):  # stay transparent to code that inspects the router (e.g. shutdown contracts)
+        return getattr(self.application, name)
+
     async def __call__(self, scope, receive, send):
         if scope["type"] == "http" and scope.get("path") == "/healthz/" and scope.get("method") in ("GET", "HEAD"):
             await send({"type": "http.response.start", "status": 200, "headers": _HEADERS})
