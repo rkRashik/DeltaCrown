@@ -179,7 +179,9 @@ class HomepageContextRemovalTests(TestCase):
         if cache_state == "cold":
             self.assertGreater(before_count, after_count)
         else:
-            self.assertEqual(before_count, after_count)
+            # Warm cache: never more queries than the baseline. Signed-in roles now also hit the 30 s per-user hero
+            # cache (OL-12), so they may need fewer; guests are unchanged.
+            self.assertLessEqual(after_count, before_count)
         self.assertIn(b'class="dc-home-m"', rows[1][0])
         self.assertIn(b'data-section="tournaments"', rows[1][0])
         self.assertIn(b'rel="canonical"', rows[1][0])
