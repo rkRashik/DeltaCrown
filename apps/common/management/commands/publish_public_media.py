@@ -11,7 +11,10 @@ run it periodically (it only touches records that have no ready mapping for thei
 It stops (non-zero exit) on rate limiting, refused credentials, unexpected asset visibility/identity, a source that
 changed during publication, or repeated provider errors.
 
-  publish_public_media --apply --model games.game --limit 20 --max-seconds 120 [--after-pk N]
+  publish_public_media --apply --model games.game --max-images 5 --max-pixels 8000000 [--after-pk N]
+
+`--max-images` is a hard cap on images handled (a record can hold several eligible fields); `--limit` counts records.
+`--max-pixels` lowers the decode cap (default 24 MP, ~100 MB decoded): use it on a small shared instance.
 """
 import time
 from collections import Counter
@@ -33,14 +36,17 @@ class Command(BaseCommand):
         parser.add_argument("--apply", action="store_true", help="Upload (default: dry run, no provider contact).")
         parser.add_argument("--model", choices=MODELS, help="Required with --apply.")
         parser.add_argument("--limit", type=int, default=20, help="Max records per run (default 20).")
+        parser.add_argument("--max-images", type=int, default=0, help="Hard cap on images handled this run (default: none).")
+        parser.add_argument("--max-pixels", type=int, default=0, help="Decode cap in pixels (default: 24 MP).")
         parser.add_argument("--after-pk", type=int, default=0, help="Resume after this primary key.")
         parser.add_argument("--max-seconds", type=int, default=120, help="Stop starting new records after this long.")
 
     def handle(self, *args, **options):
         if not enabled():
             raise CommandError("Governed media is not enabled (OWNLOBBY_MEDIA_MODE legacy): nothing to do.")
-        if options["limit"] < 1 or options["max_seconds"] < 1 or options["after_pk"] < 0:
-            raise CommandError("--limit and --max-seconds must be positive and --after-pk non-negative.")
+        if (options["limit"] < 1 or options["max_seconds"] < 1 or options["after_pk"] < 0
+                or options["max_images"] < 0 or options["max_pixels"] < 0):
+            raise CommandError("--limit and --max-seconds must be positive; other numeric options non-negative.")
         if options["apply"] and not options["model"]:
             raise CommandError("--apply requires --model (one model per run keeps the cursor unambiguous).")
         if options["after_pk"] and not options["model"]:
@@ -59,11 +65,14 @@ class Command(BaseCommand):
         rows = model._base_manager.filter(pk__gt=options["after_pk"]).order_by("pk")
         if not options["apply"]:
             ready = PublishedMedia.objects.filter(label=label, status=PublishedMedia.READY).count()
-            self.stdout.write(f"{model._meta.label}: {rows.count()} record(s) after cursor, fields: {', '.join(names)}, "
-                              f"{ready} ready mapping(s) (dry run: nothing was uploaded; use --apply --model)")
+            with_file = sum(rows.exclude(**{name: ""}).exclude(**{name + "__isnull": True}).count() for name in names)
+            self.stdout.write(f"{model._meta.label}: {rows.count()} record(s) after cursor, {with_file} image(s) with a file "
+                              f"(fields: {', '.join(names)}), {ready} ready mapping(s) "
+                              "(dry run: nothing was uploaded; use --apply --model)")
             return
         deadline = time.monotonic() + options["max_seconds"]
-        counts, done, cursor, more, errors, stopped = Counter(), 0, options["after_pk"], False, 0, None
+        counts, done, cursor, more, errors, stopped, images = Counter(), 0, options["after_pk"], False, 0, None, 0
+        cap = options["max_images"]
         for obj in rows.iterator(chunk_size=50):
             if done >= options["limit"] or time.monotonic() > deadline:
                 more = True
@@ -74,13 +83,19 @@ class Command(BaseCommand):
                 for name in names:
                     blob = getattr(obj, name)
                     if blob:
-                        status = cdn.publish(blob)
+                        if cap and images >= cap:  # re-run from just before this record: finished fields report already_present
+                            more, cursor, done = True, obj.pk - 1, done - 1
+                            break
+                        images += 1
+                        status = cdn.publish(blob, max_pixels=options["max_pixels"] or None)
                         counts[status] += 1
                         errors = errors + 1 if status == "failed" else 0
                         if errors >= cdn.STOP_AFTER_ERRORS:
                             raise cdn.Stop("repeated provider errors")
             except cdn.Stop as exc:
                 stopped = str(exc)
+                break
+            if more:
                 break
         for status, n in sorted(counts.items()):
             self.stdout.write(f"{model._meta.label} {status}: {n}")

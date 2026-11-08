@@ -242,3 +242,34 @@ def test_real_pages_emit_cdn_urls_only_for_published_art_and_python_helpers_agre
         assert f"res.cloudinary.com/synth/image/upload/c_limit,f_auto,q_auto,w_128/v4711/ownlobby-public/v1/games.game/icon/{g.pk}/" in page
         assert _img_url(g.icon, "icon").startswith("https://res.cloudinary.com/synth/") and _img_url(g.icon).startswith("/files/")
     assert "res.cloudinary.com" not in Client().get("/tournaments/").content.decode()  # flag off: rollback is instant
+
+
+def test_max_images_is_a_hard_cap_across_fields_and_resumes_without_duplicates(db, stored):
+    games = [make_game(stored, f"cdn-cap-{i}") for i in range(3)]
+    for g in games:  # two eligible fields each: six images, three records
+        g.logo.save("l.png", ContentFile(png(600, 400)))
+        stored.append(("x", g.logo.name))
+    upload = fake_upload()
+    out = StringIO()
+    with mock.patch.object(cloudinary.uploader, "upload", upload):
+        dry = StringIO()
+        call_command("publish_public_media", stdout=dry)
+        assert "6 image(s) with a file" in dry.getvalue()
+        call_command("publish_public_media", "--apply", "--model", "games.game", "--max-images", "5", stdout=out)
+        assert upload.call_count == 5 and "uploaded: 5" in out.getvalue()
+        cursor = games[2].pk - 1
+        assert f"--after-pk {cursor}" in out.getvalue()
+        out = StringIO()
+        call_command("publish_public_media", "--apply", "--model", "games.game", "--max-images", "5",
+                     "--after-pk", str(cursor), stdout=out)
+    assert upload.call_count == 6 and "already_present: 1" in out.getvalue() and "uploaded: 1" in out.getvalue()
+    assert PublishedMedia.objects.count() == 6
+
+
+def test_max_pixels_lowers_the_decode_cap_and_skips_larger_sources(db, stored):
+    make_game(stored, "cdn-pixels")  # 1400 x 1000 = 1.4 MP
+    upload = fake_upload()
+    out = StringIO()
+    with mock.patch.object(cloudinary.uploader, "upload", upload):
+        call_command("publish_public_media", "--apply", "--model", "games.game", "--max-pixels", "1000000", stdout=out)
+    assert upload.call_count == 0 and "skipped: 1" in out.getvalue() and not PublishedMedia.objects.exists()
