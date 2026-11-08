@@ -107,8 +107,9 @@ def test_only_the_reviewed_public_fields_are_eligible_and_bad_input_is_handled(g
     assert derivatives.ALLOWED <= PUBLIC_FIELDS
     for label, name in KNOWN_FIELDS - PUBLIC_FIELDS:  # every private/evidence field is refused
         assert (label, name) not in derivatives.ALLOWED
-    for label, name in (("user_profile.verificationrecord", "id_document_front"), ("organizations.organization", "logo")):
-        assert not derivatives.allowed(apps.get_model(label)._meta.get_field(name))
+    assert not derivatives.allowed(apps.get_model("user_profile.verificationrecord")._meta.get_field("id_document_front"))
+    with override_settings(OWNLOBBY_MEDIA_MODE="hybrid"):  # CDN-published brand artwork is never processed
+        assert not derivatives.allowed(apps.get_model("organizations.organization")._meta.get_field("logo"))
 
     storage = game.icon.storage
     cases = {
@@ -183,7 +184,7 @@ def test_conditionally_visible_artwork_is_not_publicly_cacheable_and_follows_vis
     owner = Client()
     owner.force_login(organizer)
     response = owner.get(url)
-    assert response.status_code == 200 and response["Cache-Control"] == "private, max-age=900, must-revalidate"
+    assert response.status_code == 200 and response["Cache-Control"] == "private, no-cache"  # conditional visibility: revalidate
     _close(response)
     Tournament.objects.filter(pk=t.pk).update(status=Tournament.PUBLISHED)
     response = Client().get(url)

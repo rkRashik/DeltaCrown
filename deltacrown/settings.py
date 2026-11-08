@@ -718,6 +718,9 @@ OWNLOBBY_MEDIA_MODE = configure_media_storage(STORAGES, BASE_DIR, MEDIA_ROOT)
 # OL-07: emit/generate resized WebP derivatives for allowlisted public artwork. Off until the owner has run
 # `generate_image_derivatives --apply` in bounded batches.
 OWNLOBBY_PUBLIC_DERIVATIVES = os.getenv("OWNLOBBY_PUBLIC_DERIVATIVES", "0") == "1"
+# Hybrid mode only: resize CDN-published brand artwork with Cloudinary URL transformations (counts toward
+# Cloudinary transformation credits; needs owner approval).
+OWNLOBBY_CLOUDINARY_TRANSFORMS = os.getenv("OWNLOBBY_CLOUDINARY_TRANSFORMS", "0") == "1"
 MEDIA_STORAGE_VERIFIED = os.getenv("MEDIA_STORAGE_VERIFIED", "0") == "1"
 MEDIA_LEGACY_PRIVACY_VERIFIED = os.getenv("MEDIA_LEGACY_PRIVACY_VERIFIED", "0") == "1"
 MEDIA_RESTORE_VERIFIED = os.getenv("MEDIA_RESTORE_VERIFIED", "0") == "1"

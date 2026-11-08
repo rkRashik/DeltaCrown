@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load media_derivatives %}
 {% load static %}
 
 {% block title %}{{ page_title }}{% endblock %}
@@ -238,10 +239,10 @@
                                 <div class="product-image">
                                     <a href="{% url 'ecommerce:product_detail' product.slug %}">
                                         {% if product.featured_image %}
-                                            <img src="{{ product.featured_image.url }}" alt="{{ product.name }}" class="main-image">
+                                            <img {% image_attrs product.featured_image "thumb,card,large" "(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw" %} alt="{{ product.name }}" class="main-image">
                                         {% endif %}
                                         {% if product.hover_image %}
-                                            <img src="{{ product.hover_image.url }}" alt="{{ product.name }}" class="hover-image">
+                                            <img {% image_attrs product.hover_image "thumb,card,large" "(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw" %} alt="{{ product.name }}" class="hover-image">
                                         {% endif %}
                                     </a>
                                     

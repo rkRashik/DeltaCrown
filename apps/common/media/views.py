@@ -103,11 +103,11 @@ def derivative(request, label, field_name, pk, variant, ver):
     original = reverse('governed_media', args=[model._meta.label_lower, field_name, str(obj.pk)])
     response = None
     current = variant in derivatives.VARIANTS and derivatives.allowed(field) and ver == derivatives.version(blob.name)
-    # Never `public`: visibility/active state can change at any time and no purgeable shared cache exists. The
-    # browser may reuse it for 15 minutes (the existing game-artwork policy), then revalidates through this
-    # authorized route; the validator is the content version, so an unchanged image costs a 304, not bytes.
+    # Never `public` (no purgeable shared cache exists). Public-intended artwork may be reused by the browser for
+    # 15 minutes; visibility/privacy-dependent artwork must revalidate every time. Either way the validator is the
+    # content version, so an unchanged image costs a 304, not bytes, and authorization always runs first.
     etag = f'"{ver}-{variant}"'
-    cache = 'private, max-age=900, must-revalidate'
+    cache = derivatives.cache_control(field) if derivatives.allowed(field) else 'private, no-cache'
     if current and request.headers.get('If-None-Match') == etag:
         response = HttpResponseNotModified()
     elif current:
