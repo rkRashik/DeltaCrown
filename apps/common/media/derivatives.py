@@ -75,8 +75,12 @@ def allowed(field):
     return not (getattr(settings, "OWNLOBBY_MEDIA_MODE", "legacy") == "hybrid" and storage_alias(field) == "public_media")
 
 
+def cache_control_for(label, field_name):
+    return CACHE_CONTROL[POLICY[(label, field_name)]]
+
+
 def cache_control(field):
-    return CACHE_CONTROL[POLICY[(field.model._meta.concrete_model._meta.label_lower, field.name)]]
+    return cache_control_for(field.model._meta.concrete_model._meta.label_lower, field.name)
 
 
 def version(name):

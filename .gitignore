@@ -86,6 +86,7 @@ Documents/
 !/Documents/Development/runbooks/signing-key-rotation.md
 !/Documents/Development/runbooks/public-image-derivatives.md
 !/Documents/Development/runbooks/public-cdn-delivery.md
+!/Documents/Development/runbooks/media-origin-governor.md
 evidence/
 Artifacts/
 reports/

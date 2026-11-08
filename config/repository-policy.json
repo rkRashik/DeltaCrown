@@ -82,7 +82,8 @@
     "Documents/Development/runbooks/README.md",
     "Documents/Development/runbooks/signing-key-rotation.md",
     "Documents/Development/runbooks/public-image-derivatives.md",
-    "Documents/Development/runbooks/public-cdn-delivery.md"
+    "Documents/Development/runbooks/public-cdn-delivery.md",
+    "Documents/Development/runbooks/media-origin-governor.md"
   ],
   "historical_documents": [
     "README_TECHNICAL.md",

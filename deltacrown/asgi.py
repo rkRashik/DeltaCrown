@@ -72,6 +72,10 @@ application = ProtocolTypeRouter({
 })
 
 
+# OL-10: liveness is answered in the event loop (inside the lockdown guard, which already allows it).
+from deltacrown.fast_health import FastHealth
+application = FastHealth(application)
+
 # The public app stays fail-closed during the coordinated one-service release.
 # This is deliberately outside both Django HTTP and Channels WebSocket routing.
 # A missing verification flag keeps the guard on even if the switch is cleared.
