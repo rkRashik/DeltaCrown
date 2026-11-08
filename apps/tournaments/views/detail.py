@@ -2872,12 +2872,32 @@ def _build_detail_action_context(tournament, user, *, context):
             tone='register',
             kind='register',
         )
+    elif not (user and user.is_authenticated) and status == Tournament.REGISTRATION_OPEN:
+        # Anonymous visitors saw a disabled "Registration Closed" button although entry is open.
+        from django.contrib.auth.views import redirect_to_login
+
+        state = 'register'
+        heading = 'Registration Open'
+        note = 'Log in to register for this tournament.'
+        primary = _action(
+            label='Log in to register',
+            url=redirect_to_login(reverse('tournaments:register', kwargs={'slug': tournament.slug})).url,
+            icon='log-in',
+            tone='register',
+            kind='login',
+        )
     else:
         closed_label = 'Registration Closed'
         if status in ('completed', 'archived'):
             closed_label = 'Tournament Completed'
         elif status == 'cancelled':
             closed_label = 'Tournament Cancelled'
+        if not (user and user.is_authenticated):
+            # The eligibility reason for anonymous viewers is "log in", which contradicts a closed CTA.
+            note = {
+                'Tournament Completed': 'This tournament has ended.',
+                'Tournament Cancelled': 'This tournament was cancelled.',
+            }.get(closed_label, 'Registration is closed for this tournament.')
         primary = _action(
             label=closed_label,
             icon='lock',
