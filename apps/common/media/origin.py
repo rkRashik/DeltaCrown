@@ -29,7 +29,9 @@ SLOTS = max(1, int(os.getenv("MEDIA_ORIGIN_CONCURRENCY", "3")))  # originals, st
 SMALL_SLOTS = max(1, int(os.getenv("MEDIA_ORIGIN_SMALL_CONCURRENCY", "5")))  # derivatives: read whole in ~0.2 s
 WAIT_SECONDS = float(os.getenv("MEDIA_ORIGIN_WAIT_SECONDS", "5"))
 MAX_HOLD_SECONDS = float(os.getenv("MEDIA_ORIGIN_MAX_HOLD_SECONDS", "45"))
+SMALL_WAIT_SECONDS = float(os.getenv("MEDIA_ORIGIN_SMALL_WAIT_SECONDS", "10"))  # a cold page fetches ~50 at once
 MAX_WAITERS = 24  # beyond this, shed immediately: waiting requests each hold a thread
+SMALL_MAX_WAITERS = 64
 CHUNK = 256 * 1024  # fewer thread hops per image than 64 KiB
 SMALL_OBJECT_BYTES = 768 * 1024  # derivatives are read whole up to this size (they are ~10-300 KiB)
 
@@ -37,7 +39,7 @@ pool = ThreadPoolExecutor(max_workers=SLOTS, thread_name_prefix="media-origin")
 _slots = threading.BoundedSemaphore(SLOTS)
 _small_slots = threading.BoundedSemaphore(SMALL_SLOTS)  # SLOTS + SMALL_SLOTS stays below boto's pool of 10
 _lock = threading.Lock()
-_waiting = 0
+_waiting = {False: 0, True: 0}  # requests currently waiting for a slot, per budget
 _active = {}  # id(cell) -> cell, for the leases currently holding a slot
 
 
@@ -81,13 +83,12 @@ def acquire(small=False):
     `small=True` is for objects read completely and released at once (derivatives): a separate, larger budget.
     """
     sem = _small_slots if small else _slots
-    global _waiting
     with _lock:
-        if _waiting >= MAX_WAITERS:
+        if _waiting[small] >= (SMALL_MAX_WAITERS if small else MAX_WAITERS):
             return None
-        _waiting += 1
+        _waiting[small] += 1
     try:
-        deadline = time.monotonic() + WAIT_SECONDS
+        deadline = time.monotonic() + (SMALL_WAIT_SECONDS if small else WAIT_SECONDS)
         while True:
             _reap()
             left = deadline - time.monotonic()
@@ -97,7 +98,7 @@ def acquire(small=False):
                 return None
     finally:
         with _lock:
-            _waiting -= 1
+            _waiting[small] -= 1
 
 
 # --- tiny bounded cache for immutable derivative bytes -------------------------------------------------------

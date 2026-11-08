@@ -14,7 +14,7 @@ from django.urls import reverse
 from django.shortcuts import get_object_or_404
 from rest_framework.decorators import api_view, permission_classes, throttle_classes
 from rest_framework.permissions import AllowAny
-from .throttles import MediaReadThrottle
+from .throttles import DerivativeReadThrottle, MediaReadThrottle
 from .fields import MediaFileField, MediaImageField, enabled
 from . import derivatives, origin
 from .storage import ProtectedS3Storage
@@ -90,11 +90,17 @@ def serve_derivative(storage, key):
             if isinstance(size, int) and size >= 0:
                 response['Content-Length'] = str(size)
             return response
-        except Exception:  # missing key, provider error or timeout: the original route still works
+        except Exception as exc:
             if body is not None:
                 body.close()
             lease.release()
-            return None
+            code = str(getattr(exc, 'response', {}).get('Error', {}).get('Code', '')) if isinstance(exc, ClientError) else ''
+            if code in {'404', 'NoSuchKey', 'NotFound'}:
+                return None  # not generated yet: the authorized original route still works
+            # A transient provider error or timeout: retry the (tiny) derivative; do not redirect to a multi-MB original.
+            response = HttpResponse('Media temporarily unavailable.', status=503)
+            response['Retry-After'] = '2'
+            return response
     try:
         return FileResponse(storage.open(key, 'rb'), content_type='image/webp')
     except (FileNotFoundError, OSError):
@@ -103,7 +109,7 @@ def serve_derivative(storage, key):
 
 @api_view(['GET', 'HEAD'])
 @permission_classes([AllowAny])
-@throttle_classes([MediaReadThrottle])
+@throttle_classes([DerivativeReadThrottle])
 def derivative(request, label, field_name, pk, variant, ver):
     """Serve a pre-generated WebP derivative under the original record's authorization.
 

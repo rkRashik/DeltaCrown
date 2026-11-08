@@ -25,3 +25,13 @@ class MediaReadThrottle(SimpleRateThrottle):
     def get_cache_key(self, request, view):
         identity = f'user:{request.user.pk}' if request.user.is_authenticated else self.get_ident(request)
         return self.cache_format % {'scope': self.scope, 'ident': identity}
+
+
+class DerivativeReadThrottle(MediaReadThrottle):
+    """Resized derivatives are 10-300 KiB, cached and cheap, but one page view fetches 50-100 of them (and every
+    one counts, including 304s). Sharing the 240/min budget meant two quick page views got HTTP 429 and broken
+    images, so they get their own, larger budget. Originals keep the strict one."""
+    scope = 'media_derivative'
+
+    def get_rate(self):
+        return getattr(settings, 'MEDIA_DERIVATIVE_READ_RATE', '1500/min')

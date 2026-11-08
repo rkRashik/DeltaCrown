@@ -1332,8 +1332,29 @@ def _refresh_extras_in_background() -> None:
     threading.Thread(target=run, name="homepage-extras-refresh", daemon=True).start()
 
 
+_WARM_TEMPLATES = ("home.html", "organizations/hub/team_hub.html", "tournaments/list.html",
+                   "tournaments/detailPages/detail.html")
+_templates_warmed = False
+
+
+def warm_templates() -> None:
+    """Compile the heaviest public templates once per process. Production logs show the first homepage render after
+    every deploy taking ~3.5 s (template compilation on a 0.15 CPU instance) versus 0.6-1 s afterwards."""
+    global _templates_warmed
+    if _templates_warmed:
+        return
+    _templates_warmed = True
+    from django.template.loader import get_template
+    for name in _WARM_TEMPLATES:
+        try:
+            get_template(name)
+        except Exception:
+            logger.warning("template warm-up failed for %s", name, exc_info=True)
+
+
 def warm_homepage_extras() -> None:
     """Keep the cache populated (called by the existing in-process scheduler): nobody waits on a cold build."""
+    warm_templates()
     cached = safe_cache_get(_EXTRAS_KEY)
     if (cached is None or _extras_stale(cached)) and _extras_lock.acquire(blocking=False):
         try:

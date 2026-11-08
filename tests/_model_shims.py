@@ -520,6 +520,12 @@ def _patch_org_team_model():
                 defaults = _remap_owner_kwargs(defaults)
             return super().get_or_create(defaults=defaults, **kwargs)
 
+    # The class is created inside this function, so pickle (used by LocMem cache of team lists) could not find it
+    # by name. Publishing it at module level makes querysets/instances that carry it picklable again.
+    _OwnerRemapQuerySet.__qualname__ = '_OwnerRemapQuerySet'
+    _OwnerRemapQuerySet.__module__ = __name__
+    globals()['_OwnerRemapQuerySet'] = _OwnerRemapQuerySet
+
     # Patch the manager to return our custom queryset
     _orig_get_queryset = OrgTeam.objects.__class__.get_queryset
 

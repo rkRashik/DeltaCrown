@@ -3,6 +3,7 @@ from __future__ import annotations
 from deltacrown.branding import brand_copy
 from datetime import datetime, time, timedelta
 import logging
+import pickle
 import time as perf_time
 import hashlib
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
@@ -11,6 +12,7 @@ from django.shortcuts import render, redirect
 from django.utils import timezone
 from django.apps import apps
 from django.contrib.auth import get_user_model
+from .cache_safe import safe_cache_get, safe_cache_set
 from .services import compute_stats, get_spotlight, get_timeline
 from django.apps import apps as django_apps
 from typing import Any, Iterable
@@ -33,6 +35,13 @@ from apps.common.seo import (
 
 
 
+
+def _img_url(field, variant="thumb"):
+    """URL of a governed image field: the resized WebP variant when derivatives are on, else the original."""
+    from apps.common.media.derivatives import variant_url
+    return variant_url(field, variant)
+
+
 _homepage_perf_logger = logging.getLogger("deltacrown.homepage_performance")
 
 
@@ -47,6 +56,27 @@ def _homepage_timed(phase, callback):
             _homepage_perf_logger.warning(
                 "homepage_phase phase=%s elapsed_ms=%d", phase, elapsed_ms
             )
+
+
+_HERO_TTL_SECONDS = 30
+
+
+def _cached_hero_context(user, resolver):
+    """Signed-in hero state costs up to ~22 sequential queries (1.3-2 s over the Supabase round trip) on every
+    homepage view. A 30 s per-user cache keeps the CTA fresh enough; guests are cheap and never cached."""
+    if not getattr(user, "is_authenticated", False) or not getattr(user, "pk", None):
+        return resolver(user)
+    key = f"home_hero:v1:{user.pk}"
+    hit = safe_cache_get(key)
+    if hit is not None:
+        return hit
+    ctx = resolver(user)
+    try:
+        pickle.dumps(ctx)  # a cache write must never be the thing that fails (it trips the shared cache breaker)
+    except Exception:
+        return ctx
+    safe_cache_set(key, ctx, _HERO_TTL_SECONDS)
+    return ctx
 
 
 # Maps homepage_hero resolver modes → the canonical design `data-home-state`
@@ -78,7 +108,7 @@ def home(request):
     # Static body-section copy + icons (why / ecosystem / daily-ops / trust / …)
     context.update(_homepage_timed("sections", get_homepage_sections))
     # Per-user hero CTA/copy — not cached, lightweight exists() queries only
-    hero_ctx = _homepage_timed("hero", lambda: get_home_hero_context(request.user))
+    hero_ctx = _homepage_timed("hero", lambda: _cached_hero_context(request.user, get_home_hero_context))
     context["hero_ctx"] = hero_ctx
     from .homepage_presentation import get_homepage_presentation
     context['home_ui'] = _homepage_timed('presentation', lambda: get_homepage_presentation(context['v3']['hero_stats'], hero_ctx))
@@ -201,7 +231,7 @@ def community(request):
         if profile:
             if getattr(profile, 'avatar', None):
                 try:
-                    avatar_url = profile.avatar.url
+                    avatar_url = _img_url(profile.avatar, 'thumb')
                 except (ValueError, AttributeError):
                     pass
             # Signature game — UserProfile.primary_game FK → games.Game
@@ -240,7 +270,7 @@ def _serialize_post(post, request_user=None):
     avatar_url = None
     if author and getattr(author, 'avatar', None):
         try:
-            avatar_url = author.avatar.url
+            avatar_url = _img_url(author.avatar, 'thumb')
         except (ValueError, AttributeError):
             pass
 
@@ -275,7 +305,7 @@ def _serialize_post(post, request_user=None):
         team_logo = None
         if t and t.logo:
             try:
-                team_logo = t.logo.url
+                team_logo = _img_url(t.logo, 'thumb')
             except (ValueError, AttributeError):
                 pass
         if t:
@@ -341,7 +371,7 @@ def _serialize_comment(comment):
     avatar_url = None
     if author and getattr(author, 'avatar', None):
         try:
-            avatar_url = author.avatar.url
+            avatar_url = _img_url(author.avatar, 'thumb')
         except (ValueError, AttributeError):
             pass
     display_name = ''
@@ -756,7 +786,7 @@ def community_api_sidebar(request):
         logo_url = None
         if t.logo:
             try:
-                logo_url = t.logo.url
+                logo_url = _img_url(t.logo, 'thumb')
             except (ValueError, AttributeError):
                 pass
         teams_data.append({
@@ -789,7 +819,7 @@ def community_api_sidebar(request):
         icon_url = None
         if g.icon:
             try:
-                icon_url = g.icon.url
+                icon_url = _img_url(g.icon, 'icon')
             except (ValueError, AttributeError):
                 pass
         card_image_url = None
@@ -940,7 +970,7 @@ def community_api_user_teams(request):
         logo_url = None
         if t and t.logo:
             try:
-                logo_url = t.logo.url
+                logo_url = _img_url(t.logo, 'thumb')
             except (ValueError, AttributeError):
                 pass
         # Team.game_id is an IntegerField (Game PK), NOT a FK accessor —
@@ -1149,7 +1179,7 @@ def community_api_my_passports(request):
                 continue
             icon_url = None
             try:
-                icon_url = g.icon.url if g.icon else None
+                icon_url = _img_url(g.icon, 'icon') if g.icon else None
             except Exception:
                 pass
             result.append({
@@ -2466,7 +2496,7 @@ def search_suggest(request):
             icon = ""
             try:
                 if t.game and t.game.icon:
-                    icon = t.game.icon.url
+                    icon = _img_url(t.game.icon, 'icon')
             except (ValueError, AttributeError):
                 pass
             results.append({
@@ -2495,7 +2525,7 @@ def search_suggest(request):
             logo = ""
             try:
                 if tm.logo:
-                    logo = tm.logo.url
+                    logo = _img_url(tm.logo, 'thumb')
             except (ValueError, AttributeError):
                 pass
             results.append({
@@ -2557,7 +2587,7 @@ def search_suggest(request):
                     if u.profile.display_name:
                         display = u.profile.display_name
                     if u.profile.avatar:
-                        avatar = u.profile.avatar.url
+                        avatar = _img_url(u.profile.avatar, 'thumb')
             except (ValueError, AttributeError):
                 pass
             results.append({

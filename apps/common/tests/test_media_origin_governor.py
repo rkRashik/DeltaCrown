@@ -186,6 +186,20 @@ class OriginResilienceTests(SimpleTestCase):
         self.assertEqual((first.content, second.content), (payload, payload))
         get.assert_called_once()
 
+    def test_a_cold_page_burst_of_small_reads_waits_instead_of_being_shed(self):
+        with patch.object(origin, "SMALL_WAIT_SECONDS", 3):
+            holders = [origin.acquire(small=True) for _ in range(origin.SMALL_SLOTS)]
+            got = []
+            waiter = threading.Thread(target=lambda: got.append(origin.acquire(small=True)))
+            waiter.start()
+            time.sleep(0.2)
+            for lease in holders[:1]:
+                lease.release()  # a slot frees within the (longer) small-object wait
+            waiter.join(5)
+        self.assertTrue(got and got[0])
+        for lease in holders[1:] + got:
+            lease.release()
+
     def test_cache_is_bounded_and_skips_large_entries(self):
         origin._cache.clear()
         with patch.object(origin, "CACHE_BYTES", 10_000):

@@ -96,7 +96,7 @@ def main():
         if a.paths:
             paths = a.paths.split(",")
         else:
-            paths = ["/", "/tournaments/", "/teams/", "/community/", "/games/", "/shop/", "/arena/"]
+            paths = ["/", "/tournaments/", "/teams/", "/community/", "/crownstore/", "/competition/rankings/", "/arena/"]
             paths += list(discover(base, p).values())
         browser = p.chromium.launch()
         for dev in a.devices.split(","):
