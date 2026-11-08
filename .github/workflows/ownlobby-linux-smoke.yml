@@ -134,7 +134,7 @@ jobs:
         run: |
           python -m pip install --no-cache-dir pytest==8.4.2 pytest-django==4.11.1
           # addopts cleared: pytest.ini's --continue-on-collection-errors/--reuse-db must not mask failures.
-          python -m pytest apps/tournaments/tests/test_bracket_recovery.py apps/tournaments/tests/test_match_reminder_reliability.py apps/tournaments/tests/test_efootball_workflow_journey.py apps/tournaments/tests/test_tournament_dispute_integrity.py apps/tournaments/tests/test_mobile_tournament_ux.py apps/tournaments/tests/test_list_image_loading.py -o addopts="" --ds=deltacrown.settings_media_qa --import-mode=importlib -p no:cacheprovider -q
+          python -m pytest apps/tournaments/tests/test_bracket_recovery.py apps/tournaments/tests/test_match_reminder_reliability.py apps/tournaments/tests/test_efootball_workflow_journey.py apps/tournaments/tests/test_tournament_dispute_integrity.py apps/tournaments/tests/test_mobile_tournament_ux.py apps/tournaments/tests/test_timezone_display.py apps/tournaments/tests/test_list_image_loading.py -o addopts="" --ds=deltacrown.settings_media_qa --import-mode=importlib -p no:cacheprovider -q
       - name: Frontend production build
         run: |
           npm ci --include=dev

@@ -15,6 +15,7 @@ Task: P1-T02
 
 from datetime import timedelta
 from django.utils import timezone
+from apps.common.display_time import format_local
 
 
 class CommandCenterService:
@@ -85,7 +86,7 @@ class CommandCenterService:
                     'severity': cls.WARNING,
                     'icon': 'clock',
                     'title': f'Registration Closes in {hours_left}h',
-                    'description': f'Registration deadline is {tournament.registration_end.strftime("%b %d at %I:%M %p")}.',
+                    'description': f'Registration deadline is {format_local(tournament.registration_end, "%b %d at %I:%M %p")}.',
                     'count': None,
                     'link_tab': None,
                     'link_label': None,
@@ -130,7 +131,7 @@ class CommandCenterService:
                         'severity': cls.INFO,
                         'icon': 'scan',
                         'title': 'Check-In Window Opening Soon',
-                        'description': f'Check-in opens {checkin_opens.strftime("%I:%M %p")} ({checkin_minutes} min before start).',
+                        'description': f'Check-in opens {format_local(checkin_opens, "%I:%M %p")} ({checkin_minutes} min before start).',
                         'count': None,
                         'link_tab': 'schedule',
                         'link_label': 'View Schedule',
