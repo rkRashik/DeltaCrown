@@ -73,6 +73,15 @@ jobs:
           mkdir -p Artifacts/final-engineering
           python manage.py check --settings=deltacrown.settings_media_qa
           python -c "import deltacrown.asgi; print('Django ASGI startup passed')"
+      - name: Production settings deploy security checks (synthetic key)
+        # Runs the production settings module (the one Render builds with), so Django's
+        # security.W009 key-strength check sees the synthetic key above. This guards the code
+        # and the CI key only; it cannot see the real Render DJANGO_SECRET_KEY.
+        env:
+          DJANGO_SETTINGS_MODULE: deltacrown.settings
+          DJANGO_DEBUG: '0'
+          ALLOWED_HOSTS: deltacrown.xyz
+        run: python manage.py check --deploy --tag security --fail-level WARNING
       - name: Daphne HTTP and WebSocket transport
         run: python scripts/check_http_transport.py
       - name: Focused security and media regressions
