@@ -56,7 +56,8 @@ class ProfileMediaPrivacyTests(SimpleTestCase):
                     response = download(request, obj._meta.label_lower, field, str(obj.pk))
                 self.assertEqual(response.status_code, 200 if allowed else 404)
                 if allowed:
-                    origin.assert_called_once_with(getattr(obj, field))
+                    origin.assert_called_once()
+                    self.assertIs(origin.call_args.args[0], getattr(obj, field))  # the second argument is the request (ASGI cleanup scope)
                 else:
                     origin.assert_not_called()
                 response.close()
