@@ -150,8 +150,13 @@ def test_route_serves_derivatives_with_the_original_authorization_and_safe_fallb
     derivatives.generate(blob)
     response = client.get(url)
     assert response.status_code == 200 and response["Content-Type"] == "image/webp"
-    assert response["Cache-Control"] == "public, max-age=86400" and response["X-Content-Type-Options"] == "nosniff"
+    assert response["Cache-Control"] == "private, max-age=900, must-revalidate"  # never shared-cacheable
+    assert response["X-Content-Type-Options"] == "nosniff"
+    etag = response["ETag"]
     _close(response)
+    revalidated = client.get(url, HTTP_IF_NONE_MATCH=etag)
+    assert revalidated.status_code == 304 and revalidated["Cache-Control"].startswith("private")
+    assert client.get(url, HTTP_IF_NONE_MATCH='"other"').status_code == 200
     stale = url.rsplit("/", 1)[0] + "/0123456789ab.webp"
     assert client.get(stale).status_code == 302  # wrong version
     assert client.get(url.replace("/card/", "/bogus/")).status_code == 302
@@ -268,3 +273,79 @@ def test_backfill_command_is_bounded_resumable_idempotent_and_status_only(game, 
     for text in (dry, first, second, again):
         assert "big.png" not in text and "second.png" not in text and "Derivative Game" not in text
     assert game.icon.storage.exists(game.icon.name) and other.icon.storage.exists(other.icon.name)
+
+
+# --- S3 streaming, cache revocation and bounded upload-time work ---
+
+from types import SimpleNamespace  # noqa: E402
+from unittest.mock import patch  # noqa: E402
+
+from asgiref.sync import async_to_sync  # noqa: E402
+from botocore.exceptions import ClientError  # noqa: E402
+
+from apps.common.media.storage import ProtectedS3Storage  # noqa: E402
+from apps.common.media.views import serve_derivative  # noqa: E402
+
+
+class _Body:
+    def __init__(self, data):
+        self.stream, self.closed = io.BytesIO(data), False
+
+    def read(self, size=-1):
+        return self.stream.read(size)
+
+    def close(self):
+        self.closed = True
+
+
+async def _read(response):
+    return b"".join([chunk async for chunk in response.streaming_content])
+
+
+def _s3():
+    return ProtectedS3Storage(bucket_name="synthetic", access_key="synthetic", secret_key="synthetic",
+                              region_name="ap-south-1", endpoint_url="https://example.invalid")
+
+
+def test_s3_derivatives_stream_async_with_a_fixed_type_and_always_close_the_body():
+    storage, payload = _s3(), b"RIFF" + b"x" * 200_000
+    body = _Body(payload)
+    with patch.object(storage, "open_stream_object", return_value={"Body": body, "ContentLength": len(payload)}) as get:
+        response = serve_derivative(storage, "derivatives/v1/k.webp")
+        assert response.is_async and response["Content-Type"] == "image/webp"  # type is ours, not the provider's
+        assert response["Content-Length"] == str(len(payload))
+        assert async_to_sync(_read)(response) == payload
+        _close(response)
+    assert body.closed
+    get.assert_called_once_with("derivatives/v1/k.webp")
+
+    for failure in (ClientError({"Error": {"Code": "NoSuchKey"}}, "GetObject"), RuntimeError("synthetic")):
+        with patch.object(storage, "open_stream_object", side_effect=failure):
+            assert serve_derivative(storage, "k") is None  # caller falls back to the original route
+    half = _Body(b"x")
+    with patch.object(storage, "open_stream_object", return_value={"Body": half, "ContentLength": "bad"}):
+        assert serve_derivative(storage, "k").status_code == 200  # an odd length header is simply not forwarded
+
+
+def test_revoked_artwork_is_gone_immediately_and_no_derivative_is_ever_publicly_cacheable(game):
+    derivatives.generate(game.icon)
+    url = derivatives.url(game.icon, "thumb")
+    client = Client()
+    response = client.get(url)
+    assert response.status_code == 200 and "public" not in response["Cache-Control"]
+    _close(response)
+    Game.objects.filter(pk=game.pk).update(is_active=False)  # revocation: next request is refused, nothing cached shared
+    assert client.get(url).status_code == 404
+    assert client.get(url, HTTP_IF_NONE_MATCH=response["ETag"]).status_code == 404  # a validator never bypasses authorization
+
+
+def test_upload_time_generation_is_bounded_and_oversized_sources_wait_for_the_backfill(
+        db, stored, django_capture_on_commit_callbacks):
+    g = Game.objects.create(name="Bounded", slug="bounded-game", default_team_size=1, profile_id_field="ingame_id",
+                            default_result_type="map_score", is_active=True)
+    with ON, override_settings(MEDIA_DERIVATIVE_UPLOAD_MAX_PIXELS=50_000), django_capture_on_commit_callbacks(execute=True):
+        g.icon.save("wide.png", ContentFile(png(400, 300)))  # 120k px: above the upload-time cap
+    stored.append(("x", g.icon.name))
+    assert not any(g.icon.storage.exists(k) for k in keys(g.icon).values())  # upload succeeded, nothing generated inline
+    assert derivatives.UPLOAD_MAX_PIXELS == 4_000_000 and derivatives.UPLOAD_MAX_BYTES == 6 * 1024 * 1024
+    assert derivatives.generate(g.icon) == "generated"  # the explicit backfill uses the full limits

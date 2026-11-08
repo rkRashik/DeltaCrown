@@ -31,11 +31,14 @@ ALLOWED = frozenset({
     ("tournaments.tournament", "banner_image"), ("tournaments.tournament", "thumbnail_image"),
 })
 assert ALLOWED <= PUBLIC_FIELDS
-# Only these may be cached by shared caches (and only for active records, see views.derivative).
-PUBLIC_CACHE = frozenset(f for f in ALLOWED if f[0] == "games.game")
 
+# Explicit backfill command limits (one image at a time, run deliberately).
 MAX_SOURCE_BYTES = 12 * 1024 * 1024
 DEFAULT_MAX_PIXELS = 24_000_000  # ~100 MB decoded RGBA: safe on a 512 MB instance
+# Upload-time limits are much tighter because that work runs inside the upload request on a small shared CPU;
+# larger sources are left for the backfill command (status `too_large`).
+UPLOAD_MAX_BYTES = 6 * 1024 * 1024
+UPLOAD_MAX_PIXELS = 4_000_000  # e.g. 2560x1560
 SOURCE_FORMATS = {"PNG", "JPEG", "WEBP", "GIF"}
 
 
@@ -77,12 +80,13 @@ def icon_url(blob):
     return blob.url
 
 
-def generate(blob, max_pixels=None):
+def generate(blob, max_pixels=None, max_bytes=None):
     """Create any missing derivatives for one FieldFile. Returns a status string, never raises for bad input.
 
     generated | exists | missing | unsupported | too_large | not_allowed | error
     """
     max_pixels = max_pixels or getattr(settings, "MEDIA_DERIVATIVE_MAX_PIXELS", DEFAULT_MAX_PIXELS)
+    max_bytes = max_bytes or MAX_SOURCE_BYTES
     try:
         if not blob or not blob.instance.pk or not allowed(blob.field):
             return "not_allowed"
@@ -96,11 +100,11 @@ def generate(blob, max_pixels=None):
         if not todo:
             return "exists"
         size = storage.size(name)
-        if size > MAX_SOURCE_BYTES:
+        if size > max_bytes:
             return "too_large"
         with storage.open(name, "rb") as source:
-            data = source.read(MAX_SOURCE_BYTES + 1)
-        if len(data) > MAX_SOURCE_BYTES:
+            data = source.read(max_bytes + 1)
+        if len(data) > max_bytes:
             return "too_large"
         with warnings.catch_warnings():
             warnings.simplefilter("error", Image.DecompressionBombWarning)
@@ -135,10 +139,12 @@ def generate(blob, max_pixels=None):
 
 
 def generate_for_instance(instance, field_names):
-    """Upload-time hook: failure here must never affect the upload that triggered it."""
+    """Upload-time hook: bounded (tight size/pixel caps), and failure must never affect the upload."""
+    max_pixels = getattr(settings, "MEDIA_DERIVATIVE_UPLOAD_MAX_PIXELS", UPLOAD_MAX_PIXELS)
     for name in field_names:
         try:
-            generate(getattr(instance, name))
+            if generate(getattr(instance, name), max_pixels=max_pixels, max_bytes=UPLOAD_MAX_BYTES) == "too_large":
+                log.info("media derivative deferred to the backfill command (source above upload-time limits)")
         except Exception as exc:
             log.warning("media derivative generation failed (%s)", type(exc).__name__)
 

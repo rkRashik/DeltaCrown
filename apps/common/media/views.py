@@ -7,7 +7,7 @@ from botocore.exceptions import ClientError
 from django.utils.http import content_disposition_header
 from django.apps import apps
 from django.core.exceptions import ValidationError, FieldDoesNotExist
-from django.http import FileResponse, Http404, HttpResponse, HttpResponseRedirect, StreamingHttpResponse
+from django.http import FileResponse, Http404, HttpResponse, HttpResponseNotModified, HttpResponseRedirect, StreamingHttpResponse
 from django.urls import reverse
 from django.shortcuts import get_object_or_404
 from rest_framework.decorators import api_view, permission_classes, throttle_classes
@@ -49,6 +49,32 @@ def download(request, label, field_name, pk):
     return response
 
 
+def serve_derivative(storage, key):
+    """Stream a stored WebP derivative, or None when it cannot be read (caller falls back to the original).
+
+    S3 objects use the same non-spooling, async-chunked, always-closed stream as private originals. The type is
+    fixed by us, never taken from provider metadata.
+    """
+    if isinstance(storage, ProtectedS3Storage):
+        body = None
+        try:
+            remote = storage.open_stream_object(key)
+            body = remote['Body']
+            response = StreamingHttpResponse(_S3Chunks(body, b''), content_type='image/webp')
+            size = remote.get('ContentLength')
+            if isinstance(size, int) and size >= 0:
+                response['Content-Length'] = str(size)
+            return response
+        except Exception:  # missing key, provider error or timeout: the original route still works
+            if body is not None:
+                body.close()
+            return None
+    try:
+        return FileResponse(storage.open(key, 'rb'), content_type='image/webp')
+    except (FileNotFoundError, OSError):
+        return None
+
+
 @api_view(['GET', 'HEAD'])
 @permission_classes([AllowAny])
 @throttle_classes([MediaReadThrottle])
@@ -75,24 +101,26 @@ def derivative(request, label, field_name, pk, variant, ver):
     if not blob:
         raise Http404
     original = reverse('governed_media', args=[model._meta.label_lower, field_name, str(obj.pk)])
-    stream = None
-    if variant in derivatives.VARIANTS and derivatives.allowed(field) and ver == derivatives.version(blob.name):
-        try:
-            stream = blob.storage.open(derivatives.storage_key(model._meta.label_lower, field_name, obj.pk, ver, variant), 'rb')
-        except (FileNotFoundError, OSError):
-            stream = None
-    if stream is None:
+    response = None
+    current = variant in derivatives.VARIANTS and derivatives.allowed(field) and ver == derivatives.version(blob.name)
+    # Never `public`: visibility/active state can change at any time and no purgeable shared cache exists. The
+    # browser may reuse it for 15 minutes (the existing game-artwork policy), then revalidates through this
+    # authorized route; the validator is the content version, so an unchanged image costs a 304, not bytes.
+    etag = f'"{ver}-{variant}"'
+    cache = 'private, max-age=900, must-revalidate'
+    if current and request.headers.get('If-None-Match') == etag:
+        response = HttpResponseNotModified()
+    elif current:
+        response = serve_derivative(blob.storage, derivatives.storage_key(
+            model._meta.label_lower, field_name, obj.pk, ver, variant))
+    if response is None:
         response = HttpResponseRedirect(original)
         response['Cache-Control'] = 'private, max-age=60'
         return response
-    response = _apply_media_headers(FileResponse(stream, content_type='image/webp'))
-    # Shared caching only for artwork whose classification is public AND whose record is currently active;
-    # the URL is content-versioned, so a replaced image never reuses it. Conditional-visibility artwork
-    # (tournaments) stays browser-private and revalidates.
-    if (model._meta.label_lower, field_name) in derivatives.PUBLIC_CACHE and getattr(obj, 'is_active', False):
-        response['Cache-Control'] = 'public, max-age=86400'
-    else:
-        response['Cache-Control'] = 'private, max-age=900, must-revalidate'
+    if response.status_code == 200:
+        _apply_media_headers(response)
+    response['Cache-Control'] = cache
+    response['ETag'] = etag
     return response
 
 
