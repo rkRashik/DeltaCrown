@@ -65,16 +65,22 @@ def _build_initials_avatar_data_uri(label: str, *, seed: Optional[str] = None, f
 
 
 def _get_team_registration_ids(team: Team) -> List[int]:
-    """Return tournament registration participant ids for a team."""
+    """Return tournament registration participant ids for a team (one query per team object: the page's
+    stats, trophies, results and fixtures sections all ask for it)."""
+    cached = getattr(team, '_registration_ids_cache', None)
+    if cached is not None:
+        return list(cached)
     try:
         from apps.tournaments.models import Registration
-        return list(
+        ids = list(
             Registration.objects.filter(team_id=team.id, is_deleted=False)
             .values_list('id', flat=True)
         )
     except Exception as exc:
         logger.debug("Team registration lookup failed for %s: %s", team.slug, exc)
         return []
+    team._registration_ids_cache = ids
+    return list(ids)
 
 
 def _get_team_participant_ids(team: Team, registration_ids: Optional[List[int]] = None) -> set:
@@ -248,7 +254,7 @@ def _build_team_context(team: Team, is_restricted: bool) -> Dict[str, Any]:
         'slug': getattr(team, 'slug', ''),
         'tag': getattr(team, 'tag', ''),
         'logo_url': _safe_image_url(getattr(team, 'logo', None), team_logo_fallback),
-        'banner_url': _safe_image_url(getattr(team, 'banner', None), FALLBACK_URLS['team_banner']),
+        'banner_url': _safe_image_url(getattr(team, 'banner', None), FALLBACK_URLS['team_banner'], 'large'),
         'visibility': _get_team_visibility(team),
         'game': _safe_game_context(team),
     }
@@ -525,7 +531,7 @@ def _build_ui_context(team: Team, role: str) -> Dict[str, Any]:
 def _build_page_context(team: Team, request) -> Dict[str, Any]:
     """Build page metadata."""
     team_name = getattr(team, 'name', 'Unknown Team')
-    banner_url = _safe_image_url(getattr(team, 'banner', None), FALLBACK_URLS['team_banner'])
+    banner_url = _safe_image_url(getattr(team, 'banner', None), FALLBACK_URLS['team_banner'], 'large')
     
     # Build canonical URL if request available
     canonical_url = ''
@@ -1807,7 +1813,7 @@ def _build_match_history_context(team: Team, is_restricted: bool) -> List[Dict[s
         if opponent_ids:
             for t in Team.objects.filter(id__in=opponent_ids).only('id', 'name', 'logo'):
                 opponent_map[t.id] = t.name
-                opponent_logo_map[t.id] = _safe_image_url(getattr(t, 'logo', None), '')
+                opponent_logo_map[t.id] = _safe_image_url(getattr(t, 'logo', None), '', 'icon')
 
         for m in match_list:
             side = _get_match_side_for_team(m, participant_ids)
@@ -1976,7 +1982,7 @@ def _build_operations_log_context(team: Team, is_restricted: bool) -> List[Dict[
 # UTILITY FUNCTIONS
 # ============================================================================
 
-def _safe_image_url(value, fallback: str) -> str:
+def _safe_image_url(value, fallback: str, variant: str = "thumb") -> str:
     """Safely extract image URL with fallback."""
     if not value:
         return fallback
@@ -1984,7 +1990,8 @@ def _safe_image_url(value, fallback: str) -> str:
     # Handle FileField/ImageField
     if hasattr(value, 'url'):
         try:
-            return value.url
+            from apps.common.media.derivatives import variant_url
+            return variant_url(value, variant)
         except (ValueError, AttributeError):
             return fallback
     
@@ -2027,7 +2034,7 @@ def _safe_game_context(team: Team) -> Dict[str, Any]:
                 'id': game.id,
                 'name': game.display_name,
                 'slug': game.slug,
-                'logo_url': game.logo.url if game.logo else None,
+                'logo_url': _safe_image_url(game.logo, '', 'icon') or None,
                 'primary_color': game.primary_color,
                 'category': category,
                 'game_type': game_type,
@@ -2071,7 +2078,7 @@ def _safe_game_context(team: Team) -> Dict[str, Any]:
             'id': game.id,
             'name': game.display_name,
             'slug': game.slug,
-            'logo_url': game.logo.url if game.logo else None,
+            'logo_url': _safe_image_url(game.logo, '', 'icon') or None,
             'primary_color': game.primary_color,
         }
         cache.set(cache_key, result, 86400)  # 24 hours

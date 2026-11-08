@@ -13,6 +13,7 @@ from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass
 from django.db.models import QuerySet, Prefetch, Q
 from django.core.cache import cache
+from apps.common.media.derivatives import variant_url
 
 from apps.competition.models import (
     TeamGlobalRankingSnapshot,
@@ -207,10 +208,10 @@ class CompetitionService:
                 tier=team.display_tier,
                 confidence_level='STABLE',
                 is_independent=(org is None),
-                team_logo_url=team.logo.url if team.logo else None,
+                team_logo_url=variant_url(team.logo, 'thumb') if team.logo else None,
                 team_tag=team.tag,
                 activity_score=team.display_activity,
-                team_banner_url=team.banner.url if team.banner else None,
+                team_banner_url=variant_url(team.banner, 'card') if team.banner else None,
                 game_name=game_name_for_team,
                 roster_avatars=roster or None,
             )
@@ -315,10 +316,10 @@ class CompetitionService:
                     tier=snap.tier,
                     confidence_level=snap.confidence_level,
                     is_independent=(org is None),
-                    team_logo_url=team.logo.url if team.logo else None,
+                    team_logo_url=variant_url(team.logo, 'thumb') if team.logo else None,
                     team_tag=team.tag,
                     activity_score=0,
-                    team_banner_url=team.banner.url if team.banner else None,
+                    team_banner_url=variant_url(team.banner, 'card') if team.banner else None,
                     game_name=game_id_str,
                     roster_avatars=roster or None,
                 )
@@ -392,10 +393,10 @@ class CompetitionService:
                 tier=team.display_tier,
                 confidence_level='STABLE',
                 is_independent=(org is None),
-                team_logo_url=team.logo.url if team.logo else None,
+                team_logo_url=variant_url(team.logo, 'thumb') if team.logo else None,
                 team_tag=team.tag,
                 activity_score=team.display_activity,
-                team_banner_url=team.banner.url if team.banner else None,
+                team_banner_url=variant_url(team.banner, 'card') if team.banner else None,
                 game_name=game_name_str,
                 roster_avatars=roster or None,
             )

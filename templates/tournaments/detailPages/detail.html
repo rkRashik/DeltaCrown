@@ -860,7 +860,7 @@
                             {% if tournament.is_official %}
                             <img src="{% static brand.symbol_dark %}" alt="{{ brand.name }}" class="w-full h-full object-cover rounded-full">
                             {% elif tournament.organizer.profile.avatar %}
-                            <img src="{{ tournament.organizer.profile.avatar.url }}" alt="Organizer" class="w-full h-full object-cover">
+                            <img src="{% image_url tournament.organizer.profile.avatar 'icon' %}" alt="Organizer" class="w-full h-full object-cover">
                             {% else %}
                             <img src="https://ui-avatars.com/api/?name={{ tournament.organizer.username|urlencode }}&background=fff&color=000" alt="Organizer" class="w-full h-full object-cover">
                             {% endif %}
@@ -1612,7 +1612,7 @@
                                     {% if forloop.first %}&#9813;{% elif forloop.counter == 2 %}2nd{% else %}3rd{% endif %}
                                 </div>
                                 {% if winner.team and winner.team.logo %}
-                                <img src="{{ winner.team.logo.url }}" alt="" class="w-12 h-12 rounded-xl mx-auto mb-2 object-cover border border-white/10">
+                                <img src="{% image_url winner.team.logo 'thumb' %}" alt="" class="w-12 h-12 rounded-xl mx-auto mb-2 object-cover border border-white/10">
                                 {% endif %}
                                 <p class="font-bold text-white text-base">{% if winner.team %}{{ winner.team.name }}{% elif winner.player %}{{ winner.player.username }}{% else %}TBA{% endif %}</p>
                                 <p class="font-mono font-bold text-lg mt-1 {% if forloop.first %}text-dc-gold{% else %}text-gray-300{% endif %}">{% if winner.prize_amount %}৳{{ winner.prize_amount|floatformat:0|intcomma }}{% else %}TBA{% endif %}</p>
