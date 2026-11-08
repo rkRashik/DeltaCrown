@@ -1793,7 +1793,12 @@ class BracketService:
         
         # Get bracket node for this match
         try:
-            node = BracketNode.objects.select_related('parent_node', 'bracket').get(match=match)
+            # Serialize concurrent advancement (signal, Celery, cron): lock the node and its
+            # parent, then re-read so a runner that waited sees the winner's committed writes.
+            locked = BracketNode.objects.select_for_update(of=('self',)).get(match=match)
+            if locked.parent_node_id:
+                list(BracketNode.objects.select_for_update().filter(pk=locked.parent_node_id))
+            node = BracketNode.objects.select_related('parent_node', 'bracket').get(pk=locked.pk)
         except BracketNode.DoesNotExist:
             # Match not linked to bracket (manual, RR, or Swiss). The bracket
             # tree has nothing to advance, but a non-tree format may now be
@@ -1993,7 +1998,9 @@ class BracketService:
                      else node.participant1_name) or ""
                 )
                 try:
-                    lb_node = BracketNode.objects.select_related('bracket').get(
+                    # Two WB matches can drop into the same LB node: lock it (after child/parent) so the
+                    # "both ready -> create match" check sees the sibling's committed slot.
+                    lb_node = BracketNode.objects.select_for_update(of=('self',)).select_related('bracket').get(
                         bracket=node.bracket,
                         bracket_type=BracketNode.LOSERS,
                         round_number=drop_info["lb_round"],
