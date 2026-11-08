@@ -19,14 +19,15 @@ def nav_context(request) -> Dict[str, Any]:
         return {'nav_live': False, 'nav_unread_count': 0, 'nav_user_can_create_event': False, 'nav_primary_items': []}
 
     now = timezone.now()
-    nav_live = bool(safe_cache_get('siteui:nav_live:v1', False))
+    cached_live = safe_cache_get('siteui:nav_live:v1')
+    nav_live = bool(cached_live)
     nav_unread_count = 0
     nav_user_can_create_event = False
     nav_primary_items: List[Dict[str, Any]] = []
 
     nav_live_count: int = 0
 
-    if not nav_live:
+    if cached_live is None:
         try:
             T = apps.get_model("tournaments", "Tournament")
             nav_live = T.objects.filter(

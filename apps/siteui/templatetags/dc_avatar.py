@@ -76,6 +76,9 @@ def _append_candidate(candidates, value):
     try:
         # FieldFile / ImageField values
         url = field_file_url(value)
+        if url and getattr(value, "instance", None) is not None and hasattr(value, "field"):
+            from apps.common.media.derivatives import variant_url
+            url = variant_url(value, "thumb")  # resized WebP when derivatives are on, otherwise unchanged
     except Exception:
         url = ""
 

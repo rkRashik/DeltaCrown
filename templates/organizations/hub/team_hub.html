@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load static humanize dc_avatar %}
+{% load static humanize dc_avatar media_derivatives %}
 
 {% block title %}Team Hub — {{ brand.name }}{% endblock %}
 {% block og_title %}Team Hub — {{ brand.name }} Esports{% endblock %}
@@ -1258,7 +1258,7 @@ img[loading="lazy"] {
         <a href="{{ m.team.get_absolute_url|default:'#' }}" class="dcm-card dcm-tap" style="flex:none;width:248px;scroll-snap-align:start;padding:16px;">
             <div style="display:flex;align-items:center;gap:12px;">
                 <div class="dcm-crest" style="width:50px;height:50px;border-radius:15px;font-size:17px;">
-                    {% if m.team.logo %}<img src="{{ m.team.logo.url }}" alt="" style="width:100%;height:100%;object-fit:cover;">{% else %}{{ m.team.tag|default:m.team.name|truncatechars:3 }}{% endif %}
+                    {% if m.team.logo %}<img src="{% image_url m.team.logo 'thumb' %}" alt="" style="width:100%;height:100%;object-fit:cover;">{% else %}{{ m.team.tag|default:m.team.name|truncatechars:3 }}{% endif %}
                 </div>
                 <div style="min-width:0;flex:1;">
                     <div class="dcm-display dcm-trunc" style="font-weight:700;font-size:16px;color:var(--m-ink);">{{ m.team.name }}</div>
@@ -1296,7 +1296,7 @@ img[loading="lazy"] {
         <a href="?game=all" class="dcm-chip dcm-tap {% if selected_game_slug == 'all' %}is-active{% endif %}">All</a>
         {% for game in available_games %}
         <a href="?game={{ game.slug }}" class="dcm-chip dcm-tap {% if game.icon or game.logo %}has-logo{% endif %} {% if selected_game_slug == game.slug %}is-active{% endif %}">
-            {% if game.icon %}<img src="{{ game.icon.url }}" alt="">{% elif game.logo %}<img src="{{ game.logo.url }}" alt="">{% endif %}{{ game.short_code|default:game.display_name }}
+            {% if game.icon %}<img src="{% image_url game.icon 'icon' %}" alt="">{% elif game.logo %}<img src="{% image_url game.logo 'icon' %}" alt="">{% endif %}{{ game.short_code|default:game.display_name }}
         </a>
         {% endfor %}
     </div>
@@ -1341,7 +1341,7 @@ img[loading="lazy"] {
         <a href="{% url 'organizations:team_detail' team.slug %}" class="dcm-card dcm-feat dcm-tap">
             <div style="display:flex;align-items:flex-start;justify-content:space-between;">
                 <div class="dcm-crest" style="width:52px;height:52px;border-radius:15px;font-size:17px;">
-                    {% if team.logo %}<img src="{{ team.logo.url }}" alt="" style="width:100%;height:100%;object-fit:cover;">{% else %}{{ team.tag|default:team.name|truncatechars:3 }}{% endif %}
+                    {% if team.logo %}<img src="{% image_url team.logo 'thumb' %}" alt="" style="width:100%;height:100%;object-fit:cover;">{% else %}{{ team.tag|default:team.name|truncatechars:3 }}{% endif %}
                 </div>
                 {% if team.ranking.tier %}<span class="dcm-tier-pill dcm-t-{{ team.ranking.tier|lower }}">{% if team.ranking.tier == 'THE_CROWN' %}CROWN{% else %}{{ team.ranking.tier }}{% endif %}</span>{% endif %}
             </div>
@@ -1369,7 +1369,7 @@ img[loading="lazy"] {
         <div class="dcm-scout">
             <div style="display:flex;align-items:center;gap:12px;">
                 <div class="dcm-crest" style="width:44px;height:44px;border-radius:13px;font-size:14px;">
-                    {% if team.logo %}<img src="{{ team.logo.url }}" alt="" style="width:100%;height:100%;object-fit:cover;">{% else %}{{ team.tag|default:team.name|truncatechars:3 }}{% endif %}
+                    {% if team.logo %}<img src="{% image_url team.logo 'thumb' %}" alt="" style="width:100%;height:100%;object-fit:cover;">{% else %}{{ team.tag|default:team.name|truncatechars:3 }}{% endif %}
                 </div>
                 <div style="flex:1;min-width:0;">
                     <div style="display:flex;align-items:center;gap:7px;">
@@ -1568,7 +1568,7 @@ img[loading="lazy"] {
                             <!-- Team identity -->
                             <div class="flex items-center gap-4 mb-3">
                                 {% if item.team.logo %}
-                                <img src="{{ item.team.logo.url }}" alt="{{ item.team.name }}" class="w-[72px] h-[72px] rounded-2xl team-logo-img ring-2 ring-white/8 flex-shrink-0" loading="lazy" draggable="false">
+                                <img src="{% image_url item.team.logo 'thumb' %}" alt="{{ item.team.name }}" class="w-[72px] h-[72px] rounded-2xl team-logo-img ring-2 ring-white/8 flex-shrink-0" loading="lazy" draggable="false">
                                 {% else %}
                                 <div class="w-[72px] h-[72px] rounded-2xl bg-gradient-to-br from-dc-cyan/15 to-dc-purple/15 ring-2 ring-white/8 flex items-center justify-center flex-shrink-0">
                                     <span class="font-display font-bold text-lg text-white/80">{{ item.team.tag|default:item.team.name|truncatechars:2 }}</span>
@@ -1677,11 +1677,11 @@ img[loading="lazy"] {
         {% for game in available_games %}
         <button class="game-chip {% if selected_game_slug == game.slug %}active{% endif %}" data-game="{{ game.slug }}">
             {% if game.icon %}
-            <img src="{{ game.icon.url }}" alt="{{ game.display_name }}" loading="lazy"
+            <img src="{% image_url game.icon 'icon' %}" alt="{{ game.display_name }}" loading="lazy"
                  onerror="this.onerror=null;this.style.display='none';this.nextElementSibling.style.display=''">
             <span style="display:none">🎮</span>
             {% elif game.logo %}
-            <img src="{{ game.logo.url }}" alt="{{ game.display_name }}" loading="lazy"
+            <img src="{% image_url game.logo 'icon' %}" alt="{{ game.display_name }}" loading="lazy"
                  onerror="this.onerror=null;this.style.display='none';this.nextElementSibling.style.display=''">
             <span style="display:none">🎮</span>
             {% else %}
@@ -1710,10 +1710,10 @@ img[loading="lazy"] {
                 data-game="{{ game.slug }}" style="{% if game.primary_color %}--gc: {{ game.primary_color }}{% endif %}">
             <!-- Blurred cover background -->
             {% if game.card_image %}
-            <img src="{{ game.card_image.url }}" class="game-card-bg absolute inset-0 w-full h-full object-cover transition-all" alt="" loading="lazy"
+            <img src="{% image_url game.card_image 'card' %}" class="game-card-bg absolute inset-0 w-full h-full object-cover transition-all" alt="" loading="lazy"
                  onerror="this.onerror=null;this.style.display='none'">
             {% elif game.banner %}
-            <img src="{{ game.banner.url }}" class="game-card-bg absolute inset-0 w-full h-full object-cover transition-all" alt="" loading="lazy"
+            <img src="{% image_url game.banner 'card' %}" class="game-card-bg absolute inset-0 w-full h-full object-cover transition-all" alt="" loading="lazy"
                  onerror="this.onerror=null;this.style.display='none'">
             {% else %}
             <div class="absolute inset-0 bg-gradient-to-b from-gray-800/60 to-transparent"></div>
@@ -1722,11 +1722,11 @@ img[loading="lazy"] {
             <!-- Content -->
             <div class="game-card-content relative h-full flex flex-col items-center justify-center gap-2 p-3">
                 {% if game.logo %}
-                <img src="{{ game.logo.url }}" alt="{{ game.display_name }}" class="w-11 h-11 object-contain drop-shadow-lg" loading="lazy"
+                <img src="{% image_url game.logo 'icon' %}" alt="{{ game.display_name }}" class="w-11 h-11 object-contain drop-shadow-lg" loading="lazy"
                      onerror="this.onerror=null;this.style.display='none';this.nextElementSibling.style.display='flex'">
                 <div class="w-11 h-11 rounded-lg flex items-center justify-center text-xl" style="display:none">🎮</div>
                 {% elif game.icon %}
-                <img src="{{ game.icon.url }}" alt="{{ game.display_name }}" class="w-11 h-11 object-contain drop-shadow-lg" loading="lazy"
+                <img src="{% image_url game.icon 'icon' %}" alt="{{ game.display_name }}" class="w-11 h-11 object-contain drop-shadow-lg" loading="lazy"
                      onerror="this.onerror=null;this.style.display='none';this.nextElementSibling.style.display='flex'">
                 <div class="w-11 h-11 rounded-lg flex items-center justify-center text-xl" style="display:none">🎮</div>
                 {% else %}
@@ -1766,7 +1766,7 @@ img[loading="lazy"] {
                         {# ── Cinematic banner header ── #}
                         <div class="h-36 relative overflow-hidden">
                             {% if team.banner %}
-                            <img src="{{ team.banner.url }}" class="absolute inset-0 w-full h-full object-cover opacity-55 group-hover:opacity-80 group-hover:scale-110 transition-all duration-700" alt="" loading="lazy">
+                            <img src="{% image_url team.banner 'card' %}" class="absolute inset-0 w-full h-full object-cover opacity-55 group-hover:opacity-80 group-hover:scale-110 transition-all duration-700" alt="" loading="lazy">
                             {% else %}
                             <div class="absolute inset-0 bg-gradient-to-br from-dc-cyan/10 via-dc-purple/10 to-transparent"></div>
                             {% endif %}
@@ -1791,7 +1791,7 @@ img[loading="lazy"] {
                             {# Organization logo overlay – bottom right on banner #}
                             {% if team.organization and team.organization.logo %}
                             <div class="absolute bottom-3 right-3 z-10 flex items-center gap-1.5 bg-black/60 backdrop-blur-md border border-white/10 rounded-lg px-2 py-1">
-                                <img src="{{ team.organization.logo.url }}" class="w-4 h-4 rounded object-cover" alt="{{ team.organization.name }}" loading="lazy">
+                                <img src="{% image_url team.organization.logo 'thumb' %}" class="w-4 h-4 rounded object-cover" alt="{{ team.organization.name }}" loading="lazy">
                                 <span class="text-[9px] text-gray-300 font-semibold truncate max-w-[80px]">{{ team.organization.name }}</span>
                             </div>
                             {% endif %}
@@ -1802,7 +1802,7 @@ img[loading="lazy"] {
                             <div class="flex items-end gap-4 mb-4">
                                 {# Team logo overlapping banner #}
                                 {% if team.logo %}
-                                <img src="{{ team.logo.url }}" class="w-[76px] h-[76px] rounded-2xl team-logo-img flex-shrink-0 ring-2 ring-white/8 group-hover:ring-dc-cyan/30 transition-all duration-300" style="box-shadow:0 4px 16px rgba(0,0,0,.5)" alt="{{ team.name }}" loading="lazy">
+                                <img src="{% image_url team.logo 'thumb' %}" class="w-[76px] h-[76px] rounded-2xl team-logo-img flex-shrink-0 ring-2 ring-white/8 group-hover:ring-dc-cyan/30 transition-all duration-300" style="box-shadow:0 4px 16px rgba(0,0,0,.5)" alt="{{ team.name }}" loading="lazy">
                                 {% else %}
                                 <div class="w-[76px] h-[76px] rounded-2xl bg-gradient-to-br from-dc-cyan/12 to-dc-purple/12 flex items-center justify-center text-xl font-bold text-white flex-shrink-0 ring-2 ring-white/8" style="box-shadow:0 4px 16px rgba(0,0,0,.5)">{{ team.tag|default:team.name|truncatechars:3 }}</div>
                                 {% endif %}
@@ -1999,7 +1999,7 @@ img[loading="lazy"] {
                         <div class="p-5 bg-gradient-to-b from-white/[0.04] to-transparent">
                             <div class="flex items-start gap-3.5 mb-3.5">
                                 {% if team.logo %}
-                                <img src="{{ team.logo.url }}" class="w-14 h-14 rounded-xl team-logo-img ring-1 ring-white/8 flex-shrink-0 group-hover:ring-dc-cyan/30 transition-all" alt="{{ team.name }}" loading="lazy">
+                                <img src="{% image_url team.logo 'thumb' %}" class="w-14 h-14 rounded-xl team-logo-img ring-1 ring-white/8 flex-shrink-0 group-hover:ring-dc-cyan/30 transition-all" alt="{{ team.name }}" loading="lazy">
                                 {% else %}
                                 <div class="w-14 h-14 rounded-xl ring-1 ring-white/8 bg-gradient-to-br from-dc-cyan/15 to-dc-purple/15 flex items-center justify-center text-sm font-bold text-white flex-shrink-0 group-hover:ring-dc-cyan/30 transition-all">{{ team.tag|default:team.name|truncatechars:2 }}</div>
                                 {% endif %}
@@ -2063,7 +2063,7 @@ img[loading="lazy"] {
                     <a href="{% url 'organizations:team_detail' primary.team.slug %}" class="block mb-4 rounded-xl overflow-hidden border {% if user_profile_primary_team and primary.team.id == user_profile_primary_team.id %}border-dc-cyan/40{% else %}border-white/10{% endif %} bg-gradient-to-br from-white/[0.04] to-transparent hover:from-dc-cyan/10 hover:border-dc-cyan/50 transition-all group">
                         <div class="h-20 relative bg-gradient-to-r from-dc-cyan/20 via-dc-purple/15 to-dc-cyan/10">
                             {% if primary.team.banner %}
-                            <img src="{{ primary.team.banner.url }}" class="w-full h-full object-cover opacity-60" alt="{{ primary.team.name }}" loading="lazy">
+                            <img src="{% image_url primary.team.banner 'card' %}" class="w-full h-full object-cover opacity-60" alt="{{ primary.team.name }}" loading="lazy">
                             {% endif %}
                             {% if user_profile_primary_team and primary.team.id == user_profile_primary_team.id %}
                             <span class="absolute top-2 right-2 text-[10px] font-bold bg-dc-cyan/20 text-dc-cyan border border-dc-cyan/30 px-2 py-0.5 rounded-full">★ PRIMARY</span>
@@ -2071,7 +2071,7 @@ img[loading="lazy"] {
                         </div>
                         <div class="p-3.5 flex items-center gap-3">
                             {% if primary.team.logo %}
-                            <img src="{{ primary.team.logo.url }}" class="w-12 h-12 rounded-xl team-logo-img ring-2 ring-white/8 -mt-8 relative z-10 flex-shrink-0" alt="{{ primary.team.name }}" loading="lazy">
+                            <img src="{% image_url primary.team.logo 'thumb' %}" class="w-12 h-12 rounded-xl team-logo-img ring-2 ring-white/8 -mt-8 relative z-10 flex-shrink-0" alt="{{ primary.team.name }}" loading="lazy">
                             {% else %}
                             <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-dc-cyan/20 to-dc-purple/20 ring-2 ring-white/8 flex items-center justify-center text-sm font-bold text-white -mt-8 relative z-10 flex-shrink-0">{{ primary.team.tag|default:primary.team.name|truncatechars:2 }}</div>
                             {% endif %}
@@ -2091,7 +2091,7 @@ img[loading="lazy"] {
                         {% if not forloop.first %}
                         <a href="{% url 'organizations:team_detail' membership.team.slug %}" class="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 hover:border-dc-cyan/30 hover:bg-dc-cyan/5 transition-all group">
                             {% if membership.team.logo %}
-                            <img src="{{ membership.team.logo.url }}" class="w-8 h-8 rounded-lg object-cover flex-shrink-0 border border-white/10" alt="{{ membership.team.name }}" loading="lazy">
+                            <img src="{% image_url membership.team.logo 'thumb' %}" class="w-8 h-8 rounded-lg object-cover flex-shrink-0 border border-white/10" alt="{{ membership.team.name }}" loading="lazy">
                             {% else %}
                             <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-dc-cyan to-dc-purple flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0">{{ membership.team.tag|default:membership.team.name|truncatechars:2 }}</div>
                             {% endif %}
@@ -2219,7 +2219,7 @@ img[loading="lazy"] {
                 <div class="mb-4 rounded-xl overflow-hidden border border-dc-purple/30 bg-gradient-to-br from-dc-purple/10 to-transparent">
                     <div class="p-4 flex items-center gap-3">
                         {% if user_organization.logo %}
-                        <img src="{{ user_organization.logo.url }}" class="w-12 h-12 rounded-xl object-cover border border-white/10 flex-shrink-0" alt="{{ user_organization.name }}" loading="lazy">
+                        <img src="{% image_url user_organization.logo 'thumb' %}" class="w-12 h-12 rounded-xl object-cover border border-white/10 flex-shrink-0" alt="{{ user_organization.name }}" loading="lazy">
                         {% else %}
                         <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-dc-purple to-violet-600 flex items-center justify-center text-sm font-bold text-white flex-shrink-0">{{ user_organization.name|truncatechars:2 }}</div>
                         {% endif %}
@@ -2249,7 +2249,7 @@ img[loading="lazy"] {
                     <a href="{% url 'organizations:organization_detail' org.slug %}" class="flex items-center justify-between p-2.5 bg-white/[0.02] rounded-lg border border-white/5 hover:border-white/10 transition-colors group">
                         <div class="flex items-center gap-2.5">
                             {% if org.logo %}
-                            <img src="{{ org.logo.url }}" class="w-8 h-8 rounded object-cover" alt="{{ org.name }}" loading="lazy">
+                            <img src="{% image_url org.logo 'thumb' %}" class="w-8 h-8 rounded object-cover" alt="{{ org.name }}" loading="lazy">
                             {% else %}
                             <div class="w-8 h-8 rounded bg-dc-purple text-xs font-bold flex items-center justify-center text-white">{{ org.name|truncatechars:2 }}</div>
                             {% endif %}

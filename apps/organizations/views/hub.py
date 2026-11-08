@@ -19,6 +19,7 @@ import logging
 from django.shortcuts import render
 from django.conf import settings
 from django.core.cache import cache
+from apps.common.media.derivatives import variant_url
 from apps.common.seo import breadcrumb_schema, build_seo
 from django.db import ProgrammingError
 from django.http import JsonResponse
@@ -765,7 +766,7 @@ def vnext_hub_filter(request):
                 'slug': t.slug,
                 'tag': t.tag or (t.name[:2] if t.name else '??'),
                 'game': t.get_game_display() or 'Unknown',
-                'logo_url': t.logo.url if t.logo else None,
+                'logo_url': variant_url(t.logo, 'thumb') if t.logo else None,
                 'description': (summary['short_pitch'] or 'Looking for skilled players to join the roster.')[:120],
                 'recruitment_title': summary['title'],
                 'recruitment_role_category': summary['role_category'],

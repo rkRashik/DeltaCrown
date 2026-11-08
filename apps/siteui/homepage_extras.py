@@ -10,6 +10,9 @@ from __future__ import annotations
 
 from deltacrown.branding import brand_copy
 
+import logging
+import threading
+import time
 from datetime import timedelta
 from decimal import Decimal
 from typing import Any, Dict, List, Optional
@@ -21,6 +24,8 @@ from django.utils import timezone
 from apps.siteui.cache_safe import safe_cache_get, safe_cache_set
 from apps.common.game_poster_preview import fast_game_card
 from apps.siteui.homepage_presentation import tournament_presentation
+
+logger = logging.getLogger(__name__)
 
 
 # Handoff JPG fallbacks for the 11-game poster grid. Keys cover common
@@ -1291,16 +1296,70 @@ def _path_stages() -> List[Dict[str, str]]:
 
 # --- Public entry point ----------------------------------------------------
 
-def get_homepage_extras(request=None) -> Dict[str, Any]:
-    """Build the homepage live-data context (cached 10 minutes)."""
-    # NOTE: bump this key whenever the cached card shape changes — a stale entry
-    # built by older code (e.g. missing tournament `game_slug`) would otherwise be
-    # served to the new template and break the client-side filter regroup.
-    cache_key = "homepage_extras_v3"
-    cached = safe_cache_get(cache_key)
-    if cached is not None:
-        return cached
+# NOTE: bump this key whenever the cached card shape changes — a stale entry
+# built by older code (e.g. missing tournament `game_slug`) would otherwise be
+# served to the new template and break the client-side filter regroup.
+_EXTRAS_KEY = "homepage_extras_v3"
+_EXTRAS_FRESH_SECONDS = 540   # older entries are refreshed in the background...
+_EXTRAS_KEEP_SECONDS = 3600   # ...while visitors keep getting the last good one
+_extras_lock = threading.Lock()  # one build at a time per process (single Daphne process)
 
+
+def _extras_stale(cached) -> bool:
+    built = cached.get("_built_at") if isinstance(cached, dict) else None
+    return bool(built) and time.time() - built > _EXTRAS_FRESH_SECONDS
+
+
+def _refresh_extras_in_background() -> None:
+    """Rebuild once, off the request path. Evidence: ~38 sequential queries cost 3-5 s on every cache miss, and
+    concurrent cold requests each rebuilt it (31-62 s phases under load)."""
+    if not _extras_lock.acquire(blocking=False):
+        return
+
+    def run():
+        try:
+            from django.db import close_old_connections
+            close_old_connections()
+            try:
+                _build_homepage_extras()
+            finally:
+                close_old_connections()
+        except Exception:
+            logger.warning("homepage extras refresh failed", exc_info=True)
+        finally:
+            _extras_lock.release()
+
+    threading.Thread(target=run, name="homepage-extras-refresh", daemon=True).start()
+
+
+def warm_homepage_extras() -> None:
+    """Keep the cache populated (called by the existing in-process scheduler): nobody waits on a cold build."""
+    cached = safe_cache_get(_EXTRAS_KEY)
+    if (cached is None or _extras_stale(cached)) and _extras_lock.acquire(blocking=False):
+        try:
+            _build_homepage_extras()
+        finally:
+            _extras_lock.release()
+
+
+def get_homepage_extras(request=None) -> Dict[str, Any]:
+    """Homepage live-data context: stale-while-revalidate, with a single build on a cold cache."""
+    cached = safe_cache_get(_EXTRAS_KEY)
+    if cached is not None:
+        if _extras_stale(cached):
+            _refresh_extras_in_background()
+        return cached
+    # Cold cache: the first request builds; concurrent requests wait for it instead of repeating ~38 queries.
+    if _extras_lock.acquire(timeout=20):
+        try:
+            cached = safe_cache_get(_EXTRAS_KEY)
+            return cached if cached is not None else _build_homepage_extras()
+        finally:
+            _extras_lock.release()
+    return _build_homepage_extras()  # the builder is slow or stuck: serve this request ourselves
+
+
+def _build_homepage_extras() -> Dict[str, Any]:
     featured = _featured_tournament()
     exclude_id = None
     if featured:
@@ -1343,5 +1402,6 @@ def get_homepage_extras(request=None) -> Dict[str, Any]:
             },
         }
     }
-    safe_cache_set(cache_key, context, 600)
+    context["_built_at"] = time.time()
+    safe_cache_set(_EXTRAS_KEY, context, _EXTRAS_KEEP_SECONDS)
     return context

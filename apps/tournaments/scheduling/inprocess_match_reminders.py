@@ -101,6 +101,14 @@ def _scheduler_loop(interval_seconds: int, initial_delay_seconds: int) -> None:
         finally:
             close_old_connections()
 
+        try:  # keep the homepage cache warm so no visitor waits on a cold build (OL-11)
+            from apps.siteui.homepage_extras import warm_homepage_extras
+            warm_homepage_extras()
+        except Exception:
+            logger.warning("homepage extras warm-up failed", exc_info=True)
+        finally:
+            close_old_connections()
+
         _STOP_EVENT.wait(interval_seconds)
 
 

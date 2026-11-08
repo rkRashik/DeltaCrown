@@ -357,7 +357,7 @@
       {% for t in featured_tournaments %}
       <div class="hero-slide{% if forloop.first %} active{% endif %}">
         
-        <div class="bg-zoom" style="background-image: url('{% if t.banner_image %}{{ t.banner_image.url }}{% else %}https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=2670&auto=format&fit=crop{% endif %}');"></div>
+        <div class="bg-zoom" style="background-image: url('{% if t.banner_image %}{% image_url t.banner_image 'hero' %}{% else %}https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=2670&auto=format&fit=crop{% endif %}');"></div>
         <div class="hero-overlay"></div>
         
         <div class="absolute inset-0 flex items-center pt-6">
