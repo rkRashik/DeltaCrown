@@ -3,10 +3,15 @@ import re
 from pathlib import Path
 
 TEMPLATE = Path(__file__).resolve().parents[3] / "templates" / "tournaments" / "list.html"
+IMG_TAG = re.compile(r"<img\b[^>]*>", re.S)
+
+
+def _tags():
+    return IMG_TAG.findall(TEMPLATE.read_text(encoding="utf-8"))
 
 
 def test_offscreen_list_images_are_lazy_and_the_first_row_of_cards_stays_eager():
-    tags = re.findall(r"<img[^>]*>", TEMPLATE.read_text(encoding="utf-8"), re.S)
+    tags = _tags()
     assert len(tags) >= 4
     card_banners = [tag for tag in tags if "t.banner_image" in tag]
     assert len(card_banners) == 1
