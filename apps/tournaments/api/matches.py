@@ -332,6 +332,45 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
         data["meta"] = {"idempotent_replay": False}
         return Response(data, status=status.HTTP_200_OK)
     
+    @staticmethod
+    def _close_active_disputes(match, request, resolved_status, ser):
+        DisputeRecord.objects.filter(
+            submission__match=match,
+            status__in=[DisputeRecord.OPEN, DisputeRecord.UNDER_REVIEW, DisputeRecord.ESCALATED],
+        ).update(
+            status=resolved_status,
+            resolved_by_user_id=request.user.id,
+            resolved_at=timezone.now(),
+            resolution_notes=str(ser.validated_data.get('notes', '')),
+        )
+
+    @staticmethod
+    def _advancement_blocker(match, decision, data):
+        """Refuse rulings that would leave a stale winner in the bracket.
+
+        A disputed match can already have advanced its winner (completed, then disputed).
+        Re-seating is safe only while the next match has not started; retracting an
+        advancement (REMATCH/DISQUALIFY) has no defined behavior, so it is refused.
+        shortcut: covers the winner's direct parent only (not double-elimination loser drops).
+        """
+        from apps.brackets.models import BracketNode
+
+        node = BracketNode.objects.select_related('parent_node').filter(match=match).first()
+        if not node or not node.winner_id:
+            return None
+        if decision in ('REMATCH', 'DISQUALIFY'):
+            return "The winner already advanced in the bracket; this ruling cannot be applied."
+        if decision == 'OVERRIDE':
+            new_winner = match.participant1_id if data['final_score_a'] > data['final_score_b'] else match.participant2_id
+        else:
+            new_winner = match.participant1_id if match.participant1_score > match.participant2_score else match.participant2_id
+        if new_winner == node.winner_id or not node.parent_node_id:
+            return None
+        nxt = Match.objects.filter(pk=node.parent_node.match_id).first() if node.parent_node.match_id else None
+        if nxt and nxt.state not in (Match.SCHEDULED, Match.CHECK_IN, Match.READY):
+            return "The next match has already started; the winner cannot be changed."
+        return None
+
     @decorators.action(
         detail=True,
         methods=["post"],
@@ -366,7 +405,11 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
         ser.is_valid(raise_exception=True)
         
         decision = ser.validated_data['decision']
-        
+
+        blocker = self._advancement_blocker(match, decision, ser.validated_data)
+        if blocker:
+            return Response({"detail": blocker}, status=status.HTTP_409_CONFLICT)
+
         # Apply decision
         if decision == 'OVERRIDE':
             match.participant1_score = ser.validated_data['final_score_a']
@@ -389,44 +432,36 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
                 match.winner_id = match.participant2_id
                 match.loser_id = match.participant1_id
         
-        elif decision == 'REMATCH':
-            # Reset to scheduled
-            match.state = 'scheduled'
-            match.participant1_score = 0
-            match.participant2_score = 0
-            match.save(update_fields=[
-                'state', 'participant1_score', 'participant2_score', 'updated_at'
-            ])
-            
+        elif decision in ('REMATCH', 'DISQUALIFY'):
+            # No result stands: close the dispute, clear any stale outcome and never advance the bracket.
+            self._close_active_disputes(match, request, DisputeRecord.RESOLVED_CUSTOM, ser)
+            match.state = 'scheduled' if decision == 'REMATCH' else 'cancelled'
+            match.winner_id = None
+            match.loser_id = None
+            match.completed_at = None
+            fields = ['state', 'winner_id', 'loser_id', 'completed_at', 'updated_at']
+            if decision == 'REMATCH':
+                match.participant1_score = 0
+                match.participant2_score = 0
+                if isinstance(match.lobby_info, dict):
+                    # the next submission records its own submitter
+                    match.lobby_info.pop('result_submitted_by_id', None)
+                fields += ['participant1_score', 'participant2_score', 'lobby_info']
+            match.save(update_fields=fields)
+
             data = MatchSerializer(match).data
             data["meta"] = {"idempotent_replay": False}
             return Response(data, status=status.HTTP_200_OK)
-        
-        elif decision == 'DISQUALIFY':
-            # Set to cancelled/forfeit
-            match.state = 'cancelled'
-            match.save(update_fields=['state', 'updated_at'])
-            
-            data = MatchSerializer(match).data
-            data["meta"] = {"idempotent_replay": False}
-            return Response(data, status=status.HTTP_200_OK)
-        
+
         # Update dispute records
         # Disputes hang off the result submission; a staff decision closes every active one.
-        resolved_status = (
+        self._close_active_disputes(
+            match, request,
             DisputeRecord.RESOLVED_FOR_SUBMITTER if decision == 'ACCEPT_REPORTED'
-            else DisputeRecord.RESOLVED_CUSTOM
+            else DisputeRecord.RESOLVED_CUSTOM,
+            ser,
         )
-        DisputeRecord.objects.filter(
-            submission__match=match,
-            status__in=[DisputeRecord.OPEN, DisputeRecord.UNDER_REVIEW, DisputeRecord.ESCALATED],
-        ).update(
-            status=resolved_status,
-            resolved_by_user_id=request.user.id,
-            resolved_at=timezone.now(),
-            resolution_notes=str(ser.validated_data.get('notes', ''))
-        )
-        
+
         # Transition to COMPLETED
         match.state = 'completed'
         match.completed_at = timezone.now()
