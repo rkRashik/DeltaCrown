@@ -3,6 +3,7 @@
 These tests prove the code foundation. They say nothing about the real production configuration.
 """
 import logging
+import secrets
 
 import jwt
 import pytest
@@ -26,8 +27,10 @@ from apps.user_profile.fields import (
 )
 from apps.user_profile.models.oauth import GameOAuthConnection
 
-OLD_SECRET = "synthetic-old-signing-key-for-tests-0123456789-abcdefghijklmnop"
-NEW_SECRET = "synthetic-new-signing-key-for-tests-9876543210-zyxwvutsrqponmlk"
+# Keys are generated per run so no key-shaped literal is committed.
+OLD_SECRET = "synthetic-old-" + secrets.token_hex(32)
+NEW_SECRET = "synthetic-new-" + secrets.token_hex(32)
+UNKNOWN_SECRET = "synthetic-unknown-" + secrets.token_hex(32)
 PRIMARY = Fernet.generate_key().decode()  # synthetic primary field-encryption key
 TOKEN = "synthetic-provider-token-value"
 field = EncryptedTextField()
@@ -107,7 +110,7 @@ def test_status_classification_is_value_free():
     assert classify_stored_value(field.get_prep_value(TOKEN)) == "primary"
     assert classify_stored_value(legacy_ciphertext()) == "legacy"
     assert classify_stored_value("legacy plaintext") == "plaintext"
-    assert classify_stored_value(legacy_ciphertext(secret="synthetic-unknown-key-0123456789-abcdefghijklmnopqrstuv")) == "undecryptable"
+    assert classify_stored_value(legacy_ciphertext(secret=UNKNOWN_SECRET)) == "undecryptable"
 
 
 def test_rollback_restores_access_without_data_loss():

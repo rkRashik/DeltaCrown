@@ -81,9 +81,11 @@ jobs:
           DJANGO_SETTINGS_MODULE: deltacrown.settings
           DJANGO_DEBUG: '0'
           ALLOWED_HOSTS: deltacrown.xyz
-          # Synthetic Fernet key so the field-encryption deploy warning stays meaningful in CI.
-          FIELD_ENCRYPTION_KEY: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
-        run: python manage.py check --deploy --tag security --fail-level WARNING
+        run: |
+          # Throwaway Fernet key generated at run time (no key literal in the repository) so the
+          # field-encryption deploy warning (user_profile.W001) stays meaningful in CI.
+          export FIELD_ENCRYPTION_KEY="$(python -c 'from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())')"
+          python manage.py check --deploy --tag security --fail-level WARNING
       - name: Daphne HTTP and WebSocket transport
         run: python scripts/check_http_transport.py
       - name: Focused security and media regressions
