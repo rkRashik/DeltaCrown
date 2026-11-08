@@ -4,11 +4,13 @@ These tests prove the code foundation. They say nothing about the real productio
 """
 import logging
 import secrets
+from io import StringIO
 
 import jwt
 import pytest
 from cryptography.fernet import Fernet
 from django.contrib.auth import get_user_model
+from django.core.management import call_command
 from django.core import signing
 from django.core.exceptions import ImproperlyConfigured
 from django.db.models import TextField
@@ -244,3 +246,46 @@ def test_sessions_follow_the_signing_key_policy():
 
     assert status(SECRET_KEY=NEW_SECRET, SECRET_KEY_FALLBACKS=[]) == 302  # logged out: rotation without fallback
     assert status(SECRET_KEY=NEW_SECRET, SECRET_KEY_FALLBACKS=[OLD_SECRET]) == 200  # preserved by the fallback
+
+
+# ---------------------------------------------------------------- maintenance command
+def run_command(*args):
+    out = StringIO()
+    call_command("reencrypt_oauth_tokens", *args, stdout=out)
+    return out.getvalue()
+
+
+@pytest.mark.django_db
+def test_reencrypt_command_dry_run_changes_nothing_and_prints_no_values():
+    with override_settings(**BEFORE):
+        legacy = GameOAuthConnection.objects.create(provider="riot", access_token=TOKEN, refresh_token="synthetic-refresh")
+    before = (raw_column(legacy.pk, "access_token"), raw_column(legacy.pk, "refresh_token"))
+    with override_settings(**AFTER):
+        output = run_command()
+        assert (raw_column(legacy.pk, "access_token"), raw_column(legacy.pk, "refresh_token")) == before
+    assert "legacy: 2" in output and "primary: 0" in output and "dry run" in output
+    for secret in (TOKEN, "synthetic-refresh", before[0], before[1], OLD_SECRET, NEW_SECRET, PRIMARY):
+        assert secret not in output
+
+
+@pytest.mark.django_db
+def test_reencrypt_command_apply_migrates_legacy_rows_and_never_touches_unreadable_ones():
+    with override_settings(**BEFORE):
+        legacy = GameOAuthConnection.objects.create(provider="riot", access_token=TOKEN, refresh_token="synthetic-refresh")
+    unknown = legacy_ciphertext(secret=UNKNOWN_SECRET)  # written under a key this configuration does not know
+    mixed = GameOAuthConnection.objects.create(provider="epic")
+    GameOAuthConnection.objects.filter(pk=mixed.pk).update(access_token=unknown, refresh_token=legacy_ciphertext("synthetic-second"))
+    with override_settings(**AFTER):
+        output = run_command("--apply")
+        assert "rows rewritten: 2" in output
+        migrated = GameOAuthConnection.objects.get(pk=legacy.pk)
+        assert (migrated.access_token, migrated.refresh_token) == (TOKEN, "synthetic-refresh")
+        assert classify_stored_value(raw_column(legacy.pk, "access_token")) == "primary"
+        assert Fernet(PRIMARY.encode()).decrypt(raw_column(legacy.pk, "access_token").encode()).decode() == TOKEN
+        # the unreadable half of a mixed row is written back byte for byte; its readable half is migrated
+        assert raw_column(mixed.pk, "access_token") == unknown
+        assert classify_stored_value(raw_column(mixed.pk, "refresh_token")) == "primary"
+        assert GameOAuthConnection.objects.get(pk=mixed.pk).refresh_token == "synthetic-second"
+        assert "rows rewritten: 0" in run_command("--apply")  # idempotent: nothing left to migrate
+        status = run_command()
+        assert "undecryptable: 1" in status and "legacy: 0" in status
