@@ -77,3 +77,41 @@ class NavLiveCacheTests(SimpleTestCase):
                 nav.apps, "get_model", side_effect=AssertionError("must not query")) as get_model:
             self.assertFalse(nav.nav_context(request)["nav_live"])
         get_model.assert_not_called()
+
+
+class HeroCacheTests(SimpleTestCase):
+    def test_signed_in_hero_is_resolved_once_per_30_seconds_and_guests_are_never_cached(self):
+        from apps.siteui import views
+        store, calls = {}, []
+        user = SimpleNamespace(is_authenticated=True, pk=7)
+        resolver = lambda u: calls.append(u) or {"mode": "registered"}
+        with patch.object(views, "safe_cache_get", side_effect=lambda k, d=None: store.get(k, d)), patch.object(
+                views, "safe_cache_set", side_effect=lambda k, v, t=0: store.__setitem__(k, v)):
+            views._cached_hero_context(user, resolver)
+            views._cached_hero_context(user, resolver)
+            self.assertEqual(len(calls), 1)
+            guest = SimpleNamespace(is_authenticated=False, pk=None)
+            views._cached_hero_context(guest, resolver)
+            views._cached_hero_context(guest, resolver)
+            self.assertEqual(len(calls), 3)
+            self.assertEqual(list(store), ["home_hero:v1:7"])
+            views._cached_hero_context(user, lambda u: {"unpicklable": lambda: 1})  # cached hit: not even resolved
+            self.assertEqual(len(calls), 3)
+            store.clear()
+            self.assertEqual(views._cached_hero_context(SimpleNamespace(is_authenticated=True, pk=8), lambda u: {"f": lambda: 1})["f"](), 1)
+            self.assertEqual(store, {})  # an unpicklable context is served but never cached
+
+
+class TemplateWarmupTests(SimpleTestCase):
+    def test_warm_up_runs_once_and_survives_a_broken_template(self):
+        h._templates_warmed = False
+        with patch("django.template.loader.get_template", side_effect=[None, RuntimeError("x"), None, None]) as get:
+            h.warm_templates()
+            h.warm_templates()
+        self.assertEqual(get.call_count, len(h._WARM_TEMPLATES))
+
+
+class ImgUrlHelperTests(SimpleTestCase):
+    def test_non_governed_values_keep_their_plain_url(self):
+        from apps.siteui import views
+        self.assertEqual(views._img_url(SimpleNamespace(url="/static/x.png"), "thumb"), "/static/x.png")

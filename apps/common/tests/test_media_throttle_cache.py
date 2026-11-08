@@ -6,7 +6,7 @@ from django.core.cache import cache as global_cache
 from django.core.cache.backends.locmem import LocMemCache
 from django.test import RequestFactory, SimpleTestCase, override_settings
 
-from apps.common.media.throttles import MediaReadThrottle
+from apps.common.media.throttles import DerivativeReadThrottle, MediaReadThrottle
 
 
 class MediaReadThrottleCacheTests(SimpleTestCase):
@@ -38,3 +38,18 @@ class MediaReadThrottleCacheTests(SimpleTestCase):
 
     def test_cache_has_bounded_entries(self):
         self.assertLessEqual(MediaReadThrottle.cache._max_entries, 1024)
+
+
+class DerivativeThrottleTests(MediaReadThrottleCacheTests):
+    @override_settings(MEDIA_READ_RATE="1/min", MEDIA_DERIVATIVE_READ_RATE="3/min")
+    def test_derivatives_have_their_own_larger_budget_that_originals_cannot_exhaust(self):
+        req = self.request()
+        self.assertTrue(MediaReadThrottle().allow_request(req, None))
+        self.assertFalse(MediaReadThrottle().allow_request(req, None))  # originals: strict budget spent
+        for _ in range(3):
+            self.assertTrue(DerivativeReadThrottle().allow_request(req, None))
+        self.assertFalse(DerivativeReadThrottle().allow_request(req, None))
+        self.assertEqual(DerivativeReadThrottle().get_rate(), "3/min")
+
+    def test_default_derivative_budget_covers_a_dozen_page_views_per_minute(self):
+        self.assertEqual(DerivativeReadThrottle().get_rate(), "1500/min")

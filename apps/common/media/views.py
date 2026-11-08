@@ -14,7 +14,7 @@ from django.urls import reverse
 from django.shortcuts import get_object_or_404
 from rest_framework.decorators import api_view, permission_classes, throttle_classes
 from rest_framework.permissions import AllowAny
-from .throttles import MediaReadThrottle
+from .throttles import DerivativeReadThrottle, MediaReadThrottle
 from .fields import MediaFileField, MediaImageField, enabled
 from . import derivatives, origin
 from .storage import ProtectedS3Storage
@@ -103,7 +103,7 @@ def serve_derivative(storage, key):
 
 @api_view(['GET', 'HEAD'])
 @permission_classes([AllowAny])
-@throttle_classes([MediaReadThrottle])
+@throttle_classes([DerivativeReadThrottle])
 def derivative(request, label, field_name, pk, variant, ver):
     """Serve a pre-generated WebP derivative under the original record's authorization.
 

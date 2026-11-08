@@ -66,14 +66,12 @@ def test_team(db, test_user, test_game):
 class TestVNextHub:
     """Tests for vNext Hub view."""
     
-    def test_hub_requires_login(self, client):
-        """Hub view requires authentication."""
+    def test_hub_is_public(self, client):
+        """The Team Hub landing page is public (guests can browse teams); only actions need a login."""
         url = reverse('organizations:vnext_hub')
         response = client.get(url)
-        
-        # Should redirect to login
-        assert response.status_code == 302
-        assert '/accounts/login' in response.url
+
+        assert response.status_code == 200
     
     def test_hub_renders_with_context(self, client, test_user, test_team):
         """Hub view renders with database context."""
@@ -88,7 +86,7 @@ class TestVNextHub:
         
         assert response.status_code == 200
         assert 'featured_teams' in response.context
-        assert 'leaderboard_rows' in response.context
+        assert 'rankings_preview' in response.context
         assert 'available_games' in response.context
         assert 'selected_game' in response.context
     
@@ -114,11 +112,11 @@ class TestVNextHub:
         
         # First request - should hit database
         response1 = client.get(url)
-        leaderboard1 = list(response1.context['leaderboard_rows'])
+        leaderboard1 = list(response1.context['rankings_preview'])
         
         # Second request - should use cache
         response2 = client.get(url)
-        leaderboard2 = list(response2.context['leaderboard_rows'])
+        leaderboard2 = list(response2.context['rankings_preview'])
         
         assert leaderboard1 == leaderboard2
     
@@ -131,20 +129,29 @@ class TestVNextHub:
         response = client.get(url)
         
         assert response.status_code == 200
-        assert response.context['selected_game'] == test_game.slug
+        assert response.context['selected_game_slug'] == test_game.slug
+        assert response.context['selected_game'] == test_game
     
-    def test_hub_no_n_plus_one_queries(self, client, test_user, test_team, django_assert_max_num_queries):
-        """Hub view has acceptable query count."""
-        client.force_login(test_user)
-        cache.clear()
-        
+    def test_hub_no_n_plus_one_queries(self, client, test_user, test_team, test_game):
+        """The hub's query count must not grow with the number of teams (the page itself needs ~35-50 queries)."""
+        from django.db import connection
+        from django.test.utils import CaptureQueriesContext
+        import apps.organizations.models.team as team_module
         url = reverse('organizations:vnext_hub')
-        
-        # Allow reasonable number of queries (select_related/prefetch)
-        # Featured teams + leaderboard + games + user auth + caching
-        with django_assert_max_num_queries(15):
-            response = client.get(url)
-            assert response.status_code == 200
+
+        def count():
+            cache.clear()
+            team_module._games.update(at=-1e9, by_pk={})
+            with CaptureQueriesContext(connection) as ctx:
+                assert client.get(url).status_code == 200
+            return len(ctx.captured_queries)
+
+        one_team = count()
+        for i in range(6):
+            team = Team.objects.create(name=f'Scale Team {i}', slug=f'scale-team-{i}', owner=test_user,
+                                       game_id=test_game.id, region='Test', status='ACTIVE')
+            TeamRanking.objects.create(team=team, current_cp=4000 - i, tier='GOLD', global_rank=200 + i)
+        assert count() <= one_team + 6  # a per-team query (the old Game lookup) would add >= 6 on its own
 
 
 @pytest.mark.django_db
@@ -157,9 +164,9 @@ class TestHubWidgetAPIs:
         response = client.get(url)
         
         assert response.status_code == 200
-        data = response.json()
-        assert 'items' in data
-        assert 'status' in data
+        payload = response.json()
+        assert payload['ok'] is True
+        assert 'items' in payload['data']
     
     def test_scout_radar_requires_auth(self, client, test_user):
         """Scout radar requires authentication."""
@@ -173,7 +180,7 @@ class TestHubWidgetAPIs:
         client.force_login(test_user)
         response = client.get(url)
         assert response.status_code == 200
-        data = response.json()
+        data = response.json()['data']
         assert 'players' in data
     
     def test_active_scrims_requires_auth(self, client, test_user):
@@ -188,7 +195,7 @@ class TestHubWidgetAPIs:
         client.force_login(test_user)
         response = client.get(url)
         assert response.status_code == 200
-        data = response.json()
+        data = response.json()['data']
         assert 'scrims' in data
     
     def test_team_search_basic(self, client, test_user, test_team):
@@ -199,7 +206,7 @@ class TestHubWidgetAPIs:
         response = client.get(url)
         
         assert response.status_code == 200
-        data = response.json()
+        data = response.json()['data']
         assert 'teams' in data
         assert len(data['teams']) > 0
         assert data['teams'][0]['name'] == 'Test Team'
@@ -211,10 +218,10 @@ class TestHubWidgetAPIs:
         url = '/api/system/teams/search/?q=T'
         response = client.get(url)
         
-        assert response.status_code == 200
-        data = response.json()
-        assert data['teams'] == []
-        assert 'Query too short' in data['note']
+        assert response.status_code == 400  # rejected, not silently empty
+        payload = response.json()
+        assert payload['ok'] is False and payload['error_code'] == 'QUERY_TOO_SHORT'
+        assert payload['data']['teams'] == []
     
     def test_team_search_limit(self, client, test_user, test_game):
         """Team search respects limit parameter."""
@@ -235,5 +242,5 @@ class TestHubWidgetAPIs:
         response = client.get(url)
         
         assert response.status_code == 200
-        data = response.json()
+        data = response.json()['data']
         assert len(data['teams']) <= 5
