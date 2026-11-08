@@ -1,5 +1,5 @@
 {% extends "tournaments/base.html" %}
-{% load static humanize %}
+{% load static humanize media_derivatives %}
 
 {% block title %}{{ tournament.name }} | {{ brand.name }}{% endblock %}
 {% block og_title %}{{ tournament.name }} | {{ brand.name }}{% endblock %}
@@ -789,9 +789,9 @@
             </a>
             {% else %}
             {% if tournament.banner_image %}
-            <img src="{{ tournament.banner_image.url }}" alt="{{ tournament.name }}" class="w-full h-full object-cover opacity-80 mix-blend-screen transform scale-105 hover:scale-100 transition-transform duration-[20s]">
+            <img {% image_attrs tournament.banner_image "card,hero" "100vw" %} alt="{{ tournament.name }}" class="w-full h-full object-cover opacity-80 mix-blend-screen transform scale-105 hover:scale-100 transition-transform duration-[20s]">
             {% elif tournament.thumbnail_image %}
-            <img src="{{ tournament.thumbnail_image.url }}" alt="{{ tournament.name }}" class="w-full h-full object-cover opacity-74 mix-blend-screen transform scale-105 hover:scale-100 transition-transform duration-[20s]">
+            <img {% image_attrs tournament.thumbnail_image "card,hero" "100vw" %} alt="{{ tournament.name }}" class="w-full h-full object-cover opacity-74 mix-blend-screen transform scale-105 hover:scale-100 transition-transform duration-[20s]">
             {% else %}
             <img src="{% static brand.social_image %}" alt="{{ tournament.name }}" class="w-full h-full object-cover opacity-56 mix-blend-screen transform scale-105 hover:scale-100 transition-transform duration-[20s]">
             {% endif %}

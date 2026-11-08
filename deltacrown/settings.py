@@ -715,6 +715,9 @@ STORAGES = {
 # Opt-in cutover: separate private origins; legacy stays available for rollback only.
 from apps.common.media.configuration import configure as configure_media_storage
 OWNLOBBY_MEDIA_MODE = configure_media_storage(STORAGES, BASE_DIR, MEDIA_ROOT)
+# OL-07: emit/generate resized WebP derivatives for allowlisted public artwork. Off until the owner has run
+# `generate_image_derivatives --apply` in bounded batches.
+OWNLOBBY_PUBLIC_DERIVATIVES = os.getenv("OWNLOBBY_PUBLIC_DERIVATIVES", "0") == "1"
 MEDIA_STORAGE_VERIFIED = os.getenv("MEDIA_STORAGE_VERIFIED", "0") == "1"
 MEDIA_LEGACY_PRIVACY_VERIFIED = os.getenv("MEDIA_LEGACY_PRIVACY_VERIFIED", "0") == "1"
 MEDIA_RESTORE_VERIFIED = os.getenv("MEDIA_RESTORE_VERIFIED", "0") == "1"

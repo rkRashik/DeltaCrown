@@ -7,7 +7,8 @@ from botocore.exceptions import ClientError
 from django.utils.http import content_disposition_header
 from django.apps import apps
 from django.core.exceptions import ValidationError, FieldDoesNotExist
-from django.http import FileResponse, Http404, HttpResponse, StreamingHttpResponse
+from django.http import FileResponse, Http404, HttpResponse, HttpResponseRedirect, StreamingHttpResponse
+from django.urls import reverse
 from django.shortcuts import get_object_or_404
 from rest_framework.decorators import api_view, permission_classes, throttle_classes
 from rest_framework.permissions import AllowAny
@@ -44,6 +45,53 @@ def download(request, label, field_name, pk):
     if (model._meta.label_lower == 'games.game'
             and field_name in {'icon', 'logo', 'banner', 'card_image'}
             and response.status_code == 200):
+        response['Cache-Control'] = 'private, max-age=900, must-revalidate'
+    return response
+
+
+@api_view(['GET', 'HEAD'])
+@permission_classes([AllowAny])
+@throttle_classes([MediaReadThrottle])
+def derivative(request, label, field_name, pk, variant, ver):
+    """Serve a pre-generated WebP derivative under the original record's authorization.
+
+    Anything that is not exactly an existing, current, allowlisted derivative falls back to the original
+    route (which authorizes again), so a stale or not-yet-generated URL never shows a broken image.
+    """
+    from . import derivatives
+    if not enabled():
+        raise Http404
+    try:
+        model = apps.get_model(label)
+        field = model._meta.get_field(field_name)
+        if not isinstance(field, MediaImageField):
+            raise Http404
+        obj = get_object_or_404(model._default_manager, pk=pk)
+    except (LookupError, ValueError, ValidationError, FieldDoesNotExist):
+        raise Http404 from None
+    if not can_download(request.user, obj, field_name):
+        raise Http404
+    blob = getattr(obj, field_name)
+    if not blob:
+        raise Http404
+    original = reverse('governed_media', args=[model._meta.label_lower, field_name, str(obj.pk)])
+    stream = None
+    if variant in derivatives.VARIANTS and derivatives.allowed(field) and ver == derivatives.version(blob.name):
+        try:
+            stream = blob.storage.open(derivatives.storage_key(model._meta.label_lower, field_name, obj.pk, ver, variant), 'rb')
+        except (FileNotFoundError, OSError):
+            stream = None
+    if stream is None:
+        response = HttpResponseRedirect(original)
+        response['Cache-Control'] = 'private, max-age=60'
+        return response
+    response = _apply_media_headers(FileResponse(stream, content_type='image/webp'))
+    # Shared caching only for artwork whose classification is public AND whose record is currently active;
+    # the URL is content-versioned, so a replaced image never reuses it. Conditional-visibility artwork
+    # (tournaments) stays browser-private and revalidates.
+    if (model._meta.label_lower, field_name) in derivatives.PUBLIC_CACHE and getattr(obj, 'is_active', False):
+        response['Cache-Control'] = 'public, max-age=86400'
+    else:
         response['Cache-Control'] = 'private, max-age=900, must-revalidate'
     return response
 
