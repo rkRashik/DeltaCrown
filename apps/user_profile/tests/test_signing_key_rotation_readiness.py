@@ -274,7 +274,10 @@ def test_reencrypt_command_apply_migrates_legacy_rows_and_never_touches_unreadab
         legacy = GameOAuthConnection.objects.create(provider="riot", access_token=TOKEN, refresh_token="synthetic-refresh")
     unknown = legacy_ciphertext(secret=UNKNOWN_SECRET)  # written under a key this configuration does not know
     mixed = GameOAuthConnection.objects.create(provider="epic")
-    GameOAuthConnection.objects.filter(pk=mixed.pk).update(access_token=unknown, refresh_token=legacy_ciphertext("synthetic-second"))
+    # UndecryptableToken is written verbatim; a plain string would be encrypted again by the field
+    GameOAuthConnection.objects.filter(pk=mixed.pk).update(
+        access_token=UndecryptableToken(unknown), refresh_token=UndecryptableToken(legacy_ciphertext("synthetic-second")),
+    )
     with override_settings(**AFTER):
         output = run_command("--apply")
         assert "rows rewritten: 2" in output
