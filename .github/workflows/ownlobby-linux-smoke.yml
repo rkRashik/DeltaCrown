@@ -124,6 +124,11 @@ jobs:
           python -m pip install --no-cache-dir pytest==8.4.2 pytest-django==4.11.1
           # addopts cleared: pytest.ini's --continue-on-collection-errors/--reuse-db must not mask failures.
           python -m pytest apps/tournaments/tests/test_bracket_recovery.py -o addopts="" --ds=deltacrown.settings_media_qa --import-mode=importlib -p no:cacheprovider -q
+      - name: Match reminder reliability regressions (pytest, disposable PostgreSQL)
+        run: |
+          python -m pip install --no-cache-dir pytest==8.4.2 pytest-django==4.11.1
+          # addopts cleared: pytest.ini's --continue-on-collection-errors/--reuse-db must not mask failures.
+          python -m pytest apps/tournaments/tests/test_match_reminder_reliability.py -o addopts="" --ds=deltacrown.settings_media_qa --import-mode=importlib -p no:cacheprovider -q
       - name: Frontend production build
         run: |
           npm ci --include=dev
