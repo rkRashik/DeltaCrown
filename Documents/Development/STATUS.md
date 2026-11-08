@@ -1,5 +1,17 @@
 # OwnLobby current status
 
+## OL-12 stabilization 2026-11-09 (+06:00)
+
+**Production runs the OL-11/OL-12 code (PRs #66-#69). Owner-run backfills for games, tournaments, teams and profiles are done and `OWNLOBBY_PUBLIC_DERIVATIVES=1` is on.** Public CDN publication (`OWNLOBBY_PUBLIC_CDN`) and any storage/ACL change remain separate owner approvals and were not touched.
+
+- **Incident found by the automated probe (post-OL-11):** loading `/teams/` in a browser left all media origin leases unreleased; every `/files/` request then returned the governor's "busy" 503 until restart (service restored by redeploying the same commit). Cause class: lease release depended on garbage collection of dropped responses. Fixed in #67 (45 s lease expiry, derivatives read whole behind their own gate, bounded 6 MiB derivative cache) and tuned in #68/#69 (10 s wait, 64 waiters, gate before any DB work, transient S3 errors retry instead of redirecting to multi-MB originals, S3 client built at boot). A reclaimed lease logs `media origin lease reclaimed after 45s`: seeing it in production logs means something still leaks.
+- **Other fixes:** derivatives own a 1500/min throttle budget (two quick page views used to get 429s); signed-in homepage hero cached 30 s per user; heaviest public templates compiled at boot by the existing scheduler thread; homepage extras single-flight + stale-while-revalidate (OL-11); community JSON avatars/logos use resized variants.
+- **Tests:** the legacy hub suites (`test_hub`, `test_phase_c_hub_feeds`, `test_team_discovery_f1_links`, `test_rankings_policy_link`) were repaired (27 failures to 0: shared-queryset pickle shim, hub is public, `{ok,data}` API envelope, schema drift, cache isolation) and are now in the single CI pytest step. The hub query test now asserts the count does not grow with the number of teams.
+- **Probes (anonymous, read-only, run sparingly):** `scripts/measure_site_performance.py`, `scripts/regression_public_journeys.py`. See `runbooks/media-origin-governor.md`.
+- **Housekeeping:** Draft PRs #43, #45, #46 closed (incorporated or superseded; branches kept). #47 (QA-only I/O-deadline contracts) left open for the owner.
+- **Known, not fixed:** per-request Supabase round trip (~60-100 ms) plus a new DB connection per ASGI request thread dominates dynamic-page TTFB (psycopg3 native pooling would need a dependency change); DRF throttle identity uses the full `X-Forwarded-For` string because `NUM_PROXIES` is unset (spoofable rate limit; needs the real proxy count before changing); `python-magic` import hangs on this Windows dev machine (CI/Linux unaffected).
+
+
 ## Release preparation 2026-11-07 (+06:00)
 
 **VERIFYING; merge/deployment blocked, not production-ready.** This supersedes historical next actions below. Owner authorizes a reversible release only after safety gates pass. One branch, `release/ownlobby-stability-20261106`, targets master `bec5a17b`; Draft PRs #43-#47 stay unchanged. Live remains `f1f8d185` / `dep-dbhufde7bikc738137sg`. No production change, merge or deployment was made.
