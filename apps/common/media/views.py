@@ -7,7 +7,8 @@ from botocore.exceptions import ClientError
 from django.utils.http import content_disposition_header
 from django.apps import apps
 from django.core.exceptions import ValidationError, FieldDoesNotExist
-from django.http import FileResponse, Http404, HttpResponse, StreamingHttpResponse
+from django.http import FileResponse, Http404, HttpResponse, HttpResponseNotModified, HttpResponseRedirect, StreamingHttpResponse
+from django.urls import reverse
 from django.shortcuts import get_object_or_404
 from rest_framework.decorators import api_view, permission_classes, throttle_classes
 from rest_framework.permissions import AllowAny
@@ -45,6 +46,81 @@ def download(request, label, field_name, pk):
             and field_name in {'icon', 'logo', 'banner', 'card_image'}
             and response.status_code == 200):
         response['Cache-Control'] = 'private, max-age=900, must-revalidate'
+    return response
+
+
+def serve_derivative(storage, key):
+    """Stream a stored WebP derivative, or None when it cannot be read (caller falls back to the original).
+
+    S3 objects use the same non-spooling, async-chunked, always-closed stream as private originals. The type is
+    fixed by us, never taken from provider metadata.
+    """
+    if isinstance(storage, ProtectedS3Storage):
+        body = None
+        try:
+            remote = storage.open_stream_object(key)
+            body = remote['Body']
+            response = StreamingHttpResponse(_S3Chunks(body, b''), content_type='image/webp')
+            size = remote.get('ContentLength')
+            if isinstance(size, int) and size >= 0:
+                response['Content-Length'] = str(size)
+            return response
+        except Exception:  # missing key, provider error or timeout: the original route still works
+            if body is not None:
+                body.close()
+            return None
+    try:
+        return FileResponse(storage.open(key, 'rb'), content_type='image/webp')
+    except (FileNotFoundError, OSError):
+        return None
+
+
+@api_view(['GET', 'HEAD'])
+@permission_classes([AllowAny])
+@throttle_classes([MediaReadThrottle])
+def derivative(request, label, field_name, pk, variant, ver):
+    """Serve a pre-generated WebP derivative under the original record's authorization.
+
+    Anything that is not exactly an existing, current, allowlisted derivative falls back to the original
+    route (which authorizes again), so a stale or not-yet-generated URL never shows a broken image.
+    """
+    from . import derivatives
+    if not enabled():
+        raise Http404
+    try:
+        model = apps.get_model(label)
+        field = model._meta.get_field(field_name)
+        if not isinstance(field, MediaImageField):
+            raise Http404
+        obj = get_object_or_404(model._default_manager, pk=pk)
+    except (LookupError, ValueError, ValidationError, FieldDoesNotExist):
+        raise Http404 from None
+    if not can_download(request.user, obj, field_name):
+        raise Http404
+    blob = getattr(obj, field_name)
+    if not blob:
+        raise Http404
+    original = reverse('governed_media', args=[model._meta.label_lower, field_name, str(obj.pk)])
+    response = None
+    current = variant in derivatives.VARIANTS and derivatives.allowed(field) and ver == derivatives.version(blob.name)
+    # Never `public`: visibility/active state can change at any time and no purgeable shared cache exists. The
+    # browser may reuse it for 15 minutes (the existing game-artwork policy), then revalidates through this
+    # authorized route; the validator is the content version, so an unchanged image costs a 304, not bytes.
+    etag = f'"{ver}-{variant}"'
+    cache = 'private, max-age=900, must-revalidate'
+    if current and request.headers.get('If-None-Match') == etag:
+        response = HttpResponseNotModified()
+    elif current:
+        response = serve_derivative(blob.storage, derivatives.storage_key(
+            model._meta.label_lower, field_name, obj.pk, ver, variant))
+    if response is None:
+        response = HttpResponseRedirect(original)
+        response['Cache-Control'] = 'private, max-age=60'
+        return response
+    if response.status_code == 200:
+        _apply_media_headers(response)
+    response['Cache-Control'] = cache
+    response['ETag'] = etag
     return response
 
 
