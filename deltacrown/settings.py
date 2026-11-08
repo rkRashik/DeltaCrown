@@ -174,6 +174,14 @@ def _database_host_resolves(db_url: str) -> bool:
         return False
 
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "dev-insecure-secret-key-change-me")
+# Rotation support (OL-02B). Empty by default. During a signing-key rotation, put the PREVIOUS
+# DJANGO_SECRET_KEY value here as a JSON array so existing sessions, password-reset links and signed
+# editor-image URLs keep validating. This does NOT cover SimpleJWT tokens (they use SIGNING_KEY only).
+# Remove the value once nothing signed with it remains; see Documents/Development/runbooks.
+from .key_config import parse_key_list  # noqa: E402
+SECRET_KEY_FALLBACKS = parse_key_list(
+    os.getenv("DJANGO_SECRET_KEY_FALLBACKS"), "DJANGO_SECRET_KEY_FALLBACKS", current=SECRET_KEY
+)
 DEBUG = os.getenv("DJANGO_DEBUG", "0") == "1"
 
 # Runtime tier controls safe defaults for connection/caching limits.
@@ -1545,7 +1553,16 @@ LEADERBOARD_API_CACHE_TTL = int(os.getenv('LEADERBOARD_API_CACHE_TTL', '30'))
 # Set FIELD_ENCRYPTION_KEY in env for production. If unset, derives from SECRET_KEY.
 # Generate with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
 # -----------------------------------------------------------------------------
-FIELD_ENCRYPTION_KEY = os.getenv('FIELD_ENCRYPTION_KEY', None)
+FIELD_ENCRYPTION_KEY = os.getenv('FIELD_ENCRYPTION_KEY') or None
+# Decrypt-only keys for rows written under an earlier configuration (JSON arrays; see apps/user_profile/fields.py):
+#   *_LEGACY_SECRET_KEYS: previous DJANGO_SECRET_KEY values (the old derived key is recomputed internally)
+#   *_LEGACY_KEYS:        previous Fernet keys
+FIELD_ENCRYPTION_LEGACY_SECRET_KEYS = parse_key_list(
+    os.getenv('FIELD_ENCRYPTION_LEGACY_SECRET_KEYS'), 'FIELD_ENCRYPTION_LEGACY_SECRET_KEYS'
+)
+FIELD_ENCRYPTION_LEGACY_KEYS = parse_key_list(
+    os.getenv('FIELD_ENCRYPTION_LEGACY_KEYS'), 'FIELD_ENCRYPTION_LEGACY_KEYS'
+)
 
 # -----------------------------------------------------------------------------
 # Security Settings (Phase 2: Production Hardening)
