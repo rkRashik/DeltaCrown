@@ -10,7 +10,7 @@ never upscaled, so a smaller source simply yields a smaller file.
 from django import template
 from django.utils.html import format_html
 
-from apps.common.media import derivatives
+from apps.common.media import cdn, derivatives
 
 register = template.Library()
 
@@ -37,9 +37,13 @@ def image_attrs(blob, variants, sizes=""):
     pick = (lambda v: derivatives.cdn_url(blob, v)) if derivatives.cdn_allowed(blob) else (lambda v: derivatives.variant_url(blob, v))
     default = pick(names[len(names) // 2])
     urls = [pick(v) for v in names]
+    # A mirror outage must not leave a broken image: on error fall back to the original, authorized URL.
+    fallback = format_html(
+        ' data-fallback-src="{}" onerror="this.onerror=null;this.removeAttribute(&quot;srcset&quot;);this.src=this.dataset.fallbackSrc"',
+        blob.url) if cdn.url(blob, names[0]) else ""
     if len(names) == 1 or len(set(urls)) == 1:  # one candidate (or feature off): a plain src is all that's needed
-        return format_html('src="{}"', default)
+        return format_html('src="{}"{}', default, fallback)
     srcset = ", ".join(f"{u} {derivatives.VARIANTS[v]}w" for u, v in zip(urls, names))
     if sizes:
-        return format_html('src="{}" srcset="{}" sizes="{}"', default, srcset, sizes)
-    return format_html('src="{}" srcset="{}"', default, srcset)
+        return format_html('src="{}" srcset="{}" sizes="{}"{}', default, srcset, sizes, fallback)
+    return format_html('src="{}" srcset="{}"{}', default, srcset, fallback)

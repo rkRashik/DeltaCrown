@@ -81,7 +81,8 @@
     "Documents/Development/tasks/OL-03-04-A.md",
     "Documents/Development/runbooks/README.md",
     "Documents/Development/runbooks/signing-key-rotation.md",
-    "Documents/Development/runbooks/public-image-derivatives.md"
+    "Documents/Development/runbooks/public-image-derivatives.md",
+    "Documents/Development/runbooks/public-cdn-delivery.md"
   ],
   "historical_documents": [
     "README_TECHNICAL.md",

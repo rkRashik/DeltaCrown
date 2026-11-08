@@ -721,6 +721,9 @@ OWNLOBBY_PUBLIC_DERIVATIVES = os.getenv("OWNLOBBY_PUBLIC_DERIVATIVES", "0") == "
 # Hybrid mode only: resize CDN-published brand artwork with Cloudinary URL transformations (counts toward
 # Cloudinary transformation credits; needs owner approval).
 OWNLOBBY_CLOUDINARY_TRANSFORMS = os.getenv("OWNLOBBY_CLOUDINARY_TRANSFORMS", "0") == "1"
+# OL-08: serve verified, strictly approved public artwork (games, brands, categories) from the Cloudinary CDN.
+# Needs rows written by `publish_public_media --apply`; unmapped images keep their existing delivery.
+OWNLOBBY_PUBLIC_CDN = os.getenv("OWNLOBBY_PUBLIC_CDN", "0") == "1"
 MEDIA_STORAGE_VERIFIED = os.getenv("MEDIA_STORAGE_VERIFIED", "0") == "1"
 MEDIA_LEGACY_PRIVACY_VERIFIED = os.getenv("MEDIA_LEGACY_PRIVACY_VERIFIED", "0") == "1"
 MEDIA_RESTORE_VERIFIED = os.getenv("MEDIA_RESTORE_VERIFIED", "0") == "1"
