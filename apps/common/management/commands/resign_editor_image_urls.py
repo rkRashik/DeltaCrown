@@ -17,7 +17,7 @@ from django.core import signing
 from django.core.exceptions import FieldDoesNotExist
 from django.core.files.storage import storages
 from django.core.management.base import BaseCommand, CommandError
-from django.db import models, transaction
+from django.db import connection, models, transaction
 from django.urls import reverse
 
 SALT = "published-editor-image"
@@ -25,6 +25,7 @@ SALT = "published-editor-image"
 DEFAULT_TARGETS = ("tournaments.Tournament.description", "tournaments.Tournament.rules_text")
 TEXT_TYPES = (models.TextField, models.CharField)
 TOKEN_CHARS = r"[A-Za-z0-9_\-:=]+"
+DISCOVER_TIMEOUT_MS = 5000
 
 
 def _prefix():
@@ -95,13 +96,19 @@ class Command(BaseCommand):
                             help="Additional text field to include (repeatable).")
         parser.add_argument("--discover", action="store_true",
                             help="Read-only: count records per text field that contain an editor-image URL, across all models.")
+        parser.add_argument("--discover-model", action="append", default=[], metavar="app.Model",
+                            help="With --discover: scan only this model (repeatable); lowers load but the result is a partial scope.")
+        parser.add_argument("--statement-timeout-ms", type=int, default=DISCOVER_TIMEOUT_MS,
+                            help=f"With --discover on PostgreSQL: per-field query time limit (default {DISCOVER_TIMEOUT_MS}).")
 
     def handle(self, *args, **options):
         if options["discover"] and options["apply"]:
             raise CommandError("--discover is read-only and cannot be combined with --apply.")
+        if (options["discover_model"] or options["statement_timeout_ms"] != DISCOVER_TIMEOUT_MS) and not options["discover"]:
+            raise CommandError("--discover-model and --statement-timeout-ms only apply with --discover.")
         marker = _prefix()
         if options["discover"]:
-            return self._discover(marker)
+            return self._discover(marker, options["discover_model"], options["statement_timeout_ms"])
         fields = [_field(label) for label in (*DEFAULT_TARGETS, *options["field"])]
         pattern = url_pattern()
         cache = {}
@@ -114,7 +121,7 @@ class Command(BaseCommand):
         total, records, updated, failed = Counter(), 0, 0, 0
         for field in fields:
             model, attr = field.model, field.name
-            candidates = model._default_manager.filter(**{attr + "__contains": marker}).values_list("pk", attr)
+            candidates = model._base_manager.filter(**{attr + "__contains": marker}).values_list("pk", attr)
             for pk, value in candidates.iterator():
                 records += 1
                 _, counts = resign(value or "", pattern, exists, write=False)
@@ -123,12 +130,12 @@ class Command(BaseCommand):
                     continue
                 try:
                     with transaction.atomic():
-                        row = model._default_manager.select_for_update().filter(pk=pk).values_list(attr, flat=True).first()
+                        row = model._base_manager.select_for_update().filter(pk=pk).values_list(attr, flat=True).first()
                         # Recomputed from the locked value so a concurrent edit is never overwritten.
                         new, _ = resign(row or "", pattern, exists)
                         if new != row:
                             # update() writes only this column: no save() side effects, signals or other fields.
-                            model._default_manager.filter(pk=pk).update(**{attr: new})
+                            model._base_manager.filter(pk=pk).update(**{attr: new})
                             updated += 1
                 except Exception:
                     failed += 1  # transaction rolled back: the original content is unchanged
@@ -144,18 +151,61 @@ class Command(BaseCommand):
         if failed:
             raise CommandError(f"{failed} record(s) failed and were left unchanged")
 
-    def _discover(self, marker):
-        found = 0
+    def _discover(self, marker, only_models, timeout_ms):
+        """Read-only inventory. Every failure is counted and the verdict says whether the scan was complete.
+
+        Only SELECT/SHOW/set_config (transaction-local) statements are issued. Nothing printed or logged comes
+        from an exception message, so no SQL parameter, token or row content can leak.
+        """
+        if timeout_ms <= 0:
+            raise CommandError("--statement-timeout-ms must be positive.")
+        wanted = set()
+        for label in only_models:
+            try:
+                wanted.add(apps.get_model(label)._meta.label)
+            except (ValueError, LookupError):
+                raise CommandError(f"Unknown model (use app_label.Model): {label}") from None
+        postgres = connection.vendor == "postgresql"
+        found = scanned = 0
+        failures = Counter()
         for model in apps.get_models():
+            if model._meta.proxy or (wanted and model._meta.label not in wanted):
+                continue  # a proxy shares its concrete model's table, which is scanned
             for field in model._meta.get_fields():
-                if not isinstance(field, TEXT_TYPES) or field.choices or not getattr(field, "column", None):
+                if not isinstance(field, TEXT_TYPES) or not getattr(field, "column", None):
                     continue
+                label = f"{model._meta.label}.{field.name}"
                 try:
                     with transaction.atomic():  # savepoint: a failing table cannot poison the connection
-                        n = model._default_manager.filter(**{field.name + "__contains": marker}).count()
-                except Exception:
-                    continue  # unmanaged/unavailable table: skipped, reported nowhere (counts only)
+                        previous = self._set_timeout(timeout_ms) if postgres else None
+                        n = model._base_manager.filter(**{field.name + "__contains": marker}).count()
+                        if postgres:
+                            self._set_timeout(previous)
+                except Exception as exc:  # reported by category only; the message is never read
+                    kind = "timeout" if getattr(exc.__cause__, "pgcode", None) == "57014" else "error"
+                    failures[kind] += 1
+                    self.stdout.write(f"FAILED {label}: {kind}")
+                    continue
+                scanned += 1
                 if n:
                     found += n
-                    self.stdout.write(f"{model._meta.label}.{field.name}: {n}")
-        self.stdout.write(f"discover: {found} record(s) contain editor-image URLs (read-only)")
+                    self.stdout.write(f"{label}: {n}")
+        failed = sum(failures.values())
+        detail = f"{scanned} field(s) scanned, {failed} failed (timeout: {failures['timeout']}, error: {failures['error']})"
+        tail = f"{found} record(s) contain editor-image URLs (read-only; text/char fields only)"
+        if failed:
+            self.stdout.write(f"discover: INCOMPLETE: {detail}; {tail}. NOT a full inventory: do not use it to retire fallback keys.")
+            raise CommandError(f"discover incomplete: {failed} field(s) could not be scanned")
+        if wanted:
+            self.stdout.write(f"discover: PARTIAL SCOPE (--discover-model): {detail}; {tail}. NOT a full inventory.")
+        else:
+            self.stdout.write(f"discover: COMPLETE: {detail}; {tail}")
+
+    @staticmethod
+    def _set_timeout(value):
+        """Set the transaction-local statement timeout; return the previous setting."""
+        with connection.cursor() as cursor:
+            cursor.execute("SHOW statement_timeout")
+            previous = cursor.fetchone()[0]
+            cursor.execute("SELECT set_config('statement_timeout', %s, true)", [str(value)])
+        return previous

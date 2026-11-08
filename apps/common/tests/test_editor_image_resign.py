@@ -228,3 +228,145 @@ def test_only_text_fields_can_be_targeted(db):
         with pytest.raises(CommandError):
             run("--field", bad)
     assert "dry run" in run("--field", "tournaments.Tournament.meta_description")
+
+
+# --- discovery: failures are counted, reported by category only, and never read as a complete inventory ---
+
+from django.db import OperationalError, connection  # noqa: E402
+from django.db.models import QuerySet  # noqa: E402
+from django.test.utils import CaptureQueriesContext  # noqa: E402
+
+LEAK = "SYNTHETIC-SQL-PARAM-" + secrets.token_hex(8)
+
+
+class _Cause(Exception):
+    pgcode = "57014"  # statement timeout
+
+
+def _failing_count(only_model, exc_factory):
+    real = QuerySet.count
+
+    def count(self):
+        if self.model is only_model:
+            raise exc_factory()
+        return real(self)
+
+    return patch.object(QuerySet, "count", count)
+
+
+def _error():
+    return OperationalError(f"boom {LEAK}")
+
+
+def _timeout():
+    exc = OperationalError(f"canceling statement due to statement timeout {LEAK}")
+    exc.__cause__ = _Cause(LEAK)
+    return exc
+
+
+def _discover(*args):
+    out, err = StringIO(), StringIO()
+    try:
+        call_command("resign_editor_image_urls", "--discover", *args, stdout=out, stderr=err)
+        error = None
+    except CommandError as exc:
+        error = str(exc)
+    return out.getvalue(), error
+
+
+def test_complete_scan_is_labelled_complete_with_zero_failures(image, make_tournament):
+    make_tournament(description=html(image["old_url"]))
+    with override_settings(**KEYS):
+        out, error = _discover()
+    assert error is None
+    assert "tournaments.Tournament.description: 1" in out
+    assert "discover: COMPLETE:" in out and "0 failed (timeout: 0, error: 0)" in out
+    assert "INCOMPLETE" not in out and "PARTIAL" not in out
+
+
+def test_failed_scans_are_counted_labelled_incomplete_and_exit_non_zero(image, make_tournament, caplog):
+    t = make_tournament(description="PROSE-" + html(image["old_url"]))
+    caplog.set_level(logging.DEBUG)
+    with override_settings(**KEYS), _failing_count(Tournament, _error):
+        out, error = _discover()
+    assert error and "discover incomplete" in error  # non-zero exit: cannot be scripted as success
+    assert "discover: INCOMPLETE:" in out and "NOT a full inventory" in out and "retire fallback" in out
+    assert "FAILED tournaments.Tournament.description: error" in out
+    assert "COMPLETE:" not in out.replace("INCOMPLETE:", "")
+    assert "tournaments.Tournament.description: 1" not in out  # a failed field reports no count
+    logged = " ".join(r.getMessage() for r in caplog.records)
+    for secret in (LEAK, "PROSE-", _token(image["old_url"]), OLD, NEW, image["name"]):
+        assert secret not in out and secret not in (error or "") and secret not in logged
+    t.refresh_from_db()
+    assert t.description == "PROSE-" + html(image["old_url"])  # nothing was written
+
+
+def test_timeouts_are_distinguished_from_other_errors_without_exposing_either(image, make_tournament):
+    make_tournament(description=html(image["old_url"]))
+    with override_settings(**KEYS), _failing_count(Tournament, _timeout):
+        out, error = _discover()
+    assert error
+    assert "FAILED tournaments.Tournament.description: timeout" in out
+    assert "(timeout: " in out and "error: 0)" in out
+    assert LEAK not in out and LEAK not in error
+
+
+def test_one_failing_model_does_not_hide_the_other_results(image, make_tournament):
+    make_tournament(description=html(image["old_url"]))
+    with override_settings(**KEYS), _failing_count(User, _error):
+        out, error = _discover()
+    assert error and "FAILED accounts.User." in out
+    assert "tournaments.Tournament.description: 1" in out  # unaffected models are still reported
+
+
+def test_discovery_only_reads_and_restores_the_statement_timeout(image, make_tournament):
+    t = make_tournament(description=html(image["old_url"]))
+    seen = []
+    real = QuerySet.count
+
+    def count(self):
+        with connection.cursor() as cursor:
+            cursor.execute("SHOW statement_timeout")
+            seen.append(cursor.fetchone()[0])
+        return real(self)
+
+    with connection.cursor() as cursor:
+        cursor.execute("SHOW statement_timeout")
+        before = cursor.fetchone()[0]
+    with override_settings(**KEYS), patch.object(QuerySet, "count", count), CaptureQueriesContext(connection) as queries:
+        out, error = _discover("--statement-timeout-ms", "4321")
+    assert error is None and set(seen) == {"4321ms"}  # a limit applies to every field scan
+    with connection.cursor() as cursor:
+        cursor.execute("SHOW statement_timeout")
+        assert cursor.fetchone()[0] == before  # and is put back
+    verbs = {q["sql"].lstrip().split(None, 1)[0].upper() for q in queries.captured_queries}
+    assert verbs <= {"SELECT", "SHOW", "SAVEPOINT", "RELEASE"}, verbs  # strictly read-only SQL
+    t.refresh_from_db()
+    assert t.description == html(image["old_url"])
+
+
+def test_model_slice_is_labelled_partial_and_rejects_unknown_models(image, make_tournament):
+    make_tournament(description=html(image["old_url"]))
+    with override_settings(**KEYS):
+        out, error = _discover("--discover-model", "tournaments.Tournament")
+        assert error is None
+        assert "discover: PARTIAL SCOPE" in out and "NOT a full inventory" in out and "COMPLETE:" not in out
+        assert "tournaments.Tournament.description: 1" in out and "accounts.User" not in out
+        assert "Unknown model" in _discover("--discover-model", "nope.Model")[1]
+        assert "must be positive" in _discover("--statement-timeout-ms", "0")[1]
+        with pytest.raises(CommandError):
+            run("--discover-model", "tournaments.Tournament")  # discovery-only options need --discover
+
+
+def test_soft_deleted_rows_are_included_in_discovery_dry_run_and_apply(image, make_tournament):
+    t = make_tournament(description=html(image["old_url"]))
+    t.is_deleted = True
+    t.save(update_fields=["is_deleted"])
+    assert not Tournament.objects.filter(pk=t.pk).exists()  # the default manager hides it
+    with override_settings(**KEYS):
+        out, _ = _discover()
+        assert "tournaments.Tournament.description: 1" in out
+        assert "legacy: 1" in run()
+        assert "records re-signed: 1" in run("--apply")
+    t = Tournament.all_objects.get(pk=t.pk)
+    assert t.description != html(image["old_url"])
