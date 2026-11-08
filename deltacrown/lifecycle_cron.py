@@ -145,6 +145,7 @@ def lifecycle_cron(request):
         results = {}
         tasks = [
             ('auto_advance', _run_auto_advance),
+            ('bracket_advance', _run_bracket_advance),
             ('wrapup', _run_wrapup),
             ('no_show', _run_no_show),
             ('lobby_close', _run_lobby_close),
@@ -228,6 +229,17 @@ def _run_auto_advance():
         return {'ok': True, 'advanced': result}
     except Exception as exc:
         logger.exception('[lifecycle_cron] auto_advance failed')
+        return {'ok': False, 'error': str(exc)}
+
+
+def _run_bracket_advance():
+    try:
+        from apps.tournaments.services.bracket_recovery import advance_pending_matches
+        result = advance_pending_matches()
+        # 'errors' makes the cron report this task (and the run) as failed; other tasks still run.
+        return {'ok': not result['failed'], 'errors': result['failed'], **result}
+    except Exception as exc:
+        logger.exception('[lifecycle_cron] bracket_advance failed')
         return {'ok': False, 'error': str(exc)}
 
 
