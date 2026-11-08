@@ -66,6 +66,7 @@ from django.db import transaction, models, IntegrityError
 from django.utils import timezone
 from django.db.models import Count, Q
 from apps.tournaments.models import Registration, Payment, Tournament
+from apps.common.display_time import format_local
 from apps.user_profile.integrations.tournaments import (
     on_registration_status_change,
     on_payment_status_change,
@@ -405,11 +406,11 @@ class RegistrationService:
         now = timezone.now()
         if now < tournament.registration_start:
             raise ValidationError(
-                f"Registration opens on {tournament.registration_start.strftime('%Y-%m-%d %H:%M')}"
+                f"Registration opens on {format_local(tournament.registration_start, '%Y-%m-%d %H:%M')}"
             )
         if now > tournament.registration_end:
             raise ValidationError(
-                f"Registration closed on {tournament.registration_end.strftime('%Y-%m-%d %H:%M')}"
+                f"Registration closed on {format_local(tournament.registration_end, '%Y-%m-%d %H:%M')}"
             )
         
         # Capacity check — no longer hard-rejects; register_participant() auto-waitlists

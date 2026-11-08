@@ -21,6 +21,7 @@ from datetime import timedelta
 from apps.tournaments.models import Tournament, Match, Registration
 from apps.notifications.models import Notification
 from apps.notifications.services import notify as _notify_users
+from apps.common.display_time import format_local
 
 User = get_user_model()
 
@@ -200,7 +201,7 @@ class TournamentNotificationService:
             Notification.objects.create(
                 user=user,
                 title=f"Match Scheduled: {match.tournament.name}",
-                message=f"Your match in {match.tournament.name} is scheduled for {match.scheduled_time.strftime('%b %d at %I:%M %p')}",
+                message=f"Your match in {match.tournament.name} is scheduled for {format_local(match.scheduled_time, '%b %d at %I:%M %p')}",
                 notification_type='match',
                 link=f"/tournaments/{match.tournament.slug}/matches/{match.id}/",
                 icon='⚔️'
@@ -483,7 +484,7 @@ class TournamentNotificationService:
 
         if payment_required:
             next_step_text = (
-                f"Next step: complete payment by {payment_deadline.strftime('%b %d at %I:%M %p')} to secure your slot."
+                f"Next step: complete payment by {format_local(payment_deadline, '%b %d at %I:%M %p')} to secure your slot."
             )
             action_label = 'Complete Payment'
             action_url = f"/tournaments/registration/{registration.id}/payment/complete/"
