@@ -148,6 +148,58 @@ class OriginGovernorTests(SimpleTestCase):
         self.assertEqual(tracker.now, 0)  # every body closed
 
 
+class OriginResilienceTests(SimpleTestCase):
+    """OL-12: production lost all media when a burst of cancelled requests left every lease unreleased."""
+
+    def test_abandoned_leases_are_reclaimed_without_the_garbage_collector(self):
+        held = exhaust()  # references kept: neither released nor collectable, like a response stuck in a cancelled task
+        self.assertTrue(all(held))
+        with patch.object(origin, "WAIT_SECONDS", 0.05):
+            self.assertIsNone(origin.acquire())
+        with patch.object(origin, "MAX_HOLD_SECONDS", 0.05), patch.object(origin, "WAIT_SECONDS", 2):
+            time.sleep(0.1)
+            fresh = [origin.acquire() for _ in range(origin.SLOTS)]
+        self.assertTrue(all(fresh))  # the budget healed itself
+        for lease in held:
+            lease.release()  # the original holders finally finish: must not hand out extra slots
+        with patch.object(origin, "WAIT_SECONDS", 0.05):
+            self.assertIsNone(origin.acquire())
+        for lease in fresh:
+            lease.release()
+        self.assertTrue(all(exhaust()))
+
+    def test_small_derivative_is_read_whole_released_at_once_and_cached(self):
+        origin._cache.clear()
+        blob_storage = storage()
+        payload = b"RIFF" + b"y" * 5000
+        body = Body(5000)
+        body.stream = BytesIO(payload)
+        with patch.object(blob_storage, "open_stream_object", return_value={"Body": body, "ContentLength": len(payload)}) as get:
+            first = views.serve_derivative(blob_storage, "derivatives/v1/a.webp")
+            with patch.object(origin, "WAIT_SECONDS", 0.05):  # every small slot is free although `first` is unread
+                leases = [origin.acquire(small=True) for _ in range(origin.SMALL_SLOTS)]
+                self.assertTrue(all(leases))
+                self.assertIsNone(origin.acquire(small=True))
+            for lease in leases:
+                lease.release()
+            second = views.serve_derivative(blob_storage, "derivatives/v1/a.webp")
+        self.assertEqual((first.content, second.content), (payload, payload))
+        get.assert_called_once()
+
+    def test_cache_is_bounded_and_skips_large_entries(self):
+        origin._cache.clear()
+        with patch.object(origin, "CACHE_BYTES", 10_000):
+            for i in range(10):
+                origin.cache_put(f"k{i}", b"z" * 3000)
+            origin.cache_put("huge", b"z" * (origin.CACHE_ENTRY_MAX + 1))
+        self.assertEqual(sum(len(v) for v in origin._cache.values()), 9000)
+        self.assertIsNone(origin.cache_get("k0"))
+        self.assertIsNotNone(origin.cache_get("k9"))
+        self.assertIsNone(origin.cache_get("huge"))
+        origin._cache.clear()
+        origin._cache_size = 0
+
+
 class ConditionalArtworkTests(SimpleTestCase):
     def call(self, label, field_name, name="a.png", **headers):
         model = Mock()

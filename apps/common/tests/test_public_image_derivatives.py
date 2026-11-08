@@ -308,24 +308,33 @@ def _s3():
                               region_name="ap-south-1", endpoint_url="https://example.invalid")
 
 
-def test_s3_derivatives_stream_async_with_a_fixed_type_and_always_close_the_body():
+def test_s3_derivatives_are_read_whole_cached_and_large_ones_still_stream():
+    from apps.common.media import origin
+    origin._cache.clear()
     storage, payload = _s3(), b"RIFF" + b"x" * 200_000
     body = _Body(payload)
     with patch.object(storage, "open_stream_object", return_value={"Body": body, "ContentLength": len(payload)}) as get:
         response = serve_derivative(storage, "derivatives/v1/k.webp")
-        assert response.is_async and response["Content-Type"] == "image/webp"  # type is ours, not the provider's
-        assert response["Content-Length"] == str(len(payload))
-        assert async_to_sync(_read)(response) == payload
-        _close(response)
-    assert body.closed
+        assert not getattr(response, "is_async", False) and response["Content-Type"] == "image/webp"  # type is ours, not the provider's
+        assert response.content == payload
+        assert body.closed  # nothing is left open while the client downloads
+        again = serve_derivative(storage, "derivatives/v1/k.webp")  # immutable, version-keyed: no origin read
+        assert again.content == payload
     get.assert_called_once_with("derivatives/v1/k.webp")
+
+    big = _Body(b"RIFF" + b"x" * 900_000)
+    with patch.object(storage, "open_stream_object", return_value={"Body": big, "ContentLength": 900_004}):
+        response = serve_derivative(storage, "derivatives/v1/big.webp")
+        assert response.is_async and async_to_sync(_read)(response) == b"RIFF" + b"x" * 900_000
+        _close(response)
+    assert big.closed
 
     for failure in (ClientError({"Error": {"Code": "NoSuchKey"}}, "GetObject"), RuntimeError("synthetic")):
         with patch.object(storage, "open_stream_object", side_effect=failure):
             assert serve_derivative(storage, "k") is None  # caller falls back to the original route
     half = _Body(b"x")
     with patch.object(storage, "open_stream_object", return_value={"Body": half, "ContentLength": "bad"}):
-        assert serve_derivative(storage, "k").status_code == 200  # an odd length header is simply not forwarded
+        assert serve_derivative(storage, "k2").status_code == 200  # an odd length header is simply not forwarded
 
 
 def test_revoked_artwork_is_gone_immediately_and_no_derivative_is_ever_publicly_cacheable(game):
