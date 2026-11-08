@@ -7,6 +7,12 @@ from django.template.response import TemplateResponse
 from django.utils.safestring import mark_safe
 from apps.competition.models import GameRankingConfig
 from apps.competition.services.competition_service import CompetitionService
+from apps.common.media.derivatives import variant_url as _variant_url
+
+
+def _icon_variant(field):
+    """Resized logo (small badge) when derivatives are on; the original otherwise."""
+    return _variant_url(field, "thumb")
 from apps.games.models import Game
 from apps.common.seo import breadcrumb_schema, build_seo
 from deltacrown.branding import BRAND
@@ -221,7 +227,7 @@ def leaderboard_global(request):
             try:
                 from apps.organizations.models import Team as OrgTeam
                 _ids = [t['team_id'] for t in user_highlights['teams']]
-                _logos = {t.id: t.logo.url if t.logo else None
+                _logos = {t.id: _icon_variant(t.logo) if t.logo else None
                           for t in OrgTeam.objects.filter(id__in=_ids).only('id', 'logo')}
                 for _t in user_highlights['teams']:
                     _t['logo_url'] = _logos.get(_t['team_id'])
@@ -419,7 +425,7 @@ def leaderboard_game(request, game_id):
             try:
                 from apps.organizations.models import Team as OrgTeam
                 _ids = [t['team_id'] for t in user_highlights['teams']]
-                _logos = {t.id: t.logo.url if t.logo else None
+                _logos = {t.id: _icon_variant(t.logo) if t.logo else None
                           for t in OrgTeam.objects.filter(id__in=_ids).only('id', 'logo')}
                 for _t in user_highlights['teams']:
                     _t['logo_url'] = _logos.get(_t['team_id'])

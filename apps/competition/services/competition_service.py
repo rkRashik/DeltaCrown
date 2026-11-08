@@ -192,7 +192,7 @@ class CompetitionService:
                 if m.roster_image:
                     avatar = m.roster_image.url
                 elif hasattr(m, 'user') and hasattr(m.user, 'profile') and m.user.profile.avatar:
-                    avatar = m.user.profile.avatar.url
+                    avatar = variant_url(m.user.profile.avatar, 'icon')
                 roster.append({'name': m.display_name or m.user.username, 'avatar_url': avatar})
 
             entry = RankingEntry(

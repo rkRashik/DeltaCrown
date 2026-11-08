@@ -827,7 +827,7 @@ def community_api_sidebar(request):
             try:
                 field = getattr(g, attr, None)
                 if field:
-                    card_image_url = field.url
+                    card_image_url = _img_url(field, 'card')  # animated/unsupported art keeps its original
                     break
             except (ValueError, AttributeError):
                 pass
