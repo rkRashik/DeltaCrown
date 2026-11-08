@@ -329,9 +329,12 @@ def test_s3_derivatives_are_read_whole_cached_and_large_ones_still_stream():
         _close(response)
     assert big.closed
 
-    for failure in (ClientError({"Error": {"Code": "NoSuchKey"}}, "GetObject"), RuntimeError("synthetic")):
+    with patch.object(storage, "open_stream_object", side_effect=ClientError({"Error": {"Code": "NoSuchKey"}}, "GetObject")):
+        assert serve_derivative(storage, "k") is None  # not generated yet: caller falls back to the original route
+    for failure in (RuntimeError("synthetic"), ClientError({"Error": {"Code": "InternalError"}}, "GetObject")):
         with patch.object(storage, "open_stream_object", side_effect=failure):
-            assert serve_derivative(storage, "k") is None  # caller falls back to the original route
+            response = serve_derivative(storage, "k")  # transient: retry the tiny derivative, never redirect to the original
+            assert response.status_code == 503 and response["Retry-After"] == "2"
     half = _Body(b"x")
     with patch.object(storage, "open_stream_object", return_value={"Body": half, "ContentLength": "bad"}):
         assert serve_derivative(storage, "k2").status_code == 200  # an odd length header is simply not forwarded
