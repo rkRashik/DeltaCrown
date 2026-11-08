@@ -2,6 +2,7 @@
 
 Synthetic only: no credentials, no network, no database.
 """
+import asyncio
 import threading
 import time
 from io import BytesIO
@@ -262,6 +263,69 @@ class DerivativeGateTests(SimpleTestCase):
         origin._storage_warmed = False
         with patch("django.core.files.storage.storages", side_effect=RuntimeError("x")):
             origin.warm_storage()  # a legacy/local setup simply has nothing to warm
+
+
+class DisconnectCleanupTests(SimpleTestCase):
+    """OL-12: an aborted browser load must free the origin slot of a streamed original at once, not after 45 s."""
+
+    def streamed_original(self, scope):
+        blob = SimpleNamespace(storage=storage(), name="cards/7.png")
+        body = Body(50_000)
+        request = SimpleNamespace(_request=SimpleNamespace(scope=scope))
+        with patch.object(blob.storage, "open_stream_object", return_value={"Body": body, "ContentLength": 50_008}):
+            return views.serve_blob(blob, request), body
+
+    def all_slots_free(self):
+        leases = exhaust()
+        ok = all(leases)
+        for lease in leases:
+            if lease:
+                lease.release()
+        return ok
+
+    def test_cleanup_frees_the_slot_without_the_response_being_read_closed_or_collected(self):
+        scope = {"type": "http"}
+        response, body = self.streamed_original(scope)  # `response` stays referenced: no GC help
+        with patch.object(origin, "WAIT_SECONDS", 0.05):
+            held = [origin.acquire() for _ in range(origin.SLOTS - 1)]  # one slot belongs to `response`
+            self.assertIsNone(origin.acquire())
+        origin.run_cleanups(scope)
+        for _ in range(100):
+            if body.closed:
+                break
+            time.sleep(0.02)
+        self.assertTrue(body.closed)
+        with patch.object(origin, "WAIT_SECONDS", 1):
+            self.assertTrue(origin.acquire())  # the slot is back
+        for lease in held:
+            lease.release()
+        origin.run_cleanups(scope)  # running twice is harmless
+        self.assertIsNotNone(response)
+
+    def test_asgi_wrapper_runs_cleanups_on_disconnect_and_when_the_request_is_cancelled(self):
+        async def scenario(kind):
+            ran = []
+            async def app(scope, receive, send):
+                origin.register_cleanup(scope, lambda: ran.append(kind))
+                if kind == "disconnect":
+                    await receive()
+                else:
+                    await asyncio.sleep(30)
+            queue = asyncio.Queue()
+            await queue.put({"type": "http.disconnect"})
+            wrapper = FastHealth(app)
+            task = asyncio.ensure_future(wrapper({"type": "http", "method": "GET", "path": "/files/x/"}, queue.get, None))
+            await asyncio.sleep(0.05)
+            if kind == "cancelled":
+                task.cancel()
+            try:
+                await task
+            except asyncio.CancelledError:
+                pass
+            await asyncio.sleep(0.1)
+            return ran
+        self.assertEqual(async_to_sync(scenario)("disconnect"), ["disconnect"])
+        self.assertEqual(async_to_sync(scenario)("cancelled"), ["cancelled"])
 
 
 class ConditionalArtworkTests(SimpleTestCase):

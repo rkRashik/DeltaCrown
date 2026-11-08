@@ -48,7 +48,7 @@ def download(request, label, field_name, pk):
     if etag and etag in parse_etags(request.headers.get('If-None-Match', '')):
         response = _apply_media_headers(HttpResponseNotModified())  # authorized above: no origin read, no bytes
     else:
-        response = serve_blob(blob)
+        response = serve_blob(blob, request)
     # Artwork meant for the public may be reused by the user's own browser (never a shared cache): stable art
     # for 15 minutes, visibility-dependent art only after revalidation (the 304 above). Evidence, KYC, other
     # media and every error response stay `private, no-store`.
@@ -210,7 +210,7 @@ def _busy():
     return response
 
 
-def _serve_private_s3(blob):
+def _serve_private_s3(blob, request=None):
     """Preserve record authorization, sniffed types and no-store policy."""
     body = None
     lease = origin.acquire()
@@ -227,7 +227,10 @@ def _serve_private_s3(blob):
                         'application/pdf', 'video/mp4', 'video/webm'}:
             mime = 'application/octet-stream'
         inline = mime in {'image/png', 'image/jpeg', 'image/webp', 'image/gif'}
-        response = StreamingHttpResponse(_S3Chunks(body, prefix, lease), content_type=mime)
+        chunks = _S3Chunks(body, prefix, lease)
+        # The client may vanish before Django ever closes this response: let the ASGI layer free the slot at once.
+        origin.register_cleanup(getattr(getattr(request, '_request', request), 'scope', None), chunks.close)
+        response = StreamingHttpResponse(chunks, content_type=mime)
         disposition = content_disposition_header(
             not inline, PurePosixPath(blob.name).name
         )
@@ -254,10 +257,10 @@ def _serve_private_s3(blob):
     return response
 
 
-def serve_blob(blob):
+def serve_blob(blob, request=None):
     """Shared response policy, called only after the caller authorizes the record."""
     if isinstance(blob.storage, ProtectedS3Storage):
-        response = _serve_private_s3(blob)
+        response = _serve_private_s3(blob, request)
         return _apply_media_headers(response)
     try:
         blob.open('rb')

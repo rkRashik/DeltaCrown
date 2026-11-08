@@ -149,3 +149,31 @@ def warm_storage():
         getattr(storage, "bucket", None)
     except Exception:  # not configured (legacy/local mode): nothing to warm
         log.debug("media storage warm-up skipped", exc_info=True)
+
+
+# --- deterministic release when a client goes away -------------------------------------------------------------
+# Production (Python 3.11, Daphne): abandoned streaming responses of full-size originals held their lease until the
+# 45 s reaper, so a browser that aborted a page load shed other originals with 503 for most of a minute. The ASGI
+# wrapper (deltacrown/fast_health.py) runs these cleanups the moment the client disconnects and again when the
+# request ends, whichever comes first; each cleanup is idempotent.
+_CLEANUP_KEY = "ownlobby.media_cleanups"
+
+
+def register_cleanup(scope, fn):
+    """Attach `fn` (idempotent) to the ASGI scope of the request being served; no-op without a scope."""
+    if isinstance(scope, dict):
+        scope.setdefault(_CLEANUP_KEY, []).append(fn)
+
+
+def run_cleanups(scope):
+    """Run and clear a scope's cleanups off the event loop (closing a half-read body can wait for a socket)."""
+    fns = scope.pop(_CLEANUP_KEY, None) if isinstance(scope, dict) else None
+    for fn in fns or ():
+        threading.Thread(target=_safe, args=(fn,), name="media-origin-cleanup", daemon=True).start()
+
+
+def _safe(fn):
+    try:
+        fn()
+    except Exception:
+        log.debug("media cleanup failed", exc_info=True)
