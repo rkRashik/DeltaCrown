@@ -6,7 +6,7 @@ FE-T-003: Registration CTA States
 Extracted from main.py during Phase 3 restructure.
 """
 
-from deltacrown.branding import brand_copy
+from deltacrown.branding import BRAND, brand_copy
 
 import json
 import re
@@ -1800,10 +1800,10 @@ MAX_FAN_POLL_QUESTIONS = 8
 MAX_FAN_POLL_OPTIONS = 6
 FAN_POLL_THEME_IDS = {'cyber', 'tactical', 'glass', 'sport', 'native'}
 OFFICIAL_VANGUARD_SOCIAL_DEFAULTS = {
-    'facebook': 'https://www.facebook.com/DeltaCrownGG',
+    'facebook': BRAND['social']['facebook'],
     'discord': 'https://discord.gg/UaHRC8Cd',
     'youtube': 'https://www.youtube.com/@DeltaCrownGG',
-    'instagram': 'https://instagram.com/deltacrowngg',
+    'instagram': BRAND['social']['instagram'],
 }
 
 

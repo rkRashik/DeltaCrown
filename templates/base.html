@@ -26,7 +26,7 @@
 
 
 
-    {% include "partials/seo_meta.html" %}
+    {% block seo_meta %}{% include "partials/seo_meta.html" %}{% endblock %}
     <title>{% block title %}{{ seo.title }}{% endblock %}</title>
 
     <!-- Tailwind CSS: CDN Play + custom DeltaCrown config (works everywhere, no build step) -->
