@@ -1,5 +1,33 @@
 # OwnLobby current status
 
+## OL-12 — CLOSED WITH FOLLOW-UP BACKLOG (2026-11-09)
+
+Final production: master `d5d4c31112d4f1911819e029ded5c3c1540645cc` (PRs #67-#70 merged, CI green), Render `dep-dbofbf49v7es73f3sq80` LIVE; `/healthz/` 200 in ~0.25 s; no lease-reclaim warnings after that deploy (the last ones are from the previous build). Performance is improved, not solved: image bytes and media stability are fixed; dynamic-page TTFB is not. No new work is started by this closure; open PR #47 is retained intentionally for a separate decision.
+
+### Image optimization behavior (verified against `apps/common/media/derivatives.py` and `fields.py`)
+- Eligible fields are the `POLICY` allowlist: Game (icon, logo, banner, card_image), Shop (brand logo, category image, product featured/hover image, product image), Organization (logo, banner, badge), Team (logo, banner), Tournament (banner, thumbnail), Tournament sponsor (logo, banner), Profile (avatar, banner). Private/unclassified fields cannot be added (module-level assert against `PUBLIC_FIELDS`).
+- Variants (longest side, never upscaled): icon 128, thumb 320, card 640, large 960, hero 1280, stored as WebP next to the original, in the same storage. Originals are never modified or removed.
+- New uploads: when `OWNLOBBY_PUBLIC_DERIVATIVES` is on (it is in production), a `post_save` receiver queues generation with `transaction.on_commit`, run synchronously in the upload request. Upload-time limits: 6 MiB and 4 megapixels. Larger sources are skipped (`too_large`) and need the `generate_image_derivatives` backfill (limits 12 MiB / 24 MP). Failures are logged by category only and never affect the upload.
+- Animated sources (more than one frame) are not supported: status `unsupported`, original only (known case: game card images pk 1 and 3).
+- Not an independent background queue: no retry job exists. A missing derivative falls back to the original (redirect), a transient storage error returns 503 with `Retry-After`, and a later backfill fills gaps.
+- Authorization: `/files/derived/...` re-runs the same record authorization as the original route; cache headers are `private` only (STABLE `max-age=900, must-revalidate`; REVALIDATE `no-cache`; profile media stays `no-store`); nothing is `public`.
+
+### Completed in OL-12
+See the sections below: media-origin lease reclaim, derivative gate/cache/budgets, ASGI disconnect cleanup, resized variants on teams/tournaments/rankings/community/arena, homepage single-flight cache and template warm-up, repeated-query fixes, 27 legacy test failures repaired (not skipped), anonymous regression probes (22/22 passed on production).
+
+### Backlog for the next cycle (proposals, not done)
+**P1**
+1. Animated game card artwork (pk 1: 5.2 MiB, pk 3: 7.5 MiB): replace the assets, or approve static first-frame derivatives (loses the animation). Desktop `/teams/` still sends ~13 MB on first view.
+2. Cold TTFB on team detail (~4 s cold, ~1 s warm) and other dynamic pages.
+3. Measure database connection overhead (new connection per ASGI request thread, ~60-100 ms Supabase round trips) before adding psycopg pooling (dependency change).
+4. Confirm the real trusted-proxy count and set `NUM_PROXIES`; the DRF throttle identity currently uses the full `X-Forwarded-For` and is spoofable.
+
+**P2**
+5. Media Optimization V2: background jobs with retries, oversized-image backfill automation.
+6. Remaining query optimization (tournament detail status/round lookups, team detail).
+7. Decide on Draft PR #47.
+8. Future CDN strategy (needs separate owner approval) and routine security maintenance.
+
 ## OL-12 stabilization 2026-11-09 (+06:00)
 
 **Production runs the OL-11/OL-12 code (PRs #66-#69). Owner-run backfills for games, tournaments, teams and profiles are done and `OWNLOBBY_PUBLIC_DERIVATIVES=1` is on.** Public CDN publication (`OWNLOBBY_PUBLIC_CDN`) and any storage/ACL change remain separate owner approvals and were not touched.
@@ -9,7 +37,9 @@
 - **Tests:** the legacy hub suites (`test_hub`, `test_phase_c_hub_feeds`, `test_team_discovery_f1_links`, `test_rankings_policy_link`) were repaired (27 failures to 0: shared-queryset pickle shim, hub is public, `{ok,data}` API envelope, schema drift, cache isolation) and are now in the single CI pytest step. The hub query test now asserts the count does not grow with the number of teams.
 - **Probes (anonymous, read-only, run sparingly):** `scripts/measure_site_performance.py`, `scripts/regression_public_journeys.py`. See `runbooks/media-origin-governor.md`.
 - **Housekeeping:** Draft PRs #43, #45, #46 closed (incorporated or superseded; branches kept). #47 (QA-only I/O-deadline contracts) left open for the owner.
-- **Known, not fixed:** per-request Supabase round trip (~60-100 ms) plus a new DB connection per ASGI request thread dominates dynamic-page TTFB (psycopg3 native pooling would need a dependency change); DRF throttle identity uses the full `X-Forwarded-For` string because `NUM_PROXIES` is unset (spoofable rate limit; needs the real proxy count before changing); `python-magic` import hangs on this Windows dev machine (CI/Linux unaffected).
+- **Part 4 (PR #70):** a deterministic release path for streamed originals: the outermost ASGI wrapper runs per-request cleanups on `http.disconnect` and in a `finally`, and streamed originals register their lease with it. Evidence: after the part-3 deploy the 45 s reaper fired ~10 times in one second after a browser aborted a load that streamed two animated game card images (5.2 and 7.5 MiB). After the part-4 deploy the same probe produced no reclaim warnings. Rankings roster avatars/leaderboard logos and the arena game-card payload now use resized variants.
+- **Open owner decision (data, not code):** game card images pk 1 and pk 3 are animated WebP (249 and 240 frames, 600x900, 5.2 and 7.5 MiB). The derivative pipeline deliberately refuses animated sources, so desktop `/teams/` still transfers ~13 MB on first view (LCP 5-8 s). Options: replace the assets with lighter files, or approve first-frame static derivatives for listing cards (changes the visible animation).
+- **Known, not fixed:** per-request Supabase round trip (~60-100 ms) plus a new DB connection per ASGI request thread dominates dynamic-page TTFB (psycopg3 native pooling would need a dependency change); team detail cold TTFB is ~4 s (55 distinct queries, server cache makes the second view ~1 s); DRF throttle identity uses the full `X-Forwarded-For` string because `NUM_PROXIES` is unset (spoofable rate limit; needs the real proxy count before changing); `python-magic` import hangs on this Windows dev machine (CI/Linux unaffected).
 
 
 ## Release preparation 2026-11-07 (+06:00)
