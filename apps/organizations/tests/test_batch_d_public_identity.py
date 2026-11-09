@@ -70,6 +70,16 @@ class TestPublicProfile:
         assert "viewer_is_authenticated" in js and "FOLLOW_CLASS" in js
         assert "uppercase tracking-wider px-10 py-4" not in js
 
+    def test_follow_is_handled_once_and_toasts_use_the_toast_api(self, client):
+        """The profile page had a second inline follow handler (two POSTs per click, old button classes), and
+        follow.js passed a bare string to window.showToast, which expects an options object."""
+        user = self._user("batchd_player3")
+        html = _profile(client, user.username).content.decode()
+        assert "fetch(url, {" not in html and "Follow error:" not in html
+        js = _read("static/siteui/js/follow.js")
+        assert "function followToast" in js and "window.showToast({ type: type, message: message })" in js
+        assert "showToast('" not in js.replace("followToast('", "")
+
     def test_initials_avatars_use_muted_brand_tones(self):
         from apps.siteui.templatetags.dc_avatar import AVATAR_GRADIENTS
         neon = {"00D9FF", "FF0080", "00FF88", "A100FF", "00FFF0", "0099FF", "FFD700", "FF6B00"}

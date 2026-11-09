@@ -147,7 +147,7 @@ async function followUser(username, button) {
                 button.title = 'Click to cancel follow request';
                 
                 // Show toast notification
-                showToast('Follow request sent!', 'success');
+                followToast('Follow request sent!', 'success');
             } else {
                 // Immediate follow (public account)
                 button.className = FOLLOW_CLASS.following;
@@ -160,7 +160,7 @@ async function followUser(username, button) {
                 updateFollowerCount(1);
                 
                 // Show toast notification
-                showToast('Now following user!', 'success');
+                followToast('Now following user!', 'success');
             }
             
             console.log('Follow action successful:', data);
@@ -169,7 +169,7 @@ async function followUser(username, button) {
         }
     } catch (error) {
         console.error('Follow error:', error);
-        showToast(error.message || 'Failed to follow user', 'error');
+        followToast(error.message || 'Failed to follow user', 'error');
         button.innerHTML = originalHTML;
         button.disabled = false;
     }
@@ -203,14 +203,14 @@ async function cancelFollowRequest(username, button) {
             button.dataset.state = 'none';
             button.disabled = false;
             
-            showToast('Follow request canceled', 'info');
+            followToast('Follow request canceled', 'info');
             console.log('Cancel request successful:', data);
         } else {
             throw new Error(data.error || 'Failed to cancel request');
         }
     } catch (error) {
         console.error('Cancel request error:', error);
-        showToast(error.message || 'Failed to cancel request', 'error');
+        followToast(error.message || 'Failed to cancel request', 'error');
         button.className = FOLLOW_CLASS.requested;
         button.innerHTML = '<i class="fa-solid fa-clock"></i> Requested';
         button.disabled = false;
@@ -248,14 +248,14 @@ async function unfollowUser(username, button) {
             // Update follower count live
             updateFollowerCount(-1);
             
-            showToast('Unfollowed user', 'info');
+            followToast('Unfollowed user', 'info');
             console.log('Unfollow successful:', data);
         } else {
             throw new Error(data.error || 'Failed to unfollow user');
         }
     } catch (error) {
         console.error('Unfollow error:', error);
-        showToast(error.message || 'Failed to unfollow user', 'error');
+        followToast(error.message || 'Failed to unfollow user', 'error');
         button.className = FOLLOW_CLASS.following;
         button.innerHTML = '<i class="fa-solid fa-user-check"></i> Following';
         button.disabled = false;
@@ -265,9 +265,11 @@ async function unfollowUser(username, button) {
 /**
  * Show toast notification (fallback if toast system not available)
  */
-function showToast(message, type = 'info') {
-    if (typeof window.ToastManager !== 'undefined' && window.toastManager) {
-        window.toastManager.show(message, type);
+// toast.js owns window.showToast and takes an options object ({ type, message }); passing it a bare string used to
+// log "[Toast] Message is required" and show nothing, so follow actions go through this wrapper.
+function followToast(message, type = 'info') {
+    if (typeof window.showToast === 'function' && window.showToast.length === 1) {
+        window.showToast({ type: type, message: message });
     } else {
         console.log(`[Toast ${type}]:`, message);
     }

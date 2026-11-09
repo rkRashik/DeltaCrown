@@ -1111,104 +1111,12 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
-{# UP PHASE 8: Follow/Unfollow AJAX Handler #}
+{# Career deep link (follow handling lives in follow.js) #}
 <script nonce="{{ request.csp_nonce }}">
 document.addEventListener('DOMContentLoaded', function() {
-    const followBtn = document.querySelector('[data-follow-btn]');
-    if (!followBtn) return;
-    
-    const username = '{{ profile_user.username }}';
-    const csrfToken = '{{ csrf_token }}';
-    
-    // Handle follow/unfollow clicks
-    followBtn.addEventListener('click', function(e) {
-        e.preventDefault();
-        
-        const isFollowing = followBtn.dataset.isFollowing === 'true';
-        const action = isFollowing ? 'unfollow' : 'follow';
-        const url = `/api/profile/${username}/${action}/`;
-        
-        // Disable button during request
-        followBtn.disabled = true;
-        followBtn.style.opacity = '0.6';
-        followBtn.style.cursor = 'wait';
-        
-        fetch(url, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken
-            },
-            credentials: 'same-origin'
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                // Update button state
-                if (data.is_following) {
-                    // Now following
-                    followBtn.dataset.isFollowing = 'true';
-                    followBtn.innerHTML = '<i class="fa-solid fa-user-check"></i> Following';
-                    followBtn.className = 'bg-white/10 text-white font-bold uppercase tracking-wider px-10 py-4 rounded-xl hover:bg-red-500/20 hover:text-red-400 transition flex items-center justify-center gap-2';
-                } else if (data.has_pending_request) {
-                    // Request sent
-                    followBtn.disabled = true;
-                    followBtn.innerHTML = '<i class="fa-solid fa-clock"></i> Requested';
-                    followBtn.className = 'bg-gray-500/50 text-white font-bold uppercase tracking-wider px-10 py-4 rounded-xl cursor-not-allowed flex items-center justify-center gap-2';
-                } else {
-                    // Not following
-                    followBtn.dataset.isFollowing = 'false';
-                    followBtn.innerHTML = '<i class="fa-solid fa-user-plus"></i> Follow';
-                    followBtn.className = 'bg-z-cyan text-black font-black font-display uppercase tracking-wider px-10 py-4 rounded-xl hover:bg-white hover:scale-105 transition shadow-neon-cyan flex items-center justify-center gap-2';
-                }
-                
-                // Update follower count if visible
-                if (data.show_follower_count) {
-                    const followerCountEl = document.querySelector('[data-follower-count]');
-                    if (followerCountEl) {
-                        followerCountEl.textContent = data.follower_count.toLocaleString();
-                    }
-                }
-                
-                // Show toast notification
-                showToast(data.message, 'success');
-            } else {
-                showToast(data.error || 'An error occurred', 'error');
-            }
-        })
-        .catch(error => {
-            console.error('Follow error:', error);
-            showToast('Network error. Please try again.', 'error');
-        })
-        .finally(() => {
-            // Re-enable button
-            followBtn.disabled = false;
-            followBtn.style.opacity = '1';
-            followBtn.style.cursor = 'pointer';
-        });
-    });
-    
-    // Toast notification function
-    function showToast(message, type = 'success') {
-        const toast = document.createElement('div');
-        toast.className = `fixed bottom-8 right-8 z-[9999] px-6 py-4 rounded-xl shadow-2xl transform translate-y-0 transition-all duration-300 ${
-            type === 'success' ? 'bg-green-500/90 text-white' : 'bg-red-500/90 text-white'
-        }`;
-        toast.innerHTML = `
-            <div class="flex items-center gap-3">
-                <i class="fa-solid ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'} text-xl"></i>
-                <span class="font-medium">${message}</span>
-            </div>
-        `;
-        document.body.appendChild(toast);
-        
-        setTimeout(() => {
-            toast.style.transform = 'translateY(100px)';
-            toast.style.opacity = '0';
-            setTimeout(() => toast.remove(), 300);
-        }, 3000);
-    }
-    
+    // Follow / unfollow / cancel-request is handled once by static/siteui/js/follow.js. A second handler here used to
+    // send every click twice (two POSTs) and restyle the button with the old classes.
+
     // Deep link to Career tab
     const careerDeepLinkBtns = document.querySelectorAll('[data-career-deep-link]');
     careerDeepLinkBtns.forEach(btn => {
