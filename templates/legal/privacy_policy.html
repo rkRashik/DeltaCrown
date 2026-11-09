@@ -3,31 +3,31 @@
 {% block title %}Privacy Policy - {{ brand.name }}{% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-[#05070d] text-slate-100">
-  <section class="border-b border-white/10 bg-[#080b14]">
-    <div class="mx-auto max-w-6xl px-4 py-14 sm:px-6 lg:px-8">
-      <p class="text-xs font-black uppercase tracking-[0.24em] text-emerald-300">Data transparency</p>
-      <h1 class="mt-3 font-display text-4xl font-black text-white md:text-5xl">Privacy Policy</h1>
-      <p class="mt-4 max-w-3xl leading-7 text-slate-300">This policy explains the information {{ brand.name }} collects and uses to operate accounts, profiles, teams, tournaments, competitive modes, wallets, proof review, moderation, support, and platform security.</p>
-      <p class="mt-4 text-sm text-slate-500">Effective date: May 18, 2026</p>
+<div class="ol-page ol-doc">
+  <section class="ol-hero">
+    <div class="ol-container">
+      <p class="ol-eyebrow">Data transparency</p>
+      <h1 class="ol-h1">Privacy Policy</h1>
+      <p class="ol-lead">This policy explains the information {{ brand.name }} collects and uses to operate accounts, profiles, teams, tournaments, competitive modes, wallets, proof review, moderation, support, and platform security.</p>
+      <p class="ol-help">Effective date: May 18, 2026</p>
     </div>
   </section>
 
-  <section class="mx-auto grid max-w-6xl gap-8 px-4 py-12 sm:px-6 lg:grid-cols-[280px_1fr] lg:px-8">
-    <aside class="lg:sticky lg:top-24 lg:self-start">
-      <nav class="rounded-3xl border border-white/10 bg-white/[0.035] p-4" aria-label="Privacy navigation">
-        <a class="block rounded-xl px-3 py-2 text-sm font-bold text-slate-300 hover:bg-white/5 hover:text-white" href="#collect">Data we collect</a>
-        <a class="block rounded-xl px-3 py-2 text-sm font-bold text-slate-300 hover:bg-white/5 hover:text-white" href="#use">How we use it</a>
-        <a class="block rounded-xl px-3 py-2 text-sm font-bold text-slate-300 hover:bg-white/5 hover:text-white" href="#visibility">Visibility</a>
-        <a class="block rounded-xl px-3 py-2 text-sm font-bold text-slate-300 hover:bg-white/5 hover:text-white" href="#sharing">Sharing</a>
-        <a class="block rounded-xl px-3 py-2 text-sm font-bold text-slate-300 hover:bg-white/5 hover:text-white" href="#retention">Retention</a>
-        <a class="block rounded-xl px-3 py-2 text-sm font-bold text-slate-300 hover:bg-white/5 hover:text-white" href="#security">Security</a>
-        <a class="block rounded-xl px-3 py-2 text-sm font-bold text-slate-300 hover:bg-white/5 hover:text-white" href="#choices">Choices</a>
+  <section class="ol-container ol-doc-layout ol-body">
+    <div>
+      <nav class="ol-sidenav" aria-label="Privacy navigation">
+        <a href="#collect">Data we collect</a>
+        <a href="#use">How we use it</a>
+        <a href="#visibility">Visibility</a>
+        <a href="#sharing">Sharing</a>
+        <a href="#retention">Retention</a>
+        <a href="#security">Security</a>
+        <a href="#choices">Choices</a>
       </nav>
-    </aside>
+    </div>
 
     <article class="space-y-7 text-slate-300">
-      <section class="rounded-3xl border border-emerald-300/20 bg-emerald-300/5 p-6">
+      <section class="ol-card ol-card--accent">
         <h2 class="text-xl font-black text-white">Plain-language summary</h2>
         <p class="mt-3 leading-7">{{ brand.name }} collects the data needed to run an esports platform: accounts, profiles, team membership, tournament entries, Match Room activity, wallet records, proof uploads, disputes, moderation, support messages, and technical logs. We do not claim third-party certifications or legal compliance programs that have not been verified in the codebase.</p>
       </section>
@@ -35,14 +35,14 @@
       <section id="collect" class="scroll-mt-24 rounded-3xl border border-white/10 bg-white/[0.035] p-6">
         <h2 class="text-2xl font-black text-white">1. Data we collect</h2>
         <div class="mt-5 grid gap-4 md:grid-cols-2">
-          <div class="rounded-2xl border border-white/10 bg-black/20 p-4"><strong class="text-white">Account data</strong><p class="mt-2 text-sm leading-6 text-slate-400">Username, email, password credentials handled by authentication systems, account status, login/session records, and settings.</p></div>
-          <div class="rounded-2xl border border-white/10 bg-black/20 p-4"><strong class="text-white">Profile and Game Passport data</strong><p class="mt-2 text-sm leading-6 text-slate-400">Display identity, bios, avatars, linked game identities, preferred games, achievements, certificates, social links, privacy controls, and public profile content.</p></div>
-          <div class="rounded-2xl border border-white/10 bg-black/20 p-4"><strong class="text-white">Team and organization data</strong><p class="mt-2 text-sm leading-6 text-slate-400">Team names, tags, rosters, roles, applications, tryouts, scrims, practice sessions, VOD reviews, public team media, sponsors, and organization relationships.</p></div>
-          <div class="rounded-2xl border border-white/10 bg-black/20 p-4"><strong class="text-white">Tournament and competitive data</strong><p class="mt-2 text-sm leading-6 text-slate-400">Registrations, eligibility, schedules, Match Rooms, results, scores, standings, {{ brand.features.ranking_points }}, Showdown, Missions, Bounty, Dropzone entries, claims, and scoring records.</p></div>
-          <div class="rounded-2xl border border-white/10 bg-black/20 p-4"><strong class="text-white">Wallet and {{ brand.features.coins }} records</strong><p class="mt-2 text-sm leading-6 text-slate-400">Wallet balances, transaction history, entry fees, escrow records, rewards, refunds, top-up/withdrawal requests, payment method fields, and wallet security records.</p></div>
-          <div class="rounded-2xl border border-white/10 bg-black/20 p-4"><strong class="text-white">Proof, dispute, and moderation data</strong><p class="mt-2 text-sm leading-6 text-slate-400">Uploaded proof files, proof URLs, screenshots, match media, dispute evidence, dispute notes, abuse reports, moderation sanctions, and review decisions.</p></div>
-          <div class="rounded-2xl border border-white/10 bg-black/20 p-4"><strong class="text-white">Support data</strong><p class="mt-2 text-sm leading-6 text-slate-400">Contact form name, email, subject, message, account link if logged in, IP address, user agent, status, priority, and internal admin notes.</p></div>
-          <div class="rounded-2xl border border-white/10 bg-black/20 p-4"><strong class="text-white">Technical data</strong><p class="mt-2 text-sm leading-6 text-slate-400">Session cookies, CSRF tokens, device/browser information, IP address, request logs, security logs, and optional analytics where enabled in production configuration.</p></div>
+          <div class="ol-subcard"><strong class="text-white">Account data</strong><p class="mt-2 text-sm leading-6 text-slate-400">Username, email, password credentials handled by authentication systems, account status, login/session records, and settings.</p></div>
+          <div class="ol-subcard"><strong class="text-white">Profile and Game Passport data</strong><p class="mt-2 text-sm leading-6 text-slate-400">Display identity, bios, avatars, linked game identities, preferred games, achievements, certificates, social links, privacy controls, and public profile content.</p></div>
+          <div class="ol-subcard"><strong class="text-white">Team and organization data</strong><p class="mt-2 text-sm leading-6 text-slate-400">Team names, tags, rosters, roles, applications, tryouts, scrims, practice sessions, VOD reviews, public team media, sponsors, and organization relationships.</p></div>
+          <div class="ol-subcard"><strong class="text-white">Tournament and competitive data</strong><p class="mt-2 text-sm leading-6 text-slate-400">Registrations, eligibility, schedules, Match Rooms, results, scores, standings, {{ brand.features.ranking_points }}, Showdown, Missions, Bounty, Dropzone entries, claims, and scoring records.</p></div>
+          <div class="ol-subcard"><strong class="text-white">Wallet and {{ brand.features.coins }} records</strong><p class="mt-2 text-sm leading-6 text-slate-400">Wallet balances, transaction history, entry fees, escrow records, rewards, refunds, top-up/withdrawal requests, payment method fields, and wallet security records.</p></div>
+          <div class="ol-subcard"><strong class="text-white">Proof, dispute, and moderation data</strong><p class="mt-2 text-sm leading-6 text-slate-400">Uploaded proof files, proof URLs, screenshots, match media, dispute evidence, dispute notes, abuse reports, moderation sanctions, and review decisions.</p></div>
+          <div class="ol-subcard"><strong class="text-white">Support data</strong><p class="mt-2 text-sm leading-6 text-slate-400">Contact form name, email, subject, message, account link if logged in, IP address, user agent, status, priority, and internal admin notes.</p></div>
+          <div class="ol-subcard"><strong class="text-white">Technical data</strong><p class="mt-2 text-sm leading-6 text-slate-400">Session cookies, CSRF tokens, device/browser information, IP address, request logs, security logs, and optional analytics where enabled in production configuration.</p></div>
         </div>
       </section>
 

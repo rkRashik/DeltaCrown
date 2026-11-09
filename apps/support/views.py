@@ -24,20 +24,22 @@ class ContactForm(forms.ModelForm):
         widgets = {
             'name': forms.TextInput(attrs={
                 'placeholder': 'Your full name',
-                'class': 'w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-dc-cyan focus:border-transparent transition-all'
+                'autocomplete': 'name',
+                'class': 'ol-input'
             }),
             'email': forms.EmailInput(attrs={
-                'placeholder': 'your.email@example.com',
-                'class': 'w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-dc-cyan focus:border-transparent transition-all'
+                'placeholder': 'you@example.com',
+                'autocomplete': 'email',
+                'class': 'ol-input'
             }),
             'subject': forms.TextInput(attrs={
                 'placeholder': 'What can we help you with?',
-                'class': 'w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-dc-cyan focus:border-transparent transition-all'
+                'class': 'ol-input'
             }),
             'message': forms.Textarea(attrs={
                 'placeholder': 'Please provide as much detail as possible...',
                 'rows': 6,
-                'class': 'w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-dc-cyan focus:border-transparent transition-all resize-none'
+                'class': 'ol-textarea'
             }),
         }
     

@@ -3,26 +3,25 @@
 {% block title %}FAQ - {{ brand.name }} Support{% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-[#03050a] text-slate-100">
-  <section class="relative overflow-hidden border-b border-white/10">
-    <div class="absolute inset-0 bg-[radial-gradient(circle_at_18%_8%,rgba(6,182,212,.18),transparent_34%),radial-gradient(circle_at_82%_22%,rgba(139,92,246,.15),transparent_34%),linear-gradient(180deg,#070912,#03050a)]"></div>
-    <div class="relative mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
-      <div class="grid gap-8 lg:grid-cols-[.85fr_1.15fr] lg:items-end">
+<div class="ol-page ol-doc">
+  <section class="ol-hero">
+    <div class="ol-container">
+      <div class="ol-split" style="align-items:end;">
         <div>
-          <p class="text-xs font-black uppercase tracking-[0.24em] text-cyan-300">Support Center</p>
-          <h1 class="mt-3 font-display text-4xl font-black tracking-tight text-white md:text-6xl">Find the right answer fast.</h1>
-          <p class="mt-4 max-w-2xl text-base leading-7 text-slate-300">Practical help for accounts, tournaments, teams, {{ brand.features.ranking_points }}, {{ brand.features.coins }}, competitive modes, proof review, Team HQ, and platform safety.</p>
+          <p class="ol-eyebrow">Support Center</p>
+          <h1 class="ol-h1">Find the right answer fast.</h1>
+          <p class="ol-lead">Practical help for accounts, tournaments, teams, {{ brand.features.ranking_points }}, {{ brand.features.coins }}, competitive modes, proof review, Team HQ, and platform safety.</p>
         </div>
-        <form action="{% url 'support:faq' %}" method="get" class="rounded-3xl border border-white/10 bg-white/[0.04] p-3 shadow-2xl shadow-black/30 backdrop-blur">
-          <label class="sr-only" for="faq-search">Search support</label>
-          <div class="flex flex-col gap-3 sm:flex-row">
-            <input id="faq-search" name="q" value="{{ search_query }}" type="search" placeholder="Search help articles..." class="min-h-12 flex-1 rounded-2xl border border-white/10 bg-black/35 px-4 text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-300 focus:ring-2 focus:ring-cyan-300/20">
-            <button class="min-h-12 rounded-2xl bg-cyan-300 px-6 font-black text-slate-950 transition hover:bg-cyan-200" type="submit">Search</button>
+        <form action="{% url 'support:faq' %}" method="get" role="search">
+          <label class="ol-sr-only" for="faq-search">Search support</label>
+          <div style="display:flex;flex-wrap:wrap;gap:.75rem;">
+<input id="faq-search" name="q" value="{{ search_query }}" type="search" placeholder="Search help articles..." class="ol-input" style="flex:1 1 14rem;">
+            <button class="ol-btn ol-btn--primary" type="submit">Search</button>
           </div>
           {% if search_query %}
             <div class="mt-3 flex items-center justify-between gap-3 px-1 text-sm text-slate-400">
               <span>Showing results for <strong class="text-white">{{ search_query }}</strong></span>
-              <a href="{% url 'support:faq' %}" class="font-bold text-cyan-300 hover:text-cyan-200">Clear</a>
+              <a href="{% url 'support:faq' %}" class="ol-link">Clear</a>
             </div>
           {% endif %}
         </form>
@@ -30,14 +29,14 @@
     </div>
   </section>
 
-  <section class="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+  <section class="ol-container ol-body">
     {% if faqs_by_category %}
       {% if not search_query %}
-      <nav class="mb-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-3" aria-label="FAQ categories">
+      <nav class="ol-grid" style="margin-bottom:2.5rem;" aria-label="FAQ categories">
         {% for category_name, faqs in faqs_by_category.items %}
-          <a href="#{{ category_name|slugify }}" class="rounded-2xl border border-white/10 bg-white/[0.035] p-5 transition hover:-translate-y-0.5 hover:border-cyan-300/50 hover:bg-white/[0.055]">
-            <span class="text-xs font-black uppercase tracking-widest text-cyan-300">{{ faqs|length }} article{{ faqs|length|pluralize }}</span>
-            <h2 class="mt-2 text-lg font-black text-white">{{ category_name }}</h2>
+          <a href="#{{ category_name|slugify }}" class="ol-card ol-card--link">
+<h2 class="ol-card__title">{{ category_name }}</h2>
+<p class="ol-card__text">{{ faqs|length }} article{{ faqs|length|pluralize }}</p>
           </a>
         {% endfor %}
       </nav>
@@ -48,20 +47,17 @@
         <section id="{{ category_name|slugify }}" class="scroll-mt-24">
           <div class="mb-4 flex items-end justify-between gap-4 border-b border-white/10 pb-4">
             <div>
-              <p class="text-xs font-black uppercase tracking-[0.2em] text-cyan-300">Category</p>
+              <p class="ol-eyebrow">Category</p>
               <h2 class="mt-1 text-2xl font-black text-white">{{ category_name }}</h2>
             </div>
             <span class="text-sm text-slate-500">{{ faqs|length }} question{{ faqs|length|pluralize }}</span>
           </div>
           <div class="space-y-3">
             {% for faq in faqs %}
-            <details class="group rounded-2xl border border-white/10 bg-white/[0.035]">
-              <summary class="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-4">
-                <span class="font-bold text-slate-100">{{ faq.question }}</span>
-                <span class="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-white/5 text-cyan-300 transition group-open:rotate-180">⌄</span>
-              </summary>
-              <div class="border-t border-white/10 px-5 pb-5 pt-4 text-sm leading-7 text-slate-300">
-                {{ faq.answer|safe }}
+            <details class="ol-disclosure">
+              <summary>{{ faq.question }}</summary>
+              <div class="ol-prose" style="max-width:none;">
+{{ faq.answer|safe }}
               </div>
             </details>
             {% endfor %}
@@ -78,66 +74,66 @@
       {% endif %}
 
       <div class="grid gap-4 lg:grid-cols-[280px_1fr]">
-        <aside class="lg:sticky lg:top-24 lg:self-start">
-          <nav class="rounded-3xl border border-white/10 bg-white/[0.035] p-4" aria-label="Support topics">
-            <a class="block rounded-xl px-3 py-2 text-sm font-bold text-slate-300 hover:bg-white/5 hover:text-white" href="#getting-started">Getting Started</a>
-            <a class="block rounded-xl px-3 py-2 text-sm font-bold text-slate-300 hover:bg-white/5 hover:text-white" href="#tournaments">Tournaments</a>
-            <a class="block rounded-xl px-3 py-2 text-sm font-bold text-slate-300 hover:bg-white/5 hover:text-white" href="#teams">Teams & Organizations</a>
-            <a class="block rounded-xl px-3 py-2 text-sm font-bold text-slate-300 hover:bg-white/5 hover:text-white" href="#wallet">Wallet & {{ brand.features.coins }}</a>
-            <a class="block rounded-xl px-3 py-2 text-sm font-bold text-slate-300 hover:bg-white/5 hover:text-white" href="#rankings">{{ brand.features.ranking_points }}</a>
-            <a class="block rounded-xl px-3 py-2 text-sm font-bold text-slate-300 hover:bg-white/5 hover:text-white" href="#competitive">Competitive Modes</a>
-            <a class="block rounded-xl px-3 py-2 text-sm font-bold text-slate-300 hover:bg-white/5 hover:text-white" href="#proofs">Proofs & Disputes</a>
-            <a class="block rounded-xl px-3 py-2 text-sm font-bold text-slate-300 hover:bg-white/5 hover:text-white" href="#team-hq">Team HQ</a>
-            <a class="block rounded-xl px-3 py-2 text-sm font-bold text-slate-300 hover:bg-white/5 hover:text-white" href="#safety">Support & Safety</a>
+        <div>
+          <nav class="ol-sidenav" aria-label="Support topics">
+            <a href="#getting-started">Getting Started</a>
+            <a href="#tournaments">Tournaments</a>
+            <a href="#teams">Teams & Organizations</a>
+            <a href="#wallet">Wallet & {{ brand.features.coins }}</a>
+            <a href="#rankings">{{ brand.features.ranking_points }}</a>
+            <a href="#competitive">Competitive Modes</a>
+            <a href="#proofs">Proofs & Disputes</a>
+            <a href="#team-hq">Team HQ</a>
+            <a href="#safety">Support & Safety</a>
           </nav>
-        </aside>
+        </div>
         <div class="space-y-8">
           <section id="getting-started" class="scroll-mt-24">
             <h2 class="mb-3 text-2xl font-black text-white">Getting Started</h2>
             <div class="space-y-3">
-              <details class="rounded-2xl border border-white/10 bg-white/[0.035] p-5" open><summary class="cursor-pointer font-black">What is {{ brand.name }}?</summary><p class="mt-3 text-sm leading-7 text-slate-300">{{ brand.name }} is a connected competitive gaming platform for tournaments, teams, player identity, rankings, wallet records, competitive modes, Team HQ workflows, proof review, and structured operations.</p></details>
-              <details class="rounded-2xl border border-white/10 bg-white/[0.035] p-5"><summary class="cursor-pointer font-black">Do I need an account?</summary><p class="mt-3 text-sm leading-7 text-slate-300">You can browse some public pages without an account. Joining tournaments, managing teams, using the wallet, submitting proofs, and entering competitive modes require a {{ brand.name }} account.</p></details>
+              <details class="ol-disclosure" open><summary>What is {{ brand.name }}?</summary><div><p>{{ brand.name }} is a connected competitive gaming platform for tournaments, teams, player identity, rankings, wallet records, competitive modes, Team HQ workflows, proof review, and structured operations.</p></div></details>
+              <details class="ol-disclosure"><summary>Do I need an account?</summary><div><p>You can browse some public pages without an account. Joining tournaments, managing teams, using the wallet, submitting proofs, and entering competitive modes require a {{ brand.name }} account.</p></div></details>
             </div>
           </section>
           <section id="tournaments" class="scroll-mt-24">
             <h2 class="mb-3 text-2xl font-black text-white">Tournaments</h2>
             <div class="space-y-3">
-              <details class="rounded-2xl border border-white/10 bg-white/[0.035] p-5"><summary class="cursor-pointer font-black">How do tournaments work?</summary><p class="mt-3 text-sm leading-7 text-slate-300">Tournament pages handle discovery, registration, eligibility, schedules, Match Rooms, check-in, result submission, standings, rules, and disputes where enabled.</p></details>
-              <details class="rounded-2xl border border-white/10 bg-white/[0.035] p-5"><summary class="cursor-pointer font-black">What should I include when reporting a tournament issue?</summary><p class="mt-3 text-sm leading-7 text-slate-300">Include the tournament name, Match Room link or match ID, team/player names, screenshots or proof links, and a short timeline of what happened.</p></details>
+              <details class="ol-disclosure"><summary>How do tournaments work?</summary><div><p>Tournament pages handle discovery, registration, eligibility, schedules, Match Rooms, check-in, result submission, standings, rules, and disputes where enabled.</p></div></details>
+              <details class="ol-disclosure"><summary>What should I include when reporting a tournament issue?</summary><div><p>Include the tournament name, Match Room link or match ID, team/player names, screenshots or proof links, and a short timeline of what happened.</p></div></details>
             </div>
           </section>
           <section id="teams" class="scroll-mt-24">
             <h2 class="mb-3 text-2xl font-black text-white">Teams & Organizations</h2>
-            <details class="rounded-2xl border border-white/10 bg-white/[0.035] p-5"><summary class="cursor-pointer font-black">What can teams manage?</summary><p class="mt-3 text-sm leading-7 text-slate-300">Teams can manage public identity, rosters, roles, recruitment, join requests, tryouts, scrims, practice, VOD review, social links, milestones, sponsors, media, and competitive settings where available.</p></details>
+            <details class="ol-disclosure"><summary>What can teams manage?</summary><div><p>Teams can manage public identity, rosters, roles, recruitment, join requests, tryouts, scrims, practice, VOD review, social links, milestones, sponsors, media, and competitive settings where available.</p></div></details>
           </section>
           <section id="wallet" class="scroll-mt-24">
             <h2 class="mb-3 text-2xl font-black text-white">Wallet & {{ brand.features.coins }}</h2>
-            <details class="rounded-2xl border border-white/10 bg-white/[0.035] p-5"><summary class="cursor-pointer font-black">What is {{ brand.features.coins }}?</summary><p class="mt-3 text-sm leading-7 text-slate-300">{{ brand.features.coins }} is a closed-loop platform utility and reward currency used inside {{ brand.name }} for eligible entries, rewards, wallet records, and platform services. It is not described as an investment or external financial asset.</p></details>
+            <details class="ol-disclosure"><summary>What is {{ brand.features.coins }}?</summary><div><p>{{ brand.features.coins }} is a closed-loop platform utility and reward currency used inside {{ brand.name }} for eligible entries, rewards, wallet records, and platform services. It is not described as an investment or external financial asset.</p></div></details>
           </section>
           <section id="rankings" class="scroll-mt-24">
             <h2 class="mb-3 text-2xl font-black text-white">{{ brand.features.ranking_points }} & Rankings</h2>
-            <details class="rounded-2xl border border-white/10 bg-white/[0.035] p-5"><summary class="cursor-pointer font-black">What are {{ brand.features.ranking_points }}?</summary><p class="mt-3 text-sm leading-7 text-slate-300">{{ brand.features.ranking_points }} are {{ brand.name }}'s public progression language for teams and competitive history. Ranking systems are tied to verified competitive activity and continue to evolve across games and seasons.</p></details>
+            <details class="ol-disclosure"><summary>What are {{ brand.features.ranking_points }}?</summary><div><p>{{ brand.features.ranking_points }} are {{ brand.name }}'s public progression language for teams and competitive history. Ranking systems are tied to verified competitive activity and continue to evolve across games and seasons.</p></div></details>
           </section>
           <section id="competitive" class="scroll-mt-24">
             <h2 class="mb-3 text-2xl font-black text-white">Competitive Modes and Missions</h2>
-            <div class="grid gap-3 md:grid-cols-2">
-              <details class="rounded-2xl border border-white/10 bg-white/[0.035] p-5"><summary class="cursor-pointer font-black">What is Showdown?</summary><p class="mt-3 text-sm leading-7 text-slate-300">Showdown is the public name for head-to-head competitive reward matches with team authority, result handling, proof, and operator review paths.</p></details>
-              <details class="rounded-2xl border border-white/10 bg-white/[0.035] p-5"><summary class="cursor-pointer font-black">What are Missions?</summary><p class="mt-3 text-sm leading-7 text-slate-300">Missions are solo skill goals or reward tasks. Some require URL or image proof and manual review before any operator-controlled completion or reward action.</p></details>
-              <details class="rounded-2xl border border-white/10 bg-white/[0.035] p-5"><summary class="cursor-pointer font-black">What is Bounty?</summary><p class="mt-3 text-sm leading-7 text-slate-300">Bounty is an open skill-based challenge format with claim submission and review workflows.</p></details>
-              <details class="rounded-2xl border border-white/10 bg-white/[0.035] p-5"><summary class="cursor-pointer font-black">What is Dropzone?</summary><p class="mt-3 text-sm leading-7 text-slate-300">Dropzone supports battle royale lobby entries, room credential timing, scoring, and operator settlement/review flows.</p></details>
+            <div class="ol-grid ol-grid--2" style="gap:.5rem;align-items:start;">
+              <details class="ol-disclosure"><summary>What is Showdown?</summary><div><p>Showdown is the public name for head-to-head competitive reward matches with team authority, result handling, proof, and operator review paths.</p></div></details>
+              <details class="ol-disclosure"><summary>What are Missions?</summary><div><p>Missions are solo skill goals or reward tasks. Some require URL or image proof and manual review before any operator-controlled completion or reward action.</p></div></details>
+              <details class="ol-disclosure"><summary>What is Bounty?</summary><div><p>Bounty is an open skill-based challenge format with claim submission and review workflows.</p></div></details>
+              <details class="ol-disclosure"><summary>What is Dropzone?</summary><div><p>Dropzone supports battle royale lobby entries, room credential timing, scoring, and operator settlement/review flows.</p></div></details>
             </div>
           </section>
           <section id="proofs" class="scroll-mt-24">
             <h2 class="mb-3 text-2xl font-black text-white">Proofs, Reviews, and Disputes</h2>
-            <details class="rounded-2xl border border-white/10 bg-white/[0.035] p-5"><summary class="cursor-pointer font-black">How should I submit proof?</summary><p class="mt-3 text-sm leading-7 text-slate-300">Use the proof or result flow shown in the relevant Match Room, Mission, or competitive detail page. Clear screenshots, video links, match IDs, and timestamps help operators review faster.</p></details>
+            <details class="ol-disclosure"><summary>How should I submit proof?</summary><div><p>Use the proof or result flow shown in the relevant Match Room, Mission, or competitive detail page. Clear screenshots, video links, match IDs, and timestamps help operators review faster.</p></div></details>
           </section>
           <section id="team-hq" class="scroll-mt-24">
             <h2 class="mb-3 text-2xl font-black text-white">Team HQ, Tryouts, and Scrims</h2>
-            <details class="rounded-2xl border border-white/10 bg-white/[0.035] p-5"><summary class="cursor-pointer font-black">Are scrims and practice reward modes?</summary><p class="mt-3 text-sm leading-7 text-slate-300">No. Scrims, tryouts, practice, and VOD review are Team HQ operating workflows by default. They help teams schedule, evaluate, and improve.</p></details>
+            <details class="ol-disclosure"><summary>Are scrims and practice reward modes?</summary><div><p>No. Scrims, tryouts, practice, and VOD review are Team HQ operating workflows by default. They help teams schedule, evaluate, and improve.</p></div></details>
           </section>
           <section id="safety" class="scroll-mt-24">
             <h2 class="mb-3 text-2xl font-black text-white">Support & Safety</h2>
-            <details class="rounded-2xl border border-white/10 bg-white/[0.035] p-5"><summary class="cursor-pointer font-black">How do I report abuse or a dispute?</summary><p class="mt-3 text-sm leading-7 text-slate-300">Use the contact page or the relevant in-product dispute/report flow. Include usernames, team names, match or proof references, screenshots, and a concise description.</p></details>
+            <details class="ol-disclosure"><summary>How do I report abuse or a dispute?</summary><div><p>Use the contact page or the relevant in-product dispute/report flow. Include usernames, team names, match or proof references, screenshots, and a concise description.</p></div></details>
           </section>
         </div>
       </div>
@@ -151,8 +147,8 @@
         <p class="mt-1 text-sm text-slate-400">Send the relevant tournament, team, wallet, proof, or account details so the team can route it correctly.</p>
       </div>
       <div class="flex flex-col gap-3 sm:flex-row">
-        <a href="{% url 'support:contact' %}" class="inline-flex min-h-12 items-center justify-center rounded-2xl bg-cyan-300 px-6 font-black text-slate-950 hover:bg-cyan-200">Contact support</a>
-        <a href="{% url 'support:moderation' %}" class="inline-flex min-h-12 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] px-6 font-black text-white hover:border-cyan-300/50">Moderation guide</a>
+        <a href="{% url 'support:contact' %}" class="ol-btn ol-btn--primary">Contact support</a>
+        <a href="{% url 'support:moderation' %}" class="ol-btn ol-btn--secondary">Report an issue</a>
       </div>
     </div>
   </section>

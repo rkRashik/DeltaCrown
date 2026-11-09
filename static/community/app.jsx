@@ -59,18 +59,21 @@ function PulseBand({ identity, stats }) {
   const team = isTeam ? (window.DC.TEAMS || []).find(t => t.id === identity.teamId) : null;
   const greetName = isTeam && team ? team.name : (window.DC.ME && window.DC.ME.name ? window.DC.ME.name.split(' ')[0] : 'there');
   const hasStats = stats && (stats.total_posts || stats.total_teams);
+  const isGuest = !(window.DC_CONFIG && window.DC_CONFIG.isAuthenticated);
   return (
-    <section className="dc-pulse-bar dc-fade-in dc-scanlines mb-5">
-      <div className="dc-corner-tick tl"></div><div className="dc-corner-tick tr"></div>
-      <div className="dc-corner-tick bl"></div><div className="dc-corner-tick br"></div>
+    <section className="dc-pulse-bar dc-fade-in mb-5">
       <div className="px-4 sm:px-5 py-3.5 flex items-center gap-4 flex-wrap">
         <div className="flex items-center gap-2.5 shrink-0">
           <span className="dc-live-dot"></span>
           <div>
-            <div className="dc-hud-label text-dc-cyan text-[9px]">PULSE · LIVE</div>
+            <div className="dc-hud-label text-dc-cyan text-[9px]">Community</div>
             <div className="text-[13px] text-white/75 font-medium leading-tight">
-              Hi, <span className="text-white font-semibold">{greetName}</span>
-              {' '}· <span className="text-dc-emerald font-semibold">welcome back</span>
+              {isGuest ? (
+                <span className="text-white font-semibold">Sign in to join the discussion</span>
+              ) : (
+                <>Hi, <span className="text-white font-semibold">{greetName}</span>
+                {' '}· <span className="text-dc-emerald font-semibold">welcome back</span></>
+              )}
             </div>
           </div>
         </div>

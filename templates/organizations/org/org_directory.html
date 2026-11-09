@@ -43,14 +43,12 @@
     
     <section class="px-6">
         <div class="max-w-[1400px] mx-auto">
-            <div class="flex justify-between items-start mb-16">
+            <div class="flex flex-wrap justify-between items-start gap-4 mb-10">
                 <div>
-                    <h1 class="text-5xl md:text-7xl font-tech font-black text-white uppercase tracking-tight mb-4">
-                        Global <span class="text-transparent bg-clip-text bg-gradient-to-r from-delta-gold via-delta-violet to-delta-electric">Empires</span>
-                    </h1>
-                    <p class="text-slate-400 max-w-2xl">The highest-grossing and most influential organizations in the {{ brand.name }} ecosystem.</p>
+                    <h1 class="ol-h1" style="margin-bottom:1rem;">Organizations</h1>
+                    <p class="text-slate-400 max-w-2xl">Browse organizations on {{ brand.name }} and see how they rank by activity and score.</p>
                 </div>
-                <a href="{% url 'organizations:org_create' %}" class="px-6 py-3 bg-delta-gold/10 hover:bg-delta-gold/20 border-2 border-delta-gold rounded-lg text-sm font-bold uppercase tracking-widest text-delta-gold transition flex items-center gap-2">
+                <a href="{% url 'organizations:org_create' %}" class="ol-btn ol-btn--secondary">
                     <i class="fas fa-plus-circle"></i> Create Organization
                 </a>
             </div>
@@ -87,7 +85,7 @@
 
                                 <div class="mt-6 pt-6 border-t border-white/5 grid grid-cols-2 gap-4">
                                     <div>
-                                        <div class="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Squads</div>
+                                        <div class="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Teams</div>
                                         <div class="text-white font-mono font-bold">{{ org.squads_count|default:0 }}</div>
                                     </div>
                                     <div>
@@ -128,7 +126,7 @@
 
                                 <div class="mt-8 pt-6 border-t border-delta-gold/20 grid grid-cols-3 gap-4">
                                     <div>
-                                        <div class="text-[10px] text-delta-gold/70 uppercase tracking-widest font-bold">Squads</div>
+                                        <div class="text-[10px] text-delta-gold/70 uppercase tracking-widest font-bold">Teams</div>
                                         <div class="text-white font-mono font-bold text-lg">{{ org.squads_count|default:0 }}</div>
                                     </div>
                                     <div class="border-x border-delta-gold/10">
@@ -173,7 +171,7 @@
 
                                 <div class="mt-6 pt-6 border-t border-white/5 grid grid-cols-2 gap-4">
                                     <div>
-                                        <div class="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Squads</div>
+                                        <div class="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Teams</div>
                                         <div class="text-white font-mono font-bold">{{ org.squads_count|default:0 }}</div>
                                     </div>
                                     <div>
@@ -199,12 +197,12 @@
                 <div class="flex flex-wrap items-center gap-3">
                     <div class="relative group">
                         <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-delta-electric transition-colors"></i>
-                        <input type="text" id="org-search" name="q" value="{{ q }}" placeholder="Search Organization..." class="bg-delta-surface border border-white/10 rounded-lg py-2.5 pl-10 pr-4 text-sm text-white focus:outline-none focus:border-delta-electric transition-all w-64 font-corp">
+                        <input type="text" id="org-search" name="q" value="{{ q }}" placeholder="Search organizations" aria-label="Search organizations" class="bg-delta-surface border border-white/10 rounded-lg py-2.5 pl-10 pr-4 text-sm text-white focus:outline-none focus:border-delta-electric transition-all w-64 font-corp">
                     </div>
 
                     <div class="relative">
-                        <select id="region-filter" name="region" class="bg-delta-surface border border-white/10 text-white text-xs font-bold uppercase tracking-wider py-3 pl-4 pr-10 rounded-lg appearance-none cursor-pointer hover:bg-white/5 transition focus:border-delta-electric">
-                            <option value="">Global</option>
+                        <select id="region-filter" name="region" aria-label="Filter by region" class="bg-delta-surface border border-white/10 text-white text-xs font-bold uppercase tracking-wider py-3 pl-4 pr-10 rounded-lg appearance-none cursor-pointer hover:bg-white/5 transition focus:border-delta-electric">
+                            <option value="">All regions</option>
                             {% for code, name in countries %}
                             <option value="{{ code }}" {% if region == code %}selected{% endif %}>{{ name }}</option>
                             {% endfor %}
@@ -212,13 +210,11 @@
                         <i class="fas fa-globe absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none text-xs"></i>
                     </div>
                     
-                    <button type="submit" class="px-4 py-2.5 bg-delta-electric/10 hover:bg-delta-electric/20 border border-delta-electric rounded-lg text-xs font-bold uppercase tracking-wider text-delta-electric transition">
-                        Apply
-                    </button>
+                    <button type="submit" class="ol-btn ol-btn--secondary ol-btn--sm">Apply</button>
                 </div>
 
                 <div class="text-xs text-slate-500 font-mono">
-                    Showing {{ rows|length }} of {{ total_count }} Organizations
+                    Showing {{ rows|length }} of {{ total_count }} organizations
                 </div>
             </form>
 
@@ -230,8 +226,8 @@
                                 <th class="p-5 w-20 text-center">Rank</th>
                                 <th class="p-5">Organization</th>
                                 <th class="p-5">Region</th>
-                                <th class="p-5 text-center">Active Squads</th>
-                                <th class="p-5 text-right text-delta-gold">Empire Score</th>
+                                <th class="p-5 text-center">Active teams</th>
+                                <th class="p-5 text-right text-delta-gold">Score</th>
                                 <th class="p-5 text-center">Status</th>
                             </tr>
                         </thead>
@@ -277,9 +273,9 @@
                                 <td class="p-5 text-right font-mono font-bold text-delta-gold">{{ org.ranking.empire_score|default:0|floatformat:0 }}</td>
                                 <td class="p-5 text-center text-xs">
                                     {% if org.is_verified %}
-                                        <span class="bg-delta-success/10 border border-delta-success text-delta-success px-2 py-1 rounded font-bold uppercase">Active</span>
+                                        <span class="bg-delta-success/10 border border-delta-success text-delta-success px-2 py-1 rounded font-bold uppercase">Verified</span>
                                     {% else %}
-                                        <span class="bg-slate-700/10 border border-slate-600 text-slate-500 px-2 py-1 rounded font-bold uppercase">Pending</span>
+                                        <span class="bg-slate-700/10 border border-slate-600 text-slate-500 px-2 py-1 rounded font-bold uppercase">Not verified</span>
                                     {% endif %}
                                 </td>
                             </tr>

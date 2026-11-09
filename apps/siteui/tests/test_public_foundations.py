@@ -123,3 +123,93 @@ class DesignFoundationTests(TestCase):
         self.assertIn("ol-btn", html)
         self.assertIn("No tournaments found", html)
         self.assertNotIn("Clear Scanners", html)
+
+
+class HomepageBatchBTests(TestCase):
+    def test_home_does_not_overclaim_features_or_games(self):
+        html = self.client.get("/").content.decode()
+        for claim in ("Free Fire", "CS2", "Resets daily", "Always open", "Earns CP", "always-on", "queue, play"):
+            self.assertNotIn(claim, html)
+        self.assertIn("Competitive Hub", html)
+        # the four modes are presented once, as one hub - not as four separate links
+        self.assertLessEqual(html.count('href="/dashboard/competitive/"'), 8)
+        self.assertNotIn("Operations console", html)
+        self.assertNotIn(">Store<", html)
+
+    def test_home_uses_one_points_name(self):
+        html = self.client.get("/").content.decode()
+        self.assertNotIn("Crown Pts", html)
+        self.assertNotRegex(html, r">\s*[0-9,]+ CP\+?\s*<")
+
+
+class InformationPagesBatchBTests(TestCase):
+    PAGES = ("/about/", "/contact/", "/faq/", "/rules/", "/moderation/", "/terms/", "/privacy/", "/cookies/",
+             "/legal/community-guidelines/")
+
+    def test_information_pages_use_shared_layout_without_neon_classes(self):
+        for path in self.PAGES:
+            resp = self.client.get(path)
+            self.assertEqual(resp.status_code, 200, path)
+            html = resp.content.decode()
+            self.assertIn("ol-page", html, path)
+            body = html[html.index('id="main"'):]
+            for legacy in ("bg-cyan-300", "from-cyan", "radial-gradient(circle_at", "bg-[#03050a]", "bg-[#05070d]"):
+                self.assertNotIn(legacy, body, "%s still has %s" % (path, legacy))
+
+    def test_contact_form_is_labelled_and_still_submits(self):
+        from apps.support.models import ContactMessage
+        html = self.client.get("/contact/").content.decode()
+        for field in ("id_name", "id_email", "id_subject", "id_message"):
+            self.assertIn('for="%s"' % field, html)
+            self.assertIn('id="%s"' % field, html)
+        resp = self.client.post("/contact/", {"name": "Test Player", "email": "player@example.test",
+                                              "subject": "Bracket issue", "message": "Please check my match."})
+        self.assertEqual(resp.status_code, 302)
+        self.assertTrue(ContactMessage.objects.filter(email="player@example.test").exists())
+
+    def test_social_links_are_icons_with_names_and_no_youtube(self):
+        html = self.client.get("/contact/").content.decode()
+        for label in ("Facebook", "Discord", "Instagram", "WhatsApp"):
+            self.assertIn('aria-label="%s"' % label, html)
+        self.assertNotIn("youtube.com", html.lower())
+        self.assertNotIn(">f<", html)
+
+    def test_about_page_is_plain_language(self):
+        html = self.client.get("/about/").content.decode()
+        self.assertIn("The home of competition", html)
+        for jargon in ("Ecosystem spine", "Operator Console", "Implemented foundations"):
+            self.assertNotIn(jargon, html)
+
+
+class EcosystemPagesBatchBTests(TestCase):
+    def test_arena_uses_plain_wording(self):
+        html = self.client.get("/arena/").content.decode()
+        for jargon in ("Global Command Center", "Experience the ecosystem", "No Active Operations", "No Highlights Available"):
+            self.assertNotIn(jargon, html)
+        self.assertIn("Follow live matches", html)
+
+    def test_organization_directory_uses_plain_labels_and_labelled_filters(self):
+        html = self.client.get("/orgs/").content.decode()
+        for jargon in ("Global <span", "Empires", "Empire Score", "highest-grossing"):
+            self.assertNotIn(jargon, html)
+        self.assertIn(">Organizations</h1>", html)
+        self.assertIn('aria-label="Search organizations"', html)
+        self.assertIn('aria-label="Filter by region"', html)
+
+    def test_community_build_greets_guests_without_welcome_back(self):
+        from pathlib import Path
+        from django.conf import settings
+        build = (Path(settings.BASE_DIR) / "static/community/build/app.js").read_text(encoding="utf-8")
+        self.assertIn("Sign in to join the discussion", build)
+        self.assertNotIn("PULSE", build)
+        # source and committed build must stay in step
+        source = (Path(settings.BASE_DIR) / "static/community/app.jsx").read_text(encoding="utf-8")
+        self.assertIn("Sign in to join the discussion", source)
+
+    def test_information_templates_contain_no_control_characters(self):
+        from pathlib import Path
+        from django.conf import settings
+        for rel in ("support/faq.html", "support/contact.html", "support/rules.html", "support/moderation.html",
+                    "legal/terms_of_service.html", "legal/privacy_policy.html", "legal/cookie_policy.html", "about.html"):
+            raw = (Path(settings.BASE_DIR) / "templates" / rel).read_bytes()
+            self.assertFalse(any(b < 32 and b not in (9, 10, 13) for b in raw), rel)

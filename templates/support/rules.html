@@ -3,40 +3,39 @@
 {% block title %}Platform Rules - {{ brand.name }}{% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-[#04060b] text-slate-100">
-  <section class="relative overflow-hidden border-b border-white/10 bg-[#070a12]">
-    <div class="absolute inset-0 bg-[radial-gradient(circle_at_12%_10%,rgba(248,113,113,.16),transparent_32%),radial-gradient(circle_at_84%_18%,rgba(6,182,212,.16),transparent_34%)]"></div>
-    <div class="relative mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-8">
-      <p class="text-xs font-black uppercase tracking-[0.24em] text-red-300">Competitive integrity</p>
-      <h1 class="mt-3 font-display text-4xl font-black tracking-tight text-white md:text-6xl">{{ brand.name }} Platform Rules</h1>
-      <p class="mt-4 max-w-3xl text-lg leading-8 text-slate-300">Rules for tournaments, Match Rooms, teams, Showdown, Missions, Bounty, Dropzone, wallet/economy activity, proof review, and community conduct.</p>
-      <p class="mt-5 text-sm text-slate-500">Last updated: May 18, 2026</p>
+<div class="ol-page ol-doc">
+  <section class="ol-hero">
+    <div class="ol-container">
+      <p class="ol-eyebrow">Competitive integrity</p>
+      <h1 class="ol-h1">{{ brand.name }} Platform Rules</h1>
+      <p class="ol-lead">Rules for tournaments, Match Rooms, teams, Showdown, Missions, Bounty, Dropzone, wallet/economy activity, proof review, and community conduct.</p>
+      <p class="ol-help">Last updated: May 18, 2026</p>
     </div>
   </section>
 
-  <section class="mx-auto grid max-w-6xl gap-8 px-4 py-12 sm:px-6 lg:grid-cols-[290px_1fr] lg:px-8">
-    <aside class="lg:sticky lg:top-24 lg:self-start">
-      <nav class="rounded-3xl border border-white/10 bg-white/[0.035] p-4" aria-label="Rules navigation">
-        <a class="block rounded-xl px-3 py-2 text-sm font-bold text-slate-300 hover:bg-white/5 hover:text-white" href="#principles">1. Core Principles</a>
-        <a class="block rounded-xl px-3 py-2 text-sm font-bold text-slate-300 hover:bg-white/5 hover:text-white" href="#accounts">2. Account Integrity</a>
-        <a class="block rounded-xl px-3 py-2 text-sm font-bold text-slate-300 hover:bg-white/5 hover:text-white" href="#fair-play">3. Fair Play</a>
-        <a class="block rounded-xl px-3 py-2 text-sm font-bold text-slate-300 hover:bg-white/5 hover:text-white" href="#conduct">4. Conduct</a>
-        <a class="block rounded-xl px-3 py-2 text-sm font-bold text-slate-300 hover:bg-white/5 hover:text-white" href="#competition">5. Match & Mode Rules</a>
-        <a class="block rounded-xl px-3 py-2 text-sm font-bold text-slate-300 hover:bg-white/5 hover:text-white" href="#teams">6. Team Abuse</a>
-        <a class="block rounded-xl px-3 py-2 text-sm font-bold text-slate-300 hover:bg-white/5 hover:text-white" href="#economy">7. Economy Abuse</a>
-        <a class="block rounded-xl px-3 py-2 text-sm font-bold text-slate-300 hover:bg-white/5 hover:text-white" href="#proofs">8. Proofs & Disputes</a>
-        <a class="block rounded-xl px-3 py-2 text-sm font-bold text-slate-300 hover:bg-white/5 hover:text-white" href="#authority">9. Operator Authority</a>
+  <section class="ol-container ol-doc-layout ol-body">
+    <div>
+      <nav class="ol-sidenav" aria-label="Rules navigation">
+        <a href="#principles">1. Core Principles</a>
+        <a href="#accounts">2. Account Integrity</a>
+        <a href="#fair-play">3. Fair Play</a>
+        <a href="#conduct">4. Conduct</a>
+        <a href="#competition">5. Match & Mode Rules</a>
+        <a href="#teams">6. Team Abuse</a>
+        <a href="#economy">7. Economy Abuse</a>
+        <a href="#proofs">8. Proofs & Disputes</a>
+        <a href="#authority">9. Operator Authority</a>
       </nav>
-    </aside>
+    </div>
 
     <div class="space-y-8">
       <section id="principles" class="scroll-mt-24 rounded-3xl border border-white/10 bg-white/[0.035] p-6 md:p-8">
         <h2 class="text-2xl font-black text-white">1. Core Principles</h2>
         <p class="mt-3 leading-7 text-slate-300">{{ brand.name }} is built for structured, skill-based competitive gaming. Every player, team, organizer, and operator is expected to protect fair competition, accurate records, respectful conduct, and honest proof submission.</p>
         <div class="mt-5 grid gap-3 md:grid-cols-3">
-          <div class="rounded-2xl border border-cyan-300/20 bg-cyan-300/5 p-4"><strong class="text-cyan-200">Compete honestly</strong><p class="mt-2 text-sm text-slate-400">No cheating, exploit abuse, manipulation, or false proof.</p></div>
-          <div class="rounded-2xl border border-violet-300/20 bg-violet-300/5 p-4"><strong class="text-violet-200">Respect people</strong><p class="mt-2 text-sm text-slate-400">No harassment, hate speech, threats, doxxing, or targeted abuse.</p></div>
-          <div class="rounded-2xl border border-amber-300/20 bg-amber-300/5 p-4"><strong class="text-amber-200">Use systems properly</strong><p class="mt-2 text-sm text-slate-400">Do not exploit teams, wallets, Match Rooms, proofs, or review flows.</p></div>
+          <div class="ol-subcard ol-card--accent"><strong class="text-cyan-200">Compete honestly</strong><p class="mt-2 text-sm text-slate-400">No cheating, exploit abuse, manipulation, or false proof.</p></div>
+          <div class="ol-subcard ol-card--accent"><strong class="text-violet-200">Respect people</strong><p class="mt-2 text-sm text-slate-400">No harassment, hate speech, threats, doxxing, or targeted abuse.</p></div>
+          <div class="ol-subcard ol-card--accent"><strong class="text-amber-200">Use systems properly</strong><p class="mt-2 text-sm text-slate-400">Do not exploit teams, wallets, Match Rooms, proofs, or review flows.</p></div>
         </div>
       </section>
 
@@ -60,8 +59,8 @@
         <h2 class="text-2xl font-black text-white">4. Conduct and Community Safety</h2>
         <p class="mt-3 leading-7 text-slate-300">Players and teams must communicate respectfully across {{ brand.name }} pages, Match Rooms, Team HQ, support forms, proof notes, and connected community spaces.</p>
         <div class="mt-5 grid gap-4 md:grid-cols-2">
-          <div class="rounded-2xl border border-emerald-300/20 bg-emerald-300/5 p-5"><h3 class="font-black text-emerald-200">Expected</h3><ul class="mt-3 space-y-2 text-sm text-slate-300"><li>Respond to officials clearly.</li><li>Respect opponents and teammates.</li><li>Raise issues with evidence.</li><li>Accept operator decisions unless an appeal path is available.</li></ul></div>
-          <div class="rounded-2xl border border-red-300/20 bg-red-500/5 p-5"><h3 class="font-black text-red-200">Prohibited</h3><ul class="mt-3 space-y-2 text-sm text-slate-300"><li>Harassment, threats, hate speech, or discriminatory abuse.</li><li>Doxxing or sharing private information.</li><li>Spam, scams, impersonation, or external promotion abuse.</li><li>Retaliation against reporters, opponents, staff, or reviewers.</li></ul></div>
+          <div class="ol-subcard ol-card--accent"><h3 class="font-black text-emerald-200">Expected</h3><ul class="mt-3 space-y-2 text-sm text-slate-300"><li>Respond to officials clearly.</li><li>Respect opponents and teammates.</li><li>Raise issues with evidence.</li><li>Accept operator decisions unless an appeal path is available.</li></ul></div>
+          <div class="ol-subcard ol-card--accent"><h3 class="font-black text-red-200">Prohibited</h3><ul class="mt-3 space-y-2 text-sm text-slate-300"><li>Harassment, threats, hate speech, or discriminatory abuse.</li><li>Doxxing or sharing private information.</li><li>Spam, scams, impersonation, or external promotion abuse.</li><li>Retaliation against reporters, opponents, staff, or reviewers.</li></ul></div>
         </div>
       </section>
 
@@ -69,10 +68,10 @@
         <h2 class="text-2xl font-black text-white">5. Tournaments, Match Rooms, and Competitive Modes</h2>
         <p class="mt-3 leading-7 text-slate-300">Follow the rules shown on the relevant tournament, Match Room, Showdown, Mission, Bounty, or Dropzone surface. Game-specific settings, lobby details, roster rules, proof requirements, and deadlines may vary by event or mode.</p>
         <div class="mt-5 grid gap-3 md:grid-cols-2">
-          <div class="rounded-2xl border border-white/10 bg-black/20 p-4"><strong class="text-white">Tournaments and Match Rooms</strong><p class="mt-2 text-sm text-slate-400">Show up with the correct roster, follow check-in and lobby instructions, submit accurate results, and preserve match evidence when requested.</p></div>
-          <div class="rounded-2xl border border-white/10 bg-black/20 p-4"><strong class="text-white">Showdown, Bounty, and Dropzone</strong><p class="mt-2 text-sm text-slate-400">Do not manipulate opponents, claims, lobby access, scoring, room credentials, or review outcomes.</p></div>
-          <div class="rounded-2xl border border-white/10 bg-black/20 p-4"><strong class="text-white">Missions</strong><p class="mt-2 text-sm text-slate-400">Submit only your own valid proof. Fabricated screenshots, reused proof, edited evidence, or misleading links may be rejected and escalated.</p></div>
-          <div class="rounded-2xl border border-white/10 bg-black/20 p-4"><strong class="text-white">Operator instructions</strong><p class="mt-2 text-sm text-slate-400">When an operator asks for clarification, proof, or account/team details, respond accurately and within the active review flow when possible.</p></div>
+          <div class="ol-subcard"><strong class="text-white">Tournaments and Match Rooms</strong><p class="mt-2 text-sm text-slate-400">Show up with the correct roster, follow check-in and lobby instructions, submit accurate results, and preserve match evidence when requested.</p></div>
+          <div class="ol-subcard"><strong class="text-white">Showdown, Bounty, and Dropzone</strong><p class="mt-2 text-sm text-slate-400">Do not manipulate opponents, claims, lobby access, scoring, room credentials, or review outcomes.</p></div>
+          <div class="ol-subcard"><strong class="text-white">Missions</strong><p class="mt-2 text-sm text-slate-400">Submit only your own valid proof. Fabricated screenshots, reused proof, edited evidence, or misleading links may be rejected and escalated.</p></div>
+          <div class="ol-subcard"><strong class="text-white">Operator instructions</strong><p class="mt-2 text-sm text-slate-400">When an operator asks for clarification, proof, or account/team details, respond accurately and within the active review flow when possible.</p></div>
         </div>
       </section>
 
@@ -99,7 +98,7 @@
       <section id="proofs" class="scroll-mt-24 rounded-3xl border border-white/10 bg-white/[0.035] p-6 md:p-8">
         <h2 class="text-2xl font-black text-white">8. Proofs, Reviews, and Disputes</h2>
         <p class="mt-3 leading-7 text-slate-300">Proof and dispute systems exist to protect competitive records. Submit complete, relevant, and truthful evidence: screenshots, video links, match IDs, usernames, timestamps, lobby details, and short explanations.</p>
-        <div class="mt-5 rounded-2xl border border-cyan-300/20 bg-cyan-300/5 p-5">
+        <div class="ol-subcard ol-card--accent" style="margin-top:1.25rem;">
           <h3 class="font-black text-cyan-200">Review standards</h3>
           <p class="mt-2 text-sm leading-7 text-slate-300">Operators may compare submitted evidence with platform records, Match Room activity, proof uploads, dispute notes, team roles, wallet activity, and moderation history. Incomplete or unclear proof may be rejected or require more information.</p>
         </div>

@@ -29,7 +29,7 @@
     <div id="arm-broadcasts">
       {% if top_live_streams and selected_tab == 'live' %}
       <div style="padding:0 0 4px;">
-        <div style="font-size:13px;font-weight:600;letter-spacing:-.01em;color:#8E8E93;padding:0 16px 9px;">Featured Broadcasts</div>
+        <div style="font-size:13px;font-weight:600;letter-spacing:-.01em;color:#8E8E93;padding:0 16px 9px;">Featured streams</div>
         <div class="arm-scroll" style="display:flex;gap:10px;overflow-x:auto;padding:0 16px 2px;scroll-snap-type:x mandatory;">
           {% for s in top_live_streams %}
           <a href="{{ s.source_url|default:s.embed_url|default:'#' }}" target="_blank" rel="noopener" class="arm-tap" style="flex:none;width:210px;scroll-snap-align:start;border-radius:16px;overflow:hidden;background:#1C1C1E;text-decoration:none;display:block;">

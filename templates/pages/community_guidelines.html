@@ -5,52 +5,26 @@
 
 {% block extra_head %}
 <style>
-.guide-card {
-  background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
-  border: 1px solid rgba(255,255,255,0.07);
-  border-radius: 16px;
-  padding: 1.5rem 1.75rem;
-}
-.guide-rule-num {
-  width: 2rem; height: 2rem;
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--dc-cyan, #00E5FF), var(--dc-violet, #7B2BFF));
-  display: inline-grid;
-  place-items: center;
-  font-weight: 800;
-  font-size: 0.75rem;
-  color: #050510;
-  flex-shrink: 0;
-}
-.guide-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  padding: 0.2rem 0.6rem;
-  border-radius: 6px;
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-}
-.guide-tag.ok    { background: rgba(16,230,139,0.12); color: #10E68B; border: 1px solid rgba(16,230,139,0.25); }
-.guide-tag.no    { background: rgba(255,77,109,0.12); color: #FF4D6D; border: 1px solid rgba(255,77,109,0.25); }
-.guide-tag.warn  { background: rgba(255,209,102,0.12); color: #FFD166; border: 1px solid rgba(255,209,102,0.25); }
+.guide-card { background: var(--ol-surface); border: 1px solid var(--ol-border); border-radius: var(--ol-radius-lg); padding: 1.5rem 1.75rem; }
+.guide-rule-num { width: 2rem; height: 2rem; border-radius: 50%; background: var(--ol-saffron); display: inline-grid; place-items: center; font-weight: 700; font-size: .75rem; color: var(--ol-canvas); flex-shrink: 0; }
+.guide-tag { display: inline-flex; align-items: center; gap: .35rem; padding: .2rem .6rem; border-radius: 6px; font-size: .75rem; font-weight: 600; letter-spacing: .02em; }
+.guide-tag.ok   { background: rgb(127 211 160 / .12); color: var(--ol-success); border: 1px solid rgb(127 211 160 / .3); }
+.guide-tag.no   { background: rgb(240 133 123 / .12); color: var(--ol-danger); border: 1px solid rgb(240 133 123 / .3); }
+.guide-tag.warn { background: rgb(216 128 76 / .14); color: var(--ol-warning); border: 1px solid rgb(216 128 76 / .35); }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="max-w-3xl mx-auto px-4 sm:px-6 py-12 text-white">
+<div class="ol-page ol-doc"><div class="ol-container ol-container--narrow ol-body">
 
   <!-- Header -->
   <div class="mb-10">
-    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-dc-cyan/10 border border-dc-cyan/20 text-dc-cyan text-xs font-bold tracking-widest mb-4">
-      <i class="fa-solid fa-shield-halved text-[10px]"></i> COMMUNITY GUIDELINES
-    </div>
-    <h1 class="text-4xl font-extrabold tracking-tight text-white" style="font-family:'Space Grotesk',sans-serif;">
+    <p class="ol-eyebrow">Community guidelines</p>
+    <h1 class="ol-h1">
       The {{ brand.name }}<br class="sm:hidden"> Community Code
     </h1>
-    <p class="text-white/55 mt-3 text-lg max-w-2xl">
-      {{ brand.name }} is Bangladesh's competitive esports home. These guidelines protect the space where thousands of players, teams, and fans come to compete, share, and grow.
+    <p class="ol-lead">
+      {{ brand.name }} is a competitive gaming platform built in Bangladesh. These guidelines protect the space where players, teams, and fans come to compete, share, and grow.
     </p>
     <div class="flex flex-wrap gap-2 mt-4">
       <span class="guide-tag ok"><i class="fa-solid fa-check"></i> Allowed</span>
@@ -185,9 +159,9 @@
   </div>
 
   <!-- Enforcement section -->
-  <div class="mt-10 guide-card" style="border-color: rgba(255,77,109,0.18); background: linear-gradient(135deg, rgba(255,77,109,0.05), transparent);">
+  <div class="mt-10 guide-card">
     <div class="font-bold text-white text-base mb-3 flex items-center gap-2">
-      <i class="fa-solid fa-gavel text-dc-rose"></i> Enforcement
+      <i class="fa-solid fa-gavel" aria-hidden="true"></i> Enforcement
     </div>
     <div class="grid sm:grid-cols-3 gap-4 text-sm">
       <div class="text-center p-3 rounded-xl bg-white/[.03]">
@@ -210,13 +184,10 @@
   <div class="mt-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-sm">
     <p class="text-white/45">
       Questions about a specific post or moderation action?<br>
-      <a href="/contact/" class="text-dc-cyan hover:underline">Contact support →</a>
+      <a href="/contact/" class="ol-link">Contact support →</a>
     </p>
-    <a href="/community/" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-black"
-       style="background: linear-gradient(135deg,#00E5FF,#7B2BFF);">
-      <i class="fa-solid fa-arrow-left text-xs"></i> Back to Community
-    </a>
+    <a href="/community/" class="ol-btn ol-btn--primary">Back to Community</a>
   </div>
 
-</div>
+</div></div>
 {% endblock %}
