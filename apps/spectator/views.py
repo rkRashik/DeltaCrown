@@ -11,11 +11,12 @@ Read-only view layer for tournament spectators. Orchestrates existing services:
 All views follow IDs-only discipline (no PII in responses).
 """
 
-from django.shortcuts import render, get_object_or_404
-from django.http import JsonResponse
+from django.shortcuts import render, get_object_or_404, redirect
+from django.http import JsonResponse, Http404
+from django.urls import reverse
 from django.views.decorators.http import require_http_methods
 from django.conf import settings
-from django.db.models import Q
+from django.db.models import Count, Q
 
 from apps.tournaments.models import Tournament, Match, Registration
 from apps.leaderboards.services import LeaderboardService
@@ -53,119 +54,71 @@ def _enrich_leaderboard_entries(entries):
             entry.setdefault('display_name', None)
 
 
+# Drafts and tournaments awaiting approval are never public; the directory only
+# lists events a spectator can actually open.
+_DIRECTORY_STATUSES = (Tournament.REGISTRATION_OPEN, Tournament.LIVE)
+_HIDDEN_STATUSES = (Tournament.DRAFT, Tournament.PENDING_APPROVAL)
+
+
+def _public_tournament_or_404(tournament_id):
+    tournament = get_object_or_404(Tournament.objects.filter(is_deleted=False), id=tournament_id)
+    if tournament.status in _HIDDEN_STATUSES:
+        raise Http404("Tournament not found")
+    return tournament
+
+
 @require_http_methods(["GET"])
 def tournament_list_view(request):
     """
     Tournament list page - spectator entry point.
-    
+
     GET /spectator/
-    
-    Displays all active tournaments for spectators to choose from.
-    
+
+    Lists public tournaments that are open for registration or live. Live events
+    link to the public spectate page; registration-open events link to the
+    public tournament page.
+
     Context:
-        tournaments (QuerySet): Active tournaments (registration_open, ongoing, in_progress)
+        tournament_data (list): dicts with ``tournament``, ``participant_count``
+        and ``url`` (the canonical public page for that tournament)
     """
-    # Get active tournaments
-    tournaments = Tournament.objects.filter(
-        stage__in=['REGISTRATION', 'ONGOING', 'IN_PROGRESS']
-    ).select_related('game').order_by('-start_time')
-    
-    # Get participant counts
+    tournaments = (
+        Tournament.objects.filter(is_deleted=False, status__in=_DIRECTORY_STATUSES)
+        .select_related('game')
+        .annotate(
+            participant_count=Count(
+                'registrations',
+                filter=Q(registrations__status=Registration.CONFIRMED, registrations__is_deleted=False),
+            )
+        )
+        .order_by('-tournament_start', '-id')
+    )
+
     tournament_data = []
     for tournament in tournaments:
-        participant_count = Registration.objects.filter(
-            tournament=tournament,
-            status='confirmed'
-        ).count()
-        
+        route = 'tournaments:spectate' if tournament.status == Tournament.LIVE else 'tournaments:detail'
         tournament_data.append({
             'tournament': tournament,
-            'participant_count': participant_count,
+            'participant_count': tournament.participant_count,
+            'url': reverse(route, kwargs={'slug': tournament.slug}),
         })
-    
-    context = {
-        'tournament_data': tournament_data,
-    }
-    
-    return render(request, 'spectator/tournament_list.html', context)
+
+    return render(request, 'spectator/tournament_list.html', {'tournament_data': tournament_data})
 
 
 @require_http_methods(["GET"])
 def tournament_spectator_view(request, tournament_id):
     """
-    Tournament spectator page.
-    
-    GET /spectator/tournaments/<int:tournament_id>/
-    
-    Displays:
-    - Tournament metadata (IDs only)
-    - Current leaderboard (top 20 entries)
-    - Live/upcoming matches
-    - WebSocket connection info for real-time updates
-    
-    Context:
-        tournament_id (int): Tournament ID
-        game_code (str): Game identifier
-        stage (str): Tournament stage (REGISTRATION, ONGOING, COMPLETED)
-        status (str): Tournament status
-        start_time (datetime): Scheduled start time
-        end_time (datetime): Scheduled end time
-        leaderboard_entries (list): List of dicts with rank, participant_id, team_id, points
-        matches (list): List of dicts with match_id, round, status, scheduled_time
-        ws_tournament_url (str): WebSocket URL for tournament updates
-    
-    IDs-Only Discipline:
-        - Returns only IDs (no display names, usernames, emails)
-        - Client must resolve names via /api/profiles/, /api/teams/, etc.
-    """
-    tournament = get_object_or_404(Tournament, id=tournament_id)
-    
-    # Get leaderboard data (Phase E service)
-    leaderboard_service = LeaderboardService()
-    leaderboard_entries = leaderboard_service.get_leaderboard(
-        leaderboard_type='tournament',
-        tournament_id=tournament_id,
-        limit=20  # Top 20 for spectator view
-    )
-    
-    # Get live/upcoming matches
-    matches = Match.objects.filter(
-        tournament_id=tournament_id
-    ).filter(
-        Q(status='scheduled') | Q(status='in_progress')
-    ).order_by('scheduled_time', 'round').values(
-        'id',
-        'round',
-        'bracket_position',
-        'status',
-        'scheduled_time',
-        'participant1_id',
-        'participant2_id',
-        'participant1_score',
-        'participant2_score'
-    )[:10]  # Limit to 10 matches
-    
-    # Build WebSocket URL for tournament channel
-    ws_scheme = 'wss' if request.is_secure() else 'ws'
-    ws_host = request.get_host()
-    ws_tournament_url = f"{ws_scheme}://{ws_host}/ws/tournament/{tournament_id}/"
-    
-    # Resolve team/player names for leaderboard entries
-    _enrich_leaderboard_entries(leaderboard_entries)
+    Legacy spectator page: GET /spectator/tournaments/<int:tournament_id>/
 
-    context = {
-        'tournament_id': tournament.id,
-        'game_code': tournament.game,
-        'stage': tournament.stage,
-        'status': tournament.status,
-        'start_time': tournament.start_time,
-        'end_time': tournament.end_time,
-        'leaderboard_entries': leaderboard_entries,
-        'matches': list(matches),
-        'ws_tournament_url': ws_tournament_url,
-    }
-    
-    return render(request, 'spectator/tournament_detail.html', context)
+    The ID-based spectator page was replaced by the public tournament pages.
+    Redirects to the live/completed spectate page, or to the tournament page
+    otherwise. Drafts and pending tournaments return 404.
+    """
+    tournament = _public_tournament_or_404(tournament_id)
+    if tournament.status in (Tournament.LIVE, Tournament.COMPLETED):
+        return redirect('tournaments:spectate', slug=tournament.slug)
+    return redirect('tournaments:detail', slug=tournament.slug)
 
 
 @require_http_methods(["GET"])
@@ -245,57 +198,20 @@ def tournament_matches_fragment(request, tournament_id):
 @require_http_methods(["GET"])
 def match_spectator_view(request, match_id):
     """
-    Match spectator page.
-    
-    GET /spectator/matches/<int:match_id>/
-    
-    Displays:
-    - Match metadata (IDs only)
-    - Live scoreboard
-    - Participant/team IDs
-    - WebSocket connection info for real-time score updates
-    
-    Context:
-        match_id (int): Match ID
-        tournament_id (int): Parent tournament ID
-        round (int): Bracket round number
-        status (str): Match status (scheduled, in_progress, completed)
-        scheduled_time (datetime): Match start time
-        participant1_id (int): First participant/team ID
-        participant2_id (int): Second participant/team ID
-        participant1_score (int): First participant score
-        participant2_score (int): Second participant score
-        ws_match_url (str): WebSocket URL for match updates
-    
-    IDs-Only Discipline:
-        - Returns only IDs (no participant names)
-        - Client must resolve names via external APIs
+    Legacy match page: GET /spectator/matches/<int:match_id>/
+
+    Redirects to the public match page. Matches of draft/pending tournaments
+    return 404.
     """
     match = get_object_or_404(
         Match.objects.select_related('tournament'),
-        id=match_id
+        id=match_id,
+        is_deleted=False,
+        tournament__is_deleted=False,
     )
-    
-    # Build WebSocket URL for match channel
-    ws_scheme = 'wss' if request.is_secure() else 'ws'
-    ws_host = request.get_host()
-    ws_match_url = f"{ws_scheme}://{ws_host}/ws/tournament/{match.tournament_id}/"
-    
-    context = {
-        'match_id': match.id,
-        'tournament_id': match.tournament_id,
-        'round': match.round,
-        'bracket_position': match.bracket_position,
-        'status': match.status,
-        'scheduled_time': match.scheduled_time,
-        'participant1_id': match.participant1_id,
-        'participant2_id': match.participant2_id,
-        'participant1_score': match.participant1_score or 0,
-        'participant2_score': match.participant2_score or 0,
-        'ws_match_url': ws_match_url,
-    }
-    
-    return render(request, 'spectator/match_detail.html', context)
+    if match.tournament.status in _HIDDEN_STATUSES:
+        raise Http404("Match not found")
+    return redirect('tournaments:match_detail', slug=match.tournament.slug, match_id=match.id)
 
 
 @require_http_methods(["GET"])

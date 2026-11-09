@@ -7,7 +7,7 @@ from django.views.decorators.http import require_http_methods
 from django.core.exceptions import ValidationError
 
 from django.views.generic import UpdateView
-from django.urls import reverse_lazy
+from django.urls import reverse, reverse_lazy
 from django import forms
 from django.shortcuts import get_object_or_404, render, redirect
 from django.conf import settings
@@ -387,13 +387,13 @@ def profile_view(request, username=None):
 @login_required
 def my_tournaments_view(request):
     """
-    Shows tournaments the current user is registered in (either solo or via teams).
-    
-    NOTE: Tournament system moved to legacy - this function disabled.
+    Legacy /me/tournaments/: redirects to the canonical player page
+    (/tournaments/my/), keeping any query string. The old template no longer
+    exists; the canonical page owns this data.
     """
-    # Tournament system moved to legacy - no longer displaying tournament data
-    regs = []
-    return render(request, "user_profile/my_tournaments.html", {"registrations": regs})
+    target = reverse("tournaments:my_tournaments")
+    query = request.META.get("QUERY_STRING", "")
+    return redirect(f"{target}?{query}" if query else target)
 
 
 # --------------------------- Notifications helper (unchanged) ---------------------------

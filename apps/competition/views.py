@@ -308,25 +308,14 @@ def challenge_detail_page(request, reference_code):
 
 def bounty_board(request):
     """
-    Public bounty board — browse active bounties, filter by game/type.
+    Public bounty board: deliberately unavailable.
+
+    There is no public bounty page. Bounties can carry reward values (including
+    cash) and the owner has not approved publishing reward terms publicly, so
+    this route answers 404 instead of rendering a missing template (HTTP 500) or
+    redirecting an anonymous visitor to a login wall. Signed-in players use the
+    competitive hub (/dashboard/competitive/). Revisit once a public bounty
+    policy is decided.
     """
-    from apps.games.models import Game
-
-    game_slug = request.GET.get('game')
-    game = None
-    if game_slug:
-        try:
-            game = Game.objects.get(slug=game_slug)
-        except Game.DoesNotExist:
-            pass
-
-    active_bounties = BountyService.get_active_bounties(game=game, limit=50)
-    games = Game.objects.filter(is_active=True).order_by('name')
-
-    context = {
-        'bounties': active_bounties,
-        'games': games,
-        'selected_game': game,
-        'page_title': 'Bounty Board',
-    }
-    return render(request, 'competition/bounty_board.html', context)
+    from django.http import Http404
+    raise Http404("The public bounty board is not available.")
