@@ -24,8 +24,8 @@ BRAND = {
     "theme_color": TOKENS["colors"]["deep"],
     "fonts": {"body": 'Inter, ui-sans-serif, system-ui, sans-serif', "display": 'Inter, ui-sans-serif, system-ui, sans-serif', "mono": 'JetBrains Mono, ui-monospace, monospace'},
     "features": {"coins": "Coins", "ranking_points": "Ranking Points", "ranking_points_short": "RP", "team_rank": "Team Rank", "competitive_hub": "Competitive Hub", "store": "Store", "passport": "Game Passport", "team_hq": "Team HQ", "showdown": "Showdown", "missions": "Missions", "bounty": "Bounty", "dropzone": "Dropzone", "match_rooms": "Match Rooms"},
-    # Existing verified destinations stay in service until the owner updates them.
-    "social": {"facebook": os.getenv("BRAND_FACEBOOK_URL", "https://www.facebook.com/DeltaCrownGG"), "youtube": os.getenv("BRAND_YOUTUBE_URL", "https://www.youtube.com/@DeltaCrownGG"), "discord": os.getenv("BRAND_DISCORD_URL", "https://discord.gg/UaHRC8Cd")},
+    # Facebook/Instagram are owner-confirmed OwnLobby accounts; YouTube/Discord stay on existing verified destinations.
+    "social": {"facebook": os.getenv("BRAND_FACEBOOK_URL", "https://www.facebook.com/ownlobbygg"), "instagram": os.getenv("BRAND_INSTAGRAM_URL", "https://www.instagram.com/ownlobbygg/"), "youtube": os.getenv("BRAND_YOUTUBE_URL", "https://www.youtube.com/@DeltaCrownGG"), "discord": os.getenv("BRAND_DISCORD_URL", "https://discord.gg/UaHRC8Cd")},
     "support_email": os.getenv("BRAND_SUPPORT_EMAIL", "support@deltacrown.xyz"),
 }
 

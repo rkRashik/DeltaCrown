@@ -54,7 +54,7 @@
                     
                     <div class="flex flex-wrap gap-3">
                         <!-- Facebook -->
-                        <a href="{{ brand.social.facebook }}" target="_blank"
+                        <a href="{{ brand.social.facebook }}" target="_blank" rel="noopener noreferrer"
                            class="group relative" title="Facebook">
                             <div class="absolute inset-0 bg-[#1877F2]/30 rounded-xl blur-lg opacity-0 group-hover:opacity-100 transition-all duration-300"></div>
                             <div class="relative w-12 h-12 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl flex items-center justify-center hover:bg-[#1877F2]/20 hover:border-[#1877F2]/50 transition-all duration-300 group-hover:scale-110">
@@ -65,7 +65,7 @@
                         </a>
                         
                         <!-- Discord -->
-                        <a href="{{ brand.social.discord }}" target="_blank"
+                        <a href="{{ brand.social.discord }}" target="_blank" rel="noopener noreferrer"
                            class="group relative" title="Discord">
                             <div class="absolute inset-0 bg-[#5865F2]/30 rounded-xl blur-lg opacity-0 group-hover:opacity-100 transition-all duration-300"></div>
                             <div class="relative w-12 h-12 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl flex items-center justify-center hover:bg-[#5865F2]/20 hover:border-[#5865F2]/50 transition-all duration-300 group-hover:scale-110">
@@ -75,7 +75,7 @@
                         </a>
                         
                         <!-- YouTube -->
-                        <a href="{{ brand.social.youtube }}" target="_blank"
+                        <a href="{{ brand.social.youtube }}" target="_blank" rel="noopener noreferrer"
                            class="group relative" title="YouTube">
                             <div class="absolute inset-0 bg-[#FF0000]/30 rounded-xl blur-lg opacity-0 group-hover:opacity-100 transition-all duration-300"></div>
                             <div class="relative w-12 h-12 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl flex items-center justify-center hover:bg-[#FF0000]/20 hover:border-[#FF0000]/50 transition-all duration-300 group-hover:scale-110">
@@ -85,7 +85,7 @@
                         </a>
                         
                         <!-- Instagram - Fixed Logo -->
-                        <a href="https://instagram.com/deltacrowngg" target="_blank" 
+                        <a href="{{ brand.social.instagram }}" target="_blank" rel="noopener noreferrer" 
                            class="group relative" title="Instagram">
                             <div class="absolute inset-0 bg-gradient-to-br from-[#E1306C]/30 via-[#F77737]/30 to-[#FCAF45]/30 rounded-xl blur-lg opacity-0 group-hover:opacity-100 transition-all duration-300"></div>
                             <div class="relative w-12 h-12 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl flex items-center justify-center hover:bg-gradient-to-br hover:from-[#E1306C]/20 hover:via-[#F77737]/20 hover:to-[#FCAF45]/20 hover:border-[#E1306C]/50 transition-all duration-300 group-hover:scale-110">
@@ -95,7 +95,7 @@
                         </a>
                         
                         <!-- WhatsApp -->
-                        <a href="https://wa.me/8801789560202" target="_blank"
+                        <a href="https://wa.me/8801789560202" target="_blank" rel="noopener noreferrer"
                            class="group relative" title="WhatsApp">
                             <div class="absolute inset-0 bg-[#25D366]/30 rounded-xl blur-lg opacity-0 group-hover:opacity-100 transition-all duration-300"></div>
                             <div class="relative w-12 h-12 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl flex items-center justify-center hover:bg-[#25D366]/20 hover:border-[#25D366]/50 transition-all duration-300 group-hover:scale-110">
@@ -287,31 +287,31 @@
             <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
                 <div class="text-center sm:text-left">
                     <p class="text-gray-400 text-sm font-medium">
-                        Â© {% now "Y" %} <span class="gradient-text font-bold">{{ brand.name }}</span>. All rights reserved.
+                        © {% now "Y" %} <span class="gradient-text font-bold">{{ brand.name }}</span>. All rights reserved.
                     </p>
                     <p class="text-gray-600 text-xs mt-1">
-                        Crafted with <span class="text-red-400">â™¥</span> in Bangladesh
+                        Crafted with <span class="text-red-400">♥</span> in Bangladesh
                     </p>
                 </div>
                 
                 <div class="flex items-center gap-4">
-                    <a href="{{ brand.social.facebook }}" target="_blank" class="text-gray-500 hover:text-dc-cyan transition-colors text-xs font-medium">
+                    <a href="{{ brand.social.facebook }}" target="_blank" rel="noopener noreferrer" class="text-gray-500 hover:text-dc-cyan transition-colors text-xs font-medium">
                         Facebook
                     </a>
-                    <span class="text-gray-700">â€¢</span>
-                    <a href="{{ brand.social.discord }}" target="_blank" class="text-gray-500 hover:text-dc-purple transition-colors text-xs font-medium">
+                    <span class="text-gray-700">•</span>
+                    <a href="{{ brand.social.discord }}" target="_blank" rel="noopener noreferrer" class="text-gray-500 hover:text-dc-purple transition-colors text-xs font-medium">
                         Discord
                     </a>
-                    <span class="text-gray-700">â€¢</span>
-                    <a href="https://instagram.com/deltacrowngg" target="_blank" class="text-gray-500 hover:text-pink-400 transition-colors text-xs font-medium">
+                    <span class="text-gray-700">•</span>
+                    <a href="{{ brand.social.instagram }}" target="_blank" rel="noopener noreferrer" class="text-gray-500 hover:text-pink-400 transition-colors text-xs font-medium">
                         Instagram
                     </a>
-                    <span class="text-gray-700">â€¢</span>
-                    <a href="https://wa.me/8801789560202" target="_blank" class="text-gray-500 hover:text-green-400 transition-colors text-xs font-medium">
+                    <span class="text-gray-700">•</span>
+                    <a href="https://wa.me/8801789560202" target="_blank" rel="noopener noreferrer" class="text-gray-500 hover:text-green-400 transition-colors text-xs font-medium">
                         WhatsApp
                     </a>
-                    <span class="text-gray-700">â€¢</span>
-                    <a href="{{ brand.social.youtube }}" target="_blank" class="text-gray-500 hover:text-red-400 transition-colors text-xs font-medium">
+                    <span class="text-gray-700">•</span>
+                    <a href="{{ brand.social.youtube }}" target="_blank" rel="noopener noreferrer" class="text-gray-500 hover:text-red-400 transition-colors text-xs font-medium">
                         YouTube
                     </a>
                 </div>

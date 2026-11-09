@@ -1,6 +1,8 @@
 """Brand identity, authenticated hero isolation and compatibility regressions."""
 from datetime import timedelta
 from io import BytesIO
+import os
+import re
 import uuid
 from pathlib import Path
 from types import SimpleNamespace
@@ -42,6 +44,49 @@ class BrandIdentityTests(SimpleTestCase):
                 self.assertEqual(seo["canonical"], origin + "/tournaments/")
                 self.assertIn("/static/ownlobby/", seo["og_image"])
                 self.assertEqual(organization_schema()["name"], "OwnLobby")
+
+    def test_official_social_destinations_and_organization_same_as(self):
+        import json
+        from deltacrown.branding import BRAND
+        from apps.common.seo import schema_json
+        if not {"BRAND_FACEBOOK_URL", "BRAND_INSTAGRAM_URL"} & set(os.environ):
+            self.assertEqual(BRAND["social"]["facebook"], "https://www.facebook.com/ownlobbygg")
+            self.assertEqual(BRAND["social"]["instagram"], "https://www.instagram.com/ownlobbygg/")
+        self.assertEqual(organization_schema()["sameAs"], [BRAND["social"]["facebook"], BRAND["social"]["instagram"]])
+        parsed = json.loads(schema_json(organization_schema())[0])
+        self.assertEqual(parsed["sameAs"], organization_schema()["sameAs"])
+        self.assertNotIn("DeltaCrownGG", json.dumps(parsed))
+
+    def test_footer_links_official_socials_safely(self):
+        from deltacrown.branding import BRAND
+        html = render_to_string("partials/footer_modern.html", {"brand": BRAND})
+        for url in (BRAND["social"]["facebook"], BRAND["social"]["instagram"]):
+            self.assertGreaterEqual(html.count('href="%s"' % url), 2)
+        self.assertNotIn("instagram.com/deltacrowngg", html)
+        for tag in re.findall(r"<a [^>]*>", html):
+            if 'target="_blank"' in tag:
+                self.assertIn("noopener", tag)
+        self.assertNotIn("Â", html)
+
+    def test_meta_descriptions_strip_rich_text_markup(self):
+        from apps.common.seo import schema_json, truncate_meta
+        seo = build_seo(description="<p>Welcome to <b>the Cup</b> &amp; friends</p><script>alert(1)</script>")
+        self.assertEqual(seo["description"], "Welcome to the Cup & friendsalert(1)")
+        self.assertEqual(truncate_meta("<p>a</p>"), "a")
+        # entity-encoded markup (as stored by some rich-text fields) must also be cleaned
+        self.assertEqual(truncate_meta("&lt;p&gt;Tournament &lt;b&gt;description&lt;/b&gt;&lt;/p&gt;"), "Tournament description")
+        self.assertEqual(build_seo(description="&lt;p&gt;Tournament description&lt;/p&gt;")["description"], "Tournament description")
+        self.assertNotIn("<", schema_json({"description": truncate_meta("&lt;p&gt;x&lt;/p&gt;")})[0])
+
+    def test_toc_official_social_defaults_match_between_js_and_backend(self):
+        from apps.tournaments.api.toc.settings_service import TOCSettingsService
+        js = (Path(settings.BASE_DIR) / "static/tournaments/toc/js/toc-settings.js").read_text(encoding="utf-8")
+        block = re.search(r"OFFICIAL_SOCIAL_DEFAULTS\s*=\s*\{(.*?)\};", js, re.S).group(1)
+        frontend = dict(re.findall(r"(\w+):\s*'([^']*)'", block))
+        self.assertEqual(frontend, TOCSettingsService.OFFICIAL_SOCIAL_DEFAULTS)
+        self.assertEqual(frontend["social_facebook"], "https://www.facebook.com/ownlobbygg")
+        self.assertEqual(frontend["social_instagram"], "https://www.instagram.com/ownlobbygg/")
+        self.assertEqual(frontend["social_website"], "https://ownlobby.com")
 
     @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend", DEFAULT_FROM_EMAIL="noreply@deltacrown.xyz", SITE_URL="https://deltacrown.xyz")
     def test_otp_email_uses_official_png_and_keeps_verified_sender(self):
@@ -95,6 +140,25 @@ class BrandIdentityTests(SimpleTestCase):
         embed = DiscordWebhookService.build_embed("QA title", "QA description")
         self.assertIn("OwnLobby", embed["footer"]["text"])
         self.assertTrue(embed["footer"]["icon_url"].startswith("https://ownlobby.com/static/ownlobby/"))
+
+
+class ErrorPageSeoTests(TestCase):
+    def test_404_page_is_noindex_without_self_canonical(self):
+        response = self.client.get("/definitely-not-a-page/")
+        html = response.content.decode()
+        self.assertEqual(response.status_code, 404)
+        self.assertIn('<meta name="robots" content="noindex, nofollow">', html)
+        self.assertNotIn('rel="canonical"', html)
+        self.assertNotIn('content="index, follow"', html)
+
+    def test_403_and_500_templates_are_noindex_without_self_canonical(self):
+        from django.test import RequestFactory
+        for template in ("403.html", "500.html"):
+            with self.subTest(template=template):
+                html = render_to_string(template, request=RequestFactory().get("/error-sample/"))
+                self.assertIn('<meta name="robots" content="noindex, nofollow">', html)
+                self.assertNotIn('rel="canonical"', html)
+                self.assertNotIn('content="index, follow"', html)
 
 
 class HeroOwnershipTests(TestCase):

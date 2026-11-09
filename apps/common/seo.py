@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from deltacrown.branding import BRAND, brand_copy
 
+import html
 import json
 from datetime import date, datetime
 from typing import Any
@@ -9,6 +10,7 @@ from urllib.parse import parse_qs, urlencode, urljoin, urlsplit
 
 from django.conf import settings
 from django.templatetags.static import static
+from django.utils.html import strip_tags
 from django.urls import NoReverseMatch, reverse
 
 
@@ -89,7 +91,7 @@ def reverse_absolute(viewname: str, kwargs: dict[str, Any] | None = None) -> str
 
 
 def truncate_meta(value: str, length: int = 155) -> str:
-    value = " ".join((value or "").split())
+    value = " ".join(strip_tags(html.unescape(value or "")).split())  # rich-text fields must not leak markup into meta/JSON-LD
     if length <= 0:
         return ""
     if len(value) <= length:
@@ -231,6 +233,7 @@ def organization_schema() -> dict[str, Any]:
         "url": absolute_url("/"),
         "logo": absolute_static(BRAND["logo_dark"]),
         "description": DEFAULT_DESCRIPTION,
+        "sameAs": [BRAND["social"][key] for key in ("facebook", "instagram") if BRAND["social"].get(key)],
     }
 
 

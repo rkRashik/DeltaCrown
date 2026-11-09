@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% load static %}
 
+{% block seo_meta %}<meta name="robots" content="noindex, nofollow">{% endblock %}
 {% block title %}Server Error — {{ brand.name }}{% endblock %}
 
 {% block extra_css %}

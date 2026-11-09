@@ -409,9 +409,9 @@ class TestTournamentDetailWidgets:
         socials = response.context['detail_widgets']['socials']
         assert socials['enabled'] is True
         assert socials['discord'] == 'https://discord.gg/UaHRC8Cd'
-        assert socials['facebook'] == 'https://www.facebook.com/DeltaCrownGG'
+        assert socials['facebook'] == 'https://www.facebook.com/ownlobbygg'
         assert socials['youtube'] == 'https://www.youtube.com/@DeltaCrownGG'
-        assert socials['instagram'] == 'https://instagram.com/deltacrowngg'
+        assert socials['instagram'] == 'https://www.instagram.com/ownlobbygg/'
 
     def test_authenticated_user_can_vote_on_fan_prediction_question(self, client, published_tournament):
         voter = User.objects.create_user(

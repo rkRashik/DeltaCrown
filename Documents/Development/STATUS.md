@@ -1,5 +1,9 @@
 # OwnLobby current status
 
+## Branding & search discoverability sprint (prompt series "OL-13 P1"; separate from the BACKLOG OL-13 launch-acceptance task) — 2026-11-09
+
+PR on `feat/ol13-brand-seo`, not merged or deployed. Official social defaults are now `facebook.com/ownlobbygg` and `instagram.com/ownlobbygg/` (`deltacrown/branding.py`, footer, Organization `sameAs`, tournament social fallbacks). Meta descriptions/JSON-LD strip rich-text markup; 403/404/500 pages render `noindex` with no self-canonical. **Owner check:** the Render keys `BRAND_FACEBOOK_URL` / `BRAND_INSTAGRAM_URL`, if set, override the new defaults; unset or update a legacy value only with owner approval. Search Console/Bing ownership and sitemap submission were not verified (no account access); GA4 is already present on the live site.
+
 ## OL-12 — CLOSED WITH FOLLOW-UP BACKLOG (2026-11-09)
 
 Final production: master `d5d4c31112d4f1911819e029ded5c3c1540645cc` (PRs #67-#70 merged, CI green), Render `dep-dbofbf49v7es73f3sq80` LIVE; `/healthz/` 200 in ~0.25 s; no lease-reclaim warnings after that deploy (the last ones are from the previous build). Performance is improved, not solved: image bytes and media stability are fixed; dynamic-page TTFB is not. No new work is started by this closure; open PR #47 is retained intentionally for a separate decision.

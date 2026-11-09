@@ -25,6 +25,7 @@ import logging
 from typing import Any
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
+from deltacrown.branding import BRAND
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.validators import URLValidator, validate_email
 from django.db import transaction
@@ -63,12 +64,12 @@ class TOCSettingsService:
     }
 
     OFFICIAL_SOCIAL_DEFAULTS = {
-        "social_facebook": "https://www.facebook.com/DeltaCrownGG",
+        "social_facebook": BRAND["social"]["facebook"],
         "social_discord": "https://discord.gg/UaHRC8Cd",
         "social_youtube": "https://www.youtube.com/@DeltaCrownGG",
-        "social_instagram": "https://instagram.com/deltacrowngg",
+        "social_instagram": BRAND["social"]["instagram"],
         "contact_phone": "+8801789560202",
-        "social_website": "https://deltacrown.gg",
+        "social_website": "https://ownlobby.com",
     }
 
     CATEGORY_LABELS = {
