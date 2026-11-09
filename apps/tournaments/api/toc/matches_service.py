@@ -1188,17 +1188,21 @@ class TOCMatchesService:
         if p1_score < 0 or p2_score < 0:
             raise ValueError('Scores must be non-negative.')
 
+        new_winner_id = (
+            match.participant1_id if p1_score > p2_score
+            else match.participant2_id if p2_score > p1_score else None
+        )
+        blocked = MatchService.winner_correction_block_reason(match, previous_winner_id, new_winner_id)
+        if blocked:
+            raise ValueError(blocked)
+
         match.participant1_score = p1_score
         match.participant2_score = p2_score
-        if p1_score > p2_score:
-            match.winner_id = match.participant1_id
-            match.loser_id = match.participant2_id
-        elif p2_score > p1_score:
-            match.winner_id = match.participant2_id
-            match.loser_id = match.participant1_id
-        else:
-            match.winner_id = None
-            match.loser_id = None
+        match.winner_id = new_winner_id
+        match.loser_id = (
+            None if new_winner_id is None
+            else match.participant2_id if new_winner_id == match.participant1_id else match.participant1_id
+        )
         match.state = Match.COMPLETED
         match.completed_at = timezone.now()
         match.save()

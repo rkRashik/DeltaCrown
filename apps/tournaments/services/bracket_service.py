@@ -1825,7 +1825,7 @@ class BracketService:
                         'tournament_id': match.tournament_id,
                         'updated_nodes': updated_node_ids,
                         'next_matches': [],
-                        'bracket_status': node.bracket.status,
+                        'bracket_status': 'finalized' if node.bracket.is_finalized else 'active',
                         'bronze_winner_id': match.winner_id,
                         'updated_at': timezone.now().isoformat(),
                     }
@@ -2027,10 +2027,13 @@ class BracketService:
                     if lb_node.has_both_participants and not lb_node.match_id:
                         lb_match = Match.objects.create(
                             tournament=lb_node.bracket.tournament,
+                            bracket=lb_node.bracket,
                             round_number=lb_node.round_number,
                             match_number=lb_node.match_number_in_round,
                             participant1_id=lb_node.participant1_id,
+                            participant1_name=lb_node.participant1_name or '',
                             participant2_id=lb_node.participant2_id,
+                            participant2_name=lb_node.participant2_name or '',
                             state=Match.SCHEDULED,
                         )
                         lb_node.match = lb_match
@@ -2051,12 +2054,17 @@ class BracketService:
         # Check if parent node is ready for match creation
         if parent_node.has_both_participants and not parent_node.match:
             # Create match for parent node
+            # bracket FK + names match round-one creation; without the FK the match is invisible
+            # to bracket-scoped queries (e.g. final/runner-up derivation picks the wrong match).
             parent_match = Match.objects.create(
                 tournament=parent_node.bracket.tournament,
+                bracket=parent_node.bracket,
                 round_number=parent_node.round_number,
                 match_number=parent_node.match_number_in_round,
                 participant1_id=parent_node.participant1_id,
+                participant1_name=parent_node.participant1_name or '',
                 participant2_id=parent_node.participant2_id,
+                participant2_name=parent_node.participant2_name or '',
                 state=Match.SCHEDULED,
             )
             
@@ -2091,7 +2099,7 @@ class BracketService:
                     'tournament_id': match.tournament_id,
                     'updated_nodes': updated_node_ids,
                     'next_matches': created_matches,
-                    'bracket_status': node.bracket.status,
+                    'bracket_status': 'finalized' if node.bracket.is_finalized else 'active',
                     'parent_node_ready': parent_node.has_both_participants,
                     'updated_at': timezone.now().isoformat(),
                 }

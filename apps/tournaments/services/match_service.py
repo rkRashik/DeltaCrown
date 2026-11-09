@@ -1353,6 +1353,26 @@ class MatchService:
         return format_default
     
     @staticmethod
+    def winner_correction_block_reason(match: Match, previous_winner_id: Optional[int], new_winner_id: Optional[int]) -> Optional[str]:
+        """Why a completed match's winner may not change now, or None when the correction is safe.
+
+        Correcting a feeder result after its next-round match (or the tournament) is already
+        decided would rewrite that match's participants while keeping the old winner/champion.
+        """
+        if match.state not in (Match.COMPLETED, Match.FORFEIT) or not previous_winner_id or previous_winner_id == new_winner_id:
+            return None
+        if match.tournament.status in (Tournament.COMPLETED, Tournament.ARCHIVED):
+            return 'The tournament is already completed; this result can no longer change the winner.'
+        from apps.brackets.models import BracketNode
+        node = BracketNode.objects.select_related('parent_node').filter(match=match).first()
+        parent_match_id = node.parent_node.match_id if node and node.parent_node_id else None
+        if parent_match_id and Match.objects.filter(pk=parent_match_id, state__in=(
+            Match.LIVE, Match.PENDING_RESULT, Match.COMPLETED, Match.DISPUTED, Match.FORFEIT,
+        )).exists():
+            return 'The next-round match has already started; the winner of this match can no longer change.'
+        return None
+
+    @staticmethod
     @transaction.atomic
     def organizer_override_score(
         match: Match,
@@ -1382,6 +1402,7 @@ class MatchService:
         # Store old scores for audit
         old_score1 = match.participant1_score
         old_score2 = match.participant2_score
+        old_winner_id = match.winner_id
 
         if score1 < 0 or score2 < 0:
             raise ValidationError('Scores must be non-negative')
@@ -1419,6 +1440,10 @@ class MatchService:
                 match.winner_id = match.participant2_id
                 match.loser_id = match.participant1_id
         
+        blocked = MatchService.winner_correction_block_reason(match, old_winner_id, match.winner_id)
+        if blocked:
+            raise ValidationError(blocked)
+
         validate_transition(match, Match.COMPLETED)
         match.state = Match.COMPLETED
         if not match.completed_at:
