@@ -108,12 +108,12 @@ def ticker_feed(request):
             
             for team in recent_teams:
                 # Use created_by (vNext canonical) instead of deprecated owner field
-                founder_name = team.created_by.username if team.created_by else "Unknown"
+                founder_name = team.created_by.username if team.created_by else ""
                 items.append({
                     'type': 'team_created',
                     'timestamp': team.created_at.isoformat(),
-                    'title': f"New squad formed: {team.name}",
-                    'subtitle': f"Founded by {founder_name}",
+                    'title': f"New team: {team.name}",
+                    'subtitle': f"Founded by {founder_name}" if founder_name else "",
                     'team_slug': team.slug,
                     'team_url': team.get_absolute_url(),
                 })

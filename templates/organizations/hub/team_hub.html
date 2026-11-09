@@ -54,8 +54,8 @@ body::after {
     z-index: -1;
     pointer-events: none;
     background:
-        radial-gradient(ellipse 60% 50% at 20% 30%, rgba(6,182,212,0.06) 0%, transparent 70%),
-        radial-gradient(ellipse 50% 40% at 75% 60%, rgba(139,92,246,0.05) 0%, transparent 70%),
+        radial-gradient(ellipse 60% 50% at 20% 30%, rgba(226, 183, 97,0.06) 0%, transparent 70%),
+        radial-gradient(ellipse 50% 40% at 75% 60%, rgba(216, 128, 76,0.05) 0%, transparent 70%),
         radial-gradient(ellipse 40% 35% at 50% 80%, rgba(250,204,21,0.03) 0%, transparent 70%);
 }
 
@@ -79,8 +79,8 @@ body::after {
     opacity: var(--glow-opacity, 0.06);
     z-index: 0;
 }
-.section-glow-cyan::before { background: radial-gradient(circle, rgba(6,182,212,0.35), transparent 70%); }
-.section-glow-purple::before { background: radial-gradient(circle, rgba(139,92,246,0.30), transparent 70%); }
+.section-glow-cyan::before { background: radial-gradient(circle, rgba(226, 183, 97,0.35), transparent 70%); }
+.section-glow-purple::before { background: radial-gradient(circle, rgba(216, 128, 76,0.30), transparent 70%); }
 .section-glow-gold::before { background: radial-gradient(circle, rgba(250,204,21,0.25), transparent 70%); }
 
 /* ===== GLASS CARD (B1 — no backdrop-filter for perf) ===== */
@@ -93,16 +93,16 @@ body::after {
 }
 .glass:hover {
     background: linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
-    border-color: rgba(6, 182, 212, 0.25);
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 12px 48px rgba(0,0,0,0.4), 0 0 20px rgba(6,182,212,0.05);
+    border-color: rgba(226, 183, 97, 0.25);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 12px 48px rgba(0,0,0,0.4), 0 0 20px rgba(226, 183, 97,0.05);
 }
 .hub-team-card {
     transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease;
 }
 .hub-team-card:hover {
     transform: translateY(-3px);
-    border-color: rgba(6, 182, 212, 0.3);
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35), 0 0 16px rgba(6, 182, 212, 0.1);
+    border-color: rgba(226, 183, 97, 0.3);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35), 0 0 16px rgba(226, 183, 97, 0.1);
 }
 .glass-glow { position: relative; overflow: hidden }
 
@@ -112,16 +112,16 @@ body::after {
 }
 .tilt-card:hover {
     transform: translateY(-3px);
-    box-shadow: 0 12px 32px rgba(0, 0, 0, .35), 0 0 20px rgba(6, 182, 212, .06)
+    box-shadow: 0 12px 32px rgba(0, 0, 0, .35), 0 0 20px rgba(226, 183, 97, .06)
 }
 
 /* ===== GRADIENTS & TEXT ===== */
 .grad-text {
-    color: #06b6d4;
+    color: #E2B761;
 }
 .hero-mesh {
-    background: radial-gradient(ellipse 80% 50% at 20% 40%, rgba(6, 182, 212, .08) 0%, transparent 50%),
-        radial-gradient(ellipse 60% 40% at 80% 20%, rgba(139, 92, 246, .06) 0%, transparent 50%),
+    background: radial-gradient(ellipse 80% 50% at 20% 40%, rgba(226, 183, 97, .08) 0%, transparent 50%),
+        radial-gradient(ellipse 60% 40% at 80% 20%, rgba(216, 128, 76, .06) 0%, transparent 50%),
         radial-gradient(ellipse 50% 50% at 50% 80%, rgba(250, 204, 21, .04) 0%, transparent 50%);
 }
 
@@ -136,18 +136,18 @@ body::after {
     font-weight: 700;
     font-size: 0.875rem;
     color: #000 !important;
-    background: linear-gradient(135deg, #06b6d4 0%, #22d3ee 50%, #67e8f9 100%);
+    background: #E2B761;
     border-radius: 0.75rem;
     border: none;
     position: relative;
     overflow: hidden;
     transition: all 0.3s cubic-bezier(.22, 1, .36, 1);
-    box-shadow: 0 0 30px rgba(6,182,212,0.35), inset 0 1px 0 rgba(255,255,255,0.3);
+    box-shadow: 0 0 30px rgba(226, 183, 97,0.35), inset 0 1px 0 rgba(255,255,255,0.3);
     text-decoration: none;
 }
 .btn-cta-primary:hover {
     transform: scale(1.03) translateY(-1px);
-    box-shadow: 0 0 50px rgba(6,182,212,0.5), 0 8px 32px rgba(6,182,212,0.25), inset 0 1px 0 rgba(255,255,255,0.4);
+    box-shadow: 0 0 50px rgba(226, 183, 97,0.5), 0 8px 32px rgba(226, 183, 97,0.25), inset 0 1px 0 rgba(255,255,255,0.4);
     color: #000 !important;
 }
 .btn-cta-primary::before {
@@ -174,9 +174,9 @@ body::after {
 }
 .btn-cta-muted {
     color: #fff !important;
-    background: linear-gradient(135deg, rgba(6,182,212,0.25), rgba(34,211,238,0.15));
-    box-shadow: 0 0 15px rgba(6,182,212,0.15), inset 0 1px 0 rgba(255,255,255,0.1);
-    border: 1px solid rgba(6,182,212,0.3);
+    background: linear-gradient(135deg, rgba(226, 183, 97,0.25), rgba(34,211,238,0.15));
+    box-shadow: 0 0 15px rgba(226, 183, 97,0.15), inset 0 1px 0 rgba(255,255,255,0.1);
+    border: 1px solid rgba(226, 183, 97,0.3);
 }
 .btn-cta-muted:hover { color: #fff !important; }
 
@@ -197,15 +197,15 @@ body::after {
     cursor: pointer;
 }
 .btn-cta-search:hover {
-    background: rgba(6,182,212,0.1);
-    border-color: rgba(6,182,212,0.4);
-    box-shadow: 0 0 30px rgba(6,182,212,0.15);
+    background: rgba(226, 183, 97,0.1);
+    border-color: rgba(226, 183, 97,0.4);
+    box-shadow: 0 0 30px rgba(226, 183, 97,0.15);
     transform: translateY(-1px);
 }
 
 /* ===== HERO TITLE GLOW ===== */
 .hero-title-glow {
-    filter: drop-shadow(0 0 50px rgba(6,182,212,0.12));
+    filter: drop-shadow(0 0 50px rgba(226, 183, 97,0.12));
 }
 
 /* ===== PRO PATH CARD ===== */
@@ -229,7 +229,7 @@ body::after {
 /* ===== SECTION DIVIDERS (C5) ===== */
 .section-divider {
     height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(6,182,212,0.3), rgba(139,92,246,0.2), transparent);
+    background: linear-gradient(90deg, transparent, rgba(226, 183, 97,0.3), rgba(216, 128, 76,0.2), transparent);
     border: none;
     margin: 0;
 }
@@ -295,7 +295,7 @@ body::after {
 /* ===== TIER BADGES ===== */
 .tier-the_crown { background: rgba(255, 215, 0, .12); color: #ffd700; border: 1px solid rgba(255, 215, 0, .25) }
 .tier-legend { background: rgba(249, 115, 22, .12); color: #f97316; border: 1px solid rgba(249, 115, 22, .25) }
-.tier-master { background: rgba(139, 92, 246, .12); color: #a78bfa; border: 1px solid rgba(139, 92, 246, .25) }
+.tier-master { background: rgba(216, 128, 76, .12); color: #a78bfa; border: 1px solid rgba(216, 128, 76, .25) }
 .tier-elite { background: rgba(59, 130, 246, .12); color: #3b82f6; border: 1px solid rgba(59, 130, 246, .25) }
 .tier-challenger { background: rgba(34, 197, 94, .12); color: #22c55e; border: 1px solid rgba(34, 197, 94, .25) }
 .tier-rookie { background: rgba(156, 163, 175, .12); color: #9ca3af; border: 1px solid rgba(156, 163, 175, .25) }
@@ -314,7 +314,7 @@ body::after {
     width: 0;
     height: 2px;
     border-radius: 1px;
-    background: linear-gradient(90deg, #06b6d4, transparent);
+    background: linear-gradient(90deg, #E2B761, transparent);
     transition: width .6s cubic-bezier(.22, 1, .36, 1);
 }
 .neon-line:hover::after { width: 100% }
@@ -346,7 +346,7 @@ body::after {
 .stagger-grid.visible > * { opacity: 1; transform: translateY(0) scale(1); }
 
 /* ===== TYPING CURSOR ===== */
-.type-cursor::after { content: '|'; animation: blink 1s step-end infinite; color: #06b6d4 }
+.type-cursor::after { content: '|'; animation: blink 1s step-end infinite; color: #E2B761 }
 @keyframes blink { 0%, 100% { opacity: 1 } 50% { opacity: 0 } }
 
 /* ===== PARTICLE CANVAS ===== */
@@ -356,20 +356,20 @@ body::after {
 .fab {
     position: fixed; bottom: 24px; right: 24px; z-index: 80;
     width: 56px; height: 56px; border-radius: 16px;
-    background: linear-gradient(135deg, #06b6d4, #0891b2);
+    background: linear-gradient(135deg, #E2B761, #0891b2);
     display: flex; align-items: center; justify-content: center;
-    box-shadow: 0 8px 32px rgba(6, 182, 212, .4);
+    box-shadow: 0 8px 32px rgba(226, 183, 97, .4);
     cursor: pointer; transition: all .3s cubic-bezier(.22, 1, .36, 1);
     transform: translateY(100px); opacity: 0;
 }
 .fab.visible { transform: translateY(0); opacity: 1 }
-.fab:hover { transform: translateY(-3px) scale(1.05); box-shadow: 0 12px 40px rgba(6, 182, 212, .55) }
+.fab:hover { transform: translateY(-3px) scale(1.05); box-shadow: 0 12px 40px rgba(226, 183, 97, .55) }
 .fab::before {
     content: '';
     position: absolute;
     inset: -3px;
     border-radius: 19px;
-    background: conic-gradient(from 0deg, rgba(6, 182, 212, .6), transparent 40%, rgba(139, 92, 246, .6) 60%, transparent);
+    background: conic-gradient(from 0deg, rgba(226, 183, 97, .6), transparent 40%, rgba(216, 128, 76, .6) 60%, transparent);
     z-index: -1;
     opacity: .4;
 }
@@ -379,7 +379,7 @@ body::after {
     background: rgba(13, 13, 13, .97);
     border: 1px solid rgba(255, 255, 255, .1);
     border-radius: 8px; padding: 6px 12px;
-    font-size: 12px; font-weight: 700; color: #06b6d4;
+    font-size: 12px; font-weight: 700; color: #E2B761;
     opacity: 0; transform: translateX(8px);
     transition: opacity .25s, transform .25s; pointer-events: none;
 }
@@ -396,7 +396,7 @@ body::after {
     transform: translateY(80px); opacity: 0;
 }
 .back-to-top.visible { transform: translateY(0); opacity: 1 }
-.back-to-top:hover { background: rgba(6, 182, 212, .15); border-color: rgba(6, 182, 212, .3) }
+.back-to-top:hover { background: rgba(226, 183, 97, .15); border-color: rgba(226, 183, 97, .3) }
 
 /* ===== LOGO CLARITY ===== */
 img[loading="lazy"] {
@@ -434,7 +434,7 @@ img[loading="lazy"] {
 ::-webkit-scrollbar { width: 5px; height: 5px }
 ::-webkit-scrollbar-track { background: transparent }
 ::-webkit-scrollbar-thumb { background: rgba(255,255,255,.08); border-radius: 3px }
-::-webkit-scrollbar-thumb:hover { background: rgba(6,182,212,.3) }
+::-webkit-scrollbar-thumb:hover { background: rgba(226, 183, 97,.3) }
 
 /* ===== SEARCH MODAL (Redesigned) ===== */
 .search-modal { display: none; position: fixed; inset: 0; z-index: 100; background: rgba(0, 0, 0, .92); align-items: flex-start; justify-content: center; padding-top: 12vh; }
@@ -451,12 +451,12 @@ img[loading="lazy"] {
 .btn-arrow i:last-child { transition: transform .25s cubic-bezier(.22, 1, .36, 1) }
 .btn-arrow:hover i:last-child { transform: translateX(4px) }
 .social-icon { transition: all .3s; color: #6b7280 }
-.social-icon:hover { color: #06b6d4; filter: drop-shadow(0 0 8px rgba(6, 182, 212, .5)); transform: translateY(-2px) }
+.social-icon:hover { color: #E2B761; filter: drop-shadow(0 0 8px rgba(226, 183, 97, .5)); transform: translateY(-2px) }
 
 /* ===== HERO CINEMATIC ENHANCEMENTS ===== */
 .hero-grid-overlay {
     position: absolute; inset: 0;
-    background-image: linear-gradient(rgba(6,182,212,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(6,182,212,0.03) 1px, transparent 1px);
+    background-image: linear-gradient(rgba(226, 183, 97,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(226, 183, 97,0.03) 1px, transparent 1px);
     background-size: 60px 60px;
     pointer-events: none; z-index: 1;
     mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
@@ -488,7 +488,7 @@ img[loading="lazy"] {
 
 /* ===== RANKING ROW HOVER ===== */
 .rank-row { transition: background .2s, transform .2s; }
-.rank-row:hover { background: rgba(6,182,212,0.04); transform: translateX(2px); }
+.rank-row:hover { background: rgba(226, 183, 97,0.04); transform: translateX(2px); }
 
 /* ===== COMBAT ZONE GRID ===== */
 .game-grid-item {
@@ -502,14 +502,14 @@ img[loading="lazy"] {
     aspect-ratio: 3/4;
 }
 .game-grid-item:hover {
-    border-color: rgba(6,182,212,0.5);
+    border-color: rgba(226, 183, 97,0.5);
     transform: translateY(-4px) scale(1.02);
-    box-shadow: 0 12px 40px rgba(0,0,0,0.4), 0 0 20px rgba(6,182,212,0.1);
+    box-shadow: 0 12px 40px rgba(0,0,0,0.4), 0 0 20px rgba(226, 183, 97,0.1);
 }
 .game-grid-item.active {
-    border-color: #06b6d4 !important;
-    background: linear-gradient(to bottom, rgba(6,182,212,0.15), rgba(6,182,212,0.03)) !important;
-    box-shadow: 0 0 25px rgba(6,182,212,0.2), inset 0 0 15px rgba(6,182,212,0.05);
+    border-color: #E2B761 !important;
+    background: linear-gradient(to bottom, rgba(226, 183, 97,0.15), rgba(226, 183, 97,0.03)) !important;
+    box-shadow: 0 0 25px rgba(226, 183, 97,0.2), inset 0 0 15px rgba(226, 183, 97,0.05);
 }
 
 /* Card image: clear at rest, dim slightly on hover — no blur */
@@ -586,15 +586,15 @@ img[loading="lazy"] {
     color: #d1d5db;
 }
 .game-chip:hover, .game-chip:active {
-    border-color: rgba(6,182,212,0.4);
-    background: rgba(6,182,212,0.08);
-    color: #06b6d4;
+    border-color: rgba(226, 183, 97,0.4);
+    background: rgba(226, 183, 97,0.08);
+    color: #E2B761;
 }
 .game-chip.active {
-    border-color: #06b6d4;
-    background: rgba(6,182,212,0.15);
-    color: #06b6d4;
-    box-shadow: 0 0 12px rgba(6,182,212,0.2);
+    border-color: #E2B761;
+    background: rgba(226, 183, 97,0.15);
+    color: #E2B761;
+    box-shadow: 0 0 12px rgba(226, 183, 97,0.2);
 }
 .game-chip img {
     width: 1.25rem;
@@ -878,7 +878,7 @@ img[loading="lazy"] {
 .path-line {
     position: absolute;
     top: 50%; left: 0; width: 100%; height: 2px;
-    background: linear-gradient(90deg, #374151, #06b6d4 40%, #8b5cf6 60%, #facc15 100%);
+    background: linear-gradient(90deg, #374151, #E2B761 40%, #8b5cf6 60%, #facc15 100%);
     transform: translateY(-50%);
     z-index: 0;
 }
@@ -888,8 +888,8 @@ img[loading="lazy"] {
     top: -3px; left: 0;
     width: 8px; height: 8px;
     border-radius: 50%;
-    background: #06b6d4;
-    box-shadow: 0 0 12px #06b6d4;
+    background: #E2B761;
+    box-shadow: 0 0 12px #E2B761;
     animation: pathTravel 4s ease-in-out infinite;
 }
 @keyframes pathTravel {
@@ -918,10 +918,10 @@ img[loading="lazy"] {
 
 /* ===== CTA GLOW (C4 — static, no infinite animation) ===== */
 .btn-breathe {
-    box-shadow: 0 0 25px rgba(6,182,212,0.35), inset 0 1px 0 rgba(255,255,255,0.3);
+    box-shadow: 0 0 25px rgba(226, 183, 97,0.35), inset 0 1px 0 rgba(255,255,255,0.3);
 }
 .btn-breathe:hover {
-    box-shadow: 0 0 40px rgba(6,182,212,0.5), inset 0 1px 0 rgba(255,255,255,0.4);
+    box-shadow: 0 0 40px rgba(226, 183, 97,0.5), inset 0 1px 0 rgba(255,255,255,0.4);
 }
 
 /* ===== PLATFORM RULES ANIMATED ICONS (E4) ===== */
@@ -933,7 +933,7 @@ img[loading="lazy"] {
 }
 .rule-card:hover {
     transform: translateY(-4px);
-    border-color: rgba(6,182,212,0.2);
+    border-color: rgba(226, 183, 97,0.2);
     box-shadow: 0 12px 40px rgba(0,0,0,0.3);
 }
 
@@ -981,8 +981,8 @@ img[loading="lazy"] {
     opacity: 1;
 }
 .spotlight-card:hover {
-    border-color: rgba(6,182,212,0.20);
-    box-shadow: 0 12px 40px rgba(0,0,0,0.35), 0 0 20px rgba(6,182,212,0.06);
+    border-color: rgba(226, 183, 97,0.20);
+    box-shadow: 0 12px 40px rgba(0,0,0,0.35), 0 0 20px rgba(226, 183, 97,0.06);
 }
 .spotlight-card--empty {
     flex: 0 0 100%;
@@ -1002,13 +1002,13 @@ img[loading="lazy"] {
     gap: 0.35rem;
     padding: 0.2rem 0.6rem;
     border-radius: 9999px;
-    background: rgba(6,182,212,0.10);
-    border: 1px solid rgba(6,182,212,0.20);
+    background: rgba(226, 183, 97,0.10);
+    border: 1px solid rgba(226, 183, 97,0.20);
     font-size: 0.65rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.06em;
-    color: #06b6d4;
+    color: #E2B761;
 }
 
 /* Progress bar navigation (modern pip style) */
@@ -1031,8 +1031,8 @@ img[loading="lazy"] {
     max-width: 40px;
 }
 .spotlight-pip--active {
-    background: #06b6d4;
-    box-shadow: 0 0 10px rgba(6,182,212,0.5);
+    background: #E2B761;
+    box-shadow: 0 0 10px rgba(226, 183, 97,0.5);
     height: 4px;
 }
 .spotlight-pip:hover:not(.spotlight-pip--active) {
@@ -1050,11 +1050,11 @@ img[loading="lazy"] {
 .crown-arena-flow {
     background:
         conic-gradient(from 180deg at 50% 50%,
-            rgba(99,102,241,0.30) 0%,
+            rgba(226, 183, 97,0.30) 0%,
             rgba(236,72,153,0.18) 25%,
             rgba(255,215,0,0.20) 50%,
             rgba(34,211,238,0.18) 75%,
-            rgba(99,102,241,0.30) 100%);
+            rgba(226, 183, 97,0.30) 100%);
     filter: blur(40px);
     transform: rotate(0deg);
     animation: arenaFlow 14s linear infinite;
@@ -1127,7 +1127,7 @@ img[loading="lazy"] {
 
 /* cards */
 .dcm-card { border-radius:20px; background:var(--m-surf); box-shadow:0 0 0 1px var(--m-line); }
-.dcm-crest { display:flex; align-items:center; justify-content:center; font-family:'Sora','Space Grotesk',sans-serif; font-weight:800; color:#fff; flex:none; background:linear-gradient(135deg,#0A84FF,#6849E5); object-fit:cover; overflow:hidden; }
+.dcm-crest { display:flex; align-items:center; justify-content:center; font-family:'Sora','Space Grotesk',sans-serif; font-weight:800; color:#fff; flex:none; background:linear-gradient(135deg,#0A84FF,#D8804C); object-fit:cover; overflow:hidden; }
 .dcm-trunc { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 
 /* stats */
@@ -1205,7 +1205,7 @@ img[loading="lazy"] {
 </style>
 {% endblock %}
 
-{% block body_class %}ownlobby-team-hub{% endblock %}
+{% block body_class %}ownlobby-team-hub ol-identity{% endblock %}
 {% block content %}
 
 {# ===================== MOBILE NATIVE HUB (<=1023px) ===================== #}
@@ -1223,7 +1223,7 @@ img[loading="lazy"] {
         </a>
         {% endif %}
         <button type="button" class="dcm-qa-btn dcm-qa-find dcm-tap" data-dcm-search-open>
-            <i data-lucide="search" class="w-[17px] h-[17px]"></i>Find a Squad
+            <i data-lucide="search" class="w-[17px] h-[17px]"></i>Find a team
         </button>
     </div>
 
@@ -1232,7 +1232,7 @@ img[loading="lazy"] {
     <div class="dcm-promo">
         <div style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(244,246,250,0.7);">{{ brand.tagline }}</div>
         <div class="dcm-display" style="font-weight:800;font-size:25px;line-height:1.12;color:#fff;margin-top:8px;">Join the arena.<br>Build your team.</div>
-        <div style="font-size:14px;line-height:1.45;color:rgba(244,246,250,0.82);margin-top:8px;max-width:250px;">Create a squad or get scouted by ranked teams competing across every title.</div>
+        <div style="font-size:14px;line-height:1.45;color:rgba(244,246,250,0.82);margin-top:8px;max-width:250px;">Create a team or get noticed by ranked teams in every game.</div>
         <div style="display:flex;gap:10px;margin-top:16px;">
             <a href="/account/signup/" class="dcm-promo-btn dcm-tap" style="color:#04060A;background:#fff;box-shadow:0 8px 20px -10px rgba(0,0,0,0.6);"><i data-lucide="rocket" class="w-4 h-4"></i>Join &amp; Create</a>
             <a href="/account/login/" class="dcm-promo-btn dcm-tap" style="color:#fff;background:rgba(255,255,255,0.12);box-shadow:inset 0 0 0 1px rgba(255,255,255,0.2);">Sign in</a>
@@ -1285,11 +1285,9 @@ img[loading="lazy"] {
 
     {# ----- Stats strip ----- #}
     <div class="dcm-stats">
-        <div class="dcm-stat"><div class="dcm-stat-val" style="color:var(--m-ink);">{{ stats.teams_active|default:0|intcomma }}</div><div class="dcm-stat-lbl">TEAMS</div></div>
-        <div class="dcm-stat"><div class="dcm-stat-val" style="color:var(--m-red);">{{ stats.live_matches|default:0|intcomma }}</div><div class="dcm-stat-lbl">LIVE</div></div>
-        <div class="dcm-stat"><div class="dcm-stat-val" style="color:var(--m-gold);">৳{{ stats.total_prize_pool|default:0|intcomma }}</div><div class="dcm-stat-lbl">PRIZE</div></div>
-        <div class="dcm-stat"><div class="dcm-stat-val" style="color:var(--m-green);">{{ stats.players_online|default:0|intcomma }}</div><div class="dcm-stat-lbl">ONLINE</div></div>
-    </div>
+        <div class="dcm-stat"><div class="dcm-stat-val" style="color:var(--m-ink);">{{ stats.teams_active|default:0|intcomma }}</div><div class="dcm-stat-lbl">Teams</div></div>
+        <div class="dcm-stat"><div class="dcm-stat-val" style="color:var(--m-red);">{{ stats.live_matches|default:0|intcomma }}</div><div class="dcm-stat-lbl">Live matches</div></div>
+            </div>
 
     {# ----- Game filter chips ----- #}
     <div class="dcm-chips">
@@ -1402,7 +1400,7 @@ img[loading="lazy"] {
         </div>
         <div class="dcm-arena-grid">
             <a href="{% url 'dashboard:competitive_hub' %}" class="dcm-mode dcm-tap"><div class="dcm-mode-ico" style="background:linear-gradient(135deg,#0A84FF,#006FE6);"><i data-lucide="swords" class="w-[19px] h-[19px]"></i></div><div style="min-width:0;"><div class="dcm-display" style="font-weight:700;font-size:14px;color:var(--m-ink);">Showdown</div><div style="font-size:10.5px;color:var(--m-mut);white-space:nowrap;">Reward matches</div></div></a>
-            <a href="{% url 'dashboard:competitive_hub' %}" class="dcm-mode dcm-tap"><div class="dcm-mode-ico" style="background:linear-gradient(135deg,#6849E5,#3F289C);"><i data-lucide="target" class="w-[19px] h-[19px]"></i></div><div style="min-width:0;"><div class="dcm-display" style="font-weight:700;font-size:14px;color:var(--m-ink);">Missions</div><div style="font-size:10.5px;color:var(--m-mut);white-space:nowrap;">Daily &amp; weekly</div></div></a>
+            <a href="{% url 'dashboard:competitive_hub' %}" class="dcm-mode dcm-tap"><div class="dcm-mode-ico" style="background:linear-gradient(135deg,#D8804C,#3F289C);"><i data-lucide="target" class="w-[19px] h-[19px]"></i></div><div style="min-width:0;"><div class="dcm-display" style="font-weight:700;font-size:14px;color:var(--m-ink);">Missions</div><div style="font-size:10.5px;color:var(--m-mut);white-space:nowrap;">Daily &amp; weekly</div></div></a>
             <a href="{% url 'dashboard:competitive_hub' %}" class="dcm-mode dcm-tap"><div class="dcm-mode-ico" style="background:linear-gradient(135deg,#E2C588,#A07F35);"><i data-lucide="crosshair" class="w-[19px] h-[19px]"></i></div><div style="min-width:0;"><div class="dcm-display" style="font-weight:700;font-size:14px;color:var(--m-ink);">Bounty</div><div style="font-size:10.5px;color:var(--m-mut);white-space:nowrap;">Claim rewards</div></div></a>
             <a href="{% url 'dashboard:competitive_hub' %}" class="dcm-mode dcm-tap"><div class="dcm-mode-ico" style="background:linear-gradient(135deg,#2ECC71,#13694a);"><i data-lucide="send" class="w-[19px] h-[19px]"></i></div><div style="min-width:0;"><div class="dcm-display" style="font-weight:700;font-size:14px;color:var(--m-ink);">Dropzone</div><div style="font-size:10.5px;color:var(--m-mut);white-space:nowrap;">Open lobbies</div></div></a>
         </div>
@@ -1438,7 +1436,7 @@ img[loading="lazy"] {
         <div class="dcm-sheet">
             <div class="dcm-sheet-grab"></div>
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-                <div class="dcm-display" style="font-weight:700;font-size:20px;color:var(--m-ink);">Find a Squad</div>
+                <div class="dcm-display" style="font-weight:700;font-size:20px;color:var(--m-ink);">Find a team</div>
                 <button type="button" class="dcm-tap" style="background:none;border:none;font-size:14px;font-weight:600;color:var(--m-blue3);" data-dcm-search-close>Cancel</button>
             </div>
             <div class="dcm-search-in">
@@ -1498,20 +1496,14 @@ img[loading="lazy"] {
 
             <!-- LEFT — Text + CTA (55%) -->
             <div class="flex-1 lg:max-w-[55%] text-center lg:text-left">
-                <!-- Season badge -->
-                <div class="reveal inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-dc-purple/10 border border-dc-purple/25 text-dc-purple text-[11px] font-bold uppercase tracking-widest mb-4">
-                    <span class="w-2 h-2 rounded-full bg-dc-purple animate-pulse"></span>
-                    Season 1 · Now Live
-                </div>
-
                 <!-- Main heading -->
                 <h1 class="reveal reveal-delay-1 font-display text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-black leading-[1.05] text-white mb-3 tracking-tight">
-                    Build Your <span class="grad-text"><span id="hero-typed"></span></span>
+                    Build your team
                 </h1>
 
                 <!-- Subtitle -->
                 <p class="reveal reveal-delay-2 text-gray-400 text-sm sm:text-base max-w-lg mb-6 leading-relaxed {% if not spotlight_teams %}mx-auto lg:mx-0{% endif %}">
-                    Create a team in <span class="text-white font-semibold">30 seconds</span>. Climb {{ brand.features.ranking_points }} tiers. Earn revenue, get scouted, build a <span class="text-dc-cyan font-medium">legacy</span>.
+                    Create a team in <span class="text-white font-semibold">30 seconds</span>, climb the {{ brand.features.ranking_points }} tiers and get noticed by other teams.
                 </p>
 
                 <!-- CTA Buttons -->
@@ -1526,7 +1518,7 @@ img[loading="lazy"] {
                     </a>
                     {% endif %}
                     <button class="btn-cta-search btn-arrow">
-                        <i data-lucide="search" class="w-4 h-4 text-dc-cyan"></i>Find a Squad
+                        <i data-lucide="search" class="w-4 h-4 text-dc-cyan"></i>Find a team
                     </button>
                 </div>
 
@@ -1536,15 +1528,7 @@ img[loading="lazy"] {
                         <span class="w-1.5 h-1.5 rounded-full bg-green-400"></span>
                         <span class="font-bold text-white counter" data-target="{{ stats.teams_active|default:'0' }}">0</span>+ Active Teams
                     </span>
-                    <span class="w-px h-3 bg-white/10 hidden sm:block"></span>
-                    <span class="flex items-center gap-1.5">
-                        <i data-lucide="trophy" class="w-3 h-3 text-dc-gold"></i>
-                        <span class="font-bold text-dc-cyan">৳<span class="counter" data-target="{{ stats.total_prize_pool|default:'0' }}">0</span>K</span> Prize Pool
-                    </span>
-                    <span class="w-px h-3 bg-white/10 hidden sm:block"></span>
-                    <span class="flex items-center gap-1.5">
-                        <i data-lucide="zap" class="w-3 h-3 text-dc-purple"></i>Under 30s to start
-                    </span>
+
                 </div>
             </div>
 
@@ -1643,11 +1627,11 @@ img[loading="lazy"] {
         <div class="mt-4 sm:mt-6 pt-3 sm:pt-4 border-t border-white/[0.06]">
             <div class="flex items-center gap-2 mb-2">
                 <span class="activity-dot bg-green-400"></span>
-                <p class="text-[10px] text-gray-500 uppercase tracking-[0.15em] font-bold">Live Activity</p>
+                <p class="text-xs text-gray-400 font-medium">New teams and rank changes</p>
             </div>
             <div class="activity-ticker-wrap">
                 <div class="activity-ticker" id="live-ticker">
-                    <span class="text-xs text-gray-500">Loading activity feed...</span>
+                    <span class="text-xs text-gray-500">Loading recent activity…</span>
                 </div>
             </div>
         </div>
@@ -1659,7 +1643,7 @@ img[loading="lazy"] {
 <section class="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-10 py-6 sm:py-8 section-glow section-glow-cyan cv-auto" id="combat-zone-section">
     <div class="flex items-center justify-between mb-4 sm:mb-6">
         <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
-            <i data-lucide="crosshair" class="w-4 h-4 text-dc-cyan"></i>Select Combat Zone
+            <i data-lucide="crosshair" class="w-4 h-4 text-dc-cyan"></i>Choose a game
         </h3>
         <div class="flex items-center gap-3">
             <span id="game-filter-indicator" class="text-xs text-dc-cyan font-semibold flex items-center gap-1.5 bg-dc-cyan/10 border border-dc-cyan/20 px-3 py-1 rounded-full">
@@ -1876,7 +1860,7 @@ img[loading="lazy"] {
                         </div>
 
                         {# Hover glow #}
-                        <div class="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" style="background:radial-gradient(ellipse at 30% 15%,rgba(6,182,212,0.07),transparent 65%);"></div>
+                        <div class="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" style="background:radial-gradient(ellipse at 30% 15%,rgba(226, 183, 97,0.07),transparent 65%);"></div>
                     </a>
                     {% endfor %}
                 </div>
@@ -2136,12 +2120,12 @@ img[loading="lazy"] {
             </div>
 
             <a href="{% url 'dashboard:competitive_hub' %}" class="block group mob-order-5 no-underline crown-arena-cta" aria-label="Open Competitive Hub">
-              <div class="relative overflow-hidden rounded-2xl p-6 transition-all duration-300 group-hover:scale-[1.02] group-hover:shadow-[0_0_60px_-8px_rgba(99,102,241,0.55)]"
+              <div class="relative overflow-hidden rounded-2xl p-6 transition-all duration-300 group-hover:scale-[1.02] group-hover:shadow-[0_0_60px_-8px_rgba(226, 183, 97,0.55)]"
                    style="background:
-                            linear-gradient(135deg, rgba(99,102,241,.20) 0%, rgba(236,72,153,.12) 45%, rgba(255,215,0,.10) 100%),
+                            linear-gradient(135deg, rgba(226, 183, 97,.20) 0%, rgba(236,72,153,.12) 45%, rgba(255,215,0,.10) 100%),
                             linear-gradient(180deg, rgba(16,16,22,.88), rgba(8,8,12,.96));
-                          border: 1px solid rgba(99,102,241,.40);
-                          box-shadow: 0 0 32px -6px rgba(99,102,241,.45), inset 0 1px 0 0 rgba(255,255,255,.07);
+                          border: 1px solid rgba(226, 183, 97,.40);
+                          box-shadow: 0 0 32px -6px rgba(226, 183, 97,.45), inset 0 1px 0 0 rgba(255,255,255,.07);
                           backdrop-filter: blur(28px) saturate(140%);">
 
                 <div class="relative">
@@ -2166,8 +2150,8 @@ img[loading="lazy"] {
                       </div>
                       <i data-lucide="chevron-right" class="w-4 h-4 text-gray-600 flex-shrink-0"></i>
                     </a>
-                    <a href="{% url 'dashboard:competitive_hub' %}#missions" class="flex items-center gap-3 p-3 rounded-xl transition-all hover:bg-white/[0.04]" style="border:1px solid rgba(139,92,246,.12); background:rgba(139,92,246,.04)">
-                      <div class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style="background:rgba(139,92,246,.12)">
+                    <a href="{% url 'dashboard:competitive_hub' %}#missions" class="flex items-center gap-3 p-3 rounded-xl transition-all hover:bg-white/[0.04]" style="border:1px solid rgba(216, 128, 76,.12); background:rgba(216, 128, 76,.04)">
+                      <div class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style="background:rgba(216, 128, 76,.12)">
                         <i data-lucide="scroll-text" class="w-4 h-4 text-violet-400"></i>
                       </div>
                       <div class="flex-1 min-w-0">
@@ -2228,7 +2212,7 @@ img[loading="lazy"] {
                                 <p class="text-sm font-bold text-white truncate">{{ user_organization.name }}</p>
                                 {% if user_organization.is_verified %}<span class="text-green-400 text-xs">✓</span>{% endif %}
                             </div>
-                            <p class="text-xs text-gray-400">{{ user_org_role }} {% if user_organization.ranking %}· {{ user_organization.ranking.empire_score }} Empire Score{% endif %}</p>
+                            <p class="text-xs text-gray-400">{{ user_org_role }} {% if user_organization.ranking %}· {{ user_organization.ranking.empire_score }} score{% endif %}</p>
                         </div>
                     </div>
                     <div class="px-4 pb-3 flex gap-2">
@@ -2257,7 +2241,7 @@ img[loading="lazy"] {
                             {% if org.is_verified %}<span class="text-green-400 text-xs">✓</span>{% endif %}
                         </div>
                         {% if org.ranking %}
-                        <span class="text-xs text-dc-cyan font-bold">{{ org.ranking.empire_score }} ES</span>
+                        <span class="text-xs text-dc-cyan font-bold">{{ org.ranking.empire_score }} score</span>
                         {% endif %}
                     </a>
                     {% endfor %}
@@ -2291,7 +2275,7 @@ img[loading="lazy"] {
             <!-- Animated connecting line (desktop only) -->
             <div class="hidden lg:block absolute top-[88px] left-[12%] right-[12%] h-[3px] rounded-full overflow-hidden z-0">
                 <div class="absolute inset-0 bg-gradient-to-r from-gray-700 via-dc-cyan via-dc-purple to-dc-gold opacity-40"></div>
-                <div class="absolute inset-y-0 left-0 w-[30px] h-full bg-dc-cyan rounded-full shadow-[0_0_15px_rgba(6,182,212,0.6)]" style="animation: pathTravel 5s ease-in-out infinite"></div>
+                <div class="absolute inset-y-0 left-0 w-[30px] h-full bg-dc-cyan rounded-full shadow-[0_0_15px_rgba(226, 183, 97,0.6)]" style="animation: pathTravel 5s ease-in-out infinite"></div>
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 lg:gap-6">
@@ -2305,7 +2289,7 @@ img[loading="lazy"] {
                         </div>
                         <h3 class="font-display font-bold text-white text-lg mb-1">Create</h3>
                         <p class="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-3">Unranked</p>
-                        <p class="text-sm text-gray-400 leading-relaxed mb-4">Form your squad, choose your game, set your roster. It takes under 30 seconds.</p>
+                        <p class="text-sm text-gray-400 leading-relaxed mb-4">Pick a game, name your team and invite your roster. It takes about 30 seconds.</p>
                         <div class="flex flex-wrap gap-2">
                             <span class="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-gray-700/40 border border-gray-600/30 text-gray-400">Free to start</span>
                             <span class="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-gray-700/40 border border-gray-600/30 text-gray-400">5 roster slots</span>
@@ -2315,10 +2299,10 @@ img[loading="lazy"] {
 
                 <!-- Stage 2: Compete -->
                 <div class="pro-path-card group">
-                    <div class="relative p-6 rounded-2xl border border-dc-cyan/15 bg-dc-cyan/[0.02] transition-all duration-500 hover:border-dc-cyan/40 hover:bg-dc-cyan/[0.05] hover:shadow-[0_0_40px_rgba(6,182,212,0.15)] overflow-hidden h-full">
+                    <div class="relative p-6 rounded-2xl border border-dc-cyan/15 bg-dc-cyan/[0.02] transition-all duration-500 hover:border-dc-cyan/40 hover:bg-dc-cyan/[0.05] hover:shadow-[0_0_40px_rgba(226, 183, 97,0.15)] overflow-hidden h-full">
                         <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-dc-cyan/40 to-transparent"></div>
                         <div class="absolute top-4 right-4 text-[10px] font-black text-dc-cyan/80 bg-dc-cyan/10 w-6 h-6 rounded-full flex items-center justify-center border border-dc-cyan/25">2</div>
-                        <div class="w-16 h-16 rounded-2xl bg-dc-cyan/10 border border-dc-cyan/30 flex items-center justify-center text-3xl mb-5 group-hover:scale-110 group-hover:shadow-[0_0_25px_rgba(6,182,212,0.3)] transition-all duration-300">
+                        <div class="w-16 h-16 rounded-2xl bg-dc-cyan/10 border border-dc-cyan/30 flex items-center justify-center text-3xl mb-5 group-hover:scale-110 group-hover:shadow-[0_0_25px_rgba(226, 183, 97,0.3)] transition-all duration-300">
                             ⚔️
                         </div>
                         <h3 class="font-display font-bold text-white text-lg mb-1">Compete</h3>
@@ -2333,10 +2317,10 @@ img[loading="lazy"] {
 
                 <!-- Stage 3: Diamond -->
                 <div class="pro-path-card group">
-                    <div class="relative p-6 rounded-2xl border border-dc-purple/15 bg-dc-purple/[0.02] transition-all duration-500 hover:border-dc-purple/40 hover:bg-dc-purple/[0.05] hover:shadow-[0_0_40px_rgba(139,92,246,0.15)] overflow-hidden h-full">
+                    <div class="relative p-6 rounded-2xl border border-dc-purple/15 bg-dc-purple/[0.02] transition-all duration-500 hover:border-dc-purple/40 hover:bg-dc-purple/[0.05] hover:shadow-[0_0_40px_rgba(216, 128, 76,0.15)] overflow-hidden h-full">
                         <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-dc-purple/40 to-transparent"></div>
                         <div class="absolute top-4 right-4 text-[10px] font-black text-dc-purple/80 bg-dc-purple/10 w-6 h-6 rounded-full flex items-center justify-center border border-dc-purple/25">3</div>
-                        <div class="w-16 h-16 rounded-2xl bg-dc-purple/10 border border-dc-purple/30 flex items-center justify-center text-3xl mb-5 group-hover:scale-110 group-hover:shadow-[0_0_25px_rgba(139,92,246,0.3)] transition-all duration-300">
+                        <div class="w-16 h-16 rounded-2xl bg-dc-purple/10 border border-dc-purple/30 flex items-center justify-center text-3xl mb-5 group-hover:scale-110 group-hover:shadow-[0_0_25px_rgba(216, 128, 76,0.3)] transition-all duration-300">
                             💎
                         </div>
                         <h3 class="font-display font-bold text-white text-lg mb-1">Diamond</h3>
@@ -2385,18 +2369,17 @@ img[loading="lazy"] {
         <div class="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-dc-purple rounded-full blur-[150px]"></div>
     </div>
     <div class="relative z-10 w-full max-w-3xl mx-auto px-4 sm:px-6 lg:px-10 text-center">
-        <h2 class="font-display text-2xl sm:text-3xl lg:text-4xl font-black text-white mb-4">Don't Just Watch.<br><span class="grad-text">Compete.</span></h2>
-        <p class="text-gray-200 text-sm sm:text-base mb-3 max-w-xl mx-auto leading-relaxed">Every champion started with a roster of one. Create your team, compete in tournaments, climb {{ brand.features.ranking_points }} Rankings, and build a legacy that lasts. Your stats, trophies, and match history are permanent — this isn't casual, this is your career.</p>
-        <p class="text-gray-400 text-sm mb-6">Independent teams can be scouted and acquired by Organizations — turning your passion into a profession.</p>
+        <h2 class="font-display text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-4">Ready to compete?</h2>
+        <p class="text-gray-300 text-sm sm:text-base mb-6 max-w-xl mx-auto leading-relaxed">Create your team, enter tournaments and climb the {{ brand.features.ranking_points }} tiers. Your results and match history stay on your team page.</p>
         <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
             {% if user.is_authenticated %}
             <a href="{% url 'organizations:team_create' %}" class="btn-cta-primary btn-breathe btn-arrow">
-                <i data-lucide="rocket" class="w-4 h-4"></i>Start Your Legacy
+                <i data-lucide="rocket" class="w-4 h-4"></i>Create your team
                 <i data-lucide="arrow-right" class="w-4 h-4"></i>
             </a>
             {% else %}
             <a href="/account/signup/" class="btn-cta-primary btn-breathe btn-arrow">
-                <i data-lucide="rocket" class="w-4 h-4"></i>Start Your Legacy
+                <i data-lucide="rocket" class="w-4 h-4"></i>Create your team
                 <i data-lucide="arrow-right" class="w-4 h-4"></i>
             </a>
             {% endif %}
@@ -2611,7 +2594,7 @@ else { document.addEventListener('DOMContentLoaded', () => { if (typeof lucide !
             if (p.x < 0 || p.x > w) p.vx *= -1;
             if (p.y < 0 || p.y > h) p.vy *= -1;
             ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-            ctx.fillStyle = `rgba(6,182,212,${p.o})`; ctx.fill();
+            ctx.fillStyle = `rgba(226, 183, 97,${p.o})`; ctx.fill();
         }
         rafId = requestAnimationFrame(draw);
     }
