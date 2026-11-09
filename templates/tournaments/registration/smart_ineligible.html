@@ -1,4 +1,5 @@
 {% extends "tournaments/base.html" %}
+{% block body_class %}ol-tourney{% endblock %}
 {% load static %}
 
 {% block title %}Cannot Register — {{ tournament.name }} | {{ brand.name }}{% endblock %}
@@ -6,8 +7,8 @@
 {% block tournament_css %}
 <style>
     :root {
-        --game-color: {{ game_color|default:"#06b6d4" }};
-        --game-color-rgb: {{ game_color_rgb|default:"6, 182, 212" }};
+        --game-color: #E2B761;
+        --game-color-rgb: 226, 183, 97;
         --bg-deep: #060608;
     }
     body { background: var(--bg-deep); }
@@ -36,11 +37,11 @@
         border-radius: 0.75rem;
         background: linear-gradient(135deg, var(--game-color), rgba(var(--game-color-rgb), 0.8));
         color: #000; font-weight: 800; font-size: 0.8125rem;
-        text-transform: uppercase; letter-spacing: 0.05em;
+        letter-spacing: 0;
         cursor: pointer; transition: all 0.2s;
-        box-shadow: 0 4px 20px rgba(var(--game-color-rgb), 0.25);
+        box-shadow: none;
     }
-    .btn-back:hover { transform: translateY(-1px); box-shadow: 0 6px 30px rgba(var(--game-color-rgb), 0.35); }
+    .btn-back:hover { filter: brightness(1.06); }
 </style>
 {% endblock %}
 

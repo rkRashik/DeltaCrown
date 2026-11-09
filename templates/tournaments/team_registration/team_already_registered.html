@@ -1,4 +1,5 @@
 {% extends "tournaments/base.html" %}
+{% block body_class %}ol-tourney{% endblock %}
 {% load static humanize %}
 
 {% block title %}Team Already Registered — {{ tournament.name }} | {{ brand.name }}{% endblock %}
@@ -7,7 +8,7 @@
 <div class="min-h-[80vh] flex items-center justify-center px-4 py-12">
     <div class="max-w-md w-full text-center space-y-6">
         <!-- Status Icon -->
-        <div class="inline-flex items-center justify-center w-20 h-20 rounded-2xl border border-blue-500/20 mx-auto" style="background: rgba(59, 130, 246, 0.1);">
+        <div class="inline-flex items-center justify-center w-20 h-20 rounded-2xl border border-blue-500/20 mx-auto" style="background: rgba(226, 183, 97, 0.1);">
             <i data-lucide="users" class="w-10 h-10 text-blue-400"></i>
         </div>
 
@@ -30,7 +31,7 @@
             </div>
             <div class="flex justify-between text-sm">
                 <span class="text-gray-500">Status</span>
-                <span class="font-bold {% if registration.status == 'confirmed' %}text-emerald-400{% else %}text-amber-400{% endif %}">
+                <span class="font-bold {% if registration.status == 'confirmed' %}text-emerald-400{% else %}text-yellow-400{% endif %}">
                     {{ registration.get_status_display }}
                 </span>
             </div>
@@ -40,7 +41,7 @@
         <div class="flex flex-col gap-3">
             <a href="/tournaments/{{ tournament.slug }}/lobby/"
                class="block w-full py-3.5 rounded-xl text-sm font-bold uppercase tracking-wider text-center text-black"
-               style="background: linear-gradient(135deg, #6366f1, #8b5cf6);">
+               style="background: linear-gradient(135deg, #E2B761, #E2B761);">
                 Enter Team Lobby
             </a>
             <a href="/tournaments/{{ tournament.slug }}/"

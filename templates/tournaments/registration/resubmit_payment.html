@@ -1,4 +1,5 @@
 {% extends "tournaments/base.html" %}
+{% block body_class %}ol-tourney{% endblock %}
 {% load static humanize %}
 
 {% comment %}
@@ -74,7 +75,7 @@
 
       <div class="flex items-center justify-between pt-2">
         <a href="{% url 'tournaments:my_tournaments' %}" class="text-sm text-gray-500 hover:text-white transition">Cancel</a>
-        <button type="submit" class="px-6 py-3 bg-dc-cyan text-dc-dark font-bold text-sm rounded-xl hover:bg-dc-cyan/90 transition shadow-[0_0_20px_rgba(6,182,212,0.3)]">
+        <button type="submit" class="px-6 py-3 bg-dc-cyan text-dc-dark font-bold text-sm rounded-xl hover:bg-dc-cyan/90 transition shadow-[0_0_20px_rgba(226, 183, 97,0.3)]">
           <i data-lucide="send" class="w-4 h-4 inline mr-1"></i> Submit Payment
         </button>
       </div>

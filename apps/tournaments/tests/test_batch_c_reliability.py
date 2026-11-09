@@ -105,3 +105,60 @@ class ResultsStandingsTests(CompletedTournamentFixtureMixin, TestCase):
         html = response.content.decode()
         self.assertNotIn("Seed ", html)
         self.assertIn("Participants", html)
+
+
+class PublicDetailPresentationTests(CompletedTournamentFixtureMixin, TestCase):
+    def test_completed_page_offers_results_and_says_completed(self):
+        tournament, _ = self.make_completed(slug="batch-c-cta-done")
+        html = self.client.get(f"/tournaments/{tournament.slug}/").content.decode()
+        self.assertIn("Tournament completed", html)
+        self.assertIn(f'href="/tournaments/{tournament.slug}/results/"', html)
+        self.assertIn("View results", html)
+
+    def test_cancelled_page_says_cancelled_not_registration_closed(self):
+        tournament, _ = self.make_completed(slug="batch-c-cta-cancel")
+        Tournament.objects.filter(pk=tournament.pk).update(status=Tournament.CANCELLED)
+        html = self.client.get(f"/tournaments/{tournament.slug}/").content.decode()
+        self.assertIn("Tournament cancelled", html)
+
+    def test_hero_has_no_fake_brand_image_and_no_placeholder_chips(self):
+        tournament, _ = self.make_completed(slug="batch-c-hero")
+        html = self.client.get(f"/tournaments/{tournament.slug}/").content.decode()
+        self.assertNotRegex(html, r"<img[^>]+og-preview")
+        for jargon in ("Live Updates Enabled", "Community Links Active", "Tournament Runtime", "Recent activity", "Vanguard Network"):
+            self.assertNotIn(jargon, html)
+
+    def test_entry_fee_uses_one_currency_format(self):
+        tournament, _ = self.make_completed(slug="batch-c-fee")
+        Tournament.objects.filter(pk=tournament.pk).update(
+            status=Tournament.REGISTRATION_OPEN, has_entry_fee=True, entry_fee_amount=150, entry_fee_currency="BDT")
+        html = self.client.get(f"/tournaments/{tournament.slug}/").content.decode()
+        self.assertIn("৳150", html)
+        self.assertNotIn("BDT 150", html)
+
+    def test_poll_widget_cannot_be_unhidden_by_a_style_binding(self):
+        """A string :style binding replaces the whole style attribute and defeats x-show (the placeholder poll stayed visible)."""
+        from pathlib import Path
+        from django.conf import settings
+        stack = (Path(settings.BASE_DIR) / "templates/tournaments/detailPages/widgets/_overview_widget_stack.html").read_text(encoding="utf-8")
+        section = stack[stack.index('id="fan-predictions"'):][:600]
+        self.assertIn('x-show="shouldShowFanPoll()"', section)
+        self.assertNotRegex(section, r""":style="[^"]*\? *'[^']*' *: *''""")
+        methods = (Path(settings.BASE_DIR) / "templates/tournaments/detailPages/widgets/_widget_methods.js.html").read_text(encoding="utf-8")
+        self.assertIn("fanPollIsConfigured", methods)
+
+    def test_tournament_page_family_uses_the_shared_scope(self):
+        from pathlib import Path
+        from django.conf import settings
+        css = (Path(settings.BASE_DIR) / "static/ownlobby/foundation.css").read_text(encoding="utf-8")
+        self.assertIn(".ol-tourney", css)
+        tournament, _ = self.make_completed(slug="batch-c-scope")
+        self.assertIn("ol-tourney", self.client.get(f"/tournaments/{tournament.slug}/").content.decode())
+
+    def test_registration_confirmation_copy_has_no_invented_tiers_or_neon_cta(self):
+        from pathlib import Path
+        from django.conf import settings
+        tpl = (Path(settings.BASE_DIR) / "templates/tournaments/registration/smart_success.html").read_text(encoding="utf-8")
+        for phrase in ("VIP Access Secured", "Access Tier", "CONTENDERS", "CHALLENGER", "Servers</span>", "Tournament Ops", "neonPulse;", "animation: neonPulse"):
+            self.assertNotIn(phrase, tpl)
+        self.assertIn("Registration confirmed", tpl)
