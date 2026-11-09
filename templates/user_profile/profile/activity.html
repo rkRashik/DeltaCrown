@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<div class="mx-auto w-full max-w-3xl px-4 py-10">
+  <nav aria-label="Breadcrumb" class="mb-4 text-sm text-gray-400">
+    <a href="{% url 'user_profile:public_profile' username=profile_username %}" class="hover:text-white">&larr; {{ profile_display_name }}</a>
+  </nav>
+  <h1 class="text-2xl font-semibold text-white">Activity Feed</h1>
+  <p class="mt-1 text-sm text-gray-400">@{{ profile_username }}</p>
+
+  {% if not activity_visible %}
+    <p class="mt-8 rounded-xl border border-white/10 bg-white/5 p-6 text-sm text-gray-300">This player keeps their activity private.</p>
+  {% elif activity.activities %}
+    <ul class="mt-8 divide-y divide-white/10 rounded-xl border border-white/10 bg-white/5">
+      {% for item in activity.activities %}
+        <li class="flex items-center justify-between gap-4 px-5 py-3 text-sm">
+          <span class="text-gray-100">{{ item.label }}</span>
+          {% if item.when %}<time datetime="{{ item.when|date:'c' }}" class="shrink-0 text-gray-400">{{ item.when|date:"M j, Y" }}</time>{% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+    {% if activity.total_pages > 1 %}
+      <nav aria-label="Activity pages" class="mt-6 flex items-center justify-between text-sm text-gray-300">
+        {% if activity.has_previous %}<a class="hover:text-white" href="?page={{ activity.page|add:'-1' }}">Newer</a>{% else %}<span></span>{% endif %}
+        <span>Page {{ activity.page }} of {{ activity.total_pages }}</span>
+        {% if activity.has_next %}<a class="hover:text-white" href="?page={{ activity.page|add:'1' }}">Older</a>{% else %}<span></span>{% endif %}
+      </nav>
+    {% endif %}
+  {% else %}
+    <div class="mt-8 rounded-xl border border-white/10 bg-white/5 p-6 text-sm text-gray-300">
+      <h2 class="text-base font-medium text-white">No Activity Yet</h2>
+      {% if is_owner %}
+        <p class="mt-1">Start competing in tournaments to build your activity feed.</p>
+        <a href="{% url 'tournaments:list' %}" class="mt-4 inline-block rounded-lg bg-white/10 px-4 py-2 text-white hover:bg-white/20">Browse Tournaments</a>
+      {% else %}
+        <p class="mt-1">{{ profile_display_name }} hasn't participated in any events yet.</p>
+      {% endif %}
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

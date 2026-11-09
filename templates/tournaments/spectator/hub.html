@@ -106,7 +106,7 @@
                     {{ standing.rank|default:forloop.counter }}
                   </span>
                   <span class="text-sm text-white">
-                    {% if standing.team %}{{ standing.team.name }}{% elif standing.user %}{{ standing.user.username }}{% else %}—{% endif %}
+                    {{ standing.participant_name }}
                   </span>
                 </div>
                 <span class="text-sm font-mono text-dc-gold">{{ standing.points|default:0 }} pts</span>
@@ -134,7 +134,7 @@
                   {{ forloop.counter }}
                 </span>
                 <span class="text-sm text-white">
-                  {% if entry.team %}{{ entry.team.name }}{% elif entry.user %}{{ entry.user.username }}{% else %}—{% endif %}
+                  {{ entry.name|default:"—" }}
                 </span>
               </div>
               <div class="flex items-center gap-4 text-sm">
@@ -170,9 +170,9 @@
               <div class="px-6 py-3">
                 <div class="flex items-center justify-between">
                   <span class="text-sm text-white">
-                    {% if match.participant1 %}{{ match.participant1.user.username|default:"TBD" }}{% else %}TBD{% endif %}
+                    {{ match.participant1_name|default:"TBD" }}
                     <span class="text-gray-600 mx-1">vs</span>
-                    {% if match.participant2 %}{{ match.participant2.user.username|default:"TBD" }}{% else %}TBD{% endif %}
+                    {{ match.participant2_name|default:"TBD" }}
                   </span>
                 </div>
                 {% if match.scheduled_time %}
@@ -201,9 +201,9 @@
               <div class="px-6 py-3">
                 <div class="flex items-center justify-between">
                   <span class="text-sm text-white">
-                    {% if match.participant1 %}{{ match.participant1.user.username|default:"TBD" }}{% else %}TBD{% endif %}
+                    {{ match.participant1_name|default:"TBD" }}
                     <span class="text-gray-600 mx-1">vs</span>
-                    {% if match.participant2 %}{{ match.participant2.user.username|default:"TBD" }}{% else %}TBD{% endif %}
+                    {{ match.participant2_name|default:"TBD" }}
                   </span>
                   <span class="text-sm font-mono text-gray-400">
                     {{ match.participant1_score|default:"—" }} - {{ match.participant2_score|default:"—" }}

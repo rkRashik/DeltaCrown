@@ -1530,57 +1530,93 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
 
 def profile_activity_view(request: HttpRequest, username: str) -> HttpResponse:
     """
-    Activity feed page - paginated activity timeline.
-    
+    Activity page - paginated timeline of a player's activity.
+
     Route: /@<username>/activity/
-    
-    Shows:
-    - Full activity feed (paginated)
-    - Event types: tournaments, matches, achievements, badges, level ups
-    - Public: only public events
-    - Owner: all events
-    
-    Privacy:
-    - Activity events filtered by is_owner
-    - Pagination: 25 events per page
-    - NO raw Activity objects in context
-    
-    Args:
-        request: HTTP request
-        username: Username of profile to view
-        
-    Returns:
-        Rendered profile_activity.html template
+
+    Privacy (same gate as the public profile, plus the activity toggle):
+    - Private accounts / private visibility: the standard private-profile page.
+    - Non-owners see nothing unless the owner enabled ``show_activity_feed``.
+    - Non-owners only receive the public event types (service-level filter).
+    - Only a display label and a timestamp are rendered. Event metadata (ids,
+      reasons, actors) is never passed to the template.
     """
-    # Get page number from query params
-    page = request.GET.get('page', 1)
+    from django.contrib.auth import get_user_model
+    from django.utils.dateparse import parse_datetime
+    from apps.user_profile.models.activity import EventType
+
+    User = get_user_model()
     try:
-        page = int(page)
-    except (ValueError, TypeError):
-        page = 1
-    
-    # Build safe context (activity-focused)
-    context = build_public_profile_context(
-        viewer=request.user if request.user.is_authenticated else None,
-        username=username,
-        requested_sections=['basic', 'activity'],
-        activity_page=page,
-        activity_per_page=25
-    )
-    
-    # Check if profile was found
-    if not context['can_view'] or context.get('error'):
-        if context.get('error') == f'User @{username} not found':
-            raise Http404(f"User @{username} not found")
-        else:
-            messages.error(request, context.get('error', 'Profile could not be loaded'))
-            return redirect('home')
-    
-    # Add page metadata
-    context['page_title'] = f"@{username} Activity - {BRAND['name']} Esports"
-    context['current_page'] = 'activity'
-    
-    return render(request, 'user_profile/profile/activity.html', context)
+        profile_user = User.objects.select_related('profile').get(username=username)
+        user_profile = profile_user.profile
+    except (User.DoesNotExist, UserProfile.DoesNotExist):
+        raise Http404(f"User @{username} not found")
+
+    viewer = request.user if request.user.is_authenticated else None
+    checker = ProfilePermissionChecker(viewer=viewer, profile=user_profile)
+    permissions = checker.get_all_permissions()
+
+    if not permissions['can_view_profile']:
+        return render(request, 'user_profile/profile_private.html', {
+            'profile_user': profile_user,
+            'profile': user_profile,
+            'viewer_role': permissions['viewer_role'],
+            'has_pending_request': bool(
+                viewer and viewer != profile_user
+                and FollowService.has_pending_follow_request(requester_user=viewer, target_user=profile_user)
+            ),
+            'seo': build_seo(
+                title=f"@{profile_user.username} | Private {BRAND['name']} Profile",
+                description=f"This {BRAND['name']} profile is private.",
+                path=f"/@{profile_user.username}/activity/",
+                noindex=True,
+            ),
+        })
+
+    is_owner = bool(permissions.get('is_own_profile'))
+    display_name = user_profile.display_name or profile_user.username
+    activity_visible = is_owner or bool(checker.privacy.show_activity_feed)
+
+    activity = {'activities': [], 'page': 1, 'total_pages': 1, 'total_count': 0, 'has_next': False, 'has_previous': False}
+    if activity_visible:
+        try:
+            page = int(request.GET.get('page', 1))
+        except (ValueError, TypeError):
+            page = 1
+        context = build_public_profile_context(
+            viewer=viewer,
+            username=username,
+            requested_sections=['activity'],
+            activity_page=page,
+            activity_per_page=25,
+        )
+        feed = context.get('activity') or {}
+        labels = dict(EventType.choices)
+        activity.update({key: feed[key] for key in ('page', 'total_pages', 'total_count', 'has_next', 'has_previous') if key in feed})
+        activity['activities'] = [
+            {
+                'label': str(labels.get(str(event.get('event_type') or ''))
+                             or str(event.get('event_type') or '').replace('.', ' ').replace('_', ' ').capitalize()
+                             or 'Activity'),
+                'when': parse_datetime(event.get('created_at') or ''),
+            }
+            for event in feed.get('activities', [])
+        ]
+
+    return render(request, 'user_profile/profile/activity.html', {
+        'profile_username': profile_user.username,
+        'profile_display_name': display_name,
+        'is_owner': is_owner,
+        'activity_visible': activity_visible,
+        'activity': activity,
+        'page_title': f"@{profile_user.username} Activity - {BRAND['name']}",
+        'seo': build_seo(
+            title=f"@{profile_user.username} Activity | {BRAND['name']}",
+            description=f"Recent activity on {BRAND['name']}.",
+            path=f"/@{profile_user.username}/activity/",
+            noindex=True,
+        ),
+    })
 
 
 @login_required
