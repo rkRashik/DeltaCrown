@@ -559,7 +559,7 @@
 
           {# Game Navigation #}
           <div>
-            <h3 class="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-4 px-2">Esports Titles</h3>
+            <h2 class="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-4 px-2">Esports Titles</h2>
             <div class="space-y-1.5">
               <a href="?{% if current_status %}status={{ current_status }}{% endif %}{% if current_search %}&search={{ current_search }}{% endif %}"
                  class="nav-pill{% if not current_game %} active{% endif %}">
@@ -582,7 +582,7 @@
 
           {# Status Filters #}
           <div>
-            <h3 class="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-4 px-2">Event Status</h3>
+            <h2 class="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-4 px-2">Event Status</h2>
             <div class="flex flex-col gap-2">
               {% for opt in status_options %}
               <a href="?status={{ opt.value }}{% if current_game %}&game={{ current_game }}{% endif %}{% if current_search %}&search={{ current_search }}{% endif %}"
@@ -621,7 +621,7 @@
               </h2>
               <p class="text-sm text-gray-400 mt-1">Discover and dominate the active circuits.</p>
             </div>
-            <select data-change-search="?sort={value}" class="appearance-none bg-[#111318] border border-white/10 text-xs font-bold text-gray-300 rounded-lg px-4 py-2.5 outline-none focus:border-dc-cyan/50 focus:ring-1 focus:ring-dc-cyan/50 cursor-pointer w-full sm:w-auto">
+            <select data-change-search="?sort={value}" aria-label="Sort tournaments" class="appearance-none bg-[#111318] border border-white/10 text-xs font-bold text-gray-300 rounded-lg px-4 py-2.5 outline-none focus:border-dc-cyan/50 focus:ring-1 focus:ring-dc-cyan/50 cursor-pointer w-full sm:w-auto">
               <option value="trending">Sort: Trending Priority</option>
               <option value="soonest">Sort: Starting Soonest</option>
               <option value="prize">Sort: Highest Prize Pool</option>
@@ -821,7 +821,7 @@
           {% endif %}
 
           {# Host / Organizer Module #}
-          <a href="{% if user.is_authenticated %}{% url 'tournaments:create' %}{% else %}/accounts/login/?next=/tournaments/create/{% endif %}" class="block relative overflow-hidden rounded-2xl p-6 group cursor-pointer border border-dc-purple/30 bg-[#111318] hover:border-dc-purple transition-all duration-300">
+          <a href="{% if user.is_authenticated %}{% url 'tournaments:create' %}{% else %}/account/login/?next=/tournaments/create/{% endif %}" class="block relative overflow-hidden rounded-2xl p-6 group cursor-pointer border border-dc-purple/30 bg-[#111318] hover:border-dc-purple transition-all duration-300">
             <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-dc-purple/10 via-transparent to-transparent opacity-50 group-hover:opacity-100 transition-opacity"></div>
             <div class="relative z-10 text-center">
               <div class="w-12 h-12 mx-auto bg-gradient-to-br from-dc-purple to-indigo-600 rounded-xl flex items-center justify-center mb-4 shadow-[0_0_20px_rgba(139,92,246,0.3)] transform group-hover:rotate-3 transition-transform">

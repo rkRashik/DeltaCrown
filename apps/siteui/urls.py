@@ -1,5 +1,6 @@
 from django.urls import path
 from django.views.generic import RedirectView
+from apps.common.dev_only import dev_only
 from .views import home, ui_showcase
 from . import views
 
@@ -8,7 +9,7 @@ app_name = 'siteui'
 urlpatterns = [
     path("", home, name="homepage"),
     path("", home, name="home"),  # Add alias for 'home' name
-    path("ui/", ui_showcase, name="ui_showcase"),
+    path("ui/", dev_only(ui_showcase), name="ui_showcase"),
     path("about/", views.about, name="about"),
     path("community/", views.community, name="community"),
     path("community/create-post/", views.handle_community_post_creation, name="create_community_post"),

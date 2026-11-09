@@ -28,7 +28,7 @@ class TournamentLobbyView(LoginRequiredMixin, View):
     Kept for backward-compatibility so bookmarks and external links
     continue to work.
     """
-    login_url = '/accounts/login/'
+    login_url = '/account/login/'
 
     def get(self, request, slug):
         return redirect('tournaments:tournament_hub', slug=slug)
@@ -44,7 +44,7 @@ class CheckInActionView(LoginRequiredMixin, View):
     URL: /tournaments/<slug>/check-in/
     Method: POST
     """
-    login_url = '/accounts/login/'
+    login_url = '/account/login/'
 
     def post(self, request, slug):
         """Handle check-in action."""

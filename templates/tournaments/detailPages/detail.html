@@ -1016,7 +1016,7 @@
         </div>
     </div>
 
-    <main class="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-16">
+    <div class="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-16">
         <div class="grid grid-cols-1 xl:grid-cols-12 gap-8 xl:gap-12 relative">
             <div class="space-y-10 min-h-[800px]" :class="activeTab === 'bracket' ? 'xl:col-span-12' : 'xl:col-span-8'">
                 <div x-show="activeTab === 'overview'" x-transition.opacity class="space-y-8" x-cloak>
@@ -1040,7 +1040,7 @@
                             <div class="absolute -right-20 -top-20 w-64 h-64 rounded-full blur-[100px] opacity-30 theme-bg"></div>
                             <div class="grid grid-cols-1 lg:grid-cols-5 gap-6 relative z-10">
                                 <div class="lg:col-span-3 max-w-3xl">
-                                    <h3 class="font-display font-bold text-3xl text-white mb-4">Tournament Brief</h3>
+                                    <h2 class="font-display font-bold text-3xl text-white mb-4">Tournament Brief</h2>
                                     <div class="prose prose-invert prose-sm md:prose-base max-w-none text-gray-200 leading-relaxed">
                                         {% if tournament.description %}
                                         <div>{{ tournament.description|safe }}</div>
@@ -2568,7 +2568,7 @@
                     </div>
             </div>
         </div>
-    </main>
+    </div>
     </div>
 </div>
 {{ detail_widgets|json_script:"dc-detail-widget-seed" }}
@@ -2605,7 +2605,7 @@ document.addEventListener('alpine:init', function () {
             fanPredictionVoteUrl: '',
             fanPredictionBusyQuestion: '',
             viewerCanVote: {% if user.is_authenticated %}true{% else %}false{% endif %},
-            viewerLoginUrl: '/accounts/login/?next={{ request.path|urlencode }}',
+            viewerLoginUrl: '/account/login/?next={{ request.path|urlencode }}',
             canManageWidgets: {% if can_manage_detail_widgets %}true{% else %}false{% endif %},
             phase: '{% if tournament_phase == "registration_open" %}registration{% elif is_live_phase %}live{% elif tournament_phase == "registration_closed" %}checkin{% elif is_completed_phase %}completed{% elif is_cancelled %}cancelled{% else %}upcoming{% endif %}',
             timeFormat: '{{ detail_time_format|escapejs }}',

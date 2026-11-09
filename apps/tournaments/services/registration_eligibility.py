@@ -62,7 +62,7 @@ class RegistrationEligibilityService:
                 is_eligible=False,
                 reason="You need to sign in to register for this tournament.",
                 action_type='login',
-                action_url=f'/accounts/login/?next=/tournaments/{tournament.slug}/',
+                action_url=f'/account/login/?next=/tournaments/{tournament.slug}/',
                 action_label='Sign In to Register'
             )
         

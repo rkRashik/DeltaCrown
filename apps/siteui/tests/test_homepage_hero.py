@@ -499,16 +499,19 @@ class HeroViewTests(TestCase):
         self.assertContains(resp, "No open tournaments right now.")
         self.assertContains(resp, 'href="/tournaments/"')
 
-    def test_footer_single_youtube_icon_link(self):
-        """Footer social section must contain exactly one YouTube icon-button link."""
-        resp = self.client.get("/")
-        html = resp.content.decode("utf-8", errors="replace")
-        # Count occurrences of the YouTube icon social button (the w-12 icon grid)
-        # We check the specific title="YouTube" attribute to count icon buttons
-        youtube_icon_count = html.count('title="YouTube"')
-        self.assertEqual(youtube_icon_count, 1,
-            f"Expected exactly 1 YouTube icon button, found {youtube_icon_count}"
-        )
+    def test_footer_hides_youtube_without_verified_channel(self):
+        """No verified official channel is configured, so no YouTube link may render."""
+        html = self.client.get("/").content.decode("utf-8", errors="replace")
+        self.assertEqual(html.count('title="YouTube"'), 0)
+        self.assertNotIn("youtube.com", html.replace("googletagmanager", ""))
+
+    def test_footer_single_youtube_icon_link_when_configured(self):
+        """When BRAND_YOUTUBE_URL is configured the footer shows exactly one YouTube icon button."""
+        from unittest.mock import patch
+        from deltacrown.branding import BRAND
+        with patch.dict(BRAND["social"], {"youtube": "https://www.youtube.com/@example"}):
+            html = self.client.get("/").content.decode("utf-8", errors="replace")
+        self.assertEqual(html.count('title="YouTube"'), 1)
 
 
 class HeroRotationTests(PureTestCase):

@@ -1,0 +1,21 @@
+{# Public browse links for the mobile drawer (signed-in and signed-out). Store is intentionally absent until it is ready. #}
+<nav class="ol-drawer-group" aria-label="Browse {{ brand.name }}">
+  <p class="ol-drawer-heading">Explore</p>
+  <button type="button" class="dcv4-drawer-item ol-drawer-link" data-nav-search>
+    <svg class="ol-drawer-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+    <span>Search</span>
+  </button>
+  <a href="/tournaments/" class="dcv4-drawer-item ol-drawer-link"><span>Tournaments</span></a>
+  <a href="/teams/" class="dcv4-drawer-item ol-drawer-link"><span>Teams</span></a>
+  {% if ORG_APP_ENABLED %}<a href="/orgs/" class="dcv4-drawer-item ol-drawer-link"><span>Organizations</span></a>{% endif %}
+  <a href="/competition/rankings/" class="dcv4-drawer-item ol-drawer-link"><span>Rankings</span></a>
+  <a href="/community/" class="dcv4-drawer-item ol-drawer-link"><span>Community</span></a>
+  <a href="/arena/" class="dcv4-drawer-item ol-drawer-link"><span>Arena</span></a>
+</nav>
+<nav class="ol-drawer-group" aria-label="Help and information">
+  <p class="ol-drawer-heading">Help</p>
+  <a href="/about/" class="dcv4-drawer-item ol-drawer-link"><span>About</span></a>
+  <a href="/faq/" class="dcv4-drawer-item ol-drawer-link"><span>FAQ</span></a>
+  <a href="/rules/" class="dcv4-drawer-item ol-drawer-link"><span>Rules &amp; Fair Play</span></a>
+  <a href="/contact/" class="dcv4-drawer-item ol-drawer-link"><span>Contact support</span></a>
+</nav>

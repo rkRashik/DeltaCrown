@@ -43,6 +43,10 @@
     hamburger?.classList.add('is-open');
     toggleBtn?.setAttribute('aria-expanded', 'true');
     document.body.style.overflow = 'hidden';
+    /* Accessibility: expose the drawer, then move focus into it */
+    drawer.inert = false;
+    drawer.setAttribute('aria-hidden', 'false');
+    (closeBtn || drawer).focus({ preventScroll: true });
   }
 
   function closeMenu() {
@@ -56,7 +60,28 @@
     hamburger?.classList.remove('is-open');
     toggleBtn?.setAttribute('aria-expanded', 'false');
     document.body.style.overflow = '';
+    /* Accessibility: hide the closed drawer from tab order/AT and restore focus */
+    const hadFocus = drawer.contains(document.activeElement);
+    drawer.inert = true;
+    drawer.setAttribute('aria-hidden', 'true');
+    if (hadFocus) toggleBtn?.focus({ preventScroll: true });
   }
+
+  /* Keep Tab inside the open drawer */
+  drawer?.addEventListener('keydown', (e) => {
+    if (e.key !== 'Tab' || !menuOpen) return;
+    const items = Array.from(drawer.querySelectorAll('a[href], button:not([disabled])')).filter((el) => el.offsetParent !== null);
+    if (!items.length) return;
+    const first = items[0], last = items[items.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  });
+
+  /* Drawer "Search" row: close the drawer, then open the search overlay */
+  drawer?.querySelector('[data-nav-search]')?.addEventListener('click', () => {
+    closeMenu();
+    setTimeout(() => { if (typeof openSearch === 'function') openSearch(); }, 50);
+  });
 
   /* Bind hamburger toggle */
   toggleBtn?.addEventListener('click', (e) => {

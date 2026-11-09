@@ -3,7 +3,7 @@
 {% block title %}Community — {{ brand.name }}{% endblock %}
 
 {% block content %}
-<main id="community" class="min-h-screen">
+<div id="community" class="min-h-screen">
 
   <!-- ===================== FUTURISTIC HERO ===================== -->
   <section class="relative overflow-hidden">
@@ -41,10 +41,10 @@
                 {% if request.user.is_authenticated %}
                   <a class="btn btn-primary" href="/forums/new/">New post</a>
                 {% else %}
-                  <a class="btn btn-primary" href="/accounts/login/?next=/forums/new/">Sign in to Post</a>
+                  <a class="btn btn-primary" href="/account/login/?next=/forums/new/">Sign in to Post</a>
                 {% endif %}
                 <a class="btn btn-soft" href="/forums/new/?category=scrims">Post scrim</a>
-                <a class="btn btn-ghost" href="/support/">Report</a>
+                <a class="btn btn-ghost" href="/moderation/">Report</a>
               </div>
             </div>
           </div>
@@ -481,7 +481,7 @@
 
     </div>
   </section>
-</main>
+</div>
 
 <!-- ===================== Minimal JS: shortcuts + share ===================== -->
 <script nonce="{{ request.csp_nonce }}">

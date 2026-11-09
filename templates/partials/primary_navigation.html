@@ -1,12 +1,12 @@
 {% load static nav_extras dc_avatar %}
 <!-- DELTACROWN PRIMARY NAVIGATION v3 -->
-<div id="dc-search-overlay">
+<div id="dc-search-overlay" role="dialog" aria-modal="true" aria-label="Search">
   <div style="display:flex;align-items:flex-start;justify-content:center;padding:min(12vh,100px) 16px 0;width:100%;height:100%;">
     <div id="dc-search-modal"
       style="width:100%;max-width:580px;background:#1C1C1E;border:1px solid rgba(255,255,255,0.08);border-radius:16px;box-shadow:0 24px 80px rgba(0,0,0,.8),0 0 0 1px rgba(255,255,255,0.04);overflow:hidden;display:flex;flex-direction:column;max-height:min(520px,70vh);">
       <div style="display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid rgba(255,255,255,0.06);">
         <i class="fa-solid fa-magnifying-glass" style="font-size:15px;color:#8E8E93;flex:none;"></i>
-        <input type="text" id="dc-cmd-input" placeholder="Search tournaments, teams, players..."
+        <input type="text" id="dc-cmd-input" aria-label="Search tournaments, teams and players" placeholder="Search tournaments, teams, players..."
           style="flex:1;background:none;border:none;outline:none;color:#F4F6FA;font-size:16px;font-family:inherit;font-weight:500;"
           autocomplete="off" spellcheck="false">
         <div id="dc-search-shortcut" style="display:flex;align-items:center;gap:4px;flex:none;">
@@ -120,7 +120,7 @@
 </header>
 
 <!-- Desktop Navigation -->
-<nav id="dc-navbar"
+<nav id="dc-navbar" aria-label="Main"
   class="hidden md:flex fixed top-0 left-0 right-0 z-[100] items-center transition-all duration-500"
   style="height:64px;background:rgba(8,9,13,0.55);backdrop-filter:blur(24px) saturate(160%);-webkit-backdrop-filter:blur(24px) saturate(160%);border-bottom:1px solid rgba(255,255,255,.08);box-shadow:inset 0 1px 0 rgba(255,255,255,0.04),0 4px 32px -4px rgba(0,0,0,0.5);">
 
@@ -131,7 +131,6 @@
   {% if request.user.is_authenticated %}{% nav_active '/dashboard/' '/dashboard' as d_a %}{% endif %}
   {% nav_active '/community/' '/community' as c_a %}
   {% nav_active '/arena/' '/watch/' as ar_a %}
-  {% nav_active '/crownstore/' '/crownstore' as st_a %}
 
   <div class="w-full h-full" style="display:flex;align-items:center;position:relative;padding:0 1.5rem;">
 
@@ -154,7 +153,6 @@
             <span class="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-ping" aria-hidden="true"></span>
           </a>
         </div>
-        <div class="dc-nav-item{% if st_a %} active{% endif %}"><a href="/crownstore/" class="dc-nav-link text-yellow-400/90 hover:text-white">Store</a></div>
       </nav>
       <!-- FeedTabs portal: absolutely centered in this column, fades in on scroll -->
       <div id="cnav-tabs-portal"
@@ -204,7 +202,7 @@
         <i class="fa-solid fa-plus" style="font-size:11px;"></i><span>Post</span>
       </button>
       {% else %}
-      <a href="/accounts/login/?next=/community/" style="padding:8px 16px;border-radius:10px;font-size:13px;font-weight:600;color:white;border:1px solid rgba(255,255,255,0.14);background:rgba(255,255,255,0.05);text-decoration:none;white-space:nowrap;">Sign in</a>
+      <a href="/account/login/?next=/community/" style="padding:8px 16px;border-radius:10px;font-size:13px;font-weight:600;color:white;border:1px solid rgba(255,255,255,0.14);background:rgba(255,255,255,0.05);text-decoration:none;white-space:nowrap;">Sign in</a>
       {% endif %}
     </div>
 
@@ -217,7 +215,6 @@
   {% if request.user.is_authenticated %}{% nav_active '/dashboard/' '/dashboard' as dashboard_active %}{% endif %}
   {% nav_active '/community/' '/community' as community_active %}
   {% nav_active '/arena/' '/watch/' as arena_active %}
-  {% nav_active '/crownstore/' '/crownstore' as store_active %}
   <div class="dcv4-layout">
 
     <!-- Logo -->
@@ -241,11 +238,11 @@
           <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="2,3.5 5,6.5 8,3.5"></polyline></svg>
         </button>
         <div id="dc-teams-menu" class="dcv4-menu" style="left:0;">
-          <a href="/teams/" class="dcv4-menu-item"><span class="dcv4-mi-title">Competitive Arena</span><span class="dcv4-mi-sub">Esports teams &amp; organizations</span></a>
-          <a href="/competition/rankings/" class="dcv4-menu-item"><span class="dcv4-mi-title">Rankings</span><span class="dcv4-mi-sub">Competitive Power Rankings</span></a>
+          <a href="/teams/" class="dcv4-menu-item"><span class="dcv4-mi-title">Teams</span><span class="dcv4-mi-sub">Browse teams and organizations</span></a>
+          <a href="/teams/find/" class="dcv4-menu-item"><span class="dcv4-mi-title">Find a Team</span><span class="dcv4-mi-sub">Join a roster or recruit players</span></a>
+          <a href="/competition/rankings/" class="dcv4-menu-item"><span class="dcv4-mi-title">Rankings</span><span class="dcv4-mi-sub">Team rankings by game</span></a>
           {% if request.user.is_authenticated %}
           <div class="dcv4-menu-sep"></div>
-          <a href="/teams/find/" class="dcv4-menu-item"><span class="dcv4-mi-title">Find a Squad</span><span class="dcv4-mi-sub">Join a roster or recruit players</span></a>
           <a href="/teams/" class="dcv4-menu-item"><span class="dcv4-mi-title">My Teams</span><span class="dcv4-mi-sub">Manage your teams</span></a>
           {% endif %}
         </div>
@@ -266,8 +263,6 @@
         {% endif %}
         {% if arena_active %}<span class="dcv4-activedot"></span>{% endif %}
       </a>
-
-      <a href="/crownstore/" class="dcv4-nlink{% if store_active %} active{% endif %}" {% if store_active %}aria-current="page"{% endif %}>Store{% if store_active %}<span class="dcv4-activedot"></span>{% endif %}</a>
       <button id="dc-search-btn" class="dcv4-icon-btn" title="Search (Cmd+K)" aria-label="Open search">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="6.5" cy="6.5" r="4"></circle><path d="M10 10L13.5 13.5"></path></svg>
       </button>
@@ -310,8 +305,8 @@
       </div>
       {% else %}
       <div style="width:1px;height:18px;background:rgba(255,255,255,0.1);margin:0 10px;"></div>
-      <a href="/accounts/login/" class="dcv4-signin">Sign In</a>
-      <a href="/accounts/signup/" class="dcv4-signup">Sign Up</a>
+      <a href="/account/login/" class="dcv4-signin">Sign In</a>
+      <a href="/account/signup/" class="dcv4-signup">Sign Up</a>
       {% endif %}
     </div>
   </div>
@@ -341,7 +336,7 @@
     <span style="color:rgba(0,229,255,0.85);">Post</span>
   </button>
   {% else %}
-  <a id="dc-mobile-post-btn" href="/accounts/login/?next=/community/" class="dc-btm-item" aria-label="Sign in to create post"
+  <a id="dc-mobile-post-btn" href="/account/login/?next=/community/" class="dc-btm-item" aria-label="Sign in to create post"
      style="color:rgba(0,229,255,0.85);">
     <i class="fa-solid fa-plus" style="color:rgba(0,229,255,0.85);font-size:1.35rem;"></i>
     <span style="color:rgba(0,229,255,0.85);">Post</span>
@@ -396,7 +391,7 @@
 </nav>
 
 <!-- Mobile Drawer -->
-<div id="dc-mobile-drawer"
+<div id="dc-mobile-drawer" role="dialog" aria-modal="true" aria-label="Menu" aria-hidden="true" inert
   style="position:fixed;top:0;right:0;width:82%;max-width:340px;height:100%;z-index:160;transform:translateX(100%);transition:transform .3s cubic-bezier(.16,1,.3,1),box-shadow .3s;overflow-y:auto;background:#161618;border-left:1px solid rgba(255,255,255,.08);display:flex;flex-direction:column;">
   {% if request.user.is_authenticated %}
   {% user_avatar_url request.user as drawer_avatar %}
@@ -437,6 +432,7 @@
       <span class="dcv4-drawer-ico"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#8E8E93" stroke-width="1.5" stroke-linecap="round"><circle cx="8" cy="8" r="2.5"></circle><path d="M8 1.5v1.25M8 13.25V14.5M1.5 8h1.25M13.25 8H14.5M3.7 3.7l.88.88M11.42 11.42l.88.88M3.7 12.3l.88-.88M11.42 4.58l.88-.88"></path></svg></span>
       <span style="font:500 15px/1 'Inter',sans-serif;color:#F4F6FA;flex:1;">Settings</span>
     </a>
+    {% include "partials/nav_browse_links.html" %}
   </div>
   <!-- Sign Out -->
   <div style="padding:8px;border-top:1px solid rgba(255,255,255,0.06);">
@@ -453,9 +449,10 @@
     </button>
   </div>
   <div style="padding:16px;display:flex;flex-direction:column;gap:10px;">
-    <a href="/accounts/login/" style="height:44px;display:flex;align-items:center;justify-content:center;border-radius:10px;background:#F4F6FA;color:#030308;font:600 14px/1 'Inter',sans-serif;text-decoration:none;">Sign In</a>
-    <a href="/accounts/signup/" style="height:44px;display:flex;align-items:center;justify-content:center;border-radius:10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#F4F6FA;font:600 14px/1 'Inter',sans-serif;text-decoration:none;">Create Account</a>
+    <a href="/account/login/" style="height:44px;display:flex;align-items:center;justify-content:center;border-radius:10px;background:#F4F6FA;color:#030308;font:600 14px/1 'Inter',sans-serif;text-decoration:none;">Sign In</a>
+    <a href="/account/signup/" style="height:44px;display:flex;align-items:center;justify-content:center;border-radius:10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#F4F6FA;font:600 14px/1 'Inter',sans-serif;text-decoration:none;">Create Account</a>
   </div>
+  <div style="padding:0 8px 24px;">{% include "partials/nav_browse_links.html" %}</div>
   {% endif %}
 </div>
 
@@ -575,6 +572,13 @@
 .dcv4-drawer-item:active { background:rgba(255,255,255,0.05); }
 .dcv4-drawer-danger:active { background:rgba(255,69,58,0.07); }
 .dcv4-drawer-ico { width:34px; height:34px; border-radius:8px; background:rgba(255,255,255,0.06); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+
+/* Drawer browse links */
+.ol-drawer-heading { margin:14px 14px 4px; font:600 12px/1.2 'Inter',sans-serif; letter-spacing:.06em; text-transform:uppercase; color:#A7A198; }
+.ol-drawer-link { width:100%; min-height:48px; font:500 15px/1.2 'Inter',sans-serif; color:#F6F1E7; background:transparent; border:0; text-align:left; }
+.ol-drawer-link:focus-visible, .dcv4-drawer-close:focus-visible { outline:2px solid #E2B761; outline-offset:2px; }
+.ol-drawer-ico { flex:none; color:#A7A198; }
+.dcv4-drawer-close { min-width:44px; min-height:44px; }
 
 /* Logo link min tap target */
 #dc-mobile-header > a, #dc-navbar a[aria-label="{{ brand.name }} Home"] { min-height:44px; }
