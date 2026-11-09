@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 # Fallback URLs for missing images
 FALLBACK_URLS = {
-    'team_banner': '/static/img/teams/placeholder-banner.png',
+    'team_banner': '/static/img/teams/default-banner.svg',
     'stream_thumbnail': '/static/img/streams/placeholder-thumbnail.png',
 }
 

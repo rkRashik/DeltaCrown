@@ -7,6 +7,7 @@ from django.contrib import admin
 from django.contrib.admin.views.decorators import staff_member_required
 from django.http import HttpResponse
 from django.urls import include, path
+from apps.common.dev_only import dev_only
 from .views import healthz, readiness, test_game_assets
 from .lifecycle_cron import lifecycle_cron
 from django.views.generic import TemplateView
@@ -51,7 +52,7 @@ urlpatterns = [
     # Protect with staff auth; enable via ENABLE_PROMETHEUS_METRICS=1.
     *( [path("metrics/", include("django_prometheus.urls"))] if settings.ENABLE_PROMETHEUS_METRICS else []),
     
-    path("test-game-assets/", test_game_assets, name="test_game_assets"),
+    path("test-game-assets/", dev_only(test_game_assets), name="test_game_assets"),
     
     # Phase 9A-30: Custom Game Passport Admin (must come BEFORE Django admin catch-all)
     # Routes /admin/game-passports/* to custom interface instead of Django admin
@@ -72,7 +73,7 @@ urlpatterns = [
     path("account/", include(("apps.accounts.urls", "account"), namespace="account")),
 
     # Favicon test page
-    path("favicon-test/", TemplateView.as_view(template_name="favicon_test.html"), name="favicon_test"),
+    path("favicon-test/", dev_only(TemplateView.as_view(template_name="favicon_test.html")), name="favicon_test"),
 
     # Favicon - Direct route for browser default lookup
     path("favicon.ico", RedirectView.as_view(url=settings.STATIC_URL + settings.BRAND["favicon"], permanent=False)),

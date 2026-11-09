@@ -59,7 +59,7 @@
         ৳{{ t.prize_pool|floatformat:0|intcomma }}
       </span>
       {% else %}
-      <span style="font-family:'JetBrains Mono',monospace;font-weight:700;font-size:13px;color:#6B7385;">TBA</span>
+      <span style="font-family:'JetBrains Mono',monospace;font-weight:700;font-size:13px;color:#A7A198;">TBA</span>
       {% endif %}
       <span style="display:flex;align-items:center;gap:6px;font-size:12px;color:#A9B1C2;">
         <svg width="15" height="15" fill="none" stroke="#A9B1C2" stroke-width="2"><path d="M7.5 1C4.5 1 2 3 2 5.5S4.5 9 7.5 8c3 1 5.5-1 5.5-3S10.5 1 7.5 1z"/><circle cx="5" cy="5" r="1.5" fill="#A9B1C2"/><circle cx="10" cy="5" r="1.5" fill="#A9B1C2"/><circle cx="7.5" cy="9" r="1.5" fill="#A9B1C2"/></svg>
@@ -108,7 +108,7 @@
       <div style="font-size:13px;line-height:1.4;color:rgba(244,246,250,0.82);margin-top:2px;">Register, check in and track your brackets.</div>
     </div>
   </div>
-  <a href="/accounts/login/?next=/tournaments/" class="tm-tap" style="display:block;width:100%;height:44px;margin-top:14px;border-radius:13px;font-size:14px;font-weight:600;color:#04060A;background:#fff;text-align:center;line-height:44px;text-decoration:none;">Sign in</a>
+  <a href="/account/login/?next=/tournaments/" class="tm-tap" style="display:block;width:100%;height:44px;margin-top:14px;border-radius:13px;font-size:14px;font-weight:600;color:#04060A;background:#fff;text-align:center;line-height:44px;text-decoration:none;">Sign in</a>
 </div>
 {% elif my_tournaments_sidebar %}
 <div class="tm-section-head">
@@ -123,7 +123,7 @@
            onerror="this.style.display='none'">
       {% else %}
       <div style="width:46px;height:46px;border-radius:12px;background:#232936;display:flex;align-items:center;justify-content:center;flex:none;">
-        <svg width="20" height="20" fill="#6B7385" viewBox="0 0 256 256"><path d="M176,112H152a8,8,0,0,1,0-16h24a8,8,0,0,1,0,16Zm-72-16H80a8,8,0,0,0,0,16h24a8,8,0,0,0,0-16Zm136,40a88.1,88.1,0,0,1-176,0,87.39,87.39,0,0,1,2.34-20.2l-17-8.51A8,8,0,0,1,48,96V64A16,16,0,0,1,64,48H192a16,16,0,0,1,16,16V96a8,8,0,0,1-1.34,4.44l-17,8.51A87.39,87.39,0,0,1,240,136Z"/></svg>
+        <svg width="20" height="20" fill="#A7A198" viewBox="0 0 256 256"><path d="M176,112H152a8,8,0,0,1,0-16h24a8,8,0,0,1,0,16Zm-72-16H80a8,8,0,0,0,0,16h24a8,8,0,0,0,0-16Zm136,40a88.1,88.1,0,0,1-176,0,87.39,87.39,0,0,1,2.34-20.2l-17-8.51A8,8,0,0,1,48,96V64A16,16,0,0,1,64,48H192a16,16,0,0,1,16,16V96a8,8,0,0,1-1.34,4.44l-17,8.51A87.39,87.39,0,0,1,240,136Z"/></svg>
       </div>
       {% endif %}
       <div style="flex:1;min-width:0;">
@@ -139,7 +139,7 @@
         {% if mt.status == 'live' %}LIVE{% elif mt.reg_status == 'confirmed' %}CONFIRMED{% elif mt.reg_status == 'pending' or mt.reg_status == 'payment_submitted' %}PAYMENT DUE{% else %}REGISTERED{% endif %}
       </span>
       {% if mt.tournament_start %}
-      <span style="font-family:'JetBrains Mono',monospace;font-size:11.5px;font-weight:600;color:#6B7385;">{{ mt.tournament_start|date:"M j" }}</span>
+      <span style="font-family:'JetBrains Mono',monospace;font-size:11.5px;font-weight:600;color:#A7A198;">{{ mt.tournament_start|date:"M j" }}</span>
       {% endif %}
     </div>
     <div style="margin-top:11px;">
@@ -214,7 +214,7 @@
             ৳{{ t.prize_pool|floatformat:0|intcomma }}
           </span>
           {% else %}
-          <span style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;color:#6B7385;">Prize TBA</span>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;color:#A7A198;">Prize TBA</span>
           {% endif %}
         </div>
       </div>
@@ -223,11 +223,11 @@
     {# Slots progress bar #}
     <div style="margin-top:11px;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">
-        <span style="font-size:11px;font-weight:600;color:#6B7385;display:flex;align-items:center;gap:5px;">
-          <svg width="13" height="13" fill="none" stroke="#6B7385" stroke-width="2"><path d="M6.5 1C4 1 2 2.5 2 4.5S4 7.5 6.5 7c2.5.5 4.5-1 4.5-2.5S9 1 6.5 1z"/><circle cx="4.5" cy="4" r="1" fill="#6B7385"/><circle cx="8.5" cy="4" r="1" fill="#6B7385"/><circle cx="6.5" cy="7.5" r="1" fill="#6B7385"/></svg>
+        <span style="font-size:11px;font-weight:600;color:#A7A198;display:flex;align-items:center;gap:5px;">
+          <svg width="13" height="13" fill="none" stroke="#A7A198" stroke-width="2"><path d="M6.5 1C4 1 2 2.5 2 4.5S4 7.5 6.5 7c2.5.5 4.5-1 4.5-2.5S9 1 6.5 1z"/><circle cx="4.5" cy="4" r="1" fill="#A7A198"/><circle cx="8.5" cy="4" r="1" fill="#A7A198"/><circle cx="6.5" cy="7.5" r="1" fill="#A7A198"/></svg>
           {{ t.registration_count }} / {{ t.max_participants }} slots
         </span>
-        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;color:#6B7385;">{% widthratio t.registration_count t.max_participants 100 %}%</span>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;color:#A7A198;">{% widthratio t.registration_count t.max_participants 100 %}%</span>
       </div>
       <div class="tm-slots-bar">
         <div class="tm-slots-fill" style="width:{% widthratio t.registration_count t.max_participants 100 %}%;background:#2ECC71;"></div>
@@ -238,13 +238,13 @@
     <div style="display:flex;align-items:center;justify-content:space-between;margin-top:13px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.06);">
       <span style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:#A9B1C2;">
         {% if t.effective_status == 'live' %}
-        <svg width="15" height="15" fill="#6B7385" viewBox="0 0 256 256"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Z"/><circle cx="128" cy="128" r="12" fill="#FF3B5C"/></svg>
+        <svg width="15" height="15" fill="#A7A198" viewBox="0 0 256 256"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Z"/><circle cx="128" cy="128" r="12" fill="#FF3B5C"/></svg>
         Live now
         {% elif t.effective_status == 'completed' %}
-        <svg width="15" height="15" fill="#6B7385" viewBox="0 0 256 256"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm45.66,85.66-56,56a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35a8,8,0,0,1,11.32,11.32Z"/></svg>
+        <svg width="15" height="15" fill="#A7A198" viewBox="0 0 256 256"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm45.66,85.66-56,56a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35a8,8,0,0,1,11.32,11.32Z"/></svg>
         {{ t.tournament_start|date:"M j" }}
         {% else %}
-        <svg width="15" height="15" fill="#6B7385" viewBox="0 0 256 256"><path d="M208,32H184V24a8,8,0,0,0-16,0v8H88V24a8,8,0,0,0-16,0v8H48A16,16,0,0,0,32,48V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V48A16,16,0,0,0,208,32Z"/></svg>
+        <svg width="15" height="15" fill="#A7A198" viewBox="0 0 256 256"><path d="M208,32H184V24a8,8,0,0,0-16,0v8H88V24a8,8,0,0,0-16,0v8H48A16,16,0,0,0,32,48V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V48A16,16,0,0,0,208,32Z"/></svg>
         {{ t.tournament_start|date:"M j, g:i A" }}
         {% endif %}
       </span>
@@ -302,7 +302,7 @@
     </div>
   </a>
   {% empty %}
-  <div style="padding:30px 16px;text-align:center;font-size:13px;color:#6B7385;background:#11151E;border-radius:18px;box-shadow:0 0 0 1px rgba(255,255,255,0.06);">No tournaments match these filters.</div>
+  <div style="padding:30px 16px;text-align:center;font-size:13px;color:#A7A198;background:#11151E;border-radius:18px;box-shadow:0 0 0 1px rgba(255,255,255,0.06);">No tournaments match these filters.</div>
   {% endfor %}
 </div>
 
@@ -346,7 +346,7 @@
       {% if w.prize_pool %}
       <div style="font-family:'JetBrains Mono',monospace;font-weight:700;font-size:13.5px;color:#CFA75A;">৳{{ w.prize_pool|floatformat:0|intcomma }}</div>
       {% endif %}
-      <div style="font-size:10px;color:#6B7385;margin-top:1px;">{{ w.game_name }}</div>
+      <div style="font-size:10px;color:#A7A198;margin-top:1px;">{{ w.game_name }}</div>
     </div>
   </a>
   {% endfor %}
@@ -365,7 +365,7 @@
       {% if current_game %}<input type="hidden" name="game" value="{{ current_game }}">{% endif %}
       {% if current_status %}<input type="hidden" name="status" value="{{ current_status }}">{% endif %}
       <div style="display:flex;align-items:center;gap:9px;height:46px;padding:0 14px;border-radius:14px;background:#1c212b;box-shadow:inset 0 0 0 1px rgba(255,255,255,0.07);">
-        <svg width="18" height="18" fill="none" stroke="#6B7385" stroke-width="2" stroke-linecap="round"><circle cx="8" cy="8" r="5.5"/><path d="M12 12l4 4"/></svg>
+        <svg width="18" height="18" fill="none" stroke="#A7A198" stroke-width="2" stroke-linecap="round"><circle cx="8" cy="8" r="5.5"/><path d="M12 12l4 4"/></svg>
         <input type="text" name="search" value="{{ current_search }}" placeholder="Search by name or game" autocomplete="off"
                style="flex:1;background:none;border:none;outline:none;font-family:'Inter',sans-serif;font-size:15px;color:#F4F6FA;">
       </div>
@@ -382,7 +382,7 @@
 {# ── Footer mark ── #}
 <div style="text-align:center;padding:26px 0 8px;">
   <img src="{% static 'img/favicon/favicon-32x32.png' %}" alt="" style="height:18px;opacity:0.35;margin:0 auto;">
-  <div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.1em;color:#3a4150;margin-top:7px;">WHERE CHAMPIONS RISE</div>
+  <div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.1em;color:#A7A198;margin-top:7px;">WHERE CHAMPIONS RISE</div>
 </div>
 
 <script nonce="{{ request.csp_nonce }}">

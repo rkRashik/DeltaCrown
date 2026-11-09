@@ -1016,7 +1016,7 @@
         </div>
     </div>
 
-    <main class="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-16">
+    <div class="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-16">
         <div class="grid grid-cols-1 xl:grid-cols-12 gap-8 xl:gap-12 relative">
             <div class="space-y-10 min-h-[800px]" :class="activeTab === 'bracket' ? 'xl:col-span-12' : 'xl:col-span-8'">
                 <div x-show="activeTab === 'overview'" x-transition.opacity class="space-y-8" x-cloak>
@@ -1040,7 +1040,7 @@
                             <div class="absolute -right-20 -top-20 w-64 h-64 rounded-full blur-[100px] opacity-30 theme-bg"></div>
                             <div class="grid grid-cols-1 lg:grid-cols-5 gap-6 relative z-10">
                                 <div class="lg:col-span-3 max-w-3xl">
-                                    <h3 class="font-display font-bold text-3xl text-white mb-4">Tournament Brief</h3>
+                                    <h2 class="font-display font-bold text-3xl text-white mb-4">Tournament Brief</h2>
                                     <div class="prose prose-invert prose-sm md:prose-base max-w-none text-gray-200 leading-relaxed">
                                         {% if tournament.description %}
                                         <div>{{ tournament.description|safe }}</div>
@@ -1048,11 +1048,11 @@
                                         <p>Organizer has not published a detailed description yet.</p>
                                         {% endif %}
                                     </div>
-                                    <p class="mt-4 text-sm text-gray-300 leading-relaxed max-w-2xl">Runtime state is synchronized with registration, bracket, and match execution. Confirm your readiness before check-in closes to avoid automatic no-show handling.</p>
+                                    <p class="mt-4 text-sm text-gray-300 leading-relaxed max-w-2xl">Check in before the window closes, or your slot may be released.</p>
                                 </div>
                                 <div class="lg:col-span-2 space-y-3">
                                     <div class="glass-panel rounded-xl p-4 border border-white/10">
-                                        <p class="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1">Runtime Status</p>
+                                        <p class="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1">Status</p>
                                         <p class="text-lg font-bold text-white">{{ effective_status_display }}</p>
                                         <p class="mt-1 text-xs text-gray-300">
                                             {% if user_next_match and user_next_match_lobby_open %}
@@ -1064,7 +1064,7 @@
                                             {% elif effective_status == 'registration_open' %}
                                             Registration is active and accepting entries.
                                             {% else %}
-                                            Runtime status is tracked from live tournament state.
+                                            Updated automatically.
                                             {% endif %}
                                         </p>
                                     </div>
@@ -2407,7 +2407,7 @@
                         <div class="p-8 md:p-10 relative z-10">
                             <div class="flex justify-between items-start mb-8 pb-6 border-b border-white/10">
                                 <div>
-                                    <p id="nd-action-kicker" class="text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-2">{% if is_organizer %}Admin Access{% else %}Action Required{% endif %}</p>
+                                    <p id="nd-action-kicker" class="text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-2">{% if is_organizer %}Admin Access{% else %}Your next step{% endif %}</p>
                                     <div class="flex items-center gap-3">
                                         {% if detail_cta_state == 'organizer' %}
                                         <i data-lucide="shield-check" class="w-6 h-6 text-dc-gold"></i>
@@ -2486,12 +2486,9 @@
                             <a
                                 id="nd-primary-cta"
                                 {% if not detail_cta_primary.disabled and detail_cta_primary.url %}href="{{ detail_cta_primary.url }}"{% endif %}
-                                class="w-full py-5 font-black uppercase tracking-[0.15em] rounded-2xl transition-all duration-300 ease-out transform-gpu flex items-center justify-center gap-3 relative overflow-hidden text-sm group {% if detail_cta_primary.disabled %}bg-white/5 text-gray-500 cursor-not-allowed border border-white/5{% elif detail_cta_state == 'organizer' %}bg-dc-gold hover:bg-yellow-400 text-black shadow-[0_0_20px_rgba(255,215,0,0.3)]{% elif detail_cta_state == 'register' %}bg-green-500 hover:bg-green-400 text-black shadow-[0_0_25px_rgba(34,197,94,0.4)]{% elif tournament_phase == 'registration_closed' and detail_cta_state == 'hub' %}bg-yellow-500 hover:bg-yellow-400 text-black shadow-[0_0_25px_rgba(234,179,8,0.4)]{% elif detail_cta_state == 'hub' %}bg-[linear-gradient(110deg,rgba(165,243,252,0.95)_0%,rgba(125,211,252,0.9)_45%,rgba(96,165,250,0.9)_100%)] bg-[length:200%_100%] bg-[position:0%_50%] hover:bg-[position:100%_50%] border border-cyan-100/70 text-slate-900 shadow-[0_0_34px_rgba(125,211,252,0.48)] hover:shadow-[0_0_42px_rgba(125,211,252,0.72)] hover:scale-[1.04]{% elif detail_cta_state == 'lobby_open' %}theme-bg text-black theme-glow{% else %}bg-white/10 hover:bg-white/20 text-white{% endif %}"
+                                class="ol-btn ol-btn--lg ol-btn--block {% if detail_cta_primary.disabled %}ol-btn--secondary{% else %}ol-btn--primary{% endif %}"
                                 {% if detail_cta_primary.disabled %}aria-disabled="true"{% endif %}
                             >
-                                {% if not detail_cta_primary.disabled and detail_cta_state == 'register' or detail_cta_state == 'lobby_open' %}
-                                <div class="absolute inset-0 bg-white/20 -translate-x-full group-hover:animate-shimmer"></div>
-                                {% endif %}
                                 <span class="relative z-10 flex items-center gap-2">
                                     <i data-lucide="{{ detail_cta_primary.icon|default:'arrow-right' }}" class="w-5 h-5"></i>
                                     <span id="nd-primary-cta-label">{{ detail_cta_primary.label }}</span>
@@ -2505,7 +2502,7 @@
                                 {% elif detail_cta_note %}
                                 <p id="nd-action-note" class="text-xs text-gray-400 leading-relaxed">{{ detail_cta_note }}</p>
                                 {% else %}
-                                <p id="nd-action-note" class="text-xs text-gray-500">Status synced from runtime state.</p>
+                                <p id="nd-action-note" class="text-xs text-gray-500">Status updates automatically.</p>
                                 {% endif %}
                             </div>
 
@@ -2543,7 +2540,7 @@
                                 <i data-lucide="coins" class="w-6 h-6 text-dc-gold"></i>
                             </div>
                             <div>
-                                <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-0.5">Rewards Engine</p>
+                                <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-0.5">Prizes</p>
                                 <p class="font-bold text-white text-base">View Prize Distribution</p>
                             </div>
                         </div>
@@ -2553,8 +2550,8 @@
                     <div x-show="activeTab === 'overview'" x-transition.opacity class="space-y-4" x-cloak>
                         <div class="ecosystem-ticker rounded-2xl px-4 py-3.5">
                             <div class="flex items-center justify-between gap-3 mb-2">
-                                <p class="text-[10px] font-bold uppercase tracking-widest text-gray-300 flex items-center gap-2"><i data-lucide="activity" class="w-3.5 h-3.5 theme-text"></i> Live Ecosystem Ticker</p>
-                                <span class="text-[9px] uppercase tracking-widest" :class="phase === 'live' ? 'text-blue-300' : (phase === 'registration' ? 'text-green-300' : 'text-gray-400')" x-text="phase === 'live' ? 'Live Feed' : (phase === 'registration' ? 'Registration Feed' : 'Runtime Feed')"></span>
+                                <p class="text-[10px] font-bold uppercase tracking-widest text-gray-300 flex items-center gap-2"><i data-lucide="activity" class="w-3.5 h-3.5 theme-text"></i> Recent activity</p>
+                                <span class="text-[9px] uppercase tracking-widest" :class="phase === 'live' ? 'text-blue-300' : (phase === 'registration' ? 'text-green-300' : 'text-gray-400')" x-text="phase === 'live' ? 'Live activity' : (phase === 'registration' ? 'Registration activity' : 'Activity')"></span>
                             </div>
                             <div class="ecosystem-ticker-track">
                                 <p class="ecosystem-ticker-run text-[10px] font-mono uppercase tracking-widest" :class="phase === 'live' ? 'is-live' : (phase === 'registration' ? 'is-registration' : 'text-gray-300')" x-text="currentTickerText()"></p>
@@ -2568,7 +2565,7 @@
                     </div>
             </div>
         </div>
-    </main>
+    </div>
     </div>
 </div>
 {{ detail_widgets|json_script:"dc-detail-widget-seed" }}
@@ -2605,7 +2602,7 @@ document.addEventListener('alpine:init', function () {
             fanPredictionVoteUrl: '',
             fanPredictionBusyQuestion: '',
             viewerCanVote: {% if user.is_authenticated %}true{% else %}false{% endif %},
-            viewerLoginUrl: '/accounts/login/?next={{ request.path|urlencode }}',
+            viewerLoginUrl: '/account/login/?next={{ request.path|urlencode }}',
             canManageWidgets: {% if can_manage_detail_widgets %}true{% else %}false{% endif %},
             phase: '{% if tournament_phase == "registration_open" %}registration{% elif is_live_phase %}live{% elif tournament_phase == "registration_closed" %}checkin{% elif is_completed_phase %}completed{% elif is_cancelled %}cancelled{% else %}upcoming{% endif %}',
             timeFormat: '{{ detail_time_format|escapejs }}',
@@ -3502,7 +3499,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 });
 </script>
-<script src="{% static 'tournaments/js/results-achievements-engine.js' %}?v=20260427b"></script>
+<script src="{% static 'tournaments/js/results-achievements-engine.js' %}?v=20261109a"></script>
 <script nonce="{{ request.csp_nonce }}">
 (function(){
   var root=document.getElementById('ra-engine-root');

@@ -7,6 +7,7 @@
 <link rel="apple-touch-icon" href="{% static brand.apple_icon %}">
 <link rel="manifest" href="{% static brand.manifest %}">
 <link rel="stylesheet" href="{% static 'ownlobby/brand.css' %}?v={{ STATIC_VERSION|default:'ownlobby-1' }}">
+<link rel="stylesheet" href="{% static 'ownlobby/foundation.css' %}?v={{ STATIC_VERSION|default:'ownlobby-1' }}">
 <style nonce="{{ request.csp_nonce }}">:root { --ol-font: {{ brand.fonts.body }}; --ol-font-display: {{ brand.fonts.display }}; --ol-font-mono: {{ brand.fonts.mono }}; }</style>
 {{ brand.colors|json_script:"ownlobby-palette" }}
 {{ brand|json_script:"ownlobby-brand" }}

@@ -233,7 +233,7 @@ def homepage_context(request):
         'title': 'Ready To Compete?',
         'subtitle': 'Join thousands of gamers in the ultimate competitive experience',
         'button_text': 'Create Free Account',
-        'button_url': '/accounts/signup/' if not request.user.is_authenticated else '/tournaments/',
+        'button_url': '/account/signup/' if not request.user.is_authenticated else '/tournaments/',
     }
     
     # ================================================================

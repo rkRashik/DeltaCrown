@@ -393,13 +393,13 @@
     root.innerHTML = [
       '<div class="grid grid-cols-1 xl:grid-cols-12 gap-8">',
       summaryHtml(data, mode),
-      '<main class="xl:col-span-9 space-y-8 min-w-0">',
+      '<div class="xl:col-span-9 space-y-8 min-w-0">',
       mode === 'hub' ? hubOwnResultHtml(data) : '',
       podiumHtml(data),
       standingsHtml(data),
       achievementsHtml(data, mode),
       mode === 'toc' ? operationsHtml(data) : '',
-      '</main></div>',
+      '</div></div>',
     ].join('');
     if (window.lucide && typeof window.lucide.createIcons === 'function') window.lucide.createIcons();
   }

@@ -80,7 +80,7 @@ class RegistrationEligibilityService:
             result.update({
                 'reason': 'You must be logged in to register.',
                 'status': 'not_authenticated',
-                'action_url': '/accounts/login/',
+                'action_url': '/account/login/',
                 'action_label': 'Login to Register',
             })
             return result
@@ -282,7 +282,7 @@ class RegistrationEligibilityService:
                 'reason': 'You must be logged in to register.',
                 'status': 'not_authenticated',
                 'registration': None,
-                'action_url': '/accounts/login/',
+                'action_url': '/account/login/',
                 'action_label': 'Login to Register',
             }
             return {t.id: dict(unauth) for t in tournament_list}

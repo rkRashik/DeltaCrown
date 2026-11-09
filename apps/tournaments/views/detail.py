@@ -1802,7 +1802,8 @@ FAN_POLL_THEME_IDS = {'cyber', 'tactical', 'glass', 'sport', 'native'}
 OFFICIAL_VANGUARD_SOCIAL_DEFAULTS = {
     'facebook': BRAND['social']['facebook'],
     'discord': 'https://discord.gg/UaHRC8Cd',
-    'youtube': 'https://www.youtube.com/@DeltaCrownGG',
+    # No verified official YouTube channel: leave empty so the widget hides it.
+    'youtube': '',
     'instagram': BRAND['social']['instagram'],
 }
 

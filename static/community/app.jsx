@@ -499,7 +499,7 @@ function App() {
           setTab={setTab} setSort={setSort}
         />
 
-        <main className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0">
           {/* FeedTabs: the VERY FIRST element in main so it sticks flush below the nav (no gap).
               Rendered BEFORE hero/rail so sticky top:80px is reached immediately. */}
           {/* 2nd nav bar always hidden globally — smart scroll transform handles navigation */}
@@ -561,7 +561,7 @@ function App() {
             )}
             {/* End of feed bar removed — no "End of feed" indicator per design */}
           </section>
-        </main>
+        </div>
 
         <RightRail />
       </div>

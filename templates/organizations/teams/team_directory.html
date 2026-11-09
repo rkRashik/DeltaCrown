@@ -899,7 +899,7 @@
           {% else %}
           <div class="rounded-xl border border-white/10 bg-[#050507] p-5">
             <h3 class="font-bold text-white">Sign in to post for a team.</h3>
-            <a href="/accounts/login/?next={% url 'organizations:team_find' %}" class="scout-btn accent mt-4">Sign In</a>
+            <a href="/account/login/?next={% url 'organizations:team_find' %}" class="scout-btn accent mt-4">Sign In</a>
           </div>
           {% endif %}
         </div>
@@ -965,7 +965,7 @@
           {% else %}
           <div class="rounded-xl border border-white/10 bg-[#050507] p-5">
             <h3 class="font-bold text-white">Sign in to publish your LFT profile.</h3>
-            <a href="/accounts/login/?next={% url 'organizations:team_find' %}" class="scout-btn accent mt-4">Sign In</a>
+            <a href="/account/login/?next={% url 'organizations:team_find' %}" class="scout-btn accent mt-4">Sign In</a>
           </div>
           {% endif %}
         </div>
@@ -1061,7 +1061,7 @@
           <!-- Game filter -->
           <div class="flex-1 min-w-[140px]">
             <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Game</label>
-            <select name="game" class="w-full bg-white/[0.04] border border-white/10 text-white rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-[#06b6d4] focus:border-[#06b6d4] outline-none transition appearance-none">
+            <select name="game" aria-label="Game" class="w-full bg-white/[0.04] border border-white/10 text-white rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-[#06b6d4] focus:border-[#06b6d4] outline-none transition appearance-none">
               <option value="" style="background:#0A0A0F">All Games</option>
               {% for game in active_games %}
               <option value="{{ game.slug }}" style="background:#0A0A0F" {% if game.slug == game_filter %}selected{% endif %}>{{ game.display_name }}</option>
@@ -1072,7 +1072,7 @@
           <!-- Region filter -->
           <div class="flex-1 min-w-[120px]">
             <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Region</label>
-            <select name="region" class="w-full bg-white/[0.04] border border-white/10 text-white rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-[#06b6d4] focus:border-[#06b6d4] outline-none transition appearance-none">
+            <select name="region" aria-label="Region" class="w-full bg-white/[0.04] border border-white/10 text-white rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-[#06b6d4] focus:border-[#06b6d4] outline-none transition appearance-none">
               <option value="" style="background:#0A0A0F">All Regions</option>
               {% for r in regions %}
               <option value="{{ r }}" style="background:#0A0A0F" {% if r == region_filter %}selected{% endif %}>{{ r }}</option>
@@ -1083,7 +1083,7 @@
           <!-- Sort -->
           <div class="min-w-[120px]">
             <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Sort</label>
-            <select name="sort" class="w-full bg-white/[0.04] border border-white/10 text-white rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-[#06b6d4] focus:border-[#06b6d4] outline-none transition appearance-none">
+            <select name="sort" aria-label="Sort order" class="w-full bg-white/[0.04] border border-white/10 text-white rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-[#06b6d4] focus:border-[#06b6d4] outline-none transition appearance-none">
               <option value="newest" style="background:#0A0A0F" {% if sort_by == 'newest' %}selected{% endif %}>Newest</option>
               <option value="name" style="background:#0A0A0F" {% if sort_by == 'name' %}selected{% endif %}>Name (A-Z)</option>
               <option value="members" style="background:#0A0A0F" {% if sort_by == 'members' %}selected{% endif %}>Most Members</option>
@@ -1093,7 +1093,7 @@
           <!-- Platform filter -->
           <div class="min-w-[130px]">
             <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Platform</label>
-            <select name="platform" class="w-full bg-white/[0.04] border border-white/10 text-white rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-[#06b6d4] focus:border-[#06b6d4] outline-none transition appearance-none">
+            <select name="platform" aria-label="Platform" class="w-full bg-white/[0.04] border border-white/10 text-white rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-[#06b6d4] focus:border-[#06b6d4] outline-none transition appearance-none">
               <option value="" style="background:#0A0A0F">All Platforms</option>
               {% for platform in platforms %}
               <option value="{{ platform }}" style="background:#0A0A0F" {% if platform == platform_filter %}selected{% endif %}>{{ platform }}</option>
