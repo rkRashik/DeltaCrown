@@ -98,7 +98,7 @@
         {% elif detail_cta_primary %}
         <a href="{{ detail_cta_primary.url|default:'#' }}" class="tdm-tap ol-btn ol-btn--lg ol-btn--block {% if detail_cta_primary.disabled %}ol-btn--secondary{% else %}ol-btn--primary{% endif %}"{% if detail_cta_primary.disabled %} aria-disabled="true"{% endif %}>
           <i data-lucide="{{ detail_cta_primary.icon|default:'arrow-right' }}" style="width:20px;height:20px;"></i>
-          {{ detail_cta_primary.label }}
+          {% if tournament_phase == 'published' and detail_cta_primary.disabled %}Registration opens soon{% else %}{{ detail_cta_primary.label }}{% endif %}
         </a>
         {% endif %}
 

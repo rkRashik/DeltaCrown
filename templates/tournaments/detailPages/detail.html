@@ -2409,7 +2409,7 @@
                             >
                                 <span class="relative z-10 flex items-center gap-2">
                                     <i data-lucide="{{ detail_cta_primary.icon|default:'arrow-right' }}" class="w-5 h-5"></i>
-                                    <span id="nd-primary-cta-label">{{ detail_cta_primary.label }}</span>
+                                    <span id="nd-primary-cta-label">{% if tournament_phase == 'published' and detail_cta_primary.disabled %}Registration opens soon{% else %}{{ detail_cta_primary.label }}{% endif %}</span>
                                 </span>
                             </a>
                             {% endif %}
