@@ -417,30 +417,21 @@ class TournamentNotificationService:
 
         sent = 0
         link = f"/tournaments/{tournament.slug}/results/"
-        for uid, is_winner in targets.items():
-            user = users_map.get(uid)
-            if user is None:
+        # Notification no longer has user/link/icon columns; go through the shared notify() service.
+        for is_winner in (True, False):
+            recipients = [users_map[uid] for uid, won in targets.items() if won == is_winner and uid in users_map]
+            if not recipients:
                 continue
-            title = (
-                "🏆 Tournament Champion!" if is_winner else "Tournament Complete"
+            outcome = _notify_users(
+                recipients=recipients,
+                event='tournament_completed',
+                title="🏆 Tournament Champion!" if is_winner else "Tournament Complete",
+                body=f"{tournament.name} has concluded. "
+                + ("Congratulations on your victory!" if is_winner else "Thanks for participating!"),
+                url=link,
+                tournament=tournament,
             )
-            message = (
-                f"{tournament.name} has concluded. "
-                + (
-                    "Congratulations on your victory!"
-                    if is_winner
-                    else "Thanks for participating!"
-                )
-            )
-            Notification.objects.create(
-                user=user,
-                title=title,
-                message=message,
-                notification_type='tournament',
-                link=link,
-                icon='🏆' if is_winner else '🎮',
-            )
-            sent += 1
+            sent += int((outcome or {}).get('created', 0))
         return sent
     
     @staticmethod

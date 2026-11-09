@@ -233,7 +233,8 @@ class PlacementService:
                 bracket = None
 
         base_filter = Q(tournament=tournament, is_deleted=False)
-        match_filter = base_filter & (Q(bracket=bracket) if bracket else Q())
+        # bracket_node covers advancement-created matches saved before they carried the bracket FK
+        match_filter = base_filter & (Q(bracket=bracket) | Q(bracket_node__bracket=bracket) if bracket else Q())
 
         final_match = (
             Match.objects
@@ -576,6 +577,10 @@ class PlacementService:
         result = TournamentResult.objects.filter(
             tournament=tournament, is_deleted=False,
         ).first()
+        if not result and tournament.participation_type == Tournament.SOLO:
+            # Solo bracket slots hold user ids; WinnerDeterminationService assumes Registration ids,
+            # so it fails (or, on an id collision, could pick another player's registration).
+            result = cls._backfill_result_from_completed_final(tournament, actor=actor)
         if not result:
             try:
                 service = WinnerDeterminationService(tournament, created_by=actor)
