@@ -103,7 +103,7 @@ urlpatterns = [
     path('api/wallet/requests/', get_wallet_requests, name='wallet_requests'),  # NEW: Get user's requests
     
     # UP-PHASE7.2: Wallet PIN Security APIs
-    path('api/wallet/pin/setup/', pin_setup, name='pin_setup'),
+    path('api/wallet/pin/setup/', pin_setup, name='pin_setup_api'),  # POST-only; 'pin_setup' is the HTML page
     path('api/wallet/pin/verify/', pin_verify, name='pin_verify'),
     
     # UP-PHASE7.7: OTP Security for PIN Setup/Change
