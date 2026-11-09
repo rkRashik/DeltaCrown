@@ -1756,6 +1756,39 @@ def match_center_fan_pulse_vote(request, slug, match_id):
     )
 
 
+def _build_public_standings(tournament, result):
+    """Return (standings, unplaced) for the public Results page.
+
+    standings: [{'placement': int, 'name': str, 'is_tied': bool}] ordered by recorded placement.
+    unplaced:  [{'name': str}] registrations with no recorded placement, in registration order.
+    """
+    registrations = {reg.id: reg for reg in tournament.registrations.all()}
+
+    def _name(entry, reg):
+        label = (entry or {}).get('team_name')
+        if label:
+            return label
+        user = getattr(reg, 'user', None)
+        return getattr(user, 'username', None) or 'Participant'
+
+    entries = list(getattr(result, 'final_standings', None) or []) if result else []
+    if result and not entries:
+        try:
+            from apps.tournaments.services.placement_service import PlacementService
+            entries = PlacementService.build_final_standings(tournament) or []
+        except Exception:  # never block the page on a derivation problem
+            logger.exception('Could not derive standings for tournament %s', getattr(tournament, 'pk', None))
+            entries = []
+
+    standings, placed = [], set()
+    for entry in sorted((e for e in entries if e.get('placement')), key=lambda e: e['placement']):
+        reg = registrations.get(entry.get('registration_id'))
+        standings.append({'placement': entry['placement'], 'name': _name(entry, reg), 'is_tied': bool(entry.get('is_tied'))})
+        placed.add(entry.get('registration_id'))
+    unplaced = [{'name': _name(None, reg)} for rid, reg in registrations.items() if rid not in placed]
+    return standings, unplaced
+
+
 class TournamentResultsView(DetailView):
     """
     FE-T-018: Tournament Results Page
@@ -1837,9 +1870,11 @@ class TournamentResultsView(DetailView):
         # All completed matches
         context['completed_matches'] = tournament.matches.filter(state=Match.COMPLETED)
         
-        # Leaderboard (all registrations)
-        # Note: In production, this would be sorted by final placement
-        # For now, we use seed as proxy
+        # Final standings come from canonical placements only (TournamentResult.final_standings, or the
+        # bracket-derived placements). Seed order is NOT a result, so participants without a recorded
+        # placement are listed separately and never ranked.
+        context['standings'], context['unplaced_participants'] = _build_public_standings(
+            tournament, tournament.result if has_results else None)
         context['leaderboard'] = tournament.registrations.all()
         
         # Tournament stats

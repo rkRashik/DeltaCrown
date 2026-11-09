@@ -166,26 +166,28 @@
         </h3>
         <a href="{% url 'tournaments:leaderboard' tournament.slug %}" class="text-[10px] text-dc-cyan hover:underline">View Full</a>
       </div>
-      {% if leaderboard %}
-        <div class="divide-y divide-dc-border max-h-[400px] overflow-y-auto">
-          {% for reg in leaderboard %}
-            <div class="flex items-center justify-between px-6 py-3">
+      {% if standings %}
+        <ol class="divide-y divide-dc-border max-h-[400px] overflow-y-auto">
+          {% for row in standings %}
+            <li class="flex items-center justify-between px-6 py-3">
               <div class="flex items-center gap-3">
                 <span class="w-7 h-7 rounded-full bg-dc-surface flex items-center justify-center text-xs font-mono
-                  {% if forloop.counter == 1 %}text-dc-gold{% elif forloop.counter == 2 %}text-gray-400{% elif forloop.counter == 3 %}text-amber-600{% else %}text-gray-500{% endif %}">
-                  {{ forloop.counter }}
-                </span>
-                <span class="text-sm text-white">{{ reg.user.username|default:"Unknown" }}</span>
+                  {% if row.placement == 1 %}text-dc-gold{% elif row.placement == 2 %}text-gray-400{% elif row.placement == 3 %}text-amber-600{% else %}text-gray-500{% endif %}">{{ row.placement }}</span>
+                <span class="text-sm text-white">{{ row.name }}</span>
               </div>
-              {% if reg.seed %}
-                <span class="text-[10px] text-gray-600">Seed {{ reg.seed }}</span>
-              {% endif %}
-            </div>
+              {% if row.is_tied %}<span class="text-[10px] text-gray-500">Tied</span>{% endif %}
+            </li>
           {% endfor %}
-        </div>
+        </ol>
       {% else %}
-        <div class="px-6 py-8 text-center">
-          <p class="text-xs text-gray-600">No standings data</p>
+        <div class="px-6 py-6 text-center">
+          <p class="text-xs text-gray-500">Final placements have not been published yet.</p>
+        </div>
+      {% endif %}
+      {% if unplaced_participants %}
+        <div class="px-6 py-3 border-t border-dc-border">
+          <p class="text-[11px] text-gray-500 mb-2">{% if standings %}Other participants{% else %}Participants{% endif %}</p>
+          <p class="text-sm text-gray-300">{% for p in unplaced_participants %}{{ p.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</p>
         </div>
       {% endif %}
     </div>

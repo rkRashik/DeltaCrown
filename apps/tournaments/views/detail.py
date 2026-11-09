@@ -117,15 +117,11 @@ class TournamentDetailView(DetailView):
         return super().get_queryset().select_related('game', 'organizer')
 
     def dispatch(self, request, *args, **kwargs):
-        """Cache entire response for anonymous users on completed tournaments."""
+        # Never cache the rendered page: the HTML embeds the per-request CSP nonce (and CSRF token). A cached copy
+        # is served with a fresh nonce in the Content-Security-Policy header, so the browser blocks every inline
+        # script (Alpine's detailPage() is never registered and the page collapses). Public data caching belongs
+        # in the data layer (see apps.common.public_cache), not in a full-response cache.
         self.object = self.get_object()
-        effective = getattr(self.object, 'get_effective_status', lambda: self.object.status)()
-        if not request.user.is_authenticated and effective in ('completed', 'archived'):
-            from django.views.decorators.cache import cache_page
-            cached_view = cache_page(3600, key_prefix='detail_page')(
-                super().dispatch
-            )
-            return cached_view(request, *args, **kwargs)
         return super().dispatch(request, *args, **kwargs)
 
     def get_object(self, queryset=None):
