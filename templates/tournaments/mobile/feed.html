@@ -59,7 +59,7 @@
         ৳{{ t.prize_pool|floatformat:0|intcomma }}
       </span>
       {% else %}
-      <span style="font-family:'JetBrains Mono',monospace;font-weight:700;font-size:13px;color:#A7A198;">TBA</span>
+      <span style="font-family:'JetBrains Mono',monospace;font-weight:700;font-size:13px;color:#A7A198;">No prize</span>
       {% endif %}
       <span style="display:flex;align-items:center;gap:6px;font-size:12px;color:#A9B1C2;">
         <svg width="15" height="15" fill="none" stroke="#A9B1C2" stroke-width="2"><path d="M7.5 1C4.5 1 2 3 2 5.5S4.5 9 7.5 8c3 1 5.5-1 5.5-3S10.5 1 7.5 1z"/><circle cx="5" cy="5" r="1.5" fill="#A9B1C2"/><circle cx="10" cy="5" r="1.5" fill="#A9B1C2"/><circle cx="7.5" cy="9" r="1.5" fill="#A9B1C2"/></svg>
@@ -214,7 +214,7 @@
             ৳{{ t.prize_pool|floatformat:0|intcomma }}
           </span>
           {% else %}
-          <span style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;color:#A7A198;">Prize TBA</span>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;color:#A7A198;">No prize</span>
           {% endif %}
         </div>
       </div>

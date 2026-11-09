@@ -290,7 +290,8 @@ body .ol-footer-legacy { background-color: var(--ol-canvas); }
 .ol-tourney [class*="blur-["] { display: none; }
 .ol-tourney [class*="backdrop-blur"] { backdrop-filter: none; }
 .ol-tourney [class*="rounded-[2"], .ol-tourney [class*="rounded-[1.7"], .ol-tourney [class*="rounded-3xl"] { border-radius: var(--ol-radius-lg); }
-.ol-tourney .glass, .ol-tourney .glass-panel, .ol-tourney .glass-extreme, .ol-tourney .mood-surface { background: var(--ol-surface); border: 1px solid var(--ol-border); box-shadow: none; backdrop-filter: none; }
+.ol-tourney .glass, .ol-tourney .glass-panel, .ol-tourney .glass-extreme, .ol-tourney .mood-surface { background: var(--ol-surface); background-image: none; border: 1px solid var(--ol-border); box-shadow: none; backdrop-filter: none; }
+:root[data-theme] .ol-tourney .glass, :root[data-theme] .ol-tourney .glass-panel, :root[data-theme] .ol-tourney .glass-extreme { background-image: none; }
 .ol-tourney a[class*="bg-dc-cyan"], .ol-tourney button[class*="bg-dc-cyan"] { background-color: var(--ol-saffron); color: var(--ol-canvas); }
 /* Mobile tournament surfaces share the same fonts and neutral cards */
 .ol-tourney .tdm-mono, .ol-tourney .tdm-sora, .ol-tourney .arm-sora { font-family: var(--ol-font, Inter, system-ui, sans-serif); font-variant-numeric: tabular-nums; }

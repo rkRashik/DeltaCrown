@@ -107,6 +107,67 @@ class ResultsStandingsTests(CompletedTournamentFixtureMixin, TestCase):
         self.assertIn("Participants", html)
 
 
+class StandingsIntegrityTests(CompletedTournamentFixtureMixin, TestCase):
+    """The public page must never show a placement it cannot tie to a real registration or to the recorded result."""
+
+    def _standings(self, final_standings, **result_kwargs):
+        tournament, regs = self.make_completed(slug=f"batch-c-integrity-{len(result_kwargs)}-{id(final_standings) % 9973}")
+        TournamentResult.objects.create(tournament=tournament, winner=regs[0], runner_up=regs[1],
+                                        rules_applied={"determination": "test"}, final_standings=final_standings(regs),
+                                        **result_kwargs)
+        context = self.client.get(f"/tournaments/{tournament.slug}/results/").context
+        return context["standings"], context["unplaced_participants"], regs
+
+    @staticmethod
+    def _row(placement, reg, **extra):
+        return {"placement": placement, "registration_id": reg.id, "team_name": f"Team {reg.id}",
+                "is_tied": False, "tied_with": [], **extra}
+
+    def test_malformed_unknown_and_duplicate_rows_are_dropped(self):
+        standings, unplaced, regs = self._standings(lambda r: [
+            "garbage", None, 7,
+            {"placement": "first", "registration_id": r[0].id},
+            {"placement": True, "registration_id": r[0].id},
+            {"placement": 0, "registration_id": r[0].id},
+            {"placement": 1, "registration_id": 999999, "team_name": "Ghost"},
+            self._row(1, r[0]),
+            self._row(2, r[0]),            # same registration twice: first one wins
+            self._row("2", r[1]),          # numeric string is accepted
+        ])
+        self.assertEqual([(s["placement"], s["name"]) for s in standings], [(1, f"Team {regs[0].id}"), (2, f"Team {regs[1].id}")])
+        self.assertNotIn("Ghost", [s["name"] for s in standings])
+
+    def test_non_list_standings_do_not_break_the_page(self):
+        standings, unplaced, regs = self._standings(lambda r: {"placement": 1})
+        self.assertEqual(standings, [])
+        self.assertEqual(len(unplaced), 4)
+
+    def test_duplicate_placement_needs_a_tie_flag(self):
+        standings, _, regs = self._standings(lambda r: [self._row(1, r[0]), self._row(2, r[1]), self._row(2, r[2])])
+        self.assertEqual([s["placement"] for s in standings], [1])  # ambiguous 2nd place is not official
+
+    def test_flagged_tie_is_shown(self):
+        standings, _, regs = self._standings(lambda r: [
+            self._row(1, r[0]), self._row(2, r[1], is_tied=True, tied_with=[r[2].id]),
+            self._row(2, r[2], is_tied=True, tied_with=[r[1].id])])
+        self.assertEqual([(s["placement"], s["is_tied"]) for s in standings], [(1, False), (2, True), (2, True)])
+
+    def test_standings_contradicting_the_recorded_winner_are_not_shown(self):
+        standings, unplaced, regs = self._standings(lambda r: [self._row(1, r[2]), self._row(2, r[1])])
+        self.assertEqual(standings, [])
+        self.assertEqual(len(unplaced), 4)
+
+    def test_other_participants_are_confirmed_registrations_only(self):
+        tournament, regs = self.make_completed(slug="batch-c-integrity-status")
+        Registration.objects.filter(pk=regs[3].pk).update(status=Registration.CANCELLED)
+        Registration.objects.filter(pk=regs[2].pk).update(status=Registration.REJECTED)
+        TournamentResult.objects.create(tournament=tournament, winner=regs[0], runner_up=regs[1],
+                                        rules_applied={"determination": "test"},
+                                        final_standings=[self._row(1, regs[0]), self._row(2, regs[1])])
+        context = self.client.get(f"/tournaments/{tournament.slug}/results/").context
+        self.assertEqual(context["unplaced_participants"], [])
+
+
 class PublicDetailPresentationTests(CompletedTournamentFixtureMixin, TestCase):
     def test_completed_page_offers_results_and_says_completed(self):
         tournament, _ = self.make_completed(slug="batch-c-cta-done")
@@ -162,3 +223,14 @@ class PublicDetailPresentationTests(CompletedTournamentFixtureMixin, TestCase):
         for phrase in ("VIP Access Secured", "Access Tier", "CONTENDERS", "CHALLENGER", "Servers</span>", "Tournament Ops", "neonPulse;", "animation: neonPulse"):
             self.assertNotIn(phrase, tpl)
         self.assertIn("Registration confirmed", tpl)
+
+    def test_featured_hero_shows_the_real_status(self):
+        """The featured hero/carousel read t.effective_status; it was only set for the paginated cards, so an open
+        tournament was labelled 'Upcoming'/'Closed' on the list page while its detail page said 'Registration open'."""
+        cache.clear()
+        tournament, _ = self.make_completed(slug="batch-c-featured")
+        Tournament.objects.filter(pk=tournament.pk).update(
+            status=Tournament.REGISTRATION_OPEN, is_featured=True,
+            registration_start=timezone.now() - timedelta(days=1), registration_end=timezone.now() + timedelta(days=2))
+        html = self.client.get("/tournaments/").content.decode()
+        self.assertIn("Registration open", html)

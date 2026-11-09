@@ -172,11 +172,11 @@
 /* --- Detail Page: Neon Borders --- */
 .neon-border-cyan {
   border-color: rgba(226, 183, 97, 0.3) !important;
-  box-shadow: 0 0 15px rgba(226, 183, 97, 0.08);
+  box-shadow: none;
 }
 .neon-border-gold {
-  border-color: rgba(250, 204, 21, 0.3) !important;
-  box-shadow: 0 0 15px rgba(250, 204, 21, 0.08);
+  border-color: rgba(226, 183, 97, 0.3) !important;
+  box-shadow: none;
 }
 
 /* --- Form Controls (Django widget styling) --- */

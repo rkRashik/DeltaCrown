@@ -34,7 +34,7 @@
         <div class="flex flex-col items-center">
           <div class="w-16 h-16 rounded-full bg-gray-500/10 border-2 border-gray-500 flex items-center justify-center mb-2">
             {% if runner_up %}
-              <span class="text-lg font-display font-bold text-white">{{ runner_up.user.username|truncatechars:2|upper }}</span>
+              <span class="text-lg font-display font-bold text-white">{{ runner_up.user.username|slice:":1"|upper }}</span>
             {% else %}
               <i data-lucide="user" class="w-6 h-6 text-gray-600"></i>
             {% endif %}
@@ -53,7 +53,7 @@
           </div>
           <div class="w-20 h-20 rounded-full bg-dc-gold/10 border-2 border-dc-gold flex items-center justify-center mb-2 shadow-[0_0_30px_rgba(250,204,21,0.2)]">
             {% if winner %}
-              <span class="text-2xl font-display font-bold text-dc-gold">{{ winner.user.username|truncatechars:2|upper }}</span>
+              <span class="text-2xl font-display font-bold text-dc-gold">{{ winner.user.username|slice:":1"|upper }}</span>
             {% else %}
               <i data-lucide="trophy" class="w-8 h-8 text-dc-gold"></i>
             {% endif %}
@@ -69,7 +69,7 @@
         <div class="flex flex-col items-center">
           <div class="w-16 h-16 rounded-full bg-amber-800/10 border-2 border-amber-700 flex items-center justify-center mb-2">
             {% if third_place %}
-              <span class="text-lg font-display font-bold text-white">{{ third_place.user.username|truncatechars:2|upper }}</span>
+              <span class="text-lg font-display font-bold text-white">{{ third_place.user.username|slice:":1"|upper }}</span>
             {% else %}
               <i data-lucide="user" class="w-6 h-6 text-gray-600"></i>
             {% endif %}
