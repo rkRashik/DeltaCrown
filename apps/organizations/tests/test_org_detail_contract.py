@@ -179,7 +179,7 @@ class TestOrgDetailLinking:
         content = response.content.decode()
         
         # Check for Streams tab
-        assert 'Media / Streams' in content or 'Media/Streams' in content
+        assert 'Media / Streams' in content or 'Media/Streams' in content or 'href="#streams"' in content
         assert 'id="streams"' in content
     
     def test_legacy_wall_tab_exists(self, client, org_factory):

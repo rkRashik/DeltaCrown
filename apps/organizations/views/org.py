@@ -74,9 +74,9 @@ def organization_detail(request, org_slug):
             if org.website:
                 org_schema['sameAs'] = [org.website]
             context['entity_links'] = [
-                {'label': 'Active Squads', 'url': '#teams', 'detail': f"{context.get('active_teams_count', 0)} public teams"},
-                {'label': brand_copy('[[ranking_points]] Rankings'), 'url': '/competition/leaderboards/', 'detail': 'Track competitive movement'},
-                {'label': 'Team Directory', 'url': '/teams/directory/', 'detail': 'Browse the wider team ecosystem'},
+                {'label': 'Teams', 'url': '#teams', 'detail': f"{context.get('active_teams_count', 0)} public teams"},
+                {'label': brand_copy('[[ranking_points]] Rankings'), 'url': '/competition/leaderboards/', 'detail': 'See how teams rank'},
+                {'label': 'Team directory', 'url': '/teams/directory/', 'detail': 'Browse all teams'},
             ]
             context['seo'] = build_seo(
                 title=f"{org.name} | {brand_copy('[[brand]]')} Organization",

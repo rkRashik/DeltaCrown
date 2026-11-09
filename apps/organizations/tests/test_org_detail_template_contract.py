@@ -228,34 +228,16 @@ class TestOrgDetailTemplateContracts:
             assert 'role-owner-only' in context, \
                 "Pending Actions section must be owner-only"
     
-    def test_official_partners_section_exists(self, template_content):
+    def test_placeholder_partner_and_merch_panels_are_not_rendered(self, template_content):
         """
-        CONTRACT: Template MUST have Official Partners section in sidebar.
-        
-        WHY: Requirement - Add missing right-sidebar section.
+        CONTRACT (Batch D): the public organization page must not show panels for features that do not exist.
+
+        WHY: "Official Partners / Official Merch / Partner with Us" were placeholders ("coming soon", a media-kit
+        button with no action). They were removed from the page instead of being presented as real functionality.
         """
-        assert 'Official Partners' in template_content, \
-            "Template must have Official Partners section"
-    
-    def test_official_merch_section_exists(self, template_content):
-        """
-        CONTRACT: Template MUST have Official Merch section in sidebar.
-        
-        WHY: Requirement - Add missing right-sidebar section (public-visible).
-        """
-        assert 'Official Merch' in template_content, \
-            "Template must have Official Merch section"
-        
-        # Should be public-only (visible to non-owners)
-        merch_start = template_content.find('Official Merch')
-        if merch_start >= 0:
-            context_start = max(0, merch_start - 300)
-            context_end = min(len(template_content), merch_start + 300)
-            context = template_content[context_start:context_end]
-            
-            assert 'role-public-only' in context, \
-                "Official Merch section should be public-only"
-    
+        for placeholder in ('Official Partners', 'Official Merch', 'Download Media Kit', 'coming soon'):
+            assert placeholder not in template_content,                 f"Placeholder panel text must not be rendered: {placeholder}"
+
     def test_manage_org_button_links_to_control_plane(self, template_content):
         """
         CONTRACT: "Open Control Plane" button MUST link to org_control_plane route.
