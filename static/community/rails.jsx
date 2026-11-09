@@ -658,7 +658,7 @@ function RightRail() {
         <div className="px-2 pb-2 text-[10px] text-white/25 flex items-center flex-wrap gap-x-3 gap-y-1">
           <a className="hover:text-white" href="/about/">About</a>
           <a className="hover:text-white" href="/legal/community-guidelines/">Guidelines</a>
-          <a className="hover:text-white" href="/support/">Help</a>
+          <a className="hover:text-white" href="/contact/">Help</a>
           <span className="ml-auto">© {window.OWNLOBBY_BRAND.name}</span>
         </div>
       </div>

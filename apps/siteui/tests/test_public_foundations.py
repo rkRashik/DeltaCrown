@@ -93,3 +93,33 @@ class DevRouteExposureTests(TestCase):
         self.client.force_login(staff)
         self.assertEqual(self.client.get("/favicon-test/").status_code, 200)
         self.assertEqual(self.client.get("/ui/").status_code, 200)
+
+
+class DesignFoundationTests(TestCase):
+    BANNED = ("Secure Slot", "View Intel", "Initialize Event", "Tournament Intel", "Runtime Status",
+              "Rewards Engine", "Ecosystem Ticker", "Radar Clear", "Command Center", "Load More Intel")
+
+    def test_foundation_stylesheet_ships_and_is_loaded(self):
+        self.assertIsNotNone(finders.find("ownlobby/foundation.css"))
+        html = self.client.get("/about/").content.decode()
+        self.assertIn("ownlobby/foundation.css", html)
+        css = open(finders.find("ownlobby/foundation.css"), encoding="utf-8").read()
+        for cls in (".ol-btn--primary", ".ol-btn--secondary", ".ol-btn--ghost", ".ol-btn--danger",
+                    ".ol-badge--success", ".ol-badge--live", ".ol-empty"):
+            self.assertIn(cls, css)
+
+    def test_touched_templates_use_plain_wording(self):
+        from pathlib import Path
+        from django.conf import settings
+        for rel in ("tournaments/list.html", "tournaments/detailPages/detail.html",
+                    "tournaments/detailPages/_detail_mobile.html", "partials/primary_navigation.html",
+                    "partials/nav_browse_links.html"):
+            text = (Path(settings.BASE_DIR) / "templates" / rel).read_text(encoding="utf-8")
+            for phrase in self.BANNED:
+                self.assertNotIn(phrase, text, "%s still contains %r" % (rel, phrase))
+
+    def test_tournament_list_uses_shared_buttons_and_plain_empty_state(self):
+        html = self.client.get("/tournaments/").content.decode()
+        self.assertIn("ol-btn", html)
+        self.assertIn("No tournaments found", html)
+        self.assertNotIn("Clear Scanners", html)

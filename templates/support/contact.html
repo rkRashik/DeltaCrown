@@ -86,7 +86,9 @@
           <div class="mt-5 flex gap-3">
             <a href="{{ brand.social.facebook }}" target="_blank" rel="noopener" class="grid h-11 w-11 place-items-center rounded-xl border border-white/10 bg-white/5 text-slate-300 hover:border-cyan-300/50 hover:text-white" aria-label="{{ brand.name }} Facebook">f</a>
             <a href="https://discord.gg/UaHRC8Cd" target="_blank" rel="noopener" class="grid h-11 w-11 place-items-center rounded-xl border border-white/10 bg-white/5 text-slate-300 hover:border-cyan-300/50 hover:text-white" aria-label="{{ brand.name }} Discord">D</a>
-            <a href="https://www.youtube.com/@DeltaCrownGG" target="_blank" rel="noopener" class="grid h-11 w-11 place-items-center rounded-xl border border-white/10 bg-white/5 text-slate-300 hover:border-cyan-300/50 hover:text-white" aria-label="{{ brand.name }} YouTube">Y</a>
+            {% if brand.social.youtube %}
+            <a href="{{ brand.social.youtube }}" target="_blank" rel="noopener" class="grid h-11 w-11 place-items-center rounded-xl border border-white/10 bg-white/5 text-slate-300 hover:border-cyan-300/50 hover:text-white" aria-label="{{ brand.name }} YouTube">Y</a>
+            {% endif %}
             <a href="{{ brand.social.instagram }}" target="_blank" rel="noopener" class="grid h-11 w-11 place-items-center rounded-xl border border-white/10 bg-white/5 text-slate-300 hover:border-cyan-300/50 hover:text-white" aria-label="{{ brand.name }} Instagram">I</a>
             <a href="https://wa.me/8801789560202" target="_blank" rel="noopener" class="grid h-11 w-11 place-items-center rounded-xl border border-white/10 bg-white/5 text-slate-300 hover:border-cyan-300/50 hover:text-white" aria-label="{{ brand.name }} WhatsApp">W</a>
           </div>

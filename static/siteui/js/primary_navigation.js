@@ -195,7 +195,8 @@
     if (!searchOvr) return;
     searchOvr.classList.add('open');
     renderRecent();
-    searchInput?.focus();
+    /* focus after the overlay becomes visible (focus() is ignored while it is still hidden) */
+    requestAnimationFrame(() => setTimeout(() => searchInput?.focus(), 30));
     document.body.style.overflow = 'hidden';
   }
 
