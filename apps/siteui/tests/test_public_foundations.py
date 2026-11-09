@@ -123,3 +123,20 @@ class DesignFoundationTests(TestCase):
         self.assertIn("ol-btn", html)
         self.assertIn("No tournaments found", html)
         self.assertNotIn("Clear Scanners", html)
+
+
+class HomepageBatchBTests(TestCase):
+    def test_home_does_not_overclaim_features_or_games(self):
+        html = self.client.get("/").content.decode()
+        for claim in ("Free Fire", "CS2", "Resets daily", "Always open", "Earns CP", "always-on", "queue, play"):
+            self.assertNotIn(claim, html)
+        self.assertIn("Competitive Hub", html)
+        # the four modes are presented once, as one hub - not as four separate links
+        self.assertLessEqual(html.count('href="/dashboard/competitive/"'), 8)
+        self.assertNotIn("Operations console", html)
+        self.assertNotIn(">Store<", html)
+
+    def test_home_uses_one_points_name(self):
+        html = self.client.get("/").content.decode()
+        self.assertNotIn("Crown Pts", html)
+        self.assertNotRegex(html, r">\s*[0-9,]+ CP\+?\s*<")

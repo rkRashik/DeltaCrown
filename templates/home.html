@@ -33,11 +33,11 @@
   <!-- ============ 01 · HERO — MONUMENT ============ -->
   <section data-screen-label="Hero" data-section="hero" style="position:relative;overflow:hidden;border-bottom:1px solid var(--hair);">
     <!-- monument background -->
-    <div aria-hidden="true" data-anim style="position:absolute;left:50%;bottom:2%;width:min(760px,80vw);height:62%;transform:translateX(-50%);background:radial-gradient(closest-side,rgba(10,132,255,.16),rgba(104,73,229,.06) 54%,transparent 76%);filter:blur(20px);animation:dch-breathe 11s ease-in-out infinite;"></div>
+    <div aria-hidden="true" data-anim style="position:absolute;left:50%;bottom:2%;width:min(760px,80vw);height:62%;transform:translateX(-50%);background:radial-gradient(closest-side,rgba(226,183,97,.16),rgba(226,183,97,.06) 54%,transparent 76%);filter:blur(20px);animation:dch-breathe 11s ease-in-out infinite;"></div>
     <svg aria-hidden="true" viewBox="0 0 1440 760" preserveAspectRatio="xMidYMax slice" style="position:absolute;inset:0;width:100%;height:100%;">
       <defs>
-        <linearGradient id="hmF" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#8470EE" stop-opacity=".15"/><stop offset="60%" stop-color="#0A84FF" stop-opacity=".05"/><stop offset="100%" stop-color="#0A84FF" stop-opacity="0"/></linearGradient>
-        <linearGradient id="hmE" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#6849E5" stop-opacity=".28"/><stop offset="50%" stop-color="#E2C588" stop-opacity=".55"/><stop offset="100%" stop-color="#0A84FF" stop-opacity=".28"/></linearGradient>
+        <linearGradient id="hmF" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#E2B761" stop-opacity=".15"/><stop offset="60%" stop-color="#E2B761" stop-opacity=".05"/><stop offset="100%" stop-color="#E2B761" stop-opacity="0"/></linearGradient>
+        <linearGradient id="hmE" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#E2B761" stop-opacity=".28"/><stop offset="50%" stop-color="#E2C588" stop-opacity=".55"/><stop offset="100%" stop-color="#E2B761" stop-opacity=".28"/></linearGradient>
       </defs>
       <path d="M150 760 L360 400 L540 560 L720 320 L900 560 L1080 400 L1290 760 Z" fill="url(#hmF)"></path>
       <path data-anim d="M150 760 L360 400 L540 560 L720 320 L900 560 L1080 400 L1290 760" fill="none" stroke="url(#hmE)" stroke-width="1.5" stroke-linejoin="round" stroke-dasharray="2600" stroke-dashoffset="2600" style="animation:dch-draw 3.6s .4s var(--eo) forwards;"></path>
@@ -88,14 +88,14 @@
         {% with f=v3.featured_tournament %}
         {% if f %}
         <div style="position:relative;width:100%;max-width:500px;border:1px solid var(--stroke);border-radius:22px;background:rgba(16,20,29,.72);overflow:hidden;">
-          <div aria-hidden="true" style="position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(132,112,238,.5) 30%,rgba(10,132,255,.5) 50%,rgba(226,197,136,.5) 70%,transparent);z-index:2;"></div>
+          <div aria-hidden="true" style="position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(226,183,97,.5) 30%,rgba(226,183,97,.5) 50%,rgba(226,197,136,.5) 70%,transparent);z-index:2;"></div>
           <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px 16px;border-bottom:1px solid var(--hair);">
             <span style="display:inline-flex;align-items:center;gap:8px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--az4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8M5 10v10h14V10"/></svg><span class="m" style="font-size:12px;letter-spacing:.04em;color:var(--mut);">Featured · Competition Hub</span></span>
             <span class="m" style="font-size:12px;letter-spacing:.06em;color:var(--soft);">{{ f.status_label }}</span>
           </div>
           <div style="position:relative;height:138px;background:{% if f.poster_url %}url('{{ f.poster_url }}') center 30%/cover no-repeat{% else %}linear-gradient(135deg,var(--s2),var(--s1)){% endif %};">
             <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,13,20,.2) 28%,rgba(16,20,29,.92));"></div>
-            <span style="position:absolute;top:12px;left:13px;display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:999px;background:var(--tAz);border:1px solid rgba(10,132,255,.4);"><span class="m" style="font-size:12px;letter-spacing:.12em;color:var(--az4);">{{ f.status_label }}</span></span>
+            <span style="position:absolute;top:12px;left:13px;display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:999px;background:var(--tAz);border:1px solid rgba(226,183,97,.4);"><span class="m" style="font-size:12px;letter-spacing:.12em;color:var(--az4);">{{ f.status_label }}</span></span>
             {% if f.game_name %}<span class="m" style="position:absolute;bottom:11px;left:14px;font-size:12px;letter-spacing:.04em;color:rgba(255,255,255,.88);">{{ f.game_name }}</span>{% endif %}
             {% if f.prize_pool_label %}<span class="m" style="position:absolute;bottom:11px;right:14px;font-size:12px;color:var(--go4);">{{ f.prize_pool_label }}</span>{% endif %}
           </div>
@@ -122,13 +122,13 @@
         {% else %}
         <!-- empty-state module: no open tournaments -->
         <div style="position:relative;width:100%;max-width:500px;border:1px solid var(--stroke);border-radius:22px;background:rgba(16,20,29,.72);overflow:hidden;">
-          <div aria-hidden="true" style="position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(132,112,238,.5) 30%,rgba(10,132,255,.5) 50%,rgba(226,197,136,.5) 70%,transparent);z-index:2;"></div>
+          <div aria-hidden="true" style="position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(226,183,97,.5) 30%,rgba(226,183,97,.5) 50%,rgba(226,197,136,.5) 70%,transparent);z-index:2;"></div>
           <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px 16px;border-bottom:1px solid var(--hair);">
             <span style="display:inline-flex;align-items:center;gap:8px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--az4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8M5 10v10h14V10"/></svg><span class="m" style="font-size:12px;letter-spacing:.04em;color:var(--mut);">Competition Hub</span></span>
             <span class="m" style="font-size:12px;letter-spacing:.06em;color:var(--soft);">Coming soon</span>
           </div>
           <div style="padding:30px 22px 26px;text-align:center;">
-            <span style="display:inline-grid;place-items:center;width:48px;height:48px;border-radius:14px;background:var(--tAz);border:1px solid rgba(10,132,255,.3);margin-bottom:14px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--az4)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4h10v3a5 5 0 0 1-10 0V4Z"/><path d="M9 14v3h6v-3M8 21h8M12 12v2"/></svg></span>
+            <span style="display:inline-grid;place-items:center;width:48px;height:48px;border-radius:14px;background:var(--tAz);border:1px solid rgba(226,183,97,.3);margin-bottom:14px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--az4)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4h10v3a5 5 0 0 1-10 0V4Z"/><path d="M9 14v3h6v-3M8 21h8M12 12v2"/></svg></span>
             <div style="font-family:var(--disp);font-weight:700;font-size:19px;letter-spacing:-.01em;">No featured tournaments right now</div>
             <p style="margin:9px auto 18px;max-width:34ch;font-size:13.5px;line-height:1.55;color:var(--mut);">Explore teams and games while new events are being scheduled. Registration dates appear on each tournament page.</p>
             <a href="/tournaments/" class="cta press" style="display:inline-flex;align-items:center;gap:8px;padding:12px 20px;border-radius:12px;background:var(--az);color:#fff;font-weight:700;font-size:14px;text-decoration:none;">Explore tournaments<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
@@ -186,13 +186,13 @@
         </div>
         <!-- arrow -->
         <div class="deskonly" style="display:flex;align-items:center;justify-content:center;">
-          <span style="width:44px;height:44px;border-radius:50%;display:grid;place-items:center;border:1px solid rgba(10,132,255,.3);background:var(--tAz);"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--az4)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+          <span style="width:44px;height:44px;border-radius:50%;display:grid;place-items:center;border:1px solid rgba(226,183,97,.3);background:var(--tAz);"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--az4)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
         </div>
         <!-- deltacrown -->
-        <div style="position:relative;border:1px solid rgba(10,132,255,.28);border-radius:20px;background:linear-gradient(180deg,rgba(16,22,34,.75),rgba(14,17,28,.66));padding:22px;overflow:hidden;">
-          <div aria-hidden="true" style="position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(10,132,255,.5) 30%,rgba(132,112,238,.5) 60%,rgba(226,197,136,.4),transparent);"></div>
+        <div style="position:relative;border:1px solid rgba(226,183,97,.28);border-radius:20px;background:linear-gradient(180deg,rgba(16,22,34,.75),rgba(14,17,28,.66));padding:22px;overflow:hidden;">
+          <div aria-hidden="true" style="position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(226,183,97,.5) 30%,rgba(226,183,97,.5) 60%,rgba(226,197,136,.4),transparent);"></div>
           <div style="display:flex;align-items:center;gap:9px;margin-bottom:18px;">
-            <span class="m" style="display:inline-flex;align-items:center;gap:7px;padding:5px 11px;border-radius:999px;background:var(--tAz);border:1px solid rgba(10,132,255,.35);font-size:12px;letter-spacing:.1em;color:var(--az4);"><span style="width:5px;height:5px;border-radius:50%;background:var(--suc);"></span>With {{ brand.name }}</span>
+            <span class="m" style="display:inline-flex;align-items:center;gap:7px;padding:5px 11px;border-radius:999px;background:var(--tAz);border:1px solid rgba(226,183,97,.35);font-size:12px;letter-spacing:.1em;color:var(--az4);"><span style="width:5px;height:5px;border-radius:50%;background:var(--suc);"></span>With {{ brand.name }}</span>
           </div>
           <div style="display:flex;flex-direction:column;gap:16px;">
             {% for w in why_new %}
@@ -233,7 +233,7 @@
           <div style="position:relative;height:118px;overflow:hidden;background:linear-gradient(135deg,var(--s2),var(--s1));">
             {% if t.poster_url %}<img src="{{ t.poster_url }}" alt="" loading="lazy" decoding="async" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 30%;">{% endif %}
             <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,13,20,.15) 30%,rgba(17,21,30,.95));"></div>
-            <span style="position:absolute;top:10px;left:11px;display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:999px;{% if t.is_live %}background:var(--tLi);border:1px solid rgba(255,59,92,.4);{% elif t.slot_fill_pct >= 85 %}background:var(--tGo);border:1px solid rgba(207,167,90,.4);{% else %}background:var(--tAz);border:1px solid rgba(10,132,255,.4);{% endif %}"><span class="m" style="font-size:12px;letter-spacing:.1em;color:{% if t.is_live %}var(--live){% elif t.slot_fill_pct >= 85 %}var(--go4){% else %}var(--az4){% endif %};">{{ t.status_label }}</span></span>
+            <span style="position:absolute;top:10px;left:11px;display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:999px;{% if t.is_live %}background:var(--tLi);border:1px solid rgba(255,59,92,.4);{% elif t.slot_fill_pct >= 85 %}background:var(--tGo);border:1px solid rgba(207,167,90,.4);{% else %}background:var(--tAz);border:1px solid rgba(226,183,97,.4);{% endif %}"><span class="m" style="font-size:12px;letter-spacing:.1em;color:{% if t.is_live %}var(--live){% elif t.slot_fill_pct >= 85 %}var(--go4){% else %}var(--az4){% endif %};">{{ t.status_label }}</span></span>
             {% if t.game_name %}<span class="m" style="position:absolute;bottom:9px;left:12px;font-size:12px;letter-spacing:.04em;color:rgba(255,255,255,.85);">{{ t.game_name }}</span>{% endif %}
             <span class="m" style="position:absolute;bottom:9px;right:12px;font-size:12px;color:var(--go4);">{{ t.prize_label }}</span>
           </div>
@@ -249,7 +249,7 @@
                 <span class="m" style="font-size:12px;color:var(--az4);">{{ t.scheduled|default:"Open" }}</span>
               </div>
             </div>
-            <span class="joinp" style="margin-top:auto;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px;border-radius:11px;background:var(--s3);color:var(--fg);font-weight:700;font-size:13px;transition:background .2s,color .2s;">{% if t.is_free %}Join free{% else %}Join tournament{% endif %}</span>
+            <span class="joinp" style="margin-top:auto;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px;border-radius:11px;background:var(--s3);color:var(--fg);font-weight:700;font-size:13px;transition:background .2s,color .2s;">{% if not t.can_register %}View tournament{% elif t.is_free %}Join free{% else %}Join tournament{% endif %}</span>
           </div>
         </a>
         {% endfor %}
@@ -258,7 +258,7 @@
       {% else %}
       <!-- empty-state: never fabricate tournaments -->
       <div data-reveal class="rv" style="display:flex;flex-direction:column;align-items:center;text-align:center;gap:14px;padding:54px 22px;border:1px dashed var(--stroke);border-radius:20px;background:rgba(17,21,30,.4);">
-        <span style="display:inline-grid;place-items:center;width:52px;height:52px;border-radius:15px;background:var(--tAz);border:1px solid rgba(10,132,255,.3);"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--az4)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4h10v3a5 5 0 0 1-10 0V4Z"/><path d="M9 14v3h6v-3M8 21h8M12 12v2"/></svg></span>
+        <span style="display:inline-grid;place-items:center;width:52px;height:52px;border-radius:15px;background:var(--tAz);border:1px solid rgba(226,183,97,.3);"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--az4)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4h10v3a5 5 0 0 1-10 0V4Z"/><path d="M9 14v3h6v-3M8 21h8M12 12v2"/></svg></span>
         <div style="font-family:var(--disp);font-weight:700;font-size:20px;letter-spacing:-.01em;">No featured tournaments right now</div>
         <p style="margin:0;max-width:46ch;font-size:14px;line-height:1.6;color:var(--mut);">Explore the tournament directory for upcoming events, entry requirements and registration dates.</p>
         <a href="/tournaments/" class="cta press" style="display:inline-flex;align-items:center;gap:8px;padding:12px 22px;border-radius:12px;background:var(--az);color:#fff;font-weight:700;font-size:14px;text-decoration:none;">Explore tournaments<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
@@ -267,53 +267,28 @@
     </div>
   </section>
 
-  <!-- ============ 04 · ONE PLATFORM — ECOSYSTEM ============ -->
-  <section data-screen-label="Ecosystem" data-section="ecosystem" style="position:relative;overflow:hidden;border-bottom:1px solid var(--hair);">
-    <div aria-hidden="true" style="position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(132,112,238,.35),rgba(10,132,255,.35),transparent);"></div>
-    <div style="position:relative;z-index:1;max-width:1280px;margin:0 auto;padding:clamp(56px,8vh,96px) clamp(18px,4vw,48px);">
-      <div data-reveal class="rv" style="text-align:center;max-width:680px;margin:0 auto 14px;">
-
-        <h2 style="margin:10px 0 0;font-family:var(--disp);font-weight:700;font-size:clamp(26px,3vw,38px);letter-spacing:-.02em;">Every match, <span class="grad">connected</span></h2>
-        <p style="margin:9px 0 0;font-size:15px;line-height:1.6;color:var(--mut);">{{ brand.name }} isn't just tournaments. Identity, teams, match operations, rewards and ranking stay connected — so every result becomes history, signal and recognition.</p>
-      </div>
-      <div data-reveal class="rv" style="display:flex;align-items:center;gap:12px;margin:0 auto 24px;max-width:420px;">
-        <span style="flex:1;height:1px;background:linear-gradient(90deg,transparent,var(--hair));"></span>
-        <span class="m" style="font-size:12px;letter-spacing:.04em;color:var(--soft);white-space:nowrap;"><b style="color:var(--fg);">8</b> connected pillars</span>
-        <span style="flex:1;height:1px;background:linear-gradient(90deg,var(--hair),transparent);"></span>
-      </div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(248px,1fr));gap:14px;">
-        {% for e in ecosystem_pillars %}
-        <div data-reveal class="rv ecocard" style="display:flex;flex-direction:column;gap:12px;padding:20px;border:1px solid var(--stroke);border-radius:18px;background:var(--s1);">
-          <span style="width:42px;height:42px;border-radius:12px;display:grid;place-items:center;background:{{ e.tint }};border:1px solid {{ e.bd }};"><span data-i style="display:inline-flex;color:{{ e.color }};transition:transform .3s var(--eo);">{{ e.icon|safe }}</span></span>
-          <div>
-            <div style="font-family:var(--disp);font-weight:600;font-size:16px;letter-spacing:-.01em;color:var(--fg);">{{ e.name }}</div>
-            <div style="margin-top:6px;font-size:13px;line-height:1.5;color:var(--mut);">{{ e.blurb }}</div>
+  <!-- ============ 05 · COMPETITIVE HUB ============ -->
+  <section data-screen-label="Competitive Hub" data-section="competitive-hub" class="ol-section" style="position:relative;">
+    <div class="ol-container">
+      <div class="ol-split" style="align-items:start;">
+        <div data-reveal class="rv">
+          <p class="ol-eyebrow">Competitive Hub</p>
+          <h2 class="ol-h2">One hub for competitive play between tournaments</h2>
+          <p class="ol-lead">Showdown, Missions, Bounty and Dropzone are four modes inside your Competitive Hub. Create a free account to open it, earn {{ brand.features.ranking_points }} and build your record.</p>
+          <div style="margin-top:1.5rem;display:flex;flex-wrap:wrap;gap:.75rem;">
+            <a href="/dashboard/competitive/" class="ol-btn ol-btn--primary ol-btn--lg">Open the Competitive Hub</a>
+            <a href="/competition/ranking/about/" class="ol-btn ol-btn--secondary ol-btn--lg">How ranking works</a>
           </div>
         </div>
-        {% endfor %}
-      </div>
-    </div>
-  </section>
-
-  <!-- ============ 05 · DAILY OPS — CURRENTS ============ -->
-  <section data-screen-label="Daily Ops" data-section="daily-ops" style="position:relative;overflow:hidden;border-bottom:1px solid var(--hair);">
-    <div style="position:relative;z-index:1;max-width:1280px;margin:0 auto;padding:clamp(56px,8vh,96px) clamp(18px,4vw,48px);">
-      <div data-reveal class="rv" style="text-align:center;max-width:640px;margin:0 auto 30px;">
-
-        <h2 style="margin:10px 0 0;font-family:var(--disp);font-weight:700;font-size:clamp(26px,3vw,38px);letter-spacing:-.02em;">Something to compete for, every day</h2>
-        <p style="margin:9px 0 0;font-size:15px;line-height:1.6;color:var(--mut);">Between tournaments, the arena never sleeps. Earn {{ brand.features.ranking_points }} and {{ brand.features.coins }} through always-on competitive modes.</p>
-      </div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(228px,1fr));gap:14px;">
-        {% for o in daily_modes %}
-        <a data-reveal class="rv mode press" href="{{ o.url }}" style="display:flex;flex-direction:column;gap:13px;padding:20px;border:1px solid var(--stroke);border-radius:18px;background:var(--s1);text-decoration:none;transition:transform .3s var(--eo),border-color .3s,background .3s;">
-          <span style="width:42px;height:42px;border-radius:12px;display:grid;place-items:center;background:{{ o.tint }};border:1px solid {{ o.bd }};"><span data-i style="display:inline-flex;color:{{ o.color }};transition:color .2s;">{{ o.icon|safe }}</span></span>
-          <div>
-            <div style="font-family:var(--disp);font-weight:600;font-size:17px;letter-spacing:-.01em;color:var(--fg);">{{ o.name }}</div>
-            <div style="margin-top:6px;font-size:13px;line-height:1.5;color:var(--mut);">{{ o.desc }}</div>
-          </div>
-          <span class="m" style="margin-top:auto;font-size:12px;letter-spacing:.04em;color:var(--soft);">{{ o.meta }}</span>
-        </a>
-        {% endfor %}
+        <ul class="ol-grid ol-grid--tiles" style="list-style:none;margin:0;padding:0;">
+          {% for o in daily_modes %}
+          <li data-reveal class="rv ol-card">
+            <span class="ol-iconbox" aria-hidden="true"><span style="display:inline-flex;">{{ o.icon|safe }}</span></span>
+            <h3 class="ol-card__title" style="margin-top:.75rem;">{{ o.name }}</h3>
+            <p class="ol-card__text">{{ o.desc }}</p>
+          </li>
+          {% endfor %}
+        </ul>
       </div>
     </div>
   </section>
@@ -358,21 +333,21 @@
       <div style="display:flex;flex-wrap:wrap;align-items:center;gap:clamp(32px,4vw,64px);">
         <!-- team card (illustrative — roles & structure, no fabricated identity/stats) -->
         <div data-reveal class="rv" style="flex:1 1 400px;min-width:0;order:2;">
-          <div style="border:1px solid rgba(104,73,229,.3);border-radius:20px;background:linear-gradient(180deg,rgba(26,22,46,.7),rgba(16,18,30,.66));overflow:hidden;">
+          <div style="border:1px solid rgba(226,183,97,.3);border-radius:20px;background:linear-gradient(180deg,rgba(23,24,26,.9),rgba(16,18,30,.66));overflow:hidden;">
             <div style="display:flex;align-items:center;gap:14px;padding:18px 20px;">
-              <span style="width:54px;height:54px;border-radius:15px;display:grid;place-items:center;background:linear-gradient(140deg,#7C5CFF,#0A84FF);flex-shrink:0;"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l2-9 4 5 3-7 3 7 4-5 2 9Z"/><path d="M3 20h18"/></svg></span>
+              <span style="width:54px;height:54px;border-radius:15px;display:grid;place-items:center;background:linear-gradient(140deg,#E2B761,#E2B761);flex-shrink:0;"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l2-9 4 5 3-7 3 7 4-5 2 9Z"/><path d="M3 20h18"/></svg></span>
               <div style="flex:1;min-width:0;">
-                <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;"><span style="font-family:var(--disp);font-weight:600;font-size:19px;letter-spacing:-.01em;">Your squad</span><span class="m" style="padding:3px 9px;border-radius:999px;font-size:12px;letter-spacing:.08em;color:var(--vi4);background:var(--tVi);border:1px solid rgba(104,73,229,.35);">Example roster</span></div>
+                <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;"><span style="font-family:var(--disp);font-weight:600;font-size:19px;letter-spacing:-.01em;">Your squad</span><span class="m" style="padding:3px 9px;border-radius:999px;font-size:12px;letter-spacing:.08em;color:var(--vi4);background:var(--tVi);border:1px solid rgba(226,183,97,.35);">Example roster</span></div>
                 <div class="m" style="margin-top:5px;font-size:12px;letter-spacing:.03em;color:var(--soft);">Captain · roles · invites — all in Team HQ</div>
               </div>
-              <div style="text-align:right;flex-shrink:0;"><span style="display:inline-flex;color:var(--go4);"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l2-9 4 5 3-7 3 7 4-5 2 9Z"/><path d="M3 20h18"/></svg></span><div class="m" style="font-size:12px;letter-spacing:.08em;color:var(--soft);">Crown Pts</div></div>
+              <div style="text-align:right;flex-shrink:0;"><span style="display:inline-flex;color:var(--go4);"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l2-9 4 5 3-7 3 7 4-5 2 9Z"/><path d="M3 20h18"/></svg></span><div class="m" style="font-size:12px;letter-spacing:.08em;color:var(--soft);">Ranking Points</div></div>
             </div>
             <div style="display:flex;gap:1px;background:var(--hair);border-top:1px solid var(--hair);">
               {% for p in team_roles %}
               <div style="flex:1;padding:12px 6px;background:rgba(16,18,30,.5);text-align:center;"><div style="width:30px;height:30px;border-radius:50%;margin:0 auto;background:{{ p.bg }};display:grid;place-items:center;font-family:var(--mono);font-size:12px;font-weight:600;color:#fff;">{{ p.code }}</div><div class="m" style="margin-top:6px;font-size:12px;letter-spacing:.04em;color:var(--soft);">{{ p.role }}</div></div>
               {% endfor %}
             </div>
-            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 20px;border-top:1px solid var(--hair);background:rgba(104,73,229,.06);">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 20px;border-top:1px solid var(--hair);background:rgba(226,183,97,.06);">
               <span class="m" style="font-size:12px;letter-spacing:.04em;color:var(--mut);">Wins, rank &amp; {{ brand.features.ranking_points_short }} follow the crest</span>
               <a href="/teams/" class="m lnk" style="font-size:12px;letter-spacing:.06em;color:var(--vi4);text-decoration:none;transition:color .2s;">Open Team HQ →</a>
             </div>
@@ -385,7 +360,7 @@
           <p style="margin:12px 0 0;max-width:48ch;font-size:15px;line-height:1.6;color:var(--mut);">Create a team or get recruited, manage your roster from Team HQ, run scrims, and register together. Wins, rank, and reputation follow the crest — not just the player.</p>
           <div style="margin-top:20px;display:flex;flex-direction:column;gap:11px;">
             {% for ft in team_features %}
-            <div style="display:flex;align-items:center;gap:12px;"><span style="width:30px;height:30px;border-radius:9px;display:grid;place-items:center;background:var(--tVi);border:1px solid rgba(104,73,229,.3);flex-shrink:0;"><span style="display:inline-flex;color:var(--vi4);">{{ ft.icon|safe }}</span></span><span style="font-size:14px;color:var(--mut);"><b style="color:var(--fg);font-weight:600;">{{ ft.title }}</b> {{ ft.desc }}</span></div>
+            <div style="display:flex;align-items:center;gap:12px;"><span style="width:30px;height:30px;border-radius:9px;display:grid;place-items:center;background:var(--tVi);border:1px solid rgba(226,183,97,.3);flex-shrink:0;"><span style="display:inline-flex;color:var(--vi4);">{{ ft.icon|safe }}</span></span><span style="font-size:14px;color:var(--mut);"><b style="color:var(--fg);font-weight:600;">{{ ft.title }}</b> {{ ft.desc }}</span></div>
             {% endfor %}
           </div>
           <div style="margin-top:22px;display:flex;flex-wrap:wrap;gap:10px;">
@@ -399,8 +374,8 @@
 
   <!-- ============ 08 · TRUST — CLASSIC CALM ============ -->
   <section data-screen-label="Trust" data-section="trust" style="position:relative;overflow:hidden;border-bottom:1px solid var(--hair);">
-    <div aria-hidden="true" style="position:absolute;left:clamp(18px,4vw,48px);top:64px;width:28px;height:28px;border-left:1.5px solid rgba(63,163,255,.28);border-top:1.5px solid rgba(63,163,255,.28);"></div>
-    <div aria-hidden="true" style="position:absolute;right:clamp(18px,4vw,48px);bottom:64px;width:28px;height:28px;border-right:1.5px solid rgba(63,163,255,.2);border-bottom:1.5px solid rgba(63,163,255,.2);"></div>
+    <div aria-hidden="true" style="position:absolute;left:clamp(18px,4vw,48px);top:64px;width:28px;height:28px;border-left:1.5px solid rgba(226,183,97,.28);border-top:1.5px solid rgba(226,183,97,.28);"></div>
+    <div aria-hidden="true" style="position:absolute;right:clamp(18px,4vw,48px);bottom:64px;width:28px;height:28px;border-right:1.5px solid rgba(226,183,97,.2);border-bottom:1.5px solid rgba(226,183,97,.2);"></div>
     <div style="position:relative;z-index:1;max-width:1280px;margin:0 auto;padding:clamp(56px,8vh,96px) clamp(18px,4vw,48px);">
       <div data-reveal class="rv" style="text-align:center;max-width:640px;margin:0 auto 32px;">
 
@@ -451,9 +426,9 @@
 
   <!-- ============ 09 · ORGANIZER — HORIZON STRUCTURED ============ -->
   <section data-screen-label="Organizer" data-section="organizer" style="position:relative;overflow:hidden;border-bottom:1px solid var(--hair);">
-    <div aria-hidden="true" style="position:absolute;left:0;right:0;bottom:0;height:54%;background:linear-gradient(180deg,transparent,rgba(10,132,255,.1));"></div>
-    <div aria-hidden="true" style="position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(132,112,238,.4),rgba(10,132,255,.4),transparent);"></div>
-    <div aria-hidden="true" data-anim style="position:absolute;left:50%;bottom:6%;width:min(1100px,92vw);height:2px;transform:translateX(-50%);background:linear-gradient(90deg,transparent,rgba(63,163,255,.35) 35%,rgba(63,163,255,.35) 65%,transparent);animation:dch-breathe 9s ease-in-out infinite;"></div>
+    <div aria-hidden="true" style="position:absolute;left:0;right:0;bottom:0;height:54%;background:linear-gradient(180deg,transparent,rgba(226,183,97,.1));"></div>
+    <div aria-hidden="true" style="position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(226,183,97,.4),rgba(226,183,97,.4),transparent);"></div>
+    <div aria-hidden="true" data-anim style="position:absolute;left:50%;bottom:6%;width:min(1100px,92vw);height:2px;transform:translateX(-50%);background:linear-gradient(90deg,transparent,rgba(226,183,97,.35) 35%,rgba(226,183,97,.35) 65%,transparent);animation:dch-breathe 9s ease-in-out infinite;"></div>
     <div style="position:relative;z-index:1;max-width:1280px;margin:0 auto;padding:clamp(56px,8vh,96px) clamp(18px,4vw,48px);">
       <div style="display:flex;flex-wrap:wrap;align-items:center;gap:clamp(32px,4vw,64px);">
         <div data-reveal class="rv" style="flex:1 1 360px;min-width:0;">
@@ -462,21 +437,13 @@
           <p style="margin:12px 0 0;max-width:48ch;font-size:15px;line-height:1.6;color:var(--mut);">Manage registration, brackets, match rooms and result review. Publish the rules, prize terms and payout process for your event.</p>
           <div style="margin-top:22px;"><a href="/dashboard/" class="cta press" style="display:inline-flex;align-items:center;gap:8px;padding:13px 22px;border-radius:13px;background:var(--az);color:#fff;font-weight:700;font-size:14px;text-decoration:none;">Create an event<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a></div>
         </div>
-        <!-- ops console (capability preview — only the live-events count is real platform data) -->
         <div data-reveal class="rv" style="flex:1 1 420px;min-width:0;">
-          <div style="border:1px solid var(--stroke);border-radius:20px;background:rgba(16,20,29,.7);overflow:hidden;">
-            <div style="display:flex;align-items:center;justify-content:space-between;padding:13px 16px;border-bottom:1px solid var(--hair);"><span class="m" style="font-size:12px;letter-spacing:.04em;color:var(--mut);">Operations console</span><span class="m" style="font-size:12px;letter-spacing:.06em;color:var(--go4);">Organizer view</span></div>
-            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--hair);">
-              <div style="padding:16px 10px;background:rgba(16,20,29,.5);text-align:center;"><div style="font-family:var(--disp);font-weight:700;font-size:22px;color:var(--suc);">{{ v3.hero_stats.tournaments_active|default:"0" }}</div><div class="m" style="margin-top:6px;font-size:12px;letter-spacing:.06em;color:var(--soft);line-height:1.3;">Live events</div></div>
-              <div style="padding:16px 10px;background:rgba(16,20,29,.5);text-align:center;"><div style="font-family:var(--disp);font-weight:700;font-size:16px;color:var(--az4);margin-top:4px;">Auto</div><div class="m" style="margin-top:6px;font-size:12px;letter-spacing:.06em;color:var(--soft);line-height:1.3;">Check-in &amp; seeding</div></div>
-              <div style="padding:16px 10px;background:rgba(16,20,29,.5);text-align:center;"><div style="font-family:var(--disp);font-weight:700;font-size:16px;color:var(--live);margin-top:4px;">Review</div><div class="m" style="margin-top:6px;font-size:12px;letter-spacing:.06em;color:var(--soft);line-height:1.3;">Disputes</div></div>
-              <div style="padding:16px 10px;background:rgba(16,20,29,.5);text-align:center;"><div style="font-family:var(--disp);font-weight:700;font-size:16px;color:var(--go4);margin-top:4px;">Prize terms</div><div class="m" style="margin-top:6px;font-size:12px;letter-spacing:.06em;color:var(--soft);line-height:1.3;">Event conditions</div></div>
-            </div>
-            <div style="display:flex;flex-direction:column;gap:1px;background:var(--hair);">
+          <div class="ol-card" style="padding:.5rem 1.5rem;">
+            <ul class="ol-list">
               {% for r in ops_rows %}
-              <div style="display:flex;align-items:center;gap:11px;padding:12px 16px;background:rgba(16,20,29,.5);"><span style="display:inline-flex;color:{{ r.color }};flex-shrink:0;">{{ r.icon|safe }}</span><span style="flex:1;font-size:13px;color:var(--mut);"><b style="color:var(--fg);font-weight:600;">{{ r.title }}</b> {{ r.desc }}</span><span class="m" style="font-size:12px;letter-spacing:.06em;color:var(--soft);">{{ r.tag }}</span></div>
+              <li><span class="ol-iconbox" aria-hidden="true">{{ r.icon|safe }}</span><div><p class="ol-card__title">{{ r.title|cut:" —" }}</p><p class="ol-card__text">{{ r.desc|capfirst }}</p></div></li>
               {% endfor %}
-            </div>
+            </ul>
           </div>
         </div>
       </div>
@@ -513,14 +480,14 @@
       <div data-reveal class="rv" style="text-align:center;max-width:640px;margin:0 auto 32px;">
 
         <h2 style="margin:10px 0 0;font-family:var(--disp);font-weight:700;font-size:clamp(26px,3vw,38px);letter-spacing:-.02em;">Bring your game. Find your people.</h2>
-        <p style="margin:9px 0 0;font-size:15px;line-height:1.6;color:var(--mut);">From Valorant and CS2 to Mobile Legends, eFootball and Free Fire — mobile to PC, casual ladder to prize finals. One identity across every title you play.</p>
+        <p style="margin:9px 0 0;font-size:15px;line-height:1.6;color:var(--mut);">{% if v3.game_posters %}Tournaments run in {% for g in v3.game_posters %}{{ g.name }}{% if forloop.revcounter == 2 %} and {% elif not forloop.last %}, {% endif %}{% endfor %}. {% endif %}One identity and one record across every title you play.</p>
       </div>
       <div data-reveal class="rv dock" id="gameDock" style="padding-top:20px;">
         {% for g in v3.game_posters %}
         <a href="{{ g.url }}" class="dock-item" style="position:relative;display:block;width:128px;aspect-ratio:3/4;border-radius:14px;overflow:hidden;border:1px solid var(--stroke);background:var(--s2);text-decoration:none;">
           {% if g.poster_url %}<img src="{{ g.poster_url }}" alt="" loading="lazy" decoding="async" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;">{% endif %}
           <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,13,20,0) 38%,rgba(10,13,20,.92));"></div>
-          <div class="gover" style="position:absolute;inset:0;background:linear-gradient(165deg,rgba(10,132,255,.2),rgba(104,73,229,.08) 50%,transparent 70%);opacity:0;transition:opacity .3s;"></div>
+          <div class="gover" style="position:absolute;inset:0;background:linear-gradient(165deg,rgba(226,183,97,.2),rgba(226,183,97,.08) 50%,transparent 70%);opacity:0;transition:opacity .3s;"></div>
           <div class="dock-info" style="position:absolute;left:11px;right:11px;bottom:10px;">
             <div style="font-family:var(--disp);font-weight:600;font-size:13px;color:#fff;line-height:1.2;">{{ g.name }}</div>
             <div class="m" style="margin-top:3px;font-size:12px;letter-spacing:.05em;color:rgba(255,255,255,.78);">{{ g.meta }}</div>
@@ -535,7 +502,7 @@
   <!-- ============ 12 · FINAL CTA — MONUMENT GOLD ECHO ============ -->
   <section data-screen-label="Join" data-section="final-cta" style="position:relative;overflow:hidden;">
     <svg aria-hidden="true" viewBox="0 0 1440 620" preserveAspectRatio="xMidYMax slice" style="position:absolute;left:0;right:0;bottom:0;width:100%;height:72%;opacity:.5;">
-      <defs><linearGradient id="fmE" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#6849E5" stop-opacity=".22"/><stop offset="50%" stop-color="#E2C588" stop-opacity=".5"/><stop offset="100%" stop-color="#0A84FF" stop-opacity=".22"/></linearGradient></defs>
+      <defs><linearGradient id="fmE" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#E2B761" stop-opacity=".22"/><stop offset="50%" stop-color="#E2C588" stop-opacity=".5"/><stop offset="100%" stop-color="#E2B761" stop-opacity=".22"/></linearGradient></defs>
       <path data-anim d="M260 620 L450 330 L600 470 L720 280 L840 470 L990 330 L1180 620" fill="none" stroke="url(#fmE)" stroke-width="1.5" stroke-linejoin="round" stroke-dasharray="2200" stroke-dashoffset="2200" style="animation:dch-draw 3.4s .3s var(--eo) forwards;"></path>
     </svg>
     <!-- content-safe scrim -->
@@ -564,18 +531,18 @@
 {# ── 01 · HERO — cinematic arena ────────────────────────────────────────── #}
 <section data-section="hero" style="position:relative;min-height:600px;overflow:hidden;">
   <div aria-hidden="true" style="position:absolute;inset:0;background:radial-gradient(150% 66% at 50% 4%,#1d2246,#0e1327 44%,#070910 100%);"></div>
-  <div aria-hidden="true" data-anim style="position:absolute;top:60px;left:-30%;width:160%;height:260px;background:linear-gradient(90deg,transparent,rgba(104,73,229,.34) 30%,rgba(10,132,255,.3) 58%,rgba(132,112,238,.16) 78%,transparent);filter:blur(46px);animation:dcm-auroraA 16s ease-in-out infinite;"></div>
-  <div aria-hidden="true" data-anim style="position:absolute;top:200px;left:-30%;width:160%;height:220px;background:linear-gradient(90deg,transparent,rgba(10,132,255,.26) 32%,rgba(226,197,136,.14) 60%,rgba(104,73,229,.2) 82%,transparent);filter:blur(50px);animation:dcm-auroraB 20s ease-in-out infinite;"></div>
-  <div aria-hidden="true" data-anim style="position:absolute;top:150px;left:-90px;width:300px;height:300px;background:radial-gradient(closest-side,rgba(104,73,229,.42),transparent 70%);filter:blur(26px);mix-blend-mode:screen;animation:dcm-driftA 22s ease-in-out infinite;"></div>
-  <div aria-hidden="true" data-anim style="position:absolute;top:120px;right:-90px;width:310px;height:310px;background:radial-gradient(closest-side,rgba(10,132,255,.34),transparent 70%);filter:blur(26px);mix-blend-mode:screen;animation:dcm-driftB 26s ease-in-out infinite;"></div>
+  <div aria-hidden="true" data-anim style="position:absolute;top:60px;left:-30%;width:160%;height:260px;background:linear-gradient(90deg,transparent,rgba(226,183,97,.34) 30%,rgba(226,183,97,.3) 58%,rgba(226,183,97,.16) 78%,transparent);filter:blur(46px);animation:dcm-auroraA 16s ease-in-out infinite;"></div>
+  <div aria-hidden="true" data-anim style="position:absolute;top:200px;left:-30%;width:160%;height:220px;background:linear-gradient(90deg,transparent,rgba(226,183,97,.26) 32%,rgba(226,197,136,.14) 60%,rgba(226,183,97,.2) 82%,transparent);filter:blur(50px);animation:dcm-auroraB 20s ease-in-out infinite;"></div>
+  <div aria-hidden="true" data-anim style="position:absolute;top:150px;left:-90px;width:300px;height:300px;background:radial-gradient(closest-side,rgba(226,183,97,.42),transparent 70%);filter:blur(26px);mix-blend-mode:screen;animation:dcm-driftA 22s ease-in-out infinite;"></div>
+  <div aria-hidden="true" data-anim style="position:absolute;top:120px;right:-90px;width:310px;height:310px;background:radial-gradient(closest-side,rgba(226,183,97,.34),transparent 70%);filter:blur(26px);mix-blend-mode:screen;animation:dcm-driftB 26s ease-in-out infinite;"></div>
   <div aria-hidden="true" data-anim style="position:absolute;top:-60px;left:30%;width:60px;height:560px;background:linear-gradient(180deg,rgba(174,160,255,.22),transparent 70%);filter:blur(14px);animation:dcm-sweep 13s ease-in-out infinite;"></div>
   <div aria-hidden="true" data-anim style="position:absolute;top:-60px;left:58%;width:48px;height:560px;background:linear-gradient(180deg,rgba(120,180,255,.2),transparent 70%);filter:blur(14px);animation:dcm-sweepB 17s ease-in-out 1.5s infinite;"></div>
-  <div aria-hidden="true" data-anim style="position:absolute;top:-50px;left:50%;width:260px;height:300px;transform:translateX(-50%);background:radial-gradient(60% 70% at 50% 0%,rgba(132,112,238,.3),transparent 72%);filter:blur(16px);animation:dcm-breathe 11s ease-in-out infinite;"></div>
+  <div aria-hidden="true" data-anim style="position:absolute;top:-50px;left:50%;width:260px;height:300px;transform:translateX(-50%);background:radial-gradient(60% 70% at 50% 0%,rgba(226,183,97,.3),transparent 72%);filter:blur(16px);animation:dcm-breathe 11s ease-in-out infinite;"></div>
   <div aria-hidden="true" style="position:absolute;inset:0;overflow:hidden;pointer-events:none;">
     <span data-anim style="position:absolute;left:16%;bottom:60px;width:3px;height:3px;border-radius:50%;background:rgba(226,197,136,.7);filter:blur(.5px);animation:dcm-mote 9s linear infinite;"></span>
     <span data-anim style="position:absolute;left:40%;bottom:40px;width:2px;height:2px;border-radius:50%;background:rgba(174,160,255,.7);filter:blur(.5px);animation:dcm-mote 12s linear 1.4s infinite;"></span>
-    <span data-anim style="position:absolute;left:60%;bottom:70px;width:2px;height:2px;border-radius:50%;background:rgba(63,163,255,.7);filter:blur(.5px);animation:dcm-mote 10s linear .7s infinite;"></span>
-    <span data-anim style="position:absolute;left:80%;bottom:50px;width:3px;height:3px;border-radius:50%;background:rgba(132,112,238,.7);filter:blur(.5px);animation:dcm-mote 11s linear 2.1s infinite;"></span>
+    <span data-anim style="position:absolute;left:60%;bottom:70px;width:2px;height:2px;border-radius:50%;background:rgba(226,183,97,.7);filter:blur(.5px);animation:dcm-mote 10s linear .7s infinite;"></span>
+    <span data-anim style="position:absolute;left:80%;bottom:50px;width:3px;height:3px;border-radius:50%;background:rgba(226,183,97,.7);filter:blur(.5px);animation:dcm-mote 11s linear 2.1s infinite;"></span>
   </div>
   <div aria-hidden="true" style="position:absolute;inset:0;pointer-events:none;"></div>
 
@@ -631,9 +598,9 @@
         <div style="display:flex;gap:10px;align-items:flex-start;opacity:.8;"><span style="width:24px;height:24px;flex-shrink:0;border-radius:7px;display:grid;place-items:center;background:rgba(71,79,97,.16);color:var(--soft);"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></span><div><div style="font-family:var(--disp);font-weight:600;font-size:13px;color:var(--mut);">Disputed scores</div><div style="margin-top:2px;font-size:12px;line-height:1.45;color:var(--soft);">No record, no referee — loudest voice wins.</div></div></div>
       </div>
     </div>
-    <div class="snap" style="width:78%;flex-shrink:0;position:relative;border:1px solid rgba(10,132,255,.28);border-radius:18px;background:linear-gradient(180deg,rgba(16,22,34,.7),rgba(14,17,28,.62));padding:18px;overflow:hidden;">
-      <div aria-hidden="true" style="position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(10,132,255,.5) 30%,rgba(132,112,238,.5) 60%,rgba(226,197,136,.4),transparent);"></div>
-      <span class="m" style="display:inline-flex;align-items:center;gap:7px;padding:5px 11px;border-radius:999px;background:var(--tAz);border:1px solid rgba(10,132,255,.35);font-size:12px;letter-spacing:.1em;color:var(--az4);"><span style="width:5px;height:5px;border-radius:50%;background:var(--suc);flex-shrink:0;"></span>With {{ brand.name }}</span>
+    <div class="snap" style="width:78%;flex-shrink:0;position:relative;border:1px solid rgba(226,183,97,.28);border-radius:18px;background:linear-gradient(180deg,rgba(16,22,34,.7),rgba(14,17,28,.62));padding:18px;overflow:hidden;">
+      <div aria-hidden="true" style="position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(226,183,97,.5) 30%,rgba(226,183,97,.5) 60%,rgba(226,197,136,.4),transparent);"></div>
+      <span class="m" style="display:inline-flex;align-items:center;gap:7px;padding:5px 11px;border-radius:999px;background:var(--tAz);border:1px solid rgba(226,183,97,.35);font-size:12px;letter-spacing:.1em;color:var(--az4);"><span style="width:5px;height:5px;border-radius:50%;background:var(--suc);flex-shrink:0;"></span>With {{ brand.name }}</span>
       <div style="margin-top:14px;display:flex;flex-direction:column;gap:13px;">
         <div style="display:flex;gap:10px;align-items:flex-start;"><span style="width:24px;height:24px;flex-shrink:0;border-radius:7px;display:grid;place-items:center;background:var(--s2);color:var(--az4);"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></span><div><div style="font-family:var(--disp);font-weight:600;font-size:13px;color:var(--fg);">Verified match rooms</div><div style="margin-top:2px;font-size:12px;line-height:1.45;color:var(--mut);">One operated page per match — score, evidence, dispute.</div></div></div>
         <div style="display:flex;gap:10px;align-items:flex-start;"><span style="width:24px;height:24px;flex-shrink:0;border-radius:7px;display:grid;place-items:center;background:var(--s2);color:var(--go4);"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><path d="M12 8v8M9.5 9.5h3.2a1.8 1.8 0 0 1 0 3.6H9.5"/></svg></span><div><div style="font-family:var(--disp);font-weight:600;font-size:13px;color:var(--fg);">Structured prizes</div><div style="margin-top:2px;font-size:12px;line-height:1.45;color:var(--mut);">Check entry fees, prize distribution and payout terms.</div></div></div>
@@ -653,9 +620,9 @@
     </div>
     <div style="padding:18px;display:flex;align-items:flex-start;justify-content:space-between;gap:4px;">
       <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:7px;text-align:center;"><span style="width:38px;height:38px;border-radius:11px;display:grid;place-items:center;background:var(--tGo);border:1px solid rgba(207,167,90,.3);"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--go4)" stroke-width="1.7" stroke-linecap="round"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5M10 13h6M10 17h6"/></svg></span><span style="font-size:12px;font-weight:600;color:var(--fg);line-height:1.2;">Register</span></div>
-      <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:7px;text-align:center;"><span style="width:38px;height:38px;border-radius:11px;display:grid;place-items:center;background:var(--tAz);border:1px solid rgba(10,132,255,.3);"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--az4)" stroke-width="1.7" stroke-linecap="round"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></span><span style="font-size:12px;font-weight:600;color:var(--fg);line-height:1.2;">Rules</span></div>
-      <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:7px;text-align:center;"><span style="width:38px;height:38px;border-radius:11px;display:grid;place-items:center;background:var(--tVi);border:1px solid rgba(104,73,229,.3);"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--vi4)" stroke-width="1.7" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></span><span style="font-size:12px;font-weight:600;color:var(--fg);line-height:1.2;">Compete</span></div>
-      <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:7px;text-align:center;"><span style="width:38px;height:38px;border-radius:11px;display:grid;place-items:center;background:var(--tAz);border:1px solid rgba(10,132,255,.3);"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--az4)" stroke-width="1.7" stroke-linecap="round"><path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3Z"/><path d="M9.5 12l1.8 1.8L15 10"/></svg></span><span style="font-size:12px;font-weight:600;color:var(--fg);line-height:1.2;">Review</span></div>
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:7px;text-align:center;"><span style="width:38px;height:38px;border-radius:11px;display:grid;place-items:center;background:var(--tAz);border:1px solid rgba(226,183,97,.3);"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--az4)" stroke-width="1.7" stroke-linecap="round"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></span><span style="font-size:12px;font-weight:600;color:var(--fg);line-height:1.2;">Rules</span></div>
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:7px;text-align:center;"><span style="width:38px;height:38px;border-radius:11px;display:grid;place-items:center;background:var(--tVi);border:1px solid rgba(226,183,97,.3);"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--vi4)" stroke-width="1.7" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></span><span style="font-size:12px;font-weight:600;color:var(--fg);line-height:1.2;">Compete</span></div>
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:7px;text-align:center;"><span style="width:38px;height:38px;border-radius:11px;display:grid;place-items:center;background:var(--tAz);border:1px solid rgba(226,183,97,.3);"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--az4)" stroke-width="1.7" stroke-linecap="round"><path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3Z"/><path d="M9.5 12l1.8 1.8L15 10"/></svg></span><span style="font-size:12px;font-weight:600;color:var(--fg);line-height:1.2;">Review</span></div>
       <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:7px;text-align:center;"><span style="width:38px;height:38px;border-radius:11px;display:grid;place-items:center;background:var(--tSu);border:1px solid rgba(46,204,113,.3);"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--suc)" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M8.5 12.5 11 15l5-5.5"/></svg></span><span style="font-size:12px;font-weight:600;color:var(--fg);line-height:1.2;">Result</span></div>
     </div>
   </div>
@@ -684,7 +651,7 @@
       <div style="position:relative;height:124px;background:linear-gradient(135deg,var(--s2),var(--s1));">
         {% if t.poster_url %}<img src="{{ t.poster_url }}" alt="" loading="lazy" decoding="async" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 28%;">{% endif %}
         <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,13,20,.1) 30%,rgba(17,21,30,.95));"></div>
-        <span style="position:absolute;top:10px;left:10px;display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:999px;{% if t.is_live %}background:var(--tLi);border:1px solid rgba(255,59,92,.4);{% else %}background:var(--tAz);border:1px solid rgba(10,132,255,.4);{% endif %}">{% if t.is_live %}<span data-anim style="width:5px;height:5px;border-radius:50%;background:var(--live);flex-shrink:0;animation:dcm-pulse 1.4s infinite;"></span>{% endif %}<span class="m" style="font-size:12px;letter-spacing:.1em;color:{% if t.is_live %}var(--live){% elif t.slot_fill_pct >= 90 %}var(--go4){% else %}var(--az4){% endif %};">{% if t.is_live %}Live{% elif t.slot_fill_pct >= 90 %}Filling{% else %}Open{% endif %}</span></span>
+        <span style="position:absolute;top:10px;left:10px;display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:999px;{% if t.is_live %}background:var(--tLi);border:1px solid rgba(255,59,92,.4);{% else %}background:var(--tAz);border:1px solid rgba(226,183,97,.4);{% endif %}">{% if t.is_live %}<span data-anim style="width:5px;height:5px;border-radius:50%;background:var(--live);flex-shrink:0;animation:dcm-pulse 1.4s infinite;"></span>{% endif %}<span class="m" style="font-size:12px;letter-spacing:.1em;color:{% if t.is_live %}var(--live){% elif t.slot_fill_pct >= 90 %}var(--go4){% else %}var(--az4){% endif %};">{% if t.is_live %}Live{% elif t.slot_fill_pct >= 90 %}Filling{% else %}Open{% endif %}</span></span>
         <span class="m" style="position:absolute;bottom:9px;left:12px;font-size:12px;letter-spacing:.12em;color:rgba(255,255,255,.85);">{{ t.game_label|default:"—" }}</span>
         <span class="m" style="position:absolute;bottom:9px;right:12px;font-size:12px;color:var(--go4);">{{ t.prize_label }}</span>
       </div>
@@ -703,61 +670,46 @@
   {% else %}
   <div style="padding:24px 16px;text-align:center;border:1px solid var(--hair);border-radius:18px;margin:0 16px;">
     <p style="margin:0 0 12px;font-size:13px;color:var(--mut);">No open tournaments right now.</p>
-    <a href="/tournaments/" class="tap" style="display:inline-block;padding:11px 20px;border-radius:12px;background:var(--tAz);border:1px solid rgba(10,132,255,.35);color:var(--az4);font-weight:600;font-size:13px;text-decoration:none;">Browse all tournaments →</a>
+    <a href="/tournaments/" class="tap" style="display:inline-block;padding:11px 20px;border-radius:12px;background:var(--tAz);border:1px solid rgba(226,183,97,.35);color:var(--az4);font-weight:600;font-size:13px;text-decoration:none;">Browse all tournaments →</a>
   </div>
   {% endif %}
 </section>
 
 {# ── 05 · TEAMS ──────────────────────────────────────────────────────────── #}
 <section data-section="teams" style="position:relative;padding:34px 16px 8px;">
-  <div style="position:relative;border:1px solid rgba(104,73,229,.28);border-radius:20px;background:linear-gradient(160deg,rgba(26,22,46,.7),rgba(14,16,26,.6));overflow:hidden;">
+  <div style="position:relative;border:1px solid rgba(226,183,97,.28);border-radius:20px;background:linear-gradient(160deg,rgba(23,24,26,.9),rgba(14,16,26,.6));overflow:hidden;">
     <div style="position:relative;padding:20px;">
 
       <h2 style="margin:8px 0 0;font-family:var(--disp);font-weight:700;font-size:21px;letter-spacing:-.02em;">Build a squad with a record</h2>
       <p style="margin:8px 0 0;font-size:12.5px;line-height:1.5;color:var(--mut);">Create or join a team, manage your roster, and build a shared competitive history that follows the crest.</p>
       <div style="margin-top:16px;display:flex;align-items:center;gap:8px;">
         <div style="display:flex;margin-left:8px;">
-          <span style="width:34px;height:34px;border-radius:50%;background:linear-gradient(140deg,#7C5CFF,#0A84FF);border:2px solid var(--bg);display:grid;place-items:center;font-family:var(--mono);font-size:12px;font-weight:600;color:#fff;margin-left:-8px;">VX</span>
-          <span style="width:34px;height:34px;border-radius:50%;background:linear-gradient(140deg,#0A84FF,#3FA3FF);border:2px solid var(--bg);display:grid;place-items:center;font-family:var(--mono);font-size:12px;font-weight:600;color:#fff;margin-left:-8px;">Kz</span>
-          <span style="width:34px;height:34px;border-radius:50%;background:linear-gradient(140deg,#6849E5,#8470EE);border:2px solid var(--bg);display:grid;place-items:center;font-family:var(--mono);font-size:12px;font-weight:600;color:#fff;margin-left:-8px;">Re</span>
-          <span style="width:34px;height:34px;border-radius:50%;background:linear-gradient(140deg,#3FA3FF,#6849E5);border:2px solid var(--bg);display:grid;place-items:center;font-family:var(--mono);font-size:12px;font-weight:600;color:#fff;margin-left:-8px;">Ad</span>
-          <span style="width:34px;height:34px;border-radius:50%;background:linear-gradient(140deg,#8470EE,#0A84FF);border:2px solid var(--bg);display:grid;place-items:center;font-family:var(--mono);font-size:12px;font-weight:600;color:#fff;margin-left:-8px;">Ny</span>
+          <span style="width:34px;height:34px;border-radius:50%;background:linear-gradient(140deg,#E2B761,#E2B761);border:2px solid var(--bg);display:grid;place-items:center;font-family:var(--mono);font-size:12px;font-weight:600;color:#fff;margin-left:-8px;">VX</span>
+          <span style="width:34px;height:34px;border-radius:50%;background:linear-gradient(140deg,#E2B761,#3FA3FF);border:2px solid var(--bg);display:grid;place-items:center;font-family:var(--mono);font-size:12px;font-weight:600;color:#fff;margin-left:-8px;">Kz</span>
+          <span style="width:34px;height:34px;border-radius:50%;background:linear-gradient(140deg,#E2B761,#E2B761);border:2px solid var(--bg);display:grid;place-items:center;font-family:var(--mono);font-size:12px;font-weight:600;color:#fff;margin-left:-8px;">Re</span>
+          <span style="width:34px;height:34px;border-radius:50%;background:linear-gradient(140deg,#3FA3FF,#E2B761);border:2px solid var(--bg);display:grid;place-items:center;font-family:var(--mono);font-size:12px;font-weight:600;color:#fff;margin-left:-8px;">Ad</span>
+          <span style="width:34px;height:34px;border-radius:50%;background:linear-gradient(140deg,#E2B761,#E2B761);border:2px solid var(--bg);display:grid;place-items:center;font-family:var(--mono);font-size:12px;font-weight:600;color:#fff;margin-left:-8px;">Ny</span>
         </div>
          <span class="m" style="font-size:12px;color:var(--soft);">Example lineup</span>
       </div>
       <div style="margin-top:18px;display:flex;gap:9px;">
-        <a href="/teams/create/" class="tap" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:13px;border-radius:13px;background:var(--vi);color:#fff;font-weight:700;font-size:13.5px;text-decoration:none;">Create a team</a>
-        <a href="/teams/" class="tap" style="flex:1;display:flex;align-items:center;justify-content:center;padding:13px;border-radius:13px;border:1px solid var(--stroke);background:rgba(20,24,34,.5);color:var(--fg);font-weight:600;font-size:13.5px;text-decoration:none;">Find a team</a>
+        <a href="/teams/create/" class="ol-btn ol-btn--primary" style="flex:1;">Create a team</a>
+        <a href="/teams/" class="ol-btn ol-btn--secondary" style="flex:1;">Find a team</a>
       </div>
     </div>
   </div>
 </section>
 
-{# ── 06 · COMPETITIVE MODES — horizontal rail ────────────────────────────── #}
-<section data-section="modes" style="position:relative;padding:34px 0 8px;">
-  <div style="padding:0 16px 14px;"><h2 style="margin:5px 0 0;font-family:var(--disp);font-weight:700;font-size:21px;letter-spacing:-.02em;">Always something to play</h2></div>
-  <div class="home-mode-list">
-    <a href="/dashboard/competitive/" class="home-mode-link tap" style="width:158px;display:flex;flex-direction:column;gap:11px;padding:16px;border:1px solid var(--stroke);border-radius:18px;background:var(--s1);text-decoration:none;flex-shrink:0;">
-      <span style="width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:var(--tAz);border:1px solid rgba(10,132,255,.3);"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--az4)" stroke-width="1.7" stroke-linecap="round"><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z"/></svg></span>
-      <div><div style="font-family:var(--disp);font-weight:600;font-size:15px;color:var(--fg);">Showdown</div><div style="margin-top:4px;font-size:12px;line-height:1.4;color:var(--mut);">Reward matches for {{ brand.features.ranking_points }}.</div></div>
-      <span class="m" style="font-size:12px;letter-spacing:.04em;color:var(--soft);">See match terms</span>
-    </a>
-    <a href="/dashboard/competitive/" class="home-mode-link tap" style="width:158px;display:flex;flex-direction:column;gap:11px;padding:16px;border:1px solid var(--stroke);border-radius:18px;background:var(--s1);text-decoration:none;flex-shrink:0;">
-      <span style="width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:var(--tVi);border:1px solid rgba(104,73,229,.3);"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--vi4)" stroke-width="1.7" stroke-linecap="round"><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></svg></span>
-      <div><div style="font-family:var(--disp);font-weight:600;font-size:15px;color:var(--fg);">Missions</div><div style="margin-top:4px;font-size:12px;line-height:1.4;color:var(--mut);">Daily and weekly objectives.</div></div>
-      <span class="m" style="font-size:12px;letter-spacing:.04em;color:var(--soft);">Browse available tasks</span>
-    </a>
-    <a href="/dashboard/competitive/" class="home-mode-link tap" style="width:158px;display:flex;flex-direction:column;gap:11px;padding:16px;border:1px solid var(--stroke);border-radius:18px;background:var(--s1);text-decoration:none;flex-shrink:0;">
-      <span style="width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:var(--tGo);border:1px solid rgba(207,167,90,.3);"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--go4)" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="M12 1v3M12 20v3M1 12h3M20 12h3"/></svg></span>
-      <div><div style="font-family:var(--disp);font-weight:600;font-size:15px;color:var(--fg);">Bounty</div><div style="margin-top:4px;font-size:12px;line-height:1.4;color:var(--mut);">Open challenges to claim.</div></div>
-      <span class="m" style="font-size:12px;letter-spacing:.04em;color:var(--soft);">Community-posted</span>
-    </a>
-    <a href="/dashboard/competitive/" class="home-mode-link tap" style="width:158px;display:flex;flex-direction:column;gap:11px;padding:16px;border:1px solid var(--stroke);border-radius:18px;background:var(--s1);text-decoration:none;flex-shrink:0;">
-      <span style="width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:var(--tAz);border:1px solid rgba(10,132,255,.3);"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--az4)" stroke-width="1.7" stroke-linecap="round"><path d="M12 3v10M8 9l4 4 4-4M5 20h14"/></svg></span>
-      <div><div style="font-family:var(--disp);font-weight:600;font-size:15px;color:var(--fg);">Dropzone</div><div style="margin-top:4px;font-size:12px;line-height:1.4;color:var(--mut);">Fast drop-in lobbies.</div></div>
-      <span class="m" style="font-size:12px;letter-spacing:.04em;color:var(--soft);">Always open</span>
-    </a>
-  </div>
+{# ── 06 · COMPETITIVE HUB — one card, four modes (all live inside the hub) ──────── #}
+<section data-section="modes" style="position:relative;padding:34px 16px 8px;">
+  <h2 style="margin:5px 0 0;font-family:var(--disp);font-weight:700;font-size:21px;letter-spacing:-.02em;">One hub, four modes</h2>
+  <p style="margin:8px 0 0;font-size:14px;line-height:1.55;color:var(--mut);">Showdown, Missions, Bounty and Dropzone live in your Competitive Hub. Create a free account to open it.</p>
+  <ul class="ol-card" style="list-style:none;margin:16px 0 0;padding:.25rem 1rem;">
+    {% for o in daily_modes %}
+    <li style="display:flex;gap:12px;padding:12px 0;{% if not forloop.last %}border-bottom:1px solid var(--ol-border);{% endif %}"><span class="ol-iconbox" aria-hidden="true">{{ o.icon|safe }}</span><div><p class="ol-card__title">{{ o.name }}</p><p class="ol-card__text">{{ o.desc }}</p></div></li>
+    {% endfor %}
+  </ul>
+  <a href="/dashboard/competitive/" class="ol-btn ol-btn--primary ol-btn--block" style="margin-top:14px;">Open the Competitive Hub</a>
 </section>
 
 {# ── 07 · CROWN POINTS ───────────────────────────────────────────────────── #}
@@ -837,7 +789,7 @@
   <div style="position:sticky;top:0;background:var(--s1);padding:12px 0 4px;display:flex;justify-content:center;z-index:2;"><span style="width:40px;height:4px;border-radius:999px;background:var(--s3);"></span></div>
   <div id="mSheetPoster" style="position:relative;height:172px;background:var(--s2) center 28%/cover no-repeat;">
     <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(17,21,30,.2) 28%,rgba(17,21,30,.98));"></div>
-    <span style="position:absolute;top:14px;left:16px;display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:999px;background:var(--tAz);border:1px solid rgba(10,132,255,.4);"><span id="mSheetStatus" class="m" style="font-size:12px;letter-spacing:.1em;color:var(--az4);">Tournament details</span></span>
+    <span style="position:absolute;top:14px;left:16px;display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:999px;background:var(--tAz);border:1px solid rgba(226,183,97,.4);"><span id="mSheetStatus" class="m" style="font-size:12px;letter-spacing:.1em;color:var(--az4);">Tournament details</span></span>
     <div style="position:absolute;left:16px;right:16px;bottom:14px;">
       <div class="m" id="mSheetGame" style="font-size:12px;letter-spacing:.04em;color:rgba(255,255,255,.8);">—</div>
       <div id="mSheetTitle" style="margin-top:5px;font-family:var(--disp);font-weight:700;font-size:20px;letter-spacing:-.01em;">—</div>
@@ -875,7 +827,7 @@
 <footer class="dc-footer-mobile" aria-label="Site footer">
 
   {# Top hairline accent #}
-  <div aria-hidden="true" style="height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.07) 22%,rgba(132,112,238,.26) 50%,rgba(255,255,255,.07) 78%,transparent);"></div>
+  <div aria-hidden="true" style="height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.07) 22%,rgba(226,183,97,.26) 50%,rgba(255,255,255,.07) 78%,transparent);"></div>
 
   <div class="dc-fm-inner">
 
