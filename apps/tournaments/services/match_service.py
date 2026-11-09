@@ -1366,10 +1366,16 @@ class MatchService:
         from apps.brackets.models import BracketNode
         node = BracketNode.objects.select_related('parent_node').filter(match=match).first()
         parent_match_id = node.parent_node.match_id if node and node.parent_node_id else None
-        if parent_match_id and Match.objects.filter(pk=parent_match_id, state__in=(
-            Match.LIVE, Match.PENDING_RESULT, Match.COMPLETED, Match.DISPUTED, Match.FORFEIT,
-        )).exists():
-            return 'The next-round match has already started; the winner of this match can no longer change.'
+        if parent_match_id:
+            # Only an untouched SCHEDULED downstream match may be re-seeded; check-in, ready, live,
+            # result, dispute, forfeit or cancelled states (or any recorded check-in) are commitments.
+            downstream = Match.objects.select_for_update().filter(pk=parent_match_id).first()
+            if downstream and (
+                downstream.state != Match.SCHEDULED
+                or downstream.participant1_checked_in
+                or downstream.participant2_checked_in
+            ):
+                return 'The next-round match is already in progress or checked in; the winner of this match can no longer change.'
         return None
 
     @staticmethod

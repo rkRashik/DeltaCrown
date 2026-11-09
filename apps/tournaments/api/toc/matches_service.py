@@ -294,6 +294,7 @@ class TOCMatchesService:
     # ── S6-B2: Score submission ───────────────────────────────
 
     @classmethod
+    @transaction.atomic  # guard lock on the downstream match and the re-seed commit together
     def submit_score(
         cls,
         match_id: int,

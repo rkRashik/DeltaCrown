@@ -670,3 +670,63 @@ def test_solo_result_record_names_the_real_finalists(world, caplog):
     assert 'Notification step failed' not in caplog.text
     from apps.notifications.models import Notification
     assert Notification.objects.filter(recipient_id=final.winner_id, title__startswith='Tournament Complete').exists()
+
+
+def _snapshot(first, final):
+    first, final = _get(first), _get(final)
+    return (
+        first.winner_id, first.loser_id, first.participant1_score, first.participant2_score, first.state,
+        final.participant1_id, final.participant2_id, final.state,
+        final.participant1_checked_in, final.participant2_checked_in, final.winner_id,
+    )
+
+
+def _corrections(organizer, tournament, match):
+    """Both organizer correction paths trying to flip the winner of ``match``."""
+    flip = {'participant1_score': 0, 'participant2_score': 3}
+    verify = _api(organizer).post(
+        f'/api/toc/{tournament.slug}/matches/{match.id}/verify/', {'action': 'confirm', **flip}, format='json', secure=True)
+    score = _api(organizer).post(
+        f'/api/toc/{tournament.slug}/matches/{match.id}/score/', flip, format='json', secure=True)
+    return verify, score
+
+
+@pytest.mark.parametrize('downstream_state', ['check_in_via_player', 'ready', 'live', 'pending_result'])
+def test_correction_rejected_once_next_round_has_commitments(world, downstream_state):
+    organizer, _players, _outsider, tournament = world
+    _registrations, round_one = _reach_published_bracket(world)
+    first, second = round_one
+    _play(first, organizer, p1_wins=True)
+    _play(second, organizer, p1_wins=True)
+    final = Match.objects.get(tournament=tournament, round_number=2)
+    if downstream_state == 'check_in_via_player':
+        MatchService.check_in_participant(_get(final), final.participant1_id)  # real participation commitment
+        assert _get(final).participant1_checked_in
+    else:  # narrowly scoped setup: put the next-round match in the state under test
+        Match.objects.filter(pk=final.pk).update(state=downstream_state)
+
+    before = _snapshot(first, final)
+    verify, score = _corrections(organizer, tournament, first)
+    assert verify.status_code == 400 and score.status_code == 400
+    assert _snapshot(first, final) == before  # winner, scores, next-round slots, check-in, state untouched
+
+
+def test_correction_allowed_while_next_round_is_untouched_scheduled(world):
+    organizer, _players, _outsider, tournament = world
+    _registrations, round_one = _reach_published_bracket(world)
+    first, second = round_one
+    _play(first, organizer, p1_wins=True)
+    _play(second, organizer, p1_wins=True)
+    final = Match.objects.get(tournament=tournament, round_number=2)
+    assert final.state == Match.SCHEDULED and not final.participant1_checked_in
+
+    verify, _score = _corrections(organizer, tournament, first)
+    assert verify.status_code == 200  # first path re-seeds the final
+    flipped = _get(first).winner_id
+    assert flipped == first.participant2_id
+    assert first.participant2_id in (_get(final).participant1_id, _get(final).participant2_id)
+    # the score-override path works too, from the new (still untouched) state
+    back = _api(organizer).post(
+        f'/api/toc/{tournament.slug}/matches/{first.id}/score/',
+        {'participant1_score': 3, 'participant2_score': 0}, format='json', secure=True)
+    assert back.status_code == 200 and _get(first).winner_id == first.participant1_id
