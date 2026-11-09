@@ -13,7 +13,6 @@ All views follow IDs-only discipline (no PII in responses).
 
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse, Http404
-from django.urls import reverse
 from django.views.decorators.http import require_http_methods
 from django.conf import settings
 from django.db.models import Count, Q
@@ -74,13 +73,12 @@ def tournament_list_view(request):
 
     GET /spectator/
 
-    Lists public tournaments that are open for registration or live. Live events
-    link to the public spectate page; registration-open events link to the
-    public tournament page.
+    Lists public tournaments that are open for registration or live. Each card
+    links to the legacy ID route, which redirects to the canonical public page
+    (spectate page for live events, tournament page otherwise).
 
     Context:
-        tournament_data (list): dicts with ``tournament``, ``participant_count``
-        and ``url`` (the canonical public page for that tournament)
+        tournament_data (list): dicts with ``tournament`` and ``participant_count``
     """
     tournaments = (
         Tournament.objects.filter(is_deleted=False, status__in=_DIRECTORY_STATUSES)
@@ -96,11 +94,9 @@ def tournament_list_view(request):
 
     tournament_data = []
     for tournament in tournaments:
-        route = 'tournaments:spectate' if tournament.status == Tournament.LIVE else 'tournaments:detail'
         tournament_data.append({
             'tournament': tournament,
             'participant_count': tournament.participant_count,
-            'url': reverse(route, kwargs={'slug': tournament.slug}),
         })
 
     return render(request, 'spectator/tournament_list.html', {'tournament_data': tournament_data})

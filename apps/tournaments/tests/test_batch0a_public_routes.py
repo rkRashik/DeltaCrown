@@ -128,10 +128,18 @@ class TestSpectatorDirectory:
         response = client.get('/spectator/', secure=True)
         assert response.status_code == 200
         body = response.content.decode()
-        assert f'href="/tournaments/{cup.slug}/spectate/"' in body  # live -> spectate page
-        assert f'href="/tournaments/{open_cup.slug}/"' in body      # open -> tournament page
+        # cards use the legacy ID route (template URL contract); it redirects by status
+        live_card, open_card = f'/spectator/tournaments/{cup.id}/', f'/spectator/tournaments/{open_cup.id}/'
+        assert f'href="{live_card}"' in body and f'href="{open_card}"' in body
+        assert client.get(live_card, secure=True)['Location'] == f'/tournaments/{cup.slug}/spectate/'
+        assert client.get(open_card, secure=True)['Location'] == f'/tournaments/{open_cup.slug}/'
+        followed = client.get(live_card, secure=True, follow=True)
+        assert followed.status_code == 200 and followed.redirect_chain[-1][0] == f'/tournaments/{cup.slug}/spectate/'
+        assert client.get(open_card, secure=True, follow=True).status_code == 200
         for hidden in ('b0a-draft', 'b0a-pending', 'b0a-finished', 'b0a-cancelled', 'b0a-deleted'):
             assert f'Cup {hidden}' not in body
+        for hidden_slug in ('b0a-draft', 'b0a-pending'):  # hidden tournaments are not reachable through the legacy route either
+            assert client.get(f'/spectator/tournaments/{Tournament.objects.get(slug=hidden_slug).id}/', secure=True).status_code == 404
         assert '4 Confirmed participants' in body
         # no unsupported realtime claims
         assert 'WebSocket' not in body and 'Auto-refresh' not in body

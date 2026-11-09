@@ -14,7 +14,7 @@
     {% if tournament_data %}
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {% for item in tournament_data %}
-        <a href="{{ item.url }}" 
+        <a href="{% url 'spectator:tournament_detail' item.tournament.id %}" 
            class="group block bg-dc-card/30 backdrop-blur-md rounded-xl p-6 border border-dc-border hover:border-dc-accent transition-all duration-300 hover:transform hover:scale-105">
             
             <!-- Game Badge -->
