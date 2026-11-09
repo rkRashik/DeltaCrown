@@ -475,7 +475,7 @@ class TOCMatchesService:
         match = Match.objects.select_for_update().get(pk=match_id, tournament=tournament)
 
         # Clearing a decided winner would leave the next round (or a completed tournament) built on it.
-        blocked = MatchService.winner_correction_block_reason(match, match.winner_id, None)
+        blocked = MatchService.reset_block_reason(match)
         if blocked:
             raise ValueError(blocked)
 

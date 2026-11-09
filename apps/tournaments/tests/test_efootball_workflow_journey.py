@@ -781,18 +781,6 @@ def test_reset_cannot_clear_a_winner_the_next_round_depends_on(world):
     assert _snapshot(first, final) == before
 
 
-def test_reset_still_works_while_next_round_is_untouched(world):
-    organizer, _players, _outsider, tournament = world
-    _registrations, round_one = _reach_published_bracket(world)
-    first = round_one[0]
-    _play(first, organizer, p1_wins=True)
-    ok = _api(organizer).post(
-        f'/api/toc/{tournament.slug}/matches/{first.id}/reset/',
-        {'confirm_reset': True, 'confirmation_text': 'RESET'}, format='json', secure=True)
-    assert ok.status_code == 200
-    assert _get(first).winner_id is None and _get(first).state != Match.COMPLETED
-
-
 def test_player_match_pages_show_opponent_names_and_scores(world):
     """My Matches and the result form must name the real opponent (not 'TBD'/'Player 1')."""
     organizer, _players, _outsider, tournament = world
@@ -823,3 +811,99 @@ def test_registration_wizard_revalidates_after_passport_is_saved(world):
     html = _web(players[0]).get(_url('register', tournament.slug), secure=True).content.decode()
     assert "hiddenA.value = displayName" in html
     assert "dispatchEvent(new Event('input', { bubbles: true }))" in html
+
+
+def _bracket_state(first, final=None):
+    """Everything a reset of ``first`` must not leave inconsistent."""
+    from apps.brackets.models import BracketNode
+    first = _get(first)
+    node = BracketNode.objects.select_related('parent_node').get(match=first)
+    parent = BracketNode.objects.get(pk=node.parent_node_id)
+    state = [first.winner_id, first.loser_id, first.participant1_score, first.participant2_score, first.state,
+             node.winner_id, parent.participant1_id, parent.participant2_id, parent.match_id]
+    if final is not None:
+        final = _get(final)
+        state += [final.participant1_id, final.participant2_id, final.state,
+                  final.participant1_checked_in, final.participant2_checked_in]
+    return state
+
+
+def _reset(organizer, tournament, match):
+    return _api(organizer).post(
+        f'/api/toc/{tournament.slug}/matches/{match.id}/reset/',
+        {'confirm_reset': True, 'confirmation_text': 'RESET'}, format='json', secure=True)
+
+
+def test_reset_rejected_when_winner_already_advanced_without_a_final_row(world):
+    """Case A: first semifinal decided, winner sits in the parent node, no final match exists yet."""
+    organizer, _players, _outsider, tournament = world
+    _registrations, round_one = _reach_published_bracket(world)
+    first = round_one[0]
+    _play(first, organizer, p1_wins=True)
+    assert not Match.objects.filter(tournament=tournament, round_number=2).exists()
+    before = _bracket_state(first)
+    assert first.participant1_id in before[6:8]  # the winner really was propagated
+
+    blocked = _reset(organizer, tournament, first)
+    assert blocked.status_code == 400 and blocked.json()['code'] == 'reset_blocked'
+    assert _bracket_state(first) == before
+    assert not Match.objects.filter(tournament=tournament, round_number=2).exists()
+
+
+def test_reset_rejected_when_untouched_final_still_depends_on_the_winner(world):
+    """Case B: both semifinals decided, the final row exists and is an untouched SCHEDULED match."""
+    organizer, _players, _outsider, tournament = world
+    _registrations, round_one = _reach_published_bracket(world)
+    first, second = round_one
+    _play(first, organizer, p1_wins=True)
+    _play(second, organizer, p1_wins=True)
+    final = Match.objects.get(tournament=tournament, round_number=2)
+    assert final.state == Match.SCHEDULED
+    before = _bracket_state(first, final)
+
+    blocked = _reset(organizer, tournament, first)
+    assert blocked.status_code == 400 and blocked.json()['code'] == 'reset_blocked'
+    assert _bracket_state(first, final) == before
+
+
+@pytest.mark.parametrize('downstream_state', ['check_in', 'ready', 'live'])
+def test_reset_rejected_when_next_round_has_started(world, downstream_state):
+    organizer, _players, _outsider, tournament = world
+    _registrations, round_one = _reach_published_bracket(world)
+    first, second = round_one
+    _play(first, organizer, p1_wins=True)
+    _play(second, organizer, p1_wins=True)
+    final = Match.objects.get(tournament=tournament, round_number=2)
+    Match.objects.filter(pk=final.pk).update(state=downstream_state)  # narrowly scoped setup
+    before = _bracket_state(first, final)
+
+    blocked = _reset(organizer, tournament, first)
+    assert blocked.status_code == 400 and blocked.json()['code'] == 'reset_blocked'
+    assert _bracket_state(first, final) == before
+
+
+def test_reset_still_works_for_a_match_nothing_depends_on(world):
+    """A submitted-but-unconfirmed result has not advanced anyone, so reset is safe and keeps the evidence."""
+    from apps.tournaments.models import MatchResultSubmission
+    organizer, _players, _outsider, tournament = world
+    _registrations, round_one = _reach_published_bracket(world)
+    first = round_one[0]
+    for pid in (first.participant1_id, first.participant2_id):
+        MatchService.check_in_participant(_get(first), pid)
+    MatchService.transition_to_live(_get(first))
+    MatchService.submit_result(_get(first), first.participant1_id, 2, 1)
+    MatchResultSubmission.objects.create(
+        match=first, submitted_by_user=organizer, submitted_by_team_id=first.participant1_id,
+        raw_result_payload={'score_p1': 2, 'score_p2': 1}, submitter_notes='evidence',
+    )
+    before_parent = _bracket_state(first)[5:9]
+    assert MatchResultSubmission.objects.filter(match=first, is_archived=False).count() == 1
+
+    ok = _reset(organizer, tournament, first)
+    assert ok.status_code == 200
+    after = _get(first)
+    assert after.winner_id is None and after.state != Match.COMPLETED
+    assert _bracket_state(first)[5:9] == before_parent  # bracket untouched
+    # evidence retained (archived, not deleted)
+    assert MatchResultSubmission.objects.filter(match=first, is_archived=True).count() == 1
+    assert MatchResultSubmission.objects.filter(match=first, is_archived=False).count() == 0
