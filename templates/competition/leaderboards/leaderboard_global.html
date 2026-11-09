@@ -4,11 +4,13 @@
 {% block title %}{% if selected_game_name %}{{ selected_game_name }} Rankings{% else %}{{ brand.features.ranking_points }} Rankings{% endif %} | {{ brand.name }}{% endblock %}
 {% block og_title %}{% if selected_game_name %}{{ selected_game_name }} Rankings{% else %}{{ brand.features.ranking_points }} Rankings{% endif %} | {{ brand.name }}{% endblock %}
 
+{% block body_class %}ol-identity{% endblock %}
+
 {% block extra_css %}
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
-html, body { background: #0A0D14 !important; }
+html, body { background: #0B0C0C !important; }
 body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; overflow-x:hidden; }
 .rk a { text-decoration:none; color:inherit; }
 
@@ -23,7 +25,7 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
 .rk-sidebar {
   width:228px; flex-shrink:0; position:sticky; top:80px;
   height:calc(100vh - 80px); overflow-y:auto; overscroll-behavior:contain;
-  background:#0C0F19; border-right:1px solid rgba(255,255,255,.07);
+  background:#0B0C0C; border-right:1px solid rgba(255,255,255,.07);
   display:block;
 }
 .rk-mob { display:none; }
@@ -51,13 +53,13 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
 [data-tier="LEGEND"]     { --tc:#E5902F; --tc-rgb:229,144,47; }
 [data-tier="MASTER"]     { --tc:#BF3868; --tc-rgb:191,56,104; }
 [data-tier="ELITE"]      { --tc:#3EA7FF; --tc-rgb:62,167,255; }
-[data-tier="CHALLENGER"] { --tc:#8470EE; --tc-rgb:132,112,238; }
+[data-tier="CHALLENGER"] { --tc:#E2B761; --tc-rgb:132,112,238; }
 [data-tier="ROOKIE"]     { --tc:#94A3B8; --tc-rgb:148,163,184; }
 .tier-badge { display:inline-block; background:rgba(var(--tc-rgb),.12); border:1px solid rgba(var(--tc-rgb),.28); color:var(--tc); font-size:10px; font-weight:700; letter-spacing:.05em; padding:3px 9px; border-radius:999px; white-space:nowrap; }
 .tier-bar { background:var(--tc); }
 
 /* Team avatar — crisp, no blurry overlay */
-.team-av { border-radius:10px; overflow:hidden; display:flex; align-items:center; justify-content:center; flex-shrink:0; background:#161B28; border:1px solid rgba(255,255,255,.08); }
+.team-av { border-radius:10px; overflow:hidden; display:flex; align-items:center; justify-content:center; flex-shrink:0; background:#17181A; border:1px solid rgba(255,255,255,.08); }
 .team-av img { width:100%; height:100%; object-fit:cover; display:block; image-rendering:auto; }
 .team-av-round { border-radius:50%; }
 
@@ -91,7 +93,7 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
 .side-g:hover { background:rgba(255,255,255,.04); }
 .side-g .sg-name { font-size:13px; font-weight:500; color:#818A9D; flex:1; text-align:left; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .side-g .sg-count { font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:600; color:#5A6273; background:rgba(255,255,255,.05); border-radius:999px; padding:1px 7px; flex-shrink:0; }
-.side-g.active { border-left-color:var(--gc,#6849E5); background:color-mix(in srgb, var(--gc,#6849E5) 8%, transparent); }
+.side-g.active { border-left-color:var(--gc,#E2B761); background:color-mix(in srgb, var(--gc,#E2B761) 8%, transparent); }
 .side-g.active .sg-name { color:#E8EBF2; font-weight:600; }
 .side-g.active .sg-count { color:#E8EBF2; }
 
@@ -122,31 +124,31 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
 
 /* ── Search ── */
 .rk-search { display:flex; align-items:center; gap:7px; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.08); border-radius:8px; padding:0 10px; height:32px; transition:border-color .2s; }
-.rk-search:focus-within { border-color:rgba(10,132,255,.45); }
-.rk-search input { background:transparent; color:#F4F6FA; font-size:13px; width:100%; caret-color:#0A84FF; border:none; outline:none; }
+.rk-search:focus-within { border-color:rgba(226,183,97,.45); }
+.rk-search input { background:transparent; color:#F4F6FA; font-size:13px; width:100%; caret-color:#E2B761; border:none; outline:none; }
 .rk-search input::placeholder { color:#3D4558; }
-#rkSearchBox:focus-within { border-color:rgba(104,73,229,.50); box-shadow:0 0 0 3px rgba(104,73,229,.10); }
+#rkSearchBox:focus-within { border-color:rgba(226,183,97,.50); box-shadow:0 0 0 3px rgba(226,183,97,.10); }
 #rkSearchBox:focus-within kbd { display:none; }
 
 /* Season dropdown */
 .rk-season-opt:hover { background:rgba(255,255,255,.05) !important; }
-.rk-season-opt.active { background:rgba(104,73,229,.10) !important; color:#E8ECF4 !important; }
+.rk-season-opt.active { background:rgba(226,183,97,.10) !important; color:#E8ECF4 !important; }
 #rkSeasonBtn:hover { border-color:rgba(255,255,255,.15); }
 
 /* ── Keyboard navigation focus ring ── */
-.rk-entry.rk-kb-focus, .rk-entry-m.rk-kb-focus { outline:2px solid rgba(104,73,229,.6); outline-offset:-2px; background:rgba(104,73,229,.06) !important; }
+.rk-entry.rk-kb-focus, .rk-entry-m.rk-kb-focus { outline:2px solid rgba(226,183,97,.6); outline-offset:-2px; background:rgba(226,183,97,.06) !important; }
 
 /* ── Compare mode ── */
 .rk-cmp-check { width:18px; height:18px; border-radius:5px; border:1.5px solid rgba(255,255,255,.12); background:transparent; display:flex; align-items:center; justify-content:center; flex-shrink:0; cursor:pointer; transition:all .12s; }
-.rk-cmp-check:hover { border-color:rgba(104,73,229,.5); }
-.rk-cmp-check.checked { background:#6849E5; border-color:#6849E5; }
+.rk-cmp-check:hover { border-color:rgba(226,183,97,.5); }
+.rk-cmp-check.checked { background:#E2B761; border-color:#E2B761; }
 .rk-cmp-check.checked::after { content:'✓'; color:#fff; font-size:11px; font-weight:700; line-height:1; }
-#rkCompareBar { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); z-index:500; display:none; align-items:center; gap:12px; padding:10px 20px; border-radius:14px; background:#161B28; border:1px solid rgba(104,73,229,.30); box-shadow:0 12px 40px rgba(0,0,0,.5); }
+#rkCompareBar { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); z-index:500; display:none; align-items:center; gap:12px; padding:10px 20px; border-radius:14px; background:#17181A; border:1px solid rgba(226,183,97,.30); box-shadow:0 12px 40px rgba(0,0,0,.5); }
 #rkCompareBar.show { display:flex; animation:rk-fade .25s ease both; }
 
 /* ── Compare modal ── */
 .rk-cmp-card { flex:1; min-width:0; background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.06); border-radius:14px; padding:20px; text-align:center; }
-.rk-cmp-vs { width:36px; height:36px; border-radius:50%; background:rgba(104,73,229,.15); border:1px solid rgba(104,73,229,.30); display:flex; align-items:center; justify-content:center; flex-shrink:0; font-family:'Sora',sans-serif; font-weight:800; font-size:11px; color:#8B5CF6; }
+.rk-cmp-vs { width:36px; height:36px; border-radius:50%; background:rgba(226,183,97,.15); border:1px solid rgba(226,183,97,.30); display:flex; align-items:center; justify-content:center; flex-shrink:0; font-family:'Sora',sans-serif; font-weight:800; font-size:11px; color:#E2B761; }
 .rk-cmp-row { display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid rgba(255,255,255,.04); }
 .rk-cmp-row:last-child { border-bottom:none; }
 .rk-cmp-winner { color:#CFA75A !important; }
@@ -167,22 +169,22 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
 #rkModal.open { display:flex; }
 #rkModalBack { position:absolute; inset:0; background:rgba(4,6,12,.74); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); animation:rk-backIn .2s ease both; }
 #rkModalCard {
-  position:relative; width:100%; max-width:460px; background:#0F1320;
+  position:relative; width:100%; max-width:460px; background:#17181A;
   border:1px solid rgba(255,255,255,.10); border-radius:20px; overflow:hidden;
   box-shadow:0 32px 80px rgba(0,0,0,.7),0 0 0 1px rgba(255,255,255,.04); animation:rk-cardIn .28s cubic-bezier(.22,1,.36,1) both;
   max-height:calc(100vh - 40px); overflow-y:auto;
 }
 .rk-mclose { position:absolute; top:12px; right:12px; z-index:3; width:32px; height:32px; border-radius:10px; background:rgba(0,0,0,.4); border:1px solid rgba(255,255,255,.1); color:#C2C8D4; font-size:13px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:background .15s,color .15s; }
 .rk-mclose:hover { background:rgba(0,0,0,.65); color:#fff; }
-.rk-mbanner { height:120px; position:relative; overflow:hidden; background:linear-gradient(135deg,rgba(var(--tc-rgb),.25),rgba(var(--tc-rgb),.08) 60%,#0F1320); }
+.rk-mbanner { height:120px; position:relative; overflow:hidden; background:linear-gradient(135deg,rgba(var(--tc-rgb),.25),rgba(var(--tc-rgb),.08) 60%,#17181A); }
 .rk-mbanner img { width:100%; height:100%; object-fit:cover; opacity:.55; }
-.rk-mbanner::after { content:''; position:absolute; inset:0; background:linear-gradient(to top,#0F1320 0%,rgba(15,19,32,.3) 55%,transparent 100%); }
-.rk-mlogo { position:absolute; left:24px; bottom:-28px; width:76px; height:76px; border-radius:18px; overflow:hidden; border:3px solid #0F1320; background:#161B28; display:flex; align-items:center; justify-content:center; font-family:'Sora',sans-serif; font-weight:800; font-size:26px; color:#8A92A6; z-index:2; box-shadow:0 8px 24px rgba(0,0,0,.5); }
+.rk-mbanner::after { content:''; position:absolute; inset:0; background:linear-gradient(to top,#17181A 0%,rgba(23,24,26,.3) 55%,transparent 100%); }
+.rk-mlogo { position:absolute; left:24px; bottom:-28px; width:76px; height:76px; border-radius:18px; overflow:hidden; border:3px solid #17181A; background:#17181A; display:flex; align-items:center; justify-content:center; font-family:'Sora',sans-serif; font-weight:800; font-size:26px; color:#8A92A6; z-index:2; box-shadow:0 8px 24px rgba(0,0,0,.5); }
 .rk-mlogo img { width:100%; height:100%; object-fit:cover; }
 .rk-mstat { background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.07); border-radius:12px; padding:12px 14px; text-align:center; }
 .rk-mstat .lbl { font-size:9px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:#7A8399; }
 .rk-mstat .val { font-family:'JetBrains Mono',monospace; font-weight:700; font-size:20px; color:#F4F6FA; margin-top:4px; }
-.rk-visit { display:flex; align-items:center; justify-content:center; gap:8px; width:100%; height:48px; border-radius:13px; background:linear-gradient(135deg,#6849E5 0%,#0A84FF 100%); color:#fff; font-size:14px; font-weight:700; letter-spacing:-.01em; cursor:pointer; transition:filter .15s,transform .1s; border:none; text-decoration:none; }
+.rk-visit { display:flex; align-items:center; justify-content:center; gap:8px; width:100%; height:48px; border-radius:13px; background:linear-gradient(135deg,#E2B761 0%,#E2B761 100%); color:#fff; font-size:14px; font-weight:700; letter-spacing:-.01em; cursor:pointer; transition:filter .15s,transform .1s; border:none; text-decoration:none; }
 .rk-visit:hover { filter:brightness(1.1); color:#fff; }
 .rk-visit:active { transform:scale(.98); }
 @media (prefers-reduced-motion: reduce){ #rkModalBack,#rkModalCard{animation:none} }
@@ -194,8 +196,8 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
 
 <!-- AMBIENT BACKGROUND -->
 <div style="position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;">
-  <div style="position:absolute;top:-20%;left:-10%;width:55%;height:55%;background:radial-gradient(circle,rgba(104,73,229,.11) 0%,transparent 65%);animation:rk-glow 28s ease-in-out infinite;"></div>
-  <div style="position:absolute;bottom:-15%;right:-8%;width:45%;height:50%;background:radial-gradient(circle,rgba(10,132,255,.085) 0%,transparent 65%);animation:rk-glow 34s ease-in-out infinite reverse;"></div>
+  <div style="position:absolute;top:-20%;left:-10%;width:55%;height:55%;background:radial-gradient(circle,rgba(226,183,97,.11) 0%,transparent 65%);animation:rk-glow 28s ease-in-out infinite;"></div>
+  <div style="position:absolute;bottom:-15%;right:-8%;width:45%;height:50%;background:radial-gradient(circle,rgba(226,183,97,.085) 0%,transparent 65%);animation:rk-glow 34s ease-in-out infinite reverse;"></div>
   <div style="position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.009) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.009) 1px,transparent 1px);background-size:80px 80px;"></div>
 </div>
 
@@ -207,7 +209,7 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
     <div style="padding:14px;border-bottom:1px solid rgba(255,255,255,.06);">
       <div style="display:flex;align-items:center;justify-content:space-between;">
         <div style="display:flex;align-items:center;gap:10px;">
-          <div style="width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,#6849E5,#0A84FF);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <div style="width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,#E2B761,#E2B761);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
             <i class="fa-solid fa-trophy" style="font-size:13px;color:#fff;"></i>
           </div>
           <div>
@@ -233,7 +235,7 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
       </div>
       {% if active_season %}
       <div style="height:3px;background:rgba(255,255,255,.05);border-radius:999px;overflow:hidden;margin-bottom:5px;">
-        <div id="rkSeasonBar" style="height:100%;width:0%;background:linear-gradient(90deg,#6849E5,#0A84FF,#CFA75A);border-radius:999px;transition:width 1s;"></div>
+        <div id="rkSeasonBar" style="height:100%;width:0%;background:linear-gradient(90deg,#E2B761,#E2B761,#CFA75A);border-radius:999px;transition:width 1s;"></div>
       </div>
       {% endif %}
       <div style="position:relative;" id="rkSeasonWrap">
@@ -241,7 +243,7 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
           <span id="rkSeasonBtnLabel">{% if active_season %}{{ active_season.name }}{% else %}All Time{% endif %}</span>
           <i class="fa-solid fa-chevron-down" style="font-size:7px;color:#5A6273;"></i>
         </button>
-        <div id="rkSeasonDrop" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:#161B28;border:1px solid rgba(255,255,255,.10);border-radius:10px;box-shadow:0 12px 36px rgba(0,0,0,.5);z-index:60;overflow:hidden;">
+        <div id="rkSeasonDrop" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:#17181A;border:1px solid rgba(255,255,255,.10);border-radius:10px;box-shadow:0 12px 36px rgba(0,0,0,.5);z-index:60;overflow:hidden;">
           <button type="button" class="rk-season-opt{% if not active_season %} active{% endif %}" data-season="all" style="display:flex;align-items:center;gap:8px;width:100%;padding:7px 10px;border:none;background:transparent;color:#B0B8CC;font-size:11px;font-weight:600;cursor:pointer;text-align:left;">
             <i class="fa-solid fa-infinity" style="font-size:9px;color:#5A6273;"></i> All Time
           </button>
@@ -262,7 +264,7 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
       <div style="display:flex;align-items:center;gap:7px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.06);border-radius:8px;padding:0 10px;height:34px;transition:border-color .2s,box-shadow .2s;" id="rkSearchBox">
         <i class="fa-solid fa-magnifying-glass" style="color:#3D4558;font-size:11px;flex-shrink:0;"></i>
         <input type="text" id="rkSearch" placeholder="Search teams..." autocomplete="off"
-               style="background:transparent;color:#F4F6FA;font-size:12px;font-weight:500;width:100%;caret-color:#0A84FF;border:none;outline:none;">
+               style="background:transparent;color:#F4F6FA;font-size:12px;font-weight:500;width:100%;caret-color:#E2B761;border:none;outline:none;">
         <kbd style="font-size:8px;font-family:'JetBrains Mono',monospace;color:#3D4558;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.06);border-radius:4px;padding:1px 4px;flex-shrink:0;line-height:1;">⌘K</kbd>
       </div>
     </div>
@@ -270,8 +272,8 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
     <!-- Games -->
     <div style="padding:8px 6px 4px;">
       <div style="font-size:9px;font-weight:700;letter-spacing:.10em;text-transform:uppercase;color:#5A6273;padding:0 8px 6px;">Games</div>
-      <button type="button" class="side-g rk-gamebtn active" data-gf="all" style="--gc:#6849E5;">
-        <div style="width:24px;height:24px;border-radius:6px;background:rgba(104,73,229,.16);display:flex;align-items:center;justify-content:center;flex-shrink:0;border:1px solid rgba(104,73,229,.30);">
+      <button type="button" class="side-g rk-gamebtn active" data-gf="all" style="--gc:#E2B761;">
+        <div style="width:24px;height:24px;border-radius:6px;background:rgba(226,183,97,.16);display:flex;align-items:center;justify-content:center;flex-shrink:0;border:1px solid rgba(226,183,97,.30);">
           <i class="fa-solid fa-globe" style="font-size:10px;color:#A9B1C2;"></i>
         </div>
         <span class="sg-name">All Games</span>
@@ -301,7 +303,7 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
         <button type="button" class="tier-chip rk-tierbtn" data-tf="LEGEND" data-tc="#E5902F" style="font-size:10px;height:24px;padding:0 9px;">Legend</button>
         <button type="button" class="tier-chip rk-tierbtn" data-tf="MASTER" data-tc="#BF3868" style="font-size:10px;height:24px;padding:0 9px;">Master</button>
         <button type="button" class="tier-chip rk-tierbtn" data-tf="ELITE" data-tc="#3EA7FF" style="font-size:10px;height:24px;padding:0 9px;">Elite</button>
-        <button type="button" class="tier-chip rk-tierbtn" data-tf="CHALLENGER" data-tc="#8470EE" style="font-size:10px;height:24px;padding:0 9px;">Chall.</button>
+        <button type="button" class="tier-chip rk-tierbtn" data-tf="CHALLENGER" data-tc="#E2B761" style="font-size:10px;height:24px;padding:0 9px;">Chall.</button>
         <button type="button" class="tier-chip rk-tierbtn" data-tf="ROOKIE" data-tc="#94A3B8" style="font-size:10px;height:24px;padding:0 9px;">Rookie</button>
       </div>
     </div>
@@ -323,7 +325,7 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
     <!-- MOBILE STRIP -->
     <div class="rk-mobstrip no-sb" style="position:sticky;top:0;z-index:50;background:rgba(10,13,20,.92);backdrop-filter:blur(24px) saturate(180%);-webkit-backdrop-filter:blur(24px) saturate(180%);border-bottom:1px solid rgba(255,255,255,.07);">
       <div style="display:flex;overflow-x:auto;padding:10px 16px 6px;gap:4px;" class="no-sb">
-        <button type="button" class="gm-btn rk-gamebtn active" data-gf="all" data-gc="#6849E5">
+        <button type="button" class="gm-btn rk-gamebtn active" data-gf="all" data-gc="#E2B761">
           <div class="gm-box" style="background:rgba(169,177,194,.12);border:1.5px solid rgba(169,177,194,.20);"><i class="fa-solid fa-globe" style="font-size:18px;color:#A9B1C2;"></i></div>
           <span class="gm-lbl">All</span>
         </button>
@@ -347,7 +349,7 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
         <button type="button" class="tier-chip rk-tierbtn" data-tf="LEGEND" data-tc="#E5902F">Legend</button>
         <button type="button" class="tier-chip rk-tierbtn" data-tf="MASTER" data-tc="#BF3868">Master</button>
         <button type="button" class="tier-chip rk-tierbtn" data-tf="ELITE" data-tc="#3EA7FF">Elite</button>
-        <button type="button" class="tier-chip rk-tierbtn" data-tf="CHALLENGER" data-tc="#8470EE">Chall.</button>
+        <button type="button" class="tier-chip rk-tierbtn" data-tf="CHALLENGER" data-tc="#E2B761">Chall.</button>
         <button type="button" class="tier-chip rk-tierbtn" data-tf="ROOKIE" data-tc="#94A3B8">Rookie</button>
       </div>
       <div style="padding:0 16px 10px;">
@@ -380,9 +382,9 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
 
       <!-- ════ GLOBAL POWER RANKINGS ════ -->
       <div class="rk-fu" style="margin-bottom:28px;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.30),0 1px 4px rgba(0,0,0,.20);">
-        <div id="rkSecHdr" style="padding:16px 20px 14px;background:linear-gradient(135deg,rgba(104,73,229,.16) 0%,rgba(10,132,255,.12) 55%,rgba(207,167,90,.06) 100%);border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:space-between;">
+        <div id="rkSecHdr" style="padding:16px 20px 14px;background:linear-gradient(135deg,rgba(226,183,97,.16) 0%,rgba(226,183,97,.12) 55%,rgba(207,167,90,.06) 100%);border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:space-between;">
           <div style="display:flex;align-items:center;gap:12px;">
-            <div id="rkSecIcon" style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,rgba(104,73,229,.30),rgba(10,132,255,.25));display:flex;align-items:center;justify-content:center;border:1px solid rgba(104,73,229,.30);flex-shrink:0;overflow:hidden;">
+            <div id="rkSecIcon" style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,rgba(226,183,97,.30),rgba(226,183,97,.25));display:flex;align-items:center;justify-content:center;border:1px solid rgba(226,183,97,.30);flex-shrink:0;overflow:hidden;">
               <i class="fa-solid fa-trophy" style="font-size:17px;color:#CFA75A;"></i>
             </div>
             <div>
@@ -400,7 +402,7 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
           <table class="tbl">
             <thead>
               <tr>
-                <th style="width:30px;padding-left:12px;padding-right:0;" class="col-tier" title="Select teams to compare"></th>
+                <th style="width:30px;padding-left:12px;padding-right:0;" class="col-tier" title="Select teams to compare"><span class="sr-only">Select to compare</span></th>
                 <th style="width:48px;padding-left:8px;">#</th>
                 <th>Team</th>
                 <th style="width:130px;" class="col-tier">Tier</th>
@@ -459,7 +461,7 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
               </div>
               <div style="flex:1;min-width:0;">
                 <div style="font-size:15px;font-weight:600;color:#F4F6FA;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ entry.team_name }} {% if entry.team_tag %}<span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#3D4558;">[{{ entry.team_tag }}]</span>{% endif %}</div>
-                <div style="font-size:12px;color:#6B7385;margin-top:2px;">{% if entry.organization_name and not entry.is_independent %}{{ entry.organization_name }}{% else %}Independent{% endif %}{% if entry.game_short %} · <span style="color:{{ entry.game_color }};" class="rk-glabel-m">{{ entry.game_short }}</span>{% endif %}</div>
+                <div style="font-size:12px;color:#6B7385;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{% if entry.organization_name and not entry.is_independent %}{{ entry.organization_name }}{% else %}Independent{% endif %}{% if entry.game_short %} · <span style="color:{{ entry.game_color }};" class="rk-glabel-m">{{ entry.game_short }}</span>{% endif %}</div>
               </div>
               <div style="text-align:right;flex-shrink:0;">
                 <div style="font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;color:#F4F6FA;">{{ entry.score|intcomma }}</div>
@@ -480,7 +482,7 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
         </div>
         <div style="font-family:'Sora',sans-serif;font-size:16px;font-weight:700;color:#F4F6FA;margin-bottom:6px;">No teams found</div>
         <p style="font-size:13px;color:#6B7385;margin:0 0 16px;">No teams match your current filters.</p>
-        <button type="button" id="rkReset" style="display:inline-flex;align-items:center;gap:7px;padding:8px 18px;border-radius:999px;background:rgba(10,132,255,.12);border:1px solid rgba(10,132,255,.25);color:#3EA7FF;font-size:12px;font-weight:600;cursor:pointer;">
+        <button type="button" id="rkReset" style="display:inline-flex;align-items:center;gap:7px;padding:8px 18px;border-radius:999px;background:rgba(226,183,97,.12);border:1px solid rgba(226,183,97,.25);color:#3EA7FF;font-size:12px;font-weight:600;cursor:pointer;">
           <i class="fa-solid fa-arrow-rotate-left" style="font-size:10px;"></i> Reset filters
         </button>
       </div>
@@ -524,7 +526,7 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
                       </div>
                       <div style="min-width:0;">
                         <div style="font-size:13px;font-weight:600;color:#F4F6FA;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ entry.team_name }} {% if entry.team_tag %}<span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#3D4558;">[{{ entry.team_tag }}]</span>{% endif %}</div>
-                        <div style="font-size:11px;color:#6B7385;margin-top:2px;">{% if entry.organization_name and not entry.is_independent %}{{ entry.organization_name }}{% else %}Independent{% endif %}</div>
+                        <div style="font-size:11px;color:#6B7385;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{% if entry.organization_name and not entry.is_independent %}{{ entry.organization_name }}{% else %}Independent{% endif %}</div>
                       </div>
                     </div>
                   </td>
@@ -557,7 +559,7 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
 <!-- ════ COMPARE BAR ════ -->
 <div id="rkCompareBar">
   <span style="font-size:12px;color:#8A92A6;"><span id="rkCmpCount">0</span> / 2 selected</span>
-  <button type="button" id="rkCmpBtn" style="display:flex;align-items:center;gap:6px;padding:8px 18px;border-radius:10px;background:linear-gradient(135deg,#6849E5,#0A84FF);color:#fff;font-size:13px;font-weight:700;border:none;cursor:pointer;transition:filter .15s;" disabled>
+  <button type="button" id="rkCmpBtn" style="display:flex;align-items:center;gap:6px;padding:8px 18px;border-radius:10px;background:linear-gradient(135deg,#E2B761,#E2B761);color:#fff;font-size:13px;font-weight:700;border:none;cursor:pointer;transition:filter .15s;" disabled>
     <i class="fa-solid fa-code-compare" style="font-size:11px;"></i> Compare
   </button>
   <button type="button" id="rkCmpClear" style="padding:6px 12px;border-radius:8px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);color:#8A92A6;font-size:11px;font-weight:600;cursor:pointer;">Clear</button>
@@ -566,7 +568,7 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
 <!-- ════ COMPARE MODAL ════ -->
 <div id="rkCmpModal" style="position:fixed;inset:0;z-index:1001;display:none;align-items:center;justify-content:center;padding:20px;">
   <div id="rkCmpBack" style="position:absolute;inset:0;background:rgba(4,6,12,.78);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);"></div>
-  <div id="rkCmpCard" style="position:relative;width:100%;max-width:640px;background:#0F1320;border:1px solid rgba(255,255,255,.10);border-radius:20px;overflow:hidden;box-shadow:0 32px 80px rgba(0,0,0,.7);max-height:calc(100vh - 40px);overflow-y:auto;animation:rk-cardIn .28s cubic-bezier(.22,1,.36,1) both;">
+  <div id="rkCmpCard" style="position:relative;width:100%;max-width:640px;background:#17181A;border:1px solid rgba(255,255,255,.10);border-radius:20px;overflow:hidden;box-shadow:0 32px 80px rgba(0,0,0,.7);max-height:calc(100vh - 40px);overflow-y:auto;animation:rk-cardIn .28s cubic-bezier(.22,1,.36,1) both;">
     <div style="padding:20px 24px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:space-between;">
       <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:16px;color:#F4F6FA;">Team Comparison</div>
       <button type="button" id="rkCmpClose" class="rk-mclose" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
@@ -669,8 +671,8 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
     if(gf==='all'){
       if(t) t.textContent='Team Rankings';
       if(st) st.textContent='Global Power Rankings';
-      if(hdr){ hdr.style.background='linear-gradient(135deg,rgba(104,73,229,.16) 0%,rgba(10,132,255,.12) 55%,rgba(207,167,90,.06) 100%)'; hdr.style.borderLeft=''; }
-      if(ic){ ic.innerHTML='<i class="fa-solid fa-trophy" style="font-size:17px;color:#CFA75A;"></i>'; ic.style.background='linear-gradient(135deg,rgba(104,73,229,.30),rgba(10,132,255,.25))'; ic.style.border='1px solid rgba(104,73,229,.30)'; }
+      if(hdr){ hdr.style.background='linear-gradient(135deg,rgba(226,183,97,.16) 0%,rgba(226,183,97,.12) 55%,rgba(207,167,90,.06) 100%)'; hdr.style.borderLeft=''; }
+      if(ic){ ic.innerHTML='<i class="fa-solid fa-trophy" style="font-size:17px;color:#CFA75A;"></i>'; ic.style.background='linear-gradient(135deg,rgba(226,183,97,.30),rgba(226,183,97,.25))'; ic.style.border='1px solid rgba(226,183,97,.30)'; }
       var sn=document.getElementById('rkSeasonLabel'); var snTxt=sn?sn.textContent.trim():'';
       if(sub) sub.innerHTML='Cross-game'+(snTxt?' · '+esc(snTxt):'')+' · <span id="rkSecCount">0</span> teams';
     } else {
@@ -954,9 +956,9 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
     var active=false;
     tog.addEventListener('click', function(){
       active=!active;
-      tog.style.background = active ? 'rgba(104,73,229,.20)' : 'rgba(255,255,255,.04)';
-      tog.style.borderColor = active ? 'rgba(104,73,229,.40)' : 'rgba(255,255,255,.07)';
-      tog.style.color = active ? '#8B5CF6' : '#5A6273';
+      tog.style.background = active ? 'rgba(226,183,97,.20)' : 'rgba(255,255,255,.04)';
+      tog.style.borderColor = active ? 'rgba(226,183,97,.40)' : 'rgba(255,255,255,.07)';
+      tog.style.color = active ? '#E2B761' : '#5A6273';
       $$('.rk-cmp-check').forEach(function(c){ c.style.display = active ? 'flex' : 'none'; });
       if(!active){
         $$('.rk-cmp-check.checked').forEach(function(c){c.classList.remove('checked');});
