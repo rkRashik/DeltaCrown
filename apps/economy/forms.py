@@ -17,14 +17,15 @@ class WithdrawalRequestForm(forms.ModelForm):
     """
     
     pin = forms.CharField(
-        max_length=4,
-        min_length=4,
+        max_length=6,
+        min_length=4,  # 4 only so a legacy 4-digit PIN still verifies; new PINs are 6 digits
         widget=forms.PasswordInput(attrs={
             'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent',
-            'placeholder': '****',
+            'placeholder': '******',
             'autocomplete': 'off',
+            'inputmode': 'numeric',
         }),
-        help_text='Enter your 4-digit PIN to confirm withdrawal',
+        help_text='Enter your wallet PIN to confirm withdrawal',
         required=True
     )
     
@@ -110,26 +111,22 @@ class WithdrawalRequestForm(forms.ModelForm):
         return method
     
     def clean_pin(self):
-        pin = self.cleaned_data.get('pin')
-        
+        from apps.economy.services.wallet_pin import is_plausible_entry, verify_pin_with_lockout
+
+        pin = (self.cleaned_data.get('pin') or '').strip()
         if not pin:
             raise ValidationError('PIN is required')
-        
-        if len(pin) != 4:
-            raise ValidationError('PIN must be 4 digits')
-        
-        if not pin.isdigit():
+        if not is_plausible_entry(pin):
             raise ValidationError('PIN must contain only digits')
-        
+
         if self.wallet:
-            if not self.wallet.has_pin():
-                raise ValidationError('PIN not configured. Please set up your PIN first.')
-            
-            if not self.wallet.check_pin(pin):
-                raise ValidationError('Incorrect PIN')
-        
+            # Shared check: honours and updates the failed-attempt lockout.
+            result = verify_pin_with_lockout(self.wallet.pk, pin)
+            if not result.ok:
+                raise ValidationError(result.message or 'Incorrect PIN')
+
         return pin
-    
+
     def save(self, commit=True):
         """
         Save withdrawal request and lock pending balance.
@@ -277,60 +274,80 @@ class PaymentMethodForm(forms.ModelForm):
 
 class PINSetupForm(forms.Form):
     """
-    Form for setting up 4-digit PIN.
+    Set or change the wallet PIN (6 digits).
+
+    An existing PIN can only be changed by supplying (and verifying) the current PIN; the
+    check shares the failed-attempt lockout with withdrawals.
     """
-    
-    pin = forms.CharField(
-        max_length=4,
-        min_length=4,
+
+    current_pin = forms.CharField(
+        required=False,
+        max_length=6,
         widget=forms.PasswordInput(attrs={
             'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent',
-            'placeholder': '****',
-            'autocomplete': 'new-password',
+            'placeholder': '******',
+            'autocomplete': 'current-password',
+            'inputmode': 'numeric',
         }),
-        help_text='Enter a 4-digit PIN (numbers only)',
+        help_text='Required to change an existing PIN',
+        label='Current PIN'
+    )
+
+    pin = forms.CharField(
+        max_length=6,
+        min_length=6,
+        widget=forms.PasswordInput(attrs={
+            'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent',
+            'placeholder': '******',
+            'autocomplete': 'new-password',
+            'inputmode': 'numeric',
+        }),
+        help_text='Enter a 6-digit PIN (numbers only)',
         label='New PIN'
     )
-    
+
     pin_confirm = forms.CharField(
-        max_length=4,
-        min_length=4,
+        max_length=6,
+        min_length=6,
         widget=forms.PasswordInput(attrs={
             'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent',
-            'placeholder': '****',
+            'placeholder': '******',
             'autocomplete': 'new-password',
+            'inputmode': 'numeric',
         }),
-        help_text='Re-enter the same 4-digit PIN',
+        help_text='Re-enter the same 6-digit PIN',
         label='Confirm PIN'
     )
-    
+
+    def __init__(self, *args, **kwargs):
+        self.wallet = kwargs.pop('wallet', None)
+        super().__init__(*args, **kwargs)
+        if not (self.wallet and self.wallet.pin_hash):
+            del self.fields['current_pin']
+
     def clean_pin(self):
-        pin = self.cleaned_data.get('pin')
-        
-        if not pin:
-            raise ValidationError('PIN is required')
-        
-        if len(pin) != 4:
-            raise ValidationError('PIN must be exactly 4 digits')
-        
-        if not pin.isdigit():
-            raise ValidationError('PIN must contain only numbers')
-        
-        # Check for weak PINs
-        if pin in ['0000', '1111', '2222', '3333', '4444', '5555', '6666', '7777', '8888', '9999']:
-            raise ValidationError('PIN is too weak. Please choose a different PIN.')
-        
-        if pin in ['1234', '4321', '0123', '3210']:
-            raise ValidationError('PIN is too common. Please choose a different PIN.')
-        
-        return pin
-    
+        from apps.economy.services.wallet_pin import validate_new_pin
+        return validate_new_pin(self.cleaned_data.get('pin'))
+
     def clean(self):
         cleaned_data = super().clean()
         pin = cleaned_data.get('pin')
         pin_confirm = cleaned_data.get('pin_confirm')
-        
+
         if pin and pin_confirm and pin != pin_confirm:
             raise ValidationError('PINs do not match')
-        
+
+        # Verify the current PIN only once the rest of the submission is valid, so a typo in the
+        # new PIN does not burn a lockout attempt.
+        if self.wallet and self.wallet.pin_hash and not self.errors:
+            from apps.economy.services.wallet_pin import is_plausible_entry, verify_pin_with_lockout
+            current = (cleaned_data.get('current_pin') or '').strip()
+            if not current:
+                raise ValidationError('Current PIN is required to change your PIN')
+            if not is_plausible_entry(current):
+                raise ValidationError('Current PIN is incorrect')
+            result = verify_pin_with_lockout(self.wallet.pk, current)
+            if not result.ok:
+                raise ValidationError(result.message or 'Current PIN is incorrect')
+
         return cleaned_data

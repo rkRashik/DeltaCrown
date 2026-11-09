@@ -215,7 +215,7 @@ def withdraw_request(request):
         # Verify PIN (required for withdrawals)
         pin = request.POST.get('pin', '').strip()
         
-        if not wallet.pin_enabled:
+        if not wallet.pin_hash:
             return JsonResponse({
                 'success': False,
                 'error': 'PIN not set up. Please set up your PIN before withdrawing.',

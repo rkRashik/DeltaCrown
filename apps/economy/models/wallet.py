@@ -262,26 +262,28 @@ class DeltaCrownWallet(SoftDeleteModel):
     
     def set_pin(self, pin: str) -> None:
         """
-        Set withdrawal PIN (4 digits).
-        PIN is hashed using Django's password hasher.
-        
-        Args:
-            pin: 4-digit PIN as string
-        
+        Set the withdrawal PIN (exactly 6 digits) on this instance. The caller must save().
+
+        Prefer apps.economy.services.wallet_pin.store_new_pin(), which validates the full
+        policy and persists under a row lock. Hashed with Django's password hasher.
+
         Raises:
-            ValueError: If PIN is not exactly 4 digits
+            ValueError: If PIN is not exactly 6 digits
         """
-        if not pin or len(pin) != 4 or not pin.isdigit():
-            raise ValueError("PIN must be exactly 4 digits")
-        
+        if not pin or len(pin) != 6 or not pin.isdigit():
+            raise ValueError("PIN must be exactly 6 digits")
+
         self.pin_hash = make_password(pin)
+        self.pin_enabled = True
+        self.pin_failed_attempts = 0
+        self.pin_locked_until = None
     
     def check_pin(self, pin: str) -> bool:
         """
         Verify withdrawal PIN.
         
         Args:
-            pin: 4-digit PIN to verify
+            pin: PIN to verify (legacy 4-digit or current 6-digit)
         
         Returns:
             True if PIN matches, False otherwise
