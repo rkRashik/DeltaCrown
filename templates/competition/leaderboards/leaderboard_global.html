@@ -65,7 +65,7 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
 
 /* ── Table ── */
 .tbl { width:100%; border-collapse:collapse; }
-.tbl th { padding:0 12px; height:36px; font-size:11px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:#7A8399; border-bottom:1px solid rgba(255,255,255,.07); text-align:left; white-space:nowrap; }
+.tbl th { padding:0 12px; height:36px; font-size:11px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:#9AA1B0; border-bottom:1px solid rgba(255,255,255,.07); text-align:left; white-space:nowrap; }
 .tbl td { padding:0 12px; height:56px; border-bottom:1px solid rgba(255,255,255,.04); vertical-align:middle; }
 .tbl tbody tr:last-child td { border-bottom:none; }
 .tbl tbody tr { cursor:pointer; transition:background .12s; }
@@ -92,7 +92,7 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
 .side-g { display:flex; align-items:center; gap:8px; padding:0 8px; height:34px; border-radius:8px; border-left:2px solid transparent; background:transparent; width:100%; cursor:pointer; margin-bottom:1px; border-top:none; border-right:none; border-bottom:none; transition:background .12s,border-color .12s; }
 .side-g:hover { background:rgba(255,255,255,.04); }
 .side-g .sg-name { font-size:13px; font-weight:500; color:#818A9D; flex:1; text-align:left; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.side-g .sg-count { font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:600; color:#5A6273; background:rgba(255,255,255,.05); border-radius:999px; padding:1px 7px; flex-shrink:0; }
+.side-g .sg-count { font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:600; color:#8E95A5; background:rgba(255,255,255,.05); border-radius:999px; padding:1px 7px; flex-shrink:0; }
 .side-g.active { border-left-color:var(--gc,#E2B761); background:color-mix(in srgb, var(--gc,#E2B761) 8%, transparent); }
 .side-g.active .sg-name { color:#E8EBF2; font-weight:600; }
 .side-g.active .sg-count { color:#E8EBF2; }
@@ -101,17 +101,17 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
 .tier-pill { display:flex; align-items:center; gap:9px; padding:0 10px; height:30px; border-radius:7px; background:transparent; width:100%; cursor:pointer; border:none; transition:background .12s; }
 .tier-pill:hover { background:rgba(255,255,255,.04); }
 .tier-pill .tp-dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; opacity:.35; transition:opacity .12s; }
-.tier-pill .tp-lbl { font-size:12px; font-weight:500; color:#6B7385; transition:color .12s; }
+.tier-pill .tp-lbl { font-size:12px; font-weight:500; color:#9AA1B0; transition:color .12s; }
 .tier-pill.active .tp-dot { opacity:1; }
 .tier-pill.active .tp-lbl { font-weight:600; }
 
 /* ── Tier chip (mobile) ── */
-.tier-chip { height:26px; padding:0 11px; border-radius:999px; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08); color:#6B7385; font-size:11px; font-weight:600; white-space:nowrap; flex-shrink:0; cursor:pointer; }
+.tier-chip { height:26px; padding:0 11px; border-radius:999px; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08); color:#9AA1B0; font-size:11px; font-weight:600; white-space:nowrap; flex-shrink:0; cursor:pointer; }
 
 /* ── Mobile game button ── */
 .gm-btn { display:flex; flex-direction:column; align-items:center; gap:5px; padding:0 6px; flex-shrink:0; background:none; border:none; cursor:pointer; }
 .gm-btn .gm-box { width:46px; height:46px; border-radius:13px; overflow:hidden; display:flex; align-items:center; justify-content:center; transition:border-color .15s; }
-.gm-btn .gm-lbl { font-size:10px; font-weight:700; letter-spacing:.02em; color:#5A6273; white-space:nowrap; transition:color .15s; }
+.gm-btn .gm-lbl { font-size:10px; font-weight:700; letter-spacing:.02em; color:#8E95A5; white-space:nowrap; transition:color .15s; }
 
 /* ── Game icon image / fallback ── */
 .gicon-img { width:100%; height:100%; object-fit:cover; display:block; }
@@ -126,7 +126,7 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
 .rk-search { display:flex; align-items:center; gap:7px; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.08); border-radius:8px; padding:0 10px; height:32px; transition:border-color .2s; }
 .rk-search:focus-within { border-color:rgba(226,183,97,.45); }
 .rk-search input { background:transparent; color:#F4F6FA; font-size:13px; width:100%; caret-color:#E2B761; border:none; outline:none; }
-.rk-search input::placeholder { color:#3D4558; }
+.rk-search input::placeholder { color:#7F8798; }
 #rkSearchBox:focus-within { border-color:rgba(226,183,97,.50); box-shadow:0 0 0 3px rgba(226,183,97,.10); }
 #rkSearchBox:focus-within kbd { display:none; }
 
@@ -155,7 +155,7 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
 
 /* ── Infinite scroll sentinel ── */
 #rkScrollSentinel { height:1px; width:100%; }
-.rk-loading-more { display:flex; align-items:center; justify-content:center; gap:8px; padding:16px; color:#7A8399; font-size:12px; font-weight:600; }
+.rk-loading-more { display:flex; align-items:center; justify-content:center; gap:8px; padding:16px; color:#9AA1B0; font-size:12px; font-weight:600; }
 @keyframes rk-dots { 0%,80%,100%{opacity:.3} 40%{opacity:1} }
 .rk-ldot { width:5px; height:5px; border-radius:50%; background:#7A8399; display:inline-block; }
 .rk-ldot:nth-child(1) { animation:rk-dots 1.2s infinite .0s; }
@@ -182,7 +182,7 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
 .rk-mlogo { position:absolute; left:24px; bottom:-28px; width:76px; height:76px; border-radius:18px; overflow:hidden; border:3px solid #17181A; background:#17181A; display:flex; align-items:center; justify-content:center; font-family:'Sora',sans-serif; font-weight:800; font-size:26px; color:#8A92A6; z-index:2; box-shadow:0 8px 24px rgba(0,0,0,.5); }
 .rk-mlogo img { width:100%; height:100%; object-fit:cover; }
 .rk-mstat { background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.07); border-radius:12px; padding:12px 14px; text-align:center; }
-.rk-mstat .lbl { font-size:9px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:#7A8399; }
+.rk-mstat .lbl { font-size:9px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:#9AA1B0; }
 .rk-mstat .val { font-family:'JetBrains Mono',monospace; font-weight:700; font-size:20px; color:#F4F6FA; margin-top:4px; }
 .rk-visit { display:flex; align-items:center; justify-content:center; gap:8px; width:100%; height:48px; border-radius:13px; background:linear-gradient(135deg,#E2B761 0%,#E2B761 100%); color:#fff; font-size:14px; font-weight:700; letter-spacing:-.01em; cursor:pointer; transition:filter .15s,transform .1s; border:none; text-decoration:none; }
 .rk-visit:hover { filter:brightness(1.1); color:#fff; }
@@ -214,10 +214,10 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
           </div>
           <div>
             <div style="font-family:'Sora',sans-serif;font-weight:800;font-size:15px;letter-spacing:-.02em;color:#F4F6FA;line-height:1;">Rankings</div>
-            <div style="font-size:9px;color:#5A6273;margin-top:2px;letter-spacing:.06em;text-transform:uppercase;font-weight:600;">{{ brand.features.ranking_points }}</div>
+            <div style="font-size:9px;color:#8E95A5;margin-top:2px;letter-spacing:.06em;text-transform:uppercase;font-weight:600;">{{ brand.features.ranking_points }}</div>
           </div>
         </div>
-        <button type="button" id="rkCompareToggle" title="Compare teams" style="width:30px;height:30px;border-radius:8px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);display:flex;align-items:center;justify-content:center;cursor:pointer;color:#5A6273;transition:all .15s;">
+        <button type="button" id="rkCompareToggle" title="Compare teams" style="width:30px;height:30px;border-radius:8px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);display:flex;align-items:center;justify-content:center;cursor:pointer;color:#8E95A5;transition:all .15s;">
           <i class="fa-solid fa-code-compare" style="font-size:11px;"></i>
         </button>
       </div>
@@ -241,17 +241,17 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
       <div style="position:relative;" id="rkSeasonWrap">
         <button type="button" id="rkSeasonBtn" style="display:flex;align-items:center;justify-content:space-between;width:100%;padding:5px 8px;border-radius:7px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);color:#B0B8CC;font-size:11px;font-weight:600;cursor:pointer;">
           <span id="rkSeasonBtnLabel">{% if active_season %}{{ active_season.name }}{% else %}All Time{% endif %}</span>
-          <i class="fa-solid fa-chevron-down" style="font-size:7px;color:#5A6273;"></i>
+          <i class="fa-solid fa-chevron-down" style="font-size:7px;color:#8E95A5;"></i>
         </button>
         <div id="rkSeasonDrop" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:#17181A;border:1px solid rgba(255,255,255,.10);border-radius:10px;box-shadow:0 12px 36px rgba(0,0,0,.5);z-index:60;overflow:hidden;">
           <button type="button" class="rk-season-opt{% if not active_season %} active{% endif %}" data-season="all" style="display:flex;align-items:center;gap:8px;width:100%;padding:7px 10px;border:none;background:transparent;color:#B0B8CC;font-size:11px;font-weight:600;cursor:pointer;text-align:left;">
-            <i class="fa-solid fa-infinity" style="font-size:9px;color:#5A6273;"></i> All Time
+            <i class="fa-solid fa-infinity" style="font-size:9px;color:#8E95A5;"></i> All Time
           </button>
           {% for s in seasons %}
           <button type="button" class="rk-season-opt{% if s.active %} active{% endif %}" data-season="{{ s.id }}" data-start="{{ s.start|date:'c' }}" data-end="{{ s.end|date:'c' }}" style="display:flex;align-items:center;gap:7px;width:100%;padding:7px 10px;border:none;background:transparent;color:#B0B8CC;font-size:11px;font-weight:600;cursor:pointer;text-align:left;">
-            {% if s.active %}<span style="width:4px;height:4px;border-radius:50%;background:#FF3B5C;flex-shrink:0;animation:rk-livedot 1.4s ease-in-out infinite;"></span>{% else %}<i class="fa-solid fa-clock-rotate-left" style="font-size:9px;color:#5A6273;"></i>{% endif %}
+            {% if s.active %}<span style="width:4px;height:4px;border-radius:50%;background:#FF3B5C;flex-shrink:0;animation:rk-livedot 1.4s ease-in-out infinite;"></span>{% else %}<i class="fa-solid fa-clock-rotate-left" style="font-size:9px;color:#8E95A5;"></i>{% endif %}
             {{ s.name }}
-            {% if s.active %}<span style="font-size:8px;color:#5A6273;margin-left:auto;">Current</span>{% else %}<span style="font-size:8px;color:#3D4558;margin-left:auto;">{{ s.start|date:"M Y" }}</span>{% endif %}
+            {% if s.active %}<span style="font-size:8px;color:#8E95A5;margin-left:auto;">Current</span>{% else %}<span style="font-size:8px;color:#7F8798;margin-left:auto;">{{ s.start|date:"M Y" }}</span>{% endif %}
           </button>
           {% endfor %}
         </div>
@@ -262,16 +262,16 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
     <!-- Search -->
     <div style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.06);">
       <div style="display:flex;align-items:center;gap:7px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.06);border-radius:8px;padding:0 10px;height:34px;transition:border-color .2s,box-shadow .2s;" id="rkSearchBox">
-        <i class="fa-solid fa-magnifying-glass" style="color:#3D4558;font-size:11px;flex-shrink:0;"></i>
+        <i class="fa-solid fa-magnifying-glass" style="color:#7F8798;font-size:11px;flex-shrink:0;"></i>
         <input type="text" id="rkSearch" placeholder="Search teams..." autocomplete="off"
                style="background:transparent;color:#F4F6FA;font-size:12px;font-weight:500;width:100%;caret-color:#E2B761;border:none;outline:none;">
-        <kbd style="font-size:8px;font-family:'JetBrains Mono',monospace;color:#3D4558;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.06);border-radius:4px;padding:1px 4px;flex-shrink:0;line-height:1;">⌘K</kbd>
+        <kbd style="font-size:8px;font-family:'JetBrains Mono',monospace;color:#7F8798;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.06);border-radius:4px;padding:1px 4px;flex-shrink:0;line-height:1;">⌘K</kbd>
       </div>
     </div>
 
     <!-- Games -->
     <div style="padding:8px 6px 4px;">
-      <div style="font-size:9px;font-weight:700;letter-spacing:.10em;text-transform:uppercase;color:#5A6273;padding:0 8px 6px;">Games</div>
+      <div style="font-size:9px;font-weight:700;letter-spacing:.10em;text-transform:uppercase;color:#8E95A5;padding:0 8px 6px;">Games</div>
       <button type="button" class="side-g rk-gamebtn active" data-gf="all" style="--gc:#E2B761;">
         <div style="width:24px;height:24px;border-radius:6px;background:rgba(226,183,97,.16);display:flex;align-items:center;justify-content:center;flex-shrink:0;border:1px solid rgba(226,183,97,.30);">
           <i class="fa-solid fa-globe" style="font-size:10px;color:#A9B1C2;"></i>
@@ -296,7 +296,7 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
 
     <!-- Tier filter (compact horizontal chips) -->
     <div style="padding:8px 12px;border-top:1px solid rgba(255,255,255,.05);">
-      <div style="font-size:9px;font-weight:700;letter-spacing:.10em;text-transform:uppercase;color:#5A6273;margin-bottom:6px;">Tier</div>
+      <div style="font-size:9px;font-weight:700;letter-spacing:.10em;text-transform:uppercase;color:#8E95A5;margin-bottom:6px;">Tier</div>
       <div style="display:flex;flex-wrap:wrap;gap:4px;">
         <button type="button" class="tier-chip rk-tierbtn active" data-tf="all" style="background:rgba(255,255,255,.10);border-color:rgba(255,255,255,.22);color:#F4F6FA;font-size:10px;height:24px;padding:0 9px;">All</button>
         <button type="button" class="tier-chip rk-tierbtn" data-tf="THE_CROWN" data-tc="#CFA75A" style="font-size:10px;height:24px;padding:0 9px;">Crown</button>
@@ -311,11 +311,11 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
     <!-- Footer -->
     <div style="padding:8px 14px 14px;border-top:1px solid rgba(255,255,255,.05);">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;">
-        <span style="font-size:10px;color:#5A6273;">{{ total_count }} teams</span>
+        <span style="font-size:10px;color:#8E95A5;">{{ total_count }} teams</span>
         <span style="font-size:10px;color:#2D3340;">·</span>
-        <span style="font-size:10px;color:#5A6273;">{{ sidebar_games|length }} games</span>
+        <span style="font-size:10px;color:#8E95A5;">{{ sidebar_games|length }} games</span>
       </div>
-      <a href="{% url 'competition:ranking_about' %}" style="font-size:10px;color:#5A6273;display:flex;align-items:center;gap:4px;" class="rk-lnk"><i class="fa-solid fa-circle-info" style="font-size:8px;"></i> How rankings work</a>
+      <a href="{% url 'competition:ranking_about' %}" style="font-size:10px;color:#8E95A5;display:flex;align-items:center;gap:4px;" class="rk-lnk"><i class="fa-solid fa-circle-info" style="font-size:8px;"></i> How rankings work</a>
     </div>
   </aside>
 
@@ -354,7 +354,7 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
       </div>
       <div style="padding:0 16px 10px;">
         <div class="rk-search">
-          <i class="fa-solid fa-magnifying-glass" style="color:#3D4558;font-size:11px;flex-shrink:0;"></i>
+          <i class="fa-solid fa-magnifying-glass" style="color:#7F8798;font-size:11px;flex-shrink:0;"></i>
           <input type="text" class="rk-search-sync" placeholder="Search teams…" autocomplete="off">
         </div>
       </div>
@@ -376,7 +376,7 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
           <button type="button" id="rkClear" style="display:none;height:26px;padding:0 10px;border-radius:999px;background:rgba(255,77,94,.10);border:1px solid rgba(255,77,94,.20);color:#FF4D5E;font-size:11px;font-weight:600;align-items:center;gap:5px;cursor:pointer;">
             <i class="fa-solid fa-xmark" style="font-size:10px;"></i> Clear filters
           </button>
-          <span id="rkShown" style="font-size:12px;color:#3D4558;white-space:nowrap;" class="rk-dsk"></span>
+          <span id="rkShown" style="font-size:12px;color:#7F8798;white-space:nowrap;" class="rk-dsk"></span>
         </div>
       </div>
 
@@ -389,10 +389,10 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
             </div>
             <div>
               <div id="rkSecTitle" style="font-family:'Sora',sans-serif;font-weight:700;font-size:15px;color:#F4F6FA;letter-spacing:-.01em;">{% if selected_game_name %}{{ selected_game_name }} Rankings{% else %}Global Power Rankings{% endif %}</div>
-              <div id="rkSecSub" style="font-size:11px;color:#7A8399;margin-top:2px;">{% if is_global %}Cross-game{% if active_season %} · {{ active_season.name }}{% endif %} · {% endif %}<span id="rkSecCount">{{ total_count }}</span> teams</div>
+              <div id="rkSecSub" style="font-size:11px;color:#9AA1B0;margin-top:2px;">{% if is_global %}Cross-game{% if active_season %} · {{ active_season.name }}{% endif %} · {% endif %}<span id="rkSecCount">{{ total_count }}</span> teams</div>
             </div>
           </div>
-          <div style="font-size:11px;font-weight:600;color:#3D4558;text-align:right;">
+          <div style="font-size:11px;font-weight:600;color:#7F8798;text-align:right;">
             Top {{ brand.features.ranking_points_short }}: <span style="font-family:'JetBrains Mono',monospace;color:#CFA75A;font-size:13px;font-weight:700;">{{ max_score|intcomma }}</span>
           </div>
         </div>
@@ -423,19 +423,19 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
                     <div style="min-width:0;">
                       <div style="display:flex;align-items:center;gap:6px;">
                         <span style="font-size:14px;font-weight:600;color:#E8ECF4;">{{ entry.team_name }}</span>
-                        {% if entry.team_tag %}<span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#6B7385;">[{{ entry.team_tag }}]</span>{% endif %}
+                        {% if entry.team_tag %}<span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#9AA1B0;">[{{ entry.team_tag }}]</span>{% endif %}
                         {% if entry.is_user_team %}<span class="rk-you-tag">You</span>{% endif %}
                       </div>
                       <div style="display:flex;align-items:center;gap:4px;margin-top:3px;">
                         <span style="font-size:11px;color:#8A92A6;">{% if entry.organization_name and not entry.is_independent %}{{ entry.organization_name }}{% else %}Independent{% endif %}</span>
-                        {% if entry.game_short %}<span class="rk-glabel" style="display:flex;align-items:center;gap:4px;"><span style="color:#4D5566;font-size:10px;">·</span><span style="font-size:11px;font-weight:600;color:{{ entry.game_color }};">{{ entry.game_short }}</span></span>{% endif %}
+                        {% if entry.game_short %}<span class="rk-glabel" style="display:flex;align-items:center;gap:4px;"><span style="color:#8E95A5;font-size:10px;">·</span><span style="font-size:11px;font-weight:600;color:{{ entry.game_color }};">{{ entry.game_short }}</span></span>{% endif %}
                       </div>
                     </div>
                   </div>
                 </td>
                 <td class="col-tier"><span class="tier-badge" data-tier="{{ entry.tier }}">{% if entry.tier == 'THE_CROWN' %}THE CROWN{% else %}{{ entry.tier }}{% endif %}</span></td>
                 <td>
-                  <div style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;color:#E8ECF4;margin-bottom:5px;">{{ entry.score|intcomma }} <span style="font-size:10px;color:#4D5566;">{{ brand.features.ranking_points_short }}</span></div>
+                  <div style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;color:#E8ECF4;margin-bottom:5px;">{{ entry.score|intcomma }} <span style="font-size:10px;color:#8E95A5;">{{ brand.features.ranking_points_short }}</span></div>
                   <div style="height:3px;background:rgba(255,255,255,.07);border-radius:999px;overflow:hidden;width:110px;"><div class="tier-bar" data-tier="{{ entry.tier }}" style="height:100%;width:{% widthratio entry.score max_score 100 %}%;border-radius:999px;opacity:.80;"></div></div>
                 </td>
                 <td style="text-align:right;padding-right:18px;" class="col-act">
@@ -460,12 +460,12 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
                 {% if entry.team_logo_url %}<img src="{{ entry.team_logo_url }}" class="gicon-img" alt=""><span style="display:none;">{{ entry.team_name|first|upper }}</span>{% else %}{{ entry.team_name|first|upper }}{% endif %}
               </div>
               <div style="flex:1;min-width:0;">
-                <div style="font-size:15px;font-weight:600;color:#F4F6FA;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ entry.team_name }} {% if entry.team_tag %}<span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#3D4558;">[{{ entry.team_tag }}]</span>{% endif %}</div>
-                <div style="font-size:12px;color:#6B7385;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{% if entry.organization_name and not entry.is_independent %}{{ entry.organization_name }}{% else %}Independent{% endif %}{% if entry.game_short %} · <span style="color:{{ entry.game_color }};" class="rk-glabel-m">{{ entry.game_short }}</span>{% endif %}</div>
+                <div style="font-size:15px;font-weight:600;color:#F4F6FA;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ entry.team_name }} {% if entry.team_tag %}<span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#7F8798;">[{{ entry.team_tag }}]</span>{% endif %}</div>
+                <div style="font-size:12px;color:#9AA1B0;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{% if entry.organization_name and not entry.is_independent %}{{ entry.organization_name }}{% else %}Independent{% endif %}{% if entry.game_short %} · <span style="color:{{ entry.game_color }};" class="rk-glabel-m">{{ entry.game_short }}</span>{% endif %}</div>
               </div>
               <div style="text-align:right;flex-shrink:0;">
                 <div style="font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;color:#F4F6FA;">{{ entry.score|intcomma }}</div>
-                <div style="font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#3D4558;margin-top:2px;">{{ brand.features.ranking_points_short }}</div>
+                <div style="font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#7F8798;margin-top:2px;">{{ brand.features.ranking_points_short }}</div>
               </div>
               <span style="width:7px;height:7px;border-radius:50%;background:{% if entry.activity_score >= 80 %}#2ECC71{% elif entry.activity_score >= 40 %}#FFB020{% else %}#5A6273{% endif %};flex-shrink:0;{% if entry.activity_score >= 80 %}animation:rk-actpulse 1.4s ease-in-out infinite;{% endif %}"></span>
               <i class="fa-solid fa-chevron-right" style="color:#232936;font-size:13px;flex-shrink:0;"></i>
@@ -478,10 +478,10 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
       <!-- Empty state -->
       <div id="rkEmpty" style="display:{% if entries %}none{% else %}flex{% endif %};flex-direction:column;align-items:center;justify-content:center;padding:52px 24px;text-align:center;">
         <div style="width:64px;height:64px;border-radius:18px;display:flex;align-items:center;justify-content:center;margin-bottom:18px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);">
-          <i class="fa-solid fa-magnifying-glass" style="font-size:24px;color:#3D4558;"></i>
+          <i class="fa-solid fa-magnifying-glass" style="font-size:24px;color:#7F8798;"></i>
         </div>
         <div style="font-family:'Sora',sans-serif;font-size:16px;font-weight:700;color:#F4F6FA;margin-bottom:6px;">No teams found</div>
-        <p style="font-size:13px;color:#6B7385;margin:0 0 16px;">No teams match your current filters.</p>
+        <p style="font-size:13px;color:#9AA1B0;margin:0 0 16px;">No teams match your current filters.</p>
         <button type="button" id="rkReset" style="display:inline-flex;align-items:center;gap:7px;padding:8px 18px;border-radius:999px;background:rgba(226,183,97,.12);border:1px solid rgba(226,183,97,.25);color:#3EA7FF;font-size:12px;font-weight:600;cursor:pointer;">
           <i class="fa-solid fa-arrow-rotate-left" style="font-size:10px;"></i> Reset filters
         </button>
@@ -507,9 +507,9 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
             </div>
             <div style="flex:1;min-width:0;">
               <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:14px;color:#F4F6FA;letter-spacing:-.01em;">{{ section.display_name }}</div>
-              <div style="font-size:11px;color:#6B7385;margin-top:2px;">{{ section.total_count }} team{{ section.total_count|pluralize }} ranked</div>
+              <div style="font-size:11px;color:#9AA1B0;margin-top:2px;">{{ section.total_count }} team{{ section.total_count|pluralize }} ranked</div>
             </div>
-            <button type="button" class="rk-fulltable" data-gid="{{ section.game_id }}" style="display:flex;align-items:center;gap:5px;color:#5A6273;font-size:12px;font-weight:500;cursor:pointer;white-space:nowrap;padding:6px 10px;border-radius:7px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);">
+            <button type="button" class="rk-fulltable" data-gid="{{ section.game_id }}" style="display:flex;align-items:center;gap:5px;color:#8E95A5;font-size:12px;font-weight:500;cursor:pointer;white-space:nowrap;padding:6px 10px;border-radius:7px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);">
               Full table <i class="fa-solid fa-arrow-right" style="font-size:11px;"></i>
             </button>
           </div>
@@ -525,14 +525,14 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
                         {% if entry.team_logo_url %}<img src="{{ entry.team_logo_url }}" class="gicon-img" alt=""><span style="display:none;">{{ entry.team_name|first|upper }}</span>{% else %}{{ entry.team_name|first|upper }}{% endif %}
                       </div>
                       <div style="min-width:0;">
-                        <div style="font-size:13px;font-weight:600;color:#F4F6FA;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ entry.team_name }} {% if entry.team_tag %}<span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#3D4558;">[{{ entry.team_tag }}]</span>{% endif %}</div>
-                        <div style="font-size:11px;color:#6B7385;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{% if entry.organization_name and not entry.is_independent %}{{ entry.organization_name }}{% else %}Independent{% endif %}</div>
+                        <div style="font-size:13px;font-weight:600;color:#F4F6FA;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ entry.team_name }} {% if entry.team_tag %}<span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#7F8798;">[{{ entry.team_tag }}]</span>{% endif %}</div>
+                        <div style="font-size:11px;color:#9AA1B0;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{% if entry.organization_name and not entry.is_independent %}{{ entry.organization_name }}{% else %}Independent{% endif %}</div>
                       </div>
                     </div>
                   </td>
                   <td style="width:130px;" class="col-tier"><span class="tier-badge" data-tier="{{ entry.tier }}">{% if entry.tier == 'THE_CROWN' %}THE CROWN{% else %}{{ entry.tier }}{% endif %}</span></td>
                   <td style="width:170px;">
-                    <div style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:#F4F6FA;margin-bottom:5px;">{{ entry.score|intcomma }} <span style="font-size:10px;color:#3D4558;">{{ brand.features.ranking_points_short }}</span></div>
+                    <div style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:#F4F6FA;margin-bottom:5px;">{{ entry.score|intcomma }} <span style="font-size:10px;color:#7F8798;">{{ brand.features.ranking_points_short }}</span></div>
                     <div style="height:2px;background:rgba(255,255,255,.06);border-radius:999px;overflow:hidden;width:90px;"><div style="height:100%;width:{% widthratio entry.score section.max_score 100 %}%;background:{{ section.color }};border-radius:999px;opacity:.65;"></div></div>
                   </td>
                   <td style="width:72px;text-align:right;padding-right:16px;" class="col-act">
@@ -592,7 +592,7 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
             <span id="rkmGame" style="font-size:12px;font-weight:600;"></span>
           </div>
         </div>
-        <span id="rkmTag" style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#5A6273;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);padding:3px 8px;border-radius:7px;flex-shrink:0;white-space:nowrap;"></span>
+        <span id="rkmTag" style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#8E95A5;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);padding:3px 8px;border-radius:7px;flex-shrink:0;white-space:nowrap;"></span>
       </div>
       <div id="rkmOrg" style="font-size:12px;color:#8A92A6;margin-bottom:18px;"></div>
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px;">
@@ -601,7 +601,7 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
         <div class="rk-mstat"><div class="lbl">Activity</div><div class="val" id="rkmAct"></div></div>
       </div>
       <div id="rkmRosterWrap" style="margin-bottom:18px;display:none;">
-        <div style="font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#5A6273;margin-bottom:8px;">Active Roster</div>
+        <div style="font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8E95A5;margin-bottom:8px;">Active Roster</div>
         <div id="rkmRoster" style="display:flex;align-items:center;gap:-6px;"></div>
       </div>
       <a id="rkmVisit" href="#" class="rk-visit"><i class="fa-solid fa-arrow-up-right-from-square" style="font-size:12px;"></i> Visit team page</a>
@@ -1021,7 +1021,7 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
         if(r.better==='higher'){ if(va>vb) aw='rk-cmp-winner'; else if(vb>va) bw='rk-cmp-winner'; }
         else if(r.better==='lower'){ if(va<vb) aw='rk-cmp-winner'; else if(vb<va) bw='rk-cmp-winner'; }
         else if(r.k==='tier'){ var ta=TIER_ORDER[va]||0, tb=TIER_ORDER[vb]||0; if(ta>tb) aw='rk-cmp-winner'; else if(tb>ta) bw='rk-cmp-winner'; }
-        h+='<div class="rk-cmp-row"><span style="font-family:JetBrains Mono,monospace;font-size:13px;font-weight:700;padding:0 14px;" class="'+aw+'">'+r.fmt(va)+'</span><span style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#5A6273;">'+r.lbl+'</span><span style="font-family:JetBrains Mono,monospace;font-size:13px;font-weight:700;padding:0 14px;" class="'+bw+'">'+r.fmt(vb)+'</span></div>';
+        h+='<div class="rk-cmp-row"><span style="font-family:JetBrains Mono,monospace;font-size:13px;font-weight:700;padding:0 14px;" class="'+aw+'">'+r.fmt(va)+'</span><span style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8E95A5;">'+r.lbl+'</span><span style="font-family:JetBrains Mono,monospace;font-size:13px;font-weight:700;padding:0 14px;" class="'+bw+'">'+r.fmt(vb)+'</span></div>';
       });
       h+='</div>';
       body.innerHTML=h;
@@ -1052,7 +1052,7 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
           var db=document.getElementById('rkDeskBody'), mb=document.getElementById('rkMobBody');
           d.entries.forEach(function(e){
             if(db){ var tr=document.createElement('tr'); tr.className='rk-entry'; tr.dataset.tier=e.tier; tr.dataset.name=(e.team_name||'').toLowerCase(); tr.dataset.tag=(e.team_tag||'').toLowerCase(); tr.dataset.org=(e.organization_name||'').toLowerCase(); tr.dataset.game=e.game_name||''; tr.dataset.url=e.team_url; tr.dataset.rank=e.rank; tr.dataset.score=e.score; tr.dataset.activity=e.activity_score;
-              tr.innerHTML='<td style="padding-left:12px;padding-right:0;" class="col-tier"><div class="rk-cmp-check" data-cmp-url="'+esc(e.team_url)+'"></div></td><td style="padding-left:8px;"><span class="rk-rank" style="font-family:JetBrains Mono,monospace;font-size:16px;font-weight:700;color:#4D5566;">'+e.rank+'</span></td><td><div style="display:flex;align-items:center;gap:11px;"><div class="team-av" style="width:36px;height:36px;">'+(e.team_logo_url?'<img src="'+esc(e.team_logo_url)+'" class="gicon-img" alt="">':'')+'<span style="'+(e.team_logo_url?'display:none;':'')+'font-family:Sora,sans-serif;font-weight:700;font-size:13px;color:#8A92A6;">'+esc((e.team_name||'?').charAt(0).toUpperCase())+'</span></div><div style="min-width:0;"><div style="display:flex;align-items:center;gap:6px;"><span style="font-size:14px;font-weight:600;color:#E8ECF4;">'+esc(e.team_name)+'</span>'+(e.team_tag?'<span style="font-family:JetBrains Mono,monospace;font-size:10px;color:#6B7385;">['+esc(e.team_tag)+']</span>':'')+'</div><div style="font-size:11px;color:#8A92A6;margin-top:3px;">'+(e.organization_name&&!e.is_independent?esc(e.organization_name):'Independent')+'</div></div></div></td><td class="col-tier"><span class="tier-badge" data-tier="'+esc(e.tier)+'">'+(e.tier==='THE_CROWN'?'THE CROWN':esc(e.tier))+'</span></td><td><div style="font-family:JetBrains Mono,monospace;font-size:14px;font-weight:700;color:#E8ECF4;margin-bottom:5px;">'+e.score.toLocaleString()+' <span style="font-size:10px;color:#4D5566;">CP</span></div></td><td style="text-align:right;padding-right:18px;" class="col-act"><div style="display:inline-flex;align-items:center;gap:6px;"><span style="width:7px;height:7px;border-radius:50%;background:'+(e.activity_score>=80?'#2ECC71':e.activity_score>=40?'#FFB020':'#5A6273')+';display:inline-block;"></span><span style="font-family:JetBrains Mono,monospace;font-size:13px;font-weight:600;color:'+(e.activity_score>=80?'#2ECC71':e.activity_score>=40?'#FFB020':'#6B7385')+';">'+e.activity_score+'%</span></div></td>';
+              tr.innerHTML='<td style="padding-left:12px;padding-right:0;" class="col-tier"><div class="rk-cmp-check" data-cmp-url="'+esc(e.team_url)+'"></div></td><td style="padding-left:8px;"><span class="rk-rank" style="font-family:JetBrains Mono,monospace;font-size:16px;font-weight:700;color:#8E95A5;">'+e.rank+'</span></td><td><div style="display:flex;align-items:center;gap:11px;"><div class="team-av" style="width:36px;height:36px;">'+(e.team_logo_url?'<img src="'+esc(e.team_logo_url)+'" class="gicon-img" alt="">':'')+'<span style="'+(e.team_logo_url?'display:none;':'')+'font-family:Sora,sans-serif;font-weight:700;font-size:13px;color:#8A92A6;">'+esc((e.team_name||'?').charAt(0).toUpperCase())+'</span></div><div style="min-width:0;"><div style="display:flex;align-items:center;gap:6px;"><span style="font-size:14px;font-weight:600;color:#E8ECF4;">'+esc(e.team_name)+'</span>'+(e.team_tag?'<span style="font-family:JetBrains Mono,monospace;font-size:10px;color:#9AA1B0;">['+esc(e.team_tag)+']</span>':'')+'</div><div style="font-size:11px;color:#8A92A6;margin-top:3px;">'+(e.organization_name&&!e.is_independent?esc(e.organization_name):'Independent')+'</div></div></div></td><td class="col-tier"><span class="tier-badge" data-tier="'+esc(e.tier)+'">'+(e.tier==='THE_CROWN'?'THE CROWN':esc(e.tier))+'</span></td><td><div style="font-family:JetBrains Mono,monospace;font-size:14px;font-weight:700;color:#E8ECF4;margin-bottom:5px;">'+e.score.toLocaleString()+' <span style="font-size:10px;color:#8E95A5;">CP</span></div></td><td style="text-align:right;padding-right:18px;" class="col-act"><div style="display:inline-flex;align-items:center;gap:6px;"><span style="width:7px;height:7px;border-radius:50%;background:'+(e.activity_score>=80?'#2ECC71':e.activity_score>=40?'#FFB020':'#5A6273')+';display:inline-block;"></span><span style="font-family:JetBrains Mono,monospace;font-size:13px;font-weight:600;color:'+(e.activity_score>=80?'#2ECC71':e.activity_score>=40?'#FFB020':'#6B7385')+';">'+e.activity_score+'%</span></div></td>';
               tr.addEventListener('click', function(){ openTeam(this.dataset.url); });
               db.appendChild(tr);
             }
