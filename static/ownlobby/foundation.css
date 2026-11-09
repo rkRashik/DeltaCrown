@@ -202,3 +202,55 @@
    align them with the brand canvas so every page and the footer share one background. */
 html.dark, html, body.bg-body { background-color: var(--ol-canvas); }
 body .ol-footer-legacy { background-color: var(--ol-canvas); }
+
+/* ---------- Information pages (About, Contact, FAQ, Rules, Guidelines, legal) ---------- */
+.ol-hero { padding-block: clamp(40px, 8vw, 88px); border-bottom: 1px solid var(--ol-border); }
+.ol-hero .ol-lead { max-width: 46rem; }
+.ol-iconbtn { display: inline-grid; place-items: center; width: var(--ol-tap); height: var(--ol-tap); border-radius: var(--ol-radius-md); border: 1px solid var(--ol-border); background: var(--ol-surface); color: var(--ol-text-muted); transition: color .15s, border-color .15s; }
+.ol-iconbtn:hover { color: var(--ol-text); border-color: var(--ol-border-strong); }
+.ol-iconbtn:focus-visible { outline: 2px solid var(--ol-focus); outline-offset: 2px; }
+.ol-social { display: flex; flex-wrap: wrap; gap: .75rem; }
+.ol-sidenav { display: flex; flex-direction: column; gap: 2px; padding: .5rem; background: var(--ol-surface); border: 1px solid var(--ol-border); border-radius: var(--ol-radius-lg); }
+.ol-sidenav a { display: flex; align-items: center; min-height: var(--ol-tap); padding: 0 .75rem; border-radius: var(--ol-radius-sm); color: var(--ol-text-muted); font: 500 .9375rem/1.2 var(--ol-font, Inter, system-ui, sans-serif); text-decoration: none; }
+.ol-sidenav a:hover { color: var(--ol-text); background: rgb(246 241 231 / .06); }
+.ol-sidenav a:focus-visible { outline: 2px solid var(--ol-focus); outline-offset: -2px; }
+.ol-notice { padding: 1rem 1.25rem; border: 1px solid rgb(226 183 97 / .35); border-radius: var(--ol-radius-md); background: rgb(226 183 97 / .07); color: var(--ol-text); }
+.ol-notice--error { border-color: rgb(240 133 123 / .4); background: rgb(240 133 123 / .08); }
+.ol-notice--success { border-color: rgb(127 211 160 / .4); background: rgb(127 211 160 / .08); }
+
+/* .ol-doc: compatibility layer for long-form pages that still use legacy Tailwind utility classes.
+   It re-skins them with brand tokens (no cyan/purple, no glass or glow) so content can stay as is. */
+.ol-doc { background: var(--ol-canvas); color: var(--ol-text); font-family: var(--ol-font, Inter, system-ui, sans-serif); }
+.ol-doc h1, .ol-doc h2, .ol-doc h3, .ol-doc h4 { text-transform: none; letter-spacing: -.01em; }
+.ol-doc .font-black { font-weight: 700; }
+.ol-doc [class*="text-slate-"], .ol-doc [class*="text-gray-"], .ol-doc [class*="text-white/"] { color: var(--ol-text-muted); }
+.ol-doc .text-white, .ol-doc [class*="text-slate-100"] { color: var(--ol-text); }
+.ol-doc [class*="text-cyan-"], .ol-doc [class*="text-sky-"], .ol-doc [class*="text-purple-"], .ol-doc [class*="text-violet-"], .ol-doc [class*="text-emerald-"], .ol-doc [class*="text-yellow-"], .ol-doc [class*="text-amber-"] { color: var(--ol-saffron); }
+.ol-doc [class*="bg-white/["], .ol-doc [class*="bg-white/5"], .ol-doc [class*="bg-white/10"] { background-color: var(--ol-surface); }
+.ol-doc [class*="bg-black/"] { background-color: var(--ol-canvas); }
+.ol-doc [class*="bg-cyan-"], .ol-doc [class*="bg-yellow-"], .ol-doc [class*="bg-emerald-"], .ol-doc [class*="bg-purple-"] { background-color: rgb(226 183 97 / .07); }
+.ol-doc [class*="border-white/"] { border-color: var(--ol-border); }
+.ol-doc [class*="border-cyan-"], .ol-doc [class*="border-yellow-"], .ol-doc [class*="border-emerald-"], .ol-doc [class*="border-purple-"] { border-color: rgb(226 183 97 / .35); }
+.ol-doc [class*="rounded-3xl"] { border-radius: var(--ol-radius-lg); }
+.ol-doc [class*="rounded-2xl"] { border-radius: var(--ol-radius-md); }
+.ol-doc [class*="shadow-"] { box-shadow: none; }
+.ol-doc [class*="backdrop-blur"] { backdrop-filter: none; }
+.ol-doc a[class*="text-cyan-"], .ol-doc a.ol-link { text-decoration: underline; text-underline-offset: 3px; }
+.ol-doc .scroll-mt-24 { scroll-margin-top: 6rem; }
+.ol-doc button[type="submit"][class*="bg-cyan-"], .ol-doc a[class*="bg-cyan-"] { background-color: var(--ol-saffron); color: var(--ol-canvas); }
+.ol-doc [class*="tracking-[0."], .ol-doc [class*="tracking-widest"] { letter-spacing: .06em; }
+
+.ol-aside-layout { display: grid; gap: 2rem; grid-template-columns: minmax(0, 1fr); align-items: start; }
+@media (min-width: 1024px) { .ol-aside-layout { grid-template-columns: minmax(0, 1fr) 380px; } }
+.ol-doc-layout { display: grid; gap: 2rem; grid-template-columns: minmax(0, 1fr); align-items: start; }
+@media (min-width: 1024px) { .ol-doc-layout { grid-template-columns: 260px minmax(0, 1fr); } .ol-doc-layout > aside { position: sticky; top: 6rem; } }
+.ol-body { padding-block: clamp(32px, 5vw, 56px); }
+.ol-doc .text-dc-cyan, .ol-doc .text-dc-gold { color: var(--ol-saffron); }
+.ol-doc .text-dc-rose { color: var(--ol-danger); }
+.ol-grid + .ol-field { margin-top: 1rem; }
+.ol-list > li { padding-block: .75rem; align-items: center; }
+.ol-list > li > a { display: inline-flex; align-items: center; min-height: 28px; }
+.ol-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+.ol-card--accent { border-color: rgb(226 183 97 / .35); background: rgb(226 183 97 / .06); }
+.ol-subcard { padding: 1rem; background: var(--ol-canvas); border: 1px solid var(--ol-border); border-radius: var(--ol-radius-md); }
+.ol-subcard.ol-card--accent { background: rgb(226 183 97 / .06); }

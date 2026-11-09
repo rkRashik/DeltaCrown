@@ -3,33 +3,33 @@
 {% block title %}Terms of Service - {{ brand.name }}{% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-[#05070d] text-slate-100">
-  <section class="border-b border-white/10 bg-[#080b14]">
-    <div class="mx-auto max-w-6xl px-4 py-14 sm:px-6 lg:px-8">
-      <p class="text-xs font-black uppercase tracking-[0.24em] text-cyan-300">Platform agreement</p>
-      <h1 class="mt-3 font-display text-4xl font-black text-white md:text-5xl">Terms of Service</h1>
-      <p class="mt-4 max-w-3xl leading-7 text-slate-300">These terms explain the basic rules for using {{ brand.name }}, including accounts, profiles, teams, tournaments, competitive modes, {{ brand.features.coins }}, proof uploads, disputes, moderation, and operator review.</p>
-      <p class="mt-4 text-sm text-slate-500">Effective date: May 18, 2026</p>
+<div class="ol-page ol-doc">
+  <section class="ol-hero">
+    <div class="ol-container">
+      <p class="ol-eyebrow">Platform agreement</p>
+      <h1 class="ol-h1">Terms of Service</h1>
+      <p class="ol-lead">These terms explain the basic rules for using {{ brand.name }}, including accounts, profiles, teams, tournaments, competitive modes, {{ brand.features.coins }}, proof uploads, disputes, moderation, and operator review.</p>
+      <p class="ol-help">Effective date: May 18, 2026</p>
     </div>
   </section>
 
-  <section class="mx-auto grid max-w-6xl gap-8 px-4 py-12 sm:px-6 lg:grid-cols-[280px_1fr] lg:px-8">
-    <aside class="lg:sticky lg:top-24 lg:self-start">
-      <nav class="rounded-3xl border border-white/10 bg-white/[0.035] p-4" aria-label="Terms navigation">
-        <a class="block rounded-xl px-3 py-2 text-sm font-bold text-slate-300 hover:bg-white/5 hover:text-white" href="#service">Service</a>
-        <a class="block rounded-xl px-3 py-2 text-sm font-bold text-slate-300 hover:bg-white/5 hover:text-white" href="#accounts">Accounts</a>
-        <a class="block rounded-xl px-3 py-2 text-sm font-bold text-slate-300 hover:bg-white/5 hover:text-white" href="#teams">Teams</a>
-        <a class="block rounded-xl px-3 py-2 text-sm font-bold text-slate-300 hover:bg-white/5 hover:text-white" href="#competition">Competition</a>
-        <a class="block rounded-xl px-3 py-2 text-sm font-bold text-slate-300 hover:bg-white/5 hover:text-white" href="#deltacoin">{{ brand.features.coins }}</a>
-        <a class="block rounded-xl px-3 py-2 text-sm font-bold text-slate-300 hover:bg-white/5 hover:text-white" href="#ugc">Content & Proof</a>
-        <a class="block rounded-xl px-3 py-2 text-sm font-bold text-slate-300 hover:bg-white/5 hover:text-white" href="#review">Disputes</a>
-        <a class="block rounded-xl px-3 py-2 text-sm font-bold text-slate-300 hover:bg-white/5 hover:text-white" href="#conduct">Conduct</a>
-        <a class="block rounded-xl px-3 py-2 text-sm font-bold text-slate-300 hover:bg-white/5 hover:text-white" href="#limits">Limitations</a>
+  <section class="ol-container ol-doc-layout ol-body">
+    <aside>
+      <nav class="ol-sidenav" aria-label="Terms navigation">
+        <a href="#service">Service</a>
+        <a href="#accounts">Accounts</a>
+        <a href="#teams">Teams</a>
+        <a href="#competition">Competition</a>
+        <a href="#deltacoin">{{ brand.features.coins }}</a>
+        <a href="#ugc">Content & Proof</a>
+        <a href="#review">Disputes</a>
+        <a href="#conduct">Conduct</a>
+        <a href="#limits">Limitations</a>
       </nav>
     </aside>
 
     <article class="space-y-7 text-slate-300">
-      <section class="rounded-3xl border border-cyan-300/20 bg-cyan-300/5 p-6">
+      <section class="ol-card ol-card--accent">
         <h2 class="text-xl font-black text-white">Important notice</h2>
         <p class="mt-3 leading-7">By using {{ brand.name }}, you agree to these Terms and the rules shown on specific product surfaces such as tournaments, Match Rooms, Missions, Bounty claims, Dropzone lobbies, Team HQ, wallet pages, and support/legal pages. If you do not agree, do not use the platform.</p>
       </section>

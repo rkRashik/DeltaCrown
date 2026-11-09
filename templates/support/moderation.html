@@ -3,40 +3,39 @@
 {% block title %}Moderation & Fair Play - {{ brand.name }}{% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-[#03050a] text-slate-100">
-  <section class="relative overflow-hidden border-b border-white/10">
-    <div class="absolute inset-0 bg-[radial-gradient(circle_at_20%_10%,rgba(6,182,212,.18),transparent_34%),radial-gradient(circle_at_78%_16%,rgba(139,92,246,.16),transparent_34%),linear-gradient(180deg,#070912,#03050a)]"></div>
-    <div class="relative mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-8">
-      <p class="text-xs font-black uppercase tracking-[0.24em] text-cyan-300">Safety and enforcement</p>
-      <h1 class="mt-3 font-display text-4xl font-black tracking-tight text-white md:text-6xl">Moderation & Fair Play</h1>
-      <p class="mt-4 max-w-3xl text-lg leading-8 text-slate-300">How {{ brand.name }} handles reports, abuse reviews, sanctions, disputes, proof evidence, and operator escalation across the competitive ecosystem.</p>
+<div class="ol-page ol-doc">
+  <section class="ol-hero">
+    <div class="ol-container">
+      <p class="ol-eyebrow">Safety and enforcement</p>
+      <h1 class="ol-h1">Moderation & Fair Play</h1>
+      <p class="ol-lead">How {{ brand.name }} handles reports, abuse reviews, sanctions, disputes, proof evidence, and operator escalation across the competitive ecosystem.</p>
     </div>
   </section>
 
-  <section class="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8">
-    <div class="grid gap-5 md:grid-cols-3">
-      <div class="rounded-3xl border border-cyan-300/20 bg-cyan-300/5 p-6">
+  <section class="ol-container ol-body">
+    <div class="ol-grid">
+      <div class="ol-card ol-card--accent">
         <h2 class="text-xl font-black text-cyan-100">Fair competition</h2>
         <p class="mt-3 text-sm leading-7 text-slate-300">Operators can review cheating, exploit abuse, match manipulation, proof fraud, and competitive mode abuse.</p>
       </div>
-      <div class="rounded-3xl border border-violet-300/20 bg-violet-300/5 p-6">
+      <div class="ol-card ol-card--accent">
         <h2 class="text-xl font-black text-violet-100">Community safety</h2>
         <p class="mt-3 text-sm leading-7 text-slate-300">Reports can cover harassment, hate speech, threats, doxxing, impersonation, scams, and repeated targeted abuse.</p>
       </div>
-      <div class="rounded-3xl border border-amber-300/20 bg-amber-300/5 p-6">
+      <div class="ol-card ol-card--accent">
         <h2 class="text-xl font-black text-amber-100">Traceable review</h2>
         <p class="mt-3 text-sm leading-7 text-slate-300">Evidence, dispute notes, proof files, account history, team roles, and wallet records may be considered during review.</p>
       </div>
     </div>
 
     <div class="mt-10 grid gap-8 lg:grid-cols-[300px_1fr]">
-      <aside class="lg:sticky lg:top-24 lg:self-start">
-        <nav class="rounded-3xl border border-white/10 bg-white/[0.035] p-4" aria-label="Moderation navigation">
-          <a class="block rounded-xl px-3 py-2 text-sm font-bold text-slate-300 hover:bg-white/5 hover:text-white" href="#reports">Reports</a>
-          <a class="block rounded-xl px-3 py-2 text-sm font-bold text-slate-300 hover:bg-white/5 hover:text-white" href="#evidence">Evidence</a>
-          <a class="block rounded-xl px-3 py-2 text-sm font-bold text-slate-300 hover:bg-white/5 hover:text-white" href="#outcomes">Outcomes</a>
-          <a class="block rounded-xl px-3 py-2 text-sm font-bold text-slate-300 hover:bg-white/5 hover:text-white" href="#appeals">Review Requests</a>
-          <a class="block rounded-xl px-3 py-2 text-sm font-bold text-slate-300 hover:bg-white/5 hover:text-white" href="#expectations">Expectations</a>
+      <aside>
+        <nav class="ol-sidenav" aria-label="Moderation navigation">
+          <a href="#reports">Reports</a>
+          <a href="#evidence">Evidence</a>
+          <a href="#outcomes">Outcomes</a>
+          <a href="#appeals">Review Requests</a>
+          <a href="#expectations">Expectations</a>
         </nav>
       </aside>
 
@@ -44,16 +43,16 @@
         <section id="reports" class="scroll-mt-24 rounded-3xl border border-white/10 bg-white/[0.035] p-6 md:p-8">
           <h2 class="text-2xl font-black text-white">How reports work</h2>
           <p class="mt-3 leading-7 text-slate-300">Reports can arrive through support, dispute flows, Match Room activity, Mission proof review, Bounty claims, Dropzone scoring, tournament operations, or admin review queues. The clearest reports include usernames, team names, match or proof references, screenshots, video links, and a short timeline.</p>
-          <a href="{% url 'support:contact' %}" class="mt-5 inline-flex min-h-11 items-center justify-center rounded-2xl bg-cyan-300 px-5 font-black text-slate-950 hover:bg-cyan-200">Report an issue</a>
+          <a href="{% url 'support:contact' %}" class="ol-btn ol-btn--primary" style="margin-top:1.25rem;">Report an issue</a>
         </section>
 
         <section id="evidence" class="scroll-mt-24 rounded-3xl border border-white/10 bg-white/[0.035] p-6 md:p-8">
           <h2 class="text-2xl font-black text-white">What operators may review</h2>
           <div class="mt-5 grid gap-3 md:grid-cols-2">
-            <div class="rounded-2xl border border-white/10 bg-black/20 p-4"><strong class="text-white">Platform records</strong><p class="mt-2 text-sm text-slate-400">Account, team, tournament, Match Room, {{ brand.features.ranking_points }}, wallet, and competitive operation records.</p></div>
-            <div class="rounded-2xl border border-white/10 bg-black/20 p-4"><strong class="text-white">Submitted proof</strong><p class="mt-2 text-sm text-slate-400">Screenshots, videos, URLs, Mission proof files, dispute evidence, match media, and notes.</p></div>
-            <div class="rounded-2xl border border-white/10 bg-black/20 p-4"><strong class="text-white">Behavior history</strong><p class="mt-2 text-sm text-slate-400">Prior abuse reports, moderation sanctions, repeated false claims, or pattern-based manipulation.</p></div>
-            <div class="rounded-2xl border border-white/10 bg-black/20 p-4"><strong class="text-white">Operator context</strong><p class="mt-2 text-sm text-slate-400">Game rules, tournament rules, lobby state, scoring records, team authority, and dispute notes.</p></div>
+            <div class="ol-subcard"><strong class="text-white">Platform records</strong><p class="mt-2 text-sm text-slate-400">Account, team, tournament, Match Room, {{ brand.features.ranking_points }}, wallet, and competitive operation records.</p></div>
+            <div class="ol-subcard"><strong class="text-white">Submitted proof</strong><p class="mt-2 text-sm text-slate-400">Screenshots, videos, URLs, Mission proof files, dispute evidence, match media, and notes.</p></div>
+            <div class="ol-subcard"><strong class="text-white">Behavior history</strong><p class="mt-2 text-sm text-slate-400">Prior abuse reports, moderation sanctions, repeated false claims, or pattern-based manipulation.</p></div>
+            <div class="ol-subcard"><strong class="text-white">Operator context</strong><p class="mt-2 text-sm text-slate-400">Game rules, tournament rules, lobby state, scoring records, team authority, and dispute notes.</p></div>
           </div>
         </section>
 

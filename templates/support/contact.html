@@ -1,110 +1,95 @@
 {% extends "base.html" %}
 {% load static %}
-{% block title %}Contact Support - {{ brand.name }}{% endblock %}
+{% block title %}Contact support - {{ brand.name }}{% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-[#03050a] text-slate-100">
-  <section class="relative overflow-hidden border-b border-white/10">
-    <div class="absolute inset-0 bg-[radial-gradient(circle_at_16%_10%,rgba(6,182,212,.2),transparent_32%),radial-gradient(circle_at_84%_20%,rgba(250,204,21,.12),transparent_32%),linear-gradient(180deg,#080b14,#03050a)]"></div>
-    <div class="relative mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
-      <div class="max-w-3xl">
-        <p class="text-xs font-black uppercase tracking-[0.24em] text-cyan-300">Operations support</p>
-        <h1 class="mt-3 font-display text-4xl font-black tracking-tight text-white md:text-6xl">Route your issue to the right team.</h1>
-        <p class="mt-4 text-lg leading-8 text-slate-300">Use this hub for tournament issues, Match Room reports, wallet or {{ brand.features.coins }} questions, proof reviews, team support, moderation reports, privacy/security concerns, and partnership inquiries.</p>
-      </div>
+<div class="ol-page ol-doc">
+  <header class="ol-hero">
+    <div class="ol-container">
+      <p class="ol-eyebrow">Contact</p>
+      <h1 class="ol-h1">How can we help?</h1>
+      <p class="ol-lead">Tell us about a tournament, account, team, wallet or moderation issue. The more detail you include, the faster we can help. For quick answers, check the <a class="ol-link" href="{% url 'support:faq' %}">FAQ</a> first.</p>
     </div>
-  </section>
+  </header>
 
-  <section class="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+  <div class="ol-container" style="padding-block:clamp(32px,5vw,56px);">
     {% if messages %}
-      <div class="mb-8 space-y-3">
-        {% for message in messages %}
-          <div class="rounded-2xl border px-5 py-4 text-sm {% if message.tags == 'success' %}border-emerald-300/30 bg-emerald-500/10 text-emerald-100{% elif message.tags == 'error' %}border-red-300/30 bg-red-500/10 text-red-100{% else %}border-cyan-300/30 bg-cyan-500/10 text-cyan-100{% endif %}">
-            {{ message }}
-          </div>
-        {% endfor %}
-      </div>
+    <div style="display:grid;gap:.75rem;margin-bottom:2rem;">
+      {% for message in messages %}
+      <div class="ol-notice {% if message.tags == 'success' %}ol-notice--success{% elif message.tags == 'error' %}ol-notice--error{% endif %}" role="{% if message.tags == 'error' %}alert{% else %}status{% endif %}">{{ message }}</div>
+      {% endfor %}
+    </div>
     {% endif %}
 
-    <div class="grid gap-8 lg:grid-cols-[1fr_420px]">
-      <section class="rounded-3xl border border-white/10 bg-white/[0.035] p-6 shadow-2xl shadow-black/25 md:p-8">
-        <div class="mb-8">
-          <p class="text-xs font-black uppercase tracking-[0.2em] text-cyan-300">Support request</p>
-          <h2 class="mt-2 text-3xl font-black text-white">Send a message</h2>
-          <p class="mt-2 text-sm leading-6 text-slate-400">Include IDs, links, screenshots, team names, usernames, and the exact flow affected. This helps route your request without extra back-and-forth.</p>
-        </div>
+    <div class="ol-aside-layout">
+      <section class="ol-card" style="padding:clamp(20px,4vw,32px);" aria-labelledby="contact-form-title">
+        <h2 id="contact-form-title" class="ol-h2" style="font-size:1.5rem;">Send a message</h2>
+        <p class="ol-help" style="font-size:.9375rem;">Include usernames, team names, tournament or match IDs, links and screenshots, plus what you were trying to do.</p>
 
-        <form method="POST" id="contactForm" class="space-y-5">
+        <form method="POST" id="contactForm" style="margin-top:1.5rem;">
           {% csrf_token %}
           {{ form.honeypot }}
-          <div class="grid gap-5 md:grid-cols-2">
-            <label class="block">
-              <span class="mb-2 block text-sm font-bold text-slate-300">Full name</span>
+          <div class="ol-grid ol-grid--2" style="gap:1rem;">
+            <div class="ol-field">
+              <label class="ol-label" for="{{ form.name.id_for_label }}">Full name</label>
               {{ form.name }}
-              {% for error in form.name.errors %}<span class="mt-1 block text-sm text-red-300">{{ error }}</span>{% endfor %}
-            </label>
-            <label class="block">
-              <span class="mb-2 block text-sm font-bold text-slate-300">Email address</span>
+              {% for error in form.name.errors %}<p class="ol-error" role="alert">{{ error }}</p>{% endfor %}
+            </div>
+            <div class="ol-field">
+              <label class="ol-label" for="{{ form.email.id_for_label }}">Email address</label>
               {{ form.email }}
-              {% for error in form.email.errors %}<span class="mt-1 block text-sm text-red-300">{{ error }}</span>{% endfor %}
-            </label>
+              {% for error in form.email.errors %}<p class="ol-error" role="alert">{{ error }}</p>{% endfor %}
+            </div>
           </div>
-          <label class="block">
-            <span class="mb-2 block text-sm font-bold text-slate-300">Subject</span>
+          <div class="ol-field">
+            <label class="ol-label" for="{{ form.subject.id_for_label }}">Subject</label>
             {{ form.subject }}
-            {% for error in form.subject.errors %}<span class="mt-1 block text-sm text-red-300">{{ error }}</span>{% endfor %}
-          </label>
-          <label class="block">
-            <span class="mb-2 block text-sm font-bold text-slate-300">Message</span>
+            {% for error in form.subject.errors %}<p class="ol-error" role="alert">{{ error }}</p>{% endfor %}
+          </div>
+          <div class="ol-field">
+            <label class="ol-label" for="{{ form.message.id_for_label }}">Message</label>
             {{ form.message }}
-            {% for error in form.message.errors %}<span class="mt-1 block text-sm text-red-300">{{ error }}</span>{% endfor %}
-          </label>
-          <button type="submit" class="inline-flex min-h-12 w-full items-center justify-center rounded-2xl bg-cyan-300 px-6 font-black text-slate-950 transition hover:bg-cyan-200">Send support request</button>
+            {% for error in form.message.errors %}<p class="ol-error" role="alert">{{ error }}</p>{% endfor %}
+          </div>
+          <button type="submit" class="ol-btn ol-btn--primary ol-btn--lg ol-btn--block" style="margin-top:1.5rem;">Send message</button>
         </form>
       </section>
 
-      <aside class="space-y-5">
-        <section class="rounded-3xl border border-white/10 bg-white/[0.035] p-6">
-          <h2 class="text-xl font-black text-white">Support routing</h2>
-          <p class="mt-2 text-sm leading-6 text-slate-400">Choose a clear subject so the right operator can review it.</p>
-          <div class="mt-5 grid gap-3">
-            <div class="rounded-2xl border border-white/10 bg-black/20 p-4"><strong class="text-white">Tournament / Match Room Issue</strong><p class="mt-1 text-sm text-slate-400">Match IDs, bracket issues, result submission, check-in, lobby or schedule problems.</p></div>
-            <div class="rounded-2xl border border-white/10 bg-black/20 p-4"><strong class="text-white">Wallet / {{ brand.features.coins }} / Payment Issue</strong><p class="mt-1 text-sm text-slate-400">Wallet records, top-up/payment proof, entry fees, refunds, rewards, or transaction questions.</p></div>
-            <div class="rounded-2xl border border-white/10 bg-black/20 p-4"><strong class="text-white">Mission / Proof Review</strong><p class="mt-1 text-sm text-slate-400">Mission proof upload, review state, rejected proof, or missing context.</p></div>
-            <div class="rounded-2xl border border-white/10 bg-black/20 p-4"><strong class="text-white">Showdown / Bounty / Dropzone Issue</strong><p class="mt-1 text-sm text-slate-400">Competitive mode entries, claims, room credentials, scoring, settlement, or review queues.</p></div>
-            <div class="rounded-2xl border border-white/10 bg-black/20 p-4"><strong class="text-white">Team / Organization Support</strong><p class="mt-1 text-sm text-slate-400">Ownership, rosters, join requests, tryouts, scrims, Team HQ, public profiles, or org access.</p></div>
-            <div class="rounded-2xl border border-white/10 bg-black/20 p-4"><strong class="text-white">Moderation / Report / Dispute</strong><p class="mt-1 text-sm text-slate-400">Harassment, cheating, toxic behavior, proof fraud, account abuse, or dispute review.</p></div>
-            <div class="rounded-2xl border border-white/10 bg-black/20 p-4"><strong class="text-white">Privacy / Security</strong><p class="mt-1 text-sm text-slate-400">Account safety, data questions, suspicious access, or privacy requests.</p></div>
-            <div class="rounded-2xl border border-white/10 bg-black/20 p-4"><strong class="text-white">Partnership / Organizer Inquiry</strong><p class="mt-1 text-sm text-slate-400">Tournament hosting, brand partnerships, regional operations, or business requests.</p></div>
-          </div>
+      <aside style="display:grid;gap:1rem;align-content:start;">
+        <section class="ol-card" aria-labelledby="contact-direct">
+          <h2 id="contact-direct" class="ol-card__title">Email us</h2>
+          <p class="ol-card__text"><a class="ol-link" href="mailto:{{ brand.support_email }}">{{ brand.support_email }}</a></p>
+          <p class="ol-help">Prefer chat? Find us on social media.</p>
+          <div style="margin-top:.75rem;">{% include "partials/social_links.html" %}</div>
         </section>
 
-        <section class="rounded-3xl border border-white/10 bg-white/[0.035] p-6">
-          <h2 class="text-xl font-black text-white">Direct contact</h2>
-          <p class="mt-3 text-sm text-slate-400">Email</p>
-          <a href="mailto:{{ brand.support_email }}" class="mt-1 inline-block font-bold text-cyan-300 hover:text-cyan-200">{{ brand.support_email }}</a>
-          <div class="mt-5 flex gap-3">
-            <a href="{{ brand.social.facebook }}" target="_blank" rel="noopener" class="grid h-11 w-11 place-items-center rounded-xl border border-white/10 bg-white/5 text-slate-300 hover:border-cyan-300/50 hover:text-white" aria-label="{{ brand.name }} Facebook">f</a>
-            <a href="https://discord.gg/UaHRC8Cd" target="_blank" rel="noopener" class="grid h-11 w-11 place-items-center rounded-xl border border-white/10 bg-white/5 text-slate-300 hover:border-cyan-300/50 hover:text-white" aria-label="{{ brand.name }} Discord">D</a>
-            {% if brand.social.youtube %}
-            <a href="{{ brand.social.youtube }}" target="_blank" rel="noopener" class="grid h-11 w-11 place-items-center rounded-xl border border-white/10 bg-white/5 text-slate-300 hover:border-cyan-300/50 hover:text-white" aria-label="{{ brand.name }} YouTube">Y</a>
-            {% endif %}
-            <a href="{{ brand.social.instagram }}" target="_blank" rel="noopener" class="grid h-11 w-11 place-items-center rounded-xl border border-white/10 bg-white/5 text-slate-300 hover:border-cyan-300/50 hover:text-white" aria-label="{{ brand.name }} Instagram">I</a>
-            <a href="https://wa.me/8801789560202" target="_blank" rel="noopener" class="grid h-11 w-11 place-items-center rounded-xl border border-white/10 bg-white/5 text-slate-300 hover:border-cyan-300/50 hover:text-white" aria-label="{{ brand.name }} WhatsApp">W</a>
-          </div>
+        <section class="ol-card" aria-labelledby="contact-quick">
+          <h2 id="contact-quick" class="ol-card__title">Quick help</h2>
+          <ul class="ol-list" style="margin-top:.5rem;">
+            <li><a class="ol-link" href="{% url 'support:faq' %}">Frequently asked questions</a></li>
+            <li><a class="ol-link" href="{% url 'support:rules' %}">Rules and fair play</a></li>
+            <li><a class="ol-link" href="{% url 'support:moderation' %}">Report a player or an issue</a></li>
+            <li><a class="ol-link" href="{% url 'privacy' %}">Privacy policy</a></li>
+          </ul>
         </section>
 
-        <section class="rounded-3xl border border-white/10 bg-white/[0.035] p-6">
-          <h2 class="text-xl font-black text-white">Reference pages</h2>
-          <div class="mt-4 grid gap-2 text-sm font-bold">
-            <a href="{% url 'support:faq' %}" class="rounded-xl px-3 py-2 text-slate-300 hover:bg-white/5 hover:text-white">FAQ</a>
-            <a href="{% url 'support:rules' %}" class="rounded-xl px-3 py-2 text-slate-300 hover:bg-white/5 hover:text-white">Platform rules</a>
-            <a href="{% url 'terms' %}" class="rounded-xl px-3 py-2 text-slate-300 hover:bg-white/5 hover:text-white">Terms of Service</a>
-            <a href="{% url 'privacy' %}" class="rounded-xl px-3 py-2 text-slate-300 hover:bg-white/5 hover:text-white">Privacy Policy</a>
+        <details class="ol-disclosure">
+          <summary>What can we help with?</summary>
+          <div>
+            <ul class="ol-list">
+              <li><div><p class="ol-card__title">Tournament and match issues</p><p class="ol-card__text">Match IDs, bracket issues, result submission, check-in, lobby or schedule problems.</p></div></li>
+              <li><div><p class="ol-card__title">Wallet, {{ brand.features.coins }} and payments</p><p class="ol-card__text">Wallet records, top-up or payment proof, entry fees, refunds, rewards, or transaction questions.</p></div></li>
+              <li><div><p class="ol-card__title">Missions and proof review</p><p class="ol-card__text">Mission proof upload, review state, rejected proof, or missing context.</p></div></li>
+              <li><div><p class="ol-card__title">Showdown, Bounty and Dropzone</p><p class="ol-card__text">Entries, claims, room credentials, scoring, settlement, or review queues.</p></div></li>
+              <li><div><p class="ol-card__title">Teams and organizations</p><p class="ol-card__text">Ownership, rosters, join requests, tryouts, scrims, Team HQ, public profiles, or org access.</p></div></li>
+              <li><div><p class="ol-card__title">Reports and disputes</p><p class="ol-card__text">Harassment, cheating, toxic behavior, proof fraud, account abuse, or dispute review.</p></div></li>
+              <li><div><p class="ol-card__title">Privacy and security</p><p class="ol-card__text">Account safety, data questions, suspicious access, or privacy requests.</p></div></li>
+              <li><div><p class="ol-card__title">Partnerships and organizers</p><p class="ol-card__text">Tournament hosting, brand partnerships, regional operations, or business requests.</p></div></li>
+            </ul>
           </div>
-        </section>
+        </details>
       </aside>
     </div>
-  </section>
+  </div>
 </div>
 {% endblock %}
