@@ -1,6 +1,13 @@
 // Follow/Unfollow System JavaScript
 // Clean implementation with state persistence and live count updates
 
+// Button styles shared by every follow state (brand primary = saffron; secondary states are neutral)
+const FOLLOW_CLASS = {
+    follow: 'bg-z-cyan text-black font-semibold px-6 py-2.5 rounded-xl hover:brightness-110 transition flex items-center justify-center gap-2 text-sm',
+    following: 'bg-white/10 text-white font-semibold px-6 py-2.5 rounded-xl hover:bg-white/15 transition flex items-center justify-center gap-2 text-sm',
+    requested: 'bg-white/10 text-white font-semibold px-6 py-2.5 rounded-xl hover:bg-white/15 transition flex items-center justify-center gap-2 text-sm'
+};
+
 // Initialize follow button state from server and reload on page load
 document.addEventListener('DOMContentLoaded', function() {
     const stateScript = document.getElementById('profile-follow-state');
@@ -15,8 +22,11 @@ document.addEventListener('DOMContentLoaded', function() {
             initializeFollowButton(button, serverState);
         });
         
-        // Reload current follow status from API (fixes state persistence bug)
-        reloadFollowStatus(serverState.profile_username);
+        // Reload current follow status from API (fixes state persistence bug). Visitors who are not signed in
+        // have no follow state, so the request (always a 401) is skipped.
+        if (serverState.viewer_is_authenticated) {
+            reloadFollowStatus(serverState.profile_username);
+        }
         
     } catch (e) {
         console.error('Failed to parse follow state:', e);
@@ -55,7 +65,7 @@ function updateButtonState(button, data) {
     
     switch(state) {
         case 'following':
-            button.className = 'bg-white/10 text-white font-bold uppercase tracking-wider px-10 py-4 rounded-xl hover:bg-red-500/20 hover:text-red-400 transition flex items-center justify-center gap-2';
+            button.className = FOLLOW_CLASS.following;
             button.innerHTML = '<i class="fa-solid fa-user-check"></i> Following';
             button.dataset.isFollowing = 'true';
             button.dataset.state = 'following';
@@ -63,7 +73,7 @@ function updateButtonState(button, data) {
             break;
             
         case 'requested':
-            button.className = 'bg-yellow-500/30 text-yellow-200 font-bold uppercase tracking-wider px-10 py-4 rounded-xl hover:bg-yellow-500/50 transition flex items-center justify-center gap-2';
+            button.className = FOLLOW_CLASS.requested;
             button.innerHTML = '<i class="fa-solid fa-clock"></i> Requested';
             button.dataset.isFollowing = 'false';
             button.dataset.state = 'requested';
@@ -73,10 +83,10 @@ function updateButtonState(button, data) {
             
         case 'none':
             if (isPrivateAccount) {
-                button.className = 'bg-z-cyan text-black font-black font-display uppercase tracking-wider px-10 py-4 rounded-xl hover:bg-white hover:scale-105 transition shadow-neon-cyan flex items-center justify-center gap-2';
-                button.innerHTML = '<i class="fa-solid fa-lock"></i> Request Follow';
+                button.className = FOLLOW_CLASS.follow;
+                button.innerHTML = '<i class="fa-solid fa-lock"></i> Request to follow';
             } else {
-                button.className = 'bg-z-cyan text-black font-black font-display uppercase tracking-wider px-10 py-4 rounded-xl hover:bg-white hover:scale-105 transition shadow-neon-cyan flex items-center justify-center gap-2';
+                button.className = FOLLOW_CLASS.follow;
                 button.innerHTML = '<i class="fa-solid fa-user-plus"></i> Follow';
             }
             button.dataset.isFollowing = 'false';
@@ -129,7 +139,7 @@ async function followUser(username, button) {
             // Handle different follow actions
             if (data.action === 'request_sent') {
                 // Follow request sent to private account
-                button.className = 'bg-yellow-500/30 text-yellow-200 font-bold uppercase tracking-wider px-10 py-4 rounded-xl hover:bg-yellow-500/50 transition flex items-center justify-center gap-2';
+                button.className = FOLLOW_CLASS.requested;
                 button.innerHTML = '<i class="fa-solid fa-clock"></i> Requested';
                 button.dataset.isFollowing = 'false';
                 button.dataset.state = 'requested';
@@ -140,7 +150,7 @@ async function followUser(username, button) {
                 showToast('Follow request sent!', 'success');
             } else {
                 // Immediate follow (public account)
-                button.className = 'bg-white/10 text-white font-bold uppercase tracking-wider px-10 py-4 rounded-xl hover:bg-red-500/20 hover:text-red-400 transition flex items-center justify-center gap-2';
+                button.className = FOLLOW_CLASS.following;
                 button.innerHTML = '<i class="fa-solid fa-user-check"></i> Following';
                 button.dataset.isFollowing = 'true';
                 button.dataset.state = 'following';
@@ -187,8 +197,8 @@ async function cancelFollowRequest(username, button) {
         
         if (response.ok) {
             const isPrivate = button.dataset.isPrivate === 'true';
-            button.className = 'bg-z-cyan text-black font-black font-display uppercase tracking-wider px-10 py-4 rounded-xl hover:bg-white hover:scale-105 transition shadow-neon-cyan flex items-center justify-center gap-2';
-            button.innerHTML = isPrivate ? '<i class="fa-solid fa-lock"></i> Request Follow' : '<i class="fa-solid fa-user-plus"></i> Follow';
+            button.className = FOLLOW_CLASS.follow;
+            button.innerHTML = isPrivate ? '<i class="fa-solid fa-lock"></i> Request to follow' : '<i class="fa-solid fa-user-plus"></i> Follow';
             button.dataset.isFollowing = 'false';
             button.dataset.state = 'none';
             button.disabled = false;
@@ -201,7 +211,7 @@ async function cancelFollowRequest(username, button) {
     } catch (error) {
         console.error('Cancel request error:', error);
         showToast(error.message || 'Failed to cancel request', 'error');
-        button.className = 'bg-yellow-500/30 text-yellow-200 font-bold uppercase tracking-wider px-10 py-4 rounded-xl hover:bg-yellow-500/50 transition flex items-center justify-center gap-2';
+        button.className = FOLLOW_CLASS.requested;
         button.innerHTML = '<i class="fa-solid fa-clock"></i> Requested';
         button.disabled = false;
     }
@@ -229,8 +239,8 @@ async function unfollowUser(username, button) {
         
         if (response.ok) {
             const isPrivate = button.dataset.isPrivate === 'true';
-            button.className = 'bg-z-cyan text-black font-black font-display uppercase tracking-wider px-10 py-4 rounded-xl hover:bg-white hover:scale-105 transition shadow-neon-cyan flex items-center justify-center gap-2';
-            button.innerHTML = isPrivate ? '<i class="fa-solid fa-lock"></i> Request Follow' : '<i class="fa-solid fa-user-plus"></i> Follow';
+            button.className = FOLLOW_CLASS.follow;
+            button.innerHTML = isPrivate ? '<i class="fa-solid fa-lock"></i> Request to follow' : '<i class="fa-solid fa-user-plus"></i> Follow';
             button.dataset.isFollowing = 'false';
             button.dataset.state = 'none';
             button.disabled = false;
@@ -246,7 +256,7 @@ async function unfollowUser(username, button) {
     } catch (error) {
         console.error('Unfollow error:', error);
         showToast(error.message || 'Failed to unfollow user', 'error');
-        button.className = 'bg-white/10 text-white font-bold uppercase tracking-wider px-10 py-4 rounded-xl hover:bg-red-500/20 hover:text-red-400 transition flex items-center justify-center gap-2';
+        button.className = FOLLOW_CLASS.following;
         button.innerHTML = '<i class="fa-solid fa-user-check"></i> Following';
         button.disabled = false;
     }
