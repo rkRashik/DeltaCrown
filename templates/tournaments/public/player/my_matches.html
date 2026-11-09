@@ -70,11 +70,11 @@
               {# Participants #}
               <div class="flex items-center gap-2 mb-1">
                 <span class="text-sm text-white font-semibold truncate">
-                  {{ match.participant1|default:"TBD" }}
+                  {{ match.participant1_name|default:"TBD" }}
                 </span>
                 <span class="text-[10px] text-gray-600 font-gaming">VS</span>
                 <span class="text-sm text-white font-semibold truncate">
-                  {{ match.participant2|default:"TBD" }}
+                  {{ match.participant2_name|default:"TBD" }}
                 </span>
               </div>
               {# Tournament + Meta #}
@@ -97,11 +97,11 @@
             </div>
 
             {# Score (if completed) #}
-            {% if match.score_participant1 is not None and match.score_participant2 is not None %}
+            {% if match.state == 'completed' %}
               <div class="text-center font-mono text-lg flex-shrink-0 px-3">
-                <span class="{% if match.score_participant1 > match.score_participant2 %}text-green-400{% else %}text-gray-400{% endif %}">{{ match.score_participant1 }}</span>
+                <span class="{% if match.participant1_score > match.participant2_score %}text-green-400{% else %}text-gray-400{% endif %}">{{ match.participant1_score }}</span>
                 <span class="text-gray-600 mx-1">-</span>
-                <span class="{% if match.score_participant2 > match.score_participant1 %}text-green-400{% else %}text-gray-400{% endif %}">{{ match.score_participant2 }}</span>
+                <span class="{% if match.participant2_score > match.participant1_score %}text-green-400{% else %}text-gray-400{% endif %}">{{ match.participant2_score }}</span>
               </div>
             {% endif %}
 

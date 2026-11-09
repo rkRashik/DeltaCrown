@@ -255,6 +255,10 @@ class MatchService:
         Example:
             match = MatchService.check_in_participant(match, participant_id=101)
         """
+        # Lock and re-read: the caller's instance may predate an organizer re-seed, and a stale
+        # full save() would overwrite the new participants and check a removed player in.
+        match = Match.objects.select_for_update().get(pk=match.pk)
+
         # Validation
         if match.state not in [Match.SCHEDULED, Match.CHECK_IN]:
             raise ValidationError(f"Check-in not allowed in state: {match.state}")

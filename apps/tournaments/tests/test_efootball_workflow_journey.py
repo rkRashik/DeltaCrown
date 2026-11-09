@@ -691,7 +691,9 @@ def _corrections(organizer, tournament, match):
     return verify, score
 
 
-@pytest.mark.parametrize('downstream_state', ['check_in_via_player', 'ready', 'live', 'pending_result'])
+@pytest.mark.parametrize('downstream_state', [
+    'check_in_via_player', 'scheduled_but_checked_in', 'ready', 'live', 'pending_result', 'disputed', 'forfeit', 'cancelled',
+])
 def test_correction_rejected_once_next_round_has_commitments(world, downstream_state):
     organizer, _players, _outsider, tournament = world
     _registrations, round_one = _reach_published_bracket(world)
@@ -702,6 +704,9 @@ def test_correction_rejected_once_next_round_has_commitments(world, downstream_s
     if downstream_state == 'check_in_via_player':
         MatchService.check_in_participant(_get(final), final.participant1_id)  # real participation commitment
         assert _get(final).participant1_checked_in
+    elif downstream_state == 'scheduled_but_checked_in':  # a recorded check-in alone is a commitment
+        Match.objects.filter(pk=final.pk).update(participant1_checked_in=True)
+        assert _get(final).state == Match.SCHEDULED
     else:  # narrowly scoped setup: put the next-round match in the state under test
         Match.objects.filter(pk=final.pk).update(state=downstream_state)
 
@@ -730,3 +735,91 @@ def test_correction_allowed_while_next_round_is_untouched_scheduled(world):
         f'/api/toc/{tournament.slug}/matches/{first.id}/score/',
         {'participant1_score': 3, 'participant2_score': 0}, format='json', secure=True)
     assert back.status_code == 200 and _get(first).winner_id == first.participant1_id
+
+
+def test_stale_checkin_cannot_overwrite_a_reseeded_match(world):
+    """A check-in built on a pre-correction instance must not undo the re-seed (lost update)."""
+    organizer, _players, _outsider, tournament = world
+    _registrations, round_one = _reach_published_bracket(world)
+    first, second = round_one
+    _play(first, organizer, p1_wins=True)
+    _play(second, organizer, p1_wins=True)
+    final = Match.objects.get(tournament=tournament, round_number=2)
+    stale = _get(final)  # a player's request loaded the match before the organizer corrected the feeder
+
+    verify = f'/api/toc/{tournament.slug}/matches/{first.id}/verify/'
+    assert _api(organizer).post(
+        verify, {'action': 'confirm', 'participant1_score': 0, 'participant2_score': 3}, format='json', secure=True,
+    ).status_code == 200
+    reseeded = _get(final)
+    removed = first.participant1_id  # no longer a finalist
+    assert removed not in (reseeded.participant1_id, reseeded.participant2_id)
+    assert removed in (stale.participant1_id, stale.participant2_id)
+
+    with pytest.raises(ValidationError):
+        MatchService.check_in_participant(stale, removed)
+    after = _get(final)
+    assert (after.participant1_id, after.participant2_id) == (reseeded.participant1_id, reseeded.participant2_id)
+    assert not after.participant1_checked_in and not after.participant2_checked_in
+
+
+def test_reset_cannot_clear_a_winner_the_next_round_depends_on(world):
+    organizer, _players, outsider, tournament = world
+    _registrations, round_one = _reach_published_bracket(world)
+    first, second = round_one
+    _play(first, organizer, p1_wins=True)
+    _play(second, organizer, p1_wins=True)
+    final = Match.objects.get(tournament=tournament, round_number=2)
+    reset = {'confirm_reset': True, 'confirmation_text': 'RESET'}
+    url = f'/api/toc/{tournament.slug}/matches/{first.id}/reset/'
+
+    assert _api(outsider).post(url, reset, format='json', secure=True).status_code in (401, 403)
+    MatchService.check_in_participant(_get(final), final.participant1_id)  # next round has a commitment
+    before = _snapshot(first, final)
+    blocked = _api(organizer).post(url, reset, format='json', secure=True)
+    assert blocked.status_code == 400 and blocked.json()['code'] == 'reset_blocked'
+    assert _snapshot(first, final) == before
+
+
+def test_reset_still_works_while_next_round_is_untouched(world):
+    organizer, _players, _outsider, tournament = world
+    _registrations, round_one = _reach_published_bracket(world)
+    first = round_one[0]
+    _play(first, organizer, p1_wins=True)
+    ok = _api(organizer).post(
+        f'/api/toc/{tournament.slug}/matches/{first.id}/reset/',
+        {'confirm_reset': True, 'confirmation_text': 'RESET'}, format='json', secure=True)
+    assert ok.status_code == 200
+    assert _get(first).winner_id is None and _get(first).state != Match.COMPLETED
+
+
+def test_player_match_pages_show_opponent_names_and_scores(world):
+    """My Matches and the result form must name the real opponent (not 'TBD'/'Player 1')."""
+    organizer, _players, _outsider, tournament = world
+    _registrations, round_one = _reach_published_bracket(world)
+    match = round_one[0]
+    p1, p2 = (User.objects.get(pk=pid) for pid in (match.participant1_id, match.participant2_id))
+
+    for pid in (match.participant1_id, match.participant2_id):
+        MatchService.check_in_participant(_get(match), pid)
+    MatchService.transition_to_live(_get(match))
+    form = _web(p1).get(_url('submit_result', tournament.slug, match_id=match.id), secure=True).content.decode()
+    assert p1.username in form and p2.username in form
+    assert 'Player 1' not in form and 'Player 2' not in form
+
+    _play_to_completion = MatchService.submit_result(_get(match), match.participant1_id, 2, 1)
+    MatchService.confirm_result(_get(match), organizer.id)
+    page = _web(p1).get('/tournaments/my/matches/', secure=True).content.decode()
+    assert p1.username in page and p2.username in page and 'TBD' not in page
+    import re
+    assert re.search(r'>\s*2\s*<', page) and re.search(r'>\s*1\s*<', page)  # the final score is shown
+
+
+def test_registration_wizard_revalidates_after_passport_is_saved(world):
+    """Saving a new Game Passport fills the hidden game_id programmatically (no DOM event), so the
+    page must dispatch 'input' or the wizard's Next stays disabled until a reload (browser-verified)."""
+    _organizer, players, _outsider, tournament = world
+    _open_registration(world)
+    html = _web(players[0]).get(_url('register', tournament.slug), secure=True).content.decode()
+    assert "hiddenA.value = displayName" in html
+    assert "dispatchEvent(new Event('input', { bubbles: true }))" in html

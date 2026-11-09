@@ -40,7 +40,7 @@
           {# P1 Score #}
           <div class="text-center">
             <p class="text-xs text-gray-400 mb-2 truncate">
-              {% if match.participant1 %}{{ match.participant1.username }}{% else %}Player 1{% endif %}
+              {{ match.participant1_name|default:"Player 1" }}
             </p>
             <input type="number" name="participant1_score" min="0" required
                    class="form-input text-center text-2xl font-display font-bold !py-4"
@@ -56,7 +56,7 @@
           {# P2 Score #}
           <div class="text-center">
             <p class="text-xs text-gray-400 mb-2 truncate">
-              {% if match.participant2 %}{{ match.participant2.username }}{% else %}Player 2{% endif %}
+              {{ match.participant2_name|default:"Player 2" }}
             </p>
             <input type="number" name="participant2_score" min="0" required
                    class="form-input text-center text-2xl font-display font-bold !py-4"
