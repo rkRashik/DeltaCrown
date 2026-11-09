@@ -69,7 +69,7 @@ class TOCSettingsService:
         "social_youtube": "https://www.youtube.com/@DeltaCrownGG",
         "social_instagram": BRAND["social"]["instagram"],
         "contact_phone": "+8801789560202",
-        "social_website": "https://deltacrown.gg",
+        "social_website": "https://ownlobby.com",
     }
 
     CATEGORY_LABELS = {

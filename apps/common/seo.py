@@ -91,7 +91,7 @@ def reverse_absolute(viewname: str, kwargs: dict[str, Any] | None = None) -> str
 
 
 def truncate_meta(value: str, length: int = 155) -> str:
-    value = " ".join(html.unescape(strip_tags(value or "")).split())  # rich-text fields must not leak markup into meta/JSON-LD
+    value = " ".join(strip_tags(html.unescape(value or "")).split())  # rich-text fields must not leak markup into meta/JSON-LD
     if length <= 0:
         return ""
     if len(value) <= length:

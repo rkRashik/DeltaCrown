@@ -69,10 +69,24 @@ class BrandIdentityTests(SimpleTestCase):
         self.assertNotIn("Â", html)
 
     def test_meta_descriptions_strip_rich_text_markup(self):
-        from apps.common.seo import truncate_meta
+        from apps.common.seo import schema_json, truncate_meta
         seo = build_seo(description="<p>Welcome to <b>the Cup</b> &amp; friends</p><script>alert(1)</script>")
         self.assertEqual(seo["description"], "Welcome to the Cup & friendsalert(1)")
         self.assertEqual(truncate_meta("<p>a</p>"), "a")
+        # entity-encoded markup (as stored by some rich-text fields) must also be cleaned
+        self.assertEqual(truncate_meta("&lt;p&gt;Tournament &lt;b&gt;description&lt;/b&gt;&lt;/p&gt;"), "Tournament description")
+        self.assertEqual(build_seo(description="&lt;p&gt;Tournament description&lt;/p&gt;")["description"], "Tournament description")
+        self.assertNotIn("<", schema_json({"description": truncate_meta("&lt;p&gt;x&lt;/p&gt;")})[0])
+
+    def test_toc_official_social_defaults_match_between_js_and_backend(self):
+        from apps.tournaments.api.toc.settings_service import TOCSettingsService
+        js = (Path(settings.BASE_DIR) / "static/tournaments/toc/js/toc-settings.js").read_text(encoding="utf-8")
+        block = re.search(r"OFFICIAL_SOCIAL_DEFAULTS\s*=\s*\{(.*?)\};", js, re.S).group(1)
+        frontend = dict(re.findall(r"(\w+):\s*'([^']*)'", block))
+        self.assertEqual(frontend, TOCSettingsService.OFFICIAL_SOCIAL_DEFAULTS)
+        self.assertEqual(frontend["social_facebook"], "https://www.facebook.com/ownlobbygg")
+        self.assertEqual(frontend["social_instagram"], "https://www.instagram.com/ownlobbygg/")
+        self.assertEqual(frontend["social_website"], "https://ownlobby.com")
 
     @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend", DEFAULT_FROM_EMAIL="noreply@deltacrown.xyz", SITE_URL="https://deltacrown.xyz")
     def test_otp_email_uses_official_png_and_keeps_verified_sender(self):
@@ -136,6 +150,15 @@ class ErrorPageSeoTests(TestCase):
         self.assertIn('<meta name="robots" content="noindex, nofollow">', html)
         self.assertNotIn('rel="canonical"', html)
         self.assertNotIn('content="index, follow"', html)
+
+    def test_403_and_500_templates_are_noindex_without_self_canonical(self):
+        from django.test import RequestFactory
+        for template in ("403.html", "500.html"):
+            with self.subTest(template=template):
+                html = render_to_string(template, request=RequestFactory().get("/error-sample/"))
+                self.assertIn('<meta name="robots" content="noindex, nofollow">', html)
+                self.assertNotIn('rel="canonical"', html)
+                self.assertNotIn('content="index, follow"', html)
 
 
 class HeroOwnershipTests(TestCase):
