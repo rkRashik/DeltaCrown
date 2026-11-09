@@ -217,7 +217,10 @@ class MatchResetView(TOCBaseView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        data = TOCMatchesService.reset_match(pk, self.tournament, user_id=request.user.id)
+        try:
+            data = TOCMatchesService.reset_match(pk, self.tournament, user_id=request.user.id)
+        except ValueError as exc:
+            return Response({'error': str(exc), 'code': 'reset_blocked'}, status=status.HTTP_400_BAD_REQUEST)
         bump_toc_scopes(self.tournament.id, 'matches', 'disputes', 'overview', 'analytics')
         return Response(data)
 

@@ -140,9 +140,9 @@
               <div class="flex items-center gap-3 min-w-0">
                 <span class="text-[10px] text-gray-600 font-mono w-8">R{{ match.round_number }}</span>
                 <span class="text-sm text-white truncate">
-                  {% if match.participant1 %}{{ match.participant1.username }}{% else %}TBD{% endif %}
+                  {{ match.participant1_name|default:"TBD" }}
                   <span class="text-gray-500 mx-1">vs</span>
-                  {% if match.participant2 %}{{ match.participant2.username }}{% else %}TBD{% endif %}
+                  {{ match.participant2_name|default:"TBD" }}
                 </span>
               </div>
               <span class="text-sm font-mono text-gray-400 flex-shrink-0 ml-2">

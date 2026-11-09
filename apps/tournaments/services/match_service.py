@@ -255,6 +255,10 @@ class MatchService:
         Example:
             match = MatchService.check_in_participant(match, participant_id=101)
         """
+        # Lock and re-read: the caller's instance may predate an organizer re-seed, and a stale
+        # full save() would overwrite the new participants and check a removed player in.
+        match = Match.objects.select_for_update().get(pk=match.pk)
+
         # Validation
         if match.state not in [Match.SCHEDULED, Match.CHECK_IN]:
             raise ValidationError(f"Check-in not allowed in state: {match.state}")
@@ -1376,6 +1380,28 @@ class MatchService:
                 or downstream.participant2_checked_in
             ):
                 return 'The next-round match is already in progress or checked in; the winner of this match can no longer change.'
+        return None
+
+    @staticmethod
+    def reset_block_reason(match: Match) -> Optional[str]:
+        """Why a decided match may not be reset, or None when nothing downstream depends on it.
+
+        Reset clears the winner but cannot reverse its propagation into the parent bracket node /
+        next-round match, so a decided feeder whose winner already advanced must not be reset (use a
+        score correction, which re-seeds safely). Call inside the transaction that performs the reset.
+        """
+        reason = MatchService.winner_correction_block_reason(match, match.winner_id, None)
+        if reason or not match.winner_id:
+            return reason
+        from apps.brackets.models import BracketNode
+        # same order as BracketService.update_bracket_after_match: the node, then its parent
+        node = BracketNode.objects.select_for_update(of=('self',)).filter(match=match).first()
+        if not node or not node.parent_node_id:
+            return None
+        parent = BracketNode.objects.select_for_update().get(pk=node.parent_node_id)
+        slot_value = parent.participant1_id if node.parent_slot == 1 else parent.participant2_id if node.parent_slot == 2 else None
+        if parent.match_id or slot_value == match.winner_id or node.winner_id == match.winner_id:
+            return 'This winner has already advanced in the bracket; reset is blocked. Correct the score instead, or have an admin rebuild the bracket.'
         return None
 
     @staticmethod

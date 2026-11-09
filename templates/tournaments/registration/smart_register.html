@@ -666,6 +666,9 @@
                     var hiddenB = document.getElementById('captain-game-id-input');
                     if (hiddenA) hiddenA.value = displayName;
                     if (hiddenB) hiddenB.value = displayName;
+                    // Programmatic value changes fire no events: tell the wizard to re-validate the step,
+                    // otherwise Next stays disabled for a first-time player until the page is reloaded.
+                    [hiddenA, hiddenB].forEach(function(el) { if (el) el.dispatchEvent(new Event('input', { bubbles: true })); });
                     // Swap the CTA UI to "filled" state
                     document.querySelectorAll('#passport-cta-empty').forEach(function(el) { el.classList.add('hidden'); });
                     document.querySelectorAll('#passport-cta-filled').forEach(function(el) { el.classList.remove('hidden'); });

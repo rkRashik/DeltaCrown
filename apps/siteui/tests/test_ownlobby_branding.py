@@ -151,6 +151,14 @@ class ErrorPageSeoTests(TestCase):
         self.assertNotIn('rel="canonical"', html)
         self.assertNotIn('content="index, follow"', html)
 
+    def test_public_pages_link_only_the_official_facebook_and_instagram(self):
+        for path in ("/", "/contact/"):
+            with self.subTest(path=path):
+                html = self.client.get(path).content.decode()
+                self.assertIn('href="https://www.facebook.com/ownlobbygg"', html)
+                self.assertIn('href="https://www.instagram.com/ownlobbygg/"', html)
+                self.assertNotRegex(html, r"(?i)(facebook|instagram)\.com/deltacrown")
+
     def test_403_and_500_templates_are_noindex_without_self_canonical(self):
         from django.test import RequestFactory
         for template in ("403.html", "500.html"):

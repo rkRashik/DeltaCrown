@@ -306,7 +306,8 @@ class TOCMatchesService:
         winner_side: Optional[Any] = None,
         football_stats: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
-        match = Match.objects.get(pk=match_id, tournament=tournament)
+        # Lock the feeder row so two concurrent corrections serialize (the second sees the first's winner).
+        match = Match.objects.select_for_update().get(pk=match_id, tournament=tournament)
         previous_state = match.state
         previous_winner_id = match.winner_id
         normalized_winner_side = cls._normalize_winner_side(winner_side)
@@ -472,6 +473,11 @@ class TOCMatchesService:
     def reset_match(cls, match_id: int, tournament: Tournament, *, user_id: int) -> Dict[str, Any]:
         """Reset score, verification artifacts, and state for a match."""
         match = Match.objects.select_for_update().get(pk=match_id, tournament=tournament)
+
+        # Clearing a decided winner would leave the next round (or a completed tournament) built on it.
+        blocked = MatchService.reset_block_reason(match)
+        if blocked:
+            raise ValueError(blocked)
 
         # P3 — Soft-archive previous submissions instead of deleting them.
         # Participant-uploaded evidence (proof_screenshot files, proof URLs)
