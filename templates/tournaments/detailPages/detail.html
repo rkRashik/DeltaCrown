@@ -1,4 +1,5 @@
 {% extends "tournaments/base.html" %}
+{% block body_class %}ol-tourney{% endblock %}
 {% load static humanize media_derivatives %}
 
 {% block title %}{{ tournament.name }} | {{ brand.name }}{% endblock %}
@@ -10,18 +11,15 @@
 <link rel="stylesheet" href="{% static 'tournaments/css/bracket-demo.css' %}?v=20260427a">
 <link rel="stylesheet" href="{% static 'css/td-mobile.css' %}?v=20260622" media="(max-width:1023px)">
 <style>
+    /* One accent for every game: brand saffron. Game identity comes from the game name and artwork, not from recolouring the page. */
     :root {
-        --theme-primary: {{ game_spec.primary_color|default:"#00E5FF" }};
-        --theme-rgb: {{ game_spec.primary_color_rgb|default:"0, 229, 255" }};
+        --theme-primary: var(--ol-saffron, #E2B761);
+        --theme-rgb: 226, 183, 97;
     }
 
     body {
-        background:
-            radial-gradient(1100px 620px at 50% -8%, rgba(var(--theme-rgb), 0.24), transparent 64%),
-            radial-gradient(780px 460px at 100% 0%, rgba(var(--theme-rgb), 0.14), transparent 62%),
-            radial-gradient(900px 520px at 10% 0%, rgba(255, 255, 255, 0.05), transparent 65%),
-            #030305;
-        color: #FAFAFA;
+        background: var(--ol-canvas, #0B0C0C);
+        color: var(--ol-text, #F6F1E7);
         overflow-x: hidden;
     }
     ::-webkit-scrollbar { width: 6px; height: 6px; }
@@ -33,73 +31,47 @@
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-    .theme-valorant { --theme-primary: #FF4655; --theme-rgb: 255, 70, 85; }
-    .theme-efootball { --theme-primary: #00E5FF; --theme-rgb: 0, 229, 255; }
-    .theme-pubgm { --theme-primary: #F2A900; --theme-rgb: 242, 169, 0; }
 
     .theme-text { color: var(--theme-primary) !important; }
     .theme-bg { background-color: var(--theme-primary) !important; }
     .theme-border { border-color: var(--theme-primary) !important; }
-    .theme-glow { box-shadow: 0 0 30px rgba(var(--theme-rgb), 0.3) !important; }
-    .theme-glow-text { text-shadow: 0 0 18px rgba(var(--theme-rgb), 0.4); }
+    .theme-glow { box-shadow: none !important; }
+    .theme-glow-text { text-shadow: none; }
 
-    .official-glow {
-        background: linear-gradient(90deg, #FFD700, #FFA500, #FFD700);
-        background-size: 200% 200%;
-        animation: gradientX 3s ease infinite;
-    }
+    .official-glow { background: var(--ol-saffron, #E2B761); }
 
     .glass-extreme {
-        background: rgba(14, 14, 18, 0.65);
-        backdrop-filter: blur(24px) saturate(120%);
-        border: 1px solid rgba(255, 255, 255, 0.07);
-        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 10px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(var(--theme-rgb), 0.07);
-        transition: all 0.3s ease;
+        background: var(--ol-surface, #17181A);
+        border: 1px solid var(--ol-border, #38332C);
+        box-shadow: none;
     }
 
     .glass-panel {
-        background: rgba(20, 20, 25, 0.4);
-        border: 1px solid rgba(255, 255, 255, 0.05);
-        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        background: var(--ol-surface, #17181A);
+        border: 1px solid var(--ol-border, #38332C);
     }
 
     .glass-panel:hover {
-        border-color: rgba(var(--theme-rgb), 0.3);
-        background: rgba(25, 25, 30, 0.6);
+        border-color: var(--ol-border-strong, #5a5042);
     }
 
     .hero-mask {
-        background: linear-gradient(to top, #030305 0%, rgba(3, 3, 5, 0.76) 30%, rgba(3, 3, 5, 0.28) 70%, rgba(3, 3, 5, 0.02) 100%);
-    }
-
-    .theme-valorant .hero-mask {
-        background: linear-gradient(to top, #030305 0%, rgba(16, 6, 8, 0.8) 30%, rgba(28, 8, 10, 0.36) 70%, rgba(255, 70, 85, 0.14) 100%);
-    }
-
-    .theme-pubgm .hero-mask {
-        background: linear-gradient(to top, #030305 0%, rgba(18, 14, 5, 0.8) 30%, rgba(38, 24, 6, 0.36) 70%, rgba(242, 169, 0, 0.14) 100%);
-    }
-
-    .theme-efootball .hero-mask {
-        background: linear-gradient(to top, #030305 0%, rgba(4, 10, 15, 0.8) 30%, rgba(6, 20, 25, 0.36) 70%, rgba(0, 229, 255, 0.14) 100%);
+        background: linear-gradient(to top, var(--ol-canvas, #0B0C0C) 0%, rgba(11, 12, 12, 0.7) 40%, rgba(11, 12, 12, 0.1) 100%);
     }
 
     .mood-surface {
-        background: linear-gradient(140deg, rgba(var(--theme-rgb), 0.24), rgba(15, 15, 20, 0.84));
-        border: 1px solid rgba(var(--theme-rgb), 0.32);
-        box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45), inset 0 0 0 1px rgba(var(--theme-rgb), 0.12);
+        background: var(--ol-surface, #17181A);
+        border: 1px solid var(--ol-border, #38332C);
+        box-shadow: none;
     }
 
     .runtime-strip {
-        background: linear-gradient(135deg, rgba(var(--theme-rgb), 0.16), rgba(7, 7, 10, 0.78));
-        border: 1px solid rgba(var(--theme-rgb), 0.28);
-        box-shadow: 0 10px 26px rgba(0, 0, 0, 0.45);
+        background: var(--ol-surface, #17181A);
+        border: 1px solid var(--ol-border, #38332C);
+        box-shadow: none;
     }
 
-    .mood-pulse {
-        box-shadow: 0 0 0 rgba(var(--theme-rgb), 0.45);
-        animation: moodPulse 2.4s ease-out infinite;
-    }
+    .mood-pulse { box-shadow: none; }
 
     .status-step {
         border: 1px solid rgba(255, 255, 255, 0.08);
@@ -778,8 +750,8 @@
     </div>
 
     <div class="hidden lg:block">
-    <div class="relative w-full aspect-[16/9] xl:aspect-[3/1] min-h-[360px] lg:min-h-[460px] flex flex-col justify-end pt-24 border-b border-white/5">
-        <div class="absolute inset-0 z-0 overflow-hidden bg-black">
+    <div class="relative w-full min-h-[280px] flex flex-col justify-end pt-24 border-b border-white/5">
+        <div class="absolute inset-0 z-0 overflow-hidden" style="background:var(--ol-surface)">
             {% if tournament.promo_video_url and is_registration_phase %}
             <a href="{{ tournament.promo_video_url }}" target="_blank" rel="noopener" class="absolute inset-0 w-full h-full opacity-45 block">
                 <div class="absolute inset-0 flex items-center justify-center border border-white/10 m-16 rounded-[2rem] bg-black/35 backdrop-blur-md">
@@ -792,15 +764,11 @@
             <img {% image_attrs tournament.banner_image "card,large,hero" "100vw" %} alt="{{ tournament.name }}" class="w-full h-full object-cover opacity-80 mix-blend-screen transform scale-105 hover:scale-100 transition-transform duration-[20s]">
             {% elif tournament.thumbnail_image %}
             <img {% image_attrs tournament.thumbnail_image "card,large,hero" "100vw" %} alt="{{ tournament.name }}" class="w-full h-full object-cover opacity-74 mix-blend-screen transform scale-105 hover:scale-100 transition-transform duration-[20s]">
-            {% else %}
-            <img src="{% static brand.social_image %}" alt="{{ tournament.name }}" class="w-full h-full object-cover opacity-56 mix-blend-screen transform scale-105 hover:scale-100 transition-transform duration-[20s]">
             {% endif %}
             {% endif %}
 
             <div class="absolute inset-0 hero-mask"></div>
             <div class="absolute inset-0 bg-gradient-to-b from-black/8 via-black/5 to-[#030305]/96"></div>
-            <div class="absolute inset-0 opacity-[0.08] noise-overlay mix-blend-overlay"></div>
-            <div class="absolute left-[-12%] top-[8%] w-[34rem] h-[34rem] rounded-full blur-[120px] opacity-35 pointer-events-none theme-bg"></div>
         </div>
 
         <div class="relative z-10 max-w-[1800px] mx-auto w-full px-4 sm:px-6 lg:px-8 pb-12">
@@ -808,9 +776,7 @@
                 <div class="lg:col-span-8">
                     <div class="flex flex-wrap items-center gap-3 mb-6">
                         {% if tournament.is_official %}
-                        <div class="official-glow px-4 py-1.5 rounded-lg text-black text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 shadow-[0_0_20px_rgba(255,215,0,0.4)]">
-                            <i data-lucide="shield-check" class="w-3.5 h-3.5"></i> Official Event
-                        </div>
+                        <span class="ol-badge ol-badge--accent"><i data-lucide="shield-check" class="w-3.5 h-3.5" aria-hidden="true"></i> Official event</span>
                         {% endif %}
 
                         <div class="px-3 py-1.5 rounded text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 border {% if is_live_phase %}theme-bg/10 theme-border theme-text theme-glow{% elif tournament_phase == 'registration_open' %}bg-green-500/10 border-green-500/30 text-green-400{% elif tournament_phase == 'registration_closed' %}bg-yellow-500/10 border-yellow-500/30 text-yellow-400{% elif is_completed_phase %}bg-gray-500/10 border-gray-500/30 text-gray-300{% elif is_cancelled %}bg-red-500/10 border-red-500/30 text-red-300{% else %}bg-gray-500/10 border-gray-500/30 text-gray-400{% endif %}">
@@ -850,9 +816,9 @@
                         {% endif %}
                     </div>
 
-                    <h1 class="font-display font-black text-white tracking-tighter mb-6 drop-shadow-[0_12px_36px_rgba(0,0,0,0.75)] uppercase leading-[0.92]">
-                        <span class="block text-4xl md:text-6xl lg:text-7xl">{{ tournament.name }}</span>
-                        <span class="block mt-2 font-gaming text-sm md:text-base tracking-[0.38em] theme-text theme-glow-text">{{ game_spec.display_name }}</span>
+                    <h1 class="ol-h1 mb-6" style="font-size:clamp(2rem,4.5vw,3.25rem);">
+                        <span class="block">{{ tournament.name }}</span>
+                        <span class="block mt-2 text-base font-medium" style="color:var(--ol-text-muted);letter-spacing:0;">{{ game_spec.display_name }}</span>
                     </h1>
 
                     <div class="flex flex-wrap items-center gap-4 mb-8 bg-black/35 w-max pr-6 pl-2 py-2 rounded-full border border-white/10 backdrop-blur-md">
@@ -883,7 +849,7 @@
                         <div>
                             <p class="text-[10px] font-bold text-gray-300 uppercase tracking-widest mb-2 flex items-center gap-2"><i data-lucide="trophy" class="w-4 h-4 text-dc-gold"></i> Prize Pool</p>
                             <div class="flex items-baseline gap-2">
-                                <p class="font-display font-black text-4xl lg:text-[2.9rem] text-white tracking-tight">{% if tournament.prize_pool %}৳{{ tournament.prize_pool|floatformat:0|intcomma }}{% else %}TBA{% endif %}</p>
+                                <p class="font-display font-black {% if tournament.prize_pool %}text-4xl lg:text-[2.9rem]{% else %}text-2xl{% endif %} text-white tracking-tight">{% if tournament.prize_pool %}৳{{ tournament.prize_pool|floatformat:0|intcomma }}{% else %}No prize pool{% endif %}</p>
                                 {% if tournament.prize_deltacoin %}
                                 <p class="text-xs font-bold text-dc-cyan bg-dc-cyan/10 px-2 py-1 rounded">+ {{ tournament.prize_deltacoin|intcomma }} {{ brand.features.coins }}</p>
                                 {% endif %}
@@ -992,9 +958,9 @@
                             {% elif countdown_target and countdown_label %}
                             {{ countdown_label }}
                             {% elif effective_status == 'live' %}
-                            Live Runtime
+                            Live now
                             {% else %}
-                            Tournament Runtime
+                            Status
                             {% endif %}
                         </p>
                         <p id="nd-tab-runtime-secondary" class="text-[10px] font-mono text-gray-200 mt-1" {% if user_next_match or countdown_target %}data-runtime-locked="true"{% endif %}>
@@ -1020,27 +986,11 @@
         <div class="grid grid-cols-1 xl:grid-cols-12 gap-8 xl:gap-12 relative">
             <div class="space-y-10 min-h-[800px]" :class="activeTab === 'bracket' ? 'xl:col-span-12' : 'xl:col-span-8'">
                 <div x-show="activeTab === 'overview'" x-transition.opacity class="space-y-8" x-cloak>
-                    <div class="flex flex-wrap gap-3">
-                        <span class="px-3 py-1.5 bg-black/40 border border-white/5 rounded-lg text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2"><i data-lucide="server" class="w-3 h-3 text-dc-cyan"></i> Live Updates Enabled</span>
-                        {% if tournament.rules_pdf %}
-                        <span class="px-3 py-1.5 bg-black/40 border border-white/5 rounded-lg text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2"><i data-lucide="award" class="w-3 h-3 text-dc-gold"></i> Rulebook Published</span>
-                        {% endif %}
-                        {% if has_social_links %}
-                        <span class="px-3 py-1.5 bg-black/40 border border-white/5 rounded-lg text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2"><i data-lucide="users" class="w-3 h-3 text-dc-purple"></i> Community Links Active</span>
-                        {% endif %}
-                        {% if show_standings and standings_primary %}
-                        <span class="px-3 py-1.5 bg-black/40 border border-white/5 rounded-lg text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2"><i data-lucide="bar-chart-3" class="w-3 h-3 theme-text"></i> Standings Available</span>
-                        {% endif %}
-                        {% if has_streams and featured_stream %}
-                        <span class="px-3 py-1.5 bg-black/40 border border-white/5 rounded-lg text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 {% if featured_stream.is_live %}theme-text{% else %}text-gray-400{% endif %}"><i data-lucide="radio" class="w-3 h-3"></i> {% if featured_stream.is_live %}Broadcast Live{% else %}Broadcast Ready{% endif %}</span>
-                        {% endif %}
-                    </div>
-
                         <div class="mood-surface p-7 md:p-9 rounded-[2rem] relative overflow-hidden">
                             <div class="absolute -right-20 -top-20 w-64 h-64 rounded-full blur-[100px] opacity-30 theme-bg"></div>
-                            <div class="grid grid-cols-1 lg:grid-cols-5 gap-6 relative z-10">
-                                <div class="lg:col-span-3 max-w-3xl">
-                                    <h2 class="font-display font-bold text-3xl text-white mb-4">Tournament Brief</h2>
+                            <div class="grid grid-cols-1 gap-6 relative z-10">
+                                <div class="max-w-3xl">
+                                    <h2 class="font-display font-bold text-2xl text-white mb-4">About this tournament</h2>
                                     <div class="prose prose-invert prose-sm md:prose-base max-w-none text-gray-200 leading-relaxed">
                                         {% if tournament.description %}
                                         <div>{{ tournament.description|safe }}</div>
@@ -1048,40 +998,7 @@
                                         <p>Organizer has not published a detailed description yet.</p>
                                         {% endif %}
                                     </div>
-                                    <p class="mt-4 text-sm text-gray-300 leading-relaxed max-w-2xl">Check in before the window closes, or your slot may be released.</p>
-                                </div>
-                                <div class="lg:col-span-2 space-y-3">
-                                    <div class="glass-panel rounded-xl p-4 border border-white/10">
-                                        <p class="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1">Status</p>
-                                        <p class="text-lg font-bold text-white">{{ effective_status_display }}</p>
-                                        <p class="mt-1 text-xs text-gray-300">
-                                            {% if user_next_match and user_next_match_lobby_open %}
-                                            Lobby is currently open for your next match.
-                                            {% elif user_next_match and user_next_match_lobby_opens_at %}
-                                            Lobby opens at {{ user_next_match_lobby_opens_at|date:detail_time_only_format }}.
-                                            {% elif effective_status == 'live' %}
-                                            Tournament execution is in progress.
-                                            {% elif effective_status == 'registration_open' %}
-                                            Registration is active and accepting entries.
-                                            {% else %}
-                                            Updated automatically.
-                                            {% endif %}
-                                        </p>
-                                    </div>
-                                    <div class="glass-panel rounded-xl p-4 border border-white/10">
-                                        <p class="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1">Phase Timing</p>
-                                        <p class="text-sm font-semibold text-white">
-                                            {% if user_next_match and user_next_match.scheduled_time %}
-                                            Next match {{ user_next_match.scheduled_time|date:detail_datetime_format }}
-                                            {% elif tournament_phase == 'registration_open' and tournament.registration_end %}
-                                            Registration closes {{ tournament.registration_end|date:detail_datetime_format }}
-                                            {% elif tournament.tournament_start %}
-                                            Tournament starts {{ tournament.tournament_start|date:detail_datetime_format }}
-                                            {% else %}
-                                            Schedule pending organizer publish
-                                            {% endif %}
-                                        </p>
-                                    </div>
+                                    {% if not is_completed_phase and not is_cancelled %}<p class="mt-4 text-sm text-gray-300 leading-relaxed max-w-2xl">If check-in is required, check in before the window closes or your slot may be released.</p>{% endif %}
                                 </div>
                             </div>
                         </div>
@@ -1107,13 +1024,7 @@
                         <div class="glass-panel p-5 rounded-2xl flex flex-col justify-center border-l-2 theme-border">
                             <i data-lucide="wallet" class="w-5 h-5 theme-text mb-3"></i>
                             <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Entry</p>
-                            <p class="font-bold text-white text-sm">{% if tournament.has_entry_fee %}{{ tournament.entry_fee_currency }} {{ tournament.entry_fee_amount|floatformat:0|intcomma }}{% else %}Free Entry{% endif %}</p>
-                        </div>
-
-                        <div class="glass-panel p-5 rounded-2xl flex flex-col justify-center">
-                            <i data-lucide="users-round" class="w-5 h-5 text-gray-500 mb-3"></i>
-                            <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Slot Fill</p>
-                            <p class="font-bold text-white text-sm"><span data-slots-filled>{{ slots_filled }}</span> / <span data-slots-total>{{ slots_total }}</span> ({{ slots_percentage|floatformat:0 }}%)</p>
+                            <p class="font-bold text-white text-sm">{% if tournament.has_entry_fee %}{% if tournament.entry_fee_currency == 'BDT' %}৳{% else %}{{ tournament.entry_fee_currency }} {% endif %}{{ tournament.entry_fee_amount|floatformat:0|intcomma }}{% else %}Free Entry{% endif %}</p>
                         </div>
 
                         {% if tournament.check_in_minutes_before %}
@@ -1238,7 +1149,7 @@
                                     <i data-lucide="map-pin" class="w-4 h-4 text-dc-purple"></i>
                                     <span class="text-[10px] font-bold text-dc-purple uppercase tracking-widest">Offline Venue Details</span>
                                 </div>
-                                <h3 class="font-display font-bold text-3xl text-white mb-2">{{ tournament.venue_name|default:'Venue TBA' }}</h3>
+                                <h3 class="font-display font-bold text-3xl text-white mb-2">{{ tournament.venue_name|default:'Venue to be announced' }}</h3>
                                 <p class="text-sm text-gray-400 mb-6">{{ tournament.venue_address|default:'Venue details will be announced by organizer.' }}</p>
 
                                 {% if tournament.venue_map_url %}
@@ -1585,8 +1496,8 @@
                         <div class="absolute inset-0 bg-gradient-to-r from-dc-gold via-transparent to-dc-gold opacity-30 group-hover:opacity-50 transition-opacity duration-700"></div>
                         <div class="relative glass-extreme rounded-[calc(2rem-1px)] p-8 md:p-12 overflow-hidden flex flex-col items-center text-center">
                             <div class="absolute top-0 right-0 w-96 h-96 bg-dc-gold/10 rounded-full blur-[100px] pointer-events-none"></div>
-                            <p class="font-gaming text-dc-gold font-bold uppercase tracking-[0.3em] mb-4 flex items-center gap-2"><i data-lucide="trophy" class="w-4 h-4"></i> Guaranteed Prize Pool</p>
-                            <h1 class="font-display font-black text-5xl md:text-7xl lg:text-9xl text-white tracking-tighter drop-shadow-[0_0_30px_rgba(255,215,0,0.15)] mb-4">{% if tournament.prize_pool %}৳{{ tournament.prize_pool|floatformat:0|intcomma }}{% else %}TBA{% endif %}</h1>
+                            <p class="font-gaming text-dc-gold font-bold uppercase tracking-[0.3em] mb-4 flex items-center gap-2"><i data-lucide="trophy" class="w-4 h-4"></i> Prize pool</p>
+                            <h1 class="font-display font-black text-5xl md:text-7xl lg:text-9xl text-white tracking-tighter drop-shadow-[0_0_30px_rgba(255,215,0,0.15)] mb-4">{% if tournament.prize_pool %}৳{{ tournament.prize_pool|floatformat:0|intcomma }}{% else %}No prize pool listed{% endif %}</h1>
                             {% if tournament.prize_deltacoin %}
                             <div class="flex items-center gap-3 bg-white/5 border border-white/10 px-6 py-2 rounded-full backdrop-blur-md mt-2">
                                 <span class="text-xs font-bold text-gray-400 uppercase tracking-widest">Ecosystem Bonus</span>
@@ -1614,8 +1525,8 @@
                                 {% if winner.team and winner.team.logo %}
                                 <img src="{% image_url winner.team.logo 'thumb' %}" alt="" class="w-12 h-12 rounded-xl mx-auto mb-2 object-cover border border-white/10">
                                 {% endif %}
-                                <p class="font-bold text-white text-base">{% if winner.team %}{{ winner.team.name }}{% elif winner.player %}{{ winner.player.username }}{% else %}TBA{% endif %}</p>
-                                <p class="font-mono font-bold text-lg mt-1 {% if forloop.first %}text-dc-gold{% else %}text-gray-300{% endif %}">{% if winner.prize_amount %}৳{{ winner.prize_amount|floatformat:0|intcomma }}{% else %}TBA{% endif %}</p>
+                                <p class="font-bold text-white text-base">{% if winner.team %}{{ winner.team.name }}{% elif winner.player %}{{ winner.player.username }}{% else %}Not recorded{% endif %}</p>
+                                <p class="font-mono font-bold text-lg mt-1 {% if forloop.first %}text-dc-gold{% else %}text-gray-300{% endif %}">{% if winner.prize_amount %}৳{{ winner.prize_amount|floatformat:0|intcomma }}{% else %}—{% endif %}</p>
                             </div>
                             {% endfor %}
                         </div>
@@ -1633,9 +1544,9 @@
                             <div class="flex items-center justify-between p-6 hover:bg-white/[0.02] transition-colors group">
                                 <div class="flex items-center gap-6">
                                     <div class="w-12 h-12 rounded-xl bg-black/50 border border-white/5 flex items-center justify-center font-display font-bold text-gray-400 text-lg group-hover:border-dc-cyan/30 transition-colors">{{ forloop.counter }}{% if forloop.counter == 1 %}st{% elif forloop.counter == 2 %}nd{% else %}rd{% endif %}</div>
-                                    <span class="font-bold text-white text-base">{% if winner.team %}{{ winner.team.name }}{% elif winner.player %}{{ winner.player.username }}{% else %}TBA{% endif %}</span>
+                                    <span class="font-bold text-white text-base">{% if winner.team %}{{ winner.team.name }}{% elif winner.player %}{{ winner.player.username }}{% else %}Not recorded{% endif %}</span>
                                 </div>
-                                <span class="font-display font-bold text-2xl text-white">{% if winner.prize_amount %}৳{{ winner.prize_amount|floatformat:0|intcomma }}{% else %}TBA{% endif %}</span>
+                                <span class="font-display font-bold text-2xl text-white">{% if winner.prize_amount %}৳{{ winner.prize_amount|floatformat:0|intcomma }}{% else %}—{% endif %}</span>
                             </div>
                             {% endfor %}
                             {% else %}
@@ -1647,7 +1558,7 @@
                                         <p class="text-[10px] text-gray-500 uppercase tracking-widest mt-0.5">Champion</p>
                                     </div>
                                 </div>
-                                <span class="font-display font-bold text-2xl text-white">{{ tournament.prize_distribution.1|default:'TBA' }}</span>
+                                <span class="font-display font-bold text-2xl text-white">{{ tournament.prize_distribution.1|default:'Not set' }}</span>
                             </div>
                             <div class="flex items-center justify-between p-6 hover:bg-white/[0.02] transition-colors group">
                                 <div class="flex items-center gap-6">
@@ -1657,7 +1568,7 @@
                                         <p class="text-[10px] text-gray-500 uppercase tracking-widest mt-0.5">Runner Up</p>
                                     </div>
                                 </div>
-                                <span class="font-display font-bold text-2xl text-white">{{ tournament.prize_distribution.2|default:'TBA' }}</span>
+                                <span class="font-display font-bold text-2xl text-white">{{ tournament.prize_distribution.2|default:'Not set' }}</span>
                             </div>
                             <div class="flex items-center justify-between p-6 hover:bg-white/[0.02] transition-colors group">
                                 <div class="flex items-center gap-6">
@@ -1667,7 +1578,7 @@
                                         <p class="text-[10px] text-gray-500 uppercase tracking-widest mt-0.5">Third Place</p>
                                     </div>
                                 </div>
-                                <span class="font-display font-bold text-2xl text-white">{{ tournament.prize_distribution.3|default:'TBA' }}</span>
+                                <span class="font-display font-bold text-2xl text-white">{{ tournament.prize_distribution.3|default:'Not set' }}</span>
                             </div>
                             {% endif %}
                         </div>
@@ -2424,7 +2335,7 @@
                                         {% else %}
                                         <i data-lucide="lock" class="w-6 h-6 text-gray-500"></i>
                                         {% endif %}
-                                        <span id="nd-action-heading" class="font-display font-bold text-2xl text-white tracking-tight">{{ detail_cta_heading }}</span>
+                                        <span id="nd-action-heading" class="font-display font-bold text-2xl text-white tracking-tight">{% if is_cancelled %}Tournament cancelled{% elif is_completed_phase %}Tournament completed{% elif is_live_phase and detail_cta_primary.disabled %}Tournament is live{% elif tournament_phase == 'registration_open' and detail_cta_primary.disabled %}Registration is open{% elif tournament_phase == 'published' %}Registration opens soon{% else %}{{ detail_cta_heading }}{% endif %}</span>
                                     </div>
                                 </div>
                             </div>
@@ -2435,7 +2346,7 @@
                                     <div class="flex justify-between items-center p-4 bg-black/50 rounded-xl border border-white/10 mb-5">
                                         <span class="text-xs font-bold text-gray-400 uppercase tracking-widest">Entry Fee</span>
                                         <div class="text-right">
-                                            <span class="font-display font-bold text-2xl text-white">{% if tournament.has_entry_fee %}{{ tournament.entry_fee_currency }} {{ tournament.entry_fee_amount|floatformat:0|intcomma }}{% else %}Free{% endif %}</span>
+                                            <span class="font-display font-bold text-2xl text-white">{% if tournament.has_entry_fee %}{% if tournament.entry_fee_currency == 'BDT' %}৳{% else %}{{ tournament.entry_fee_currency }} {% endif %}{{ tournament.entry_fee_amount|floatformat:0|intcomma }}{% else %}Free{% endif %}</span>
                                             {% if tournament.entry_fee_deltacoin %}<p class="text-[10px] text-dc-cyan font-bold">or {{ tournament.entry_fee_deltacoin|intcomma }} {{ brand.features.coins }}</p>{% endif %}
                                         </div>
                                     </div>
@@ -2477,12 +2388,19 @@
                                 <div class="text-center p-6 bg-dc-gold/5 rounded-2xl border border-dc-gold/30">
                                     <i data-lucide="crown" class="w-12 h-12 mx-auto text-dc-gold mb-3"></i>
                                     <p class="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-1">Champion</p>
-                                    <p class="font-display font-black text-3xl text-white">{% if podium.0.team %}{{ podium.0.team.name }}{% elif podium.0.player %}{{ podium.0.player.username }}{% else %}TBA{% endif %}</p>
+                                    <p class="font-display font-black text-3xl text-white">{% if podium.0.team %}{{ podium.0.team.name }}{% elif podium.0.player %}{{ podium.0.player.username }}{% else %}Not recorded{% endif %}</p>
                                 </div>
                                 {% endif %}
                             </div>
 
-                            {% if detail_cta_primary %}
+                            {% if is_live_phase and detail_cta_primary.disabled %}
+                            <a href="/tournaments/{{ tournament.slug }}/bracket/" class="ol-btn ol-btn--lg ol-btn--block ol-btn--primary"><i data-lucide="git-branch" class="w-5 h-5" aria-hidden="true"></i> View live bracket</a>
+                            {% elif is_completed_phase and detail_cta_primary.disabled %}
+                            <a href="/tournaments/{{ tournament.slug }}/results/" class="ol-btn ol-btn--lg ol-btn--block ol-btn--primary"><i data-lucide="trophy" class="w-5 h-5" aria-hidden="true"></i> View results</a>
+                            {% elif tournament_phase == 'registration_open' and detail_cta_primary.disabled and tournament.participation_type == 'team' %}
+                            <a href="/teams/find/" class="ol-btn ol-btn--lg ol-btn--block ol-btn--primary"><i data-lucide="users" class="w-5 h-5" aria-hidden="true"></i> Find a team</a>
+                            <a href="/teams/create/" class="ol-btn ol-btn--block ol-btn--secondary" style="margin-top:.5rem;">Create a team</a>
+                            {% elif detail_cta_primary %}
                             <a
                                 id="nd-primary-cta"
                                 {% if not detail_cta_primary.disabled and detail_cta_primary.url %}href="{{ detail_cta_primary.url }}"{% endif %}
@@ -2548,19 +2466,6 @@
                     </div>
 
                     <div x-show="activeTab === 'overview'" x-transition.opacity class="space-y-4" x-cloak>
-                        <div class="ecosystem-ticker rounded-2xl px-4 py-3.5">
-                            <div class="flex items-center justify-between gap-3 mb-2">
-                                <p class="text-[10px] font-bold uppercase tracking-widest text-gray-300 flex items-center gap-2"><i data-lucide="activity" class="w-3.5 h-3.5 theme-text"></i> Recent activity</p>
-                                <span class="text-[9px] uppercase tracking-widest" :class="phase === 'live' ? 'text-blue-300' : (phase === 'registration' ? 'text-green-300' : 'text-gray-400')" x-text="phase === 'live' ? 'Live activity' : (phase === 'registration' ? 'Registration activity' : 'Activity')"></span>
-                            </div>
-                            <div class="ecosystem-ticker-track">
-                                <p class="ecosystem-ticker-run text-[10px] font-mono uppercase tracking-widest" :class="phase === 'live' ? 'is-live' : (phase === 'registration' ? 'is-registration' : 'text-gray-300')" x-text="currentTickerText()"></p>
-                            </div>
-                            {% if announcements %}
-                            <p class="mt-2 text-[10px] text-gray-400 truncate">Alert: {{ announcements.0.title }}</p>
-                            {% endif %}
-                        </div>
-
                         {% include "tournaments/detailPages/widgets/_overview_widget_stack.html" %}
                     </div>
             </div>

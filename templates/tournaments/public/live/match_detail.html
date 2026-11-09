@@ -1,4 +1,5 @@
 {% extends "tournaments/base.html" %}
+{% block body_class %}ol-tourney{% endblock %}
 {% load static humanize %}
 
 {% block title %}{{ match_core.participant1_name }} vs {{ match_core.participant2_name }} - {{ tournament.name }} | {{ brand.name }}{% endblock %}
@@ -8,8 +9,8 @@
 <link rel="stylesheet" href="{% static 'css/td-mobile.css' %}?v=20260623a" media="(max-width:1023px)">
 <style>
     .match-center-shell {
-        background: radial-gradient(circle at 12% 10%, rgba(0, 240, 255, 0.06), transparent 34%),
-                    radial-gradient(circle at 88% 8%, rgba(255, 0, 60, 0.05), transparent 28%),
+        background: radial-gradient(circle at 12% 10%, rgba(226, 183, 97, 0.06), transparent 34%),
+                    radial-gradient(circle at 88% 8%, rgba(216, 128, 76, 0.05), transparent 28%),
                     #030305;
     }
     .match-glass {
@@ -23,11 +24,11 @@
         border-bottom: 1px solid rgba(255, 255, 255, 0.06);
     }
     .mc-live-glow {
-        box-shadow: 0 0 24px rgba(255, 0, 60, 0.35);
+        box-shadow: 0 0 24px rgba(216, 128, 76, 0.35);
     }
     .mc-tabs button.is-active {
-        color: #00f0ff;
-        border-color: #00f0ff;
+        color: #E2B761;
+        border-color: #E2B761;
     }
     .mc-tabs button {
         border-bottom: 2px solid transparent;
@@ -113,7 +114,7 @@
                     <span>&gt;</span>
                     <a href="{% url 'tournaments:detail' tournament.slug %}" class="hover:text-white transition">{{ tournament.name|truncatechars:32 }}</a>
                     <span>&gt;</span>
-                    <span class="text-[#00f0ff]">Match Center</span>
+                    <h1 class="text-[#E2B761]" style="margin:0;font:inherit;letter-spacing:inherit;text-transform:inherit">Match details</h1>
                 </div>
                 <div class="flex flex-wrap items-center gap-2">
                     <a href="{% url 'tournaments:bracket' tournament.slug %}" class="px-3 py-2 rounded-md border border-white/10 text-[10px] font-black uppercase tracking-widest text-gray-300 hover:text-white hover:border-white/20 transition">Bracket</a>
@@ -127,7 +128,7 @@
                     <div class="w-full aspect-video relative bg-black">
                         <div class="absolute top-3 left-3 md:top-4 md:left-4 z-10 flex gap-2">
                             {% if match_core.state == 'live' %}
-                            <span class="bg-[#ff003c]/90 backdrop-blur text-white text-[9px] md:text-[10px] font-black px-2.5 py-1 rounded uppercase tracking-widest inline-flex items-center gap-1.5 mc-live-glow"><span class="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span> Live Now</span>
+                            <span class="bg-[#D8804C]/90 backdrop-blur text-white text-[9px] md:text-[10px] font-black px-2.5 py-1 rounded uppercase tracking-widest inline-flex items-center gap-1.5 mc-live-glow"><span class="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span> Live Now</span>
                             {% elif match_core.state == 'completed' %}
                             <span class="bg-white/10 backdrop-blur text-white text-[9px] md:text-[10px] font-black px-2.5 py-1 rounded border border-white/20 uppercase tracking-widest">VOD Recording</span>
                             {% else %}
@@ -146,12 +147,12 @@
                 </div>
 
                 <div data-mc-scoreboard-wrap class="w-full py-10 md:py-14 px-4 md:px-8 relative overflow-hidden bg-gradient-to-b from-[#0a0c10] to-[#030305]">
-                    <div class="absolute top-0 left-0 w-1/2 h-full bg-[#00f0ff]/5 blur-[100px]"></div>
-                    <div class="absolute top-0 right-0 w-1/2 h-full bg-[#ff003c]/5 blur-[100px]"></div>
+                    <div class="absolute top-0 left-0 w-1/2 h-full bg-[#E2B761]/5 blur-[100px]"></div>
+                    <div class="absolute top-0 right-0 w-1/2 h-full bg-[#D8804C]/5 blur-[100px]"></div>
                     <div class="flex flex-col items-center relative z-10 w-full">
                         <div class="mb-5">
                             {% if match_core.state == 'live' %}
-                            <span id="mc-state-pill" class="px-3 py-1 text-[10px] font-black uppercase tracking-widest rounded-full bg-[#ff003c]/10 text-[#ff5a83] border border-[#ff003c]/30 mc-live-glow">Live Operation</span>
+                            <span id="mc-state-pill" class="px-3 py-1 text-[10px] font-black uppercase tracking-widest rounded-full bg-[#D8804C]/10 text-[#ff5a83] border border-[#D8804C]/30 mc-live-glow">Live Operation</span>
                             {% elif match_core.state == 'completed' %}
                             <span id="mc-state-pill" class="px-3 py-1 text-[10px] font-black uppercase tracking-widest rounded-full bg-emerald-500/12 text-emerald-300 border border-emerald-500/30">Final Result</span>
                             {% else %}
@@ -171,14 +172,14 @@
                                     <span class="text-xl font-black text-white">{{ match_core.participant1_name|truncatechars:2|upper }}</span>
                                     {% endif %}
                                 </div>
-                                <h3 id="mc-team1-name" data-mc-team1-name class="font-display font-black text-lg md:text-xl text-white text-center">{{ match_core.participant1_name }}</h3>
+                                <h2 id="mc-team1-name" data-mc-team1-name class="font-display font-black text-lg md:text-xl text-white text-center">{{ match_core.participant1_name }}</h2>
                             </div>
 
                             <div class="flex flex-col items-center justify-center my-2 md:my-0">
                                 <div class="font-tech font-black text-5xl md:text-6xl text-white tracking-widest flex items-center gap-3 md:gap-4 bg-white/5 md:bg-transparent px-6 py-2 rounded-xl border border-white/5 md:border-none">
-                                    <span id="mc-score1" class="{% if match_core.winner_id and match_core.winner_id == match_core.participant1_id %}text-[#00f0ff]{% endif %}">{{ match_core.participant1_score }}</span>
+                                    <span id="mc-score1" class="{% if match_core.winner_id and match_core.winner_id == match_core.participant1_id %}text-[#E2B761]{% endif %}">{{ match_core.participant1_score }}</span>
                                     <span class="text-2xl text-gray-600">-</span>
-                                    <span id="mc-score2" class="{% if match_core.winner_id and match_core.winner_id == match_core.participant2_id %}text-[#00f0ff]{% endif %}">{{ match_core.participant2_score }}</span>
+                                    <span id="mc-score2" class="{% if match_core.winner_id and match_core.winner_id == match_core.participant2_id %}text-[#E2B761]{% endif %}">{{ match_core.participant2_score }}</span>
                                 </div>
                                 <p id="mc-subline" data-mc-subline class="text-[10px] md:text-xs text-gray-500 font-bold uppercase tracking-widest mt-3">{{ match_presentation.subline }}</p>
                             </div>
@@ -191,7 +192,7 @@
                                     <span class="text-xl font-black text-white">{{ match_core.participant2_name|truncatechars:2|upper }}</span>
                                     {% endif %}
                                 </div>
-                                <h3 id="mc-team2-name" data-mc-team2-name class="font-display font-black text-lg md:text-xl text-white text-center">{{ match_core.participant2_name }}</h3>
+                                <h2 id="mc-team2-name" data-mc-team2-name class="font-display font-black text-lg md:text-xl text-white text-center">{{ match_core.participant2_name }}</h2>
                             </div>
                         </div>
                         {% endif %}
@@ -199,7 +200,7 @@
                         {% with md=match_metadata %}
                         {% if md.map or md.server or md.game_mode or md.best_of > 1 %}
                         <div class="flex flex-wrap items-center justify-center gap-2 mt-4">
-                          {% if md.best_of > 1 %}<span class="px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-[10px] font-black text-[#00f0ff] uppercase tracking-wider">BO{{ md.best_of }}</span>{% endif %}
+                          {% if md.best_of > 1 %}<span class="px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-[10px] font-black text-[#E2B761] uppercase tracking-wider">BO{{ md.best_of }}</span>{% endif %}
                           {% if md.map %}<span class="px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-[10px] font-bold text-gray-300 flex items-center gap-1.5"><i data-lucide="map" class="w-2.5 h-2.5"></i> {{ md.map }}</span>{% endif %}
                           {% if md.server %}<span class="px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-[10px] font-bold text-gray-400 flex items-center gap-1.5"><i data-lucide="server" class="w-2.5 h-2.5"></i> {{ md.server }}</span>{% endif %}
                           {% if md.game_mode %}<span class="px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-[10px] font-bold text-gray-400">{{ md.game_mode }}</span>{% endif %}
@@ -234,7 +235,7 @@
                 {% if match_presentation.show_stats %}
                 {% include match_stats.partial %}
                 {% else %}
-                <div class="p-6 text-sm text-gray-400">Stats are hidden for this match by Match Center settings.</div>
+                <div class="p-6 text-sm text-gray-400">Stats are hidden for this match by Match details settings.</div>
                 {% endif %}
 
                 {% if maps %}
@@ -328,7 +329,7 @@
         <aside class="lg:col-span-4 space-y-6">
             <div class="match-glass rounded-2xl p-5 md:p-6 border-t border-t-white/10">
                 <h3 class="text-xs font-black text-white uppercase tracking-widest mb-4 flex items-center gap-2">
-                    <i data-lucide="info" class="w-4 h-4 text-[#00f0ff]"></i> Operation Intel
+                    <i data-lucide="info" class="w-4 h-4 text-[#E2B761]"></i> Match details
                 </h3>
                 <dl class="space-y-3 text-xs md:text-sm mc-kv">
                     <div class="flex justify-between border-b border-white/5 pb-2">
@@ -355,11 +356,11 @@
             </div>
 
             <div id="mc-fan-pulse-card" class="{% if not match_poll.enabled or not match_presentation.show_fan_pulse %}hidden {% endif %}match-glass rounded-2xl p-5 md:p-6 relative overflow-hidden border-t border-t-white/10">
-                <div class="absolute top-[-50px] left-[-50px] w-40 h-40 bg-[#00f0ff]/10 rounded-full blur-[50px] pointer-events-none"></div>
+                <div class="absolute top-[-50px] left-[-50px] w-40 h-40 bg-[#E2B761]/10 rounded-full blur-[50px] pointer-events-none"></div>
                 <div class="flex items-center justify-between mb-5 relative z-10">
                     <div class="flex items-center gap-2">
-                        <span class="w-2 h-2 rounded-full bg-[#00f0ff] animate-pulse"></span>
-                        <span class="text-xs font-black text-white uppercase tracking-widest">Fan Pulse</span>
+                        <span class="w-2 h-2 rounded-full bg-[#E2B761] animate-pulse"></span>
+                        <span class="text-xs font-black text-white uppercase tracking-widest">Fan prediction</span>
                     </div>
                     <span id="mc-poll-total" class="text-[10px] text-gray-400 font-mono">{{ match_poll.total_votes }} votes</span>
                 </div>
@@ -369,21 +370,21 @@
                         {% for option in match_poll.options %}
                         <button
                             type="button"
-                            class="mc-vote-option w-full rounded-xl bg-white/5 border {% if option.is_user_choice %}border-[#00f0ff]/55{% else %}border-white/10{% endif %} p-3 text-left hover:border-[#00f0ff]/40 transition-colors"
+                            class="mc-vote-option w-full rounded-xl bg-white/5 border {% if option.is_user_choice %}border-[#E2B761]/55{% else %}border-white/10{% endif %} p-3 text-left hover:border-[#E2B761]/40 transition-colors"
                             data-fan-pulse-vote="{{ option.id }}"
                             data-mc-poll-index="{{ forloop.counter0 }}"
                             {% if not match_poll.viewer_can_vote %}disabled{% endif %}
                         >
-                            <div data-mc-poll-fill class="mc-vote-option-fill {% if forloop.first %}bg-[#00f0ff]/20{% else %}bg-[#ff003c]/20{% endif %}" style="width: {{ option.percent }}%"></div>
+                            <div data-mc-poll-fill class="mc-vote-option-fill {% if forloop.first %}bg-[#E2B761]/20{% else %}bg-[#D8804C]/20{% endif %}" style="width: {{ option.percent }}%"></div>
                             <div class="mc-vote-option-body flex justify-between items-center gap-3">
                                 <span data-mc-poll-label class="text-sm font-bold text-white truncate pr-2">{{ option.label }}</span>
-                                <span data-mc-poll-percent class="text-sm font-black {% if forloop.first %}text-[#00f0ff]{% else %}text-[#ff5a83]{% endif %}">{{ option.percent }}%</span>
+                                <span data-mc-poll-percent class="text-sm font-black {% if forloop.first %}text-[#E2B761]{% else %}text-[#ff5a83]{% endif %}">{{ option.percent }}%</span>
                             </div>
                         </button>
                         {% endfor %}
                     </div>
                     {% if not match_poll.viewer_can_vote %}
-                    <p class="text-[11px] text-gray-400 mt-3">Sign in to cast your vote. <a href="{{ viewer_login_url }}" class="text-[#00f0ff] hover:text-white transition-colors">Login</a></p>
+                    <p class="text-[11px] text-gray-400 mt-3">Sign in to cast your vote. <a href="{{ viewer_login_url }}" class="text-[#E2B761] hover:text-white transition-colors">Login</a></p>
                     {% endif %}
                 </div>
             </div>
@@ -395,7 +396,7 @@
                 </h3>
                 {% if lobby_open_for_participant %}
                 <p class="text-[11px] text-gray-300 mb-4">Lobby access is open. Enter the match room for check-in, result submission, and official coordination.</p>
-                <a href="{% url 'tournaments:match_room' tournament.slug match.id %}" class="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-[#00f0ff] text-black text-[11px] font-black uppercase tracking-widest hover:opacity-90 transition-opacity">Enter Match Room <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i></a>
+                <a href="{% url 'tournaments:match_room' tournament.slug match.id %}" class="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-[#E2B761] text-black text-[11px] font-black uppercase tracking-widest hover:opacity-90 transition-opacity">Enter Match Room <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i></a>
                 {% else %}
                 <p class="text-[11px] text-gray-300">Lobby unlocks 30 minutes before kickoff.
                     {% if lobby_window_opens_at %}Opens at {{ lobby_window_opens_at|date:'M d, g:i A' }}.{% endif %}
@@ -473,7 +474,7 @@
             const statePill = document.getElementById('mc-state-pill');
             if (statePill) {
                 if (match.state === 'live') {
-                    statePill.className = 'px-3 py-1 text-[10px] font-black uppercase tracking-widest rounded-full bg-[#ff003c]/10 text-[#ff5a83] border border-[#ff003c]/30 mc-live-glow';
+                    statePill.className = 'px-3 py-1 text-[10px] font-black uppercase tracking-widest rounded-full bg-[#D8804C]/10 text-[#ff5a83] border border-[#D8804C]/30 mc-live-glow';
                     statePill.textContent = 'Live Operation';
                 } else if (match.state === 'completed') {
                     statePill.className = 'px-3 py-1 text-[10px] font-black uppercase tracking-widest rounded-full bg-emerald-500/12 text-emerald-300 border border-emerald-500/30';
@@ -488,15 +489,15 @@
         function buildPollOption(option, index) {
             const button = document.createElement('button');
             button.type = 'button';
-            button.className = 'mc-vote-option w-full rounded-xl bg-white/5 border p-3 text-left hover:border-[#00f0ff]/40 transition-colors';
-            button.classList.add(option.is_user_choice ? 'border-[#00f0ff]/55' : 'border-white/10');
+            button.className = 'mc-vote-option w-full rounded-xl bg-white/5 border p-3 text-left hover:border-[#E2B761]/40 transition-colors';
+            button.classList.add(option.is_user_choice ? 'border-[#E2B761]/55' : 'border-white/10');
             button.setAttribute('data-fan-pulse-vote', String(option.id || ''));
             button.setAttribute('data-mc-poll-index', String(index));
             if (!canVote) button.disabled = true;
 
             const percent = Math.max(0, Math.min(100, Number(option.percent || 0)));
-            const fillColor = index === 0 ? 'bg-[#00f0ff]/20' : 'bg-[#ff003c]/20';
-            const accent = index === 0 ? 'text-[#00f0ff]' : 'text-[#ff5a83]';
+            const fillColor = index === 0 ? 'bg-[#E2B761]/20' : 'bg-[#D8804C]/20';
+            const accent = index === 0 ? 'text-[#E2B761]' : 'text-[#ff5a83]';
 
             const fill = document.createElement('div');
             fill.className = 'mc-vote-option-fill ' + fillColor;
@@ -564,7 +565,7 @@
                 const button = existing[index];
                 if (!button) return;
                 const percent = Math.max(0, Math.min(100, Number(option.percent || 0)));
-                button.classList.toggle('border-[#00f0ff]/55', !!option.is_user_choice);
+                button.classList.toggle('border-[#E2B761]/55', !!option.is_user_choice);
                 button.classList.toggle('border-white/10', !option.is_user_choice);
                 const fill = button.querySelector('[data-mc-poll-fill]');
                 if (fill) fill.style.width = percent + '%';

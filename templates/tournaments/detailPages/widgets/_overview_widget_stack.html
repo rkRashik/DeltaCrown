@@ -68,7 +68,7 @@
                 <input type="text" :value="talent.name" @input="setTalentFieldFromEvent(index, 'name', $event)" class="edit-input !mb-0 col-span-5" placeholder="Name">
                 <input type="text" :value="talent.role" @input="setTalentFieldFromEvent(index, 'role', $event)" class="edit-input !mb-0 col-span-3" placeholder="Role">
                 <input type="url" :value="talent.avatar" @input="setTalentFieldFromEvent(index, 'avatar', $event)" class="edit-input !mb-0 col-span-3" placeholder="Avatar URL">
-                <button type="button" class="col-span-1 rounded border border-red-500/30 text-red-300 bg-black/50 inline-flex items-center justify-center" @click.prevent="removeTalent(index)"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
+                <button type="button" aria-label="Remove talent entry" class="col-span-1 rounded border border-red-500/30 text-red-300 bg-black/50 inline-flex items-center justify-center" @click.prevent="removeTalent(index)"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
             </div>
         </template>
         <button type="button" class="w-full mt-1 py-2 rounded-lg border border-dashed border-white/20 text-xs font-bold text-gray-300 hover:text-white hover:border-white/40 inline-flex items-center justify-center gap-2" @click.prevent="addTalentDraftRow()"><i data-lucide="plus" class="w-3.5 h-3.5"></i> Add Talent</button>
@@ -106,7 +106,7 @@
     </div>
 </section>
 
-<section id="fan-predictions" x-show="shouldShowFanPoll()" class="editable-widget rounded-3xl p-6 relative overflow-hidden bg-[#0b0b11] border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.5)] transition-all duration-200" :class="canManageWidgets ? 'is-organizer' : ''" :style="isFanPollTheme('sport') ? 'padding:0;background:transparent;border:none;box-shadow:none;' : ''" x-cloak>
+<section id="fan-predictions" x-show="shouldShowFanPoll()" class="editable-widget rounded-3xl p-6 relative overflow-hidden bg-[#0b0b11] border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.5)] transition-all duration-200" :class="canManageWidgets ? 'is-organizer' : ''" :style="isFanPollTheme('sport') ? { padding: '0', background: 'transparent', border: 'none', boxShadow: 'none' } : {}" x-cloak>
 
     <div class="relative z-10 mt-2 flex flex-wrap gap-2 mb-5" x-show="!isFanPollTheme('sport') && fanPollQuestionCount() > 1">
         <template x-for="question in fanPollQuestions()" :key="question.id">
@@ -264,8 +264,8 @@
     <button x-show="canManageWidgets" @click.prevent="toggleWidgetEditor('socials')" type="button" class="widget-quick-edit-btn absolute top-3 right-3" title="Edit social links"><i data-lucide="pencil" class="w-3.5 h-3.5"></i></button>
 
     <div x-show="!widgetUi.socials.isEditing">
-        <p class="text-[10px] font-bold uppercase tracking-widest text-gray-300 flex items-center gap-2"><i data-lucide="network" class="w-3.5 h-3.5 theme-text"></i> The Vanguard Network</p>
-        <p class="text-xs text-gray-400 mt-1">Discord, Facebook, YouTube and Instagram channels</p>
+        <p class="text-[10px] font-bold uppercase tracking-widest text-gray-300 flex items-center gap-2"><i data-lucide="network" class="w-3.5 h-3.5 theme-text"></i> Community channels</p>
+        <p class="text-xs text-gray-400 mt-1">Official links from the organizer</p>
         <div class="mt-3 flex items-center gap-2.5">
             <template x-for="channel in socialLinksList()" :key="channel.key">
                 <a :href="channel.url" target="_blank" rel="noopener" class="social-orb" :title="channel.label">

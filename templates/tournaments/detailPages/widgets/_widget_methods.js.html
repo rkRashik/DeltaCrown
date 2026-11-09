@@ -1056,8 +1056,20 @@
                 return this.canManageWidgets || this.widgetUi.bounty.show;
             },
 
+            // Visitors only see a prediction poll that an organizer actually configured: enabled, with real option
+            // names. The built-in seed ("Who will win?" / "Option A" / "Option B") is a placeholder, never content.
+            fanPollIsConfigured: function () {
+                var poll = this.tData.fanPoll || {};
+                if (!poll.enabled) { return false; }
+                return this.fanPollQuestions().some(function (q) {
+                    var opts = (q && Array.isArray(q.options)) ? q.options : [];
+                    return opts.length > 1 && opts.every(function (o) { return o && o.name && !/^option\s+[a-z0-9]+$/i.test(String(o.name).trim()); });
+                });
+            },
+
             shouldShowFanPoll: function () {
-                return this.widgetUi.poll.show && this.fanPollQuestionCount() > 0;
+                if (!(this.widgetUi.poll.show && this.fanPollQuestionCount() > 0)) { return false; }
+                return this.canManageWidgets || this.fanPollIsConfigured();
             },
 
             fanPollQuestions: function () {
