@@ -15,7 +15,7 @@
         <form action="{% url 'support:faq' %}" method="get" role="search">
           <label class="ol-sr-only" for="faq-search">Search support</label>
           <div style="display:flex;flex-wrap:wrap;gap:.75rem;">
-<input id="faq-search" name="q" value="{{ search_query }}" type="search" placeholder="Search help articles..." class="ol-input" style="flex:1 1 14rem;">
+<input id="faq-search" name="q" value="{{ search_query }}" type="search" placeholder="Search help articles..." class="ol-input" style="flex:1 1 14rem;">
             <button class="ol-btn ol-btn--primary" type="submit">Search</button>
           </div>
           {% if search_query %}
@@ -35,8 +35,8 @@
       <nav class="ol-grid" style="margin-bottom:2.5rem;" aria-label="FAQ categories">
         {% for category_name, faqs in faqs_by_category.items %}
           <a href="#{{ category_name|slugify }}" class="ol-card ol-card--link">
-<h2 class="ol-card__title">{{ category_name }}</h2>
-<p class="ol-card__text">{{ faqs|length }} article{{ faqs|length|pluralize }}</p>
+<h2 class="ol-card__title">{{ category_name }}</h2>
+<p class="ol-card__text">{{ faqs|length }} article{{ faqs|length|pluralize }}</p>
           </a>
         {% endfor %}
       </nav>
@@ -57,7 +57,7 @@
             <details class="ol-disclosure">
               <summary>{{ faq.question }}</summary>
               <div class="ol-prose" style="max-width:none;">
-{{ faq.answer|safe }}
+{{ faq.answer|safe }}
               </div>
             </details>
             {% endfor %}
@@ -74,7 +74,7 @@
       {% endif %}
 
       <div class="grid gap-4 lg:grid-cols-[280px_1fr]">
-        <aside>
+        <div>
           <nav class="ol-sidenav" aria-label="Support topics">
             <a href="#getting-started">Getting Started</a>
             <a href="#tournaments">Tournaments</a>
@@ -86,7 +86,7 @@
             <a href="#team-hq">Team HQ</a>
             <a href="#safety">Support & Safety</a>
           </nav>
-        </aside>
+        </div>
         <div class="space-y-8">
           <section id="getting-started" class="scroll-mt-24">
             <h2 class="mb-3 text-2xl font-black text-white">Getting Started</h2>

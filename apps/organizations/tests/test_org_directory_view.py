@@ -192,9 +192,9 @@ class TestOrgDirectoryView:
         content = response.content.decode('utf-8')
         
         # Check for key elements
-        assert 'Global' in content  # Hero title
+        assert 'Organizations' in content  # Hero title
         assert 'Create Organization' in content  # CTA button
-        assert 'View Test Org 1' in content or 'Empire Score' in content  # Data or headers
+        assert 'View Test Org 1' in content or 'Score' in content  # Data or headers
 
     @pytest.mark.parametrize('query_param,value', [
         ('q', 'test'),

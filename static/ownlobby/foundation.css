@@ -243,7 +243,7 @@ body .ol-footer-legacy { background-color: var(--ol-canvas); }
 .ol-aside-layout { display: grid; gap: 2rem; grid-template-columns: minmax(0, 1fr); align-items: start; }
 @media (min-width: 1024px) { .ol-aside-layout { grid-template-columns: minmax(0, 1fr) 380px; } }
 .ol-doc-layout { display: grid; gap: 2rem; grid-template-columns: minmax(0, 1fr); align-items: start; }
-@media (min-width: 1024px) { .ol-doc-layout { grid-template-columns: 260px minmax(0, 1fr); } .ol-doc-layout > aside { position: sticky; top: 6rem; } }
+@media (min-width: 1024px) { .ol-doc-layout { grid-template-columns: 260px minmax(0, 1fr); } .ol-doc-layout > :first-child { position: sticky; top: 6rem; } }
 .ol-body { padding-block: clamp(32px, 5vw, 56px); }
 .ol-doc .text-dc-cyan, .ol-doc .text-dc-gold { color: var(--ol-saffron); }
 .ol-doc .text-dc-rose { color: var(--ol-danger); }
@@ -254,3 +254,16 @@ body .ol-footer-legacy { background-color: var(--ol-canvas); }
 .ol-card--accent { border-color: rgb(226 183 97 / .35); background: rgb(226 183 97 / .06); }
 .ol-subcard { padding: 1rem; background: var(--ol-canvas); border: 1px solid var(--ol-border); border-radius: var(--ol-radius-md); }
 .ol-subcard.ol-card--accent { background: rgb(226 183 97 / .06); }
+
+/* ---------- Arena (desktop page): legacy cyan/blue utilities re-skinned with brand tokens ---------- */
+.arena-root [class*="text-cyan-"], .arena-root [class*="text-blue-"], .arena-root [class*="fill-cyan-"] { color: var(--ol-saffron); }
+.arena-root [class*="bg-cyan-"], .arena-root [class*="bg-blue-"] { background-color: rgb(226 183 97 / .14); }
+.arena-root [class*="border-cyan-"], .arena-root [class*="border-blue-"] { border-color: rgb(226 183 97 / .35); }
+.arena-root [class*="shadow-"], .arena-root .arena-glass { box-shadow: none; }
+.arena-root .arena-font-tech { font-family: var(--ol-font, Inter, system-ui, sans-serif); text-transform: none; letter-spacing: -.01em; }
+.arena-root [class*="text-slate-"], .arena-root [class*="text-gray-"] { color: var(--ol-text-muted); }
+.arena-root .text-white, .arena-root [class*="hover:text-white"]:hover { color: var(--ol-text); }
+.ol-doc p a, .ol-doc li a, .ol-doc .ol-prose a { text-decoration: underline; text-underline-offset: 3px; }
+@media (max-width: 1023px) { .ol-btn--sm { min-height: var(--ol-tap); } }
+.ol-input, .ol-select, .ol-textarea { margin: 0; box-sizing: border-box; }
+.ol-input[type="search"] { -webkit-appearance: none; appearance: none; }

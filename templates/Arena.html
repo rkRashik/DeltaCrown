@@ -18,15 +18,12 @@
 <style>
   /* --- GLOBAL ESPORTS VIBE --- */
   .arena-root {
-    --arena-cyan: #00f0ff;
-    --arena-magenta: #ff003c;
-    --arena-gold: #facc15;
-    --arena-bg: #030305;
+    --arena-cyan: var(--ol-saffron);
+    --arena-magenta: var(--ol-ember);
+    --arena-gold: var(--ol-saffron);
+    --arena-bg: var(--ol-canvas);
     background-color: var(--arena-bg);
-    background-image: 
-      radial-gradient(circle at 15% 0%, rgba(0, 240, 255, 0.04) 0%, transparent 40%),
-      radial-gradient(circle at 85% 100%, rgba(255, 0, 60, 0.03) 0%, transparent 40%);
-    background-attachment: fixed;
+    background-image: none;
     color: #f8fafc;
     min-height: calc(100vh - 4rem);
     padding-bottom: 3rem;
@@ -53,19 +50,18 @@
     position: relative;
     border-radius: 1.5rem;
     overflow: hidden;
-    background: linear-gradient(135deg, #0a0c10 0%, #111318 100%);
+    background: var(--ol-surface);
     border: 1px solid rgba(255, 255, 255, 0.06);
     padding: 2.5rem 2rem;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 2rem;
-    box-shadow: 0 20px 40px -10px rgba(0,0,0,0.5);
+    box-shadow: none;
   }
   .arena-hero::before {
     content: ''; position: absolute; inset: 0;
-    background: radial-gradient(circle at top right, rgba(0, 240, 255, 0.1), transparent 50%),
-                radial-gradient(circle at bottom left, rgba(255, 0, 60, 0.1), transparent 50%);
+    background: none;
     pointer-events: none;
   }
 
@@ -80,9 +76,9 @@
     height: 3rem;
   }
   .arena-search-shell:focus-within {
-    border-color: rgba(0, 240, 255, 0.4);
+    border-color: rgba(226, 183, 97, 0.4);
     background: rgba(0, 0, 0, 0.6);
-    box-shadow: 0 0 20px rgba(0, 240, 255, 0.1);
+    box-shadow: 0 0 20px rgba(226, 183, 97, 0.1);
   }
   .arena-search-input {
     border: 0; outline: 0; background: transparent; width: 100%;
@@ -111,9 +107,9 @@
   .arena-chip img { width: 16px; height: 16px; border-radius: 4px; object-fit: cover; }
   .arena-chip:hover { border-color: rgba(255, 255, 255, 0.3); color: #fff; }
   .arena-chip.active {
-    border-color: rgba(0, 240, 255, 0.4); color: #fff;
-    background: rgba(0, 240, 255, 0.1);
-    box-shadow: 0 0 15px rgba(0, 240, 255, 0.15);
+    border-color: rgba(226, 183, 97, 0.4); color: #fff;
+    background: rgba(226, 183, 97, 0.1);
+    box-shadow: 0 0 15px rgba(226, 183, 97, 0.15);
   }
 
   /* --- DATE SLIDER (FOTMOB STYLE) --- */
@@ -158,7 +154,7 @@
     color: #9ca3af; transition: all 0.2s; position: relative;
   }
   .cal-day:hover:not(.empty) { background: rgba(255,255,255,0.1); color: #fff; }
-  .cal-day.active { background: rgba(0,240,255,0.15); color: var(--arena-cyan); border: 1px solid rgba(0,240,255,0.3); }
+  .cal-day.active { background: rgb(226 183 97 / .15); color: var(--arena-cyan); border: 1px solid rgb(226 183 97 / .35); }
   .cal-day.has-match::after {
     content: ''; position: absolute; bottom: 4px; width: 4px; height: 4px;
     background: var(--arena-cyan); border-radius: 50%;
@@ -274,7 +270,7 @@
   .theater-video-wrapper { position: relative; width: 100%; padding-top: 56.25%; }
   .theater-video-wrapper iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0; }
   
-  .live-pulse-dot { width: 8px; height: 8px; background: var(--arena-magenta); border-radius: 50%; box-shadow: 0 0 12px rgba(255, 0, 60, 0.8); animation: pulse 2s infinite; }
+  .live-pulse-dot { width: 8px; height: 8px; background: var(--arena-magenta); border-radius: 50%; box-shadow: 0 0 12px rgba(216, 128, 76, 0.8); animation: pulse 2s infinite; }
   @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
   .arena-loading { opacity: 0.3; pointer-events: none; filter: blur(2px) grayscale(50%); transition: all 0.3s; }
 </style>
@@ -290,14 +286,10 @@
   <section class="max-w-[1600px] mx-auto px-4 md:px-6 lg:px-8 pt-8 pb-6">
     <div class="arena-hero">
       <div class="relative z-10 flex-1">
-        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-[10px] font-bold text-cyan-400 uppercase tracking-widest mb-4">
-          <i data-lucide="radio" class="w-3.5 h-3.5"></i> Global Command Center
-        </div>
-        <h1 class="arena-font-tech text-5xl md:text-6xl font-black text-white leading-none tracking-tight uppercase">
-          {{ brand.name }} <span class="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">Arena</span>
-        </h1>
+        <p class="ol-eyebrow">Matches and results</p>
+        <h1 class="ol-h1" style="font-size:clamp(2.25rem,5vw,3.5rem);">{{ brand.name }} <span style="color:var(--ol-saffron)">Arena</span></h1>
         <p class="mt-4 text-sm md:text-base text-slate-400 max-w-xl leading-relaxed">
-          The central hub for live esports broadcasts, real-time match tracking, verified results, and community predictions. Experience the ecosystem in motion.
+          Follow live matches, upcoming fixtures and verified results across every game on {{ brand.name }}.
         </p>
       </div>
       
@@ -364,7 +356,7 @@
       <section>
         <div class="flex items-center justify-between mb-4">
           <h2 class="text-sm font-black uppercase tracking-widest text-white flex items-center gap-2">
-            <span class="live-pulse-dot"></span> Featured Broadcasts
+            <span class="live-pulse-dot"></span> Featured streams
           </h2>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -410,7 +402,7 @@
       {# --- DYNAMIC MATCH CENTER (FOTMOB STYLE) --- #}
       <section>
         <div class="flex items-center gap-6 border-b border-white/10 mb-4 pb-2" id="arena-tabs">
-          <button data-arena-tab="live" class="text-sm font-black uppercase tracking-widest pb-3 border-b-2 transition-colors text-cyan-400 border-cyan-400">Live Data</button>
+          <button data-arena-tab="live" class="text-sm font-black uppercase tracking-widest pb-3 border-b-2 transition-colors text-cyan-400 border-cyan-400">Live</button>
           <button data-arena-tab="upcoming" class="text-sm font-black uppercase tracking-widest pb-3 border-b-2 transition-colors text-slate-500 border-transparent hover:text-slate-300">Fixtures</button>
           <button data-arena-tab="results" class="text-sm font-black uppercase tracking-widest pb-3 border-b-2 transition-colors text-slate-500 border-transparent hover:text-slate-300">Results</button>
         </div>
@@ -544,7 +536,7 @@
       {# --- FAN PULSE --- #}
       {% if arena_poll_widget %}
       <section class="arena-glass rounded-2xl p-6 relative overflow-hidden">
-        <div class="absolute top-[-50px] left-[-50px] w-40 h-40 bg-cyan-500/10 rounded-full blur-[50px] pointer-events-none"></div>
+        
         <div class="flex items-center justify-between mb-6 relative z-10">
           <div class="flex items-center gap-2">
             <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
@@ -611,7 +603,7 @@
             </article>
           {% empty %}
              <div class="col-span-2 text-center py-10 arena-glass rounded-2xl">
-               <p class="text-xs text-slate-500 uppercase tracking-widest">No Highlights Available</p>
+               <p class="text-xs text-slate-500 uppercase tracking-widest">No highlights yet</p>
              </div>
           {% endfor %}
         </div>
@@ -901,10 +893,10 @@ document.addEventListener("DOMContentLoaded", () => {
           }
 
           let icon = tab === 'live' ? 'crosshair' : (tab === 'upcoming' ? 'calendar-x' : 'history');
-          let text = tab === 'live' ? 'No Active Operations' : (tab === 'upcoming' ? 'No Upcoming Matches' : 'No Results Found');
+          let text = tab === 'live' ? 'Nothing live right now' : (tab === 'upcoming' ? 'No Upcoming Matches' : 'No Results Found');
           let dateLabel = document.getElementById("date-display-text")?.textContent || state.date || 'this date';
           let subText = tab === 'live'
-              ? 'Check back later for live broadcasts.'
+              ? 'Upcoming matches are listed under Fixtures.'
               : (tab === 'upcoming'
                   ? `No scheduled matches for ${dateLabel}.`
                   : `No completed matches found for ${dateLabel}.`);
@@ -1055,10 +1047,10 @@ document.addEventListener("DOMContentLoaded", () => {
                   // Results tab — premium result card
                   let scA = m.score_a != null ? m.score_a : '-';
                   let scB = m.score_b != null ? m.score_b : '-';
-                  let winnerTextA = aWin ? 'color:#00f0ff;font-weight:900' : (bWin ? 'opacity:0.45' : '');
-                  let winnerTextB = bWin ? 'color:#00f0ff;font-weight:900' : (aWin ? 'opacity:0.45' : '');
-                  let scAStyle = aWin ? 'color:#00f0ff' : '';
-                  let scBStyle = bWin ? 'color:#00f0ff' : '';
+                  let winnerTextA = aWin ? 'color:#E2B761;font-weight:900' : (bWin ? 'opacity:0.45' : '');
+                  let winnerTextB = bWin ? 'color:#E2B761;font-weight:900' : (aWin ? 'opacity:0.45' : '');
+                  let scAStyle = aWin ? 'color:#E2B761' : '';
+                  let scBStyle = bWin ? 'color:#E2B761' : '';
                   colGame = `<div class="card-col-game">
                                 ${badgeHtml}
                         ${matchTimeStatus}
@@ -1069,21 +1061,21 @@ document.addEventListener("DOMContentLoaded", () => {
                                 <div class="team-wrap right ${aClass}" style="${winnerTextA}">
                           <div class="team-tag">${teamALogoInner}</div>
                                     <span class="team-name">${escapeHtml(m.team_a)}</span>
-                                    ${aWin ? '<span style="font-size:8px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;color:#00f0ff;margin-left:4px">W</span>' : ''}
+                                    ${aWin ? '<span style="font-size:8px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;color:#E2B761;margin-left:4px">W</span>' : ''}
                                 </div>
                                 <div class="score-block">
                                     <div class="score-numbers"><span style="${scAStyle}">${scA}</span><span class="score-dash">–</span><span style="${scBStyle}">${scB}</span></div>
                                     <div class="score-subtext">Final</div>
                                 </div>
                                 <div class="team-wrap ${bClass}" style="${winnerTextB}">
-                                    ${bWin ? '<span style="font-size:8px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;color:#00f0ff;margin-right:4px">W</span>' : ''}
+                                    ${bWin ? '<span style="font-size:8px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;color:#E2B761;margin-right:4px">W</span>' : ''}
                                     <span class="team-name">${escapeHtml(m.team_b)}</span>
                           <div class="team-tag">${teamBLogoInner}</div>
                                 </div>
                               </div>`;
                   // Results always get a "Match Report" CTA
                   colAction = `<div class="card-col-action">
-                      <span class="action-btn" style="background:rgba(0,240,255,0.08);border-color:rgba(0,240,255,0.2);color:#00f0ff;">
+                      <span class="action-btn" style="background:rgba(226, 183, 97,0.08);border-color:rgba(226, 183, 97,0.2);color:#E2B761;">
                           Report <i data-lucide="chevron-right" class="w-4 h-4"></i>
                       </span>
                   </div>`;
@@ -1141,15 +1133,15 @@ document.addEventListener("DOMContentLoaded", () => {
               let teamBLogoInner = m.team_b_logo ? `<img src="${escapeHtml(m.team_b_logo)}" class="fall-img">` : teamBTag;
               let scA = m.score_a != null ? m.score_a : '-';
               let scB = m.score_b != null ? m.score_b : '-';
-              let winnerTextA = aWin ? 'color:#00f0ff;font-weight:900' : (bWin ? 'opacity:0.45' : '');
-              let winnerTextB = bWin ? 'color:#00f0ff;font-weight:900' : (aWin ? 'opacity:0.45' : '');
+              let winnerTextA = aWin ? 'color:#E2B761;font-weight:900' : (bWin ? 'opacity:0.45' : '');
+              let winnerTextB = bWin ? 'color:#E2B761;font-weight:900' : (aWin ? 'opacity:0.45' : '');
               let colTeams = `<div class="card-col-teams">
                 <div class="team-wrap right is-winner" style="${winnerTextA}"><div class="team-tag">${teamALogoInner}</div><span class="team-name">${escapeHtml(m.team_a)}</span></div>
                 <div class="score-block"><div class="score-numbers"><span>${scA}</span><span class="score-dash">–</span><span>${scB}</span></div><div class="score-subtext">Final</div></div>
                 <div class="team-wrap ${bClass}" style="${winnerTextB}"><span class="team-name">${escapeHtml(m.team_b)}</span><div class="team-tag">${teamBLogoInner}</div></div>
               </div>`;
               let colGame = `<div class="card-col-game"><span class="game-badge">${escapeHtml(m.game_name||'')}</span>${m.bo_label?`<span class="game-badge" style="color:#aaa;">${escapeHtml(m.bo_label)}</span>`:''}</div>`;
-              let colAction = `<div class="card-col-action"><span class="action-btn" style="background:rgba(0,240,255,0.08);border-color:rgba(0,240,255,0.2);color:#00f0ff;">Report <i data-lucide="chevron-right" class="w-4 h-4"></i></span></div>`;
+              let colAction = `<div class="card-col-action"><span class="action-btn" style="background:rgba(226, 183, 97,0.08);border-color:rgba(226, 183, 97,0.2);color:#E2B761;">Report <i data-lucide="chevron-right" class="w-4 h-4"></i></span></div>`;
               html += `<a href="${m.match_url || '#'}" class="wide-match-card">${colGame}${colTeams}${colAction}</a>`;
           });
           html += `</div></div>`;
@@ -1299,7 +1291,7 @@ document.addEventListener("DOMContentLoaded", () => {
               h += '<div style="display:flex;align-items:center;gap:4px;">';
               h += '<div style="flex:1;display:flex;align-items:center;gap:9px;min-width:0;">';
               if (m.team_a_logo) h += '<img src="' + escapeHtml(m.team_a_logo) + '" alt="" style="width:36px;height:36px;border-radius:10px;object-fit:cover;flex:none;">';
-              else h += '<div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#0A84FF,#6849E5);display:flex;align-items:center;justify-content:center;flex:none;"><span class="arm-sora" style="font-weight:800;font-size:11px;color:#fff;">' + escapeHtml(m.team_a_tag || 'A') + '</span></div>';
+              else h += '<div style="width:36px;height:36px;border-radius:10px;background:var(--ol-surface-raised);display:flex;align-items:center;justify-content:center;flex:none;"><span class="arm-sora" style="font-weight:800;font-size:11px;color:#fff;">' + escapeHtml(m.team_a_tag || 'A') + '</span></div>';
               h += '<span style="font-size:14px;font-weight:700;color:' + (done && !aW ? '#636366' : '#F4F6FA') + ';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escapeHtml(m.team_a) + '</span></div>';
               if (m.score_a !== null || m.score_b !== null || live) {
                   const sa = m.score_a !== null ? m.score_a : '—';
@@ -1312,7 +1304,7 @@ document.addEventListener("DOMContentLoaded", () => {
               h += '<div style="flex:1;display:flex;align-items:center;justify-content:flex-end;gap:9px;min-width:0;">';
               h += '<span style="font-size:14px;font-weight:700;color:' + (done && !bW ? '#636366' : '#F4F6FA') + ';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:right;">' + escapeHtml(m.team_b) + '</span>';
               if (m.team_b_logo) h += '<img src="' + escapeHtml(m.team_b_logo) + '" alt="" style="width:36px;height:36px;border-radius:10px;object-fit:cover;flex:none;">';
-              else h += '<div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#8470EE,#0A84FF);display:flex;align-items:center;justify-content:center;flex:none;"><span class="arm-sora" style="font-weight:800;font-size:11px;color:#fff;">' + escapeHtml(m.team_b_tag || 'B') + '</span></div>';
+              else h += '<div style="width:36px;height:36px;border-radius:10px;background:var(--ol-surface-raised);display:flex;align-items:center;justify-content:center;flex:none;"><span class="arm-sora" style="font-weight:800;font-size:11px;color:#fff;">' + escapeHtml(m.team_b_tag || 'B') + '</span></div>';
               h += '</div></div>';
               h += '<div style="display:flex;align-items:center;justify-content:space-between;margin-top:11px;">';
               const tl = live ? 'In progress' : done ? 'Ended' : (m.scheduled_time ? formatTime(m.scheduled_time) : 'TBA');

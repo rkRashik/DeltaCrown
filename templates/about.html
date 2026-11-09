@@ -12,7 +12,7 @@
       <h1 class="ol-h1">The home of competition.</h1>
       <p class="ol-lead">{{ brand.name }} is a competitive gaming platform built in Bangladesh. Find tournaments, build your team, play matches with verified results and keep a record that follows you.</p>
       <div style="margin-top:1.75rem;display:flex;flex-wrap:wrap;gap:.75rem;">
-        <a href="{% url 'account:signup' %}" class="ol-btn ol-btn--primary ol-btn--lg">Create account</a>
+        <a href="/account/signup/" class="ol-btn ol-btn--primary ol-btn--lg">Create account</a>
         <a href="/tournaments/" class="ol-btn ol-btn--secondary ol-btn--lg">Explore tournaments</a>
         <a href="/teams/" class="ol-btn ol-btn--ghost ol-btn--lg">Browse teams</a>
       </div>
@@ -67,9 +67,9 @@
       <h2 id="about-honest" class="ol-h2">Active, and still growing</h2>
       <p class="ol-lead">{{ brand.name }} is live and improving. Some deeper features, such as automated game verification and richer dispute tools, are still being built. We list what works today and say so when something is not ready.</p>
       <div style="margin-top:1.5rem;display:flex;flex-wrap:wrap;gap:.75rem;">
-        <a href="{% url 'support:faq' %}" class="ol-btn ol-btn--secondary">Read the FAQ</a>
-        <a href="{% url 'support:rules' %}" class="ol-btn ol-btn--secondary">Rules and fair play</a>
-        <a href="{% url 'support:contact' %}" class="ol-btn ol-btn--ghost">Contact us</a>
+        <a href="/faq/" class="ol-btn ol-btn--secondary">Read the FAQ</a>
+        <a href="/rules/" class="ol-btn ol-btn--secondary">Rules and fair play</a>
+        <a href="/contact/" class="ol-btn ol-btn--ghost">Contact us</a>
       </div>
     </div>
   </section>
