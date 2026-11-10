@@ -171,6 +171,29 @@ class TournamentBracketViewTests(TestCase):
         
         self.assertEqual(response.status_code, 404)
 
+    def _closed_tournament(self, slug):
+        return Tournament.objects.create(
+            name=slug, slug=slug, game=self.game, organizer=self.organizer,
+            status=Tournament.REGISTRATION_CLOSED, max_participants=16,
+            registration_start=timezone.now() - timedelta(days=7),
+            registration_end=timezone.now() - timedelta(days=2),
+            tournament_start=timezone.now() + timedelta(days=1),
+            tournament_end=timezone.now() + timedelta(days=5),
+        )
+
+    def test_closed_tournament_without_participants_does_not_promise_a_bracket(self):
+        closed = self._closed_tournament('closed-empty')
+        response = self.client.get(reverse('tournaments:bracket', kwargs={'slug': closed.slug}))
+        reason = response.context['not_ready_reason']
+        self.assertIn('no participants are confirmed', reason)
+        self.assertNotIn('check back soon', reason)
+
+    def test_closed_tournament_with_participants_still_says_bracket_is_coming(self):
+        closed = self._closed_tournament('closed-with-player')
+        Registration.objects.create(tournament=closed, user=self.organizer, status=Registration.CONFIRMED)
+        response = self.client.get(reverse('tournaments:bracket', kwargs={'slug': closed.slug}))
+        self.assertIn('check back soon', response.context['not_ready_reason'])
+
     def test_bracket_view_shows_cancelled_state(self):
         """Test that cancelled tournament shows appropriate message."""
         cancelled_tournament = Tournament.objects.create(

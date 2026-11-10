@@ -1100,61 +1100,11 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
     # ========================================================================
     # 06c: BOUNTIES CONTEXT (Peer Challenges)
     # ========================================================================
-    from apps.user_profile.services import bounty_service
-    
-    # Bounty stats
-    bounty_stats = bounty_service.get_user_bounty_stats(profile_user)
-    context['bounty_stats'] = {
-        'created_count': bounty_stats['created_count'],
-        'accepted_count': bounty_stats['accepted_count'],
-        'won_count': bounty_stats['won_count'],
-        'lost_count': bounty_stats['lost_count'],
-        'win_rate': bounty_stats['win_rate'],
-        'total_earnings': bounty_stats['total_earnings'],
-        'total_wagered': bounty_stats['total_wagered'],
-    }
-    
-    # Active bounties
-    active_bounties = bounty_service.get_active_bounties(profile_user)
-    context['active_bounties'] = [
-        {
-            'id': bounty.id,
-            'title': bounty.title,
-            'game': bounty.game.display_name if bounty.game else None,
-            'stake_amount': bounty.stake_amount,
-            'status': bounty.status,
-            'status_display': bounty.get_status_display(),
-            'creator': bounty.creator.username,
-            'creator_id': bounty.creator.id,
-            'acceptor': bounty.acceptor.username if bounty.acceptor else None,
-            'acceptor_id': bounty.acceptor.id if bounty.acceptor else None,
-            'created_at': bounty.created_at,
-            'expires_at': bounty.expires_at,
-            'is_expired': bounty.is_expired,
-            'can_dispute': bounty.can_dispute if hasattr(bounty, 'can_dispute') else False,
-            'challenge_type': getattr(bounty, 'challenge_type', 'solo'),
-            'creator_team': str(bounty.creator_team) if getattr(bounty, 'creator_team', None) else None,
-        }
-        for bounty in active_bounties[:10]
-    ]
-    
-    # Completed bounties (last 5 for profile display)
-    completed_bounties = bounty_service.get_completed_bounties(profile_user)
-    context['completed_bounties'] = [
-        {
-            'id': bounty.id,
-            'title': bounty.title,
-            'game': bounty.game.display_name if bounty.game else None,
-            'stake_amount': bounty.stake_amount,
-            'payout_amount': bounty.payout_amount,
-            'winner': bounty.winner.username if bounty.winner else None,
-            'completed_at': bounty.completed_at,
-            'was_winner': bounty.winner_id == profile_user.id if bounty.winner_id else False,
-            'challenge_type': getattr(bounty, 'challenge_type', 'solo'),
-        }
-        for bounty in completed_bounties[:5]
-    ]
-    
+    # Bounty numbers do not depend on the viewer; non-owners get a short-lived cached copy so a visit does not
+    # re-run ~7 sequential queries (each one a network round trip to the hosted database).
+    from apps.user_profile.services.profile_context import build_public_bounty_context_cached
+    context.update(build_public_bounty_context_cached(profile_user, 'owner' if _real_is_owner else _viewer_role))
+
     # ========================================================================
     # UP.3: IDENTITY + COMPETITIVE DNA + STATS + RELATIONSHIP CONTEXTS
     # ========================================================================
