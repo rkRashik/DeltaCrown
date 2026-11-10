@@ -2,7 +2,7 @@
 
 # OwnLobby operations reference (historical test infrastructure)
 
-> Historical test-infrastructure notes. The referenced Makefile and ops/docker-compose.test.yml are absent; preserve these notes as history, not executable current setup. Use [safe tests](../README.md#safe-tests) and the [documentation guide](../OWNLOBBY_DOCUMENTATION_GUIDE.md). Do not run old volume-removal examples against existing data.
+> Historical test-infrastructure notes. The referenced Makefile and ops/docker-compose.test.yml are absent; preserve these notes as history, not executable current setup. Use [safe tests](../README.md#safe-tests) and the [documentation guide](../docs/index.md). Do not run old volume-removal examples against existing data.
 
 This directory contains operational tooling for DeltaCrown testing infrastructure.
 

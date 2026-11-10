@@ -1,81 +1,8 @@
-# OwnLobby conversation handoff
+# Continuation brief
 
-**Current continuation, 2026-11-07 +06:00:** use existing `release/ownlobby-stability-20261106`, [Draft release PR #48](https://github.com/rkRashik/DeltaCrown/pull/48) to master; preserve Draft #43-#47. Code `0c38eefc` passes [27 focused tests/version](https://github.com/rkRashik/DeltaCrown/actions/runs/42279623098) on Linux Python 3.11.9/3.12 and [Linux release smoke](https://github.com/rkRashik/DeltaCrown/actions/runs/42279623093); no new template failures, synthetic homepage output identical with fewer cold queries. Owner permits a reversible release after safety gates, and will perform inaccessible Render Dashboard operations; do not request API keys. [STATUS](STATUS.md#release-preparation-2026-11-07-0600) contains evidence and consolidated health/rollback/host-window/synthetic-browser actions. Resolve these and measured activation budgets; do not repeat A6-A11 investigations or passing checks without a source change. Lifecycle stays OFF, no production change/merge/deploy occurred; live remains `f1f8d185` / `dep-dbhufde7bikc738137sg`. No success claim before deployment/live verification. Older next actions below are historical.
+Updated 2026-11-10. Read [STATUS](STATUS.md) first.
 
-**Current continuation, 2026-11-06 20:58 +06:00:** [Draft #46](https://github.com/rkRashik/DeltaCrown/pull/46), branch `candidate/ol-inc-01-a11b1-observation`, stacks on unchanged #45 `49a8a49f`. A11B-1's [single Linux matrix](https://github.com/rkRashik/DeltaCrown/actions/runs/42237893242) passes 23 focused tests on Python 3.11.9/3.12. HTTP/WS admission ownership, saturation observations and finite/blocked controls pass; resource/scheduling limitations are in STATUS. Do not repeat completed A6–A10 investigations. Next: owner review, then separately approved A11B-2 effective I/O bounds. Keep activation OFF: measured Render limits, host recovery/readiness and staging are unresolved. No automatic recovery, health bypass or production change. The A9 snapshot below is historical, not the current next action.
-
-Snapshot: 2026-11-06 15:11 +06:00 (Asia/Dhaka), OL-INC-01-A / A9 inactive extraction. Start with [STATUS](STATUS.md) and [BACKLOG](BACKLOG.md). **Do not deploy master.** This brief authorizes no production operation.
-
-## Current state
-
-- Repository `rkRashik/DeltaCrown`, default `master`; remote baseline **`bec5a17b572c25e2d6e30d348c755332ea9e5ae2`** verified for A9. Current candidate branch: `candidate/ol-inc-01-a9-inactive`. Research Draft PR #43 remains separate at `90b5a985`; neither master nor production was changed.
-- Production [ownlobby.com](https://ownlobby.com) is independently verified on rollback artifact **`f1f8d18566723aa4e62875c20f7f6bc8dc4794e1`** via read-only [Render](https://dashboard.render.com/web/srv-d6eubkngi27c738ieao0), deploy `dep-dbhufde7bikc738137sg`, completed 2026-10-30 06:42:19 +06:00. Owner reports navigation recovered. Master and production intentionally differ; no deploy/rollback was performed by this investigation.
-- **New read-only evidence after the original incident review:** On 2026-10-30 evening, while the rollback artifact was still live, multiple routes showed Daphne shutdown-timeout warnings around 19:51 +06:00, then a Render TCP port timeout at 19:56:15 with recovery at 19:56:58. The [STATUS addendum](STATUS.md#evening-recurrence-on-the-rolled-back-release-read-only-follow-up-2026-10-30) records what is confirmed and remains uncertain. Keep master undeployed; prioritize the shared ASGI cancellation fix with Linux/Python 3.11 and memory/thread regression gates.
-- Django/PostgreSQL, Daphne/Channels, Redis/Upstash, Cloudinary and private Supabase Storage. Database access is through Django PostgreSQL connections; Storage APIs are separate from the database Data API. No required database Data API consumer was found in inspected application code.
-- **OL-01 remains VERIFYING.** Owner reports Data API OFF/disabled. At 23:12 +06:00 both valid public credential types received HTTP 503 / API connection-schema-cache failure: refusal observed, disabled-specific cause not independently proven. Six public routes, two public images and a local-client constant-only read-only DB check passed. Owner-confirmed Render follow-up reconfirmed live `f1f8d185`, Free/auto-deploy OFF and no matching errors in the bounded log queries. Provider-state reinspection, authenticated/private-media checks and permanent hardening remain open. No confirmed sensitive-data extraction/exploitation. Keep Data API disabled; no RLS/grant changes.
-- Celery remains OFF; earlier lifecycle cron success is not evidence that every background job executes. R2 is an unapproved candidate; free/low cost, private media and safe rollback remain mandatory.
-- Older engineering/release reports contain pre-launch state. Preserve their evidence but use dated STATUS and newer issue/commit evidence for current planning.
-
-## A9 continuation
-
-Current remote master is `bec5a17b`; A9 branch `candidate/ol-inc-01-a9-inactive` extracts the dependency pins, unwired HTTP wrapper and six focused tests. Research [PR #43](https://github.com/rkRashik/DeltaCrown/pull/43) stays Draft at `90b5a985`, preserving the original evidence/history. Earlier repository/production bullets above retain their dates; production was not rechecked in A9.
-
-Wrapper review retains request-local receive/cancellation state and child-owned slot release, removing only research counters. Six local finite tests and scoped dependency checks pass; no new Linux/full-suite or production result is claimed. Default ASGI, WebSocket and outer lockdown wiring are byte-for-byte unchanged. Blocked sync work and Daphne mixed-protocol shutdown are not fixed.
-
-## Next safe task and blockers
-
-**Next safe task: review the inactive A9 candidate, then separately scope A10–A12 design/verification gates in BACKLOG.** No production capacity, execution/shutdown deadline or coordinator has been selected. Keep the wrapper inactive; prove isolated staging and remaining Linux/security/functional gates before separately approved activation/release. Do not repeat A6/A8 diagnostics or merge the research branch wholesale.
-
-OL-INC-01 and OL-04 remain VERIFYING; OL-03 stays IN_PROGRESS. Historical OL-04-B local tests and final pre-merge Linux run #62 passed, but did not exercise this cancellation scenario. Preserve [OL-04-B evidence](STATUS.md#ol-04-b-isolated-verification-2026-10-30) and [OL-03/04-A](tasks/OL-03-04-A.md); neither certifies current production acceptance. CI correction `a9a87bc6` remains useful and does not resolve OL-02's key warning. Rollback options are in [BACKLOG](BACKLOG.md#ol-04); even live `f1f8d185` contains the shared ASGI risk. No broad cleanup: the three baseline root-placement findings remain future OL-14 candidates only, not approval to move/delete records.
-
-**OL-01 remains urgent independently:** obtain current disabled-state confirmation and owner-driven existing-account/private-file checks, then separately approve permanent hardening. The [A-G matrix](STATUS.md#ol-01-verification-2026-10-29) and [proposal](BACKLOG.md#ol-01-permanent-hardening-proposal-not-executed) remain authoritative; do not repeat the security audit or re-enable Data API.
-
-Other open work: signing-key warning/CI coverage, Render resource and homepage/image measurements, supported async jobs, complete eFootball QA, mobile/accessibility, rebrand review, Search Console/public Google actions and full launch acceptance. Exact dependencies and criteria are in BACKLOG; roadmap milestones are gates rather than delivery-date promises.
-
-## Operating constraints
-
-- Read [AGENTS](../../AGENTS.md); preserve settings IDs/forms/CSRF/AJAX and read the protected settings specification before any redesign. Never publish owner documents to satisfy a broken link.
-- Public Git must contain no secrets, sensitive inventories, raw private logs, exploit examples or user/media evidence. An approved private OL-01 evidence URL has not been supplied; request it privately if needed.
-- Isolated local/CI tests only. No production migrations, deployments, configuration changes, media publication/deletion or paid service activation from this handoff.
-- Keep existing auth, financial, technical-ID and media privacy boundaries. Never roll back to public confidential-media delivery or set verification flags merely to clear a gate.
-- R2 research must compare current delivery/costs and evaluate 8/9 GB warning thresholds, blocking below the free allowance, operation charges and ongoing billing. No provider hard cap is assumed.
-
-## Copyable continuation: Codex
-
-```text
-Continue OwnLobby from Documents/Development/README.md, STATUS.md, HANDOFF.md
-and BACKLOG.md. Read AGENTS.md and repository policy first. Inspect actual
-branch/HEAD, working tree, current master and relevant Issue #37/PR evidence.
-Preserve the stable OL task IDs and all owner-protected documents.
-PR #41 is merged: master 7e07d683. Production was owner-rolled-back to f1f8d185.
-DO NOT DEPLOY MASTER. Read OL-INC-01 evidence in STATUS and BACKLOG first.
-The shared ASGI cancellation stall reproduced locally in both releases;
-production attribution remains moderate-confidence, not a proven homepage bug.
-Review the separate A9 inactive extraction from master bec5a17b. Preserve
-research Draft PR #43 at 90b5a985. The wrapper is not imported/wired by ASGI.
-Next: A10–A12 design/verification review; activation/deployment remain blocked.
-Keep raw diagnostics/private evidence outside public Git. Do not repeat audits.
-OL-01 also remains open: owner disabled Data API on 2026-10-29. Valid-key
-requests were refused; public smoke/direct DB checks and bounded Render log
-review passed. Provider-state/private-browser evidence and hardening remain open.
-Read the STATUS A-G matrix before selecting further checks. Keep Data API
-disabled and evidence private. No sensitive-row extraction, grant/RLS
-changes, deployments, migrations or provider/media changes without separate
-authorization. Do not infer production success from source or historical CI.
-For completed work update BACKLOG, STATUS, CHANGELOG, relevant DECISIONS and
-HANDOFF in the same reviewed PR. Stage explicit public paths only.
-```
-
-## Copyable continuation: ChatGPT
-
-```text
-Use the latest OwnLobby Development workspace from rkRashik/DeltaCrown as the
-planning record. Read README, STATUS, BACKLOG and HANDOFF before proposing work.
-If repository/private evidence is unavailable, request the latest sanitized
-documents and state that you cannot verify live status. Do not ask for secrets.
-OL-01 has owner-applied containment, observed refusal and public smoke evidence;
-provider-state/private-browser checks and permanent hardening remain open.
-Do not mark it DONE or suggest
-re-enabling it. Plan the next scoped verification task, distinguish proposals
-from approved decisions, and preserve the existing task IDs and safety gates.
-```
+* Production is live on master `7afd6f68`; rollback target `044b9cfb`. Deploys are manual and owner-approved.
+* Next safe work: owner decision on PR #77 (merge, then re-run the focused tests on the combined tree), an atomic PIN lockout follow-up, confirming a Supabase backup and the Render environment checklist ([deployment.md](../../docs/operations/deployment.md#environment-variables)), then the remaining OL-01/OL-13 acceptance items in [BACKLOG](BACKLOG.md).
+* Do not touch PR #77 or Draft #47 without instruction. Do not run production tests, migrations, deploys, secret rotation or media changes without explicit authorization.
+* Verification before any PR: targeted tests for the touched area, `python scripts/verify_ownlobby.py --collect-static` for template/URL changes, documentation and hygiene checks for docs.
