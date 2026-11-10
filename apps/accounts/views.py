@@ -201,12 +201,8 @@ class DCLoginView(LoginView):
         return ctx
 
     def get_success_url(self):
-        # Get the 'next' parameter from GET or POST
-        next_url = self.request.GET.get('next') or self.request.POST.get('next')
-        if next_url:
-            return next_url
-        # Default redirect to homepage
-        return reverse('siteui:homepage')
+        # get_redirect_url() only returns same-host targets, so `next` cannot be an open redirect.
+        return self.get_redirect_url() or reverse('siteui:homepage')
 
 
 class DCLogoutView(LogoutView):

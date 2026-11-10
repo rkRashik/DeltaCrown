@@ -11,24 +11,24 @@
     <div class="auth-bg"></div>
     <div class="auth-bg-pattern"></div>
 
-    <div class="auth-message-card">
-        <div class="auth-message-icon">
+    <div class="auth-card auth-card--status">
+        <div class="auth-status-icon">
             <i class="fas fa-envelope"></i>
         </div>
 
-        <h1 class="auth-message-title">Confirm Email</h1>
+        <h1 class="auth-status-title">Confirm Email</h1>
 
         {% if confirmation %}
-            <p class="auth-message-text">Please confirm that <strong>{{ confirmation.email_address.email }}</strong> is your email address.</p>
+            <p class="auth-status-text">Please confirm that <strong>{{ confirmation.email_address.email }}</strong> is your email address.</p>
 
             <form method="post" action="{% url 'account_confirm_email' confirmation.key %}">
                 {% csrf_token %}
                 <button class="btn-auth" type="submit">Confirm Email</button>
             </form>
         {% else %}
-            <p class="auth-message-text">This confirmation link has expired or is invalid.</p>
+            <p class="auth-status-text">This confirmation link has expired or is invalid.</p>
 
-            <div class="auth-message-actions">
+            <div class="auth-status-actions">
                 <a href="{% url 'account:login' %}" class="btn-secondary">Return to Sign In</a>
                 <a href="{% url 'account:signup' %}" class="auth-link">Create New Account</a>
             </div>

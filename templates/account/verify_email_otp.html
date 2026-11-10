@@ -1,66 +1,68 @@
 {% extends "base.html" %}
 {% load static %}
-{% block title %}Verify Email — {{ brand.name }}{% endblock %}
+{% block title %}Verify your email — {{ brand.name }}{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'siteui/css/auth.css' %}" />
+<link rel="stylesheet" href="{% static 'siteui/css/auth.css' %}?v={{ STATIC_VERSION|default:'ownlobby-1' }}" />
 {% endblock %}
 
 {% block content %}
 <div class="auth-container">
-    <div class="auth-bg"></div>
-    <div class="auth-bg-pattern"></div>
-
     <div class="auth-card">
         <div class="auth-header">
-            <a href="/" class="auth-logo" aria-label="{{ brand.name }} home">
-                {% include "partials/brand_logo.html" %}
-            </a>
-            <h1 class="auth-form-title">Verify Your Email</h1>
-            <p class="auth-form-subtitle">Enter the 6-digit code sent to your email</p>
+            <h1 class="auth-title">Verify your email</h1>
+            <p class="auth-subtitle">
+                {% if pending_email and not recovery_mode %}We sent a 6-digit code to <strong>{{ pending_email }}</strong>. It can take a minute to arrive; check spam if you do not see it.
+                {% else %}Enter the 6-digit code we emailed you.{% endif %}
+            </p>
         </div>
 
-        {% if messages %}
-            {% for message in messages %}
-                <div class="form-error">{{ message }}</div>
-            {% endfor %}
-        {% endif %}
+        {# Plain "info" messages repeat the subtitle above, so only errors and confirmations are shown inline. #}
+        {% for message in messages %}{% if message.level_tag != 'info' %}
+            <div class="auth-alert auth-alert--{{ message.level_tag|default:'info' }}" role="{% if message.level_tag == 'error' %}alert{% else %}status{% endif %}">{{ message }}</div>
+        {% endif %}{% endfor %}
 
-        <form method="post" class="auth-form">
+        <form method="post" class="auth-form" data-auth-form>
             {% csrf_token %}
 
             <div class="form-group">
                 <label for="id_email" class="form-label">Email</label>
                 <input type="email" name="email" id="id_email"
-                       class="form-input" autocomplete="email"
-                       placeholder="you@example.com"
+                       class="form-input" autocomplete="email" inputmode="email" autocapitalize="none" spellcheck="false"
                        value="{{ pending_email|default:'' }}"
-                       {% if recovery_mode %}required{% endif %}>
+                       {% if recovery_mode %}required{% endif %}
+                       {% if form.email.errors %}aria-invalid="true"{% endif %}>
                 {% if recovery_mode %}
-                    <div class="form-help">Lost your session? Re-enter the email you signed up with.</div>
+                    <div class="form-help">Your session ended. Enter the email you signed up with.</div>
                 {% endif %}
                 {% if form.email.errors %}<div class="form-error">{{ form.email.errors|join:', ' }}</div>{% endif %}
             </div>
 
             <div class="form-group">
-                <label for="id_code" class="form-label">Verification Code</label>
-                <input type="text" name="code" id="id_code" required class="form-input"
-                       placeholder="Enter 6-digit code" pattern="[0-9]{6}" maxlength="6">
+                <label for="id_code" class="form-label">Verification code</label>
+                <input type="text" name="code" id="id_code" required class="form-input is-code"
+                       inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6"
+                       data-digits-only aria-describedby="id_code_help"
+                       {% if form.code.errors %}aria-invalid="true"{% endif %}>
+                <div class="form-help" id="id_code_help">6 digits, numbers only.</div>
                 {% if form.code.errors %}<div class="form-error">{{ form.code.errors|join:', ' }}</div>{% endif %}
             </div>
 
-            <button type="submit" class="btn-auth">Verify Account</button>
+            <button type="submit" class="btn-auth" data-busy-text="Verifying…" data-idle-text="Verify email">Verify email</button>
         </form>
 
         <div class="auth-links">
-            <form method="post" action="{% url 'account:resend_otp' %}">
+            <form method="post" action="{% url 'account:resend_otp' %}" data-auth-form>
                 {% csrf_token %}
                 <input type="hidden" name="email" value="{{ pending_email|default:'' }}">
-                <button type="submit" class="auth-link">Resend Code</button>
+                <button type="submit" class="auth-link">Resend code</button>
             </form>
-            <a href="{% url 'account:signup' %}" class="auth-link">Start a new signup</a>
-            <a href="{% url 'account:login' %}" class="auth-link">Back to Sign In</a>
+            <a href="{% url 'account:signup' %}" class="auth-link">Use a different email</a>
+        </div>
+        <div class="auth-links">
+            <a href="{% url 'account:login' %}" class="auth-link">Back to sign in</a>
         </div>
     </div>
 </div>
 {% endblock %}
+

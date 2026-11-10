@@ -3,29 +3,23 @@
 {% block title %}Sign out — {{ brand.name }}{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'siteui/css/auth.css' %}" />
+<link rel="stylesheet" href="{% static 'siteui/css/auth.css' %}?v={{ STATIC_VERSION|default:'ownlobby-1' }}" />
 {% endblock %}
 
 {% block content %}
 <div class="auth-container">
-    <div class="auth-bg"></div>
-    <div class="auth-bg-pattern"></div>
-
-    <div class="auth-message-card">
-        <div class="auth-message-icon">
-            <i class="fas fa-sign-out-alt"></i>
-        </div>
-
-        <h1 class="auth-message-title">Sign Out</h1>
-        <p class="auth-message-text">Are you sure you want to leave the arena?</p>
-
-        <form method="post" action="{% url 'account_logout' %}">
+    <div class="auth-card auth-card--status">
+        <div class="auth-status-icon" aria-hidden="true"><i class="fas fa-right-from-bracket"></i></div>
+        <h1 class="auth-status-title">Sign out?</h1>
+        <p class="auth-status-text">You will need to sign in again to register for tournaments or manage your team.</p>
+        <form method="post" action="{% url 'account_logout' %}" data-auth-form>
             {% csrf_token %}
-            <div class="auth-message-actions">
-                <button class="btn-auth" type="submit">Sign Out</button>
-                <a href="javascript:history.back()" class="btn-secondary">Cancel</a>
+            <div class="auth-status-actions">
+                <button class="btn-auth" type="submit" data-busy-text="Signing out…" data-idle-text="Sign out">Sign out</button>
+                <a href="/" class="btn-auth btn-auth--secondary">Stay signed in</a>
             </div>
         </form>
     </div>
 </div>
 {% endblock %}
+
