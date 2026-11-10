@@ -110,7 +110,7 @@
     const OFFICIAL_SOCIAL_DEFAULTS = {
         social_facebook: 'https://www.facebook.com/ownlobbygg',
         social_discord: 'https://discord.gg/UaHRC8Cd',
-        social_youtube: 'https://www.youtube.com/@DeltaCrownGG',
+        social_youtube: '',
         social_instagram: 'https://www.instagram.com/ownlobbygg/',
         contact_phone: '+8801789560202',
         social_website: 'https://ownlobby.com',

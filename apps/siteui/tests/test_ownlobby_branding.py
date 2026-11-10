@@ -87,6 +87,7 @@ class BrandIdentityTests(SimpleTestCase):
         self.assertEqual(frontend["social_facebook"], "https://www.facebook.com/ownlobbygg")
         self.assertEqual(frontend["social_instagram"], "https://www.instagram.com/ownlobbygg/")
         self.assertEqual(frontend["social_website"], "https://ownlobby.com")
+        self.assertEqual(frontend["social_youtube"], "")  # never auto-fill the retired DeltaCrown channel
 
     @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend", DEFAULT_FROM_EMAIL="noreply@deltacrown.xyz", SITE_URL="https://deltacrown.xyz")
     def test_otp_email_uses_official_png_and_keeps_verified_sender(self):
