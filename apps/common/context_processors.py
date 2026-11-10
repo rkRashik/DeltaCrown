@@ -37,6 +37,31 @@ def static_version(request):
     return {"STATIC_VERSION": _STATIC_VERSION}
 
 
+# Signed-in tools and account flows keep their own app-style layouts: no marketing footer there.
+_FOOTER_NONE_PREFIXES = (
+    "/me/", "/dashboard/", "/wallet/", "/deposit/", "/withdraw/", "/withdrawal/", "/transactions/",
+    "/payment-methods/", "/pin/", "/fortress/", "/admin/", "/notifications/", "/toc/", "/api/",
+    "/user/",
+)
+_FOOTER_NONE_SEGMENTS = ("/manage/", "/control-plane/", "/hub/")
+
+
+def site_footer(request):
+    """Tell base.html which footer to render: ``full`` (public pages), ``legal`` (sign-in/sign-up flows) or ``none``.
+
+    Templates that render their own footer (home, team hub, dashboard, tournament hub) override the block and are
+    unaffected; this only decides the default.
+    """
+    path = getattr(request, "path", "") or "/"
+    if path.startswith("/account/"):
+        mode = "legal"
+    elif path.startswith(_FOOTER_NONE_PREFIXES) or any(seg in path for seg in _FOOTER_NONE_SEGMENTS):
+        mode = "none"
+    else:
+        mode = "full"
+    return {"site_footer_mode": mode}
+
+
 def game_assets_context(request):
     """
     Add game assets to template context globally.

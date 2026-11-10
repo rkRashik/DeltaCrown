@@ -4,7 +4,7 @@
    ═══════════════════════════════════════════════════════════ */
 
 .auth-container {
-    min-height: calc(100vh - 4rem);
+    min-height: calc(100vh - 14rem); /* nav (4rem) + compact footer (about 10rem) so the page does not scroll for no reason */
     display: flex;
     align-items: flex-start;
     justify-content: center;

@@ -119,8 +119,10 @@
     </main>
 
     {% block footer %}
-    {% if request.path == '/' %}
+    {% if site_footer_mode == 'full' %}
       {% include "partials/footer_modern.html" %}
+    {% elif site_footer_mode == 'legal' %}
+      {% include "partials/footer_legal.html" %}
     {% endif %}
     {% endblock %}
     {% include "partials/toasts.html" %}
