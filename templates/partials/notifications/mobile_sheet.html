@@ -4,26 +4,32 @@
      role="dialog"
      aria-modal="true"
      aria-labelledby="dc-mobile-notif-title"
-     aria-hidden="true">
+     tabindex="-1"
+     inert>
 
-  <div class="notif-sheet__grabber" id="dc-mobile-notif-handle">
+  <div class="notif-sheet__grabber" id="dc-mobile-notif-handle" aria-hidden="true">
     <div class="notif-sheet__grabber-pill"></div>
   </div>
 
   <div class="notif-sheet__header">
     <div class="notif-sheet__title-row">
-      <h3 id="dc-mobile-notif-title" class="notif-sheet__title">Notifications</h3>
-      <button class="notif-sheet__mark-btn" id="dc-mobile-mark-read" type="button">Mark all read</button>
+      <h2 id="dc-mobile-notif-title" class="notif-sheet__title">Notifications</h2>
+      <span class="notif-sheet__tools">
+        <button class="notif-sheet__mark-btn" id="dc-mobile-mark-read" type="button">Mark all read</button>
+        <button class="notif-sheet__close" id="dc-mobile-notif-close" type="button" aria-label="Close notifications"><i class="ph ph-x" aria-hidden="true"></i></button>
+      </span>
     </div>
-    <div class="notif-sheet__tabs" id="dc-mobile-tabs">
-      <button class="notif-sheet__tab active" data-filter="ALL">All</button>
-      <button class="notif-sheet__tab" data-filter="TOURNAMENT">Tournament</button>
-      <button class="notif-sheet__tab" data-filter="TEAM">Team</button>
-      <button class="notif-sheet__tab" data-filter="ECONOMY">Economy</button>
-      <button class="notif-sheet__tab" data-filter="SOCIAL">Social</button>
-      <button class="notif-sheet__tab" data-filter="WARNING">Alerts</button>
+    <div class="notif-sheet__tabs" id="dc-mobile-tabs" role="tablist" aria-label="Filter notifications">
+      <button type="button" role="tab" id="dc-mobile-tab-ALL" class="notif-sheet__tab active" data-filter="ALL" aria-selected="true" aria-controls="dc-mobile-notif-content" tabindex="0">All</button>
+      <button type="button" role="tab" id="dc-mobile-tab-TOURNAMENT" class="notif-sheet__tab" data-filter="TOURNAMENT" aria-selected="false" aria-controls="dc-mobile-notif-content" tabindex="-1">Tournament</button>
+      <button type="button" role="tab" id="dc-mobile-tab-TEAM" class="notif-sheet__tab" data-filter="TEAM" aria-selected="false" aria-controls="dc-mobile-notif-content" tabindex="-1">Team</button>
+      <button type="button" role="tab" id="dc-mobile-tab-ECONOMY" class="notif-sheet__tab" data-filter="ECONOMY" aria-selected="false" aria-controls="dc-mobile-notif-content" tabindex="-1">Economy</button>
+      <button type="button" role="tab" id="dc-mobile-tab-SOCIAL" class="notif-sheet__tab" data-filter="SOCIAL" aria-selected="false" aria-controls="dc-mobile-notif-content" tabindex="-1">Social</button>
+      <button type="button" role="tab" id="dc-mobile-tab-WARNING" class="notif-sheet__tab" data-filter="WARNING" aria-selected="false" aria-controls="dc-mobile-notif-content" tabindex="-1">Alerts</button>
     </div>
   </div>
 
-  <div class="notif-sheet__list" id="dc-mobile-notif-content"></div>
+  <div class="notif-sheet__list" id="dc-mobile-notif-content" role="tabpanel" aria-labelledby="dc-mobile-tab-ALL" tabindex="0"></div>
 </div>
+
+<div id="dc-notif-live" class="notif-sr" role="status" aria-live="polite" aria-atomic="true"></div>
