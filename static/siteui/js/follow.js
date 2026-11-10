@@ -117,6 +117,18 @@ function updateButtonState(button, data) {
     }
 }
 
+// One in-flight guard for the whole page: the header and sidebar buttons share a single relationship, so only one
+// follow/unfollow request may be running at a time, whichever button started it.
+let followInFlight = false;
+
+function beginFollowRequest() {
+    followInFlight = true;
+    document.querySelectorAll('[data-follow-btn]').forEach(function (b) {
+        b.disabled = true;
+        b.dataset.followBusy = '1';
+    });
+}
+
 // Every follow button on the page (header, sidebar) shows the same relationship, so a change applies to all of them.
 function syncAllButtons(state, isPrivate) {
     document.querySelectorAll('[data-follow-btn]').forEach(function (b) {
@@ -133,7 +145,7 @@ function initializeFollowButton(button, serverState) {
     button.dataset.followBound = '1';
 
     button.addEventListener('click', function() {
-        if (button.disabled || button.dataset.followBusy === '1') return;
+        if (followInFlight || button.disabled || button.dataset.followBusy === '1') return;
         const state = button.dataset.state;
         
         if (state === 'following') {
@@ -147,9 +159,9 @@ function initializeFollowButton(button, serverState) {
 }
 
 async function followUser(username, button) {
-    button.disabled = true;
-    button.dataset.followBusy = '1';
-    const originalHTML = button.innerHTML;
+    if (followInFlight) return;
+    const priorPrivate = button.dataset.isPrivate === 'true';
+    beginFollowRequest();
     button.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Processing...';
     
     try {
@@ -190,20 +202,19 @@ async function followUser(username, button) {
     } catch (error) {
         console.error('Follow error:', error);
         followToast(error.message || 'Failed to follow user', 'error');
-        button.innerHTML = originalHTML;
-        button.disabled = false;
+        syncAllButtons('none', priorPrivate);   // every button back to "Follow", enabled
     } finally {
-        button.dataset.followBusy = '0';
+        followInFlight = false;
     }
 }
 
 async function unfollowUser(username, button) {
+    if (followInFlight) return;
     if (!confirm('Unfollow this user?')) {
         return;
     }
-    
-    button.disabled = true;
-    button.dataset.followBusy = '1';
+    const priorPrivate = button.dataset.isPrivate === 'true';
+    beginFollowRequest();
     button.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Unfollowing...';
     
     try {
@@ -232,11 +243,9 @@ async function unfollowUser(username, button) {
     } catch (error) {
         console.error('Unfollow error:', error);
         followToast(error.message || 'Failed to unfollow user', 'error');
-        button.className = followClass(button, 'following');
-        button.innerHTML = '<i class="fa-solid fa-user-check"></i> Following';
-        button.disabled = false;
+        syncAllButtons('following', priorPrivate);   // every button back to "Following", enabled
     } finally {
-        button.dataset.followBusy = '0';
+        followInFlight = false;
     }
 }
 

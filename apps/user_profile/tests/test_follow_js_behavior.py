@@ -244,3 +244,83 @@ def test_initialisation_binds_one_listener_per_button(make):
     h.page.click("#head")
     h.page.wait_for_timeout(300)
     assert len(h.mutations()) == 1
+
+
+# ---- one shared in-flight guard for every follow button on the page -----------------------------------------------
+
+def _rapid(h, first, second):
+    """Click `first`, then `second` before the first request has completed (the route holds each response for 500ms)."""
+    h.page.dispatch_event(first, "click")
+    h.page.dispatch_event(second, "click")
+
+
+@pytest.mark.parametrize("first,second", [("#head", "#side"), ("#side", "#head")])
+def test_header_and_sidebar_clicked_together_make_exactly_one_follow_request(make, first, second):
+    h = make(state="none")
+    h.delay = 500
+    h.responses["/api/profile/target/follow/status/"] = (200, {"relationship_state": "none"}, "application/json")
+    h.responses["/api/profile/target/follow/"] = (200, {"success": True, "action": "followed"}, "application/json")
+    h.open()
+    h.delay = 500
+    _rapid(h, first, second)
+    # while the request is in flight every related button is disabled and marked busy
+    assert h.page.is_disabled("#head") and h.page.is_disabled("#side")
+    assert h.page.evaluate("[...document.querySelectorAll('[data-follow-btn]')].every(b => b.dataset.followBusy === '1')")
+    h.page.wait_for_timeout(1300)
+    assert [m[1] for m in h.mutations()] == ["/api/profile/target/follow/"]
+    assert "Following" in h.page.inner_text("#head") and "Following" in h.page.inner_text("#side")
+    assert not h.page.is_disabled("#head") and not h.page.is_disabled("#side")
+    assert h.page.evaluate("window.__toasts") == ["Now following user!|success"]
+    assert h.page.inner_text("[data-follower-count]") == "6"            # counted once
+
+
+@pytest.mark.parametrize("first,second", [("#head", "#side"), ("#side", "#head")])
+def test_header_and_sidebar_clicked_together_make_exactly_one_unfollow_request(make, first, second):
+    h = make(state="following")
+    h.responses["/api/profile/target/follow/status/"] = (200, {"relationship_state": "following"}, "application/json")
+    h.responses["/api/profile/target/unfollow/"] = (200, {"success": True}, "application/json")
+    h.open()
+    h.delay = 500
+    _rapid(h, first, second)
+    h.page.wait_for_timeout(1300)
+    assert [m[1] for m in h.mutations()] == ["/api/profile/target/unfollow/"]
+    assert h.dialogs == ["Unfollow this user?"]                          # one confirmation, not two
+    assert "Follow" in h.page.inner_text("#side") and "Following" not in h.page.inner_text("#side")
+    assert h.page.inner_text("[data-follower-count]") == "4"
+
+
+def test_a_failed_request_restores_every_button_and_allows_a_clean_retry(make):
+    h = make(state="none")
+    h.responses["/api/profile/target/follow/status/"] = (200, {"relationship_state": "none"}, "application/json")
+    h.responses["/api/profile/target/follow/"] = (500, "<html>Server Error</html>", "text/html")
+    h.open()
+    h.delay = 400
+    _rapid(h, "#head", "#side")
+    h.page.wait_for_timeout(1000)
+    assert len(h.mutations()) == 1
+    for sel in ("#head", "#side"):                                         # both restored, both usable
+        assert not h.page.is_disabled(sel) and h.page.inner_text(sel).strip() == "Follow"
+    assert h.page.evaluate("[...document.querySelectorAll('[data-follow-btn]')].every(b => b.dataset.followBusy === '0')")
+    assert h.page.evaluate("window.__toasts") == ["Failed to follow user|error"]
+    h.responses["/api/profile/target/follow/"] = (200, {"success": True, "action": "followed"}, "application/json")
+    h.delay = 0
+    h.page.click("#side")
+    h.page.wait_for_timeout(300)
+    assert len(h.mutations()) == 2 and "Following" in h.page.inner_text("#head")
+
+
+def test_a_pending_request_stays_disabled_and_private_after_a_rapid_double_click(make):
+    h = make(state="none", private=True)
+    h.responses["/api/profile/target/follow/status/"] = (200, {"relationship_state": "none", "is_private_account": True}, "application/json")
+    h.responses["/api/profile/target/follow/"] = (200, {"success": True, "action": "request_sent"}, "application/json")
+    h.open()
+    h.delay = 400
+    _rapid(h, "#side", "#head")
+    h.page.wait_for_timeout(1000)
+    assert [m[1] for m in h.mutations()] == ["/api/profile/target/follow/"]
+    assert h.page.is_disabled("#head") and h.page.is_disabled("#side")
+    assert "Requested" in h.page.inner_text("#head") and "Requested" in h.page.inner_text("#side")
+    assert h.page.evaluate("window.__toasts") == ["Follow request sent!|success"]
+    h.page.dispatch_event("#head", "click")
+    h.page.wait_for_timeout(200)
+    assert len(h.mutations()) == 1
