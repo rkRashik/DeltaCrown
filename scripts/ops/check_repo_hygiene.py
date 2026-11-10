@@ -25,7 +25,7 @@ def get_suggested_location(filename):
     if filename.endswith((".sqlite3", ".db", ".dump", ".sql")):
         return "Preserve and review provenance, ownership and recovery requirements; no automatic deletion"
     if filename.endswith(".md"):
-        return "Review against OWNLOBBY_DOCUMENTATION_GUIDE.md; do not move owner documents automatically"
+        return "Review against docs/index.md; do not move owner documents automatically"
     return "Review purpose and references before changing placement"
 
 

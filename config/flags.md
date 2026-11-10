@@ -185,7 +185,7 @@ For any flag causing issues:
 1. **Immediate**: Set flag to safe default (usually `false` or previous value)
 2. **Restart**: Application restart required for most flags (Django settings cached)
 3. **Verify**: Check logs and metrics for expected behavior
-4. **Document**: Add incident to `Documents/ExecutionPlan/SECURITY_HARDENING_STATUS.md`
+4. **Document**: Record the incident in `Documents/Development/STATUS.md`
 
 **Example**:
 ```bash
@@ -243,4 +243,4 @@ Drills simulate failure scenarios in test environments:
 - [MODULE_8.3_OBSERVABILITY_NOTES.md](../MODULE_8.3_OBSERVABILITY_NOTES.md) - Detailed observability guide
 - [PHASE_9_SMOKE_AND_ALERTING.md](../PHASE_9_SMOKE_AND_ALERTING.md) - Smoke tests and alerting
 - [RUNBOOKS/ONCALL_HANDOFF.md](../RUNBOOKS/ONCALL_HANDOFF.md) - On-call runbook (uses drill scenarios)
-- [Documents/ExecutionPlan/Core/00_MASTER_EXECUTION_PLAN.md](../Documents/ExecutionPlan/Core/00_MASTER_EXECUTION_PLAN.md) - Phase roadmap
+- [Documents/Development/BACKLOG.md](../Documents/Development/BACKLOG.md) - current task list

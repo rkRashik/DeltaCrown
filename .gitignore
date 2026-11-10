@@ -60,8 +60,7 @@ build/
 *_backup.*
 *_old.*
 
-# Local-only planning, docs, and artifacts (keep on disk, not in git)
-docs/
+# Local-only planning, documents and artifacts (keep on disk, not in git)
 Documents/
 # Public development management: only explicitly reviewed documents.
 !/Documents/
@@ -69,24 +68,26 @@ Documents/
 !/Documents/Development/
 /Documents/Development/*
 !/Documents/Development/README.md
-!/Documents/Development/PRD.md
-!/Documents/Development/ROADMAP.md
 !/Documents/Development/BACKLOG.md
 !/Documents/Development/STATUS.md
 !/Documents/Development/DECISIONS.md
-!/Documents/Development/CHANGELOG.md
 !/Documents/Development/HANDOFF.md
-!/Documents/Development/tasks/
-/Documents/Development/tasks/*
-!/Documents/Development/tasks/TASK_TEMPLATE.md
-!/Documents/Development/tasks/OL-03-04-A.md
-!/Documents/Development/runbooks/
-/Documents/Development/runbooks/*
-!/Documents/Development/runbooks/README.md
-!/Documents/Development/runbooks/signing-key-rotation.md
-!/Documents/Development/runbooks/public-image-derivatives.md
-!/Documents/Development/runbooks/public-cdn-delivery.md
-!/Documents/Development/runbooks/media-origin-governor.md
+# Reviewed project documentation: only these files are tracked; other local docs/ content stays private.
+/docs/*
+!/docs/index.md
+!/docs/architecture.md
+!/docs/features.md
+!/docs/development.md
+!/docs/deployment.md
+!/docs/integrations.md
+!/docs/security.md
+!/docs/runbooks/
+/docs/runbooks/*
+!/docs/runbooks/README.md
+!/docs/runbooks/signing-key-rotation.md
+!/docs/runbooks/public-image-derivatives.md
+!/docs/runbooks/public-cdn-delivery.md
+!/docs/runbooks/media-origin-governor.md
 evidence/
 Artifacts/
 reports/
