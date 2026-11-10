@@ -20,6 +20,44 @@ if os.environ["DJANGO_SETTINGS_MODULE"] != "deltacrown.settings_brand_qa":
     raise SystemExit("Use deltacrown.settings_brand_qa; production settings are forbidden for this check.")
 
 BASELINE = "8270018c536df41dcd869c3f4412c3c62a1d685b"
+# Reviewed template URL-tag changes (Batch E). Unlike a blanket exemption, each file must still contain EXACTLY
+# these tags (normalised, "as name" removed): any other added, removed or edited {% url %} tag is reported.
+# Reason: the password-change pages linked to the non-existent user_profile:settings_v3 (HTTP 500 for every
+# signed-in user); the reset pages now use named routes instead of a hard-coded path.
+URL_TAG_PATTERN = r"{%\s*url\b.*?%}"
+REVIEWED_URL_TAGS = {
+    "templates/account/password_change_done.html": [
+        "{% url 'user_profile:profile_settings' %}",
+        "{% url 'user_profile:profile_public' username=request.user.username %}",
+    ],
+    "templates/account/password_change_form.html": [
+        "{% url 'account:password_change' %}",
+        "{% url 'user_profile:profile_settings' %}",
+    ],
+    "templates/account/password_reset_confirm.html": [
+        "{% url 'account:password_reset' %}",
+        "{% url 'account:login' %}",
+    ],
+    "templates/account/password_reset_done.html": [
+        "{% url 'account:login' %}",
+        "{% url 'account:password_reset' %}",
+    ],
+}
+
+
+def url_routes(text):
+    # Capturing a reversed URL with "as name" preserves its route and arguments.
+    return [re.sub(r"\s+as\s+\w+\s*%}", " %}", tag) for tag in re.findall(URL_TAG_PATTERN, text, re.S)]
+
+
+def url_contract_changed(name, before, source):
+    """True when the template's {% url %} tags differ from the baseline and from the reviewed expectation."""
+    if before is None:
+        return False
+    current = url_routes(source)
+    if name in REVIEWED_URL_TAGS:
+        return current != REVIEWED_URL_TAGS[name]
+    return url_routes(before) != current
 
 
 def original(path):
@@ -74,7 +112,6 @@ def run(*, collect_static=False):
     changed = sorted(set(changed))
     syntax_errors = []
     url_changes = []
-    url_pattern = r"{%\s*url\b.*?%}"
     for name in changed:
         path = ROOT / name
         if not path.is_file():
@@ -87,11 +124,7 @@ def run(*, collect_static=False):
                 syntax_errors.append({"path": name, "error": str(error)})
         if path.suffix == ".html":
             before = original(name)
-            # Capturing a reversed URL with "as name" preserves its route and
-            # arguments (reset mail now passes that path to the public-origin tag).
-            def routes(text):
-                return [re.sub(r"\s+as\s+\w+\s*%}", " %}", tag) for tag in re.findall(url_pattern, text, re.S)]
-            if before is not None and routes(before) != routes(source):
+            if url_contract_changed(name, before, source):
                 url_changes.append(name)
     report["python_syntax_errors"] = syntax_errors
     report["template_url_tag_changes"] = url_changes
@@ -105,7 +138,7 @@ def run(*, collect_static=False):
         "field_names": r'\bname=["\']([^"\']+)["\']',
         "tab_values": r'name=["\']settings_tab["\'][^>]*value=["\']([^"\']+)',
         "csrf_tags": r"{%\s*csrf_token\s*%}",
-        "url_tags": url_pattern,
+        "url_tags": URL_TAG_PATTERN,
     }
     contracts = {key: re.findall(pattern, before, re.S) == re.findall(pattern, after, re.S) for key, pattern in patterns.items()}
     # These are the only authorized changes inside existing settings scripts.

@@ -349,7 +349,7 @@
     if (e.key === 'Escape') {
       if (menuOpen) { closeMenu(); return; }
       if (searchOpen) { closeSearch(); return; }
-      document.querySelectorAll('.dc-dropdown.show').forEach(d => d.classList.remove('show'));
+      if (notifMenu?.classList.contains('show')) { closeNotifMenu(true); return; }
       const focusedMenu = document.activeElement?.closest('.dcv4-menu');
       closeV4Menus();
       if (focusedMenu?.id === 'dc-teams-menu') $('#dc-teams-toggle')?.focus();
@@ -384,25 +384,22 @@
   /* ════════════════════════════════════
      DESKTOP DROPDOWNS — Notifications (.dc-dropdown)
      ════════════════════════════════════ */
-  function toggleDropdown(btn, menu, chevron) {
-    if (!btn || !menu) return;
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const isOpen = menu.classList.contains('show');
-      document.querySelectorAll('.dc-dropdown.show').forEach(d => d.classList.remove('show'));
-      closeV4Menus();
-      if (!isOpen) {
-        menu.classList.add('show');
-        btn.setAttribute('aria-expanded', 'true');
-        if (chevron) chevron.style.transform = 'rotate(180deg)';
-      } else {
-        btn.setAttribute('aria-expanded', 'false');
-        if (chevron) chevron.style.transform = '';
-      }
-    });
+  /* One place owns the bell popover state: class, aria-expanded, inert, focus. */
+  function setNotifOpen(open, returnFocus) {
+    if (!notifBtn || !notifMenu) return;
+    notifMenu.classList.toggle('show', open);
+    notifMenu.inert = !open;
+    notifBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    if (open) notifMenu.focus({ preventScroll: true });
+    else if (returnFocus) notifBtn.focus();
   }
 
-  toggleDropdown(notifBtn, notifMenu, null);
+  notifBtn?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const open = !notifMenu?.classList.contains('show');
+    closeV4Menus();
+    setNotifOpen(open);
+  });
 
   /* ════════════════════════════════════
      v4 NAV MENUS — Tournaments / Teams (hover+click) · Profile (click)
@@ -421,10 +418,7 @@
       profileChevron.style.transform = '';
     }
   }
-  function closeNotifMenu() {
-    document.querySelectorAll('.dc-dropdown.show').forEach(d => d.classList.remove('show'));
-    notifBtn?.setAttribute('aria-expanded', 'false');
-  }
+  function closeNotifMenu(returnFocus) { setNotifOpen(false, returnFocus === true); }
 
   ['dc-teams'].forEach((key) => {
     const btn = $('#' + key + '-btn');
@@ -485,11 +479,11 @@
   }
 
   /* Close all dropdowns on outside click */
-  document.addEventListener('click', () => {
-    document.querySelectorAll('.dc-dropdown.show').forEach(d => d.classList.remove('show'));
+  document.addEventListener('click', (e) => {
+    // composedPath() is fixed at dispatch time, so it still names the popover when a click re-renders its rows.
+    if (!(notifMenu && e.composedPath().includes(notifMenu))) closeNotifMenu();
     closeV4Menus();
     profileBtn?.setAttribute('aria-expanded', 'false');
-    notifBtn?.setAttribute('aria-expanded', 'false');
   });
 
   /* ════════════════════════════════════

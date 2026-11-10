@@ -20,6 +20,9 @@ class EmailOrUsernameAuthenticationForm(AuthenticationForm):
         max_length=254,
         widget=forms.TextInput(attrs={
             'autofocus': True,
+            'autocomplete': 'username',
+            'autocapitalize': 'none',
+            'spellcheck': 'false',
             'placeholder': 'Enter your username or email'
         })
     )
@@ -41,6 +44,14 @@ class SignUpForm(forms.Form):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        # Presentation only: keyboard / password-manager hints and help text. Field names and validation unchanged.
+        text_hints = {"autocapitalize": "none", "autocorrect": "off", "spellcheck": "false"}
+        self.fields["username"].widget.attrs.update({"autocomplete": "username", **text_hints})
+        self.fields["email"].widget.attrs.update({"autocomplete": "email", "inputmode": "email", **text_hints})
+        self.fields["email"].help_text = "We will send a 6-digit code to confirm it."
+        self.fields["password1"].widget.attrs["autocomplete"] = "new-password"
+        self.fields["password1"].help_text = "At least 8 characters. Avoid common or all-number passwords."
+        self.fields["password2"].widget.attrs["autocomplete"] = "new-password"
         # Drop expired pending signups + orphaned OTPs before validation runs
         # so a stale record from days ago can never block a fresh attempt.
         try:

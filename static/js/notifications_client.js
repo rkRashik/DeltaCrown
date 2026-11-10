@@ -13,6 +13,7 @@
     sseDisabled: false,
     sseFastFailureCount: 0,
     sseReconnectDelayMs: 5000,
+    previewStatus: "loading",
   };
 
   /* ─── Category → Phosphor icon map ─── */
@@ -25,20 +26,21 @@
     WARNING:    "ph-fill ph-warning",
   };
 
-  var CAT_GRADIENT = {
-    TOURNAMENT: "linear-gradient(135deg,#0A84FF,#0066CC)",
-    TEAM:       "linear-gradient(135deg,#6849E5,#5438C0)",
-    ECONOMY:    "linear-gradient(135deg,#CFA75A,#B8913D)",
-    SOCIAL:     "linear-gradient(135deg,#2ED3A7,#22B08A)",
-    SYSTEM:     "linear-gradient(135deg,#788395,#616C7D)",
-    WARNING:    "linear-gradient(135deg,#FF3B5C,#D9304E)",
-  };
-
   var GOLD_ACTION_TYPES = ["checkin_open", "payout_received", "payment_verified", "achievement_earned"];
   var AZURE_ACTION_TYPES = ["bracket_ready", "match_scheduled", "tournament_registered", "reg_confirmed"];
 
   /* ─── Helpers ─── */
   function $(id) { return document.getElementById(id); }
+
+  /* Screen-reader announcements (one shared polite live region). */
+  var liveTimer = null;
+  function announce(msg) {
+    var el = $("dc-notif-live");
+    if (!el) return;
+    el.textContent = "";
+    clearTimeout(liveTimer);
+    liveTimer = setTimeout(function() { el.textContent = msg; }, 60);
+  }
 
   function getCsrfToken() {
     var meta = document.querySelector('meta[name="csrf-token"]');
@@ -114,7 +116,7 @@
     var cat = categoryOf(n);
     var badgeClass = "notif-cat-badge notif-cat-badge--" + cat;
     var badgeIcon = CAT_ICON[cat] || CAT_ICON.SYSTEM;
-    var badge = '<span class="' + badgeClass + '"><i class="' + badgeIcon + '"></i></span>';
+    var badge = '<span class="' + badgeClass + '" aria-hidden="true"><i class="' + badgeIcon + '"></i></span>';
 
     if (n.image || n.image_url) {
       return '<div class="notif-media"><img class="notif-art" src="' + escHtml(n.image || n.image_url) + '" alt="" onerror="this.style.display=\'none\'">' + badge + '</div>';
@@ -122,9 +124,8 @@
     if (n.avatar || n.avatar_url) {
       return '<div class="notif-media"><img class="notif-avatar" src="' + escHtml(n.avatar || n.avatar_url) + '" alt="" onerror="this.style.display=\'none\'">' + badge + '</div>';
     }
-    var bg = CAT_GRADIENT[cat] || CAT_GRADIENT.SYSTEM;
     var label = n.title || "Notification";
-    return '<div class="notif-media"><div class="notif-initials" style="background:' + bg + '">' + initials(label) + '</div>' + badge + '</div>';
+    return '<div class="notif-media"><div class="notif-initials" aria-hidden="true">' + initials(label) + '</div>' + badge + '</div>';
   }
 
   function buildFlagHtml(n) {
@@ -139,11 +140,10 @@
 
   function ctaLabel(n) {
     var t = (n.notification_type || n.type || "").toUpperCase();
-    if (t === "TOURNAMENT") return "View Tournament";
-    if (t === "TEAM") return "View Team";
-    if (t === "ECONOMY") return "View Details";
-    if (t === "SOCIAL") return "View Profile";
-    return "View Details";
+    if (t === "TOURNAMENT") return "View tournament";
+    if (t === "TEAM") return "View team";
+    if (t === "SOCIAL") return "View profile";
+    return "View details";
   }
 
   function ctaClass(n) {
@@ -159,10 +159,14 @@
     if (!hasActions && n.actionLink) {
       return '<div class="notif-actions">' +
         '<a href="' + escHtml(n.actionLink) + '" class="notif-btn ' + ctaClass(n) + '" data-inline-link="1" onclick="event.stopPropagation();">' +
-        ctaLabel(n) + ' <i class="ph ph-arrow-right" style="font-size:13px"></i></a></div>';
+        ctaLabel(n) + ' <i class="ph ph-arrow-right" style="font-size:13px" aria-hidden="true"></i></a></div>';
     }
 
-    if (!hasActions) return "";
+    if (!hasActions) {
+      // No link and no actions: keep a keyboard-reachable way to clear the unread state.
+      if (!n.read) return '<div class="notif-actions"><button type="button" class="notif-btn notif-btn--decline" data-mark-read="' + n.id + '">Mark as read</button></div>';
+      return "";
+    }
 
     var html = '<div class="notif-actions">';
     for (var i = 0; i < actions.length; i++) {
@@ -184,7 +188,8 @@
   function buildRowHtml(n) {
     var isUnread = !n.read;
     var rowCls = "notif-row" + (isUnread ? " unread" : "");
-    var dot = isUnread ? '<span class="notif-dot"></span>' : "";
+    var dot = isUnread ? '<span class="notif-dot" aria-hidden="true"></span>' : "";
+    var unreadSr = isUnread ? '<span class="notif-sr">Unread: </span>' : "";
     var media = buildMediaHtml(n);
     var titleHtml = n.titleHtml || n.title_html || escHtml(n.title || "Notification");
     var bodyHtml = n.htmlText || n.html_text || "";
@@ -196,7 +201,7 @@
       dot + media +
       '<div class="notif-body">' +
         '<div class="notif-body__top">' +
-          '<span class="notif-body__text">' + titleHtml + '</span>' +
+          '<span class="notif-body__text">' + unreadSr + titleHtml + '</span>' +
           '<span class="notif-body__time">' + t + '</span>' +
         '</div>' +
         (bodyHtml ? '<div class="notif-body__sub">' + bodyHtml + '</div>' : '') +
@@ -209,11 +214,29 @@
     var rowInner = buildRowHtml(n);
     return '<div class="notif-swipe" data-notification-id="' + n.id + '">' +
       '<div class="notif-swipe__actions">' +
-        '<button class="notif-swipe__action notif-swipe__action--read" data-swipe-read="' + n.id + '"><i class="ph-bold ph-check" style="font-size:16px"></i><span>Read</span></button>' +
-        '<button class="notif-swipe__action notif-swipe__action--archive" data-swipe-archive="' + n.id + '"><i class="ph-bold ph-trash" style="font-size:16px"></i><span>Archive</span></button>' +
+        '<button type="button" tabindex="-1" aria-hidden="true" class="notif-swipe__action notif-swipe__action--read" data-swipe-read="' + n.id + '"><i class="ph-bold ph-check" style="font-size:16px"></i><span>Read</span></button>' +
+        '<button type="button" tabindex="-1" aria-hidden="true" class="notif-swipe__action notif-swipe__action--archive" data-swipe-archive="' + n.id + '"><i class="ph-bold ph-trash" style="font-size:16px"></i><span>Archive</span></button>' +
       '</div>' +
       '<div class="notif-swipe__fg">' + rowInner + '</div>' +
     '</div>';
+  }
+
+  /* Loading / error placeholders shared by the popover and the mobile sheet. */
+  function previewStateHtml(el) {
+    if (state.previewStatus === "loading") {
+      el.innerHTML = '<div class="notif-empty"><p class="notif-empty__sub">Loading notifications…</p></div>';
+      return true;
+    }
+    if (state.previewStatus === "error") {
+      el.innerHTML =
+        '<div class="notif-empty">' +
+          '<p class="notif-empty__title">Could not load notifications</p>' +
+          '<p class="notif-empty__sub">Check your connection and try again.</p>' +
+          '<button type="button" class="notif-btn notif-btn--decline" data-notif-retry="1" style="margin-top:14px">Try again</button>' +
+        '</div>';
+      return true;
+    }
+    return false;
   }
 
   /* ─── Render: desktop popover ─── */
@@ -222,12 +245,13 @@
     if (!el) return;
     var items = filtered(state.previewItems, state.previewFilter).slice(0, 10);
 
+    if (previewStateHtml(el)) return;
     if (!items.length) {
       el.innerHTML =
         '<div class="notif-empty">' +
-          '<div class="notif-empty__icon"><i class="ph ph-check-circle"></i></div>' +
-          '<p class="notif-empty__title">You\'re all caught up</p>' +
-          '<p class="notif-empty__sub">No notifications in this filter.</p>' +
+          '<div class="notif-empty__icon" aria-hidden="true"><i class="ph ph-bell"></i></div>' +
+          '<p class="notif-empty__title">' + (state.previewFilter === "ALL" ? "No notifications yet" : "Nothing in this filter") + '</p>' +
+          '<p class="notif-empty__sub">' + (state.previewFilter === "ALL" ? "Updates about your tournaments, teams and account will show up here." : "Switch to All to see everything.") + '</p>' +
         '</div>';
       return;
     }
@@ -251,12 +275,13 @@
     if (!el) return;
     var items = filtered(state.previewItems, state.previewFilter).slice(0, 15);
 
+    if (previewStateHtml(el)) return;
     if (!items.length) {
       el.innerHTML =
         '<div class="notif-empty">' +
-          '<div class="notif-empty__icon"><i class="ph ph-check-circle"></i></div>' +
-          '<p class="notif-empty__title">You\'re all caught up</p>' +
-          '<p class="notif-empty__sub">No notifications in this filter.</p>' +
+          '<div class="notif-empty__icon" aria-hidden="true"><i class="ph ph-bell"></i></div>' +
+          '<p class="notif-empty__title">' + (state.previewFilter === "ALL" ? "No notifications yet" : "Nothing in this filter") + '</p>' +
+          '<p class="notif-empty__sub">' + (state.previewFilter === "ALL" ? "Updates about your tournaments, teams and account will show up here." : "Switch to All to see everything.") + '</p>' +
         '</div>';
       return;
     }
@@ -281,14 +306,14 @@
     if (!feed) return;
     var count = $("dc-feed-count");
     var items = filtered(state.mainItems, state.mainFilter);
-    if (count) count.innerHTML = "Showing <strong style='color:#F4F6FA'>" + items.length + "</strong> alerts";
+    if (count) count.textContent = items.length === 1 ? "1 notification" : items.length + " notifications";
 
     if (!items.length) {
       feed.innerHTML =
         '<div class="notif-empty" style="padding:60px 24px;">' +
-          '<div class="notif-empty__icon"><i class="ph ph-check-circle"></i></div>' +
-          '<p class="notif-empty__title">All Caught Up</p>' +
-          '<p class="notif-empty__sub">No notifications to show.</p>' +
+          '<div class="notif-empty__icon" aria-hidden="true"><i class="ph ph-bell"></i></div>' +
+          '<p class="notif-empty__title">' + (state.mainFilter === "ALL" ? "No notifications yet" : "Nothing in this filter") + '</p>' +
+          '<p class="notif-empty__sub">' + (state.mainFilter === "ALL" ? "Updates about your tournaments, teams and account will show up here." : "Choose All notifications to see everything.") + '</p>' +
         '</div>';
       return;
     }
@@ -347,11 +372,10 @@
       pill.textContent = unread > 0 ? (unread > 99 ? "99+" : unread) + " new" : "";
     }
 
-    var tabAll = $("dc-tab-count-all");
-    if (tabAll) {
-      var unreadPreview = state.previewItems.filter(function(n){return !n.read;}).length;
-      tabAll.textContent = unreadPreview > 0 ? unreadPreview : "";
-    }
+    ["dc-mark-read-btn", "dc-mobile-mark-read"].forEach(function(id) {
+      var b = $(id);
+      if (b) b.disabled = unread === 0;
+    });
 
     // Inbox page counters
     var map = {};
@@ -389,9 +413,15 @@
     return fetchJson("/notifications/api/preview/?limit=12", { headers: { "X-Requested-With": "XMLHttpRequest" } }).then(function(data) {
       state.previewItems = Array.isArray(data && data.items) ? data.items : [];
       state.unreadCount = Number((data && data.unread_count) || 0);
+      state.previewStatus = "ready";
       renderPopover();
       renderMobileSheet();
       updateCounters();
+    }).catch(function() {
+      state.previewStatus = "error";
+      renderPopover();
+      renderMobileSheet();
+      announce("Could not load notifications.");
     });
   }
 
@@ -427,6 +457,7 @@
       });
       if (wasUnread) state.unreadCount = Math.max(0, state.unreadCount - 1);
       renderAll();
+      announce("Notification marked as read.");
     });
   }
 
@@ -440,6 +471,9 @@
       });
       state.unreadCount = 0;
       renderAll();
+      announce("All notifications marked as read.");
+    }).catch(function() {
+      announce("Could not mark notifications as read. Try again.");
     });
   }
 
@@ -506,6 +540,12 @@
     var sheet = $("dc-mobile-notif-sheet");
     if (!btn || !overlay || !sheet) return;
     var isOpen = false;
+    var closeBtn = $("dc-mobile-notif-close");
+
+    function focusables() {
+      return Array.prototype.slice.call(sheet.querySelectorAll('a[href], button:not([disabled]):not([tabindex="-1"]), [tabindex="0"]'))
+        .filter(function(el) { return el.offsetParent !== null; });
+    }
 
     function open() {
       if (isOpen) return;
@@ -514,26 +554,38 @@
       overlay.classList.add("is-open");
       sheet.classList.add("is-open");
       overlay.setAttribute("aria-hidden", "false");
-      sheet.setAttribute("aria-hidden", "false");
+      sheet.inert = false;
       btn.setAttribute("aria-expanded", "true");
       document.body.style.overflow = "hidden";
+      (closeBtn || sheet).focus({ preventScroll: true });
     }
 
-    function close() {
+    function close(returnFocus) {
       if (!isOpen) return;
       isOpen = false;
       sheet.classList.remove("is-open");
       overlay.classList.remove("is-open");
       overlay.setAttribute("aria-hidden", "true");
-      sheet.setAttribute("aria-hidden", "true");
+      sheet.inert = true;
       btn.setAttribute("aria-expanded", "false");
       document.body.style.overflow = "";
+      if (returnFocus === true) btn.focus();
     }
 
     btn.addEventListener("click", function(e) { e.preventDefault(); e.stopPropagation(); open(); });
-    overlay.addEventListener("click", close);
+    overlay.addEventListener("click", function() { close(true); });
+    if (closeBtn) closeBtn.addEventListener("click", function() { close(true); });
 
-    document.addEventListener("keydown", function(e) { if (e.key === "Escape") close(); });
+    document.addEventListener("keydown", function(e) {
+      if (!isOpen) return;
+      if (e.key === "Escape") { close(true); return; }
+      if (e.key !== "Tab") return;
+      var f = focusables();
+      if (!f.length) { e.preventDefault(); return; }
+      var first = f[0], last = f[f.length - 1];
+      if (e.shiftKey && (document.activeElement === first || document.activeElement === sheet)) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    });
     window.addEventListener("resize", function() { if (window.innerWidth >= 768) close(); });
 
     var handle = $("dc-mobile-notif-handle");
@@ -602,12 +654,31 @@
   function setupFilterTabs(containerId, onChange) {
     var container = $(containerId);
     if (!container) return;
-    var tabs = container.querySelectorAll("[data-filter]");
-    tabs.forEach(function(tab) {
-      tab.addEventListener("click", function() {
-        tabs.forEach(function(t) { t.classList.remove("active"); });
-        tab.classList.add("active");
-        onChange(tab.getAttribute("data-filter"));
+    var tabs = Array.prototype.slice.call(container.querySelectorAll("[data-filter]"));
+    var panelId = tabs[0] && tabs[0].getAttribute("aria-controls");
+    function select(tab, focus) {
+      tabs.forEach(function(t) {
+        var on = t === tab;
+        t.classList.toggle("active", on);
+        t.setAttribute("aria-selected", on ? "true" : "false");
+        t.tabIndex = on ? 0 : -1;
+      });
+      var panel = panelId && $(panelId);
+      if (panel && tab.id) panel.setAttribute("aria-labelledby", tab.id);
+      if (focus) tab.focus();
+      onChange(tab.getAttribute("data-filter"));
+      var shown = filtered(state.previewItems, state.previewFilter).length;
+      announce(tab.textContent.trim() + ": " + shown + (shown === 1 ? " notification" : " notifications"));
+    }
+    tabs.forEach(function(tab, i) {
+      tab.addEventListener("click", function() { select(tab, false); });
+      tab.addEventListener("keydown", function(e) {
+        var next = null;
+        if (e.key === "ArrowRight") next = tabs[(i + 1) % tabs.length];
+        else if (e.key === "ArrowLeft") next = tabs[(i - 1 + tabs.length) % tabs.length];
+        else if (e.key === "Home") next = tabs[0];
+        else if (e.key === "End") next = tabs[tabs.length - 1];
+        if (next) { e.preventDefault(); select(next, true); }
       });
     });
   }
@@ -675,6 +746,15 @@
         return;
       }
 
+      var retryBtn = e.target.closest("[data-notif-retry]");
+      if (retryBtn) { e.preventDefault(); state.previewStatus = "loading"; renderPopover(); renderMobileSheet(); loadPreview(); return; }
+
+      var feedRetry = e.target.closest("[data-feed-retry]");
+      if (feedRetry) { e.preventDefault(); mountSkeleton(); loadFeed(1, false).catch(function() { var f = $("dc-main-feed"); if (f) f.innerHTML = '<div class="notif-empty"><p class="notif-empty__title">Still could not load notifications</p></div>'; }); return; }
+
+      var readBtn = e.target.closest("[data-mark-read]");
+      if (readBtn) { e.preventDefault(); e.stopPropagation(); markRead(Number(readBtn.getAttribute("data-mark-read"))).catch(function() { announce("Could not mark as read. Try again."); }); return; }
+
       var inlineLink = e.target.closest('a[data-inline-link="1"]');
       if (inlineLink) return;
 
@@ -712,6 +792,7 @@
     if (clearBtn) {
       clearBtn.addEventListener("click", function(e) {
         e.preventDefault();
+        if (!window.confirm("Clear all notifications? This cannot be undone.")) return;
         fetchJson("/notifications/clear-all/", {
           method: "POST", headers: apiHeaders(),
         }).then(function() {
@@ -719,7 +800,8 @@
           state.previewItems = [];
           state.unreadCount = 0;
           renderAll();
-        }).catch(function(err) { console.warn("Clear all failed", err); });
+          announce("All notifications cleared.");
+        }).catch(function(err) { console.warn("Clear all failed", err); announce("Could not clear notifications. Try again."); });
       });
     }
 
@@ -735,8 +817,9 @@
     // Inbox page: sidebar filters
     document.querySelectorAll(".dc-filter-btn").forEach(function(btn) {
       btn.addEventListener("click", function() {
-        document.querySelectorAll(".dc-filter-btn").forEach(function(b) { b.classList.remove("active"); });
+        document.querySelectorAll(".dc-filter-btn").forEach(function(b) { b.classList.remove("active"); b.setAttribute("aria-pressed", "false"); });
         btn.classList.add("active");
+        btn.setAttribute("aria-pressed", "true");
         state.mainFilter = btn.dataset.filter || "ALL";
         renderMainFeed();
       });
@@ -754,9 +837,8 @@
       renderMobileSheet();
     });
 
-    // Prevent clicks inside the popover from closing it via primary_navigation.js document click handler
-    var popover = $("dc-notif-menu");
-    if (popover) popover.addEventListener("click", function(e) { e.stopPropagation(); });
+    // Clicks inside the popover are ignored by primary_navigation.js's outside-click handler (it checks composedPath),
+    // so nothing here may stop propagation: the delegated handler above must see them.
   }
 
   /* ─── Init ─── */
@@ -784,6 +866,8 @@
     if (!hasNavSurface && !hasFeedSurface) return;
 
     mountSkeleton();
+    renderPopover();
+    renderMobileSheet();
     setupMobileSheet();
     wireGlobalActions();
 
@@ -792,7 +876,7 @@
       $("dc-main-feed") ? loadFeed(1, false) : Promise.resolve(),
     ]).catch(function() {
       var feed = $("dc-main-feed");
-      if (feed) feed.innerHTML = '<div style="padding:40px;text-align:center;color:#FF6076;">Failed to load notifications.</div>';
+      if (feed) feed.innerHTML = '<div class="notif-empty"><p class="notif-empty__title">Could not load notifications</p><p class="notif-empty__sub">Check your connection and try again.</p><button type="button" class="notif-btn notif-btn--decline" data-feed-retry="1" style="margin-top:14px">Try again</button></div>';
     });
 
     connectSSE();
