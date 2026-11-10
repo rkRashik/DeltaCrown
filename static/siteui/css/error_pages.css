@@ -1,0 +1,38 @@
+/* OwnLobby error pages (403, 404, 500). Plain recovery pages: what happened, what to do next. */
+.err-page {
+    min-height: calc(100vh - 4rem);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 1rem;
+    background: var(--ol-canvas, #0B0C0C);
+    color: var(--ol-ivory, #F6F1E7);
+}
+.err-card { width: 100%; max-width: 34rem; }
+.err-code {
+    margin: 0 0 0.75rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ol-saffron, #E2B761);
+}
+.err-title {
+    margin: 0 0 0.75rem;
+    font-size: clamp(1.75rem, 5vw, 2.25rem);
+    line-height: 1.15;
+    font-weight: 700;
+    letter-spacing: -0.015em;
+    color: var(--ol-ivory, #F6F1E7);
+}
+.err-desc { margin: 0 0 1.75rem; font-size: 1rem; line-height: 1.6; color: var(--ol-text-muted, #A8A39A); }
+.err-actions { display: flex; flex-wrap: wrap; gap: 0.75rem; }
+.err-actions .ol-btn { text-decoration: none; }
+.err-links { margin: 1.75rem 0 0; padding-top: 1.25rem; border-top: 1px solid var(--ol-border, rgba(246, 241, 231, 0.12)); font-size: 0.9375rem; color: var(--ol-text-muted, #A8A39A); }
+.err-links a { color: var(--ol-saffron, #E2B761); font-weight: 600; text-underline-offset: 3px; }
+.err-links a:hover { text-decoration: underline; }
+/* Standalone 500 page has no site header, so it carries its own wordmark. */
+.err-standalone { margin: 0; font-family: var(--ol-font, Inter, system-ui, sans-serif); background: var(--ol-canvas, #0B0C0C); }
+.err-brand { display: inline-block; margin-bottom: 2rem; font-size: 1.125rem; font-weight: 700; color: var(--ol-ivory, #F6F1E7); text-decoration: none; }
+.err-brand span { color: var(--ol-saffron, #E2B761); }
+.err-standalone .err-page { min-height: 100vh; }
